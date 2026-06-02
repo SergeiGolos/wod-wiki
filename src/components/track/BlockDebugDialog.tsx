@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/h
 import { cn } from '@/lib/utils';
 import type { IRuntimeBlock, IScriptRuntime } from '@/hooks/useRuntimeTimer';
 import type { ICodeStatement } from '@/core/models/CodeStatement';
-import { MetricSourceRow } from '@/components/metrics/MetricSourceRow';
+import { MetricSourceRow } from '@/components/molecules/MetricSourceRow'
 
 export interface BlockDebugDialogProps {
     open: boolean;

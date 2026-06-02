@@ -3,7 +3,7 @@ import { ChevronRight, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseFrontmatter, extractLinkWidgets } from '@/lib/frontmatter';
 import type { WodCollectionItem } from '@/repositories/wod-collections';
-import { LinkChip } from './LinkChip';
+import { LinkChip } from '@/components/molecules/LinkChip'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

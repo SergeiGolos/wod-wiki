@@ -17,13 +17,13 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
-import { WorkoutActionButton } from '@/components/workout/WorkoutActionButton';
+import { WorkoutActionButton } from '@/components/molecules/WorkoutActionButton';
 import { FileInput } from 'lucide-react';
 
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof WorkoutActionButton> = {
-  title: 'catalog/organisms/WorkoutActionButton',
+  title: 'catalog/molecules/WorkoutActionButton',
   component: WorkoutActionButton,
   parameters: { layout: 'padded', subsystem: 'workbench' },
   args: {

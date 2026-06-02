@@ -17,7 +17,7 @@ import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { IMetricSource } from '@/core/contracts/IMetricSource';
 import { VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
-import { MetricSourceRow, FragmentSourceStatus, FragmentSourceEntry } from './MetricSourceRow';
+import { MetricSourceRow, FragmentSourceStatus, FragmentSourceEntry } from '@/components/molecules/MetricSourceRow';
 
 export interface MetricSourceListProps {
     /** Fragment source entries to display */

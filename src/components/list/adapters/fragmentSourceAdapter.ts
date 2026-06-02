@@ -1,4 +1,4 @@
-import type { FragmentSourceEntry } from '@/components/metrics/MetricSourceRow';
+import type { FragmentSourceEntry } from '@/components/molecules/MetricSourceRow';
 import type { IListItem } from '../types';
 
 export function fragmentSourceToListItem(

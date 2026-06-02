@@ -17,7 +17,7 @@ import {
   RotateCcw,
   Download,
 } from 'lucide-react';
-import { ButtonGroupDropdown } from '@/components/ui/ButtonGroupDropdown';
+import { ButtonGroupDropdown } from '@/components/molecules/ButtonGroupDropdown';
 import type { INavActivation } from '@/nav/navTypes';
 
 const meta: Meta<typeof ButtonGroupDropdown> = {

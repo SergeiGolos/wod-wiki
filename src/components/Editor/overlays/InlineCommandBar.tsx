@@ -17,7 +17,7 @@ import type { WodCommand } from "./WodCommand";
 import type { WodBlock } from "../types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/ButtonGroup";
+import { ButtonGroup } from "@/components/molecules/ButtonGroup";
 import type { INavActivation } from "@/nav/navTypes";
 import { TEST_IDS } from "@/testing/contracts/TestIdContract";
 

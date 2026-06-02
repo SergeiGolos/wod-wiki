@@ -134,7 +134,7 @@ mock.module('../components/MacOSChrome', () => ({
   ),
 }))
 
-mock.module('@/components/ui/ButtonGroup', () => ({
+mock.module('@/components/molecules/ButtonGroup', () => ({
   ButtonGroup: ({ primary }: { primary: { action: { handler: () => void } } }) => (
     <button onClick={primary.action.handler}>Run</button>
   ),

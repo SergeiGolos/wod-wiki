@@ -2,7 +2,7 @@ import * as React from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import type { VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
-import { buttonVariants } from './button'
+import { buttonVariants } from '@/components/ui/button'
 
 type ButtonLinkIcon = React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
 

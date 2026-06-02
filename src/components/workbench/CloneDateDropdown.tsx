@@ -8,7 +8,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import type { IContentProvider } from '@/types/content-provider';
-import { WorkoutActionButton } from '@/components/workout/WorkoutActionButton';
+import { WorkoutActionButton } from '@/components/molecules/WorkoutActionButton'
 
 export interface CloneDateDropdownProps {
   /** Callback when a date is selected. Receives the target date timestamp. */

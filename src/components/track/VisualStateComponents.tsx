@@ -5,7 +5,7 @@ import { Clock, CheckCircle2, ListTree, Timer, Table2 } from 'lucide-react';
 import { useTimerElapsed, useRoundDisplay, useScriptRuntime, useNextPreview } from '@/hooks/useRuntimeTimer';
 import type { IScriptRuntime, IRuntimeBlock, MetricVisibility } from '@/hooks/useRuntimeTimer';
 import { formatTimeMMSS } from '../../lib/formatTime';
-import { MetricSourceRow } from '../metrics/MetricSourceRow';
+import { MetricSourceRow } from '@/components/molecules/MetricSourceRow';
 import { MetricContainer } from '@/core/models/MetricContainer';
 import { VisibilityBadge } from '../metrics/VisibilityBadge';
 import { useDebugMode } from '@/components/layout/DebugModeContext';

@@ -13,7 +13,7 @@ export { StatementDisplay, BlockDisplay, MetricList } from './StatementDisplay';
 export type { StatementDisplayProps, BlockDisplayProps, MetricListProps } from './StatementDisplay';
 
 // Fragment Source Visualization
-export { MetricSourceRow, type MetricSourceRowProps, type FragmentSourceStatus, type FragmentSourceEntry } from './MetricSourceRow';
+export { MetricSourceRow, type MetricSourceRowProps, type FragmentSourceStatus, type FragmentSourceEntry } from '@/components/molecules/MetricSourceRow';
 export { MetricSourceList, type MetricSourceListProps } from './MetricSourceList';
 
 // Re-export display configuration types

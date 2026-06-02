@@ -14,11 +14,11 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowPathIcon, PlusIcon } from '@heroicons/react/20/solid'
 
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
-import { ButtonGroup } from '@/components/ui/ButtonGroup'
+import { ButtonGroup } from '@/components/molecules/ButtonGroup'
 import type { PageNavLink } from '@/components/layout/PageNavDropdown'
 import type { PageMode } from '@/types/content-type'
 
-import { NavSearchInput } from '../../components/NavSearchInput'
+import { NavSearchInput } from '@/components/molecules/NavSearchInput'
 import { ActionsMenu } from './PageToolbar'
 import { mapIndexToL3 } from './pageUtils'
 import { DEFAULT_PLAYGROUND_CONTENT } from '../../templates/defaultPlaygroundContent'

@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { NoteDetailsPanel } from '../workbench/NoteDetailsPanel';
 import { useTheme } from '../theme/ThemeProvider';
-import { CommitGraph } from '../ui/CommitGraph';
+import { CommitGraph } from '@/components/organisms/CommitGraph';
 import { ResponsiveViewport } from '@/panels/panel-system/ResponsiveViewport';
 import { createPlanView, createTrackView, createReviewView } from '@/panels/panel-system/viewDescriptors';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';

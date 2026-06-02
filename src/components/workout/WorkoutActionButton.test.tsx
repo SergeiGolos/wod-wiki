@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { WorkoutActionButton } from './WorkoutActionButton';
+import { WorkoutActionButton } from '@/components/molecules/WorkoutActionButton';
 import type { IContentProvider } from '@/types/content-provider';
 
 describe('WorkoutActionButton', () => {

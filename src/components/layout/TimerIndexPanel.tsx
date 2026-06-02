@@ -7,7 +7,7 @@
 import React from 'react';
 import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
 import { RuntimeHistoryLog } from '../history/RuntimeHistoryLog';
-import { FragmentSourceEntry } from '../metrics/MetricSourceRow';
+import { FragmentSourceEntry } from '@/components/molecules/MetricSourceRow';
 
 export interface TimerIndexPanelProps {
   /** Active runtime for live tracking */

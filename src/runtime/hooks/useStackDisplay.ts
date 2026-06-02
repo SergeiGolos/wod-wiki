@@ -3,7 +3,7 @@ import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { TimerState, ButtonConfig } from '../memory/MemoryTypes';
 import { IMetricSource } from '../../core/contracts/IMetricSource';
 import { MetricContainer } from '../../core/models/MetricContainer';
-import { FragmentSourceEntry } from '../../components/metrics/MetricSourceRow';
+import { FragmentSourceEntry } from '@/components/molecules/MetricSourceRow';
 import { useSnapshotBlocks } from './useStackSnapshot';
 
 // ============================================================================

@@ -6,7 +6,7 @@ import { ReceiverCastSignaling } from '@/services/cast/CastSignaling';
 import { WebRTCTransport } from '@/services/cast/WebRTCTransport';
 import { TimerStackView } from '@/components/workout/TimerStackView';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
-import { MetricSourceRow } from '@/components/metrics/MetricSourceRow';
+import { MetricSourceRow } from '@/components/molecules/MetricSourceRow'
 import { cn } from '@/lib/utils';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import { Timer, CheckCircle2 } from 'lucide-react';

@@ -28,7 +28,7 @@ import { useWodLineResults } from "../hooks/useWodLineResults";
 import type { LineExecutionSummary } from "../hooks/useWodLineResults";
 import { History, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/ButtonGroup";
+import { ButtonGroup } from "@/components/molecules/ButtonGroup";
 import type { INavActivation } from "@/nav/navTypes";
 
 // ── Singleton parser (created once per module) ───────────────────────

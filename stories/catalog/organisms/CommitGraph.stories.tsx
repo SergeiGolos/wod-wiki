@@ -6,10 +6,10 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
-import { CommitGraph } from '@/components/ui/CommitGraph';
+import { CommitGraph } from '@/components/organisms/CommitGraph';
 
 const meta: Meta<typeof CommitGraph> = {
-  title: 'catalog/molecules/workout/CommitGraph',
+  title: 'catalog/organisms/workout/CommitGraph',
   component: CommitGraph,
   parameters: { layout: 'centered', subsystem: 'workbench' },
   decorators: [

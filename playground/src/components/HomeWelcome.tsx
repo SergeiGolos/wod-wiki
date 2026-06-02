@@ -11,7 +11,7 @@
 
 import { FolderIcon, MagnifyingGlassIcon, RectangleStackIcon } from '@heroicons/react/20/solid'
 import { Play, BookOpen, BarChart2 } from 'lucide-react'
-import { ButtonLink } from '@/components/ui/ButtonLink'
+import { ButtonLink } from '@/components/molecules/ButtonLink'
 
 const inlineActionClassName = 'mx-1 inline-flex h-6 items-center gap-1 rounded-md border border-border bg-muted/30 px-2 align-baseline text-[11px] font-semibold leading-none text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted/50 hover:text-foreground'
 

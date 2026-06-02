@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Blocks, Layers3, RotateCcw, TrendingUp } from 'lucide-react'
-import { ButtonListControl, type ButtonListControlItem } from '@/components/ui/ButtonListControl'
+import { ButtonListControl, type ButtonListControlItem } from '@/components/molecules/ButtonListControl'
 
 const meta: Meta<typeof ButtonListControl> = {
   title: 'catalog/molecules/content/ButtonListControl',

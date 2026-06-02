@@ -17,7 +17,7 @@ import { BookOpen, Dumbbell } from 'lucide-react'
 import { Sidebar, SidebarBody, SidebarHeader, SidebarItem, SidebarLabel, SidebarSection } from '@/components/layout/Sidebar'
 import { SidebarAccordion } from '@/components/layout/SidebarAccordion'
 import { ShortcutBadge } from '@/components/list/ShortcutBadge'
-import { ButtonLink } from '@/components/ui/ButtonLink'
+import { ButtonLink } from '@/components/molecules/ButtonLink'
 
 import { useNav } from './NavContext'
 import { executeNavAction } from './navTypes'

@@ -2,7 +2,7 @@ import React, { useMemo, useEffect, useState } from 'react';
 import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
 import { useOutputStatements } from '@/hooks/useRuntimeTimer';
 import { MetricSourceList } from '@/components/metrics/MetricSourceList';
-import { FragmentSourceEntry, FragmentSourceStatus } from '@/components/metrics/MetricSourceRow';
+import { FragmentSourceEntry, FragmentSourceStatus } from '@/components/molecules/MetricSourceRow'
 import { IMetricSource } from '@/core/contracts/IMetricSource';
 import { MetricType } from '@/core/models/Metric';
 import { VisualizerSize } from '@/core/models/DisplayItem';

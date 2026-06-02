@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { NoteEditor } from '@/components/Editor/NoteEditor';
 import { parseFrontmatter, extractLinkWidgets } from '@/lib/frontmatter';
-import { LinkChip } from '@/components/collections/LinkChip';
+import { LinkChip } from '@/components/molecules/LinkChip'
 import type { WodCollectionItem } from '@/repositories/wod-collections';
 
 export interface CollectionPreviewProps {

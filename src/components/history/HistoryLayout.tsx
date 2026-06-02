@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { CommitGraph } from '@/components/ui/CommitGraph';
+import { CommitGraph } from '@/components/organisms/CommitGraph';
 import { Button } from '@/components/ui/button';
 import { Search, HelpCircle, PanelRightOpen, Book, Library, LayoutGrid, ChevronDown } from 'lucide-react';
 import { useTutorialStore } from '@/hooks/useTutorialStore';
