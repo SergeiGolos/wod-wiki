@@ -43,6 +43,7 @@ import { useScreenMode } from '@/panels/panel-system/useScreenMode';
 import { MetricType } from '@/core/models/Metric';
 import type { ProjectionResult } from '@/core/analytics/ProjectionResult';
 import { WorkbenchHeader } from '@/components/organisms/workbench/WorkbenchHeader';
+import { WorkbenchTemplate } from '@/templates';
 import type { Attachment } from '@/types/storage';
 
 declare const __APP_VERSION__: string | undefined;
@@ -410,49 +411,43 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
   return (
     <React.Fragment>
-      <div
-        className="h-screen w-screen flex flex-col overflow-hidden bg-background relative"
-      >
-        {isDragging && (
-          <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center border-4 border-dashed border-primary">
-            <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-200 pointer-events-none">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <Upload className="h-8 w-8 text-primary" />
+      <WorkbenchTemplate
+        dragOverlay={
+          isDragging ? (
+            <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center border-4 border-dashed border-primary">
+              <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-200 pointer-events-none">
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Upload className="h-8 w-8 text-primary" />
+                </div>
+                <p className="text-xl font-medium">Drop files to attach to this note</p>
+                <p className="text-sm text-muted-foreground">GPX and other files supported</p>
               </div>
-              <p className="text-xl font-medium">Drop files to attach to this note</p>
-              <p className="text-sm text-muted-foreground">GPX and other files supported</p>
             </div>
-          </div>
-        )}
-
-        <WorkbenchHeader
-          appVersion={appVersion}
-          isMobile={isMobile}
-          currentEntry={currentEntry}
-          saveState={saveState}
-          onSearch={editorProps.onSearch}
-          viewMode={viewMode}
-          views={viewDescriptors.map(v => ({ id: v.id, label: v.label ?? v.title ?? v.id, icon: v.icon }))}
-          onViewChange={(id) => setViewMode(id as ViewMode)}
-          attachments={attachments}
-          fileInputRef={fileInputRef}
-          onFileSelect={handleFileSelect}
-          onDownloadAttachment={handleDownload}
-          onDeleteAttachment={deleteAttachment}
-          currentEntryTags={currentEntryTags}
-          onNotebookToggle={handleNotebookToggleForCurrent}
-          isDetailsOpen={isDetailsOpen}
-          onToggleDetails={() => setIsDetailsOpen(!isDetailsOpen)}
-          onStartTutorial={(vm) => startTutorial(vm as any)}
-        />
-
-        <div className="flex-1 min-h-0 overflow-hidden relative">
-          <ResponsiveViewport
-            views={viewDescriptors}
-            currentView={viewMode}
-            onViewChange={setViewMode}
-            panelLayouts={panelLayouts}
+          ) : undefined
+        }
+        header={
+          <WorkbenchHeader
+            appVersion={appVersion}
+            isMobile={isMobile}
+            currentEntry={currentEntry}
+            saveState={saveState}
+            onSearch={editorProps.onSearch}
+            viewMode={viewMode}
+            views={viewDescriptors.map(v => ({ id: v.id, label: v.label ?? v.title ?? v.id, icon: v.icon }))}
+            onViewChange={(id) => setViewMode(id as ViewMode)}
+            attachments={attachments}
+            fileInputRef={fileInputRef}
+            onFileSelect={handleFileSelect}
+            onDownloadAttachment={handleDownload}
+            onDeleteAttachment={deleteAttachment}
+            currentEntryTags={currentEntryTags}
+            onNotebookToggle={handleNotebookToggleForCurrent}
+            isDetailsOpen={isDetailsOpen}
+            onToggleDetails={() => setIsDetailsOpen(!isDetailsOpen)}
+            onStartTutorial={(vm) => startTutorial(vm as any)}
           />
+        }
+        sidePanel={
           <NoteDetailsPanel
             isOpen={isDetailsOpen}
             onClose={() => setIsDetailsOpen(false)}
@@ -466,8 +461,15 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
               }
             }}
           />
-        </div>
-      </div >
+        }
+      >
+        <ResponsiveViewport
+          views={viewDescriptors}
+          currentView={viewMode}
+          onViewChange={setViewMode}
+          panelLayouts={panelLayouts}
+        />
+      </WorkbenchTemplate>
       <PaletteShell />
     </React.Fragment>
   );
