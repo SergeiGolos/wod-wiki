@@ -16,14 +16,8 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { HomeIcon, BookOpenIcon, FolderIcon, MagnifyingGlassIcon, Cog6ToothIcon, BellIcon } from '@heroicons/react/20/solid';
 import { Dumbbell } from 'lucide-react';
 
-import { SidebarLayout } from '@/components/playground/sidebar-layout';
-import {
-  Navbar,
-  NavbarItem,
-  NavbarLabel,
-  NavbarSection,
-  NavbarSpacer,
-} from '@/components/playground/navbar';
+import { SidebarLayout } from '@/components/layout/SidebarLayout'
+import { Navbar, NavbarItem, NavbarLabel, NavbarSection, NavbarSpacer } from '@/components/layout/Navbar'
 import {
   Sidebar,
   SidebarBody,
@@ -32,7 +26,7 @@ import {
   SidebarItem,
   SidebarLabel,
   SidebarSection,
-} from '@/components/playground/sidebar';
+} from '@/components/layout/Sidebar';
 import { AudioToggle } from '@/components/audio/AudioToggle';
 
 // ─── Shared slot components ───────────────────────────────────────────────────

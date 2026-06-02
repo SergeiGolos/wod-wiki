@@ -1,10 +1,17 @@
 /**
- * Simple dropdown menu component (without Radix UI)
- * Uses a React portal so content is never clipped by overflow:hidden ancestors.
+ * Dropdown menu component — controlled wrapper with portal-based positioning.
+ *
+ * Keeps the existing controlled API (open / onOpenChange) for backward
+ * compatibility with ~10 callers.  Internals use a React portal so content
+ * is never clipped by overflow:hidden ancestors.
  */
 import * as React from "react"
 import * as ReactDOM from "react-dom"
 import { cn } from "@/lib/utils"
+
+// ---------------------------------------------------------------------------
+// DropdownMenu — controlled state wrapper
+// ---------------------------------------------------------------------------
 
 interface DropdownMenuProps {
   children: React.ReactNode;
@@ -31,8 +38,8 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({ children, open, onOp
   return (
     <div ref={triggerRef} className="relative inline-block">
       {React.Children.map(children, (child) => {
-        if (React.isValidElement(child)) {
-          return React.cloneElement(child, { isOpen, setIsOpen: handleOpenChange, triggerRef } as any);
+        if (React.isValidElement<DropdownMenuChildProps>(child)) {
+          return React.cloneElement(child, { isOpen, setIsOpen: handleOpenChange, triggerRef });
         }
         return child;
       })}
@@ -40,11 +47,22 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({ children, open, onOp
   );
 };
 
+// Props injected by DropdownMenu into its children
+interface DropdownMenuChildProps {
+  isOpen?: boolean;
+  setIsOpen?: (open: boolean) => void;
+  triggerRef?: React.RefObject<HTMLDivElement | null>;
+}
+
+// ---------------------------------------------------------------------------
+// DropdownMenuTrigger
+// ---------------------------------------------------------------------------
+
 interface DropdownMenuTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
   isOpen?: boolean;
   setIsOpen?: (open: boolean) => void;
-  triggerRef?: React.RefObject<HTMLDivElement>;
+  triggerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const DropdownMenuTrigger = React.forwardRef<HTMLButtonElement, DropdownMenuTriggerProps>(
@@ -54,11 +72,11 @@ export const DropdownMenuTrigger = React.forwardRef<HTMLButtonElement, DropdownM
       setIsOpen?.(!isOpen);
     };
 
-    if (asChild && React.isValidElement(children)) {
+    if (asChild && React.isValidElement<React.HTMLAttributes<HTMLElement>>(children)) {
       return React.cloneElement(children, {
         ...props,
         onClick: handleClick,
-      } as any);
+      } as React.HTMLAttributes<HTMLElement>);
     }
 
     return (
@@ -75,18 +93,22 @@ export const DropdownMenuTrigger = React.forwardRef<HTMLButtonElement, DropdownM
 );
 DropdownMenuTrigger.displayName = "DropdownMenuTrigger";
 
+// ---------------------------------------------------------------------------
+// DropdownMenuContent
+// ---------------------------------------------------------------------------
+
 interface DropdownMenuContentProps extends React.HTMLAttributes<HTMLDivElement> {
   align?: 'start' | 'center' | 'end';
   side?: 'top' | 'bottom';
   isOpen?: boolean;
   setIsOpen?: (open: boolean) => void;
-  triggerRef?: React.RefObject<HTMLDivElement>;
+  triggerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContentProps>(
   ({ className, children, align = 'center', side = 'bottom', isOpen, setIsOpen, triggerRef, ...props }, ref) => {
     const internalRef = React.useRef<HTMLDivElement>(null);
-    const contentRef = (ref as React.RefObject<HTMLDivElement>) || internalRef;
+    const contentRef = (ref as React.RefObject<HTMLDivElement | null>) || internalRef;
     const [position, setPosition] = React.useState<{ top: number; bottom: number; left: number; width: number }>({ top: 0, bottom: 0, left: 0, width: 0 });
 
     // Calculate position from trigger element
@@ -94,8 +116,8 @@ export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenu
       if (!isOpen || !triggerRef?.current) return;
       const rect = triggerRef.current.getBoundingClientRect();
       setPosition({
-        top: rect.bottom + 8, // 8px gap below
-        bottom: window.innerHeight - rect.top + 8, // 8px gap above
+        top: rect.bottom + 8,
+        bottom: window.innerHeight - rect.top + 8,
         left: rect.left,
         width: rect.width,
       });
@@ -107,14 +129,11 @@ export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenu
 
       const handleClickOutside = (event: MouseEvent) => {
         const target = event.target as Node;
-        // Don't close if clicking inside the content
         if (contentRef.current && contentRef.current.contains(target)) return;
-        // Don't close if clicking the trigger
         if (triggerRef?.current && triggerRef.current.contains(target)) return;
         setIsOpen?.(false);
       };
 
-      // Use setTimeout to avoid the current click event from triggering close
       const id = setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside);
       }, 0);
@@ -126,8 +145,7 @@ export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenu
 
     if (!isOpen) return null;
 
-    // Compute alignment style
-    let posStyle: React.CSSProperties = {
+    const posStyle: React.CSSProperties = {
       position: 'fixed',
       zIndex: 9999,
     };
@@ -147,7 +165,7 @@ export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenu
       posStyle.transform = 'translateX(-50%)';
     }
 
-    return (ReactDOM as any).createPortal(
+    return ReactDOM.createPortal(
       <div
         ref={contentRef}
         className={cn(
@@ -165,56 +183,109 @@ export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenu
 );
 DropdownMenuContent.displayName = "DropdownMenuContent";
 
+// ---------------------------------------------------------------------------
+// DropdownMenuItem
+// ---------------------------------------------------------------------------
+
 interface DropdownMenuItemProps extends React.HTMLAttributes<HTMLDivElement> {
   disabled?: boolean;
+  inset?: boolean;
 }
 
 export const DropdownMenuItem = React.forwardRef<HTMLDivElement, DropdownMenuItemProps>(
-  ({ className, disabled, ...props }, ref) => (
+  ({ className, disabled, inset, ...props }, ref) => (
     <div
       ref={ref}
+      role="menuitem"
+      aria-disabled={disabled}
       className={cn(
-        "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+        "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+        "focus:bg-accent focus:text-accent-foreground",
+        inset && "pl-8",
         disabled && "pointer-events-none opacity-50",
         className
       )}
+      tabIndex={disabled ? -1 : 0}
       {...props}
     />
   )
 );
 DropdownMenuItem.displayName = "DropdownMenuItem";
 
+// ---------------------------------------------------------------------------
+// DropdownMenuLabel
+// ---------------------------------------------------------------------------
+
 export const DropdownMenuLabel = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement> & { inset?: boolean }
+>(({ className, inset, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("px-2 py-1.5 text-sm font-semibold", className)}
+    className={cn("px-2 py-1.5 text-sm font-semibold", inset && "pl-8", className)}
     {...props}
   />
 ));
 DropdownMenuLabel.displayName = "DropdownMenuLabel";
 
+// ---------------------------------------------------------------------------
+// DropdownMenuSeparator
+// ---------------------------------------------------------------------------
+
 export const DropdownMenuSeparator = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-muted", className)}
-    {...props}
-  />
+  <div ref={ref} className={cn("-mx-1 my-1 h-px bg-muted", className)} {...props} />
 ));
 DropdownMenuSeparator.displayName = "DropdownMenuSeparator";
 
-// Export placeholders for compatibility
-export const DropdownMenuGroup = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-export const DropdownMenuPortal = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-export const DropdownMenuSub = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-export const DropdownMenuSubContent = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-export const DropdownMenuSubTrigger = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-export const DropdownMenuRadioGroup = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-export const DropdownMenuCheckboxItem = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-export const DropdownMenuRadioItem = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-export const DropdownMenuShortcut = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+// ---------------------------------------------------------------------------
+// DropdownMenuHeading — section heading inside a dropdown menu
+// ---------------------------------------------------------------------------
+
+export function DropdownMenuHeading({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DropdownMenuShortcut — keyboard shortcut display
+// ---------------------------------------------------------------------------
+
+export function DropdownMenuShortcut({
+  keys,
+  className,
+  ...props
+}: { keys: string | string[]; className?: string } & React.ComponentPropsWithoutRef<'kbd'>) {
+  const keyList = typeof keys === 'string' ? [keys] : keys;
+  return (
+    <kbd
+      {...props}
+      className={cn(
+        "ml-auto inline-flex items-center gap-0.5 text-xs tracking-widest text-muted-foreground",
+        className
+      )}
+    >
+      {keyList.map((key, i) => (
+        <React.Fragment key={i}>
+          <span>{key}</span>
+          {i < keyList.length - 1 && <span>+</span>}
+        </React.Fragment>
+      ))}
+    </kbd>
+  );
+}

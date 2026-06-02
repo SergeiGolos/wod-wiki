@@ -14,7 +14,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
 import { PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid';
-import type { PageNavLink } from '@/components/playground/PageNavDropdown';
+import type { PageNavLink } from '@/components/layout/PageNavDropdown';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection';
 

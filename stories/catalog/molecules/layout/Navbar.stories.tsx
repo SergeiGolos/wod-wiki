@@ -27,7 +27,7 @@ import {
   NavbarLabel,
   NavbarSection,
   NavbarSpacer,
-} from '@/components/playground/navbar';
+} from '@/components/layout/Navbar';
 
 import {
   Sidebar,
@@ -40,9 +40,8 @@ import {
   SidebarLabel,
   SidebarSection,
   SidebarSpacer,
-} from '@/components/playground/sidebar';
+} from '@/components/layout/Sidebar';
 
-// Sentinel for meta
 function NavbarAtoms() { return <div />; }
 
 const meta: Meta<typeof NavbarAtoms> = {

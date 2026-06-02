@@ -16,7 +16,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { NavProvider } from '../../../playground/src/nav/NavContext';
 import { buildAppNavTree } from '../../../playground/src/nav/appNavTree';
 import { NavSidebar } from '../../../playground/src/nav/NavSidebar';
-import { SidebarLayout } from '@/components/playground/sidebar-layout';
+import { SidebarLayout } from '@/components/layout/SidebarLayout'
 import { CanvasPage } from '@/panels/page-shells';
 import { HomeView } from '../../../playground/src/pages/HomeView';
 import type { WorkoutItem } from '../../../playground/src/App';

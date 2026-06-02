@@ -14,15 +14,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import { BookOpen, Dumbbell } from 'lucide-react'
 
-import {
-  Sidebar,
-  SidebarBody,
-  SidebarHeader,
-  SidebarItem,
-  SidebarLabel,
-  SidebarSection,
-} from '@/components/playground/sidebar'
-import { SidebarAccordion } from '@/components/playground/SidebarAccordion'
+import { Sidebar, SidebarBody, SidebarHeader, SidebarItem, SidebarLabel, SidebarSection } from '@/components/layout/Sidebar'
+import { SidebarAccordion } from '@/components/layout/SidebarAccordion'
 import { ShortcutBadge } from '@/components/list/ShortcutBadge'
 import { ButtonLink } from '@/components/ui/ButtonLink'
 

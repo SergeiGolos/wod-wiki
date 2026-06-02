@@ -5,7 +5,7 @@
  * isolation (e.g. from Storybook stories) without pulling in the entire app.
  */
 
-import type { PageNavLink } from '@/components/playground/PageNavDropdown'
+import type { PageNavLink } from '@/components/layout/PageNavDropdown'
 import type { NavItemL3 } from '../../nav/navTypes'
 import { ArrowTopRightOnSquareIcon, PlayIcon } from '@heroicons/react/20/solid'
 

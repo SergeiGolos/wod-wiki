@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
 import {
-  Dropdown,
-  DropdownButton,
-  DropdownItem,
-  DropdownLabel,
   DropdownMenu,
-} from '@/components/playground/dropdown'
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
 import { DocumentTextIcon, ChevronDownIcon, PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid'
 
 export interface PageNavLink {
@@ -62,25 +61,29 @@ export function PageNavDropdown({
   const activeLabel = activeLink?.label ?? 'Sections'
 
   return (
-    <Dropdown>
-      <DropdownButton plain aria-label="Page sections" className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
+    <DropdownMenu>
+      <DropdownMenuTrigger className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors" aria-label="Page sections">
         <DocumentTextIcon className="size-3.5 shrink-0" />
         <span className="max-w-28 truncate">
           {activeLink?.timestamp && <span className="mr-1 opacity-60 tabular-nums italic">{activeLink.timestamp}</span>}
           {activeLabel}
         </span>
         <ChevronDownIcon className="size-3 shrink-0" />
-      </DropdownButton>
+      </DropdownMenuTrigger>
 
-      <DropdownMenu className="min-w-48" anchor="bottom end">
+      <DropdownMenuContent align="end" className="min-w-48">
         {links.map(link => (
-          <DropdownItem
+          <DropdownMenuItem
             key={link.id}
             onClick={() => scrollToSection(link.id)}
-          >
-            <DropdownLabel className={cn(
-              activeId === link.id ? 'font-bold text-foreground' : 'text-muted-foreground',
+            className={cn(
+              'gap-2',
               link.type === 'wod' && 'pl-2 text-[11px]'
+            )}
+          >
+            <span className={cn(
+              'flex-1 truncate',
+              activeId === link.id ? 'font-bold text-foreground' : 'text-muted-foreground'
             )}>
               {link.type === 'wod' && (
                 <span className="mr-2 inline-flex items-center gap-1">
@@ -99,10 +102,10 @@ export function PageNavDropdown({
               )}
               {link.timestamp && <span className="font-bold text-[10px] tabular-nums mr-2 opacity-60 italic">{link.timestamp}</span>}
               {link.label}
-            </DropdownLabel>
+            </span>
             {link.onRun && (
               <button
-                className="col-start-5 flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
+                className="flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
                 title={link.runIcon === 'link' ? "View workout" : "Start workout"}
                 onClick={(e) => { e.stopPropagation(); link.onRun!() }}
               >
@@ -113,10 +116,10 @@ export function PageNavDropdown({
                 )}
               </button>
             )}
-            {!link.onRun && activeId === link.id && <span className="col-start-5 text-primary text-xs">✓</span>}
-          </DropdownItem>
+            {!link.onRun && activeId === link.id && <span className="text-primary text-xs">✓</span>}
+          </DropdownMenuItem>
         ))}
-      </DropdownMenu>
-    </Dropdown>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

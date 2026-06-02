@@ -15,7 +15,7 @@ import { ArrowPathIcon, PlusIcon } from '@heroicons/react/20/solid'
 
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { ButtonGroup } from '@/components/ui/ButtonGroup'
-import type { PageNavLink } from '@/components/playground/PageNavDropdown'
+import type { PageNavLink } from '@/components/layout/PageNavDropdown'
 import type { PageMode } from '@/types/content-type'
 
 import { NavSearchInput } from '../../components/NavSearchInput'
