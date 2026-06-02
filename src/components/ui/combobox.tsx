@@ -1,7 +1,7 @@
 'use client'
 
 import * as Headless from '@headlessui/react'
-import clsx from 'clsx'
+import { cn } from "@/lib/utils"
 import { useState } from 'react'
 
 export function Combobox<T>({
@@ -46,24 +46,24 @@ export function Combobox<T>({
     >
       <span
         data-slot="control"
-        className={clsx([
+        className={cn([
           className,
           // Basic layout
           'relative block w-full',
           // Background color + shadow applied to inset pseudo element, so shadow blends with border in light mode
-          'before:absolute before:inset-px before:rounded-[calc(var(--radius-lg)-1px)] before:bg-white before:shadow-sm',
+          'before:absolute before:inset-px before:rounded-[calc(var(--radius-lg)-1px)] before:bg-background before:shadow-sm',
           // Background color is moved to control and shadow is removed in dark mode so hide `before` pseudo
           'dark:before:hidden',
           // Focus ring
-          'after:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:ring-transparent after:ring-inset sm:focus-within:after:ring-2 sm:focus-within:after:ring-blue-500',
+          'after:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:ring-transparent after:ring-inset has-data-[focus]:after:ring-2 has-data-[focus]:after:ring-ring',
           // Disabled state
-          'has-data-[disabled]:opacity-50 has-data-[disabled]:before:bg-zinc-950/5 has-data-[disabled]:before:shadow-none',
+          'has-data-[disabled]:opacity-50 has-data-[disabled]:before:bg-muted/50 has-data-[disabled]:before:shadow-none',
           // Invalid state
-          'has-data-invalid:before:shadow-red-500/10',
+          'has-data-invalid:before:shadow-destructive/10',
         ])}
       >
         {Icon && (
-          <Icon className="pointer-events-none absolute top-3 left-3 size-5 text-zinc-500 sm:top-2.5 sm:left-2.5 sm:size-4 dark:text-zinc-400" />
+          <Icon className="pointer-events-none absolute top-3 left-3 size-5 text-muted-foreground sm:top-2.5 sm:left-2.5 sm:size-4" />
         )}
         <Headless.ComboboxInput
           autoFocus={autoFocus}
@@ -72,7 +72,7 @@ export function Combobox<T>({
           displayValue={(option: T) => displayValue(option) ?? ''}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={placeholder}
-          className={clsx([
+          className={cn([
             className,
             // Basic layout
             'relative block w-full appearance-none rounded-lg py-[calc(theme(spacing.2.5)-1px)] sm:py-[calc(theme(spacing.1.5)-1px)]',
@@ -81,24 +81,24 @@ export function Combobox<T>({
               ? 'pr-[calc(theme(spacing.10)-1px)] pl-10 sm:pr-[calc(theme(spacing.9)-1px)] sm:pl-8'
               : 'pr-[calc(theme(spacing.10)-1px)] pl-[calc(theme(spacing.3.5)-1px)] sm:pr-[calc(theme(spacing.9)-1px)] sm:pl-[calc(theme(spacing.3)-1px)]',
             // Typography
-            'text-base/6 text-zinc-950 placeholder:text-zinc-500 sm:text-sm/6 dark:text-white',
+            'text-base/6 text-foreground placeholder:text-muted-foreground sm:text-sm/6',
             // Border
-            'border border-zinc-950/10 data-[hover]:border-zinc-950/20 dark:border-white/10 dark:data-[hover]:border-white/20',
+            'border border-border/60 data-[hover]:border-border dark:border-white/10 dark:data-[hover]:border-white/20',
             // Background color
             'bg-transparent dark:bg-white/5',
             // Hide default focus styles
             'focus:outline-hidden',
             // Invalid state
-            'data-invalid:border-red-500 data-invalid:data-[hover]:border-red-500 dark:data-invalid:border-red-500 dark:data-invalid:data-[hover]:border-red-500',
+            'data-invalid:border-destructive data-invalid:data-[hover]:border-destructive dark:data-invalid:border-destructive dark:data-invalid:data-[hover]:border-destructive',
             // Disabled state
-            'data-[disabled]:border-zinc-950/20 dark:data-[disabled]:border-white/15 dark:data-[disabled]:bg-white/2.5 dark:data-[hover]:data-[disabled]:border-white/15',
+            'data-[disabled]:border-border/40 dark:data-[disabled]:border-white/15 dark:data-[disabled]:bg-white/2.5 dark:data-[hover]:data-[disabled]:border-white/15',
             // System icons
             'dark:scheme-dark',
           ])}
         />
         <Headless.ComboboxButton className="group absolute inset-y-0 right-0 flex items-center px-2">
           <svg
-            className="size-5 stroke-zinc-500 group-data-[disabled]:stroke-zinc-600 group-data-[hover]:stroke-zinc-700 sm:size-4 dark:stroke-zinc-400 dark:group-data-[hover]:stroke-zinc-300 forced-colors:stroke-[CanvasText]"
+            className="size-5 stroke-muted-foreground group-data-[disabled]:stroke-muted-foreground/70 group-data-[hover]:stroke-foreground sm:size-4 forced-colors:stroke-[CanvasText]"
             viewBox="0 0 16 16"
             aria-hidden="true"
             fill="none"
@@ -111,7 +111,7 @@ export function Combobox<T>({
       <Headless.ComboboxOptions
         transition
         anchor={anchor}
-        className={clsx(
+        className={cn(
           // Anchor positioning
           anchor && '[--anchor-gap:theme(spacing.2)] [--anchor-padding:theme(spacing.4)] sm:data-[anchor~=start]:[--anchor-offset:-4px]',
           // Base styles,
@@ -121,9 +121,9 @@ export function Combobox<T>({
           // Handle scrolling when menu won't fit in viewport
           'overflow-y-scroll overscroll-contain',
           // Popover background
-          'bg-white/75 backdrop-blur-xl dark:bg-zinc-800/75',
+          'bg-popover/75 backdrop-blur-xl dark:bg-popover/75',
           // Shadows
-          'shadow-lg ring-1 ring-zinc-950/10 dark:ring-white/10 dark:ring-inset',
+          'shadow-lg ring-1 ring-border/60 dark:ring-white/10 dark:ring-inset',
           // Transitions
           'transition-opacity duration-100 ease-in data-closed:data-leave:opacity-0 data-transition:pointer-events-none'
         )}
@@ -142,12 +142,12 @@ export function ComboboxOption<T>({
   Headless.ComboboxOptionProps<'div', T>,
   'as' | 'className'
 >) {
-  let sharedClasses = clsx(
+  let sharedClasses = cn(
     // Base
     'flex min-w-0 items-center',
     // Icons
     '[&>[data-slot=icon]]:size-5 [&>[data-slot=icon]]:shrink-0 sm:[&>[data-slot=icon]]:size-4',
-    '[&>[data-slot=icon]]:text-zinc-500 group-data-[focus]/option:[&>[data-slot=icon]]:text-zinc-950 dark:group-data-[focus]/option:[&>[data-slot=icon]]:text-white data-[focus]:[&_*]:text-zinc-950 dark:data-[focus]:[&_*]:text-white dark:[&>[data-slot=icon]]:text-zinc-400',
+    '[&>[data-slot=icon]]:text-muted-foreground group-data-[focus]/option:[&>[data-slot=icon]]:text-primary-foreground',
     'forced-colors:[&>[data-slot=icon]]:text-[CanvasText] forced-colors:group-data-[focus]/option:[&>[data-slot=icon]]:text-[Canvas]',
     // Avatars
     '[&>[data-slot=avatar]]:-mx-0.5 [&>[data-slot=avatar]]:size-6 sm:[&>[data-slot=avatar]]:size-5'
@@ -157,11 +157,11 @@ export function ComboboxOption<T>({
     <Headless.ComboboxOption
       as="div"
       {...props}
-      className={clsx(
+      className={cn(
         // Basic layout
         'group/option grid w-full cursor-default grid-cols-[1fr_--spacing(5)] items-baseline gap-x-2 rounded-lg py-2.5 pr-2 pl-3.5 sm:grid-cols-[1fr_--spacing(4)] sm:py-1.5 sm:pr-2 sm:pl-3',
         // Typography
-        'text-base/6 text-zinc-950 sm:text-sm/6 dark:text-white forced-colors:text-[CanvasText]',
+        'text-base/6 text-foreground sm:text-sm/6 forced-colors:text-[CanvasText]',
         // Focus/Active state (Theme Primary)
         'outline-hidden data-[focus]:bg-primary data-[focus]:text-primary-foreground',
         'data-[active]:bg-primary data-[active]:text-primary-foreground',
@@ -174,7 +174,7 @@ export function ComboboxOption<T>({
         'data-[disabled]:opacity-50'
       )}
     >
-      <span className={clsx(className, sharedClasses)}>{children}</span>
+      <span className={cn(className, sharedClasses)}>{children}</span>
       <svg
         className="relative col-start-2 hidden size-5 self-center stroke-current group-data-[selected]/option:inline sm:size-4"
         viewBox="0 0 16 16"
@@ -188,7 +188,7 @@ export function ComboboxOption<T>({
 }
 
 export function ComboboxLabel({ className, ...props }: React.ComponentPropsWithoutRef<'span'>) {
-  return <Headless.ComboboxLabel as="span" {...props} className={clsx(className, 'ml-2.5 truncate first:ml-0 sm:ml-2 sm:first:ml-0')} />
+  return <Headless.ComboboxLabel as="span" {...props} className={cn(className, 'ml-2.5 truncate first:ml-0 sm:ml-2 sm:first:ml-0')} />
 }
 
 export function ComboboxDescription({ className, children, ...props }: React.ComponentPropsWithoutRef<'span'>) {
@@ -196,7 +196,7 @@ export function ComboboxDescription({ className, children, ...props }: React.Com
     <span
       {...props}
       data-slot="description"
-      className={clsx(
+      className={cn(
         className,
         'flex flex-1 overflow-hidden text-muted-foreground before:w-2 before:min-w-0 before:shrink transition-colors duration-200'
       )}
@@ -211,35 +211,34 @@ export function ComboboxInput({
   icon: Icon,
   ...props
 }: {
-  className?: string
   icon?: React.ComponentType<{ className?: string }>
 } & Omit<Headless.ComboboxInputProps, 'as' | 'className'>) {
   return (
     <span
       data-slot="control"
-      className={clsx([
+      className={cn([
         className,
         // Basic layout
         'relative block w-full',
         // Background color + shadow applied to inset pseudo element, so shadow blends with border in light mode
-        'before:absolute before:inset-px before:rounded-[calc(var(--radius-lg)-1px)] before:bg-white before:shadow-sm',
+        'before:absolute before:inset-px before:rounded-[calc(var(--radius-lg)-1px)] before:bg-background before:shadow-sm',
         // Background color is moved to control and shadow is removed in dark mode so hide `before` pseudo
         'dark:before:hidden',
         // Focus ring
-        'after:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:ring-transparent after:ring-inset sm:focus-within:after:ring-2 sm:focus-within:after:ring-blue-500',
+        'after:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:ring-transparent after:ring-inset sm:focus-within:after:ring-2 sm:focus-within:after:ring-ring',
         // Disabled state
-        'has-data-[disabled]:opacity-50 has-data-[disabled]:before:bg-zinc-950/5 has-data-[disabled]:before:shadow-none',
+        'has-data-[disabled]:opacity-50 has-data-[disabled]:before:bg-muted/50 has-data-[disabled]:before:shadow-none',
         // Invalid state
-        'has-data-invalid:before:shadow-red-500/10',
+        'has-data-invalid:before:shadow-destructive/10',
       ])}
     >
       {Icon && (
-        <Icon className="pointer-events-none absolute top-3 left-3 size-5 text-zinc-500 sm:top-2.5 sm:left-2.5 sm:size-4 dark:text-zinc-400" />
+        <Icon className="pointer-events-none absolute top-3 left-3 size-5 text-muted-foreground sm:top-2.5 sm:left-2.5 sm:size-4" />
       )}
       <Headless.ComboboxInput
         as="input"
         {...props}
-        className={clsx([
+        className={cn([
           className,
           // Basic layout
           'relative block w-full appearance-none rounded-lg py-[calc(theme(spacing.2.5)-1px)] sm:py-[calc(theme(spacing.1.5)-1px)]',
@@ -248,17 +247,17 @@ export function ComboboxInput({
             ? 'pr-[calc(theme(spacing.10)-1px)] pl-10 sm:pr-[calc(theme(spacing.9)-1px)] sm:pl-8'
             : 'pr-[calc(theme(spacing.10)-1px)] pl-[calc(theme(spacing.3.5)-1px)] sm:pr-[calc(theme(spacing.9)-1px)] sm:pl-[calc(theme(spacing.3)-1px)]',
           // Typography
-          'text-base/6 text-zinc-950 placeholder:text-zinc-500 sm:text-sm/6 dark:text-white',
+          'text-base/6 text-foreground placeholder:text-muted-foreground sm:text-sm/6',
           // Border
-          'border border-zinc-950/10 data-[hover]:border-zinc-950/20 dark:border-white/10 dark:data-[hover]:border-white/20',
+          'border border-border/60 data-[hover]:border-border dark:border-white/10 dark:data-[hover]:border-white/20',
           // Background color
           'bg-transparent dark:bg-white/5',
           // Hide default focus styles
           'focus:outline-hidden',
           // Invalid state
-          'data-invalid:border-red-500 data-invalid:data-[hover]:border-red-500 dark:data-invalid:border-red-500 dark:data-invalid:data-[hover]:border-red-500',
+          'data-invalid:border-destructive data-invalid:data-[hover]:border-destructive dark:data-invalid:border-destructive dark:data-invalid:data-[hover]:border-destructive',
           // Disabled state
-          'data-[disabled]:border-zinc-950/20 dark:data-[disabled]:border-white/15 dark:data-[disabled]:bg-white/2.5 dark:data-[hover]:data-[disabled]:border-white/15',
+          'data-[disabled]:border-border/40 dark:data-[disabled]:border-white/15 dark:data-[disabled]:bg-white/2.5 dark:data-[hover]:data-[disabled]:border-white/15',
           // System icons
           'dark:scheme-dark',
         ])}
@@ -274,7 +273,7 @@ export function ComboboxOptions({
   ...props
 }: {
   className?: string
-  children: React.ReactNode | ((data: { option: unknown }) => React.ReactNode)
+  children?: React.ReactNode
   anchor?: 'top' | 'bottom'
 } & Omit<Headless.ComboboxOptionsProps, 'as' | 'className' | 'children'>) {
   return (
@@ -282,7 +281,7 @@ export function ComboboxOptions({
       as="div"
       {...props}
       anchor={anchor}
-      className={clsx(
+      className={cn(
         className,
         // Anchor positioning
         anchor && '[--anchor-gap:theme(spacing.2)] [--anchor-padding:theme(spacing.4)] sm:data-[anchor~=start]:[--anchor-offset:-4px]',
@@ -293,9 +292,9 @@ export function ComboboxOptions({
         // Handle scrolling when menu won't fit in viewport
         'overflow-y-scroll overscroll-contain',
         // Popover background
-        'bg-white/75 backdrop-blur-xl dark:bg-zinc-800/75',
+        'bg-popover/75 backdrop-blur-xl dark:bg-popover/75',
         // Shadows
-        'shadow-lg ring-1 ring-zinc-950/10 dark:ring-white/10 dark:ring-inset',
+        'shadow-lg ring-1 ring-border/60 dark:ring-white/10 dark:ring-inset',
         // Transitions
         'transition-opacity duration-100 ease-in data-closed:data-leave:opacity-0 data-transition:pointer-events-none'
       )}

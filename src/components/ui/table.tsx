@@ -1,9 +1,9 @@
 'use client'
 
-import clsx from 'clsx'
+import { cn } from "@/lib/utils"
 import type React from 'react'
 import { createContext, useContext, useState } from 'react'
-import { Link } from '@/components/ui/link'
+import { Link } from './link'
 
 const TableContext = createContext<{ bleed: boolean; dense: boolean; grid: boolean; striped: boolean }>({
   bleed: false,
@@ -24,9 +24,9 @@ export function Table({
   return (
     <TableContext.Provider value={{ bleed, dense, grid, striped } as React.ContextType<typeof TableContext>}>
       <div className="flow-root">
-        <div {...props} className={clsx(className, '-mx-[var(--gutter)] overflow-x-auto whitespace-nowrap')}>
-          <div className={clsx('inline-block min-w-full align-middle', !bleed && 'sm:px-[var(--gutter)]')}>
-            <table className="min-w-full text-left text-sm/6 text-zinc-950 dark:text-white">{children}</table>
+        <div {...props} className={cn(className, '-mx-[var(--gutter)] overflow-x-auto whitespace-nowrap')}>
+          <div className={cn('inline-block min-w-full align-middle', !bleed && 'sm:px-[var(--gutter)]')}>
+            <table className="min-w-full text-left text-sm/6 text-foreground">{children}</table>
           </div>
         </div>
       </div>
@@ -35,7 +35,7 @@ export function Table({
 }
 
 export function TableHead({ className, ...props }: React.ComponentPropsWithoutRef<'thead'>) {
-  return <thead {...props} className={clsx(className, 'text-zinc-500 dark:text-zinc-400')} />
+  return <thead {...props} className={cn(className, 'text-muted-foreground')} />
 }
 
 export function TableBody(props: React.ComponentPropsWithoutRef<'tbody'>) {
@@ -61,13 +61,13 @@ export function TableRow({
     <TableRowContext.Provider value={{ href, target, title } as React.ContextType<typeof TableRowContext>}>
       <tr
         {...props}
-        className={clsx(
+        className={cn(
           className,
           href &&
-            'has-[[data-row-link][data-focus]]:outline-2 has-[[data-row-link][data-focus]]:-outline-offset-2 has-[[data-row-link][data-focus]]:outline-blue-500 dark:focus-within:bg-white/2.5',
-          striped && 'even:bg-zinc-950/2.5 dark:even:bg-white/2.5',
-          href && striped && 'hover:bg-zinc-950/5 dark:hover:bg-white/5',
-          href && !striped && 'hover:bg-zinc-950/2.5 dark:hover:bg-white/2.5'
+            'has-[[data-row-link][data-focus]]:ring-2 has-[[data-row-link][data-focus]]:ring-ring has-[[data-row-link][data-focus]]:ring-offset-2 dark:focus-within:bg-white/2.5',
+          striped && 'even:bg-muted/25',
+          href && striped && 'hover:bg-muted/50',
+          href && !striped && 'hover:bg-muted/25'
         )}
       />
     </TableRowContext.Provider>
@@ -80,10 +80,10 @@ export function TableHeader({ className, ...props }: React.ComponentPropsWithout
   return (
     <th
       {...props}
-      className={clsx(
+      className={cn(
         className,
-        'border-b border-b-zinc-950/10 px-4 py-2 font-medium first:pl-[var(--gutter,theme(spacing.2))] last:pr-[var(--gutter,theme(spacing.2))] dark:border-b-white/10',
-        grid && 'border-l border-l-zinc-950/5 first:border-l-0 dark:border-l-white/5',
+        'border-b border-b-border/60 px-4 py-2 font-medium first:pl-[var(--gutter,theme(spacing.2))] last:pr-[var(--gutter,theme(spacing.2))]',
+        grid && 'border-l border-l-border/30 first:border-l-0',
         !bleed && 'sm:first:pl-1 sm:last:pr-1'
       )}
     />
@@ -99,11 +99,11 @@ export function TableCell({ className, children, ...props }: React.ComponentProp
     <td
       ref={href ? setCellRef : undefined}
       {...props}
-      className={clsx(
+      className={cn(
         className,
         'relative px-4 first:pl-[var(--gutter,theme(spacing.2))] last:pr-[var(--gutter,theme(spacing.2))]',
-        !striped && 'border-b border-zinc-950/5 dark:border-white/5',
-        grid && 'border-l border-l-zinc-950/5 first:border-l-0 dark:border-l-white/5',
+        !striped && 'border-b border-border/30',
+        grid && 'border-l border-border/30 first:border-l-0',
         dense ? 'py-2.5' : 'py-4',
         !bleed && 'sm:first:pl-1 sm:last:pr-1'
       )}

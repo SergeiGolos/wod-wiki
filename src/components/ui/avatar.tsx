@@ -1,8 +1,8 @@
 import * as Headless from '@headlessui/react'
-import clsx from 'clsx'
+import { cn } from "@/lib/utils"
 import React, { forwardRef } from 'react'
-import { TouchTarget } from '@/components/ui/touch-target'
-import { Link } from '@/components/ui/link'
+import { TouchTarget } from './touch-target'
+import { Link } from './link'
 
 type AvatarProps = {
   src?: string | null
@@ -24,11 +24,11 @@ export function Avatar({
     <span
       data-slot="avatar"
       {...props}
-      className={clsx(
+      className={cn(
         className,
         // Basic layout
         'inline-grid shrink-0 align-middle [--avatar-radius:24px] [&>*]:col-start-1 [&>*]:row-start-1',
-        'outline -outline-offset-1 outline-black/10 dark:outline-white/10',
+        'outline -outline-offset-1 outline-border/50',
         // Border radius
         square ? 'rounded-2xl [&>*]:rounded-2xl' : 'rounded-full [&>*]:rounded-full'
       )}
@@ -65,10 +65,10 @@ export const AvatarButton = forwardRef(function AvatarButton(
     ),
   ref: React.ForwardedRef<HTMLButtonElement>
 ) {
-  let classes = clsx(
+  let classes = cn(
     className,
     square ? 'rounded-2xl' : 'rounded-full',
-    'relative inline-grid focus:not-data-[focus]:outline-hidden data-[focus]:outline-2 data-[focus]:outline-offset-2 data-[focus]:outline-blue-500'
+    'relative inline-grid focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
   )
 
   return typeof props.href === 'string' ? (
