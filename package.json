@@ -114,14 +114,7 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },
-  "peerDependenciesMeta": {
-    "monaco-editor": {
-      "optional": true
-    },
-    "@monaco-editor/react": {
-      "optional": true
-    }
-  },
+  "peerDependenciesMeta": {},
   "optionalDependencies": {
     "@rollup/rollup-win32-x64-msvc": "^4.60.4"
   },

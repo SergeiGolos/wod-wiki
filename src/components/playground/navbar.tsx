@@ -4,8 +4,8 @@ import * as Headless from '@headlessui/react'
 import clsx from 'clsx'
 import { LayoutGroup, motion } from 'motion/react'
 import React, { forwardRef, useId } from 'react'
-import { TouchTarget } from './button'
-import { Link } from './link'
+import { TouchTarget } from '@/components/ui/touch-target'
+import { Link } from '@/components/ui/link'
 
 export function Navbar({ className, ...props }: React.ComponentPropsWithoutRef<'nav'>) {
   return <nav {...props} className={clsx(className, 'flex flex-1 items-center gap-2 sm:gap-4 py-2.5 min-w-0')} />
