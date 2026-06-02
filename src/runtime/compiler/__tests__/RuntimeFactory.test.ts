@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { RuntimeFactory } from '../RuntimeFactory';
 import { globalParser } from '@/runtime/services/runtimeServices';
 import type { WodBlock } from '@/components/Editor/types';
+import { MetricType } from '@/core/models/Metric';
 
 describe('RuntimeFactory', () => {
   const factory = new RuntimeFactory(globalParser);
@@ -50,6 +51,17 @@ describe('RuntimeFactory', () => {
     expect(runtime!.analyticsContext).toBeDefined();
   });
 
+
+  it('collapses Choice metrics before runtime creation', () => {
+    const block = makeBlock('135/185 lbs');
+    expect(block.statements.some(stmt => stmt.metrics.some(m => m.type === MetricType.Choice))).toBe(true);
+
+    const runtime = factory.createRuntime(block);
+
+    expect(runtime).not.toBeNull();
+    expect(runtime!.script.statements.some(stmt => stmt.metrics.some(m => m.type === MetricType.Choice))).toBe(false);
+    expect(runtime!.script.statements.some(stmt => stmt.metrics.some(m => m.origin === 'user-plan'))).toBe(true);
+  });
   it('selects processors based on block metrics (Rep + Resistance → power-enrichment)', () => {
     // Use parser-generated statements so meta offsets are present
     // (ScriptRuntime.emitLoadOutput requires stmt.meta.startOffset)

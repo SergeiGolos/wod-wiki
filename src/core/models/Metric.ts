@@ -35,7 +35,8 @@ export type MetricOrigin =
   | 'tracked'
   | 'analyzed'
   | 'analyzed-estimated'
-  | 'execution';
+  | 'execution'
+  | 'user-plan';
 
 export interface IMetric {
   readonly image?: string;
@@ -167,4 +168,25 @@ export enum MetricType {
 
   /** Runtime-layer calculated metric emitted from declarative formulas */
   Calculated = 'calculated',
+
+  /**
+   * **Slash** (Parser) — the "/" separator between paired quantities.
+   *
+   * A grammar-level token (`185/125 lb`) that the fuseUnits dialect consumes
+   * to produce two dimensioned metrics or to split adjacent effort tokens.
+   * Never surfaces in compiled blocks or display output.
+   */
+  Slash = 'slash',
+
+  /**
+   * **Choice** (Parser) — a slash-separated OR expression.
+   *
+   * Emitted by Fusion when a slash separates two homogeneous alternatives
+   * (same MetricType on both sides). Carries `alternatives: IMetric[]`.
+   * Resolved in the Pre-Run Wizard before the JIT compiles: the chosen
+   * alternative is written at origin `user-plan` into the Statement's
+   * MetricContainer, shadowing this group via ownership-layer precedence.
+   * Never reaches compiled Blocks or display output once resolved.
+   */
+  Choice = 'choice',
 }

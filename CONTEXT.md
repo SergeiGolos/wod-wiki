@@ -66,6 +66,30 @@ driven by a **Unit Registry** set. Logic lives in one shared pass; *which* units
 recognizes is a **Dialect** choice.
 _Avoid_: merge (overloaded), parsing.
 
+**Choice Group**:
+A single `MetricType.Choice` Metric (`ChoiceGroupMetric`) emitted by **Fusion** when
+a slash (`/`) separates two homogeneous alternatives of the **same** Metric type
+(e.g. `185/125 lb` → two `Resistance` options; `Run/Walk` → two `Effort` options).
+Carries `alternatives: IMetric[]` at `origin: 'parser'`. Slash between *different*
+Metric types is silently dropped — no Choice Group is emitted.
+Resolved in the **Pre-Run Wizard** before the JIT compiles: the user picks one
+alternative (first is pre-selected); the chosen metric is written at `origin:
+'user-plan'` into the same Statement's `MetricContainer`, shadowing the group.
+Never surfaces in compiled Blocks or display output once resolved.
+_Avoid_: slash metric, OR metric, option group.
+
+**Choice Collapse**:
+The act of writing a **Choice Group**'s selected alternative back into its Statement
+at `origin: 'user-plan'`, owned solely by `ChoiceResolution`
+(`src/runtime/compiler/metrics/ChoiceResolution.ts`). Idempotent — re-selecting
+replaces the prior user-plan pick rather than accumulating. Two seams drive it: the
+**Pre-Run Wizard** (user selection, via the `resolveChoiceSelection` hooks facade)
+and `RuntimeFactory.createRuntime`, which calls `collapseUnresolvedChoices` as the
+enforced safety net — defaulting any still-unresolved group to its first alternative
+**before the runtime spins up its first Block**, so a `MetricType.Choice` can never
+reach a compiled Block on any entry point.
+_Avoid_: resolve (overloaded with ownership resolution), pick.
+
 ### Dialect & runtime
 
 **Dialect**:

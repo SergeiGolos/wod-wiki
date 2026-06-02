@@ -36,6 +36,7 @@ export const LEGACY_ORIGIN_TO_OWNERSHIP_LAYER: Record<MetricOrigin, MetricOwners
   compiler: 'dialect',
   dialect: 'dialect',
   hinted: 'dialect',
+  'user-plan': 'user-plan',
   runtime: 'runtime',
   tracked: 'runtime',
   analyzed: 'runtime',

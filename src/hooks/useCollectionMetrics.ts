@@ -2,9 +2,13 @@ import { useMemo } from 'react';
 import { MetricType, type IMetric } from '@/core/models/Metric';
 import { type Segment } from '@/core/models/AnalyticsModels';
 import { MetricContainer } from '@/core/models/MetricContainer';
-import { WhiteboardScript } from '@/parser/WhiteboardScript';
+import type { WhiteboardScript } from '@/parser/WhiteboardScript';
+import { ChoiceGroupMetric } from '@/runtime/compiler/metrics/ChoiceGroupMetric';
+import { writeChoiceSelection } from '@/runtime/compiler/metrics/ChoiceResolution';
 
-export interface CollectionItem {
+/** A hinted metric that requires a free-text/numeric value from the user. */
+export interface ValueCollectionItem {
+  kind: 'value';
   blockKey: string;
   exerciseLabel: string;
   metricType: MetricType;
@@ -16,10 +20,46 @@ export interface CollectionItem {
   roundIndex?: number;
 }
 
+/**
+ * A Choice Group metric that presents the user with mutually-exclusive
+ * alternatives (emitted by Fusion for homogeneous slash expressions).
+ * First alternative is pre-selected; user-plan resolution written on confirm.
+ */
+export interface ChoiceCollectionItem {
+  kind: 'choice';
+  blockKey: string;
+  exerciseLabel: string;
+  alternatives: IMetric[];
+  selectedIndex: number;  // always 0 initially
+  statementIndex: number;
+  setIndex?: number;
+  roundIndex?: number;
+}
+
+export type CollectionItem = ValueCollectionItem | ChoiceCollectionItem;
+type CollectionScript = Pick<WhiteboardScript, 'statements'>;
+
+/**
+ * Facade: collapse a {@link ChoiceCollectionItem}'s selection into the script
+ * before the WOD compiles, delegating to the ChoiceResolution owner.
+ *
+ * Lives in the hooks layer so component files resolve choices without importing
+ * `@/runtime/*` directly (components-layer boundary, WOD-225).
+ */
+export function resolveChoiceSelection(
+  script: CollectionScript | null | undefined,
+  item: ChoiceCollectionItem,
+  selectedIndex: number,
+): void {
+  const stmt = script?.statements[item.statementIndex];
+  if (!stmt) return;
+  writeChoiceSelection(stmt, item.alternatives, selectedIndex);
+}
+
 export function useCollectionMetrics(
   segments: Segment[],
   userOverrides: Map<string, MetricContainer>,
-  script?: WhiteboardScript | null
+  script?: CollectionScript | null
 ) {
   const collectionItems = useMemo(() => {
     const items: CollectionItem[] = [];
@@ -30,22 +70,37 @@ export function useCollectionMetrics(
         const stmt = script.statements[i];
         const blockKey = `stmt-${stmt.id}`;
         const overrides = userOverrides.get(blockKey);
+        const effortMetric = stmt.metrics.find(m => m.type === MetricType.Effort || m.type === MetricType.Label);
+        const exerciseLabel = effortMetric?.value?.toString() || effortMetric?.image || 'Exercise';
 
         for (const metric of stmt.metrics) {
+          // Choice Group: slash-separated OR expression needing pre-run resolution
+          if (metric.type === MetricType.Choice) {
+            const choice = metric as ChoiceGroupMetric;
+            items.push({
+              kind: 'choice',
+              blockKey,
+              exerciseLabel,
+              alternatives: choice.alternatives,
+              selectedIndex: 0,
+              statementIndex: i,
+            } satisfies ChoiceCollectionItem);
+            continue;
+          }
+
+          // Hinted value: free-text/numeric collection
           if (metric.origin === 'hinted' || metric.image === '?') {
             const hasOverride = overrides?.some(o => o.type === metric.type && o.origin === 'user');
             if (!hasOverride) {
-              const effortMetric = stmt.metrics.find(m => m.type === MetricType.Effort || m.type === MetricType.Label);
-              const exerciseLabel = effortMetric?.value?.toString() || effortMetric?.image || 'Exercise';
-
               items.push({
+                kind: 'value',
                 blockKey,
                 exerciseLabel,
                 metricType: metric.type as MetricType,
                 hint: metric.image || '?',
                 origin: 'hinted',
                 statementIndex: i,
-              });
+              } satisfies ValueCollectionItem);
             }
           }
         }
@@ -77,6 +132,7 @@ export function useCollectionMetrics(
             const setMatch = blockKey.match(/\[\d+\]\[(\d+)\]/);
 
             items.push({
+              kind: 'value',
               blockKey,
               exerciseLabel,
               metricType: metric.type as MetricType,
@@ -85,7 +141,7 @@ export function useCollectionMetrics(
               statementIndex: (seg as any).context?.sourceStatementId ?? 0,
               roundIndex: roundMatch ? parseInt(roundMatch[1]) + 1 : undefined,
               setIndex: setMatch ? parseInt(setMatch[1]) + 1 : undefined,
-            });
+            } satisfies ValueCollectionItem);
           }
         }
       }

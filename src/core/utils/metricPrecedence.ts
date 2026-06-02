@@ -19,6 +19,7 @@ export const ORIGIN_PRECEDENCE: Record<MetricOrigin, number> = {
     'tracked': 1,
     'analyzed': 1,
     'analyzed-estimated': 1,
+    'user-plan': 2,   // pre-run choice resolution: above dialect, below runtime
     'compiler': 2,
     'dialect':  2,
     'hinted':   2,

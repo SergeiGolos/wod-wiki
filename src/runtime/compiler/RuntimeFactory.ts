@@ -29,6 +29,7 @@ import { RuntimeStackOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { StartSessionAction } from '../actions/stack/StartSessionAction';
 import { createAnalyticsEngineForBlock } from '../../core/analytics/createAnalyticsEngineForBlock';
+import { collapseUnresolvedChoices } from './metrics/ChoiceResolution';
 
 /**
  * Interface for runtime factory implementations
@@ -76,6 +77,13 @@ export class RuntimeFactory implements IRuntimeFactory {
 
     // Create WhiteboardScript from block content and statements
     const script = new WhiteboardScript(block.content, block.statements);
+
+    // Collapse any unresolved Choice Groups BEFORE the runtime spins up its first
+    // block. The Pre-Run Wizard resolves Choices at origin 'user-plan'; this is the
+    // enforced safety net that defaults anything still unresolved to its first
+    // alternative, guaranteeing a MetricType.Choice never reaches a compiled Block
+    // — even on entry points that never surface the wizard.
+    collapseUnresolvedChoices(script.statements);
 
     // Instantiate dependencies
     const stack = new RuntimeStack();

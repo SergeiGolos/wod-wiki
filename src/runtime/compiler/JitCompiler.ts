@@ -64,7 +64,7 @@ export class JitCompiler implements IJitCompiler {
   private _statementCacheKey(nodes: ICodeStatement[]): string {
     return nodes.map(n => {
       const metricTypes = n.metrics
-        .filter(m => m.type !== MetricType.Hint)
+        .filter(m => m.type !== MetricType.Hint && m.type !== MetricType.Choice)
         .map(m => m.type).sort().join(',');
       const hasChildren = n.children && n.children.length > 0 ? '1' : '0';
       const hints = getHints(n).sort().join(',');

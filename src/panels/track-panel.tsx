@@ -13,7 +13,7 @@ import { TrackViewShell } from '@/components/workout/TrackViewShell';
 import type { SectionType } from '@/components/Editor/types/section';
 import type { WodBlock } from '@/components/Editor/types';
 import { useUserOverrides } from '@/components/review-grid/useUserOverrides';
-import { useCollectionMetrics } from '@/hooks/useCollectionMetrics';
+import { useCollectionMetrics, type ChoiceCollectionItem, type ValueCollectionItem, resolveChoiceSelection } from '@/hooks/useCollectionMetrics';
 import { CollectionWizard } from '@/components/review/CollectionWizard';
 
 export interface TrackPanelProps {
@@ -93,6 +93,18 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   const { collectionItems } = useCollectionMetrics([], overrides, runtime?.script);
   const showWizard = execution.status === 'idle' && collectionItems.length > 0 && !wizardDismissed;
 
+  /**
+   * Resolve a ChoiceCollectionItem by collapsing the chosen alternative into the
+   * Statement's MetricContainer (origin 'user-plan'). Delegates to the single
+   * ChoiceResolution owner; runs before the WOD blocks compile.
+   */
+  const resolveChoice = React.useCallback(
+    (item: ChoiceCollectionItem, selectedIndex: number) => {
+      resolveChoiceSelection(runtime?.script, item, selectedIndex);
+    },
+    [runtime]
+  );
+
   React.useEffect(() => {
     if (execution.status !== 'idle' || collectionItems.length === 0) {
       setWizardDismissed(false);
@@ -120,8 +132,18 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
     return (
       <CollectionWizard
         items={collectionItems}
-        onSave={(item, val) => setOverride(item.blockKey, item.metricType, val)}
-        onSkip={(item) => setOverride(item.blockKey, item.metricType, undefined)}
+        onSave={(item, val) => {
+          if (item.kind === 'choice') {
+            resolveChoice(item as ChoiceCollectionItem, val as number);
+          } else {
+            setOverride((item as ValueCollectionItem).blockKey, (item as ValueCollectionItem).metricType, val);
+          }
+        }}
+        onSkip={(item) => {
+          if (item.kind === 'value') {
+            setOverride((item as ValueCollectionItem).blockKey, (item as ValueCollectionItem).metricType, undefined);
+          }
+        }}
         onStart={onStart}
         onClose={() => setWizardDismissed(true)}
         mode="pre-run"

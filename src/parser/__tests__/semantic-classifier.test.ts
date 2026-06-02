@@ -291,4 +291,49 @@ describe('classifyStatements', () => {
     expect(result.children).toEqual([[2, 3], [4]]);
     expect(result.isLeaf).toBe(false);
   });
+
+  describe('Slash primitive', () => {
+    it('emits SlashMetric (MetricType.Slash) — never an EffortMetric', () => {
+      const facts: SyntaxFacts = {
+        statements: [{
+          id: 1, line: 1,
+          meta: meta(0, 1, '/'),
+          primitives: [{ kind: 'slash', raw: '/', meta: meta(0, 1, '/') }],
+          children: [], isLeaf: true,
+        }],
+      };
+      const [result] = classifyStatements(facts);
+      const arr = result.metrics.toArray();
+      expect(arr).toHaveLength(1);
+      expect(arr[0].type).toBe(MetricType.Slash);
+      expect(arr[0].value).toBe('/');
+      // Crucially: NOT MetricType.Effort
+      expect(arr[0].type).not.toBe(MetricType.Effort);
+    });
+
+    it('leaves "Run" slash "Walk" as three separate metrics (no merge)', () => {
+      const facts: SyntaxFacts = {
+        statements: [{
+          id: 1, line: 1,
+          meta: meta(0, 8, 'Run/Walk'),
+          primitives: [
+            { kind: 'effort', raw: 'Run',  meta: meta(0, 3, 'Run') },
+            { kind: 'slash',  raw: '/',    meta: meta(3, 4, '/') },
+            { kind: 'effort', raw: 'Walk', meta: meta(4, 8, 'Walk') },
+          ],
+          children: [], isLeaf: true,
+        }],
+      };
+      const [result] = classifyStatements(facts);
+      const arr = result.metrics.toArray();
+      // SlashMetric sits between the two efforts; mergeFragments never
+      // sees two adjacent EffortMetrics, so nothing merges.
+      expect(arr).toHaveLength(3);
+      expect(arr[0].type).toBe(MetricType.Effort);
+      expect(arr[0].value).toBe('Run');
+      expect(arr[1].type).toBe(MetricType.Slash);
+      expect(arr[2].type).toBe(MetricType.Effort);
+      expect(arr[2].value).toBe('Walk');
+    });
+  });
 });

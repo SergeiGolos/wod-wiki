@@ -19,8 +19,9 @@ export const
   Quantity = 17,
   AtSign = 18,
   Question = 19,
-  Effort = 20,
-  MetricObject = 21,
-  True = 22,
-  False = 23,
-  Null = 24
+  Slash = 20,
+  Effort = 21,
+  MetricObject = 22,
+  True = 23,
+  False = 24,
+  Null = 25
