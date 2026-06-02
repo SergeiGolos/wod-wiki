@@ -18,7 +18,7 @@ import { buildAppNavTree } from '../../../playground/src/nav/appNavTree';
 import { NavSidebar } from '../../../playground/src/nav/NavSidebar';
 import { SidebarLayout } from '@/components/layout/SidebarLayout'
 import { CanvasPage } from '@/panels/page-shells';
-import { HomeView } from '../../../playground/src/pages/HomeView';
+import { HomeView } from '../../../playground/src/views/HomeView';
 import type { WorkoutItem } from '../../../playground/src/App';
 
 const mockWorkoutItems: WorkoutItem[] = [
