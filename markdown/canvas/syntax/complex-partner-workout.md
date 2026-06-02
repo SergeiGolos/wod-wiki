@@ -8,12 +8,12 @@ order: 8
 # Partner Intervals
 
 ```wod
-(Partner A)
+// Partner A
   5:00 AMRAP
     5 Pullups
     10 Pushups
 
-(Partner B)
+// Partner B
   5:00 AMRAP
     10 Air Squats
     8 Burpees
