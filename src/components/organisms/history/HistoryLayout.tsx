@@ -6,7 +6,7 @@ import { Button } from '@/components/atoms/button';
 import { Search, HelpCircle, PanelRightOpen, Book, Library, LayoutGrid, ChevronDown } from 'lucide-react';
 import { useTutorialStore } from '@/hooks/useTutorialStore';
 import { useNotebooks } from '@/components/organisms/notebook/NotebookContext';
-import { DebugButton } from '@/components/layout/DebugModeContext';
+import { DebugButton } from '@/contexts/DebugModeContext';
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc';
 import { useScreenMode } from '@/panels/panel-system/useScreenMode';
 import {

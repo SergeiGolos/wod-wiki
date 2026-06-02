@@ -24,7 +24,7 @@ import { calculateDuration } from '@/lib/timeUtils';
 
 import { TimerStackView } from '@/components/organisms/workout/TimerStackView';
 import { MetricTrackerCard } from '@/components/organisms/track/MetricTrackerCard';
-import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
+import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 import { metricPresentation } from '@/core/metrics/presentation';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
 

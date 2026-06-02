@@ -6,7 +6,7 @@
  */
 
 import { useContext } from 'react';
-import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeLifecycleContext';
+import { RuntimeLifecycleContext, type RuntimeLifecycleState } from '@/contexts/RuntimeLifecycleContext';
 
 /**
  * Hook to access runtime lifecycle context

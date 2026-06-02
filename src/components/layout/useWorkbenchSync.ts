@@ -8,7 +8,7 @@
  * with selectors for optimal re-render performance:
  *
  * ```tsx
- * import { useWorkbenchSyncStore } from './workbenchSyncStore';
+ * import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
  *
  * // Only re-renders when hoveredBlockKey changes
  * const hoveredBlockKey = useWorkbenchSyncStore(s => s.hoveredBlockKey);
@@ -16,7 +16,7 @@
  */
 
 import { useShallow } from 'zustand/react/shallow';
-import { useWorkbenchSyncStore } from './workbenchSyncStore';
+import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 
 export const useWorkbenchSync = () => {
   return useWorkbenchSyncStore(

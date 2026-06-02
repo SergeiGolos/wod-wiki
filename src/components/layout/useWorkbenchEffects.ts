@@ -17,15 +17,15 @@
  */
 
 import { useEffect, useRef, useMemo } from 'react';
-import { useWorkbench } from './WorkbenchContext';
-import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
+import { useWorkbench } from '@/contexts/WorkbenchContext';
+import { useWorkbenchRuntime } from '@/hooks/useWorkbenchRuntime';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { parseDocumentStructure } from '../Editor/utils/documentStructure';
 import { getAnalyticsFromRuntime, getAnalyticsFromLogs } from '@/hooks/useWorkbenchServices';
 import { hashCode } from '../../lib/utils';
-import { useWorkbenchSyncStore } from './workbenchSyncStore';
+import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 import { WodBlock } from '../Editor/types';
-import { useProjectionSync } from '../../components/cast/ProjectionSyncContext';
+import { useProjectionSync } from '@/contexts/ProjectionSyncContext';
 
 // Helper to generate a unique key for a block based on its content/statements
 const getBlockKey = (block: WodBlock | null): string => {

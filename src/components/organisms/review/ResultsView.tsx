@@ -15,7 +15,7 @@ import { MetricType, type IMetric } from '@/core/models/Metric';
 import type { ProjectionResult } from '@/core/analytics/ProjectionResult';
 import { ReviewGrid } from './ReviewGrid';
 import { AnalyticsScorecard } from '@/components/organisms/review/AnalyticsScorecard';
-import { useDebugMode } from '@/components/layout/DebugModeContext';
+import { useDebugMode } from '@/contexts/DebugModeContext';
 import { cn } from '@/lib/utils';
 
 // ─── Props ─────────────────────────────────────────────────────

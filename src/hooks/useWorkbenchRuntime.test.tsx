@@ -2,10 +2,10 @@ import React from 'react';
 import { describe, expect, it, mock } from 'bun:test';
 import { act, renderHook } from '@testing-library/react';
 
-import { RuntimeLifecycleContext } from '../layout/RuntimeLifecycleContext';
-import type { WorkoutResults, WodBlock } from '../Editor/types';
-import { MetricContainer } from '../../core/models/MetricContainer';
-import { MetricType } from '../../core/models/Metric';
+import { RuntimeLifecycleContext } from '@/contexts/RuntimeLifecycleContext';
+import type { WorkoutResults, WodBlock } from '@/components/Editor/types';
+import { MetricContainer } from '@/core/models/MetricContainer';
+import { MetricType } from '@/core/models/Metric';
 
 mock.module('@/hooks/useBrowserServices', () => ({
     audioService: {

@@ -11,7 +11,7 @@ mock.module('@/panels/panel-system/PanelSizeContext', () => ({
   usePanelSize: mockPanelSize,
 }));
 
-mock.module('@/components/audio/AudioContext', () => ({
+mock.module('@/contexts/AudioContext', () => ({
   useAudio: () => ({
     playClick: () => {},
     playTick: () => {},

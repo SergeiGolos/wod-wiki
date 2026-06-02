@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TvMinimal, Cast } from 'lucide-react';
 import { Button } from '@/components/atoms/button';
-import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
+import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 import { ChromecastSdk, type CastSdkState, SenderCastSignaling, WebRTCTransport, CAST_APP_ID, DEFAULT_MEDIA_RECEIVER_APP_ID, hasCustomCastAppId } from '@/hooks/useCastSignaling';
 import { v4 as uuidv4 } from 'uuid';
 import { CAST_NAMESPACE as CAST_NAMESPACE_STR } from '@/types/cast/messages';

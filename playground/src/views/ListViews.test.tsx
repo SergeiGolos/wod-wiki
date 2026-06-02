@@ -26,7 +26,7 @@ mock.module('react-router-dom', () => ({
   ],
 }));
 
-mock.module('@/components/organisms/command-palette/CommandContext', () => ({
+mock.module('@/contexts/CommandContext', () => ({
   useCommandPalette: () => ({
     setIsOpen: mock(() => {}),
     setStrategy: mock(() => {}),

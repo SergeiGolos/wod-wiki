@@ -5,7 +5,7 @@ import type { WodBlock } from '../Editor/types';
 import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeLifecycleContext';
 import { SubscriptionManagerContext } from './SubscriptionManagerContext';
 
-export { useRuntimeLifecycle } from './useRuntimeLifecycle';
+export { useRuntimeLifecycle } from '@/components/layout/useRuntimeLifecycle';
 
 /**
  * Props for RuntimeLifecycleProvider

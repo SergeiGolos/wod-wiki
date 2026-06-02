@@ -1,7 +1,7 @@
 import { useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Moon, Sun, Sparkles, PanelTop, LayoutGrid } from 'lucide-react'
-import { useTheme } from '@/components/theme/ThemeProvider'
+import { useTheme } from '@/contexts/ThemeProvider'
 import { Switch } from '@/components/atoms/switch'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { canvasRoutes } from '../canvas/canvasRoutes'

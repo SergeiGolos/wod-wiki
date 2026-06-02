@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Sun, Moon, Volume2, VolumeX, Bug, Github, Settings, Download, Upload, ExternalLink } from 'lucide-react';
-import { useTheme } from '@/components/theme/ThemeProvider';
-import { useAudio } from '@/components/audio/AudioContext';
-import { useDebugMode } from '@/components/layout/DebugModeContext';
+import { useTheme } from '@/contexts/ThemeProvider';
+import { useAudio } from '@/contexts/AudioContext';
+import { useDebugMode } from '@/contexts/DebugModeContext';
 import { cn } from '@/lib/utils';
 import type { IContentProvider } from '@/types/content-provider';
 import { exportAllNotes, importFromZip, pickFile } from '@/hooks/useWorkbenchServices';

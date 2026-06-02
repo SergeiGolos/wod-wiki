@@ -22,7 +22,7 @@ import { Eye } from 'lucide-react';
 import { Button } from '@/components/atoms/button';
 import { Badge } from '@/components/atoms/badge';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
-import { useTheme } from '@/components/theme/ThemeProvider';
+import { useTheme } from '@/contexts/ThemeProvider';
 import { JournalPageShell } from '@/panels/page-shells';
 import type { WodBlock } from '@/components/Editor/types';
 import type { WorkoutResult } from '@/types/storage';

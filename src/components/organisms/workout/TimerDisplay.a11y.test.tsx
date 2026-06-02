@@ -11,7 +11,7 @@ mock.module('@/panels/panel-system/PanelSizeContext', () => ({
   usePanelSize: mockPanelSize,
 }));
 
-mock.module('@/components/audio/AudioContext', () => ({
+mock.module('@/contexts/AudioContext', () => ({
   useAudio: () => ({
     playClick: () => {},
     playTick: () => {},
@@ -23,7 +23,7 @@ mock.module('@/runtime/context/RuntimeContext', () => ({
   useScriptRuntime: () => null,
 }));
 
-mock.module('@/components/layout/workbenchSyncStore', () => ({
+mock.module('@/stores/workbenchSyncStore', () => ({
   useWorkbenchSyncStore: (selector: any) => {
     const state = { viewMode: 'track', execution: { status: 'idle' } };
     return selector ? selector(state) : state;
@@ -127,7 +127,7 @@ describe('TimerDisplay — Keyboard Navigation', () => {
     });
 
     it('does not trigger shortcuts outside track view', () => {
-      mock.module('@/components/layout/workbenchSyncStore', () => ({
+      mock.module('@/stores/workbenchSyncStore', () => ({
         useWorkbenchSyncStore: (selector: any) => {
           const state = { viewMode: 'editor', execution: { status: 'idle' } };
           return selector ? selector(state) : state;
@@ -144,7 +144,7 @@ describe('TimerDisplay — Keyboard Navigation', () => {
       expect(nexted).toBe(false);
 
       // Restore mock
-      mock.module('@/components/layout/workbenchSyncStore', () => ({
+      mock.module('@/stores/workbenchSyncStore', () => ({
         useWorkbenchSyncStore: (selector: any) => {
           const state = { viewMode: 'track', execution: { status: 'idle' } };
           return selector ? selector(state) : state;

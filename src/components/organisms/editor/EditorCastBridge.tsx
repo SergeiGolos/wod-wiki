@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
+import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 import type { EditorSection } from '@/components/Editor/extensions/section-state';
 import type { RpcWorkbenchUpdate, RpcMessage } from '@/hooks/useCastSignaling';
 import type { EditorState } from '@codemirror/state';

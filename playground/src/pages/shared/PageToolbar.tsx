@@ -29,13 +29,13 @@ import {
   SpeakerXMarkIcon,
 } from '@heroicons/react/20/solid'
 import { PlusIcon } from '@heroicons/react/16/solid'
-import { useTheme } from '@/components/theme/ThemeProvider'
+import { useTheme } from '@/contexts/ThemeProvider'
 import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '@/components/atoms/BuyMeACoffee'
 import { useNav } from '../../nav/NavContext'
 import { CalendarSplitButton } from '@/components/molecules/CalendarSplitButton'
 import { playgroundDB } from '../../services/playgroundDB'
 import type { NavItemL3 } from '../../nav/navTypes'
-import { useAudio } from '@/components/audio/AudioContext'
+import { useAudio } from '@/contexts/AudioContext'
 
 // ── NewEntryButton ───────────────────────────────────────────────────────────
 

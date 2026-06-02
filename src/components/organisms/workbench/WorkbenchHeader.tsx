@@ -5,7 +5,7 @@ import { Button } from '@/components/atoms/button';
 import { cn } from '@/lib/utils';
 import { CommitGraph } from '@/components/organisms/CommitGraph';
 import { NotebookMenu } from '@/components/organisms/notebook/NotebookMenu';
-import { DebugButton } from '@/components/layout/DebugModeContext';
+import { DebugButton } from '@/contexts/DebugModeContext';
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc';
 import { SaveStateIndicator, type SaveState } from '@/components/molecules/SaveStateIndicator';
 import { SearchTrigger } from '@/components/molecules/SearchTrigger';

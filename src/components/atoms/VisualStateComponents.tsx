@@ -8,7 +8,7 @@ import { formatTimeMMSS } from '../../lib/formatTime';
 import { MetricSourceRow } from '@/components/molecules/MetricSourceRow';
 import { MetricContainer } from '@/core/models/MetricContainer';
 import { VisibilityBadge } from './VisibilityBadge';
-import { useDebugMode } from '@/components/layout/DebugModeContext';
+import { useDebugMode } from '@/contexts/DebugModeContext';
 import { BlockDebugDialog } from '@/components/organisms/track/BlockDebugDialog';
 
 // ============================================================================

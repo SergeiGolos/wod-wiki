@@ -3,7 +3,7 @@ import type { EditorView } from "@codemirror/view";
 import { RuntimeTimerPanel } from "@/components/organisms/editor/RuntimeTimerPanel";
 import type { WodBlock, WorkoutResults } from "@/components/Editor/types";
 import { ReviewGrid } from "@/components/organisms/review/ReviewGrid";
-import { useDebugMode } from "@/components/layout/DebugModeContext";
+import { useDebugMode } from "@/contexts/DebugModeContext";
 import { getAnalyticsFromLogs } from "@/hooks/useWorkbenchServices";
 import type { Segment } from "@/core/models/AnalyticsModels";
 import { FocusedDialog } from "@/components/molecules/FocusedDialog";

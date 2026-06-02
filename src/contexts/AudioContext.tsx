@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { audioService } from '@/hooks/useBrowserServices';
-import { useWorkbenchSyncStore } from '../layout/workbenchSyncStore';
+import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 
 interface AudioContextType {
     isEnabled: boolean;

@@ -6,7 +6,7 @@ import { AnalyticsScorecard } from "@/components/organisms/review/AnalyticsScore
 import { DebugTraceViewer } from "@/components/organisms/review/DebugTraceViewer";
 import { CollectionWizard } from "@/components/organisms/review/CollectionWizard";
 import { useCollectionMetrics, type CollectionItem } from "@/hooks/useCollectionMetrics";
-import { useDebugMode } from "@/components/layout/DebugModeContext";
+import { useDebugMode } from "@/contexts/DebugModeContext";
 import type { Segment } from "@/core/models/AnalyticsModels";
 import { FocusedDialog } from "@/components/molecules/FocusedDialog";
 import { CastButtonRpc } from "@/components/organisms/cast/CastButtonRpc";

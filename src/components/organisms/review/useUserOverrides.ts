@@ -11,7 +11,7 @@
 import { useCallback, useEffect } from 'react';
 import { MetricType, type IMetric } from '@/core/models/Metric';
 import { MetricContainer } from '@/core/models/MetricContainer';
-import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
+import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 
 const STORAGE_KEY = 'wod-wiki:userOutputOverrides';
 

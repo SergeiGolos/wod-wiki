@@ -1,6 +1,6 @@
 import { Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/atoms/button';
-import { useAudio } from '@/components/audio/AudioContext';
+import { useAudio } from '@/contexts/AudioContext';
 
 export function AudioToggle() {
     const { isEnabled, toggleAudio } = useAudio();

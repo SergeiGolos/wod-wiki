@@ -5,7 +5,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, Moon, Play, Sun } from 'lucide-r
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import type { WodBlock } from '@/components/Editor/types'
 import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
-import { useTheme } from '@/components/theme/ThemeProvider'
+import { useTheme } from '@/contexts/ThemeProvider'
 import { cn } from '@/lib/utils'
 
 import { MacOSChrome } from '../components/MacOSChrome'

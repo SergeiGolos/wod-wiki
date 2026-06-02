@@ -3,7 +3,7 @@ import { Play, Pause, SkipForward, Square, Timer } from 'lucide-react';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '@/clock/types/DisplayTypes';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
-import { useAudio } from '@/components/audio/AudioContext';
+import { useAudio } from '@/contexts/AudioContext';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 
 export interface TimerStackViewProps {

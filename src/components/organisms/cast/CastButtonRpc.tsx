@@ -8,11 +8,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TvMinimal, Cast } from 'lucide-react';
 import { Button } from '@/components/atoms/button';
-import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
-import { useSubscriptionManager } from '@/components/layout/SubscriptionManagerContext';
+import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
+import { useSubscriptionManager } from '@/contexts/SubscriptionManagerContext';
 import { ChromecastSdk, type CastSdkState, CAST_APP_ID, hasCustomCastAppId, ChromecastSenderViewSession } from '@/hooks/useCastSignaling';
 import { cn } from '@/lib/utils';
-import { ProjectionSyncProvider } from './ProjectionSyncContext';
+import { ProjectionSyncProvider } from '@/contexts/ProjectionSyncContext';
 import { workbenchModeResolver } from '@/app/cast/workbenchModeResolver';
 
 export const CastButtonRpc: React.FC = () => {

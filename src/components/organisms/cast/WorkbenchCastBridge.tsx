@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
+import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 import { workbenchModeResolver } from '@/app/cast/workbenchModeResolver';
 
 export const WorkbenchCastBridge: React.FC = () => {

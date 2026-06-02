@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import type { Command } from './types';
+import type { Command } from '@/components/organisms/command-palette/types';
 
 interface CommandContextType {
   registerCommand: (command: Command) => () => void;

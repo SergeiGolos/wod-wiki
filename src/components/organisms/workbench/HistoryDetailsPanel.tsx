@@ -1,7 +1,7 @@
 import React from 'react';
 import { FolderOpen, Settings, Sun, Moon, Volume2, VolumeX, Github, ExternalLink } from 'lucide-react';
-import { useTheme } from '@/components/theme/ThemeProvider';
-import { useAudio } from '@/components/audio/AudioContext';
+import { useTheme } from '@/contexts/ThemeProvider';
+import { useAudio } from '@/contexts/AudioContext';
 import { cn } from '@/lib/utils';
 import type { WodCollection } from '@/repositories/wod-collections';
 

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useRuntimeLifecycle } from '../layout/RuntimeLifecycleProvider';
-import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
-import { useRuntimeExecution, NextEvent, RegisterEventHandlerAction, UnregisterEventHandlerAction } from '../../hooks/useRuntimeTimer';
-import type { IEventHandler, IEvent, IScriptRuntime } from '../../hooks/useRuntimeTimer';
+import { useRuntimeLifecycle } from '@/contexts/RuntimeLifecycleProvider';
+import { useWorkoutEvents } from './useWorkoutEvents';
+import { useRuntimeExecution, NextEvent, RegisterEventHandlerAction, UnregisterEventHandlerAction } from './useRuntimeTimer';
+import type { IEventHandler, IEvent, IScriptRuntime } from './useRuntimeTimer';
 import { audioService } from '@/hooks/useBrowserServices';
 import type { WorkoutEvent } from '@/hooks/useBrowserServices';
-import type { WorkoutResults, WodBlock } from '../Editor/types';
-import { toStoredOutputStatement } from '../Editor/types';
+import type { WorkoutResults, WodBlock } from '@/components/Editor/types';
+import { toStoredOutputStatement } from '@/components/Editor/types';
 
 /**
  * Hook to encapsulate Workbench runtime logic.

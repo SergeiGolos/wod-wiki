@@ -23,7 +23,7 @@ import { GridRow } from './GridRow';
 import { GridGraphPanel } from './GridGraphPanel';
 import { UserOverrideDialog } from './UserOverrideDialog';
 import { useUserOverrides } from './useUserOverrides';
-import { useDebugMode } from '@/components/layout/DebugModeContext';
+import { useDebugMode } from '@/contexts/DebugModeContext';
 
 // ─── Props ─────────────────────────────────────────────────────
 
