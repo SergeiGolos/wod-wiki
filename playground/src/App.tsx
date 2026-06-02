@@ -60,12 +60,12 @@ import { JournalZipLoadPage } from './pages/JournalZipLoadPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
 import { EffortDetailPage } from './pages/EffortDetailPage'
-import { Toaster } from '@/components/atoms/toaster'
+import { Toaster } from '@/components/atoms/primitives/toaster'
 import { PageActions } from './pages/shared/PageActions'
 import { ActionsMenu } from './pages/shared/PageToolbar'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
 import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
-import { EffortRegistryProvider } from './components/efforts/EffortRegistryContext'
+import { EffortRegistryProvider } from './contexts/EffortRegistryContext'
 
 // ── Constants for Sidebar Navigation ────────────────────────────────
 

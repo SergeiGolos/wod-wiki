@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { JournalPageShell } from '@/panels/page-shells'
 import type { WidgetRegistry } from '@/components/Editor/widgets/types'
-import { PlaygroundRunTipWidget } from '../components/widgets/PlaygroundRunTipWidget'
+import { PlaygroundRunTipWidget } from '../components/molecules/PlaygroundRunTipWidget'
 import {
   createAttentionWidgetWrapper,
   createCodeExampleWidgetWrapper,
@@ -33,7 +33,7 @@ import { shareBlock } from '../services/openInPlayground'
 import { appendWorkoutToJournal } from '../services/journalWorkout'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { toast } from '@/hooks/use-toast'
-import { ToastAction } from '@/components/atoms/toast'
+import { ToastAction } from '@/components/atoms/primitives/toast'
 import { DEFAULT_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundContent'
 import { formatPlaygroundPageTitle } from '@/lib/playgroundDisplay'
 import { localDateKey } from '../views/queriable-list/JournalDateScroll'

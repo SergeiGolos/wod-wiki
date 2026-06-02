@@ -20,7 +20,7 @@ import { appendWorkoutToJournal } from '../services/journalWorkout';
 import { useFeedsQueryState } from '../hooks/useFeedsQueryState';
 import { FeedFeed, type FeedItem } from './FeedFeed';
 import { toast } from '@/hooks/use-toast';
-import { ToastAction } from '@/components/atoms/toast';
+import { ToastAction } from '@/components/atoms/primitives/toast';
 
 export function FeedsPage() {
   const navigate = useNavigate();

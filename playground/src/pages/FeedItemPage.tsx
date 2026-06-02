@@ -30,7 +30,7 @@ import { useWodBlockCommands } from '../hooks/useWodBlockCommands';
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground';
 import { PageActions } from './shared/PageActions';
 import { toast } from '@/hooks/use-toast';
-import { ToastAction } from '@/components/atoms/toast';
+import { ToastAction } from '@/components/atoms/primitives/toast';
 import { localDateKey } from '../views/queriable-list/JournalDateScroll';
 
 export interface FeedItemPageProps {

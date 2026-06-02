@@ -1,7 +1,7 @@
 import React from 'react';
 import { DocumentItem } from '@/components/Editor/utils/documentStructure';
 import { Dumbbell, Edit2, Play } from 'lucide-react';
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/atoms/primitives/button';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';

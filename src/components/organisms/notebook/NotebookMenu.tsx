@@ -11,7 +11,7 @@
 
 import React, { useState } from 'react';
 import { BookOpen, Plus, X } from 'lucide-react';
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/atoms/primitives/button';
 import { cn } from '@/lib/utils';
 import {
     DropdownMenu,
@@ -20,7 +20,7 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-} from '@/components/atoms/dropdown-menu';
+} from '@/components/atoms/primitives/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { useNotebooks } from './NotebookContext';
 import { CreateNotebookDialog } from './CreateNotebookDialog';

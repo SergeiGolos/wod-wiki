@@ -125,7 +125,7 @@ mock.module('@/services/AnalyticsTransformer', () => ({
   }),
 }))
 
-mock.module('../components/MacOSChrome', () => ({
+mock.module('../components/atoms/MacOSChrome', () => ({
   MacOSChrome: ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div data-testid="chrome">
       <div data-testid="chrome-title">{title}</div>

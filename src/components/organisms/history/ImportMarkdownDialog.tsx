@@ -6,8 +6,8 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from '@/components/atoms/dialog';
-import { Button } from '@/components/atoms/button';
+} from '@/components/atoms/primitives/dialog';
+import { Button } from '@/components/atoms/primitives/button';
 
 interface ImportMarkdownDialogProps {
     open: boolean;

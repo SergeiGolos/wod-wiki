@@ -19,8 +19,8 @@ import {
   DocumentDuplicateIcon,
 } from '@heroicons/react/20/solid';
 import { Eye } from 'lucide-react';
-import { Button } from '@/components/atoms/button';
-import { Badge } from '@/components/atoms/badge';
+import { Button } from '@/components/atoms/primitives/button';
+import { Badge } from '@/components/atoms/primitives/badge';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { JournalPageShell } from '@/panels/page-shells';
@@ -29,7 +29,7 @@ import type { WorkoutResult } from '@/types/storage';
 import { useEffortContent } from '../hooks/useEffortContent';
 import { useNotePageNav } from './shared/useNotePageNav';
 import { useWodBlockCommands } from '../hooks/useWodBlockCommands';
-import { useEffortRegistry } from '../components/efforts/EffortRegistryContext';
+import { useEffortRegistry } from '../contexts/EffortRegistryContext';
 import { EffortResolver } from '@/effort-registry';
 import type { IEffort, ResolvedEffort } from '@/effort-registry';
 import { effortsPath } from '../lib/routes';

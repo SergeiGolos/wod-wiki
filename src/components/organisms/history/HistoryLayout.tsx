@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { CommitGraph } from '@/components/organisms/CommitGraph';
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/atoms/primitives/button';
 import { Search, HelpCircle, PanelRightOpen, Book, Library, LayoutGrid, ChevronDown } from 'lucide-react';
 import { useTutorialStore } from '@/hooks/useTutorialStore';
 import { useNotebooks } from '@/components/organisms/notebook/NotebookContext';
@@ -16,7 +16,7 @@ import {
     DropdownMenuTrigger,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-} from '@/components/atoms/dropdown-menu';
+} from '@/components/atoms/primitives/dropdown-menu';
 
 interface HistoryLayoutProps {
     children: React.ReactNode;

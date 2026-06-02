@@ -12,7 +12,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from '@/components/atoms/Dialog';
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/atoms/primitives/button';
 import { cn } from '@/lib/utils';
 import { NotebookService } from '@/hooks/useBrowserServices';
 

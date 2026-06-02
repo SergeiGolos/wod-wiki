@@ -1,5 +1,5 @@
 import * as React from "react"
-import type { ToastActionElement, ToastProps } from "@/components/atoms/toast"
+import type { ToastActionElement, ToastProps } from "@/components/atoms/primitives/toast"
 
 const TOAST_LIMIT = 3
 const TOAST_REMOVE_DELAY = 1_000_000

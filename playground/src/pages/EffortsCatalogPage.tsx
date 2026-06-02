@@ -9,9 +9,9 @@
 import React, { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusIcon, FunnelIcon } from '@heroicons/react/20/solid';
-import { Button } from '@/components/atoms/button';
-import { Badge } from '@/components/atoms/badge';
-import { useEffortRegistry } from '../components/efforts/EffortRegistryContext';
+import { Button } from '@/components/atoms/primitives/button';
+import { Badge } from '@/components/atoms/primitives/badge';
+import { useEffortRegistry } from '../contexts/EffortRegistryContext';
 import { useEffortsQueryState } from '../hooks/useEffortsQueryState';
 import type { IEffort, EffortRegistrySource } from '@/effort-registry';
 import { effortPath } from '../lib/routes';

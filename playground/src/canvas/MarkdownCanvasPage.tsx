@@ -19,8 +19,8 @@ import { ReviewGrid } from '@/components/organisms/review/ReviewGrid'
 import { useDebugMode } from '@/contexts/DebugModeContext'
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
-import { CanvasProsePanel } from '../components/canvas/CanvasProsePanel'
-import { CanvasEditorPanel } from '../components/canvas/CanvasEditorPanel'
+import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePanel'
+import { CanvasEditorPanel } from '../components/organisms/canvas/CanvasEditorPanel'
 import { SplitCanvasTemplate } from '../templates/SplitCanvasTemplate'
 import {
   getCanvasNoteId,

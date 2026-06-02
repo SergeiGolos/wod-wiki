@@ -27,7 +27,7 @@ import { useWodBlockResults } from '@/components/Editor/hooks/useWodBlockResults
 import { useWodLineResults } from '@/components/Editor/hooks/useWodLineResults';
 import type { LineExecutionSummary } from '@/components/Editor/hooks/useWodLineResults';
 import { History, Activity } from "lucide-react";
-import { Button } from "@/components/atoms/button";
+import { Button } from "@/components/atoms/primitives/button";
 import { ButtonGroup } from "@/components/molecules/ButtonGroup";
 import type { INavActivation } from "@/nav/navTypes";
 

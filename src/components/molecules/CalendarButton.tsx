@@ -10,7 +10,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from '@/components/atoms/dropdown-menu';
+} from '@/components/atoms/primitives/dropdown-menu';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
 import { usePopoverAlign } from '@/hooks/usePopoverAlign';
 

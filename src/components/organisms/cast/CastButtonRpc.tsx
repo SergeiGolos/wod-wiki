@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TvMinimal, Cast } from 'lucide-react';
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/atoms/primitives/button';
 import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 import { useSubscriptionManager } from '@/contexts/SubscriptionManagerContext';
 import { ChromecastSdk, type CastSdkState, CAST_APP_ID, hasCustomCastAppId, ChromecastSenderViewSession } from '@/hooks/useCastSignaling';

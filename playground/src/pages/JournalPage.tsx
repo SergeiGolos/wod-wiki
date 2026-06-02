@@ -31,7 +31,7 @@ import { shareBlock, openBlockInPlayground } from '../services/openInPlayground'
 import { appendWorkoutToJournal } from '../services/journalWorkout'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { toast } from '@/hooks/use-toast'
-import { ToastAction } from '@/components/atoms/toast'
+import { ToastAction } from '@/components/atoms/primitives/toast'
 import { applyTemplate } from './shared/pageUtils'
 import newPlaygroundTemplate from '../templates/new-playground.md?raw'
 

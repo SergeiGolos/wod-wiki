@@ -13,7 +13,7 @@
 import React from 'react';
 import { WodBlock } from '@/components/Editor/types';
 import { StatementList } from './StatementList';
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/atoms/primitives/button';
 import { Play } from 'lucide-react';
 
 export type WorkoutContextMode = 'edit' | 'run' | 'review';

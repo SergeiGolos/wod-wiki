@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from '@/components/atoms/dropdown-menu'
+} from '@/components/atoms/primitives/dropdown-menu'
 import { DocumentTextIcon, ChevronDownIcon, PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid'
 
 export interface PageNavLink {

@@ -10,7 +10,7 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-} from '@/components/atoms/dropdown-menu';
+} from '@/components/atoms/primitives/dropdown-menu';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
 import type { WodBlock } from '@/components/Editor/types';
 import type { IContentProvider } from '@/types/content-provider';

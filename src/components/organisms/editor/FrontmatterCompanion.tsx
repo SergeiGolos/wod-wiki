@@ -12,7 +12,7 @@ import type { EditorView } from "@codemirror/view";
 import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
 import { parseFlatProperties, extractYouTubeVideoId } from "@/lib/frontmatter";
 import { cn } from "@/lib/utils";
-import { Label } from "@/components/atoms/label";
+import { Label } from "@/components/atoms/primitives/label";
 
 // ── Types ────────────────────────────────────────────────────────────
 

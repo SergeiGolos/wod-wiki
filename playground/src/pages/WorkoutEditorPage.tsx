@@ -9,7 +9,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
-import { ToastAction } from '@/components/atoms/toast'
+import { ToastAction } from '@/components/atoms/primitives/toast'
 import { EditorView } from '@codemirror/view'
 import { v4 as uuidv4 } from 'uuid'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'

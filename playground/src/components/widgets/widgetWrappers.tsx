@@ -10,9 +10,9 @@
 
 import React from 'react'
 import type { WidgetProps } from '@/components/Editor/widgets/types'
-import { AttentionWidget, type AttentionWidgetConfig, type AttentionActionType } from './AttentionWidget'
-import { CodeExampleWidget, type CodeExampleWidgetConfig } from './CodeExampleWidget'
-import { SyntaxGroupWidget, type SyntaxGroupWidgetConfig } from './SyntaxGroupWidget'
+import { AttentionWidget, type AttentionWidgetConfig, type AttentionActionType } from '../molecules/AttentionWidget'
+import { CodeExampleWidget, type CodeExampleWidgetConfig } from '../molecules/CodeExampleWidget'
+import { SyntaxGroupWidget, type SyntaxGroupWidgetConfig } from '../molecules/SyntaxGroupWidget'
 
 // ── AttentionWidgetWrapper ──────────────────────────────────────
 

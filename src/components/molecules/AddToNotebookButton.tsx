@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { BookOpen, Check } from 'lucide-react';
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/atoms/primitives/button';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -15,7 +15,7 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-} from '@/components/atoms/dropdown-menu';
+} from '@/components/atoms/primitives/dropdown-menu';
 import { useNotebooks } from './NotebookContext';
 
 interface AddToNotebookButtonProps {

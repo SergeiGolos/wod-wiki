@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HelpCircle, PanelRightOpen } from 'lucide-react';
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/atoms/primitives/button';
 import { cn } from '@/lib/utils';
 import { CommitGraph } from '@/components/organisms/CommitGraph';
 import { NotebookMenu } from '@/components/organisms/notebook/NotebookMenu';

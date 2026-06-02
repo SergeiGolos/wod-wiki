@@ -7,7 +7,7 @@ import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { notePersistence } from '@/services/persistence'
 import { activeRuntimes, pendingRuntimes } from '../runtimeStore'
 import { runPath } from '../lib/routes'
-import type { RunButtonState } from '../components/canvas/SectionButtons'
+import type { RunButtonState } from '../components/molecules/SectionButtons'
 
 type PanelMode = 'editor' | 'running' | 'review'
 

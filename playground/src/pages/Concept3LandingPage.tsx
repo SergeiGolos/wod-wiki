@@ -8,7 +8,7 @@ import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPan
 import { useTheme } from '@/contexts/ThemeProvider'
 import { cn } from '@/lib/utils'
 
-import { MacOSChrome } from '../components/MacOSChrome'
+import { MacOSChrome } from '../components/atoms/MacOSChrome'
 
 const SAMPLE_SOURCE = `\`\`\`wod
 (3 Rounds)

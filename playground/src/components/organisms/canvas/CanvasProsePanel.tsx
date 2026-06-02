@@ -1,10 +1,10 @@
 import React from 'react'
-import type { CanvasSection } from '../../canvas/parseCanvasMarkdown'
-import type { WorkoutItem } from '../../App'
-import { CollectionWorkoutsList } from '../../views/queriable-list/CollectionWorkoutsList'
-import { CanvasSection as CanvasSectionComponent } from './CanvasSection'
-import type { RunButtonState } from './SectionButtons'
-import type { NavActionDeps } from '../../nav/navTypes'
+import type { CanvasSection } from '../../../canvas/parseCanvasMarkdown'
+import type { WorkoutItem } from '../../../App'
+import { CollectionWorkoutsList } from '../../../views/queriable-list/CollectionWorkoutsList'
+import { CanvasSection as CanvasSectionComponent } from '../../molecules/CanvasSection'
+import type { RunButtonState } from '../../molecules/SectionButtons'
+import type { NavActionDeps } from '../../../nav/navTypes'
 
 interface CanvasProsePanelProps {
   heroSlot?: React.ReactNode

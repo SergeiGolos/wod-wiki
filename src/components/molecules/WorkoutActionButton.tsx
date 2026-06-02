@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Copy, Calendar, Loader2, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/atoms/primitives/button';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -8,7 +8,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuItem,
-} from '@/components/atoms/dropdown-menu';
+} from '@/components/atoms/primitives/dropdown-menu';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
 import { cn } from '@/lib/utils';
 import type { IContentProvider } from '@/types/content-provider';

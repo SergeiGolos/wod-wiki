@@ -16,7 +16,7 @@ import { sectionGeometry as sectionGeometryPlugin, type SectionRect } from '@/co
 import type { WodCommand } from "./WodCommand";
 import type { WodBlock } from '@/components/Editor/types';
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/atoms/button";
+import { Button } from "@/components/atoms/primitives/button";
 import { ButtonGroup } from "@/components/molecules/ButtonGroup";
 import type { INavActivation } from "@/nav/navTypes";
 import { TEST_IDS } from "@/testing/contracts/TestIdContract";

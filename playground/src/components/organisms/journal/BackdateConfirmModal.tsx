@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/atoms/primitives/button';
 import { cn } from '@/lib/utils';
 
 export interface BackdateConfirmModalProps {

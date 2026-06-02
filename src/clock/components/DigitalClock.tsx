@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/atoms/card';
-import { Badge } from '@/components/atoms/badge';
+import { Card, CardContent, CardHeader } from '@/components/atoms/primitives/card';
+import { Badge } from '@/components/atoms/primitives/badge';
 import { Clock, ArrowRight } from '@phosphor-icons/react';
 import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
 import { formatTimePrecise, formatTimeHHMMSS } from '../../lib/formatTime';
