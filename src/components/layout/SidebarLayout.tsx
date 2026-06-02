@@ -32,7 +32,7 @@ function MobileSidebar({ open, close, children }: React.PropsWithChildren<{ open
         transition
         className="fixed inset-y-0 w-full max-w-80 p-2 transition duration-300 ease-out data-closed:-translate-x-full"
       >
-        <div className="flex h-full flex-col rounded-lg bg-white shadow-xs ring-1 ring-zinc-950/5 dark:bg-zinc-900 dark:ring-white/10">
+        <div className="flex h-full flex-col rounded-lg bg-card shadow-xs ring-1 ring-foreground/5">
           <div className="-mb-3 px-4 pt-3">
             <Headless.CloseButton as={NavbarItem} aria-label="Close navigation">
               <CloseMenuIcon />
@@ -59,10 +59,10 @@ export function SidebarLayout({
   }, [location])
 
   return (
-    <div className="relative isolate flex min-h-svh w-full bg-zinc-50 dark:bg-zinc-950 max-lg:flex-col lg:flex-row lg:justify-center">
+    <div className="relative isolate flex min-h-svh w-full bg-background max-lg:flex-col lg:flex-row lg:justify-center">
       <div className="flex flex-1 w-full max-lg:flex-col lg:flex-row lg:max-w-[100rem]">
         {/* Sidebar — always visible on lg, overlay on mobile */}
-        <nav className="hidden lg:flex lg:w-64 lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:max-h-screen lg:overflow-y-auto lg:bg-zinc-50/72 lg:backdrop-blur-sm dark:lg:bg-zinc-950/72">
+        <nav className="hidden lg:flex lg:w-64 lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:max-h-screen lg:overflow-y-auto lg:bg-background/72 lg:backdrop-blur-sm">
           {sidebar}
         </nav>
         <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>
@@ -70,7 +70,7 @@ export function SidebarLayout({
         </MobileSidebar>
 
         {/* Mobile header with hamburger + navbar */}
-        <header className="sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-white dark:bg-zinc-900 lg:hidden overflow-hidden">
+        <header className="sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-card lg:hidden overflow-hidden">
           <div className="py-2.5 shrink-0">
             <NavbarItem onClick={() => setShowSidebar(true)} aria-label="Open navigation">
               <OpenMenuIcon />
