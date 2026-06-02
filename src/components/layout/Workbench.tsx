@@ -1,13 +1,13 @@
 /**
  * Workbench - Responsive workbench combining desktop and mobile views
- * 
+ *
  * This component implements the "sliding viewport" model where the app is a
  * viewport sliding across a horizontal strip of panels:
- * 
+ *
  * PLAN:    [Editor 2/3][EditorIndex 1/3]
  * TRACK:   [Timer 2/3][TimerIndex 1/3]
  * REVIEW:  [AnalyticsIndex 1/3][Timeline 2/3]
- * 
+ *
  * Responsive behavior:
  * - Desktop (≥1024px): Full sliding strip with side-by-side panels
  * - Tablet (768-1024px): Stacked with bottom sheets
@@ -17,46 +17,33 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { planPath } from '@/lib/routes';
-import { NoteEditorProps } from '../Editor/NoteEditor';
+import type { NoteEditorProps } from '../Editor/NoteEditor';
 import { CommandProvider } from '../../components/command-palette/CommandContext';
 import { PaletteShell } from '../../components/command-palette/PaletteShell';
-import { Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen, HelpCircle, Upload, Trash2, File } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { useTutorialStore } from '@/hooks/useTutorialStore';
-import { NotebookMenu } from '../notebook/NotebookMenu';
 import { toNotebookTag } from '../../types/notebook';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
 import { NoteDetailsPanel } from '../workbench/NoteDetailsPanel';
 import { useTheme } from '../theme/ThemeProvider';
-import { CommitGraph } from '@/components/organisms/CommitGraph';
 import { ResponsiveViewport } from '@/panels/panel-system/ResponsiveViewport';
 import { createPlanView, createTrackView, createReviewView } from '@/panels/panel-system/viewDescriptors';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
-import { cn } from '../../lib/utils';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeLifecycleProvider } from './RuntimeLifecycleProvider';
 import { useWorkbenchEffects } from './useWorkbenchEffects';
-
 import { useWorkbenchSync } from './useWorkbenchSync';
-import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
+import { useDebugMode } from '@/components/layout/DebugModeContext';
 import { runtimeFactory } from '@/hooks/useRuntimeFactory';
-import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
-import { HistoryEntry, WorkoutResults } from '../../types/history';
+import type { ContentProviderMode, IContentProvider } from '../../types/content-provider';
+import type { HistoryEntry, WorkoutResults } from '../../types/history';
 import { workbenchEventBus } from '@/hooks/useBrowserServices';
-import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
 import { getWorkbenchDocumentTitle, loadWorkbenchDisplayEntry } from '@/app/workbench/workbenchEntryLoader';
 import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
 import { useScreenMode } from '@/panels/panel-system/useScreenMode';
 import { MetricType } from '@/core/models/Metric';
-import { type ProjectionResult } from '@/core/analytics/ProjectionResult';
+import type { ProjectionResult } from '@/core/analytics/ProjectionResult';
+import { WorkbenchHeader } from '@/components/organisms/workbench/WorkbenchHeader';
+import type { Attachment } from '@/types/storage';
 
 declare const __APP_VERSION__: string | undefined;
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.dev';
@@ -64,6 +51,7 @@ const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0
 import { PlanPanel } from '@/panels/plan-panel';
 import { TimerScreen } from '@/panels/track-panel';
 import { ResultsView } from '../review-grid';
+import type { Segment } from '@/core/models/AnalyticsModels';
 
 export interface WorkbenchProps extends Omit<NoteEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange' | 'mode'> {
   initialContent?: string;
@@ -92,7 +80,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   // Consume Workbench Context (document state, view mode, panel layouts)
   const {
     content,
-    sections,
     viewMode,
     panelLayouts,
     activeBlockId: _activeBlockId,
@@ -109,11 +96,11 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     deleteAttachment,
   } = useWorkbench();
 
-  const handleDownload = useCallback((att: import('../../types/storage').Attachment) => {
-    const blob = att.data instanceof ArrayBuffer 
+  const handleDownload = useCallback((att: Attachment) => {
+    const blob = att.data instanceof ArrayBuffer
       ? new Blob([att.data], { type: att.mimeType })
       : new Blob([att.data], { type: att.mimeType });
-    
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -201,7 +188,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   useEffect(() => {
     if (!routeId) {
       setCurrentEntry(null);
-      // setCurrentEntryTags([]);
       return;
     }
 
@@ -209,7 +195,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       const entry = await loadWorkbenchDisplayEntry(routeId, provider);
       if (entry) {
         setCurrentEntry(entry);
-        // setCurrentEntryTags(entry.tags);
         return;
       }
 
@@ -355,8 +340,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     </div>
   );
 
-
-
   const trackPrimaryPanel = (
     <TimerScreen
       runtime={runtime}
@@ -411,7 +394,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       return [{
         ...planView,
         title: 'View',
-        icon: <Lock className="h-4 w-4" />,
+        icon: <span className="h-4 w-4 flex items-center justify-center text-xs">🔒</span>,
       }];
     }
 
@@ -427,7 +410,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
   return (
     <React.Fragment>
-      <div 
+      <div
         className="h-screen w-screen flex flex-col overflow-hidden bg-background relative"
       >
         {isDragging && (
@@ -441,230 +424,27 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
             </div>
           </div>
         )}
-        <div id="tutorial-header" className="h-14 bg-background border-b border-border flex items-center px-4 justify-between shrink-0 z-10">
-          <div className="font-bold flex items-center gap-4">
-            <div
-              className={cn(
-                'h-10 flex items-center cursor-pointer hover:opacity-80 transition-opacity',
-                isMobile ? 'w-[150px]' : 'w-[300px]'
-              )}
-              onClick={() => navigate('/')}
-            >
-              <CommitGraph
-                text={isMobile ? 'WOD.WIKI' : 'WOD.WIKI++'}
-                rows={16}
-                cols={isMobile ? 60 : 90}
-                gap={1}
-                padding={0}
-                fontScale={0.8}
-                fontWeight={200}
-                letterSpacing={1.6}
-              />
-            </div>
-            <span className="text-[10px] font-mono text-muted-foreground/50 self-end mb-1">v{appVersion}</span>
-            {!isMobile && currentEntry && (
-              <span className="text-xs font-normal bg-muted px-2 py-0.5 rounded text-muted-foreground">
-                {new Date(currentEntry.targetDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-              </span>
-            )}
-          </div>
 
-          <div className="flex gap-2 items-center">
-            {!isMobile && saveState !== 'idle' && (
-              <div className="flex items-center transition-opacity duration-300">
-                {saveState === 'changed' && (
-                  <div className="bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-1 flex items-center gap-2 text-xs text-muted-foreground shadow-sm">
-                    <div className="h-2 w-2 rounded-full bg-yellow-500" />
-                    <span>Changed</span>
-                  </div>
-                )}
-                {saveState === 'saving' && (
-                  <div className="bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-1 flex items-center gap-2 text-xs text-muted-foreground shadow-sm">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span>Saving...</span>
-                  </div>
-                )}
-                {saveState === 'saved' && (
-                  <div className="bg-background/80 backdrop-blur-sm border border-input rounded-full px-3 py-1 flex items-center gap-2 text-xs text-emerald-500 shadow-sm animate-in fade-in zoom-in-95 duration-300">
-                    <Check className="h-3 w-3" />
-                    <span>Saved</span>
-                  </div>
-                )}
-                {saveState === 'error' && (
-                  <div className="bg-destructive/10 border border-destructive/20 rounded-full px-3 py-1 flex items-center gap-2 text-xs text-destructive shadow-sm">
-                    <AlertCircle className="h-3 w-3" />
-                    <span>Save Failed</span>
-                  </div>
-                )}
-              </div>
-            )}
-            {!isMobile && (
-              <div className="relative mx-2 w-full max-w-[200px] hidden md:block">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-sm text-muted-foreground font-normal px-2 h-8"
-                  onClick={() => editorProps.onSearch?.()}
-                >
-                  <Search className="mr-2 h-4 w-4" />
-                  Search...
-                  <span className="ml-auto text-xs opacity-50">Ctrl+/</span>
-                </Button>
-              </div>
-            )}
-
-            {isMobile && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => editorProps.onSearch?.()}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-            )}
-
-            {!isMobile && <div className="h-6 w-px bg-border mx-2" />}
-
-            <DebugButton />
-
-            <CastButtonRpc />
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => startTutorial(viewMode as any)}
-              className="text-muted-foreground hover:text-foreground"
-              title="Show Help"
-            >
-              <HelpCircle className="h-5 w-5" />
-            </Button>
-
-            {!isMobile && <div className="h-6 w-px bg-border mx-2" />}
-
-            {viewDescriptors.map(view => (
-              <Button
-                key={view.id}
-                id={`tutorial-view-mode-${view.id}`}
-                variant={viewMode === view.id ? 'default' : 'ghost'}
-                size={isMobile ? 'icon' : 'sm'}
-                onClick={() => setViewMode(view.id as ViewMode)}
-                className={cn('gap-2', viewMode !== view.id && 'text-muted-foreground hover:text-foreground')}
-              >
-                {view.icon}
-                {!isMobile && view.label}
-              </Button>
-            ))}
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              onChange={handleFileSelect}
-              multiple
-            />
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-foreground"
-                    title="Attachments"
-                  >
-                    <Upload className="h-5 w-5" />
-                  </Button>
-                  {attachments.length > 0 && (
-                    <Badge 
-                      className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px] bg-primary text-primary-foreground pointer-events-none"
-                    >
-                      {attachments.length}
-                    </Badge>
-                  )}
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel className="flex justify-between items-center">
-                  <span>Attachments</span>
-                  <Badge variant="outline">{attachments.length}</Badge>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                
-                {attachments.length === 0 ? (
-                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-                    No attachments found
-                  </div>
-                ) : (
-                  <div className="max-h-[300px] overflow-y-auto">
-                    {attachments.map((att) => (
-                      <DropdownMenuItem 
-                        key={att.id} 
-                        className="flex flex-col items-start gap-1 p-2 cursor-default focus:bg-accent"
-                        onSelect={(e) => e.preventDefault()}
-                      >
-                        <div className="flex w-full items-center justify-between gap-2">
-                          <div 
-                            className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:underline"
-                            onClick={() => handleDownload(att)}
-                          >
-                            <File className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            <span className="truncate text-sm font-medium">{att.label}</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteAttachment(att.id);
-                            }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                        <div className="flex w-full justify-between text-[10px] text-muted-foreground px-6">
-                          <span>{att.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}</span>
-                          <span>{new Date(att.createdAt).toLocaleDateString()}</span>
-                        </div>
-                      </DropdownMenuItem>
-                    ))}
-                  </div>
-                )}
-                
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  className="justify-center text-primary font-medium cursor-pointer"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload New
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <NotebookMenu
-              entryTags={currentEntryTags}
-              onEntryToggle={handleNotebookToggleForCurrent}
-              iconOnly={true}
-            />
-
-            <div className="h-6 w-px bg-border mx-2" />
-
-            <button
-              id="tutorial-details"
-              onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-              className={cn(
-                "p-2 rounded-md transition-colors",
-                isDetailsOpen
-                  ? "bg-muted text-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-              title="Toggle Note Details"
-            >
-              <PanelRightOpen className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
+        <WorkbenchHeader
+          appVersion={appVersion}
+          isMobile={isMobile}
+          currentEntry={currentEntry}
+          saveState={saveState}
+          onSearch={editorProps.onSearch}
+          viewMode={viewMode}
+          views={viewDescriptors.map(v => ({ id: v.id, label: v.label ?? v.title ?? v.id, icon: v.icon }))}
+          onViewChange={(id) => setViewMode(id as ViewMode)}
+          attachments={attachments}
+          fileInputRef={fileInputRef}
+          onFileSelect={handleFileSelect}
+          onDownloadAttachment={handleDownload}
+          onDeleteAttachment={deleteAttachment}
+          currentEntryTags={currentEntryTags}
+          onNotebookToggle={handleNotebookToggleForCurrent}
+          isDetailsOpen={isDetailsOpen}
+          onToggleDetails={() => setIsDetailsOpen(!isDetailsOpen)}
+          onStartTutorial={(vm) => startTutorial(vm as any)}
+        />
 
         <div className="flex-1 min-h-0 overflow-hidden relative">
           <ResponsiveViewport
@@ -694,7 +474,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 };
 
 export const Workbench: React.FC<WorkbenchProps> = (props) => {
-
   return (
     <CommandProvider>
       <WorkbenchProvider
@@ -705,9 +484,8 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
         provider={props.provider}
       >
         <RuntimeLifecycleProvider factory={runtimeFactory}>
-            <WorkbenchCastBridge />
-
-            <WorkbenchContent {...props} />
+          <WorkbenchCastBridge />
+          <WorkbenchContent {...props} />
         </RuntimeLifecycleProvider>
       </WorkbenchProvider>
     </CommandProvider>
@@ -718,14 +496,14 @@ export default Workbench;
 
 // ─── Helper: Extract projections from analytics segments ───────
 
-function extractProjections(segments: import('@/core/models/AnalyticsModels').Segment[]): ProjectionResult[] {
+function extractProjections(segments: Segment[]): ProjectionResult[] {
   return segments
     .filter(s => (s as any).context?.outputType === 'analytics')
     .map(s => {
       const metrics = s.metrics?.toArray() || [];
       const labelMetric = metrics.find(m => m.type === MetricType.Label);
       const valueMetric = metrics.find(m => m.type !== MetricType.Label);
-      
+
       return {
         name: labelMetric?.value?.toString() || labelMetric?.image || 'Stat',
         value: (valueMetric?.value as number) || 0,
