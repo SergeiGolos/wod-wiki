@@ -20,6 +20,7 @@ Fragment {
   Rounds |
   Action |
   Text |
+  Heading |
   Quantity |
   Slash |
   Effort |
@@ -55,6 +56,8 @@ Sequence { Number (minus Number)* }
 
 Text { textComment }
 
+Heading { heading }
+
 Effort { (Identifier | allowedSymbol | minus)+ !effort }
 
 @tokens {
@@ -64,6 +67,7 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
   Identifier { $[a-zA-Z] $[a-zA-Z0-9]* }
   String { '"' (![\\\n\r] | "\\" _) * '"' }
   textComment { "//" ![\n\r]* }
+  heading { "#" ![\n\r]* }
   slash { "/" }
   allowedSymbol { $[\\.,@!$%^*=&]+ }
   objectOpen { "{" }
@@ -87,6 +91,7 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
   whitespace { $[ \t]+ }
   @precedence { 
     textComment,
+    heading,
     collectibleTimer, 
     Timer, 
     atSign,

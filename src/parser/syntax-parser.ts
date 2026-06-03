@@ -6,6 +6,7 @@ import {
   ActionPrimitive,
   DurationPrimitive,
   EffortPrimitive,
+  HeadingPrimitive,
   LapPrimitive,
   MetricObjectPrimitive,
   PropertyPrimitive,
@@ -18,7 +19,6 @@ import {
   SyntaxStatement,
   TextPrimitive,
 } from './syntax-facts';
-
 export function extractSyntaxFacts(state: EditorState): SyntaxFacts {
   const tree = syntaxTree(state);
   const source = state.doc.toString();
@@ -182,6 +182,15 @@ function mapFragmentToPrimitive(
     case terms.Text: {
       const primitive: TextPrimitive = {
         kind: 'text',
+        raw,
+        meta,
+      };
+      return primitive;
+    }
+
+    case terms.Heading: {
+      const primitive: HeadingPrimitive = {
+        kind: 'heading',
         raw,
         meta,
       };

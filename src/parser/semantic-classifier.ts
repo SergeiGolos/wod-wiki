@@ -93,6 +93,13 @@ function classifyPrimitive(primitive: SyntaxPrimitive): MetricPair[] {
       return [{ metrics: new TextMetric(content, undefined), meta: primitive.meta }];
     }
 
+    case 'heading': {
+      const match = primitive.raw.match(/^(#+)\s*(.*)$/);
+      const level = match ? String(match[1].length) : '1';
+      const content = match ? match[2].trim() : primitive.raw.substring(1).trim();
+      return [{ metrics: new TextMetric(content, level), meta: primitive.meta }];
+    }
+
     case 'quantity': {
       // Units are no longer a parser concept: a bare number is a Rep, and the
       // `@` marker denotes a load (Resistance with an as-yet-empty unit). The
