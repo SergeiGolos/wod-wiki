@@ -4,36 +4,39 @@
  * CM6 extension that manages workout result visualization within WOD blocks.
  *
  * Features:
- *   1. A clickable "Results" badge in the block header (```wod line).
- *   2. An expandable results table inserted before the closing fence.
- *   3. Toggling the badge shows/hides the table.
+ *   1. An expandable results panel inserted after the closing fence of each WOD block.
+ *   2. Collapsed state shows compact result rows (time, status, duration).
+ *   3. Expanded state shows AnalyticsScorecard + full ReviewGrid (sort, filter, search, graph).
+ *   4. A "Full Review" button opens the FullscreenReview dialog for the full experience.
  *
  * Architecture:
  *   - `wodResultsField`: Stores the actual result data per section.
- *   - `wodResultsExpandedField`: Stores the toggle state (expanded or not) per section.
- *   - `WodResultsBadgeWidget`: The clickable UI in the header.
- *   - `WodResultsBarWidget`: The expandable table at the bottom.
+ *   - `ReactResultsWidget`: CM6 WidgetType that mounts a React root
+ *     rendering <InlineResultPanel>.
+ *   - `WOD_RESULT_CLICK_EVENT`: Fired when user clicks "Full Review" in the inline panel.
  *
  * This path intentionally stays separate from `ReviewGrid`: CM6 widget
- * decorations are inline-document primitives, so the editor uses a compact
- * result-row surface instead of the grid's sortable/filterable table contract.
+ * decorations are inline-document primitives, so the editor uses a React-bridged
+ * widget instead of the grid's standalone component contract.
  */
 
+import React from 'react';
 import {
   Decoration,
   DecorationSet,
   EditorView,
   WidgetType,
-} from "@codemirror/view";
-import { StateEffect, StateField, EditorState, Range } from "@codemirror/state";
-import { sectionField } from "./section-state";
-import type { WorkoutResult } from "@/types/storage";
-import { buildResultListItemDOM } from "@/components/molecules/resultListItemDOM";
+} from '@codemirror/view';
+import { StateEffect, StateField, EditorState, Range } from '@codemirror/state';
+import { sectionField } from './section-state';
+import type { WorkoutResult } from '@/types/storage';
+import { createRoot, type Root } from 'react-dom/client';
+import { InlineResultPanel } from '@/components/molecules/InlineResultPanel';
 
 // ── Custom DOM event ─────────────────────────────────────────────────
 
-/** Fired on the editor DOM when the user clicks a result in the table. */
-export const WOD_RESULT_CLICK_EVENT = "wod-result-click";
+/** Fired on the editor DOM when the user clicks "Full Review" in the inline panel. */
+export const WOD_RESULT_CLICK_EVENT = 'wod-result-click';
 
 export interface WodResultClickDetail {
   sectionId: string;
@@ -65,46 +68,19 @@ export const wodResultsField = StateField.define<Map<string, WorkoutResult[]>>({
   },
 });
 
-// ── Helpers ──────────────────────────────────────────────────────────
+// ── React-backed Widget ───────────────────────────────────────────────
 
-function formatDuration(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) return "--:--";
-  const secs = Math.floor(ms / 1000);
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  const s = secs % 60;
-  if (h > 0)
-    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
+class ReactResultsWidget extends WidgetType {
+  private root: Root | null = null;
 
-function formatDateShort(ts: number): string {
-  return new Date(ts).toLocaleDateString([], {
-    month: "short",
-    day: "numeric"
-  });
-}
-
-function formatTime(ts: number): string {
-    return new Date(ts).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-    });
-}
-
-// ── Table Widget (Bottom) ───────────────────────────────────────────
-// Reuses the compact result-row DOM contract so the inline editor surface stays
-// lightweight while still matching the shared compact-result visuals.
-
-class WodResultsBarWidget extends WidgetType {
   constructor(
     readonly sectionId: string,
-    readonly results: WorkoutResult[]
+    readonly results: WorkoutResult[],
   ) {
     super();
   }
 
-  eq(other: WodResultsBarWidget): boolean {
+  eq(other: ReactResultsWidget): boolean {
     if (other.sectionId !== this.sectionId) return false;
     if (other.results.length !== this.results.length) return false;
     // Quick equality check: compare completion timestamps of first two entries
@@ -115,40 +91,38 @@ class WodResultsBarWidget extends WidgetType {
   }
 
   toDOM(view: EditorView): HTMLElement {
-    const wrapper = document.createElement("div");
-    wrapper.className = "cm-wod-results-inlay";
+    const wrapper = document.createElement('div');
+    wrapper.className = 'cm-wod-results-inlay';
+    wrapper.style.cssText = 'display:block; width:100%; outline:none;';
 
-    // Separator line between WOD content and results
-    const sep = document.createElement("div");
-    sep.className = "cm-wod-results-separator";
-    wrapper.appendChild(sep);
-
-    for (const result of this.results) {
-      const duration = formatDuration(result.data?.duration ?? 0);
-      const timeLabel = formatTime(result.completedAt);
-      const dateLabel = formatDateShort(result.completedAt);
-
-      const row = buildResultListItemDOM({
-        timeLabel,
-        title: duration !== "--:--" ? duration : "Result",
-        subtitle: dateLabel,
-        onClick: () => {
+    this.root = createRoot(wrapper);
+    this.root.render(
+      React.createElement(InlineResultPanel, {
+        sectionId: this.sectionId,
+        results: this.results,
+        onOpenReview: (result: WorkoutResult) => {
           const detail: WodResultClickDetail = { sectionId: this.sectionId, result };
           view.dom.dispatchEvent(
             new CustomEvent(WOD_RESULT_CLICK_EVENT, { detail, bubbles: true }),
           );
         },
-      });
-
-      wrapper.appendChild(row);
-    }
+      }),
+    );
 
     return wrapper;
   }
 
-  /** Estimated height. Expanded list is ~44px per row. */
+  destroy(): void {
+    if (this.root) {
+      const r = this.root;
+      this.root = null;
+      r.unmount();
+    }
+  }
+
+  /** Estimated height: each row ~60px collapsed, more when expanded */
   get estimatedHeight(): number {
-    return 5 + (this.results.length * 44);
+    return 5 + (this.results.length * 60);
   }
 
   ignoreEvent(): boolean {
@@ -164,7 +138,7 @@ function _buildResultsDecorations(state: EditorState): DecorationSet {
   const decos: Range<Decoration>[] = [];
 
   for (const section of sections) {
-    if (section.type !== "wod") continue;
+    if (section.type !== 'wod') continue;
     const results = resultsMap.get(section.id);
     if (!results || results.length === 0) continue;
 
@@ -177,7 +151,7 @@ function _buildResultsDecorations(state: EditorState): DecorationSet {
 
     decos.push(
       Decoration.widget({
-        widget: new WodResultsBarWidget(section.id, results),
+        widget: new ReactResultsWidget(section.id, results),
         block: true,
         side: 1,
       }).range(anchorPos),
@@ -195,7 +169,7 @@ export const wodResultsDecorations = StateField.define<DecorationSet>({
     return _buildResultsDecorations(state);
   },
   update(prev, tr) {
-    if (tr.docChanged || 
+    if (tr.docChanged ||
         tr.effects.some((e) => e.is(updateSectionResults))) {
       return _buildResultsDecorations(tr.state);
     }
@@ -207,13 +181,13 @@ export const wodResultsDecorations = StateField.define<DecorationSet>({
 // ── Theme ─────────────────────────────────────────────────────────────
 
 export const wodResultsTheme = EditorView.baseTheme({
-  ".cm-wod-results-inlay": {
-    padding: "0",
+  '.cm-wod-results-inlay': {
+    padding: '0',
   },
-  ".cm-wod-results-separator": {
-    height: "1px",
-    margin: "4px 8px 2px",
-    background: "hsl(var(--border) / 0.15)",
+  '.cm-wod-results-separator': {
+    height: '1px',
+    margin: '4px 8px 2px',
+    background: 'hsl(var(--border) / 0.15)',
   },
 });
 
@@ -224,4 +198,3 @@ export const wodResultsWidget = [
   wodResultsDecorations,
   wodResultsTheme,
 ];
-

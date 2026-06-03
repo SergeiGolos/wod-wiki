@@ -348,9 +348,6 @@ export interface ColumnDef {
 }
 
 export interface ColumnMetadata {
-  /** Default visibility in view presets */
-  readonly defaultVisible?: boolean;
-  /** Tags for grouping columns (e.g., 'timing', 'effort', 'debug') */
   readonly tags?: string[];
   /** Whether visible in debug mode only */
   readonly debugOnly?: boolean;
@@ -358,6 +355,8 @@ export interface ColumnMetadata {
   readonly width?: string;
   /** Whether column is resizable */
   readonly resizable?: boolean;
+  /** Column IDs that this column subsumes. When this column is visible, the subsumed columns are hidden. Used by composite/fallback columns to prevent their source columns from appearing redundantly. */
+  readonly subsumes?: readonly string[];
   /** Additional custom metadata */
   readonly [key: string]: any;
 }

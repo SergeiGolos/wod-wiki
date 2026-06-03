@@ -1,3 +1,4 @@
+// ── Mock workbenchSyncStore for useUserOverrides ──────────────────────────────
 import { afterEach, describe, expect, it, mock } from 'bun:test';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { ReviewGrid } from './ReviewGrid';
@@ -6,6 +7,24 @@ import type { Segment } from '@/core/models/AnalyticsModels';
 import type { AnalyticsGroup } from '@/core/models/AnalyticsModels';
 import { MetricType, type IMetric } from '@/core/models/Metric';
 import { MetricContainer } from '@/core/models/MetricContainer';
+mock.module('@/stores/workbenchSyncStore', () => {
+  const overrides = new Map();
+  return {
+    useWorkbenchSyncStore: (selector: any) => {
+      const state = {
+        userOutputOverrides: overrides,
+        viewMode: 'track',
+        execution: { status: 'idle' },
+      };
+      return selector ? selector(state) : state;
+    },
+    create: () => ({
+      getState: () => ({ userOutputOverrides: overrides }),
+      setState: () => {},
+      subscribe: () => () => {},
+    }),
+  };
+});
 
 function makeMetric(type: MetricType, value: unknown, image?: string): IMetric {
   return {

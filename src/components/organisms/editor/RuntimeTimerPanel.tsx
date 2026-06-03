@@ -32,6 +32,7 @@ import type { WodBlock, WorkoutResults } from '@/components/Editor/types';
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from '@/components/Editor/extensions/gutter-unified';
 import { buildCompletedRuntimeProjection } from "@/app/cast/workbenchProjection";
+import { useUserOverrides } from '@/components/organisms/review/useUserOverrides';
 import { buildWorkoutResults, countSegmentOutputs, createRuntimeForBlock, prepareRuntimeBlock } from "@/app/editor/runtimeTimerModel";
 import { useCollectionMetrics, resolveChoiceSelection } from "@/hooks/useCollectionMetrics";
 import { CollectionWizard } from "@/components/organisms/review/CollectionWizard";
@@ -159,9 +160,8 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   // statement sourceId = 1-based line within content
   // document line = (block.startLine + 1) + sourceId
   const gutterBase = block.startLine + 1;
-
-  const emptyOverrides = React.useMemo(() => new Map<string, MetricContainer>(), []);
-  const { collectionItems } = useCollectionMetrics([], emptyOverrides, preRunScript);
+  const { overrides, setOverride } = useUserOverrides(true);
+  const { collectionItems } = useCollectionMetrics([], overrides, preRunScript);
 
   // Create runtime only after pre-run collection has been resolved. This keeps
   // ChoiceGroupMetric out of RuntimeFactory unless the entry point has no wizard,
@@ -356,7 +356,8 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
             if (item.kind === 'choice') {
               resolveChoice(item as ChoiceCollectionItem, val as number);
             } else {
-              // value items: no-op in inline timer (no override store)
+              // value items: save to override store so the grid sees it
+              setOverride(item.blockKey, item.metricType, val);
             }
           }}
           onSkip={() => {}}

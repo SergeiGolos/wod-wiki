@@ -658,6 +658,8 @@ export const exerciseColumn: ColumnDef = {
   meta: {
     defaultVisible: false,
     tags: ['grouping', 'fallback', 'descriptor'],
+    // Hide Effort, Text, Label when exercise is visible
+    subsumes: ['effort', 'text', 'label'],
   },
 };
 
@@ -690,7 +692,8 @@ export const descriptorColumn: ColumnDef = {
   },
   meta: {
     defaultVisible: true,
-    tags: ['grouping', 'fallback', 'descriptor'],
+    // Hide Effort, Label, Rounds, CurrentRound when descriptor is visible
+    subsumes: ['effort', 'label', 'rounds', 'current-round'],
   },
 };
 

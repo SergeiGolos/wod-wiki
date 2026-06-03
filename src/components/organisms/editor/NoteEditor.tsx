@@ -306,15 +306,21 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
     for (const section of wodSections) {
       // 1. Priority: In-memory results from props (Static/Lesson Mode)
-      if (Array.isArray(extendedResults)) {
+      //    Only use the prop when it actually contains matching results;
+      //    otherwise fall through to persistent storage so existing
+      //    results are visible on initial load even when the parent
+      //    hasn't finished its async fetch yet.
+      if (Array.isArray(extendedResults) && extendedResults.length > 0) {
         const matches = extendedResults
           .filter(r => r.sectionId === section.id || r.segmentId === section.id)
           .sort((a, b) => b.completedAt - a.completedAt);
-        
-        viewRef.current.dispatch({
-          effects: [updateSectionResults.of({ sectionId: section.id, results: matches })],
-        });
-        continue;
+
+        if (matches.length > 0) {
+          viewRef.current.dispatch({
+            effects: [updateSectionResults.of({ sectionId: section.id, results: matches })],
+          });
+          continue;
+        }
       }
 
       // 2. Fallback: Persistent storage (History/App Mode)
@@ -342,8 +348,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     }
   }, [noteId, sections, extendedResults, notePersistence]);
 
-  // Listen for result pill clicks fired by the CM6 widget and open the
-  // full-screen review overlay if the result has detailed logs.
+  // Listen for "Full Review" clicks fired by the inline results panel and
+  // open the full-screen review overlay if the result has detailed logs.
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;

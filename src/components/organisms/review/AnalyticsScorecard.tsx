@@ -28,6 +28,19 @@ const METRIC_COLORS: Record<string, { border: string; text: string; bar: string;
   metric:   { border: 'border-metric-effort',    text: 'text-metric-effort',    bar: 'bg-metric-effort',    bg: 'bg-metric-effort/10' },
   duration: { border: 'border-metric-time',      text: 'text-metric-time',      bar: 'bg-metric-time',      bg: 'bg-metric-time/10' },
 };
+/** Resolve colour/icon tokens for a given projection. */
+export function getMetricStyle(type: string) {
+  const key = type.toLowerCase();
+  return {
+    icon: METRIC_ICONS[key] || '📊',
+    colors: METRIC_COLORS[key] || {
+      border: 'border-primary',
+      text: 'text-primary',
+      bar: 'bg-primary',
+      bg: 'bg-primary/10',
+    },
+  };
+}
 
 /**
  * AnalyticsScorecard — Compact horizontal carousel of session summary metrics.
