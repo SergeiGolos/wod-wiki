@@ -228,61 +228,78 @@ export class ColumnSet {
    * 4. Preset columns: fixed/derived always shown; metric/fallback shown only if data
    * 5. Non-preset columns: metric/fallback shown only if data; fixed/derived hidden
    */
-  private computeVisibility(id: string, context: ColumnSetContext): boolean {
+  private computeVisibility(
+    id: string,
+    context: ColumnSetContext,
+    checkingSubsumes?: boolean,
+  ): boolean {
     // 1. User override wins
     if (context.visibilityOverrides && id in context.visibilityOverrides) {
       return context.visibilityOverrides[id];
     }
-
     // 2. User-added columns are visible
     if (context.addedColumnIds?.has(id)) return true;
-
     const def = this.getDefinition(id);
     if (!def) return false;
-
     // 3. debugOnly check
     if (def.meta?.debugOnly && !context.isDebugMode) return false;
-
+    // 3b. Check if this column is subsumed by another visible column
+    // (e.g., effort/label/rounds/text should be hidden when descriptor/exercise is visible)
+    // Skip this check if we're already inside a subsumption check (prevents recursion)
+    if (!checkingSubsumes && this.isColumnSubsumed(id, context)) {
+      return false;
+    }
     const preset = this.getPreset(context.activePresetId);
     const inPreset = preset.visibleColumnIds.includes(id);
-
     // 4. Data-driven visibility
     const hasData = this.hasDataInRows(def, context.rows);
-
     switch (def.source.type) {
       case 'fixed-field':
         // Fixed columns: visible only if in preset (user can add via addedColumnIds)
         return inPreset;
-
       case 'derived':
         // Derived columns: visible only if in preset (compute handles missing data)
         return inPreset;
-
       case 'metric-type':
         // Metric-type columns: visible if they have data (supports orphan discovery)
         return hasData;
-
       case 'fallback':
         // Fallback columns: visible only if in preset AND have data
         // (we do not auto-discover composite columns outside presets)
         return inPreset && hasData;
-
       default:
         return inPreset;
     }
   }
-
   /**
-   * A column is "available" if the user could reasonably add it.
+   * Check if a column is hidden by another visible column's subsumes declaration.
+   * Does NOT call computeVisibility recursively to avoid infinite loops.
    */
+  private isColumnSubsumed(id: string, context: ColumnSetContext): boolean {
+    for (const def of this.config.definitions) {
+      if (!def.meta?.subsumes?.length) continue;
+      // Only check columns that are IN their preset (user can override this via visibilityOverrides)
+      // We use preset inclusion as a proxy for "this column might be visible"
+      const preset = this.getPreset(context.activePresetId);
+      if (!preset.visibleColumnIds.includes(def.id)) continue;
+      // Check if this column lists the target id in its subsumes
+      if (def.meta.subsumes.includes(id)) {
+        return true;
+      }
+    }
+    return false;
+  }
   private isColumnAvailable(def: ColumnDef, context: ColumnSetContext): boolean {
     if (def.meta?.debugOnly && !context.isDebugMode) return false;
-
     const preset = this.getPreset(context.activePresetId);
-    if (preset.visibleColumnIds.includes(def.id)) return true;
+    // A preset column is only "available" if it's NOT currently visible
+    // (already-hidden preset columns should still be available to re-show,
+    // but columns that ARE visible shouldn't appear twice in the add menu)
+    if (preset.visibleColumnIds.includes(def.id)) {
+      return !this.computeVisibility(def.id, context);
+    }
     if (def.source.type === 'fixed-field') return true;
     if (def.source.type === 'derived') return true;
-
     return this.hasDataInRows(def, context.rows);
   }
 

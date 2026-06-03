@@ -75,19 +75,14 @@ export function useUserOverrides(persistToStorage = false): UseUserOverridesRetu
   const setOverride = useCallback(
     (blockKey: string, metricType: MetricType, value: unknown, image?: string) => {
       const existing = overrides.get(blockKey) ?? MetricContainer.empty(blockKey);
-
       // Replace any existing metrics of the same type, keep others
       const filtered = existing.filter((f) => f.type !== metricType);
-
-      const newFragment: IMetric = {
+      const newFragment = {
         type: metricType,
+        origin: 'user' as const,
         value,
-        image: image ?? (value !== undefined ? String(value) : undefined),
-        origin: 'user',
-        sourceBlockKey: blockKey,
-        timestamp: new Date(),
+        image: image ?? String(value ?? ''),
       };
-
       storeSet(blockKey, MetricContainer.from(filtered, blockKey).add(newFragment));
     },
     [overrides, storeSet],

@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MetricType } from '@/core/models/Metric';
 import { type CollectionItem, type ChoiceCollectionItem, type ValueCollectionItem } from '@/hooks/useCollectionMetrics';
 import { cn } from '@/lib/utils';
 import { AlertCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
-
 interface CollectionWizardProps {
   items: CollectionItem[];
   onSave: (item: CollectionItem, value: any) => void;
@@ -13,7 +12,6 @@ interface CollectionWizardProps {
   mode: 'pre-run' | 'post-run';
   className?: string;
 }
-
 const CollectionWizard: React.FC<CollectionWizardProps> = ({
   items,
   onSave,
@@ -32,10 +30,16 @@ const CollectionWizard: React.FC<CollectionWizardProps> = ({
     return init;
   });
   const [isExpanded, setIsExpanded] = useState(mode === 'pre-run');
-
+  // Keep currentIndex in bounds when items array changes (e.g., after save removes item)
+  useEffect(() => {
+    if (currentIndex >= items.length && items.length > 0) {
+      setCurrentIndex(items.length - 1);
+    }
+  }, [items.length, currentIndex]);
   if (items.length === 0) return null;
-
   const currentItem = items[currentIndex];
+  // Defensive: if currentIndex is out of bounds, clamp it
+  if (!currentItem) return null;
 
   const handleSave = () => {
     if (currentItem.kind === 'choice') {

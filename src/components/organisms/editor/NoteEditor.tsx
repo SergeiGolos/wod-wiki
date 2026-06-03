@@ -342,8 +342,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     }
   }, [noteId, sections, extendedResults, notePersistence]);
 
-  // Listen for result pill clicks fired by the CM6 widget and open the
-  // full-screen review overlay if the result has detailed logs.
+  // Listen for "Full Review" clicks fired by the inline results panel and
+  // open the full-screen review overlay if the result has detailed logs.
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
