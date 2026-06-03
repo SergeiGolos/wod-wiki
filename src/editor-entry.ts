@@ -7,8 +7,8 @@
 // Main editor components
 
 // Note editor (single CM6 instance for full document editing)
-export { NoteEditor } from './components/Editor/NoteEditor';
-export type { NoteEditorProps } from './components/Editor/NoteEditor';
+export { NoteEditor } from './components/organisms/editor/NoteEditor';
+export type { NoteEditorProps } from './components/organisms/editor/NoteEditor';
 
 // Exercise management
 export { ExerciseIndexManager } from './components/Editor/ExerciseIndexManager';
@@ -22,8 +22,8 @@ export { LRUCache } from './components/Editor/LRUCache';
 export type { Exercise, Muscle, Force, Level, Mechanic, Equipment, Category } from './exercise';
 
 // UI Components
-export { CommandPalette } from './components/command-palette/CommandPalette';
-export { CommandProvider, useCommandPalette } from './components/command-palette/CommandContext';
-export type { Command } from './components/command-palette/types';
-export { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/headless/Dialog';
-export type { DialogProps } from './components/headless/Dialog';
+export { CommandPalette } from './components/organisms/command-palette/CommandPalette';
+export { CommandProvider, useCommandPalette } from './contexts/CommandContext';
+export type { Command } from './components/organisms/command-palette/types';
+export { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/atoms/Dialog';
+export type { DialogProps } from './components/atoms/Dialog';
