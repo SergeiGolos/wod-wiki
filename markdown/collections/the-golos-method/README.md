@@ -20,8 +20,6 @@ The Golos Method is a daily minimalist strength protocol built around high-frequ
 
 The philosophy is simple: consistency beats intensity. Small doses done every day accumulate into extraordinary capacity. The method prioritizes movement quality, joint health, and work capacity over peak performance on any single session. It is designed for practitioners who want to stay strong, mobile, and resilient without living in the gym.
 
-{{workouts}}
-
 ## The Five Pillars
 
 ### 1. Grease the Groove — Pull-Ups
@@ -39,7 +37,7 @@ Ballistic kettlebell work for full-body power and conditioning. The clean & pres
 ### 5. Sandbag Over-the-Shoulder & Bear-Hug Carries
 Odd-object lifting and loaded carries with an unstable sandbag. Builds real-world strength, core bracing, and grip integrity that transfers directly to grappling, manual labor, and outdoor work.
 
----
+{{workouts}}
 
 ## How to Use This Collection
 

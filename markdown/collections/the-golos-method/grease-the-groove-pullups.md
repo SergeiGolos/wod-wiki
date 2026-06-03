@@ -17,30 +17,23 @@ The beauty of GTG is its flexibility. It requires no warm-up, no equipment beyon
 ### Beginner — Building the First Rep
 ```wod
 (8) 1:00 EMOM
-  + 1-2 Assisted Pullup or Negatives
+  1|2 Assisted Pullup or Negatives
 ```
 
 ### Intermediate — Daily GTG
 ```wod
 (5)
-  5 Pullups
-  : as needed
+  3|5 Pullups  
 ```
 *Perform one set every 60-90 minutes during waking hours. Do not go to failure.*
 
 ### Advanced — Weighted GTG
 ```wod
 (6)
-  3 Weighted Pullup 10-20lb
-  : as needed
+  3 Weighted Pullup 10-20lb  
 ```
 *Spread across the day. Stop every set with at least 2 reps in reserve.*
 
-### Volume Accumulation Test
-```wod
-20:00 ?
-  Pullups
-```
 *Perform sets of 2-3 every 2-3 minutes. Goal: accumulate 30-50 quality reps without form breakdown.*
 
 ## How to Train It

@@ -18,25 +18,40 @@ In the Golos Method, these movements are performed for reps, for time, or in int
 
 ### Beginner — Clean & Press Technique
 ```wod
-(5)
+(10)
   5 KB Clean & Press Left 16kg
   5 KB Clean & Press Right 16kg
   :60 Rest
 ```
 
-### Intermediate — Alternating Intervals
+### Intermediate — Alternating Intervals 
+
+Single Clean and Press
+
 ```wod
 (10) 1:00 EMOM
-  + 5 KB Clean & Press Alternating 20kg
+  10 KB Clean & Press Alternating 24kg
 ```
+
+Tactical Snatch
+
+```wod
+(10) 1:00 EMOM
+  4|6 KB Snatch 24kg
+```
+
+
 
 ### Advanced — Snatch Endurance
 ```wod
-(5)
-  1:00 KB Snatch Left 24kg
+(10)
+  1:00 Double KB Clean & Press 24kg
   :30 Rest
-  1:00 KB Snatch Right 24kg
-  :30 Rest
+```
+
+```wod
+(10) 1:00 EMOM
+  4|6 KB Snatch 32kg
 ```
 
 ### The Eagle Variation (Clean & Press + Pull-Ups)
@@ -47,10 +62,12 @@ In the Golos Method, these movements are performed for reps, for time, or in int
 ```
 
 ### Snatch Test
-```wod
-5:00 ? KB Snatch 24kg
-```
+
 *Perform as many quality reps as possible in 5 minutes. Switch hands as needed.*
+
+```wod
+5:00|10:00 ? KB Snatch 24kg
+```
 
 ## How to Train It
 

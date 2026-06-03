@@ -17,26 +17,19 @@ Ten minutes is long enough to accumulate significant volume, short enough to mai
 ### Beginner — Bodyweight Foundation
 ```wod
 (10) 1:00 EMOM
-  + 5 Pushup
+  5 Pushup
 ```
 
 ### Intermediate — Light Load
 ```wod
 (10) 1:00 EMOM
-  + 5 Weighted Pushup 10-25lb
+  5 Weighted Pushup 10|20|30lb
 ```
 
 ### Advanced — Heavy Load
 ```wod
 (10) 1:00 EMOM
-  + 3-5 Weighted Pushup 45-90lb
-```
-
-### Volume Variation
-```wod
-(10) 1:00 EMOM
-  + 8 Pushup
-  + 8 Weighted Pushup 25lb
+  3 Weighted Pushup 45|65|85|105lb
 ```
 
 ## How to Train It
