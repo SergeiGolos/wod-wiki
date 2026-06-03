@@ -1,18 +1,18 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useLocation } from 'react-router-dom';
-import { WodBlock, WorkoutResults, Section } from '../Editor/types';
+import type { Attachment } from '@/types/storage';
+import { WodBlock, WorkoutResults, Section } from '@/components/Editor/types';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 import type { PanelLayoutState } from '@/panels/panel-system/types';
-import type { ContentProviderMode, IContentProvider } from '../../types/content-provider';
-import type { HistoryEntry, StripMode } from '../../types/history';
+import type { ContentProviderMode, IContentProvider } from '@/types/content-provider';
+import type { HistoryEntry, StripMode } from '@/types/history';
 import { useHistorySelection } from '@/hooks/useHistorySelection';
 import type { UseHistorySelectionReturn } from '@/hooks/useHistorySelection';
 import { fileProcessor } from '@/hooks/useBrowserServices';
 import type { INotePersistence } from '@/lib/notePersistence';
 import { toNotebookTag } from '@/types/notebook';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useRef } from 'react';
 import { INavigationProvider } from '@/types/navigation';
 import { useReactRouterNavigation } from '@/hooks/useReactRouterNavigation';
 import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
@@ -82,8 +82,7 @@ interface WorkbenchContextState {
   currentEntry: HistoryEntry | null;
 
   // Attachments
-  attachments: import('../../types/storage').Attachment[];
-
+  attachments: Attachment[];
   // Actions
   setContent: (content: string) => void;
   setBlocks: (blocks: WodBlock[]) => void;
@@ -153,7 +152,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   const [content, setContent] = useState(propInitialContent);
   const [sections, setSectionsState] = useState<Section[] | null>(null);
   const [blocks, setBlocksState] = useState<WodBlock[]>([]);
-  const [attachments, setAttachments] = useState<import('../../types/storage').Attachment[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [currentEntry, setCurrentEntry] = useState<HistoryEntry | null>(null);
 

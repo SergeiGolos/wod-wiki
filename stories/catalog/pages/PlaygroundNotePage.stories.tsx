@@ -1,10 +1,13 @@
 /**
- * PlaygroundNotePage Stories
+ * Catalog / Pages / PlaygroundNotePage
  *
- * The PlaygroundNotePage renders a personal note in the editor. Content is
- * loaded from IndexedDB by ID; in stories, the page will render with the
- * default template content (if IndexedDB is not available it shows loading
- * state briefly).
+ * Renders: {@link import('@/playground/src/pages/PlaygroundNotePage').PlaygroundNotePage}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — default story showing a playground note
+ *  2. DarkTheme — note page with dark theme
+ *  3. Mobile — mobile viewport
  */
 
 import React from 'react';

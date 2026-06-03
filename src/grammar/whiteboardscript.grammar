@@ -20,19 +20,29 @@ Fragment {
   Rounds |
   Action |
   Text |
+  Heading |
   Quantity |
   Slash |
+  Pipe |
   Effort |
   MetricObject
 }
 
 /**
- * Slash — a bare "/" between quantities.
- * Used for paired Rx/scaled weight notation: 185/125 lb → two dimensioned metrics.
+ * Slash — a bare "/" between quantities, used for fraction notation.
+ * e.g. "1/4 mile" → decimal distance 0.25 mile.
+ * "1/2 pood" → decimal resistance 0.5 pood.
  * "//" is always a textComment (higher token precedence), so Slash only ever
  * captures a single forward-slash.
  */
 Slash { slash }
+
+/**
+ * Pipe — a bare "|" between alternatives, used for choice notation.
+ * e.g. "Run | Walk" → ChoiceGroupMetric with two effort alternatives.
+ * e.g. "185 | 125 lb" → ChoiceGroupMetric with two resistance alternatives.
+ */
+Pipe { pipe }
 
 MetricObject { objectOpen (Identifier | Number | String | colon | comma | True | False | Null | allowedSymbol)* objectClose }
 
@@ -55,6 +65,8 @@ Sequence { Number (minus Number)* }
 
 Text { textComment }
 
+Heading { heading }
+
 Effort { (Identifier | allowedSymbol | minus)+ !effort }
 
 @tokens {
@@ -64,7 +76,9 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
   Identifier { $[a-zA-Z] $[a-zA-Z0-9]* }
   String { '"' (![\\\n\r] | "\\" _) * '"' }
   textComment { "//" ![\n\r]* }
+  heading { "#" ![\n\r]* }
   slash { "/" }
+  pipe { "|" }
   allowedSymbol { $[\\.,@!$%^*=&]+ }
   objectOpen { "{" }
   objectClose { "}" }
@@ -87,6 +101,7 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
   whitespace { $[ \t]+ }
   @precedence { 
     textComment,
+    heading,
     collectibleTimer, 
     Timer, 
     atSign,
@@ -94,6 +109,7 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
     rest,
     colon,
     slash,
+    pipe,
     allowedSymbol,
     objectOpen,
     objectClose,

@@ -107,19 +107,20 @@ export function renderPanelContent(
 
   for (let i = 0; i < metrics.length; i++) {
     const metric = metrics[i];
-    const style = METRIC_STYLES[metric.type as string];
+    const effectiveType = metric.type === MetricType.Choice
+      ? ((metric as any).alternatives as IMetric[] | undefined)?.[0]?.type
+      : metric.type;
+    const style = METRIC_STYLES[effectiveType as string];
     const isFocused = metric.type === focusedMetricType;
-
     const span = document.createElement("span");
     span.className = "cm-wod-metric-panel__label-item" +
       (isFocused ? " cm-wod-metric-panel__label-item--focused" : "");
-    span.textContent = style?.label ?? String(metric.type);
+    span.textContent = style?.label ?? String(effectiveType ?? metric.type);
     if (style?.color) {
       // Full color when focused; 20% opacity hex suffix when dim
       span.style.color = isFocused ? style.color : `${style.color}${DIM_OPACITY_HEX}`;
     }
     labelsEl.appendChild(span);
-
     if (i < metrics.length - 1) {
       const sep = document.createElement("span");
       sep.className = "cm-wod-metric-panel__sep";
@@ -237,9 +238,11 @@ function buildDecorations(
       const stmtDocLine = section.startLine + (s.meta?.line ?? 0);
       const isActiveLine =
         cursorSection === section && stmtDocLine === cursorDocLine;
-
       for (const metric of s.metrics) {
-        const baseClass = METRIC_MARK_CLASS[metric.type as string];
+        const effectiveType = metric.type === MetricType.Choice
+          ? ((metric as any).alternatives as IMetric[] | undefined)?.[0]?.type
+          : metric.type;
+        const baseClass = METRIC_MARK_CLASS[effectiveType as string];
         if (!baseClass) continue;
 
         const meta = s.metricMeta?.get(metric);

@@ -1,5 +1,18 @@
+/**
+ * Catalog / Organisms / RuntimeTimerPanel
+ *
+ * Renders: {@link import('@/components/organisms/editor/RuntimeTimerPanel').RuntimeTimerPanel}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. SimpleTimer — single countdown timer "10:00 Run"
+ *  2. Amrap — 20-min AMRAP
+ *  3. Emom — 10-round EMOM
+ *  4. RoundsForTime — 5-round Fran rep scheme
+ *  5. Expanded — expanded view with more details
+ */
 import type { Meta, StoryObj } from '@storybook/react'
-import { RuntimeTimerPanel } from '../../../src/components/Editor/overlays/RuntimeTimerPanel'
+import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
 import type { WodBlock } from '../../../src/components/Editor/types'
 
 const meta = {

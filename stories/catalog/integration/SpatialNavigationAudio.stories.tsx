@@ -14,7 +14,7 @@ import React, { useState, useCallback } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
 import { audioService } from '@/services/AudioService';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/atoms/primitives/button'
 
 const GRID_ITEMS = [
   'play', 'pause', 'stop', 'next',

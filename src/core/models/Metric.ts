@@ -170,18 +170,26 @@ export enum MetricType {
   Calculated = 'calculated',
 
   /**
-   * **Slash** (Parser) — the "/" separator between paired quantities.
+   * **Slash** (Parser) — the "/" separator for fraction notation.
    *
-   * A grammar-level token (`185/125 lb`) that the fuseUnits dialect consumes
-   * to produce two dimensioned metrics or to split adjacent effort tokens.
-   * Never surfaces in compiled blocks or display output.
+   * A grammar-level token (`1/4 mile`) that the fuseUnits dialect consumes
+   * to produce a single decimal metric. Never surfaces in compiled blocks.
    */
   Slash = 'slash',
 
   /**
-   * **Choice** (Parser) — a slash-separated OR expression.
+   * **Pipe** (Parser) — the "|" separator for choice notation.
    *
-   * Emitted by Fusion when a slash separates two homogeneous alternatives
+   * A grammar-level token (`Run | Walk`) that the fuseUnits dialect consumes
+   * to produce a ChoiceGroupMetric with homogeneous alternatives.
+   * Never surfaces in compiled blocks once resolved.
+   */
+  Pipe = 'pipe',
+
+  /**
+   * **Choice** (Parser) — a pipe-separated OR expression.
+   *
+   * Emitted by Fusion when a pipe separates two homogeneous alternatives
    * (same MetricType on both sides). Carries `alternatives: IMetric[]`.
    * Resolved in the Pre-Run Wizard before the JIT compiles: the chosen
    * alternative is written at origin `user-plan` into the Statement's

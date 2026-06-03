@@ -1,14 +1,23 @@
 /**
- * Planner Page Stories
+ * Catalog / Pages / PlannerPage
  *
- * Full-page shell for the plan/editor view — write and structure workouts
- * using the WOD Wiki syntax with live preview and JIT compilation.
+ * Renders: {@link import('@/components/organisms/editor/NoteEditor').NoteEditor}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — planner page with sample workout
+ *  2. Amrap — planner page with AMRAP workout
+ *  3. Empty — planner page with empty content
+ *  4. NoteEditorDefault — NoteEditor with sample workout
+ *  5. NoteEditorAmrap — NoteEditor with AMRAP workout
+ *  6. NoteEditorEmpty — NoteEditor with empty content
+ *  7. NoteEditorEffortFrontmatter — NoteEditor with effort frontmatter
  */
 
 import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { PlanPanel } from '@/panels/plan-panel';
-import { NoteEditor } from '@/components/Editor/NoteEditor';
+import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 
 const SAMPLE_WORKOUT = `# Fran
 

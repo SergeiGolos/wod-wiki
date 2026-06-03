@@ -1,9 +1,13 @@
 /**
- * JournalPage Stories
+ * Catalog / Pages / JournalPage
  *
- * The JournalPage renders a daily journal entry. Content is loaded from
- * IndexedDB by date-key. In stories the IndexedDB is empty so the
- * default template content is shown.
+ * Renders: {@link import('@/playground/src/pages/JournalPage').JournalPage}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — default journal entry (new entry)
+ *  2. DarkTheme — journal page with dark theme
+ *  3. Mobile — mobile viewport
  */
 
 import React from 'react';

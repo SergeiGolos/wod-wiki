@@ -88,6 +88,25 @@ describe('Lezer WhiteboardScript Parser', () => {
     expect(statements[0].metrics[1].value).toEqual({ text: "take it easy", level: undefined });
   });
 
+  it('should parse headings', () => {
+    const code = `# Warmup\n## Strength\n### Conditioning\n#Cool-down\n`;
+    const statements = parse(code);
+
+    expect(statements.length).toBe(4);
+
+    expect(statements[0].metrics[0].type).toBe(MetricType.Text);
+    expect(statements[0].metrics[0].value).toEqual({ text: "Warmup", level: "1" });
+
+    expect(statements[1].metrics[0].type).toBe(MetricType.Text);
+    expect(statements[1].metrics[0].value).toEqual({ text: "Strength", level: "2" });
+
+    expect(statements[2].metrics[0].type).toBe(MetricType.Text);
+    expect(statements[2].metrics[0].value).toEqual({ text: "Conditioning", level: "3" });
+
+    expect(statements[3].metrics[0].type).toBe(MetricType.Text);
+    expect(statements[3].metrics[0].value).toEqual({ text: "Cool-down", level: "1" });
+  });
+
   it('should parse Simple & Sinister session 1 correctly', () => {
     const code = `5:00 100 KB Swings ?kg\n  - (10)\n    10 KB Swings ?kg\n\n10:00 10 Turkish Getups ?kg\n  - 5 Turkish Getups Left ?kg\n  - 5 Turkish Getups Right ?kg\n`;
     const statements = parse(code);

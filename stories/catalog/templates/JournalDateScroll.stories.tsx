@@ -1,3 +1,16 @@
+/**
+ * Catalog / Templates / JournalDateScroll
+ *
+ * Renders: {@link import('@/playground/src/views/queriable-list/JournalDateScroll').JournalDateScroll}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Empty — empty state with no items
+ *  2. FewItems — list with a few items
+ *  3. ManyItems — list with many items
+ *  4. WithJournalEntries — list with journal entry summaries
+ *  5. WithCreateEntry — list with create entry button
+ */
 import type { Meta, StoryObj } from '@storybook/react'
 import { JournalDateScroll } from '../../../playground/src/views/queriable-list/JournalDateScroll'
 import type { FilteredListItem } from '../../../playground/src/views/queriable-list/types'

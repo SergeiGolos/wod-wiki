@@ -9,10 +9,10 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import type { Notebook } from '../../types/notebook';
-import { toNotebookTag, fromNotebookTag } from '../../types/notebook';
+import type { Notebook } from '@/types/notebook';
+import { toNotebookTag, fromNotebookTag } from '@/types/notebook';
 import { notebookService } from '@/hooks/useBrowserServices';
-import { matchesId } from '../../lib/idUtils';
+import { matchesId } from '@/lib/idUtils';
 
 interface NotebookContextState {
     notebooks: Notebook[];

@@ -292,7 +292,7 @@ describe('classifyStatements', () => {
     expect(result.isLeaf).toBe(false);
   });
 
-  describe('Slash primitive', () => {
+  describe('Slash and Pipe primitives', () => {
     it('emits SlashMetric (MetricType.Slash) — never an EffortMetric', () => {
       const facts: SyntaxFacts = {
         statements: [{
@@ -334,6 +334,28 @@ describe('classifyStatements', () => {
       expect(arr[1].type).toBe(MetricType.Slash);
       expect(arr[2].type).toBe(MetricType.Effort);
       expect(arr[2].value).toBe('Walk');
+    });
+
+    it('pipe "|" produces PipeMetric (MetricType.Pipe, distinct from Slash)', () => {
+      const facts: SyntaxFacts = {
+        statements: [{
+          id: 1, line: 1,
+          meta: meta(0, 9, 'Run | Walk'),
+          primitives: [
+            { kind: 'effort', raw: 'Run',  meta: meta(0, 3, 'Run') },
+            { kind: 'pipe',   raw: '|',    meta: meta(4, 5, '|') },
+            { kind: 'effort', raw: 'Walk', meta: meta(6, 10, 'Walk') },
+          ],
+          children: [], isLeaf: true,
+        }],
+      };
+      const [result] = classifyStatements(facts);
+      const arr = result.metrics.toArray();
+      expect(arr).toHaveLength(3);
+      expect(arr[1].type).toBe(MetricType.Pipe);
+      // The raw separator is preserved in metricMeta
+      const pipeMeta = result.metricMeta?.get(arr[1]);
+      expect(pipeMeta?.raw).toBe('|');
     });
   });
 });

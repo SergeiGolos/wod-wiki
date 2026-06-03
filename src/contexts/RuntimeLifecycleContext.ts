@@ -10,7 +10,7 @@
 
 import { createContext } from 'react';
 import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
-import type { WodBlock } from '../Editor/types';
+import type { WodBlock } from '@/components/Editor/types';
 
 /**
  * Runtime lifecycle context state interface

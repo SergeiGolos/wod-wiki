@@ -130,6 +130,31 @@ describe('Syntax Features Regression Tests', () => {
     });
   });
 
+  describe('Headings', () => {
+    it('parses single-level heading', () => {
+      const result = parse('# Warmup');
+      expect(result.errors).toHaveLength(0);
+      const metric = result.statements[0].metrics[0];
+      expect(metricTypeOf(metric)).toBe(MetricType.Text);
+      expect(metric.value).toEqual({ text: 'Warmup', level: '1' });
+    });
+
+    it('parses multi-level headings', () => {
+      const result = parse('## Strength\n### Conditioning');
+      expect(result.errors).toHaveLength(0);
+      expect(result.statements[0].metrics[0].value).toEqual({ text: 'Strength', level: '2' });
+      expect(result.statements[1].metrics[0].value).toEqual({ text: 'Conditioning', level: '3' });
+    });
+
+    it('parses heading without space after hash', () => {
+      const result = parse('#Cool-down');
+      expect(result.errors).toHaveLength(0);
+      const metric = result.statements[0].metrics[0];
+      expect(metricTypeOf(metric)).toBe(MetricType.Text);
+      expect(metric.value).toEqual({ text: 'Cool-down', level: '1' });
+    });
+  });
+
   describe('Collectible Fragments (? placeholder)', () => {
     it('parses collectible reps ?', () => {
       const result = parse('? Pushups');

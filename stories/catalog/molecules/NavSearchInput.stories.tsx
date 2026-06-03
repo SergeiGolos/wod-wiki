@@ -1,3 +1,13 @@
+/**
+ * Catalog / Molecules / NavSearchInput
+ *
+ * Renders: {@link import('@/components/molecules/NavSearchInput').NavSearchInput}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — basic search input button
+ *  2. InToolbar — search button within a toolbar context
+ */
 import type { Meta, StoryObj } from '@storybook/react'
 import { NavSearchInput } from '@/components/molecules/NavSearchInput'
 

@@ -13,14 +13,14 @@ wayback_url: "http://web.archive.org/web/2/http://zombiefit.org/2010/09/wod-0906
 
 Happy Labor Day! Sorry for the late posting. There will be NO class today as the gym is closed for the holiday.
 
-Run 1/4 mile OR row 250m OR bike 2 miles.
+Run 1/4 mile | row 250m | bike 2 miles.
 
 ```wod
 (3)
   10 Air Squats
   10 Push Ups
   10 Sit Ups
-  10 Pull Ups or Jumping Pull Ups
+  10 Pull Ups | Jumping Pull Ups
 ```
 
 ## WOD

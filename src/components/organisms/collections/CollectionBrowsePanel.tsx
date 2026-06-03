@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
-import { CollectionCard } from './CollectionCard';
+import { CollectionCard } from '@/components/molecules/CollectionCard';
 
 export interface CollectionBrowsePanelProps {
   collections: WodCollection[];

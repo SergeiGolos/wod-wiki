@@ -1,3 +1,15 @@
+/**
+ * Catalog / Templates / CollectionWorkoutsList
+ *
+ * Renders: {@link import('@/playground/src/views/queriable-list/CollectionWorkoutsList').CollectionWorkoutsList}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. GirlsCollection — filtered workouts from girls category
+ *  2. HeroesCollection — filtered workouts from heroes category
+ *  3. EmptyCollection — empty collection with no workouts
+ *  4. MixedCategoryItems — filtered view showing only matching category
+ */
 import type { Meta, StoryObj } from '@storybook/react'
 import { CollectionWorkoutsList } from '../../../playground/src/views/queriable-list/CollectionWorkoutsList'
 import type { WorkoutItem } from '../../../playground/src/App'

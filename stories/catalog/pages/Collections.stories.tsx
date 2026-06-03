@@ -1,21 +1,28 @@
 /**
- * Collections Page Stories
+ * Catalog / Pages / CollectionsPage
  *
- * Full-page shell for the Collections workbench — browse workout templates
- * and open individual entries in a detail view.
+ * Renders: {@link import('@/playground/src/views/CollectionsPage').CollectionsPage}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — default collections view
+ *  2. PlaygroundCollections — playground view with real routing
+ *  3. EmptyState — collections list with no data
+ *  4. ManyCollections — collections list with many items
+ *  5. FilterNoResults — filter state with no matching results
  */
 
 import React, { useCallback, useState, useMemo, type FC } from 'react';
 import { CollectionsPage } from '../../../playground/src/views/CollectionsPage';
 import type { Meta, StoryObj } from '@storybook/react';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
-import { CollectionBrowsePanel } from '@/components/collections/CollectionBrowsePanel';
-import { NoteEditor } from '@/components/Editor/NoteEditor';
-import { CommandProvider } from '@/components/command-palette/CommandContext';
+import { CollectionBrowsePanel } from '@/components/organisms/collections/CollectionBrowsePanel'
+import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
+import { CommandProvider } from '@/contexts/CommandContext'
 import { getWodCollections } from '@/repositories/wod-collections';
 import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
 import { EditorShellHeader } from '../../_shared/EditorShellHeader';
-import { useTheme } from '@/components/theme/ThemeProvider';
+import { useTheme } from '@/contexts/ThemeProvider'
 
 interface JournalState {
   item: WodCollectionItem;

@@ -6,6 +6,7 @@ import { ResistanceMetric } from "../../runtime/compiler/metrics/ResistanceMetri
 import { EffortMetric } from "../../runtime/compiler/metrics/EffortMetric";
 import { MeasuredMetric } from "../../runtime/compiler/metrics/MeasuredMetric";
 import { SlashMetric } from "../../runtime/compiler/metrics/SlashMetric";
+import { PipeMetric } from "../../runtime/compiler/metrics/PipeMetric";
 import { ChoiceGroupMetric } from "../../runtime/compiler/metrics/ChoiceGroupMetric";
 
 /** Source location carried alongside a metric (the parser's SyntaxMeta, which
@@ -47,9 +48,14 @@ function isBareNumber(m: IMetric): boolean {
   return m.type === MetricType.Rep && (typeof m.value === 'number' || m.value === undefined);
 }
 
-/** Whether a metric is a dedicated SlashMetric (grammar separator, never an effort). */
+/** Whether a metric is a dedicated SlashMetric (grammar separator for fractions). */
 function isSlashSeparator(m: IMetric): boolean {
   return m.type === MetricType.Slash;
+}
+
+/** Whether a metric is a dedicated PipeMetric (grammar separator for choices). */
+function isPipeSeparator(m: IMetric): boolean {
+  return m.type === MetricType.Pipe;
 }
 
 function effortText(m: IMetric): string | null {
@@ -107,6 +113,24 @@ function residualMeta(effortMeta: Meta, rest: string): Meta {
     raw: rest,
   };
 }
+/** Meta spanning from the first metric through the last metric in a group. */
+function spanMeta(firstMeta: Meta, lastMeta: Meta): Meta {
+  if (!firstMeta || !lastMeta) return firstMeta ?? lastMeta;
+  const startOffset = firstMeta.startOffset;
+  const endOffset = lastMeta.endOffset;
+  const length = startOffset !== undefined && endOffset !== undefined
+    ? endOffset - startOffset
+    : undefined;
+  return {
+    line: firstMeta.line,
+    startOffset,
+    endOffset,
+    columnStart: firstMeta.columnStart,
+    columnEnd: lastMeta.columnEnd,
+    length,
+    raw: firstMeta.raw,
+  };
+}
 
 /**
  * Core fusion over metric+meta pairs. See {@link fuseUnits} for semantics.
@@ -120,31 +144,31 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
     const cur = pairs[i];
     const next = pairs[i + 1];
 
-    // ── SlashMetric guard: a bare slash that no pattern consumed is silently dropped ──
-    // This handles heterogeneous slash (e.g. "Run/5" — Effort + Rep) where no
-    // ChoiceGroup is emitted. The slash token should never appear in output.
-    if (cur.metric.type === MetricType.Slash) {
+    // ── Slash/PipeMetric guard: a bare separator that no pattern consumed is silently dropped ──
+    // Slash: unhandled fractions (shouldn't happen if patterns below cover all cases).
+    // Pipe: heterogeneous choice (e.g. "Run | 5" — Effort + Rep) where no ChoiceGroup is emitted.
+    if (cur.metric.type === MetricType.Slash || cur.metric.type === MetricType.Pipe) {
       continue;
     }
 
-    // ── effort/effort choice: Effort(A) Slash Effort(B) → ChoiceGroupMetric ──────
+    // ── effort|effort choice: Effort(A) Pipe Effort(B) → ChoiceGroupMetric ──────
     // Homogeneous: both sides are Effort → emit a single ChoiceGroupMetric.
-    // Heterogeneous (e.g. Run/5): the slash guard above will drop the slash
+    // Heterogeneous (e.g. Run|5): the pipe guard above will drop the pipe
     // when it becomes cur in the next iteration.
     if (next) {
       const curText = effortText(cur.metric);
       const thirdText = pairs[i + 2] ? effortText(pairs[i + 2].metric) : null;
       if (
         curText !== null &&
-        isSlashSeparator(next.metric) &&
+        isPipeSeparator(next.metric) &&
         thirdText !== null
       ) {
-        // Collect all consecutive slash-separated efforts into one group.
+        // Collect all consecutive pipe-separated efforts into one group.
         const alternatives: IMetric[] = [cur.metric];
-        let j = i + 1; // points at the SlashMetric
+        let j = i + 1; // points at the PipeMetric
         while (
           j + 1 < pairs.length &&
-          isSlashSeparator(pairs[j].metric) &&
+          isPipeSeparator(pairs[j].metric) &&
           effortText(pairs[j + 1].metric) !== null
         ) {
           alternatives.push(pairs[j + 1].metric);
@@ -152,24 +176,24 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
         }
         out.push({
           metric: new ChoiceGroupMetric(alternatives),
-          meta: cur.meta,
+          meta: spanMeta(cur.meta, pairs[j - 1].meta),
         });
-        i = j - 1; // consume all slash+effort pairs (for-loop does i++)
+        i = j - 1; // consume all pipe+effort pairs (for-loop does i++)
         continue;
       }
     }
 
-    // ── {number}/{number} {unit} → ChoiceGroupMetric (homogeneous) ──────────────
-    // Detect the 4-token sequence: bareNumber  Slash  bareNumber  unitText
+    // ── {number}|{number} {unit} → ChoiceGroupMetric (pipe choices) ────────────
+    // Detect the 4-token sequence: bareNumber  Pipe  bareNumber  unitText
     // Both numbers fuse to the same MetricType → ChoiceGroupMetric.
-    // e.g. "185/125 lb" → ChoiceGroupMetric([Resistance(185,"lb"), Resistance(125,"lb")])
+    // e.g. "185 | 125 lb" → ChoiceGroupMetric([Resistance(185,"lb"), Resistance(125,"lb")])
     if (next && pairs[i + 2] && pairs[i + 3]) {
       const second = pairs[i + 2];
       const fourth = pairs[i + 3];
       const fusable1 = isBareNumber(cur.metric) || hasEmptyUnit(cur.metric);
       const fusable2 = isBareNumber(second.metric) || hasEmptyUnit(second.metric);
 
-      if (fusable1 && isSlashSeparator(next.metric) && fusable2) {
+      if (fusable1 && isPipeSeparator(next.metric) && fusable2) {
         const text = effortText(fourth.metric);
         const match = text !== null ? units.consumeLeading(text) : null;
         if (match) {
@@ -189,6 +213,49 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
             out.push({
               metric: new ChoiceGroupMetric([alt1, alt2]),
               meta: choiceMeta,
+            });
+            if (match.rest) {
+              out.push({
+                metric: new EffortMetric(match.rest),
+                meta: residualMeta(fourth.meta, match.rest),
+              });
+            }
+            i += 3; // consume Pipe, second number, unit text
+            continue;
+          }
+        }
+      }
+    }
+
+    // ── {number}/{number} {unit} → single decimal metric (fraction) ─────────────
+    // Detect the 4-token sequence: bareNumber  Slash  bareNumber  unitText
+    // Compute fraction: numerator/denominator → single decimal metric.
+    // e.g. "1/4 mile" → Distance(0.25, "mile")
+    // e.g. "1/2 pood" → Resistance(0.5, "pood")
+    if (next && pairs[i + 2] && pairs[i + 3]) {
+      const second = pairs[i + 2];
+      const fourth = pairs[i + 3];
+      const fusable1 = isBareNumber(cur.metric) || hasEmptyUnit(cur.metric);
+      const fusable2 = isBareNumber(second.metric) || hasEmptyUnit(second.metric);
+
+      if (fusable1 && isSlashSeparator(next.metric) && fusable2) {
+        const text = effortText(fourth.metric);
+        const match = text !== null ? units.consumeLeading(text) : null;
+        if (match) {
+          const numerator = isBareNumber(cur.metric)
+            ? (cur.metric.value as number | undefined)
+            : (cur.metric.value as { amount?: number }).amount;
+          const denominator = isBareNumber(second.metric)
+            ? (second.metric.value as number | undefined)
+            : (second.metric.value as { amount?: number }).amount;
+
+          if (numerator !== undefined && denominator !== undefined && denominator !== 0) {
+            const decimal = numerator / denominator;
+            const fused = metricForUnit(decimal, match.token, match.unit.dimension);
+            const fracMeta = fusedMeta(cur.meta, fourth.meta, match.token);
+            out.push({
+              metric: fused,
+              meta: fracMeta,
             });
             if (match.rest) {
               out.push({

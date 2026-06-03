@@ -1,26 +1,21 @@
 /**
  * Catalog / Organisms / FullscreenTimer
  *
- * FullscreenTimer is the core workout overlay rendered when a user starts a
- * workout from the editor or tracker route. It wraps `RuntimeTimerPanel` in a
- * `FocusedDialog` portal and transitions to a results view (`ReviewGrid`) when
- * the workout completes naturally.
+ * Renders: {@link import('@/components/molecules/FocusedDialog').FocusedDialog}
+ * Data:     See {@link ../../data-for-storybook.md}
  *
- * ## States illustrated
- *  1. SimpleTimer   — single countdown timer ("10:00 Run"), idle / ready to start
- *  2. Amrap         — 20-min AMRAP with movement list, idle / ready to start
- *  3. Emom          — 10-round EMOM, idle / ready to start
- *  4. RoundsForTime — 5-round Fran rep scheme, idle / ready to start
- *  5. AutoStart     — AMRAP that begins ticking immediately on mount
- *
- * **Note:** Each story renders a full-viewport overlay (FocusedDialog portals
- * to document.body). Click the ✕ button to dismiss.
+ * Stories:
+ *  1. SimpleTimer — single countdown timer "10:00 Run" (idle/ready to start)
+ *  2. Amrap — 20-min AMRAP Cindy-style with movement list (idle/ready to start)
+ *  3. Emom — 10-round EMOM (idle/ready to start)
+ *  4. RoundsForTime — 5-round Fran rep scheme (idle/ready to start)
+ *  5. AutoStart — AMRAP that begins ticking immediately when the overlay opens
  */
 
 import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer';
-import type { WodBlock } from '@/components/Editor/types';
+import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
+import type { WodBlock } from '@/components/Editor/types'
 
 // ─── Shared block fixtures ────────────────────────────────────────────────────
 

@@ -53,7 +53,7 @@ describe('RuntimeFactory', () => {
 
 
   it('collapses Choice metrics before runtime creation', () => {
-    const block = makeBlock('135/185 lbs');
+    const block = makeBlock('135|185 lbs');
     expect(block.statements.some(stmt => stmt.metrics.some(m => m.type === MetricType.Choice))).toBe(true);
 
     const runtime = factory.createRuntime(block);

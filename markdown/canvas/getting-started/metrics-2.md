@@ -1,7 +1,7 @@
 ---
 search: hidden
 title: "Add Weight"
-subtitle: "lb, kg, or bodyweight"
+subtitle: "lb, kg, | bodyweight"
 section: metrics
 order: 2
 ---
