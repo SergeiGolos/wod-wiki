@@ -151,7 +151,7 @@ describe('extractSyntaxFacts', () => {
     expect(byId.get(2)?.children).toEqual([]);
   });
 
-  describe('Slash token — "/" independent of Effort', () => {
+  describe('Slash/pipe token — "/" and "|" both produce slash primitives', () => {
     it('emits a slash primitive for a bare "/" between quantities', () => {
       const state = buildState(`185/125 lb\n`);
       const facts = extractSyntaxFacts(state);
@@ -174,6 +174,23 @@ describe('extractSyntaxFacts', () => {
       const facts = extractSyntaxFacts(state);
       const kinds = facts.statements[0].primitives.map((p) => p.kind);
       // slash appears as its own primitive between the two effort primitives
+      expect(kinds).toEqual(['effort', 'slash', 'effort']);
+    });
+
+    it('emits a slash primitive for "|" (pipe is an alias for slash)', () => {
+      const state = buildState(`Run | Walk\n`);
+      const facts = extractSyntaxFacts(state);
+      const kinds = facts.statements[0].primitives.map((p) => p.kind);
+      // pipe emits the same Slash node type as "/"
+      expect(kinds).toEqual(['effort', 'slash', 'effort']);
+      const slash = facts.statements[0].primitives.find((p) => p.kind === 'slash')!;
+      expect(slash.raw).toBe('|');
+    });
+
+    it('emits effort primitives on both sides of "|" in "Sprint | Jog"', () => {
+      const state = buildState(`Sprint | Jog\n`);
+      const facts = extractSyntaxFacts(state);
+      const kinds = facts.statements[0].primitives.map((p) => p.kind);
       expect(kinds).toEqual(['effort', 'slash', 'effort']);
     });
   });

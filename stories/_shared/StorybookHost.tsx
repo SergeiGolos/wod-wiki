@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider';
-import { AudioProvider } from '@/components/audio/AudioContext';
-import { DebugModeProvider } from '@/components/layout/DebugModeContext';
-import { CommandProvider } from '@/components/command-palette/CommandContext';
-import { NotebookProvider } from '@/components/notebook/NotebookContext';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider';
+import { AudioProvider } from '@/contexts/AudioContext';
+import { DebugModeProvider } from '@/contexts/DebugModeContext';
+import { CommandProvider } from '@/contexts/CommandContext';
+import { NotebookProvider } from '@/contexts/NotebookContext';
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing';
 
 /** Syncs the Storybook toolbar theme selection with the ThemeProvider context. */

@@ -1,3 +1,17 @@
+/**
+ * Catalog / Templates / HomeHero
+ *
+ * Renders: {@link import('@/playground/src/components/HomeHero').HomeHero}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — default hero section
+ *  2. Mobile — mobile viewport
+ *  3. Tablet — tablet viewport
+ *  4. EmptyState — empty state placeholder
+ *  5. LongTitle — long title copy test
+ *  6. LoadingState — loading skeleton state
+ */
 import type { Meta, StoryObj } from '@storybook/react'
 import { HomeHero } from '../../../playground/src/components/HomeHero'
 

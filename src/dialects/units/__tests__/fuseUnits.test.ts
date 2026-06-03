@@ -81,7 +81,7 @@ describe('fuseUnitsInMetrics', () => {
     expect(out[1].value).toBe('Swings');
   });
 
-  describe('{number}/{number} {unit} → ChoiceGroupMetric (homogeneous)', () => {
+  describe('{number}/{number} {unit} → ChoiceGroupMetric (numeric slash)', () => {
     it('emits a single ChoiceGroupMetric for N/N resistance', () => {
       const out = fuseUnitsInMetrics(
         [new RepMetric(135), new SlashMetric(), new RepMetric(185), new EffortMetric('lbs')],

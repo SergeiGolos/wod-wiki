@@ -1,19 +1,21 @@
 /**
- * Catalog / Atoms / ResultListItem
+ * Catalog / Molecules / ResultListItem
  *
- * A workout result row: timestamp column on the left, status icon,
- * then title + optional subtitle. Used in journal day-scrolls and
- * note-editor WOD-block result lists.
+ * Renders: {@link import('@/components/molecules/ResultListItem').ResultListItem}
+ * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:
- *  1. TitleOnly     – minimal row with just a time label and title
- *  2. WithSubtitle  – adds a secondary description line
- *  3. List          – multiple items stacked as they'd appear in a feed
- *  4. Clickable     – logs a click event via the actions panel
+ *  1. TitleOnly — minimal row with just a time label and title
+ *  2. WithSubtitle — adds a secondary description line
+ *  3. List — multiple items stacked as they'd appear in a feed
+ *  4. Clickable — logs a click event via the actions panel
+ *  5. LoadingResult — shows loading state
+ *  6. ErrorResult — shows error state
+ *  7. LongTitleTruncation — demonstrates text truncation
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
-import { ResultListItem } from '@/components/results/ResultListItem';
+import { ResultListItem } from '@/components/molecules/ResultListItem'
 
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 

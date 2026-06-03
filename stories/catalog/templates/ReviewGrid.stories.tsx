@@ -1,21 +1,18 @@
 /**
  * Catalog / Templates / ReviewGrid
  *
- * ReviewGrid is the primary results-display layout used across multiple routes:
- *  - `/tracker/:runtimeId` — in-progress workout results tab
- *  - `/review/:runtimeId`  — post-workout full-page review (via FullscreenReview)
- *  - `/`                    — Home page workout history
+ * Renders: {@link import('@/components/organisms/review/ReviewGrid').ReviewGrid}
+ * Data:     See {@link ../../data-for-storybook.md}
  *
- * This story composes the lower-level `GridHeaderCell` and `MetricSourceRow`
- * sub-components into a full, working grid with real segment data.
- *
- * ## States illustrated
- *  1. EmptyState      — no segments (blank-slate, initial load)
- *  2. FranComplete    — 21-15-9 Thrusters & Pull-ups (6 effort segments)
- *  3. AmrapComplete   — 20-min AMRAP Cindy (multiple rounds)
- *  4. EmomComplete    — 10-min EMOM (10 rounds)
- *  5. RoundsComplete  — 5×10 Thrusters (5 rounds)
- *  6. MobileViewport  — portrait phone (375 × 812)
+ * Stories:
+ *  1. EmptyState — empty state with no segments yet
+ *  2. FranComplete — 21-15-9 Thrusters & Pull-ups (6 effort segments)
+ *  3. AmrapComplete — AMRAP 20 Cindy style (multiple rounds)
+ *  4. EmomComplete — EMOM 10 (10 rounds)
+ *  5. RoundsComplete — 5×10 Rounds (simple round-based workout)
+ *  6. StrengthPreset — strength preset with grouped descriptors
+ *  7. EndurancePreset — endurance preset with derived pace
+ *  8. MobileViewport — mobile viewport (375 × 812)
  */
 
 import React, { useEffect, useState } from 'react';
@@ -51,8 +48,8 @@ import { getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 
 // UI
-import { ReviewGrid } from '@/components/review-grid/ReviewGrid';
-import { DebugModeProvider } from '@/components/layout/DebugModeContext';
+import { ReviewGrid } from '@/components/organisms/review/ReviewGrid'
+import { DebugModeProvider } from '@/contexts/DebugModeContext'
 
 // ─── Runtime helpers ──────────────────────────────────────────────────────────
 

@@ -1,7 +1,14 @@
 /**
- * Catalog / Atoms / CalendarSplitButton
+ * Catalog / Molecules / CalendarSplitButton
  *
- * Two-sided pill: primary action left, calendar date picker popover right.
+ * Renders: {@link import('@/components/molecules/CalendarSplitButton').CalendarSplitButton}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — basic two-sided pill with calendar date picker
+ *  2. WithEntryDates — shows entries for the selected date
+ *  3. Sizes — small, medium, and large variants
+ *  4. NoDateSelected — demonstrates the button when no date is selected
  */
 
 import { useState } from 'react';

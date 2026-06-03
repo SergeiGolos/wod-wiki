@@ -221,8 +221,9 @@ function mapFragmentToPrimitive(
     }
 
     case terms.Slash: {
-      // A bare "/" is emitted as a dedicated SlashPrimitive.
-      // The fuseUnits dialect uses it to expand `N/N unit` into two dimensioned metrics.
+      // A bare "/" or "|" is emitted as a dedicated SlashPrimitive.
+      // The fuseUnits dialect uses it to expand `N/N unit` into two dimensioned metrics,
+      // and `Effort | Effort` into a ChoiceGroupMetric.
       // Adjacent Effort tokens with gap=0 (e.g. "Run/Walk") are later merged back
       // by mergeFragments into a single EffortMetric("Run/Walk").
       const primitive: SlashPrimitive = {

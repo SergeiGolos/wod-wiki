@@ -1,23 +1,23 @@
 /**
- * Catalog / Organisms / SidebarLayout
+ * Catalog / Templates / SidebarLayout
  *
- * SidebarLayout — the primary app shell. Wraps every page in the playground.
- * On desktop (lg+): persistent sidebar on the left + main content area.
- * On mobile: sticky header with hamburger + slide-out drawer sidebar.
+ * Renders: {@link import('@/templates/SidebarLayout').SidebarLayout}
+ * Data:     See {@link ../../data-for-storybook.md}
  *
- * Props: sidebar (ReactNode), navbar (ReactNode), children (ReactNode)
- *
- * Note: SidebarLayout uses useLocation from react-router-dom.
- * The global StorybookHost decorator provides MemoryRouter, so no extra
- * router setup is needed here.
+ * Stories:
+ *  1. Default — default sidebar layout
+ *  2. JournalRoute — sidebar layout with journal route
+ *  3. CollectionsRoute — sidebar layout with collections route
+ *  4. MobileViewport — mobile viewport
+ *  5. WithRichContent — sidebar layout with rich content
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
 import { HomeIcon, BookOpenIcon, FolderIcon, MagnifyingGlassIcon, Cog6ToothIcon, BellIcon } from '@heroicons/react/20/solid';
 import { Dumbbell } from 'lucide-react';
 
-import { SidebarLayout } from '@/components/layout/SidebarLayout'
-import { Navbar, NavbarItem, NavbarLabel, NavbarSection, NavbarSpacer } from '@/components/layout/Navbar'
+import { SidebarLayout } from '@/templates/SidebarLayout'
+import { Navbar, NavbarItem, NavbarLabel, NavbarSection, NavbarSpacer } from '@/components/organisms/layout/Navbar'
 import {
   Sidebar,
   SidebarBody,
@@ -26,8 +26,8 @@ import {
   SidebarItem,
   SidebarLabel,
   SidebarSection,
-} from '@/components/layout/Sidebar';
-import { AudioToggle } from '@/components/audio/AudioToggle';
+} from '@/components/organisms/layout/Sidebar';
+import { AudioToggle } from '@/components/atoms/AudioToggle'
 
 // ─── Shared slot components ───────────────────────────────────────────────────
 

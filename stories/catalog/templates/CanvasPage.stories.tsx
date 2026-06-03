@@ -1,29 +1,21 @@
 /**
  * Catalog / Templates / CanvasPage
  *
- * CanvasPage is the unified layout shell used by every content route in the
- * wod.wiki playground (`/`, `/journal`, `/collections`, `/syntax`,
- * `/getting-started`, etc.).  It supports two rendering modes:
+ * Renders: {@link import('@/components/page-shells/CanvasPage').CanvasPage}
+ * Data:     See {@link ../../data-for-storybook.md}
  *
- *  1. **Title-bar mode** (prop `title`) — sticky header + optional sub-header
- *     + TOC sidebar at 3 xl+. Used by Journal, Collections, Home, etc.
- *
- *  2. **Sections mode** (prop `sections` without `title`) — StickyNavPanel with
- *     anchor links + scrollable section blocks. Used by Syntax and
- *     Getting-Started docs pages.
- *
- * Stories illustrated:
- *  1. TitleBarEmpty      — title-bar mode, no children
- *  2. TitleBarWithContent — title-bar mode, rich scrollable content
- *  3. TitleBarWithSubheader — sticky subheader below the title bar
- *  4. TitleBarWithIndex  — right-hand TOC sidebar (visible at 3 xl+)
- *  5. SectionsMode       — StickyNavPanel + multi-section layout
- *  6. MobileViewport     — 375 × 812 portrait phone
+ * Stories:
+ *  1. TitleBarEmpty — title-bar mode with no content (blank slate)
+ *  2. TitleBarWithContent — title-bar mode with scrollable card content
+ *  3. TitleBarWithSubheader — title-bar mode with sticky subheader strip
+ *  4. TitleBarWithIndex — title-bar mode with right-hand TOC sidebar
+ *  5. SectionsMode — sections mode with StickyNavPanel and anchor-scrollable sections
+ *  6. MobileViewport — mobile viewport (375 × 812)
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
 import { CanvasPage } from '@/panels/page-shells/CanvasPage';
-import type { PageNavLink } from '@/components/layout/PageNavDropdown'
+import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import type { DocsSection } from '@/panels/page-shells/types';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────

@@ -1,19 +1,16 @@
 /**
- * Tracker-Web Stories
+ * Catalog / Templates / Tracker / Web
  *
- * Showcases the web-based workout tracking panel (`TimerScreen` / `VisualStatePanel`)
- * using a real ScriptRuntime backed by a JIT-compiled workout script.
+ * Renders: {@link import('@/panels/stack-panel-web').ReceiverStackPanel}
+ * Data:     See {@link ../../../data-for-storybook.md}
  *
- * The harness stands up a real runtime, pushes blocks onto the stack, and
- * renders the actual production components — nothing is mocked at the
- * component level.  The Storybook Controls/actions panel lets you inspect
- * the events fired from the UI controls (start, pause, stop, next).
- *
- * States illustrated:
- *  1. NoBlock      — no runtime; shows the preview / "select a workout" panel
- *  2. ReadyToStart — runtime initialised with a WaitingToStart block on the stack
- *  3. ActiveFran   — Fran (21-15-9 Thrusters & Pull-ups) with active session block
- *  4. AmrapRunning — 20-min AMRAP with a running AMRAP block
+ * Stories:
+ *  1. NoBlock — displays the "select a workout" placeholder
+ *  2. ReadyToStart — runtime initialized, WaitingToStart on stack
+ *  3. ActiveFran — classic 21-15-9 benchmark (first exercise block active)
+ *  4. ActiveAmrap — 20-minute As Many Rounds As Possible
+ *  5. ActiveRounds — 5 rounds of 10 Thrusters
+ *  6. ActiveEmom — 10-minute Every Minute On the Minute
  */
 
 import React, { useEffect, useState } from 'react';
@@ -46,7 +43,7 @@ import { NextAction } from '@/runtime/actions/stack/NextAction';
 // UI
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
-import { DebugModeProvider } from '@/components/layout/DebugModeContext';
+import { DebugModeProvider } from '@/contexts/DebugModeContext'
 import { VisualStatePanel } from '@/panels/visual-state-panel';
 import { TimerDisplay } from '@/panels/timer-panel';
 import { useRuntimeExecution } from '@/runtime/hooks/useRuntimeExecution';

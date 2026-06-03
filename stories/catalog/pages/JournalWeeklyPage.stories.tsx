@@ -1,8 +1,12 @@
 /**
- * JournalWeeklyPage Stories
+ * Catalog / Pages / JournalWeeklyPage
  *
- * The JournalWeeklyPage renders the weekly journal overview with date navigation
- * and a list of journal entries. Content is loaded from IndexedDB.
+ * Renders: {@link import('@/playground/src/pages/JournalWeeklyPage').JournalWeeklyPage}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — default weekly journal view (empty week)
+ *  2. Mobile — mobile viewport
  */
 
 import React from 'react';

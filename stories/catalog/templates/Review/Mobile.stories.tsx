@@ -1,16 +1,15 @@
 /**
- * Review-Mobile Stories
+ * Catalog / Templates / Review / Mobile
  *
- * Showcases the review panel (`ReviewGrid`) in a mobile (portrait) viewport.
- * Data is identical to ReviewWeb — a real ScriptRuntime is run to completion
- * using a mock clock so no real timers are needed.
+ * Renders: {@link import('@/panels/review-panel-mobile').ReceiverReviewPanel}
+ * Data:     See {@link ../../../data-for-storybook.md}
  *
- * States illustrated:
- *  1. EmptyReview    — no segments yet (blank-slate)
- *  2. FranComplete   — 21-15-9 Thrusters & Pull-ups, all segments done
- *  3. AmrapComplete  — 20-min AMRAP, multiple rounds completed
- *  4. EmomComplete   — 10-min EMOM, 10 rounds completed
- *  5. RoundsComplete — 5×10 Thrusters, 5 rounds completed
+ * Stories:
+ *  1. EmptyReview — review panel with no segments yet
+ *  2. FranComplete — 21-15-9 Thrusters & Pull-ups (6 effort segments)
+ *  3. AmrapComplete — AMRAP 20 Cindy style
+ *  4. EmomComplete — EMOM 10
+ *  5. RoundsComplete — 5×10 Rounds
  */
 
 import React, { useEffect, useState } from 'react';
@@ -46,8 +45,8 @@ import { getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 
 // UI
-import { ReviewGrid } from '@/components/review-grid/ReviewGrid';
-import { DebugModeProvider } from '@/components/layout/DebugModeContext';
+import { ReviewGrid } from '@/components/organisms/review/ReviewGrid'
+import { DebugModeProvider } from '@/contexts/DebugModeContext'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

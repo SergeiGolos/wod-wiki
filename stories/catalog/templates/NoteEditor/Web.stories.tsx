@@ -1,9 +1,19 @@
 /**
- * NoteEditor Stories — Panels/NoteEditor/Web
+ * Catalog / Templates / NoteEditor / Web
  *
- * All stories use StorybookWorkbench for a consistent full-screen editor
- * shell with EditorShellHeader (Cast · Theme · Debug · Download · Reset).
- * The editor is scrollable and fills the viewport height.
+ * Renders: {@link import('@/panels/note-editor-web').NoteEditor}
+ * Data:     See {@link ../../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — default web note editor
+ *  2. DarkTheme — web note editor with dark theme
+ *  3. EmptyDocument — empty editor state
+ *  4. Fran — Fran workout content
+ *  5. Helen — Helen workout content
+ *  6. SimpleAndSinister — Simple & Sinister workout content
+ *  7. ArmorBuildingComplex — Armor Building Complex workout content
+ *  8. CindyAmrap — Cindy AMRAP workout content
+ *  9. WeeklyPlan — weekly training plan content
  */
 
 import React from 'react';

@@ -1,24 +1,26 @@
 /**
- * Review-Chromecast Stories
+ * Catalog / Templates / Review / Chromecast
  *
- * Showcases the Chromecast review panel that is rendered on the TV screen
- * after a workout completes.  The panel is driven by `WorkbenchDisplayState`
- * data from `ChromecastProxyRuntime`, so no runtime object is needed — stories
- * use pre-built JSON fixtures that match the exact wire format.
+ * Renders: {@link import('@/panels/review-panel-chromecast').ReceiverReviewPanel}
+ * Data:     See {@link ../../../data-for-storybook.md}
  *
- * Now uses the real `ReceiverReviewPanel` from `@/panels/review-panel-chromecast`.
- *
- * States illustrated:
- *  1. SimpleRows         — reviewData only (no analyticsSummary / no projections)
- *  2. WithProjections    — full analyticsSummary: 2-column metric cards + icons
- *  3. FranResults        — realistic Fran workout results
- *  4. AmrapResults       — AMRAP results with rounds + reps
- *  5. EmomResults        — EMOM results with avg timing
- *  6. FiveBySomething    — 5-round workout with volume metrics
- *  7. EmptyReview        — reviewData present but zero rows / projections
- *  8. WithDismissButton  — dismiss button focused (D-Pad Select affordance)
- *  9. DismissButtonActive — dismiss button in active/pressed state
- * 10. AggregatedStats    — per-exercise projections merged by metricType (WOD-656)
+ * Stories:
+ *  1. SimpleRows — simple rows fallback with no analyticsSummary
+ *  2. WithProjections — full analytics summary with 4 projection metric cards
+ *  3. FranResults — realistic 21-15-9 benchmark results
+ *  4. AmrapResults — 20-min Cindy AMRAP results with filled projections
+ *  5. EmomResults — 10-min EMOM results with avg work/rest breakdown
+ *  6. RoundsResults — 5-round deadlift strength workout results
+ *  7. EmptyReview — empty/zero-data defensive state
+ *  8. LightBackground — light background variant
+ *  9. AggregatedStats — per-exercise volume projections merged
+ *  10. ManyProjections — 8 cards in 2-column grid
+ *  11. LongProjectionNames — long projection names testing text wrapping
+ *  12. LargeNumbers — 6-7 digit values testing formatting
+ *  13. ZeroDuration — workout completed instantly (edge case)
+ *  14. WithDismissButton — dismiss button unfocused (D-Pad affordance)
+ *  15. DismissButtonFocused — dismiss button focused via D-Pad
+ *  16. DismissButtonActivating — dismiss button mid activation-flash
  */
 
 import React, { useState } from 'react';

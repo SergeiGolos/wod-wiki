@@ -6,6 +6,8 @@ import type { ICodeStatement } from "@/core/models/CodeStatement";
 import { cursorFocusExtension, getCursorFocusState, renderPanelContent } from "../cursor-focus-panel";
 import { sectionField } from "../section-state";
 import { sharedParser } from "@/hooks/useRuntimeParser";
+import { ChoiceGroupMetric } from "@/runtime/compiler/metrics/ChoiceGroupMetric";
+import { ResistanceMetric } from "@/runtime/compiler/metrics/ResistanceMetric";
 
 function createView(doc: string, selectionLine: number): EditorView {
   if (!window.requestAnimationFrame) {
@@ -92,5 +94,17 @@ describe("cursorFocusExtension", () => {
 
     expect(panel.querySelector(".cm-wod-metric-panel__label-item--focused")?.textContent).toBe("Timer");
     expect(panel.querySelector(".cm-wod-metric-panel__hint")?.textContent).toBe("Ctrl+↑↓ · adjust");
+  });
+
+  it("renders choice metric using its underlying type label and colour", () => {
+    const statement = {
+      metrics: [
+        new ChoiceGroupMetric([new ResistanceMetric(135, 'lb'), new ResistanceMetric(185, 'lb')]),
+      ],
+    } as unknown as ICodeStatement;
+
+    const panel = renderPanelContent(statement, null);
+
+    expect(panel.querySelector(".cm-wod-metric-panel__label-item")?.textContent).toBe("Weight");
   });
 });

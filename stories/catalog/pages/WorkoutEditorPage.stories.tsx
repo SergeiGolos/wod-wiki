@@ -1,9 +1,16 @@
 /**
- * WorkoutEditorPage Stories
+ * Catalog / Pages / WorkoutEditorPage
  *
- * The WorkoutEditorPage renders workout content in the note editor with
- * collection-mode WOD commands (Run, Today, Plan). Stories use static
- * markdown content passed via the `mdContent` prop.
+ * Renders: {@link import('@/playground/src/pages/WorkoutEditorPage').WorkoutEditorPage}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Fran — classic benchmark girl WOD
+ *  2. Murph — hero workout
+ *  3. AmrapWorkout — AMRAP 20 workout
+ *  4. EmptyEditor — empty editor state
+ *  5. SyntaxMode — syntax highlighting mode
+ *  6. Mobile — mobile viewport
  */
 
 import React from 'react';

@@ -1,25 +1,22 @@
 /**
- * Tracker-Chromecast Stories
+ * Catalog / Templates / Tracker / Chromecast
  *
- * Showcases the Cast-receiver layout (`ReceiverStackPanel` + `ReceiverTimerPanel`)
- * using a real ScriptRuntime — the same components and hooks as the production
- * Chromecast receiver, but hydrated locally without a WebRTC transport.
+ * Renders: {@link import('@/panels/stack-panel-chromecast').ReceiverStackPanel}
+ * Data:     See {@link ../../../data-for-storybook.md}
  *
- * This lets you see the exact TV layout that a Cast receiver would display,
- * driven by the real stack state, without needing a Chromecast device.
- *
- * States illustrated:
- *  1. Idle             — no runtime, "waiting for cast" style placeholder
- *  2. Preview          — a note loaded but no runtime started (workout selection list)
- *  3. ReadyToStart     — WaitingToStart block on the stack
- *  4. ActiveFran       — 21-15-9 Thrusters & Pull-ups, first block active
- *  5. ActiveAmrap      — 20-minute AMRAP running
- *  6. ActiveEmom       — 10-minute EMOM running
- *  7. DeepNesting      — nested groups/loops to test tree depth
- *  8. PausedState      — workout paused mid-segment
- *  9. InterleavedHistory — completed blocks mixed with active stack
- *  10. LongLabels      — very long block labels to test truncation
- *  11. NoMetrics       — bodyweight workout with no tracked metrics
+ * Stories:
+ *  1. Idle — receiver booted but no Cast session yet
+ *  2. Preview — workout selection list
+ *  3. ReadyToStart — session root and WaitingToStart on stack
+ *  4. ActiveFran — 21-15-9 benchmark (first exercise block live)
+ *  5. ActiveAmrap — 20-minute AMRAP countdown
+ *  6. ActiveEmom — 10-round every-minute-on-the-minute
+ *  7. ActiveRounds — 5 rounds with explicit rep target
+ *  8. DeepNesting — nested loop blocks for tree depth testing
+ *  9. PausedState — active workout with pause event
+ *  10. InterleavedHistory — several blocks completed, one active
+ *  11. LongLabels — block labels exceeding typical width
+ *  12. NoMetrics — bodyweight exercises with no weight/distance units
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -61,9 +58,9 @@ import {
 } from '@/runtime/hooks/useStackDisplay';
 import { useNextPreview } from '@/runtime/hooks/useNextPreview';
 import { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
-import { MetricTrackerCard } from '@/components/track/MetricTrackerCard';
+import { MetricTrackerCard } from '@/components/organisms/track/MetricTrackerCard'
 import { MetricSourceRow } from '@/components/molecules/MetricSourceRow';
-import { TimerStackView } from '@/components/workout/TimerStackView';
+import { TimerStackView } from '@/components/organisms/workout/TimerStackView'
 import { calculateDuration } from '@/lib/timeUtils';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import { cn } from '@/lib/utils';

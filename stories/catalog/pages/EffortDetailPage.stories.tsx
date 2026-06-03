@@ -1,8 +1,14 @@
 /**
- * EffortDetailPage Stories
+ * Catalog / Pages / EffortDetailPage
  *
- * Full-page effort detail view showing attributes, aliases, derivation,
- * resolved values (with modifiers), and the analytics placeholder section.
+ * Renders: {@link import('@/playground/src/pages/EffortDetailPage').EffortDetailPage}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. BundledEffort — default bundled effort with analytics placeholder
+ *  2. HighIntensityEffort — high-intensity effort with many aliases
+ *  3. WithModifiers — effort with URL modifiers (shows resolved tab)
+ *  4. Mobile — mobile viewport (analytics section hidden)
  */
 
 import React from 'react';

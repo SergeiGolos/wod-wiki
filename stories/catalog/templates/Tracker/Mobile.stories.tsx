@@ -1,17 +1,15 @@
 /**
- * Tracker-Mobile Stories
+ * Catalog / Templates / Tracker / Mobile
  *
- * Showcases the workout tracking panel in a mobile (portrait) viewport.
- * The layout stacks the timer controls above the visual state panel
- * rather than side-by-side, matching the narrow screen experience.
+ * Renders: {@link import('@/panels/stack-panel-mobile').ReceiverStackPanel}
+ * Data:     See {@link ../../../data-for-storybook.md}
  *
- * Uses the same real ScriptRuntime as TrackerWeb — nothing is mocked.
- *
- * States illustrated:
- *  1. NoBlock      — no runtime; "select a workout" placeholder
- *  2. ReadyToStart — WaitingToStart block on the stack
- *  3. ActiveFran   — Fran (21-15-9) first block active
- *  4. AmrapRunning — 20-min AMRAP running
+ * Stories:
+ *  1. NoBlock — displays the "select a workout" placeholder
+ *  2. ReadyToStart — runtime initialized, WaitingToStart on stack
+ *  3. ActiveFran — classic 21-15-9 benchmark (first exercise block active)
+ *  4. AmrapRunning — 20-minute AMRAP
+ *  5. EmomRunning — 10-minute EMOM
  */
 
 import React, { useEffect, useState } from 'react';
@@ -44,7 +42,7 @@ import { NextAction } from '@/runtime/actions/stack/NextAction';
 // UI
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
-import { DebugModeProvider } from '@/components/layout/DebugModeContext';
+import { DebugModeProvider } from '@/contexts/DebugModeContext'
 import { VisualStatePanel } from '@/panels/visual-state-panel';
 import { TimerDisplay } from '@/panels/timer-panel';
 import { useRuntimeExecution } from '@/runtime/hooks/useRuntimeExecution';

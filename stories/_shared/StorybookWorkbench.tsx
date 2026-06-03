@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { Workbench, WorkbenchProps } from '@/components/layout/Workbench';
+import { Workbench, WorkbenchProps } from '@/components/organisms/layout/Workbench';
 
 interface StorybookWorkbenchProps extends WorkbenchProps {
   initialContent?: string;

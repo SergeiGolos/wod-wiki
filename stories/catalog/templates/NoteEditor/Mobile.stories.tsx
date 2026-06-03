@@ -1,9 +1,15 @@
 /**
- * NoteEditor-Mobile Stories — Panels/NoteEditor/Mobile
+ * Catalog / Templates / NoteEditor / Mobile
  *
- * Uses StorybookWorkbench wrapped at 390px width to simulate a mobile
- * portrait viewport, with the same EditorShellHeader toolbar as all
- * other web editor views (Cast · Theme · Debug · Download · Reset).
+ * Renders: {@link import('@/panels/note-editor-mobile').NoteEditor}
+ * Data:     See {@link ../../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — default mobile note editor
+ *  2. DarkTheme — mobile note editor with dark theme
+ *  3. Fran — Fran workout content
+ *  4. CindyAmrap — Cindy AMRAP workout content
+ *  5. WeeklyPlan — weekly training plan content
  */
 
 import React from 'react';

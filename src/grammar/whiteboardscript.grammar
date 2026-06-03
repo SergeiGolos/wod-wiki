@@ -32,8 +32,11 @@ Fragment {
  * Used for paired Rx/scaled weight notation: 185/125 lb → two dimensioned metrics.
  * "//" is always a textComment (higher token precedence), so Slash only ever
  * captures a single forward-slash.
+ *
+ * Pipe "|" is an alias — the same Slash node is emitted so the downstream
+ * fuseUnits and ChoiceGroup logic works identically for both tokens.
  */
-Slash { slash }
+Slash { slash | pipe }
 
 MetricObject { objectOpen (Identifier | Number | String | colon | comma | True | False | Null | allowedSymbol)* objectClose }
 
@@ -69,6 +72,7 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
   textComment { "//" ![\n\r]* }
   heading { "#" ![\n\r]* }
   slash { "/" }
+  pipe { "|" }
   allowedSymbol { $[\\.,@!$%^*=&]+ }
   objectOpen { "{" }
   objectClose { "}" }
@@ -99,6 +103,7 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
     rest,
     colon,
     slash,
+    pipe,
     allowedSymbol,
     objectOpen,
     objectClose,

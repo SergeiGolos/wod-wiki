@@ -1,8 +1,12 @@
 /**
- * EffortsCatalogPage Stories
+ * Catalog / Pages / EffortsCatalogPage
  *
- * Full-page efforts catalog showing the list of all registered efforts
- * with search, origin filter, and discipline filter.
+ * Renders: {@link import('@/playground/src/pages/EffortsCatalogPage').EffortsCatalogPage}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — catalog showing all bundled + user efforts
+ *  2. Mobile — mobile viewport
  */
 
 import React from 'react';

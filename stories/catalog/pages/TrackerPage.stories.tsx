@@ -1,9 +1,11 @@
 /**
- * TrackerPage Stories
+ * Catalog / Pages / TrackerPage
  *
- * The TrackerPage runs a workout from a pending runtime stored in
- * the in-memory pendingRuntimes map. In stories we show the error
- * state (no pending runtime) since there is no real runtime to run.
+ * Renders: {@link import('@/playground/src/pages/TrackerPage').TrackerPage}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. NoRuntime — error state when no pending runtime exists
  */
 
 import React from 'react';

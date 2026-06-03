@@ -20,7 +20,7 @@ Run 1/4 mile OR row 250m OR bike 2 miles.
   10 Air Squats
   10 Push Ups
   10 Sit Ups
-  10 Pull Ups / Jumping Pull Ups
+  10 Pull Ups | Jumping Pull Ups
 ```
 
 ## WOD

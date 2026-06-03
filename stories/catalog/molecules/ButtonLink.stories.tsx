@@ -1,3 +1,13 @@
+/**
+ * Catalog / Molecules / ButtonLink
+ *
+ * Renders: {@link import('@/components/molecules/ButtonLink').ButtonLink}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — button-styled links with leading or trailing icons
+ *  2. SizesAndWidths — demonstrates size variants and full-width behavior
+ */
 import type { Meta, StoryObj } from '@storybook/react'
 import { ArrowRight, BookOpen, ExternalLink, Play } from 'lucide-react'
 import { ButtonLink } from '@/components/molecules/ButtonLink'

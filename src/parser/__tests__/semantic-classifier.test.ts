@@ -292,7 +292,7 @@ describe('classifyStatements', () => {
     expect(result.isLeaf).toBe(false);
   });
 
-  describe('Slash primitive', () => {
+  describe('Slash/pipe primitive', () => {
     it('emits SlashMetric (MetricType.Slash) — never an EffortMetric', () => {
       const facts: SyntaxFacts = {
         statements: [{
@@ -334,6 +334,29 @@ describe('classifyStatements', () => {
       expect(arr[1].type).toBe(MetricType.Slash);
       expect(arr[2].type).toBe(MetricType.Effort);
       expect(arr[2].value).toBe('Walk');
+    });
+
+    it('pipe "|" also produces SlashMetric (same as "/")', () => {
+      const facts: SyntaxFacts = {
+        statements: [{
+          id: 1, line: 1,
+          meta: meta(0, 9, 'Run | Walk'),
+          primitives: [
+            { kind: 'effort', raw: 'Run',  meta: meta(0, 3, 'Run') },
+            { kind: 'slash',  raw: '|',    meta: meta(4, 5, '|') },
+            { kind: 'effort', raw: 'Walk', meta: meta(6, 10, 'Walk') },
+          ],
+          children: [], isLeaf: true,
+        }],
+      };
+      const [result] = classifyStatements(facts);
+      const arr = result.metrics.toArray();
+      expect(arr).toHaveLength(3);
+      // SlashMetric is emitted regardless of whether the token was "/" or "|"
+      expect(arr[1].type).toBe(MetricType.Slash);
+      // The raw separator is preserved in metricMeta, not in the metric value
+      const slashMeta = result.metricMeta?.get(arr[1]);
+      expect(slashMeta?.raw).toBe('|');
     });
   });
 });

@@ -1,22 +1,17 @@
 /**
- * Review-Web Stories
+ * Catalog / Templates / Review / Web
  *
- * Showcases the web-based review panel (`ReviewGrid`) with segments derived
- * from a fully-executed real ScriptRuntime.
+ * Renders: {@link import('@/panels/review-panel-web').ReceiverReviewPanel}
+ * Data:     See {@link ../../../data-for-storybook.md}
  *
- * The harness builds a real runtime, runs the workout to completion by
- * repeatedly calling NextAction (simulating "user advanced each step"),
- * then feeds `getAnalyticsFromRuntime()` directly into `ReviewGrid`.
- *
- * Nothing is mocked — the segments in the grid are the exact same objects
- * that the production workbench would show after clicking Stop.
- *
- * States illustrated:
- *  1. EmptyReview    — no segments yet (blank-slate review state)
- *  2. FranComplete   — 21-15-9 Thrusters & Pull-ups, all 6 segments finished
- *  3. AmrapComplete  — 20-min AMRAP, multiple rounds completed
- *  4. EmomComplete   — 10-min EMOM, 10 rounds completed
- *  5. RoundsComplete — 5×10 Thrusters, 5 rounds completed
+ * Stories:
+ *  1. EmptyReview — review panel with no segments yet
+ *  2. FranComplete — classic 21-15-9 benchmark (6 effort segments)
+ *  3. GraceComplete — 30 clean & jerks for time
+ *  4. AmrapComplete — AMRAP 20 Cindy style (multiple rounds)
+ *  5. EmomComplete — EMOM 10 (every-minute-on-the-minute)
+ *  6. RoundsComplete — 5×10 Rounds (simple round-based workout)
+ *  7. DeadliftWorkoutComplete — multi-movement complex
  */
 
 import React, { useEffect, useState } from 'react';
@@ -52,8 +47,8 @@ import { getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 
 // UI
-import { ReviewGrid } from '@/components/review-grid/ReviewGrid';
-import { DebugModeProvider } from '@/components/layout/DebugModeContext';
+import { ReviewGrid } from '@/components/organisms/review/ReviewGrid'
+import { DebugModeProvider } from '@/contexts/DebugModeContext'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

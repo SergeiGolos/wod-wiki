@@ -1,9 +1,14 @@
 /**
  * Catalog / Templates / LandingTemplate
  *
- * Centered max-width container for landing/marketing pages.
- * Provides consistent outer padding, max-width constraints,
- * and optional hero + actions slots.
+ * Renders: {@link import('@/playground/src/templates/LandingTemplate').LandingTemplate}
+ * Data:     See {@link ../../data-for-storybook.md}
+ *
+ * Stories:
+ *  1. Default — landing template with hero and content
+ *  2. WithActions — landing template with actions slot
+ *  3. NoHero — landing template without hero
+ *  4. MobileViewport — mobile viewport
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
