@@ -259,6 +259,7 @@ function buildDecorations(
         decos.push(Decoration.mark({ class: cssClass }).range(from, to));
       }
     }
+  }
 
   // Focus panel widget — anchored to the focused WOD block's closing fence.
   // The widget is a block decoration at the end of the bottom ``` line, so it

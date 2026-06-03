@@ -10,6 +10,7 @@ import { RepMetric } from '../runtime/compiler/metrics/RepMetric';
 import { ResistanceMetric } from '../runtime/compiler/metrics/ResistanceMetric';
 import { RoundsMetric } from '../runtime/compiler/metrics/RoundsMetric';
 import { SlashMetric } from '../runtime/compiler/metrics/SlashMetric';
+import { PipeMetric } from '../runtime/compiler/metrics/PipeMetric';
 import { TextMetric } from '../runtime/compiler/metrics/TextMetric';
 import { hintMetric } from '../core/metrics/hints';
 import { SyntaxFacts, SyntaxMeta, SyntaxPrimitive } from './syntax-facts';
@@ -117,8 +118,13 @@ function classifyPrimitive(primitive: SyntaxPrimitive): MetricPair[] {
 
     case 'slash':
       // A dedicated SlashMetric — never an effort, never displayed.
-      // fuseUnits consumes it to expand N/N unit or split Effort/Effort.
+      // fuseUnits consumes it for fraction conversion: 1/4 mile → 0.25 mile.
       return [{ metrics: new SlashMetric(), meta: primitive.meta }];
+
+    case 'pipe':
+      // A dedicated PipeMetric — never an effort, never displayed.
+      // fuseUnits consumes it for choice grouping: Run | Walk → ChoiceGroupMetric.
+      return [{ metrics: new PipeMetric(), meta: primitive.meta }];
 
     case 'property': {
       const metricType = PROPERTY_KEY_TO_METRIC_TYPE[primitive.key.toLowerCase()] ?? MetricType.Custom;

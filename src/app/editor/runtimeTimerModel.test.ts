@@ -19,7 +19,7 @@ function makeBlock(content: string): WodBlock {
 
 describe('runtimeTimerModel', () => {
   it('prepares parsed statements without collapsing choices', () => {
-    const block = prepareRuntimeBlock(makeBlock('135/185 lbs'));
+    const block = prepareRuntimeBlock(makeBlock('135|185 lbs'));
 
     expect(block.statements.length).toBeGreaterThan(0);
     expect(block.statements.some(stmt => stmt.metrics.some(m => m.type === MetricType.Choice))).toBe(true);

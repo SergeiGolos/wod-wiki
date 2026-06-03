@@ -69,8 +69,8 @@ const preview = {
             ['FullscreenReview', 'FullscreenTimer', 'RuntimeTimerPanel'],
             'templates',
             [
-              'CanvasPage', 'CollectionWorkoutsList', 'HomeHero',
-              'JournalDateScroll', 'LandingTemplate', 'ReviewGrid',
+              'CanvasPage', 'CollectionWorkoutsList', 'JournalDateScroll',
+              'LandingTemplate', 'ReviewGrid',
               'SidebarLayout',
               'NoteEditor', ['Mobile', 'Web'],
               'Review',   ['Chromecast', 'Mobile', 'Web'],

@@ -9,7 +9,7 @@ export interface SyntaxMeta {
 }
 
 interface BasePrimitive {
-  kind: 'lap' | 'duration' | 'rounds' | 'action' | 'text' | 'heading' | 'quantity' | 'effort' | 'slash' | 'property' | 'metric_object';
+  kind: 'lap' | 'duration' | 'rounds' | 'action' | 'text' | 'heading' | 'quantity' | 'effort' | 'slash' | 'pipe' | 'property' | 'metric_object';
   raw: string;
   meta: SyntaxMeta;
 }
@@ -62,10 +62,18 @@ export interface EffortPrimitive extends BasePrimitive {
 
 /**
  * Slash primitive — emitted for a bare "/" between quantities.
- * The fuseUnits dialect uses this to expand `N/N unit` into two dimensioned metrics.
+ * The fuseUnits dialect uses this for fraction conversion: `1/4 mile` → 0.25 mile.
  */
 export interface SlashPrimitive extends BasePrimitive {
   kind: 'slash';
+}
+
+/**
+ * Pipe primitive — emitted for a bare "|" between alternatives.
+ * The fuseUnits dialect uses this for choice grouping: `Run | Walk` → ChoiceGroupMetric.
+ */
+export interface PipePrimitive extends BasePrimitive {
+  kind: 'pipe';
 }
 
 export interface PropertyPrimitive extends BasePrimitive {
@@ -85,6 +93,7 @@ export type SyntaxPrimitive =
   | QuantityPrimitive
   | EffortPrimitive
   | SlashPrimitive
+  | PipePrimitive
   | PropertyPrimitive
   | MetricObjectPrimitive;
 export interface SyntaxStatement {

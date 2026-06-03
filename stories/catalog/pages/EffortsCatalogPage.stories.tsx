@@ -12,7 +12,7 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { EffortsCatalogPage } from '../../../playground/src/pages/EffortsCatalogPage';
-import { EffortRegistryProvider } from '../../../playground/src/components/efforts/EffortRegistryContext';
+import { EffortRegistryProvider } from '../../../playground/src/contexts/EffortRegistryContext'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

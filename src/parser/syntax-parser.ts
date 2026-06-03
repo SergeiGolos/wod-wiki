@@ -9,6 +9,7 @@ import {
   HeadingPrimitive,
   LapPrimitive,
   MetricObjectPrimitive,
+  PipePrimitive,
   PropertyPrimitive,
   QuantityPrimitive,
   RoundsPrimitive,
@@ -221,13 +222,21 @@ function mapFragmentToPrimitive(
     }
 
     case terms.Slash: {
-      // A bare "/" or "|" is emitted as a dedicated SlashPrimitive.
-      // The fuseUnits dialect uses it to expand `N/N unit` into two dimensioned metrics,
-      // and `Effort | Effort` into a ChoiceGroupMetric.
-      // Adjacent Effort tokens with gap=0 (e.g. "Run/Walk") are later merged back
-      // by mergeFragments into a single EffortMetric("Run/Walk").
+      // A bare "/" is emitted as a dedicated SlashPrimitive.
+      // The fuseUnits dialect uses it for fraction conversion: `1/4 mile` → 0.25 mile.
       const primitive: SlashPrimitive = {
         kind: 'slash',
+        raw,
+        meta,
+      };
+      return primitive;
+    }
+
+    case terms.Pipe: {
+      // A bare "|" is emitted as a dedicated PipePrimitive.
+      // The fuseUnits dialect uses it for choice grouping: `Run | Walk` → ChoiceGroupMetric.
+      const primitive: PipePrimitive = {
+        kind: 'pipe',
         raw,
         meta,
       };
