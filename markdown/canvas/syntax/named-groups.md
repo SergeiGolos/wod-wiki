@@ -6,10 +6,10 @@ section: groups
 order: 5
 ---
 ```wod
-(Warmup)
+// Warmup
   400m Run
   10 Air Squats
 
-(Strength)
+// Strength
   5 Back Squat 225lb
 ```

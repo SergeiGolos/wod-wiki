@@ -10,7 +10,7 @@ order: 5
   5:00 AMRAP
     5 Pullups
     10 Pushups
-  (Strength)
+  // Strength
     3 Back Squat 225lb
     *2:00 Rest
 ```
