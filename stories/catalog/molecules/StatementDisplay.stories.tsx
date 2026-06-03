@@ -1,5 +1,5 @@
 /**
- * Catalog / Atoms / StatementDisplay
+ * Catalog / Molecules / StatementDisplay
  *
  * Three closely-related display atoms from src/components/metrics/StatementDisplay.tsx:
  *

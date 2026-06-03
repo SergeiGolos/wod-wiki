@@ -1,5 +1,5 @@
 /**
- * Catalog / Atoms / MetricSourceRow
+ * Catalog / Molecules / MetricSourceRow
  *
  * A runtime-block row component driven by IMetricSource or a plain metrics
  * array. Used in timer panels, editor overlays, and analytics views.

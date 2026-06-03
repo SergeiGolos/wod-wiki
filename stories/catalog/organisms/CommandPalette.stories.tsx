@@ -1,5 +1,5 @@
 /**
- * Catalog / Molecules / CommandPalette
+ * Catalog / Organisms / CommandPalette
  *
  * The assembled command palette: search input + grouped result list.
  * Rendered inline (no dialog overlay) so typing works freely in Storybook.
