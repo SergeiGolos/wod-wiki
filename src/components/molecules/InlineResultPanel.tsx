@@ -12,7 +12,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { ReviewGrid } from '@/components/organisms/review/ReviewGrid';
-import { AnalyticsScorecard } from '@/components/organisms/review/AnalyticsScorecard';
+import { AnalyticsScorecard, getMetricStyle } from '@/components/organisms/review/AnalyticsScorecard';
 import { CollectionWizard } from '@/components/organisms/review/CollectionWizard';
 import { useUserOverrides } from '@/components/organisms/review/useUserOverrides';
 import { useCollectionMetrics, type CollectionItem } from '@/hooks/useCollectionMetrics';
@@ -23,6 +23,7 @@ import type { WorkoutResult } from '@/types/storage';
 import { MetricType } from '@/core/models/Metric';
 import type { ProjectionResult } from '@/timeline/analytics/analytics/ProjectionResult';
 import { ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -242,6 +243,38 @@ const ResultRow: React.FC<ResultRowProps> = ({
           </h3>
           <p className="text-[11px] text-muted-foreground truncate">{dateLabel}</p>
         </div>
+
+        {/* Inline metric chips — visible in both collapsed and expanded */}
+        {projections.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-shrink-0 overflow-hidden">
+            {projections.slice(0, 3).map((proj, idx) => {
+              const { icon, colors } = getMetricStyle(
+                (proj.metricType?.toString() ?? 'metric')
+              );
+              return (
+                <span
+                  key={`${proj.name}-${idx}`}
+                  className={cn(
+                    'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold border whitespace-nowrap',
+                    colors.text,
+                    colors.border,
+                    colors.bg
+                  )}
+                  title={`${proj.name}: ${proj.value.toLocaleString()}${proj.unit ? ' ' + proj.unit : ''}`}
+                >
+                  <span className="opacity-70">{icon}</span>
+                  <span className="tabular-nums">{proj.value.toLocaleString()}</span>
+                  {proj.unit && <span className="opacity-60 font-normal">{proj.unit}</span>}
+                </span>
+              );
+            })}
+            {projections.length > 3 && (
+              <span className="text-[10px] text-muted-foreground px-1">
+                +{projections.length - 3}
+              </span>
+            )}
+          </div>
+        )}
       </button>
 
       {/* Analytics scorecard — shown only when expanded */}
