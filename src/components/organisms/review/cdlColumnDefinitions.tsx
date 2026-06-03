@@ -108,12 +108,11 @@ function getUnitForMetricType(ft: MetricType): string {
 
 function makeMetricColumn(
   metricType: MetricType,
-  opts?: { defaultVisible?: boolean; graphable?: boolean },
+  opts?: { defaultVisible?: boolean; graphable?: boolean; debugOnly?: boolean },
 ): ColumnDef {
   const label = computeColumnLabel(metricType);
   const icon = getMetricIcon(metricType) ?? undefined;
   const graphable = opts?.graphable ?? isNumericMetricType(metricType);
-
   return {
     id: metricType,
     label,
@@ -148,6 +147,7 @@ function makeMetricColumn(
     },
     meta: {
       defaultVisible: opts?.defaultVisible ?? true,
+      debugOnly: opts?.debugOnly,
       tags: [metricType],
     },
   };
@@ -448,6 +448,8 @@ export const timeSpanColumn: ColumnDef = {
     tags: ['timing', 'compound'],
     defaultVisible: true,
     width: '100px',
+    // Hide duration and elapsedTotal when timeSpan (compound) is visible
+    subsumes: ['duration', 'elapsedTotal'],
   },
 };
 
@@ -565,7 +567,7 @@ export const elapsedTotalColumn: ColumnDef = {
   },
   meta: {
     tags: ['timing'],
-    defaultVisible: true,
+    defaultVisible: false,
   },
 };
 
@@ -594,11 +596,8 @@ export const completionReasonColumn: ColumnDef = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// Metric-Type Columns
-// ═══════════════════════════════════════════════════════════════
-
 export const effortColumn = makeMetricColumn(MetricType.Effort, { defaultVisible: false });
-export const durationColumn = makeMetricColumn(MetricType.Duration);
+export const durationColumn = makeMetricColumn(MetricType.Duration, { debugOnly: true });
 export const repColumn = makeMetricColumn(MetricType.Rep);
 export const roundsColumn = makeMetricColumn(MetricType.Rounds, { defaultVisible: false });
 export const distanceColumn = makeMetricColumn(MetricType.Distance);
@@ -840,9 +839,8 @@ export const CDL_PRESET_DEFAULT: ColumnSetPreset = {
   filters: DEFAULT_PRESET_FILTERS,
   visibleColumnIds: [
     '#',
-    'timeSpan',     // compound: timestamp + elapsed + duration
+    'timeSpan',     // compound: timestamp + elapsed + duration (hides duration, elapsedTotal)
     'descriptor',
-    'duration',
     'rep',
     'distance',
     'resistance',
@@ -855,7 +853,6 @@ export const CDL_PRESET_DEFAULT: ColumnSetPreset = {
     'intensity',
     'load',
     'work',
-    'elapsedTotal',
   ],
 };
 
