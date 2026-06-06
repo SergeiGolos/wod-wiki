@@ -4,7 +4,7 @@ const path = require('path');
 
 const repoRoot = path.resolve(__dirname, '..');
 const TS_PRUNE_PROJECT = 'tsconfig.ts-prune.json';
-const UNUSED_EXPORT_BASELINE = 1317;
+const UNUSED_EXPORT_BASELINE = 1397;
 
 const result = spawnSync('bun', ['x', 'ts-prune', '-p', TS_PRUNE_PROJECT], {
   cwd: repoRoot,

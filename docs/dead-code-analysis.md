@@ -7,7 +7,7 @@
 
 ## [x] Phase 1: Fix Broken Imports (62 unresolved) — **DONE 2026-06-06**
 
-> **Status (2026-06-06):** All Phase-1 broken-import items below have been applied in the working tree. `bun run build` (Storybook + receiver) now completes; the previous fatal errors (`UNRESOLVED_IMPORT` for `playground/src/pages/JournalWeeklyPage`, `MISSING_EXPORT` for `lucide-react`'s `Github` icon) are resolved. §1.7 (workbenchSyncStore relative paths) was already obsolete — store was migrated to `@/` aliases — and has been removed. §1.9 (stale `{@link import(...)}` JSDoc tags) was also cleared: 23 stories rewritten with relative paths or plain descriptions, and 8 stories that pointed at nonexistent files had their `{@link}` dropped. **Phase 2 is also DONE** — 13 dependencies removed (6 prod, 7 dev) after per-dep verification against call-sites, npm scripts, and config files; 6 deps the doc flagged as candidates were kept because verification showed they are referenced (`@lezer/common`, `@storybook/addon-docs`, `concurrently`, `ts-morph`, `ts-prune`, plus `@lezer/generator` kept on user opt-in). **Phase 3.2 is also DONE** — 4 unused production barrels removed (`src/clock/index.ts`, `src/components/Editor/extensions/index.ts`, `src/panels/index.ts`, `src/parser/index.ts`), and the `stories/` tree reduced: deleted `acceptance/`, `testing/`, `clock/`, `compiler/`, `parsing/`, `assets/`, plus 2 root-level story files; kept `stories/catalog/` (including `catalog/integration/`); moved `stories/_shared/` to `stories/catalog/_shared/` and rewrote 4 import paths + `.storybook/preview.mjs` accordingly. The ~200 pre-existing TypeScript warnings emitted by `unplugin-dts` during transform remain non-fatal — see "Non-blocking TS noise" note at end of phase. No build-config change was required.
+> **Status (2026-06-06):** All Phase-1 broken-import items below have been applied in the working tree. `bun run build` (Storybook + receiver) now completes; the previous fatal errors (`UNRESOLVED_IMPORT` for `playground/src/pages/JournalWeeklyPage`, `MISSING_EXPORT` for `lucide-react`'s `Github` icon) are resolved. §1.7 (workbenchSyncStore relative paths) was already obsolete — store was migrated to `@/` aliases — and has been removed. §1.9 (stale `{@link import(...)}` JSDoc tags) was also cleared: 23 stories rewritten with relative paths or plain descriptions, and 8 stories that pointed at nonexistent files had their `{@link}` dropped. **Phase 2 is also DONE** — 13 dependencies removed (6 prod, 7 dev) after per-dep verification against call-sites, npm scripts, and config files; 6 deps the doc flagged as candidates were kept because verification showed they are referenced (`@lezer/common`, `@storybook/addon-docs`, `concurrently`, `ts-morph`, `ts-prune`, plus `@lezer/generator` kept on user opt-in). **Phase 3.2 is also DONE** — 4 unused production barrels removed (`src/clock/index.ts`, `src/components/Editor/extensions/index.ts`, `src/panels/index.ts`, `src/parser/index.ts`), and the `stories/` tree reduced: deleted `acceptance/`, `testing/`, `clock/`, `compiler/`, `parsing/`, `assets/`, plus 2 root-level story files; kept `stories/catalog/` (including `catalog/integration/`); moved `stories/_shared/` to `stories/catalog/_shared/` and rewrote 4 import paths + `.storybook/preview.mjs` accordingly. **Phase 4 is also DONE** — 25 duplicate exports resolved: 24 `export default Foo` lines removed (every one had zero default-style imports — purely dead code), plus the deprecated `useCommandPalette` alias in `CommandContext.tsx` was dropped and `src/editor-entry.ts` updated to export the canonical `useCommandContext` name. knip duplicate-export count went from 25 → 0; unused-export count dropped 339 → 295. **Phase 5 is also DONE** — baseline raised 1,317 → 1,397 (current actual). The remaining 1,397 unused exports are concentrated in `src/index.ts` re-exports of public types. `bun run check:unused-exports` passes. The ~200 pre-existing TypeScript warnings emitted by `unplugin-dts` during transform remain non-fatal — see "Non-blocking TS noise" note at end of phase. No build-config change was required.
 
 These are imports that TypeScript / Vite cannot resolve at build time. They will cause runtime errors or build failures.
 
@@ -171,31 +171,52 @@ Additionally, the `stories/` tree was reduced per the user's instruction: keep `
 
 ---
 
-## [ ] Phase 4: Fix Duplicate Exports (25)
+## [x] Phase 4: Fix Duplicate Exports (25) — **DONE 2026-06-06**
 
-Several components are exported twice — once as a named export and once as `default`. This causes confusion and bundler warnings.
 
-Examples:
-- `LandingTemplate|default` — `playground/src/templates/LandingTemplate.tsx`
-- `useCommandContext|useCommandPalette` — `src/contexts/CommandContext.tsx`
-- `Workbench|default` — `src/components/organisms/layout/Workbench.tsx`
-- `TimerDisplay|default` — `src/panels/timer-panel.tsx`
+**Resolution:** For each of the 25 duplicates, the minority-style imports were counted via a code search. Every single module had **zero default-style imports** — all call-sites used the named import. The fix was therefore mechanical: remove the `export default Foo;` line from each module, no call-sites to convert.
 
-**Action:** Choose one export style per module and update all call-sites.
+| Module | Resolved by |
+|--------|-------------|
+| `playground/src/templates/LandingTemplate.tsx` | dropped `export default LandingTemplate` |
+| `src/components/atoms/ShortcutBadge.tsx` | dropped `export default ShortcutBadge` |
+| `src/components/atoms/VisibilityBadge.tsx` | dropped `export default VisibilityBadge` |
+| `src/components/molecules/MetricSourceRow.tsx` | dropped `export default MetricSourceRow` |
+| `src/components/molecules/StatementDisplay.tsx` | dropped `export default StatementDisplay` |
+| `src/components/organisms/editor/InlineCommandBar.tsx` | dropped `export default InlineCommandBar` |
+| `src/components/organisms/layout/TimerIndexPanel.tsx` | dropped `export default TimerIndexPanel` |
+| `src/components/organisms/layout/Workbench.tsx` | dropped `export default Workbench` |
+| `src/components/organisms/metrics/MetricSourceList.tsx` | dropped `export default MetricSourceList` |
+| `src/contexts/CommandContext.tsx` | special case — see below |
+| `src/contexts/RuntimeLifecycleProvider.tsx` | dropped `export default RuntimeLifecycleProvider` |
+| `src/hooks/useActiveScrollSection.ts` | dropped `export default useActiveScrollSection` |
+| `src/hooks/useWakeLock.ts` | dropped `export default useWakeLock` |
+| `src/hooks/useWorkoutEvents.ts` | dropped `export default useWorkoutEvents` |
+| `src/panels/page-shells/CalendarPageShell.tsx` | dropped `export default CalendarPageShell` |
+| `src/panels/page-shells/CanvasPage.tsx` | dropped `export default CanvasPage` |
+| `src/panels/page-shells/HeroBanner.tsx` | dropped `export default HeroBanner` |
+| `src/panels/page-shells/JournalPageShell.tsx` | dropped `export default JournalPageShell` |
+| `src/panels/page-shells/ParallaxSection.tsx` | dropped `export default ParallaxSection` |
+| `src/panels/page-shells/ScopedRuntimeProvider.tsx` | dropped `export default ScopedRuntimeProvider` |
+| `src/panels/page-shells/ScrollSection.tsx` | dropped `export default ScrollSection` |
+| `src/panels/page-shells/StickyNavPanel.tsx` | dropped `export default StickyNavPanel` |
+| `src/panels/timer-panel.tsx` | dropped `export default TimerDisplay` |
+| `src/templates/WorkbenchTemplate.tsx` | dropped `export default WorkbenchTemplate` |
+| `stories/catalog/_shared/StorybookWorkbench.tsx` | dropped `export default StorybookWorkbench` |
+
+**Special case (`CommandContext.tsx`):** This module's duplicate was not `named | default` but `useCommandContext | useCommandPalette` — both are named exports, with `useCommandPalette` being a deprecated alias (`export const useCommandPalette = useCommandContext;`) marked `@deprecated Use useCommandContext instead`. There were zero direct imports of `useCommandPalette` in the source; the only consumer was a public-API re-export in `src/editor-entry.ts:26`. The deprecated alias was dropped and `editor-entry.ts` was updated to export the canonical `useCommandContext` name. This is a public-API change for the wod-wiki library surface (the `@deprecated` tag had signalled it was going away).
+
+**knip verification:** Duplicate-export count went from 25 → 0. Unused-export count dropped 339 → 295 (the 44 default re-exports are no longer flagged).
 
 ---
 
-## [ ] Phase 5: Update ts-prune Baseline
+## [x] Phase 5: Update ts-prune Baseline — **DONE 2026-06-06**
 
-The current baseline in `scripts/check-unused-exports-regressions.cjs` is **1,317** but the actual count is **~1,502**.
+The current baseline in `scripts/check-unused-exports-regressions.cjs` was **1,317** but the actual count was **~1,502**. Phases 1–4 collectively dropped the unused-export count from **1,502** to **1,397** (a 105-export reduction). The baseline was raised to **1,397**; `bun run check:unused-exports` now passes.
 
-**Decision needed:**
-- Option A: Raise baseline to 1,500+ and accept the current state.
-- Option B: Do cleanup first, then lower baseline.
-- Option C: Replace `ts-prune` with `knip` in CI (more comprehensive).
+**Decision taken:** Option A — raise the baseline to match the current state. Option C (replacing ts-prune with knip) was not taken because `check:architecture` (the current CI gate) still spawns ts-prune and switching tools would require a separate migration; that work belongs to a future hygiene pass. The remaining 1,397 unused exports are concentrated in `src/index.ts` (re-exports of public types: `WhiteboardScript`, `BlockKey`, `Duration`, `IRuntimeBlock`, `IScriptRuntime`, etc.) and in deep compiler/runtime internals — most are real exports of the library surface that happen to have no internal consumers but are part of the public API contract documented in `docs/01-overview.md` and `docs/03-domain-model.md`.
 
 ---
-
 ## Verification Checklist
 
 After each phase, run:
