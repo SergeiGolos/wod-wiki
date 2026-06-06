@@ -7,7 +7,7 @@
 
 ## [x] Phase 1: Fix Broken Imports (62 unresolved) — **DONE 2026-06-06**
 
-> **Status (2026-06-06):** All Phase-1 broken-import items below have been applied in the working tree. `bun run build` (Storybook + receiver) now completes; the previous fatal errors (`UNRESOLVED_IMPORT` for `playground/src/pages/JournalWeeklyPage`, `MISSING_EXPORT` for `lucide-react`'s `Github` icon) are resolved. §1.7 (workbenchSyncStore relative paths) was already obsolete — store was migrated to `@/` aliases — and has been removed. §1.9 (stale `{@link import(...)}` JSDoc tags) was also cleared: 23 stories rewritten with relative paths or plain descriptions, and 8 stories that pointed at nonexistent files had their `{@link}` dropped. The ~200 pre-existing TypeScript warnings emitted by `unplugin-dts` during transform remain non-fatal — see "Non-blocking TS noise" note at end of phase. No build-config change was required.
+> **Status (2026-06-06):** All Phase-1 broken-import items below have been applied in the working tree. `bun run build` (Storybook + receiver) now completes; the previous fatal errors (`UNRESOLVED_IMPORT` for `playground/src/pages/JournalWeeklyPage`, `MISSING_EXPORT` for `lucide-react`'s `Github` icon) are resolved. §1.7 (workbenchSyncStore relative paths) was already obsolete — store was migrated to `@/` aliases — and has been removed. §1.9 (stale `{@link import(...)}` JSDoc tags) was also cleared: 23 stories rewritten with relative paths or plain descriptions, and 8 stories that pointed at nonexistent files had their `{@link}` dropped. **Phase 2 is also DONE** — 13 dependencies removed (6 prod, 7 dev) after per-dep verification against call-sites, npm scripts, and config files; 6 deps the doc flagged as candidates were kept because verification showed they are referenced (`@lezer/common`, `@storybook/addon-docs`, `concurrently`, `ts-morph`, `ts-prune`, plus `@lezer/generator` kept on user opt-in). The ~200 pre-existing TypeScript warnings emitted by `unplugin-dts` during transform remain non-fatal — see "Non-blocking TS noise" note at end of phase. No build-config change was required.
 
 These are imports that TypeScript / Vite cannot resolve at build time. They will cause runtime errors or build failures.
 
@@ -99,31 +99,42 @@ These appear in `{@link import(...)}` JSDoc tags inside story files. They do **n
 
 **Non-blocking TS noise (does not break the build):** With Storybook 10 + Vite 8 + `unplugin-dts`, the build transform emits ~200 TypeScript errors (TS6133 unused-locals, TS6192 unused-imports, TS6133 unused-parameters, a few `any`/implicit-`any` warnings in storybook template code, plus two `MISSING_EXPORT` patterns that surface as warnings when the actual fatal error is downstream). These are **reported but do not stop the build** — Vite proceeds to module-graph transform and only fails on a hard `UNRESOLVED_IMPORT`/`MISSING_EXPORT` on a module the bundler actually needs. They are pre-existing and out of scope for the "build not erroring" fix; they belong to a future hygiene pass and should be counted under the `noUnusedLocals` / `noUnusedParameters` cleanup in Phase 2, not as broken imports.
 
-## [ ] Phase 2: Remove Unused Dependencies
+## [x] Phase 2: Remove Unused Dependencies — **DONE 2026-06-06**
 
-### [ ] 2.1 Production Dependencies (7)
+### [x] 2.1 Production Dependencies (6 removed, 1 kept) — **DONE 2026-06-06**
 
-These are listed in `dependencies` but never imported by production code.
 
-- `@lezer/common` — only used in Vite `dedupe` config, not in source
-- `@types/jszip` — types-only; likely used by a transitive dep, not directly
-- `cmdk` — Command Palette primitive; knip says unused (verify before removing)
-- `lodash` — verify if any `_` imports remain after dead-code cleanup
-- `minimatch` — likely unused after refactor
-- `react-joyride` — tutorial/onboarding library; verify if `useTutorialStore` still uses it
-- `remark-frontmatter` — verify if markdown parser still uses it
+Verification was performed via `search` against `src/`, `playground/`, `stories/`, `tests/`, `scripts/`, `e2e/`, `server/`, `tools/`, plus config inspection (`.storybook/`, `playground/vite.config.ts`, `vite.receiver.config.ts`). Outcome:
 
-### [ ] 2.2 Dev Dependencies (12)
+| Dep | Doc claim | Verified status | Action |
+|-----|-----------|-----------------|--------|
+| `@lezer/common` | "only used in Vite `dedupe` config" | **IN_USE** — explicitly listed in `resolve.dedupe` of `vite.config.ts:22`, `playground/vite.config.ts:27`, `vitest.storybook.config.js:15`, and in `.storybook/main.mjs:20,107` | Kept |
+| `@types/jszip` | "types-only" | **SAFE** — `jszip@3.10.1` ships its own `index.d.ts`; no source imports `@types/jszip` | Removed |
+| `cmdk` | "Command Palette primitive" | **SAFE** — no source imports; only an `optimizeDeps.include` hint in `.storybook/main.mjs:104` (also removed). MDX docs mention it as text only. | Removed |
+| `lodash` | "verify if any `_` imports remain" | **SAFE** — no imports found | Removed |
+| `minimatch` | "likely unused after refactor" | **SAFE** — no direct imports; only transitive | Removed |
+| `react-joyride` | "verify if `useTutorialStore` uses it" | **SAFE** — `useTutorialStore` is a plain zustand store; no UI coupling to joyride | Removed |
+| `remark-frontmatter` | "verify if markdown parser uses it" | **SAFE** — no imports; pipeline uses `remark-gfm` (in `.storybook/main.mjs:5`) | Removed |
 
-- `@lezer/generator` — grammar build tool; verify if still in build pipeline
-- `@storybook/addon-docs` — already in `addons` config; may be redundant
-- `@types/cors`, `@types/express`, `cors`, `express` — server deps; verify if `server/src/index.ts` is still needed
-- `@types/uuid` — verify if `uuid` is still used
-- `concurrently` — verify if any npm scripts use it
-- `dotenv-cli` — verify if build scripts use it
-- `eslint-plugin-storybook` — verify ESLint config
-- `ts-morph` — AST refactor tool; verify if scripts still use it
-- `ts-prune` — can be removed after switching to `knip`
+### [x] 2.2 Dev Dependencies (7 removed, 5 kept) — **DONE 2026-06-06**
+
+
+| Dep | Doc claim | Verified status | Action |
+|-----|-----------|-----------------|--------|
+| `@lezer/generator` | "grammar build tool" | **KEPT** — generated parser (`src/grammar/parser.ts`, `parser.terms.ts`) is committed; the dep is only needed if someone regenerates from `.grammar`. Low-risk to remove, kept per the option-0 "fully safe only" rule. | Kept (user opt-in) |
+| `@storybook/addon-docs` | "may be redundant" | **IN_USE** — explicitly registered in `.storybook/main.mjs:38` with `mdxPluginOptions`; 71 MDX stories import `{ Meta }` from `@storybook/addon-docs/blocks` | Kept |
+| `@types/cors` | "verify server still needs" | **SAFE** — `server/src/index.ts` uses `https.createServer` + `ws`, not `cors` | Removed |
+| `@types/express` | "verify server still needs" | **SAFE** — same; no express code anywhere | Removed |
+| `@types/uuid` | "verify if `uuid` is still used" | **SAFE** — `uuid@14.0.0` ships its own `.d.ts`; 27 source files import `uuid` but none import `@types/uuid` | Removed |
+| `cors` | "verify server still needs" | **SAFE** — no imports; server has no CORS middleware | Removed |
+| `express` | "verify server still needs" | **SAFE** — no imports; server is plain `https` + `ws` | Removed |
+| `concurrently` | "verify if any npm scripts use it" | **IN_USE** — `scripts/dev-start.cjs:233-276` builds a `concurrently` command array; `dev` and `dev:all` scripts invoke it | Kept |
+| `dotenv-cli` | "verify if build scripts use it" | **SAFE** — all `dotenv` usage is programmatic (require/import); the CLI wrapper is never invoked | Removed |
+| `eslint-plugin-storybook` | "verify ESLint config" | **SAFE** — `.eslintrc.json` does not reference it; only `check-storybook-deps.cjs:23` mentions the name (as a classification) | Removed |
+| `ts-morph` | "AST refactor tool" | **IN_USE** — `scripts/ast-refactor.ts:1` imports `ts-morph` | Kept |
+| `ts-prune` | "can be removed after switching to knip" | **IN_USE** — `scripts/check-unused-exports-regressions.cjs:9` spawns it; the `check:unused-exports` and `check:architecture` npm scripts depend on it. The doc's "switch to knip" precondition has not been met. | Kept |
+
+
 
 ---
 
