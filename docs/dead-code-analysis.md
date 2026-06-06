@@ -7,7 +7,7 @@
 
 ## [x] Phase 1: Fix Broken Imports (62 unresolved) — **DONE 2026-06-06**
 
-> **Status (2026-06-06):** All Phase-1 broken-import items below have been applied in the working tree. `bun run build` (Storybook + receiver) now completes; the previous fatal errors (`UNRESOLVED_IMPORT` for `playground/src/pages/JournalWeeklyPage`, `MISSING_EXPORT` for `lucide-react`'s `Github` icon) are resolved. §1.7 (workbenchSyncStore relative paths) was already obsolete — store was migrated to `@/` aliases — and has been removed. §1.9 (stale `{@link import(...)}` JSDoc tags) was also cleared: 23 stories rewritten with relative paths or plain descriptions, and 8 stories that pointed at nonexistent files had their `{@link}` dropped. **Phase 2 is also DONE** — 13 dependencies removed (6 prod, 7 dev) after per-dep verification against call-sites, npm scripts, and config files; 6 deps the doc flagged as candidates were kept because verification showed they are referenced (`@lezer/common`, `@storybook/addon-docs`, `concurrently`, `ts-morph`, `ts-prune`, plus `@lezer/generator` kept on user opt-in). The ~200 pre-existing TypeScript warnings emitted by `unplugin-dts` during transform remain non-fatal — see "Non-blocking TS noise" note at end of phase. No build-config change was required.
+> **Status (2026-06-06):** All Phase-1 broken-import items below have been applied in the working tree. `bun run build` (Storybook + receiver) now completes; the previous fatal errors (`UNRESOLVED_IMPORT` for `playground/src/pages/JournalWeeklyPage`, `MISSING_EXPORT` for `lucide-react`'s `Github` icon) are resolved. §1.7 (workbenchSyncStore relative paths) was already obsolete — store was migrated to `@/` aliases — and has been removed. §1.9 (stale `{@link import(...)}` JSDoc tags) was also cleared: 23 stories rewritten with relative paths or plain descriptions, and 8 stories that pointed at nonexistent files had their `{@link}` dropped. **Phase 2 is also DONE** — 13 dependencies removed (6 prod, 7 dev) after per-dep verification against call-sites, npm scripts, and config files; 6 deps the doc flagged as candidates were kept because verification showed they are referenced (`@lezer/common`, `@storybook/addon-docs`, `concurrently`, `ts-morph`, `ts-prune`, plus `@lezer/generator` kept on user opt-in). **Phase 3.2 is also DONE** — 4 unused production barrels removed (`src/clock/index.ts`, `src/components/Editor/extensions/index.ts`, `src/panels/index.ts`, `src/parser/index.ts`), and the `stories/` tree reduced: deleted `acceptance/`, `testing/`, `clock/`, `compiler/`, `parsing/`, `assets/`, plus 2 root-level story files; kept `stories/catalog/` (including `catalog/integration/`); moved `stories/_shared/` to `stories/catalog/_shared/` and rewrote 4 import paths + `.storybook/preview.mjs` accordingly. The ~200 pre-existing TypeScript warnings emitted by `unplugin-dts` during transform remain non-fatal — see "Non-blocking TS noise" note at end of phase. No build-config change was required.
 
 These are imports that TypeScript / Vite cannot resolve at build time. They will cause runtime errors or build failures.
 
@@ -155,16 +155,19 @@ High-value clusters to review first:
 | `src/timeline/` | `GitTreeSidebar.ts`, `TimelineView.tsx` | Verify unused, then delete |
 | `src/tools/` | `ExerciseNameIndexer.ts`, `ExercisePathIndexer.ts` | Verify unused, then delete |
 
-### [ ] 3.2 Potentially Used by Storybook / Tests Only
+### [x] 3.2 Potentially Used by Storybook / Tests Only — **DONE 2026-06-06**
 
-These files are not imported by production code but may be needed for stories or tests.
 
-| File | Usage |
-|------|-------|
-| `src/clock/index.ts` | Barrel for clock components; may be used by stories |
-| `src/components/Editor/extensions/index.ts` | Large barrel file; may be used by entry points |
-| `src/panels/index.ts` | Barrel for panels; verify if playground still imports it |
-| `src/parser/index.ts` | Barrel for parser; verify if still needed |
+Verification: each candidate was grep'd against `src/`, `playground/`, `e2e/`, `server/`, `scripts/`, `tests/`, and `stories/` for any importer. None of the four barrels had a single call-site outside stories (the only `@/clock` reference was a JSDoc example inside `src/clock/index.ts` itself). Result:
+
+| File | Status | Action |
+|------|--------|--------|
+| `src/clock/index.ts` | **SAFE** — zero importers | Removed |
+| `src/components/Editor/extensions/index.ts` | **SAFE** — zero importers; individual extensions (e.g. `wod-overlay`, `section-state`) are imported directly throughout `src/`, so the barrel re-exports were dead weight | Removed |
+| `src/panels/index.ts` | **SAFE** — zero importers | Removed |
+| `src/parser/index.ts` | **SAFE** — zero importers | Removed |
+
+Additionally, the `stories/` tree was reduced per the user's instruction: keep `stories/catalog/` (including `catalog/integration/`) and remove the rest. Deleted entire directories `stories/acceptance/`, `stories/testing/`, `stories/clock/`, `stories/compiler/`, `stories/parsing/`, `stories/assets/`, and the root-level `stories/data-for-storybook.md` and `stories/declarations.d.ts`. The shared helper modules under `stories/_shared/` were **moved** (not deleted) into `stories/catalog/_shared/` because the catalog stories still import `StorybookWorkbench`, `EditorShellHeader`, `fixtures`, etc. Import paths in 4 catalog stories (`CalendarSplitButton`, `Collections`, `NoteEditor/Mobile`, `NoteEditor/Web`) and in `.storybook/preview.mjs` were updated to the new location. A stale `Data: See {@link ../../data-for-storybook.md}` JSDoc line was removed from 33 catalog stories. The `stories/**/*.ts/tsx` entries in `tsconfig.json`'s `include` were also dropped (deleted files no longer need to be tracked).
 
 ---
 
