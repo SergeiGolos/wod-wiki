@@ -2,7 +2,6 @@
  * Catalog / Templates / Review / Web
  *
  * Renders: ReviewGrid at web dimensions — no dedicated web panel exists yet
- * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:
  *  1. EmptyReview — review panel with no segments yet

@@ -2,7 +2,6 @@
  * Catalog / Templates / LandingTemplate
  *
  * Renders: {@link import('../../../playground/src/templates/LandingTemplate').LandingTemplate}
- * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:
  *  1. Default — landing template with hero and content

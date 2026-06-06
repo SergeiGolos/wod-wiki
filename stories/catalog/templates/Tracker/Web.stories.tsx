@@ -2,7 +2,6 @@
  * Catalog / Templates / Tracker / Web
  *
  * Renders: Timer + VisualStatePanel at web dimensions — no dedicated web panel exists yet
- * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:
  *  1. NoBlock — displays the "select a workout" placeholder

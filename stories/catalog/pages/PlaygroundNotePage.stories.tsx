@@ -2,7 +2,6 @@
  * Catalog / Pages / PlaygroundNotePage
  *
  * Renders: {@link import('../../../playground/src/pages/PlaygroundNotePage').PlaygroundNotePage}
- * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:
  *  1. Default — default story showing a playground note

@@ -2,7 +2,6 @@
  * Catalog / Molecules / ButtonGroup
  *
  * Renders: {@link import('../../../src/components/molecules/ButtonGroup').ButtonGroup}
- * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:
  *  1. Default — basic two-sided pill button with primary and secondary actions

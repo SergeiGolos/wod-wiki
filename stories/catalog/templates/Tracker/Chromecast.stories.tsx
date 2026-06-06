@@ -2,7 +2,6 @@
  * Catalog / Templates / Tracker / Chromecast
  *
  * Renders: {@link import('../../../src/panels/track-panel-chromecast').ReceiverStackPanel}
- * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:
  *  1. Idle — receiver booted but no Cast session yet

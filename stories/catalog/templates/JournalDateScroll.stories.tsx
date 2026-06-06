@@ -2,7 +2,6 @@
  * Catalog / Templates / JournalDateScroll
  *
  * Renders: {@link import('../../../playground/src/views/queriable-list/JournalDateScroll').JournalDateScroll}
- * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:
  *  1. Empty — empty state with no items

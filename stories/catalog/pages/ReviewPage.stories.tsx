@@ -2,7 +2,6 @@
  * Catalog / Pages / ReviewPage
  *
  * Renders: {@link import('../../../playground/src/pages/ReviewPage').ReviewPage}
- * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:
  *  1. Loading — loading state (IndexedDB lookup in-flight)

@@ -2,7 +2,6 @@
  * Catalog / Templates / Review / Mobile
  *
  * Renders: ReviewGrid at mobile dimensions (375px) — no dedicated mobile panel exists yet
- * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:
  *  1. EmptyReview — review panel with no segments yet

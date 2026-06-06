@@ -2,7 +2,6 @@
  * Catalog / Organisms / RuntimeTimerPanel
  *
  * Renders: {@link import('../../../src/components/organisms/editor/RuntimeTimerPanel').RuntimeTimerPanel}
- * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:
  *  1. SimpleTimer — single countdown timer "10:00 Run"

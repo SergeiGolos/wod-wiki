@@ -2,7 +2,6 @@
  * Catalog / Templates / NoteEditor / Web
  *
  * Renders: NoteEditor at web dimensions via StorybookWorkbench
- * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:
  *  1. Default — default web note editor
@@ -18,7 +17,7 @@
 
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { StorybookWorkbench } from '../../../_shared/StorybookWorkbench';
+import { StorybookWorkbench } from '../../_shared/StorybookWorkbench';
 
 const meta: Meta = {
   title: 'catalog/templates/NoteEditor/Web',

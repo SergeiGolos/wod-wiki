@@ -2,7 +2,6 @@
  * Catalog / Organisms / FullscreenTimer
  *
  * Renders: {@link import('../../../src/components/molecules/FocusedDialog').FocusedDialog}
- * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:
  *  1. SimpleTimer — single countdown timer "10:00 Run" (idle/ready to start)

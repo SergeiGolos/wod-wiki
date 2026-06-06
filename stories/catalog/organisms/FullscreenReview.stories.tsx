@@ -2,7 +2,6 @@
  * Catalog / Organisms / FullscreenReview
  *
  * Renders: {@link import('../../../src/components/molecules/FocusedDialog').FocusedDialog}
- * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:
  *  1. EmptyState — overlay opened before any workout data exists

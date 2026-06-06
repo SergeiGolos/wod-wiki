@@ -2,7 +2,6 @@
  * Catalog / Templates / ReviewGrid
  *
  * Renders: {@link import('../../../src/components/organisms/review/ReviewGrid').ReviewGrid}
- * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:
  *  1. EmptyState — empty state with no segments yet

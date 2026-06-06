@@ -2,7 +2,6 @@
  * Catalog / Templates / Tracker / Mobile
  *
  * Renders: Timer + VisualStatePanel at mobile dimensions — no dedicated mobile panel exists yet
- * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:
  *  1. NoBlock — displays the "select a workout" placeholder
