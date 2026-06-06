@@ -5,13 +5,13 @@
 
 ---
 
-## Phase 1: Fix Broken Imports (62 unresolved) — **DONE 2026-06-06**
+## [x] Phase 1: Fix Broken Imports (62 unresolved) — **DONE 2026-06-06**
 
-> **Status (2026-06-06):** All Phase-1 broken-import items below have been applied in the working tree. `bun run build` (Storybook + receiver) now completes; the previous fatal errors (`UNRESOLVED_IMPORT` for `playground/src/pages/JournalWeeklyPage`, `MISSING_EXPORT` for `lucide-react`'s `Github` icon) are resolved. The ~200 pre-existing TypeScript warnings emitted by `unplugin-dts` during transform remain non-fatal — see "Non-blocking TS noise" note at end of phase. No build-config change was required.
+> **Status (2026-06-06):** All Phase-1 broken-import items below have been applied in the working tree. `bun run build` (Storybook + receiver) now completes; the previous fatal errors (`UNRESOLVED_IMPORT` for `playground/src/pages/JournalWeeklyPage`, `MISSING_EXPORT` for `lucide-react`'s `Github` icon) are resolved. §1.7 (workbenchSyncStore relative paths) was already obsolete — store was migrated to `@/` aliases — and has been removed. §1.9 (stale `{@link import(...)}` JSDoc tags) was also cleared: 23 stories rewritten with relative paths or plain descriptions, and 8 stories that pointed at nonexistent files had their `{@link}` dropped. The ~200 pre-existing TypeScript warnings emitted by `unplugin-dts` during transform remain non-fatal — see "Non-blocking TS noise" note at end of phase. No build-config change was required.
 
 These are imports that TypeScript / Vite cannot resolve at build time. They will cause runtime errors or build failures.
 
-### 1.1 Moved Context Files
+### [x] 1.1 Moved Context Files
 
 The `NotebookContext` and `ThemeProvider` contexts were moved to `src/contexts/` but several call-sites still reference old paths.
 
@@ -23,7 +23,7 @@ The `NotebookContext` and `ThemeProvider` contexts were moved to `src/contexts/`
 | `src/components/organisms/workbench/NoteDetailsPanel.tsx:13` | `@/components/organisms/notebook/NotebookContext` | `@/contexts/NotebookContext` |
 | `src/components/organisms/CommitGraph.tsx:2` | `../theme/ThemeProvider` | `@/contexts/ThemeProvider` |
 
-### 1.2 Editor Overlay / Extension Imports
+### [x] 1.2 Editor Overlay / Extension Imports
 
 Several editor organism components reference `./WodCommand` and `./useOverlayWidthState` as if they were co-located, but they actually live under `src/components/Editor/overlays/`.
 
@@ -35,7 +35,7 @@ Several editor organism components reference `./WodCommand` and `./useOverlayWid
 | `src/components/organisms/editor/WodCompanion.tsx:25` | `./WodCommand` | `@/components/Editor/overlays/WodCommand` |
 | `src/components/organisms/editor/WodCompanion.tsx:331` | `import('../extensions/section-geometry')` | `import('@/components/Editor/extensions/section-geometry')` |
 
-### 1.3 Missing Barrel / Index File
+### [x] 1.3 Missing Barrel / Index File
 
 `src/components/organisms/review/` has no `index.ts`; the barrel is `review-grid-index.ts`.
 
@@ -43,7 +43,7 @@ Several editor organism components reference `./WodCommand` and `./useOverlayWid
 |------|---------------|----------------|
 | `src/components/organisms/layout/Workbench.tsx:54` | `@/components/organisms/review` | `@/components/organisms/review/review-grid-index` |
 
-### 1.4 Deleted / Renamed Model File
+### [x] 1.4 Deleted / Renamed Model File
 
 `IMetric` was folded into `src/core/models/Metric.ts`.
 
@@ -51,7 +51,7 @@ Several editor organism components reference `./WodCommand` and `./useOverlayWid
 |------|---------------|----------------|
 | `src/components/molecules/StatementDisplay.test.tsx:5` | `@/core/models/IMetric` | `@/core/models/Metric` |
 
-### 1.5 CDL Interpreter Relative Path Errors
+### [x] 1.5 CDL Interpreter Relative Path Errors
 
 The interpreter modules (`cdlCellRenderer`, `cdlFallbackInterpreter`, `cdlFilterInterpreter`, `cdlGraphInterpreter`, `cdlSortInterpreter`, `cdlSourceResolver`) and their tests reference `./types` and `./column-definition-language` as if they were in the same folder, but those files live one directory up in `src/components/organisms/review/`.
 
@@ -63,7 +63,7 @@ The interpreter modules (`cdlCellRenderer`, `cdlFallbackInterpreter`, `cdlFilter
 | `interpreters/__tests__/test-helpers.ts:5` | `../types` | `../../types` |
 | `interpreters/__tests__/derivedColumns.test.ts:26` | `../types` | `../../types` |
 
-### 1.6 Missing / Renamed Runtime Types
+### [x] 1.6 Missing / Renamed Runtime Types
 
 | File | Broken Import | Fix |
 |------|---------------|-----|
@@ -72,34 +72,36 @@ The interpreter modules (`cdlCellRenderer`, `cdlFallbackInterpreter`, `cdlFilter
 | `src/runtime/hooks/__tests__/useBlockMemory.test.ts:19` | `../../memory/IMemoryEntry` | Import `MemoryEntry` from `../../types/executionSnapshot` |
 | `tests/harness/__tests__/RuntimeTestBuilder.test.ts:5` | `@/runtime/BlockBuilder` | `@/runtime/compiler/BlockBuilder` |
 
-### 1.7 Stores with Wrong Relative Paths — **Superseded**
-
-`src/stores/workbenchSyncStore.ts` has been migrated to the `@/...` alias scheme, so the relative paths called out here no longer apply. Confirmed in current source: `useWorkbenchSyncStore` consumers (`CastButton`, `useUserOverrides`, `WorkbenchContext`, `timer-panel`, etc.) all import via `@/stores/workbenchSyncStore`. Remove this subsection once Phase 1 is closed out in CI.
-
-### 1.8 Missing Playground Page
-
 | File | Broken Import | Status |
 |------|---------------|--------|
 | `stories/catalog/integration/PlaygroundJournal.stories.tsx:18` | `../../../playground/src/pages/JournalWeeklyPage` | **Resolved 2026-06-06** — renamed target to `../../../playground/src/views/ListViews` (matches the sibling `stories/catalog/pages/JournalWeeklyPage.stories.tsx` and the actual `App.tsx` consumer). |
 
-### 1.9 JSDoc-Only Unresolved Imports (Documentation Links)
+### [x] 1.9 JSDoc-Only Unresolved Imports (Documentation Links)
 
 These appear in `{@link import(...)}` JSDoc tags inside story files. They do **not** affect compilation but indicate stale documentation.
 
-| File | Broken JSDoc Link | Likely Correct |
-|------|-------------------|----------------|
-| `stories/catalog/pages/*.stories.tsx` | `@/playground/src/...` | `../../../playground/src/...` (match actual code import) |
-| `stories/catalog/templates/NoteEditor/*.stories.tsx` | `@/panels/note-editor-mobile` | `src/panels/...` or remove JSDoc link |
-| `stories/catalog/templates/Review/*.stories.tsx` | `@/panels/review-panel-mobile` | `src/panels/review-panel-chromecast.tsx` etc. |
-| `stories/catalog/templates/Tracker/*.stories.tsx` | `@/panels/stack-panel-mobile` | `src/panels/track-panel.tsx` etc. |
+| File | Broken JSDoc Link | Resolution |
+|------|-------------------|------------|
+| `stories/catalog/pages/{Collections,HomeView,JournalPage,PlaygroundNotePage,ReviewPage,TrackerPage,WorkoutEditorPage,EffortDetailPage,EffortsCatalogPage}.stories.tsx` | `@/playground/src/...` | Replaced with `../../../playground/src/...` to match the actual import below. |
+| `stories/catalog/pages/Planner.stories.tsx` | `@/components/organisms/editor/NoteEditor` | Replaced with `../../../src/components/organisms/editor/NoteEditor`. |
+| `stories/catalog/templates/{CollectionWorkoutsList,JournalDateScroll,LandingTemplate}.stories.tsx` | `@/playground/src/...` | Replaced with `../../../playground/src/...`. |
+| `stories/catalog/templates/{CanvasPage,ReviewGrid,SidebarLayout}.stories.tsx` | `@/components/...`, `@/panels/...`, `@/templates/...` | Replaced with `../../../src/...`. |
+| `stories/catalog/templates/Review/Chromecast.stories.tsx` | `@/panels/review-panel-chromecast` | Replaced with `../../../src/panels/review-panel-chromecast` (file exists). |
+| `stories/catalog/templates/Tracker/Chromecast.stories.tsx` | `@/panels/stack-panel-chromecast` | Replaced with `../../../src/panels/track-panel-chromecast` (file is `track-` not `stack-`). |
+| `stories/catalog/templates/NoteEditor/{Mobile,Web}.stories.tsx` | `@/panels/note-editor-mobile`, `@/panels/note-editor-web` | Target files do not exist. JSDoc replaced with a plain description of what the story actually renders (`StorybookWorkbench`). |
+| `stories/catalog/templates/Review/{Mobile,Web}.stories.tsx` | `@/panels/review-panel-{mobile,web}` | Target files do not exist. JSDoc replaced with a plain description (`ReviewGrid` at the given dimensions). |
+| `stories/catalog/templates/Tracker/{Mobile,Web}.stories.tsx` | `@/panels/stack-panel-{mobile,web}` | Target files do not exist. JSDoc replaced with a plain description (`Timer + VisualStatePanel` at the given dimensions). |
+| `stories/catalog/molecules/{ButtonGroup,ButtonLink,CalendarSplitButton,NavSearchInput,ResultListItem}.stories.tsx` | `@/components/molecules/...` | Replaced with `../../../src/components/molecules/...`. |
+| `stories/catalog/organisms/{FullscreenReview,FullscreenTimer}.stories.tsx` | `@/components/molecules/FocusedDialog` | Replaced with `../../../src/components/molecules/FocusedDialog`. |
+| `stories/catalog/organisms/RuntimeTimerPanel.stories.tsx` | `@/components/organisms/editor/RuntimeTimerPanel` | Replaced with `../../../src/components/organisms/editor/RuntimeTimerPanel`. |
 
 ---
 
 **Non-blocking TS noise (does not break the build):** With Storybook 10 + Vite 8 + `unplugin-dts`, the build transform emits ~200 TypeScript errors (TS6133 unused-locals, TS6192 unused-imports, TS6133 unused-parameters, a few `any`/implicit-`any` warnings in storybook template code, plus two `MISSING_EXPORT` patterns that surface as warnings when the actual fatal error is downstream). These are **reported but do not stop the build** — Vite proceeds to module-graph transform and only fails on a hard `UNRESOLVED_IMPORT`/`MISSING_EXPORT` on a module the bundler actually needs. They are pre-existing and out of scope for the "build not erroring" fix; they belong to a future hygiene pass and should be counted under the `noUnusedLocals` / `noUnusedParameters` cleanup in Phase 2, not as broken imports.
 
-## Phase 2: Remove Unused Dependencies
+## [ ] Phase 2: Remove Unused Dependencies
 
-### 2.1 Production Dependencies (7)
+### [ ] 2.1 Production Dependencies (7)
 
 These are listed in `dependencies` but never imported by production code.
 
@@ -111,7 +113,7 @@ These are listed in `dependencies` but never imported by production code.
 - `react-joyride` — tutorial/onboarding library; verify if `useTutorialStore` still uses it
 - `remark-frontmatter` — verify if markdown parser still uses it
 
-### 2.2 Dev Dependencies (12)
+### [ ] 2.2 Dev Dependencies (12)
 
 - `@lezer/generator` — grammar build tool; verify if still in build pipeline
 - `@storybook/addon-docs` — already in `addons` config; may be redundant
@@ -125,11 +127,11 @@ These are listed in `dependencies` but never imported by production code.
 
 ---
 
-## Phase 3: Remove / Audit Unused Files (185)
+## [ ] Phase 3: Remove / Audit Unused Files (185)
 
 High-value clusters to review first:
 
-### 3.1 Likely Real Dead Code
+### [ ] 3.1 Likely Real Dead Code
 
 | Directory | Files | Action |
 |-----------|-------|--------|
@@ -142,7 +144,7 @@ High-value clusters to review first:
 | `src/timeline/` | `GitTreeSidebar.ts`, `TimelineView.tsx` | Verify unused, then delete |
 | `src/tools/` | `ExerciseNameIndexer.ts`, `ExercisePathIndexer.ts` | Verify unused, then delete |
 
-### 3.2 Potentially Used by Storybook / Tests Only
+### [ ] 3.2 Potentially Used by Storybook / Tests Only
 
 These files are not imported by production code but may be needed for stories or tests.
 
@@ -155,7 +157,7 @@ These files are not imported by production code but may be needed for stories or
 
 ---
 
-## Phase 4: Fix Duplicate Exports (25)
+## [ ] Phase 4: Fix Duplicate Exports (25)
 
 Several components are exported twice — once as a named export and once as `default`. This causes confusion and bundler warnings.
 
@@ -169,7 +171,7 @@ Examples:
 
 ---
 
-## Phase 5: Update ts-prune Baseline
+## [ ] Phase 5: Update ts-prune Baseline
 
 The current baseline in `scripts/check-unused-exports-regressions.cjs` is **1,317** but the actual count is **~1,502**.
 
