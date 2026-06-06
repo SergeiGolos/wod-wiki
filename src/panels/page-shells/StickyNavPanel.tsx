@@ -76,4 +76,3 @@ export function StickyNavPanel({
   );
 }
 
-export default StickyNavPanel;

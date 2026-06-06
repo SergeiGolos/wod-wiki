@@ -303,4 +303,3 @@ export const MetricSourceRow: React.FC<MetricSourceRowProps> = ({
     );
 };
 
-export default MetricSourceRow;

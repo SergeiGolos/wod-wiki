@@ -254,4 +254,3 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
   );
 };
 
-export default InlineCommandBar;

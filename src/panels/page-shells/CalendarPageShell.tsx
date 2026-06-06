@@ -116,4 +116,3 @@ export function CalendarPageShell({
   );
 }
 
-export default CalendarPageShell;

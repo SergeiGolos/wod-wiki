@@ -246,4 +246,3 @@ export const MetricSourceList: React.FC<MetricSourceListProps> = ({
     );
 };
 
-export default MetricSourceList;

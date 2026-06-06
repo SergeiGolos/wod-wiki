@@ -237,4 +237,3 @@ export const MetricList: React.FC<MetricListProps> = ({
   );
 };
 
-export default StatementDisplay;

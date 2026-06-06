@@ -55,4 +55,3 @@ export const StorybookWorkbench: React.FC<StorybookWorkbenchProps> = ({
   );
 };
 
-export default StorybookWorkbench;

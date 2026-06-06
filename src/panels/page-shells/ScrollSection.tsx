@@ -49,4 +49,3 @@ export function ScrollSection({
   );
 }
 
-export default ScrollSection;

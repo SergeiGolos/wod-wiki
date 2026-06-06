@@ -494,7 +494,6 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
   );
 };
 
-export default Workbench;
 
 // ─── Helper: Extract projections from analytics segments ───────
 

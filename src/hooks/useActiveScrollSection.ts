@@ -178,4 +178,3 @@ export function useActiveScrollSection({
   }, [enabled, normalizedIds, normalizedThreshold, rootMargin, scrollDirection, dataAttribute, debounceMs, flushDebounce]);
 }
 
-export default useActiveScrollSection;

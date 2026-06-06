@@ -206,4 +206,3 @@ export function useWakeLock(options: UseWakeLockOptions = {}): UseWakeLockResult
   };
 }
 
-export default useWakeLock;
