@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sun, Moon, Volume2, VolumeX, Bug, Github, Settings, Download, Upload, ExternalLink } from 'lucide-react';
+import { Sun, Moon, Volume2, VolumeX, Bug, GitFork, Settings, Download, Upload, ExternalLink } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { useAudio } from '@/contexts/AudioContext';
 import { useDebugMode } from '@/contexts/DebugModeContext';
@@ -145,7 +145,7 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({ provider
           rel="noopener noreferrer"
           className="flex items-center gap-3 w-full px-2 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-left"
         >
-          <Github className="w-4 h-4 shrink-0" />
+          <GitFork className="w-4 h-4 shrink-0" />
           <span className="flex-1">GitHub</span>
           <ExternalLink className="w-3 h-3 shrink-0 opacity-50" />
         </a>
