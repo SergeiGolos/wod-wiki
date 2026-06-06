@@ -16,7 +16,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
 } from '@/components/atoms/primitives/dropdown-menu';
-import { useNotebooks } from './NotebookContext';
+import { useNotebooks } from '@/contexts/NotebookContext';
 
 interface AddToNotebookButtonProps {
     /** Current tags on the entry (to show which notebooks it belongs to) */

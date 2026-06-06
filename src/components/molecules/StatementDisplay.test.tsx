@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'bun:test';
 import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import { StatementDisplay, BlockDisplay, MetricList } from './StatementDisplay';
 import type { ICodeStatement } from '@/core/models/CodeStatement';
-import type { IMetric } from '@/core/models/IMetric';
+import type { IMetric } from '@/core/models/Metric';
 import { MetricContainer } from '@/core/models/MetricContainer';
 
 describe('StatementDisplay', () => {

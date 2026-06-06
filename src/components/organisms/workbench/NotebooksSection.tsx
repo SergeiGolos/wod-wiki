@@ -2,7 +2,7 @@ import React from 'react';
 import { BookOpen, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toShortId } from '@/lib/idUtils';
-import { useNotebooks } from '@/components/organisms/notebook/NotebookContext';
+import { useNotebooks } from '@/contexts/NotebookContext';
 import { AddToNotebookButton } from '@/components/molecules/AddToNotebookButton';
 
 interface NotebooksSectionProps {

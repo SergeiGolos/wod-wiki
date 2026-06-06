@@ -19,7 +19,7 @@ import React, { useEffect, useRef, useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import type { SectionRect } from '@/components/Editor/extensions/section-geometry';
 import { sectionGeometry } from '@/components/Editor/extensions/section-geometry';
-import type { SectionOverlayState } from "./useOverlayWidthState";
+import type { SectionOverlayState } from "@/components/Editor/overlays/useOverlayWidthState";
 import type { EditorSectionType } from '@/components/Editor/extensions/section-state';
 
 // ── Non-wod slot heights (px) ────────────────────────────────────────

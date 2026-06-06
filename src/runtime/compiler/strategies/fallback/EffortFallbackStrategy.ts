@@ -1,5 +1,5 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
-import type { IRuntimeBlockBuilder } from "../../../contracts/core/IRuntimeBlockBuilder";
+import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { MetricType } from "@/core/models/Metric";
@@ -39,7 +39,7 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         return !hasTimer && !hasRounds && !hasChildren;
     }
 
-    apply(builder: IRuntimeBlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         const label = LabelComposer.build(statements, { defaultLabel: 'Effort' });
 
         // Create block context

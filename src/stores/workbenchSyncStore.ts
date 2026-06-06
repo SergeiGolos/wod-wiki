@@ -25,10 +25,10 @@
 
 import { create } from 'zustand';
 import type { IScriptRuntime, UseRuntimeExecutionReturn } from '@/hooks/useRuntimeTimer';
-import type { WodBlock } from '../Editor/types';
-import type { DocumentItem } from '../Editor/utils/documentStructure';
-import type { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
-import type { IMetric } from '../../core/models/Metric';
+import type { WodBlock } from '@/components/Editor/types';
+import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
+import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
+import type { IMetric } from '@/core/models/Metric';
 import { MetricContainer } from '@/core/models/MetricContainer';
 import type { IRpcTransport } from '@/hooks/useCastSignaling';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';

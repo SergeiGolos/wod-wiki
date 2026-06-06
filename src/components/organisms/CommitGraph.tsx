@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '@/contexts/ThemeProvider';
 
 interface CommitGraphProps {
     text?: string;

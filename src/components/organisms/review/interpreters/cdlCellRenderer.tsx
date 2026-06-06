@@ -17,7 +17,7 @@ import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import { formatSecondsMMSS, formatSecondsHHMMSS } from '@/lib/formatTime';
 import { MetricType } from '@/core/models/Metric';
-import type { GridRow } from './types';
+import type { GridRow } from '../types';
 import type {
   ColumnDef,
   ColumnFormat,
@@ -29,7 +29,7 @@ import type {
   PillFormat,
   CombinedFormat,
   CustomFormat,
-} from './column-definition-language';
+} from '../column-definition-language';
 import { resolveColumnSource } from './cdlSourceResolver';
 import { MetricPill } from '../MetricPill';
 

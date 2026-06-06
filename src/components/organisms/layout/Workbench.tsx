@@ -51,7 +51,7 @@ const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0
 
 import { PlanPanel } from '@/panels/plan-panel';
 import { TimerScreen } from '@/panels/track-panel';
-import { ResultsView } from '@/components/organisms/review';
+import { ResultsView } from '@/components/organisms/review/review-grid-index';
 import type { Segment } from '@/core/models/AnalyticsModels';
 
 export interface WorkbenchProps extends Omit<NoteEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange' | 'mode'> {

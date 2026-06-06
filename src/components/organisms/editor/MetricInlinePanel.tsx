@@ -23,7 +23,7 @@ import type { ICodeStatement } from "@/core/models/CodeStatement";
 import type { EditorSection } from '@/components/Editor/extensions/section-state';
 import { getCursorFocusState } from '@/components/Editor/extensions/cursor-focus-panel';
 import { cn } from "@/lib/utils";
-import type { WodCommand } from "./WodCommand";
+import type { WodCommand } from "@/components/Editor/overlays/WodCommand";
 
 // ── Metric display config ────────────────────────────────────────────
 

@@ -6,7 +6,7 @@
  * delegates fallback chains to the dedicated fallback chain interpreter.
  */
 
-import type { GridRow } from './types';
+import type { GridRow } from '../types';
 import type {
   ColumnSource,
   FixedFieldSource,
@@ -15,7 +15,7 @@ import type {
   FallbackSource,
   ComputeContext,
   ColumnDef,
-} from './column-definition-language';
+} from '../column-definition-language';
 import { interpretFallbackChain } from './cdlFallbackInterpreter';
 
 // ─── Public API ────────────────────────────────────────────────

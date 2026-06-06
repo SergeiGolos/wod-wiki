@@ -22,8 +22,8 @@ import { extractGraphValue } from '../cdlGraphInterpreter';
 import { ColumnSet } from '../../ColumnSet';
 import { makeGridRow, makeGridCell } from './test-helpers';
 import { MetricType } from '@/core/models/Metric';
-import type { ColumnDef, ComputeContext } from '../column-definition-language';
-import type { GridRow } from '../types';
+import type { ColumnDef, ComputeContext } from '../../column-definition-language';
+import type { GridRow } from '../../types';
 
 // ─── Helpers ───────────────────────────────────────────────────
 

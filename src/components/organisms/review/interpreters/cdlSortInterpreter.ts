@@ -5,8 +5,8 @@
  * Replaces the scattered switch statements in useGridData.ts (getSortValue).
  */
 
-import type { GridRow } from './types';
-import type { ColumnDef, ComputeContext } from './column-definition-language';
+import type { GridRow } from '../types';
+import type { ColumnDef, ComputeContext } from '../column-definition-language';
 import { resolveColumnSource } from './cdlSourceResolver';
 
 // ─── Combined Sort Helpers ─────────────────────────────────────

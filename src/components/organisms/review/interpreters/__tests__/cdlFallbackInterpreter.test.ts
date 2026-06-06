@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { interpretFallbackChain } from '../cdlFallbackInterpreter';
 import { makeGridRow, makeGridCell } from './test-helpers';
 import { MetricType } from '@/core/models/Metric';
-import type { FallbackSource } from '../column-definition-language';
+import type { FallbackSource } from '../../column-definition-language';
 
 describe('cdlFallbackInterpreter', () => {
   describe('first-present semantics', () => {

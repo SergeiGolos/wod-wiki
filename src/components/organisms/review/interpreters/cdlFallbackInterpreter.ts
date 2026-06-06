@@ -16,13 +16,13 @@
  * @see docs/adr/0011-column-definition-language.md
  */
 
-import type { GridRow } from './types';
+import type { GridRow } from '../types';
 import type {
   FallbackSource,
   ColumnSource,
   ComputeContext,
   ColumnDef,
-} from './column-definition-language';
+} from '../column-definition-language';
 import { resolveColumnSource } from './cdlSourceResolver';
 
 // ═══════════════════════════════════════════════════════════════

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { WodBlock, WodBlockState } from '../Editor/types';
+import { WodBlock, WodBlockState } from '@/components/Editor/types';
 
 interface WorkoutState {
   blocks: WodBlock[];
