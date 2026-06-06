@@ -1,7 +1,7 @@
 /**
  * Catalog / Templates / Review / Chromecast
  *
- * Renders: {@link import('@/panels/review-panel-chromecast').ReceiverReviewPanel}
+ * Renders: {@link import('../../../src/panels/review-panel-chromecast').ReceiverReviewPanel}
  * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:

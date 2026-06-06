@@ -1,7 +1,7 @@
 /**
  * Catalog / Organisms / RuntimeTimerPanel
  *
- * Renders: {@link import('@/components/organisms/editor/RuntimeTimerPanel').RuntimeTimerPanel}
+ * Renders: {@link import('../../../src/components/organisms/editor/RuntimeTimerPanel').RuntimeTimerPanel}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

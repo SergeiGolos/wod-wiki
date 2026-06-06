@@ -1,7 +1,7 @@
 /**
  * Catalog / Templates / Tracker / Mobile
  *
- * Renders: {@link import('@/panels/stack-panel-mobile').ReceiverStackPanel}
+ * Renders: Timer + VisualStatePanel at mobile dimensions — no dedicated mobile panel exists yet
  * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:

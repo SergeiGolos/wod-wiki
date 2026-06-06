@@ -1,7 +1,7 @@
 /**
  * Catalog / Templates / SidebarLayout
  *
- * Renders: {@link import('@/templates/SidebarLayout').SidebarLayout}
+ * Renders: {@link import('../../../src/templates/SidebarLayout').SidebarLayout}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

@@ -1,7 +1,7 @@
 /**
  * Catalog / Templates / CollectionWorkoutsList
  *
- * Renders: {@link import('@/playground/src/views/queriable-list/CollectionWorkoutsList').CollectionWorkoutsList}
+ * Renders: {@link import('../../../playground/src/views/queriable-list/CollectionWorkoutsList').CollectionWorkoutsList}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

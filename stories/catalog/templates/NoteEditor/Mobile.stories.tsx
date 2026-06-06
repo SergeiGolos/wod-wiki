@@ -1,7 +1,7 @@
 /**
  * Catalog / Templates / NoteEditor / Mobile
  *
- * Renders: {@link import('@/panels/note-editor-mobile').NoteEditor}
+ * Renders: NoteEditor at mobile dimensions (390px) via StorybookWorkbench
  * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:

@@ -1,7 +1,7 @@
 /**
  * Catalog / Molecules / ResultListItem
  *
- * Renders: {@link import('@/components/molecules/ResultListItem').ResultListItem}
+ * Renders: {@link import('../../../src/components/molecules/ResultListItem').ResultListItem}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

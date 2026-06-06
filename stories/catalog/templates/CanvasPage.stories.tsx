@@ -1,7 +1,7 @@
 /**
  * Catalog / Templates / CanvasPage
  *
- * Renders: {@link import('@/components/page-shells/CanvasPage').CanvasPage}
+ * Renders: {@link import('../../../src/panels/page-shells/CanvasPage').CanvasPage}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

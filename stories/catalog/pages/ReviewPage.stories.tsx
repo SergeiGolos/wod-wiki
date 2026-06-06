@@ -1,7 +1,7 @@
 /**
  * Catalog / Pages / ReviewPage
  *
- * Renders: {@link import('@/playground/src/pages/ReviewPage').ReviewPage}
+ * Renders: {@link import('../../../playground/src/pages/ReviewPage').ReviewPage}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

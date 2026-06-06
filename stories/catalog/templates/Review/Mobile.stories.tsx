@@ -1,7 +1,7 @@
 /**
  * Catalog / Templates / Review / Mobile
  *
- * Renders: {@link import('@/panels/review-panel-mobile').ReceiverReviewPanel}
+ * Renders: ReviewGrid at mobile dimensions (375px) — no dedicated mobile panel exists yet
  * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:

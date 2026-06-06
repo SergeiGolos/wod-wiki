@@ -1,7 +1,7 @@
 /**
  * Catalog / Molecules / ButtonGroup
  *
- * Renders: {@link import('@/components/molecules/ButtonGroup').ButtonGroup}
+ * Renders: {@link import('../../../src/components/molecules/ButtonGroup').ButtonGroup}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

@@ -1,7 +1,7 @@
 /**
  * Catalog / Pages / EffortsCatalogPage
  *
- * Renders: {@link import('@/playground/src/pages/EffortsCatalogPage').EffortsCatalogPage}
+ * Renders: {@link import('../../../playground/src/pages/EffortsCatalogPage').EffortsCatalogPage}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

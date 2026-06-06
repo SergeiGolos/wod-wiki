@@ -1,7 +1,7 @@
 /**
  * Catalog / Organisms / FullscreenTimer
  *
- * Renders: {@link import('@/components/molecules/FocusedDialog').FocusedDialog}
+ * Renders: {@link import('../../../src/components/molecules/FocusedDialog').FocusedDialog}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

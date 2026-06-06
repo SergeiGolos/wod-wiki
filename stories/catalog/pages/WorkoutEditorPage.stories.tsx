@@ -1,7 +1,7 @@
 /**
  * Catalog / Pages / WorkoutEditorPage
  *
- * Renders: {@link import('@/playground/src/pages/WorkoutEditorPage').WorkoutEditorPage}
+ * Renders: {@link import('../../../playground/src/pages/WorkoutEditorPage').WorkoutEditorPage}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

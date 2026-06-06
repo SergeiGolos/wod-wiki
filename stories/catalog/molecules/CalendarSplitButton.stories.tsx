@@ -1,7 +1,7 @@
 /**
  * Catalog / Molecules / CalendarSplitButton
  *
- * Renders: {@link import('@/components/molecules/CalendarSplitButton').CalendarSplitButton}
+ * Renders: {@link import('../../../src/components/molecules/CalendarSplitButton').CalendarSplitButton}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

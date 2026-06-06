@@ -1,7 +1,7 @@
 /**
  * Catalog / Pages / JournalPage
  *
- * Renders: {@link import('@/playground/src/pages/JournalPage').JournalPage}
+ * Renders: {@link import('../../../playground/src/pages/JournalPage').JournalPage}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

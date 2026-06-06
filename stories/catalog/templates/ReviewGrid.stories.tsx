@@ -1,7 +1,7 @@
 /**
  * Catalog / Templates / ReviewGrid
  *
- * Renders: {@link import('@/components/organisms/review/ReviewGrid').ReviewGrid}
+ * Renders: {@link import('../../../src/components/organisms/review/ReviewGrid').ReviewGrid}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

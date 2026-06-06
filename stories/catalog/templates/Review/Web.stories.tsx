@@ -1,7 +1,7 @@
 /**
  * Catalog / Templates / Review / Web
  *
- * Renders: {@link import('@/panels/review-panel-web').ReceiverReviewPanel}
+ * Renders: ReviewGrid at web dimensions — no dedicated web panel exists yet
  * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:

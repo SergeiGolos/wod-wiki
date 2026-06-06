@@ -1,7 +1,7 @@
 /**
  * Catalog / Molecules / ButtonLink
  *
- * Renders: {@link import('@/components/molecules/ButtonLink').ButtonLink}
+ * Renders: {@link import('../../../src/components/molecules/ButtonLink').ButtonLink}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

@@ -1,7 +1,7 @@
 /**
  * Catalog / Pages / CollectionsPage
  *
- * Renders: {@link import('@/playground/src/views/CollectionsPage').CollectionsPage}
+ * Renders: {@link import('../../../playground/src/views/CollectionsPage').CollectionsPage}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

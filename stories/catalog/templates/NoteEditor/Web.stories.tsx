@@ -1,7 +1,7 @@
 /**
  * Catalog / Templates / NoteEditor / Web
  *
- * Renders: {@link import('@/panels/note-editor-web').NoteEditor}
+ * Renders: NoteEditor at web dimensions via StorybookWorkbench
  * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:

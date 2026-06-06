@@ -1,7 +1,7 @@
 /**
  * Catalog / Templates / Tracker / Web
  *
- * Renders: {@link import('@/panels/stack-panel-web').ReceiverStackPanel}
+ * Renders: Timer + VisualStatePanel at web dimensions — no dedicated web panel exists yet
  * Data:     See {@link ../../../data-for-storybook.md}
  *
  * Stories:

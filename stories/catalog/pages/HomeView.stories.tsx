@@ -1,7 +1,7 @@
 /**
  * Catalog / Pages / HomeView
  *
- * Renders: {@link import('@/playground/src/views/HomeView').HomeView}
+ * Renders: {@link import('../../../playground/src/views/HomeView').HomeView}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

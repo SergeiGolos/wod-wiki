@@ -1,7 +1,7 @@
 /**
  * Catalog / Pages / TrackerPage
  *
- * Renders: {@link import('@/playground/src/pages/TrackerPage').TrackerPage}
+ * Renders: {@link import('../../../playground/src/pages/TrackerPage').TrackerPage}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:

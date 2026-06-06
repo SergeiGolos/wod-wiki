@@ -1,7 +1,7 @@
 /**
  * Catalog / Templates / JournalDateScroll
  *
- * Renders: {@link import('@/playground/src/views/queriable-list/JournalDateScroll').JournalDateScroll}
+ * Renders: {@link import('../../../playground/src/views/queriable-list/JournalDateScroll').JournalDateScroll}
  * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:
