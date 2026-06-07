@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en" class="antialiased">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hero redesign — single-metric iterations</title>
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/index.css">
+  <link rel="stylesheet" href="site.css" />
+</head>
+<body class="poc">
+  <nav class="poc-nav">
+    <div class="poc-nav-inner">
+      <div class="flex items-center gap-2">
+        <span class="font-semibold">Wod.Wiki</span><span class="text-zinc-500">·</span><span class="text-zinc-500">Hero POCs · Rep</span>
+      </div>
+      <div class="navlinks">
+        <a class="current" href="index.html">Index</a>
+        <a href="idea-1.html">v1</a>
+        <a href="idea-2.html">v2</a>
+        <a href="idea-3.html">v3</a>
+        <a href="idea-4.html">v4</a>
+        <a href="idea-5.html">v5</a>
+      </div>
+      <button data-theme-toggle aria-checked="false" class="theme-toggle" aria-label="Toggle dark mode">
+        <span>☀</span><span class="switch" aria-hidden="true"></span><span>☾</span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="poc-shell">
+    <p class="eyebrow">Landing hero · single-metric iterations</p>
+    <h1>One <code>Rep</code>, five ways to tell the story.</h1>
+    <p class="lead mt-3">
+      Five POCs grounded in the real app: the <code>NoteEditor</code>, the
+      <code>useWodBlockCommands</code> hook (Run, Add to today, Schedule, Share,
+      Open in playground), the <code>MetricOwnershipLedger</code> tier model, and
+      the <code>cdlColumnDefinitions</code> results row. All five use one anchor
+      metric — <code>Rep</code> — and the same free-form markdown source line
+      (<code>10 Pushups</code>).
+    </p>
+
+    <div class="mt-8 grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1.5rem;">
+      <a href="idea-1.html" class="frame" style="text-decoration:none; color:inherit;">
+        <div class="frame-bar">idea-1.html</div>
+        <iframe src="idea-1.html" style="height: 22rem;" title="Plan v1 preview"></iframe>
+        <div class="p-4">
+          <p class="eyebrow">Plan v1</p>
+          <h2 class="mt-2">Plan · Run · Read</h2>
+          <p class="mt-2 text-sm">Three stacked panels: editable note, command rail, results row.</p>
+        </div>
+      </a>
+      <a href="idea-2.html" class="frame" style="text-decoration:none; color:inherit;">
+        <div class="frame-bar">idea-2.html</div>
+        <iframe src="idea-2.html" style="height: 22rem;" title="Plan v2 preview"></iframe>
+        <div class="p-4">
+          <p class="eyebrow">Plan v2</p>
+          <h2 class="mt-2">One number, four tiers</h2>
+          <p class="mt-2 text-sm">A big visible number on top of a tier strip showing the four origin values.</p>
+        </div>
+      </a>
+      <a href="idea-3.html" class="frame" style="text-decoration:none; color:inherit;">
+        <div class="frame-bar">idea-3.html</div>
+        <iframe src="idea-3.html" style="height: 22rem;" title="Plan v3 preview"></iframe>
+        <div class="p-4">
+          <p class="eyebrow">Plan v3</p>
+          <h2 class="mt-2">The runnable Markdown</h2>
+          <p class="mt-2 text-sm">Editor + vertical Run rail + result row, all sharing the same <code>Rep</code> cell.</p>
+        </div>
+      </a>
+      <a href="idea-4.html" class="frame" style="text-decoration:none; color:inherit;">
+        <div class="frame-bar">idea-4.html</div>
+        <iframe src="idea-4.html" style="height: 22rem;" title="Plan v4 preview"></iframe>
+        <div class="p-4">
+          <p class="eyebrow">Plan v4</p>
+          <h2 class="mt-2">Plan once, three ways</h2>
+          <p class="mt-2 text-sm">One editable note, three affordance cards. Each card carries the same metric.</p>
+        </div>
+      </a>
+      <a href="idea-5.html" class="frame" style="text-decoration:none; color:inherit;">
+        <div class="frame-bar">idea-5.html</div>
+        <iframe src="idea-5.html" style="height: 22rem;" title="Plan v5 preview"></iframe>
+        <div class="p-4">
+          <p class="eyebrow">Plan v5</p>
+          <h2 class="mt-2">From <code>wod</code> to <code>Rep</code> to chart</h2>
+          <p class="mt-2 text-sm">A vertical timeline of one number, with a rep-coloured rail connecting the cards.</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="footer-note">
+      <span>Source: <code>docs/working/landing-hero-redesign.md</code></span>
+      <span>Real chrome · Mineral + Arctic Frost · grounded in <code>NoteEditor</code>, <code>useWodBlockCommands</code>, <code>MetricOwnershipLedger</code>, <code>cdlColumnDefinitions</code></span>
+    </div>
+  </main>
+</body>
+</html>
