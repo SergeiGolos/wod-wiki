@@ -201,6 +201,7 @@ class StubBlock implements IRuntimeBlock {
 
   mount(): import("@/runtime/contracts").IRuntimeAction[] { return []; }
   next(): import("@/runtime/contracts").IRuntimeAction[] { return []; }
+  inspectNext(): import("@/runtime/contracts/IRuntimeBlock").CompletionDecision { return { complete: false, actions: [] }; }
   unmount(): import("@/runtime/contracts").IRuntimeAction[] { return []; }
   dispose(): void { }
   getBehavior<T>(_type: any): T | undefined { return undefined; }

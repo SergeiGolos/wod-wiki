@@ -1,4 +1,5 @@
-import { IRuntimeBlock, BlockLifecycleOptions } from '@/runtime/contracts/IRuntimeBlock';
+import { IRuntimeBlock, BlockLifecycleOptions, CompletionDecision } from '@/runtime/contracts/IRuntimeBlock';
+import type { IRuntimeActionable } from '@/runtime/contracts/primitives/IRuntimeActionable';
 import { IBlockContext } from '@/runtime/contracts/IBlockContext';
 import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
@@ -269,9 +270,12 @@ export class ProxyBlock implements IRuntimeBlock {
     mount(_runtime: IScriptRuntime, _options?: BlockLifecycleOptions): IRuntimeAction[] {
         return [];
     }
-
     next(_runtime: IScriptRuntime, _options?: BlockLifecycleOptions): IRuntimeAction[] {
         return [];
+    }
+
+    inspectNext(_runtime: IRuntimeActionable, _options?: BlockLifecycleOptions): CompletionDecision {
+        return { complete: false, actions: [] };
     }
 
     unmount(_runtime: IScriptRuntime, _options?: BlockLifecycleOptions): IRuntimeAction[] {

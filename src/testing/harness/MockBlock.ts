@@ -1,8 +1,9 @@
 import { BlockKey } from '@/core/models/BlockKey';
 import { IRuntimeAction } from '@/runtime/contracts';
-import { IRuntimeBehavior } from '@/runtime/contracts';
-import { BlockLifecycleOptions, IRuntimeBlock } from '@/runtime/contracts';
+import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
+import { BlockLifecycleOptions, CompletionDecision, IRuntimeBlock } from '@/runtime/contracts';
 import { IScriptRuntime } from '@/runtime/contracts';
+import type { IRuntimeActionable } from '@/runtime/contracts/primitives/IRuntimeActionable';
 import { IBlockContext } from '@/runtime/contracts';
 import { IMetric, MetricType } from '@/core/models/Metric';
 import { IMemoryReference, TypedMemoryReference } from '@/runtime/contracts';
@@ -445,6 +446,41 @@ export class MockBlock implements IRuntimeBlock {
       if (result) actions.push(...result);
     }
     return actions;
+  }
+
+  inspectNext(runtime: IRuntimeActionable, options?: BlockLifecycleOptions): CompletionDecision {
+    const clock = options?.clock ?? (runtime as IScriptRuntime).clock;
+    const ctx = this._behaviorContext ?? new MockBehaviorContext(this, clock, (runtime as IScriptRuntime).stack?.count ?? 0);
+
+    // Snapshot completion state so we can restore it after inspection.
+    const wasComplete = this._isComplete;
+    const wasReason = this._completionReason;
+
+    const actions: IRuntimeAction[] = [];
+    for (const behavior of this.behaviors) {
+      const usesNewApi = typeof behavior.onMount === 'function';
+      const result = usesNewApi
+        ? behavior.onNext?.(ctx)
+        : (behavior as { onNext?: (block: IRuntimeBlock, clock: IRuntimeClock) => IRuntimeAction[] }).onNext?.(this, clock);
+      if (result) actions.push(...result);
+    }
+
+    const decision: CompletionDecision = {
+      complete: this._isComplete,
+      reason: this._completionReason,
+      actions,
+    };
+
+    // Restore completion state — inspectNext must not mutate the block.
+    this._isComplete = wasComplete;
+    this._completionReason = wasReason;
+
+    // Auto-pop: mirror next()'s auto-pop logic.
+    if (decision.complete && !actions.some(a => a.type === 'pop-block')) {
+      actions.push(new PopBlockAction());
+    }
+
+    return decision;
   }
 
   unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {

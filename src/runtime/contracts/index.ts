@@ -2,7 +2,7 @@
 // All other contracts should be imported directly from their source files.
 export type { IScriptRuntime } from './IScriptRuntime';
 export type { IJitCompiler } from './IJitCompiler';
-export type { IRuntimeBlock, BlockLifecycleOptions } from './IRuntimeBlock';
+export type { IRuntimeBlock, BlockLifecycleOptions, CompletionDecision } from './IRuntimeBlock';
 export type { IRuntimeAction } from './IRuntimeAction';
 export type { IRuntimeBehavior } from './IRuntimeBehavior';
 export type { IRuntimeStack, Unsubscribe, StackSnapshot, StackObserver } from './IRuntimeStack';

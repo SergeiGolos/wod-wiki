@@ -1,6 +1,6 @@
 import type { IRuntimeAction } from './IRuntimeAction';
+import type { CompletionDecision } from './IRuntimeBlock';
 import type { IScriptRuntime } from './IScriptRuntime';
-
 /**
  * Configuration for method interception behavior.
  * Defined here (in runtime/contracts) so that both production runtime
@@ -34,6 +34,10 @@ export interface TestableBlockConfig {
   /** Custom next implementation when mode is 'override' */
   nextOverride?: (runtime: IScriptRuntime) => IRuntimeAction[];
 
+  /** Mode for inspectNext() interception */
+  inspectNextMode?: InterceptMode;
+  /** Custom inspectNext implementation when mode is 'override' */
+  inspectNextOverride?: (runtime: IScriptRuntime) => CompletionDecision;
   /** Mode for unmount() interception */
   unmountMode?: InterceptMode;
   /** Custom unmount implementation when mode is 'override' */
