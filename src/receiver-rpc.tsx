@@ -8,6 +8,7 @@ import { CAST_NAMESPACE } from '@/types/cast/messages';
 import { ChromecastReceiverViewSession } from '@/services/cast/rpc/ViewSession';
 import { ChromecastProxyRuntime } from '@/services/cast/rpc/ChromecastProxyRuntime';
 import type { WorkbenchDisplayState } from '@/services/cast/rpc/ChromecastProxyRuntime';
+import type { IRpcTransport } from '@/services/cast/rpc/IRpcTransport';
 import type { IRuntimeEventProvider } from '@/runtime/contracts/IRuntimeEventProvider';
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
@@ -29,8 +30,7 @@ import {
     receiverStandaloneModeEnabled,
 } from '@/services/cast/receiverBootLoader';
 import '@/index.css';
-
-const ReceiverApp: React.FC = () => {
+const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => {
     const [proxyRuntime, setProxyRuntime] = useState<ChromecastProxyRuntime | null>(null);
     const [connectionStatus, setConnectionStatus] = useState('waiting-for-cast');
     const [workbenchState, setWorkbenchState] = useState<WorkbenchDisplayState>({ mode: 'idle' });
@@ -224,10 +224,8 @@ const ReceiverApp: React.FC = () => {
             dismissReceiverBootLoader('start-failure');
             return;
         }
-
-        const session = new ChromecastReceiverViewSession(castContext);
+        const session = ChromecastReceiverViewSession.create(castContext, transport);
         sessionRef.current = session;
-
         const unsubConnected = session.onConnected(() => {
             const runtime = session.runtime;
             if (!runtime) return;

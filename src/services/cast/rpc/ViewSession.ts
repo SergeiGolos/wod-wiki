@@ -63,20 +63,29 @@ export class ChromecastSenderViewSession implements IViewSession {
     private connectedHandlers = new Set<() => void>();
     private disconnectedHandlers = new Set<() => void>();
     private transportDisconnectedUnsub: RpcUnsubscribe | null = null;
+    private defaultTransport: IRpcTransport | null = null;
+
+    static create(
+        subscriptionRegistry?: SubscriptionRegistry | null,
+        transport?: IRpcTransport,
+        deps: SenderSessionDeps = senderDeps,
+    ): ChromecastSenderViewSession {
+        const session = new ChromecastSenderViewSession(subscriptionRegistry, deps);
+        session.defaultTransport = transport ?? null;
+        return session;
+    }
 
     constructor(
         private readonly subscriptionRegistry?: SubscriptionRegistry | null,
         private readonly deps: SenderSessionDeps = senderDeps,
     ) {}
-
     async connect(options: SenderSessionConnectOptions = {}): Promise<void> {
         await this.connectInternal(options);
     }
 
     async connectInternal(options: SenderSessionConnectOptions): Promise<void> {
         this.cleanupCurrentSession(false);
-
-        const transport = options.existingTransport ?? await this.createTransportFromCastSession(options);
+        const transport = options.existingTransport ?? (this.defaultTransport as WebRtcRpcTransport | null) ?? await this.createTransportFromCastSession(options);
         if (!transport.connected) {
             await transport.connect();
         }
@@ -197,6 +206,17 @@ export class ChromecastReceiverViewSession implements IViewSession {
     private transportDisconnectedUnsub: RpcUnsubscribe | null = null;
     private connectedHandlers = new Set<() => void>();
     private disconnectedHandlers = new Set<() => void>();
+    private defaultTransport: IRpcTransport | null = null;
+
+    static create(
+        castContext: any,
+        transport?: IRpcTransport,
+        deps: ReceiverSessionDeps = receiverDeps,
+    ): ChromecastReceiverViewSession {
+        const session = new ChromecastReceiverViewSession(castContext, deps);
+        session.defaultTransport = transport ?? null;
+        return session;
+    }
 
     constructor(
         private readonly castContext: any,
@@ -249,8 +269,7 @@ export class ChromecastReceiverViewSession implements IViewSession {
             onSignal: (handler) => sharedSignaling.onSignal(handler),
             dispose: () => {},
         };
-
-        const transport = this.deps.createTransport('answerer', signalingFacade);
+        const transport = (this.defaultTransport as WebRtcRpcTransport | null) ?? this.deps.createTransport('answerer', signalingFacade);
         const runtime = this.deps.createRuntime(transport);
         const eventProvider = this.deps.createEventProvider(runtime);
 

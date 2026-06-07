@@ -7,6 +7,37 @@ type: home
 
 # WOD Wiki {sticky dark full-bleed}
 
+## Wall Clock enabled Journal powered by Whiteboard
+ 
+If that was a bunch of jibberish to you, scroll down to learn more in our interactive [Canvas]() overview.  Browse examples in the library of pre-encoded
+
+
+```button
+label:  Zero to Hero →
+target: home-demo
+pipeline:
+  - navigate: /guide/getting-started
+```
+
+```button
+label:  Explore Full Syntax →
+target: home-demo
+pipeline:
+  - navigate: /guide/syntax
+```
+
+```button
+label:  Open a New Note →
+target: home-demo
+pipeline:
+  - set-source: query:new
+  - set-state: note
+  - launch: dialog
+```
+
+
+## The Whiteboard Script {sticky #statement theme:violet}
+
 ```view
 name:    home-demo
 state:   note
@@ -16,12 +47,6 @@ launch:  host
 align:   right
 width:   45%
 ```
-
-## Wall Clock Powered by Whiteboard
-
-Write workouts in free-form Markdown, then run them as live timers.
-
-## The Whiteboard Script {sticky #statement theme:violet}
 
 ```command
 target: home-demo
@@ -145,26 +170,3 @@ pipeline:
 ## What's Next {sticky full-bleed dark}
 
 Ready to go deeper? Work through the six-step guide or explore the full syntax reference.
-
-```button
-label:  Zero to Hero →
-target: home-demo
-pipeline:
-  - navigate: /guide/getting-started
-```
-
-```button
-label:  Explore Full Syntax →
-target: home-demo
-pipeline:
-  - navigate: /guide/syntax
-```
-
-```button
-label:  Open a New Note →
-target: home-demo
-pipeline:
-  - set-source: query:new
-  - set-state: note
-  - launch: dialog
-```

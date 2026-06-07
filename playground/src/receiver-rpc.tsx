@@ -21,6 +21,7 @@ import { ReceiverCastSignaling } from '@/services/cast/CastSignaling';
 import { WebRtcRpcTransport } from '@/services/cast/rpc/WebRtcRpcTransport';
 import { ChromecastProxyRuntime } from '@/services/cast/rpc/ChromecastProxyRuntime';
 import type { WorkbenchDisplayState } from '@/services/cast/rpc/ChromecastProxyRuntime';
+import type { IRpcTransport } from '@/services/cast/rpc/IRpcTransport';
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { ReceiverStackPanel } from '@/panels/track-panel-chromecast';
@@ -39,14 +40,13 @@ import '@/index.css';
 // ============================================================================
 // ReceiverApp — Main receiver component
 // ============================================================================
-
-const ReceiverApp: React.FC = () => {
+const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => {
     const [proxyRuntime, setProxyRuntime] = useState<ChromecastProxyRuntime | null>(null);
     const [connectionStatus, setConnectionStatus] = useState('waiting-for-cast');
     const [workbenchState, setWorkbenchState] = useState<WorkbenchDisplayState>({ mode: 'idle' });
     const [dpadFlash, setDpadFlash] = useState(false);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
-    const transportRef = useRef<WebRtcRpcTransport | null>(null);
+    const transportRef = useRef<IRpcTransport | null>(null);
     const bootTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const bootFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -217,13 +217,13 @@ const ReceiverApp: React.FC = () => {
             onSignal: (h: any) => sharedSignaling.onSignal(h),
             dispose: () => { /* no-op — signaling is owned by ReceiverApp */ },
         };
-        const transport = new WebRtcRpcTransport('answerer', signalingFacade as any);
-        const runtime = new ChromecastProxyRuntime(transport);
+        const transportInstance = transport ?? new WebRtcRpcTransport('answerer', signalingFacade as any);
+        const runtime = new ChromecastProxyRuntime(transportInstance);
         
-        transportRef.current = transport;
+        transportRef.current = transportInstance;
         runtimeRef.current = runtime;
 
-        transport.onConnected(() => {
+        transportInstance.onConnected(() => {
             console.log('[ReceiverApp] RPC transport connected');
             setConnectionStatus('connected');
             setProxyRuntime(runtime);
@@ -237,14 +237,14 @@ const ReceiverApp: React.FC = () => {
             audioService.setEnabled(true);
         });
 
-        transport.onMessage((msg) => {
+        transportInstance.onMessage((msg) => {
             if (msg.type === 'rpc-audio') {
                 console.log(`[ReceiverApp] Playing remote sound: ${msg.name}`);
                 audioService.playSound(msg.name, msg.volume);
             }
         });
 
-        transport.onDisconnected(() => {
+        transportInstance.onDisconnected(() => {
             console.log('[ReceiverApp] RPC transport disconnected — returning to waiting screen');
             setConnectionStatus('disconnected');
             // Return to waiting screen immediately so the user can see the
@@ -256,18 +256,18 @@ const ReceiverApp: React.FC = () => {
                 runtimeRef.current.dispose();
                 runtimeRef.current = null;
             }
-            if (transportRef.current === transport) {
+            if (transportRef.current === transportInstance) {
                 transportRef.current = null;
             }
         });
 
-        transport.connect().catch((err: unknown) => {
+        transportInstance.connect().catch((err: unknown) => {
             console.error('[ReceiverApp] RPC transport connect failed', err);
             setConnectionStatus('error');
         });
 
-        return { transport, runtime };
-    }, []);
+        return { transport: transportInstance, runtime };
+    }, [transport]);
 
     // WebRTC connection via Cast Receiver SDK + persistent signaling
     useEffect(() => {

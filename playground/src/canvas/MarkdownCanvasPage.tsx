@@ -9,9 +9,10 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Play } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import type { EditorView } from '@codemirror/view'
+import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
@@ -327,6 +328,18 @@ export function MarkdownCanvasPage({
       getSource: () => editorSourceRef.current,
     })
   }, [runtime])
+
+  // Commands for InlineCommandBar on wod blocks
+  const canvasCommands = useMemo<WodCommand[]>(() => [
+    {
+      id: 'run',
+      label: 'Run',
+      icon: <Play className="h-3 w-3 fill-current" />,
+      primary: true,
+      onClick: (block) => runtime.launchViewRuntime(block),
+    },
+  ], [runtime])
+
   const activePanelTheme = getSectionThemeStyles({ attrs: [`theme:${activeSectionTheme}`] } as any)
 
   const panelTitle =
@@ -417,8 +430,8 @@ export function MarkdownCanvasPage({
             enableOverlay={false}
             enableInlineRuntime={false}
             extendedResults={runtime.persistedResults}
-            commands={[]}
-            hideDefaultCommands={true}
+            commands={canvasCommands}
+            hideDefaultCommands={false}
             className="h-full"
           />
         </div>
