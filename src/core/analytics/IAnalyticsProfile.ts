@@ -9,7 +9,7 @@ import type { AnalyticsContext } from './AnalyticsContext';
  */
 export interface AnalyticsProfileContext {
   dialect: WodDialect;
-  scriptMetricTypes: ReadonlySet<MetricType>;
+  scriptMetricTypes: ReadonlySet<MetricType | string>;
 
   /**
    * Optional user physiological profile. Used by processors that personalize

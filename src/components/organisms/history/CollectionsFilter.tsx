@@ -10,54 +10,24 @@ export interface CollectionsFilterProps {
     className?: string;
 }
 
-/** Group flat collection list into parent → children map for display */
-function groupCollections(collections: WodCollection[]): {
-    tops: WodCollection[];
-    children: Map<string, WodCollection[]>;
-    /** Parent IDs that have children but no top-level collection */
-    orphanParents: string[];
-} {
-    const tops: WodCollection[] = [];
-    const children = new Map<string, WodCollection[]>();
-    const topIds = new Set<string>();
-
-    for (const col of collections) {
-        if (!col.parent) {
-            tops.push(col);
-            topIds.add(col.id);
-        } else {
-            const siblings = children.get(col.parent) ?? [];
-            siblings.push(col);
-            children.set(col.parent, siblings);
-        }
-    }
-
-    // Orphan parents: have children but no top-level collection
-    const orphanParents = [...children.keys()].filter(pid => !topIds.has(pid)).sort();
-    return { tops, children, orphanParents };
-}
-
 export const CollectionsFilter: React.FC<CollectionsFilterProps> = ({
     collections,
     activeCollectionId,
     onCollectionSelect,
     className,
 }) => {
-    const { tops, children, orphanParents } = groupCollections(collections);
-
-    const collectionBtn = (col: WodCollection, indent = false) => (
+    const collectionBtn = (col: WodCollection) => (
         <button
             key={col.id}
             onClick={() => onCollectionSelect(col.id)}
             className={cn(
-                "w-full text-left text-sm py-1.5 rounded transition-colors flex items-center gap-2",
-                indent ? "px-5" : "px-2",
+                "w-full text-left text-sm py-1.5 rounded transition-colors flex items-center gap-2 px-2",
                 activeCollectionId === col.id
                     ? "bg-accent text-accent-foreground font-medium"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
         >
-            <span className="shrink-0 opacity-50">{indent ? '·' : '📍'}</span>
+            <span className="shrink-0 opacity-50">📍</span>
             <span className="truncate flex-1">{col.name}</span>
             <span className="text-[10px] text-muted-foreground tabular-nums">{col.items.length}</span>
         </button>
@@ -84,19 +54,9 @@ export const CollectionsFilter: React.FC<CollectionsFilterProps> = ({
                         <FolderOpen className="h-3 w-3 shrink-0 opacity-50" />
                         <span className="truncate flex-1">All Collections</span>
                     </button>
-                    {tops.map(col => (
+                    {collections.map(col => (
                         <React.Fragment key={col.id}>
                             {collectionBtn(col)}
-                            {(children.get(col.id) ?? []).map(child => collectionBtn(child, true))}
-                        </React.Fragment>
-                    ))}
-                    {/* Orphan groups: children whose parent has no direct files (e.g. swimming/) */}
-                    {orphanParents.map(parentId => (
-                        <React.Fragment key={`orphan-${parentId}`}>
-                            <div className="pt-1 pb-0.5 px-2 text-[10px] font-semibold uppercase text-muted-foreground tracking-wider">
-                                {parentId.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                            </div>
-                            {(children.get(parentId) ?? []).map(child => collectionBtn(child, true))}
                         </React.Fragment>
                     ))}
                 </div>

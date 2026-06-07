@@ -35,7 +35,7 @@ export function createAnalyticsEngineForBlock(
 ): CreateAnalyticsEngineResult {
   const dialect = block.dialect || 'wod';
 
-  const scriptMetricTypes = new Set<MetricType>();
+  const scriptMetricTypes = new Set<MetricType | string>();
   if (block.statements) {
     for (const stmt of block.statements) {
       for (const metric of stmt.metrics) {
