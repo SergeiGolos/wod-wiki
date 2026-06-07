@@ -58,7 +58,7 @@ function createMockRuntime(): IScriptRuntime & {
         eventBus: { register: () => () => {}, on: () => () => {}, unregisterById: () => {}, unregisterByOwner: () => {}, dispatch: () => [], emit: () => {}, dispose: () => {} } as any,
         stack: { blocks: [], count: 0, current: undefined, keys: [], push: () => {}, pop: () => undefined, clear: () => {}, subscribe: () => () => {} } as any,
         jit: null as any,
-        clock: { now: new Date(), elapsed: 0, isRunning: false, spans: [], start: () => new Date(), stop: () => new Date() } as any,
+        clock: { now: new Date(), currentDate: new Date(), elapsed: 0, isRunning: false, spans: [], start: () => new Date(), stop: () => new Date() } as any,
         errors: [],
         do: () => {},
         doAll: () => {},

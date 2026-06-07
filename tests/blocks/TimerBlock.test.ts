@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { TimerInitBehavior, TimerTickBehavior, TimerEndingBehavior } from '@/runtime/behaviors';
+import { CountdownTimerBehavior, CountupTimerBehavior } from '@/runtime/behaviors';
 
 describe('TimerBlock', () => {
   let harness: BehaviorTestHarness;
@@ -15,32 +15,30 @@ describe('TimerBlock', () => {
     harness?.dispose();
   });
 
-  it('should initialize timer state on mount', () => {
-    const timerInit = new TimerInitBehavior({ direction: 'up', durationMs: 10000 });
-    const timerTick = new TimerTickBehavior();
-    const block = new MockBlock('timer-up', [timerInit, timerTick], { blockType: 'Timer' });
+  it('should initialize count-up timer state on mount', () => {
+    const timer = new CountupTimerBehavior({ label: 'Timer' });
+    const block = new MockBlock('timer-up', [timer], { blockType: 'Timer' });
 
     harness.push(block);
     harness.mount();
 
-    // Timer state should be initialized in memory with open span (signals timer started)
+    // Timer state should be initialized in memory with open span
     const timerMemory = harness.getMemory('time');
     expect(timerMemory).toBeDefined();
     expect(timerMemory.direction).toBe('up');
+    expect(timerMemory.durationMs).toBeUndefined();
     expect(timerMemory.spans.length).toBe(1);
     expect(timerMemory.spans[0].ended).toBeUndefined(); // Open span = running
   });
 
   it('should initialize countdown timer with durationMs', () => {
-    const timerInit = new TimerInitBehavior({ direction: 'down', durationMs: 10000 });
-    const timerTick = new TimerTickBehavior();
-    const timerCompletion = new TimerEndingBehavior();
-    const block = new MockBlock('timer-down', [timerInit, timerTick, timerCompletion], { blockType: 'Timer' });
+    const timer = new CountdownTimerBehavior({ direction: 'down', durationMs: 10000 });
+    const block = new MockBlock('timer-down', [timer], { blockType: 'Timer' });
 
     harness.push(block);
     harness.mount();
 
-    // Verify timer memory contains correct data (no event emission)
+    // Verify timer memory contains correct data
     const timerMemory = harness.getMemory('time');
     expect(timerMemory).toBeDefined();
     expect(timerMemory.direction).toBe('down');
@@ -48,20 +46,19 @@ describe('TimerBlock', () => {
   });
 
   it('should stop timer on unmount', () => {
-     const timerInit = new TimerInitBehavior({ direction: 'up', durationMs: 10000 });
-     const timerTick = new TimerTickBehavior();
-     const block = new MockBlock('timer-test', [timerInit, timerTick], { blockType: 'Timer' });
+    const timer = new CountupTimerBehavior({ label: 'Timer' });
+    const block = new MockBlock('timer-test', [timer], { blockType: 'Timer' });
 
-     harness.push(block);
-     harness.mount();
+    harness.push(block);
+    harness.mount();
 
-     harness.advanceClock(10000);
-     harness.unmount();
+    harness.advanceClock(10000);
+    harness.unmount();
 
-     // After unmount, block should be removed from stack
-     expect(harness.stackDepth).toBe(0);
-     
-     // Block should have completion timing set
-     expect(block.executionTiming.completedAt).toBeDefined();
+    // After unmount, block should be removed from stack
+    expect(harness.stackDepth).toBe(0);
+
+    // Block should have completion timing set
+    expect(block.executionTiming.completedAt).toBeDefined();
   });
 });

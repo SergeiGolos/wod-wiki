@@ -424,7 +424,7 @@ Testable stub classes don't implement the full `IRuntimeBlock` / `IScriptRuntime
 When you're done filling in decisions, hand the doc back and I'll execute top-to-bottom. Order of execution will be:
 
 1. Group A (mechanical, ~24 edits, no choices)
-2. Group D (vite/client reference, one-line)
+2. Group D (vite/client reference, one-line)[[]]
 3. Group B (model decisions, ~6 edits)
 4. Group C (cross-file type drift, ~2 edits)
 5. Group E (semantic, ~15 edits)

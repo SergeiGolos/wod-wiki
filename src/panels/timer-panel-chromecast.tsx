@@ -8,6 +8,7 @@
 
 import React from 'react';
 import { TimerDisplay } from '@/panels/timer-panel';
+import type { TimerDisplayProps } from '@/panels/timer-panel';
 import { useSnapshotBlocks } from '@/runtime/hooks/useStackSnapshot';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
 import type { IRuntimeEventProvider } from '@/runtime/contracts/IRuntimeEventProvider';
@@ -15,7 +16,8 @@ import type { IRuntimeEventProvider } from '@/runtime/contracts/IRuntimeEventPro
 export const ReceiverTimerPanel: React.FC<{
   eventProvider: IRuntimeEventProvider;
   getFocusProps?: (id: string) => FocusProps;
-}> = ({ eventProvider, getFocusProps }) => {
+  TimerDisplayComponent?: React.FC<TimerDisplayProps>;
+}> = ({ eventProvider, getFocusProps, TimerDisplayComponent = TimerDisplay }) => {
   const blocks = useSnapshotBlocks();
 
   const dispatchEvent = (name: string): void => {
@@ -24,7 +26,7 @@ export const ReceiverTimerPanel: React.FC<{
 
   return (
     <div className="flex-1 flex flex-col justify-center">
-      <TimerDisplay
+      <TimerDisplayComponent
         elapsedMs={0}
         hasActiveBlock={blocks.length > 0}
         onStart={() => dispatchEvent('start')}

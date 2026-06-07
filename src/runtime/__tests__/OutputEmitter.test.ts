@@ -31,7 +31,7 @@ import type { WhiteboardScript } from '../../parser/WhiteboardScript';
 // ── Minimal helpers ──────────────────────────────────────────────────────────
 
 function makeClock(now = new Date('2024-01-01T12:00:00Z')): IRuntimeClock {
-    return { now, elapsed: 0, isRunning: false, spans: [], start: () => now, stop: () => now };
+    return { now, currentDate: now, elapsed: 0, isRunning: false, spans: [], start: () => now, stop: () => now };
 }
 
 function makeOutput(type: IOutputStatement['outputType'] = 'segment'): IOutputStatement {

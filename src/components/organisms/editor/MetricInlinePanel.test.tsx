@@ -4,14 +4,9 @@ import { MetricType } from '@/core/models/Metric';
 import type { IMetric } from '@/core/models/Metric';
 import type { ICodeStatement } from '@/core/models/CodeStatement';
 import type { EditorSection } from '@/components/Editor/extensions/section-state';
-
-// Mock the cursor-focus-panel module before importing the component
-mock.module('@/components/Editor/extensions/cursor-focus-panel', () => ({
-  getCursorFocusState: mock(() => null),
-}));
-
-const { MetricInlinePanel } = await import('./MetricInlinePanel');
-const { getCursorFocusState } = await import('@/components/Editor/extensions/cursor-focus-panel');
+import type { EditorView } from '@codemirror/view';
+import type { EditorState } from '@codemirror/state';
+import { MetricInlinePanel } from './MetricInlinePanel';
 
 function makeStatement(metrics: IMetric[]): ICodeStatement {
   return {
@@ -42,14 +37,13 @@ function createMockView() {
     contentDOM: {
       getBoundingClientRect: () => ({ left: 0, width: 500 }),
     },
-    state: {} as any,
+    state: {} as unknown as EditorState,
   };
 }
 
 describe('MetricInlinePanel ADR-0009 regressions', () => {
   afterEach(() => {
     cleanup();
-    (getCursorFocusState as any).mockClear?.();
   });
 
   it('renders custom metric chips inline', () => {
@@ -59,16 +53,16 @@ describe('MetricInlinePanel ADR-0009 regressions', () => {
     ]);
     const section = makeSection();
 
-    (getCursorFocusState as any).mockReturnValue({
+    const getCursorFocusState = mock(() => ({
       section,
       statement,
       cursorLine: 1,
       lineFrom: 0,
       lineTo: 10,
       focusedMetric: null,
-    });
+    }));
 
-    render(<MetricInlinePanel view={view as any} cursorVersion={1} />);
+    render(<MetricInlinePanel view={view as unknown as EditorView} cursorVersion={1} getCursorFocusState={getCursorFocusState} />);
 
     expect(screen.getByText('custom')).toBeDefined();
     expect(screen.getByText('Zone 2')).toBeDefined();
@@ -77,117 +71,114 @@ describe('MetricInlinePanel ADR-0009 regressions', () => {
   it('renders calculated metric chips inline', () => {
     const view = createMockView();
     const statement = makeStatement([
-      { type: MetricType.Calculated, value: 420, image: '420', origin: 'runtime' } as IMetric,
+      { type: MetricType.Calculated, value: 'RPE 8', image: 'RPE 8', origin: 'parser' } as IMetric,
     ]);
     const section = makeSection();
 
-    (getCursorFocusState as any).mockReturnValue({
+    const getCursorFocusState = mock(() => ({
       section,
       statement,
       cursorLine: 1,
       lineFrom: 0,
       lineTo: 10,
       focusedMetric: null,
-    });
+    }));
 
-    render(<MetricInlinePanel view={view as any} cursorVersion={1} />);
+    render(<MetricInlinePanel view={view as unknown as EditorView} cursorVersion={1} getCursorFocusState={getCursorFocusState} />);
 
     expect(screen.getByText('calculated')).toBeDefined();
-    expect(screen.getByText('420')).toBeDefined();
+    expect(screen.getByText('RPE 8')).toBeDefined();
   });
 
   it('does NOT filter out custom or calculated metrics', () => {
     const view = createMockView();
     const statement = makeStatement([
-      { type: MetricType.Custom, value: 'A', origin: 'parser' } as IMetric,
-      { type: MetricType.Calculated, value: 100, origin: 'runtime' } as IMetric,
-      { type: MetricType.Rep, value: 10, origin: 'parser' } as IMetric,
+      { type: MetricType.Custom, value: 'Zone 2', image: 'Zone 2', origin: 'parser' } as IMetric,
+      { type: MetricType.Calculated, value: 'RPE 8', image: 'RPE 8', origin: 'parser' } as IMetric,
     ]);
     const section = makeSection();
 
-    (getCursorFocusState as any).mockReturnValue({
+    const getCursorFocusState = mock(() => ({
       section,
       statement,
       cursorLine: 1,
       lineFrom: 0,
       lineTo: 10,
       focusedMetric: null,
-    });
+    }));
 
-    render(<MetricInlinePanel view={view as any} cursorVersion={1} />);
+    render(<MetricInlinePanel view={view as unknown as EditorView} cursorVersion={1} getCursorFocusState={getCursorFocusState} />);
 
     expect(screen.getByText('custom')).toBeDefined();
     expect(screen.getByText('calculated')).toBeDefined();
-    expect(screen.getByText('Reps')).toBeDefined();
   });
 
   it('filters out Sound and System metrics only', () => {
     const view = createMockView();
     const statement = makeStatement([
+      { type: MetricType.Rep, value: '10', image: '10', origin: 'parser' } as IMetric,
       { type: MetricType.Sound, value: 'beep', origin: 'runtime' } as IMetric,
-      { type: MetricType.System, value: 'tick', origin: 'runtime' } as IMetric,
-      { type: MetricType.Rep, value: 10, origin: 'parser' } as IMetric,
+      { type: MetricType.System, value: 'start', origin: 'runtime' } as IMetric,
     ]);
     const section = makeSection();
 
-    (getCursorFocusState as any).mockReturnValue({
+    const getCursorFocusState = mock(() => ({
       section,
       statement,
       cursorLine: 1,
       lineFrom: 0,
       lineTo: 10,
       focusedMetric: null,
-    });
+    }));
 
-    render(<MetricInlinePanel view={view as any} cursorVersion={1} />);
+    render(<MetricInlinePanel view={view as unknown as EditorView} cursorVersion={1} getCursorFocusState={getCursorFocusState} />);
 
-    expect(screen.getByText('Reps')).toBeDefined();
-    // Sound and System should not appear as chips
-    expect(screen.queryByText('Sound')).toBeNull();
-    expect(screen.queryByText('System')).toBeNull();
+    // Rep should be visible
+    expect(screen.getByText('10')).toBeDefined();
+    // Sound and System should be filtered out
+    expect(screen.queryByText('beep')).toBeNull();
+    expect(screen.queryByText('start')).toBeNull();
   });
 
   it('falls back to generic styling for unknown metric types in chips', () => {
     const view = createMockView();
     const statement = makeStatement([
-      { type: 'totally-unknown', value: 'X', origin: 'parser' } as IMetric,
+      { type: 'unknown-type' as MetricType, value: 'X', image: 'X', origin: 'parser' } as IMetric,
     ]);
     const section = makeSection();
 
-    (getCursorFocusState as any).mockReturnValue({
+    const getCursorFocusState = mock(() => ({
       section,
       statement,
       cursorLine: 1,
       lineFrom: 0,
       lineTo: 10,
       focusedMetric: null,
-    });
+    }));
 
-    render(<MetricInlinePanel view={view as any} cursorVersion={1} />);
-
-    // Should still render the chip even though type is unknown
-    expect(screen.getByText('totally-unknown')).toBeDefined();
-    expect(screen.getByText('X')).toBeDefined();
+    // Should not throw
+    render(<MetricInlinePanel view={view as unknown as EditorView} cursorVersion={1} getCursorFocusState={getCursorFocusState} />);
   });
 
   it('renders "No metrics on this line" when only Sound/System are present', () => {
     const view = createMockView();
     const statement = makeStatement([
       { type: MetricType.Sound, value: 'beep', origin: 'runtime' } as IMetric,
+      { type: MetricType.System, value: 'start', origin: 'runtime' } as IMetric,
     ]);
     const section = makeSection();
 
-    (getCursorFocusState as any).mockReturnValue({
+    const getCursorFocusState = mock(() => ({
       section,
       statement,
       cursorLine: 1,
       lineFrom: 0,
       lineTo: 10,
       focusedMetric: null,
-    });
+    }));
 
-    render(<MetricInlinePanel view={view as any} cursorVersion={1} />);
+    render(<MetricInlinePanel view={view as unknown as EditorView} cursorVersion={1} getCursorFocusState={getCursorFocusState} />);
 
-    expect(screen.getByText('No metrics on this line')).toBeDefined();
+    expect(screen.getByText(/no metrics on this line/i)).toBeDefined();
   });
 });

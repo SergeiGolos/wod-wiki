@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { TimerInitBehavior, TimerTickBehavior, ReEntryBehavior } from '@/runtime/behaviors';
+import { CountdownTimerBehavior, ReEntryBehavior } from '@/runtime/behaviors';
 
 describe('IntervalBlock', () => {
   let harness: BehaviorTestHarness;
@@ -16,19 +16,24 @@ describe('IntervalBlock', () => {
   });
 
   it('should initialize interval timer and rounds on mount (EMOM behavior)', () => {
-    const timerInit = new TimerInitBehavior({ direction: 'down', durationMs: 60000 });
-    const timerTick = new TimerTickBehavior();
-    const reEntry = new ReEntryBehavior({ totalRounds: 10 });
+    const timer = new CountdownTimerBehavior({ direction: 'down', durationMs: 60000, mode: 'reset-interval' });
+    const reEntry = new ReEntryBehavior({ totalRounds: 10, startRound: 1 });
 
-    const block = new MockBlock('interval-test', [timerInit, timerTick, reEntry], { blockType: 'Interval' });
+    const block = new MockBlock('interval-test', [timer, reEntry], { blockType: 'Interval' });
 
     harness.push(block);
     harness.mount();
 
-    // Timer should be initialized in memory (no event emission)
+    // Timer should be initialized in memory
     const timerMemory = harness.getMemory('time');
     expect(timerMemory).toBeDefined();
     expect(timerMemory.durationMs).toBe(60000);
     expect(timerMemory.direction).toBe('down');
+
+    // Round state should be initialized
+    const roundMemory = harness.getMemory('round');
+    expect(roundMemory).toBeDefined();
+    expect(roundMemory.current).toBe(1);
+    expect(roundMemory.total).toBe(10);
   });
 });

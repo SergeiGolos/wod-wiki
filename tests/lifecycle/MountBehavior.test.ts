@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { TimerInitBehavior, TimerTickBehavior } from '@/runtime/behaviors';
+import { CountupTimerBehavior } from '@/runtime/behaviors';
 
-// Using TimerInitBehavior as a proxy to test lifecycle mounting because it has clear side effects
+// Using CountupTimerBehavior as a proxy to test lifecycle mounting because it has clear side effects
 // (memory allocation).
 
 describe('Mount Lifecycle', () => {
@@ -18,9 +18,8 @@ describe('Mount Lifecycle', () => {
     });
 
     it('should initialize behaviors and set memory on mount', () => {
-        const timerInit = new TimerInitBehavior({ direction: 'up' });
-        const timerTick = new TimerTickBehavior();
-        const block = new MockBlock('mount-test', [timerInit, timerTick]);
+        const timer = new CountupTimerBehavior({ label: 'Test' });
+        const block = new MockBlock('mount-test', [timer]);
 
         harness.push(block);
 

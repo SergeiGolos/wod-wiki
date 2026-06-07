@@ -6,8 +6,11 @@ import { RuntimeLifecycleContext } from '@/contexts/RuntimeLifecycleContext';
 import type { WorkoutResults, WodBlock } from '@/components/Editor/types';
 import { MetricContainer } from '@/core/models/MetricContainer';
 import { MetricType } from '@/core/models/Metric';
+// Preserve all original exports while overriding audioService for this test.
+const originalUseBrowserServices = await import('@/hooks/useBrowserServices');
 
 mock.module('@/hooks/useBrowserServices', () => ({
+    ...originalUseBrowserServices,
     audioService: {
         playSound: mock(() => Promise.resolve())
     }

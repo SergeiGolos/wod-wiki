@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestHarness } from '@/testing/harness';
 import { sessionRootStrategy } from '@/runtime/compiler/strategies/SessionRootStrategy';
 import {
-    TimerBehavior,
+    CountupTimerBehavior,
     ChildSelectionBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     ButtonBehavior,
-    HistoryRecordBehavior
+    ReportOutputBehavior
 } from '@/runtime/behaviors';
 
 describe('RootBlock Behavior Composition', () => {
@@ -28,11 +28,11 @@ describe('RootBlock Behavior Composition', () => {
         });
 
         // Expectations: All core behaviors present
-        expect(rootBlock.getBehavior(TimerBehavior)).toBeDefined();
+        expect(rootBlock.getBehavior(CountupTimerBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(ChildSelectionBehavior)).toBeDefined();
-        expect(rootBlock.getBehavior(DisplayInitBehavior)).toBeDefined();
+        expect(rootBlock.getBehavior(LabelingBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(ButtonBehavior)).toBeDefined();
-        expect(rootBlock.getBehavior(HistoryRecordBehavior)).toBeDefined();
+        expect(rootBlock.getBehavior(ReportOutputBehavior)).toBeDefined();
     });
 
     it('should use default totalRounds=1 when not specified', () => {

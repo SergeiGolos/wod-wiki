@@ -203,6 +203,6 @@ export function expectAll(state: ScriptState, checks: Array<(a: Assertions) => v
         }
     }
     if (errors.length > 0) {
-        throw new Error(`${errors.length} assertion(s) failed:\n` + errors.map(e => e.message).join('\n'));
+        throw new AggregateError(errors, `${errors.length} assertion(s) failed`);
     }
 }

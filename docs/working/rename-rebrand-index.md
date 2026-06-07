@@ -1,26 +1,35 @@
-# Rename & Rebrand Index: WOD → Whiteboard, Tracker/Timer → WallClock
+# Rename & Rebrand Index: Whiteboard Language + WallClock
 
 > Deep audit of every reference surface across code, docs, configs, and UI.
 > Generated 2026-06-07 from full codebase scan.
 
 ---
 
-## 0. Executive Summary
+## 0. Decisions Locked
 
-**Two rename axes:**
+| Decision | Resolution |
+|----------|------------|
+| **Product name** | **WOD Wiki** stays. URL (`wod.wiki`), repo (`SergeiGolos/wod-wiki`), page titles, domain all unchanged. |
+| **npm package** | `@bitcobblers/wod-wiki-library` → **`@bitcobblers/whiteboard-lang`** |
+| **Language name** | **Whiteboard** / "Whiteboard Language" / "Whiteboard Script" — the DSL inside ` ```wod ` fences |
+| **Runtime feature** | **WallClock** — the formal feature name for the clock-driven execution layer |
+| **Fence tag** | `wod` stays as canonical fence tag (backward compat). `whiteboard` added as accepted alias. |
+
+The branding sits on the **language** (Whiteboard) and the **feature** (WallClock), not on the product/URL.
+
+## 0.1 Scope Summary
 
 | Axis | From | To | Scope |
 |------|------|----|-------|
-| **Language** | `wod` / "WOD" / "WOD Wiki" | "Whiteboard" / "Whiteboard Language" / "Whiteboard Script" | ~338+ file hits, ~28 named code files, ~6 type identifiers |
-| **Runtime UI** | "tracker" / "timer" / "run" | "WallClock" (formal feature name for the clock-driven execution layer) | ~99+ file hits, ~10 named code files, ~3 type identifiers |
+| **Language** | `wod` / "WOD" in code identifiers, docs | "Whiteboard" / "Whiteboard Language" / "Whiteboard Script" | ~338+ string hits, ~28 named files, ~6 type identifiers |
+| **Runtime UI** | "tracker" / "timer" in page/component names | "WallClock" (formal feature name) | ~99+ string hits, ~10 named files, ~3 type identifiers |
+| **Package** | `@bitcobblers/wod-wiki-library` | `@bitcobblers/whiteboard-lang` | `package.json`, CI, publish config |
 
-**Key finding:** The codebase *already uses* "Whiteboard" for the language in documentation (`docs/whiteboard-language/`), the grammar file (`whiteboardscript.grammar`), and the parser class (`WhiteboardScript`). And "WallClock" already appears in canvas markdown and `wallClockNow` in `INowProvider.ts`. The rename is a **completion and alignment** effort, not a fresh rebrand.
+**Key finding:** The codebase *already uses* "Whiteboard" for the language (`whiteboardscript.grammar`, `WhiteboardScript`, `docs/whiteboard-language/`) and "WallClock" in canvas content and `wallClockNow`. The rename is a **completion and alignment** effort, not a fresh rebrand.
 
 **Risk zones:**
-- The `wod` fence tag in Markdown is a **user-facing syntax contract** — renaming it breaks every existing `.md` workout file.
-- Package name `@bitcobblers/wod-wiki-library` and GitHub repo `SergeiGolos/wod-wiki` are external identity — DNS, npm, URLs.
-- The `WodDialect` class is a domain concept (recognizes STRENGTH, METCON, etc.) — the dialect *name* `wod` maps to the fence tag, not the language.
-
+- The `wod` fence tag is a **user-facing syntax contract** — adding `whiteboard` as alias, keeping `wod` forever.
+- The `WodDialect` class is a domain concept (recognizes STRENGTH, METCON, etc.) — the `wod` here is the CrossFit "Workout of the Day", not the language. **Do not rename the class.**
 ---
 
 ## 1. Language Rename: WOD → Whiteboard
@@ -42,12 +51,12 @@ These already use "Whiteboard" and are correct:
 
 #### Type/Interface Names
 
-| Current | File | Proposed | Notes |
-|---------|------|----------|-------|
-| `WodDialect` | `src/dialects/WodDialect.ts` | Keep as `WodDialect` | This is a *dialect* (one of 6), not the language itself. It recognizes STRENGTH/METCON/WOD patterns. The `wod` here refers to the CrossFit "Workout of the Day" concept, not the language. **Do NOT rename.** |
-| `WodDialect` (type) | `src/components/Editor/types/section.ts` | `FenceDialect` or `DialectFence` | This type = `'wod' \| 'log' \| 'plan'` — it's the fence selector, not the language |
-| `VALID_WOD_DIALECTS` | `src/components/Editor/types/section.ts` | `VALID_FENCE_DIALECTS` or `VALID_DIALECTS` | Constant naming |
-| `WodBlock` | `src/components/Editor/types/index.ts` (re-exported from section.ts) | Keep — this is a structural concept (a parsed code block) | Low risk rename if desired → `ScriptBlock` |
+| Current              | File                                                                 | Proposed                                                  | Notes                                                                                                                                                                                                         |
+| -------------------- | -------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WodDialect`         | `src/dialects/WodDialect.ts`                                         | Keep as `WodDialect`                                      | This is a *dialect* (one of 6), not the language itself. It recognizes STRENGTH/METCON/WOD patterns. The `wod` here refers to the CrossFit "Workout of the Day" concept, not the language. **Do NOT rename.** |
+| `WodDialect` (type)  | `src/components/Editor/types/section.ts`                             | `FenceDialect` or `DialectFence`                          | This type = `'wod' \| 'log' \| 'plan'` — it's the fence selector, not the language                                                                                                                            |
+| `VALID_WOD_DIALECTS` | `src/components/Editor/types/section.ts`                             | `VALID_FENCE_DIALECTS` or `VALID_DIALECTS`                | Constant naming                                                                                                                                                                                               |
+| `WodBlock`           | `src/components/Editor/types/index.ts` (re-exported from section.ts) | Keep — this is a structural concept (a parsed code block) | Low risk rename if desired → `ScriptBlock`                                                                                                                                                                    |
 
 #### File Names
 
@@ -90,17 +99,12 @@ These already use "Whiteboard" and are correct:
 
 ### 1.3 String Literals / UI Text
 
-#### Fence Tag: ` ```wod ` — ⚠️ CRITICAL CONTRACT
+#### Fence Tag: ` ```wod ` — DECIDED: keep `wod`, add `whiteboard` alias
 
-The `wod` fence tag is **user-facing syntax** embedded in every Markdown workout file. Options:
-
-| Option | Description | Impact |
-|--------|-------------|--------|
-| **A. Keep `wod` as primary fence, add `whiteboard` alias** | `wod` fence keeps working; `whiteboard` becomes an accepted alternative | Zero breakage. `WodDialect` type value `'wod'` stays. Gradual migration. |
-| **B. Swap to `whiteboard`, keep `wod` as alias** | `whiteboard` becomes canonical; `wod` accepted for backward compat | New docs use `whiteboard`. Old files still work. |
-| **C. Full rename** | Only `whiteboard` accepted | Breaks every existing `.md` file. High migration cost. |
-
-**Recommendation:** Option A or B. The fence tag is a backwards-compatibility contract.
+The `wod` fence tag is **user-facing syntax** embedded in every Markdown workout file.
+Decision: keep `wod` as the canonical fence tag forever. Add `whiteboard` as an accepted
+alias in the parser. New documentation may show either `wod` or `whiteboard`; old content
+never breaks.
 
 #### Agent/Skill Configuration
 
@@ -122,24 +126,24 @@ Hundreds of references across `src/` — all internal. Low priority, batch-repla
 
 | Location | String | Proposed |
 |----------|--------|----------|
-| `CONTEXT.md` | "WOD Wiki — Domain Context", "`wod` block parses into" | "Whiteboard Wiki" or "WOD Wiki (powered by Whiteboard)" |
-| `README.md` | "WOD Wiki", "`wod` block syntax" | Keep "WOD Wiki" as product name, add "Whiteboard Language" |
-| `docs/README.md` | "WOD Wiki — Documentation" | Same |
-| `.storybook/manager-head.html` | `wod-wiki-logo-*.png` | Asset rename |
-| `.env.example` | "WOD Wiki API server" | "Whiteboard API server" |
-| `.github/codeql/codeql-config.yml` | "WOD Wiki CodeQL Configuration" | Update |
-| `.github/workflows/*.yml` | `wod.wiki`, `wod-wiki-preview`, `WOD-436`, `WOD-733` | URLs stay; issue references stay |
-| `.github/prompts/wod-convert.prompt.md` | "WOD Convert", "WOD blocks" | Entire file is about the convert prompt |
+| `CONTEXT.md` | "WOD Wiki — Domain Context", "`wod` block parses into" | Keep "WOD Wiki", change "`wod` block" → "Whiteboard block" |
+| `README.md` | "WOD Wiki", "`wod` block syntax" | Keep "WOD Wiki", add "powered by the Whiteboard Language" tagline |
+| `docs/README.md` | "WOD Wiki — Documentation" | Keep "WOD Wiki" |
+| `.storybook/manager-head.html` | `wod-wiki-logo-*.png` | Keep — logo stays |
+| `.env.example` | "WOD Wiki API server" | Keep |
+| `.github/codeql/codeql-config.yml` | "WOD Wiki CodeQL Configuration" | Keep |
+| `.github/workflows/*.yml` | `wod.wiki`, `wod-wiki-preview`, `WOD-436`, `WOD-733` | Keep — URLs and issue refs stay |
+| `.github/prompts/wod-convert.prompt.md` | "WOD Convert", "WOD blocks" | Update to "Whiteboard Convert", "Whiteboard blocks" |
 
-### 1.4 External Identity (High Impact, Low Urgency)
+### 1.4 External Identity — DECIDED
 
-| Surface | Current | Proposed | Notes |
+| Surface | Current | Decision | Notes |
 |---------|---------|----------|-------|
-| npm package | `@bitcobblers/wod-wiki-library` | `@bitcobblers/whiteboard-wiki` or keep | npm namespace change requires deprecation cycle |
-| GitHub repo | `SergeiGolos/wod-wiki` | `SergeiGolos/whiteboard-wiki` | GitHub handles redirects, but CI URLs change |
-| Domain | `wod.wiki`, `preview.wod.wiki` | Could add `whiteboard.wiki` alias | DNS changes |
-| Logo files | `wod-wiki-logo-*.png` | `whiteboard-wiki-logo-*.png` | Asset rename |
-| Storybook | Story titles use "Tracker", "WOD" | Update story metadata | Cosmetic |
+| **npm package** | `@bitcobblers/wod-wiki-library` | → `@bitcobblers/whiteboard-lang` | Deprecation cycle: publish both, point old to new |
+| GitHub repo | `SergeiGolos/wod-wiki` | **Keep** | GitHub redirects are fragile for CI |
+| Domain | `wod.wiki`, `preview.wod.wiki` | **Keep** | Product URL = product name |
+| Logo files | `wod-wiki-logo-*.png` | **Keep** | Product branding |
+| Storybook | Story titles use "Tracker", "WOD" | Update to "WallClock", keep "WOD Wiki" | Cosmetic |
 
 ### 1.5 Documentation
 
@@ -285,33 +289,51 @@ These are internal implementation details, NOT user-facing:
 2. Rename `VALID_WOD_DIALECTS` → `VALID_FENCE_DIALECTS`
 3. Rename `TrackerPage` → `WallClockPage` (playground + e2e + stories)
 4. Rename `timer-panel*.tsx` → `wallclock-panel*.tsx`
-5. Rename `wod-*.ts/tsx` editor extensions → `whiteboard-*.ts/tsx` (or `script-*.ts`)
+5. Rename `wod-*.ts/tsx` editor extensions → `whiteboard-*.ts/tsx`
 6. Rename `WodCommand` → `ScriptCommand`
-7. Update storybook categories: Tracker → WallClock
-8. Run `check:architecture` to verify no broken imports
+7. Rename `WodCompanion` → `WhiteboardCompanion`
+8. Rename `WodPlaygroundButton` → `WhiteboardPlaygroundButton`
+9. Rename `WodIndexPanel` → `ScriptIndexPanel`
+10. Rename `AddWodToNoteDropdown` → `AddScriptToNoteDropdown`
+11. Rename `useWod*` hooks → `useScript*` / `useWhiteboard*`
+12. Rename `wod-*` repository files → `script-*`
+13. Update storybook categories: Tracker → WallClock
+14. Run `check:architecture` to verify no broken imports
 
-### Phase 2: Route Aliases (Medium Risk)
-1. Add `/wallclock/:runtimeId` as new canonical route
-2. Keep `/tracker/:runtimeId` as redirect (backward compat for bookmarks/deep links)
-3. Keep `/run/:runtimeId` as-is (it's the verb, not the feature name)
-
-### Phase 3: Fence Tag Alias (Medium Risk)
-1. Add `whiteboard` as accepted fence tag alongside `wod`
-2. Update docs to show ` ```whiteboard ` as canonical
+### Phase 2: Fence Tag Alias (Medium Risk)
+1. Add `whiteboard` as accepted fence tag alongside `wod` in the parser/grammar
+2. Map `whiteboard` → `wod` dialect internally (same behavior, different fence name)
 3. Keep `wod` fence accepted by parser forever (backward compat)
-4. Update `WodDialect` type to `'wod' | 'log' | 'plan' | 'whiteboard'` or map `whiteboard` → `wod` dialect
+4. Update editor autocomplete to show both `wod` and `whiteboard`
 
-### Phase 4: Documentation Sweep (Low Risk)
-1. Update all docs to use "Whiteboard Language" / "Whiteboard Script"
-2. Update all docs to use "WallClock" for the execution feature
-3. Update CONTEXT.md, AGENTS.md, CLAUDE.md, .goosehints
+### Phase 3: Route Aliases (Low Risk)
+1. Keep `/run/:runtimeId` as-is (it's the verb, not the feature name)
+2. Keep `/tracker/:runtimeId` as redirect (backward compat for bookmarks)
+3. Optionally add `/wallclock/:runtimeId` as alias (defer if not needed)
+
+### Phase 4: Package Rename (Medium Risk, CI-impacting)
+1. Update `package.json` name: `@bitcobblers/whiteboard-lang`
+2. Update all import paths in CI workflows that reference the old package name
+3. Update `bun.lock` (regenerate)
+4. Publish `@bitcobblers/whiteboard-lang` to npm
+5. Deprecate `@bitcobblers/wod-wiki-library` with a pointer to the new name
+6. Update `AGENTS.md`, `CLAUDE.md` package references
+
+### Phase 5: Documentation Sweep (Low Risk)
+1. Update all docs: "WOD Wiki" stays as product name, language → "Whiteboard Language"
+2. Update all docs: "Tracker" → "WallClock" in feature descriptions
+3. Update `CONTEXT.md` — keep "WOD Wiki — Domain Context" title, update language references
 4. Update skill descriptions in `.agent/` and `.gemini/`
+5. Update `.goosehints`
+6. Update `.github/prompts/wod-convert.prompt.md` → language references only
 
-### Phase 5: External Identity (High Impact, Separate Decision)
-1. Package name discussion (`@bitcobblers/wod-wiki-library` → ???)
-2. GitHub repo rename (or not)
-3. Domain strategy (add `whiteboard.wiki` alias?)
-4. Logo/branding assets
+### NOT in scope
+- GitHub repo rename (`SergeiGolos/wod-wiki` stays)
+- Domain/URL changes (`wod.wiki` stays)
+- Logo asset changes
+- Removing `wod` fence tag support
+- Renaming `WodDialect` class (CrossFit domain concept, not the language)
+- Renaming internal runtime types (`TimerBehavior`, `RuntimeClock`, etc.)
 
 ---
 
@@ -321,28 +343,28 @@ These are internal implementation details, NOT user-facing:
 - `src/`: 22 files
 - `playground/`: 2 files
 - `.agent/.gemini/`: skill configs (not code)
-- Logo assets: 2 PNGs
+- Logo assets: 2 PNGs (staying as-is)
 
 ### Files with "tracker" in name: 0 code files
 - "Tracker" appears as component names (`TrackerPage`) and story titles, not as file names (except storybook `Tracker/` dir)
 
 ### Files with "timer" in name: 12
-- `src/panels/`: 2 files
-- `src/parser/`: 2 files
-- `src/clock/components/`: 1 file
-- `src/runtime/behaviors/__tests__/`: 1 file
-- `tests/`: 3 files
+- `src/panels/`: 2 files (→ `wallclock-panel*`)
+- `src/parser/`: 2 files (keeping — internal)
+- `src/clock/components/`: 1 file (keeping — internal)
+- `src/runtime/behaviors/__tests__/`: 1 file (keeping)
+- `tests/`: 3 files (keeping)
 - `e2e/`: 1 file
 - `markdown/canvas/`: ~8 content files
 
 ### String literal hits (approximate):
 - "wod" (case-insensitive): **338+ matches** across 100+ files
 - "tracker" (case-insensitive): **99+ matches** across 40+ files
-- "timer" (case-insensitive): **351+ matches** across 80+ files (many are internal behavior/code)
-- "whiteboard" (case-insensitive): **105+ matches** across 30+ files (already partially adopted)
-- "wallclock" / "wall clock": **36+ matches** across 15+ files (already partially adopted)
+- "timer" (case-insensitive): **351+ matches** across 80+ files (many internal — not renamed)
+- "whiteboard" (case-insensitive): **105+ matches** across 30+ files (already adopted)
+- "wallclock" / "wall clock": **36+ matches** across 15+ files (already adopted)
 
-### Code identifiers to rename: ~12
-### Files to rename: ~20
-### Route patterns to add/alias: 1
+### Code identifiers to rename: ~15
+### Files to rename: ~22
+### Route patterns to add/alias: 0-1 (optional)
 ### Documentation files to update: ~15

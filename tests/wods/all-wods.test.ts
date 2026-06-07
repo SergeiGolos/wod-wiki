@@ -50,7 +50,7 @@ function extractWodBlocks(content: string): string[] {
     return blocks;
 }
 
-const wodDir = join(process.cwd(), 'wod');
+const wodDir = join(process.cwd(), 'markdown/collections');
 const mdFiles = findMarkdownFiles(wodDir);
 
 describe('WOD Integration Tests', () => {

@@ -145,6 +145,8 @@ export interface MetricInlinePanelProps {
   view: EditorView | null;
   /** Increment when cursor line changes (drives re-render). */
   cursorVersion: number;
+  /** Optional override of getCursorFocusState for testing. */
+  getCursorFocusState?: typeof getCursorFocusState;
   /** Commands available on WOD blocks (forwarded to action buttons). */
   commands?: WodCommand[];
   /** Note ID (forwarded to commands if needed). */
@@ -154,6 +156,7 @@ export interface MetricInlinePanelProps {
 export const MetricInlinePanel: React.FC<MetricInlinePanelProps> = ({
   view,
   cursorVersion,
+  getCursorFocusState: getCursorFocusStateProp,
 }) => {
   const [pos, setPos] = useState<PanelPosition | null>(null);
   const [statement, setStatement] = useState<ICodeStatement | null>(null);
@@ -169,7 +172,7 @@ export const MetricInlinePanel: React.FC<MetricInlinePanelProps> = ({
       return;
     }
 
-    const focus = getCursorFocusState(view.state);
+    const focus = (getCursorFocusStateProp ?? getCursorFocusState)(view.state);
     if (!focus) {
       setStatement(null);
       setSection(null);
