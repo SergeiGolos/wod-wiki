@@ -1,6 +1,6 @@
 import { JitCompiler } from '@/runtime/compiler';
 import { IRuntimeBlockStrategy } from '@/runtime/contracts';
-import { IScriptRuntime } from '@/runtime/contracts';
+
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { sharedParser } from '@/parser/parserInstance';
 import { RuntimeMemory } from '@/runtime/RuntimeMemory';

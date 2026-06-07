@@ -597,10 +597,6 @@ function widgetSectionAtLine(
   ) ?? null;
 }
 
-function isCursorInsideSection(state: EditorState, section: EditorSection): boolean {
-  const { head } = state.selection.main;
-  return head >= section.from && head <= section.to;
-}
 
 function moveToLinePreservingColumn(view: EditorView, targetLine: Line): void {
   const { head } = view.state.selection.main;

@@ -5,16 +5,16 @@
  * in realistic runtime scenarios.
  */
 
-import { vi, expect } from 'bun:test';
+import { expect } from 'bun:test';
 import { IRuntimeBehavior } from '../../../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../../../contracts/IBehaviorContext';
 import { IRuntimeBlock } from '../../../contracts/IRuntimeBlock';
-import { MemoryType, MemoryTypeMap, TimerState, RoundState, DisplayState } from '../../../memory/MemoryTypes';
+import { MemoryType, MemoryTypeMap, TimerState, RoundState } from '../../../memory/MemoryTypes';
 import { TimeSpan } from '../../../models/TimeSpan';
 import { IMemoryLocation, MemoryTag, MemoryLocation } from '../../../memory/MemoryLocation';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
 import { CurrentRoundMetric } from '../../../compiler/metrics/CurrentRoundMetric';
-import { RoundState } from '../../../memory/MemoryTypes';
+
 
 /**
  * Mock clock for deterministic time control in tests.

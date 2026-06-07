@@ -5,7 +5,7 @@ import { CommitGraph } from '@/components/organisms/CommitGraph';
 import { Button } from '@/components/atoms/primitives/button';
 import { Search, HelpCircle, PanelRightOpen, Book, Library, LayoutGrid, ChevronDown } from 'lucide-react';
 import { useTutorialStore } from '@/hooks/useTutorialStore';
-import { useNotebooks } from '@/components/organisms/notebook/NotebookContext';
+import { useNotebooks } from '@/contexts/NotebookContext';
 import { DebugButton } from '@/contexts/DebugModeContext';
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc';
 import { useScreenMode } from '@/panels/panel-system/useScreenMode';

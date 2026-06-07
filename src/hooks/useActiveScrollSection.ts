@@ -155,7 +155,7 @@ export function useActiveScrollSection({
           debounceTimerRef.current = setTimeout(() => {
             onChangeRef.current(bestId);
             debounceTimerRef.current = null;
-          }, debounceMs);
+          }, debounceMs) as unknown as number;
         } else {
           onChangeRef.current(bestId);
         }

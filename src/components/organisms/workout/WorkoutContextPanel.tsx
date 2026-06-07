@@ -70,9 +70,7 @@ export const WorkoutContextPanel: React.FC<WorkoutContextPanelProps> = ({
   mode,
   showStartButton = false,
   onStart,
-  onEditStatement,
-  onDeleteStatement,
-  onAddStatement,
+
   activeStatementIds = new Set(),
   showErrors = false,
   showMetadata = false,

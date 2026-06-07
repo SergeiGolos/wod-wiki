@@ -1,4 +1,4 @@
-import { MetricType, IMetric, MetricOrigin } from '../models/Metric';
+import { IMetric, MetricOrigin } from '../models/Metric';
 import { MetricFilter } from '../contracts/IMetricSource';
 import { resolveVisibleMetricsWithOwnership } from '../metrics/ownership';
 

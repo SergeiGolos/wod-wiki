@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Cast, ArrowUpRight } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Cast } from 'lucide-react'
 import { ChromecastSdk } from '@/hooks/useCastSignaling'
 
 export function CastCallout() {

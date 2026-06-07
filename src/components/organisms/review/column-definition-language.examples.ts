@@ -10,7 +10,7 @@
  * @see docs/adr/0011-column-definition-language.md
  */
 
-import type { ColumnDef, ColumnSource } from './column-definition-language';
+import type { ColumnDef } from './column-definition-language';
 import { MetricType } from '@/core/models/Metric';
 
 // ═══════════════════════════════════════════════════════════════
@@ -111,7 +111,7 @@ export const effortLabelGroupedColumn: ColumnDef = {
     separator: '',
     primaryFormat: {
       type: 'badge',
-      styleResolver: (value) => ({
+      styleResolver: (_value) => ({
         className: 'badge-effort',
         icon: '💪',
       }),
@@ -313,7 +313,7 @@ export const repColumnSimple: ColumnDef = {
   },
   format: {
     type: 'badge',
-    styleResolver: (value) => ({
+    styleResolver: (_value) => ({
       className: 'badge-rep',
       icon: '●',
     }),

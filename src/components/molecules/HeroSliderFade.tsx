@@ -23,7 +23,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import type { WidgetProps } from "./types";
+import type { WidgetProps } from '@/components/Editor/widgets/types';
 
 // ── Types ────────────────────────────────────────────────────────────
 

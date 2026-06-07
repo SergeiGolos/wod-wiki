@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Copy, Calendar, Loader2, ChevronDown } from 'lucide-react';
+import { Plus, Copy, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import {
     DropdownMenu,

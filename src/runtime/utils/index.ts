@@ -2,6 +2,4 @@
  * Runtime utilities for metrics operations
  */
 
-export {
-  fragmentsToLabel
-} from './metricUtils';
+export { metricsToLabel as fragmentsToLabel } from './metricUtils';

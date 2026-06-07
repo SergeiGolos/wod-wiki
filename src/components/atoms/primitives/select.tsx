@@ -1,6 +1,6 @@
 import * as Headless from '@headlessui/react'
 import { cn } from "@/lib/utils"
-import React, { forwardRef } from 'react'
+import { forwardRef } from 'react'
 
 export const Select = forwardRef<HTMLSelectElement, {
   className?: string

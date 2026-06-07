@@ -1,10 +1,7 @@
 import { IMetric, MetricType, MetricOrigin } from './Metric';
 import { IMetricSource, MetricFilter } from '../contracts/IMetricSource';
 import { resolveMetricPrecedence, ORIGIN_PRECEDENCE } from '../utils/metricPrecedence';
-import {
-    resolveVisibleMetricByTypeWithOwnership,
-    resolveVisibleMetricsByTypeWithOwnership,
-} from '../metrics/ownership';
+import { resolveVisibleMetricByTypeWithOwnership } from '../metrics/ownership';
 
 /**
  * MetricContainer — a typed collection for `IMetric` objects.

@@ -175,7 +175,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onDispose(ctx: IBehaviorContext): void {
+    onDispose(_ctx: IBehaviorContext): void {
         for (const unsub of this.subscriptions) {
             try { unsub(); } catch { /* no-op */ }
         }

@@ -36,6 +36,8 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  plain?: boolean
+  href?: string
 }
 
 const Button = React.memo(React.forwardRef<HTMLButtonElement, ButtonProps>(

@@ -1,4 +1,4 @@
-import { IMetric } from '../../core/models/Metric';
+
 import { MetricContainer } from '../../core/models/MetricContainer';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { RuntimeBlock } from '../RuntimeBlock';

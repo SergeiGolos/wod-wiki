@@ -36,7 +36,7 @@ import { useUserOverrides } from '@/components/organisms/review/useUserOverrides
 import { buildWorkoutResults, countSegmentOutputs, createRuntimeForBlock, prepareRuntimeBlock } from "@/app/editor/runtimeTimerModel";
 import { useCollectionMetrics, resolveChoiceSelection } from "@/hooks/useCollectionMetrics";
 import { CollectionWizard } from "@/components/organisms/review/CollectionWizard";
-import { MetricContainer } from "@/core/models/MetricContainer";
+
 import type { ChoiceCollectionItem } from "@/hooks/useCollectionMetrics";
 
 // ── Types ───────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { Attachment } from '../../types/storage';
+
 
 export interface AttachmentMetadata {
   label: string;

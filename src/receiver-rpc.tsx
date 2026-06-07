@@ -75,7 +75,7 @@ const ReceiverApp: React.FC = () => {
         setProxyRuntime(null);
     }, [sendEvent]);
 
-    const { getFocusProps, setFocusedId, reset } = useSpatialNavigation({
+    const { getFocusProps, reset } = useSpatialNavigation({
         enabled: !!proxyRuntime,
         initialFocusId: workbenchState.mode === 'preview'
             ? 'preview-block-0'

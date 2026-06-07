@@ -5,8 +5,7 @@
  * in realistic runtime scenarios.
  */
 
-import { TimeSpan } from '@/core';
-import { vi, expect } from 'bun:test';
+import { expect } from 'bun:test';
 import { IRuntimeBlock, IRuntimeBehavior } from '../contracts';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { MemoryTypeMap, TimerState, MemoryType, RoundState } from '../memory/MemoryTypes';
@@ -213,7 +212,7 @@ export function createIntegrationContext(
             });
         },
 
-        emitOutput(type: string, metrics: unknown[], metadata: unknown) {
+        emitOutput(type: string, _metrics: unknown[], metadata: unknown) {
             runtime.outputs.push({ type, metric, metadata });
         },
 
