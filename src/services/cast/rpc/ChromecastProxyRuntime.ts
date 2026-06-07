@@ -13,10 +13,10 @@ import { BlockKey } from '@/core/models/BlockKey';
 import { WhiteboardScript } from '@/parser/WhiteboardScript';
 import { JitCompiler } from '@/runtime/compiler/JitCompiler';
 import { IAnalyticsEngine } from '@/core/contracts/IAnalyticsEngine';
+import { INowProvider, wallClockNow } from '@/runtime/INowProvider';
 import type { IRpcTransport } from './IRpcTransport';
 import type { RpcMessage, RpcStackUpdate, RpcOutputStatement, RpcWorkbenchUpdate, RpcTrackerUpdate, RpcClockSyncResponse } from './RpcMessages';
 import { ProxyBlock } from './ProxyBlock';
-
 // ── Stub implementations ────────────────────────────────────────────────────
 
 /**
@@ -68,12 +68,15 @@ class ProxyStack implements IRuntimeStack {
  * from the serialized block state and interpolates elapsed locally.
  */
 class ProxyClock implements IRuntimeClock {
-    get now(): Date { return new Date(); }
+    constructor(private readonly _now: INowProvider = wallClockNow) {}
+    get currentDate(): Date { return this._now.now(); }
+    now(): Date { return this._now.now(); }
+    nowMs(): number { return this._now.nowMs(); }
     get elapsed(): number { return 0; }
     get isRunning(): boolean { return false; }
     get spans(): ReadonlyArray<TimeSpan> { return []; }
-    start(): Date { return new Date(); }
-    stop(): Date { return new Date(); }
+    start(): Date { return this._now.now(); }
+    stop(): Date { return this._now.now(); }
 }
 
 /**
@@ -162,6 +165,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     readonly jit: JitCompiler = null as any; // Not available on proxy
     readonly clock: IRuntimeClock;
     readonly errors: never[] = [];
+    readonly nowProvider: INowProvider;
     readonly tracker: RuntimeStackTracker;
 
     private proxyStack: ProxyStack;
@@ -194,13 +198,16 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
      * Positive offset means receiver's clock is ahead of sender's.
      */
     private clockOffsetMs: number = 0;
-
-    constructor(private readonly transport: IRpcTransport) {
+    constructor(
+        private readonly transport: IRpcTransport,
+        private readonly _now: INowProvider = wallClockNow,
+    ) {
         this.proxyStack = new ProxyStack();
         this.proxyEventBus = new ProxyEventBus();
         this.stack = this.proxyStack;
         this.eventBus = this.proxyEventBus;
-        this.clock = new ProxyClock();
+        this.nowProvider = this._now;
+        this.clock = new ProxyClock(this._now);
 
         this.tracker = {
             onUpdate: (callback: TrackerListener) => this.subscribeToTracker(callback),
@@ -222,7 +229,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             type: 'initial',
             blocks: this.proxyStack.blocks,
             depth: this.proxyStack.count,
-            clockTime: new Date(),
+            clockTime: this._now.now(),
         });
         return () => this.stackObservers.delete(observer);
     }
@@ -273,7 +280,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
      * @returns The sender's clock time as a Date
      */
     getSenderClockTime(): Date {
-        return new Date(Date.now() - this.clockOffsetMs);
+        return new Date(this._now.nowMs() - this.clockOffsetMs);
     }
 
     /**
@@ -283,7 +290,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
      * @returns The sender's clock time in milliseconds since epoch
      */
     getSenderClockTimeMs(): number {
-        return Date.now() - this.clockOffsetMs;
+        return this._now.nowMs() - this.clockOffsetMs;
     }
 
     /**
@@ -548,7 +555,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         const response: RpcClockSyncResponse = {
             type: 'rpc-clock-sync-response',
             requestTimestamp: message.timestamp,
-            receiverTimestamp: Date.now(),
+            receiverTimestamp: this._now.nowMs(),
         };
         this.transport.send(response);
     }

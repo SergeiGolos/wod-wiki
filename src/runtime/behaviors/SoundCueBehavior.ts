@@ -73,7 +73,7 @@ export class SoundCueBehavior implements IRuntimeBehavior {
                 if (!timer || timer.direction !== 'down' || !timer.durationMs) return [];
 
                 // Calculate remaining seconds using TimeSpan properties
-                const now = tickCtx.clock.now.getTime();
+                const now = tickCtx.clock.currentDate.getTime();
                 let elapsed = 0;
                 for (const span of timer.spans) {
                     const end = span.ended ?? now;

@@ -62,7 +62,7 @@ export class ButtonBehavior implements IRuntimeBehavior {
                 eventName: button.eventName
             },
             sourceBlockKey: ctx.block.key.toString(),
-            timestamp: ctx.clock.now,
+            timestamp: ctx.clock.currentDate,
         })), ctx.block.key.toString());
 
         // Push action metrics to list-based memory

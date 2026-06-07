@@ -113,7 +113,7 @@ const TrackerMobileHarness: React.FC<TrackerMobileHarnessProps> = ({
     rt.do(new StartSessionAction({ label: 'Story Session' }));
 
     if (initialState === 'active') {
-      rt.do(new NextAction());
+      rt.do(new NextAction(undefined, rt.nowProvider));
     }
 
     setRuntime(rt);
@@ -184,7 +184,7 @@ const ExecutionBound: React.FC<{
     onStop({ elapsed: execution.elapsedTime });
   };
   const handleNext = () => {
-    runtime.do(new NextAction());
+    runtime.do(new NextAction(undefined, runtime.nowProvider));
     onNext({ elapsed: execution.elapsedTime });
   };
 

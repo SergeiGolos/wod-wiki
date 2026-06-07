@@ -175,11 +175,11 @@ describe('ExecutionContext LIFO Stack Behavior', () => {
         const actionA: IRuntimeAction = {
             type: 'A',
             do: (runtime: IScriptRuntime) => {
-                timestamps.push(runtime.clock.now.getTime());
+                timestamps.push(runtime.clock.currentDate.getTime());
                 runtime.do({
                     type: 'B',
                     do: (rt: IScriptRuntime) => {
-                        timestamps.push(rt.clock.now.getTime());
+                        timestamps.push(rt.clock.currentDate.getTime());
                     }
                 });
             }

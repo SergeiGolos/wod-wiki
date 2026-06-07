@@ -82,8 +82,8 @@ function runToCompletion(
   let steps = 0;
   while (runtime.stack.count > 0 && steps < maxSteps) {
     clock.advance(stepMs);
-    runtime.handle(new TickEvent());
-    runtime.do(new NextAction());
+    runtime.handle(new TickEvent(undefined, runtime.nowProvider));
+    runtime.do(new NextAction(undefined, runtime.nowProvider));
     steps++;
   }
 

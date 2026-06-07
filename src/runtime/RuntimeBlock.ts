@@ -201,7 +201,7 @@ export class RuntimeBlock implements IRuntimeBlock {
 
         // Use provided clock or fall back to runtime clock
         const clock = options?.clock ?? runtime.clock;
-        this.executionTiming.startTime = options?.startTime ?? clock.now;
+        this.executionTiming.startTime = options?.startTime ?? clock.currentDate;
 
         // Register default event handlers
         this.registerDefaultHandler();
@@ -297,7 +297,7 @@ export class RuntimeBlock implements IRuntimeBlock {
     unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
         // Use provided clock or fall back to runtime clock
         const clock = options?.clock ?? runtime.clock;
-        this.executionTiming.endTime = options?.completedAt ?? clock.now;
+        this.executionTiming.endTime = options?.completedAt ?? clock.currentDate;
 
         const actions: IRuntimeAction[] = [];
 
@@ -326,7 +326,7 @@ export class RuntimeBlock implements IRuntimeBlock {
         // Emit unmount event and capture any resulting actions
         const unmountEventActions = runtime.eventBus.dispatch({
             name: 'unmount',
-            timestamp: runtime.clock.now,
+            timestamp: runtime.clock.currentDate,
             data: { blockKey: this.key.toString() }
         }, runtime);
         if (unmountEventActions.length > 0) {
@@ -415,7 +415,7 @@ export class RuntimeBlock implements IRuntimeBlock {
      * Called directly from next() to ensure accurate timing.
      */
     private emitNextSystemOutput(runtime: IScriptRuntime, clock: IRuntimeClock): void {
-        const now = clock.now;
+        const now = clock.currentDate;
 
         // Build structured data for the metrics value
         interface SystemOutputValue {

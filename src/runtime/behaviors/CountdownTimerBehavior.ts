@@ -60,7 +60,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
     private isPaused = false;
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const now = ctx.clock.now.getTime();
+        const now = ctx.clock.currentDate.getTime();
         const label = this.config.label ?? ctx.block.label;
         const role = this.config.role === 'hidden' ? 'auto' : (this.config.role ?? 'primary');
         const mode = this.config.mode ?? 'complete-block';
@@ -91,7 +91,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
                     return [];
                 }
 
-                const elapsed = calculateElapsed(timer, tickCtx.clock.now.getTime());
+                const elapsed = calculateElapsed(timer, tickCtx.clock.currentDate.getTime());
                 if (elapsed < timer.durationMs) return [];
 
                 this.handleExpiry(tickCtx, mode);
@@ -134,7 +134,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
         if (this.config.required && !ctx.block.isComplete) {
             ctx.emitEvent({
                 name: 'timer:skip-attempt' as any,
-                timestamp: ctx.clock.now,
+                timestamp: ctx.clock.currentDate,
                 data: { blockKey: ctx.block.key.toString() }
             });
             return [];
@@ -187,7 +187,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
     private handleExpiry(ctx: IBehaviorContext, mode: CountdownMode): void {
         ctx.emitEvent({
             name: 'timer:complete',
-            timestamp: ctx.clock.now,
+            timestamp: ctx.clock.currentDate,
             data: { blockKey: ctx.block.key.toString() }
         });
 
@@ -216,7 +216,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
                     round.current + 1,
                     round.total,
                     ctx.block.key.toString(),
-                    ctx.clock.now,
+                    ctx.clock.currentDate,
                 );
                 ctx.updateMemory('round', [roundFragment]);
             }
@@ -238,7 +238,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
             return 0;
         }
 
-        const now = ctx.clock.now.getTime();
+        const now = ctx.clock.currentDate.getTime();
         const elapsed = calculateElapsed(timer, now);
         return Math.max(0, timer.durationMs - elapsed);
     }
@@ -250,7 +250,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
             origin: 'runtime',
             value: state,
             sourceBlockKey: ctx.block.key.toString(),
-            timestamp: ctx.clock.now,
+            timestamp: ctx.clock.currentDate,
         };
     }
 }

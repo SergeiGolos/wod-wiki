@@ -50,7 +50,7 @@ describe('Loop Block Integration', () => {
             round.current + 1,
             round.total,
             'test-block',
-            ctx.clock.now,
+            ctx.clock.currentDate,
         );
         ctx.updateMemory('round', [frag]);
     }

@@ -1,6 +1,6 @@
 import { IEvent } from '../contracts/events/IEvent';
 import { IMemoryReference } from '../contracts/IMemoryReference';
-
+import { INowProvider, wallClockNow } from '../INowProvider';
 /**
  * Base class for memory events.
  */
@@ -8,8 +8,8 @@ abstract class BaseMemoryEvent implements IEvent {
   abstract readonly name: string;
   readonly timestamp: Date;
 
-  constructor() {
-    this.timestamp = new Date();
+  constructor(now: INowProvider = wallClockNow) {
+    this.timestamp = now.now();
   }
 }
 
@@ -23,8 +23,8 @@ export class MemoryAllocateEvent extends BaseMemoryEvent {
     value: unknown;
   };
 
-  constructor(ref: IMemoryReference, value: unknown) {
-    super();
+  constructor(ref: IMemoryReference, value: unknown, now: INowProvider = wallClockNow) {
+    super(now);
     this.data = { ref, value };
   }
 }
@@ -40,8 +40,8 @@ export class MemorySetEvent extends BaseMemoryEvent {
     oldValue: unknown;
   };
 
-  constructor(ref: IMemoryReference, value: unknown, oldValue: unknown) {
-    super();
+  constructor(ref: IMemoryReference, value: unknown, oldValue: unknown, now: INowProvider = wallClockNow) {
+    super(now);
     this.data = { ref, value, oldValue };
   }
 }
@@ -56,8 +56,8 @@ export class MemoryReleaseEvent extends BaseMemoryEvent {
     lastValue: unknown;
   };
 
-  constructor(ref: IMemoryReference, lastValue: unknown) {
-    super();
+  constructor(ref: IMemoryReference, lastValue: unknown, now: INowProvider = wallClockNow) {
+    super(now);
     this.data = { ref, lastValue };
   }
 }

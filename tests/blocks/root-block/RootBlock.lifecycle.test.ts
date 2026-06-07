@@ -124,7 +124,7 @@ describe('RootBlock Lifecycle', () => {
         // Advance time
         harness.advanceClock(300000); // 5 minutes
 
-        const completionTime = harness.clock.now;
+        const completionTime = harness.clock.currentDate;
         rootBlock.unmount(harness.runtime, { completedAt: completionTime });
 
         // Expectations: Timing captured
@@ -184,13 +184,13 @@ describe('RootBlock Lifecycle', () => {
         harness.executeAction({
             type: 'mount-root',
             do: (runtime) => {
-                timestamps.push(runtime.clock.now);
+                timestamps.push(runtime.clock.currentDate);
                 const actions = rootBlock.mount(runtime);
-                timestamps.push(runtime.clock.now);
+                timestamps.push(runtime.clock.currentDate);
                 actions.forEach(action => {
-                    timestamps.push(runtime.clock.now);
+                    timestamps.push(runtime.clock.currentDate);
                     action.do(runtime);
-                    timestamps.push(runtime.clock.now);
+                    timestamps.push(runtime.clock.currentDate);
                 });
             }
         });

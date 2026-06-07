@@ -81,7 +81,7 @@ export function mutateTimerSpans(
     const timer = fragment?.value as TimerState | undefined;
     if (!timer || !fragment) return false;
 
-    const spans = transform(timer.spans, ctx.clock.now.getTime());
+    const spans = transform(timer.spans, ctx.clock.currentDate.getTime());
     ctx.updateMemory(TIME_TAG, [{ ...fragment, value: { ...timer, spans } }]);
     return true;
 }

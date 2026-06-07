@@ -1,6 +1,6 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
-
+import { INowProvider, wallClockNow } from '../../INowProvider';
 /**
  * Action for playing sounds during workout execution.
  * 
@@ -33,7 +33,8 @@ export class PlaySoundAction implements IRuntimeAction {
     /** Volume level (0.0 to 1.0). Default is 1.0 */
     public readonly volume: number = 1.0,
     /** Optional cue ID for tracking which cue triggered this sound */
-    public readonly cueId?: string
+    public readonly cueId?: string,
+    private readonly now: INowProvider = wallClockNow,
   ) {
     // Validate volume range
     if (volume < 0 || volume > 1) {
@@ -48,7 +49,7 @@ export class PlaySoundAction implements IRuntimeAction {
   do(runtime: IScriptRuntime): IRuntimeAction[] {
     const event = {
       name: 'sound:play',
-      timestamp: new Date(),
+      timestamp: this.now.now(),
       data: {
         sound: this.sound,
         volume: this.volume,

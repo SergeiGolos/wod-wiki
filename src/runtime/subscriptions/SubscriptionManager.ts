@@ -86,7 +86,7 @@ export class SubscriptionManager {
                 type: 'initial',
                 blocks: [...this.runtime.stack.blocks],
                 depth: this.runtime.stack.count,
-                clockTime: this.runtime.clock.now,
+                clockTime: this.runtime.clock.currentDate,
             });
 
             const currentOutputs = this.runtime.getOutputStatements();

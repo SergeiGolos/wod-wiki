@@ -1,4 +1,5 @@
 import { ScriptRuntime, ScriptRuntimeDependencies } from '@/runtime/ScriptRuntime';
+import { MetricContainer } from '@/core/models/MetricContainer';
 import { MockJitCompiler } from './MockJitCompiler';
 import { createMockClock } from '@/runtime/RuntimeClock';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
@@ -21,7 +22,7 @@ function createMockStatement(config: { id: number; source?: string }): ICodeStat
     id: config.id,
     parent: undefined,
     children: [],
-    metrics: [],
+    metrics: MetricContainer.empty(),
     isLeaf: true,
     meta: {
       line: config.id,
@@ -31,8 +32,9 @@ function createMockStatement(config: { id: number; source?: string }): ICodeStat
       endOffset: 0,
       length: 0,
       raw: config.source ?? `statement-${config.id}`
-    } as any
-  };
+    } as any,
+    metricMeta: new Map(),
+  } as unknown as ICodeStatement;
 }
 
 /**
@@ -203,7 +205,7 @@ export class ExecutionContextTestHarness {
       self._currentIteration++;
       self._actionExecutions.push({
         action,
-        timestamp: new Date(self.clock.now.getTime()),
+        timestamp: new Date(self.clock.currentDate.getTime()),
         iteration: self._currentIteration,
         turnId: self._currentTurnId
       });
@@ -233,7 +235,7 @@ export class ExecutionContextTestHarness {
 
       self._actionExecutions.push({
         action,
-        timestamp: new Date(self.clock.now.getTime()),
+        timestamp: new Date(self.clock.currentDate.getTime()),
         iteration: self._currentIteration,
         turnId: self._currentTurnId
       });
@@ -257,7 +259,7 @@ export class ExecutionContextTestHarness {
       // Instead, we record the event and note that actions were handled
       this._eventDispatches.push({
         event,
-        timestamp: new Date(this.clock.now.getTime()),
+        timestamp: new Date(this.clock.currentDate.getTime()),
         resultingActions: [], // Actions are handled by emit(), not captured here
         turnId: this._currentTurnId
       });

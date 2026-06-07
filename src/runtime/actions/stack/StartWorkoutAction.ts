@@ -76,7 +76,7 @@ export class StartWorkoutAction implements IRuntimeAction {
 
         // Build lifecycle options with start time
         const lifecycle: BlockLifecycleOptions = {
-            startTime: runtime.clock.now,
+            startTime: runtime.clock.currentDate,
             ...this.options.lifecycle
         };
 

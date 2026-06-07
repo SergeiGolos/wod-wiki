@@ -96,10 +96,10 @@ function runToCompletion(
     clock.advance(stepMs);
 
     // Dispatch a tick so timer behaviors see the new time
-    runtime.handle(new TickEvent());
+    runtime.handle(new TickEvent(undefined, runtime.nowProvider));
 
     // Advance to next block (user pressing "Next" or block auto-completing)
-    runtime.do(new NextAction());
+    runtime.do(new NextAction(undefined, runtime.nowProvider));
 
     steps++;
   }

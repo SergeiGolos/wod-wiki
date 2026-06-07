@@ -29,7 +29,7 @@ describe('Factory Methods', () => {
     it('should create harness with default clock time', () => {
       harness = createTimerTestHarness();
 
-      expect(harness.clock.now.getTime()).toBe(
+      expect(harness.clock.currentDate.getTime()).toBe(
         new Date('2024-01-01T12:00:00Z').getTime()
       );
     });
@@ -39,7 +39,7 @@ describe('Factory Methods', () => {
 
       harness = createTimerTestHarness({ clockTime: time });
 
-      expect(harness.clock.now.getTime()).toBe(time.getTime());
+      expect(harness.clock.currentDate.getTime()).toBe(time.getTime());
     });
 
     it('should create harness with custom max depth', () => {
@@ -74,7 +74,7 @@ describe('Factory Methods', () => {
 
       harness = createBehaviorTestHarness(behavior, { clockTime: time });
 
-      expect(harness.clock.now.getTime()).toBe(time.getTime());
+      expect(harness.clock.currentDate.getTime()).toBe(time.getTime());
     });
   });
 
@@ -90,7 +90,7 @@ describe('Factory Methods', () => {
 
       harness = createCompilationTestHarness([], { clockTime: time });
 
-      expect(harness.clock.now.getTime()).toBe(time.getTime());
+      expect(harness.clock.currentDate.getTime()).toBe(time.getTime());
     });
   });
 
@@ -164,7 +164,7 @@ describe('Factory Methods', () => {
 
       harness = createEventTestHarness({}, { clockTime: time });
 
-      expect(harness.clock.now.getTime()).toBe(time.getTime());
+      expect(harness.clock.currentDate.getTime()).toBe(time.getTime());
     });
   });
 });

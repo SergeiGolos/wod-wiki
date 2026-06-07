@@ -24,7 +24,7 @@ export class CompletionTimestampBehavior implements IRuntimeBehavior {
         // Check if block was just marked complete and we haven't recorded the timestamp yet
         const blockState = (ctx.block as any).state;
         if (blockState && blockState.isComplete && !this.wasComplete && !this.completionTime) {
-            this.completionTime = new Date(ctx.clock.now);
+            this.completionTime = new Date(ctx.clock.currentDate);
             this.wasComplete = true;
 
             // Push completion timestamp to memory
@@ -37,7 +37,7 @@ export class CompletionTimestampBehavior implements IRuntimeBehavior {
                     timestamp: this.completionTime
                 },
                 sourceBlockKey: ctx.block.key.toString(),
-                timestamp: ctx.clock.now,
+                timestamp: ctx.clock.currentDate,
             };
 
             ctx.pushMemory('completion', [completionFragment]);

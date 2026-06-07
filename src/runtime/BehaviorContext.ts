@@ -96,7 +96,7 @@ export class BehaviorContext implements IBehaviorContext {
         metrics: MetricContainer | IMetric[],
         _options?: OutputOptions
     ): void {
-        const now = this.clock.now;
+        const now = this.clock.currentDate;
 
         // Extract raw spans from the block's timer memory.
         // These spans represent continuous periods of active (unpaused) execution.

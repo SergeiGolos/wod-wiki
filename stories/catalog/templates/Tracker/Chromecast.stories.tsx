@@ -393,18 +393,18 @@ const TrackerChromecastHarness: React.FC<TrackerChromecastHarnessProps> = ({
     rt.do(new StartSessionAction({ label: previewTitle }));
 
     if (initialState === 'active') {
-      rt.do(new NextAction());
+      rt.do(new NextAction(undefined, rt.nowProvider));
     }
 
     if (initialState === 'paused') {
-      rt.do(new NextAction());
+      rt.do(new NextAction(undefined, rt.nowProvider));
       rt.handle({ name: 'pause', timestamp: new Date() });
     }
 
     if (initialState === 'interleaved') {
-      rt.do(new NextAction());
-      rt.do(new NextAction());
-      rt.do(new NextAction());
+      rt.do(new NextAction(undefined, rt.nowProvider));
+      rt.do(new NextAction(undefined, rt.nowProvider));
+      rt.do(new NextAction(undefined, rt.nowProvider));
     }
 
     setRuntime(rt);

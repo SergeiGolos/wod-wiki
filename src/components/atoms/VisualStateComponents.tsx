@@ -25,7 +25,7 @@ export const HistorySummaryView: React.FC<{
     // Using 'elapsed' property from OutputStatement if available, or manual calc
     const totalDurationMs = completedItems.reduce((acc, curr) => {
         // Safe access to elapsed or duration
-        return acc + (curr.elapsed ?? curr.timeSpan.duration);
+        return acc + (curr.elapsed ?? ((curr.timeSpan.ended ?? Date.now()) - curr.timeSpan.started));
     }, 0);
 
     const formatDuration = (ms: number) => {
@@ -290,7 +290,7 @@ export const RuntimeStackView: React.FC<{
 
         if (levelOutputs.length === 0) return null;
 
-        const totalDuration = levelOutputs.reduce((acc, curr) => acc + (curr.elapsed ?? curr.timeSpan.duration), 0);
+        const totalDuration = levelOutputs.reduce((acc, curr) => acc + (curr.elapsed ?? ((curr.timeSpan.ended ?? Date.now()) - curr.timeSpan.started)), 0);
         const formatDuration = (ms: number) => {
             const seconds = Math.floor(ms / 1000);
             const m = Math.floor(seconds / 60);

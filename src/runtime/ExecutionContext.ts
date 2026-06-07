@@ -45,7 +45,7 @@ export class ExecutionContext implements IScriptRuntime {
     ) {
         this._maxIterations = maxIterations;
         // Freeze the clock at the start of the execution context
-        this._snapshotClock = SnapshotClock.at(_runtime.clock, _runtime.clock.now);
+        this._snapshotClock = SnapshotClock.at(_runtime.clock, _runtime.clock.currentDate);
     }
 
     // --- Delegation to underlying runtime ---
@@ -60,6 +60,7 @@ export class ExecutionContext implements IScriptRuntime {
 
     // Use our frozen clock instead of the live runtime clock
     get clock() { return this._snapshotClock; }
+    get nowProvider() { return this._runtime.nowProvider; }
 
     subscribeToOutput(listener: OutputListener): Unsubscribe {
         return this._runtime.subscribeToOutput(listener);

@@ -28,7 +28,7 @@ describe('ExecutionContextTestHarness', () => {
     });
 
     it('should initialize clock to configured time', () => {
-      expect(harness.clock.now.getTime()).toBe(
+      expect(harness.clock.currentDate.getTime()).toBe(
         new Date('2024-01-01T12:00:00Z').getTime()
       );
     });
@@ -41,7 +41,7 @@ describe('ExecutionContextTestHarness', () => {
     it('should use default clock time if not configured', () => {
       const defaultHarness = new ExecutionContextTestHarness();
       const now = Date.now();
-      const clockTime = defaultHarness.clock.now.getTime();
+      const clockTime = defaultHarness.clock.currentDate.getTime();
       // Should be within 1 second of now
       expect(Math.abs(clockTime - now)).toBeLessThan(1000);
       defaultHarness.dispose();
@@ -84,11 +84,11 @@ describe('ExecutionContextTestHarness', () => {
       const action: IRuntimeAction = {
         type: 'outer',
         do: (runtime: IScriptRuntime) => {
-          timestamps.push(new Date(runtime.clock.now.getTime()));
+          timestamps.push(new Date(runtime.clock.currentDate.getTime()));
           runtime.do({
             type: 'inner',
             do: (rt: IScriptRuntime) => {
-              timestamps.push(new Date(rt.clock.now.getTime()));
+              timestamps.push(new Date(rt.clock.currentDate.getTime()));
             }
           });
         }
@@ -150,11 +150,11 @@ describe('ExecutionContextTestHarness', () => {
 
   describe('Clock Control', () => {
     it('should advance clock by milliseconds', () => {
-      const start = harness.clock.now.getTime();
+      const start = harness.clock.currentDate.getTime();
       
       harness.advanceClock(5000);
 
-      expect(harness.clock.now.getTime()).toBe(start + 5000);
+      expect(harness.clock.currentDate.getTime()).toBe(start + 5000);
     });
 
     it('should set clock to specific time', () => {
@@ -162,7 +162,7 @@ describe('ExecutionContextTestHarness', () => {
       
       harness.setClock(newTime);
 
-      expect(harness.clock.now.getTime()).toBe(newTime.getTime());
+      expect(harness.clock.currentDate.getTime()).toBe(newTime.getTime());
     });
 
     it('should reflect clock changes in action timestamps', () => {
@@ -273,11 +273,11 @@ describe('ExecutionContextTestHarness', () => {
       const action: IRuntimeAction = {
         type: 'test',
         do: (runtime: IScriptRuntime) => {
-          firstTimestamp = runtime.clock.now;
+          firstTimestamp = runtime.clock.currentDate;
           runtime.do({
             type: 'nested',
             do: (rt: IScriptRuntime) => {
-              secondTimestamp = rt.clock.now;
+              secondTimestamp = rt.clock.currentDate;
             }
           });
         }

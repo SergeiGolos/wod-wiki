@@ -181,7 +181,7 @@ export const paceColumnDerived: ColumnDef = {
     unit: ' km/h',
     transform: (value) => {
       // Convert to time-based pace if needed (min:sec per km)
-      const kph = value as number;
+      const kph = value as unknown as number;
       const secPerKm = 3600 / kph;
       const min = Math.floor(secPerKm / 60);
       const sec = Math.round(secPerKm % 60);

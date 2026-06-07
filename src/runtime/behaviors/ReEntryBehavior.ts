@@ -33,7 +33,7 @@ export class ReEntryBehavior implements IRuntimeBehavior {
             current,
             total,
             blockId,
-            ctx.clock.now,
+            ctx.clock.currentDate,
         );
 
         ctx.pushMemory('round', [roundFragment]);

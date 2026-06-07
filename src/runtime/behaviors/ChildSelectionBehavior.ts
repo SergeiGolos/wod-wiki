@@ -59,7 +59,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
                 this.config.startRound,
                 this.config.totalRounds,
                 blockId,
-                ctx.clock.now,
+                ctx.clock.currentDate,
             )]);
             actions.push(new TrackRoundAction(blockId, this.config.startRound, this.config.totalRounds));
         }
@@ -130,7 +130,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
                 // we should reset the parent timer for the next interval.
                 ctx.emitEvent({
                     name: 'timer:reset' as any,
-                    timestamp: ctx.clock.now,
+                    timestamp: ctx.clock.currentDate,
                     data: { blockKey: ctx.block.key.toString() }
                 });
             }
@@ -268,7 +268,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             return 0;
         }
 
-        const now = ctx.clock.now.getTime();
+        const now = ctx.clock.currentDate.getTime();
         const elapsed = calculateElapsed(timer, now);
         return Math.max(0, timer.durationMs - elapsed);
     }
@@ -308,7 +308,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             nextRound,
             total,
             blockId,
-            ctx.clock.now,
+            ctx.clock.currentDate,
         );
 
         ctx.updateMemory('round', [roundFragment]);

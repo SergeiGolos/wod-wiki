@@ -20,7 +20,7 @@ export class ThrowErrorAction implements IRuntimeAction {
         // Emit error state via event bus so UI can react
         runtime.eventBus.dispatch({
             name: 'workout:error',
-            timestamp: runtime.clock.now,
+            timestamp: runtime.clock.currentDate,
             data: { error: this.error, source: this.source }
         }, runtime);
     }

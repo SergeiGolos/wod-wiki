@@ -199,7 +199,7 @@ export class BehaviorTestHarness {
     if (!block) throw new Error('No block on stack to mount');
 
     const resolvedOptions: BlockLifecycleOptions = {
-      startTime: this._clock.now,
+      startTime: this._clock.currentDate,
       ...options
     };
 
@@ -238,7 +238,7 @@ export class BehaviorTestHarness {
     if (!block) throw new Error('No block on stack to unmount');
 
     const resolvedOptions: BlockLifecycleOptions = {
-      completedAt: this._clock.now,
+      completedAt: this._clock.currentDate,
       ...options
     };
 
@@ -281,7 +281,7 @@ export class BehaviorTestHarness {
   simulateEvent(name: string, data?: any): IRuntimeAction[] {
     const event: IEvent = {
       name,
-      timestamp: this._clock.now,
+      timestamp: this._clock.currentDate,
       data: { source: 'test-harness', ...data }
     };
 

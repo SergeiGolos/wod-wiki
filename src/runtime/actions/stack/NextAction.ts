@@ -2,7 +2,7 @@ import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { SnapshotClock } from '../../RuntimeClock';
-
+import { INowProvider, wallClockNow } from '../../INowProvider';
 export class NextAction implements IRuntimeAction {
   readonly type = 'next';
 
@@ -12,7 +12,10 @@ export class NextAction implements IRuntimeAction {
    *   are merged with a snapshot clock. When omitted (e.g., user-triggered next),
    *   a fresh snapshot clock is created.
    */
-  constructor(private readonly options?: BlockLifecycleOptions) {}
+  constructor(
+    private readonly options?: BlockLifecycleOptions,
+    private readonly now: INowProvider = wallClockNow,
+  ) {}
 
   do(runtime: IScriptRuntime): IRuntimeAction[] {
     // Validate runtime state
@@ -44,7 +47,7 @@ export class NextAction implements IRuntimeAction {
         runtime.errors.push({
           error: error as Error,
           source: 'NextAction',
-          timestamp: new Date(),
+          timestamp: this.now.now(),
           blockKey: currentBlock.key.toString()
         });
       }

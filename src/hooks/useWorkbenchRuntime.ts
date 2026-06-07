@@ -117,7 +117,7 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
         const { runtime, execution } = latestRef.current;
 
         if (runtime && execution.status !== 'completed') {
-            runtime.handle(new NextEvent());
+            runtime.handle(new NextEvent(undefined, runtime.nowProvider));
             if (execution.status !== 'running') {
                 execution.start();
             }
@@ -144,7 +144,7 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
                 break;
             case 'next-segment':
                 if (runtime) {
-                    runtime.handle(new NextEvent());
+                    runtime.handle(new NextEvent(undefined, runtime.nowProvider));
                     if (execution.status !== 'running') {
                         execution.start();
                     }
