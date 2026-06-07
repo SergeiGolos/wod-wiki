@@ -38,13 +38,16 @@ function createMockBlock(label: string = 'Test Block'): IRuntimeBlock {
  * Create a minimal mock clock.
  */
 function createMockClock(): IRuntimeClock {
+    const time = new Date('2026-01-27T12:00:00Z');
     return {
-    now: new Date('2026-01-27T12:00:00Z'),
+    currentDate: time,
+    now: () => time,
+    nowMs: () => time.getTime(),
     start: vi.fn(),
-    stop: vi.fn(),    
+    stop: vi.fn(),
     elapsed: 0,
     isRunning: false,
-    spans: []    
+    spans: []
 };
 }
 

@@ -1,8 +1,7 @@
 /**
  * Catalog / Pages / PlannerPage
  *
- * Renders: {@link import('@/components/organisms/editor/NoteEditor').NoteEditor}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../src/components/organisms/editor/NoteEditor').NoteEditor}
  *
  * Stories:
  *  1. Default — planner page with sample workout

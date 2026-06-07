@@ -1,8 +1,7 @@
 /**
  * Catalog / Pages / CollectionsPage
  *
- * Renders: {@link import('@/playground/src/views/CollectionsPage').CollectionsPage}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../playground/src/views/CollectionsPage').CollectionsPage}
  *
  * Stories:
  *  1. Default — default collections view
@@ -21,7 +20,7 @@ import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { CommandProvider } from '@/contexts/CommandContext'
 import { getWodCollections } from '@/repositories/wod-collections';
 import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
-import { EditorShellHeader } from '../../_shared/EditorShellHeader';
+import { EditorShellHeader } from '../_shared/EditorShellHeader';
 import { useTheme } from '@/contexts/ThemeProvider'
 
 interface JournalState {

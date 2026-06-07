@@ -7,6 +7,37 @@ type: home
 
 # WOD Wiki {sticky dark full-bleed}
 
+## Wall Clock enabled Journal powered by Whiteboard
+ 
+If that was a bunch of jibberish to you, scroll down to learn more in our interactive [Canvas]() overview.  Browse examples in the library of pre-encoded
+
+
+```button
+label:  Zero to Hero →
+target: home-demo
+pipeline:
+  - navigate: /guide/getting-started
+```
+
+```button
+label:  Explore Full Syntax →
+target: home-demo
+pipeline:
+  - navigate: /guide/syntax
+```
+
+```button
+label:  Open a New Note →
+target: home-demo
+pipeline:
+  - set-source: query:new
+  - set-state: note
+  - launch: dialog
+```
+
+
+## The Whiteboard Script {sticky #statement theme:violet}
+
 ```view
 name:    home-demo
 state:   note
@@ -17,27 +48,36 @@ align:   right
 width:   45%
 ```
 
-## The Whiteboard Script {sticky #statement theme:violet}
-
-The script on the right is part of this wiki, not a screenshot. Click into it, change the reps, movements, weights, or rest, and use the examples as a safe scratchpad while you learn how WOD Wiki works.
-
-Write workouts in plain text — the parser turns notes into live timers, round counters, and session logs.
-
 ```command
 target: home-demo
 pipeline:
-  - set-source: wods/examples/getting-started/statement-1.md
+  - set-source: wods/examples/home/welcome-1.md
   - set-state: note
 ```
 
-**Try it:** A single movement on one line is a complete workout statement.
+### 1 · Plan
+
+Write the workout and notes in free-form Markdown.
+
+Whiteboard blocks are fenced ``` Markdown. Change `10 Pushups` to `12` — tracked effort for later analytics reflects that.
+
+### 2 · Run
+
+Press **Run** to fire up the WallClock — a live timer that tracks your effort.
 
 ```button
-label:  Try This →
+label:  Try It →
 target: home-demo
 pipeline:
   - set-state: track
 ```
+
+### 3 · Analytics
+
+The result lands in the same table shape.
+A ResultsView row with the columns you already use: Date · Effort · Reps · Volume · MET-min · TIS. The Rep cell is the same metric, with a new user-origin value.
+
+
 
 ## Metrics {sticky #metrics density:compact theme:emerald}
 
@@ -130,26 +170,3 @@ pipeline:
 ## What's Next {sticky full-bleed dark}
 
 Ready to go deeper? Work through the six-step guide or explore the full syntax reference.
-
-```button
-label:  Zero to Hero →
-target: home-demo
-pipeline:
-  - navigate: /guide/getting-started
-```
-
-```button
-label:  Explore Full Syntax →
-target: home-demo
-pipeline:
-  - navigate: /guide/syntax
-```
-
-```button
-label:  Open a New Note →
-target: home-demo
-pipeline:
-  - set-source: query:new
-  - set-state: note
-  - launch: dialog
-```

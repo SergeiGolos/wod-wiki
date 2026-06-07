@@ -244,4 +244,3 @@ export function JournalPageShell({
   );
 }
 
-export default JournalPageShell;

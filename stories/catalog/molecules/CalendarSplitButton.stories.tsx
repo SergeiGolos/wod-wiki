@@ -1,8 +1,7 @@
 /**
  * Catalog / Molecules / CalendarSplitButton
  *
- * Renders: {@link import('@/components/molecules/CalendarSplitButton').CalendarSplitButton}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../src/components/molecules/CalendarSplitButton').CalendarSplitButton}
  *
  * Stories:
  *  1. Default — basic two-sided pill with calendar date picker
@@ -15,7 +14,7 @@ import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { CalendarDays, Play, Search } from 'lucide-react';
 import { CalendarSplitButton } from '@/components/molecules/CalendarSplitButton';
-import { FIXTURE_ENTRY_DATES } from '../../_shared/fixtures';
+import { FIXTURE_ENTRY_DATES } from '../_shared/fixtures';
 import type { INavActivation } from '@/nav/navTypes';
 
 const meta: Meta<typeof CalendarSplitButton> = {

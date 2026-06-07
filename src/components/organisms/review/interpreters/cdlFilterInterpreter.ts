@@ -7,8 +7,8 @@
  * rowMatchesSearch, applyFilters).
  */
 
-import type { GridRow } from './types';
-import type { ColumnDef, ComputeContext } from './column-definition-language';
+import type { GridRow } from '../types';
+import type { ColumnDef, ComputeContext } from '../column-definition-language';
 import { resolveColumnSource } from './cdlSourceResolver';
 
 // ─── Combined Filter Helpers ───────────────────────────────────

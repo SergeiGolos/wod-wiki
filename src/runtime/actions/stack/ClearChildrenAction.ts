@@ -80,7 +80,7 @@ export class ClearChildrenAction implements IRuntimeAction {
         // Queue a NextAction so the target block (now on top) gets its next() call.
         // For AMRAP/EMOM, CompletedBlockPopBehavior will fire and pop the parent.
         if (runtime.stack.current?.key.toString() === this.targetBlockKey) {
-            actions.push(new NextAction());
+            actions.push(new NextAction(undefined, runtime.nowProvider));
         }
 
         return actions;

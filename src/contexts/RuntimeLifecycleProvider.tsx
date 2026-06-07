@@ -173,4 +173,3 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
   );
 };
 
-export default RuntimeLifecycleProvider;

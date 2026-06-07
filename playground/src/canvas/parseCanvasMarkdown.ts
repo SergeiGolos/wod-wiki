@@ -54,12 +54,25 @@ export interface ExampleBlock {
   source: string
 }
 
+/** A piece of a section's body: either a markdown prose segment or an inline
+ *  button that should render immediately after the preceding prose segment.
+ *  The renderer concatenates chunks in order; buttons never appear in
+ *  `section.prose`, which is a prose-only string for legacy consumers. */
+export type ProseChunk =
+  | { kind: 'prose'; text: string }
+  | { kind: 'button'; button: ButtonBlock }
+
 export interface CanvasSection {
   id: string
   heading: string
   level: number
   attrs: string[]         // e.g. ['sticky', 'dark', 'full-bleed', 'density:compact']
-  prose: string
+  prose: string           // Prose-only string (no fences). Kept for legacy callers.
+  /** Ordered, fence-aware body: prose segments interleaved with buttons so
+   *  each button renders after the paragraph it was defined under. Optional
+   *  for callers that hand-build sections (e.g. tests); the renderer falls
+   *  back to a single-prose chunk when absent. */
+  proseChunks?: ProseChunk[]
   view?: ViewBlock
   commands: CommandBlock[]
   buttons: ButtonBlock[]
@@ -195,10 +208,17 @@ const CANVAS_BLOCK_TYPES = new Set(['view', 'command', 'button', 'example'])
  *
  * Regex: matches opening ```<type>\n ... closing ``` on its own line.
  * Only canvas DSL blocks (view/command/button) are excised from the prose;
- * all other fenced blocks (code, etc.) are kept so they render in markdown.
+ * all other fenced blocks (code, etc.) are kept so markdown renderers can
+ * display them as styled code blocks.
+ *
+ * Returns `proseChunks` — an ordered list of prose segments and inline
+ * buttons — so the renderer can place each button after the paragraph it
+ * was authored under. `prose` is the legacy concatenation of the prose
+ * segments only.
  */
 function extractBlocks(text: string): {
   prose: string
+  proseChunks: ProseChunk[]
   view?: ViewBlock
   commands: CommandBlock[]
   buttons: ButtonBlock[]
@@ -219,33 +239,69 @@ function extractBlocks(text: string): {
     })
   }
 
-  // Build prose by excising ONLY canvas-specific fence ranges.
-  // Non-canvas fenced blocks (code, etc.) are left in place so markdown
-  // renderers can display them as styled code/language blocks.
-  let prose = ''
-  let pos = 0
-  for (const { start, end, type } of fences) {
-    if (CANVAS_BLOCK_TYPES.has(type)) {
-      prose += text.slice(pos, start)
-      pos = end
-    }
-  }
-  prose += text.slice(pos)
-  prose = prose.trim()
-
+  // Parse each fence into its block object, in source order, and remember
+  // the parsed `ButtonBlock` for the inline chunk list. We keep a parallel
+  // cursor so the chunk list can interleave prose segments with the
+  // specific `button` fences that authored them.
   let view: ViewBlock | undefined
   const commands: CommandBlock[] = []
   const buttons: ButtonBlock[] = []
   const examples: ExampleBlock[] = []
+  // `buttonByFenceIdx[i]` holds the ButtonBlock parsed from `fences[i]`,
+  // or `null` for non-button fences. Fences are visited in source order.
+  const buttonByFenceIdx: Array<ButtonBlock | null> = []
 
-  for (const { type, content } of fences) {
-    if (type === 'view')         view = parseViewBlock(content)
-    else if (type === 'command') commands.push(parseCommandBlock(content))
-    else if (type === 'button')  buttons.push(parseButtonBlock(content))
-    else if (type === 'example') examples.push(parseExampleBlock(content))
+  for (let i = 0; i < fences.length; i++) {
+    const { type, content } = fences[i]
+    if (type === 'view') {
+      view = parseViewBlock(content)
+      buttonByFenceIdx.push(null)
+    } else if (type === 'command') {
+      commands.push(parseCommandBlock(content))
+      buttonByFenceIdx.push(null)
+    } else if (type === 'button') {
+      const btn = parseButtonBlock(content)
+      buttons.push(btn)
+      buttonByFenceIdx.push(btn)
+    } else if (type === 'example') {
+      examples.push(parseExampleBlock(content))
+      buttonByFenceIdx.push(null)
+    } else {
+      buttonByFenceIdx.push(null)
+    }
   }
+  // Build the legacy `prose` field by excising ALL canvas-specific fence
+  // ranges (view / command / button / example). Non-canvas fences are
+  // preserved so markdown renderers can display them as code blocks.
+  let legacyProse = ''
+  let legacyPos = 0
+  for (const fence of fences) {
+    if (CANVAS_BLOCK_TYPES.has(fence.type)) {
+      legacyProse += text.slice(legacyPos, fence.start)
+      legacyPos = fence.end
+    }
+  }
+  legacyProse += text.slice(legacyPos)
+  const prose = legacyProse.trim()
 
-  return { prose, view, commands, buttons, examples }
+  // Walk the source text once more, slicing the prose and interleaving
+  // button chunks at the position each `button` fence was authored. Each
+  // prose segment contains the raw text between the previous button
+  // (or start) and this one — including any non-button canvas fences,
+  // which the renderer leaves untouched so fenced code blocks render.
+  const proseChunks: ProseChunk[] = []
+  let pos = 0
+  for (let i = 0; i < fences.length; i++) {
+    const fence = fences[i]
+    const button = buttonByFenceIdx[i]
+    if (!button) continue
+    proseChunks.push({ kind: 'prose', text: text.slice(pos, fence.start) })
+    proseChunks.push({ kind: 'button', button })
+    pos = fence.end
+  }
+  proseChunks.push({ kind: 'prose', text: text.slice(pos) })
+
+  return { prose, proseChunks, view, commands, buttons, examples }
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -261,17 +317,18 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   let cur: Acc | null = null
 
   const flush = (acc: Acc) => {
-    const { prose, view, commands, buttons, examples } = extractBlocks(acc.lines.join('\n'))
+    const { prose, proseChunks, view, commands, buttons, examples } = extractBlocks(acc.lines.join('\n'))
 
     // Support explicit ID in attributes (e.g. {#statement})
     const explicitId = acc.attrs.find(a => a.startsWith('#'))?.slice(1)
 
     sections.push({
-      id:       explicitId || slugify(acc.heading) || `section-${sections.length}`,
-      heading:  acc.heading,
-      level:    acc.level,
-      attrs:    acc.attrs.filter(a => !a.startsWith('#')), // Strip ID from visual attrs
+      id:          explicitId || slugify(acc.heading) || `section-${sections.length}`,
+      heading:     acc.heading,
+      level:       acc.level,
+      attrs:       acc.attrs.filter(a => !a.startsWith('#')), // Strip ID from visual attrs
       prose,
+      proseChunks,
       view,
       commands,
       buttons,

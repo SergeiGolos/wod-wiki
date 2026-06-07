@@ -31,10 +31,7 @@ import {
   historyKeymap,
   indentWithTab,
 } from "@codemirror/commands";
-import {
-  bracketMatching,
-  indentOnInput,
-} from "@codemirror/language";
+import { indentOnInput } from "@codemirror/language";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { lintKeymap } from "@codemirror/lint";

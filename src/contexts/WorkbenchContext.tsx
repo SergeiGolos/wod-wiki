@@ -126,7 +126,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   children,
   initialContent: propInitialContent = '',
   initialActiveEntryId,
-  initialViewMode,
+
   mode: _mode = 'static',
   provider: externalProvider,
   navigation: externalNavigation,
@@ -139,7 +139,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   const { noteId: routeId, sectionId: routeSectionId, resultId: routeResultId, view: viewMode } = navigation.state;
   const routeView = viewMode;
 
-  const { pathname, search, hash, state: locationState } = useLocation();
+  const { pathname, state: locationState } = useLocation();
 
   // Resolve provider: use external if given, else auto-create from mode + initialContent
   const resolvedProvider = useMemo(

@@ -7,7 +7,7 @@ import {
 import { elapsedTotalColumn, indexColumn, outputTypeColumn } from '../../cdlColumnDefinitions';
 import { makeGridRow, makeGridCell } from './test-helpers';
 import { MetricType } from '@/core/models/Metric';
-import type { ColumnDef } from '../column-definition-language';
+import type { ColumnDef } from '../../column-definition-language';
 
 // ─── Helpers ───────────────────────────────────────────────────
 

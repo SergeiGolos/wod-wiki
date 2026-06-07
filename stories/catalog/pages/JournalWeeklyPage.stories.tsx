@@ -2,7 +2,6 @@
  * Catalog / Pages / JournalWeeklyPage
  *
  * Renders: {@link import('../../../playground/src/views/ListViews').JournalWeeklyPage}
- * Data:     See {@link ../../data-for-storybook.md}
  *
  * Stories:
  *  1. Default — default weekly journal view (empty week)

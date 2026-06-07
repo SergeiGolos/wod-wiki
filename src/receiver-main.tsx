@@ -226,7 +226,7 @@ const ReceiverApp = () => {
   const [remoteState, setRemoteState] = useState<RemoteState | null>(null);
   const [connectionStatus, setConnectionStatus] = useState('waiting-for-cast');
   const [now, setNow] = useState(Date.now());
-  const [dpadFlash, setDpadFlash] = useState(false); // kept for compatibility, activation is now element-level (WOD-274)
+
   const transportRef = React.useRef<WebRTCTransport | null>(null);
 
   // Local clock for smooth timer interpolation

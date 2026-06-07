@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
-import { ICodeStatement } from '../core/models/CodeStatement';
+import { ICodeStatement } from '@/core/models/CodeStatement';
 import { MetricSourceList } from './metrics/MetricSourceList';
 import { FragmentSourceEntry, FragmentSourceStatus } from '@/components/molecules/MetricSourceRow';
-import { IMetricSource } from '../core/contracts/IMetricSource';
-import { MetricType } from '../core/models/Metric';
+import { IMetricSource } from '@/core/contracts/IMetricSource';
+import { MetricType } from '@/core/models/Metric';
 import { VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
 
 export interface WhiteboardScriptVisualizerProps {

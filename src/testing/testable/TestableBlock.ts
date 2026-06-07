@@ -133,7 +133,7 @@ export class TestableBlock implements IRuntimeBlock {
     return this._wrapped.isComplete;
   }
 
-  get behaviors(): IRuntimeBehavior[] {
+  get behaviors(): readonly IRuntimeBehavior[] {
     return this._wrapped.behaviors;
   }
 
@@ -242,6 +242,15 @@ export class TestableBlock implements IRuntimeBlock {
   getAllMemory(): import('../../runtime/memory/MemoryLocation').IMemoryLocation[] {
     return this._wrapped.getAllMemory();
   }
+
+  getMetricMemoryByVisibility(visibility: import('../../runtime/memory/MetricVisibility').MetricVisibility): import('../../runtime/memory/MemoryLocation').IMemoryLocation[] {
+    return this._wrapped.getMetricMemoryByVisibility(visibility);
+  }
+
+  get completionReason(): string | undefined {
+    return this._wrapped.completionReason;
+  }
+
 
   // ========== Private Helpers ==========
 

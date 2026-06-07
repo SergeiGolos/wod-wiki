@@ -1,8 +1,7 @@
 /**
  * Catalog / Templates / Tracker / Chromecast
  *
- * Renders: {@link import('@/panels/stack-panel-chromecast').ReceiverStackPanel}
- * Data:     See {@link ../../../data-for-storybook.md}
+ * Renders: {@link import('../../../src/panels/track-panel-chromecast').ReceiverStackPanel}
  *
  * Stories:
  *  1. Idle — receiver booted but no Cast session yet
@@ -394,18 +393,18 @@ const TrackerChromecastHarness: React.FC<TrackerChromecastHarnessProps> = ({
     rt.do(new StartSessionAction({ label: previewTitle }));
 
     if (initialState === 'active') {
-      rt.do(new NextAction());
+      rt.do(new NextAction(undefined, rt.nowProvider));
     }
 
     if (initialState === 'paused') {
-      rt.do(new NextAction());
+      rt.do(new NextAction(undefined, rt.nowProvider));
       rt.handle({ name: 'pause', timestamp: new Date() });
     }
 
     if (initialState === 'interleaved') {
-      rt.do(new NextAction());
-      rt.do(new NextAction());
-      rt.do(new NextAction());
+      rt.do(new NextAction(undefined, rt.nowProvider));
+      rt.do(new NextAction(undefined, rt.nowProvider));
+      rt.do(new NextAction(undefined, rt.nowProvider));
     }
 
     setRuntime(rt);

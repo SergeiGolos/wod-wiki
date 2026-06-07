@@ -321,4 +321,3 @@ export function CanvasPage({
   );
 }
 
-export default CanvasPage;

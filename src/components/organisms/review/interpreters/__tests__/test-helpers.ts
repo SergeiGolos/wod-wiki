@@ -2,7 +2,7 @@
  * Test helpers for CDL interpreter tests
  */
 
-import type { GridRow, GridCell } from '../types';
+import type { GridRow, GridCell } from '../../types';
 import { MetricType } from '@/core/models/Metric';
 import { MetricContainer } from '@/core/models/MetricContainer';
 

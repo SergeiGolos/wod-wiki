@@ -1,5 +1,5 @@
 import React from 'react';
-import { FolderOpen, Settings, Sun, Moon, Volume2, VolumeX, Github, ExternalLink } from 'lucide-react';
+import { FolderOpen, Settings, Sun, Moon, Volume2, VolumeX, GitFork, ExternalLink } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { useAudio } from '@/contexts/AudioContext';
 import { cn } from '@/lib/utils';
@@ -153,7 +153,7 @@ const LinksSection: React.FC = () => {
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 w-full px-2 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-left"
                 >
-                    <Github className="w-4 h-4 shrink-0" />
+                    <GitFork className="w-4 h-4 shrink-0" />
                     <span className="flex-1">GitHub</span>
                     <ExternalLink className="w-3 h-3 shrink-0 opacity-50" />
                 </a>

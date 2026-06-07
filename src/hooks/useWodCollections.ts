@@ -25,7 +25,7 @@ export interface UseWodCollectionsReturn {
 export function useWodCollections(): UseWodCollectionsReturn {
     const collections = useMemo(() => getWodCollections(), []);
     const [activeCollectionId, setActiveCollectionId] = useQueryState('col', {
-        defaultValue: null,
+        defaultValue: '',
         clearOnDefault: true,
     });
 
@@ -39,7 +39,7 @@ export function useWodCollections(): UseWodCollectionsReturn {
     }, [activeCollection]);
 
     const setActiveCollection = useCallback((id: string | null) => {
-        setActiveCollectionId(id);
+        setActiveCollectionId(id ?? '');
     }, []);
 
     return {

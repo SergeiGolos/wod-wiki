@@ -41,8 +41,8 @@ export function dismissReceiverBootLoader(
 export function armReceiverBootFallback(
   onTimeout: () => void,
   timeoutMs: number = RECEIVER_BOOT_READY_TIMEOUT_MS,
-): ReturnType<typeof setTimeout> {
-  return window.setTimeout(onTimeout, timeoutMs);
+): number {
+  return window.setTimeout(onTimeout, timeoutMs) as unknown as number;
 }
 
 export function receiverStandaloneModeEnabled(search: string = window.location.search): boolean {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StorybookHost } from '../stories/_shared/StorybookHost';
+import { StorybookHost } from '../stories/catalog/_shared/StorybookHost';
 import '../src/index.css';
 
 /** @type { import('@storybook/react-vite').Preview } */

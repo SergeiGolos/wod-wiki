@@ -171,7 +171,7 @@ export class WorkoutTestHarness {
     // Dispatch tick event so timer completion behaviors fire
     this.runtime.handle({
       name: 'tick',
-      timestamp: this._mockClock.now,
+      timestamp: this._mockClock.currentDate,
       data: { source: 'test-harness' }
     });
   }
@@ -180,7 +180,7 @@ export class WorkoutTestHarness {
    * Get the current clock time.
    */
   get clockTime(): number {
-    return this._mockClock.now.getTime();
+    return this._mockClock.nowMs();
   }
 
   // ========== Reporting ==========
@@ -209,7 +209,7 @@ export class WorkoutTestHarness {
       roundsCompleted: this._roundsCompleted,
       partialReps: this._partialReps,
       currentRound: this._currentRound,
-      elapsedTime: this._mockClock.now.getTime() - this._clockTime.getTime(),
+      elapsedTime: this._mockClock.nowMs() - this._clockTime.getTime(),
       totalReps: { ...this._exerciseReps },
       restTaken: this._restTaken,
       isComplete: this.isComplete(),
@@ -262,7 +262,7 @@ export class WorkoutTestHarness {
     const displayLocs = current.getMemoryByTag('metric:display');
     if (displayLocs.length > 0) {
       for (const loc of displayLocs) {
-        this._collectedFragments.push(loc.metrics);
+        this._collectedFragments.push(loc.metrics.toArray());
       }
     }
   }

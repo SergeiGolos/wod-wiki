@@ -83,7 +83,7 @@ export const TimerHarness: React.FC<TimerHarnessProps> = ({
       ? [new CountdownTimerBehavior({ durationMs, label: 'Timer' })]
       : [new CountupTimerBehavior({ label: 'Timer' })];
 
-    const newBlock = new RuntimeBlock(runtime, [1], behaviors, 'Timer');
+    const newBlock = new RuntimeBlock({ runtime, sourceIds: [1], behaviors, blockType: 'Timer' });
 
     // Mount block to trigger behavior initialization
     newBlock.mount(runtime);

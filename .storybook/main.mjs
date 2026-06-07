@@ -101,7 +101,6 @@ const config = {
       'recharts',
       '@headlessui/react',
       'lucide-react',
-      'cmdk',
     ];
     config.optimizeDeps.exclude = Array.from(
       new Set([...(config.optimizeDeps.exclude || []), '@lezer/common'])

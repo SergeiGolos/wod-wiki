@@ -21,6 +21,8 @@ import { PushBlockAction } from './actions/stack/PushBlockAction';
 import { PopBlockAction } from './actions/stack/PopBlockAction';
 import { IAnalyticsEngine } from '../core/contracts/IAnalyticsEngine';
 import type { AnalyticsContext } from '../core/analytics/AnalyticsContext';
+import type { INowProvider } from './INowProvider';
+import { wallClockNow } from './INowProvider';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -55,6 +57,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
     // The current execution context for the "turn"
     private _activeContext: ExecutionContext | null = null;
+    private readonly _now: INowProvider;
 
     public get tracker(): RuntimeStackTracker | undefined {
         return this.options.tracker;
@@ -64,13 +67,18 @@ export class ScriptRuntime implements IScriptRuntime {
     private _nextHandlerUnsub: (() => void) | null = null;
 
     // Unsubscribe function for the global AbortEventHandler
+    public get nowProvider(): INowProvider {
+        return this._now;
+    }
+
     private _abortHandlerUnsub: (() => void) | null = null;
 
     constructor(
         public readonly script: WhiteboardScript,
         compiler: IJitCompiler,
         dependencies: ScriptRuntimeDependencies,
-        options: RuntimeStackOptions = {}
+        options: RuntimeStackOptions = {},
+        now: INowProvider = wallClockNow
     ) {
         // Merge with defaults
         this.options = { ...DEFAULT_RUNTIME_OPTIONS, ...options };
@@ -78,6 +86,7 @@ export class ScriptRuntime implements IScriptRuntime {
         this.stack = dependencies.stack;
         this.clock = dependencies.clock;
         this.eventBus = dependencies.eventBus;
+        this._now = now;
 
         // Handle explicit next events to advance the current block once per request
         this._nextHandlerUnsub = this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime', { scope: 'global' });
@@ -106,7 +115,7 @@ export class ScriptRuntime implements IScriptRuntime {
                 blocks: event.type === 'initial' ? event.blocks : event.blocks,
                 affectedBlock: event.type !== 'initial' ? event.block : undefined,
                 depth: event.type === 'initial' ? event.blocks.length : event.depth,
-                clockTime: this.clock.now,
+                clockTime: this.clock.currentDate,
             };
 
             for (const observer of this._stackObservers) {
@@ -158,7 +167,7 @@ export class ScriptRuntime implements IScriptRuntime {
             type: 'initial',
             blocks,
             depth: blocks.length,
-            clockTime: this.clock.now,
+            clockTime: this.clock.currentDate,
         };
         for (const observer of this._stackObservers) {
             try {
@@ -289,7 +298,7 @@ export class ScriptRuntime implements IScriptRuntime {
             type: 'initial',
             blocks: this.stack.blocks,
             depth: this.stack.count,
-            clockTime: this.clock.now,
+            clockTime: this.clock.currentDate,
         };
 
         setTimeout(() => {

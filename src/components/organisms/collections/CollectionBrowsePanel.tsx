@@ -17,21 +17,12 @@ export const CollectionBrowsePanel: React.FC<CollectionBrowsePanelProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
-
-  const topCollections = useMemo(
-    () => collections.filter(c => !c.parent),
-    [collections],
-  );
-
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const results: { item: WodCollectionItem; collection: WodCollection }[] = [];
 
     for (const col of collections) {
-      if (activeCollectionId) {
-        // Include the selected collection and its children
-        if (col.id !== activeCollectionId && col.parent !== activeCollectionId) continue;
-      }
+      if (activeCollectionId && col.id !== activeCollectionId) continue;
       for (const item of col.items) {
         if (!q || item.name.toLowerCase().includes(q)) {
           results.push({ item, collection: col });
@@ -90,7 +81,7 @@ export const CollectionBrowsePanel: React.FC<CollectionBrowsePanelProps> = ({
         >
           All
         </button>
-        {topCollections.map(col => (
+        {collections.map(col => (
           <button
             key={col.id}
             type="button"

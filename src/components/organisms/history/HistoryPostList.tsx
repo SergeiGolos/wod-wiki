@@ -15,8 +15,8 @@ import type { HistoryEntry } from '@/types/history';
 import { AddToNotebookButton } from '@/components/molecules/AddToNotebookButton';
 import { CloneDateDropdown } from '@/components/molecules/CloneDateDropdown';
 import type { IContentProvider } from '@/types/content-provider';
-import { ListView, historyEntryToListItem } from '@/components/list';
-import type { IListItem, ListItemContext } from '@/components/list';
+import { ListView, historyEntryToListItem } from '@/components/molecules/list-index';
+import type { IListItem, ListItemContext } from '@/components/molecules/list-index';
 
 export interface HistoryPostListProps {
   /** Workout entries to display */

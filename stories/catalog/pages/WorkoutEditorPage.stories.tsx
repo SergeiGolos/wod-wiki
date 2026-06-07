@@ -1,8 +1,7 @@
 /**
  * Catalog / Pages / WorkoutEditorPage
  *
- * Renders: {@link import('@/playground/src/pages/WorkoutEditorPage').WorkoutEditorPage}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../playground/src/pages/WorkoutEditorPage').WorkoutEditorPage}
  *
  * Stories:
  *  1. Fran — classic benchmark girl WOD

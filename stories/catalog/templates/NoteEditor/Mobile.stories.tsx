@@ -1,8 +1,7 @@
 /**
  * Catalog / Templates / NoteEditor / Mobile
  *
- * Renders: {@link import('@/panels/note-editor-mobile').NoteEditor}
- * Data:     See {@link ../../../data-for-storybook.md}
+ * Renders: NoteEditor at mobile dimensions (390px) via StorybookWorkbench
  *
  * Stories:
  *  1. Default — default mobile note editor
@@ -14,7 +13,7 @@
 
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { StorybookWorkbench } from '../../../_shared/StorybookWorkbench';
+import { StorybookWorkbench } from '../../_shared/StorybookWorkbench';
 
 const meta: Meta = {
   title: 'catalog/templates/NoteEditor/Mobile',

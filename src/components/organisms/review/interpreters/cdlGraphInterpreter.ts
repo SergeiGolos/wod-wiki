@@ -5,8 +5,8 @@
  * Replaces the scattered numeric-extraction logic in the old graph pipeline.
  */
 
-import type { GridRow } from './types';
-import type { ColumnDef, ComputeContext } from './column-definition-language';
+import type { GridRow } from '../types';
+import type { ColumnDef, ComputeContext } from '../column-definition-language';
 import { resolveColumnSource } from './cdlSourceResolver';
 
 // ─── Public API ────────────────────────────────────────────────

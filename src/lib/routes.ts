@@ -165,6 +165,7 @@ export interface RawRouteParams {
   view?: string;
   sectionId?: string;
   resultId?: string;
+  [key: string]: string | undefined;
 }
 
 /**

@@ -59,7 +59,7 @@ export class EmitSystemOutputAction implements IRuntimeAction {
   ) {}
 
   do(runtime: IScriptRuntime): IRuntimeAction[] {
-    const now = runtime.clock.now;
+    const now = runtime.clock.currentDate;
 
     const value: SystemOutputValue = {
       event: this.event,

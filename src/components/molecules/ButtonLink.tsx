@@ -33,9 +33,9 @@ export const ButtonLink = React.memo(React.forwardRef<HTMLAnchorElement, ButtonL
     const iconSize = getIconSize(size)
     const content = (
       <>
-        {Icon && <Icon className={iconSize} aria-hidden="true" />}
+        {Icon && <Icon className={iconSize} aria-hidden />}
         <span className="truncate flex gap-1">{children}</span>
-        {TrailingIcon && <TrailingIcon className={cn(iconSize, 'ml-auto')} aria-hidden="true" />}
+        {TrailingIcon && <TrailingIcon className={cn(iconSize, 'ml-auto')} aria-hidden />}
       </>
     )
 

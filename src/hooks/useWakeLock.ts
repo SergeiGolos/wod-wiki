@@ -51,10 +51,6 @@ interface WakeLockType {
   request(type: 'screen'): Promise<WakeLockSentinelType>;
 }
 
-interface NavigatorWithWakeLock extends Navigator {
-  wakeLock?: WakeLockType;
-}
-
 export interface UseWakeLockOptions {
   /**
    * When true, automatically requests the wake lock.
@@ -84,7 +80,7 @@ export function useWakeLock(options: UseWakeLockOptions = {}): UseWakeLockResult
   const [isActive, setIsActive] = useState(false);
   const [isSupported] = useState(() => {
     // Check if running in browser and if Wake Lock API is supported
-    const nav = typeof navigator !== 'undefined' ? navigator as NavigatorWithWakeLock : undefined;
+    const nav = typeof navigator !== 'undefined' ? navigator as unknown as { wakeLock?: WakeLockType } : undefined;
     return nav !== undefined && 'wakeLock' in nav && nav.wakeLock !== undefined;
   });
   
@@ -105,8 +101,8 @@ export function useWakeLock(options: UseWakeLockOptions = {}): UseWakeLockResult
     }
 
     try {
-      const nav = navigator as NavigatorWithWakeLock;
-      wakeLockRef.current = await nav.wakeLock!.request('screen');
+      const nav = navigator as unknown as { wakeLock: WakeLockType };
+      wakeLockRef.current = await nav.wakeLock.request('screen');
       setIsActive(true);
 
       // Listen for the wake lock being released (e.g., when tab becomes hidden)
@@ -206,4 +202,3 @@ export function useWakeLock(options: UseWakeLockOptions = {}): UseWakeLockResult
   };
 }
 
-export default useWakeLock;

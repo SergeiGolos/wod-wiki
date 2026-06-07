@@ -5,8 +5,7 @@ import { DistanceMetric } from "../../runtime/compiler/metrics/DistanceMetric";
 import { ResistanceMetric } from "../../runtime/compiler/metrics/ResistanceMetric";
 import { EffortMetric } from "../../runtime/compiler/metrics/EffortMetric";
 import { MeasuredMetric } from "../../runtime/compiler/metrics/MeasuredMetric";
-import { SlashMetric } from "../../runtime/compiler/metrics/SlashMetric";
-import { PipeMetric } from "../../runtime/compiler/metrics/PipeMetric";
+
 import { ChoiceGroupMetric } from "../../runtime/compiler/metrics/ChoiceGroupMetric";
 
 /** Source location carried alongside a metric (the parser's SyntaxMeta, which

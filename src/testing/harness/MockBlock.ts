@@ -160,7 +160,7 @@ class MockBehaviorContext implements IBehaviorContext {
     const runtime = this._mockBlock.runtime;
     if (runtime?.addOutput) {
       // Wire to runtime — mirrors production BehaviorContext.emitOutput()
-      const now = this.clock.now;
+      const now = this.clock.currentDate;
       const timerLocations = this._mockBlock.getMemoryByTag('time');
       let startTime = now.getTime();
       const endTime = now.getTime();
@@ -356,7 +356,7 @@ export class MockBlock implements IRuntimeBlock {
       this._memory.push(new MemoryLocation('metric:label', [{
         type: MetricType.Label,
         image: labelText,
-        origin: 'config',
+        origin: 'parser',
         value: labelText
       } as IMetric]));
     }
@@ -404,7 +404,7 @@ export class MockBlock implements IRuntimeBlock {
 
   mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     const clock = options?.clock ?? runtime.clock;
-    this.executionTiming.startTime = options?.startTime ?? clock.now;
+    this.executionTiming.startTime = options?.startTime ?? clock.currentDate;
 
     if (this._forcedMountActions.length > 0) {
       return [...this._forcedMountActions];
@@ -449,7 +449,7 @@ export class MockBlock implements IRuntimeBlock {
 
   unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     const clock = options?.clock ?? runtime.clock;
-    this.executionTiming.completedAt = options?.completedAt ?? clock.now;
+    this.executionTiming.completedAt = options?.completedAt ?? clock.currentDate;
 
     if (this._forcedUnmountActions.length > 0) {
       return [...this._forcedUnmountActions];
@@ -473,7 +473,7 @@ export class MockBlock implements IRuntimeBlock {
 
   dispose(_runtime: IScriptRuntime): void {
     // Pass BehaviorContext to onDispose (matches production RuntimeBlock)
-    const ctx = this._behaviorContext ?? new MockBehaviorContext(this, _runtime?.clock ?? { now: new Date() } as IRuntimeClock, 0);
+    const ctx = this._behaviorContext ?? new MockBehaviorContext(this, _runtime?.clock ?? { currentDate: new Date(), now: () => new Date(), nowMs: () => Date.now(), elapsed: 0, isRunning: false, spans: [], start: () => new Date(), stop: () => new Date() } as IRuntimeClock, 0);
     for (const behavior of this.behaviors) {
       if (typeof (behavior as any).onDispose === 'function') {
         (behavior as any).onDispose(ctx);

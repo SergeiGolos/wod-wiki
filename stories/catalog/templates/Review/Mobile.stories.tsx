@@ -1,8 +1,7 @@
 /**
  * Catalog / Templates / Review / Mobile
  *
- * Renders: {@link import('@/panels/review-panel-mobile').ReceiverReviewPanel}
- * Data:     See {@link ../../../data-for-storybook.md}
+ * Renders: ReviewGrid at mobile dimensions (375px) — no dedicated mobile panel exists yet
  *
  * Stories:
  *  1. EmptyReview — review panel with no segments yet
@@ -83,8 +82,8 @@ function runToCompletion(
   let steps = 0;
   while (runtime.stack.count > 0 && steps < maxSteps) {
     clock.advance(stepMs);
-    runtime.handle(new TickEvent());
-    runtime.do(new NextAction());
+    runtime.handle(new TickEvent(undefined, runtime.nowProvider));
+    runtime.do(new NextAction(undefined, runtime.nowProvider));
     steps++;
   }
 

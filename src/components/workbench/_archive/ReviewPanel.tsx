@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { TimerIndexPanel } from '../../layout/TimerIndexPanel';
+import { TimerIndexPanel } from '../../organisms/layout/TimerIndexPanel';
 import { TimelineView } from '../../../timeline/TimelineView';
 import { Segment, AnalyticsGroup } from '../../../core/models/AnalyticsModels';
 import { IScriptRuntime } from '../../../runtime/contracts/IScriptRuntime';

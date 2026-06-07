@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en" class="antialiased">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plan v4 — Plan once. Use the metric three ways.</title>
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/index.css">
+  <link rel="stylesheet" href="site.css" />
+</head>
+<body class="poc">
+  <nav class="poc-nav">
+    <div class="poc-nav-inner">
+      <div class="flex items-center gap-2">
+        <span class="font-semibold">Wod.Wiki</span><span class="text-zinc-500">·</span><span class="text-zinc-500">Plan v4</span>
+      </div>
+      <div class="navlinks">
+        <a href="index.html">Index</a>
+        <a href="idea-1.html">Plan v1</a>
+        <a href="idea-2.html">Plan v2</a>
+        <a href="idea-3.html">Plan v3</a>
+        <a class="current" href="idea-4.html">Plan v4</a>
+        <a href="idea-5.html">Plan v5</a>
+      </div>
+      <button data-theme-toggle aria-checked="false" class="theme-toggle" aria-label="Toggle dark mode">
+        <span>☀</span><span class="switch" aria-hidden="true"></span><span>☾</span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="poc-shell">
+    <section class="p-8">
+      <p class="eyebrow">Plan once, three ways</p>
+      <h1 class="mt-3">Plan once. Use the metric three ways.</h1>
+      <p class="lead mt-3">Three cards, three affordances — and the same <code>Rep</code> metric in each. The note card is editable. The run card has the buttons. The review card has the row.</p>
+    </section>
+
+    <section class="mt-6">
+      <!-- Top: editable note (one card, full width) -->
+      <div class="cm">
+        <div class="cm-head">
+          <div class="cm-dots"><span></span><span></span><span></span></div>
+          <span>thursday-conditioning.md · the note</span>
+        </div>
+        <div class="cm-body">
+          <div class="cm-line"><span class="ln">1</span><span class="src"><span class="tk-punct">---</span></span></div>
+          <div class="cm-line"><span class="ln">2</span><span class="src"><span class="tk-key">title</span><span class="tk-punct">:</span> Thursday Conditioning</span></div>
+          <div class="cm-line"><span class="ln">3</span><span class="src"><span class="tk-punct">---</span></span></div>
+          <div class="cm-line"><span class="ln">4</span><span class="src"> </span></div>
+          <div class="cm-line"><span class="ln">5</span><span class="src"><span class="tk-fence">```wod</span></span></div>
+          <div class="cm-line"><span class="ln">6</span><span class="src"><span class="tk-num">20:00</span> AMRAP</span></div>
+          <div class="cm-line"><span class="ln">7</span><span class="src">  <span class="tk-num">5</span> Pullups</span></div>
+          <div class="cm-line"><span class="ln">8</span><span class="src">  <span class="tk-num">10</span> Pushups<span class="caret" style="color: hsl(var(--metric-rep));"></span></span></div>
+          <div class="cm-line"><span class="ln">9</span><span class="src">  <span class="tk-num">15</span> Air Squats</span></div>
+          <div class="cm-line"><span class="ln">10</span><span class="src"><span class="tk-fence">```</span></span></div>
+        </div>
+      </div>
+
+      <!-- Bottom: three cards -->
+      <div class="mt-6 grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1rem;">
+        <!-- Plan card -->
+        <div class="p-5 rounded-2xl border" style="border-color: hsl(var(--border));">
+          <div class="flex items-center justify-between">
+            <p class="eyebrow">Plan</p>
+            <span class="chip chip-effort">parser · tier 3</span>
+          </div>
+          <p class="mt-3 text-2xl font-semibold" style="font-family: 'JetBrains Mono', monospace; color: hsl(var(--metric-effort));">10 reps</p>
+          <p class="text-sm mt-2 leading-6"><code>10 Pushups</code> → <code>Rep(10)</code>, <code>origin: 'parser'</code>. The plan.</p>
+        </div>
+
+        <!-- Run card -->
+        <div class="p-5 rounded-2xl border" style="border-color: hsl(var(--border));">
+          <div class="flex items-center justify-between">
+            <p class="eyebrow">Run</p>
+            <span class="chip chip-time">runtime · tier 1</span>
+          </div>
+          <p class="mt-3 text-2xl font-semibold" style="font-family: 'JetBrains Mono', monospace; color: hsl(var(--metric-time));">9 reps</p>
+          <p class="text-sm mt-2 leading-6">The runtime reported 9 reps. Then you typed 8. User wins display.</p>
+          <div class="cmd-rail mt-3" style="padding: 0.375rem; gap: 0.25rem;">
+            <button class="cmd primary" type="button" style="padding: 0.375rem 0.625rem; font-size: 0.75rem;"><span class="icon"><span class="icon-play"></span></span>Run</button>
+            <button class="cmd" type="button" style="padding: 0.375rem 0.625rem; font-size: 0.75rem;"><span class="icon">+</span>Today</button>
+            <button class="cmd" type="button" style="padding: 0.375rem 0.625rem; font-size: 0.75rem;"><span class="icon">↗</span>Playground</button>
+          </div>
+        </div>
+
+        <!-- Review card -->
+        <div class="p-5 rounded-2xl border" style="border-color: hsl(var(--border));">
+          <div class="flex items-center justify-between">
+            <p class="eyebrow">Review</p>
+            <span class="chip chip-action">analyzed</span>
+          </div>
+          <p class="mt-3 text-2xl font-semibold" style="font-family: 'JetBrains Mono', monospace; color: hsl(var(--metric-action));">8 reps</p>
+          <p class="text-sm mt-2 leading-6">The row reads <code>Rep(8)</code> with <code>origin: 'user'</code>. The <code>MET-min</code> and <code>TIS</code> columns come from the analytics engine.</p>
+        </div>
+      </div>
+
+      <p class="callout mt-6">All three cards anchor the same <code>Rep</code> metric. The <em>Plan</em> card shows the source. The <em>Run</em> card shows the button set. The <em>Review</em> card shows the row.</p>
+    </section>
+
+    <div class="footer-note">
+      <span>Plan v4 · one editable note, three affordance cards, one anchor metric</span>
+      <span>The full <code>useWodBlockCommands</code> button set is on the Run card</span>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var t = localStorage.getItem('poc-theme');
+      if (t === 'dark') document.documentElement.classList.add('dark');
+      document.addEventListener('click', function (e) {
+        var t = e.target.closest('[data-theme-toggle]');
+        if (t) { var on = document.documentElement.classList.toggle('dark'); localStorage.setItem('poc-theme', on ? 'dark' : 'light'); }
+      });
+    })();
+  </script>
+</body>
+</html>

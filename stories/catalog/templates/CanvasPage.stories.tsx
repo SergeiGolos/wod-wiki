@@ -1,8 +1,7 @@
 /**
  * Catalog / Templates / CanvasPage
  *
- * Renders: {@link import('@/components/page-shells/CanvasPage').CanvasPage}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../src/panels/page-shells/CanvasPage').CanvasPage}
  *
  * Stories:
  *  1. TitleBarEmpty — title-bar mode with no content (blank slate)

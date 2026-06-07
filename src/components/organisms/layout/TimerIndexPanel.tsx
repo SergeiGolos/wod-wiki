@@ -79,4 +79,3 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
   );
 };
 
-export default TimerIndexPanel;

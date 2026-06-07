@@ -87,6 +87,7 @@ export class RuntimeFactory implements IRuntimeFactory {
 
     // Instantiate dependencies
     const stack = new RuntimeStack();
+    // Clock is wall-clock; tests inject a mock via ScriptRuntime ctor.
     const clock = new RuntimeClock();
     const eventBus = new EventBus();
 

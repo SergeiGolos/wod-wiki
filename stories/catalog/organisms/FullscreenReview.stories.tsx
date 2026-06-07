@@ -1,8 +1,7 @@
 /**
  * Catalog / Organisms / FullscreenReview
  *
- * Renders: {@link import('@/components/molecules/FocusedDialog').FocusedDialog}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../src/components/molecules/FocusedDialog').FocusedDialog}
  *
  * Stories:
  *  1. EmptyState — overlay opened before any workout data exists
@@ -84,8 +83,8 @@ function runToCompletion(
   let steps = 0;
   while (runtime.stack.count > 0 && steps < maxSteps) {
     clock.advance(stepMs);
-    runtime.handle(new TickEvent());
-    runtime.do(new NextAction());
+    runtime.handle(new TickEvent(undefined, runtime.nowProvider));
+    runtime.do(new NextAction(undefined, runtime.nowProvider));
     steps++;
   }
 

@@ -1,8 +1,7 @@
 /**
  * Catalog / Pages / EffortsCatalogPage
  *
- * Renders: {@link import('@/playground/src/pages/EffortsCatalogPage').EffortsCatalogPage}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../playground/src/pages/EffortsCatalogPage').EffortsCatalogPage}
  *
  * Stories:
  *  1. Default — catalog showing all bundled + user efforts

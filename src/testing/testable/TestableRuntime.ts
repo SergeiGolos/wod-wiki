@@ -1,5 +1,4 @@
 import type { IMemoryReference, IRuntimeBlock, IScriptRuntime } from "@/runtime/contracts";
-import { JitCompiler } from "@/runtime/compiler/JitCompiler";
 import type { IMetric } from "@/core/models/Metric";
 import type { WhiteboardScript, IScript } from "@/parser/WhiteboardScript";
 import { BlockKey } from "@/core/models/BlockKey";
@@ -156,10 +155,10 @@ class StubBlock implements IRuntimeBlock {
   readonly sourceIds: number[] = [];
   readonly blockType?: string;
   readonly context: IBlockContext;
-  readonly metrics?: IMetric[][];
+  readonly behaviors: readonly import("@/runtime/contracts/IRuntimeBehavior").IRuntimeBehavior[] = [];
+  readonly completionReason?: string = undefined;
   private _isComplete = false;
   private _memory: import('@/runtime/memory/MemoryLocation').IMemoryLocation[] = [];
-
   /**
    * Computed label derived from the block's Label metrics in memory.
    * Falls back to blockType → 'Block'.
@@ -194,7 +193,7 @@ class StubBlock implements IRuntimeBlock {
       this._memory.push(new MemoryLocation('metric:label', [{
         type: MetricType.Label,
         image: labelText,
-        origin: 'config',
+        origin: 'parser',
         value: labelText
       } as IMetric]));
     }
@@ -273,12 +272,15 @@ export class TestableRuntime implements IScriptRuntime {
     return this._wrappedStack;
   }
 
-  get jit(): JitCompiler {
+  get jit(): import("@/runtime/contracts/IScriptRuntime").IJitCompiler {
     return this._wrapped.jit;
   }
 
   get clock(): IRuntimeClock {
     return this._wrapped.clock;
+  }
+  get nowProvider() {
+    return this._wrapped.nowProvider;
   }
 
 
@@ -300,6 +302,9 @@ export class TestableRuntime implements IScriptRuntime {
     return this._wrapped.tracker;
   }
 
+  subscribeToTracker(listener: import("@/runtime/contracts/IScriptRuntime").TrackerListener): import("@/runtime/contracts").Unsubscribe {
+    return this._wrapped.subscribeToTracker(listener);
+  }
   // ========== IScriptRuntime Methods (delegated) ==========
 
   /**

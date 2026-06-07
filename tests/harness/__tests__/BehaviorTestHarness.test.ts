@@ -31,7 +31,7 @@ describe('BehaviorTestHarness', () => {
     it('should set clock time correctly', () => {
       const time = new Date('2025-01-01T10:00:00Z');
       harness.withClock(time);
-      expect(harness.clock.now.getTime()).toBe(time.getTime());
+      expect(harness.clock.currentDate.getTime()).toBe(time.getTime());
     });
   });
 
@@ -101,15 +101,15 @@ describe('BehaviorTestHarness', () => {
 
   describe('Time Operations', () => {
     it('should advance clock', () => {
-      const start = harness.clock.now.getTime();
+      const start = harness.clock.currentDate.getTime();
       harness.advanceClock(5000);
-      expect(harness.clock.now.getTime()).toBe(start + 5000);
+      expect(harness.clock.currentDate.getTime()).toBe(start + 5000);
     });
 
     it('should set clock to specific time', () => {
       const newTime = new Date('2026-01-01T00:00:00Z');
       harness.setClock(newTime);
-      expect(harness.clock.now.getTime()).toBe(newTime.getTime());
+      expect(harness.clock.currentDate.getTime()).toBe(newTime.getTime());
     });
   });
 

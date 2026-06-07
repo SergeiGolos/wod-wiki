@@ -1,8 +1,7 @@
 /**
  * Catalog / Pages / JournalPage
  *
- * Renders: {@link import('@/playground/src/pages/JournalPage').JournalPage}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../playground/src/pages/JournalPage').JournalPage}
  *
  * Stories:
  *  1. Default — default journal entry (new entry)

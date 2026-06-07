@@ -3,20 +3,20 @@ import { TimeSpan } from './models/TimeSpan';
 
 
 /**
- * SnapshotClock wraps an IRuntimeClock and freezes `now` at a specific timestamp.
+ * SnapshotClock wraps an IRuntimeClock and freezes `currentDate` at a specific timestamp.
  * Used to ensure consistent timing during execution chains (pop → next → push).
- * 
+ *
  * All other properties and methods delegate to the underlying clock.
- * 
+ *
  * @example
  * ```typescript
  * // Freeze time at completion moment
  * const completedAt = new Date();
  * const snapshot = SnapshotClock.at(runtime.clock, completedAt);
- * 
+ *
  * // All operations see the same frozen time
  * parent.next(runtime, { clock: snapshot });
- * // child pushed with startTime = snapshot.now = completedAt
+ * // child pushed with startTime = snapshot.currentDate = completedAt
  * ```
  */
 export class SnapshotClock implements IRuntimeClock {
@@ -26,8 +26,16 @@ export class SnapshotClock implements IRuntimeClock {
     ) {}
 
     /** Always returns the frozen timestamp */
-    get now(): Date {
+    get currentDate(): Date {
         return this._frozenTime;
+    }
+
+    now(): Date {
+        return this._frozenTime;
+    }
+
+    nowMs(): number {
+        return this._frozenTime.getTime();
     }
 
     /** Delegate to underlying clock */
@@ -52,11 +60,10 @@ export class SnapshotClock implements IRuntimeClock {
     }
 
     /**
-     * Create a snapshot of a clock at a specific time.
      * Factory method for cleaner creation.
-     * 
+     *
      * @param clock The underlying clock to wrap
-     * @param time The frozen timestamp to return from `now`
+     * @param time The frozen timestamp to return from `currentDate`
      */
     static at(clock: IRuntimeClock, time: Date): SnapshotClock {
         return new SnapshotClock(clock, time);
@@ -64,12 +71,12 @@ export class SnapshotClock implements IRuntimeClock {
 
     /**
      * Create a snapshot at the clock's current time.
-     * Useful for freezing "now" before starting an execution chain.
-     * 
+     * Useful for freezing `currentDate` before starting an execution chain.
+     *
      * @param clock The clock to snapshot
      */
     static now(clock: IRuntimeClock): SnapshotClock {
-        return new SnapshotClock(clock, clock.now);
+        return new SnapshotClock(clock, clock.currentDate);
     }
 }
 
@@ -88,8 +95,16 @@ export class RuntimeClock implements IRuntimeClock {
     /**
      * Current wall-clock time as a Date.
      */
-    public get now(): Date {
+    public get currentDate(): Date {
         return new Date();
+    }
+
+    now(): Date {
+        return this.currentDate;
+    }
+
+    nowMs(): number {
+        return this.currentDate.getTime();
     }
 
     /**
@@ -177,7 +192,9 @@ export function createMockClock(initialTime: Date = new Date()): MockClock {
     const spans: TimeSpan[] = [];
 
     return {
-        get now() { return currentTime; },
+        get currentDate() { return currentTime; },
+        now() { return currentTime; },
+        nowMs() { return currentTime.getTime(); },
         get elapsed() {
             return spans.reduce((total, span) => total + span.duration, 0);
         },

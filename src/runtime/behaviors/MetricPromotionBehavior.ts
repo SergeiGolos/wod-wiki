@@ -73,7 +73,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
                     origin: 'compiler',
                     value: reps,
                     sourceBlockKey: parentBlock.key.toString(),
-                    timestamp: runtime.clock.now,
+                    timestamp: runtime.clock.currentDate,
                 });
             }
         }
@@ -149,7 +149,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
             origin: 'runtime',
             value: reps,
             sourceBlockKey: ctx.block.key.toString(),
-            timestamp: ctx.clock.now,
+            timestamp: ctx.clock.currentDate,
         };
 
         const existing = ctx.block.getMemoryByTag('metric:rep-target');

@@ -37,6 +37,17 @@ export interface IRuntimeBehavior {
   /**
    * Called when the block is being disposed.
    * Final cleanup hook.
-   */
   onDispose(ctx: IBehaviorContext): void;
+
+  /**
+   * Legacy API: called when a block is pushed onto the stack.
+   * Superseded by onMount. Retained for backward-compatible mock behaviors.
+   */
+  onPush?(block: any, clock: any): IRuntimeAction[];
+
+  /**
+   * Legacy API: called when a block is popped from the stack.
+   * Superseded by onUnmount. Retained for backward-compatible mock behaviors.
+   */
+  onPop?(block: any, clock: any): IRuntimeAction[];
 }

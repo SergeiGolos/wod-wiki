@@ -15,7 +15,7 @@ export class IndexedDBEffortRegistry implements IEffortRegistry {
     // No-op: bundled efforts are handled by BundledEffortRegistry
   }
 
-  resolve(slug: string): IEffort | null {
+  resolve(_slug: string): IEffort | null {
     // Synchronous interface required by IEffortRegistry;
     // IndexedDB is async. Callers should prefer resolveAsync.
     throw new Error(
@@ -25,7 +25,7 @@ export class IndexedDBEffortRegistry implements IEffortRegistry {
 
   async resolveAsync(slug: string): Promise<IEffort | null> {
     const db = await this.db.getDB();
-    return db.get('efforts', slug) ?? null;
+    return (await db.get('efforts', slug)) ?? null;
   }
 
   list(): readonly IEffort[] {

@@ -1,9 +1,7 @@
 import { parseDocumentSections, matchSectionIds } from '@/components/Editor/utils/sectionParser';
 import { parseWodBlock } from '@/components/Editor/utils/parseWodBlock';
-import { sharedParser } from '@/hooks/useRuntimeParser';
 import type { WodBlock, Section } from '@/components/Editor/types';
 import type { Section as EditorSection } from '@/components/Editor/types/section';
-
 export interface WorkbenchDocumentState {
   readonly sections: Section[];
   readonly blocks: WodBlock[];
@@ -35,7 +33,7 @@ function hydrateWodBlock(block: WodBlock): WodBlock {
   }
 
   try {
-    const result = parseWodBlock(block.content, sharedParser);
+    const result = parseWodBlock(block.content);
     return {
       ...block,
       statements: result.statements,

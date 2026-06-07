@@ -113,7 +113,7 @@ export function userNext(ctx: SessionTestContext): void {
 export function simulateEvent(ctx: SessionTestContext, name: string, data: Record<string, unknown> = {}): void {
     ctx.runtime.handle({
         name: name as any,
-        timestamp: ctx.clock.now,
+        timestamp: ctx.clock.currentDate,
         data,
     });
 }
@@ -126,7 +126,7 @@ export function advanceClock(ctx: SessionTestContext, ms: number): void {
     ctx.clock.advance(ms);
     ctx.runtime.handle({
         name: 'tick',
-        timestamp: ctx.clock.now,
+        timestamp: ctx.clock.currentDate,
         data: { source: 'test-harness' }
     });
 }

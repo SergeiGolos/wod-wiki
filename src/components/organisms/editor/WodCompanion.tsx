@@ -22,7 +22,7 @@ import { MdTimerRuntime } from "@/hooks/useRuntimeParser";
 import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
 import { cn } from "@/lib/utils";
 import type { WodBlock } from '@/components/Editor/types';
-import type { WodCommand } from "./WodCommand";
+import type { WodCommand } from "@/components/Editor/overlays/WodCommand";
 import { useWodBlockResults } from '@/components/Editor/hooks/useWodBlockResults';
 import { useWodLineResults } from '@/components/Editor/hooks/useWodLineResults';
 import type { LineExecutionSummary } from '@/components/Editor/hooks/useWodLineResults';
@@ -328,7 +328,7 @@ export interface WodCompanionProps {
   /** Document-space Y midpoint of cursor/hover line (for card centering). */
   lineDocY?: number;
   /** Section rect — used for card position clamping. */
-  rect: import('../extensions/section-geometry').SectionRect;
+  rect: import('@/components/Editor/extensions/section-geometry').SectionRect;
   /** Increments on every document change — forces re-parse on content edits. */
   docVersion: number;
   /** Commands to display as action buttons. */

@@ -36,7 +36,7 @@ import { useUserOverrides } from '@/components/organisms/review/useUserOverrides
 import { buildWorkoutResults, countSegmentOutputs, createRuntimeForBlock, prepareRuntimeBlock } from "@/app/editor/runtimeTimerModel";
 import { useCollectionMetrics, resolveChoiceSelection } from "@/hooks/useCollectionMetrics";
 import { CollectionWizard } from "@/components/organisms/review/CollectionWizard";
-import { MetricContainer } from "@/core/models/MetricContainer";
+
 import type { ChoiceCollectionItem } from "@/hooks/useCollectionMetrics";
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -299,7 +299,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   };
 
   const handleNext = () => {
-    runtime?.handle(new NextEvent());
+    runtime?.handle(new NextEvent(undefined, runtime!.nowProvider));
   };
 
   // ── Chromecast RPC syncing ──────────────────────────────────────────
@@ -324,7 +324,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     const eventProvider = new ChromecastEventProvider(castTransport);
     const unsubEvents = eventProvider.onEvent((event) => {
       switch (event.name) {
-        case 'next': runtime?.handle(new NextEvent()); break;
+        case 'next': runtime?.handle(new NextEvent(undefined, runtime!.nowProvider)); break;
         case 'start': execution.start(); break;
         case 'pause': execution.pause(); break;
         case 'stop': handleStop(); break;

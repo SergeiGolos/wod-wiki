@@ -2,9 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HistoryLayout } from '@/components/organisms/history/HistoryLayout';
 import { useWodCollections } from '@/hooks/useWodCollections';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/atoms/primitives/card';
-import { Button } from '@/components/atoms/primitives/button';
-import { ArrowLeft, FolderOpen, Play, Copy } from 'lucide-react';
 import { ListOfNotes } from '@/components/organisms/workbench/ListOfNotes';
 import { NotePreview } from '@/components/organisms/workbench/NotePreview';
 import type { IContentProvider } from '@/types/content-provider';
@@ -76,18 +73,8 @@ export const CollectionsPage: React.FC<{ provider: IContentProvider }> = ({ prov
         <div className="flex-1 min-w-0 bg-background h-full overflow-hidden flex flex-col">
             <div className="h-10 flex items-center px-4 border-b border-border gap-2 shrink-0">
                 <span className="font-semibold text-sm">
-                    {activeCollectionId
-                        ? (() => {
-                            const col = collections.find(c => c.id === activeCollectionId);
-                            if (!col) return activeCollectionId;
-                            if (col.parent) {
-                                const parent = collections.find(c => c.id === col.parent);
-                                return `${parent?.name ?? col.parent} › ${col.name}`;
-                            }
-                            return col.name;
-                        })()
-                        : "All Collections"
-                    }
+                    {collections.find(c => c.id === activeCollectionId)?.name
+                        ?? (activeCollectionId ?? "All Collections")}
                 </span>
             </div>
             <ListOfNotes

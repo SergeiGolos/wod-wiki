@@ -10,14 +10,14 @@
  * @see docs/adr/0011-column-definition-language.md
  */
 
-import type { ColumnDef, ColumnSource } from './column-definition-language';
+import type { ColumnDef } from './column-definition-language';
 import { MetricType } from '@/core/models/Metric';
 
 // ═══════════════════════════════════════════════════════════════
 // EXAMPLE 1: FIRST-PRESENT FALLBACK CHAIN
 // ═══════════════════════════════════════════════════════════════
 /**
- * Effort column: try Rep first, then Increment, then Exertion
+ * Effort column: try Rep first, then Increment, then Effort
  *
  * Semantics: FIRST_PRESENT means "use the first metric type that has data,
  * don't try the next one unless this one is absent".
@@ -25,7 +25,7 @@ import { MetricType } from '@/core/models/Metric';
  * Use case: Different workout types have different effort metrics:
  * - Strength: Rep (sets × reps)
  * - Cardio: Increment (e.g., 30-second intervals)
- * - Hybrid: Exertion (generic effort scale)
+ * - Hybrid: Effort (generic effort scale)
  */
 
 export const effortColumnFirstPresent: ColumnDef = {
@@ -38,7 +38,7 @@ export const effortColumnFirstPresent: ColumnDef = {
     sources: [
       { type: 'metric-type', metricType: MetricType.Rep },
       { type: 'metric-type', metricType: MetricType.Increment },
-      { type: 'metric-type', metricType: MetricType.Exertion },
+      { type: 'metric-type', metricType: MetricType.Effort },
     ],
   },
   format: {
@@ -111,7 +111,7 @@ export const effortLabelGroupedColumn: ColumnDef = {
     separator: '',
     primaryFormat: {
       type: 'badge',
-      styleResolver: (value) => ({
+      styleResolver: (_value) => ({
         className: 'badge-effort',
         icon: '💪',
       }),
@@ -181,7 +181,7 @@ export const paceColumnDerived: ColumnDef = {
     unit: ' km/h',
     transform: (value) => {
       // Convert to time-based pace if needed (min:sec per km)
-      const kph = value as number;
+      const kph = value as unknown as number;
       const secPerKm = 3600 / kph;
       const min = Math.floor(secPerKm / 60);
       const sec = Math.round(secPerKm % 60);
@@ -313,7 +313,7 @@ export const repColumnSimple: ColumnDef = {
   },
   format: {
     type: 'badge',
-    styleResolver: (value) => ({
+    styleResolver: (_value) => ({
       className: 'badge-rep',
       icon: '●',
     }),
@@ -345,7 +345,7 @@ export const repColumnSimple: ColumnDef = {
  * Pattern 1: FIRST-PRESENT FALLBACK
  *   - Try multiple metric types in order
  *   - Use first one that has data
- *   - Example: Rep → Increment → Exertion
+ *   - Example: Rep → Increment → Effort
  *   - Use case: Different metric types for different workout styles
  *
  * Pattern 2: ALL-PRESENT-JOINED GROUPING

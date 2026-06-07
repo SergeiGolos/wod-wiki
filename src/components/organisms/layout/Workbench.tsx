@@ -51,7 +51,7 @@ const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0
 
 import { PlanPanel } from '@/panels/plan-panel';
 import { TimerScreen } from '@/panels/track-panel';
-import { ResultsView } from '@/components/organisms/review';
+import { ResultsView } from '@/components/organisms/review/review-grid-index';
 import type { Segment } from '@/core/models/AnalyticsModels';
 
 export interface WorkbenchProps extends Omit<NoteEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange' | 'mode'> {
@@ -259,17 +259,14 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     handleStartWorkoutAction,
   } = useWorkbenchSync();
 
-  const { goToPlan } = useWorkbench();
 
   // Handle NAVIGATE_TO requests from syntax links
   useEffect(() => {
     const cleanup = workbenchEventBus.onNavigateTo(({ entryId, view: _view }) => {
-      // In Storybook/Static mode, we just update the in-memory noteId
-      // and let the provider/context handle loading the content.
-      goToPlan(entryId);
+      navigate(planPath(entryId));
     });
     return () => { cleanup(); };
-  }, [goToPlan]);
+  }, [navigate]);
 
   const { startTutorial } = useTutorialStore();
 
@@ -494,7 +491,6 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
   );
 };
 
-export default Workbench;
 
 // ─── Helper: Extract projections from analytics segments ───────
 

@@ -212,7 +212,7 @@ export function ComboboxInput({
   ...props
 }: {
   icon?: React.ComponentType<{ className?: string }>
-} & Omit<Headless.ComboboxInputProps, 'as' | 'className'>) {
+} & Omit<Headless.ComboboxInputProps, 'as'>) {
   return (
     <span
       data-slot="control"

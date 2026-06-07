@@ -99,7 +99,7 @@ function statementsToCSV(entry: HistoryEntry): string {
                                 stmt.id,
                                 stmt.parent ?? null,
                                 stmt.meta?.line ?? null,
-                                metrics.type,
+                                metric.type,
                                 metric.value !== undefined ? JSON.stringify(metric.value) : null,
                                 metric.origin ?? null,
                             ]);

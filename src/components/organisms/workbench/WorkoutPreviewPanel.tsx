@@ -26,7 +26,9 @@ export interface WorkoutPreviewPanelProps {
 
   /** Callback when blocks change (parsed from content) */
   onBlocksChange?: (blocks: any[]) => void;
+  filter?: SectionType[];
 
+  /** Optional CSS class */
   /** Optional CSS class */
   className?: string;
 }

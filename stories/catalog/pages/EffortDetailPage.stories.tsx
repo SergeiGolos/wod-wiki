@@ -1,8 +1,7 @@
 /**
  * Catalog / Pages / EffortDetailPage
  *
- * Renders: {@link import('@/playground/src/pages/EffortDetailPage').EffortDetailPage}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../playground/src/pages/EffortDetailPage').EffortDetailPage}
  *
  * Stories:
  *  1. BundledEffort — default bundled effort with analytics placeholder

@@ -10,7 +10,7 @@ import { NotebooksSection } from '@/components/organisms/workbench/NotebooksSect
 import { DatesTagsSection } from '@/components/organisms/workbench/DatesTagsSection';
 import { LinkedNotesSection } from '@/components/organisms/workbench/LinkedNotesSection';
 import { PreferencesSection } from '@/components/organisms/workbench/PreferencesSection';
-import { useNotebooks } from '@/components/organisms/notebook/NotebookContext';
+import { useNotebooks } from '@/contexts/NotebookContext';
 
 export interface NoteDetailsPanelProps {
   isOpen: boolean;

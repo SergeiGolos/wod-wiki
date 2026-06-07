@@ -24,7 +24,7 @@ export class PopBlockAction implements IRuntimeAction {
         }
 
         // Set completedAt time if not provided
-        const completedAt = this.options.completedAt ?? runtime.clock.now;
+        const completedAt = this.options.completedAt ?? runtime.clock.currentDate;
         const lifecycleOptions: BlockLifecycleOptions = { ...this.options, completedAt };
 
         // Update block's execution timing
@@ -73,7 +73,7 @@ export class PopBlockAction implements IRuntimeAction {
         // ExecutionContext reverse-pushes returned arrays so first element executes first:
         // unmount effects run before parent advancement.
         return parent
-            ? [...unmountActions, new NextAction(lifecycleOptions)]
+            ? [...unmountActions, new NextAction(lifecycleOptions, runtime.nowProvider)]
             : unmountActions;
     }
 }

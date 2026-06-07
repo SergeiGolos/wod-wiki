@@ -48,7 +48,7 @@ export const CastButton: React.FC = () => {
             if (msg.type !== 'event-from-receiver') return;
             const payload = msg.payload as { event: { name: EventName; timestamp: number; data?: unknown } };
             const state = useWorkbenchSyncStore.getState();
-            const { handleNext, handleStart, handlePause, handleStop } = state;
+            const { handleNext, handleStart, handlePause, handleStop } = state.handles;
             
             console.log(`[CastButton] Received remote event: "${payload.event.name}" at ${new Date(payload.event.timestamp).toLocaleTimeString()}`);
 
@@ -105,8 +105,7 @@ export const CastButton: React.FC = () => {
 
     useEffect(() => {
         const transport = transportRef.current;
-        const display = store.displayState as any;
-
+        const display = (store as any).displayState;
         if (!transport || !isCasting || !display) return;
 
         // Build a structural fingerprint that ignores timer elapsed values
@@ -157,7 +156,7 @@ export const CastButton: React.FC = () => {
         });
     }, [
         isCasting,
-        store.displayState,
+        (store as any).displayState,
         store.execution.status,
     ]);
 

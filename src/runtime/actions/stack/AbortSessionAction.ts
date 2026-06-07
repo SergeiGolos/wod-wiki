@@ -35,7 +35,7 @@ export class AbortSessionAction implements IRuntimeAction {
             // Unmount triggers ReportOutputBehavior.onUnmount() which emits 'completion' output.
             // Filter out 'emit-event' actions to prevent cascading timer:complete / timer:stop
             // events from triggering further block transitions during the abort drain.
-            const unmountActions = current.unmount(runtime, { completedAt: runtime.clock.now }) ?? [];
+            const unmountActions = current.unmount(runtime, { completedAt: runtime.clock.currentDate }) ?? [];
             const safeActions = unmountActions.filter(a => a.type !== 'emit-event');
             collectedActions.push(...safeActions);
 

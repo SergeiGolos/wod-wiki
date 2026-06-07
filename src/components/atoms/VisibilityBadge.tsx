@@ -54,4 +54,3 @@ export const VisibilityBadge: React.FC<{ visibility: MetricVisibility }> = ({ vi
     );
 };
 
-export default VisibilityBadge;

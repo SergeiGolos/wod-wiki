@@ -1,8 +1,7 @@
 /**
  * Catalog / Molecules / ResultListItem
  *
- * Renders: {@link import('@/components/molecules/ResultListItem').ResultListItem}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../src/components/molecules/ResultListItem').ResultListItem}
  *
  * Stories:
  *  1. TitleOnly — minimal row with just a time label and title

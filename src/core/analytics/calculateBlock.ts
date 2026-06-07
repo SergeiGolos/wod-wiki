@@ -1,5 +1,5 @@
 import { MetricType } from '../models/Metric';
-import { TimeSpan } from '../models/TimeSpan';
+
 import type { IOutputStatement } from '../models/OutputStatement';
 import type { ISummaryProcessor } from './ISummaryProcessor';
 import type { ProjectionResult } from './ProjectionResult';

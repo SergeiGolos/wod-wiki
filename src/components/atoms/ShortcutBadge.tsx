@@ -39,4 +39,3 @@ export function ShortcutBadge({ tokens, delimiter }: ShortcutBadgeProps) {
   );
 }
 
-export default ShortcutBadge;

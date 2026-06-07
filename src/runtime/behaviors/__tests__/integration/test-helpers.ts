@@ -5,16 +5,16 @@
  * in realistic runtime scenarios.
  */
 
-import { vi, expect } from 'bun:test';
+import { expect } from 'bun:test';
 import { IRuntimeBehavior } from '../../../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../../../contracts/IBehaviorContext';
 import { IRuntimeBlock } from '../../../contracts/IRuntimeBlock';
-import { MemoryType, MemoryTypeMap, TimerState, RoundState, DisplayState } from '../../../memory/MemoryTypes';
+import { MemoryType, MemoryTypeMap, TimerState, RoundState } from '../../../memory/MemoryTypes';
 import { TimeSpan } from '../../../models/TimeSpan';
 import { IMemoryLocation, MemoryTag, MemoryLocation } from '../../../memory/MemoryLocation';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
 import { CurrentRoundMetric } from '../../../compiler/metrics/CurrentRoundMetric';
-import { RoundState } from '../../../memory/MemoryTypes';
+
 
 /**
  * Mock clock for deterministic time control in tests.
@@ -26,8 +26,16 @@ export class MockClock {
         this._now = startTime;
     }
 
-    get now(): Date {
+    get currentDate(): Date {
         return new Date(this._now);
+    }
+
+    now(): Date {
+        return new Date(this._now);
+    }
+
+    nowMs(): number {
+        return this._now;
     }
 
     get timestamp(): number {
@@ -134,7 +142,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         memoryLocations.push(new MemoryLocation('metric:label', [{
             type: MetricType.Label,
             image: labelText,
-            origin: 'config',
+            origin: 'parser',
             value: labelText
         } as IMetric]));
     }
@@ -252,7 +260,7 @@ export function dispatchEvent(
     // Create proper event object with name field as behaviors expect
     const event = {
         name: eventType,
-        timestamp: runtime.clock.now,
+        timestamp: runtime.clock.currentDate,
         data: eventData
     };
     for (const handler of handlers) {
@@ -432,7 +440,7 @@ export function simulateRoundAdvance(ctx: IBehaviorContext): void {
         round.current + 1,
         round.total,
         'test-block',
-        ctx.clock.now,
+        ctx.clock.currentDate,
     );
     ctx.updateMemory('round', [frag]);
 }

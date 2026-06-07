@@ -19,7 +19,7 @@ import { startSpan, closeCurrentSpan, readTimer, mutateTimerSpans } from '../tim
  */
 export class SpanTrackingBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const now = ctx.clock.now.getTime();
+        const now = ctx.clock.currentDate.getTime();
         const label = ctx.block.label;
 
         const metric: IMetric = {
@@ -34,7 +34,7 @@ export class SpanTrackingBehavior implements IRuntimeBehavior {
                 role: 'hidden'
             } satisfies TimerState,
             sourceBlockKey: ctx.block.key.toString(),
-            timestamp: ctx.clock.now,
+            timestamp: ctx.clock.currentDate,
         };
 
         ctx.pushMemory('time', [metric]);

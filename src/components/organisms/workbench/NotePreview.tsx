@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 import type { IContentProvider } from '@/types/content-provider';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
-import { CloneDateDropdown } from './CloneDateDropdown';
+import { CloneDateDropdown } from '@/components/molecules/CloneDateDropdown';
 
 export interface NotePreviewProps {
     /** The workout entry to preview */

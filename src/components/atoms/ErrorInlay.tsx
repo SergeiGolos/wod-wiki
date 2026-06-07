@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { ExclamationTriangleIcon } from '@heroicons/react/20/solid'
 
 import { cn } from '@/lib/utils'

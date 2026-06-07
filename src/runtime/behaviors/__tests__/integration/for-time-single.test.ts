@@ -275,7 +275,7 @@ describe('For-Time-Single: Session Lifecycle', () => {
         // Dispatch next event to advance
         harness.dispatchEvent({
             name: 'next',
-            timestamp: harness.clock.now,
+            timestamp: harness.clock.currentDate,
             data: {}
         });
 
@@ -294,7 +294,7 @@ describe('For-Time-Single: Session Lifecycle', () => {
         // Move to exercise block
         harness.dispatchEvent({
             name: 'next',
-            timestamp: harness.clock.now,
+            timestamp: harness.clock.currentDate,
             data: {}
         });
 
@@ -312,7 +312,7 @@ describe('For-Time-Single: Session Lifecycle', () => {
         // Move to exercise: next pops WaitingToStart, ChildRunner pushes Exercise
         harness.dispatchEvent({
             name: 'next',
-            timestamp: harness.clock.now,
+            timestamp: harness.clock.currentDate,
             data: {}
         });
 
@@ -326,7 +326,7 @@ describe('For-Time-Single: Session Lifecycle', () => {
         // User completes exercise: next pops Exercise, ChildRunner has no more children
         harness.dispatchEvent({
             name: 'next',
-            timestamp: harness.clock.now,
+            timestamp: harness.clock.currentDate,
             data: {}
         });
 
@@ -348,7 +348,7 @@ describe('For-Time-Single: Session Lifecycle', () => {
         // Advance to exercise
         harness.dispatchEvent({
             name: 'next',
-            timestamp: harness.clock.now,
+            timestamp: harness.clock.currentDate,
             data: {}
         });
 

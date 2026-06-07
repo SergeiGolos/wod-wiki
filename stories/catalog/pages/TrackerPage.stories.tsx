@@ -1,8 +1,7 @@
 /**
  * Catalog / Pages / TrackerPage
  *
- * Renders: {@link import('@/playground/src/pages/TrackerPage').TrackerPage}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../playground/src/pages/TrackerPage').TrackerPage}
  *
  * Stories:
  *  1. NoRuntime — error state when no pending runtime exists

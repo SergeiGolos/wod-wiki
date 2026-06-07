@@ -38,7 +38,7 @@ export class PushBlockAction implements IRuntimeAction {
             if (!startTime && clock?.isRunning) {
                 // Clock running → create startTime automatically
                 // Uses frozen clock if provided for timing consistency
-                startTime = clock.now;
+                startTime = clock.currentDate;
             }
 
             const lifecycle: BlockLifecycleOptions = startTime

@@ -48,7 +48,7 @@ export const ProjectionSyncProvider: React.FC<ProjectionSyncProviderProps> = ({
 }) => {
     return (
         <ProjectionSyncContext.Provider value={{
-            updateFromSegments: (segments, totalElapsedMs, segmentCount) => {
+            updateFromSegments: (_segments, totalElapsedMs, segmentCount) => {
                 // Send analytics summary to Chromecast subscription
                 if (chromecastSubscription) {
                     chromecastSubscription.sendAnalyticsSummary(

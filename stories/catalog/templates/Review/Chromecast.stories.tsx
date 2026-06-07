@@ -1,8 +1,7 @@
 /**
  * Catalog / Templates / Review / Chromecast
  *
- * Renders: {@link import('@/panels/review-panel-chromecast').ReceiverReviewPanel}
- * Data:     See {@link ../../../data-for-storybook.md}
+ * Renders: {@link import('../../../src/panels/review-panel-chromecast').ReceiverReviewPanel}
  *
  * Stories:
  *  1. SimpleRows — simple rows fallback with no analyticsSummary

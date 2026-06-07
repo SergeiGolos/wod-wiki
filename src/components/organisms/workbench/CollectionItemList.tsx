@@ -5,8 +5,8 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import type { WodCollectionItem } from '@/repositories/wod-collections';
-import { ListView, collectionItemToListItem } from '@/components/list';
-import type { IListItem } from '@/components/list';
+import { ListView, collectionItemToListItem } from '@/components/molecules/list-index';
+import type { IListItem } from '@/components/molecules/list-index';
 
 export interface CollectionItemListProps {
     items: WodCollectionItem[];

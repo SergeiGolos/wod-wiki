@@ -1,5 +1,5 @@
 import { ScriptRuntime } from '../ScriptRuntime';
-import { RuntimeMemory } from '../RuntimeMemory';
+
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../events/EventBus';

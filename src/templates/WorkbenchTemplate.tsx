@@ -62,4 +62,3 @@ export function WorkbenchTemplate({
   );
 }
 
-export default WorkbenchTemplate;

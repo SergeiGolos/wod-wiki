@@ -15,7 +15,7 @@ import { buildAppNavTree } from '../../../playground/src/nav/appNavTree';
 import { NavSidebar } from '../../../playground/src/nav/NavSidebar';
 import { SidebarLayout } from '@/templates/SidebarLayout'
 import { CanvasPage } from '@/panels/page-shells';
-import { JournalWeeklyPage } from '../../../playground/src/pages/JournalWeeklyPage';
+import { JournalWeeklyPage } from '../../../playground/src/views/ListViews';
 
 const AppJournalShell: React.FC = () => (
   <NavProvider tree={buildAppNavTree(() => {})}>

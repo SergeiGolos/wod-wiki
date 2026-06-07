@@ -461,4 +461,3 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   );
 };
 
-export default TimerDisplay;

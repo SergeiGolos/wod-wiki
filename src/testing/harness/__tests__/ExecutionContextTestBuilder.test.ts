@@ -25,7 +25,7 @@ describe('ExecutionContextTestBuilder', () => {
         .withClock(time)
         .build();
 
-      expect(harness.clock.now.getTime()).toBe(time.getTime());
+      expect(harness.clock.currentDate.getTime()).toBe(time.getTime());
       harness.dispose();
     });
 
@@ -224,7 +224,7 @@ describe('ExecutionContextTestBuilder', () => {
       // Advancing one clock should not affect the other
       harness1.advanceClock(5000);
 
-      expect(harness1.clock.now.getTime()).not.toBe(harness2.clock.now.getTime());
+      expect(harness1.clock.currentDate.getTime()).not.toBe(harness2.clock.currentDate.getTime());
 
       harness1.dispose();
       harness2.dispose();

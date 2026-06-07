@@ -41,7 +41,7 @@ describe('Mount Lifecycle', () => {
         const block = new MockBlock('mount-test', []);
         harness.push(block);
 
-        const startTime = harness.clock.now;
+        const startTime = harness.clock.currentDate;
         harness.mount();
 
         expect(block.executionTiming.startTime).toBeDefined();

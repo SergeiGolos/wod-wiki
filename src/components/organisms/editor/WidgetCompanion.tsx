@@ -14,7 +14,7 @@
 import React, { useMemo } from "react";
 import type { EditorView } from "@codemirror/view";
 import { sectionField } from '@/components/Editor/extensions/section-state';
-import type { WidgetConfig, WidgetProps, WidgetRegistry } from '@/components/Editor/widgets/types';
+import type { WidgetConfig, WidgetRegistry } from '@/components/Editor/widgets/types';
 
 export type { WidgetConfig, WidgetProps, WidgetRegistry } from '@/components/Editor/widgets/types';
 

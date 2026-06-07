@@ -15,7 +15,7 @@ import { useCreateWorkoutEntry } from '@/hooks/useCreateWorkoutEntry';
 import type { HistoryEntry } from '@/types/history';
 import { HistoryDetailsPanel } from '@/components/organisms/workbench/HistoryDetailsPanel';
 import type { PanelSpan } from '@/panels/panel-system/types';
-import { useNotebooks } from '@/components/organisms/notebook/NotebookContext';
+import { useNotebooks } from '@/contexts/NotebookContext';
 import { CreateNotebookDialog } from '@/components/organisms/notebook/CreateNotebookDialog';
 import { toNotebookTag } from '@/types/notebook';
 import { toShortId } from '@/lib/idUtils';

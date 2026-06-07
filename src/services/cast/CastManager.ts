@@ -8,13 +8,10 @@
 import { v4 as uuidv4 } from 'uuid';
 import {
     CastMessage,
-    CastMessageType,
     RegisterMessage,
     StateUpdateMessage,
     IDisplayStackState,
     CastRequestMessage,
-    WorkoutDefinition,
-    SessionConfig,
     TargetDiscoveredMessage
 } from '@/types/cast/messages';
 
@@ -37,7 +34,7 @@ export class CastManager {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = MAX_RECONNECT_ATTEMPTS;
   private reconnectTimeout: number | null = null;
-  private eventBuffer: unknown[] = [];
+  private eventBuffer: CastMessage[] = [];
 
   /**
    * Calculate reconnection delay with exponential backoff and jitter
@@ -197,7 +194,7 @@ export class CastManager {
   private flushEventBuffer(): void {
     while (this.eventBuffer.length > 0) {
       const message = this.eventBuffer.shift();
-      this.send(message);
+      if (message) this.send(message);
     }
   }
 

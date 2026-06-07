@@ -28,7 +28,7 @@ export { MockBlock } from './MockBlock';
 export type { MockBlockConfig, BehaviorContextRecordings } from './MockBlock';
 export { RuntimeTestBuilder, RuntimeTestHarness } from './RuntimeTestBuilder';
 export { WorkoutTestHarness, WorkoutTestBuilder } from './WorkoutTestHarness';
-export type { RuntimeSnapshot, MemoryEntry } from './RuntimeTestBuilder';
+export type { MemoryEntry } from './RuntimeTestBuilder';
 export type { WorkoutReport } from './WorkoutTestHarness';
 
 // Effort Registry mocks

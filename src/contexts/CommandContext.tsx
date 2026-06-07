@@ -86,5 +86,3 @@ export const useCommandContext = () => {
   return ctx;
 };
 
-/** @deprecated Use useCommandContext instead */
-export const useCommandPalette = useCommandContext;

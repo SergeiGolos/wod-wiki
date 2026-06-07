@@ -1,8 +1,7 @@
 /**
  * Catalog / Templates / Review / Web
  *
- * Renders: {@link import('@/panels/review-panel-web').ReceiverReviewPanel}
- * Data:     See {@link ../../../data-for-storybook.md}
+ * Renders: ReviewGrid at web dimensions — no dedicated web panel exists yet
  *
  * Stories:
  *  1. EmptyReview — review panel with no segments yet
@@ -97,10 +96,10 @@ function runToCompletion(
     clock.advance(stepMs);
 
     // Dispatch a tick so timer behaviors see the new time
-    runtime.handle(new TickEvent());
+    runtime.handle(new TickEvent(undefined, runtime.nowProvider));
 
     // Advance to next block (user pressing "Next" or block auto-completing)
-    runtime.do(new NextAction());
+    runtime.do(new NextAction(undefined, runtime.nowProvider));
 
     steps++;
   }

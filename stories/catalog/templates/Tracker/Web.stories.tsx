@@ -1,8 +1,7 @@
 /**
  * Catalog / Templates / Tracker / Web
  *
- * Renders: {@link import('@/panels/stack-panel-web').ReceiverStackPanel}
- * Data:     See {@link ../../../data-for-storybook.md}
+ * Renders: Timer + VisualStatePanel at web dimensions — no dedicated web panel exists yet
  *
  * Stories:
  *  1. NoBlock — displays the "select a workout" placeholder
@@ -118,7 +117,7 @@ const TrackerWebHarness: React.FC<TrackerWebHarnessProps> = ({
 
     // Advance past WaitingToStart into the first real block
     if (initialState === 'active') {
-      rt.do(new NextAction());
+      rt.do(new NextAction(undefined, rt.nowProvider));
     }
 
     setRuntime(rt);
@@ -193,7 +192,7 @@ const ExecutionBound: React.FC<{
     onStop({ elapsed: execution.elapsedTime });
   };
   const handleNext = () => {
-    runtime.do(new NextAction());
+    runtime.do(new NextAction(undefined, runtime.nowProvider));
     onNext({ elapsed: execution.elapsedTime });
   };
 

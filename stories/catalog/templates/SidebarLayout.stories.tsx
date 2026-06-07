@@ -1,8 +1,7 @@
 /**
  * Catalog / Templates / SidebarLayout
  *
- * Renders: {@link import('@/templates/SidebarLayout').SidebarLayout}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../src/templates/SidebarLayout').SidebarLayout}
  *
  * Stories:
  *  1. Default — default sidebar layout

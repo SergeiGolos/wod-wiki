@@ -42,4 +42,3 @@ export function ScopedRuntimeProvider({
   );
 }
 
-export default ScopedRuntimeProvider;

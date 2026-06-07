@@ -163,7 +163,7 @@ export class OutputEmitter {
      * Called once during ScriptRuntime construction.
      */
     emitLoad(script: WhiteboardScript, clock: IRuntimeClock): void {
-        const now = clock.now;
+        const now = clock.currentDate;
 
         for (const stmt of script.statements) {
             const rawText = script.source.substring(
@@ -212,7 +212,7 @@ export class OutputEmitter {
         // GC guard: only create objects when a listener wants them
         if (!this.hasListeners()) return;
 
-        const now = clock.now;
+        const now = clock.currentDate;
         const block = event.block;
 
         interface SystemValue {
@@ -286,7 +286,7 @@ export class OutputEmitter {
 
             if (metrics.length === 0) continue;
 
-            const fallbackEndMs = clock.now.getTime();
+            const fallbackEndMs = clock.currentDate.getTime();
             const fallbackStartMs = block.executionTiming?.startTime?.getTime() ?? fallbackEndMs;
             const timeSpan = new TimeSpan(fallbackStartMs, fallbackEndMs);
             const spans = this._extractSpans(metrics.toArray());
@@ -313,7 +313,7 @@ export class OutputEmitter {
         stack: IRuntimeStack,
         clock: IRuntimeClock
     ): void {
-        const now = clock.now;
+        const now = clock.currentDate;
         const blockKey = stack.current?.key.toString() ?? 'root';
 
         const metrics = MetricContainer.empty(blockKey).add({
@@ -342,7 +342,7 @@ export class OutputEmitter {
         stackCount: number,
         clock: IRuntimeClock
     ): void {
-        const now = clock.now;
+        const now = clock.currentDate;
 
         const metrics = MetricContainer.empty(block.key.toString()).add({
             type: MetricType.Label,

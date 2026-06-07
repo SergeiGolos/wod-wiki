@@ -5,13 +5,13 @@
  * in realistic runtime scenarios.
  */
 
-import { TimeSpan } from '@/core';
-import { vi, expect } from 'bun:test';
+import { expect } from 'bun:test';
 import { IRuntimeBlock, IRuntimeBehavior } from '../contracts';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { MemoryTypeMap, TimerState, MemoryType, RoundState } from '../memory/MemoryTypes';
 import { IMetric, MetricType } from '../../core/models/Metric';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from '../memory/MemoryLocation';
+import { TimeSpan } from '../models/TimeSpan';
 import { MetricVisibility, getMetricVisibility } from '../memory/MetricVisibility';
 
 
@@ -25,8 +25,16 @@ export class MockClock {
         this._now = startTime;
     }
 
-    get now(): Date {
+    get currentDate(): Date {
         return new Date(this._now);
+    }
+
+    now(): Date {
+        return new Date(this._now);
+    }
+
+    nowMs(): number {
+        return this._now;
     }
 
     get timestamp(): number {
@@ -178,7 +186,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         memoryList.push(new MemoryLocation('metric:label', [{
             type: MetricType.Label,
             image: labelText,
-            origin: 'config',
+            origin: 'parser',
             value: labelText
         } as IMetric]));
     }
@@ -213,8 +221,8 @@ export function createIntegrationContext(
             });
         },
 
-        emitOutput(type: string, metrics: unknown[], metadata: unknown) {
-            runtime.outputs.push({ type, metric, metadata });
+        emitOutput(type: string, _metrics: unknown[], metadata: unknown) {
+            runtime.outputs.push({ type, metrics: _metrics, metadata });
         },
 
         markComplete(reason: string) {
@@ -262,7 +270,7 @@ export function dispatchEvent(
     // Create proper event object with name field as behaviors expect
     const event = {
         name: eventType,
-        timestamp: runtime.clock.now,
+        timestamp: runtime.clock.currentDate,
         data: eventData
     };
     for (const handler of handlers) {

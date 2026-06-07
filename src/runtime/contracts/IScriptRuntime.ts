@@ -13,6 +13,7 @@ import type { BlockLifecycleOptions } from './primitives/IBlockLifecycle';
 import type { IRuntimeBlock } from './IRuntimeBlock';
 import type { ICodeStatement } from '../../core/models/CodeStatement';
 import type { AnalyticsContext } from '../../core/analytics/AnalyticsContext';
+import type { INowProvider } from '../INowProvider';
 
 /**
  * Interface for the Just-In-Time compiler that converts parsed statements
@@ -43,6 +44,7 @@ export interface IScriptRuntime extends IRuntimeActionable {
 
     jit: IJitCompiler;
     clock: IRuntimeClock;
+    nowProvider: INowProvider;
 
     /** Errors collected during runtime execution */
     errors?: RuntimeError[];

@@ -122,7 +122,7 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
             builder.addBehavior(new ButtonBehavior({
                 buttons: [{
                     id: config.button.id,
-                    label: config.button.label,
+                    label: config.button.label ?? '',
                     variant: 'primary',
                     visible: true,
                     enabled: true,
@@ -136,7 +136,7 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
      * Builds the behavior list for an idle block (deprecated).
      * @deprecated Use build() method which uses BlockBuilder with aspect composers
      */
-    buildBehaviors(config: IdleBlockConfig): IRuntimeBehavior[] {
+    buildBehaviors(_config: IdleBlockConfig): IRuntimeBehavior[] {
         throw new Error('buildBehaviors is deprecated. Use build() method instead.');
     }
 }

@@ -219,7 +219,7 @@ describe('RootBlock Integration: Complete Workout', () => {
         // Simulate pause
         harness.dispatchEvent({
             name: 'timer:pause',
-            timestamp: harness.clock.now,
+            timestamp: harness.clock.currentDate,
             data: {}
         });
 
@@ -229,7 +229,7 @@ describe('RootBlock Integration: Complete Workout', () => {
         harness.advanceClock(5000);
         harness.dispatchEvent({
             name: 'timer:start',
-            timestamp: harness.clock.now,
+            timestamp: harness.clock.currentDate,
             data: {}
         });
 

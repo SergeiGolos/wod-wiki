@@ -1,5 +1,5 @@
-import { EditorView, KeyBinding, keymap } from "@codemirror/view";
-import { Extension, Transaction } from "@codemirror/state";
+import { EditorView, keymap } from "@codemirror/view";
+import { Extension } from "@codemirror/state";
 
 /**
  * Parse a time string and return its components

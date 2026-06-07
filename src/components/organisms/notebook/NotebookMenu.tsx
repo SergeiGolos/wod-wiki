@@ -22,7 +22,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/atoms/primitives/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
-import { useNotebooks } from './NotebookContext';
+import { useNotebooks } from '@/contexts/NotebookContext';
 import { CreateNotebookDialog } from './CreateNotebookDialog';
 
 interface NotebookMenuProps {

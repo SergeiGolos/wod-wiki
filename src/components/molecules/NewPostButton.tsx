@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FileText } from 'lucide-react';
-import { ImportMarkdownDialog } from './ImportMarkdownDialog';
-import { cn } from '@/lib/utils';
+import { ImportMarkdownDialog } from '@/components/organisms/history/ImportMarkdownDialog';
+
 import { WorkoutActionButton } from '@/components/molecules/WorkoutActionButton'
 
 interface NewPostButtonProps {

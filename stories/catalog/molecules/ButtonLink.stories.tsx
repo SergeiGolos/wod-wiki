@@ -1,8 +1,7 @@
 /**
  * Catalog / Molecules / ButtonLink
  *
- * Renders: {@link import('@/components/molecules/ButtonLink').ButtonLink}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../src/components/molecules/ButtonLink').ButtonLink}
  *
  * Stories:
  *  1. Default — button-styled links with leading or trailing icons

@@ -13,7 +13,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import type { EditorView } from "@codemirror/view";
 import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
 import { sectionGeometry as sectionGeometryPlugin, type SectionRect } from '@/components/Editor/extensions/section-geometry';
-import type { WodCommand } from "./WodCommand";
+import type { WodCommand } from "@/components/Editor/overlays/WodCommand";
 import type { WodBlock } from '@/components/Editor/types';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/atoms/primitives/button";
@@ -254,4 +254,3 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
   );
 };
 
-export default InlineCommandBar;

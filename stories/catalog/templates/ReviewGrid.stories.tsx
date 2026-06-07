@@ -1,8 +1,7 @@
 /**
  * Catalog / Templates / ReviewGrid
  *
- * Renders: {@link import('@/components/organisms/review/ReviewGrid').ReviewGrid}
- * Data:     See {@link ../../data-for-storybook.md}
+ * Renders: {@link import('../../../src/components/organisms/review/ReviewGrid').ReviewGrid}
  *
  * Stories:
  *  1. EmptyState — empty state with no segments yet
@@ -84,8 +83,8 @@ function runToCompletion(
   let steps = 0;
   while (runtime.stack.count > 0 && steps < maxSteps) {
     clock.advance(stepMs);
-    runtime.handle(new TickEvent());
-    runtime.do(new NextAction());
+    runtime.handle(new TickEvent(undefined, runtime.nowProvider));
+    runtime.do(new NextAction(undefined, runtime.nowProvider));
     steps++;
   }
 

@@ -51,8 +51,18 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
   const dark = isDark(section)
   const density = getSectionDensity(section)
   const sectionTheme = getSectionThemeStyles(section)
-  const trimmedProse = prose?.trim() ?? ''
   const examples = section.examples ?? []
+
+  // When the parent supplies an override `prose` string (e.g. the
+  // `{{workouts}}` split in collection mode), we render it as a single
+  // chunk and fall back to the bottom button group. Otherwise we use the
+  // parser's `proseChunks`, which already interleave each button with the
+  // paragraph it was authored under.
+  const useInlineChunks = prose === undefined
+  const chunks = useInlineChunks
+    ? (section.proseChunks ?? [{ kind: 'prose' as const, text: section.prose }])
+    : [{ kind: 'prose' as const, text: prose }]
+  const renderBottomButtonGroup = !useInlineChunks && section.buttons.length > 0
 
   return (
     <div
@@ -110,7 +120,32 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
           </h2>
         ) : null}
 
-        {trimmedProse ? <CanvasProse prose={trimmedProse} className="mb-6" /> : null}
+        {chunks.map((chunk, chunkIdx) => {
+          if (chunk.kind === 'prose') {
+            const text = chunk.text.trim()
+            if (!text) return null
+            // Tighter spacing on the first prose chunk so it hugs the heading;
+            // subsequent chunks get a top margin so a button following prose
+            // reads as a continuation of the same paragraph block.
+            return (
+              <CanvasProse
+                key={`prose-${chunkIdx}`}
+                prose={text}
+                className={chunkIdx === 0 ? 'mb-6' : 'mt-4 mb-6'}
+              />
+            )
+          }
+          // chunk.kind === 'button'
+          return (
+            <SectionButtons
+              key={`button-${chunkIdx}`}
+              activations={[buttonToActivation(chunk.button, chunkIdx)]}
+              fullBleed={fullBleed}
+              runState={hasViewDef ? runState : undefined}
+              deps={deps}
+            />
+          )
+        })}
 
         {examples.length > 0 ? (
           <ExampleTabs
@@ -120,7 +155,7 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
           />
         ) : null}
 
-        {renderButtons ? (
+        {renderButtons && renderBottomButtonGroup ? (
           <SectionButtons
             activations={section.buttons.map((b, i) => buttonToActivation(b, i))}
             fullBleed={fullBleed}

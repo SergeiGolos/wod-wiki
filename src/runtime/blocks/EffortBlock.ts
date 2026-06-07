@@ -1,4 +1,4 @@
-import { IMetric } from '../../core/models/Metric';
+
 import { MetricContainer } from '../../core/models/MetricContainer';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { RuntimeBlock } from '../RuntimeBlock';
@@ -51,7 +51,7 @@ class EffortCompletionBehavior implements IRuntimeBehavior {
 
     if (this.checkComplete() || this._forceComplete) {
       this._isComplete = true;
-      const now = ctx.clock.now;
+      const now = ctx.clock.currentDate;
       // Mark block as complete - stack will pop it during sweep
       ctx.markComplete('target-achieved');
       return [

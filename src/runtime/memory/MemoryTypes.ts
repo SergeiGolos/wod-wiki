@@ -32,7 +32,7 @@ export interface TimerState {
     readonly label: string;
 
     /** Timer role for UI prioritization */
-    readonly role?: 'primary' | 'secondary' | 'auto';
+    readonly role?: 'primary' | 'secondary' | 'auto' | 'hidden';
 }
 
 /**

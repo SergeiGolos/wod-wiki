@@ -41,7 +41,7 @@ function currentTimerElapsedMs(ctx: SessionTestContext): number | undefined {
     const timeLoc = block.getMemoryByTag('time')[0];
     const timer = timeLoc?.metrics[0]?.value as TimerState | undefined;
     if (!timer) return undefined;
-    return calculateElapsed(timer, ctx.clock.now.getTime());
+    return calculateElapsed(timer, ctx.clock.currentDate.getTime());
 }
 
 /**

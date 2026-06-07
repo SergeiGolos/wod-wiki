@@ -35,7 +35,7 @@ export class CountupTimerBehavior implements IRuntimeBehavior {
     private isPaused = false;
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const now = ctx.clock.now.getTime();
+        const now = ctx.clock.currentDate.getTime();
         const label = this.config.label ?? ctx.block.label;
         const role = this.config.role === 'hidden' ? 'auto' : (this.config.role ?? 'primary');
 
@@ -91,7 +91,7 @@ export class CountupTimerBehavior implements IRuntimeBehavior {
             origin: 'runtime',
             value: state,
             sourceBlockKey: ctx.block.key.toString(),
-            timestamp: ctx.clock.now,
+            timestamp: ctx.clock.currentDate,
         };
     }
 }
