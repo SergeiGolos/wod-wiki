@@ -11,15 +11,7 @@
  *   🔴 Expected to FAIL (RED) — behaviour is not yet implemented
  */
 import { describe, it, expect, afterEach } from 'bun:test';
-import {
-    createSessionContext,
-    startSession,
-    userNext,
-    advanceClock,
-    simulateEvent,
-    disposeSession,
-    type SessionTestContext,
-} from '../jit-compilation/helpers/session-test-utils';
+import { TestScript } from '@/testing/script/TestScript';
 import { TimerState } from '@/runtime/memory/MemoryTypes';
 import { calculateElapsed } from '@/runtime/time/calculateElapsed';
 
@@ -27,28 +19,31 @@ import { calculateElapsed } from '@/runtime/time/calculateElapsed';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function currentBlockType(ctx: SessionTestContext): string | undefined {
-    return ctx.runtime.stack.current?.blockType;
+async function currentBlockType(script: TestScript): Promise<string | undefined> {
+    const s = await script.snapshot();
+    return s.current?.blockType;
 }
 
 /**
  * Returns the elapsed active time (ms) for the timer on the current block.
  * Uses calculateElapsed with the current clock timestamp.
  */
-function currentTimerElapsedMs(ctx: SessionTestContext): number | undefined {
-    const block = ctx.runtime.stack.current;
+async function currentTimerElapsedMs(script: TestScript): Promise<number | undefined> {
+    const s = await script.snapshot();
+    const block = s.current;
     if (!block) return undefined;
     const timeLoc = block.getMemoryByTag('time')[0];
     const timer = timeLoc?.metrics[0]?.value as TimerState | undefined;
     if (!timer) return undefined;
-    return calculateElapsed(timer, ctx.clock.currentDate.getTime());
+    return calculateElapsed(timer, s.clockTime.getTime());
 }
 
 /**
  * Returns true if the current timer is paused (last span has ended set).
  */
-function isTimerPaused(ctx: SessionTestContext): boolean {
-    const block = ctx.runtime.stack.current;
+async function isTimerPaused(script: TestScript): Promise<boolean> {
+    const s = await script.snapshot();
+    const block = s.current;
     if (!block) return false;
     const timeLoc = block.getMemoryByTag('time')[0];
     const timer = timeLoc?.metrics[0]?.value as TimerState | undefined;
@@ -63,68 +58,63 @@ function isTimerPaused(ctx: SessionTestContext): boolean {
 // ===========================================================================
 describe('🟢 Pause / Resume', () => {
     const SCRIPT = '5:00 Run';
-    let ctx: SessionTestContext;
+    let script: TestScript | undefined;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
 
-    it('step 1: userNext → timer running', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'PauseResume' });
-        userNext(ctx);
-        expect(currentBlockType(ctx)).toMatch(/timer/i);
+    it('step 1: userNext → timer running', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        expect(await currentBlockType(script)).toMatch(/timer/i);
     });
 
-    it('step 2: advanceClock(120_000) → elapsed = 120s', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'PauseResume' });
-        userNext(ctx);
-        advanceClock(ctx, 120_000);
-        expect(currentTimerElapsedMs(ctx)).toBe(120_000);
+    it('step 2: advanceClock(120_000) → elapsed = 120s', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.tick(120_000);
+        expect(await currentTimerElapsedMs(script)).toBe(120_000);
     });
 
-    it('step 3: simulateEvent("timer:pause") → timer paused', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'PauseResume' });
-        userNext(ctx);
-        advanceClock(ctx, 120_000);
-        simulateEvent(ctx, 'timer:pause');
-        expect(isTimerPaused(ctx)).toBe(true);
+    it('step 3: simulateEvent("timer:pause") → timer paused', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.tick(120_000);
+        await script.userEvent('timer:pause');
+        expect(await isTimerPaused(script)).toBe(true);
     });
 
-    it('step 4: advanceClock(60_000) while paused → elapsed still 120s', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'PauseResume' });
-        userNext(ctx);
-        advanceClock(ctx, 120_000);
-        simulateEvent(ctx, 'timer:pause');
-        advanceClock(ctx, 60_000);
+    it('step 4: advanceClock(60_000) while paused → elapsed still 120s', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.tick(120_000);
+        await script.userEvent('timer:pause');
+        await script.tick(60_000);
         // Elapsed should still be 120s — paused time does not count
-        expect(currentTimerElapsedMs(ctx)).toBe(120_000);
+        expect(await currentTimerElapsedMs(script)).toBe(120_000);
     });
 
-    it('step 5: simulateEvent("timer:resume") → timer resumes (no longer paused)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'PauseResume' });
-        userNext(ctx);
-        advanceClock(ctx, 120_000);
-        simulateEvent(ctx, 'timer:pause');
-        advanceClock(ctx, 60_000);
-        simulateEvent(ctx, 'timer:resume');
-        expect(isTimerPaused(ctx)).toBe(false);
+    it('step 5: simulateEvent("timer:resume") → timer resumes (no longer paused)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.tick(120_000);
+        await script.userEvent('timer:pause');
+        await script.tick(60_000);
+        await script.userEvent('timer:resume');
+        expect(await isTimerPaused(script)).toBe(false);
     });
 
-    it('step 6: advanceClock(180_000) after resume → elapsed = 300s and timer expires', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'PauseResume' });
-        userNext(ctx);                          // start timer
-        advanceClock(ctx, 120_000);             // run 120s
-        simulateEvent(ctx, 'timer:pause');      // pause at 120s
-        advanceClock(ctx, 60_000);              // 60s of paused wall time
-        simulateEvent(ctx, 'timer:resume');     // resume
-        advanceClock(ctx, 180_000);             // run 180s more → 120+180 = 300s = 5:00
+    it('step 6: advanceClock(180_000) after resume → elapsed = 300s and timer expires', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();                          // start timer
+        await script.tick(120_000);                   // run 120s
+        await script.userEvent('timer:pause');        // pause at 120s
+        await script.tick(60_000);                    // 60s of paused wall time
+        await script.userEvent('timer:resume');       // resume
+        await script.tick(180_000);                   // run 180s more → 120+180 = 300s = 5:00
 
         // Timer should have expired (stack empty — only SessionRoot was left and it auto-pops)
-        expect(ctx.runtime.stack.count).toBe(0);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 });
 
@@ -134,23 +124,22 @@ describe('🟢 Pause / Resume', () => {
 // ===========================================================================
 describe('🟢 Exact Boundary Expiry', () => {
     const SCRIPT = '1:00 Row';
-    let ctx: SessionTestContext;
+    let script: TestScript | undefined;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
 
-    it('step 1: userNext → timer running', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'ExactBoundary' });
-        userNext(ctx);
-        expect(currentBlockType(ctx)).toMatch(/timer/i);
+    it('step 1: userNext → timer running', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        expect(await currentBlockType(script)).toMatch(/timer/i);
     });
 
-    it('step 2: advanceClock(60_000) → expires at exactly 60s, no overshoot', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'ExactBoundary' });
-        userNext(ctx);
-        advanceClock(ctx, 60_000);
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 2: advanceClock(60_000) → expires at exactly 60s, no overshoot', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.tick(60_000);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 });
 
@@ -160,23 +149,22 @@ describe('🟢 Exact Boundary Expiry', () => {
 // ===========================================================================
 describe('🟢 Past-Boundary Expiry', () => {
     const SCRIPT = '1:00 Row';
-    let ctx: SessionTestContext;
+    let script: TestScript | undefined;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
 
-    it('step 1: userNext → timer running', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'PastBoundary' });
-        userNext(ctx);
-        expect(currentBlockType(ctx)).toMatch(/timer/i);
+    it('step 1: userNext → timer running', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        expect(await currentBlockType(script)).toMatch(/timer/i);
     });
 
-    it('step 2: advanceClock(75_000) → expires, no error from overshooting by 15s', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'PastBoundary' });
-        userNext(ctx);
-        advanceClock(ctx, 75_000);
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 2: advanceClock(75_000) → expires, no error from overshooting by 15s', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.tick(75_000);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 });
 
@@ -186,26 +174,26 @@ describe('🟢 Past-Boundary Expiry', () => {
 // ===========================================================================
 describe('🟢 Incremental vs. Bulk Advance', () => {
     const SCRIPT = '1:00 Row';
-    let ctx: SessionTestContext;
+    let script: TestScript | undefined;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
 
-    it('Test A: 10 × advanceClock(6_000) → timer expires after 10th advance', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'IncrementalA' });
-        userNext(ctx);
+    it('Test A: 10 × advanceClock(6_000) → timer expires after 10th advance', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
         for (let i = 0; i < 10; i++) {
-            advanceClock(ctx, 6_000);
+            await script.tick(6_000);
         }
-        expect(ctx.runtime.stack.count).toBe(0);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 
-    it('Test B: 1 × advanceClock(60_000) → identical outcome to Test A', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'IncrementalB' });
-        userNext(ctx);
-        advanceClock(ctx, 60_000);
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('Test B: 1 × advanceClock(60_000) → identical outcome to Test A', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.tick(60_000);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 });
 
@@ -215,24 +203,23 @@ describe('🟢 Incremental vs. Bulk Advance', () => {
 // ===========================================================================
 describe('🟢 userNext on Effort → Parent Pushes Next Child', () => {
     const SCRIPT = '(2)\n  10 Pullups\n  15 Pushups';
-    let ctx: SessionTestContext;
+    let script: TestScript | undefined;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
 
-    it('step 1: userNext → child 1 (Pullups) on stack', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'ParentNextChild' });
-        userNext(ctx);
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('step 1: userNext → child 1 (Pullups) on stack', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        expect(await currentBlockType(script)).toMatch(/effort/i);
     });
 
-    it('step 2: userNext → parent auto-pushes next child (Pushups)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'ParentNextChild' });
-        userNext(ctx); // Pullups
-        userNext(ctx); // Pushups auto-pushed
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
-        expect(ctx.runtime.stack.count).toBeGreaterThan(1);
+    it('step 2: userNext → parent auto-pushes next child (Pushups)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // Pullups
+        await script.next(); // Pushups auto-pushed
+        expect(await currentBlockType(script)).toMatch(/effort/i);
+        const s = await script.snapshot();
+        expect(s.depth).toBeGreaterThan(1);
     });
 });
 
@@ -242,26 +229,26 @@ describe('🟢 userNext on Effort → Parent Pushes Next Child', () => {
 // ===========================================================================
 describe('🟢 userNext on Last Child → Round Increments', () => {
     const SCRIPT = '(3)\n  10 Pullups';
-    let ctx: SessionTestContext;
+    let script: TestScript | undefined;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
 
-    it('step 1: userNext → R1 (Pullups)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'RoundIncrement' });
-        userNext(ctx);
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
-        expect(ctx.runtime.stack.count).toBeGreaterThan(0);
+    it('step 1: userNext → R1 (Pullups)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        expect(await currentBlockType(script)).toMatch(/effort/i);
+        const s = await script.snapshot();
+        expect(s.depth).toBeGreaterThan(0);
     });
 
-    it('steps 1-4: 3 rounds cycle through and stack empties', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'RoundIncrement' });
-        userNext(ctx); // R1
-        userNext(ctx); // R2
-        userNext(ctx); // R3
-        userNext(ctx); // exhausted
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('steps 1-4: 3 rounds cycle through and stack empties', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // R1
+        await script.next(); // R2
+        await script.next(); // R3
+        await script.next(); // exhausted
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 });
 
@@ -271,21 +258,23 @@ describe('🟢 userNext on Last Child → Round Increments', () => {
 // ===========================================================================
 describe('🟢 userNext on Empty Stack — Graceful No-Op', () => {
     const SCRIPT = '10 Pullups';
-    let ctx: SessionTestContext;
+    let script: TestScript | undefined;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
 
-    it('userNext on empty stack → no crash, depth stays 0', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'EmptyStackNoOp' });
-        userNext(ctx); // start
-        userNext(ctx); // complete
+    it('userNext on empty stack → no crash, depth stays 0', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // start
+        await script.next(); // complete
 
-        expect(ctx.runtime.stack.count).toBe(0);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
 
         // Extra userNext on empty stack — must not throw
-        expect(() => userNext(ctx)).not.toThrow();
-        expect(ctx.runtime.stack.count).toBe(0);
+        await expect(script.next()).resolves.toBe(script);
+
+        const s2 = await script.snapshot();
+        expect(s2.depth).toBe(0);
     });
 });
 
@@ -295,32 +284,31 @@ describe('🟢 userNext on Empty Stack — Graceful No-Op', () => {
 // ===========================================================================
 describe('🟢 Rapid Double userNext', () => {
     const SCRIPT = '10 Pullups\n15 Pushups';
-    let ctx: SessionTestContext;
+    let script: TestScript | undefined;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
 
-    it('step 1: userNext → Effort("Pullups") on stack', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'RapidNext' });
-        userNext(ctx);
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('step 1: userNext → Effort("Pullups") on stack', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        expect(await currentBlockType(script)).toMatch(/effort/i);
     });
 
-    it('step 2: second userNext → Pullups pops, Pushups pushed', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'RapidNext' });
-        userNext(ctx); // Pullups
-        userNext(ctx); // Pushups
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
-        expect(ctx.runtime.stack.count).toBeGreaterThan(0);
+    it('step 2: second userNext → Pullups pops, Pushups pushed', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // Pullups
+        await script.next(); // Pushups
+        expect(await currentBlockType(script)).toMatch(/effort/i);
+        const s = await script.snapshot();
+        expect(s.depth).toBeGreaterThan(0);
     });
 
-    it('step 3: third userNext immediately → clean termination, no duplicate pop', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'RapidNext' });
-        userNext(ctx); // Pullups
-        userNext(ctx); // Pushups
-        userNext(ctx); // terminate
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 3: third userNext immediately → clean termination, no duplicate pop', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // Pullups
+        await script.next(); // Pushups
+        await script.next(); // terminate
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 });

@@ -1,5 +1,5 @@
-import type { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import type { FakeRpcTransport } from '@/testing/transport/FakeRpcTransport';
+import { ScriptRuntime } from '@/runtime/ScriptRuntime';
+import { FakeRpcTransport } from '@/testing/transport/FakeRpcTransport';
 import type { IEvent } from '@/runtime/contracts/events';
 import type { MockClock } from '@/runtime/RuntimeClock';
 import type { RpcMessage } from '@/services/cast/rpc/RpcMessages';
@@ -61,10 +61,10 @@ export class TestScript {
             connectPair(browserFake, castTransport);
         }
 
-        const script = new TestScript(runtime, clock, castTransport);
+        const ts = new TestScript(runtime, clock, castTransport);
         runtime.do(new StartSessionAction());
-        await script.flushObservers();
-        return script;
+        await ts.flushObservers();
+        return ts;
     }
 
     /** Construct from an existing runtime. */
