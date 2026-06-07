@@ -12,7 +12,7 @@ export class FakeRpcTransport implements IRpcTransport {
     private readonly disconnectedHandlers = new Set<() => void>();
     private _connected = false;
     private _disposed = false;
-    protected peer: FakeRpcTransport | null = null;
+    public peer: FakeRpcTransport | null = null;
 
     get connected(): boolean {
         return this._connected;

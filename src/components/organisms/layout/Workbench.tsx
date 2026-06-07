@@ -319,7 +319,9 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     // Sync selection so completeWorkout knows which section these results belong to
     _selectBlock(blockId);
     // Persist result via provider (WorkbenchContext handles navigation/save)
-    completeWorkout(results);
+    if (results) {
+      completeWorkout(results);
+    }
   }, [_selectBlock, completeWorkout]);
 
   // --- View Components ---

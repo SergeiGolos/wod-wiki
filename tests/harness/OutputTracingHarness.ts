@@ -263,7 +263,7 @@ export class OutputTracingHarness {
       sourceBlockKey: output.sourceBlockKey ?? 'unknown',
       stackLevel: output.stackLevel ?? 0,
       metricTypes: metrics.map(f => f.type as MetricType),
-      metricSummary: metrics.map(f => `${MetricType[f.type as MetricType] ?? f.type}:${f.image ?? ''}`),
+      metricSummary: metrics.map(f => `${f.type}:${f.image ?? ''}`),
       raw: output,
     };
   }

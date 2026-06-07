@@ -336,7 +336,7 @@ export class RuntimeBlock implements IRuntimeBlock {
         }
 
         // Log the next call with resulting actions (preserves the existing log line)
-        RuntimeLogger.logNext(this, decision.actions);
+        RuntimeLogger.logNext(this, [...decision.actions]);
 
         return decision.actions as IRuntimeAction[];
     }

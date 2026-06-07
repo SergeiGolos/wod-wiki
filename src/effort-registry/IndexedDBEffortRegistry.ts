@@ -1,4 +1,4 @@
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { indexedDBService, IndexedDBService } from '@/services/db/IndexedDBService';
 import type { IEffort, IEffortRegistry, EffortRegistrySource } from './types';
 
 /**

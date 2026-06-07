@@ -29,6 +29,7 @@ import { RuntimeStackOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { StartSessionAction } from '../actions/stack/StartSessionAction';
 import { createAnalyticsEngineForBlock } from '../../core/analytics/createAnalyticsEngineForBlock';
+import { IRuntimeStackTracker } from '../../core/contracts/RuntimeStackTracker';
 import { collapseUnresolvedChoices } from './metrics/ChoiceResolution';
 
 /**

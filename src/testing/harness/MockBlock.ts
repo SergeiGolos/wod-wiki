@@ -1,4 +1,5 @@
 import { BlockKey } from '@/core/models/BlockKey';
+import { IRuntimeBehavior } from '@/runtime/contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '@/runtime/contracts';
 import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
 import { BlockLifecycleOptions, CompletionDecision, IRuntimeBlock } from '@/runtime/contracts';
@@ -461,7 +462,7 @@ export class MockBlock implements IRuntimeBlock {
       const usesNewApi = typeof behavior.onMount === 'function';
       const result = usesNewApi
         ? behavior.onNext?.(ctx)
-        : (behavior as { onNext?: (block: IRuntimeBlock, clock: IRuntimeClock) => IRuntimeAction[] }).onNext?.(this, clock);
+        : (behavior as unknown as { onNext?: (block: IRuntimeBlock, clock: IRuntimeClock) => IRuntimeAction[] }).onNext?.(this, clock);
       if (result) actions.push(...result);
     }
 

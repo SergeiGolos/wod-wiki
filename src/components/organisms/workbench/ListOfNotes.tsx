@@ -12,7 +12,7 @@ export interface ListOfNotesProps {
     enriched?: boolean;
     className?: string;
     onNotebookToggle?: (entryId: string, notebookId: string, isAdding: boolean) => void;
-    onEdit?: (id: string, type?: 'note' | 'template') => void;
+    onEdit?: (id: string, type?: 'note' | 'template' | 'playground') => void;
     onClone?: (id: string, targetDate?: number) => void;
     /** Content provider for calendar date hints */
     provider?: IContentProvider;
