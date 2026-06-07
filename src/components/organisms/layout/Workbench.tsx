@@ -315,7 +315,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     return () => { cleanup(); };
   }, [documentItems, setHighlightedLine]);
 
-  const handleCompleteWorkout = useCallback((blockId: string, results: WorkoutResults) => {
+  const handleCompleteWorkout = useCallback((blockId: string, results: WorkoutResults | undefined) => {
     // Sync selection so completeWorkout knows which section these results belong to
     _selectBlock(blockId);
     // Persist result via provider (WorkbenchContext handles navigation/save)

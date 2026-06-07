@@ -27,7 +27,7 @@ import {
 // ---------------------------------------------------------------------------
 // DB Schema type (idb generic)
 // ---------------------------------------------------------------------------
-interface WodWikiDB extends DBSchema {
+export interface WodWikiDB extends DBSchema {
     notes: {
         key: string;
         value: Note;
@@ -63,7 +63,7 @@ interface WodWikiDB extends DBSchema {
 const DB_NAME = 'wodwiki-db';
 const DB_VERSION = 5; // V5 — Effort Registry store
 
-class IndexedDBService {
+export class IndexedDBService {
     private dbPromise: Promise<IDBPDatabase<WodWikiDB>>;
 
     constructor() {

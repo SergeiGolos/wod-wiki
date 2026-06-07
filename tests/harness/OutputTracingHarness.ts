@@ -10,7 +10,6 @@
 import { IOutputStatement, OutputStatementType } from '@/core/models/OutputStatement';
 import { IMetric, MetricType } from '@/core/models/Metric';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 
 /**
  * Simplified output record for assertion comparisons.
@@ -56,7 +55,7 @@ export class OutputTracingHarness {
   private _outputs: TracedOutput[] = [];
   private _unsubscribe: (() => void) | null = null;
 
-  constructor(private readonly runtime: ScriptRuntime) {
+  constructor(runtime: ScriptRuntime) {
     this._unsubscribe = runtime.subscribeToOutput((output: IOutputStatement) => {
       this._outputs.push(this._trace(output));
     });
@@ -257,14 +256,14 @@ export class OutputTracingHarness {
   // ========== Private ==========
 
   private _trace(output: IOutputStatement): TracedOutput {
-    const metrics: IMetric[] = output.metrics ?? [];
+    const metrics: IMetric[] = output.metrics ? Array.from(output.metrics) : [];
     return {
       index: this._outputs.length,
       outputType: output.outputType,
       sourceBlockKey: output.sourceBlockKey ?? 'unknown',
       stackLevel: output.stackLevel ?? 0,
-      metricTypes: metrics.map(f => f.type),
-      metricSummary: metrics.map(f => `${MetricType[f.type] ?? f.type}:${f.image ?? ''}`),
+      metricTypes: metrics.map(f => f.type as MetricType),
+      metricSummary: metrics.map(f => `${MetricType[f.type as MetricType] ?? f.type}:${f.image ?? ''}`),
       raw: output,
     };
   }

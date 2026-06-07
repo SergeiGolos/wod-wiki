@@ -2,7 +2,6 @@ import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { FakeRpcTransport } from '@/testing/transport/FakeRpcTransport';
 import type { IEvent } from '@/runtime/contracts/events';
 import type { MockClock } from '@/runtime/RuntimeClock';
-import type { RpcMessage } from '@/services/cast/rpc/RpcMessages';
 import type { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
 import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import type { WhiteboardScript } from '@/parser/WhiteboardScript';

@@ -29,7 +29,8 @@
     "baseUrl": ".",
     "ignoreDeprecations": "6.0",
     "types": [
-      "bun-types"
+      "bun-types",
+      "vite/client"
     ],
     "paths": {
       "@/*": [

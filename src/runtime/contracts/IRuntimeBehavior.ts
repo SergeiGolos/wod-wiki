@@ -37,6 +37,7 @@ export interface IRuntimeBehavior {
   /**
    * Called when the block is being disposed.
    * Final cleanup hook.
+   */
   onDispose(ctx: IBehaviorContext): void;
 
   /**

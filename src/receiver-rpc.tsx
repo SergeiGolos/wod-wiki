@@ -39,7 +39,7 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
     const sessionRef = useRef<ChromecastReceiverViewSession | null>(null);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
     const eventProviderRef = useRef<IRuntimeEventProvider | null>(null);
-    const bootTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const bootTimeoutRef = useRef<number | null>(null);
     const readyReceivedRef = useRef(false);
 
     const sendEvent = useCallback((eventName: string, data?: unknown) => {

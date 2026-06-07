@@ -104,7 +104,7 @@ export class RuntimeFactory implements IRuntimeFactory {
     const { engine, analyticsContext } = createAnalyticsEngineForBlock(block, options?.analyticsOptions);
     runtime.analyticsContext = analyticsContext;
     if (options?.tracker) {
-      engine.setTracker(options.tracker);
+      engine.setTracker(options.tracker as IRuntimeStackTracker);
     }
     runtime.setAnalyticsEngine(engine);
 

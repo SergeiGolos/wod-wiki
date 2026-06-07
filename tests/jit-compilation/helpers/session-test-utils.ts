@@ -14,7 +14,7 @@ import { sharedParser } from '@/parser/parserInstance';
 import { WhiteboardScript } from '@/parser/WhiteboardScript';
 import { StartSessionAction, StartSessionOptions } from '@/runtime/actions/stack/StartSessionAction';
 import { NextAction } from '@/runtime/actions/stack/NextAction';
-import { OutputTracingHarness, TracedOutput } from '../../harness/OutputTracingHarness';
+import { OutputTracingHarness } from '../../harness/OutputTracingHarness';
 
 // All composable strategies for the JIT pipeline
 import { AmrapLogicStrategy } from '@/runtime/compiler/strategies/logic/AmrapLogicStrategy';

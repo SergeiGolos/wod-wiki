@@ -25,7 +25,6 @@ import {
 } from "@codemirror/view";
 import { Extension, StateField, Range, EditorState, Prec, StateEffect } from "@codemirror/state";
 import type { Line } from "@codemirror/state";
-// @ts-expect-error — react-dom/client subpath types don't resolve under moduleResolution:bundler (baseline issue)
 import { createRoot } from "react-dom/client";
 // @ts-expect-error — react-dom flushSync subpath types don't resolve under moduleResolution:bundler (baseline issue)
 import { flushSync } from "react-dom";
