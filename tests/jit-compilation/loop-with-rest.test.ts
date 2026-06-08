@@ -15,104 +15,75 @@
  * @see docs/planning-output-statements/loop-with-rest.md
  */
 import { describe, it, expect, afterEach } from 'bun:test';
-import {
-    createSessionContext,
-    startSession,
-    userNext,
-    advanceClock,
-    stackInfo,
-    disposeSession,
-    type SessionTestContext,
-} from './helpers/session-test-utils';
+import { TestScript, assertions } from '@/testing/script';
 
 describe('Loop-with-Rest — Output Statements', () => {
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => {
-        if (ctx) disposeSession(ctx);
+    afterEach(async () => {
+        if (script) await script.dispose();
     });
 
     describe('Barbara-style: (3) 10 Pullups / 15 Pushups / 1:00 Rest', () => {
-        it('should start workout with correct initial stack', () => {
-            ctx = createSessionContext('(3)\n  10 Pullups\n  15 Pushups\n  1:00 Rest');
-            startSession(ctx, { label: 'Barbara Test' });
+        it('should start workout with correct initial stack', async () => {
+            script = await TestScript.compile('(3)\n  10 Pullups\n  15 Pushups\n  1:00 Rest');
 
             // SessionRoot + WaitingToStart
-            expect(ctx.runtime.stack.count).toBe(2);
+            const s0 = await script.snapshot();
+            expect(s0.depth).toBe(2);
 
             // User starts
-            userNext(ctx);
+            await script.next();
 
             // WaitingToStart pops → loop pushed → first exercise pushed
-            expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(2);
+            const s1 = await script.snapshot();
+            expect(s1.depth).toBeGreaterThanOrEqual(2);
         });
 
-        it('should complete after 3 rounds of 3 children each', () => {
-            ctx = createSessionContext('(3)\n  10 Pullups\n  15 Pushups\n  1:00 Rest');
-            startSession(ctx, { label: 'Barbara Test' });
-            userNext(ctx); // Start
+        it('should complete after 3 rounds of 3 children each', async () => {
+            script = await TestScript.compile('(3)\n  10 Pullups\n  15 Pushups\n  1:00 Rest');
+            await script.next(); // Start
 
-            // 3 rounds × 3 children (2 exercises + 1 rest) = 9 userNext calls
-            for (let i = 0; i < 9; i++) {
-                userNext(ctx);
-                // For rest periods, advance clock
-                if (i % 3 === 2) {
-                    advanceClock(ctx, 60000);
-                }
+            // Advance through 3 rounds of (Pullups, Pushups, Rest)
+            // Rest uses an interval timer that auto-advances
+            for (let round = 0; round < 3; round++) {
+                await script.next(); // Pullups complete
+                await script.next(); // Pushups complete
+                // Rest timer is 1:00 — advance past it
+                await script.tick(60000); // 1:00 Rest expires → auto-advance
             }
 
-            // Pop any remaining blocks
-            let safety = 5;
-            while (ctx.runtime.stack.count > 0 && safety > 0) {
-                userNext(ctx);
-                safety--;
-            }
-
-            expect(ctx.runtime.stack.count).toBe(0);
+            const s = await script.snapshot();
+            expect(s.depth).toBe(0);
         });
 
-        it('should emit paired outputs through completion', () => {
-            ctx = createSessionContext('(3)\n  10 Pullups\n  15 Pushups\n  1:00 Rest');
-            startSession(ctx, { label: 'Barbara Test' });
-            userNext(ctx); // Start
+        it('should emit paired outputs through completion', async () => {
+            script = await TestScript.compile('(3)\n  10 Pullups\n  15 Pushups\n  1:00 Rest');
+            await script.next(); // Start
 
-            for (let i = 0; i < 9; i++) {
-                userNext(ctx);
-                if (i % 3 === 2) {
-                    advanceClock(ctx, 60000);
-                }
+            // Advance through 3 rounds
+            for (let round = 0; round < 3; round++) {
+                await script.next(); // Pullups
+                await script.next(); // Pushups
+                await script.tick(60000); // Rest
             }
 
-            let safety = 5;
-            while (ctx.runtime.stack.count > 0 && safety > 0) {
-                userNext(ctx);
-                safety--;
-            }
-
-            const unpaired = ctx.tracer.assertPairedOutputs();
+            const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
             expect(unpaired).toEqual([]);
         });
 
-        it('should emit at least 20 output statements', () => {
-            ctx = createSessionContext('(3)\n  10 Pullups\n  15 Pushups\n  1:00 Rest');
-            startSession(ctx, { label: 'Barbara Test' });
-            userNext(ctx);
+        it('should emit at least 20 output statements', async () => {
+            script = await TestScript.compile('(3)\n  10 Pullups\n  15 Pushups\n  1:00 Rest');
+            await script.next(); // Start
 
-            for (let i = 0; i < 9; i++) {
-                userNext(ctx);
-                if (i % 3 === 2) {
-                    advanceClock(ctx, 60000);
-                }
-            }
-
-            let safety = 5;
-            while (ctx.runtime.stack.count > 0 && safety > 0) {
-                userNext(ctx);
-                safety--;
+            for (let round = 0; round < 3; round++) {
+                await script.next(); // Pullups
+                await script.next(); // Pushups
+                await script.tick(60000); // Rest
             }
 
             // 3 rounds × 3 children × ~2 outputs each + session/loop outputs
-            ctx.tracer.assertMinCount(20);
+            assertions(await script.snapshot()).outputs().assertMinCount(20);
         });
     });
 });

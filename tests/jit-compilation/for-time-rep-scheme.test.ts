@@ -12,75 +12,63 @@
  * @see docs/planning-output-statements/for-time-rep-scheme.md
  */
 import { describe, it, expect, afterEach } from 'bun:test';
-import {
-    createSessionContext,
-    startSession,
-    userNext,
-    stackInfo,
-    disposeSession,
-    type SessionTestContext,
-} from './helpers/session-test-utils';
+import { TestScript, assertions } from '@/testing/script';
 
 describe('For Time Rep-Scheme (Fran) — Output Statements', () => {
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => {
-        if (ctx) disposeSession(ctx);
-    });
+    afterEach(async () => { if (script) await script.dispose(); });
 
     describe('Fran — (21-15-9) Thrusters 95lb / Pullups', () => {
         /**
          * Advance through one complete round (2 exercises).
          */
-        function advanceOneRound() {
-            userNext(ctx); // Thrusters complete
-            userNext(ctx); // Pullups complete
+        async function advanceOneRound() {
+            await script.next(); // Thrusters complete
+            await script.next(); // Pullups complete
         }
 
-        it('should produce correct lifecycle through 3 rep-scheme rounds', () => {
-            ctx = createSessionContext('(21-15-9)\n  Thrusters 95lb\n  Pullups');
-            startSession(ctx, { label: 'Fran' });
+        it('should produce correct lifecycle through 3 rep-scheme rounds', async () => {
+            script = await TestScript.compile('(21-15-9)\n  Thrusters 95lb\n  Pullups');
 
             // SessionRoot + WaitingToStart
-            expect(ctx.runtime.stack.count).toBe(2);
+            expect((await script.snapshot()).depth).toBe(2);
 
             // User starts
-            userNext(ctx);
-            expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(2);
+            await script.next();
+            expect((await script.snapshot()).depth).toBeGreaterThanOrEqual(2);
 
             // 3 rounds × 2 exercises = 6 next calls
             for (let round = 0; round < 3; round++) {
-                advanceOneRound();
+                await advanceOneRound();
             }
 
             // Session should be complete
-            expect(ctx.runtime.stack.count).toBe(0);
+            expect((await script.snapshot()).depth).toBe(0);
         });
 
-        it('should emit paired segment/completion outputs', () => {
-            ctx = createSessionContext('(21-15-9)\n  Thrusters 95lb\n  Pullups');
-            startSession(ctx, { label: 'Fran' });
-            userNext(ctx); // Start
+        it('should emit paired segment/completion outputs', async () => {
+            script = await TestScript.compile('(21-15-9)\n  Thrusters 95lb\n  Pullups');
+            await script.next(); // Start
 
             for (let round = 0; round < 3; round++) {
-                advanceOneRound();
+                await advanceOneRound();
             }
 
-            const unpaired = ctx.tracer.assertPairedOutputs();
+            const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
             expect(unpaired).toEqual([]);
         });
 
-        it('should have outputs for all 3 rounds', () => {
-            ctx = createSessionContext('(21-15-9)\n  Thrusters 95lb\n  Pullups');
-            startSession(ctx, { label: 'Fran' });
-            userNext(ctx); // Start
+        it('should have outputs for all 3 rounds', async () => {
+            script = await TestScript.compile('(21-15-9)\n  Thrusters 95lb\n  Pullups');
+            await script.next(); // Start
 
             for (let round = 0; round < 3; round++) {
-                advanceOneRound();
+                await advanceOneRound();
             }
 
             // root-segment + waiting pair + loop + 3×(2 exercises×2) = ~18 minimum
-            ctx.tracer.assertMinCount(16);
+            assertions(await script.snapshot()).outputs().assertMinCount(16);
         });
     });
 });

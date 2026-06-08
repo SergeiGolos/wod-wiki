@@ -159,6 +159,19 @@ export class TestScript {
     }
 
     /**
+     * Dispatch a user event to the runtime (e.g. 'abort', 'pause').
+     */
+    async userEvent(name: string, data?: unknown): Promise<this> {
+        this.runtime.handle({
+            name,
+            timestamp: this._clock.currentDate,
+            data: data ?? { source: 'test-script' },
+        });
+        await this.flushObservers();
+        return this;
+    }
+
+    /**
      * Coarse shortcut: advance by min(maxMs, 1000) and dispatch a tick,
      * repeating until the current block reports isComplete or 100 iterations.
      *

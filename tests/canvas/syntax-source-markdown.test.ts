@@ -4,7 +4,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 import { MdTimerRuntime } from '../../src/parser/md-timer'
-import { createSessionContext, disposeSession, startSession, userNext, type SessionTestContext } from '../jit-compilation/helpers/session-test-utils'
+import { TestScript, assertions } from '@/testing/script'
 import { parseCanvasMarkdown, type ParsedCanvasPage, type PipelineStep } from '../../playground/src/canvas/parseCanvasMarkdown'
 
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
@@ -126,11 +126,11 @@ describe('syntax canvas source fixtures', () => {
 })
 
 describe('syntax guide protocol examples compile to intended block types', () => {
-  let ctx: SessionTestContext | undefined
+  let script: TestScript | undefined
 
-  afterEach(() => {
-    if (ctx) disposeSession(ctx)
-    ctx = undefined
+  afterEach(async () => {
+    if (script) await script.dispose()
+    script = undefined
   })
 
   function loadFirstWodBlock(fileName: string): string {
@@ -140,35 +140,35 @@ describe('syntax guide protocol examples compile to intended block types', () =>
     return firstBlock
   }
 
-  it('classic AMRAP example compiles as AMRAP', () => {
-    ctx = createSessionContext(loadFirstWodBlock('classic-amrap.md'))
-    startSession(ctx, { label: 'SyntaxAMRAP' })
-    userNext(ctx)
+  it('classic AMRAP example compiles as AMRAP', async () => {
+    script = await TestScript.compile(loadFirstWodBlock('classic-amrap.md'));
+    await script.next();
 
-    expect(ctx.runtime.stack.blocks.some(block => block.blockType === 'AMRAP')).toBe(true)
-  })
+    const state = await script.snapshot();
+    expect(state.blocks.some(block => block.blockType === 'AMRAP')).toBe(true);
+  });
 
-  it('basic EMOM example compiles as EMOM', () => {
-    ctx = createSessionContext(loadFirstWodBlock('basic-emom.md'))
-    startSession(ctx, { label: 'SyntaxEMOM' })
-    userNext(ctx)
+  it('basic EMOM example compiles as EMOM', async () => {
+    script = await TestScript.compile(loadFirstWodBlock('basic-emom.md'));
+    await script.next();
 
-    expect(ctx.runtime.stack.blocks.some(block => block.blockType === 'EMOM')).toBe(true)
-  })
+    const state = await script.snapshot();
+    expect(state.blocks.some(block => block.blockType === 'EMOM')).toBe(true);
+  });
 
-  it('standard Tabata example compiles as a rounds block', () => {
-    ctx = createSessionContext(loadFirstWodBlock('protocols-4.md'))
-    startSession(ctx, { label: 'SyntaxTabata' })
-    userNext(ctx)
+  it('standard Tabata example compiles as a rounds block', async () => {
+    script = await TestScript.compile(loadFirstWodBlock('protocols-4.md'));
+    await script.next();
 
-    expect(ctx.runtime.stack.blocks.some(block => block.blockType === 'Rounds')).toBe(true)
-  })
+    const state = await script.snapshot();
+    expect(state.blocks.some(block => block.blockType === 'Rounds')).toBe(true);
+  });
 
-  it('plain timer example compiles as a timer block', () => {
-    ctx = createSessionContext(loadFirstWodBlock('timers-rest.md'))
-    startSession(ctx, { label: 'SyntaxTimer' })
-    userNext(ctx)
+  it('plain timer example compiles as a timer block', async () => {
+    script = await TestScript.compile(loadFirstWodBlock('timers-rest.md'));
+    await script.next();
 
-    expect(ctx.runtime.stack.blocks.some(block => /timer/i.test(block.blockType))).toBe(true)
-  })
-})
+    const state = await script.snapshot();
+    expect(state.blocks.some(block => /timer/i.test(block.blockType))).toBe(true);
+  });
+});

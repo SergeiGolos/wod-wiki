@@ -23,14 +23,7 @@
  *     countdown is active; timer-expiry is the only valid completion reason.
  */
 import { describe, it, expect, afterEach } from 'bun:test';
-import {
-    createSessionContext,
-    startSession,
-    userNext,
-    advanceClock,
-    disposeSession,
-    type SessionTestContext,
-} from '../jit-compilation/helpers/session-test-utils';
+import { TestScript, assertions } from '@/testing/script';
 import { MetricType } from '@/core/models/Metric';
 
 // ---------------------------------------------------------------------------
@@ -40,8 +33,8 @@ import { MetricType } from '@/core/models/Metric';
 /**
  * Returns the blockType of the top-of-stack block, or undefined when empty.
  */
-function currentBlockType(ctx: SessionTestContext): string | undefined {
-    return ctx.runtime.stack.current?.blockType;
+function currentBlockType(state: ScriptState): string | undefined {
+    return state.current?.blockType;
 }
 
 /**
@@ -49,8 +42,8 @@ function currentBlockType(ctx: SessionTestContext): string | undefined {
  * the given type. This is the correct place to check parser-defined metrics
  * (Rep, Effort, Resistance, Distance) since they are NOT in output statements.
  */
-function blockHasDisplayMetric(ctx: SessionTestContext, metricType: MetricType | string): boolean {
-    const block = ctx.runtime.stack.current;
+function blockHasDisplayMetric(state: ScriptState, metricType: MetricType | string): boolean {
+    const block = state.current;
     if (!block) return false;
     return block.getMemoryByTag('metric:display')
         .flatMap(loc => loc.metrics.toArray())
@@ -60,8 +53,8 @@ function blockHasDisplayMetric(ctx: SessionTestContext, metricType: MetricType |
 /**
  * Returns the display metrics for the current block (flat array).
  */
-function blockDisplayMetrics(ctx: SessionTestContext) {
-    const block = ctx.runtime.stack.current;
+function blockDisplayMetrics(state: ScriptState) {
+    const block = state.current;
     if (!block) return [];
     return block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics.toArray());
 }
@@ -71,8 +64,8 @@ function blockDisplayMetrics(ctx: SessionTestContext) {
  * metric of the given type. Useful when the block hasn't been popped yet (and
  * therefore its metrics haven't surfaced in output statements).
  */
-function stackHasMetric(ctx: SessionTestContext, metricType: MetricType | string): boolean {
-    return ctx.runtime.stack.blocks
+function stackHasMetric(state: ScriptState, metricType: MetricType | string): boolean {
+    return state.blocks
         .flatMap(b => b.getMemoryByTag('metric:display'))
         .flatMap(loc => loc.metrics.toArray())
         .some(m => m.type === metricType);
@@ -83,9 +76,9 @@ function stackHasMetric(ctx: SessionTestContext, metricType: MetricType | string
  * of the given type. This is the OUTPUT-layer check — currently only timing
  * metrics appear here, NOT parser-defined display metrics.
  */
-function anyOutputHasMetric(ctx: SessionTestContext, metricType: MetricType | string): boolean {
-    return ctx.tracer.outputs.some(o =>
-        o.raw.metrics.some(m => m.type === metricType)
+function anyOutputHasMetric(state: ScriptState, metricType: MetricType | string): boolean {
+    return assertions(state).outputs().all().some(o =>
+        [...o.metrics].some(m => m.type === metricType)
     );
 }
 
@@ -94,11 +87,11 @@ function anyOutputHasMetric(ctx: SessionTestContext, metricType: MetricType | st
  * The completionReason lives in the system event's metric.value, not in
  * the completion output's completionReason field.
  */
-function anySystemPopHasReason(ctx: SessionTestContext, reason: string): boolean {
-    return ctx.tracer.outputs
+function anySystemPopHasReason(state: ScriptState, reason: string): boolean {
+    return assertions(state).outputs().all()
         .filter(o => o.outputType === 'system')
         .some(o => {
-            const sysMetric = o.raw.metrics.find(m => m.type === MetricType.System);
+            const sysMetric = [...o.metrics].find(m => m.type === MetricType.System);
             const v = sysMetric?.value as Record<string, unknown> | undefined;
             return v?.event === 'pop' && v?.completionReason === reason;
         });
@@ -110,38 +103,34 @@ function anySystemPopHasReason(ctx: SessionTestContext, reason: string): boolean
 // ===========================================================================
 describe('🟢 Single Effort (10 Pullups)', () => {
     const SCRIPT = '10 Pullups';
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) await script.dispose(); });
 
-    it('step 0: startSession → SessionRoot + WaitingToStart (depth = 2)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Effort' });
-        expect(ctx.runtime.stack.count).toBe(2);
+    it('step 0: startSession → SessionRoot + WaitingToStart (depth = 2)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        expect((await script.snapshot()).depth).toBe(2);
     });
 
-    it('step 1: userNext → Effort mounted (depth = 2, blockType = effort)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Effort' });
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBe(2);
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('step 1: userNext → Effort mounted (depth = 2, blockType = effort)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        expect((await script.snapshot()).depth).toBe(2);
+        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
-    it('step 2: second userNext → effort pops, session ends (depth = 0)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Effort' });
-        userNext(ctx);
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 2: second userNext → effort pops, session ends (depth = 0)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.next();
+        expect((await script.snapshot()).depth).toBe(0);
     });
 
-    it('all outputs are paired on clean termination', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Effort' });
-        userNext(ctx);
-        userNext(ctx);
-        const unpaired = ctx.tracer.assertPairedOutputs();
+    it('all outputs are paired on clean termination', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.next();
+        const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
         expect(unpaired).toEqual([]);
     });
 });
@@ -152,25 +141,23 @@ describe('🟢 Single Effort (10 Pullups)', () => {
 // ===========================================================================
 describe('🟢 Effort with Weight (10 Clean & Jerk @ 135 lb)', () => {
     const SCRIPT = '10 Clean & Jerk @ 135 lb';
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) await script.dispose(); });
 
-    it('step 1: userNext → effort mounted, metrics include Resistance (135 lb)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Weight' });
-        userNext(ctx);
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('step 1: userNext → effort mounted, metrics include Resistance (135 lb)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
         // Resistance metric is stored in block display memory (not in outputs)
-        expect(blockHasDisplayMetric(ctx, MetricType.Resistance)).toBe(true);
+        expect(await blockHasDisplayMetric(await script.snapshot(), MetricType.Resistance)).toBe(true);
     });
 
-    it('step 2: second userNext → clean termination (depth = 0)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Weight' });
-        userNext(ctx);
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 2: second userNext → clean termination (depth = 0)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.next();
+        expect((await script.snapshot()).depth).toBe(0);
     });
 });
 
@@ -180,25 +167,23 @@ describe('🟢 Effort with Weight (10 Clean & Jerk @ 135 lb)', () => {
 // ===========================================================================
 describe('🟢 Effort with Bodyweight (20 Pushups bw)', () => {
     const SCRIPT = '20 Pushups bw';
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) await script.dispose(); });
 
-    it('step 1: userNext → effort mounted, metrics include Resistance (bw)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Bodyweight' });
-        userNext(ctx);
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('step 1: userNext → effort mounted, metrics include Resistance (bw)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
         // bw is parsed as a WeightUnit → ResistanceMetric; stored in block display memory
-        expect(blockHasDisplayMetric(ctx, MetricType.Resistance)).toBe(true);
+        expect(await blockHasDisplayMetric(await script.snapshot(), MetricType.Resistance)).toBe(true);
     });
 
-    it('step 2: second userNext → clean termination (depth = 0)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Bodyweight' });
-        userNext(ctx);
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 2: second userNext → clean termination (depth = 0)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.next();
+        expect((await script.snapshot()).depth).toBe(0);
     });
 });
 
@@ -208,59 +193,53 @@ describe('🟢 Effort with Bodyweight (20 Pushups bw)', () => {
 // ===========================================================================
 describe('🟢 Sequential Efforts (10 Pullups / 15 Pushups / 20 Air Squats)', () => {
     const SCRIPT = '10 Pullups\n15 Pushups\n20 Air Squats';
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) await script.dispose(); });
 
-    it('step 0: startSession → depth = 2 (SessionRoot + WaitingToStart)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Sequential' });
-        expect(ctx.runtime.stack.count).toBe(2);
+    it('step 0: startSession → depth = 2 (SessionRoot + WaitingToStart)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        expect((await script.snapshot()).depth).toBe(2);
     });
 
-    it('step 1: first userNext → Pullups effort mounted (depth ≥ 2)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Sequential' });
-        userNext(ctx); // WaitingToStart → Pullups
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(2);
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('step 1: first userNext → Pullups effort mounted (depth ≥ 2)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // WaitingToStart → Pullups
+        expect((await script.snapshot()).depth).toBeGreaterThanOrEqual(2);
+        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
-    it('step 2: second userNext → Pushups effort becomes current', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Sequential' });
-        userNext(ctx); // Pullups
-        userNext(ctx); // Pushups
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('step 2: second userNext → Pushups effort becomes current', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // Pullups
+        await script.next(); // Pushups
+        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
-    it('step 3: third userNext → Air Squats effort becomes current', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Sequential' });
-        userNext(ctx); // Pullups
-        userNext(ctx); // Pushups
-        userNext(ctx); // Air Squats
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('step 3: third userNext → Air Squats effort becomes current', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // Pullups
+        await script.next(); // Pushups
+        await script.next(); // Air Squats
+        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
-    it('step 4: fourth userNext → session ends (depth = 0)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Sequential' });
-        userNext(ctx); // Pullups
-        userNext(ctx); // Pushups
-        userNext(ctx); // Air Squats
-        userNext(ctx); // Done
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 4: fourth userNext → session ends (depth = 0)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // Pullups
+        await script.next(); // Pushups
+        await script.next(); // Air Squats
+        await script.next(); // Done
+        expect((await script.snapshot()).depth).toBe(0);
     });
 
-    it('total outputs ≥ 8 (segment + completion for each of 3 efforts + session root outputs)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Sequential' });
-        userNext(ctx);
-        userNext(ctx);
-        userNext(ctx);
-        userNext(ctx);
-        expect(ctx.tracer.count).toBeGreaterThanOrEqual(8);
+    it('total outputs ≥ 8 (segment + completion for each of 3 efforts + session root outputs)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.next();
+        await script.next();
+        await script.next();
+        expect(assertions(await script.snapshot()).outputs().count()).toBeGreaterThanOrEqual(8);
     });
 });
 
@@ -274,24 +253,22 @@ describe('🟢 Sequential Efforts (10 Pullups / 15 Pushups / 20 Air Squats)', ()
 // ===========================================================================
 describe('🟢 Effort with Distance (400 m Run)', () => {
     const SCRIPT = '400 m Run';
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) await script.dispose(); });
 
-    it('distance metric is stored in block display memory (parsing works)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Distance' });
-        userNext(ctx);
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('distance metric is stored in block display memory (parsing works)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
         // Distance IS in block memory (parsing is correct)
-        expect(blockHasDisplayMetric(ctx, MetricType.Distance)).toBe(true);
+        expect(await blockHasDisplayMetric(await script.snapshot(), MetricType.Distance)).toBe(true);
     });
 
-    it('distance metric has value 400 and unit "m" in block display memory', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Distance' });
-        userNext(ctx);
-        const metrics = blockDisplayMetrics(ctx);
+    it('distance metric has value 400 and unit "m" in block display memory', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        const metrics = await blockDisplayMetrics(await script.snapshot());
         const distanceMetric = metrics.find(m => m.type === MetricType.Distance);
         expect(distanceMetric).toBeDefined();
         const v = distanceMetric?.value as Record<string, unknown> | undefined;
@@ -299,21 +276,19 @@ describe('🟢 Effort with Distance (400 m Run)', () => {
         expect(distanceMetric?.unit ?? v?.unit).toBe('m');
     });
 
-    it('distance metric is present on the runtime stack while block is active', () => {
+    it('distance metric is present on the runtime stack while block is active', async () => {
         // The block is still on the stack (not yet popped), so the metric lives
         // in block display memory — use stackHasMetric rather than anyOutputHasMetric.
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Distance' });
-        userNext(ctx);
-        expect(stackHasMetric(ctx, MetricType.Distance)).toBe(true);
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        expect(await stackHasMetric(await script.snapshot(), MetricType.Distance)).toBe(true);
     });
 
-    it('step 2: second userNext → clean termination (depth = 0)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Distance' });
-        userNext(ctx);
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 2: second userNext → clean termination (depth = 0)', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.next();
+        expect((await script.snapshot()).depth).toBe(0);
     });
 });
 
@@ -324,41 +299,37 @@ describe('🟢 Effort with Distance (400 m Run)', () => {
 // ===========================================================================
 describe('🟢 Effort — userNext Is Always Skippable (10 Pullups)', () => {
     const SCRIPT = '10 Pullups';
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) await script.dispose(); });
 
-    it('userNext immediately mounts effort', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Skippable' });
-        userNext(ctx); // WaitingToStart → Effort
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('userNext immediately mounts effort', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // WaitingToStart → Effort
+        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
-    it('second userNext immediately pops effort regardless of elapsed time', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Skippable' });
-        userNext(ctx); // mount
-        userNext(ctx); // pop immediately — no minimum hold time
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('second userNext immediately pops effort regardless of elapsed time', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // mount
+        await script.next(); // pop immediately — no minimum hold time
+        expect((await script.snapshot()).depth).toBe(0);
     });
 
-    it('completionReason is user-advance for effort block (via system event)', () => {
+    it('completionReason is user-advance for effort block (via system event)', async () => {
         // completionReason lives in system pop events, not in completion outputs
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Skippable' });
-        userNext(ctx);
-        userNext(ctx);
-        expect(anySystemPopHasReason(ctx, 'user-advance')).toBe(true);
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        await script.next();
+        expect(await anySystemPopHasReason(await script.snapshot(), 'user-advance')).toBe(true);
     });
 
-    it('no time advance needed — userNext any time completes it', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Skippable' });
-        userNext(ctx); // mount
+    it('no time advance needed — userNext any time completes it', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // mount
         // No advanceClock at all — should still complete
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBe(0);
+        await script.next();
+        expect((await script.snapshot()).depth).toBe(0);
     });
 });
 
@@ -369,69 +340,62 @@ describe('🟢 Effort — userNext Is Always Skippable (10 Pullups)', () => {
 // ===========================================================================
 describe('🟢 Effort with Skippable Rest (:30 Rest)', () => {
     const SCRIPT = '10 Pullups\n:30 Rest\n10 Pushups';
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) await script.dispose(); });
 
-    it('step 0: startSession → depth = 2', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SkipRest' });
-        expect(ctx.runtime.stack.count).toBe(2);
+    it('step 0: startSession → depth = 2', async () => {
+        script = await TestScript.compile(SCRIPT);
+        expect((await script.snapshot()).depth).toBe(2);
     });
 
-    it('step 1: userNext → Pullups effort mounted', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SkipRest' });
-        userNext(ctx);
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('step 1: userNext → Pullups effort mounted', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next();
+        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
-    it('step 2: second userNext → Rest/Timer block becomes current', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SkipRest' });
-        userNext(ctx); // Pullups
-        userNext(ctx); // :30 Rest
-        expect(currentBlockType(ctx)).toMatch(/Rest|Timer/i);
+    it('step 2: second userNext → Rest/Timer block becomes current', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // Pullups
+        await script.next(); // :30 Rest
+        expect(await currentBlockType(await script.snapshot())).toMatch(/Rest|Timer/i);
     });
 
-    it('step 3a: userNext on :30 Rest skips it — Pushups become current immediately', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SkipRest' });
-        userNext(ctx); // Pullups
-        userNext(ctx); // :30 Rest mounted
-        expect(currentBlockType(ctx)).toMatch(/Rest|Timer/i);
-        userNext(ctx); // skip rest early
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('step 3a: userNext on :30 Rest skips it — Pushups become current immediately', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // Pullups
+        await script.next(); // :30 Rest mounted
+        expect(await currentBlockType(await script.snapshot())).toMatch(/Rest|Timer/i);
+        await script.next(); // skip rest early
+        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
-    it('step 3b: advanceClock(30_000) auto-expires :30 Rest → Pushups become current', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SkipRest' });
-        userNext(ctx); // Pullups
-        userNext(ctx); // :30 Rest mounted
-        advanceClock(ctx, 30_000); // rest auto-expires
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('step 3b: advanceClock(30_000) auto-expires :30 Rest → Pushups become current', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // Pullups
+        await script.next(); // :30 Rest mounted
+        await script.tick(30_000); // rest auto-expires
+        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
-    it('rest completionReason is user-advance when skipped early (via system event)', () => {
+    it('rest completionReason is user-advance when skipped early (via system event)', async () => {
         // completionReason lives in system pop events, not in completion outputs
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SkipRest' });
-        userNext(ctx); // Pullups
-        userNext(ctx); // :30 Rest mounted
-        userNext(ctx); // skip
-        userNext(ctx); // Pushups done
-        expect(anySystemPopHasReason(ctx, 'user-advance')).toBe(true);
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // Pullups
+        await script.next(); // :30 Rest mounted
+        await script.next(); // skip
+        await script.next(); // Pushups done
+        expect(await anySystemPopHasReason(await script.snapshot(), 'user-advance')).toBe(true);
     });
 
-    it('step 4: after rest, final userNext completes Pushups → session ends', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SkipRest' });
-        userNext(ctx); // Pullups
-        userNext(ctx); // :30 Rest
-        userNext(ctx); // skip rest → Pushups
-        userNext(ctx); // done
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 4: after rest, final userNext completes Pushups → session ends', async () => {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // Pullups
+        await script.next(); // :30 Rest
+        await script.next(); // skip rest → Pushups
+        await script.next(); // done
+        expect((await script.snapshot()).depth).toBe(0);
     });
 });
 
@@ -446,64 +410,63 @@ describe('🟢 Effort with Skippable Rest (:30 Rest)', () => {
 // ===========================================================================
 describe('🟢 Effort with Forced Rest After (*:30 — Cannot Skip)', () => {
     const SCRIPT = '10 Pullups\n*:30 Rest\n10 Pushups';
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) await script.dispose(); });
 
     /** Helper: drive to the point where forced rest is the current block. */
-    function enterForcedRest() {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'ForcedRest' });
-        userNext(ctx); // WaitingToStart → Pullups
-        userNext(ctx); // Pullups → *:30 forced Rest
+    async function enterForcedRest() {
+        script = await TestScript.compile(SCRIPT);
+        await script.next(); // WaitingToStart → Pullups
+        await script.next(); // Pullups → *:30 forced Rest
     }
 
-    it('step 2: forced rest block is mounted after Pullups', () => {
-        enterForcedRest();
-        expect(currentBlockType(ctx)).toMatch(/Rest|Timer/i);
+    it('step 2: forced rest block is mounted after Pullups', async () => {
+        await enterForcedRest();
+        expect(await currentBlockType(await script.snapshot())).toMatch(/Rest|Timer/i);
     });
 
-    it('step 3: userNext during *:30 forced rest is a no-op — stack depth unchanged', () => {
-        enterForcedRest();
-        const depthAtRest = ctx.runtime.stack.count;
-        userNext(ctx); // attempt skip — MUST be suppressed
-        expect(ctx.runtime.stack.count).toBe(depthAtRest);
+    it('step 3: userNext during *:30 forced rest is a no-op — stack depth unchanged', async () => {
+        await enterForcedRest();
+        const depthAtRest = (await script.snapshot()).depth;
+        await script.next(); // attempt skip — MUST be suppressed
+        expect((await script.snapshot()).depth).toBe(depthAtRest);
     });
 
-    it('multiple userNext calls during *:30 forced rest all produce zero stack changes', () => {
-        enterForcedRest();
-        const depthAtRest = ctx.runtime.stack.count;
-        userNext(ctx);
-        userNext(ctx);
-        userNext(ctx);
+    it('multiple userNext calls during *:30 forced rest all produce zero stack changes', async () => {
+        await enterForcedRest();
+        const depthAtRest = (await script.snapshot()).depth;
+        await script.next();
+        await script.next();
+        await script.next();
         // All three skips suppressed; stack is unchanged
-        expect(ctx.runtime.stack.count).toBe(depthAtRest);
+        expect((await script.snapshot()).depth).toBe(depthAtRest);
     });
 
-    it('forced rest block remains current after userNext attempts', () => {
-        enterForcedRest();
-        userNext(ctx); // no-op attempt
-        expect(currentBlockType(ctx)).toMatch(/Rest|Timer/i);
+    it('forced rest block remains current after userNext attempts', async () => {
+        await enterForcedRest();
+        await script.next(); // no-op attempt
+        expect(await currentBlockType(await script.snapshot())).toMatch(/Rest|Timer/i);
     });
 
-    it('advanceClock(30_000) expires the forced rest → auto-pops → Pushups next', () => {
-        enterForcedRest();
-        advanceClock(ctx, 30_000); // forced rest timer fires
+    it('advanceClock(30_000) expires the forced rest → auto-pops → Pushups next', async () => {
+        await enterForcedRest();
+        await script.tick(30_000); // forced rest timer fires
         // Forced rest auto-popped; Pushups effort mounted
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
-    it('forced rest completionReason is never user-advance (via system events)', () => {
+    it('forced rest completionReason is never user-advance (via system events)', async () => {
         // The Pullups pop will have 'user-advance' (correct).
         // The forced rest pop must NOT have 'user-advance' — it must be timer-expiry.
         // System events carry completionReason in metric.value.
-        enterForcedRest();
-        advanceClock(ctx, 30_000); // rest timer fires → auto-pop
+        await enterForcedRest();
+        await script.tick(30_000); // rest timer fires → auto-pop
 
-        const systemPops = ctx.tracer.outputs
+        const systemPops = assertions(await script.snapshot()).outputs().all()
             .filter(o => o.outputType === 'system')
             .map(o => {
-                const m = o.raw.metrics.find(m => m.type === MetricType.System);
+                const m = [...o.metrics].find(m => m.type === MetricType.System);
                 return m?.value as Record<string, unknown> | undefined;
             })
             .filter(v => v?.event === 'pop');
@@ -513,10 +476,10 @@ describe('🟢 Effort with Forced Rest After (*:30 — Cannot Skip)', () => {
         expect(lastPop?.completionReason).not.toBe('user-advance');
     });
 
-    it('after forced rest expires, userNext completes Pushups → session ends', () => {
-        enterForcedRest();
-        advanceClock(ctx, 30_000); // rest expires → Pushups pushed
-        userNext(ctx); // complete Pushups
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('after forced rest expires, userNext completes Pushups → session ends', async () => {
+        await enterForcedRest();
+        await script.tick(30_000); // rest expires → Pushups pushed
+        await script.next(); // complete Pushups
+        expect((await script.snapshot()).depth).toBe(0);
     });
 });

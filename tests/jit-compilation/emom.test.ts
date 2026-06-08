@@ -15,64 +15,56 @@
  * @see docs/planning-output-statements/emom.md
  */
 import { describe, it, expect, afterEach } from 'bun:test';
-import {
-    createSessionContext,
-    startSession,
-    userNext,
-    advanceClock,
-    stackInfo,
-    disposeSession,
-    type SessionTestContext,
-} from './helpers/session-test-utils';
+import { TestScript, assertions } from '@/testing/script';
 
 describe('EMOM — Output Statements', () => {
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => {
-        if (ctx) disposeSession(ctx);
+    afterEach(async () => {
+        if (script) await script.dispose();
     });
 
     describe('3-round EMOM: (3) :60 EMOM 5 Pullups', () => {
-        it('should start workout with correct initial stack', () => {
-            ctx = createSessionContext('(3) :60 EMOM\n  5 Pullups');
-            startSession(ctx, { label: 'EMOM Test' });
+        it('should start workout with correct initial stack', async () => {
+            script = await TestScript.compile('(3) :60 EMOM\n  5 Pullups');
 
             // SessionRoot + WaitingToStart
-            expect(ctx.runtime.stack.count).toBe(2);
+            const s0 = await script.snapshot();
+            expect(s0.depth).toBe(2);
 
             // User starts
-            userNext(ctx);
+            await script.next();
             // WaitingToStart pops → EMOM pushed → first exercise pushed
-            expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(2);
+            const s1 = await script.snapshot();
+            expect(s1.depth).toBeGreaterThanOrEqual(2);
         });
 
-        it('should complete after 3 rounds', () => {
-            ctx = createSessionContext('(3) :60 EMOM\n  5 Pullups');
-            startSession(ctx, { label: 'EMOM Test' });
-            userNext(ctx); // Start
+        it('should complete after 3 rounds', async () => {
+            script = await TestScript.compile('(3) :60 EMOM\n  5 Pullups');
+            await script.next(); // Start
 
             // Each round: exercise is active, timer runs for 60s.
             // When interval expires, TimerCompletionBehavior clears children
             // (auto-pops exercise) and resets timer. RoundAdvanceBehavior advances
             // the round, ChildLoopBehavior resets, ChildRunnerBehavior pushes next.
             for (let round = 0; round < 3; round++) {
-                advanceClock(ctx, 60000); // Interval expires → auto-advance
+                await script.tick(60000); // Interval expires → auto-advance
             }
 
             // After 3 rounds, RoundCompletionBehavior pops EMOM → session ends
-            expect(ctx.runtime.stack.count).toBe(0);
+            const s = await script.snapshot();
+            expect(s.depth).toBe(0);
         });
 
-        it('should emit paired outputs through completion', () => {
-            ctx = createSessionContext('(3) :60 EMOM\n  5 Pullups');
-            startSession(ctx, { label: 'EMOM Test' });
-            userNext(ctx); // Start
+        it('should emit paired outputs through completion', async () => {
+            script = await TestScript.compile('(3) :60 EMOM\n  5 Pullups');
+            await script.next(); // Start
 
             for (let round = 0; round < 3; round++) {
-                advanceClock(ctx, 60000); // Interval expires → auto-advance
+                await script.tick(60000); // Interval expires → auto-advance
             }
 
-            const unpaired = ctx.tracer.assertPairedOutputs();
+            const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
             expect(unpaired).toEqual([]);
         });
     });
