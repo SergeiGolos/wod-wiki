@@ -127,16 +127,3 @@ export class RuntimeFactory implements IRuntimeFactory {
     runtime.dispose();
   }
 }
-
-/**
- * Creates a default RuntimeFactory with the global compiler
- * Useful for quick setup in components
- * 
- * @deprecated Use explicit RuntimeFactory construction with a JitCompiler instance
- * to avoid coupling to testbench services.
- */
-export async function createDefaultRuntimeFactory(): Promise<RuntimeFactory> {
-  // Dynamic import to avoid circular dependency and browser compatibility
-  const { globalCompiler } = await import('../../runtime/services/runtimeServices');
-  return new RuntimeFactory(globalCompiler);
-}

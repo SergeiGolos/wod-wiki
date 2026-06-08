@@ -19,6 +19,7 @@ import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPan
 import { ReviewGrid } from '@/components/organisms/review/ReviewGrid'
 import { useDebugMode } from '@/contexts/DebugModeContext'
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePanel'
 import { CanvasEditorPanel } from '../components/organisms/canvas/CanvasEditorPanel'
@@ -26,6 +27,7 @@ import { SplitCanvasTemplate } from '../templates/SplitCanvasTemplate'
 import {
   getCanvasNoteId,
   resolveSource,
+  blockHasTimer,
   STICKY_NAV_HEIGHT,
   INITIAL_SOURCE_KEY,
 } from './canvasUtils'
@@ -70,6 +72,7 @@ export function MarkdownCanvasPage({
 }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
   const { isDebugMode } = useDebugMode()
+  const isMobile = useIsMobile()
   const { sections, route } = page
   const canvasNoteId = useMemo(() => getCanvasNoteId(route), [route])
 
@@ -317,7 +320,12 @@ export function MarkdownCanvasPage({
     onPanelActionsReadyRef.current?.({
       run: () => {
         const block = wodBlocksRef.current[0] ?? null
-        if (block) runtime.launchViewRuntime(block)
+        if (!block) return
+        if (isMobile && blockHasTimer(block)) {
+          runtime.setFullscreenBlock(block)
+        } else {
+          runtime.launchViewRuntime(block)
+        }
       },
       reset: () => runtime.closeViewRuntime(),
       results: () => runtime.setPanelMode('review'),
@@ -327,7 +335,7 @@ export function MarkdownCanvasPage({
       },
       getSource: () => editorSourceRef.current,
     })
-  }, [runtime])
+  }, [runtime, isMobile])
 
   // Commands for InlineCommandBar on wod blocks
   const canvasCommands = useMemo<WodCommand[]>(() => [
@@ -336,9 +344,15 @@ export function MarkdownCanvasPage({
       label: 'Run',
       icon: <Play className="h-3 w-3 fill-current" />,
       primary: true,
-      onClick: (block) => runtime.launchViewRuntime(block),
+      onClick: (block) => {
+        if (isMobile && blockHasTimer(block)) {
+          runtime.setFullscreenBlock(block)
+        } else {
+          runtime.launchViewRuntime(block)
+        }
+      },
     },
-  ], [runtime])
+  ], [runtime, isMobile])
 
   const activePanelTheme = getSectionThemeStyles({ attrs: [`theme:${activeSectionTheme}`] } as any)
 
@@ -441,6 +455,23 @@ export function MarkdownCanvasPage({
 
   const showPanelButtons = !!(viewDef && runtime.panelMode === 'editor')
 
+  // On mobile, timer/wall-clock blocks always run fullscreen (not in-panel).
+  const mobileRunState = useMemo(() => {
+    if (!isMobile) return runtime.runState
+    const base = runtime.runState
+    return {
+      ...base,
+      onRun: () => {
+        const block = wodBlocksRef.current[0]
+        if (block && blockHasTimer(block)) {
+          runtime.setFullscreenBlock(block)
+        } else {
+          base.onRun()
+        }
+      },
+    }
+  }, [runtime.runState, runtime.setFullscreenBlock, isMobile])
+
   const desktopPanel = viewDef && (
     <CanvasEditorPanel
       variant="desktop"
@@ -464,7 +495,7 @@ export function MarkdownCanvasPage({
       headerActions={panelHeaderActions}
       showPanelButtons={showPanelButtons}
       viewDefButtons={viewDef.buttons}
-      runState={runtime.runState}
+      runState={mobileRunState}
       deps={deps}
     />
   )
@@ -495,7 +526,7 @@ export function MarkdownCanvasPage({
           handleSelectWorkout={handleSelectWorkout}
           activeSectionId={activeSectionId}
           selectedExamples={selectedExamples}
-          runState={runtime.runState}
+          runState={mobileRunState}
           deps={deps}
           handleExampleSelect={handleExampleSelect}
           hasWorkoutsTag={hasWorkoutsTag}
