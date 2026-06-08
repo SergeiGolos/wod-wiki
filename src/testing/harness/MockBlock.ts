@@ -238,6 +238,10 @@ class MockBehaviorContext implements IBehaviorContext {
     this._capabilities.add(cap);
   }
 
+  getCapabilities(): Set<string> {
+    return new Set(this._capabilities);
+  }
+
   hasCapability(cap: string): boolean {
     return this._capabilities.has(cap);
   }

@@ -14,7 +14,6 @@ import {
     CountupTimerBehavior,
     CountdownTimerBehavior, CountdownMode,
     SpanTrackingBehavior,
-    ChildSelectionBehavior,
     ChildSelectionConfig,
     ChildSelectionLoopCondition
 } from "../behaviors";
@@ -42,6 +41,13 @@ export interface TimerConfig {
 
 export interface TimerCompletionConfig {
     completesBlock?: boolean;
+}
+
+/** Round configuration stored by asRepeater() and forwarded by asContainer() */
+export interface RepeaterConfig {
+    totalRounds?: number;
+    startRound?: number;
+    addCompletion?: boolean;
 }
 
 /** @internal re-exported for backward compat */ 
@@ -216,7 +222,7 @@ export class BlockBuilder {
                     role: config.role,
                     mode,
                     required: config.required,
-                    restBlockFactory: config.injectRest ? (durationMs, label) => {
+                    restBlockFactory: config.injectRest ? (durationMs: number, label?: string) => {
                         const restBlock = new RestBlock(this.runtime, { durationMs, label });
                         return [new PushBlockAction(restBlock)];
                     } : undefined

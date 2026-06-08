@@ -114,8 +114,3 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     }
 }
 
-// Keep the logic-heavy metrics distribution local to the strategy
-function distribute(metrics: MetricContainer, type: string): MetricContainer[] {
-    const distributor = new PassthroughMetricDistributor();
-    return distributor.distribute(metrics, type);
-}

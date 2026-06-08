@@ -202,7 +202,7 @@ export function assertions(state: ScriptState): Assertions {
     return new AssertionsImpl(state);
 }
 
-/** Run a set of assertions, throwing an AggregateError on any mismatch. */
+/** Run a set of assertions, throwing a composite error on any mismatch. */
 export function expectAll(state: ScriptState, checks: Array<(a: Assertions) => void>): void {
     const errors: Error[] = [];
     const a = assertions(state);
@@ -214,6 +214,9 @@ export function expectAll(state: ScriptState, checks: Array<(a: Assertions) => v
         }
     }
     if (errors.length > 0) {
-        throw new AggregateError(errors, `${errors.length} assertion(s) failed`);
+        const summary = errors.map((e, i) => `  ${i + 1}. ${e.message}`).join('\n');
+        const err = new Error(`${errors.length} assertion(s) failed:\n${summary}`);
+        (err as any).errors = errors;
+        throw err;
     }
 }

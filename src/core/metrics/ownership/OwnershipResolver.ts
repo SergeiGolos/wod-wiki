@@ -1,17 +1,10 @@
-import { IMetric, MetricType, MetricOrigin } from '../../models/Metric';
+import { IMetric, MetricType } from '../../models/Metric';
 import type { MetricFilter } from '../../contracts/IMetricSource';
 import type { IMetricOwnershipResolver } from '../../contracts/IMetricOwnershipResolver';
 import type { MetricOwnershipLayer, MetricWithOptionalOwnershipLayer } from './types';
 import { getMetricOwnershipLayer, METRIC_OWNERSHIP_LAYER_CHAIN } from './types';
 import { createMetricOwnershipLedger } from './ledger';
 
-const LAYER_RANK: Record<MetricOwnershipLayer, number> = {
-  parser: 0,
-  dialect: 1,
-  'user-plan': 2,
-  runtime: 3,
-  'user-entry': 4,
-};
 
 function resolveLayer(metric: IMetric): MetricOwnershipLayer {
     const maybeLayer = (metric as MetricWithOptionalOwnershipLayer).ownershipLayer;
@@ -29,6 +22,7 @@ export function ownershipRank(metric: IMetric): number {
 }
 
 function applyFilter(metrics: readonly IMetric[], filter?: MetricFilter): IMetric[] {
+    let filtered = [...metrics];
     const wantsHints = filter?.types?.includes(MetricType.Hint) ?? false;
     if (!wantsHints) {
         filtered = filtered.filter(m => m.type !== MetricType.Hint);

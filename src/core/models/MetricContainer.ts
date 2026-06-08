@@ -273,8 +273,8 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
                 continue;
             }
 
-            const existingRank = Math.min(...existing.map(m => ownershipRank(m)));
-            const incomingRank = Math.min(...incomingGroup.map(m => ownershipRank(m)));
+            const existingRank = Math.max(...existing.map(m => ownershipRank(m)));
+            const incomingRank = Math.max(...incomingGroup.map(m => ownershipRank(m)));
 
             if (incomingRank > existingRank) {
                 // Incoming has higher ownership layer — replace existing
