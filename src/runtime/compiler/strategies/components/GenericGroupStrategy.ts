@@ -2,12 +2,9 @@ import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy"
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
-import { BlockContext } from "../../../BlockContext";
-import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
-import { MetricContainer } from "@/core/models/MetricContainer";
 import { MetricType } from "@/core/models/Metric";
-import { LabelComposer } from "../../utils/LabelComposer";
+import { compose } from "../../BlockTemplateComposer";
+import type { BlockTemplate } from "../../BlockTemplate";
 
 // New aspect-based behaviors
 import {
@@ -43,27 +40,14 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
         }
 
         // If we are here, it has children but no timer/loop. It is a simple Group.
-        const firstStatement = statements[0];
-        const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), firstStatement.exerciseId || '');
-        
-        // Use LabelComposer for a standardized, descriptive label
-        const label = LabelComposer.build(statements, {
-            defaultLabel: "Group"
-        });
+        const template: BlockTemplate = {
+            blockType: 'Group',
+            defaultLabel: 'Group',
+            statements,
+            runtime,
+        };
 
-        builder.setContext(context)
-               .setKey(blockKey)
-               .setBlockType("Group")
-               .setLabel(label)
-               .setSourceIds(statements.map(s => s.id));
-
-        const distributor = new PassthroughMetricDistributor();
-        const metricGroups = statements.flatMap(s => 
-            distributor.distribute(MetricContainer.from(s.metrics), "Group")
-        ).filter(group => group.length > 0);
-        
-        builder.setFragments(metricGroups);
+        const label = compose(builder, template);
 
         // =====================================================================
         // Display Aspect

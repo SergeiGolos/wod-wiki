@@ -4,10 +4,11 @@ import type { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
 import type { ICodeStatement } from "@/core/models/CodeStatement";
 import { DialectRegistry } from "../../services/DialectRegistry";
 import { BlockBuilder } from "./BlockBuilder";
-import { isFragmentPromoter } from "../contracts/behaviors/IMetricPromoter";
 import { getHints } from "@/core/metrics/hints";
 import { MetricType } from "@/core/models/Metric";
 import type { IJitCompiler } from "../contracts/IJitCompiler";
+import { PromotionResolver } from "./PromotionResolver";
+import type { IPromotionResolver } from "./contracts/IPromotionResolver";
 
 /**
  * Just-In-Time Compiler for Runtime Blocks.
@@ -15,6 +16,7 @@ import type { IJitCompiler } from "../contracts/IJitCompiler";
  */
 export class JitCompiler implements IJitCompiler {
   private dialectRegistry: DialectRegistry;
+  private _promotionResolver: IPromotionResolver;
 
   /**
    * Cache: statement-structure key → sorted matching strategy list.
@@ -32,9 +34,11 @@ export class JitCompiler implements IJitCompiler {
 
   constructor(
     private strategies: IRuntimeBlockStrategy[] = [],
-    dialectRegistry?: DialectRegistry
+    dialectRegistry?: DialectRegistry,
+    promotionResolver?: IPromotionResolver
   ) {
     this.dialectRegistry = dialectRegistry || new DialectRegistry();
+    this._promotionResolver = promotionResolver ?? new PromotionResolver();
   }
 
   registerStrategy(strategy: IRuntimeBlockStrategy): void {
@@ -79,50 +83,29 @@ export class JitCompiler implements IJitCompiler {
 
     let effectiveNodes = nodes;
     const parentBlock = runtime.stack?.current;
-    let hasPromotions = false;
 
-    // Parent Injection Layer: Inject promoted metrics from parent block
-    if (parentBlock) {
-      // 1. Static promotions from memory (metrics:promote, metrics:rep-target)
-      const promotedLocations = parentBlock.getMetricMemoryByVisibility('promote');
-      const promotedFragments = promotedLocations.flatMap(loc => loc.metrics.toArray());
+    // Delegate parent-block promotion projection to the resolver; the
+    // compiler remains a pure `Statement[] → Block` transform.
+    const promotion = this._promotionResolver.resolvePromotions(parentBlock, runtime);
+    const hasPromotions = promotion.hasPromotions;
 
-      // 2. Dynamic promotions from behaviors (compiler-time concern)
-      // This allows behaviors to compute promotions based on current parent state
-      // (e.g. current round) regardless of memory update ordering.
-      for (const behavior of parentBlock.behaviors) {
-        if (isFragmentPromoter(behavior)) {
-          const dynamicFragments = behavior.getPromotedFragments(runtime, parentBlock);
-          
-          for (const df of dynamicFragments) {
-            // Deduplicate: Dynamic promotions take precedence over memory-based ones
-            const existingIndex = promotedFragments.findIndex(f => f.type === df.type);
-            if (existingIndex !== -1) {
-              promotedFragments[existingIndex] = df;
-            } else {
-              promotedFragments.push(df);
-            }
-          }
-        }
-      }
-
-      if (promotedFragments.length > 0) {
-        hasPromotions = true;
-        // Clone nodes and append promoted metrics
-        // We append so that explicit child metric (index 0) take precedence 
-        // when origins are equal (defaults), but higher-precedence origins (compiler/execution)
-        // will still resort to the top in the UI.
+    if (hasPromotions) {
+        const promotedFragments = promotion.promotedFragments;
+        // Clone nodes and append promoted metrics.  We append so that
+        // explicit child metrics (index 0) take precedence when origins
+        // are equal (defaults), but higher-precedence origins
+        // (compiler/execution) will still resort to the top in the UI.
         effectiveNodes = nodes.map(node => {
-          // Create a clone that preserves the prototype chain (to keep methods like getFragment)
-          const clone = Object.create(Object.getPrototypeOf(node));
-          Object.assign(clone, node);
-          clone.metrics = node.metrics.clone(node.id).add(...promotedFragments);
-          return clone;
+            // Preserve the prototype chain (to keep methods like getFragment)
+            const clone = Object.create(Object.getPrototypeOf(node));
+            Object.assign(clone, node);
+            clone.metrics = node.metrics.clone(node.id).add(...promotedFragments);
+            return clone;
         });
-      }
     }
 
     this.dialectRegistry.processAll(effectiveNodes);
+
 
     // Strategy matching is deterministic for a given statement structure.
     // Use the cache to skip the filter+sort on repeated compilations of the
