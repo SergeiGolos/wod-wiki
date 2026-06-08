@@ -360,7 +360,7 @@ describe('legacy seam characterisation', () => {
   /**
    * Documents the retained legacy/destructive API: `MetricContainer.merge()`.
    *
-   * merge() is marked @deprecated. It uses ORIGIN_PRECEDENCE directly and can
+   * merge() is marked @deprecated. It uses ownership layers directly and can
    * delete lower-layer raw metrics. New code should use the ownership ledger's
    * visibility reads instead.
    *
@@ -390,12 +390,12 @@ describe('legacy seam characterisation', () => {
   /**
    * Documents the retained legacy/destructive API: `MetricContainer.getByType()`.
    *
-   * getByType() uses ORIGIN_PRECEDENCE directly for sorting. It is a lower-level
+   * getByType() uses ownership layer rank for sorting. It is a lower-level
    * utility and NOT yet migrated to the ownership ledger. New display-oriented reads
    * should use `getMetric()`, `getAllMetricsByType()`, or `getDisplayMetrics()` which
    * delegate to the ownership ledger.
    */
-  it('characterises the legacy getByType() contract: returns all metrics of that type sorted by ORIGIN_PRECEDENCE rank', async () => {
+  it('characterises the getByType() contract: returns all metrics of that type sorted by ownership layer rank', async () => {
     const { MetricContainer } = await import('../../../models/MetricContainer');
 
     const p = metric({ type: MetricType.Rep, origin: 'parser', value: 10 });
@@ -405,7 +405,7 @@ describe('legacy seam characterisation', () => {
     const container = new MetricContainer([p, r, u]);
     const sorted = container.getByType(MetricType.Rep);
 
-    // user (tier 0) → runtime (tier 1) → parser (tier 3)
+    // user-entry (rank 4) → runtime (rank 3) → parser (rank 0)
     expect(sorted.map((m) => m.origin)).toEqual(['user', 'runtime', 'parser']);
   });
 });

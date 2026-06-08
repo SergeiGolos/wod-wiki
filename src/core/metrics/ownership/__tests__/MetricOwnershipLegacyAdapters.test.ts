@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import type { IMetric } from '../../../models/Metric';
 import { MetricType } from '../../../models/Metric';
-import {
-  resolveVisibleMetricByTypeWithOwnership,
-  resolveVisibleMetricsByTypeWithOwnership,
-  resolveVisibleMetricsWithOwnership,
-} from '../index';
+import { OwnershipResolver } from '../OwnershipResolver';
 
 function metric(overrides: Partial<IMetric> & Pick<IMetric, 'type'>): IMetric {
   return {
@@ -20,7 +16,7 @@ describe('ownership legacy adapters', () => {
     const runtimeMetric = metric({ type: MetricType.Duration, origin: 'runtime', value: 'live' });
     const raw = [parserMetric, runtimeMetric];
 
-    const visible = resolveVisibleMetricsWithOwnership(raw);
+    const visible = new OwnershipResolver().resolve(raw);
 
     expect(visible).toEqual([runtimeMetric]);
     expect(raw).toEqual([parserMetric, runtimeMetric]);
@@ -33,7 +29,7 @@ describe('ownership legacy adapters', () => {
       metric({ type: MetricType.Rep, origin: 'parser', value: 10 }),
     ];
 
-    const result = resolveVisibleMetricsWithOwnership(metrics, {
+    const result = new OwnershipResolver().resolve(metrics, {
       origins: ['parser'],
       excludeTypes: [MetricType.Rep],
     });
@@ -47,7 +43,7 @@ describe('ownership legacy adapters', () => {
     const parserMetric = metric({ type: MetricType.Distance, origin: 'parser', value: 5000 });
     const runtimeMetric = metric({ type: MetricType.Distance, origin: 'runtime', value: 4200 });
 
-    const winner = resolveVisibleMetricByTypeWithOwnership([parserMetric, runtimeMetric], MetricType.Distance);
+    const winner = new OwnershipResolver().resolveOne([parserMetric, runtimeMetric], MetricType.Distance);
 
     expect(winner).toEqual(runtimeMetric);
   });
@@ -57,9 +53,9 @@ describe('ownership legacy adapters', () => {
     const runtimeA = metric({ type: MetricType.Action, origin: 'runtime', value: 'Row' });
     const runtimeB = metric({ type: MetricType.Action, origin: 'runtime', value: 'Bike' });
 
-    const winners = resolveVisibleMetricsByTypeWithOwnership(
+    const winners = new OwnershipResolver().resolve(
       [parserMetric, runtimeA, runtimeB],
-      MetricType.Action,
+      { types: [MetricType.Action] },
     );
 
     expect(winners).toEqual([runtimeA, runtimeB]);

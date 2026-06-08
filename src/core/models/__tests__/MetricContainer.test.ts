@@ -151,7 +151,7 @@ describe('MetricContainer', () => {
 
             const reps = c.getAllMetricsByType(MetricType.Rep);
             expect(reps).toHaveLength(3);
-            // Sorted ascending by ORIGIN_PRECEDENCE: runtime(1) < dialect(2) < parser(3)
+            // Sorted descending by ownership layer: runtime(3) > dialect(1) > parser(0)
             expect(reps[0].origin).toBe('runtime');
             expect(reps[1].origin).toBe('dialect');
             expect(reps[2].origin).toBe('parser');

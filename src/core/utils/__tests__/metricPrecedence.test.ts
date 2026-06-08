@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
-import { resolveMetricPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from '../metricPrecedence';
+import { OwnershipResolver } from '../../metrics/ownership/OwnershipResolver';
+import { METRIC_OWNERSHIP_LAYER_CHAIN, getMetricOwnershipLayer } from '../../metrics/ownership/types';
 import { MetricType, IMetric, MetricOrigin, MetricAction } from '../../models/Metric';
-import { getMetricOwnershipLayer } from '../../metrics/ownership';
 
 /**
  * Helper to create a minimal IMetric for testing.
@@ -14,107 +14,42 @@ function frag(
 ): IMetric {
     return {
         type: metricType,
-        metricType,
         origin,
         value,
         action,
     };
 }
 
-describe('ORIGIN_PRECEDENCE', () => {
-    it('maps user and collected to tier 0', () => {
-        expect(ORIGIN_PRECEDENCE['user']).toBe(0);
-        expect(ORIGIN_PRECEDENCE['collected']).toBe(0);
+describe('METRIC_OWNERSHIP_LAYER_CHAIN', () => {
+    it('orders parser < dialect < user-plan < runtime < user-entry', () => {
+        expect(METRIC_OWNERSHIP_LAYER_CHAIN).toEqual([
+            'parser',
+            'dialect',
+            'user-plan',
+            'runtime',
+            'user-entry',
+        ]);
     });
 
-    it('maps runtime, tracked, analyzed to tier 1', () => {
-        expect(ORIGIN_PRECEDENCE['runtime']).toBe(1);
-        expect(ORIGIN_PRECEDENCE['tracked']).toBe(1);
-        expect(ORIGIN_PRECEDENCE['analyzed']).toBe(1);
-    });
-
-    it('maps compiler and hinted to tier 2', () => {
-        expect(ORIGIN_PRECEDENCE['compiler']).toBe(2);
-        expect(ORIGIN_PRECEDENCE['hinted']).toBe(2);
-    });
-
-    it('maps parser to tier 3', () => {
-        expect(ORIGIN_PRECEDENCE['parser']).toBe(3);
-    });
-});
-
-describe('selectBestTier', () => {
-    it('returns single metrics when only one exists', () => {
-        const metrics = [frag(MetricType.Duration, 'parser')];
-        const result = selectBestTier(metrics);
-        expect(result).toHaveLength(1);
-        expect(result[0].origin).toBe('parser');
-    });
-
-    it('selects highest precedence (lowest rank) tier', () => {
-        const metrics = [
-            frag(MetricType.Duration, 'parser', 'plan'),
-            frag(MetricType.Duration, 'runtime', 'actual'),
-        ];
-        const result = selectBestTier(metrics);
-        expect(result).toHaveLength(1);
-        expect(result[0].origin).toBe('runtime');
-        expect(result[0].value).toBe('actual');
-    });
-
-    it('user overrides everything', () => {
-        const metrics = [
-            frag(MetricType.Rep, 'parser', 10),
-            frag(MetricType.Rep, 'compiler', 15),
-            frag(MetricType.Rep, 'runtime', 20),
-            frag(MetricType.Rep, 'user', 25),
-        ];
-        const result = selectBestTier(metrics);
-        expect(result).toHaveLength(1);
-        expect(result[0].origin).toBe('user');
-        expect(result[0].value).toBe(25);
-    });
-
-    it('preserves multiple metrics in the winning tier', () => {
-        const metrics = [
-            frag(MetricType.Rep, 'compiler', 21),
-            frag(MetricType.Rep, 'compiler', 15),
-            frag(MetricType.Rep, 'compiler', 9),
-            frag(MetricType.Rep, 'parser', 10),
-        ];
-        const result = selectBestTier(metrics);
-        expect(result).toHaveLength(3);
-        expect(result.every(f => f.origin === 'compiler')).toBe(true);
-        expect(result.map(f => f.value)).toEqual([21, 15, 9]);
-    });
-
-    it('treats undefined origin as parser (tier 3)', () => {
-        const noOrigin: IMetric = {
-            type: MetricType.Duration,
-            value: 60,
-        };
-        const withOrigin = frag(MetricType.Duration, 'compiler', 120);
-        const result = selectBestTier([noOrigin, withOrigin]);
-        expect(result).toHaveLength(1);
-        expect(result[0].origin).toBe('compiler');
-    });
-
-    it('collected has same precedence as user', () => {
-        const metrics = [
-            frag(MetricType.Rep, 'runtime', 5),
-            frag(MetricType.Rep, 'collected', 8),
-        ];
-        const result = selectBestTier(metrics);
-        expect(result).toHaveLength(1);
-        expect(result[0].origin).toBe('collected');
-    });
-
-    it('returns empty array for empty input', () => {
-        expect(selectBestTier([])).toEqual([]);
+    it('maps legacy origins to the correct ownership layer', () => {
+        expect(getMetricOwnershipLayer('parser')).toBe('parser');
+        expect(getMetricOwnershipLayer('compiler')).toBe('dialect');
+        expect(getMetricOwnershipLayer('dialect')).toBe('dialect');
+        expect(getMetricOwnershipLayer('hinted')).toBe('dialect');
+        expect(getMetricOwnershipLayer('user-plan')).toBe('user-plan');
+        expect(getMetricOwnershipLayer('runtime')).toBe('runtime');
+        expect(getMetricOwnershipLayer('tracked')).toBe('runtime');
+        expect(getMetricOwnershipLayer('analyzed')).toBe('runtime');
+        expect(getMetricOwnershipLayer('execution')).toBe('runtime');
+        expect(getMetricOwnershipLayer('analyzed-estimated')).toBe('runtime');
+        expect(getMetricOwnershipLayer('user')).toBe('user-entry');
+        expect(getMetricOwnershipLayer('collected')).toBe('user-entry');
     });
 });
 
-describe('resolveMetricPrecedence', () => {
+describe('OwnershipResolver.resolve()', () => {
+    const resolver = new OwnershipResolver();
+
     it('characterizes current ownership chain: runtime display beats dialect and parser for the same type', () => {
         const metrics = [
             frag(MetricType.Duration, 'parser', 'planned'),
@@ -122,7 +57,7 @@ describe('resolveMetricPrecedence', () => {
             frag(MetricType.Duration, 'runtime', 'live'),
         ];
 
-        const result = resolveMetricPrecedence(metrics);
+        const result = resolver.resolve(metrics);
 
         expect(result).toHaveLength(1);
         expect(result[0].origin).toBe('runtime');
@@ -137,7 +72,7 @@ describe('resolveMetricPrecedence', () => {
             frag(MetricType.Rep, 'user', 9),
         ];
 
-        const result = resolveMetricPrecedence(metrics);
+        const result = resolver.resolve(metrics);
 
         expect(result).toHaveLength(1);
         expect(result[0].origin).toBe('user');
@@ -153,7 +88,7 @@ describe('resolveMetricPrecedence', () => {
 
         const dialectDefault = frag(MetricType.Distance, 'dialect', 1000);
 
-        const result = resolveMetricPrecedence([dialectDefault, parserUserPlan]);
+        const result = resolver.resolve([dialectDefault, parserUserPlan]);
 
         expect(result).toHaveLength(1);
         expect(result[0].value).toBe(1200);
@@ -166,7 +101,7 @@ describe('resolveMetricPrecedence', () => {
             frag(MetricType.Action, 'dialect', undefined, 'suppress'),
         ];
 
-        const result = resolveMetricPrecedence(metrics);
+        const result = resolver.resolve(metrics);
 
         expect(result).toEqual([]);
         expect(metrics).toHaveLength(2);
@@ -180,7 +115,7 @@ describe('resolveMetricPrecedence', () => {
             frag(MetricType.Duration, 'parser', 'planned'),
             frag(MetricType.Action, 'parser', 'Thrusters'),
         ];
-        const result = resolveMetricPrecedence(metrics);
+        const result = resolver.resolve(metrics);
 
         expect(result).toHaveLength(2);
 
@@ -199,7 +134,7 @@ describe('resolveMetricPrecedence', () => {
             frag(MetricType.Rep, 'parser', 21),
             frag(MetricType.Action, 'parser', 'Burpees'),
         ];
-        const result = resolveMetricPrecedence(metrics);
+        const result = resolver.resolve(metrics);
         expect(result).toHaveLength(3);
     });
 
@@ -209,7 +144,7 @@ describe('resolveMetricPrecedence', () => {
             frag(MetricType.Duration, 'parser', 'plan'),
             frag(MetricType.Rep, 'parser', 10),
         ];
-        const result = resolveMetricPrecedence(metrics, { origins: ['parser'] });
+        const result = resolver.resolve(metrics, { origins: ['parser'] });
         expect(result).toHaveLength(2);
         expect(result.every(f => f.origin === 'parser')).toBe(true);
     });
@@ -220,7 +155,7 @@ describe('resolveMetricPrecedence', () => {
             frag(MetricType.Rep, 'parser', 21),
             frag(MetricType.Action, 'parser', 'Burpees'),
         ];
-        const result = resolveMetricPrecedence(metrics, {
+        const result = resolver.resolve(metrics, {
             types: [MetricType.Duration, MetricType.Rep],
         });
         expect(result).toHaveLength(2);
@@ -233,7 +168,7 @@ describe('resolveMetricPrecedence', () => {
             frag(MetricType.Rep, 'parser', 21),
             frag(MetricType.Text, 'parser', 'note'),
         ];
-        const result = resolveMetricPrecedence(metrics, {
+        const result = resolver.resolve(metrics, {
             excludeTypes: [MetricType.Text],
         });
         expect(result).toHaveLength(2);
@@ -248,7 +183,7 @@ describe('resolveMetricPrecedence', () => {
             frag(MetricType.Rep, 'parser', 10),
             frag(MetricType.Action, 'parser', 'Run'),
         ];
-        const result = resolveMetricPrecedence(metrics, {
+        const result = resolver.resolve(metrics, {
             excludeTypes: [MetricType.Action],
         });
         expect(result).toHaveLength(2);
@@ -261,7 +196,7 @@ describe('resolveMetricPrecedence', () => {
     });
 
     it('handles empty input', () => {
-        expect(resolveMetricPrecedence([])).toEqual([]);
+        expect(resolver.resolve([])).toEqual([]);
     });
 
     it('preserves multi-metrics winning tier across types', () => {
@@ -273,7 +208,7 @@ describe('resolveMetricPrecedence', () => {
             frag(MetricType.Action, 'compiler', 'Thrusters'),
             frag(MetricType.Action, 'compiler', 'Pull-ups'),
         ];
-        const result = resolveMetricPrecedence(metrics);
+        const result = resolver.resolve(metrics);
 
         const reps = result.filter(f => f.type === MetricType.Rep);
         expect(reps).toHaveLength(3);
@@ -283,13 +218,31 @@ describe('resolveMetricPrecedence', () => {
         expect(actions).toHaveLength(2);
     });
 
-    it('tracked and analyzed map to runtime tier', () => {
+    it('tracked and analyzed map to runtime layer', () => {
         const metrics = [
             frag(MetricType.Distance, 'parser', 5000),
             frag(MetricType.Distance, 'tracked', 3200),
         ];
-        const result = resolveMetricPrecedence(metrics);
+        const result = resolver.resolve(metrics);
         expect(result).toHaveLength(1);
         expect(result[0].origin).toBe('tracked');
+    });
+
+    it('collected maps to user-entry and beats runtime', () => {
+        const metrics = [
+            frag(MetricType.Rep, 'runtime', 5),
+            frag(MetricType.Rep, 'collected', 8),
+        ];
+        const result = resolver.resolve(metrics);
+        expect(result).toHaveLength(1);
+        expect(result[0].origin).toBe('collected');
+    });
+
+    it('treats undefined origin as parser layer', () => {
+        const noOrigin = { type: MetricType.Duration, value: 60 } as IMetric;
+        const withOrigin = frag(MetricType.Duration, 'compiler', 120);
+        const result = resolver.resolve([noOrigin, withOrigin]);
+        expect(result).toHaveLength(1);
+        expect(result[0].origin).toBe('compiler');
     });
 });

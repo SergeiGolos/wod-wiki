@@ -91,5 +91,7 @@ export {
   LEGACY_ORIGIN_TO_OWNERSHIP_LAYER,
   createMetricOwnershipLedger,
   getMetricOwnershipLayer,
+  OwnershipResolver,
+  ownershipRank,
 } from './core/metrics/ownership';
-export { resolveMetricPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from './core/utils/metricPrecedence';
+export type { IMetricOwnershipResolver } from './core/contracts/IMetricOwnershipResolver';

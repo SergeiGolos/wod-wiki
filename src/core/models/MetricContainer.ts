@@ -1,7 +1,6 @@
 import { IMetric, MetricType, MetricOrigin } from './Metric';
 import { IMetricSource, MetricFilter } from '../contracts/IMetricSource';
-import { resolveMetricPrecedence, ORIGIN_PRECEDENCE } from '../utils/metricPrecedence';
-import { resolveVisibleMetricByTypeWithOwnership } from '../metrics/ownership';
+import { OwnershipResolver, ownershipRank } from '../metrics/ownership/OwnershipResolver';
 
 /**
  * MetricContainer — a typed collection for `IMetric` objects.
@@ -30,6 +29,7 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
     [index: number]: IMetric;
     private _metrics: IMetric[];
     private _indexedLength = 0;
+    private readonly _resolver = new OwnershipResolver();
     readonly id: string | number;
 
     // ── Construction ───────────────────────────────────────────
@@ -110,17 +110,13 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
     }
 
     /**
-     * Get all metrics of a given MetricType, sorted by origin precedence
-     * (best first).
+     * Get all metrics of a given MetricType, sorted by ownership layer
+     * (highest precedence first).
      */
     getByType(type: MetricType): IMetric[] {
         const ofType = this._metrics.filter(m => m.type === type);
         if (ofType.length <= 1) return ofType;
-        return [...ofType].sort((a, b) => {
-            const rankA = ORIGIN_PRECEDENCE[a.origin ?? 'parser'] ?? 3;
-            const rankB = ORIGIN_PRECEDENCE[b.origin ?? 'parser'] ?? 3;
-            return rankA - rankB;
-        });
+        return [...ofType].sort((a, b) => ownershipRank(b) - ownershipRank(a));
     }
 
     /**
@@ -145,12 +141,12 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
     }
 
     getMetric(type: MetricType): IMetric | undefined {
-        return resolveVisibleMetricByTypeWithOwnership(this._metrics, type);
+        return this._resolver.resolveOne(this._metrics, type);
     }
 
     getAllMetricsByType(type: MetricType): IMetric[] {
-        // Return ALL metrics of the given type sorted by origin precedence
-        // (lowest rank = most authoritative = first). Delegates to getByType
+        // Return ALL metrics of the given type sorted by ownership layer
+        // (highest rank = most authoritative = first). Delegates to getByType
         // so multi-origin scenarios (parser + runtime + user) return every
         // entry rather than only the winning ownership-layer tier.
         return this.getByType(type);
@@ -170,11 +166,11 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
     /**
      * Apply the standard precedence resolution algorithm.
      *
-     * Groups metrics by type, selects the best-origin tier for each type,
+     * Groups metrics by type, selects the best-ownership-layer for each type,
      * and optionally applies a MetricFilter.
      */
     resolve(filter?: MetricFilter): IMetric[] {
-        return resolveMetricPrecedence([...this._metrics], filter);
+        return this._resolver.resolve(this._metrics, filter);
     }
 
     // ── Write (mutating, returns `this` for chaining) ──────────
@@ -239,17 +235,17 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
      * Prefer ownership-ledger visibility reads (`resolve`, `getDisplayMetrics`,
      * `getMetric`) for canonical ownership behavior. This mutating merge keeps
      * historical semantics and can delete lower-layer raw metrics when a higher
-     * precedence origin arrives.
+     * ownership layer arrives.
      *
      * The structural `{ metrics: MetricContainer }` shape supports
      * `IMetricContainer` handoff contracts without importing that interface here.
      *
      * For each MetricType present in the incoming metrics:
-     * - If the incoming metric's origin has higher precedence (lower rank)
-     *   than existing metrics of that type, the existing ones are replaced.
-     * - If equal precedence, the incoming metrics are appended
+     * - If the incoming metric's ownership layer is higher than existing
+     *   metrics of that type, the existing ones are replaced.
+     * - If equal ownership layer, the incoming metrics are appended
      *   (multi-metric-per-type: e.g. rep scheme 21-15-9).
-     * - If lower precedence, the incoming metrics are ignored.
+     * - If lower ownership layer, the incoming metrics are ignored.
      *
      * Returns `this` for chaining.
      */
@@ -277,22 +273,18 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
                 continue;
             }
 
-            const existingRank = Math.min(
-                ...existing.map(m => ORIGIN_PRECEDENCE[m.origin ?? 'parser'] ?? 3)
-            );
-            const incomingRank = Math.min(
-                ...incomingGroup.map(m => ORIGIN_PRECEDENCE[m.origin ?? 'parser'] ?? 3)
-            );
+            const existingRank = Math.min(...existing.map(m => ownershipRank(m)));
+            const incomingRank = Math.min(...incomingGroup.map(m => ownershipRank(m)));
 
-            if (incomingRank < existingRank) {
-                // Incoming has better precedence — replace existing
+            if (incomingRank > existingRank) {
+                // Incoming has higher ownership layer — replace existing
                 this._metrics = this._metrics.filter(m => m.type !== type);
                 this._metrics.push(...incomingGroup);
             } else if (incomingRank === existingRank) {
-                // Same precedence — append (multi-metric-per-type)
+                // Same ownership layer — append (multi-metric-per-type)
                 this._metrics.push(...incomingGroup);
             }
-            // Lower precedence — ignore incoming
+            // Lower ownership layer — ignore incoming
         }
 
         this.syncIndexProperties();
@@ -317,7 +309,7 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
     }
 
     /** Flat-map metrics to a new array. */
-    flatMap<T>(fn: (m: IMetric, index: number) => T | readonly T[]): T[] {
+    flatMap<T>(fn: (m: IMetric) => T | readonly T[]): T[] {
         return this._metrics.flatMap(fn);
     }
 
