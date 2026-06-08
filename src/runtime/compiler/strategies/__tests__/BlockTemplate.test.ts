@@ -109,24 +109,6 @@ function snapshotBuilderState(builder: BlockBuilder) {
     // builder chains is to extract the same fields both times.
     const internal = builder as any;
     return {
-        blockType: internal._blockType,
-        label: internal._label,
-        sourceIds: [...(internal._sourceIds ?? [])],
-        key: internal._key,
-        context: internal._context,
-        fragmentCount: (internal._metrics ?? []).length,
-        behaviors: [...(internal._behaviors?.values() ?? [])].map((b: any) => ({
-            ctor: b.constructor.name,
-            config: b.config,
-        })),
-    };
-}
-function snapshotBuilderState(builder: BlockBuilder) {
-    // We rely on the public surface plus the behaviors map, exposed via
-    // the `build()` side-effect: the easiest way to compare two
-    // builder chains is to extract the same fields both times.
-    const internal = builder as any;
-    return {
         blockType: internal.blockType,
         label: internal.label,
         sourceIds: [...(internal.sourceIds ?? [])],

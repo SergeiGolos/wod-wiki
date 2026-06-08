@@ -9,7 +9,7 @@ import { createMetricOwnershipLedger } from './ledger';
 function resolveLayer(metric: IMetric): MetricOwnershipLayer {
     const maybeLayer = (metric as MetricWithOptionalOwnershipLayer).ownershipLayer;
     if (maybeLayer != null) return maybeLayer;
-    return getMetricOwnershipLayer(metric.origin);
+    return getMetricOwnershipLayer(metric.origin ?? 'parser');
 }
 
 /**

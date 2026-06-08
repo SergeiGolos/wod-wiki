@@ -21,6 +21,7 @@
  * @see BlockTemplateComposer for the executor that materializes a
  * template onto a `BlockBuilder`.
  */
+import type { IMetric } from '@/core/models/Metric';
 import type { ICodeStatement } from '@/core/models/CodeStatement';
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 import type { IBlockContext } from '@/runtime/contracts/IBlockContext';
@@ -82,6 +83,12 @@ export interface BlockTemplate {
      * statement, run through `PassthroughMetricDistributor`.
      */
     metricDistributorType?: string;
+    /**
+     * Optional filter to drop specific metrics before they are fanned
+     * through the distributor. Used by strategies (e.g. Rounds) that
+     * want to suppress metric types the legacy path excluded.
+     */
+    filterMetrics?: (metric: IMetric) => boolean;
     /** Override the `CountdownTimerBehavior` config when supplied. */
     countdownTimerConfig?: Partial<CountdownTimerConfig>;
 }

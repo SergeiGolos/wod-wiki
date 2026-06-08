@@ -59,7 +59,7 @@ describe('Grouped Statements Compilation', () => {
         expect(block!.sourceIds).toContain(childStatements[1].id);
 
         // Check metrics in block memory
-        const displayFragments = block!.getMemoryByTag('metric:display').flatMap(loc => loc.metrics);
+        const displayFragments = block!.getMemoryByTag('metric:display').flatMap(loc => loc.metrics.toArray());
         
         const reps = displayFragments.filter(f => f.type === MetricType.Rep);
         const efforts = displayFragments.filter(f => f.type === MetricType.Effort);

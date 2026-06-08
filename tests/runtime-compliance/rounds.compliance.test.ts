@@ -49,7 +49,7 @@ function currentBlockType(ctx: SessionTestContext): string | undefined {
 function getDisplayMetrics(ctx: SessionTestContext): Metric[] {
     const block = ctx.runtime.stack.current;
     if (!block) return [];
-    return block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics);
+    return block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics.toArray());
 }
 
 // ===========================================================================

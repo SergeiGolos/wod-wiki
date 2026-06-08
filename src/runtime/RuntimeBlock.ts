@@ -287,6 +287,14 @@ export class RuntimeBlock implements IRuntimeBlock {
         // does this too, so the lifecycle is identical.
         nextContext.dispose();
 
+        // Auto-pop: if the chain marked the block complete and no PopBlockAction
+        // was already queued, add one. This mirrors next()'s auto-pop logic.
+        // Done before constructing the `decision` object so the captured
+        // `actions` array reflects the full set the dispatcher will see.
+        if (this._isComplete && !actions.some(a => a.type === 'pop-block')) {
+            actions.push(new PopBlockAction());
+        }
+
         // Capture the decision before restoring state.
         const decision: CompletionDecision = {
             complete: this._isComplete,
@@ -297,12 +305,6 @@ export class RuntimeBlock implements IRuntimeBlock {
         // Restore completion state — inspectNext must not mutate the block.
         this._isComplete = wasComplete;
         this._completionReason = wasReason;
-
-        // Auto-pop: if the chain marked the block complete and no PopBlockAction
-        // was already queued, add one. This mirrors next()'s auto-pop logic.
-        if (decision.complete && !actions.some(a => a.type === 'pop-block')) {
-            actions.push(new PopBlockAction());
-        }
 
         return decision;
     }

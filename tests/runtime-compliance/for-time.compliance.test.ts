@@ -76,7 +76,7 @@ function blockHasDisplayMetric(ctx: SessionTestContext, metricType: MetricType |
     const block = ctx.runtime.stack.current;
     if (!block) return false;
     return block.getMemoryByTag('metric:display')
-        .flatMap(loc => loc.metrics)
+        .flatMap(loc => loc.metrics.toArray())
         .some(m => m.type === metricType);
 }
 

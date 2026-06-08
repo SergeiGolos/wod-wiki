@@ -80,6 +80,9 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
                 addCompletion: true,
             },
             pickStatement: (stmts) => stmts.find(s => s.metrics.some(f => f.type === MetricType.Rounds)) || stmts[0],
+            // Legacy `GenericLoopStrategy` dropped `Rep` metrics from the
+            // distributed fragments — preserve that here.
+            filterMetrics: (m) => m.type !== MetricType.Rep,
         };
 
         const label = compose(builder, template);

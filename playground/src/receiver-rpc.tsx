@@ -47,8 +47,8 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
     const [dpadFlash, setDpadFlash] = useState(false);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
     const transportRef = useRef<IRpcTransport | null>(null);
-    const bootTimeoutRef = useRef<number | null>(null);
-    const bootFadeTimerRef = useRef<number | null>(null);
+    const bootTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const bootFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Persistent signaling instance (lives for the life of the Receiver app)
     const signalingRef = useRef<ReceiverCastSignaling | null>(null);

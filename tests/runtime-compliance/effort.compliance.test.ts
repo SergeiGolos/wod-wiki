@@ -53,7 +53,7 @@ function blockHasDisplayMetric(ctx: SessionTestContext, metricType: MetricType |
     const block = ctx.runtime.stack.current;
     if (!block) return false;
     return block.getMemoryByTag('metric:display')
-        .flatMap(loc => loc.metrics)
+        .flatMap(loc => loc.metrics.toArray())
         .some(m => m.type === metricType);
 }
 
@@ -63,7 +63,7 @@ function blockHasDisplayMetric(ctx: SessionTestContext, metricType: MetricType |
 function blockDisplayMetrics(ctx: SessionTestContext) {
     const block = ctx.runtime.stack.current;
     if (!block) return [];
-    return block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics);
+    return block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics.toArray());
 }
 
 /**
@@ -74,7 +74,7 @@ function blockDisplayMetrics(ctx: SessionTestContext) {
 function stackHasMetric(ctx: SessionTestContext, metricType: MetricType | string): boolean {
     return ctx.runtime.stack.blocks
         .flatMap(b => b.getMemoryByTag('metric:display'))
-        .flatMap(loc => loc.metrics)
+        .flatMap(loc => loc.metrics.toArray())
         .some(m => m.type === metricType);
 }
 

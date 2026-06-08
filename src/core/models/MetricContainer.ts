@@ -309,7 +309,7 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
     }
 
     /** Flat-map metrics to a new array. */
-    flatMap<T>(fn: (m: IMetric) => T | readonly T[]): T[] {
+    flatMap<T>(fn: (m: IMetric, index: number) => T | readonly T[]): T[] {
         return this._metrics.flatMap(fn);
     }
 

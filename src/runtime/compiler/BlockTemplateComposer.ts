@@ -71,8 +71,14 @@ export function compose(builder: BlockBuilder, template: BlockTemplate): string 
     // block type so each strategy keeps its own grouping semantics.
     const distributorType = template.metricDistributorType ?? blockType;
     const distributor = new PassthroughMetricDistributor();
+    const filter = template.filterMetrics;
     const metricGroups = statements
-        .flatMap(s => distributor.distribute(MetricContainer.from(s.metrics), distributorType))
+        .flatMap(s => {
+            const source = filter
+                ? MetricContainer.from(s.metrics.filter(filter))
+                : MetricContainer.from(s.metrics);
+            return distributor.distribute(source, distributorType);
+        })
         .filter(group => group.length > 0);
     builder.setFragments(metricGroups);
 
