@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useEf
 import { v4 as uuidv4 } from 'uuid';
 import { useLocation } from 'react-router-dom';
 import type { Attachment } from '@/types/storage';
-import { WodBlock, WorkoutResults, Section } from '@/components/Editor/types';
+import { ScriptBlock, WorkoutResults, Section } from '@/components/Editor/types';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 import type { PanelLayoutState } from '@/panels/panel-system/types';
 import type { ContentProviderMode, IContentProvider } from '@/types/content-provider';
@@ -38,7 +38,7 @@ interface WorkbenchContextState {
   // Document State
   content: string;
   sections: Section[] | null;
-  blocks: WodBlock[];
+  blocks: ScriptBlock[];
   activeBlockId: string | null; // Cursor location
 
   // Save State
@@ -85,11 +85,11 @@ interface WorkbenchContextState {
   attachments: Attachment[];
   // Actions
   setContent: (content: string) => void;
-  setBlocks: (blocks: WodBlock[]) => void;
+  setBlocks: (blocks: ScriptBlock[]) => void;
   setActiveBlockId: (id: string | null) => void;
   selectBlock: (id: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
-  startWorkout: (block: WodBlock) => void;
+  startWorkout: (block: ScriptBlock) => void;
   completeWorkout: (results: WorkoutResults) => void;
   resetResults: () => void;
 
@@ -151,7 +151,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   // State Declarations
   const [content, setContent] = useState(propInitialContent);
   const [sections, setSectionsState] = useState<Section[] | null>(null);
-  const [blocks, setBlocksState] = useState<WodBlock[]>([]);
+  const [blocks, setBlocksState] = useState<ScriptBlock[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [currentEntry, setCurrentEntry] = useState<HistoryEntry | null>(null);
@@ -320,7 +320,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   }, [currentEntry?.id, routeId, notePersistence]);
 
 
-  const setBlocks = useCallback((newBlocks: WodBlock[]) => {
+  const setBlocks = useCallback((newBlocks: ScriptBlock[]) => {
     // Allow external updates (e.g. from SectionEditor) to reflect changes immediately
     // before the debounced content update triggers a re-parse.
     setBlocksState(newBlocks);
@@ -491,7 +491,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     useWorkbenchSyncStore.getState().setSelectedBlockId(id);
   }, []);
 
-  const startWorkout = useCallback((block: WodBlock) => {
+  const startWorkout = useCallback((block: ScriptBlock) => {
     useWorkbenchSyncStore.getState().setSelectedBlockId(block.id);
     // Navigate to track view with the block's id as the section identifier
     navigation.goToTrack(routeId || 'static', block.id);

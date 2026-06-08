@@ -25,7 +25,7 @@ import type { IRpcTransport } from '@/services/cast/rpc/IRpcTransport';
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { ReceiverStackPanel } from '@/panels/track-panel-chromecast';
-import { ReceiverTimerPanel } from '@/panels/timer-panel-chromecast';
+import { ReceiverTimerPanel } from '@/panels/wallclock-panel-chromecast';
 import { ReceiverPreviewPanel } from '@/panels/preview-panel-chromecast';
 import { ReceiverReviewPanel } from '@/panels/review-panel-chromecast';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';

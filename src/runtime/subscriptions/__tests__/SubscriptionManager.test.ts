@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { SubscriptionManager } from '../SubscriptionManager';
 import { LocalRuntimeSubscription } from '../LocalRuntimeSubscription';
 import { IRuntimeSubscription } from '../../contracts/IRuntimeSubscription';
@@ -58,7 +58,7 @@ function createMockRuntime(): IScriptRuntime & {
         eventBus: { register: () => () => {}, on: () => () => {}, unregisterById: () => {}, unregisterByOwner: () => {}, dispatch: () => [], emit: () => {}, dispose: () => {} } as any,
         stack: { blocks: [], count: 0, current: undefined, keys: [], push: () => {}, pop: () => undefined, clear: () => {}, subscribe: () => () => {} } as any,
         jit: null as any,
-        clock: { now: new Date(), elapsed: 0, isRunning: false, spans: [], start: () => new Date(), stop: () => new Date() } as any,
+        clock: { now: new Date(), currentDate: new Date(), elapsed: 0, isRunning: false, spans: [], start: () => new Date(), stop: () => new Date() } as any,
         errors: [],
         do: () => {},
         doAll: () => {},
@@ -300,26 +300,35 @@ describe('SubscriptionManager', () => {
     });
 
     it('should handle errors in subscription callbacks gracefully', () => {
-        const received: StackSnapshot[] = [];
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const received: StackSnapshot[] = [];
 
-        manager.add({
-            id: 'broken',
-            onStackSnapshot: () => { throw new Error('boom'); },
-            onOutput: () => {},
-            onTrackerUpdate: () => {},
-            dispose: () => {},
-        });
-        manager.add({
-            id: 'healthy',
-            onStackSnapshot: (s) => received.push(s),
-            onOutput: () => {},
-            onTrackerUpdate: () => {},
-            dispose: () => {},
-        });
+            manager.add({
+                id: 'broken',
+                onStackSnapshot: () => { throw new Error('boom'); },
+                onOutput: () => {},
+                onTrackerUpdate: () => {},
+                dispose: () => {},
+            });
+            manager.add({
+                id: 'healthy',
+                onStackSnapshot: (s) => received.push(s),
+                onOutput: () => {},
+                onTrackerUpdate: () => {},
+                dispose: () => {},
+            });
 
-        // Should not throw — error is caught internally
-        runtime._emitStack(createMockSnapshot());
-        expect(received).toHaveLength(2);
+            // Should not throw — error is caught internally
+            runtime._emitStack(createMockSnapshot());
+            expect(received).toHaveLength(2);
+            // add() catches the catch-up error; _emitStack catches the fan-out error.
+            const messages = consoleError.mock.calls.map(args => String(args[0] ?? ''));
+            expect(messages.some(m => m.startsWith("[SubscriptionManager] Error catching up subscription 'broken':"))).toBe(true);
+            expect(messages.some(m => m.startsWith("[SubscriptionManager] Error in subscription 'broken' onStackSnapshot:"))).toBe(true);
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 });
 

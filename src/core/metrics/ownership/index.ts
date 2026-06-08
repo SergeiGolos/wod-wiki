@@ -13,8 +13,4 @@ export {
   getMetricOwnershipLayer,
 } from './types';
 export { createMetricOwnershipLedger } from './ledger';
-export {
-  resolveVisibleMetricByTypeWithOwnership,
-  resolveVisibleMetricsByTypeWithOwnership,
-  resolveVisibleMetricsWithOwnership,
-} from './legacyAdapters';
+export { OwnershipResolver, ownershipRank } from './OwnershipResolver';

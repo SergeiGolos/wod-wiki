@@ -8,148 +8,130 @@
  * Workouts: Grace (30 Clean & Jerk 135lb), Karen (150 Wall Ball Shots 20lb)
  */
 import { describe, it, expect, afterEach } from 'bun:test';
-import {
-    createSessionContext,
-    startSession,
-    userNext,
-    stackInfo,
-    disposeSession,
-    type SessionTestContext,
-} from './helpers/session-test-utils';
+import { TestScript, assertions } from '@/testing/script';
 
 describe('For Time (Single Exercise) — Output Statements', () => {
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => {
-        if (ctx) disposeSession(ctx);
-    });
+    afterEach(async () => { if (script) await script.dispose(); });
 
     describe('Grace — 30 Clean & Jerk 135lb', () => {
-        it('should produce correct output sequence through full lifecycle', () => {
+        it('should produce correct output sequence through full lifecycle', async () => {
             // Arrange: parse the Grace workout
-            ctx = createSessionContext('30 Clean & Jerk 135lb');
+            script = await TestScript.compile('30 Clean & Jerk 135lb');
 
             // Act: Start session (pushes SessionRoot → WaitingToStart)
-            startSession(ctx, { label: 'Grace' });
-
             // Step 1: SessionRoot mounted → compiler/system outputs
             // Step 2: WaitingToStart mounted → compiler/system outputs
-            expect(ctx.runtime.stack.count).toBe(2); // SessionRoot + WaitingToStart
-            expect(ctx.tracer.outputs.length).toBeGreaterThanOrEqual(2);
+            expect((await script.snapshot()).depth).toBe(2); // SessionRoot + WaitingToStart
+            expect(assertions(await script.snapshot()).outputs().all().length).toBeGreaterThanOrEqual(2);
 
             // Step 3: User clicks "Start" → WaitingToStart pops
-            userNext(ctx);
+            await script.next();
 
             // Step 4: WaitingToStart unmounted → completion output
             // Step →5: SessionRoot.next() → ChildRunner pushes exercise
             // Step 6: Exercise mounted → system output
-            expect(ctx.runtime.stack.count).toBe(2); // SessionRoot + Exercise
-            expect(ctx.tracer.completions.length).toBeGreaterThanOrEqual(1); // WaitingToStart completion
+            expect((await script.snapshot()).depth).toBe(2); // SessionRoot + Exercise
+            expect(assertions(await script.snapshot()).outputs().completions().length).toBeGreaterThanOrEqual(1); // WaitingToStart completion
 
             // Step 8: User completes exercise → exercise pops
-            userNext(ctx);
+            await script.next();
 
             // Step 9: Exercise unmount → completion output
             // Step →11: SessionRoot.next() → no more children → markComplete → pop
             // Step 12: SessionRoot unmount → completion output
-            expect(ctx.runtime.stack.count).toBe(0); // Session ended
+            expect((await script.snapshot()).depth).toBe(0); // Session ended
 
             // Verify output sequence
-            const outputs = ctx.tracer.outputs;
+            const outputs = assertions(await script.snapshot()).outputs().all();
 
             // Check we got the right output types in order
             expect(outputs.length).toBeGreaterThanOrEqual(4);
 
             // Should have both segments and completions
             // Grace completion, WaitingToStart completion, SessionRoot completion
-            expect(ctx.tracer.completions.length).toBeGreaterThanOrEqual(3); 
+            expect(assertions(await script.snapshot()).outputs().completions().length).toBeGreaterThanOrEqual(3); 
 
             // Session ends with stack empty
-            expect(stackInfo(ctx).depth).toBe(0);
+            expect((await script.snapshot()).depth).toBe(0);
         });
 
-        it('should emit paired segment/completion outputs', () => {
-            ctx = createSessionContext('30 Clean & Jerk 135lb');
-            startSession(ctx, { label: 'Grace' });
-            userNext(ctx); // Start
-            userNext(ctx); // Complete exercise
+        it('should emit paired segment/completion outputs', async () => {
+            script = await TestScript.compile('30 Clean & Jerk 135lb');
+            await script.next(); // Start
+            await script.next(); // Complete exercise
 
-            const unpaired = ctx.tracer.assertPairedOutputs();
+            const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
             expect(unpaired).toEqual([]);
         });
 
-        it('should emit SessionRoot system output at stack level 1', () => {
-            ctx = createSessionContext('30 Clean & Jerk 135lb');
-            startSession(ctx, { label: 'Grace' });
+        it('should emit SessionRoot system output at stack level 1', async () => {
+            script = await TestScript.compile('30 Clean & Jerk 135lb');
 
-            const rootPush = ctx.tracer.outputs.find(o => o.outputType === 'system' && o.sourceBlockKey === 'session-root');
+            const rootPush = assertions(await script.snapshot()).outputs().all().find(o => o.outputType === 'system' && o.sourceBlockKey === 'session-root');
             expect(rootPush).toBeDefined();
             expect(rootPush?.stackLevel).toBe(1);
         });
 
-        it('should emit WaitingToStart system output at stack level 2', () => {
-            ctx = createSessionContext('30 Clean & Jerk 135lb');
-            startSession(ctx, { label: 'Grace' });
+        it('should emit WaitingToStart system output at stack level 2', async () => {
+            script = await TestScript.compile('30 Clean & Jerk 135lb');
 
             // WaitingToStart is pushed after SessionRoot, at depth 2
-            const waitingPush = ctx.tracer.outputs.find(
+            const waitingPush = assertions(await script.snapshot()).outputs().all().find(
                 o => o.outputType === 'system' && o.sourceBlockKey === 'waiting-to-start'
             );
             expect(waitingPush).toBeDefined();
             expect(waitingPush?.stackLevel).toBe(2);
         });
 
-        it('should emit exercise system output after WaitingToStart is dismissed', () => {
-            ctx = createSessionContext('30 Clean & Jerk 135lb');
-            startSession(ctx, { label: 'Grace' });
-            userNext(ctx); // Dismiss WaitingToStart
+        it('should emit exercise system output after WaitingToStart is dismissed', async () => {
+            script = await TestScript.compile('30 Clean & Jerk 135lb');
+            await script.next(); // Dismiss WaitingToStart
 
             // Exercise should now be pushed at depth 2 (SessionRoot still exists)
-            const systemOutputs = ctx.tracer.outputs.filter(o => o.outputType === 'system');
+            const systemOutputs = assertions(await script.snapshot()).outputs().all().filter(o => o.outputType === 'system');
             const exercisePush = systemOutputs.find(o => o.stackLevel === 2 && o.sourceBlockKey !== 'waiting-to-start');
             expect(exercisePush).toBeDefined();
         });
 
-        it('should end session when exercise completes', () => {
-            ctx = createSessionContext('30 Clean & Jerk 135lb');
-            startSession(ctx, { label: 'Grace' });
-            userNext(ctx); // Start
-            userNext(ctx); // Complete exercise
+        it('should end session when exercise completes', async () => {
+            script = await TestScript.compile('30 Clean & Jerk 135lb');
+            await script.next(); // Start
+            await script.next(); // Complete exercise
 
             // Stack should be empty — session ended
-            expect(ctx.runtime.stack.count).toBe(0);
+            expect((await script.snapshot()).depth).toBe(0);
         });
     });
 
     describe('Karen — 150 Wall Ball Shots 20lb', () => {
-        it('should produce same lifecycle pattern as Grace', () => {
-            ctx = createSessionContext('150 Wall Ball Shots 20lb');
-            startSession(ctx, { label: 'Karen' });
+        it('should produce same lifecycle pattern as Grace', async () => {
+            script = await TestScript.compile('150 Wall Ball Shots 20lb');
 
             // SessionRoot + WaitingToStart on stack
-            expect(ctx.runtime.stack.count).toBe(2);
+            expect((await script.snapshot()).depth).toBe(2);
 
-            userNext(ctx); // Start
-            expect(ctx.runtime.stack.count).toBe(2); // SessionRoot + Exercise
+            await script.next(); // Start
+            expect((await script.snapshot()).depth).toBe(2); // SessionRoot + Exercise
 
-            userNext(ctx); // Complete exercise
-            expect(ctx.runtime.stack.count).toBe(0); // Session ended
+            await script.next(); // Complete exercise
+            expect((await script.snapshot()).depth).toBe(0); // Session ended
 
             // Verify paired outputs
-            const unpaired = ctx.tracer.assertPairedOutputs();
+            const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
             expect(unpaired).toEqual([]);
         });
 
-        it('should have at least 6 outputs (3 segments + 3 completions)', () => {
-            ctx = createSessionContext('150 Wall Ball Shots 20lb');
-            startSession(ctx, { label: 'Karen' });
-            userNext(ctx); // Start
-            userNext(ctx); // Complete
+        it('should have at least 6 outputs (3 segments + 3 completions)', async () => {
+            script = await TestScript.compile('150 Wall Ball Shots 20lb');
+            await script.next(); // Start
+            await script.next(); // Complete
 
             // Planning table shows ~10 outputs (including milestones)
             // Minimum: root-segment, waiting-segment, waiting-completion,
             //          exercise-segment, exercise-completion, root-completion
-            ctx.tracer.assertMinCount(6);
+            assertions(await script.snapshot()).outputs().assertMinCount(6);
         });
     });
 });

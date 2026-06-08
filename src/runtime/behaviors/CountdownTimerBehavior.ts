@@ -90,7 +90,6 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
                 if (mode === 'complete-block' && tickCtx.block.isComplete) {
                     return [];
                 }
-
                 const elapsed = calculateElapsed(timer, tickCtx.clock.currentDate.getTime());
                 if (elapsed < timer.durationMs) return [];
 
@@ -139,18 +138,14 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
             });
             return [];
         }
-
         // Parent blocks (those with child selection) should NEVER push their own rest.
         // ChildSelectionBehavior handles rest injection (EMOM) or sibling transitions.
-        // We use constructor name check to avoid circular dependency.
-        const hasChildSelection = ctx.block.behaviors.some(
-            b => b.constructor.name === 'ChildSelectionBehavior'
-        );
-        
-        if (hasChildSelection) {
+        // Coordination is via the `'childSelection'` capability declared by
+        // ChildSelectionBehavior — avoids both circular imports and
+        // `behaviors[i].constructor.name` string inspection.
+        if (ctx.hasCapability('childSelection')) {
             return [];
         }
-
         if (!this.config.restBlockFactory) {
             return [];
         }
@@ -199,11 +194,9 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
 
             // If ChildSelectionBehavior is present, it will handle round/status advancement
             // via its own logic (coordinated with Rest block popping or manual next).
-            // We use constructor name check to avoid circular dependency.
-            const hasChildSelection = ctx.block.behaviors.some(
-                b => b.constructor.name === 'ChildSelectionBehavior'
-            );
-            if (hasChildSelection) {
+            // We use the `'childSelection'` capability to avoid coupling on the
+            // concrete class identity.
+            if (ctx.hasCapability('childSelection')) {
                 return;
             }
 

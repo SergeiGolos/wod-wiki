@@ -1,7 +1,7 @@
 # 02 — `wod` Block Syntax Reference
 
-A workout file is plain Markdown. WOD Wiki only interprets the contents of fenced code
-blocks tagged `wod`:
+WOD Wiki only interprets the contents of fenced code
+blocks tagged `wod` (or the accepted alias `whiteboard`):
 
 ````markdown
 ## WOD

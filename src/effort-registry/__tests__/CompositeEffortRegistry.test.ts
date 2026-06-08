@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
+import { describe, it, expect, mock, beforeEach, vi } from 'bun:test';
 
 // Mock IndexedDBService before importing CompositeEffortRegistry
 // to avoid triggering real IndexedDB instantiation at module load time.
@@ -61,15 +61,22 @@ describe('CompositeEffortRegistry', () => {
     });
 
     it('continues with bundled-only when IndexedDB fails', async () => {
-      const failingDB = {
-        getDB: async () => {
-          throw new Error('quota exceeded');
-        },
-      };
-      const failingRegistry = new CompositeEffortRegistry(failingDB as unknown as typeof mockIndexedDBService);
-      await failingRegistry.loadBundled();
-      expect(failingRegistry.resolve('rowing')).not.toBeNull();
-      expect(failingRegistry.isInitialized()).toBe(true);
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const failingDB = {
+          getDB: async () => {
+            throw new Error('quota exceeded');
+          },
+        };
+        const failingRegistry = new CompositeEffortRegistry(failingDB as unknown as typeof mockIndexedDBService);
+        await failingRegistry.loadBundled();
+        expect(failingRegistry.resolve('rowing')).not.toBeNull();
+        expect(failingRegistry.isInitialized()).toBe(true);
+        expect(consoleWarn).toHaveBeenCalledTimes(1);
+        expect(String(consoleWarn.mock.calls[0]?.[0])).toBe('[CompositeEffortRegistry] Failed to load user efforts from IndexedDB:');
+      } finally {
+        consoleWarn.mockRestore();
+      }
     });
 
     it('marks initialized after load', async () => {
@@ -161,18 +168,25 @@ describe('CompositeEffortRegistry', () => {
     });
 
     it('continues in memory when IndexedDB persist fails', async () => {
-      const failingDB = {
-        getDB: async () => ({
-          get: async () => undefined,
-          getAll: async () => [],
-          put: async () => { throw new Error('quota exceeded'); },
-          delete: async () => {},
-        }),
-      };
-      const failingRegistry = new CompositeEffortRegistry(failingDB as unknown as typeof mockIndexedDBService);
-      await failingRegistry.loadBundled();
-      await failingRegistry.upsert(fixtureUserCustom);
-      expect(failingRegistry.resolve('my-custom-hiit')).toEqual(fixtureUserCustom);
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const failingDB = {
+          getDB: async () => ({
+            get: async () => undefined,
+            getAll: async () => [],
+            put: async () => { throw new Error('quota exceeded'); },
+            delete: async () => {},
+          }),
+        };
+        const failingRegistry = new CompositeEffortRegistry(failingDB as unknown as typeof mockIndexedDBService);
+        await failingRegistry.loadBundled();
+        await failingRegistry.upsert(fixtureUserCustom);
+        expect(failingRegistry.resolve('my-custom-hiit')).toEqual(fixtureUserCustom);
+        expect(consoleWarn).toHaveBeenCalledTimes(1);
+        expect(String(consoleWarn.mock.calls[0]?.[0])).toBe('[CompositeEffortRegistry] Failed to persist effort to IndexedDB:');
+      } finally {
+        consoleWarn.mockRestore();
+      }
     });
   });
 
@@ -194,19 +208,26 @@ describe('CompositeEffortRegistry', () => {
     });
 
     it('continues in memory when IndexedDB delete fails', async () => {
-      const failingDB = {
-        getDB: async () => ({
-          get: async () => undefined,
-          getAll: async () => [],
-          put: async () => {},
-          delete: async () => { throw new Error('quota exceeded'); },
-        }),
-      };
-      const failingRegistry = new CompositeEffortRegistry(failingDB as unknown as typeof mockIndexedDBService);
-      await failingRegistry.loadBundled();
-      await failingRegistry.upsert(fixtureUserCustom);
-      await failingRegistry.delete('my-custom-hiit');
-      expect(failingRegistry.resolve('my-custom-hiit')).toBeNull();
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const failingDB = {
+          getDB: async () => ({
+            get: async () => undefined,
+            getAll: async () => [],
+            put: async () => {},
+            delete: async () => { throw new Error('quota exceeded'); },
+          }),
+        };
+        const failingRegistry = new CompositeEffortRegistry(failingDB as unknown as typeof mockIndexedDBService);
+        await failingRegistry.loadBundled();
+        await failingRegistry.upsert(fixtureUserCustom);
+        await failingRegistry.delete('my-custom-hiit');
+        expect(failingRegistry.resolve('my-custom-hiit')).toBeNull();
+        expect(consoleWarn).toHaveBeenCalledTimes(1);
+        expect(String(consoleWarn.mock.calls[0]?.[0])).toBe('[CompositeEffortRegistry] Failed to delete effort from IndexedDB:');
+      } finally {
+        consoleWarn.mockRestore();
+      }
     });
   });
 });

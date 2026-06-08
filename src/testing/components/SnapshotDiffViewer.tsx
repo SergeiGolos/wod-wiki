@@ -1,5 +1,5 @@
 import React from 'react';
-import { SnapshotDiff } from '../testable/TestableRuntime';
+import type { SnapshotDiff } from '../contracts/SnapshotTypes';
 
 interface SnapshotDiffViewerProps {
   diff: SnapshotDiff;

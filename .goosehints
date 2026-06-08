@@ -1,5 +1,5 @@
 # WOD Wiki Documentation Preferences
-
+* Language: Whiteboard Language (fence tag `wod`; `whiteboard` accepted as alias).
 Documentation generation settings and patterns for AI assistants working on this codebase.
 
 ## Project Configuration

@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronRight, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseFrontmatter, extractLinkWidgets } from '@/lib/frontmatter';
-import type { WodCollectionItem } from '@/repositories/wod-collections';
+import type { ScriptCollectionItem } from '@/repositories/script-collections';
 import { LinkChip } from '@/components/molecules/LinkChip'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,7 +36,7 @@ const DIFFICULTY_COLOR: Record<string, string> = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface CollectionCardProps {
-  item: WodCollectionItem;
+  item: ScriptCollectionItem;
   collectionId: string;
   collectionName: string;
   onClick: () => void;

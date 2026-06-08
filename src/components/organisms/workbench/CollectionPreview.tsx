@@ -9,10 +9,10 @@ import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { parseFrontmatter, extractLinkWidgets } from '@/lib/frontmatter';
 import { LinkChip } from '@/components/molecules/LinkChip'
-import type { WodCollectionItem } from '@/repositories/wod-collections';
+import type { ScriptCollectionItem } from '@/repositories/script-collections';
 
 export interface CollectionPreviewProps {
-    item: WodCollectionItem;
+    item: ScriptCollectionItem;
     collectionName?: string;
     onStartWorkout?: (blockId: string) => void;
 }

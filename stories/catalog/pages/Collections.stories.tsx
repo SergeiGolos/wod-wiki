@@ -18,18 +18,18 @@ import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { CollectionBrowsePanel } from '@/components/organisms/collections/CollectionBrowsePanel'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { CommandProvider } from '@/contexts/CommandContext'
-import { getWodCollections } from '@/repositories/wod-collections';
-import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
+import { getScriptCollections } from '@/repositories/script-collections';
+import type { ScriptCollection, ScriptCollectionItem } from '@/repositories/script-collections';
 import { EditorShellHeader } from '../_shared/EditorShellHeader';
 import { useTheme } from '@/contexts/ThemeProvider'
 
 interface JournalState {
-  item: WodCollectionItem;
-  collection: WodCollection;
+  item: ScriptCollectionItem;
+  collection: ScriptCollection;
 }
 
 const CollectionsPageShell: React.FC = () => {
-  const collections = useMemo(() => getWodCollections(), []);
+  const collections = useMemo(() => getScriptCollections(), []);
   const [journalState, setJournalState] = useState<JournalState | null>(null);
   const [content, setContent] = useState('');
   const { theme } = useTheme();
@@ -37,7 +37,7 @@ const CollectionsPageShell: React.FC = () => {
 
   const showJournal = journalState !== null;
 
-  const handleSelectItem = (item: WodCollectionItem, collection: WodCollection) => {
+  const handleSelectItem = (item: ScriptCollectionItem, collection: ScriptCollection) => {
     setContent(item.content);
     setJournalState({ item, collection });
   };
@@ -140,9 +140,9 @@ export const PlaygroundCollections: StoryObj = {
   render: () => <PlaygroundCollectionsShell />,
 }
 
-const emptyCollections: WodCollection[] = [];
+const emptyCollections: ScriptCollection[] = [];
 
-const manyCollections: WodCollection[] = Array.from({ length: 12 }, (_, i) => ({
+const manyCollections: ScriptCollection[] = Array.from({ length: 12 }, (_, i) => ({
   id: `story-collection-${i + 1}`,
   name: `Collection ${i + 1}`,
   items: Array.from({ length: 6 }, (_, itemIndex) => ({

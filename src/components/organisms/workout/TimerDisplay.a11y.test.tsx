@@ -1,7 +1,7 @@
 import React from 'react';
-import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
+import { afterAll, afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 import { cleanup, fireEvent, render } from '@testing-library/react';
-import { TimerDisplay } from '../../../panels/timer-panel';
+import { TimerDisplay } from '../../../panels/wallclock-panel';
 
 // ── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -52,9 +52,15 @@ describe('TimerDisplay — Keyboard Navigation', () => {
     mockPanelSize.mockClear?.();
   });
 
+  afterAll(() => {
+    mock.restore();
+  });
+
   beforeEach(() => {
-    // Reset mock to default
+    // Reset mock to default and clear any DOM pollution from other test files
     mockPanelSize.mockImplementation(() => ({ width: 800, isCompact: false, isWide: true, isFull: true, mode: 'full' as const }));
+    document.body.innerHTML = '';
+    (document.activeElement as HTMLElement | null)?.blur?.();
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

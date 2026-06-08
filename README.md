@@ -2,7 +2,7 @@
 
 **Write workouts as Markdown. Run them on a clock. Analyze what actually happened.**
 
-WOD Wiki is a TypeScript + React toolkit (`@bitcobblers/wod-wiki-library`) for parsing,
+WOD Wiki is a TypeScript + React toolkit (`@bitcobblers/whiteboard-lang`) for parsing,
 executing, and analyzing workouts written in a compact `wod` block syntax embedded in
 ordinary Markdown. It ships a Monaco/CodeMirror editor integration, a Just-In-Time
 compiler, a clock-driven execution runtime, and a training-analytics engine.
@@ -118,7 +118,7 @@ The app is a continuous loop. The same metric flows through every phase.
 - **Feeds** (`/feeds`) — date-indexed streams of sessions.
 
 ### 2. TRACK — execute on the clock
-- **Tracker / Run** (`/run/:runtimeId`) — the JIT-compiled blocks run on the runtime
+- **WallClock / Run** (`/run/:runtimeId`) — the JIT-compiled blocks run on the runtime
   clock: timers count, rounds advance, sound cues fire, and you log actual
   reps/load/RPE. Each segment emits results recorded as `runtime`/`user` metrics.
 
@@ -198,7 +198,7 @@ patterns, code style, and validation requirements).
 ```
 src/            Library source (domain, parser, dialects, runtime, analytics, UI)
   core/         Shared metric & statement model + analytics
-  grammar/      lezer grammar for the wod language
+  grammar/      lezer grammar for the Whiteboard language
   parser/       Parser wrapper (WhiteboardScript)
   dialects/     Semantic pattern recognizers
   runtime/      JIT compiler, blocks, behaviors, stack, clock, memory

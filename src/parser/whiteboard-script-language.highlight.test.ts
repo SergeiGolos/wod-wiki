@@ -24,7 +24,7 @@ describe("whiteboardScriptLanguage highlight interop", () => {
       extensions: [
         markdown({
           codeLanguages: (info) =>
-            info === "wod" || info === "log" || info === "plan"
+            info === "wod" || info === "whiteboard" || info === "log" || info === "plan"
               ? whiteboardScriptLanguage
               : null,
         }),

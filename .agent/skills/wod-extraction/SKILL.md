@@ -1,6 +1,6 @@
 ---
 name: wod-extraction
-description: 'Extract and convert any workout description into WOD Wiki syntax. Understands workout intent to determine which metrics to collect (time, reps, distance, weight) based on the workout type and structure.'
+description: 'Extract and convert any workout description into Whiteboard Language syntax. Understands workout intent to determine which metrics to collect (time, reps, distance, weight) based on the workout type and structure.'
 license: MIT
 ---
 
@@ -8,14 +8,14 @@ license: MIT
 
 ## Overview
 
-Take any workout description — from a whiteboard photo, a coach's programming post, a competition event description, or a casual text message — and produce well-formed WOD Wiki syntax that captures both the workout structure and the **implied measurements** the athlete cares about.
+Take any workout description — from a whiteboard photo, a coach's programming post, a competition event description, or a casual text message — and produce well-formed Whiteboard Language syntax that captures both the workout structure and the **implied measurements** the athlete cares about.
 
 ## When to Use
 
 Use this skill when:
 
-- A user provides a workout in plain English (or any natural language) and wants it converted to WOD Wiki syntax
-- A user asks to "write this workout in wod syntax" or "encode this workout"
+- A user provides a workout in plain English (or any natural language) and wants it converted to Whiteboard Language syntax
+- A user asks to "write this workout in Whiteboard syntax" or "encode this workout"
 - A competition workout needs to be transcribed into the project's `wod/` library
 - The user wants help understanding what metrics a workout is tracking
 
@@ -306,7 +306,7 @@ Write separate lines per side:
 |---|---|
 | `Warmup:` (colon = timer syntax) | `Warmup` |
 | `Child's Pose` (apostrophe in name) | `Childs Pose` |
-| `# Header` inside wod block | Put headers outside the code fence |
+| `# Header` inside Whiteboard block | Put headers outside the code fence |
 | `[Rest] 2:00` (brackets = actions) | `2:00 Rest` |
 | `:?` on a for-time workout (redundant) | Omit — time tracked automatically |
 | `+ 400m Run` in sequential rounds | No prefix for sequential exercises |
@@ -329,7 +329,7 @@ Write separate lines per side:
 [Brief description]
 
 ```wod
-[WOD Wiki syntax]
+[Whiteboard Language syntax]
 ```
 
 ## Collectible Metrics

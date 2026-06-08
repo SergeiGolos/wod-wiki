@@ -137,7 +137,7 @@ export const GridGraphPanel: React.FC<GridGraphPanelProps> = ({
                       color: 'hsl(var(--popover-foreground))',
                     }}
                     labelFormatter={(idx) => `Row ${idx}`}
-                    formatter={(value: number, name: string) => {
+                    formatter={(value: any, name: any) => {
                       const cfg = graphConfigs.find((c) => c.dataKey === name);
                       return [
                         `${typeof value === 'number' ? value.toLocaleString() : value}${cfg?.unit ? ` ${cfg.unit}` : ''}`,

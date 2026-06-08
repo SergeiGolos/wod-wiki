@@ -4,11 +4,8 @@ import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { MetricType } from "@/core/models/Metric";
 import { RoundsMetric } from "../../metrics/RoundsMetric";
-import { BlockContext } from "../../../BlockContext";
-import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
-import { MetricContainer } from "@/core/models/MetricContainer";
-import { LabelComposer } from "../../utils/LabelComposer";
+import { compose } from "../../BlockTemplateComposer";
+import type { BlockTemplate } from "../../BlockTemplate";
 
 // Specific behaviors not covered by aspect composers
 import {
@@ -59,7 +56,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         // Collect individual RepMetrics from ALL statements to build a rep scheme.
         // The parser creates separate RepMetric instances (e.g., 21-15-9 becomes
         // three RepMetrics with values 21, 15, 9) alongside a RoundsMetric.
-        const repFragments = statements.flatMap(s => 
+        const repFragments = statements.flatMap(s =>
             s.metrics.filter(f => f.type === MetricType.Rep && typeof f.value === 'number')
         ).map(f => f.value as number);
 
@@ -71,41 +68,24 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             }
         }
 
-        // Use LabelComposer for a standardized, descriptive label
-        const label = LabelComposer.build(statements, {
-            defaultLabel: repScheme ? repScheme.join('-') : `${totalRounds} Rounds`
-        });
+        // Build the common chassis via the template composer.
+        const template: BlockTemplate = {
+            blockType: 'Rounds',
+            defaultLabel: repScheme ? repScheme.join('-') : `${totalRounds} Rounds`,
+            statements,
+            runtime,
+            repeater: {
+                totalRounds,
+                startRound: 1,
+                addCompletion: true,
+            },
+            pickStatement: (stmts) => stmts.find(s => s.metrics.some(f => f.type === MetricType.Rounds)) || stmts[0],
+            // Legacy `GenericLoopStrategy` dropped `Rep` metrics from the
+            // distributed fragments — preserve that here.
+            filterMetrics: (m) => m.type !== MetricType.Rep,
+        };
 
-        // Block metadata
-        const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), firstStatementWithRounds.exerciseId || '');
-
-        builder
-            .setContext(context)
-            .setKey(blockKey)
-            .setBlockType("Rounds")
-            .setLabel(label)
-            .setSourceIds(statements.map(s => s.id));
-
-        const distributor = new PassthroughMetricDistributor();
-        const metricGroups = statements.flatMap(s => {
-            const metrics = MetricContainer.from(s.metrics);
-            const withoutReps = MetricContainer.from(metrics.filter(f => f.type !== MetricType.Rep));
-            return distributor.distribute(withoutReps, "Rounds");
-        }).filter(group => group.length > 0);
-        
-        builder.setFragments(metricGroups);
-
-        // =====================================================================
-        // ASPECT COMPOSERS - High-level composition
-        // =====================================================================
-
-        // Repeater Aspect - rounds with completion
-        builder.asRepeater({
-            totalRounds,
-            startRound: 1,
-            addCompletion: true  // Complete when all rounds done
-        });
+        const label = compose(builder, template);
 
         // =====================================================================
         // Display Aspect

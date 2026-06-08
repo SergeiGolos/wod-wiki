@@ -16,7 +16,7 @@ import { useMatch, useNavigate } from 'react-router-dom';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
 import { cn } from '@/lib/utils';
 import { useFeedsQueryState } from '../../hooks/useFeedsQueryState';
-import { getWodFeeds, getWodFeed, getFeedDateKeys } from '@/repositories/wod-feeds';
+import { getScriptFeeds, getScriptFeed, getFeedDateKeys } from '@/repositories/script-feeds';
 import type { NavPanelProps } from '../navTypes';
 import { useMemo } from 'react';
 
@@ -32,12 +32,12 @@ export function FeedsNavPanel(_props: NavPanelProps) {
   const feedSlug = detailMatch?.params.feedSlug ?? itemMatch?.params.feedSlug ?? null;
   const feedDate = itemMatch?.params.feedDate ?? null;
   const feedItemId = itemMatch?.params.feedItem ?? null;
-  const feed = feedSlug ? getWodFeed(feedSlug) : null;
+  const feed = feedSlug ? getScriptFeed(feedSlug) : null;
 
   const { dateParam, selectedDate, setSelectedDate, selectedFeed, selectFeed, clearFeed } =
     useFeedsQueryState();
 
-  const allFeeds = useMemo(() => getWodFeeds(), []);
+  const allFeeds = useMemo(() => getScriptFeeds(), []);
 
   // Build the set of dates that have content (for CalendarCard dots)
   const entryDates = useMemo<Set<string>>(() => {

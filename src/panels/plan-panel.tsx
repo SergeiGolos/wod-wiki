@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { useTheme } from '@/contexts/ThemeProvider';
 
@@ -8,8 +8,8 @@ export interface PlanPanelProps {
   value?: string;
   /** @deprecated Ignored — sections are parsed internally by NoteEditor */
   sections?: any[] | null;
-  onStartWorkout: (block: WodBlock) => void;
-  onCompleteWorkout?: (blockId: string, results: WodBlock["results"]) => void;
+  onStartWorkout: (block: ScriptBlock) => void;
+  onCompleteWorkout?: (blockId: string, results: ScriptBlock["results"]) => void;
   /** @deprecated Ignored — active block tracking is handled by the overlay */
   setActiveBlockId?: (blockId: string | null) => void;
   setBlocks: (blocks: any[]) => void;

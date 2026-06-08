@@ -12,7 +12,7 @@
 
 import React from 'react';
 import type { SectionType } from '@/components/Editor/types/section';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { cn } from '@/lib/utils';
 import { Dumbbell } from 'lucide-react';
@@ -22,7 +22,7 @@ export interface WorkoutPreviewPanelProps {
   content: string;
 
   /** Called when the user clicks "Run" on a WOD block */
-  onStartWorkout?: (block: WodBlock) => void;
+  onStartWorkout?: (block: ScriptBlock) => void;
 
   /** Callback when blocks change (parsed from content) */
   onBlocksChange?: (blocks: any[]) => void;

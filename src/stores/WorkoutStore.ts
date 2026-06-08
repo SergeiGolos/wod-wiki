@@ -1,15 +1,15 @@
 import { create } from 'zustand';
-import { WodBlock, WodBlockState } from '@/components/Editor/types';
+import { ScriptBlock, ScriptBlockState } from '@/components/Editor/types';
 
 interface WorkoutState {
-  blocks: WodBlock[];
+  blocks: ScriptBlock[];
   activeBlockId: string | null;
   
   // Actions
-  setBlocks: (blocks: WodBlock[]) => void;
-  updateBlock: (id: string, updates: Partial<WodBlock>) => void;
+  setBlocks: (blocks: ScriptBlock[]) => void;
+  updateBlock: (id: string, updates: Partial<ScriptBlock>) => void;
   setActiveBlockId: (id: string | null) => void;
-  setBlockState: (id: string, state: WodBlockState) => void;
+  setBlockState: (id: string, state: ScriptBlockState) => void;
 }
 
 export const useWorkoutStore = create<WorkoutState>((set) => ({

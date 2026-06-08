@@ -36,7 +36,7 @@ export class TwoPassEffortResolutionProcess implements IRealtimeProcessor {
     const actionMetric = output.getMetric(MetricType.Action);
 
     let label: string | undefined;
-    let passOrigin: MetricOrigin;
+    let passOrigin: MetricOrigin = 'analyzed';
 
     // Prefer explicit Effort metric, fall back to Action metric
     if (effortMetric && typeof effortMetric.value === 'string') {

@@ -32,7 +32,7 @@ describe('workbenchProjection', () => {
         content: 'Fran\n21-15-9 thrusters',
         startLine: 1,
         endLine: 2,
-        wodBlock: { statements: [{ id: 1 }] } as any,
+        scriptBlock: { statements: [{ id: 1 }] } as any,
       },
     ]);
 

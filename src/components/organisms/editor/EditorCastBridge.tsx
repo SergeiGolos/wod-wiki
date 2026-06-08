@@ -18,7 +18,7 @@ import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 import type { EditorSection } from '@/components/Editor/extensions/section-state';
 import type { RpcWorkbenchUpdate, RpcMessage } from '@/hooks/useCastSignaling';
 import type { EditorState } from '@codemirror/state';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 
 interface EditorCastBridgeProps {
   /** All parsed editor sections */
@@ -28,7 +28,7 @@ interface EditorCastBridgeProps {
   /** CodeMirror EditorState — used to extract section content */
   editorState: EditorState | null;
   /** Called when the Chromecast receiver selects a block to start */
-  onSelectBlock?: (block: WodBlock) => void;
+  onSelectBlock?: (block: ScriptBlock) => void;
 }
 
 export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
@@ -130,7 +130,7 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
           ? editorState.doc.sliceString(targetSection.contentFrom, targetSection.contentTo)
           : '';
 
-      const block: WodBlock = {
+      const block: ScriptBlock = {
         id: targetSection.id,
         dialect: targetSection.dialect || 'wod',
         startLine: targetSection.startLine - 1,

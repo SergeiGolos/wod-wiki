@@ -31,7 +31,7 @@ import type { WhiteboardScript } from '../../parser/WhiteboardScript';
 // ── Minimal helpers ──────────────────────────────────────────────────────────
 
 function makeClock(now = new Date('2024-01-01T12:00:00Z')): IRuntimeClock {
-    return { now, elapsed: 0, isRunning: false, spans: [], start: () => now, stop: () => now };
+    return { now, currentDate: now, elapsed: 0, isRunning: false, spans: [], start: () => now, stop: () => now };
 }
 
 function makeOutput(type: IOutputStatement['outputType'] = 'segment'): IOutputStatement {
@@ -152,15 +152,23 @@ describe('OutputEmitter — core API', () => {
     });
 
     it('add() isolates listener errors — other listeners still receive output', () => {
-        const emitter = new OutputEmitter();
-        const goodReceived: IOutputStatement[] = [];
-        emitter.subscribe(() => { throw new Error('bad listener'); });
-        emitter.subscribe(o => goodReceived.push(o));
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const emitter = new OutputEmitter();
+            const goodReceived: IOutputStatement[] = [];
+            emitter.subscribe(() => { throw new Error('bad listener'); });
+            emitter.subscribe(o => goodReceived.push(o));
 
-        const out = makeOutput();
-        // Should not throw
-        expect(() => emitter.add(out)).not.toThrow();
-        expect(goodReceived).toHaveLength(1);
+            const out = makeOutput();
+            // Should not throw
+            expect(() => emitter.add(out)).not.toThrow();
+            expect(goodReceived).toHaveLength(1);
+            // Bad listener error was logged exactly once.
+            expect(consoleError).toHaveBeenCalledTimes(1);
+            expect(consoleError.mock.calls[0]?.[0]).toBe('[OutputEmitter] Listener error:');
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 
     it('getAll() returns a defensive copy', () => {
@@ -243,15 +251,23 @@ describe('OutputEmitter — finalizeAnalytics', () => {
     });
 
     it('isolates listener errors during finalize', () => {
-        const emitter = new OutputEmitter();
-        const engine: IAnalyticsEngine = {
-            run: vi.fn().mockImplementation(o => o),
-            finalize: vi.fn().mockReturnValue([makeOutput('segment')]),
-        };
-        emitter.setAnalyticsEngine(engine);
-        emitter.subscribe(() => { throw new Error('finalize listener error'); });
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const emitter = new OutputEmitter();
+            const engine: IAnalyticsEngine = {
+                run: vi.fn().mockImplementation(o => o),
+                finalize: vi.fn().mockReturnValue([makeOutput('segment')]),
+            };
+            emitter.setAnalyticsEngine(engine);
+            emitter.subscribe(() => { throw new Error('finalize listener error'); });
 
-        expect(() => emitter.finalizeAnalytics()).not.toThrow();
+            expect(() => emitter.finalizeAnalytics()).not.toThrow();
+            // Finalize listener error was logged exactly once.
+            expect(consoleError).toHaveBeenCalledTimes(1);
+            expect(consoleError.mock.calls[0]?.[0]).toBe('[OutputEmitter] Finalize listener error:');
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 });
 

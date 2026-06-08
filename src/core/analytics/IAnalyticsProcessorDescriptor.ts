@@ -1,4 +1,4 @@
-import type { WodDialect } from '@/components/Editor/types';
+import type { FenceDialect } from '@/components/Editor/types';
 import type { MetricType } from '../models/Metric';
 
 /**
@@ -15,7 +15,7 @@ export interface IAnalyticsProcessorDescriptor {
    * Allow-list of dialects this processor is eligible for.
    * Omit or leave undefined to allow all dialects.
    */
-  readonly dialects?: readonly WodDialect[];
+  readonly dialects?: readonly FenceDialect[];
 
   /**
    * Metrics that must ALL be present in the authored script for this

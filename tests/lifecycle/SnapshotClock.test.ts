@@ -8,14 +8,14 @@ describe('SnapshotClock', () => {
             const frozenTime = new Date('2024-01-01T12:00:00Z');
             const snapshot = SnapshotClock.at(realClock, frozenTime);
 
-            expect(snapshot.now).toEqual(frozenTime);
+            expect(snapshot.now()).toEqual(frozenTime);
         });
 
         it('should create snapshot with SnapshotClock.now()', () => {
             const mockClock = createMockClock(new Date('2024-01-01T12:00:00Z'));
             const snapshot = SnapshotClock.now(mockClock);
 
-            expect(snapshot.now).toEqual(mockClock.now);
+            expect(snapshot.now()).toEqual(mockClock.now());
         });
 
         it('should create snapshot via constructor', () => {
@@ -23,7 +23,7 @@ describe('SnapshotClock', () => {
             const frozenTime = new Date('2024-06-15T10:30:00Z');
             const snapshot = new SnapshotClock(mockClock, frozenTime);
 
-            expect(snapshot.now).toEqual(frozenTime);
+            expect(snapshot.now()).toEqual(frozenTime);
         });
     });
 
@@ -33,8 +33,8 @@ describe('SnapshotClock', () => {
             const frozenTime = new Date('2024-01-01T12:00:00Z');
             const snapshot = SnapshotClock.at(mockClock, frozenTime);
 
-            expect(snapshot.now).toEqual(frozenTime);
-            expect(snapshot.now.getTime()).toBe(frozenTime.getTime());
+            expect(snapshot.now()).toEqual(frozenTime);
+            expect(snapshot.now().getTime()).toBe(frozenTime.getTime());
         });
 
         it('should not change now even after underlying clock advances', () => {
@@ -46,10 +46,10 @@ describe('SnapshotClock', () => {
             mockClock.advance(5000);
 
             // Snapshot should still return frozen time
-            expect(snapshot.now.getTime()).toBe(frozenTime.getTime());
+            expect(snapshot.now().getTime()).toBe(frozenTime.getTime());
 
             // But underlying clock has advanced
-            expect(mockClock.now.getTime()).toBe(new Date('2024-01-01T12:00:05Z').getTime());
+            expect(mockClock.now().getTime()).toBe(new Date('2024-01-01T12:00:05Z').getTime());
         });
 
         it('should return same frozen time on multiple accesses', () => {
@@ -57,9 +57,9 @@ describe('SnapshotClock', () => {
             const frozenTime = new Date('2024-01-01T12:00:00Z');
             const snapshot = SnapshotClock.at(mockClock, frozenTime);
 
-            const first = snapshot.now;
-            const second = snapshot.now;
-            const third = snapshot.now;
+            const first = snapshot.now();
+            const second = snapshot.now();
+            const third = snapshot.now();
 
             expect(first).toEqual(second);
             expect(second).toEqual(third);
@@ -117,7 +117,7 @@ describe('SnapshotClock', () => {
 
             // Underlying clock should now be running
             expect(mockClock.isRunning).toBe(true);
-            expect(startTime).toEqual(mockClock.now);
+            expect(startTime).toEqual(mockClock.now());
         });
 
         it('should delegate stop() to underlying clock', () => {
@@ -132,7 +132,7 @@ describe('SnapshotClock', () => {
 
             // Underlying clock should now be stopped
             expect(mockClock.isRunning).toBe(false);
-            expect(stopTime).toEqual(mockClock.now);
+            expect(stopTime).toEqual(mockClock.now());
         });
     });
 
@@ -143,7 +143,7 @@ describe('SnapshotClock', () => {
 
             // Timer "expires" at this moment
             mockClock.advance(180000); // 3 minutes
-            const completedAt = mockClock.now;
+            const completedAt = mockClock.now();
 
             // Create snapshot at completion time
             const snapshot = SnapshotClock.at(mockClock, completedAt);
@@ -152,12 +152,12 @@ describe('SnapshotClock', () => {
             mockClock.advance(5); // 5ms of processing time
 
             // All operations in the chain should see the same time
-            expect(snapshot.now).toEqual(completedAt);
-            expect(snapshot.now.getTime()).toBe(completedAt.getTime());
+            expect(snapshot.now()).toEqual(completedAt);
+            expect(snapshot.now().getTime()).toBe(completedAt.getTime());
 
             // Even after more processing time
             mockClock.advance(10);
-            expect(snapshot.now).toEqual(completedAt);
+            expect(snapshot.now()).toEqual(completedAt);
         });
 
         it('should allow multiple snapshots at different times', () => {
@@ -166,17 +166,17 @@ describe('SnapshotClock', () => {
 
             // First timer expires
             mockClock.advance(60000);
-            const firstComplete = mockClock.now;
+            const firstComplete = mockClock.now();
             const firstSnapshot = SnapshotClock.at(mockClock, firstComplete);
 
             // Second timer expires
             mockClock.advance(30000);
-            const secondComplete = mockClock.now;
+            const secondComplete = mockClock.now();
             const secondSnapshot = SnapshotClock.at(mockClock, secondComplete);
 
             // Each snapshot maintains its own frozen time
-            expect(firstSnapshot.now.getTime()).toBe(60000 + new Date('2024-01-01T12:00:00Z').getTime());
-            expect(secondSnapshot.now.getTime()).toBe(90000 + new Date('2024-01-01T12:00:00Z').getTime());
+            expect(firstSnapshot.now().getTime()).toBe(60000 + new Date('2024-01-01T12:00:00Z').getTime());
+            expect(secondSnapshot.now().getTime()).toBe(90000 + new Date('2024-01-01T12:00:00Z').getTime());
         });
     });
 
@@ -186,7 +186,7 @@ describe('SnapshotClock', () => {
             const pastTime = new Date('2023-01-01T00:00:00Z');
             const snapshot = SnapshotClock.at(mockClock, pastTime);
 
-            expect(snapshot.now).toEqual(pastTime);
+            expect(snapshot.now()).toEqual(pastTime);
         });
 
         it('should handle frozen time in the future', () => {
@@ -194,7 +194,7 @@ describe('SnapshotClock', () => {
             const futureTime = new Date('2025-12-31T23:59:59Z');
             const snapshot = SnapshotClock.at(mockClock, futureTime);
 
-            expect(snapshot.now).toEqual(futureTime);
+            expect(snapshot.now()).toEqual(futureTime);
         });
 
         it('should work with RuntimeClock (not just mock)', () => {
@@ -202,7 +202,7 @@ describe('SnapshotClock', () => {
             const frozenTime = new Date('2024-01-01T12:00:00Z');
             const snapshot = SnapshotClock.at(realClock, frozenTime);
 
-            expect(snapshot.now).toEqual(frozenTime);
+            expect(snapshot.now()).toEqual(frozenTime);
             expect(snapshot.isRunning).toBe(realClock.isRunning);
             expect(snapshot.spans).toBe(realClock.spans);
         });
@@ -216,7 +216,7 @@ describe('SnapshotClock', () => {
             const secondFreeze = new Date('2024-06-15T10:30:00Z');
             const nestedSnapshot = SnapshotClock.at(firstSnapshot, secondFreeze);
 
-            expect(nestedSnapshot.now).toEqual(secondFreeze);
+            expect(nestedSnapshot.now()).toEqual(secondFreeze);
             // Delegation should still work through the chain
             expect(nestedSnapshot.isRunning).toBe(mockClock.isRunning);
         });

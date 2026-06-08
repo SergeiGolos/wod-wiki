@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
+import type { ScriptCollection, ScriptCollectionItem } from '@/repositories/script-collections';
 import { CollectionCard } from '@/components/molecules/CollectionCard';
 
 export interface CollectionBrowsePanelProps {
-  collections: WodCollection[];
-  onSelectItem: (item: WodCollectionItem, collection: WodCollection) => void;
+  collections: ScriptCollection[];
+  onSelectItem: (item: ScriptCollectionItem, collection: ScriptCollection) => void;
   className?: string;
 }
 
@@ -19,7 +19,7 @@ export const CollectionBrowsePanel: React.FC<CollectionBrowsePanelProps> = ({
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    const results: { item: WodCollectionItem; collection: WodCollection }[] = [];
+    const results: { item: ScriptCollectionItem; collection: ScriptCollection }[] = [];
 
     for (const col of collections) {
       if (activeCollectionId && col.id !== activeCollectionId) continue;

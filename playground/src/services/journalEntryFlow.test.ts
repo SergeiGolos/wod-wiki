@@ -52,7 +52,7 @@ mock.module('./paletteDataSources', () => ({
       payload: 'history',
     },
   ],
-  extractWodBlocks: (markdown: string) => {
+  extractScriptBlocks: (markdown: string) => {
     const blocks: Array<{ dialect: string; script: string }> = [];
     const wodMatch = markdown.match(/```(\w+)\n([\s\S]*?)```/);
     if (wodMatch) {
@@ -89,7 +89,7 @@ mock.module('./paletteDataSources', () => ({
       payload: item,
     })),
   }),
-  wodBlockSource: (name: string, markdown: string) => ({
+  scriptBlockSource: (name: string, markdown: string) => ({
     id: 'wod-blocks',
     label: name,
     items: [
@@ -128,8 +128,8 @@ mock.module('./paletteDataSources', () => ({
 }));
 
 // Mock other dependencies
-mock.module('@/repositories/wod-collections', () => ({
-  getWodCollection: (id: string) => ({
+mock.module('@/repositories/script-collections', () => ({
+  getScriptCollection: (id: string) => ({
     id: 'crossfit-girls',
     name: 'CrossFit Girls',
     categories: ['crossfit'],
@@ -500,7 +500,7 @@ describe('journalEntryFlow', () => {
     it('should auto-select single WOD block', async () => {
       // This test would verify that when a workout has exactly one WOD block,
       // it's auto-selected without showing the block picker
-      // Implementation depends on how pickWodBlock is mocked
+      // Implementation depends on how pickScriptBlock is mocked
       const onCreated = mock();
 
       // Mock a workout with single WOD block
@@ -533,7 +533,7 @@ describe('journalEntryFlow', () => {
     it('should show block picker for multiple WOD blocks', async () => {
       // This test would verify that when a workout has multiple WOD blocks,
       // the block picker is shown
-      // Implementation would require mocking extractWodBlocks to return multiple blocks
+      // Implementation would require mocking extractScriptBlocks to return multiple blocks
       const onCreated = mock();
 
       await journalEntryFlowModule.createJournalEntryFlow({

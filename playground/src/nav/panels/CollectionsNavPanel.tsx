@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 import type { NavPanelProps } from '../navTypes'
 import { useCollectionsQueryState } from '../../hooks/useCollectionsQueryState'
 import { getCategoryGroups } from '../../config/collectionGroups'
-import { getWodCollection } from '@/repositories/wod-collections'
+import { getScriptCollection } from '@/repositories/script-collections'
 import { NON_COLLECTION_CATEGORIES } from '../../pages/shared/pageUtils'
 
 export function CollectionsNavPanel(_props: NavPanelProps) {
@@ -27,9 +27,9 @@ export function CollectionsNavPanel(_props: NavPanelProps) {
   const workoutName = workoutMatch ? decodeURIComponent(workoutMatch[2]) : null
 
   const isListPage = location.pathname === '/collections'
-  const detailCollection = collectionSlug ? getWodCollection(collectionSlug) : null
+  const detailCollection = collectionSlug ? getScriptCollection(collectionSlug) : null
   const workoutCollection = workoutCategory && !NON_COLLECTION_CATEGORIES.has(workoutCategory)
-    ? getWodCollection(workoutCategory)
+    ? getScriptCollection(workoutCategory)
     : null
   const workoutItems = workoutCollection?.items ?? []
 

@@ -1,5 +1,5 @@
 // ── Mock workbenchSyncStore for useUserOverrides ──────────────────────────────
-import { afterEach, describe, expect, it, mock } from 'bun:test';
+import { afterEach, describe, expect, it, mock, vi } from 'bun:test';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { ReviewGrid } from './ReviewGrid';
 import { DebugModeProvider } from '@/contexts/DebugModeContext';
@@ -130,18 +130,9 @@ describe('ReviewGrid smoke', () => {
   });
 
   it('supports search, sort, graph toggle, and row selection in the completed state', () => {
-    const originalConsoleError = console.error;
-    console.error = (...args: unknown[]) => {
-      const [first] = args;
-      if (
-        typeof first === 'string' &&
-        first.includes('The width(-1) and height(-1) of chart should be greater than 0')
-      ) {
-        return;
-      }
-      originalConsoleError(...args);
-    };
-
+    // Recharts' ResponsiveContainer warns on first render before the container
+    // has measurable size. The warning is cosmetic for this smoke test.
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       const { container, onSelectSegment } = renderReviewGrid(fixtureSegments);
 
@@ -198,7 +189,7 @@ describe('ReviewGrid smoke', () => {
       const firstCall = onSelectSegment.mock.calls[0] as unknown as [number, unknown?, unknown?];
       expect(firstCall[0]).toBe(3);
     } finally {
-      console.error = originalConsoleError;
+      consoleWarn.mockRestore();
     }
   });
 });

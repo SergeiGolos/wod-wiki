@@ -26,5 +26,5 @@ export { fragmentSourceToListItem } from './adapters/fragmentSourceAdapter';
 export {
   commandToListItem,
   paletteResultToListItem,
-  wodCommandToListItem,
+  scriptCommandToListItem,
 } from './adapters/commandAdapter';

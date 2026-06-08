@@ -64,7 +64,7 @@ describe('parseDocumentSections', () => {
       const wodSection = sections.find(s => s.type === 'wod');
       expect(wodSection).toBeDefined();
       expect(wodSection!.displayContent).toBeDefined();
-      expect(wodSection!.wodBlock).toBeDefined();
+      expect(wodSection!.scriptBlock).toBeDefined();
     });
 
     it('separates title from wod block', () => {

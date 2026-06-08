@@ -12,14 +12,14 @@
  *  - frontmatter: YAML front matter between `---` delimiters, rendered as table or embed.
  */
 
-import type { WodBlock } from './index';
-export type { WodBlock };
+import type { ScriptBlock } from './index';
+export type { ScriptBlock };
 
 /** Valid WOD dialect identifiers — each loads different strategies */
-export type WodDialect = 'wod' | 'log' | 'plan';
+export type FenceDialect = 'wod' | 'log' | 'plan';
 
 /** Ordered list of recognised dialect fence names */
-export const VALID_WOD_DIALECTS: WodDialect[] = ['wod', 'log', 'plan'];
+export const VALID_FENCE_DIALECTS: FenceDialect[] = ['wod', 'log', 'plan'];
 
 /** Section types the editor can parse and render */
 export type SectionType = 'title' | 'markdown' | 'wod' | 'frontmatter' | 'embed';
@@ -56,10 +56,10 @@ export interface Section {
   level?: number;
 
   /** WOD dialect — only set when type === 'wod' */
-  dialect?: WodDialect;
+  dialect?: FenceDialect;
 
-  /** Associated WodBlock (only when type === 'wod') */
-  wodBlock?: WodBlock;
+  /** Associated ScriptBlock (only when type === 'wod') */
+  scriptBlock?: ScriptBlock;
 
   /** Front matter key-value pairs (only when type === 'frontmatter') */
   properties?: Record<string, string>;

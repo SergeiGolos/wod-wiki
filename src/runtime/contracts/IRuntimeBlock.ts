@@ -16,6 +16,21 @@ import type { BlockLifecycleOptions as BlockLifecycleOptionsPrimitive } from './
 export type BlockLifecycleOptions = BlockLifecycleOptionsPrimitive;
 
 /**
+ * The decision reached by an inspectNext() call.
+ *
+ * `complete` is true if the behavior chain marked the block complete.
+ * `reason` is the human-readable reason (mirrors CompletionReason).
+ * `actions` is the action list that a follow-up next() call would dispatch.
+ * The actions are exactly the ones the auto-pop in next() would queue.
+ */
+export interface CompletionDecision {
+    readonly complete: boolean;
+    readonly reason?: string;
+    readonly actions: readonly import('./IRuntimeAction').IRuntimeAction[];
+}
+
+
+/**
  * Represents a runtime block that can be executed within the WOD runtime stack.
  * 
  * ## Lifecycle Management
@@ -104,6 +119,27 @@ export interface IRuntimeBlock extends IBlockRef {
      * @returns Array of runtime actions representing next execution steps (e.g., PushBlock, MarkComplete)
      */
     next(runtime: IRuntimeActionable, options?: BlockLifecycleOptions): IRuntimeAction[];
+
+    /**
+     * Inspect what the next() call would do, WITHOUT dispatching.
+     *
+     * PURE READ. Does not mutate _isComplete, does not register any
+     * side effects on the runtime, does not emit any events. Runs the
+     * behavior onNext chain against a temporary BehaviorContext and
+     * returns the decision the chain reached.
+     *
+     * Use this to ask "what would happen if I called next() right now?"
+     * without paying for the side effects. The cast sender can pre-emptively
+     * dim the next block; analytics can explain "why did this block end?"
+     * from the decision trail; tests can assert on the decision without
+     * touching state.
+     *
+     * @param runtime The runtime context (typed as the IRuntimeActionable primitive
+     *                to break the cycle through IScriptRuntime)
+     * @param options Lifecycle timing data (completion timestamp if triggered by child pop)
+     * @returns The completion decision: { complete, reason?, actions }
+     */
+    inspectNext(runtime: IRuntimeActionable, options?: BlockLifecycleOptions): CompletionDecision;
 
     /**
      * Called when this block is popped from the runtime stack.

@@ -16,20 +16,20 @@ import 'fake-indexeddb/auto';
 // error when these modules are loaded transitively via component imports.
 // Individual tests can override these stubs with their own vi.mock() calls.
 
-mock.module('@/repositories/wod-feeds', () => ({
-  getWodFeeds: () => [],
-  getWodFeed: (_slug: string) => null,
+mock.module('@/repositories/script-feeds', () => ({
+  getScriptFeeds: () => [],
+  getScriptFeed: (_slug: string) => null,
   getFeedDateKeys: (_feed: any) => [],
 }));
 
-mock.module('@/repositories/wod-collections', () => ({
-  getWodCollections: () => [],
-  getWodCollection: (_slug: string) => null,
+mock.module('@/repositories/script-collections', () => ({
+  getScriptCollections: () => [],
+  getScriptCollection: (_slug: string) => null,
 }));
 
-mock.module('@/repositories/wod-loader', () => ({
-  getWodContent: (_id: string) => undefined,
-  getAllWodIds: () => [],
+mock.module('@/repositories/script-loader', () => ({
+  getScriptContent: (_id: string) => undefined,
+  getAllScriptIds: () => [],
 }));
 
 mock.module('@/repositories/page-examples', () => ({

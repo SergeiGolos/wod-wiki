@@ -13,7 +13,7 @@ reality, and insight are all expressed as Metrics, differentiated by **Origin** 
 _Avoid_: fragment (legacy), measurement, datapoint.
 
 **Statement**:
-One structural node of a parsed workout (`CodeStatement`). A `wod` block parses into a
+One structural node of a parsed workout (`CodeStatement`). A `wod` (or `whiteboard` aliased) block parses into a
 tree of Statements; each owns a metric collection.
 _Avoid_: node, line, fragment.
 

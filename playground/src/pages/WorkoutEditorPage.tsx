@@ -2,7 +2,7 @@
  * WorkoutEditorPage — /collections/:collection/:workout
  *
  * Wrapper that loads workout content via IndexedDB (or falls back to the
- * bundled MD file). Keeps WodBlock IDs stable across page loads so results
+ * bundled MD file). Keeps ScriptBlock IDs stable across page loads so results
  * stay linked.
  */
 
@@ -14,7 +14,7 @@ import { EditorView } from '@codemirror/view'
 import { v4 as uuidv4 } from 'uuid'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { JournalPageShell } from '@/panels/page-shells'
-import type { WodBlock } from '@/components/Editor/types'
+import type { ScriptBlock } from '@/components/Editor/types'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { PlaygroundDBService } from '../services/playgroundDB'
@@ -23,7 +23,7 @@ import { runPath } from '../lib/routes'
 import { appendWorkoutToJournal } from '../services/journalWorkout'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
-import { useWodBlockCommands } from '../hooks/useWodBlockCommands'
+import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground'
 import {
   INLINE_RUNTIME_CATEGORIES,
@@ -63,10 +63,10 @@ export function WorkoutEditorPage({
     }
   }, [category, isCollection, name])
 
-  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<WodBlock | null>(null)
+  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
 
   const handleStartWorkout = useCallback(
-    async (block: WodBlock) => {
+    async (block: ScriptBlock) => {
       const runtimeId = uuidv4()
       // For syntax/inline categories keep the original popup behaviour.
       if (usePopup) {
@@ -96,7 +96,7 @@ export function WorkoutEditorPage({
   )
 
   const handleScheduleBlock = useCallback(
-    async (block: WodBlock, date: Date) => {
+    async (block: ScriptBlock, date: Date) => {
       const dateLabel = date.toLocaleDateString(undefined, {
         weekday: 'long',
         month: 'long',
@@ -136,7 +136,7 @@ export function WorkoutEditorPage({
     [name, category, sourceNote, navigate],
   )
 
-  const commands = useWodBlockCommands('collection-readonly', {
+  const commands = useScriptBlockCommands('collection-readonly', {
     onPlay: handleStartWorkout,
     onShare: shareBlock,
     onAddToToday: (block) => handleScheduleBlock(block, new Date()),
@@ -144,8 +144,8 @@ export function WorkoutEditorPage({
     onOpenInPlayground: (block) => openBlockInPlayground(block, navigate),
   })
 
-  const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
-  const index = useNotePageNav({ content, wodBlocks, onStartWorkout: handleStartWorkout })
+  const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
+  const index = useNotePageNav({ content, scriptBlocks, onStartWorkout: handleStartWorkout })
 
   if (loading) {
     return (
@@ -174,7 +174,7 @@ export function WorkoutEditorPage({
             onViewCreated={onViewCreated}
             theme={theme}
             showLineNumbers={false}
-            onBlocksChange={setWodBlocks}
+            onBlocksChange={setScriptBlocks}
           />
         }
       />

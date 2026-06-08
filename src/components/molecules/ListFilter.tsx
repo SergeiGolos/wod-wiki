@@ -4,7 +4,7 @@ import { CalendarWidget } from '@/components/organisms/history/CalendarWidget';
 import { Button } from '@/components/atoms/primitives/button';
 import { BookOpen, Dumbbell, Tag, X, Plus, FolderOpen } from 'lucide-react';
 import type { Notebook } from '@/types/notebook';
-import type { WodCollection } from '@/repositories/wod-collections';
+import type { ScriptCollection } from '@/repositories/script-collections';
 
 export interface ListFilterProps {
     /** Current calendar date */
@@ -26,7 +26,7 @@ export interface ListFilterProps {
     onCreateNotebook?: () => void;
 
     /** WOD Collections */
-    collections?: WodCollection[];
+    collections?: ScriptCollection[];
     activeCollectionId?: string | null;
     onCollectionSelect?: (id: string | null) => void;
 

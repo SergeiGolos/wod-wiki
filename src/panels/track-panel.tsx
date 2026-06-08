@@ -1,6 +1,6 @@
 import React from 'react';
 import { TimerIndexPanel } from '@/components/organisms/layout/TimerIndexPanel';
-import { TimerDisplay } from '@/panels/timer-panel';
+import { TimerDisplay } from '@/panels/wallclock-panel';
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { VisualStatePanel } from '@/panels/visual-state-panel';
 import { useParams } from 'react-router-dom';
@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { WorkoutPreviewPanel } from '@/components/organisms/workbench/WorkoutPreviewPanel';
 import { TrackViewShell } from '@/components/organisms/workout/TrackViewShell';
 import type { SectionType } from '@/components/Editor/types/section';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 import { useUserOverrides } from '@/components/organisms/review/useUserOverrides';
 import { useCollectionMetrics, type ChoiceCollectionItem, type ValueCollectionItem, resolveChoiceSelection } from '@/hooks/useCollectionMetrics';
 import { CollectionWizard } from '@/components/organisms/review/CollectionWizard';
@@ -36,7 +36,7 @@ export interface TrackPanelProps {
   /** Raw markdown content for the preview panel */
   content?: string;
   /** Called when user clicks Run on a WOD block in the preview */
-  onStartWorkout?: (block: WodBlock) => void;
+  onStartWorkout?: (block: ScriptBlock) => void;
   /**
    * Optional section-type filter for the preview panel.
    * Defaults to `['wod']` to show only runnable blocks.

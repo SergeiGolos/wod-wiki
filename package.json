@@ -1,7 +1,7 @@
 {
-  "name": "@bitcobblers/wod-wiki-library",
-  "version": "0.5.2",
-  "description": "A React component library for parsing, displaying, and executing workout definitions using a specialized syntax. Features include a Monaco Editor integration for editing workout scripts, a runtime engine for execution, and components styled with Tailwind CSS.",
+  "name": "@bitcobblers/whiteboard-lang",
+  "version": "0.6.0",
+  "description": "A React component library for parsing, displaying, and executing workout definitions using the Whiteboard Language. Features include a Monaco/CodeMirror editor integration for the language, a Just-In-Time compiler, a clock-driven execution runtime, and components styled with Tailwind CSS.",
   "homepage": "https://github.com/SergeiGolos/wod-wiki#readme",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

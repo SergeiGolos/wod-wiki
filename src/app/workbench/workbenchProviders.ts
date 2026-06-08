@@ -1,6 +1,6 @@
 import { StaticContentProvider } from '@/hooks/useBrowserServices';
 import { createNotePersistence, type INotePersistence } from '@/services/persistence';
-import { getWodContent } from '@/repositories/wod-loader';
+import { getScriptContent } from '@/repositories/script-loader';
 import type { ContentProviderMode, IContentProvider } from '@/types/content-provider';
 
 export interface ResolvedWorkbenchProvider {
@@ -22,5 +22,5 @@ export function resolveWorkbenchProvider(
 }
 
 export function loadStaticWorkbenchContent(routeId: string): string | null {
-  return getWodContent(routeId) ?? null;
+  return getScriptContent(routeId) ?? null;
 }

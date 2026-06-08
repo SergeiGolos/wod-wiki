@@ -91,8 +91,8 @@ function statementsToCSV(entry: HistoryEntry): string {
     // Extract statements from sections if they exist
     if (entry.sections) {
         for (const section of entry.sections) {
-            if (section.wodBlock?.statements) {
-                for (const stmt of section.wodBlock.statements) {
+            if (section.scriptBlock?.statements) {
+                for (const stmt of section.scriptBlock.statements) {
                     if (stmt.metrics && stmt.metrics.length > 0) {
                         for (const metric of stmt.metrics) {
                             rows.push([

@@ -2,9 +2,9 @@ import { describe, expect, it } from 'bun:test';
 import { MetricContainer } from '@/core/models/MetricContainer';
 import { MetricType } from '@/core/models/Metric';
 import { buildWorkoutResults, countSegmentOutputs, prepareRuntimeBlock } from './runtimeTimerModel';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 
-function makeBlock(content: string): WodBlock {
+function makeBlock(content: string): ScriptBlock {
   return {
     id: 'block-1',
     startLine: 0,

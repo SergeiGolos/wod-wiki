@@ -160,6 +160,7 @@ export function createIntegrationContext(
     runtime: MockRuntime,
     block: MockBlock
 ): IBehaviorContext {
+    const declared: Set<string> = new Set();
     return {
         block: block as unknown as IRuntimeBlock,
         clock: runtime.clock,
@@ -182,6 +183,14 @@ export function createIntegrationContext(
 
         emitOutput(type: string, metrics: unknown[], metadata: unknown) {
             runtime.outputs.push({ type, metrics, metadata });
+        },
+
+        declareCapability(cap: string) {
+            declared.add(cap);
+        },
+
+        hasCapability(cap: string) {
+            return declared.has(cap);
         },
 
         markComplete(reason: string) {

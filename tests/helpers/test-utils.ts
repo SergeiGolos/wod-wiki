@@ -74,6 +74,7 @@ export function createMockRuntime(): IScriptRuntime {
     },
     clock: {
       now: new Date(),
+      currentDate: new Date(),
       elapsed: 0,
       isRunning: false,
       spans: [],

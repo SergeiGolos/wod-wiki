@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WOD Wiki is a React component library for parsing, displaying, and executing workout definitions using a specialized syntax. It features a Monaco Editor integration, JIT compiler for workout scripts, and components styled with Tailwind CSS.
+WOD Wiki is a React component library for parsing, displaying, and executing workout definitions using the **Whiteboard Language** (fence tag `wod`; `whiteboard` accepted as alias). It features a Monaco Editor integration, JIT compiler for workout scripts, and components styled with Tailwind CSS.
 
 **Tech Stack**: TypeScript, React, Storybook, Bun Test, Monaco Editor, Tailwind CSS, Chevrotain parser
 **Package Manager**: bun (NOT npm/yarn)

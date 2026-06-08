@@ -112,7 +112,7 @@ registry supplies physiological coefficients. Full detail in doc 08.
 - **Editor** — `src/components/Editor/**` integrates CodeMirror with the grammar for
   live syntax highlighting and suggestions.
 - **Playground app** — `playground/src/**` is the full reference application
-  (routing, journal, feeds, collections, efforts, tracker, review). Screens are
+  (routing, journal, feeds, collections, efforts, wallclock, review). Screens are
   catalogued in doc 07.
 
 ## 5.7 Persistence & infrastructure — `src/services`

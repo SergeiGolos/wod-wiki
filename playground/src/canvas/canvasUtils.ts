@@ -1,4 +1,6 @@
 import { stripFrontmatter } from '@/utils/frontmatter'
+import type { ScriptBlock } from '@/components/Editor/types'
+import { MetricType } from '@/core/models/Metric'
 
 export const STICKY_NAV_HEIGHT = 104
 export const MOBILE_STICKY_TOP = 65
@@ -50,4 +52,11 @@ export function resolveSource(dslPath: string, wodFiles: Record<string, string>)
     key = '../../markdown/' + dslPath
   }
   return key in wodFiles ? stripFrontmatter(wodFiles[key]) : `# Source not found\n\nPath: \`${dslPath}\`\nResolved: \`${key}\``
+}
+/**
+ * True when a parsed ScriptBlock contains at least one statement with a Duration
+ * metric — i.e. it drives a countdown / wall-clock timer when run.
+ */
+export function blockHasTimer(block: ScriptBlock): boolean {
+  return (block.statements ?? []).some((s) => s.hasMetric(MetricType.Duration))
 }

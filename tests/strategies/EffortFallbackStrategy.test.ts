@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
 import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
-import { PopOnNextBehavior, SegmentOutputBehavior } from '@/runtime/behaviors';
+import { CountupTimerBehavior, ExitBehavior } from '@/runtime/behaviors';
 
 describe('EffortFallbackStrategy', () => {
   it('should compile "Run" to an Effort block', () => {
@@ -15,8 +15,8 @@ describe('EffortFallbackStrategy', () => {
 
     expect(block).toBeDefined();
     expect(block.blockType).toBe('effort');
-    // Now uses aspect-based behaviors
-    expect(block.getBehavior(PopOnNextBehavior)).toBeDefined();
-    expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
+    // Uses aspect-based behaviors
+    expect(block.getBehavior(CountupTimerBehavior)).toBeDefined();
+    expect(block.getBehavior(ExitBehavior)).toBeDefined();
   });
 });

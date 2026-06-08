@@ -24,11 +24,11 @@ import { parseDocumentStructure } from '../Editor/utils/documentStructure';
 import { getAnalyticsFromRuntime, getAnalyticsFromLogs } from '@/hooks/useWorkbenchServices';
 import { hashCode } from '../../lib/utils';
 import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
-import { WodBlock } from '../Editor/types';
+import { ScriptBlock } from '../Editor/types';
 import { useProjectionSync } from '@/contexts/ProjectionSyncContext';
 
 // Helper to generate a unique key for a block based on its content/statements
-const getBlockKey = (block: WodBlock | null): string => {
+const getBlockKey = (block: ScriptBlock | null): string => {
   if (!block) return 'null';
   return `${block.id}-v${block.version || 0}-${block.statements?.length || 0}-${hashCode(JSON.stringify(block.statements || []))}`;
 };

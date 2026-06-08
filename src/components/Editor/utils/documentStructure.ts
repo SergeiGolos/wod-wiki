@@ -1,4 +1,4 @@
-import { WodBlock } from '../types';
+import { ScriptBlock } from '../types';
 
 export type DocumentItemType = 'wod' | 'header' | 'paragraph';
 
@@ -9,14 +9,14 @@ export interface DocumentItem {
   startLine: number;
   endLine: number;
   level?: number; // For headers
-  wodBlock?: WodBlock; // If type is 'wod'
+  scriptBlock?: ScriptBlock; // If type is 'wod'
 }
 
 /**
  * Parses the document content and combines it with detected WOD blocks
  * to create a linear structure of the document.
  */
-export function parseDocumentStructure(content: string, wodBlocks: WodBlock[]): DocumentItem[] {
+export function parseDocumentStructure(content: string, scriptBlocks: ScriptBlock[]): DocumentItem[] {
   const lines = content.split('\n');
   const items: DocumentItem[] = [];
   
@@ -24,18 +24,18 @@ export function parseDocumentStructure(content: string, wodBlocks: WodBlock[]): 
   
   while (currentLine < lines.length) {
     // Check if current line is start of a WOD block
-    const wodBlock = wodBlocks.find(b => b.startLine === currentLine);
+    const scriptBlock = scriptBlocks.find(b => b.startLine === currentLine);
     
-    if (wodBlock) {
+    if (scriptBlock) {
       items.push({
-        id: wodBlock.id,
+        id: scriptBlock.id,
         type: 'wod',
-        content: wodBlock.content,
-        startLine: wodBlock.startLine,
-        endLine: wodBlock.endLine,
-        wodBlock: wodBlock
+        content: scriptBlock.content,
+        startLine: scriptBlock.startLine,
+        endLine: scriptBlock.endLine,
+        scriptBlock: scriptBlock
       });
-      currentLine = wodBlock.endLine + 1;
+      currentLine = scriptBlock.endLine + 1;
       continue;
     }
     
@@ -69,7 +69,7 @@ export function parseDocumentStructure(content: string, wodBlocks: WodBlock[]): 
     let nextLine = currentLine + 1;
     while (nextLine < lines.length) {
       // Stop if next line is start of WOD block
-      if (wodBlocks.some(b => b.startLine === nextLine)) break;
+      if (scriptBlocks.some(b => b.startLine === nextLine)) break;
       
       const nextLineContent = lines[nextLine];
       const nextTrimmed = nextLineContent.trim();

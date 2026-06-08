@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, vi } from 'bun:test';
 import { ExecutionContext } from '../ExecutionContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
@@ -10,6 +10,7 @@ function createMockRuntime(): IScriptRuntime {
     return {
         clock: {
             now: new Date('2024-01-01T12:00:00Z'),
+            currentDate: new Date('2024-01-01T12:00:00Z'),
             start: () => {},
             stop: () => {},
             isRunning: true
@@ -193,17 +194,24 @@ describe('ExecutionContext LIFO Stack Behavior', () => {
     });
 
     it('should enforce max iteration limit', () => {
-        const mockRuntime = createMockRuntime();
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const mockRuntime = createMockRuntime();
 
-        const infiniteAction: IRuntimeAction = {
-            type: 'infinite',
-            do: (runtime: IScriptRuntime) => {
-                runtime.do(infiniteAction);
-            }
-        };
+            const infiniteAction: IRuntimeAction = {
+                type: 'infinite',
+                do: (runtime: IScriptRuntime) => {
+                    runtime.do(infiniteAction);
+                }
+            };
 
-        const ctx = new ExecutionContext(mockRuntime, 5);
-        expect(() => ctx.execute(infiniteAction)).toThrow(/Max iterations/);
+            const ctx = new ExecutionContext(mockRuntime, 5);
+            expect(() => ctx.execute(infiniteAction)).toThrow(/Max iterations/);
+            expect(consoleError).toHaveBeenCalledTimes(1);
+            expect(String(consoleError.mock.calls[0]?.[0])).toMatch(/\[ExecutionContext\] Max iterations reached \(5\)/);
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 
     it('should process deeply nested chains correctly', () => {
@@ -329,15 +337,22 @@ describe('ExecutionContext: Actions returning child actions', () => {
     });
 
     it('should detect infinite recursion from returned actions', () => {
-        const mockRuntime = createMockRuntime();
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const mockRuntime = createMockRuntime();
 
-        const recursiveAction: IRuntimeAction = {
-            type: 'recursive',
-            do: () => [recursiveAction]
-        };
+            const recursiveAction: IRuntimeAction = {
+                type: 'recursive',
+                do: () => [recursiveAction]
+            };
 
-        const ctx = new ExecutionContext(mockRuntime, 5);
-        expect(() => ctx.execute(recursiveAction)).toThrow(/Max iterations/);
+            const ctx = new ExecutionContext(mockRuntime, 5);
+            expect(() => ctx.execute(recursiveAction)).toThrow(/Max iterations/);
+            expect(consoleError).toHaveBeenCalledTimes(1);
+            expect(String(consoleError.mock.calls[0]?.[0])).toMatch(/\[ExecutionContext\] Max iterations reached \(5\)/);
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 
     it('should mix returned actions with runtime.do() calls correctly', () => {
@@ -475,6 +490,7 @@ describe('ExecutionContext: handle() method', () => {
         const mockRuntime: IScriptRuntime = {
             clock: {
                 now: new Date('2024-01-01T12:00:00Z'),
+                currentDate: new Date('2024-01-01T12:00:00Z'),
                 start: () => {},
                 stop: () => {},
                 isRunning: true
@@ -535,6 +551,7 @@ describe('ExecutionContext: handle() method', () => {
         const mockRuntime: IScriptRuntime = {
             clock: {
                 now: new Date('2024-01-01T12:00:00Z'),
+                currentDate: new Date('2024-01-01T12:00:00Z'),
                 start: () => {},
                 stop: () => {},
                 isRunning: true

@@ -3,11 +3,14 @@ import { describe, expect, it, mock } from 'bun:test';
 import { act, renderHook } from '@testing-library/react';
 
 import { RuntimeLifecycleContext } from '@/contexts/RuntimeLifecycleContext';
-import type { WorkoutResults, WodBlock } from '@/components/Editor/types';
+import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
 import { MetricContainer } from '@/core/models/MetricContainer';
 import { MetricType } from '@/core/models/Metric';
+// Preserve all original exports while overriding audioService for this test.
+const originalUseBrowserServices = await import('@/hooks/useBrowserServices');
 
 mock.module('@/hooks/useBrowserServices', () => ({
+    ...originalUseBrowserServices,
     audioService: {
         playSound: mock(() => Promise.resolve())
     }
@@ -25,7 +28,7 @@ describe('useWorkbenchRuntime', () => {
         };
 
         const completeWorkout = mock((_results: WorkoutResults) => { });
-        const startWorkout = mock((_block: WodBlock) => { });
+        const startWorkout = mock((_block: ScriptBlock) => { });
         const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
             <RuntimeLifecycleContext.Provider value={lifecycle}>
                 {children}
@@ -39,7 +42,7 @@ describe('useWorkbenchRuntime', () => {
                 wrapper,
                 initialProps: {
                     viewMode: 'plan',
-                    selectedBlock: null as WodBlock | null
+                    selectedBlock: null as ScriptBlock | null
                 }
             }
         );
@@ -98,14 +101,14 @@ describe('useWorkbenchRuntime', () => {
         };
 
         const completeWorkout = mock((_results: WorkoutResults) => { });
-        const startWorkout = mock((_block: WodBlock) => { });
+        const startWorkout = mock((_block: ScriptBlock) => { });
         const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
             <RuntimeLifecycleContext.Provider value={lifecycle}>
                 {children}
             </RuntimeLifecycleContext.Provider>
         );
 
-        const selectedBlock: WodBlock = {
+        const selectedBlock: ScriptBlock = {
             id: 'test-block',
             dialect: 'wod',
             startLine: 0,

@@ -48,7 +48,7 @@ docs is a zoom-in on one of these stages.
 ## Stage 1 — PLAN: Markdown becomes metrics
 
 The author writes ordinary Markdown. The only special element is a fenced code block
-tagged `wod`. The parser (a [lezer](https://lezer.codemirror.net/) grammar in
+tagged `wod` (or the accepted alias `whiteboard`). The parser (a [lezer](https://lezer.codemirror.net/) grammar in
 `src/grammar/whiteboardscript.grammar`) turns each line into a **CodeStatement** with
 a set of **Metrics** describing the *plan*: how many rounds, what effort, how long,
 how much load, how far.

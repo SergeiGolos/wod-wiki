@@ -14,20 +14,22 @@ import {
     CountupTimerBehavior,
     CountdownTimerBehavior, CountdownMode,
     SpanTrackingBehavior,
-    ChildSelectionBehavior,
     ChildSelectionConfig,
     ChildSelectionLoopCondition
 } from "../behaviors";
+import { ConcreteBehaviorFactory } from "./ConcreteBehaviorFactory";
+import type { IBehaviorFactory } from "./contracts/IBehaviorFactory";
 
-/** Round configuration stored by asRepeater() and forwarded by asContainer() */
-export interface RepeaterConfig {
-    totalRounds?: number;
-    startRound?: number;
-    addCompletion?: boolean;
-}
-
-/** @deprecated Use RepeaterConfig. Kept for external call-site backward compatibility */
-export type ReEntryConfig = RepeaterConfig;
+/**
+ * Stable behavior names used by the default {@link ConcreteBehaviorFactory}.
+ * Exposed here so tests and downstream code can reference them without
+ * importing the concrete factory (which would defeat the seam).
+ */
+export const BEHAVIOR_NAMES = {
+    CountdownTimer: 'countdown-timer',
+    CountupTimer: 'countup-timer',
+    ChildSelection: 'child-selection',
+} as const;
 
 /** Legacy timer config shape — kept for call-site backward compatibility */
 export interface TimerConfig {
@@ -39,6 +41,13 @@ export interface TimerConfig {
 
 export interface TimerCompletionConfig {
     completesBlock?: boolean;
+}
+
+/** Round configuration stored by asRepeater() and forwarded by asContainer() */
+export interface RepeaterConfig {
+    totalRounds?: number;
+    startRound?: number;
+    addCompletion?: boolean;
 }
 
 /** @internal re-exported for backward compat */ 
@@ -54,12 +63,32 @@ export class BlockBuilder {
     private sourceIds: number[] = [];
     /** Pending round config stored by asRepeater(), consumed by asContainer() */
     private pendingRoundConfig: RepeaterConfig | undefined;
+    private _behaviorFactory: IBehaviorFactory;
 
-    constructor(private runtime: IScriptRuntime) { }
+    constructor(private runtime: IScriptRuntime, behaviorFactory?: IBehaviorFactory) {
+        this._behaviorFactory = behaviorFactory ?? new ConcreteBehaviorFactory();
+    }
+
+    /**
+     * Replace the behavior factory.  Mostly useful for tests that
+     * want to record construction calls, and for plugins that want
+     * to swap in a custom factory (e.g. a {@link MockBehaviorFactory}).
+     */
+    setBehaviorFactory(factory: IBehaviorFactory): this {
+        this._behaviorFactory = factory;
+        return this;
+    }
+
+    /**
+     * Returns the active behavior factory.  Mostly for diagnostic /
+     * introspection.
+     */
+    getBehaviorFactory(): IBehaviorFactory {
+        return this._behaviorFactory;
+    }
 
     addBehavior(behavior: IRuntimeBehavior): BlockBuilder {
         // Key by constructor to allow replacement by type
-        // However, we might want multiple behaviors of the same type?
         // For now, let's assume one behavior per type is the rule for things like Timers/Loops.
         // But ActionLayer, Sound, etc might be additive?
         // The user prompt implies "union".
@@ -167,8 +196,8 @@ export class BlockBuilder {
      * @param config Timer configuration
      * @returns This builder for chaining
      */
-    asTimer(config: TimerConfig & { 
-        addCompletion?: boolean; 
+    asTimer(config: TimerConfig & {
+        addCompletion?: boolean;
         completionConfig?: TimerCompletionConfig;
         injectRest?: boolean;
         required?: boolean;
@@ -177,27 +206,41 @@ export class BlockBuilder {
             const mode: CountdownMode = config.completionConfig?.completesBlock === false
                 ? 'reset-interval'
                 : 'complete-block';
-            
-            this.addBehavior(new CountdownTimerBehavior({
-                durationMs: config.durationMs,
-                label: config.label,
-                role: config.role,
-                mode,
-                required: config.required,
-                restBlockFactory: config.injectRest ? (durationMs, label) => {
-                    const restBlock = new RestBlock(this.runtime, { durationMs, label });
-                    return [new PushBlockAction(restBlock)];
-                } : undefined
-            }));
+
+            // Build through the behavior factory rather than `new` directly.
+            // The factory owns the only references to concrete behavior
+            // constructors in this file; downstream test code (or plugins)
+            // can swap in a different factory via `setBehaviorFactory`.
+            // The `restBlockFactory` closure is intentionally a builder
+            // concern (it talks to runtime/push-action plumbing that is
+            // not a behavior concern), so we still close over it here.
+            const countdownBehavior = this._behaviorFactory.createBehavior(
+                BEHAVIOR_NAMES.CountdownTimer,
+                {
+                    durationMs: config.durationMs,
+                    label: config.label,
+                    role: config.role,
+                    mode,
+                    required: config.required,
+                    restBlockFactory: config.injectRest ? (durationMs: number, label?: string) => {
+                        const restBlock = new RestBlock(this.runtime, { durationMs, label });
+                        return [new PushBlockAction(restBlock)];
+                    } : undefined
+                }
+            );
+            this.addBehavior(countdownBehavior);
         } else {
-            this.addBehavior(new CountupTimerBehavior({
-                label: config.label,
-                role: config.role
-            }));
+            const countupBehavior = this._behaviorFactory.createBehavior(
+                BEHAVIOR_NAMES.CountupTimer,
+                {
+                    label: config.label,
+                    role: config.role
+                }
+            );
+            this.addBehavior(countupBehavior);
         }
         return this;
     }
-
     /**
      * Returns true if round config was stored via asRepeater().
      * Use this guard in strategies that must skip their iteration logic when rounds are already set.
@@ -252,17 +295,21 @@ export class BlockBuilder {
         }
     ): BlockBuilder {
         const roundCfg = this.pendingRoundConfig;
-        this.addBehavior(new ChildSelectionBehavior({
-            childGroups: config.childGroups,
-            loop: config.addLoop
-                ? { condition: config.loopConfig?.condition ?? 'timer-active' }
-                : false,
-            injectRest: config.injectRest,
-            skipOnMount: config.skipOnMount,
-            // Forward round config from asRepeater() (absorbed from ReEntryBehavior)
-            startRound: roundCfg?.startRound,
-            totalRounds: roundCfg?.totalRounds,
-        }));
+        const childSelectionBehavior = this._behaviorFactory.createBehavior(
+            BEHAVIOR_NAMES.ChildSelection,
+            {
+                childGroups: config.childGroups,
+                loop: config.addLoop
+                    ? { condition: config.loopConfig?.condition ?? 'timer-active' }
+                    : false,
+                injectRest: config.injectRest,
+                skipOnMount: config.skipOnMount,
+                // Forward round config from asRepeater() (absorbed from ReEntryBehavior)
+                startRound: roundCfg?.startRound,
+                totalRounds: roundCfg?.totalRounds,
+            }
+        );
+        this.addBehavior(childSelectionBehavior);
 
         return this;
     }

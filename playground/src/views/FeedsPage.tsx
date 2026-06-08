@@ -12,7 +12,7 @@
 
 import { useMemo, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getWodFeeds } from '@/repositories/wod-feeds';
+import { getScriptFeeds } from '@/repositories/script-feeds';
 import { playgroundDB } from '../services/playgroundDB';
 import { localDateKey } from './queriable-list/JournalDateScroll';
 import type { JournalEntrySummary } from './queriable-list/JournalDateScroll';
@@ -33,7 +33,7 @@ export function FeedsPage() {
   const [journalEntries, setJournalEntries] = useState<Map<string, JournalEntrySummary>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
 
-  const allFeeds = useMemo(() => getWodFeeds(), []);
+  const allFeeds = useMemo(() => getScriptFeeds(), []);
 
   useEffect(() => {
     let cancelled = false;

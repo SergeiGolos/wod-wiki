@@ -10,13 +10,13 @@
  */
 
 import type { NavigateFunction } from 'react-router-dom'
-import type { WodBlock } from '@/components/Editor/types'
+import type { ScriptBlock } from '@/components/Editor/types'
 import { encodeZip } from './encodeZip'
 import { buildPlaygroundLoadUrl } from '../lib/routes'
 import { toast } from '@/hooks/use-toast'
 
 /** Build the /load?zip= URL for a WOD block. */
-async function buildZipUrl(block: WodBlock): Promise<string> {
+async function buildZipUrl(block: ScriptBlock): Promise<string> {
   const dialect = block.dialect || 'wod'
   const markdown = `\`\`\`${dialect}\n${block.content.trimEnd()}\n\`\`\`\n`
   const encoded = await encodeZip(markdown)
@@ -25,10 +25,10 @@ async function buildZipUrl(block: WodBlock): Promise<string> {
 
 /**
  * Navigate directly to a new playground page pre-loaded with the WOD block's
- * content. Uses the same /load?zip= mechanism as WodPlaygroundButton.
+ * content. Uses the same /load?zip= mechanism as WhiteboardPlaygroundButton.
  */
 export async function openBlockInPlayground(
-  block: WodBlock,
+  block: ScriptBlock,
   navigate: NavigateFunction,
 ): Promise<void> {
   const url = await buildZipUrl(block)
@@ -42,7 +42,7 @@ export async function openBlockInPlayground(
  * toast confirmation. The recipient can paste this URL into any browser to
  * open the workout in their own playground.
  */
-export function shareBlock(block: WodBlock): void {
+export function shareBlock(block: ScriptBlock): void {
   buildZipUrl(block).then(url => {
     navigator.clipboard.writeText(url).then(() => {
       toast({

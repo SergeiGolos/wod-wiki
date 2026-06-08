@@ -12,13 +12,14 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Play } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import type { EditorView } from '@codemirror/view'
-import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
+import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
 import { ReviewGrid } from '@/components/organisms/review/ReviewGrid'
 import { useDebugMode } from '@/contexts/DebugModeContext'
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePanel'
 import { CanvasEditorPanel } from '../components/organisms/canvas/CanvasEditorPanel'
@@ -26,6 +27,7 @@ import { SplitCanvasTemplate } from '../templates/SplitCanvasTemplate'
 import {
   getCanvasNoteId,
   resolveSource,
+  blockHasTimer,
   STICKY_NAV_HEIGHT,
   INITIAL_SOURCE_KEY,
 } from './canvasUtils'
@@ -33,7 +35,7 @@ import { getSectionTheme, getSectionThemeStyles } from './canvasSectionUtils'
 import { pipelineStepToNavAction, executeNavAction } from '../nav/navTypes'
 import type { NavActionDeps } from '../nav/navTypes'
 import type { ParsedCanvasPage, CanvasSection } from './parseCanvasMarkdown'
-import type { WodBlock } from '@/components/Editor/types'
+import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { notePersistence } from '@/services/persistence'
 
@@ -70,6 +72,7 @@ export function MarkdownCanvasPage({
 }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
   const { isDebugMode } = useDebugMode()
+  const isMobile = useIsMobile()
   const { sections, route } = page
   const canvasNoteId = useMemo(() => getCanvasNoteId(route), [route])
 
@@ -116,7 +119,7 @@ export function MarkdownCanvasPage({
   wodFilesRef.current = wodFiles
 
   // Runtime hook
-  const getBlock = useCallback(() => wodBlocksRef.current[0] ?? null, [])
+  const getBlock = useCallback(() => scriptBlocksRef.current[0] ?? null, [])
   const runtime = useCanvasRuntime({ canvasNoteId, navigate, getBlock })
 
   // Persisted results loading
@@ -193,8 +196,8 @@ export function MarkdownCanvasPage({
     }
   }, [contentOverride, swapSource])
 
-  // WodBlocks ref
-  const wodBlocksRef = useRef<WodBlock[]>([])
+  // ScriptBlocks ref
+  const scriptBlocksRef = useRef<ScriptBlock[]>([])
 
   // Activate section
   const activateSection = useCallback((section: CanvasSection) => {
@@ -316,29 +319,40 @@ export function MarkdownCanvasPage({
   useEffect(() => {
     onPanelActionsReadyRef.current?.({
       run: () => {
-        const block = wodBlocksRef.current[0] ?? null
-        if (block) runtime.launchViewRuntime(block)
+        const block = scriptBlocksRef.current[0] ?? null
+        if (!block) return
+        if (isMobile && blockHasTimer(block)) {
+          runtime.setFullscreenBlock(block)
+        } else {
+          runtime.launchViewRuntime(block)
+        }
       },
       reset: () => runtime.closeViewRuntime(),
       results: () => runtime.setPanelMode('review'),
       fullscreen: () => {
-        const block = wodBlocksRef.current[0] ?? null
+        const block = scriptBlocksRef.current[0] ?? null
         if (block) runtime.setFullscreenBlock(block)
       },
       getSource: () => editorSourceRef.current,
     })
-  }, [runtime])
+  }, [runtime, isMobile])
 
   // Commands for InlineCommandBar on wod blocks
-  const canvasCommands = useMemo<WodCommand[]>(() => [
+  const canvasCommands = useMemo<ScriptCommand[]>(() => [
     {
       id: 'run',
       label: 'Run',
       icon: <Play className="h-3 w-3 fill-current" />,
       primary: true,
-      onClick: (block) => runtime.launchViewRuntime(block),
+      onClick: (block) => {
+        if (isMobile && blockHasTimer(block)) {
+          runtime.setFullscreenBlock(block)
+        } else {
+          runtime.launchViewRuntime(block)
+        }
+      },
     },
-  ], [runtime])
+  ], [runtime, isMobile])
 
   const activePanelTheme = getSectionThemeStyles({ attrs: [`theme:${activeSectionTheme}`] } as any)
 
@@ -421,7 +435,7 @@ export function MarkdownCanvasPage({
             noteId={canvasNoteId}
             value={editorSource}
             onChange={handleEditorChange}
-            onBlocksChange={(blocks) => { wodBlocksRef.current = blocks }}
+            onBlocksChange={(blocks) => { scriptBlocksRef.current = blocks }}
             onViewCreated={(view) => { editorViewRef.current = view }}
             activeSectionId={activeSectionId}
             theme={theme}
@@ -440,6 +454,23 @@ export function MarkdownCanvasPage({
   })()
 
   const showPanelButtons = !!(viewDef && runtime.panelMode === 'editor')
+
+  // On mobile, timer/wall-clock blocks always run fullscreen (not in-panel).
+  const mobileRunState = useMemo(() => {
+    if (!isMobile) return runtime.runState
+    const base = runtime.runState
+    return {
+      ...base,
+      onRun: () => {
+        const block = scriptBlocksRef.current[0]
+        if (block && blockHasTimer(block)) {
+          runtime.setFullscreenBlock(block)
+        } else {
+          base.onRun()
+        }
+      },
+    }
+  }, [runtime.runState, runtime.setFullscreenBlock, isMobile])
 
   const desktopPanel = viewDef && (
     <CanvasEditorPanel
@@ -464,7 +495,7 @@ export function MarkdownCanvasPage({
       headerActions={panelHeaderActions}
       showPanelButtons={showPanelButtons}
       viewDefButtons={viewDef.buttons}
-      runState={runtime.runState}
+      runState={mobileRunState}
       deps={deps}
     />
   )
@@ -495,7 +526,7 @@ export function MarkdownCanvasPage({
           handleSelectWorkout={handleSelectWorkout}
           activeSectionId={activeSectionId}
           selectedExamples={selectedExamples}
-          runState={runtime.runState}
+          runState={mobileRunState}
           deps={deps}
           handleExampleSelect={handleExampleSelect}
           hasWorkoutsTag={hasWorkoutsTag}

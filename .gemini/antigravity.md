@@ -15,6 +15,7 @@ This repository uses a centralized `.agent` directory to synchronize intelligenc
 - **Action**: Before proposing architectures, writing complex logic, or performing specialized tasks, you MUST check if a relevant skill exists.
 - **Key Project Skills**:
     - `wod-extraction`: For parsing workout descriptions.
+    - Language: Whiteboard (fence tag `wod`; `whiteboard` accepted as alias).
     - `composition-patterns`: For React component architecture.
     - `react-best-practices`: For frontend development.
     - `testing-patterns`: For maintaining code quality and using the harness.

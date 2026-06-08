@@ -4,7 +4,7 @@ import { MockBlock } from '@/testing/harness/MockBlock';
 import { sessionRootStrategy } from '@/runtime/compiler/strategies/SessionRootStrategy';
 import {
     ChildSelectionBehavior,
-    HistoryRecordBehavior
+    ReportOutputBehavior
 } from '@/runtime/behaviors';
 import { PushBlockAction } from '@/runtime/actions/stack/PushBlockAction';
 import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
@@ -148,8 +148,8 @@ describe('RootBlock Lifecycle', () => {
         rootBlock.unmount(harness.runtime);
 
         // Expectations: History record event emitted
-        // Note: HistoryRecordBehavior emits on unmount
-        expect(rootBlock.getBehavior(HistoryRecordBehavior)).toBeDefined();
+        // Note: ReportOutputBehavior emits on unmount
+        expect(rootBlock.getBehavior(ReportOutputBehavior)).toBeDefined();
     });
 
     it('should handle dispose without errors', () => {
@@ -214,7 +214,7 @@ describe('RootBlock Lifecycle', () => {
         harness.stack.push(rootBlock);
         rootBlock.mount(harness.runtime, { 
             startTime: customTime,
-            clock: { now: customTime }
+            clock: { now: customTime, currentDate: customTime }
         });
 
         // Expectations: Custom time used

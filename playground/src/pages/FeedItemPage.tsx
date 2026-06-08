@@ -18,15 +18,15 @@ import { v4 as uuidv4 } from 'uuid';
 import { EditorView } from '@codemirror/view';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { JournalPageShell } from '@/panels/page-shells';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
-import { getWodFeedItem, getWodFeed } from '@/repositories/wod-feeds';
+import { getScriptFeedItem, getScriptFeed } from '@/repositories/script-feeds';
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent';
 import { appendWorkoutToJournal } from '../services/journalWorkout';
 import { pendingRuntimes } from '../runtimeStore';
 import { runPath } from '../lib/routes';
 import { useNotePageNav } from './shared/useNotePageNav';
-import { useWodBlockCommands } from '../hooks/useWodBlockCommands';
+import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground';
 import { PageActions } from './shared/PageActions';
 import { toast } from '@/hooks/use-toast';
@@ -54,8 +54,8 @@ export function FeedItemPage({
 }: FeedItemPageProps) {
   const navigate = useNavigate();
 
-  const item = getWodFeedItem(feedSlug, feedDate, feedItem);
-  const feed = getWodFeed(feedSlug);
+  const item = getScriptFeedItem(feedSlug, feedDate, feedItem);
+  const feed = getScriptFeed(feedSlug);
 
   // Store local edits under a deterministic key in playgroundDB.
   // The feed item's canonical content is the mdContent fallback.
@@ -66,11 +66,11 @@ export function FeedItemPage({
     mdContent: item?.content ?? `# ${feedItem}\n\n*Feed item not found.*\n`,
   });
 
-  const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([]);
+  const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([]);
   const noteId = `feed/${feedSlug}/${feedDate}/${feedItem}`;
 
   const handleStartWorkout = useCallback(
-    async (block: WodBlock) => {
+    async (block: ScriptBlock) => {
       try {
         const runtimeId = uuidv4();
         const journalNoteId = await appendWorkoutToJournal({
@@ -92,7 +92,7 @@ export function FeedItemPage({
     [feed, feedItem, feedSlug, item, navigate, noteId],
   );
 
-  const handleAddToToday = useCallback(async (block: WodBlock) => {
+  const handleAddToToday = useCallback(async (block: ScriptBlock) => {
     try {
       const journalNoteId = await appendWorkoutToJournal({
         workoutName: item?.name ?? feedItem,
@@ -117,9 +117,9 @@ export function FeedItemPage({
     }
   }, [feed, feedItem, feedSlug, item, navigate]);
 
-  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<WodBlock | null>(null);
+  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null);
 
-  const handleScheduleBlock = useCallback(async (block: WodBlock, date: Date) => {
+  const handleScheduleBlock = useCallback(async (block: ScriptBlock, date: Date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
@@ -149,11 +149,11 @@ export function FeedItemPage({
 
   const index = useNotePageNav({
     content,
-    wodBlocks,
+    scriptBlocks,
     onStartWorkout: handleStartWorkout,
   });
 
-  const commands = useWodBlockCommands('collection-readonly', {
+  const commands = useScriptBlockCommands('collection-readonly', {
     onPlay: handleStartWorkout,
     onShare: shareBlock,
     onAddToToday: handleAddToToday,
@@ -187,7 +187,7 @@ export function FeedItemPage({
             onViewCreated={onViewCreated}
             theme={theme}
             showLineNumbers={false}
-            onBlocksChange={setWodBlocks}
+            onBlocksChange={setScriptBlocks}
           />
         }
       />

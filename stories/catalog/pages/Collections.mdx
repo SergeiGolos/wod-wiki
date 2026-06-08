@@ -16,13 +16,13 @@ The full-page shell for the Collections workbench; lets users browse workout tem
 | `NoteEditor` | Right-panel editor for the selected workout |
 | `CommandProvider` | Command palette context |
 | `PanelSizeProvider` | Resizable panel sizing |
-| `getWodCollections()` | Loads built-in workout collections |
+| `getScriptCollections()` | Loads built-in workout collections |
 
 ## Notifies
 
 | Callback / Event | Trigger | Payload |
 |-----------------|---------|---------|
-| `onSelectItem` | Workout entry clicked in browse panel | `WodCollectionItem` |
+| `onSelectItem` | Workout entry clicked in browse panel | `ScriptCollectionItem` |
 
 ## Data Shapes
 
@@ -31,6 +31,6 @@ The full-page shell for the Collections workbench; lets users browse workout tem
 ```typescript
 // CollectionsPage is route-driven; stories provide mock collections directly
 interface CollectionsPageProps {
-  collections?: WodCollection[];
+  collections?: ScriptCollection[];
 }
 ```

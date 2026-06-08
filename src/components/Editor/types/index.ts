@@ -10,14 +10,14 @@ import { IOutputStatement, OutputStatementType } from '../../../core/models/Outp
 import { getHints } from '../../../core/metrics/hints';
 import type { ParseError } from '@/core';
 export * from './section';
-export type { WodDialect } from './section';
-export { VALID_WOD_DIALECTS } from './section';
+export type { FenceDialect } from './section';
+export { VALID_FENCE_DIALECTS } from './section';
 export type { DocumentItem, DocumentItemType } from '../utils/documentStructure';
 
 /**
  * State of a WOD block
  */
-export type WodBlockState =
+export type ScriptBlockState =
   | 'idle'       // Not parsed yet
   | 'parsing'    // Parse in progress
   | 'parsed'     // Successfully parsed
@@ -122,12 +122,12 @@ export interface WorkoutResults {
 /**
  * Represents a single WOD block within the markdown document
  */
-export interface WodBlock {
+export interface ScriptBlock {
   /** Unique identifier for this block */
   id: string;
 
   /** WOD dialect — determines which strategies are loaded */
-  dialect?: import('./section').WodDialect;
+  dialect?: import('./section').FenceDialect;
 
   /** Line number where ```wod/```log/```plan appears (0-indexed) */
   startLine: number;
@@ -151,7 +151,7 @@ export interface WodBlock {
   runtime?: ScriptRuntime;
 
   /** Execution state */
-  state: WodBlockState;
+  state: ScriptBlockState;
 
   /** Monaco widget/zone IDs for cleanup */
   widgetIds: {

@@ -1,5 +1,5 @@
 import { formatPlaygroundTimestampLabel } from '@/lib/playgroundDisplay';
-import { getWodContent } from '@/repositories/wod-loader';
+import { getScriptContent } from '@/repositories/script-loader';
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
 
@@ -36,7 +36,7 @@ export async function loadWorkbenchDisplayEntry(
     }
   }
 
-  const fallbackContent = getWodContent(routeId);
+  const fallbackContent = getScriptContent(routeId);
   return fallbackContent ? createTemplateEntry(routeId, fallbackContent) : null;
 }
 

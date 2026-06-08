@@ -4,19 +4,17 @@ import { cleanup, render, screen } from '@testing-library/react';
 
 let capturedTimerDisplayProps: any;
 
+const MockTimerDisplay = (props: any) => {
+  capturedTimerDisplayProps = props;
+  return <div data-testid="timer-display" />;
+};
+
 mock.module('@/panels/visual-state-panel', () => ({
   VisualStatePanel: () => <div data-testid="visual-state-panel" />,
 }));
 
 mock.module('@/runtime/hooks/useStackSnapshot', () => ({
   useSnapshotBlocks: () => [{ key: { toString: () => 'block-1' } }],
-}));
-
-mock.module('@/panels/timer-panel', () => ({
-  TimerDisplay: (props: any) => {
-    capturedTimerDisplayProps = props;
-    return <div data-testid="timer-display" />;
-  },
 }));
 
 describe('chromecast panel adapters', () => {
@@ -34,7 +32,7 @@ describe('chromecast panel adapters', () => {
   });
 
   it('ReceiverTimerPanel delegates to shared TimerDisplay and forwards events via provider', async () => {
-    const { ReceiverTimerPanel } = await import('../timer-panel-chromecast');
+    const { ReceiverTimerPanel } = await import('../wallclock-panel-chromecast');
     const dispatch = mock(() => {});
 
     render(
@@ -44,6 +42,7 @@ describe('chromecast panel adapters', () => {
           onEvent: () => () => {},
           dispose: () => {},
         }}
+        TimerDisplayComponent={MockTimerDisplay}
       />,
     );
 

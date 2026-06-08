@@ -1,19 +1,19 @@
 import { globalParser, runtimeFactory } from '@/hooks/useRuntimeFactory';
 import type { IScriptRuntime } from '@/hooks/useRuntimeTimer';
 import type { IOutputStatement } from '@/core/models/OutputStatement';
-import type { WodBlock, WorkoutResults } from '@/components/Editor/types';
+import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
 import { toStoredOutputStatement } from '@/components/Editor/types';
 
 const factory = runtimeFactory;
 
-export function prepareRuntimeBlock(block: WodBlock): WodBlock & { statements: NonNullable<WodBlock['statements']> } {
+export function prepareRuntimeBlock(block: ScriptBlock): ScriptBlock & { statements: NonNullable<ScriptBlock['statements']> } {
   if (block.statements?.length) {
-    return block as WodBlock & { statements: NonNullable<WodBlock['statements']> };
+    return block as ScriptBlock & { statements: NonNullable<ScriptBlock['statements']> };
   }
   return { ...block, statements: globalParser.read(block.content).statements };
 }
 
-export function createRuntimeForBlock(block: WodBlock): IScriptRuntime | null {
+export function createRuntimeForBlock(block: ScriptBlock): IScriptRuntime | null {
   return factory.createRuntime(prepareRuntimeBlock(block)) ?? null;
 }
 

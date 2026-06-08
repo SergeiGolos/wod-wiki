@@ -50,8 +50,11 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         this.restState = 'idle';
         this.dispatchedOnLastNext = false;
 
-        const actions: IRuntimeAction[] = [];
+        // Declare capability so peer behaviors (e.g. CountdownTimerBehavior) can
+        // coordinate without inspecting `behaviors[i].constructor.name`.
+        ctx.declareCapability('childSelection');
 
+        const actions: IRuntimeAction[] = [];
         // Initialize round state if configured (absorbed from ReEntryBehavior)
         if (this.config.startRound !== undefined) {
             const blockId = ctx.block.key.toString();
@@ -93,7 +96,6 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         this.writeChildrenStatus(ctx);
         return [...actions, ...dispatchActions];
     }
-
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
         this.dispatchedOnLastNext = false;
 
@@ -119,13 +121,13 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
 
         if (this.restState === 'active') {
             this.restState = 'idle';
-            
+
             // For EMOM (injectRest = true), we only advance the round AFTER the rest block pops.
             // This keeps us in the correct round during the rest period.
             if (this.config.injectRest) {
                 actions.push(...this.advanceRound(ctx));
                 this.childIndex = 0;
-                
+
                 // If this next was manual (rest timer didn't expire yet),
                 // we should reset the parent timer for the next interval.
                 ctx.emitEvent({
@@ -135,7 +137,6 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
                 });
             }
         }
-
         if (this.childIndex >= this.totalChildren) {
             if (!this.shouldLoop(ctx)) {
                 // All children done, no more loops — mark block complete.

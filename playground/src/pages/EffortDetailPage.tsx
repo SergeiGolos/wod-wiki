@@ -24,11 +24,11 @@ import { Badge } from '@/components/atoms/primitives/badge';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { JournalPageShell } from '@/panels/page-shells';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 import type { WorkoutResult } from '@/types/storage';
 import { useEffortContent } from '../hooks/useEffortContent';
 import { useNotePageNav } from './shared/useNotePageNav';
-import { useWodBlockCommands } from '../hooks/useWodBlockCommands';
+import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
 import { useEffortRegistry } from '../contexts/EffortRegistryContext';
 import { EffortResolver } from '@/effort-registry';
 import type { IEffort, ResolvedEffort } from '@/effort-registry';
@@ -102,9 +102,9 @@ export function EffortDetailPage() {
     error,
   } = useEffortContent(slug);
 
-  const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([]);
+  const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([]);
   const [results] = useState<WorkoutResult[]>([]);
-  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<WodBlock | null>(null);
+  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null);
   const [showResolved, setShowResolved] = useState(false);
 
   // Resolve effort for the inline "resolved" widget
@@ -115,7 +115,7 @@ export function EffortDetailPage() {
   }, [effort, isReady, resolver]);
 
   // ── WOD block handlers ───────────────────────────────────────────────────
-  const handleStartWorkout = useCallback((block: WodBlock) => {
+  const handleStartWorkout = useCallback((block: ScriptBlock) => {
     const runtimeId = uuidv4();
     // Store in runtime store and navigate
     import('../runtimeStore').then(({ pendingRuntimes }) => {
@@ -124,7 +124,7 @@ export function EffortDetailPage() {
     });
   }, [slug, navigate]);
 
-  const handleScheduleBlock = useCallback(async (block: WodBlock, date: Date) => {
+  const handleScheduleBlock = useCallback(async (block: ScriptBlock, date: Date) => {
     if (!effort) return;
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -151,13 +151,13 @@ export function EffortDetailPage() {
   // ── L3 nav from document content ─────────────────────────────────────────
   const index = useNotePageNav({
     content: document,
-    wodBlocks,
+    scriptBlocks,
     onStartWorkout: handleStartWorkout,
     results,
   });
 
   // ── WOD block commands ───────────────────────────────────────────────────
-  const commands = useWodBlockCommands('collection-readonly', {
+  const commands = useScriptBlockCommands('collection-readonly', {
     onPlay: handleStartWorkout,
     onShare: shareBlock,
     onSchedule: setPendingScheduleBlock,
@@ -256,7 +256,7 @@ export function EffortDetailPage() {
               enableLinting={true}
               mode="edit"
               commands={commands}
-              onBlocksChange={setWodBlocks}
+              onBlocksChange={setScriptBlocks}
               extendedResults={results}
             />
           </div>

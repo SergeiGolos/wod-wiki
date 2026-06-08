@@ -1,5 +1,5 @@
 import type { MetricType } from '../models/Metric';
-import type { WodDialect } from '@/components/Editor/types';
+import type { FenceDialect } from '@/components/Editor/types';
 import type { IRealtimeProcessor } from './IRealtimeProcessor';
 import type { ISummaryProcessor } from './ISummaryProcessor';
 import type { AnalyticsContext } from './AnalyticsContext';
@@ -8,7 +8,7 @@ import type { AnalyticsContext } from './AnalyticsContext';
  * Context used to select processors for a given workout.
  */
 export interface AnalyticsProfileContext {
-  dialect: WodDialect;
+  dialect: FenceDialect;
   scriptMetricTypes: ReadonlySet<MetricType | string>;
 
   /**

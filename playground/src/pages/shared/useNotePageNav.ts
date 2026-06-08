@@ -4,7 +4,7 @@
  * Every note-style page (Journal, Playground, WorkoutEditor) does the same
  * thing:
  *   1. Run `extractPageIndex(content)` to produce `PageNavLink[]`.
- *   2. For each `wod` link, look up the matching `WodBlock` by start-line and
+ *   2. For each `wod` link, look up the matching `ScriptBlock` by start-line and
  *      attach an `onRun` callback (and optional result-count badging).
  *   3. Mirror that index into the L3 nav via `setL3Items` and clear it on
  *      unmount.
@@ -15,7 +15,7 @@
 
 import { useEffect, useMemo } from 'react'
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
-import type { WodBlock } from '@/components/Editor/types'
+import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutResult } from '@/types/storage'
 import { useNav } from '../../nav/NavContext'
 import { extractPageIndex, mapIndexToL3 } from './pageUtils'
@@ -24,9 +24,9 @@ export interface UseNotePageNavOptions {
   /** Current editor content. */
   content: string
   /** Parsed wod blocks (from `<NoteEditor onBlocksChange>`). */
-  wodBlocks: WodBlock[]
+  scriptBlocks: ScriptBlock[]
   /** Callback invoked when the user runs a wod link. */
-  onStartWorkout: (block: WodBlock) => void
+  onStartWorkout: (block: ScriptBlock) => void
   /**
    * Optional results to badge each wod link with `hasResult` / `resultCount`.
    * Only the JournalPage uses this today.
@@ -40,7 +40,7 @@ export interface UseNotePageNavOptions {
  */
 export function useNotePageNav({
   content,
-  wodBlocks,
+  scriptBlocks,
   onStartWorkout,
   results,
 }: UseNotePageNavOptions): PageNavLink[] {
@@ -49,7 +49,7 @@ export function useNotePageNav({
     return base.map(link => {
       if (link.type !== 'wod') return link
       const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
-      const block = wodBlocks.find(b => b.startLine + 1 === lineNum)
+      const block = scriptBlocks.find(b => b.startLine + 1 === lineNum)
 
       let badge: { hasResult?: boolean; resultCount?: number } = {}
       if (results) {
@@ -66,17 +66,17 @@ export function useNotePageNav({
         ...link,
         ...badge,
         onRun: () => {
-          // Re-resolve at click time in case `wodBlocks` changed.
-          // Falls back to `wodBlocks[0]` to preserve prior behavior of all
+          // Re-resolve at click time in case `scriptBlocks` changed.
+          // Falls back to `scriptBlocks[0]` to preserve prior behavior of all
           // three pages this hook replaced — clicking a wod link before the
           // parser has produced a precise match still runs *something*.
           const resolvedBlock =
-            block || wodBlocks.find(b => b.startLine + 1 === lineNum) || wodBlocks[0]
+            block || scriptBlocks.find(b => b.startLine + 1 === lineNum) || scriptBlocks[0]
           if (resolvedBlock) onStartWorkout(resolvedBlock)
         },
       }
     })
-  }, [content, wodBlocks, onStartWorkout, results])
+  }, [content, scriptBlocks, onStartWorkout, results])
 
   const { setL3Items } = useNav()
   useEffect(() => {

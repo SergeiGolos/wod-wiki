@@ -1,8 +1,9 @@
 import { BlockKey } from '../core/models/BlockKey';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
-import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
+import { BlockLifecycleOptions, CompletionDecision, IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
+import type { IRuntimeActionable } from './contracts/primitives/IRuntimeActionable';
 import { IBlockContext } from './contracts/IBlockContext';
 import { BlockContext } from './BlockContext';
 import { BehaviorContext } from './BehaviorContext';
@@ -225,6 +226,90 @@ export class RuntimeBlock implements IRuntimeBlock {
     }
 
     /**
+     * Inspect what the next() call would do, WITHOUT dispatching.
+     *
+     * PURE READ for completion state. Runs the behavior onNext chain against
+     * a temporary BehaviorContext, captures the decision, and restores the
+     * block's completion flag so the caller can inspect without side effects.
+     *
+     * The decision is DETERMINISTIC given the same runtime state: the same
+     * behaviors, the same block memory, and the same clock always produce
+     * the exact same decision (behaviors are assumed to be pure functions
+     * of their context).
+     *
+     * @param runtime The script runtime context
+     * @param options Lifecycle options including optional clock for timing consistency
+     */
+    inspectNext(runtime: IRuntimeActionable, options?: BlockLifecycleOptions): CompletionDecision {
+        if (!this._behaviorContext) {
+            // Mirror next()'s no-context behavior: return an empty decision.
+            // DO NOT warn — inspectNext is a pure read; calling before mount
+            // is a valid test scenario.
+            return { complete: false, actions: [] };
+        }
+        const clock = options?.clock ?? this._behaviorContext.clock;
+        // Share the persistent context's capability registry so capabilities
+        // declared in onMount remain visible to behavior chains in
+        // inspectNext (which constructs a fresh per-call BehaviorContext).
+        const nextContext = new BehaviorContext(
+            this,
+            clock,
+            this._behaviorContext.stackLevel,
+            runtime as IScriptRuntime,
+            this._behaviorContext.getCapabilities(),
+        );
+        // Snapshot completion state so we can restore it after inspection.
+        // Behaviors may call ctx.markComplete() during the chain; we capture
+        // the result without leaving a permanent mutation.
+        const wasComplete = this._isComplete;
+        const wasReason = this._completionReason;
+
+        // Same per-call state reset as next() so behaviors that depend on
+        // prepareForNextCycle see consistent state.
+        for (const behavior of this.behaviors) {
+            const behaviorWithPrepare = behavior as { prepareForNextCycle?: () => void };
+            if (typeof behaviorWithPrepare.prepareForNextCycle === 'function') {
+                behaviorWithPrepare.prepareForNextCycle();
+            }
+        }
+
+        const actions: IRuntimeAction[] = [];
+        for (const behavior of this.behaviors) {
+            if (behavior.onNext) {
+                const result = behavior.onNext(nextContext);
+                if (result) {
+                    actions.push(...result);
+                }
+            }
+        }
+
+        // Dispose the temporary context immediately. The dispatch path (next())
+        // does this too, so the lifecycle is identical.
+        nextContext.dispose();
+
+        // Auto-pop: if the chain marked the block complete and no PopBlockAction
+        // was already queued, add one. This mirrors next()'s auto-pop logic.
+        // Done before constructing the `decision` object so the captured
+        // `actions` array reflects the full set the dispatcher will see.
+        if (this._isComplete && !actions.some(a => a.type === 'pop-block')) {
+            actions.push(new PopBlockAction());
+        }
+
+        // Capture the decision before restoring state.
+        const decision: CompletionDecision = {
+            complete: this._isComplete,
+            reason: this._completionReason,
+            actions,
+        };
+
+        // Restore completion state — inspectNext must not mutate the block.
+        this._isComplete = wasComplete;
+        this._completionReason = wasReason;
+
+        return decision;
+    }
+
+    /**
      * Called when a child block completes or user advances.
      *
      * @param runtime The script runtime context
@@ -242,50 +327,22 @@ export class RuntimeBlock implements IRuntimeBlock {
         // Emit system output for next lifecycle event
         this.emitNextSystemOutput(runtime, clock);
 
-        // Create a fresh context for this next() call with the appropriate clock
-        // This ensures all behaviors in this next() chain see the same frozen time
-        const nextContext = new BehaviorContext(
-            this,
-            clock,
-            this._behaviorContext.stackLevel,
-            runtime
-        );
+        // Delegate the behavior chain to inspectNext. The actions and the
+        // decision come back together; we just dispatch.
+        const decision = this.inspectNext(runtime, options);
 
-        // Prepare phase: reset per-call state on behaviors that need it.
-        // This ensures properties like allChildrenCompleted return accurate
-        // values regardless of behavior ordering in the chain.
-        for (const behavior of this.behaviors) {
-            if (typeof (behavior as any).prepareForNextCycle === 'function') {
-                (behavior as any).prepareForNextCycle();
-            }
+        // Apply the completion state from the decision. inspectNext restored
+        // the original state, so we re-apply the mutation the behavior chain
+        // intended. This keeps next() the single source of truth for stateful
+        // side effects while inspectNext remains a pure read.
+        if (decision.complete && !this._isComplete) {
+            this.markComplete(decision.reason);
         }
 
-        const actions: IRuntimeAction[] = [];
-        for (const behavior of this.behaviors) {
-            if (behavior.onNext) {
-                const result = behavior.onNext(nextContext);
-                if (result) {
-                    actions.push(...result);
-                }
-            }
-        }
+        // Log the next call with resulting actions (preserves the existing log line)
+        RuntimeLogger.logNext(this, [...decision.actions]);
 
-        // Auto-pop: if any behavior marked the block complete during this
-        // next() chain and no PopBlockAction was already queued, add one.
-        // This eliminates the need for every completion behavior to return
-        // its own PopBlockAction and prevents ordering-dependent misses.
-        if (this._isComplete && !actions.some(a => a.type === 'pop-block')) {
-            actions.push(new PopBlockAction());
-        }
-
-        // Dispose the temporary context to clean up any subscriptions
-        // registered by behaviors during onNext
-        nextContext.dispose();
-
-        // Log the next call with resulting actions
-        RuntimeLogger.logNext(this, actions);
-
-        return actions;
+        return decision.actions as IRuntimeAction[];
     }
 
     /**
@@ -307,7 +364,8 @@ export class RuntimeBlock implements IRuntimeBlock {
             this,
             clock,
             this._behaviorContext?.stackLevel ?? 0,
-            runtime
+            runtime,
+            this._behaviorContext?.getCapabilities(),
         );
 
         // Call behavior onUnmount hooks

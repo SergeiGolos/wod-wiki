@@ -39,14 +39,30 @@ import {
  */
 export class BehaviorContext implements IBehaviorContext {
     private subscriptions: Array<{ eventType: string; unsubscribe: () => void }> = [];
+    /**
+     * Capabilities registered on this context (or shared from the persistent
+     * per-block context if one was injected).
+     *
+     * Capability state is block-scoped, not call-scoped: the `inspectNext`
+     * path in `RuntimeBlock` constructs a fresh `BehaviorContext` per
+     * invocation so it can run the onNext chain without side effects, but
+     * capabilities declared during `onMount` must still be visible to
+     * peer behaviors in any subsequent call.  We therefore let an external
+     * owner (the persistent `_behaviorContext` on `RuntimeBlock`) inject
+     * the shared Set so all contexts for the same block observe the same
+     * capabilities.
+     */
+    private _capabilities: Set<string>;
 
     constructor(
         readonly block: IRuntimeBlock,
         readonly clock: IRuntimeClock,
         readonly stackLevel: number,
-        private runtime: IScriptRuntime
-    ) { }
-
+        private runtime: IScriptRuntime,
+        sharedCapabilities?: Set<string>
+    ) {
+        this._capabilities = sharedCapabilities ?? new Set<string>();
+    }
     // ============================================================================
     // Event Subscription
     // ============================================================================
@@ -186,13 +202,35 @@ export class BehaviorContext implements IBehaviorContext {
     }
 
     // ============================================================================
+    // Capability Registry
+    // ============================================================================
+
+    declareCapability(cap: string): void {
+        this._capabilities.add(cap);
+    }
+
+    hasCapability(cap: string): boolean {
+        return this._capabilities.has(cap);
+    }
+
+    /**
+     * Returns the Set used to store declared capabilities.  Internal callers
+     * (e.g. `RuntimeBlock.inspectNext`) pass this back to a fresh
+     * `BehaviorContext` so that all contexts for the same block observe the
+     * same capabilities without coupling the inspection context to a
+     * specific owner.
+     */
+    getCapabilities(): Set<string> {
+        return this._capabilities;
+    }
+
+    // ============================================================================
     // Block Control
     // ============================================================================
 
     markComplete(reason?: string): void {
         this.block.markComplete(reason);
     }
-
     // ============================================================================
     // Lifecycle
     // ============================================================================

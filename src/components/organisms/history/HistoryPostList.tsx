@@ -32,7 +32,7 @@ export interface HistoryPostListProps {
   /** Callback when notebook tag is toggled on an entry */
   onNotebookToggle?: (entryId: string, notebookId: string, isAdding: boolean) => void;
   /** Edit entry callback (pencil icon) */
-  onEdit?: (id: string, type?: 'note' | 'template') => void;
+  onEdit?: (id: string, type?: 'note' | 'template' | 'playground') => void;
   /** Clone entry callback (copy icon) — receives entryId and optional targetDate */
   onClone?: (id: string, targetDate?: number) => void;
   /** Content provider for calendar date hints */

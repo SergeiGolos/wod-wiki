@@ -14,7 +14,7 @@ import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { TrackViewShell } from '@/components/organisms/workout/TrackViewShell';
 import { ReceiverStackPanel } from '@/panels/track-panel-chromecast';
-import { ReceiverTimerPanel } from '@/panels/timer-panel-chromecast';
+import { ReceiverTimerPanel } from '@/panels/wallclock-panel-chromecast';
 import { ReceiverPreviewPanel } from '@/panels/preview-panel-chromecast';
 import { ReceiverReviewPanel } from '@/panels/review-panel-chromecast';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
@@ -39,7 +39,7 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
     const sessionRef = useRef<ChromecastReceiverViewSession | null>(null);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
     const eventProviderRef = useRef<IRuntimeEventProvider | null>(null);
-    const bootTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const bootTimeoutRef = useRef<number | null>(null);
     const readyReceivedRef = useRef(false);
 
     const sendEvent = useCallback((eventName: string, data?: unknown) => {

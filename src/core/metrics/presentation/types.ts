@@ -7,7 +7,7 @@ export type { IMetric, MetricType };
  */
 export type MetricPresentationSurface =
   | 'runtime-badge'       // MetricVisualizer, MetricSourceRow, Chromecast badge panels
-  | 'timer-subtitle'      // timer-panel subLabel construction
+  | 'timer-subtitle'      // wallclock-panel subLabel construction
   | 'history-label'       // RuntimeHistoryLog entry label strings
   | 'review-grid-cell'    // MetricPill in the review grid
   | 'review-grid-column'  // column visibility and column label in useGridData / GridHeader

@@ -6,12 +6,9 @@ import { MetricType } from "@/core/models/Metric";
 import { MetricContainer } from "@/core/models/MetricContainer";
 import { DurationMetric } from "../../metrics/DurationMetric";
 import { RoundsMetric } from "../../metrics/RoundsMetric";
-import { BlockContext } from "../../../BlockContext";
-import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
 import { hasHint } from "@/core/metrics/hints";
-import { LabelComposer } from "../../utils/LabelComposer";
-
+import { compose } from "../../BlockTemplateComposer";
+import type { BlockTemplate } from "../../BlockTemplate";
 // Specific behaviors not covered by aspect composers
 import {
     LabelingBehavior,
@@ -67,51 +64,33 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
             ? roundsFragment.value
             : 10; // Default 10 rounds if not specified
 
-        // Block metadata
-        const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), (firstStatementWithTimer as any).exerciseId || '');
-        
-        // Use LabelComposer for a standardized, descriptive label
-        const label = LabelComposer.build(statements, {
-            defaultLabel: `EMOM ${totalRounds}`
-        });
+        // Build the common chassis via the template composer.
+        const template: BlockTemplate = {
+            blockType: 'EMOM',
+            defaultLabel: `EMOM ${totalRounds}`,
+            statements,
+            runtime,
+            // EMOM uses countdown timer per interval. Timer expiry does NOT
+            // mark block complete — it's a per-round pacing signal.
+            timer: {
+                direction: 'down',
+                durationMs: intervalMs,
+                label: 'Interval',
+                role: 'primary',
+                mode: 'reset-interval', // Timer resets for next round
+                injectRest: true,
+            },
+            // EMOM has fixed rounds, block completes when exhausted.
+            repeater: {
+                totalRounds,
+                startRound: 1,
+                addCompletion: true,
+            },
+            pickStatement: (stmts) => stmts.find(s => s.hasMetric(MetricType.Duration)) || stmts[0],
+            metricDistributorType: 'EMOM',
+        };
 
-        builder
-            .setContext(context)
-            .setKey(blockKey)
-            .setBlockType("EMOM")
-            .setLabel(label)
-            .setSourceIds(statements.map(s => s.id));
-
-        const distributor = new PassthroughMetricDistributor();
-        const metricGroups = statements.flatMap(s => 
-            distributor.distribute(MetricContainer.from(s.metrics), "EMOM")
-        ).filter(group => group.length > 0);
-        
-        builder.setFragments(metricGroups);
-
-        // =====================================================================
-        // ASPECT COMPOSERS - High-level composition
-        // =====================================================================
-
-        // Timer Aspect - EMOM uses countdown timer per interval
-        // Timer expiry does NOT mark block complete - it's a per-round pacing signal
-        builder.asTimer({
-            direction: 'down',
-            durationMs: intervalMs,
-            label: 'Interval',
-            role: 'primary',
-            addCompletion: true,
-            completionConfig: { completesBlock: false },  // Timer resets for next round
-            injectRest: true
-        });
-
-        // Repeater Aspect - EMOM has fixed rounds, block completes when exhausted
-        builder.asRepeater({
-            totalRounds,
-            startRound: 1,
-            addCompletion: true  // RoundsEndBehavior marks block complete
-        });
+        const label = compose(builder, template);
 
         // =====================================================================
         // Display Aspect

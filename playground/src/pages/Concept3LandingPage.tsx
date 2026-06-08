@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowRight, ChevronLeft, ChevronRight, Moon, Play, Sun } from 'lucide-react'
 
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
-import type { WodBlock } from '@/components/Editor/types'
+import type { ScriptBlock } from '@/components/Editor/types'
 import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
 import { useTheme } from '@/contexts/ThemeProvider'
 import { cn } from '@/lib/utils'
@@ -61,7 +61,7 @@ function extractWodContent(source: string): string {
   return (fenceMatch?.[1] ?? source).trim()
 }
 
-function createSampleBlock(source: string): WodBlock {
+function createSampleBlock(source: string): ScriptBlock {
   const content = extractWodContent(source)
   const lines = content.split('\n')
 
@@ -135,7 +135,7 @@ export function Concept3LandingPage() {
   const editorAnchorRef = useRef<HTMLDivElement | null>(null)
   const [source, setSource] = useState(SAMPLE_SOURCE)
   const [panelMode, setPanelMode] = useState<'editor' | 'timer'>('editor')
-  const [parsedBlock, setParsedBlock] = useState<WodBlock | null>(null)
+  const [parsedBlock, setParsedBlock] = useState<ScriptBlock | null>(null)
   const progress = useScrollProgressBar()
 
   const isDarkMode = useMemo(() => {

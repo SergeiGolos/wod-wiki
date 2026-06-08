@@ -85,7 +85,12 @@ export function deriveReviewSegments(result: WorkoutResult): Segment[] {
 }
 
 export function resolveWhiteboardCodeLanguage(info: string | null | undefined) {
-  if (info === 'wod' || info === 'log' || info === 'plan') {
+  if (
+    info === 'wod' ||
+    info === 'whiteboard' ||
+    info === 'log' ||
+    info === 'plan'
+  ) {
     return whiteboardScriptLanguage;
   }
 

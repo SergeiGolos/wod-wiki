@@ -15,9 +15,10 @@ describe('ScopedRuntimeProvider', () => {
     expect(typeof ScopedRuntimeProvider).toBe('function');
   });
 
-  it('should be the default export', async () => {
+  it('should be a named export', async () => {
     const mod = await import('@/panels/page-shells/ScopedRuntimeProvider');
-    expect(mod.ScopedRuntimeProvider).toBe(mod.default);
+    expect(mod.ScopedRuntimeProvider).toBeDefined();
+    expect(mod.ScopedRuntimeProvider).toBe(ScopedRuntimeProvider);
   });
 });
 

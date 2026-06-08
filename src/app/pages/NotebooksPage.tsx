@@ -9,7 +9,7 @@ import { AnalyzePanel } from '@/panels/analyze-panel';
 import type { IContentProvider } from '@/types/content-provider';
 import { useHistorySelection } from '@/hooks/useHistorySelection';
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store';
-import { getAllWodIds } from '@/repositories/wod-loader';
+import { getAllScriptIds } from '@/repositories/script-loader';
 import { planPath, trackPath } from '@/lib/routes';
 import { useCreateWorkoutEntry } from '@/hooks/useCreateWorkoutEntry';
 import type { HistoryEntry } from '@/types/history';
@@ -79,7 +79,7 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
                 label: 'Workouts',
                 search: async (query: string) => {
                     const low = query.toLowerCase();
-                    const wodIds = getAllWodIds();
+                    const wodIds = getAllScriptIds();
                     const items = [
                         { id: 'nav-notes',  label: 'My Notebook',  sublabel: 'History & journal', category: 'Navigation', payload: { route: '/' } },
                         { id: 'nav-home',   label: 'Playground',   sublabel: 'Editor & workouts', category: 'Navigation', payload: { route: '/playground' } },
