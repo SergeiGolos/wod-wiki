@@ -1,9 +1,9 @@
 import React from 'react';
 import { FileText } from 'lucide-react';
-import type { WodCollectionItem } from '@/repositories/wod-collections';
+import type { ScriptCollectionItem } from '@/repositories/script-collections';
 import type { IListItem } from '../types';
 
-export function collectionItemToListItem(item: WodCollectionItem): IListItem<WodCollectionItem> {
+export function collectionItemToListItem(item: ScriptCollectionItem): IListItem<ScriptCollectionItem> {
   return {
     id: item.id,
     label: item.name,

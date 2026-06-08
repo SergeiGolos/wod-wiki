@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FolderIcon, ChevronRightIcon } from 'lucide-react';
-import { getWodCollections, type WodCollection } from '@/repositories/wod-collections';
+import { getScriptCollections, type ScriptCollection } from '@/repositories/script-collections';
 import { useCollectionsQueryState } from '../hooks/useCollectionsQueryState';
 import { findCanvasPage } from '../canvas/canvasRoutes';
 import { CollectionListTemplate } from '../templates/CollectionListTemplate';
 import { ListPreludeCanvas } from '../templates/ListPreludeCanvas';
 
-function CollectionRow({ collection }: { collection: WodCollection }) {
+function CollectionRow({ collection }: { collection: ScriptCollection }) {
   const hasCategories = collection.categories.length > 0;
 
   return (
@@ -50,7 +50,7 @@ export function CollectionsPage() {
 
   const loadCollections = useMemo(
     () => (currentQuery: typeof query) => {
-      let result = getWodCollections();
+      let result = getScriptCollections();
 
       if (currentQuery.selectedCategories.length > 0) {
         result = result.filter(collection =>

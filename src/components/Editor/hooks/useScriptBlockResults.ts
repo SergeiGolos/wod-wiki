@@ -1,5 +1,5 @@
 /**
- * useWodBlockResults
+ * useScriptBlockResults
  *
  * Fetches workout results associated with a specific WOD section.
  * Supports both IndexedDB (Production) and In-Memory (Storybook/Static) data sources.
@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react';
 import type { WorkoutResult } from '@/types/storage';
 import { useWorkbench } from '@/contexts/WorkbenchContext';
 
-export interface UseWodBlockResultsReturn {
+export interface UseScriptBlockResultsReturn {
   /** All results for this section, sorted most recent first */
   results: WorkoutResult[];
   /** Whether the initial load is in progress */
@@ -24,11 +24,11 @@ export interface UseWodBlockResultsReturn {
  * @param sectionId - The WOD section ID within the note
  * @param extendedResultsOverride - Optional explicit in-memory results (bypasses context)
  */
-export function useWodBlockResults(
+export function useScriptBlockResults(
   noteId: string | undefined,
   sectionId: string | undefined,
   extendedResultsOverride?: WorkoutResult[],
-): UseWodBlockResultsReturn {
+): UseScriptBlockResultsReturn {
   const [results, setResults] = useState<WorkoutResult[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,7 +59,7 @@ export function useWodBlockResults(
           r => r.sectionId === sectionId || r.segmentId === sectionId
         );
         
-        console.log(`[useWodBlockResults] Found ${inMemoryMatches.length} in-memory results for section: ${sectionId} (Total in currentEntry: ${extendedResults.length})`);
+        console.log(`[useScriptBlockResults] Found ${inMemoryMatches.length} in-memory results for section: ${sectionId} (Total in currentEntry: ${extendedResults.length})`);
         
         if (inMemoryMatches.length > 0) {
           if (!cancelled) {
@@ -68,7 +68,7 @@ export function useWodBlockResults(
             return;
           }
         } else {
-            console.log(`[useWodBlockResults] No in-memory matches for section: ${sectionId}. Section IDs in extendedResults:`, extendedResults.map(r => r.sectionId));
+            console.log(`[useScriptBlockResults] No in-memory matches for section: ${sectionId}. Section IDs in extendedResults:`, extendedResults.map(r => r.sectionId));
         }
       }
 
@@ -95,7 +95,7 @@ export function useWodBlockResults(
           setResults(all.sort((a, b) => b.completedAt - a.completedAt));
         }
       } catch (err) {
-        console.error('[useWodBlockResults] Failed to fetch results:', err);
+        console.error('[useScriptBlockResults] Failed to fetch results:', err);
         if (!cancelled) setResults([]);
       } finally {
         if (!cancelled) setLoading(false);

@@ -47,9 +47,9 @@ import { embedPreviewDecorations } from "@/components/Editor/extensions/embed-pr
 import { frontmatterPreview } from "@/components/Editor/extensions/frontmatter-preview";
 import { markdownTablePreview } from "@/components/Editor/extensions/markdown-tables";
 import { markdownSyntaxHiding } from "@/components/Editor/extensions/markdown-syntax-hiding";
-import { wodLinter } from "@/components/Editor/extensions/wod-linter";
-import { wodAutocompletion, wodEditorKeymap } from "@/components/Editor/extensions/wod-autocomplete";
-import { wodOverlayPanel } from "@/components/Editor/extensions/wod-overlay";
+import { wodLinter } from "@/components/Editor/extensions/whiteboard-linter";
+import { wodAutocompletion, wodEditorKeymap } from "@/components/Editor/extensions/whiteboard-autocomplete";
+import { wodOverlayPanel } from "@/components/Editor/extensions/whiteboard-overlay";
 import { widgetBlockPreview } from "@/components/Editor/extensions/widget-block-preview";
 import { inlineButtonDecoration, type ButtonAction } from "@/components/Editor/extensions/inline-button-decoration";
 import { sectionGeometry } from "@/components/Editor/extensions/section-geometry";
@@ -67,15 +67,15 @@ import {
   updateSectionResults,
   WOD_RESULT_CLICK_EVENT,
   type WodResultClickDetail,
-} from "@/components/Editor/extensions/wod-results-widget";
+} from "@/components/Editor/extensions/whiteboard-results-widget";
 import { OverlayTrack } from "@/components/organisms/editor/OverlayTrack";
 import { useOverlayWidthState } from "@/components/Editor/overlays/useOverlayWidthState";
 import type { OverlaySlotProps } from "@/components/organisms/editor/OverlayTrack";
 import { FrontmatterCompanion } from "@/components/organisms/editor/FrontmatterCompanion";
-import { WodCompanion } from "@/components/organisms/editor/WodCompanion";
+import { WhiteboardCompanion } from "@/components/organisms/editor/WhiteboardCompanion";
 import { WidgetCompanion } from "@/components/organisms/editor/WidgetCompanion";
 import type { WidgetRegistry } from "@/components/Editor/widgets/types";
-import type { WodCommand } from "@/components/Editor/overlays/WodCommand";
+import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
 import { FullscreenTimer } from "@/components/organisms/review/FullscreenTimer";
 import { FullscreenReview } from "@/components/organisms/review/FullscreenReview";
 import { InlineCommandBar } from "@/components/organisms/editor/InlineCommandBar";
@@ -86,10 +86,10 @@ import type { WorkoutResult } from "@/types/storage";
 
 import { themeCompartment, languageCompartment, modeCompartment } from "@/components/Editor/compartments";
 
-import type { WodBlock } from "@/components/Editor/types";
+import type { ScriptBlock } from "@/components/Editor/types";
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store';
 import { Play, Plus, ExternalLink, Copy, Check } from "lucide-react";
-import { buildPlaygroundUrl } from "@/components/atoms/WodPlaygroundButton";
+import { buildPlaygroundUrl } from "@/components/atoms/WhiteboardPlaygroundButton";
 
 export interface NoteEditorProps {
   /** Note ID for result lookup */
@@ -109,13 +109,13 @@ export interface NoteEditorProps {
   /** CSS class name */
   className?: string;
   /** Called when user triggers "Run" on a Whiteboard Script block */
-  onStartWorkout?: (block: WodBlock) => void;
+  onStartWorkout?: (block: ScriptBlock) => void;
   /** Called when a workout is completed with the results */
-  onCompleteWorkout?: (blockId: string, results: WodBlock["results"]) => void;
+  onCompleteWorkout?: (blockId: string, results: ScriptBlock["results"]) => void;
   /** Called when Whiteboard Script blocks change */
-  onBlocksChange?: (blocks: WodBlock[]) => void;
+  onBlocksChange?: (blocks: ScriptBlock[]) => void;
   /** Called when user triggers "Add to Plan" on a Whiteboard Script block */
-  onAddToPlan?: (block: WodBlock) => void;
+  onAddToPlan?: (block: ScriptBlock) => void;
   /** Called when user wants to review a specific result (for custom routing/popups) */
   onOpenReview?: (result: WorkoutResult) => void;
   /** In-memory results fallback (for non-persistent sessions) */
@@ -142,7 +142,7 @@ export interface NoteEditorProps {
    * (those are still accepted for backward compatibility when commands is omitted).
    */
   hideDefaultCommands?: boolean;
-  commands?: WodCommand[];
+  commands?: ScriptCommand[];
   /**
    * When true (default), clicking "Run" opens an inline runtime panel below
    * the WOD block instead of calling onStartWorkout / navigating to the track
@@ -222,7 +222,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const overlayState = useOverlayWidthState(sections, effectiveActiveSectionId);
 
   // Full-screen timer block: when set, the FullscreenTimer overlay is shown.
-  const [fullscreenTimerBlock, setFullscreenTimerBlock] = useState<WodBlock | null>(null);
+  const [fullscreenTimerBlock, setFullscreenTimerBlock] = useState<ScriptBlock | null>(null);
 
   // Full-screen review segments: when set, the FullscreenReview overlay is shown.
   const [fullscreenReviewSegments, setFullscreenReviewSegments] = useState<Segment[] | null>(null);
@@ -231,7 +231,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const [autoStartFullscreen, setAutoStartFullscreen] = useState(false);
 
   // Toggle the full-screen timer for the given WOD block (Run button).
-  const handleRun = useCallback((block: WodBlock, autoStart = false) => {
+  const handleRun = useCallback((block: ScriptBlock, autoStart = false) => {
     setAutoStartFullscreen(autoStart);
     setFullscreenTimerBlock(block);
   }, []);
@@ -243,7 +243,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   }, []);
 
   // Intercept selection from Chromecast to start the inline runtime with auto-start.
-  const handleCastSelectBlock = useCallback((block: WodBlock) => {
+  const handleCastSelectBlock = useCallback((block: ScriptBlock) => {
     if (enableInlineRuntime) {
       handleRun(block, true);
     }
@@ -253,7 +253,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   // wodResultsField so the inline results bar updates without waiting for a DB
   // round-trip, then forward to the parent's onCompleteWorkout callback.
   const handleCompleteWorkout = useCallback(
-    (blockId: string, results: WodBlock["results"]) => {
+    (blockId: string, results: ScriptBlock["results"]) => {
       if (results && viewRef.current) {
         const view = viewRef.current;
         const now = results.endTime || Date.now();
@@ -374,10 +374,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   // synthesize from legacy onStartWorkout / onAddToPlan for backward compat.
   // When enableInlineRuntime is true the "Run" command uses handleRun
   // instead of routing via onStartWorkout.
-  const effectiveCommands = useMemo<WodCommand[]>(() => {
+  const effectiveCommands = useMemo<ScriptCommand[]>(() => {
     if (hideDefaultCommands) return [];
     if (commands && commands.length > 0) return commands;
-    const synthesized: WodCommand[] = [];
+    const synthesized: ScriptCommand[] = [];
     if (enableInlineRuntime) {
       // Full-screen run: open FullscreenTimer panel
       synthesized.push({
@@ -727,7 +727,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const renderSlot = (props: OverlaySlotProps) => {
     if (props.sectionType === "wod") {
       return (
-        <WodCompanion
+        <WhiteboardCompanion
           noteId={noteId}
           sectionId={props.sectionId}
           view={props.view}
@@ -828,8 +828,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
 // ---------- Helpers ----------
 
-/** Convert an EditorSection to a WodBlock for callback compatibility */
-function sectionToWodBlock(section: EditorSection, state: EditorState): WodBlock | null {
+/** Convert an EditorSection to a ScriptBlock for callback compatibility */
+function sectionToScriptBlock(section: EditorSection, state: EditorState): ScriptBlock | null {
   if (section.type !== "wod") return null;
 
   const content =
@@ -840,7 +840,7 @@ function sectionToWodBlock(section: EditorSection, state: EditorState): WodBlock
   return {
     id: section.id,
     dialect: section.dialect || "wod",
-    startLine: section.startLine - 1, // Convert to 0-indexed for WodBlock compat
+    startLine: section.startLine - 1, // Convert to 0-indexed for ScriptBlock compat
     endLine: section.endLine - 1,
     content,
     state: "idle",
@@ -850,19 +850,19 @@ function sectionToWodBlock(section: EditorSection, state: EditorState): WodBlock
   };
 }
 
-/** Notify parent of block changes by extracting WodBlocks from section state */
+/** Notify parent of block changes by extracting ScriptBlocks from section state */
 let lastBlocksJson = "";
 function notifyBlockChanges(
   state: EditorState,
-  onBlocksChange?: (blocks: WodBlock[]) => void
+  onBlocksChange?: (blocks: ScriptBlock[]) => void
 ) {
   if (!onBlocksChange) return;
 
   const sectionState: SectionState = state.field(sectionField);
   const blocks = sectionState.sections
     .filter((s) => s.type === "wod")
-    .map((s) => sectionToWodBlock(s, state))
-    .filter((b): b is WodBlock => b !== null);
+    .map((s) => sectionToScriptBlock(s, state))
+    .filter((b): b is ScriptBlock => b !== null);
 
   const blocksJson = JSON.stringify(
     blocks.map((b) => ({ id: b.id, startLine: b.startLine, endLine: b.endLine }))

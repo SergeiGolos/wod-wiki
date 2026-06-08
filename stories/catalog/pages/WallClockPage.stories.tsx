@@ -1,7 +1,7 @@
 /**
- * Catalog / Pages / TrackerPage
+ * Catalog / Pages / WallClockPage
  *
- * Renders: {@link import('../../../playground/src/pages/TrackerPage').TrackerPage}
+ * Renders: {@link import('../../../playground/src/pages/WallClockPage').WallClockPage}
  *
  * Stories:
  *  1. NoRuntime — error state when no pending runtime exists
@@ -9,11 +9,11 @@
 
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { TrackerPage } from '../../../playground/src/pages/TrackerPage';
+import { WallClockPage } from '../../../playground/src/pages/WallClockPage';
 
-const meta: Meta<typeof TrackerPage> = {
-  title: 'catalog/pages/TrackerPage',
-  component: TrackerPage,
+const meta: Meta<typeof WallClockPage> = {
+  title: 'catalog/pages/WallClockPage',
+  component: WallClockPage,
   parameters: {
     layout: 'fullscreen',
     router: { initialEntries: ['/tracker/test-runtime-id'] },
@@ -33,7 +33,7 @@ export default meta;
  * When no pending runtime exists the page shows an error message.
  * This is the only state that can be rendered without a real runtime.
  */
-export const NoRuntime: StoryObj<typeof TrackerPage> = {
+export const NoRuntime: StoryObj<typeof WallClockPage> = {
   name: 'No Runtime (error state)',
-  render: () => <TrackerPage />,
+  render: () => <WallClockPage />,
 };

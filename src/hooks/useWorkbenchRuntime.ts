@@ -5,17 +5,17 @@ import { useRuntimeExecution, NextEvent, RegisterEventHandlerAction, UnregisterE
 import type { IEventHandler, IEvent, IScriptRuntime } from './useRuntimeTimer';
 import { audioService } from '@/hooks/useBrowserServices';
 import type { WorkoutEvent } from '@/hooks/useBrowserServices';
-import type { WorkoutResults, WodBlock } from '@/components/Editor/types';
+import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
 import { toStoredOutputStatement } from '@/components/Editor/types';
 
 /**
  * Hook to encapsulate Workbench runtime logic.
  */
-export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>(
+export const useWorkbenchRuntime = <T extends ScriptBlock | null = ScriptBlock | null>(
     _viewMode: string,
     _selectedBlock: T,
     completeWorkout: (results: WorkoutResults) => void,
-    startWorkout: (block: WodBlock) => void
+    startWorkout: (block: ScriptBlock) => void
 ) => {
     const { runtime, initializeRuntime, disposeRuntime } = useRuntimeLifecycle();
     const execution = useRuntimeExecution(runtime);
@@ -124,7 +124,7 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
         }
     }, []);
 
-    const handleStartWorkoutAction = useCallback((block: WodBlock) => {
+    const handleStartWorkoutAction = useCallback((block: ScriptBlock) => {
         startWorkout(block);
     }, [startWorkout]);
 

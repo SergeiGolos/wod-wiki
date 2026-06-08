@@ -120,7 +120,7 @@ export const PlaygroundVariant: Story = {
   render: () => (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground font-mono">
-        replaces WodPlaygroundButton — actions wired at molecule level
+        replaces WhiteboardPlaygroundButton — actions wired at molecule level
       </p>
       <ButtonGroup
         primary={{

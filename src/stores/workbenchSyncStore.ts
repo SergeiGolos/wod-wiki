@@ -25,7 +25,7 @@
 
 import { create } from 'zustand';
 import type { IScriptRuntime, UseRuntimeExecutionReturn } from '@/hooks/useRuntimeTimer';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 import type { IMetric } from '@/core/models/Metric';
@@ -55,7 +55,7 @@ export interface WorkbenchHandles {
   handlePause: () => void;
   handleStop: () => void;
   handleNext: () => void;
-  handleStartWorkoutAction: (block: WodBlock) => void;
+  handleStartWorkoutAction: (block: ScriptBlock) => void;
 }
 
 const noopHandles: WorkbenchHandles = {
@@ -97,7 +97,7 @@ interface WorkbenchSyncState {
 
   // --- Document Structure ---
   documentItems: DocumentItem[];
-  selectedBlock: WodBlock | null;
+  selectedBlock: ScriptBlock | null;
   selectedBlockId: string | null;
 
   // --- Editor Bridge ---
@@ -128,7 +128,7 @@ interface WorkbenchSyncActions {
   setGridViewPreset: (presetId: string) => void;
   setHoveredBlockKey: (key: string | null) => void;
   setDocumentItems: (items: DocumentItem[]) => void;
-  setSelectedBlock: (block: WodBlock | null) => void;
+  setSelectedBlock: (block: ScriptBlock | null) => void;
   setSelectedBlockId: (id: string | null) => void;
   setCursorLine: (line: number) => void;
   setHighlightedLine: (line: number | null) => void;

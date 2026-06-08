@@ -1,5 +1,5 @@
 /**
- * useWodLineResults
+ * useScriptLineResults
  *
  * Extracts per-line execution history from workout results.
  * Matches output logs by `sourceStatementId` (which equals the 1-based
@@ -95,7 +95,7 @@ export function buildLineExecutionSummary(
  *
  * Returns `null` when there is no execution data for the line.
  */
-export function useWodLineResults(
+export function useScriptLineResults(
   results: WorkoutResult[],
   statementId: number | undefined,
 ): LineExecutionSummary | null {

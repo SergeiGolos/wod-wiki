@@ -32,8 +32,8 @@ vi.mock('../../../hooks/useFeedsQueryState', () => ({
   })),
 }));
 
-vi.mock('@/repositories/wod-feeds', () => ({
-  getWodFeeds: () => [
+vi.mock('@/repositories/script-feeds', () => ({
+  getScriptFeeds: () => [
     {
       id: 'daily-wod',
       name: 'Daily WOD',
@@ -52,7 +52,7 @@ vi.mock('@/repositories/wod-feeds', () => ({
       ],
     },
   ],
-  getWodFeed: (slug: string) => {
+  getScriptFeed: (slug: string) => {
     if (slug === 'daily-wod') {
       return {
         id: 'daily-wod',

@@ -19,7 +19,7 @@ const feedModules = import.meta.glob(
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export interface WodFeedItem {
+export interface ScriptFeedItem {
   /** Filename without extension, e.g. "monday-strength" */
   id: string;
   /** Display name derived from filename */
@@ -32,7 +32,7 @@ export interface WodFeedItem {
   path: string;
 }
 
-export interface WodFeed {
+export interface ScriptFeed {
   /** Directory name, e.g. "crossfit-programming" */
   id: string;
   /** Display name, e.g. "CrossFit Programming" */
@@ -42,7 +42,7 @@ export interface WodFeed {
   /** Category slugs parsed from the README front matter `category` field */
   categories: string[];
   /** All feed items sorted by feedDate descending (most recent first) */
-  items: WodFeedItem[];
+  items: ScriptFeedItem[];
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ export function fileToDisplayName(filename: string): string {
 
 // ── Cache ──────────────────────────────────────────────────────────────────
 
-let _feeds: WodFeed[] | null = null;
+let _feeds: ScriptFeed[] | null = null;
 
 // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -108,14 +108,14 @@ let _feeds: WodFeed[] | null = null;
  * Get all WOD feeds derived from markdown/feeds/ subdirectories.
  * Results are memoised after first call (build-time data never changes).
  */
-export function getWodFeeds(): WodFeed[] {
+export function getScriptFeeds(): ScriptFeed[] {
   if (_feeds) return _feeds;
 
   const feedMap = new Map<string, {
     name: string;
     readme?: string;
     categories: string[];
-    items: WodFeedItem[];
+    items: ScriptFeedItem[];
   }>();
 
   const ensureFeed = (id: string) => {
@@ -169,22 +169,22 @@ export function getWodFeeds(): WodFeed[] {
 }
 
 /** Get a single feed by ID. */
-export function getWodFeed(id: string): WodFeed | undefined {
-  return getWodFeeds().find(f => f.id === id);
+export function getScriptFeed(id: string): ScriptFeed | undefined {
+  return getScriptFeeds().find(f => f.id === id);
 }
 
 /** Get a specific item within a feed by date + item id. */
-export function getWodFeedItem(
+export function getScriptFeedItem(
   feedId: string,
   feedDate: string,
   itemId: string,
-): WodFeedItem | undefined {
-  return getWodFeed(feedId)?.items.find(
+): ScriptFeedItem | undefined {
+  return getScriptFeed(feedId)?.items.find(
     i => i.feedDate === feedDate && i.id === itemId,
   );
 }
 
 /** Unique date keys present in a feed, most recent first. */
-export function getFeedDateKeys(feed: WodFeed): string[] {
+export function getFeedDateKeys(feed: ScriptFeed): string[] {
   return Array.from(new Set(feed.items.map(i => i.feedDate))).sort().reverse();
 }

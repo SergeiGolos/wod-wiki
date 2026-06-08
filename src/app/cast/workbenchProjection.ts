@@ -1,7 +1,7 @@
 import { formatTimeMMSS } from '@/lib/formatTime';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 import type { RpcWorkbenchUpdate } from '@/hooks/useCastSignaling';
 
 export function buildReviewProjection(
@@ -62,7 +62,7 @@ export function buildCompletedRuntimeProjection(options: {
 }
 
 export function buildPreviewProjection(
-  selectedBlock: WodBlock | null,
+  selectedBlock: ScriptBlock | null,
   documentItems: DocumentItem[],
 ): RpcWorkbenchUpdate {
   const wodItems = documentItems.filter((item) => item.type === 'wod');
@@ -76,8 +76,8 @@ export function buildPreviewProjection(
 
   const blocks = wodItems.slice(0, 8).map((item) => ({
     id: item.id,
-    title: (item.wodBlock?.content ?? item.content).split('\n')[0].trim().substring(0, 50) || 'Workout',
-    statementCount: item.wodBlock?.statements?.length ?? 0,
+    title: (item.scriptBlock?.content ?? item.content).split('\n')[0].trim().substring(0, 50) || 'Workout',
+    statementCount: item.scriptBlock?.statements?.length ?? 0,
   }));
 
   return {

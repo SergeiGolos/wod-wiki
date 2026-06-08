@@ -1,7 +1,7 @@
 /**
  * RuntimeTimerPanel
  *
- * In-overlay timer UI rendered inside the WodCompanion slot when a runtime
+ * In-overlay timer UI rendered inside the WhiteboardCompanion slot when a runtime
  * is active for a section.
  *
  * Lifecycle:
@@ -20,7 +20,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import type { EditorView } from "@codemirror/view";
-import { TimerDisplay } from "@/panels/timer-panel";
+import { TimerDisplay } from "@/panels/wallclock-panel";
 import { VisualStatePanel } from "@/panels/visual-state-panel";
 import { PanelSizeProvider, usePanelSize } from "@/panels/panel-system/PanelSizeContext";
 import { useScreenMode } from "@/panels/panel-system/useScreenMode";
@@ -28,7 +28,7 @@ import { ScriptRuntimeProvider, useRuntimeExecution, type UseRuntimeExecutionRet
 import type { IScriptRuntime, StackSnapshot } from "@/hooks/useRuntimeTimer";
 import { ChromecastRuntimeSubscription, ChromecastEventProvider, ClockSyncService } from "@/hooks/useCastSignaling";
 import { useWorkbenchSyncStore } from "@/stores/workbenchSyncStore";
-import type { WodBlock, WorkoutResults } from '@/components/Editor/types';
+import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from '@/components/Editor/extensions/gutter-unified';
 import { buildCompletedRuntimeProjection } from "@/app/cast/workbenchProjection";
@@ -46,7 +46,7 @@ export interface RuntimeTimerPanelProps {
    * The WOD block to execute, pinned at the time Run was clicked.
    * `block.startLine` is 0-indexed; gutter base = block.startLine + 1.
    */
-  block: WodBlock;
+  block: ScriptBlock;
   /** The CM6 EditorView — needed to dispatch gutter highlights. Optional for standalone tracker. */
   view?: EditorView;
   /** Called when the user presses Stop (which also closes the panel). */

@@ -1,5 +1,5 @@
 /**
- * timer-panel-chromecast.tsx — Chromecast receiver timer panel.
+ * wallclock-panel-chromecast.tsx — Chromecast receiver timer panel.
  *
  * Thin adapter over the shared browser TimerDisplay.
  * Keeps receiver-specific event dispatch wiring (start/pause/stop/next)
@@ -7,8 +7,8 @@
  */
 
 import React from 'react';
-import { TimerDisplay } from '@/panels/timer-panel';
-import type { TimerDisplayProps } from '@/panels/timer-panel';
+import { TimerDisplay } from '@/panels/wallclock-panel';
+import type { TimerDisplayProps } from '@/panels/wallclock-panel';
 import { useSnapshotBlocks } from '@/runtime/hooks/useStackSnapshot';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
 import type { IRuntimeEventProvider } from '@/runtime/contracts/IRuntimeEventProvider';

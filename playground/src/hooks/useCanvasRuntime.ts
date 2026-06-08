@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import type { WodBlock, WorkoutResults } from '@/components/Editor/types'
+import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResult } from '@/types/storage'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
@@ -14,22 +14,22 @@ type PanelMode = 'editor' | 'running' | 'review'
 interface UseCanvasRuntimeOptions {
   canvasNoteId: string
   navigate: (to: string) => void
-  getBlock: () => WodBlock | null
+  getBlock: () => ScriptBlock | null
 }
 
 export interface UseCanvasRuntimeReturn {
   panelMode: PanelMode
   setPanelMode: (mode: PanelMode) => void
-  viewTimerBlock: WodBlock | null
+  viewTimerBlock: ScriptBlock | null
   reviewSegments: Segment[]
   selectedSegmentIds: Set<number>
   setSelectedSegmentIds: React.Dispatch<React.SetStateAction<Set<number>>>
   persistedResults: WorkoutResult[]
   setPersistedResults: React.Dispatch<React.SetStateAction<WorkoutResult[]>>
   activeViewRuntimeId: string | null
-  fullscreenBlock: WodBlock | null
-  setFullscreenBlock: (block: WodBlock | null) => void
-  launchViewRuntime: (block: WodBlock) => void
+  fullscreenBlock: ScriptBlock | null
+  setFullscreenBlock: (block: ScriptBlock | null) => void
+  launchViewRuntime: (block: ScriptBlock) => void
   closeViewRuntime: () => void
   handleViewComplete: (blockId: string, results: WorkoutResults) => void
   hasActiveViewRuntime: boolean
@@ -43,15 +43,15 @@ export function useCanvasRuntime({
   getBlock,
 }: UseCanvasRuntimeOptions): UseCanvasRuntimeReturn {
   const [panelMode, setPanelMode] = useState<PanelMode>('editor')
-  const [viewTimerBlock, setViewTimerBlock] = useState<WodBlock | null>(null)
+  const [viewTimerBlock, setViewTimerBlock] = useState<ScriptBlock | null>(null)
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<number>>(new Set())
   const [persistedResults, setPersistedResults] = useState<WorkoutResult[]>([])
   const [activeViewRuntimeId, setActiveViewRuntimeId] = useState<string | null>(null)
-  const activeViewBlockRef = useRef<WodBlock | null>(null)
-  const [fullscreenBlock, setFullscreenBlock] = useState<WodBlock | null>(null)
+  const activeViewBlockRef = useRef<ScriptBlock | null>(null)
+  const [fullscreenBlock, setFullscreenBlock] = useState<ScriptBlock | null>(null)
 
-  const launchViewRuntime = useCallback((block: WodBlock) => {
+  const launchViewRuntime = useCallback((block: ScriptBlock) => {
     activeViewBlockRef.current = block
     activeRuntimes.set(block.id, block)
     setActiveViewRuntimeId(uuidv4())

@@ -13,8 +13,8 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import type { EditorView } from "@codemirror/view";
 import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
 import { sectionGeometry as sectionGeometryPlugin, type SectionRect } from '@/components/Editor/extensions/section-geometry';
-import type { WodCommand } from "@/components/Editor/overlays/WodCommand";
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
+import type { ScriptBlock } from '@/components/Editor/types';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/atoms/primitives/button";
 import { ButtonGroup } from "@/components/molecules/ButtonGroup";
@@ -23,8 +23,8 @@ import { TEST_IDS } from "@/testing/contracts/TestIdContract";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-/** Build a WodBlock from section data (matches WodCompanion's buildWodBlock). */
-function buildWodBlock(view: EditorView, section: EditorSection): WodBlock {
+/** Build a ScriptBlock from section data (matches WhiteboardCompanion's buildScriptBlock). */
+function buildScriptBlock(view: EditorView, section: EditorSection): ScriptBlock {
   const content =
     section.contentFrom !== undefined && section.contentTo !== undefined
       ? view.state.doc.sliceString(section.contentFrom, section.contentTo)
@@ -66,8 +66,8 @@ function wrapNodeAsIcon(
 // ── CommandPill ──────────────────────────────────────────────────────
 
 const CommandPill: React.FC<{
-  cmd: WodCommand;
-  block: WodBlock;
+  cmd: ScriptCommand;
+  block: ScriptBlock;
 }> = ({ cmd, block }) => {
   const [splitOk, setSplitOk] = useState(false);
 
@@ -162,7 +162,7 @@ interface InlineCommandBarProps {
   /** The CodeMirror EditorView instance */
   view: EditorView | null;
   /** Command definitions (Run, Playground, Plan, …) */
-  commands: WodCommand[];
+  commands: ScriptCommand[];
 }
 
 /**
@@ -232,7 +232,7 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
         const section = sectionMap.get(rect.sectionId);
         if (!section) return null;
 
-        const block = buildWodBlock(view, section);
+        const block = buildScriptBlock(view, section);
 
         return (
           <div

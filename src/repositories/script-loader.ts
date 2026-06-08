@@ -4,7 +4,7 @@
  */
 const markdownModules = import.meta.glob('../../markdown/**/*.md', { query: '?raw', eager: true, import: 'default' });
 
-export function getWodContent(id: string): string | undefined {
+export function getScriptContent(id: string): string | undefined {
     // Try exact matches in both collections and canvas
     const paths = [
         `../../markdown/collections/${id}.md`,
@@ -24,7 +24,7 @@ export function getWodContent(id: string): string | undefined {
     return entry ? (entry[1] as string) : undefined;
 }
 
-export function getAllWodIds(): string[] {
+export function getAllScriptIds(): string[] {
     return Object.keys(markdownModules).map(path => {
         // Match: ../../markdown/{collections|canvas}/(slug).md
         const match = path.match(/\/markdown\/(?:collections|canvas)\/(.+)\.md$/);

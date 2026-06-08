@@ -28,8 +28,8 @@ vi.mock('../../../hooks/useCollectionsQueryState', () => ({
   }),
 }));
 
-vi.mock('@/repositories/wod-collections', () => ({
-  getWodCollection: vi.fn((slug: string) => {
+vi.mock('@/repositories/script-collections', () => ({
+  getScriptCollection: vi.fn((slug: string) => {
     const mockCollections: Record<string, any> = {
       cardio: {
         id: 'cardio',

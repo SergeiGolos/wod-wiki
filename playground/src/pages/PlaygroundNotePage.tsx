@@ -19,7 +19,7 @@ import {
   createCodeExampleWidgetWrapper,
   createSyntaxGroupWidgetWrapper,
 } from '../components/widgets/widgetWrappers'
-import type { WodBlock } from '@/components/Editor/types'
+import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutResult } from '@/types/storage'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { PlaygroundDBService } from '../services/playgroundDB'
@@ -28,7 +28,7 @@ import { pendingRuntimes } from '../runtimeStore'
 import { runPath } from '../lib/routes'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
-import { useWodBlockCommands } from '../hooks/useWodBlockCommands'
+import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
 import { shareBlock } from '../services/openInPlayground'
 import { appendWorkoutToJournal } from '../services/journalWorkout'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
@@ -86,7 +86,7 @@ export function PlaygroundNotePage({
   }, [onViewCreated])
 
   const handleStartWorkout = useCallback(
-    (block: WodBlock) => {
+    (block: ScriptBlock) => {
       const runtimeId = uuidv4()
       pendingRuntimes.set(runtimeId, { block, noteId })
       navigate(runPath(runtimeId))
@@ -95,7 +95,7 @@ export function PlaygroundNotePage({
   )
 
   const handleAddToToday = useCallback(
-    async (block: WodBlock) => {
+    async (block: ScriptBlock) => {
       try {
         const journalNoteId = await appendWorkoutToJournal({
           workoutName: pageTitle,
@@ -122,10 +122,10 @@ export function PlaygroundNotePage({
     [pageTitle, pageName, navigate],
   )
 
-  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<WodBlock | null>(null)
+  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
 
   const handleScheduleBlock = useCallback(
-    async (block: WodBlock, date: Date) => {
+    async (block: ScriptBlock, date: Date) => {
       const y = date.getFullYear()
       const m = String(date.getMonth() + 1).padStart(2, '0')
       const d = String(date.getDate()).padStart(2, '0')
@@ -155,10 +155,10 @@ export function PlaygroundNotePage({
     [pageTitle, pageName, navigate],
   )
 
-  const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
-  const index = useNotePageNav({ content, wodBlocks, onStartWorkout: handleStartWorkout, results })
+  const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
+  const index = useNotePageNav({ content, scriptBlocks, onStartWorkout: handleStartWorkout, results })
 
-  const commands = useWodBlockCommands('playground', {
+  const commands = useScriptBlockCommands('playground', {
     onPlay: handleStartWorkout,
     onShare: shareBlock,
     onAddToToday: handleAddToToday,
@@ -182,7 +182,7 @@ export function PlaygroundNotePage({
   const handleCodeExampleRun = useCallback(
     (script: string) => {
       // Parse the script as a WOD block and start workout
-      const exampleBlock: WodBlock = {
+      const exampleBlock: ScriptBlock = {
         id: 'code-example-block',
         line: 0,
         endLine: script.split('\n').length,
@@ -211,13 +211,13 @@ export function PlaygroundNotePage({
         navigate(params['route'])
       } else if (action === 'start-workout') {
         // Start the first available wod block
-        const firstBlock = wodBlocks[0]
+        const firstBlock = scriptBlocks[0]
         if (firstBlock) handleStartWorkout(firstBlock)
       } else if (action === 'new-note') {
         navigate('/playground')
       }
     },
-    [navigate, wodBlocks, handleStartWorkout],
+    [navigate, scriptBlocks, handleStartWorkout],
   )
 
   const widgetComponents: WidgetRegistry = useMemo(
@@ -269,7 +269,7 @@ export function PlaygroundNotePage({
             onViewCreated={handleInternalViewCreated}
             theme={theme}
             showLineNumbers={false}
-            onBlocksChange={setWodBlocks}
+            onBlocksChange={setScriptBlocks}
             onButtonAction={handleButtonAction}
             widgetComponents={widgetComponents}
             extendedResults={results}

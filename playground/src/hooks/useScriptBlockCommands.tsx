@@ -1,10 +1,10 @@
 /**
- * useWodBlockCommands — action-matrix hook for WOD block inline command bars.
+ * useScriptBlockCommands — action-matrix hook for WOD block inline command bars.
  *
  * Encodes the full per-context button matrix defined in
  * docs/navbar-wodblock-actions-assessment-2026-05-08.md §1.2.
  *
- * Returns a WodCommand[] containing only the actions permitted by the current
+ * Returns a ScriptCommand[] containing only the actions permitted by the current
  * PageMode whose handler has been supplied. Pages provide only the handlers
  * they can implement; the hook silently omits buttons with no handler.
  *
@@ -24,29 +24,29 @@ import {
   CalendarDaysIcon,
   PencilSquareIcon,
 } from '@heroicons/react/20/solid'
-import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
-import type { WodBlock } from '@/components/Editor/types'
+import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
+import type { ScriptBlock } from '@/components/Editor/types'
 import type { PageMode } from '@/types/content-type'
 
-export interface WodBlockHandlers {
+export interface ScriptBlockHandlers {
   /** Start the workout immediately (navigate to tracker). */
-  onPlay?: (block: WodBlock) => void
+  onPlay?: (block: ScriptBlock) => void
   /** Copy a deep-link URL to this block to the clipboard. */
-  onShare?: (block: WodBlock) => void
+  onShare?: (block: ScriptBlock) => void
   /** Append this block to today's journal entry (no date picker). */
-  onAddToToday?: (block: WodBlock) => void
+  onAddToToday?: (block: ScriptBlock) => void
   /** Open a date picker so the user can schedule the block on any date. */
-  onSchedule?: (block: WodBlock) => void
+  onSchedule?: (block: ScriptBlock) => void
   /** Open the block in a new playground page. */
-  onOpenInPlayground?: (block: WodBlock) => void
+  onOpenInPlayground?: (block: ScriptBlock) => void
 }
 
-export function useWodBlockCommands(
+export function useScriptBlockCommands(
   mode: PageMode,
-  handlers: WodBlockHandlers,
-): WodCommand[] {
+  handlers: ScriptBlockHandlers,
+): ScriptCommand[] {
   return useMemo(() => {
-    const cmds: WodCommand[] = []
+    const cmds: ScriptCommand[] = []
 
     // ── play ─────────────────────────────────────────────────────────────
     if (

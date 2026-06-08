@@ -1,10 +1,10 @@
 /**
- * Integration Stories — Playground/Tracker
+ * Integration Stories — Playground/WallClock
  *
  * Composes the full workout tracker stack:
- *   SidebarLayout → TrackerPage → FullscreenTimer → RuntimeTimerPanel
+ *   SidebarLayout → WallClockPage → FullscreenTimer → RuntimeTimerPanel
  *
- * TrackerPage reads from the in-memory pendingRuntimes store.
+ * WallClockPage reads from the in-memory pendingRuntimes store.
  * Without a pending runtime this story shows the "runtime not found" error state.
  */
 
@@ -14,7 +14,7 @@ import { NavProvider } from '../../../playground/src/nav/NavContext';
 import { buildAppNavTree } from '../../../playground/src/nav/appNavTree';
 import { NavSidebar } from '../../../playground/src/nav/NavSidebar';
 import { SidebarLayout } from '@/templates/SidebarLayout'
-import { TrackerPage } from '../../../playground/src/pages/TrackerPage';
+import { WallClockPage } from '../../../playground/src/pages/WallClockPage';
 
 const AppTrackerShell: React.FC = () => (
   <NavProvider tree={buildAppNavTree(() => {})}>
@@ -23,14 +23,14 @@ const AppTrackerShell: React.FC = () => (
       navbar={<span className="text-sm font-semibold">WOD Wiki</span>}
     >
       <div className="flex flex-col flex-1">
-        <TrackerPage />
+        <WallClockPage />
       </div>
     </SidebarLayout>
   </NavProvider>
 );
 
 const meta: Meta = {
-  title: 'integration/Playground/Tracker',
+  title: 'catalog/integration/PlaygroundWallClock',
   parameters: {
     layout: 'fullscreen',
     router: { initialEntries: ['/tracker/test-runtime-id'] },
@@ -38,7 +38,7 @@ const meta: Meta = {
       description: {
         component:
           'Full-stack integration story for the Playground Tracker page. ' +
-          'Composes SidebarLayout → NavSidebar → TrackerPage. ' +
+          'Composes SidebarLayout → NavSidebar → WallClockPage. ' +
           'Without a pending runtime this shows the error state. ' +
           'In production, a runtime is injected via the pendingRuntimes store.',
       },

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import { RuntimeFactory } from '../RuntimeFactory';
 import { globalParser } from '@/runtime/services/runtimeServices';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 import { MetricType } from '@/core/models/Metric';
 
 describe('RuntimeFactory', () => {
   const factory = new RuntimeFactory(globalParser);
 
-  function makeBlock(content: string, statements?: WodBlock['statements']): WodBlock {
+  function makeBlock(content: string, statements?: ScriptBlock['statements']): ScriptBlock {
     return {
       id: 'test-block',
       startLine: 0,

@@ -9,7 +9,7 @@ import { parse } from '../helpers/parser-test-utils';
 import { MetricType } from '@/core/models/Metric';
 import { CardioDialect } from '@/dialects/CardioDialect';
 
-describe('🟢 Parser: WodDialect Hints', () => {
+describe('🟢 Parser: FenceDialect Hints', () => {
     it('"Strength" → workout.strength + domain.wod hints', () => {
         parse('Strength')
             .roots()[0]

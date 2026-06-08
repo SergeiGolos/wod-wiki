@@ -3,7 +3,7 @@ import { DocumentItem } from '@/components/Editor/utils/documentStructure';
 import { Timer, Hash, Play } from 'lucide-react';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 
-export interface WodIndexPanelProps {
+export interface ScriptIndexPanelProps {
   /** Document structure items */
   items: DocumentItem[];
   
@@ -40,9 +40,9 @@ const getBlockPreview = (content: string): string => {
 };
 
 /**
- * WodIndexPanel - Unified "Index" view
+ * ScriptIndexPanel - Unified "Index" view
  */
-export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
+export const ScriptIndexPanel: React.FC<ScriptIndexPanelProps> = ({
   items,
   activeBlockId,
   highlightedBlockId,
@@ -118,14 +118,14 @@ export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
                         </span>
                         
                         <div className="flex items-center gap-2">
-                          {item.wodBlock?.state && (
+                          {item.scriptBlock?.state && (
                             <span className={`
                               text-[10px] px-1.5 py-0.5 rounded-full
-                              ${item.wodBlock.state === 'parsed' 
+                              ${item.scriptBlock.state === 'parsed' 
                                 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
                                 : 'bg-muted text-muted-foreground'}
                             `}>
-                              {item.wodBlock.state}
+                              {item.scriptBlock.state}
                             </span>
                           )}
 

@@ -7,7 +7,7 @@
  */
 
 import { WorkoutResults } from '../components/Editor/types';
-import { WodBlock } from '../components/Editor/types/section';
+import { ScriptBlock } from '../components/Editor/types/section';
 
 // ---------------------------------------------------------------------------
 // Segment data types — superset of old SectionType + new external sources
@@ -51,10 +51,10 @@ export interface NoteSegment {
     version: number;      // 1, 2, 3…
     noteId: string;       // Parent Note UUID
     dataType: SegmentDataType;
-    data: any;            // Structured JSON payload (e.g. WodBlock)
+    data: any;            // Structured JSON payload (e.g. ScriptBlock)
     rawContent: string;   // Original markdown / source text
     level?: number;       // For headings
-    wodBlock?: WodBlock;  // For WOD sections (carried from legacy)
+    scriptBlock?: ScriptBlock;  // For WOD sections (carried from legacy)
     createdAt: number;    // When this version was saved
 }
 

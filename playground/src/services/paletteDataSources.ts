@@ -9,7 +9,7 @@ import type { PaletteDataSource, PaletteItem } from '@/components/organisms/comm
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { playgroundDB } from './playgroundDB';
 import type { CanvasRoute } from '../canvas/canvasRoutes';
-import type { WodCollection } from '@/repositories/wod-collections';
+import type { ScriptCollection } from '@/repositories/script-collections';
 
 export type WorkoutItem = {
   id: string;
@@ -149,7 +149,7 @@ export { segmentSource } from '@/components/organisms/command-palette/segmentSou
 
 /**
  * Lists every WOD collection as a selectable item.
- * Payload: WodCollection
+ * Payload: ScriptCollection
  */
 export function collectionListSource(): PaletteDataSource {
   return {
@@ -158,8 +158,8 @@ export function collectionListSource(): PaletteDataSource {
     search: async (query) => {
       // Dynamic import keeps import.meta.glob out of the module-load critical path
       // so test environments don't choke on it.
-      const { getWodCollections } = await import('@/repositories/wod-collections');
-      const collections = getWodCollections();
+      const { getScriptCollections } = await import('@/repositories/script-collections');
+      const collections = getScriptCollections();
       const low = query.toLowerCase();
       return collections
         .filter(c => !low || c.name.toLowerCase().includes(low) || c.id.toLowerCase().includes(low))
@@ -176,10 +176,10 @@ export function collectionListSource(): PaletteDataSource {
 }
 
 /**
- * Lists workout items within a single WodCollection.
- * Payload: WodCollectionItem
+ * Lists workout items within a single ScriptCollection.
+ * Payload: ScriptCollectionItem
  */
-export function collectionItemsSource(collection: WodCollection): PaletteDataSource {
+export function collectionItemsSource(collection: ScriptCollection): PaletteDataSource {
   return {
     id: `collection-items:${collection.id}`,
     label: collection.name,
@@ -205,26 +205,26 @@ export function collectionItemsSource(collection: WodCollection): PaletteDataSou
 
 // ── WOD block extraction ──────────────────────────────────────────────────
 
-export interface ExtractedWodBlock {
+export interface ExtractedScriptBlock {
   index: number;
   /** The raw wod/log/plan script inside the fence */
   script: string;
-  /** First non-empty line — used as a short preview label */
   preview: string;
-  /** The dialect: wod | log | plan */
+  /** The dialect: wod | log | plan (whiteboard is accepted as a fence alias and normalized to 'wod') */
   dialect: 'wod' | 'log' | 'plan';
 }
 
 /**
  * Pull every ```wod / ```log / ```plan fenced block out of a markdown string.
  */
-export function extractWodBlocks(markdown: string): ExtractedWodBlock[] {
-  const blocks: ExtractedWodBlock[] = [];
-  const re = /```(wod|log|plan)\r?\n([\s\S]*?)```/gi;
+export function extractScriptBlocks(markdown: string): ExtractedScriptBlock[] {
+  const blocks: ExtractedScriptBlock[] = [];
+  const re = /```(wod|whiteboard|log|plan)\r?\n([\s\S]*?)```/gi;
   let match: RegExpExecArray | null;
   let index = 0;
   while ((match = re.exec(markdown)) !== null) {
-    const dialect = match[1].toLowerCase() as ExtractedWodBlock['dialect'];
+    const rawDialect = match[1].toLowerCase();
+    const dialect = (rawDialect === 'whiteboard' ? 'wod' : rawDialect) as ExtractedScriptBlock['dialect'];
     const script = match[2];
     const preview = script.split('\n').find(l => l.trim())?.trim() ?? '(empty block)';
     blocks.push({ index: index++, script, preview, dialect });
@@ -235,13 +235,13 @@ export function extractWodBlocks(markdown: string): ExtractedWodBlock[] {
 /**
  * Lists extracted WOD blocks from a workout's markdown content.
  * Returns a single "whole workout" option when there is only one block.
- * Payload: ExtractedWodBlock
+ * Payload: ExtractedScriptBlock
  */
-export function wodBlockSource(
+export function scriptBlockSource(
   workoutName: string,
   markdown: string
 ): PaletteDataSource {
-  const blocks = extractWodBlocks(markdown);
+  const blocks = extractScriptBlocks(markdown);
   return {
     id: `wod-blocks:${workoutName}`,
     label: 'WOD Blocks',

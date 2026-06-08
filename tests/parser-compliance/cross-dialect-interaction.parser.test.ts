@@ -2,7 +2,7 @@
  * Parser Compliance: Cross-Dialect Interaction
  *
  * Tests the full dialect stack applied in sequence: UnitsDialect → CrossFitDialect
- * → WodDialect → CardioDialect → YogaDialect → HabitsDialect → ClimbDialect.
+ * → FenceDialect → CardioDialect → YogaDialect → HabitsDialect → ClimbDialect.
  * Validates that multiple dialects can attach hints to the same statement and that
  * selective dialect stacks produce the expected partial output.
  */
@@ -11,7 +11,7 @@ import { parse } from '../helpers/parser-test-utils';
 import { MetricType } from '@/core/models/Metric';
 import { UnitsDialect } from '@/dialects/UnitsDialect';
 import { CardioDialect } from '@/dialects/CardioDialect';
-import { WodDialect } from '@/dialects/WodDialect';
+import { FenceDialect } from '@/dialects/FenceDialect';
 import { CrossFitDialect } from '@/dialects/CrossFitDialect';
 import { YogaDialect } from '@/dialects/YogaDialect';
 

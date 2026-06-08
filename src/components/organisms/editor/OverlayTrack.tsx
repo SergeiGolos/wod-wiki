@@ -57,7 +57,7 @@ export interface OverlaySlotProps {
    */
   stickyTopOffset: number;
   isPanelHovered: boolean;
-  /** Document-space Y midpoint of the cursor/hover line; WodCompanion uses this to center the card. */
+  /** Document-space Y midpoint of the cursor/hover line; WhiteboardCompanion uses this to center the card. */
   lineDocY?: number;
 }
 
@@ -254,7 +254,7 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
           const isPanelHovered = hoverSectionId === rect.sectionId;
 
           // ── For WOD blocks: slot always spans full section height ────
-          // The WodCompanion renders its children (strip + card) using
+          // The WhiteboardCompanion renders its children (strip + card) using
           // absolute positioning within this transparent full-height container.
           let slotTop: number;
           let slotHeight: number;
@@ -296,7 +296,7 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
           const stickyTopOffset = Math.min(rawSticky, Math.max(0, rect.height - STRIP_H));
 
           // lineDocY: document-space Y midpoint of the active cursor or hover line,
-          // only for WOD blocks. WodCompanion uses it to center the metric card.
+          // only for WOD blocks. WhiteboardCompanion uses it to center the metric card.
           let lineDocY: number | undefined;
           if (rect.type === "wod") {
             const refLine = isActive ? cursorLine : hoverLine;

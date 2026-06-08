@@ -21,7 +21,7 @@ import { getHints, hasHint } from '@/core/metrics/hints';
 
 import { UnitsDialect } from '@/dialects/UnitsDialect';
 import { CrossFitDialect } from '@/dialects/CrossFitDialect';
-import { WodDialect } from '@/dialects/WodDialect';
+import { FenceDialect } from '@/dialects/FenceDialect';
 import { CardioDialect } from '@/dialects/CardioDialect';
 import { YogaDialect } from '@/dialects/YogaDialect';
 import { HabitsDialect } from '@/dialects/HabitsDialect';
@@ -33,7 +33,7 @@ import { ClimbDialect } from '@/dialects/ClimbDialect';
 export const ALL_DIALECTS: IDialect[] = [
     new UnitsDialect(),
     new CrossFitDialect(),
-    new WodDialect(),
+    new FenceDialect(),
     new CardioDialect(),
     new YogaDialect(),
     new HabitsDialect(),

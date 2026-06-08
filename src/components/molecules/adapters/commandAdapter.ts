@@ -1,5 +1,5 @@
 import type { Command, CommandPaletteResult } from '@/components/organisms/command-palette/types';
-import type { WodCommand } from '@/components/Editor/overlays/WodCommand';
+import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand';
 import type { IListItem } from '../types';
 
 export function commandToListItem(cmd: Command): IListItem<Command> {
@@ -26,7 +26,7 @@ export function paletteResultToListItem(
   };
 }
 
-export function wodCommandToListItem(cmd: WodCommand): IListItem<WodCommand> {
+export function scriptCommandToListItem(cmd: ScriptCommand): IListItem<ScriptCommand> {
   return {
     id: cmd.id,
     label: cmd.label,

@@ -23,7 +23,7 @@ import type { ICodeStatement } from "@/core/models/CodeStatement";
 import type { EditorSection } from '@/components/Editor/extensions/section-state';
 import { getCursorFocusState } from '@/components/Editor/extensions/cursor-focus-panel';
 import { cn } from "@/lib/utils";
-import type { WodCommand } from "@/components/Editor/overlays/WodCommand";
+import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
 
 // ── Metric display config ────────────────────────────────────────────
 
@@ -148,7 +148,7 @@ export interface MetricInlinePanelProps {
   /** Optional override of getCursorFocusState for testing. */
   getCursorFocusState?: typeof getCursorFocusState;
   /** Commands available on WOD blocks (forwarded to action buttons). */
-  commands?: WodCommand[];
+  commands?: ScriptCommand[];
   /** Note ID (forwarded to commands if needed). */
   noteId?: string;
 }

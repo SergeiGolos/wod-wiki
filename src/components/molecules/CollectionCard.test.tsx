@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import { CollectionCard } from './CollectionCard';
-import type { WodCollectionItem } from '@/repositories/wod-collections';
+import type { ScriptCollectionItem } from '@/repositories/script-collections';
 
 describe('CollectionCard', () => {
   afterEach(() => {
@@ -9,7 +9,7 @@ describe('CollectionCard', () => {
     document.body.innerHTML = '';
   });
 
-  const mockItem: WodCollectionItem = {
+  const mockItem: ScriptCollectionItem = {
     id: 'test-id',
     name: 'Test Workout',
     content: '---\nDifficulty: beginner\nCategory: Cardio\n---\n## Description\nA great workout for beginners.',
@@ -67,7 +67,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithDifficulty: WodCollectionItem = {
+      const itemWithDifficulty: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: advanced\n---\nContent here',
       };
@@ -83,7 +83,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithCategory: WodCollectionItem = {
+      const itemWithCategory: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nCategory: Strength\n---\nContent here',
       };
@@ -99,7 +99,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithType: WodCollectionItem = {
+      const itemWithType: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nType: AMRAP\n---\nContent here',
       };
@@ -115,7 +115,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemLowercase: WodCollectionItem = {
+      const itemLowercase: ScriptCollectionItem = {
         ...mockItem,
         content: '---\ndifficulty: intermediate\ncategory: flexibility\n---\nContent here',
       };
@@ -132,7 +132,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemMixedCase: WodCollectionItem = {
+      const itemMixedCase: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: elite\ncategory: Gymnastics\n---\nContent here',
       };
@@ -149,7 +149,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemNoFrontmatter: WodCollectionItem = {
+      const itemNoFrontmatter: ScriptCollectionItem = {
         ...mockItem,
         content: 'Just plain content without frontmatter',
       };
@@ -174,7 +174,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithDescription: WodCollectionItem = {
+      const itemWithDescription: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: beginner\n---\n## Description\nThis is a detailed description of the workout.\nIt spans multiple lines.',
       };
@@ -191,7 +191,7 @@ describe('CollectionCard', () => {
       };
 
       const longDescription = 'A'.repeat(200);
-      const itemWithLongDescription: WodCollectionItem = {
+      const itemWithLongDescription: ScriptCollectionItem = {
         ...mockItem,
         content: `---\nDifficulty: beginner\n---\n## Description\n${longDescription}`,
       };
@@ -210,7 +210,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithoutDescriptionSection: WodCollectionItem = {
+      const itemWithoutDescriptionSection: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: beginner\n---\nSome content here\nMore content',
       };
@@ -228,7 +228,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemEmptyContent: WodCollectionItem = {
+      const itemEmptyContent: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: beginner\n---',
       };
@@ -249,7 +249,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemBeginner: WodCollectionItem = {
+      const itemBeginner: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: beginner\n---\nContent',
       };
@@ -269,7 +269,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemIntermediate: WodCollectionItem = {
+      const itemIntermediate: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: intermediate\n---\nContent',
       };
@@ -289,7 +289,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemAdvanced: WodCollectionItem = {
+      const itemAdvanced: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: advanced\n---\nContent',
       };
@@ -309,7 +309,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemElite: WodCollectionItem = {
+      const itemElite: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: elite\n---\nContent',
       };
@@ -329,7 +329,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemUnknown: WodCollectionItem = {
+      const itemUnknown: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: unknown-level\n---\nContent',
       };
@@ -351,7 +351,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithCategory: WodCollectionItem = {
+      const itemWithCategory: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nCategory: Cardio\n---\nContent',
       };
@@ -371,7 +371,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithType: WodCollectionItem = {
+      const itemWithType: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nType: HIIT\n---\nContent',
       };
@@ -391,7 +391,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithMultiple: WodCollectionItem = {
+      const itemWithMultiple: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nCategory: Strength\nType: AMRAP\nDifficulty: advanced\n---\nContent',
       };
@@ -411,7 +411,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithYoutube: WodCollectionItem = {
+      const itemWithYoutube: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: beginner\nyoutube: https://www.youtube.com/watch?v=dQw4w9WgXcQ\n---\nContent here',
       };
@@ -433,7 +433,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithAmazon: WodCollectionItem = {
+      const itemWithAmazon: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: beginner\namazon: https://www.amazon.com/dp/B08N5WRWNW\n---\nContent here',
       };
@@ -453,7 +453,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithWebsite: WodCollectionItem = {
+      const itemWithWebsite: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: beginner\nwebsite: https://example.com\n---\nContent here',
       };
@@ -469,7 +469,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithSource: WodCollectionItem = {
+      const itemWithSource: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: beginner\nsource_url: https://source.com\n---\nContent here',
       };
@@ -485,7 +485,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithBook: WodCollectionItem = {
+      const itemWithBook: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: beginner\nbook: Kettlebell Simple \u0026 Sinister\n---\nContent here',
       };
@@ -515,7 +515,7 @@ describe('CollectionCard', () => {
         cardClicked = true;
       };
 
-      const itemWithLinks: WodCollectionItem = {
+      const itemWithLinks: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: beginner\nyoutube: https://www.youtube.com/watch?v=dQw4w9WgXcQ\n---\nContent here',
       };
@@ -537,7 +537,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithMultipleLinks: WodCollectionItem = {
+      const itemWithMultipleLinks: ScriptCollectionItem = {
         ...mockItem,
         content:
           '---\nDifficulty: beginner\nyoutube: https://www.youtube.com/watch?v=dQw4w9WgXcQ\namazon: https://www.amazon.com/dp/B08N5WRWNW\nwebsite: https://example.com\n---\nContent here',
@@ -658,7 +658,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemEmptyFrontmatter: WodCollectionItem = {
+      const itemEmptyFrontmatter: ScriptCollectionItem = {
         ...mockItem,
         content: '---\n---\nContent here',
       };
@@ -677,7 +677,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemOnlyFrontmatter: WodCollectionItem = {
+      const itemOnlyFrontmatter: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: beginner\n---',
       };
@@ -698,7 +698,7 @@ describe('CollectionCard', () => {
         clicked = true;
       };
 
-      const itemWithSpecialChars: WodCollectionItem = {
+      const itemWithSpecialChars: ScriptCollectionItem = {
         ...mockItem,
         content: '---\nDifficulty: beginner\n---\n## Description\nWorkout with **bold** and *italic* text.',
       };
@@ -716,7 +716,7 @@ describe('CollectionCard', () => {
       };
 
       const longName = 'A'.repeat(200);
-      const itemWithLongName: WodCollectionItem = {
+      const itemWithLongName: ScriptCollectionItem = {
         ...mockItem,
         name: longName,
         content: '---\nDifficulty: beginner\n---\nContent',

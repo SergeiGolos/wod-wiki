@@ -25,7 +25,7 @@ export interface ParseResult {
  * @param content - The WOD block content to parse
  * @returns ParseResult with statements, errors, and success flag
  */
-export function parseWodBlock(
+export function parseScriptBlock(
   content: string
 ): ParseResult {
   // Handle empty content

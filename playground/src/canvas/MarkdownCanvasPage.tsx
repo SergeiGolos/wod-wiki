@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Play } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import type { EditorView } from '@codemirror/view'
-import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
+import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
@@ -35,7 +35,7 @@ import { getSectionTheme, getSectionThemeStyles } from './canvasSectionUtils'
 import { pipelineStepToNavAction, executeNavAction } from '../nav/navTypes'
 import type { NavActionDeps } from '../nav/navTypes'
 import type { ParsedCanvasPage, CanvasSection } from './parseCanvasMarkdown'
-import type { WodBlock } from '@/components/Editor/types'
+import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { notePersistence } from '@/services/persistence'
 
@@ -119,7 +119,7 @@ export function MarkdownCanvasPage({
   wodFilesRef.current = wodFiles
 
   // Runtime hook
-  const getBlock = useCallback(() => wodBlocksRef.current[0] ?? null, [])
+  const getBlock = useCallback(() => scriptBlocksRef.current[0] ?? null, [])
   const runtime = useCanvasRuntime({ canvasNoteId, navigate, getBlock })
 
   // Persisted results loading
@@ -196,8 +196,8 @@ export function MarkdownCanvasPage({
     }
   }, [contentOverride, swapSource])
 
-  // WodBlocks ref
-  const wodBlocksRef = useRef<WodBlock[]>([])
+  // ScriptBlocks ref
+  const scriptBlocksRef = useRef<ScriptBlock[]>([])
 
   // Activate section
   const activateSection = useCallback((section: CanvasSection) => {
@@ -319,7 +319,7 @@ export function MarkdownCanvasPage({
   useEffect(() => {
     onPanelActionsReadyRef.current?.({
       run: () => {
-        const block = wodBlocksRef.current[0] ?? null
+        const block = scriptBlocksRef.current[0] ?? null
         if (!block) return
         if (isMobile && blockHasTimer(block)) {
           runtime.setFullscreenBlock(block)
@@ -330,7 +330,7 @@ export function MarkdownCanvasPage({
       reset: () => runtime.closeViewRuntime(),
       results: () => runtime.setPanelMode('review'),
       fullscreen: () => {
-        const block = wodBlocksRef.current[0] ?? null
+        const block = scriptBlocksRef.current[0] ?? null
         if (block) runtime.setFullscreenBlock(block)
       },
       getSource: () => editorSourceRef.current,
@@ -338,7 +338,7 @@ export function MarkdownCanvasPage({
   }, [runtime, isMobile])
 
   // Commands for InlineCommandBar on wod blocks
-  const canvasCommands = useMemo<WodCommand[]>(() => [
+  const canvasCommands = useMemo<ScriptCommand[]>(() => [
     {
       id: 'run',
       label: 'Run',
@@ -435,7 +435,7 @@ export function MarkdownCanvasPage({
             noteId={canvasNoteId}
             value={editorSource}
             onChange={handleEditorChange}
-            onBlocksChange={(blocks) => { wodBlocksRef.current = blocks }}
+            onBlocksChange={(blocks) => { scriptBlocksRef.current = blocks }}
             onViewCreated={(view) => { editorViewRef.current = view }}
             activeSectionId={activeSectionId}
             theme={theme}
@@ -462,7 +462,7 @@ export function MarkdownCanvasPage({
     return {
       ...base,
       onRun: () => {
-        const block = wodBlocksRef.current[0]
+        const block = scriptBlocksRef.current[0]
         if (block && blockHasTimer(block)) {
           runtime.setFullscreenBlock(block)
         } else {

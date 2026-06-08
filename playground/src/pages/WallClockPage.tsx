@@ -1,5 +1,5 @@
 /**
- * TrackerPage — /run/:runtimeId
+ * WallClockPage — /run/:runtimeId
  *
  * Runs a workout from a pending runtime stored in the in-memory pendingRuntimes
  * map. On completion the result is persisted to IndexedDB and the user is
@@ -13,7 +13,7 @@ import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import { notePersistence } from '@/services/persistence'
 import { pendingRuntimes } from '../runtimeStore'
 
-export function TrackerPage() {
+export function WallClockPage() {
   const { runtimeId } = useParams<{ runtimeId: string }>()
   const navigate = useNavigate()
   const pendingRef = useRef(runtimeId ? pendingRuntimes.get(runtimeId) : undefined)

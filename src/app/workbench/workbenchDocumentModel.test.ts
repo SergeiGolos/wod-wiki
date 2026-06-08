@@ -33,7 +33,7 @@ describe('deriveWorkbenchDocumentState', () => {
     // Parse again using prior sections — blocks already have statements
     const second = deriveWorkbenchDocumentState(content, first.sections);
 
-    // Statements should still be present (short-circuit return in hydrateWodBlock)
+    // Statements should still be present (short-circuit return in hydrateScriptBlock)
     expect(second.blocks).toHaveLength(1);
     expect(second.blocks[0].statements?.length).toBeGreaterThan(0);
     expect(second.blocks[0].state).toBe('parsed');

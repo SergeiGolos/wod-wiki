@@ -7,7 +7,7 @@
 
 import { useMemo, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getWodFeed } from '@/repositories/wod-feeds';
+import { getScriptFeed } from '@/repositories/script-feeds';
 import { playgroundDB } from '../services/playgroundDB';
 import { localDateKey } from '../views/queriable-list/JournalDateScroll';
 import type { JournalEntrySummary } from '../views/queriable-list/JournalDateScroll';
@@ -26,7 +26,7 @@ export function FeedDetailPage({ feedSlug }: FeedDetailPageProps) {
   const { dateParam } = useFeedsQueryState();
   const focusedDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : null;
 
-  const feed = useMemo(() => getWodFeed(feedSlug), [feedSlug]);
+  const feed = useMemo(() => getScriptFeed(feedSlug), [feedSlug]);
 
   // ── Load journal entries for this feed's dates ────────────────────────────
 

@@ -1,7 +1,7 @@
 /**
  * decodeZip — Decode a gzip+base64 (URL-safe) string back to plain text.
  *
- * Uses the same encoding as WodPlaygroundButton / StorybookWorkbench:
+ * Uses the same encoding as WhiteboardPlaygroundButton / StorybookWorkbench:
  *   encode: raw bytes → gzip → base64 → URL-safe (+-/= → -_<empty>)
  *   decode: reverse
  *

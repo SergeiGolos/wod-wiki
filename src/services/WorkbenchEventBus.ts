@@ -1,4 +1,4 @@
-import { WodBlock } from '../components/Editor/types';
+import { ScriptBlock } from '../components/Editor/types';
 import { SimpleEventBus } from './events/SimpleEventBus';
 
 export enum WorkbenchEvent {
@@ -28,7 +28,7 @@ export interface HighlightBlockPayload {
 }
 
 export interface StartWorkoutPayload {
-    block: WodBlock;
+    block: ScriptBlock;
 }
 
 export type WorkbenchEventPayload =
@@ -51,7 +51,7 @@ class WorkbenchEventBus {
         this.bus.emit({ type: WorkbenchEvent.HIGHLIGHT_BLOCK, payload: { blockId, source } });
     }
 
-    emitStartWorkout(block: WodBlock) {
+    emitStartWorkout(block: ScriptBlock) {
         this.bus.emit({ type: WorkbenchEvent.START_WORKOUT, payload: { block } });
     }
 

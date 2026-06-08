@@ -1,5 +1,5 @@
 /**
- * WodCompanion
+ * WhiteboardCompanion
  *
  * Overlay companion for wod / log / plan fenced code blocks.
  *
@@ -21,11 +21,11 @@ import { MetricType } from "@/core/models/Metric";
 import { MdTimerRuntime } from "@/hooks/useRuntimeParser";
 import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
 import { cn } from "@/lib/utils";
-import type { WodBlock } from '@/components/Editor/types';
-import type { WodCommand } from "@/components/Editor/overlays/WodCommand";
-import { useWodBlockResults } from '@/components/Editor/hooks/useWodBlockResults';
-import { useWodLineResults } from '@/components/Editor/hooks/useWodLineResults';
-import type { LineExecutionSummary } from '@/components/Editor/hooks/useWodLineResults';
+import type { ScriptBlock } from '@/components/Editor/types';
+import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
+import { useScriptBlockResults } from '@/components/Editor/hooks/useScriptBlockResults';
+import { useScriptLineResults } from '@/components/Editor/hooks/useScriptLineResults';
+import type { LineExecutionSummary } from '@/components/Editor/hooks/useScriptLineResults';
 import { History, Activity } from "lucide-react";
 import { Button } from "@/components/atoms/primitives/button";
 import { ButtonGroup } from "@/components/molecules/ButtonGroup";
@@ -156,7 +156,7 @@ const LineExecutionSummaryCard: React.FC<{ summary: LineExecutionSummary }> = ({
 
 // ── Block resolver ────────────────────────────────────────────────────
 
-function buildWodBlock(view: EditorView, section: EditorSection): WodBlock {
+function buildScriptBlock(view: EditorView, section: EditorSection): ScriptBlock {
   const content =
     section.contentFrom !== undefined && section.contentTo !== undefined
       ? view.state.doc.sliceString(section.contentFrom, section.contentTo)
@@ -192,10 +192,10 @@ function wrapNodeAsIcon(
 }
 
 // ── CommandPill ───────────────────────────────────────────────────────
-/** Renders a single WodCommand as a Button or ButtonGroup molecule. */
+/** Renders a single ScriptCommand as a Button or ButtonGroup molecule. */
 const CommandPill: React.FC<{
-  cmd: WodCommand;
-  block: WodBlock;
+  cmd: ScriptCommand;
+  block: ScriptBlock;
 }> = ({ cmd, block }) => {
   const [splitOk, setSplitOk] = useState(false);
 
@@ -280,14 +280,14 @@ const CommandPill: React.FC<{
  * Labels are hidden on small screens via `hidden sm:inline` inside CommandPill.
  */
 const CommandButtons: React.FC<{
-  commands: WodCommand[];
+  commands: ScriptCommand[];
   section: EditorSection;
   view: EditorView;
   compact?: boolean;
 }> = ({ commands, section, view, compact }) => {
   if (!commands.length) return null;
 
-  const block = buildWodBlock(view, section);
+  const block = buildScriptBlock(view, section);
 
   if (compact) {
     return (
@@ -310,7 +310,7 @@ const CommandButtons: React.FC<{
 
 // ── Main component ───────────────────────────────────────────────────
 
-export interface WodCompanionProps {
+export interface WhiteboardCompanionProps {
   /** Note ID for results lookup */
   noteId?: string;
   sectionId: string;
@@ -332,12 +332,12 @@ export interface WodCompanionProps {
   /** Increments on every document change — forces re-parse on content edits. */
   docVersion: number;
   /** Commands to display as action buttons. */
-  commands: WodCommand[];
+  commands: ScriptCommand[];
   /** In-memory results fallback */
   extendedResults?: any[];
 }
 
-export const WodCompanion: React.FC<WodCompanionProps> = ({
+export const WhiteboardCompanion: React.FC<WhiteboardCompanionProps> = ({
   noteId: propNoteId,
   sectionId,
   view,
@@ -353,7 +353,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
   extendedResults,
 }) => {
   const noteId = propNoteId || (view.state as any).noteId || "current";
-  const { results } = useWodBlockResults(noteId, sectionId, extendedResults);
+  const { results } = useScriptBlockResults(noteId, sectionId, extendedResults);
 
   const section = useMemo(
     () => getSection(view, sectionId),
@@ -401,7 +401,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
     [activeStatement],
   );
 
-  const lineSummary = useWodLineResults(results, activeStatement?.id);
+  const lineSummary = useScriptLineResults(results, activeStatement?.id);
 
   if (!section) return null;
 

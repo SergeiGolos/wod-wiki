@@ -10,7 +10,7 @@
 
 import { createContext } from 'react';
 import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 
 /**
  * Runtime lifecycle context state interface
@@ -26,7 +26,7 @@ export interface RuntimeLifecycleState {
   error: Error | null;
   
   /** Initialize a new runtime for the given block */
-  initializeRuntime: (block: WodBlock) => void;
+  initializeRuntime: (block: ScriptBlock) => void;
   
   /** Dispose the current runtime */
   disposeRuntime: () => void;

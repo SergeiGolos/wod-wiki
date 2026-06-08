@@ -32,7 +32,7 @@ describe('chromecast panel adapters', () => {
   });
 
   it('ReceiverTimerPanel delegates to shared TimerDisplay and forwards events via provider', async () => {
-    const { ReceiverTimerPanel } = await import('../timer-panel-chromecast');
+    const { ReceiverTimerPanel } = await import('../wallclock-panel-chromecast');
     const dispatch = mock(() => {});
 
     render(

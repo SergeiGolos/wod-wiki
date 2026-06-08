@@ -17,7 +17,7 @@ import { RuntimeAdapter, RuntimeLogger } from '@/hooks/useRuntimeDebug';
 import type { IScriptRuntime } from '@/hooks/useRuntimeTimer';
 import type { MemoryEntry } from '@/hooks/useRuntimeDebug';
 import { WorkoutContextPanel } from './WorkoutContextPanel';
-import { WodBlock } from '@/components/Editor/types';
+import { ScriptBlock } from '@/components/Editor/types';
 import { MemoryValueDialog, useMemoryValueDialog } from '@/components/molecules/MemoryValuePopover';
 
 type DebugTab = 'parser' | 'stack';
@@ -47,7 +47,7 @@ export interface RuntimeDebugPanelProps {
   className?: string;
 
   /** Active workout block for context panel */
-  activeBlock?: WodBlock | null;
+  activeBlock?: ScriptBlock | null;
 
   /** Active statement IDs for highlighting in context panel */
   activeStatementIds?: Set<number>;

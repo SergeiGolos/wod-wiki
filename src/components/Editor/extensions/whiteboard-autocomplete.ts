@@ -31,6 +31,13 @@ const DIALECTS: Completion[] = [
     boost: 3,
   },
   {
+    label: "```whiteboard",
+    displayLabel: "whiteboard — Whiteboard Script (alias for wod)",
+    type: "keyword",
+    apply: "```whiteboard\n${}\n```",
+    boost: 2,
+  },
+  {
     label: "```log",
     displayLabel: "log — Workout log",
     type: "keyword",

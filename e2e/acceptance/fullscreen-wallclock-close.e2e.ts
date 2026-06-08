@@ -15,7 +15,7 @@ const STORY_URL =
   '/iframe.html?id=catalog-organisms-fullscreentimer--simple-timer&viewMode=story';
 const STORY_LOAD_TIMEOUT_MS = 20000;
 
-test.describe('FullscreenTimer — Close button (Ready to Start)', () => {
+test.describe('FullscreenWallClock — Close button (Ready to Start)', () => {
   test('dismisses the runner overlay when Close is clicked in the Ready state', async ({ page }) => {
     await page.goto(STORY_URL, { waitUntil: 'networkidle', timeout: STORY_LOAD_TIMEOUT_MS });
 

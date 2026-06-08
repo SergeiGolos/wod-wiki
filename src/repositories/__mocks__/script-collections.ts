@@ -4,23 +4,23 @@
 
 import { vi } from 'vitest';
 
-export interface WodCollectionItem {
+export interface ScriptCollectionItem {
   id: string;
   name: string;
   content: string;
   path: string;
 }
 
-export interface WodCollection {
+export interface ScriptCollection {
   id: string;
   name: string;
   count: number;
-  items: WodCollectionItem[];
+  items: ScriptCollectionItem[];
   readme?: string;
   categories: string[];
 }
 
-const mockCollections: Record<string, WodCollection> = {
+const mockCollections: Record<string, ScriptCollection> = {
   cardio: {
     id: 'cardio',
     name: 'Cardio Workouts',
@@ -43,7 +43,7 @@ const mockCollections: Record<string, WodCollection> = {
   },
 };
 
-export const getWodCollection = vi.fn((slug: string): WodCollection | null => {
+export const getScriptCollection = vi.fn((slug: string): ScriptCollection | null => {
   return mockCollections[slug] || null;
 });
 

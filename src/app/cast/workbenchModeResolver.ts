@@ -1,5 +1,5 @@
 import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 import type { ExecutionStatus } from '@/runtime/hooks/useRuntimeExecution';
@@ -11,7 +11,7 @@ export interface WorkbenchModeResolverState {
   readonly executionStatus: ExecutionStatus;
   readonly runtime: unknown | null;
   readonly analyticsSegments: Segment[];
-  readonly selectedBlock: WodBlock | null;
+  readonly selectedBlock: ScriptBlock | null;
   readonly documentItems: DocumentItem[];
 }
 

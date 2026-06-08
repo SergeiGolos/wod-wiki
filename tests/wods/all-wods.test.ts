@@ -22,7 +22,7 @@ function findMarkdownFiles(dir: string, fileList: string[] = []): string[] {
 /**
  * Extract WOD blocks from markdown content.
  */
-function extractWodBlocks(content: string): string[] {
+function extractScriptBlocks(content: string): string[] {
     const blocks: string[] = [];
     const startMarker = '```wod';
     const endMarker = '```';
@@ -50,7 +50,7 @@ describe('WOD Integration Tests', () => {
     for (const file of mdFiles) {
         const relativePath = relative(wodDir, file);
         const content = readFileSync(file, 'utf-8');
-        const wods = extractWodBlocks(content);
+        const wods = extractScriptBlocks(content);
 
         if (wods.length === 0) continue;
 

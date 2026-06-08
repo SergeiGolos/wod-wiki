@@ -15,7 +15,7 @@ import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import { FullscreenReview } from '@/components/organisms/review/FullscreenReview'
 import { JournalPageShell } from '@/panels/page-shells'
-import type { WodBlock } from '@/components/Editor/types'
+import type { ScriptBlock } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResult } from '@/types/storage'
 import { indexedDBService } from '@/services/db/IndexedDBService'
@@ -25,7 +25,7 @@ import { pendingRuntimes } from '../runtimeStore'
 // NotePageActions replaced by PageActions (see navbar-wodblock-actions-assessment-2026-05-08.md)
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
-import { useWodBlockCommands } from '../hooks/useWodBlockCommands'
+import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
 import { derivePageMode } from '@/types/content-type'
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground'
 import { appendWorkoutToJournal } from '../services/journalWorkout'
@@ -57,7 +57,7 @@ export function JournalPage({
   const [searchParams, setSearchParams] = useSearchParams()
   const [isTimerOpen, setIsTimerOpen] = useState(false)
   const [isReviewOpen, setIsReviewOpen] = useState(false)
-  const [timerBlock, setTimerBlock] = useState<WodBlock | null>(null)
+  const [timerBlock, setTimerBlock] = useState<ScriptBlock | null>(null)
   const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null)
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
   const [results, setResults] = useState<WorkoutResult[]>([])
@@ -111,7 +111,7 @@ export function JournalPage({
   }, [onViewCreated])
 
   const handleStartWorkout = useCallback(
-    (block: WodBlock) => {
+    (block: ScriptBlock) => {
       setTimerBlock(block)
       setActiveRuntimeId(uuidv4())
       setIsTimerOpen(true)
@@ -151,18 +151,18 @@ export function JournalPage({
     setReviewSegments([])
   }, [])
 
-  const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
+  const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
   const index = useNotePageNav({
     content,
-    wodBlocks,
+    scriptBlocks,
     onStartWorkout: handleStartWorkout,
     results,
   })
 
-  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<WodBlock | null>(null)
+  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
 
   const handleScheduleBlock = useCallback(
-    async (block: WodBlock, date: Date) => {
+    async (block: ScriptBlock, date: Date) => {
       const y = date.getFullYear()
       const m = String(date.getMonth() + 1).padStart(2, '0')
       const d = String(date.getDate()).padStart(2, '0')
@@ -192,7 +192,7 @@ export function JournalPage({
     [noteId, navigate],
   )
 
-  const commands = useWodBlockCommands(mode, {
+  const commands = useScriptBlockCommands(mode, {
     onPlay: mode === 'journal-active' ? handleStartWorkout : undefined,
     onShare: shareBlock,
     onOpenInPlayground: mode === 'journal-plan'
@@ -235,7 +235,7 @@ export function JournalPage({
             onViewCreated={handleInternalViewCreated}
             theme={theme}
             showLineNumbers={false}
-            onBlocksChange={setWodBlocks}
+            onBlocksChange={setScriptBlocks}
             extendedResults={results}
           />
         }

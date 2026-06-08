@@ -11,8 +11,8 @@ interface SavedPage {
 const savedPages: SavedPage[] = [];
 const existingPages = new Map<string, SavedPage>();
 
-mock.module('@/repositories/wod-collections', () => ({
-  getWodCollection: (id: string) => {
+mock.module('@/repositories/script-collections', () => ({
+  getScriptCollection: (id: string) => {
     if (id === 'crossfit-games-2021') {
       return {
         id: 'crossfit-games-2021',
@@ -29,7 +29,7 @@ mock.module('@/repositories/wod-collections', () => ({
 
     return undefined;
   },
-  getWodCollections: () => [],
+  getScriptCollections: () => [],
 }));
 
 mock.module('./playgroundDB', () => ({

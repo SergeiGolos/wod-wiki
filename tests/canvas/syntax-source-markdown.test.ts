@@ -69,7 +69,7 @@ function resolveDslPath(dslPath: string): string {
   return path.join(repoRoot, 'markdown', dslPath)
 }
 
-function extractWodBlocks(raw: string): string[] {
+function extractScriptBlocks(raw: string): string[] {
   const matches = Array.from(raw.matchAll(/```wod\n([\s\S]*?)```/g))
   return matches.map(match => match[1].trim()).filter(Boolean)
 }
@@ -113,12 +113,12 @@ describe('syntax canvas source fixtures', () => {
     for (const source of uniqueSources) {
       const resolvedPath = resolveDslPath(source)
       const raw = readFileSync(resolvedPath, 'utf8')
-      const wodBlocks = extractWodBlocks(raw)
+      const scriptBlocks = extractScriptBlocks(raw)
 
-      expect(wodBlocks.length, `${source} should contain at least one \`wod\` block`).toBeGreaterThan(0)
+      expect(scriptBlocks.length, `${source} should contain at least one \`wod\` block`).toBeGreaterThan(0)
 
-      for (const wodBlock of wodBlocks) {
-        const result = parser.read(wodBlock)
+      for (const scriptBlock of scriptBlocks) {
+        const result = parser.read(scriptBlock)
         expect(result.errors, `${source} should parse cleanly`).toHaveLength(0)
       }
     }
@@ -133,15 +133,15 @@ describe('syntax guide protocol examples compile to intended block types', () =>
     script = undefined
   })
 
-  function loadFirstWodBlock(fileName: string): string {
+  function loadFirstScriptBlock(fileName: string): string {
     const raw = readFileSync(path.join(syntaxDir, fileName), 'utf8')
-    const [firstBlock] = extractWodBlocks(raw)
+    const [firstBlock] = extractScriptBlocks(raw)
     expect(firstBlock, `${fileName} should contain a \`wod\` block`).toBeTruthy()
     return firstBlock
   }
 
   it('classic AMRAP example compiles as AMRAP', async () => {
-    script = await TestScript.compile(loadFirstWodBlock('classic-amrap.md'));
+    script = await TestScript.compile(loadFirstScriptBlock('classic-amrap.md'));
     await script.next();
 
     const state = await script.snapshot();
@@ -149,7 +149,7 @@ describe('syntax guide protocol examples compile to intended block types', () =>
   });
 
   it('basic EMOM example compiles as EMOM', async () => {
-    script = await TestScript.compile(loadFirstWodBlock('basic-emom.md'));
+    script = await TestScript.compile(loadFirstScriptBlock('basic-emom.md'));
     await script.next();
 
     const state = await script.snapshot();
@@ -157,7 +157,7 @@ describe('syntax guide protocol examples compile to intended block types', () =>
   });
 
   it('standard Tabata example compiles as a rounds block', async () => {
-    script = await TestScript.compile(loadFirstWodBlock('protocols-4.md'));
+    script = await TestScript.compile(loadFirstScriptBlock('protocols-4.md'));
     await script.next();
 
     const state = await script.snapshot();
@@ -165,7 +165,7 @@ describe('syntax guide protocol examples compile to intended block types', () =>
   });
 
   it('plain timer example compiles as a timer block', async () => {
-    script = await TestScript.compile(loadFirstWodBlock('timers-rest.md'));
+    script = await TestScript.compile(loadFirstScriptBlock('timers-rest.md'));
     await script.next();
 
     const state = await script.snapshot();

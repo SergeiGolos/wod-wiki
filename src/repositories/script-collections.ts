@@ -13,7 +13,7 @@ const collectionModules = import.meta.glob(['../../markdown/collections/**/*.md'
     import: 'default',
 });
 
-export interface WodCollectionItem {
+export interface ScriptCollectionItem {
     /** Filename without extension, e.g. "fran" */
     id: string;
     /** Display name derived from filename */
@@ -24,7 +24,7 @@ export interface WodCollectionItem {
     path: string;
 }
 
-export interface WodCollection {
+export interface ScriptCollection {
     /** Directory name, e.g. "crossfit-girls" or "dan-john" */
     id: string;
     /** Display name, e.g. "Crossfit Girls" or "Dan John" */
@@ -32,7 +32,7 @@ export interface WodCollection {
     /** Number of workout files (excluding README) */
     count: number;
     /** Markdown files in this collection */
-    items: WodCollectionItem[];
+    items: ScriptCollectionItem[];
     /** The content of README.md if it exists */
     readme?: string;
     /** Category slugs parsed from the README front matter `category` field */
@@ -73,7 +73,7 @@ function fileToDisplayName(filename: string): string {
 }
 
 /** Cached result */
-let _collections: WodCollection[] | null = null;
+let _collections: ScriptCollection[] | null = null;
 
 /**
  * Get all WOD collections derived from markdown/collections/ subdirectories.
@@ -81,10 +81,10 @@ let _collections: WodCollection[] | null = null;
  *   markdown/collections/{dir}/{file}.md           → collection id = "{dir}"
  * Results are cached after first call.
  */
-export function getWodCollections(): WodCollection[] {
+export function getScriptCollections(): ScriptCollection[] {
     if (_collections) return _collections;
 
-    const dirMap = new Map<string, { name: string; items: WodCollectionItem[]; readme?: string; categories: string[] }>();
+    const dirMap = new Map<string, { name: string; items: ScriptCollectionItem[]; readme?: string; categories: string[] }>();
 
     const ensureCollection = (id: string, name: string) => {
         if (!dirMap.has(id)) {
@@ -137,6 +137,6 @@ export function getWodCollections(): WodCollection[] {
 /**
  * Get a single collection by ID.
  */
-export function getWodCollection(id: string): WodCollection | undefined {
-    return getWodCollections().find(c => c.id === id);
+export function getScriptCollection(id: string): ScriptCollection | undefined {
+    return getScriptCollections().find(c => c.id === id);
 }

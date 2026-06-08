@@ -2,7 +2,7 @@ import { AnalyticsEngine } from './AnalyticsEngine';
 import { StandardAnalyticsProfile } from './StandardAnalyticsProfile';
 import type { AnalyticsProfileContext } from './IAnalyticsProfile';
 import type { AnalyticsContext } from './AnalyticsContext';
-import type { WodBlock } from '../../components/Editor/types';
+import type { ScriptBlock } from '../../components/Editor/types';
 import { MetricType } from '../models/Metric';
 import { InMemoryEffortRegistry } from '@/effort-registry/InMemoryEffortRegistry';
 import { EffortResolver } from '@/effort-registry/EffortResolver';
@@ -30,7 +30,7 @@ export interface CreateAnalyticsEngineOptions {
  * by the bundled effort catalog (synchronously seeded).
  */
 export function createAnalyticsEngineForBlock(
-  block: WodBlock,
+  block: ScriptBlock,
   options?: CreateAnalyticsEngineOptions
 ): CreateAnalyticsEngineResult {
   const dialect = block.dialect || 'wod';

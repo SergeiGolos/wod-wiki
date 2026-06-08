@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ScriptRuntime, SubscriptionManager, LocalRuntimeSubscription, WorkoutTracker } from '@/hooks/useRuntimeTimer';
 import type { IRuntimeFactory } from '@/hooks/useRuntimeFactory';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeLifecycleContext';
 import { SubscriptionManagerContext } from './SubscriptionManagerContext';
 
@@ -78,7 +78,7 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
    * Initialize a new runtime for the given block
    * Automatically disposes existing runtime first
    */
-  const initializeRuntime = useCallback((block: WodBlock) => {
+  const initializeRuntime = useCallback((block: ScriptBlock) => {
     // Guard against duplicate initialization using ref (avoids re-render cascade)
     if (isInitializingRef.current) {
       return;

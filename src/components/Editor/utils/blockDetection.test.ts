@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import { detectWodBlocks, findBlockAtLine, extractBlockContent } from './blockDetection';
+import { detectScriptBlocks, findBlockAtLine, extractBlockContent } from './blockDetection';
 
-describe('detectWodBlocks', () => {
+describe('detectScriptBlocks', () => {
   it('should detect a single WOD block', () => {
     const content = `# My Workout
 
@@ -16,7 +16,7 @@ describe('detectWodBlocks', () => {
 
 Some text after`;
 
-    const blocks = detectWodBlocks(content);
+    const blocks = detectScriptBlocks(content);
 
     expect(blocks).toHaveLength(1);
     expect(blocks[0].startLine).toBe(2);
@@ -39,7 +39,7 @@ Some text
   Run
 \`\`\``;
 
-    const blocks = detectWodBlocks(content);
+    const blocks = detectScriptBlocks(content);
 
     expect(blocks).toHaveLength(2);
     expect(blocks[0].content).toBe('(21-15-9)\n  Thrusters');
@@ -47,7 +47,7 @@ Some text
   });
 
   it('should handle empty document', () => {
-    const blocks = detectWodBlocks('');
+    const blocks = detectScriptBlocks('');
     expect(blocks).toHaveLength(0);
   });
 
@@ -58,7 +58,7 @@ Some text here
 - List item
 - Another item`;
 
-    const blocks = detectWodBlocks(content);
+    const blocks = detectScriptBlocks(content);
     expect(blocks).toHaveLength(0);
   });
 
@@ -67,7 +67,7 @@ Some text here
 20:00 AMRAP
   + 5 Pullups`;
 
-    const blocks = detectWodBlocks(content);
+    const blocks = detectScriptBlocks(content);
 
     expect(blocks).toHaveLength(1);
     expect(blocks[0].startLine).toBe(0);
@@ -80,7 +80,7 @@ Some text here
 20:00 AMRAP
 \`\`\``;
 
-    const blocks = detectWodBlocks(content);
+    const blocks = detectScriptBlocks(content);
     expect(blocks).toHaveLength(1);
   });
 
@@ -89,7 +89,7 @@ Some text here
 21-15-9
 \`\`\``;
 
-    const blocks = detectWodBlocks(content);
+    const blocks = detectScriptBlocks(content);
     expect(blocks).toHaveLength(1);
     expect(blocks[0].content).toBe('21-15-9');
   });
@@ -103,7 +103,7 @@ const x = 5;
 20:00 AMRAP
 \`\`\``;
 
-    const blocks = detectWodBlocks(content);
+    const blocks = detectScriptBlocks(content);
     expect(blocks).toHaveLength(1);
     expect(blocks[0].content).toBe('20:00 AMRAP');
   });
@@ -112,9 +112,31 @@ const x = 5;
     const content = `\`\`\`wod
 \`\`\``;
 
-    const blocks = detectWodBlocks(content);
+    const blocks = detectScriptBlocks(content);
     expect(blocks).toHaveLength(1);
     expect(blocks[0].content).toBe('');
+  });
+
+  it('should treat ```whiteboard as an alias for ```wod (normalized to wod dialect)', () => {
+    const content = `\`\`\`whiteboard
+20:00 AMRAP
+  + 5 Pullups
+\`\`\``;
+
+    const blocks = detectScriptBlocks(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].dialect).toBe('wod');
+    expect(blocks[0].content).toBe('20:00 AMRAP\n  + 5 Pullups');
+  });
+
+  it('should match whiteboard fence case-insensitively', () => {
+    const content = `\`\`\`WhiteBoard
+10:00 Run
+\`\`\``;
+
+    const blocks = detectScriptBlocks(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].dialect).toBe('wod');
   });
 });
 
@@ -128,7 +150,7 @@ Text
 10:00
 \`\`\``;
 
-  const blocks = detectWodBlocks(content);
+  const blocks = detectScriptBlocks(content);
 
   it('should find block at start line', () => {
     const block = findBlockAtLine(blocks, 1);

@@ -1,13 +1,13 @@
 import { Page, Locator, expect } from '@playwright/test';
 
 /**
- * TrackerPage — Page Object for /tracker/:runtimeId
+ * WallClockPage — Page Object for /tracker/:runtimeId
  *
  * A full-screen overlay (FocusedDialog + RuntimeTimerPanel) that runs a
- * compiled WodBlock.  This is NOT a NoteEditor page, but it is part of the
+ * compiled ScriptBlock.  This is NOT a NoteEditor page, but it is part of the
  * Note Template execution flow.
  */
-export class TrackerPage {
+export class WallClockPage {
   readonly page: Page;
 
   constructor(page: Page) {

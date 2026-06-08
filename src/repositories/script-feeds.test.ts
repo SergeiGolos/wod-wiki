@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
 /**
- * Unit tests for wod-feeds.ts helper functions
+ * Unit tests for script-feeds.ts helper functions
  *
  * Tests cover:
  * - Frontmatter parsing with various formats
@@ -10,13 +10,13 @@ import { describe, expect, it } from 'bun:test';
  * - Date key extraction and sorting
  * - Edge cases (empty inputs, malformed data, etc.)
  *
- * Note: getWodFeeds(), getWodFeed(), and getWodFeedItem() depend on
+ * Note: getScriptFeeds(), getScriptFeed(), and getScriptFeedItem() depend on
  * import.meta.glob which requires Vite build context. The helper functions
  * below are replicated here for unit testing since they contain important
  * business logic.
  */
 
-// Helper functions replicated from wod-feeds.ts for unit testing
+// Helper functions replicated from script-feeds.ts for unit testing
 function parseFrontmatterCategories(raw: string): string[] {
   const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return [];

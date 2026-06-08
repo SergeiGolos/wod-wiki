@@ -1,5 +1,5 @@
 /**
- * WodCommand — public command interface for WhiteboardScript block overlays.
+ * ScriptCommand — public command interface for WhiteboardScript block overlays.
  *
  * Pass an array to NoteEditor via the `commands` prop.
  * The first `visibleCommands` items (default 1) render as direct buttons.
@@ -7,9 +7,9 @@
  */
 
 import type React from "react";
-import type { WodBlock } from "../types";
+import type { ScriptBlock } from "../types";
 
-export interface WodCommand {
+export interface ScriptCommand {
   /** Unique key used for React rendering and deduplication */
   id: string;
   /** Button label text */
@@ -21,8 +21,8 @@ export interface WodCommand {
   icon: React.ReactNode;
   /** Use filled primary styling instead of secondary outline.  Default: false */
   primary?: boolean;
-  /** Called with the resolved WodBlock when the user clicks the button */
-  onClick: (block: WodBlock) => void;
+  /** Called with the resolved ScriptBlock when the user clicks the button */
+  onClick: (block: ScriptBlock) => void;
   /**
    * Optional split-button secondary action (e.g. copy to clipboard).
    * When provided, the button renders as a split pill with a divider separating
@@ -31,6 +31,6 @@ export interface WodCommand {
   splitIcon?: React.ReactNode;
   /** Icon to show in the split button after the secondary action completes (e.g. a checkmark) */
   splitSuccessIcon?: React.ReactNode;
-  /** Called with the resolved WodBlock when the user clicks the split (secondary) button */
-  onSplitClick?: (block: WodBlock) => Promise<void> | void;
+  /** Called with the resolved ScriptBlock when the user clicks the split (secondary) button */
+  onSplitClick?: (block: ScriptBlock) => Promise<void> | void;
 }

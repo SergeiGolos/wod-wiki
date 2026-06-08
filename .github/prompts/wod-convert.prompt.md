@@ -1,4 +1,4 @@
-# WOD Convert: Normalize Workout Markdown to WOD Blocks
+# Whiteboard Convert: Normalize Workout Markdown to WOD Blocks
 
 You are a WOD Wiki scripting expert. Your job is to scan a directory of workout markdown files and rewrite each one so every workout section — including warm-ups and cool-downs — is expressed as a valid WOD block using the WOD Wiki dialect.
 
@@ -41,13 +41,13 @@ A WOD block is a fenced code block tagged `wod`. Each line inside is one movemen
 Copy YAML frontmatter (`---` block) verbatim. Never add, remove, or rename keys. If no frontmatter exists, do not add any.
 
 ### 2 — Preserve All Headings and Prose
-Keep every heading (`#`, `##`, `###`) and every paragraph of descriptive text. Place WOD blocks **immediately after** the prose that describes them, replacing only the raw workout list or bullet-point movement description.
+Keep every heading (`#`, `##`, `###`) and every paragraph of descriptive text. Place Whiteboard blocks **immediately after** the prose that describes them, replacing only the raw workout list or bullet-point movement description.
 
 ### 3 — Warm-ups and Cool-downs Are WOD Blocks
 Any section titled Warm Up, Warmup, Cool Down, Cool-down, Mobility, or similar is a workout section. Convert it to a WOD block with a named group `(Warmup)` or `(Cool-down)` as the top-level group, just like the main workout.
 
 ### 4 — One Block per Logical Section
-If a single heading describes multiple distinct workout levels (e.g. "Étudiant / Avancée / Traceur" or "Beginner / Intermediate / Advanced"), keep each as its own named group `(Label)` inside a single WOD block, or as separate adjacent WOD blocks — whichever matches the source structure.
+If a single heading describes multiple distinct workout levels (e.g. "Étudiant / Avancée / Traceur" or "Beginner / Intermediate / Advanced"), keep each as its own named group `(Label)` inside a single WOD block, or as separate adjacent Whiteboard blocks — whichever matches the source structure.
 
 ### 5 — Map Prose to Tokens
 Translate natural-language workout descriptions to the most compact valid token sequence:
@@ -141,7 +141,7 @@ After converting each file, verify:
 
 - [ ] Frontmatter is byte-for-byte identical to the original.
 - [ ] Every heading from the original is present and unchanged.
-- [ ] No movement descriptions remain as plain prose bullets — they are in WOD blocks.
-- [ ] Warm-up and cool-down sections have WOD blocks.
+- [ ] No movement descriptions remain as plain prose bullets — they are in Whiteboard blocks.
+- [ ] Warm-up and cool-down sections have Whiteboard blocks.
 - [ ] Named groups, round counts, timers, weights, and rest periods are correctly tokenised.
 - [ ] The file still reads naturally — prose context around blocks explains *why*, the block says *what*.

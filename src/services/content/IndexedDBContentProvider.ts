@@ -137,7 +137,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             rawContent = segments.map(s => {
                 const resolvedType = migrateSectionType(s.dataType);
                 if (resolvedType === 'wod') {
-                    const dialect = s.wodBlock?.dialect ?? 'wod';
+                    const dialect = s.scriptBlock?.dialect ?? 'wod';
                     return `\`\`\`${dialect}\n${s.rawContent}\n\`\`\``;
                 }
                 // Title and markdown sections: content already includes heading prefix (e.g. "# Hello")
@@ -157,7 +157,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         // Map NoteSegment to Section types for the editor
         const sections: Section[] = segments.map(s => {
             const resolvedType = migrateSectionType(s.dataType);
-            const dialect = s.wodBlock?.dialect ?? 'wod';
+            const dialect = s.scriptBlock?.dialect ?? 'wod';
             return {
                 id: s.id,
                 type: resolvedType,
@@ -167,7 +167,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                 displayContent: s.rawContent,
                 dialect: resolvedType === 'wod' ? dialect : undefined,
                 level: s.level,
-                wodBlock: s.wodBlock,
+                scriptBlock: s.scriptBlock,
                 version: s.version,
                 createdAt: s.createdAt,
                 // lines will be recomputed by the hook
@@ -239,10 +239,10 @@ export class IndexedDBContentProvider implements IContentProvider {
                 version: 1,
                 noteId: noteId,
                 dataType: toSegmentDataType(section.type),
-                data: section.wodBlock || null,
+                data: section.scriptBlock || null,
                 rawContent: section.displayContent,
                 level: section.level,
-                wodBlock: section.wodBlock,
+                scriptBlock: section.scriptBlock,
                 createdAt: now,
             };
             await indexedDBService.saveSegment(segment);
@@ -329,10 +329,10 @@ export class IndexedDBContentProvider implements IContentProvider {
                         version: newVersion,
                         noteId: note.id,
                         dataType: toSegmentDataType(section.type),
-                        data: section.wodBlock || null,
+                        data: section.scriptBlock || null,
                         rawContent: section.displayContent,
                         level: section.level,
-                        wodBlock: section.wodBlock,
+                        scriptBlock: section.scriptBlock,
                         createdAt: now,
                     };
                     await indexedDBService.saveSegment(segment);
@@ -343,10 +343,10 @@ export class IndexedDBContentProvider implements IContentProvider {
                         version: existingSegment.version,
                         noteId: note.id,
                         dataType: toSegmentDataType(section.type),
-                        data: section.wodBlock || null,
+                        data: section.scriptBlock || null,
                         rawContent: existingSegment.rawContent,
                         level: section.level,
-                        wodBlock: section.wodBlock,
+                        scriptBlock: section.scriptBlock,
                         createdAt: existingSegment.createdAt,
                     };
                     await indexedDBService.saveSegment(segment);

@@ -16,7 +16,7 @@
  * import { workoutEventBus } from '@/services/WorkoutEventBus';
  *
  * // Emit
- * workoutEventBus.emit({ type: 'start-workout', block: wodBlock });
+ * workoutEventBus.emit({ type: 'start-workout', block: scriptBlock });
  *
  * // Subscribe (returns unsubscribe function)
  * useEffect(() => {
@@ -27,7 +27,7 @@
  * ```
  */
 
-import type { WodBlock, WorkoutResults } from '../components/Editor/types';
+import type { ScriptBlock, WorkoutResults } from '../components/Editor/types';
 import { SimpleEventBus } from './events/SimpleEventBus';
 
 /**
@@ -37,7 +37,7 @@ import { SimpleEventBus } from './events/SimpleEventBus';
  * It will be removed in a follow-up and routed via runtime.dispatch().
  */
 export type WorkoutEvent =
-  | { type: 'start-workout'; block: WodBlock }
+  | { type: 'start-workout'; block: ScriptBlock }
   | { type: 'stop-workout'; results: WorkoutResults }
   | { type: 'pause-workout' }
   | { type: 'resume-workout' }

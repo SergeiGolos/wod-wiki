@@ -1,11 +1,11 @@
 /**
- * useWodRouting — Typed navigation hook for WOD Wiki views.
+ * useScriptRouting — Typed navigation hook for WOD Wiki views.
  *
  * Wraps react-router's useParams / useNavigate with project-specific
  * route types so every navigation call is type-safe and consistent.
  *
  * Usage:
- *   const { route, goToPlan, goToTrack, goToReview } = useWodRouting();
+ *   const { route, goToPlan, goToTrack, goToReview } = useScriptRouting();
  */
 
 import { useCallback, useMemo } from 'react';
@@ -25,7 +25,7 @@ import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 
 export type { WodRouteParams } from '@/lib/routes';
 
-export interface UseWodRoutingReturn {
+export interface UseScriptRoutingReturn {
   /** Parsed + typed current route, or null if URL is unrecognised */
   route: WodRouteParams | null;
 
@@ -59,7 +59,7 @@ export interface UseWodRoutingReturn {
   goToHistory: () => void;
 }
 
-export function useWodRouting(): UseWodRoutingReturn {
+export function useScriptRouting(): UseScriptRoutingReturn {
   const navigate = useNavigate();
   const raw = useParams<RawRouteParams>();
   const { pathname } = useLocation();

@@ -5,7 +5,7 @@
  *   - Static WOD files are keyed by `category/name`
  *   - User-created / zip-loaded pages are keyed by UUID
  *
- * Persisting content ensures WodBlock IDs (deterministic hashes) remain
+ * Persisting content ensures ScriptBlock IDs (deterministic hashes) remain
  * stable across reloads, keeping workout results linked to the correct block.
  */
 

@@ -1,5 +1,5 @@
 /**
- * WodPlaygroundButton
+ * WhiteboardPlaygroundButton
  *
  * Split pill that: (a) opens the Playground pre-loaded with a WOD
  * block's content, and (b) copies that URL to the clipboard.
@@ -70,7 +70,7 @@ export async function buildPlaygroundUrl(wodContent: string): Promise<string> {
 // Component
 // ---------------------------------------------------------------------------
 
-export interface WodPlaygroundButtonProps {
+export interface WhiteboardPlaygroundButtonProps {
   /** Raw inner WOD content (without the surrounding ``` fences) */
   wodContent: string;
   className?: string;
@@ -79,7 +79,7 @@ export interface WodPlaygroundButtonProps {
 /** Copy-state: idle | copying | copied */
 type CopyState = 'idle' | 'copying' | 'copied';
 
-export const WodPlaygroundButton: React.FC<WodPlaygroundButtonProps> = ({
+export const WhiteboardPlaygroundButton: React.FC<WhiteboardPlaygroundButtonProps> = ({
   wodContent,
   className,
 }) => {

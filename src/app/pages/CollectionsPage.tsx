@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HistoryLayout } from '@/components/organisms/history/HistoryLayout';
-import { useWodCollections } from '@/hooks/useWodCollections';
+import { useScriptCollections } from '@/hooks/useScriptCollections';
 import { ListOfNotes } from '@/components/organisms/workbench/ListOfNotes';
 import { NotePreview } from '@/components/organisms/workbench/NotePreview';
 import type { IContentProvider } from '@/types/content-provider';
@@ -15,7 +15,7 @@ import { CollectionsFilter } from '@/components/organisms/history/CollectionsFil
 
 export const CollectionsPage: React.FC<{ provider: IContentProvider }> = ({ provider }) => {
     const navigate = useNavigate();
-    const { collections, activeCollectionId, activeCollectionItems, setActiveCollection } = useWodCollections();
+    const { collections, activeCollectionId, activeCollectionItems, setActiveCollection } = useScriptCollections();
 
     // Convert current collection items to HistoryEntry[]
     // If no active collection, flatten ALL collections

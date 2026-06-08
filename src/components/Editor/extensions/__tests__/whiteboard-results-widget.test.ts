@@ -5,11 +5,11 @@ import {
   updateSectionResults,
   wodResultsField,
   wodResultsDecorations,
-} from "../wod-results-widget";
+} from "../whiteboard-results-widget";
 import { sectionField } from "../section-state";
 import type { WorkoutResult } from "@/types/storage";
 
-describe("wod-results-widget", () => {
+describe("whiteboard-results-widget", () => {
   const content = "```wod\n10 Pushups\n```";
   let state: EditorState;
 

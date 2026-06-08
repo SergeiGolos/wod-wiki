@@ -44,7 +44,7 @@ import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { DebugModeProvider } from '@/contexts/DebugModeContext'
 import { VisualStatePanel } from '@/panels/visual-state-panel';
-import { TimerDisplay } from '@/panels/timer-panel';
+import { TimerDisplay } from '@/panels/wallclock-panel';
 import { useRuntimeExecution } from '@/runtime/hooks/useRuntimeExecution';
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

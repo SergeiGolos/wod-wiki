@@ -3,13 +3,13 @@ import { FolderOpen, Settings, Sun, Moon, Volume2, VolumeX, GitFork, ExternalLin
 import { useTheme } from '@/contexts/ThemeProvider';
 import { useAudio } from '@/contexts/AudioContext';
 import { cn } from '@/lib/utils';
-import type { WodCollection } from '@/repositories/wod-collections';
+import type { ScriptCollection } from '@/repositories/script-collections';
 
 export interface HistoryDetailsPanelProps {
     isOpen: boolean;
     onClose: () => void;
     /** WOD Collections */
-    collections: WodCollection[];
+    collections: ScriptCollection[];
     activeCollectionId: string | null;
     onCollectionSelect: (id: string | null) => void;
     /** Clear notebook when selecting a collection */

@@ -1,29 +1,29 @@
 /**
- * useWodCollections — React hook for accessing WOD collections
+ * useScriptCollections — React hook for accessing WOD collections
  * derived from markdown/collections/ subdirectories.
  */
 import { useMemo, useCallback } from 'react';
 import { useQueryState } from 'nuqs';
-import { getWodCollections, getWodCollection } from '@/repositories/wod-collections';
-import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
+import { getScriptCollections, getScriptCollection } from '@/repositories/script-collections';
+import type { ScriptCollection, ScriptCollectionItem } from '@/repositories/script-collections';
 
-export type { WodCollection, WodCollectionItem };
+export type { ScriptCollection, ScriptCollectionItem };
 
-export interface UseWodCollectionsReturn {
+export interface UseScriptCollectionsReturn {
     /** All available collections */
-    collections: WodCollection[];
+    collections: ScriptCollection[];
     /** Currently selected collection ID (null = none) */
     activeCollectionId: string | null;
     /** Currently selected collection object */
-    activeCollection: WodCollection | null;
+    activeCollection: ScriptCollection | null;
     /** Items in the active collection */
-    activeCollectionItems: WodCollectionItem[];
+    activeCollectionItems: ScriptCollectionItem[];
     /** Select a collection */
     setActiveCollection: (id: string | null) => void;
 }
 
-export function useWodCollections(): UseWodCollectionsReturn {
-    const collections = useMemo(() => getWodCollections(), []);
+export function useScriptCollections(): UseScriptCollectionsReturn {
+    const collections = useMemo(() => getScriptCollections(), []);
     const [activeCollectionId, setActiveCollectionId] = useQueryState('col', {
         defaultValue: '',
         clearOnDefault: true,
@@ -31,7 +31,7 @@ export function useWodCollections(): UseWodCollectionsReturn {
 
     const activeCollection = useMemo(() => {
         if (!activeCollectionId) return null;
-        return getWodCollection(activeCollectionId) ?? null;
+        return getScriptCollection(activeCollectionId) ?? null;
     }, [activeCollectionId]);
 
     const activeCollectionItems = useMemo(() => {

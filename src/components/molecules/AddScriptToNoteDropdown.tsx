@@ -12,13 +12,13 @@ import {
     DropdownMenuSeparator,
 } from '@/components/atoms/primitives/dropdown-menu';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
 import { cn } from '@/lib/utils';
 
-interface AddWodToNoteDropdownProps {
-    wodBlock: WodBlock;
+interface AddScriptToNoteDropdownProps {
+    scriptBlock: ScriptBlock;
     provider?: IContentProvider;
     /** ID of the note this WOD block originates from (for link tracking) */
     sourceNoteId?: string;
@@ -36,8 +36,8 @@ function isSameDay(d1: Date, d2: Date): boolean {
         && d1.getDate() === d2.getDate();
 }
 
-export const AddWodToNoteDropdown: React.FC<AddWodToNoteDropdownProps> = ({
-    wodBlock,
+export const AddScriptToNoteDropdown: React.FC<AddScriptToNoteDropdownProps> = ({
+    scriptBlock,
     provider,
     sourceNoteId,
     onAddSuccess,
@@ -96,7 +96,7 @@ export const AddWodToNoteDropdown: React.FC<AddWodToNoteDropdownProps> = ({
             const note = await provider.getEntry(noteId);
             if (!note) return;
 
-            const blockText = `\n\n\`\`\`${wodBlock.dialect || 'wod'}\n${wodBlock.content.trim()}\n\`\`\``;
+            const blockText = `\n\n\`\`\`${scriptBlock.dialect || 'wod'}\n${scriptBlock.content.trim()}\n\`\`\``;
             const newContent = note.rawContent.trim() + blockText;
 
             await provider.updateEntry(noteId, { rawContent: newContent });
@@ -118,7 +118,7 @@ export const AddWodToNoteDropdown: React.FC<AddWodToNoteDropdownProps> = ({
             const targetDate = new Date(selectedDate);
             targetDate.setHours(12, 0, 0, 0);
 
-            const blockText = `\`\`\`${wodBlock.dialect || 'wod'}\n${wodBlock.content.trim()}\n\`\`\``;
+            const blockText = `\`\`\`${scriptBlock.dialect || 'wod'}\n${scriptBlock.content.trim()}\n\`\`\``;
             const newEntry = await provider.saveEntry({
                 title: 'New Workout',
                 rawContent: `# New Workout\n\n${blockText}`,

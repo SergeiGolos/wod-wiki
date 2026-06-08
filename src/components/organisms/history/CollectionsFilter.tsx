@@ -1,10 +1,10 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { FolderOpen, Dumbbell, Tag } from 'lucide-react';
-import type { WodCollection } from '@/hooks/useWodCollections';
+import type { ScriptCollection } from '@/hooks/useScriptCollections';
 
 export interface CollectionsFilterProps {
-    collections: WodCollection[];
+    collections: ScriptCollection[];
     activeCollectionId: string | null;
     onCollectionSelect: (id: string | null) => void;
     className?: string;
@@ -16,7 +16,7 @@ export const CollectionsFilter: React.FC<CollectionsFilterProps> = ({
     onCollectionSelect,
     className,
 }) => {
-    const collectionBtn = (col: WodCollection) => (
+    const collectionBtn = (col: ScriptCollection) => (
         <button
             key={col.id}
             onClick={() => onCollectionSelect(col.id)}

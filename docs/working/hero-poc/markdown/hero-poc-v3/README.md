@@ -9,7 +9,7 @@ type: hero-poc
 
 The same Markdown, two surfaces: an editor on the left that you can edit
 freely, a Run rail on the right that you can act on. The rail is the
-*entire* Phase 2 — there is no separate "tracker screen" in the hero, the
+*entire* Phase 2 — there is no separate "WallClock screen" in the hero, the
 buttons are the affordance.
 
 ```view

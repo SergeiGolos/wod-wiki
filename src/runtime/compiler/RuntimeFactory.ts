@@ -11,10 +11,10 @@
  * @example
  * ```typescript
  * const factory = new RuntimeFactory(globalCompiler);
- * const runtime = factory.createRuntime(wodBlock);
+ * const runtime = factory.createRuntime(scriptBlock);
  * 
  * // With debug mode
- * const debugRuntime = factory.createRuntime(wodBlock, { debugMode: true });
+ * const debugRuntime = factory.createRuntime(scriptBlock, { debugMode: true });
  * ```
  */
 
@@ -24,7 +24,7 @@ import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
 import { WhiteboardScript } from '../../parser/WhiteboardScript';
-import type { WodBlock } from '../../components/Editor/types';
+import type { ScriptBlock } from '../../components/Editor/types';
 import { RuntimeStackOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { StartSessionAction } from '../actions/stack/StartSessionAction';
@@ -38,12 +38,12 @@ import { collapseUnresolvedChoices } from './metrics/ChoiceResolution';
  */
 export interface IRuntimeFactory {
   /**
-   * Creates a new ScriptRuntime from a WodBlock
+   * Creates a new ScriptRuntime from a ScriptBlock
    * @param block - The WOD block containing workout script and parsed statements
    * @param options - Optional runtime options (debug mode, logging, tracker, etc.)
    * @returns A fully initialized ScriptRuntime, or null if block has no statements
    */
-  createRuntime(block: WodBlock, options?: RuntimeStackOptions): IScriptRuntime | null;
+  createRuntime(block: ScriptBlock, options?: RuntimeStackOptions): IScriptRuntime | null;
 
   /**
    * Disposes of a runtime and cleans up resources
@@ -59,7 +59,7 @@ export class RuntimeFactory implements IRuntimeFactory {
   constructor(private readonly compiler: JitCompiler) { }
 
   /**
-   * Creates a new ScriptRuntime from a WodBlock
+   * Creates a new ScriptRuntime from a ScriptBlock
    * 
    * Process:
    * 1. Validates block has statements
@@ -71,7 +71,7 @@ export class RuntimeFactory implements IRuntimeFactory {
    * @param options - Optional runtime options (debug mode, logging, tracker, etc.)
    * @returns Initialized ScriptRuntime or null if invalid block
    */
-  createRuntime(block: WodBlock, options?: RuntimeStackOptions): IScriptRuntime | null {
+  createRuntime(block: ScriptBlock, options?: RuntimeStackOptions): IScriptRuntime | null {
     if (!block.statements || block.statements.length === 0) {
       return null;
     }

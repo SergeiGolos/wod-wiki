@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import { RuntimeTimerPanel } from "@/components/organisms/editor/RuntimeTimerPanel";
-import type { WodBlock, WorkoutResults } from "@/components/Editor/types";
+import type { ScriptBlock, WorkoutResults } from "@/components/Editor/types";
 import { ReviewGrid } from "@/components/organisms/review/ReviewGrid";
 import { useDebugMode } from "@/contexts/DebugModeContext";
 import { getAnalyticsFromLogs } from "@/hooks/useWorkbenchServices";
@@ -11,7 +11,7 @@ import { CastButtonRpc } from "@/components/organisms/cast/CastButtonRpc";
 import { AudioToggle } from "@/components/atoms/AudioToggle";
 
 export interface FullscreenTimerProps {
-  block: WodBlock;
+  block: ScriptBlock;
   view?: EditorView;
   onClose: () => void;
   onCompleteWorkout?: (blockId: string, results: WorkoutResults) => void;

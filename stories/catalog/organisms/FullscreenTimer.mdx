@@ -14,7 +14,7 @@ The core workout overlay rendered when a user starts a workout from the editor o
 | `FocusedDialog` | Full-viewport portal overlay |
 | `RuntimeTimerPanel` | Live timer and metric display |
 | `ReviewGrid` | Post-workout results view |
-| `WodBlock` | Workout block type providing the script |
+| `ScriptBlock` | Workout block type providing the script |
 
 ## Notifies
 
@@ -28,7 +28,7 @@ The core workout overlay rendered when a user starts a workout from the editor o
 
 ```typescript
 interface FullscreenTimerProps {
-  block: WodBlock;
+  block: ScriptBlock;
   autoStart?: boolean;
   onClose: () => void;
 }

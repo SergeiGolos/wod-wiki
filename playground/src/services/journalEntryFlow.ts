@@ -18,13 +18,13 @@ import {
   CREATE_FROM_SOURCE,
   collectionListSource,
   collectionItemsSource,
-  wodBlockSource,
+  scriptBlockSource,
   journalHistorySource,
   feedSource,
-  extractWodBlocks,
-  type ExtractedWodBlock,
+  extractScriptBlocks,
+  type ExtractedScriptBlock,
 } from './paletteDataSources';
-import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
+import type { ScriptCollection, ScriptCollectionItem } from '@/repositories/script-collections';
 import type { PlaygroundPage } from './playgroundDB';
 
 export const JOURNAL_BLANK_TEMPLATE = `# Journal Entry\n\n\`\`\`wod\n\n\`\`\`\n`;
@@ -96,28 +96,28 @@ function formatDateLabel(dateKey: string): string {
  * If it has multiple, ask the user to pick one.
  * Returns null if dismissed or no blocks found.
  */
-async function pickWodBlock(
+async function pickScriptBlock(
   markdown: string,
   workoutName: string,
   dateLabel: string,
   crumbs: string[]
-): Promise<ExtractedWodBlock | null> {
-  const blocks = extractWodBlocks(markdown);
+): Promise<ExtractedScriptBlock | null> {
+  const blocks = extractScriptBlocks(markdown);
   if (blocks.length === 0) return null;
   if (blocks.length === 1) return blocks[0];
 
   const result = await usePaletteStore.getState().open({
     placeholder: 'Pick a WOD block to clone…',
     header: stepHeader(dateLabel, [...crumbs, workoutName]),
-    sources: [wodBlockSource(workoutName, markdown)],
+    sources: [scriptBlockSource(workoutName, markdown)],
   });
 
   if (result.dismissed) return null;
-  return result.item.payload as ExtractedWodBlock;
+  return result.item.payload as ExtractedScriptBlock;
 }
 
 /** Wrap a WOD block in a new journal entry. */
-function blockToEntryContent(workoutName: string, block: ExtractedWodBlock): string {
+function blockToEntryContent(workoutName: string, block: ExtractedScriptBlock): string {
   return `# ${workoutName}\n\n\`\`\`${block.dialect}\n${block.script}\`\`\`\n`;
 }
 
@@ -136,7 +136,7 @@ async function runCollectionPath(
     sources: [collectionListSource()],
   });
   if (collResult.dismissed) return;
-  const collection = collResult.item.payload as WodCollection;
+  const collection = collResult.item.payload as ScriptCollection;
 
   // Step 3: pick a workout within the collection
   const workoutResult = await palette.open({
@@ -145,10 +145,10 @@ async function runCollectionPath(
     sources: [collectionItemsSource(collection)],
   });
   if (workoutResult.dismissed) return;
-  const workout = workoutResult.item.payload as WodCollectionItem;
+  const workout = workoutResult.item.payload as ScriptCollectionItem;
 
   // Step 4: pick a WOD block (auto-selects if only one)
-  const block = await pickWodBlock(
+  const block = await pickScriptBlock(
     workout.content,
     workout.name,
     dateLabel,
@@ -182,7 +182,7 @@ async function runFeedPath(
   const page = entryResult.item.payload as PlaygroundPage;
 
   // Step 3: pick a WOD block from that entry (auto-selects if only one)
-  const block = await pickWodBlock(
+  const block = await pickScriptBlock(
     page.content,
     page.name,
     dateLabel,

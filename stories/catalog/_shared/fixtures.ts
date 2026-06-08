@@ -8,7 +8,7 @@
 import { MetricType, type IMetric } from '@/core/models/Metric';
 import type { HistoryEntry } from '@/types/history';
 import type { Notebook } from '@/types/notebook';
-import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
+import type { ScriptCollection, ScriptCollectionItem } from '@/repositories/script-collections';
 
 // ── Date helpers ────────────────────────────────────────────────────────────
 const NOW = Date.now();
@@ -107,15 +107,15 @@ export const FIXTURE_NOTEBOOKS: Notebook[] = [
   },
 ];
 
-// ── WodCollection fixtures ─────────────────────────────────────────────────
+// ── ScriptCollection fixtures ─────────────────────────────────────────────────
 const makeItem = (
   id: string,
   name: string,
   content: string,
   collId: string,
-): WodCollectionItem => ({ id, name, content, path: `${collId}/${id}.md` });
+): ScriptCollectionItem => ({ id, name, content, path: `${collId}/${id}.md` });
 
-export const FIXTURE_COLLECTIONS: WodCollection[] = [
+export const FIXTURE_COLLECTIONS: ScriptCollection[] = [
   {
     id: 'crossfit-benchmarks',
     name: 'CrossFit Benchmarks',

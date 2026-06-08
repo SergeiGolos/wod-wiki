@@ -1,8 +1,8 @@
 /**
  * Wod Overlay — shared action registry for WhiteboardScript block panels.
  *
- * The visual overlay companion (WodCompanion) lives in
- * src/components/Editor/overlays/WodCompanion.tsx and is rendered
+ * The visual overlay companion (WhiteboardCompanion) lives in
+ * src/components/organisms/editor/WhiteboardCompanion.tsx and is rendered
  * by the OverlayTrack system.  This module owns the shared action
  * registry so companion components and the editor host can stay
  * decoupled.
@@ -37,6 +37,6 @@ export function getOverlayActions(): OverlayAction[] {
 
 /**
  * Extension slot kept for API compatibility.  The actual overlay UI
- * is rendered by WodCompanion via the OverlayTrack system.
+ * is rendered by WhiteboardCompanion via the OverlayTrack system.
  */
 export const wodOverlayPanel: Extension = [];
