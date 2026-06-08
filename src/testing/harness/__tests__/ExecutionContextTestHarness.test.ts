@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
 import { ExecutionContextTestHarness } from '../ExecutionContextTestHarness';
 import { MockBlock } from '../MockBlock';
 import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
@@ -244,26 +244,34 @@ describe('ExecutionContextTestHarness', () => {
 
   describe('ExecutionContext Behavior', () => {
     it('should enforce iteration limits', () => {
-      const harnessWithLowLimit = new ExecutionContextTestHarness({
-        maxDepth: 3
-      });
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const harnessWithLowLimit = new ExecutionContextTestHarness({
+          maxDepth: 3
+        });
 
-      let iterationCount = 0;
-      const recursiveAction: IRuntimeAction = {
-        type: 'recursive',
-        do: (runtime: IScriptRuntime) => {
-          iterationCount++;
-          if (iterationCount < 10) {
-            runtime.do(recursiveAction);
+        let iterationCount = 0;
+        const recursiveAction: IRuntimeAction = {
+          type: 'recursive',
+          do: (runtime: IScriptRuntime) => {
+            iterationCount++;
+            if (iterationCount < 10) {
+              runtime.do(recursiveAction);
+            }
           }
-        }
-      };
+        };
 
-      expect(() => {
-        harnessWithLowLimit.executeAction(recursiveAction);
-      }).toThrow(/Max iterations/);
+        expect(() => {
+          harnessWithLowLimit.executeAction(recursiveAction);
+        }).toThrow(/Max iterations/);
 
-      harnessWithLowLimit.dispose();
+        expect(consoleError).toHaveBeenCalledTimes(1);
+        expect(String(consoleError.mock.calls[0]?.[0])).toMatch(/\[ExecutionContext\] Max iterations reached \(3\)/);
+
+        harnessWithLowLimit.dispose();
+      } finally {
+        consoleError.mockRestore();
+      }
     });
 
     it('should freeze clock during execution turn', () => {

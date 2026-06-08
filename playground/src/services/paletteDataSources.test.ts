@@ -47,6 +47,9 @@ mock.module('@/services/db/IndexedDBService', () => ({
 }));
 
 mock.module('./playgroundDB', () => ({
+  PlaygroundDBService: {
+    pageId: (category: string, name: string) => `${category}/${name}`,
+  },
   playgroundDB: {
     getPagesByCategory: mock(() => Promise.resolve([])),
   },

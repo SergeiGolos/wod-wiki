@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, vi } from 'bun:test';
 import { ExecutionContextTestBuilder } from '../ExecutionContextTestBuilder';
 import { MockBlock } from '../MockBlock';
 import { IEventHandler } from '@/runtime/contracts/events/IEventHandler';
@@ -30,22 +30,29 @@ describe('ExecutionContextTestBuilder', () => {
     });
 
     it('should set max depth via withMaxDepth()', () => {
-      const harness = new ExecutionContextTestBuilder()
-        .withMaxDepth(5)
-        .build();
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const harness = new ExecutionContextTestBuilder()
+          .withMaxDepth(5)
+          .build();
 
-      // Test that max depth is enforced
-      let count = 0;
-      const recursiveAction: IRuntimeAction = {
-        type: 'recursive',
-        do: (runtime) => {
-          count++;
-          if (count < 10) runtime.do(recursiveAction);
-        }
-      };
+        // Test that max depth is enforced
+        let count = 0;
+        const recursiveAction: IRuntimeAction = {
+          type: 'recursive',
+          do: (runtime) => {
+            count++;
+            if (count < 10) runtime.do(recursiveAction);
+          }
+        };
 
-      expect(() => harness.executeAction(recursiveAction)).toThrow(/Max iterations/);
-      harness.dispose();
+        expect(() => harness.executeAction(recursiveAction)).toThrow(/Max iterations/);
+        expect(consoleError).toHaveBeenCalledTimes(1);
+        expect(String(consoleError.mock.calls[0]?.[0])).toMatch(/\[ExecutionContext\] Max iterations reached \(5\)/);
+        harness.dispose();
+      } finally {
+        consoleError.mockRestore();
+      }
     });
   });
 

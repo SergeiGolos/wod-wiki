@@ -239,7 +239,43 @@ export class StatementAssertions {
             ? this.stmt.metrics
             : MetricContainer.from(this.stmt.metrics as IMetric[], this.stmt.id);
     }
+    // ── Group / Lap Markers ──────────────────────────────────
 
+    /** Assert the statement has a Group metric with the given value (compose/round). */
+    hasGroupMarker(groupType: string): this {
+        const m = this.getMetric(MetricType.Group);
+        if (!m) {
+            throw new Error(`Expected Group metric, not found. Present: [${this.metricTypes().join(', ')}]`);
+        }
+        if (m.value !== groupType) {
+            throw new Error(`Expected Group metric value "${groupType}", got "${m.value}"`);
+        }
+        return this;
+    }
+
+    /** Assert the statement has a required-timer hint (from * prefix). */
+    isRequiredTimer(): this {
+        return this.hasHint('behavior.required_timer');
+    }
+
+    /** Assert a metric of the given type has a specific origin. */
+    hasMetricOrigin(type: MetricType | string, origin: string): this {
+        const m = this.raw().rawMetrics.find(
+            r => r.type === type && r.origin === origin,
+        );
+        if (!m) {
+            const candidates = this.raw().rawMetrics
+                .filter(r => r.type === type)
+                .map(r => `origin=${r.origin}`);
+            throw new Error(
+                `Expected metric "${type}" with origin "${origin}". ` +
+                (candidates.length
+                    ? `Found: [${candidates.join(', ')}]`
+                    : `Metric "${type}" not found at all`),
+            );
+        }
+        return this;
+    }
     // ── Hints (dialect-emitted) ───────────────────────────────
 
     /** Assert the statement carries the given dot-namespaced hint. */

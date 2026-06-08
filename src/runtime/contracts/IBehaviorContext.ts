@@ -258,18 +258,53 @@ export interface IBehaviorContext {
     updateMemory(tag: MemoryTag, metrics: MetricContainer | IMetric[]): void;
 
     // ============================================================================
+    // Capability Registry
+    // ============================================================================
+
+    /**
+     * Declare that this block (via one of its behaviors) provides the named
+     * capability. Other behaviors on the same block can then coordinate with
+     * the declarer via `hasCapability` instead of string-inspecting
+     * `behaviors[i].constructor.name`.
+     *
+     * Capabilities are block-scoped: they are declared during `onMount`
+     * and consulted at any lifecycle hook. Declaring an unknown capability
+     * is a no-op (capabilities are loose strings, not an enum).
+     *
+     * @param cap Capability identifier (e.g. `'childSelection'`)
+     */
+    declareCapability(cap: string): void;
+
+    /**
+     * Returns true if the named capability was declared on this block.
+     *
+     * Use this to coordinate between behaviors that share a block without
+     * importing each other or relying on `constructor.name`.
+     *
+     * @param cap Capability identifier (e.g. `'childSelection'`)
+     */
+    hasCapability(cap: string): boolean;
+
+    /**
+     * Returns the Set used to store declared capabilities.  Internal callers
+     * (e.g. `RuntimeBlock.inspectNext`) pass this back to a fresh
+     * `BehaviorContext` so that all contexts for the same block observe the
+     * same capabilities without coupling the inspection context to a
+     * specific owner.
+     */
+    getCapabilities(): Set<string>;
+
+    // ============================================================================
     // Block Control
     // ============================================================================
 
     /**
      * Mark the block as complete.
-     * 
+     *
      * When marked complete, the block will be popped from the stack
-     * during the next completion sweep.
-     * 
+     *
      * @param reason Optional reason for completion (for debugging/history)
      */
     markComplete(reason?: string): void;
-
 
 }

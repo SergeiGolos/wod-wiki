@@ -247,15 +247,17 @@ export class RuntimeBlock implements IRuntimeBlock {
             // is a valid test scenario.
             return { complete: false, actions: [] };
         }
-
         const clock = options?.clock ?? this._behaviorContext.clock;
+        // Share the persistent context's capability registry so capabilities
+        // declared in onMount remain visible to behavior chains in
+        // inspectNext (which constructs a fresh per-call BehaviorContext).
         const nextContext = new BehaviorContext(
             this,
             clock,
             this._behaviorContext.stackLevel,
             runtime as IScriptRuntime,
+            this._behaviorContext.getCapabilities(),
         );
-
         // Snapshot completion state so we can restore it after inspection.
         // Behaviors may call ctx.markComplete() during the chain; we capture
         // the result without leaving a permanent mutation.
@@ -360,7 +362,8 @@ export class RuntimeBlock implements IRuntimeBlock {
             this,
             clock,
             this._behaviorContext?.stackLevel ?? 0,
-            runtime
+            runtime,
+            this._behaviorContext?.getCapabilities(),
         );
 
         // Call behavior onUnmount hooks

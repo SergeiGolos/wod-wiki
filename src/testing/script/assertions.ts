@@ -13,6 +13,12 @@ export interface Assertions {
     blockByKey(key: string): BlockAssertions | undefined;
     /** All blocks on the stack, top-to-bottom. */
     blocks(): BlockAssertions[];
+    /**
+     * Find blocks whose `blockType` matches the given type tag, top-to-bottom.
+     * Supports the `block(type).memory(tag).value` access pattern that
+     * compliance tests use.
+     */
+    blocksByType(type: string): BlockAssertions[];
     /** All cast-bound messages. */
     cast(): CastAssertions;
     /** Stack assertions. */
@@ -177,6 +183,12 @@ class AssertionsImpl implements Assertions {
         return this.state.blocks.map(b => new BlockAssertionsImpl(b, this.state));
     }
 
+    blocksByType(type: string): BlockAssertions[] {
+        return this.state.blocks
+            .filter(b => b.blockType === type)
+            .map(b => new BlockAssertionsImpl(b, this.state));
+    }
+
     cast(): CastAssertions {
         return new CastAssertionsImpl(this.state);
     }
@@ -185,7 +197,6 @@ class AssertionsImpl implements Assertions {
         return new StackAssertionsImpl(this.state);
     }
 }
-
 /** Build the assertion tree from a snapshot. Pure read; no mutation. */
 export function assertions(state: ScriptState): Assertions {
     return new AssertionsImpl(state);

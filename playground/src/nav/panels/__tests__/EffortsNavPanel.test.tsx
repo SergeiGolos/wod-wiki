@@ -47,13 +47,8 @@ mock.module('@/services/db/IndexedDBService', () => ({
     getRecentResults: mockGetRecentResults,
   },
 }));
-
-// Dynamic import of the component under test so mocks are registered first
-const { EffortsNavPanel } = await import('../EffortsNavPanel');
-
-// ── Mock dependencies ─────────────────────────────────────────────────────
-
-vi.mock('../../../hooks/useEffortsQueryState', () => ({
+// Mock hooks and context before importing the component
+mock.module('../../../hooks/useEffortsQueryState', () => ({
   useEffortsQueryState: () => ({
     origin: 'all',
     setOrigin: vi.fn(),
@@ -62,7 +57,7 @@ vi.mock('../../../hooks/useEffortsQueryState', () => ({
   }),
 }));
 
-vi.mock('../../../components/efforts/EffortRegistryContext', () => ({
+mock.module('../../../contexts/EffortRegistryContext', () => ({
   useEffortRegistry: () => ({
     registry: {
       resolve: vi.fn((slug: string) => {
@@ -99,6 +94,9 @@ vi.mock('../../../components/efforts/EffortRegistryContext', () => ({
     refresh: vi.fn(),
   }),
 }));
+
+// Dynamic import of the component under test so mocks are registered first
+const { EffortsNavPanel } = await import('../EffortsNavPanel');
 
 describe('EffortsNavPanel', () => {
   const mockItem = {

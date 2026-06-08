@@ -102,6 +102,7 @@ class MockBehaviorContext implements IBehaviorContext {
   readonly stackLevel: number;
   private _mockBlock: MockBlock;
   private _unsubscribers: Array<() => void> = [];
+  private _capabilities: Set<string> = new Set();
 
   readonly recordings: BehaviorContextRecordings;
 
@@ -231,6 +232,14 @@ class MockBehaviorContext implements IBehaviorContext {
   markComplete(reason?: string): void {
     this._mockBlock.markComplete(reason);
     this.recordings.markComplete.push({ reason });
+  }
+
+  declareCapability(cap: string): void {
+    this._capabilities.add(cap);
+  }
+
+  hasCapability(cap: string): boolean {
+    return this._capabilities.has(cap);
   }
 
   /**
