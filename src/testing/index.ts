@@ -1,9 +1,6 @@
 // Test harnesses
 export * from './harness';
 
-// Testable wrappers
-export * from './testable';
-
 // Setup actions
 export * from './setup';
 
@@ -12,3 +9,7 @@ export * from './components';
 
 // Shared test contracts
 export * from './contracts/TestIdContract';
+export type { RuntimeSnapshot, SnapshotDiff } from './contracts/SnapshotTypes';
+
+// Compiler factory
+export { createFullCompiler } from './compiler';

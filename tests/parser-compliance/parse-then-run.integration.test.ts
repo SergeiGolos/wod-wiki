@@ -2,39 +2,37 @@
  * Parser Compliance: Parse-Then-Run Integration
  *
  * Demonstrates the "parse first, validate tree, then pass to runtime" pattern.
- * This test file uses BOTH the parser harness and the runtime session harness
- * to validate the full pipeline: parse → dialects → JIT compile → runtime.
+ * Uses the shared WhiteboardScript to avoid double-parsing:
+ *
+ *   1. Parse once via sharedParser → WhiteboardScript
+ *   2. Assert on the statement tree via parseFromScript()
+ *   3. Hand the same script to TestScript.fromScript() for runtime testing
  *
  * This is the pattern from the proposal §2.7.
  */
 import { describe, it, expect, afterEach } from 'bun:test';
-import { parse } from '../helpers/parser-test-utils';
+import { parseFromScript } from '../helpers/parser-test-utils';
 import { MetricType } from '@/core/models/Metric';
-import {
-    createSessionContext,
-    startSession,
-    userNext,
-    advanceClock,
-    disposeSession,
-} from '../jit-compilation/helpers/session-test-utils';
-import type { SessionTestContext } from '../jit-compilation/helpers/session-test-utils';
+import { TestScript } from '@/testing/script';
+import { sharedParser } from '@/parser/parserInstance';
+import type { WhiteboardScript } from '@/parser/WhiteboardScript';
 
-// ── Helper: current block type from runtime stack ─────────────────
-
-function currentBlockType(ctx: SessionTestContext): string | undefined {
-    return ctx.runtime.stack.current?.blockType;
+function parseScript(text: string): WhiteboardScript {
+    return sharedParser.read(text) as WhiteboardScript;
 }
 
 // ── Single Effort: parse then run ─────────────────────────────────
 
 describe('🔗 Parse-Then-Run: Single Effort (10 Pullups)', () => {
     const SCRIPT = '10 Pullups';
-    let ctx: SessionTestContext;
+    let script: TestScript;
+    let parsed: WhiteboardScript;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) await script.dispose(); script = undefined; });
 
     it('parser: produces correct statement tree', () => {
-        parse(SCRIPT)
+        parsed = parseScript(SCRIPT);
+        parseFromScript(parsed)
             .hasStatementCount(1)
             .hasNoErrors()
             .roots()[0]
@@ -45,20 +43,23 @@ describe('🔗 Parse-Then-Run: Single Effort (10 Pullups)', () => {
                 .hasMetricValue(MetricType.Effort, 'Pullups');
     });
 
-    it('runtime: executes effort correctly', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Effort' });
+    it('runtime: executes effort correctly', async () => {
+        parsed = parseScript(SCRIPT);
+        script = await TestScript.fromScript(parsed);
 
         // SessionRoot + WaitingToStart
-        expect(ctx.runtime.stack.count).toBe(2);
+        const s0 = await script.snapshot();
+        expect(s0.depth).toBe(2);
 
-        // userNext mounts the effort
-        userNext(ctx);
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+        // next() mounts the effort
+        await script.next();
+        const s1 = await script.snapshot();
+        expect(s1.current?.blockType).toMatch(/effort/i);
 
-        // Second userNext completes the effort
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBe(0);
+        // Second next() completes the effort
+        await script.next();
+        const s2 = await script.snapshot();
+        expect(s2.depth).toBe(0);
     });
 });
 
@@ -66,12 +67,14 @@ describe('🔗 Parse-Then-Run: Single Effort (10 Pullups)', () => {
 
 describe('🔗 Parse-Then-Run: Countdown Timer (5:00 Run)', () => {
     const SCRIPT = '5:00 Run';
-    let ctx: SessionTestContext;
+    let script: TestScript;
+    let parsed: WhiteboardScript;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) await script.dispose(); script = undefined; });
 
     it('parser: produces Duration + Effort metrics', () => {
-        parse(SCRIPT)
+        parsed = parseScript(SCRIPT);
+        parseFromScript(parsed)
             .hasStatementCount(1)
             .hasNoErrors()
             .roots()[0]
@@ -80,20 +83,23 @@ describe('🔗 Parse-Then-Run: Countdown Timer (5:00 Run)', () => {
                 .hasMetricValue(MetricType.Effort, 'Run');
     });
 
-    it('runtime: timer starts and expires', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Timer' });
-        userNext(ctx);
+    it('runtime: timer starts and expires', async () => {
+        parsed = parseScript(SCRIPT);
+        script = await TestScript.fromScript(parsed);
 
-        expect(currentBlockType(ctx)).toMatch(/timer/i);
+        await script.next();
+        const s1 = await script.snapshot();
+        expect(s1.current?.blockType).toMatch(/timer/i);
 
         // Advance past halfway — timer still active
-        advanceClock(ctx, 150_000);
-        expect(ctx.runtime.stack.count).toBeGreaterThan(0);
+        await script.tick(150_000);
+        const s2 = await script.snapshot();
+        expect(s2.depth).toBeGreaterThan(0);
 
         // Advance past end — timer expires
-        advanceClock(ctx, 150_000);
-        expect(ctx.runtime.stack.count).toBe(0);
+        await script.tick(150_000);
+        const s3 = await script.snapshot();
+        expect(s3.depth).toBe(0);
     });
 });
 
@@ -101,12 +107,14 @@ describe('🔗 Parse-Then-Run: Countdown Timer (5:00 Run)', () => {
 
 describe('🔗 Parse-Then-Run: AMRAP (10:00 AMRAP + children)', () => {
     const SCRIPT = '10:00 AMRAP\n  5 Pullups\n  10 Pushups';
-    let ctx: SessionTestContext;
+    let script: TestScript;
+    let parsed: WhiteboardScript;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) await script.dispose(); script = undefined; });
 
     it('parser: produces parent with 2 children + dialect hints', () => {
-        const tree = parse(SCRIPT);
+        parsed = parseScript(SCRIPT);
+        const tree = parseFromScript(parsed);
         tree.hasStatementCount(3).hasNoErrors();
 
         tree.roots()[0]
@@ -125,16 +133,18 @@ describe('🔗 Parse-Then-Run: AMRAP (10:00 AMRAP + children)', () => {
             .hasMetricValue(MetricType.Effort, 'Pushups');
     });
 
-    it('runtime: compiles and starts AMRAP session', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AMRAP' });
+    it('runtime: compiles and starts AMRAP session', async () => {
+        parsed = parseScript(SCRIPT);
+        script = await TestScript.fromScript(parsed);
 
         // SessionRoot + WaitingToStart
-        expect(ctx.runtime.stack.count).toBe(2);
+        const s0 = await script.snapshot();
+        expect(s0.depth).toBe(2);
 
-        // userNext starts the AMRAP
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBeGreaterThan(0);
+        // next() starts the AMRAP
+        await script.next();
+        const s1 = await script.snapshot();
+        expect(s1.depth).toBeGreaterThan(0);
     });
 });
 
@@ -142,12 +152,14 @@ describe('🔗 Parse-Then-Run: AMRAP (10:00 AMRAP + children)', () => {
 
 describe('🔗 Parse-Then-Run: Rounds (3 rounds + 2 movements)', () => {
     const SCRIPT = '(3)\n  10 Air Squats\n  10 Push Ups';
-    let ctx: SessionTestContext;
+    let script: TestScript;
+    let parsed: WhiteboardScript;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    afterEach(async () => { if (script) await script.dispose(); script = undefined; });
 
     it('parser: produces parent with 2 children + rounds metric', () => {
-        const tree = parse(SCRIPT);
+        parsed = parseScript(SCRIPT);
+        const tree = parseFromScript(parsed);
         tree.hasStatementCount(3).hasNoErrors();
 
         const parent = tree.roots()[0];
@@ -162,12 +174,15 @@ describe('🔗 Parse-Then-Run: Rounds (3 rounds + 2 movements)', () => {
         }
     });
 
-    it('runtime: compiles and starts rounds session', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Rounds' });
-        expect(ctx.runtime.stack.count).toBe(2);
+    it('runtime: compiles and starts rounds session', async () => {
+        parsed = parseScript(SCRIPT);
+        script = await TestScript.fromScript(parsed);
 
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBeGreaterThan(0);
+        const s0 = await script.snapshot();
+        expect(s0.depth).toBe(2);
+
+        await script.next();
+        const s1 = await script.snapshot();
+        expect(s1.depth).toBeGreaterThan(0);
     });
 });

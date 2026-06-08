@@ -1,18 +1,11 @@
-export { TestableRuntime } from './TestableRuntime';
-export type { 
-  RuntimeSnapshot, 
-  SnapshotDiff, 
-  InitialMemoryEntry, 
-  InitialStackEntry, 
-  TestableRuntimeConfig,
-  ExecutionRecord 
-} from './TestableRuntime';
-
 export { TestableBlock } from './TestableBlock';
-export type { 
-  InterceptMode, 
-  MethodCall, 
-  MemoryOperation, 
-  StackOperation, 
-  TestableBlockConfig 
+export type {
+  InterceptMode,
+  MethodCall,
+  MemoryOperation,
+  StackOperation,
+  TestableBlockConfig
 } from './TestableBlock';
+
+// Snapshot types moved to contracts/SnapshotTypes.ts
+export type { RuntimeSnapshot, SnapshotDiff } from '../contracts/SnapshotTypes';

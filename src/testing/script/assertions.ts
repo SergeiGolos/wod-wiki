@@ -2,6 +2,8 @@ import type { ScriptState } from './ScriptState';
 import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import type { IMetric } from '@/core/models/Metric';
 import type { RpcMessage, RpcStackUpdate, RpcEvent } from '@/services/cast/rpc/RpcMessages';
+import type { RoundState, TimerState } from '@/runtime/memory/MemoryTypes';
+import type { IOutputStatement, OutputStatementType } from '@/core/models/OutputStatement';
 
 /** Snapshot read API rooted at a ScriptState. */
 export interface Assertions {
@@ -21,8 +23,13 @@ export interface Assertions {
     blocksByType(type: string): BlockAssertions[];
     /** All cast-bound messages. */
     cast(): CastAssertions;
-    /** Stack assertions. */
     stack(): StackAssertions;
+    /**
+     * Output statement assertions. Captures every IOutputStatement the
+     * runtime has emitted up to this snapshot — the same data
+     * `OutputTracingHarness` records, but in DSL form.
+     */
+    outputs(): OutputAssertions;
 }
 
 export interface BlockAssertions {
@@ -36,7 +43,47 @@ export interface BlockAssertions {
     metric(type: string): IMetric | undefined;
     /** Did this block see a particular event by name? Reads from cast messages. */
     receivedEvent(name: string): boolean;
+
+    // ── Domain-specific queries ──────────────────────────────
+
+    /**
+     * Does this block's `blockType` match the given tag (case-insensitive)?
+     * Supports the common `/effort/i`, `/timer/i`, `/rest/i` patterns compliance
+     * tests use to identify a block by category.
+     */
+    isA(typeTag: string): boolean;
+
+    /**
+     * Does this block have a metric of the given type in the given memory tag?
+     * Convenience over `memoryByTag(tag).some(m => m.type === metricType)`.
+     */
+    hasMetric(tag: string, metricType: string): boolean;
+
+    /** All display metrics (shortcut for `memoryByTag('metric:display')`). */
+    displayMetrics(): readonly IMetric[];
+
+    /** First display metric with the given type, or undefined. */
+    displayMetric(type: string): IMetric | undefined;
+
+    /**
+     * Read the structured round state from this block's `'round'` memory.
+     * Returns undefined if no round memory exists.
+     *
+     * The cast inside is intentional: the memory system stores structured
+     * data as `IMetric` with a `value` field whose runtime shape is `RoundState`.
+     * This method is the single place that owns that cast; tests should
+     * prefer this over the raw `as unknown as RoundState` pattern.
+     */
+    roundState(): RoundState | undefined;
+
+    /**
+     * Read the structured timer state from this block's `'timer'` memory.
+     * Returns undefined if no timer memory exists. Same cast rationale as
+     * `roundState()`.
+     */
+    timerState(): TimerState | undefined;
 }
+
 
 export interface CastAssertions {
     /** All sent messages. */
@@ -56,6 +103,41 @@ export interface StackAssertions {
     isEmpty(): boolean;
     /** Convenience: did a push or pop happen on this snapshot vs a baseline? */
     changed(baseline: ScriptState): boolean;
+}
+
+/**
+ * Read API for runtime-emitted output statements. Mirrors the shape of
+ * `OutputTracingHarness` so tests can verify output sequences without
+ * attaching a harness.
+ */
+export interface OutputAssertions {
+    /** All output statements captured since script start, in order. */
+    all(): readonly IOutputStatement[];
+    /** Count of captured output statements. */
+    count(): number;
+    /**
+     * Output statements scoped to a particular block key.
+     * Block key is the `IRuntimeBlock.key.toString()` of the emitting block.
+     */
+    forBlock(key: string): readonly IOutputStatement[];
+    /** Output statements of a particular type (`'segment'`, `'completion'`, etc.). */
+    byType(type: OutputStatementType): readonly IOutputStatement[];
+    /** All completion outputs. Shortcut for `byType('completion')`. */
+    completions(): readonly IOutputStatement[];
+    /** All segment outputs. Shortcut for `byType('segment')`. */
+    segments(): readonly IOutputStatement[];
+    /**
+     * Assert that every `'segment'` output has a matching `'completion'`
+     * output from the same block. Returns unpaired descriptions (empty if all paired).
+     */
+    assertPairedOutputs(): string[];
+    /**
+     * Assert that every `'segment'` output has a matching `'completion'`
+     * output. Throws with details on unpaired outputs.
+     */
+    allPaired(): void;
+    /** Assert at least `min` outputs were emitted. Throws otherwise. */
+    assertMinCount(min: number): void;
 }
 
 class BlockAssertionsImpl implements BlockAssertions {
@@ -95,6 +177,36 @@ class BlockAssertionsImpl implements BlockAssertions {
         return this.state.castSent.some(
             (m): m is RpcEvent => m.type === 'rpc-event' && m.name === name,
         );
+    }
+
+    isA(typeTag: string): boolean {
+        return new RegExp(typeTag, 'i').test(this.block.blockType ?? '');
+    }
+
+    hasMetric(tag: string, metricType: string): boolean {
+        return this.memoryByTag(tag).some(m => m.type === metricType);
+    }
+
+    displayMetrics(): readonly IMetric[] {
+        return this.memoryByTag('metric:display');
+    }
+
+    displayMetric(type: string): IMetric | undefined {
+        return this.displayMetrics().find(m => m.type === type);
+    }
+
+    roundState(): RoundState | undefined {
+        const loc = this.block.getMemoryByTag('round')[0];
+        if (!loc) return undefined;
+        const first = loc.metrics.toArray()[0];
+        return first ? (first.value as RoundState) : undefined;
+    }
+
+    timerState(): TimerState | undefined {
+        const loc = this.block.getMemoryByTag('time')[0];
+        if (!loc) return undefined;
+        const first = loc.metrics.toArray()[0];
+        return first ? (first.value as TimerState) : undefined;
     }
 }
 
@@ -156,6 +268,71 @@ class StackAssertionsImpl implements StackAssertions {
     }
 }
 
+class OutputAssertionsImpl implements OutputAssertions {
+    private readonly state: ScriptState;
+
+    constructor(state: ScriptState) {
+        this.state = state;
+    }
+    private get _outputs(): readonly IOutputStatement[] {
+        return this.state.outputs ?? [];
+    }
+
+    all(): readonly IOutputStatement[] {
+        return this._outputs;
+    }
+
+    count(): number {
+        return this._outputs.length;
+    }
+
+    forBlock(key: string): readonly IOutputStatement[] {
+        return this._outputs.filter(o => o.sourceBlockKey === key);
+    }
+
+    byType(type: OutputStatementType): readonly IOutputStatement[] {
+        return this._outputs.filter(o => o.outputType === type);
+    }
+
+    completions(): readonly IOutputStatement[] {
+        return this.byType('completion');
+    }
+
+    segments(): readonly IOutputStatement[] {
+        return this.byType('segment');
+    }
+
+    assertPairedOutputs(): string[] {
+        const segs = this.segments();
+        const comps = this.completions();
+        const unpaired: string[] = [];
+        for (const seg of segs) {
+            const hasCompletion = comps.some(c => c.sourceBlockKey === seg.sourceBlockKey);
+            if (!hasCompletion) {
+                unpaired.push(`Segment from ${seg.sourceBlockKey} has no matching completion`);
+            }
+        }
+        return unpaired;
+    }
+
+    allPaired(): void {
+        const unpaired = this.assertPairedOutputs();
+        if (unpaired.length > 0) {
+            throw new Error(
+                `Unpaired segment outputs (${unpaired.length}):\n${unpaired.join('\n')}`,
+            );
+        }
+    }
+
+    assertMinCount(min: number): void {
+        if (this._outputs.length < min) {
+            throw new Error(
+                `Expected at least ${min} outputs but got ${this._outputs.length}`,
+            );
+        }
+    }
+}
+
 class AssertionsImpl implements Assertions {
     private readonly state: ScriptState;
 
@@ -196,6 +373,10 @@ class AssertionsImpl implements Assertions {
     stack(): StackAssertions {
         return new StackAssertionsImpl(this.state);
     }
+
+    outputs(): OutputAssertions {
+        return new OutputAssertionsImpl(this.state);
+    }
 }
 /** Build the assertion tree from a snapshot. Pure read; no mutation. */
 export function assertions(state: ScriptState): Assertions {
@@ -216,7 +397,7 @@ export function expectAll(state: ScriptState, checks: Array<(a: Assertions) => v
     if (errors.length > 0) {
         const summary = errors.map((e, i) => `  ${i + 1}. ${e.message}`).join('\n');
         const err = new Error(`${errors.length} assertion(s) failed:\n${summary}`);
-        (err as any).errors = errors;
+        (err as unknown as Record<string, Error[]>).errors = errors;
         throw err;
     }
 }

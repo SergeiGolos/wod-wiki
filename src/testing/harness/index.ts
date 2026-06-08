@@ -1,12 +1,12 @@
-// Phase 1: MockJitCompiler
+// Mock infrastructure
 export { MockJitCompiler } from './MockJitCompiler';
 export type { CompileCall, BlockMatcher } from './MockJitCompiler';
 
-// Phase 2: ExecutionContextTestHarness
+// ExecutionContext testing (Phase 2 — will collapse into BehaviorTestHarness in Phase D)
 export { ExecutionContextTestHarness } from './ExecutionContextTestHarness';
 export type { ActionExecution, EventDispatch, HarnessConfig } from './ExecutionContextTestHarness';
 
-// Phase 3: Builder & Factory Methods
+// Builder & Factory Methods
 export { ExecutionContextTestBuilder } from './ExecutionContextTestBuilder';
 export type { BlockMatcherPredicate, BlockOrFactory } from './ExecutionContextTestBuilder';
 export {
@@ -22,14 +22,14 @@ export type {
   BasicTestConfig
 } from './factory';
 
-// Existing harnesses
+// Behavior-level testing
+
+// Generic runtime testing
+export { RuntimeTestHarness, RuntimeTestBuilder } from './RuntimeTestBuilder';
+export type { MemoryEntry } from './RuntimeTestBuilder';
 export { BehaviorTestHarness } from './BehaviorTestHarness';
 export { MockBlock } from './MockBlock';
 export type { MockBlockConfig, BehaviorContextRecordings } from './MockBlock';
-export { RuntimeTestBuilder, RuntimeTestHarness } from './RuntimeTestBuilder';
-export { WorkoutTestHarness, WorkoutTestBuilder } from './WorkoutTestHarness';
-export type { MemoryEntry } from './RuntimeTestBuilder';
-export type { WorkoutReport } from './WorkoutTestHarness';
 
 // Effort Registry mocks
 export { MockEffortResolver } from './MockEffortResolver';

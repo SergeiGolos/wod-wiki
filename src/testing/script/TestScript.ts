@@ -5,6 +5,7 @@ import type { MockClock } from '@/runtime/RuntimeClock';
 import type { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
 import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import type { WhiteboardScript } from '@/parser/WhiteboardScript';
+import type { IOutputStatement } from '@/core/models/OutputStatement';
 
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
@@ -14,7 +15,7 @@ import { StartSessionAction } from '@/runtime/actions/stack/StartSessionAction';
 import { NextEvent } from '@/runtime/events/NextEvent';
 import { ChromecastRuntimeSubscription } from '@/services/cast/rpc/ChromecastRuntimeSubscription';
 import { connectPair } from '@/testing/transport/FakeRpcTransport';
-import { createFullCompiler } from '../../../tests/jit-compilation/helpers/session-test-utils';
+import { createFullCompiler } from '@/testing/compiler'
 import { ScriptState } from './ScriptState';
 
 export interface TestScriptConfig {
@@ -31,8 +32,10 @@ export class TestScript {
     readonly cast: FakeRpcTransport;
     private readonly _clock: MockClock;
     private readonly _stackHistory: Array<{ type: 'push' | 'pop' | 'clear' | 'initial'; block?: IRuntimeBlock; depth: number; at: Date }> = [];
+    private readonly _outputs: IOutputStatement[] = [];
     private readonly _castSubscription: ChromecastRuntimeSubscription;
     private readonly _stackUnsub: () => void;
+    private readonly _outputUnsub: () => void;
 
     private constructor(runtime: ScriptRuntime, clock: MockClock, cast: FakeRpcTransport) {
         this.runtime = runtime;
@@ -42,6 +45,9 @@ export class TestScript {
         this._stackUnsub = runtime.subscribeToStack((snapshot) => {
             this._recordSnapshot(snapshot);
             this._castSubscription.onStackSnapshot(snapshot);
+        });
+        this._outputUnsub = runtime.subscribeToOutput((output) => {
+            this._outputs.push(output);
         });
     }
 
@@ -53,6 +59,26 @@ export class TestScript {
         const stack = new RuntimeStack();
         const eventBus = new EventBus();
         const runtime = config?.runtime ?? new ScriptRuntime(script, compiler, { stack, clock, eventBus });
+        const castTransport = config?.castTransport ?? new FakeRpcTransport();
+
+        if (!config?.castTransport) {
+            const browserFake = new FakeRpcTransport();
+            connectPair(browserFake, castTransport);
+        }
+
+        const ts = new TestScript(runtime, clock, castTransport);
+        runtime.do(new StartSessionAction());
+        await ts.flushObservers();
+        return ts;
+    }
+
+    /** Build a TestScript from a pre-parsed WhiteboardScript (avoids double-parse). */
+    static async fromScript(script: WhiteboardScript, config?: TestScriptConfig): Promise<TestScript> {
+        const compiler = createFullCompiler();
+        const clock = config?.clock ?? createMockClock(new Date('2024-01-01T12:00:00Z'));
+        const stack = new RuntimeStack();
+        const eventBus = new EventBus();
+        const runtime = new ScriptRuntime(script, compiler, { stack, clock, eventBus });
         const castTransport = config?.castTransport ?? new FakeRpcTransport();
 
         if (!config?.castTransport) {
@@ -90,6 +116,7 @@ export class TestScript {
             clockTime: new Date(this._clock.currentDate.getTime()),
             castSent: [...this.cast.sent],
             stackHistory: [...this._stackHistory],
+            outputs: [...this._outputs],
         }) as ScriptState;
     }
 
@@ -152,6 +179,7 @@ export class TestScript {
     /** Dispose the runtime and paired transport. */
     async dispose(): Promise<void> {
         this._stackUnsub();
+        this._outputUnsub();
         this._castSubscription.dispose();
         this.runtime.dispose();
         this.cast.dispose();

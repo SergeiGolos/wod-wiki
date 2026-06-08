@@ -258,4 +258,159 @@ describe('assertions DSL', () => {
         });
         expect(assertions(changed).stack().changed(baseline)).toBe(true);
     });
+
+    // ── Domain-specific queries ──────────────────────────────
+    it('isA matches blockType case-insensitively', () => {
+        const effort = new MockBlock({ id: 'b1', label: 'Effort 1', blockType: 'Effort' });
+        const amrap = new MockBlock({ id: 'b2', label: 'AMRAP', blockType: 'AMRAP' });
+        const state = makeState({
+            blocks: [effort, amrap],
+            depth: 2,
+            current: effort,
+        });
+        const a = assertions(state);
+        expect(a.currentBlock()!.isA('effort')).toBe(true);
+        expect(a.currentBlock()!.isA('EFFORT')).toBe(true);
+        expect(a.currentBlock()!.isA('amrap')).toBe(false);
+        expect(a.blocksByType('AMRAP')[0]!.isA('amrap')).toBe(true);
+    });
+
+    it('hasMetric returns true when a metric type is present in the given tag', () => {
+        const block = new MockBlock({ id: 'b1', label: 'Effort' });
+        block.pushMemory(
+            new MemoryLocation('metric:display', [
+                { type: MetricType.Resistance, origin: 'parser', value: 135 },
+            ]),
+        );
+        const state = makeState({ blocks: [block], depth: 1, current: block });
+        const a = assertions(state).currentBlock()!;
+        expect(a.hasMetric('metric:display', MetricType.Resistance)).toBe(true);
+        expect(a.hasMetric('metric:display', MetricType.Rep)).toBe(false);
+        expect(a.hasMetric('round', MetricType.Rep)).toBe(false);
+    });
+
+    it('displayMetrics / displayMetric read from metric:display memory', () => {
+        const block = new MockBlock({ id: 'b1', label: 'Effort' });
+        block.pushMemory(
+            new MemoryLocation('metric:display', [
+                { type: MetricType.Rep, origin: 'parser', value: 21 },
+                { type: MetricType.Resistance, origin: 'parser', value: 95 },
+            ]),
+        );
+        const state = makeState({ blocks: [block], depth: 1, current: block });
+        const a = assertions(state).currentBlock()!;
+        expect(a.displayMetrics().length).toBe(2);
+        expect(a.displayMetric(MetricType.Resistance)!.value).toBe(95);
+        expect(a.displayMetric(MetricType.Distance)).toBeUndefined();
+    });
+
+    it('roundState returns the first round-tagged metric as RoundState', () => {
+        const block = new MockBlock({ id: 'b1', label: 'Rounds 21-15-9' });
+        block.pushMemory(
+            new MemoryLocation('round', [
+                { type: MetricType.Rep, origin: 'runtime', value: { current: 2, total: 3 } as any },
+            ]),
+        );
+        const state = makeState({ blocks: [block], depth: 1, current: block });
+        const rs = assertions(state).currentBlock()!.roundState();
+        expect(rs).toBeDefined();
+        expect(rs!.current).toBe(2);
+        expect(rs!.total).toBe(3);
+    });
+
+    it('roundState returns undefined when no round memory exists', () => {
+        const block = new MockBlock({ id: 'b1', label: 'Rounds' });
+        const state = makeState({ blocks: [block], depth: 1, current: block });
+        expect(assertions(state).currentBlock()!.roundState()).toBeUndefined();
+    });
+
+    it('timerState returns the first time-tagged metric as TimerState', () => {
+        const block = new MockBlock({ id: 'b1', label: 'AMRAP 5min' });
+        block.pushMemory(
+            new MemoryLocation('time', [
+                {
+                    type: MetricType.Elapsed,
+                    origin: 'runtime',
+                    value: { spans: [], durationMs: 300_000, direction: 'down', label: 'AMRAP' } as any,
+                },
+            ]),
+        );
+        const state = makeState({ blocks: [block], depth: 1, current: block });
+        const ts = assertions(state).currentBlock()!.timerState();
+        expect(ts).toBeDefined();
+        expect(ts!.durationMs).toBe(300_000);
+        expect(ts!.direction).toBe('down');
+    });
+
+    it('timerState returns undefined when no time memory exists', () => {
+        const block = new MockBlock({ id: 'b1', label: 'Rounds' });
+        const state = makeState({ blocks: [block], depth: 1, current: block });
+        expect(assertions(state).currentBlock()!.timerState()).toBeUndefined();
+    });
+
+    // ── Output assertions ──────────────────────────────
+
+    it('outputs().all returns the captured output statements', () => {
+        const state = makeState({
+            outputs: [
+                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as any,
+                { id: 2, outputType: 'completion', sourceBlockKey: 'b1' } as any,
+            ],
+        });
+        const out = assertions(state).outputs();
+        expect(out.count()).toBe(2);
+        expect(out.all().length).toBe(2);
+    });
+
+    it('outputs().byType filters by OutputStatementType', () => {
+        const state = makeState({
+            outputs: [
+                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as any,
+                { id: 2, outputType: 'completion', sourceBlockKey: 'b1' } as any,
+                { id: 3, outputType: 'segment', sourceBlockKey: 'b2' } as any,
+            ],
+        });
+        const out = assertions(state).outputs();
+        expect(out.byType('segment').length).toBe(2);
+        expect(out.byType('completion').length).toBe(1);
+    });
+
+    it('outputs().forBlock filters by source block key', () => {
+        const state = makeState({
+            outputs: [
+                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as any,
+                { id: 2, outputType: 'completion', sourceBlockKey: 'b2' } as any,
+            ],
+        });
+        const out = assertions(state).outputs();
+        expect(out.forBlock('b1').length).toBe(1);
+        expect(out.forBlock('missing').length).toBe(0);
+    });
+
+    it('outputs().allPaired passes when every segment has a matching completion', () => {
+        const state = makeState({
+            outputs: [
+                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as any,
+                { id: 2, outputType: 'completion', sourceBlockKey: 'b1' } as any,
+            ],
+        });
+        expect(() => assertions(state).outputs().allPaired()).not.toThrow();
+    });
+
+    it('outputs().allPaired throws on unpaired segments', () => {
+        const state = makeState({
+            outputs: [
+                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as any,
+                { id: 2, outputType: 'segment', sourceBlockKey: 'b2' } as any,
+            ],
+        });
+        expect(() => assertions(state).outputs().allPaired()).toThrow(/Unpaired segment outputs/);
+    });
+
+    it('outputs() default to empty array when state.outputs is undefined', () => {
+        const state = makeState();
+        const out = assertions(state).outputs();
+        expect(out.count()).toBe(0);
+        expect(out.all()).toEqual([]);
+    });
 });

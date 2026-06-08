@@ -1,5 +1,6 @@
 import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import type { RpcMessage } from '@/services/cast/rpc/RpcMessages';
+import type { IOutputStatement } from '@/core/models/OutputStatement';
 
 export interface ScriptState {
     /** Frozen stack at the moment of snapshot. */
@@ -12,4 +13,9 @@ export interface ScriptState {
     readonly castSent: readonly RpcMessage[];
     /** Stack events that have occurred since script start. */
     readonly stackHistory: ReadonlyArray<{ type: 'push' | 'pop' | 'clear' | 'initial'; block?: IRuntimeBlock; depth: number; at: Date }>;
+    /**
+     * Output statements emitted by the runtime up to snapshot, in order.
+     * Empty array (the default) when the caller doesn't subscribe to outputs.
+     */
+    readonly outputs?: readonly IOutputStatement[];
 }

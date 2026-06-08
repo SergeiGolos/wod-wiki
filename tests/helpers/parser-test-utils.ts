@@ -70,7 +70,7 @@ export interface ParserTestContext {
     /** The DialectRegistry used (for inspection). */
     readonly dialects: DialectRegistry;
     /** Parse errors, if any. */
-    readonly errors: readonly any[];
+    readonly errors: readonly unknown[];
 }
 
 // ── Factory ───────────────────────────────────────────────────────
@@ -96,6 +96,32 @@ export function createParserContext(
 
     return {
         source: scriptText,
+        script,
+        statements: stmts,
+        dialects: registry,
+        errors: script.errors ?? [],
+    };
+}
+
+/**
+ * Creates a parser test context from a pre-parsed WhiteboardScript.
+ * Use with TestScript.fromScript() to avoid double-parsing.
+ */
+export function createParserContextFromScript(
+    script: WhiteboardScript,
+    options?: ParserTestOptions,
+): ParserTestContext {
+    const dialectList = options?.dialects ?? ALL_DIALECTS;
+    const registry = registryFrom(dialectList);
+
+    // Apply dialect processing to all parsed statements.
+    const stmts = script.statements as ICodeStatement[];
+    if (dialectList.length > 0) {
+        registry.processAll(stmts);
+    }
+
+    return {
+        source: '',
         script,
         statements: stmts,
         dialects: registry,
@@ -482,5 +508,17 @@ export function parse(
     options?: ParserTestOptions,
 ): TreeAssertions {
     const ctx = createParserContext(scriptText, options);
+    return new TreeAssertions(ctx);
+}
+
+/**
+ * Create TreeAssertions from a pre-parsed WhiteboardScript.
+ * Pairs with TestScript.fromScript() for parse-once-assert-twice tests.
+ */
+export function parseFromScript(
+    script: WhiteboardScript,
+    options?: ParserTestOptions,
+): TreeAssertions {
+    const ctx = createParserContextFromScript(script, options);
     return new TreeAssertions(ctx);
 }
