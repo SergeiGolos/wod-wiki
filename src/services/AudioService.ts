@@ -1,198 +1,73 @@
-
-// Basic beep sounds synthesis using Web Audio API
-
 /**
- * Service for playing synthesized audio feedback.
- * Uses Web Audio API to generate beeps and boops without external assets.
+ * AudioService — thin orchestrator for audio feedback.
+ *
+ * Policy (what sound for what cue) lives in AudioPolicy.
+ * I/O (synthesis via Web Audio API) lives in WebAudioSink.
+ * This class wires them together and manages enabled/disabled state.
  */
+
+import { getSoundDef } from './audio/AudioPolicy';
+import type { IAudioSink } from './audio/IAudioSink';
+import { WebAudioSink } from './audio/WebAudioSink';
+
 export class AudioService {
-    private context: AudioContext | null = null;
-    private enabled: boolean = false;
-    private masterGain: GainNode | null = null;
+  private enabled: boolean;
+  private sink: IAudioSink;
 
-    constructor() {
-        // Initialize enabled state from localStorage if available
-        if (typeof window !== 'undefined') {
-            try {
-                const stored = localStorage.getItem('wod-wiki-audio-enabled');
-                this.enabled = stored !== null ? stored === 'true' : true;
-            } catch {
-                this.enabled = true;
-            }
-        }
+  constructor(sink?: IAudioSink, enabled?: boolean) {
+    this.sink = sink ?? new WebAudioSink();
+    // Initialize enabled state from localStorage if available
+    if (enabled !== undefined) {
+      this.enabled = enabled;
+    } else if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('wod-wiki-audio-enabled');
+        this.enabled = stored !== null ? stored === 'true' : true;
+      } catch {
+        this.enabled = true;
+      }
+    } else {
+      this.enabled = true;
+    }
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('wod-wiki-audio-enabled', String(enabled));
+      } catch {}
+    }
+  }
+
+  isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  async playSound(name: string, volume: number = 1.0): Promise<void> {
+    if (!this.enabled) return;
+
+    const def = getSoundDef(name);
+    if (!def) {
+      // Fallback: play a default beep
+      const fallback = getSoundDef('beep');
+      if (fallback) {
+        await this.sink.playNotes(fallback.notes, volume);
+      }
+      return;
     }
 
-    /**
-     * Initialize AudioContext on user interaction
-     */
-    private initContext() {
-        // Safari still uses webkitAudioContext prefix
-        const windowWithWebkit = window as Window & { webkitAudioContext?: typeof AudioContext };
-        if (!this.context && typeof window !== 'undefined') {
-            const AudioContextClass = window.AudioContext ?? windowWithWebkit.webkitAudioContext;
-            if (AudioContextClass) {
-                this.context = new AudioContextClass();
-                this.masterGain = this.context.createGain();
-                this.masterGain.connect(this.context.destination);
-            }
-        }
+    // Initialize sink if it supports init (WebAudioSink does)
+    if ('init' in this.sink && typeof this.sink.init === 'function') {
+      this.sink.init();
     }
 
-    /**
-     * Enable or disable audio
-     */
-    setEnabled(enabled: boolean) {
-        this.enabled = enabled;
-        if (typeof window !== 'undefined') {
-            try {
-                localStorage.setItem('wod-wiki-audio-enabled', String(enabled));
-            } catch {
-                // Failed to save preference
-            }
-        }
-
-        // Resume context if enabling
-        if (enabled && this.context?.state === 'suspended') {
-            this.context.resume();
-        }
-    }
-
-    isEnabled(): boolean {
-        return this.enabled;
-    }
-
-    /**
-     * Play a sound based on its name.
-     *
-     * @param name - Sound name to play. Supported values: 'beep', 'tick', 'buzzer',
-     *               'chime', 'complete', 'start', 'click'. Falls back to a default beep for
-     *               unknown names.
-     * @param volume - Volume level (0.0 to 1.0, default: 1.0)
-     * @returns Promise that resolves when the sound starts playing
-     */
-    async playSound(name: string, volume: number = 1.0) {
-        if (!this.enabled) return;
-
-        // Initialize context if needed (must happen after user interaction usually)
-        if (!this.context) {
-            console.log('[AudioService] Initializing AudioContext on-demand');
-            this.initContext();
-        }
-
-        if (!this.context || !this.masterGain) {
-            console.warn('[AudioService] AudioContext or masterGain not available');
-            return;
-        }
-
-        // Ensure context is running (required by browser security policies)
-        if (this.context.state === 'suspended') {
-            console.log('[AudioService] Resuming suspended AudioContext');
-            await this.context.resume().catch(err => {
-                console.error('[AudioService] Failed to resume AudioContext:', err);
-            });
-        }
-
-        if (this.context.state !== 'running') {
-            console.warn(`[AudioService] Cannot play sound '${name}': AudioContext is ${this.context.state}`);
-            return;
-        }
-
-        const now = this.context.currentTime;
-        console.log(`[AudioService] Playing sound '${name}' at volume ${volume}`);
-
-        switch (name) {
-            case 'beep':
-            case 'tick':
-            case 'click': {
-                // Short high pitch click
-                const oscillator = this.context.createOscillator();
-                const gainNode = this.context.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(this.masterGain);
-                
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(name === 'click' ? 1400 : 880, now); 
-                gainNode.gain.setValueAtTime(volume, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1); 
-                oscillator.start(now);
-                oscillator.stop(now + 0.1);
-                break;
-            }
-
-            case 'buzzer': {
-                // Long lower pitch buzz
-                const oscillator = this.context.createOscillator();
-                const gainNode = this.context.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(this.masterGain);
-                
-                oscillator.type = 'sawtooth';
-                oscillator.frequency.setValueAtTime(150, now);
-                oscillator.frequency.linearRampToValueAtTime(100, now + 0.5);
-                gainNode.gain.setValueAtTime(volume, now);
-                gainNode.gain.linearRampToValueAtTime(0.01, now + 0.5);
-                oscillator.start(now);
-                oscillator.stop(now + 0.5);
-                break;
-            }
-
-            case 'chime':
-            case 'complete':
-                // Pleasant major chord arpeggio
-                this.playNote(now, 523.25, 'sine', 0.5, volume); // C5
-                this.playNote(now + 0.1, 659.25, 'sine', 0.5, volume); // E5
-                this.playNote(now + 0.2, 783.99, 'sine', 0.5, volume); // G5
-                break;
-
-            case 'select': {
-                // Pleasant confirmation tone — two ascending sine beeps
-                this.playNote(now, 880, 'sine', 0.08, volume); // A5
-                this.playNote(now + 0.08, 1200, 'sine', 0.12, volume); // ~D6
-                break;
-            }
-
-            case 'start':
-                // Ascending sequence
-                this.playNote(now, 440, 'square', 0.1, volume); // A4
-                this.playNote(now + 0.15, 880, 'square', 0.3, volume); // A5
-                break;
-
-            default: {
-                // Fallback beep
-                const oscillator = this.context.createOscillator();
-                const gainNode = this.context.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(this.masterGain);
-                
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(440, now);
-                gainNode.gain.setValueAtTime(volume, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                oscillator.start(now);
-                oscillator.stop(now + 0.1);
-                break;
-            }
-        }
-    }
-
-    private playNote(startTime: number, freq: number, type: OscillatorType, duration: number, volume: number) {
-        if (!this.context || !this.masterGain) return;
-
-        const osc = this.context.createOscillator();
-        const gain = this.context.createGain();
-
-        osc.connect(gain);
-        gain.connect(this.masterGain);
-
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, startTime);
-
-        gain.gain.setValueAtTime(volume * 0.5, startTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-
-        osc.start(startTime);
-        osc.stop(startTime + duration);
-    }
+    await this.sink.playNotes(def.notes, volume);
+  }
 }
 
+/**
+ * Default singleton for backward compatibility.
+ * Uses WebAudioSink (production audio output).
+ */
 export const audioService = new AudioService();

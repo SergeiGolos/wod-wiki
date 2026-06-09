@@ -28,6 +28,8 @@ export type {
 export { RuntimeTestHarness, RuntimeTestBuilder } from './RuntimeTestBuilder';
 export type { MemoryEntry } from './RuntimeTestBuilder';
 export { BehaviorTestHarness } from './BehaviorTestHarness';
+export { StrategyTestHarness, AppliedStrategy, apply, stmtWith, makeStatement, stubRuntime } from './StrategyTestHarness';
+export type { AppliedStrategy as AppliedStrategyView } from './StrategyTestHarness';
 export { MockBlock } from './MockBlock';
 export type { MockBlockConfig, BehaviorContextRecordings } from './MockBlock';
 

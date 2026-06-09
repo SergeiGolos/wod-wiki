@@ -16,8 +16,8 @@ import { NextAction } from '@/runtime/actions/stack/NextAction';
 import { OutputTracingHarness } from '../../harness/OutputTracingHarness';
 
 // createFullCompiler: import for local use + re-export for callers
-import { createFullCompiler } from '@/testing/compiler';
-export { createFullCompiler };
+import { createCompiler } from '@/testing/compiler';
+export { createCompiler };
 
 /**
  * Full session test harness combining ScriptRuntime + OutputTracing.
@@ -42,7 +42,7 @@ export function createSessionContext(
     clockTime: Date = new Date('2024-01-01T12:00:00Z')
 ): SessionTestContext {
     const script = sharedParser.read(scriptText) as WhiteboardScript;
-    const compiler = createFullCompiler();
+    const compiler = createCompiler();
     const clock = createMockClock(clockTime);
     const stack = new RuntimeStack();
     const eventBus = new EventBus();
@@ -148,7 +148,7 @@ export function createStartedPerfContext(
     clockTime: Date = new Date('2024-01-01T12:00:00Z')
 ): PerfSessionContext {
     const script = sharedParser.read(scriptText) as WhiteboardScript;
-    const compiler = createFullCompiler();
+    const compiler = createCompiler();
     const clock = createMockClock(clockTime);
     const stack = new RuntimeStack();
     const eventBus = new EventBus();

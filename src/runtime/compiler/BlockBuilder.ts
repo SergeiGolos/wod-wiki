@@ -180,6 +180,24 @@ export class BlockBuilder {
         this.sourceIds = ids;
         return this;
     }
+    getLabel(): string {
+        return this.label;
+    }
+    getBlockType(): string {
+        return this.blockType;
+    }
+    getFragments(): MetricContainer[] | undefined {
+        return this.metrics;
+    }
+    getSourceIds(): number[] {
+        return this.sourceIds;
+    }
+    getContext(): IBlockContext | undefined {
+        return this.context;
+    }
+    getKey(): BlockKey | undefined {
+        return this.key;
+    }
 
     // ============================================================================
     // Aspect Composer Methods - High-level composition helpers

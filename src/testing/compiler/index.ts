@@ -1,1 +1,1 @@
-export { createFullCompiler } from './createFullCompiler';
+export { createFullCompiler, createCompiler, PRODUCTION_STRATEGIES } from './createFullCompiler';

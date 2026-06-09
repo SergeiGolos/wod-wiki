@@ -89,9 +89,34 @@ enforced safety net — defaulting any still-unresolved group to its first alter
 **before the runtime spins up its first Block**, so a `MetricType.Choice` can never
 reach a compiled Block on any entry point.
 _Avoid_: resolve (overloaded with ownership resolution), pick.
-
+### Persistence & storage
+**Storage**:
+The raw per-store layer below Persistence. A typed interface (`IStorage`,
+`src/services/storage/IStorage.ts`) with operations keyed by **Store Name**
+(`notes`, `segments`, `results`, `attachments`, `analytics`, `efforts`):
+`readonly(store).get/getAll/getAllFromIndex`, `readwrite(store).put/delete`,
+and `transaction(stores)` for cross-store atomic work. The interface is
+parameterized by store name so callers and tests cross the same seam
+without knowing which engine backs it. Schema (stores, key paths, indexes)
+lives in the **Storage Adapter**, not the interface.
+_Avoid_: database, table, repository (in the data-access sense).
+**Storage Adapter**:
+A concrete `IStorage` implementation. Two adapters ship in-tree:
+`IndexedDBStorage` (production, over `idb`) and `InMemoryStorage` (test
+default, pure `Map`-backed). Adapters own the schema, the open/close
+lifecycle, and the per-store keying rule. Tests construct a fresh
+`InMemoryStorage` per case — no IndexedDB globals, no `fake-indexeddb`,
+no shared state.
+_Avoid_: backend, store implementation, persistence impl.
+**Persistence**:
+The domain layer above Storage. `IndexedDBNotePersistence` exposes
+`getNote / listNotes / mutateNote / deleteNote` for the Note
+domain; it depends on the `NotePersistenceStorage` interface, which the
+Storage layer satisfies. Persistence adapters compose raw **Storage**
+calls into domain operations (latest-version lookup, cascade delete,
+analytics write) — they do not embed engine specifics.
+_Avoid_: data layer, store (overloaded).
 ### Dialect & runtime
-
 **Dialect**:
 A composable analyzer (`IDialect`) that recognizes a domain's patterns (CrossFit,
 Cardio, Yoga…), contributes a **Unit** set, and emits **Hint** markers plus
@@ -134,14 +159,10 @@ _Avoid_: node, step.
 
 ## Example dialogue
 
-> **Dev:** "Where does the EMOM-ness of a line live now — on the Statement's hints set?"
-> **Maintainer:** "There's no hints set anymore. The CrossFit **Dialect** emits a
-> **Hint** Metric with value `workout.emom`. The interval **Strategy** reads it with
-> `hasHint`, and the ownership ledger keeps it out of the display Metrics."
-
-## Flagged ambiguities
-
-- "fragment" was used for both **Metric** (the data) and parser primitives — prefer
-  **Metric** for the model type.
-- "hint" was both a `Set<string>` channel and a concept — resolved: a **Hint** is a
-  **Metric** of type `Hint`; the Set channel is gone.
+- A **Dialect** imports a **Unit** set from the **Unit Registry** and **Fusion**
+  applies it; the **Dialect Stack** composes these sets in order (later wins).
+- The parser is **Unit**-free: it emits bare Number + Text; **Fusion** (a Dialect
+  concern) turns them into dimensioned Metrics.
+- A **Storage Adapter** satisfies **Storage** for one engine; **Persistence**
+  composes **Storage** calls into domain operations; domain code depends on
+  **Persistence**, not on a concrete adapter.
