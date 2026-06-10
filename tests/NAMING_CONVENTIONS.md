@@ -13,36 +13,48 @@ This document defines naming conventions for test files in the WOD Wiki project.
 
 ```
 tests/
-├── harness/                  # Test harness infrastructure (see below)
-│   ├── __tests__/           # Harness self-tests
-│   └── assertions/          # Custom assertion helpers (planned)
-├── language-compilation/     # Parser and AST generation tests
-├── jit-compilation/          # Strategy and block compilation tests
-├── runtime-execution/        # Runtime state management tests
-│   ├── stack/               # RuntimeStack lifecycle
-│   ├── blocks/              # Block implementations
-│   ├── behaviors/           # Behavior implementations
-│   ├── memory/              # Memory allocation and references
-│   ├── events/              # Event system
-│   └── workflows/           # Integration workflows
-├── metrics-recording/        # Metric collection and emission
-├── performance/             # Performance benchmarks (deferred)
-├── integration/             # Cross-component integration tests
-└── e2e/                     # Playwright browser tests
+├── helpers/                    # Shared test utilities
+│   ├── parser-test-utils.ts    # Fluent parser assertions (parse(), StatementAssertions, TreeAssertions)
+│   └── compliance-helpers.ts   # Shared runtime compliance helpers (currentBlockType, getRoundState, etc.)
+├── harness/                    # Test harness infrastructure
+│   ├── OutputTracingHarness.ts # Output statement capture and validation
+│   └── __tests__/             # Harness self-tests
+├── language-compilation/       # Parser and AST generation tests
+├── parser-compliance/          # Parser output verification (fluent API)
+├── parser/                     # Lezer grammar tests
+├── jit-compilation/            # Strategy/block compilation + output statements
+├── runtime-compliance/         # End-to-end behavioral compliance (spec-driven)
+├── blocks/                     # Block unit tests (BehaviorTestHarness + MockBlock)
+├── lifecycle/                  # Block lifecycle + clock propagation
+├── strategies/                 # Strategy integration tests (older, using RuntimeTestBuilder)
+├── cast-integration/           # Chromecast RPC roundtrip tests
+├── analytics/                  # Analytics processor tests
+├── unit-setup.ts               # Bun module stubs (fake-indexeddb, jsdom, Vite mocks)
+└── setup.ts                    # DOM/performance observer mocks, console suppression
 ```
+
+### Co-located strategy tests
+
+Strategy unit tests live alongside their source in `src/runtime/compiler/strategies/`,
+using `StrategyTestHarness`. These are NOT in `tests/strategies/` — that directory
+contains older integration-level tests using `RuntimeTestBuilder`.
 
 ## Test Harness
 
-The project provides a unified test harness under `tests/harness/` for consistent runtime testing.
+The project uses a layered test harness architecture. Primary harnesses live in
+`src/testing/harness/` (imported via `@/testing/harness`), with session-level testing
+via `TestScript` (`@/testing/script`).
 
 ### Available Classes
 
 | Class | Purpose | Use Case |
 |-------|---------|----------|
-| `BehaviorTestHarness` | Lightweight harness with real memory/stack/eventbus | Unit testing behaviors |
-| `MockBlock` | Configurable IRuntimeBlock stub | Testing behaviors in isolation |
-| `RuntimeTestBuilder` | Builder for full ScriptRuntime | Integration testing strategies/blocks |
-
+| `BehaviorTestHarness` | Lightweight: real memory/stack/EventBus + mock clock | Unit testing behaviors/blocks |
+| `MockBlock` | Configurable `IRuntimeBlock` stub | Testing behaviors in isolation |
+| `RuntimeTestBuilder` | Strategy-level: parse → compile → inspect block | Strategy compilation tests |
+| `TestScript` | Full E2E: parse → compile → run session → snapshot | Compliance + integration tests |
+| `StrategyTestHarness` | Strategy match/apply in isolation | Co-located strategy unit tests |
+| `OutputTracingHarness` | Captures and validates output statements | Output sequence verification |
 ### Usage: Unit Testing Behaviors
 
 ```typescript

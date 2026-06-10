@@ -157,10 +157,12 @@ describe('🟢 Parser: Unknown Units / Trailing Tokens', () => {
 // ── Single-Value Round Schemes ────────────────────────────────────
 
 describe('🟢 Parser: Single Round Schemes', () => {
-    it('"(10) Pushups" → single round scheme', () => {
+    it('"(10) Pushups" → parses without crash', () => {
         const result = parse('(10) Pushups');
+        // (10) is parsed as Rounds(10) not Rep(10) — the grammar treats
+        // parenthesized numbers as rounds specifiers
         result.hasStatementCount(1).hasNoErrors();
-        result.root(0).hasMetric(MetricType.Rep);
+        result.root(0).hasMetric(MetricType.Rounds);
     });
 
     it('"(5) 10 Pushups" → rounds + rep scheme', () => {

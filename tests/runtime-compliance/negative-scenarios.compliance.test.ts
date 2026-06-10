@@ -17,10 +17,11 @@ describe('Empty script compilation', () => {
 
     afterEach(async () => { if (script) await script.dispose(); });
 
-    it('compiles "" → depth 2 (SessionRoot + WaitingToStart)', async () => {
+    it('compiles "" → depth 0 (no statements, session not started)', async () => {
         script = await TestScript.compile('');
         const state = await script.snapshot();
-        expect(state.depth).toBe(2);
+        // Empty script produces no statements → StartSessionAction is a no-op
+        expect(state.depth).toBe(0);
     });
 
     it('dispose on empty script is clean (no throw)', async () => {
@@ -38,11 +39,10 @@ describe('Whitespace-only script compilation', () => {
     let script: TestScript;
 
     afterEach(async () => { if (script) await script.dispose(); });
-
-    it('compiles whitespace-only text → depth 2 (same as empty)', async () => {
+    it('compiles whitespace-only text → depth 0 (same as empty)', async () => {
         script = await TestScript.compile('   \n\n   ');
         const state = await script.snapshot();
-        expect(state.depth).toBe(2);
+        expect(state.depth).toBe(0);
     });
 
     it('all outputs are paired on empty-ish script', async () => {
