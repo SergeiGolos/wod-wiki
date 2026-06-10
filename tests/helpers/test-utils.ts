@@ -20,7 +20,7 @@ import { ICodeStatement } from '../../src/core/models/CodeStatement';
  */
 
 /**
- * @deprecated Use `sharedParser.read(scriptText) as WhiteboardScript` instead.
+ * @deprecated Use `createParser().read(scriptText) as WhiteboardScript` instead.
  */
 export function createMockScript(statements: ICodeStatement[]): WhiteboardScript {
   return new WhiteboardScript('mock source', statements, []);

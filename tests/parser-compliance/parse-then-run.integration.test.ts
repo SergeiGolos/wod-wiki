@@ -4,7 +4,7 @@
  * Demonstrates the "parse first, validate tree, then pass to runtime" pattern.
  * Uses the shared WhiteboardScript to avoid double-parsing:
  *
- *   1. Parse once via sharedParser → WhiteboardScript
+ *   1. Parse once via createParser() → WhiteboardScript
  *   2. Assert on the statement tree via parseFromScript()
  *   3. Hand the same script to TestScript.fromScript() for runtime testing
  *
@@ -14,11 +14,11 @@ import { describe, it, expect, afterEach } from 'bun:test';
 import { parseFromScript } from '../helpers/parser-test-utils';
 import { MetricType } from '@/core/models/Metric';
 import { TestScript } from '@/testing/script';
-import { sharedParser } from '@/parser/parserInstance';
+import { createParser } from '@/parser/parserInstance';
 import type { WhiteboardScript } from '@/parser/WhiteboardScript';
 
 function parseScript(text: string): WhiteboardScript {
-    return sharedParser.read(text) as WhiteboardScript;
+    return createParser().read(text) as WhiteboardScript;
 }
 
 // ── Single Effort: parse then run ─────────────────────────────────

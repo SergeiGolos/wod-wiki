@@ -1,9 +1,9 @@
 import { describe, it } from 'bun:test';
-import { sharedParser } from '@/parser/parserInstance';
+import { createParser } from '@/parser/parserInstance';
 import { MetricType } from '@/core/models/Metric';
 
 function parseMetrics(input: string) {
-    const script = sharedParser.read(input) as any;
+    const script = createParser().read(input) as any;
     return (script.statements ?? []).map((s: any) =>
         (s.metrics ?? []).map((m: any) => ({ type: m.type, value: m.value, unit: m.unit ?? (m.value as any)?.unit }))
     );

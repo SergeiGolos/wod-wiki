@@ -40,7 +40,7 @@ import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/E
 
 import { StartSessionAction } from '@/runtime/actions/stack/StartSessionAction';
 import { NextEvent } from '@/runtime/events/NextEvent';
-import { sharedParser } from '@/parser/parserInstance';
+import { createParser } from '@/parser/parserInstance';
 
 // ── BrowserEventProxy — maps RpcEvent names to runtime.handle() calls ────────
 // Typed, headless analog of CastButtonRpc's switch statement.
@@ -95,7 +95,7 @@ describe('cast roundtrip integration', () => {
         receiverFake = new FakeRpcTransport();
         connectPair(browserFake, receiverFake);
 
-        const script = sharedParser.read(SCRIPT);
+        const script = createParser().read(SCRIPT);
 
         const compiler = new JitCompiler();
         compiler.registerStrategy(new GenericTimerStrategy());
