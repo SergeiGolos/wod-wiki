@@ -31,7 +31,7 @@ interface SenderCastSession {
 
 interface SenderSessionConnectOptions {
     castSession?: SenderCastSession | null;
-    existingTransport?: WebRtcRpcTransport | null;
+    existingTransport?: IRpcTransport | null;
     bootDelayMs?: number;
     skipNamespacePing?: boolean;
 }
@@ -39,9 +39,9 @@ interface SenderSessionConnectOptions {
 interface SenderSessionDeps {
     createSignaling: (session: SenderCastSession) => ISignaling;
     createTransport: (role: 'offerer', signaling: ISignaling) => WebRtcRpcTransport;
-    createEventProvider: (transport: WebRtcRpcTransport) => ChromecastEventProvider;
-    createSubscription: (transport: WebRtcRpcTransport) => ChromecastRuntimeSubscription;
-    createClockSync: (transport: WebRtcRpcTransport) => ClockSyncService;
+    createEventProvider: (transport: IRpcTransport) => ChromecastEventProvider;
+    createSubscription: (transport: IRpcTransport) => ChromecastRuntimeSubscription;
+    createClockSync: (transport: IRpcTransport) => ClockSyncService;
     sleep: (ms: number) => Promise<void>;
 }
 
@@ -55,7 +55,7 @@ const senderDeps: SenderSessionDeps = {
 };
 
 export class ChromecastSenderViewSession implements IViewSession {
-    transport: WebRtcRpcTransport | null = null;
+    transport: IRpcTransport | null = null;
     eventProvider: ChromecastEventProvider | null = null;
     subscription: ChromecastRuntimeSubscription | null = null;
 
@@ -85,10 +85,11 @@ export class ChromecastSenderViewSession implements IViewSession {
 
     async connectInternal(options: SenderSessionConnectOptions): Promise<void> {
         this.cleanupCurrentSession(false);
-        const transport = options.existingTransport ?? (this.defaultTransport as WebRtcRpcTransport | null) ?? await this.createTransportFromCastSession(options);
+        const transport = options.existingTransport ?? this.defaultTransport ?? await this.createTransportFromCastSession(options);
         if (!transport.connected) {
             await transport.connect();
         }
+
 
         this.transport = transport;
         this.eventProvider = this.deps.createEventProvider(transport);

@@ -20,9 +20,13 @@ import { TvMinimal, Cast } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 import { useSubscriptionManager } from '@/contexts/SubscriptionManagerContext';
+import { ChromecastSenderViewSession } from '@/hooks/useCastSignaling';
+import { cn } from '@/lib/utils';
+import { ProjectionSyncProvider } from '@/contexts/ProjectionSyncContext';
+import { workbenchModeResolver } from '@/app/cast/workbenchModeResolver';
 import { getCastBackend } from '@/services/cast/getCastBackend';
 import { routeRuntimeEvent } from '@/services/cast/rpc/eventRouter';
-import { workbenchModeResolver } from '@/app/cast/workbenchModeResolver';
+import type { ICastBackend, ICastBackendState } from '@/services/cast/ICastBackend';
 import type { IRpcTransport } from '@/services/cast/rpc/IRpcTransport';
 
 export const CastButtonRpc: React.FC = () => {
