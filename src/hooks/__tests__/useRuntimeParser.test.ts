@@ -9,10 +9,10 @@ import { describe, it, expect } from 'bun:test';
 import { renderHook } from '@testing-library/react';
 
 describe('useRuntimeParser', () => {
-  it('should export sharedParser singleton', async () => {
-    const { sharedParser } = await import('../useRuntimeParser');
-    expect(sharedParser).toBeDefined();
-    expect(typeof sharedParser.read).toBe('function');
+  it('should export createParser factory', async () => {
+    const { createParser } = await import('../useRuntimeParser');
+    expect(createParser).toBeDefined();
+    expect(typeof createParser).toBe('function');
   });
 
   it('should export MdTimerRuntime class', async () => {

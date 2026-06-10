@@ -1,14 +1,22 @@
 /**
- * Shared MdTimerRuntime singleton instance.
- * 
- * MdTimerRuntime is safe to share because:
+ * Parser factory.
+ *
+ * MdTimerRuntime is safe to construct per-call because:
  * - The Lexer is stateless after construction
  * - The Visitor clears its state at the start of each read() call
  * - A new Parser is created per read() call
- * 
- * Use this instead of `new MdTimerRuntime()` to avoid redundant
- * Lexer/Visitor construction across the codebase.
+ *
+ * Use createParser() instead of a module-level singleton so tests and
+ * production both go through the same seam.
  */
 import { MdTimerRuntime } from './md-timer';
 
-export const sharedParser = new MdTimerRuntime();
+export function createParser(): MdTimerRuntime {
+  return new MdTimerRuntime();
+}
+
+/**
+ * @deprecated Use createParser() instead. The module-level singleton is
+ * being removed to eliminate import-time side effects.
+ */
+export const sharedParser = /* @__PURE__ */ createParser();

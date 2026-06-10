@@ -2,7 +2,7 @@ import { JitCompiler } from '@/runtime/compiler';
 import { IRuntimeBlockStrategy } from '@/runtime/contracts';
 
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import { sharedParser } from '@/parser/parserInstance';
+import { createParser } from '@/parser/parserInstance';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock, type MockClock } from '@/runtime/RuntimeClock';
@@ -41,7 +41,7 @@ export class RuntimeTestHarness {
     clockTime: Date = new Date()
   ) {
     // 1. Parser (use shared singleton)
-    this.script = sharedParser.read(scriptText) as WhiteboardScript;
+    this.script = createParser().read(scriptText) as WhiteboardScript;
 
     // 2. JIT
     this.jit = new JitCompiler(strategies);

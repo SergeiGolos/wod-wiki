@@ -9,11 +9,10 @@ import { describe, it, expect } from 'bun:test';
 import { renderHook } from '@testing-library/react';
 
 describe('useRuntimeFactory', () => {
-  it('should export globalCompiler', async () => {
-    const { globalCompiler } = await import('../useRuntimeFactory');
-    expect(globalCompiler).toBeDefined();
+  it('should export createCompiler', async () => {
+    const { createCompiler } = await import('../useRuntimeFactory');
+    expect(createCompiler).toBeDefined();
   });
-
   it('should export RuntimeFactory class', async () => {
     const { RuntimeFactory } = await import('../useRuntimeFactory');
     expect(typeof RuntimeFactory).toBe('function');

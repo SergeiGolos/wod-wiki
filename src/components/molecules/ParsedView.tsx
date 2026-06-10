@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { sharedParser } from '@/hooks/useRuntimeParser';
+import { createParser } from '@/parser/parserInstance';
 import { WhiteboardScriptVisualizer } from '@/components/organisms/WhiteboardScriptVisualizer';
 import { VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
 
@@ -21,7 +21,7 @@ export const ParsedView: React.FC<ParsedViewProps> = ({
     const trimmedScript = scriptText.trim();
 
     try {
-      const script = sharedParser.read(trimmedScript);
+      const script = createParser().read(trimmedScript);
       
       if (script.errors && script.errors.length > 0) {
         throw new Error(`Parsing errors: ${script.errors.map((e: any) => e.message).join(', ')}`);

@@ -18,7 +18,7 @@ import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { ExecutionContext } from '../../runtime/ExecutionContext';
 import { RuntimeStack } from '../../runtime/RuntimeStack';
 import { RuntimeClock } from '../../runtime/RuntimeClock';
-import { sharedParser } from '../../parser/parserInstance';
+import { createParser } from '../../parser/parserInstance';
 import { SimpleEventBus } from '../../services/events/SimpleEventBus';
 import { workbenchEventBus } from '../../services/WorkbenchEventBus';
 import { EventBus } from '../../runtime/events/EventBus';
@@ -336,30 +336,34 @@ describe('Application Launch Smoke Tests', () => {
   });
 
   describe('Parser Initialization', () => {
-    it('should initialize shared parser singleton', () => {
-      expect(sharedParser).toBeDefined();
+    it('should export createParser factory', () => {
+      expect(createParser).toBeDefined();
+      expect(typeof createParser).toBe('function');
     });
 
-    it('should return same instance on multiple imports', () => {
-      // Import again to verify singleton
-      const parser2 = require('../../parser/parserInstance').sharedParser;
-      expect(sharedParser).toBe(parser2);
+    it('should return a fresh parser instance on each call', () => {
+      const parser1 = createParser();
+      const parser2 = createParser();
+      expect(parser1).not.toBe(parser2);
+      expect(typeof parser1.read).toBe('function');
+      expect(typeof parser2.read).toBe('function');
     });
 
     it('should have read method available', () => {
-      expect(typeof sharedParser.read).toBe('function');
+      const parser = createParser();
+      expect(typeof parser.read).toBe('function');
     });
 
     it('should parse empty script without crashing', () => {
-      expect(() => sharedParser.read('')).not.toThrow();
-      const result = sharedParser.read('');
+      expect(() => createParser().read('')).not.toThrow();
+      const result = createParser().read('');
       expect(result).toBeDefined();
     });
 
     it('should parse simple script without crashing', () => {
       const simpleScript = '10:00 Run';
-      expect(() => sharedParser.read(simpleScript)).not.toThrow();
-      const result = sharedParser.read(simpleScript);
+      expect(() => createParser().read(simpleScript)).not.toThrow();
+      const result = createParser().read(simpleScript);
       expect(result).toBeDefined();
       expect(result.statements).toBeDefined();
     });
@@ -403,7 +407,7 @@ describe('Application Launch Smoke Tests', () => {
     });
 
     it('should initialize with real parser output', () => {
-      const script = sharedParser.read('10:00 Run');
+      const script = createParser().read('10:00 Run');
       expect(script).toBeDefined();
       expect(script.statements).toBeDefined();
       expect(script.statements.length).toBeGreaterThan(0);

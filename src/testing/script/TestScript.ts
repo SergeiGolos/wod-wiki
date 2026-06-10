@@ -10,12 +10,12 @@ import type { IOutputStatement } from '@/core/models/OutputStatement';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock } from '@/runtime/RuntimeClock';
-import { sharedParser } from '@/parser/parserInstance';
+import { createParser } from '@/parser/parserInstance';
 import { StartSessionAction } from '@/runtime/actions/stack/StartSessionAction';
 import { NextEvent } from '@/runtime/events/NextEvent';
 import { ChromecastRuntimeSubscription } from '@/services/cast/rpc/ChromecastRuntimeSubscription';
 import { connectPair } from '@/testing/transport/FakeRpcTransport';
-import { createFullCompiler } from '@/testing/compiler'
+import { createCompiler } from '@/testing/compiler'
 import { ScriptState } from './ScriptState';
 
 export interface TestScriptConfig {
@@ -53,8 +53,8 @@ export class TestScript {
 
     /** Compile a script (string of whiteboard text) into a TestScript. */
     static async compile(scriptText: string, config?: TestScriptConfig): Promise<TestScript> {
-        const script = sharedParser.read(scriptText) as WhiteboardScript;
-        const compiler = createFullCompiler();
+        const script = createParser().read(scriptText) as WhiteboardScript;
+        const compiler = createCompiler();
         const clock = config?.clock ?? createMockClock(new Date('2024-01-01T12:00:00Z'));
         const stack = new RuntimeStack();
         const eventBus = new EventBus();
@@ -74,7 +74,7 @@ export class TestScript {
 
     /** Build a TestScript from a pre-parsed WhiteboardScript (avoids double-parse). */
     static async fromScript(script: WhiteboardScript, config?: TestScriptConfig): Promise<TestScript> {
-        const compiler = createFullCompiler();
+        const compiler = createCompiler();
         const clock = config?.clock ?? createMockClock(new Date('2024-01-01T12:00:00Z'));
         const stack = new RuntimeStack();
         const eventBus = new EventBus();

@@ -27,7 +27,7 @@ import {
   StateField,
 } from "@codemirror/state";
 import { sectionField, type EditorSection } from "./section-state";
-import { sharedParser } from "@/hooks/useRuntimeParser";
+import { createParser } from "@/parser/parserInstance";
 import { MetricType } from "../../../core/models/Metric";
 import type { ICodeStatement } from "../../../core/models/CodeStatement";
 import type { IMetric } from "../../../core/models/Metric";
@@ -201,7 +201,7 @@ function parseStatements(
   const raw = state.doc.sliceString(section.contentFrom, section.contentTo);
   if (!raw.trim()) return null;
   try {
-    return sharedParser.read(raw).statements as ICodeStatement[];
+    return createParser().read(raw).statements as ICodeStatement[];
   } catch {
     return null;
   }

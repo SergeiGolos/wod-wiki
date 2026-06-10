@@ -1,4 +1,3 @@
-import { sharedParser } from '../../parser/parserInstance';
 import { JitCompiler } from '../compiler/JitCompiler';
 
 // Strategies (ordered by specificity)
@@ -49,15 +48,3 @@ export function createCompiler(strategies?: IRuntimeBlockStrategy[]): JitCompile
   }
   return compiler;
 }
-
-/**
- * Shared parser. Cheap to construct (Lezer-based, no Chevrotain),
- * so a module-level singleton is fine.
- */
-export const globalParser = sharedParser;
-
-/**
- * Shared compiler instance. Built from createCompiler() so the
- * strategy set is always in sync with PRODUCTION_STRATEGIES.
- */
-export const globalCompiler = createCompiler();

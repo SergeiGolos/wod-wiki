@@ -5,7 +5,7 @@
 import { useMemo } from 'react';
 
 // ── Compiler / runtime factory exports ───────────────────────────────────
-export { globalCompiler, globalParser, createCompiler, PRODUCTION_STRATEGIES } from '@/runtime/services/runtimeServices';
+export { createCompiler, PRODUCTION_STRATEGIES } from '@/runtime/services/runtimeServices';
 export { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 export type { IRuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 

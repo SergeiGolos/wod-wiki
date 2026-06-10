@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'bun:test';
-import { globalParser, globalCompiler, PRODUCTION_STRATEGIES, createCompiler } from './runtimeServices';
+import { PRODUCTION_STRATEGIES, createCompiler } from './runtimeServices';
+import { createParser } from '../../parser/parserInstance';
 import { MdTimerRuntime } from '../../parser/md-timer';
 import { JitCompiler } from '../compiler/JitCompiler';
 import { AmrapLogicStrategy } from '../compiler/strategies/logic/AmrapLogicStrategy';
@@ -14,15 +15,16 @@ import { ChildrenStrategy } from '../compiler/strategies/enhancements/ChildrenSt
 import { EffortFallbackStrategy } from '../compiler/strategies/fallback/EffortFallbackStrategy';
 
 describe('runtimeServices', () => {
-  describe('globalParser', () => {
-    it('should export a MdTimerRuntime instance', () => {
-      expect(globalParser).toBeInstanceOf(MdTimerRuntime);
+  describe('createParser', () => {
+    it('should return a MdTimerRuntime instance', () => {
+      const parser = createParser();
+      expect(parser).toBeInstanceOf(MdTimerRuntime);
     });
 
     it('should successfully parse workout code', () => {
       const code = '(3) Pullups';
-      const script = globalParser.read(code);
-      
+      const script = createParser().read(code);
+
       expect(script).toBeDefined();
       expect(script.statements).toBeDefined();
       expect(script.statements.length).toBeGreaterThan(0);
@@ -36,42 +38,37 @@ describe('runtimeServices', () => {
       ];
 
       patterns.forEach(pattern => {
-        const script = globalParser.read(pattern);
+        const script = createParser().read(pattern);
         expect(script).toBeDefined();
         expect(script.statements.length).toBeGreaterThan(0);
       });
     });
+
+    it('should return fresh instances on each call', () => {
+      const parser1 = createParser();
+      const parser2 = createParser();
+      expect(parser1).not.toBe(parser2);
+    });
   });
 
-  describe('globalCompiler', () => {
-    it('should export a JitCompiler instance', () => {
-      expect(globalCompiler).toBeInstanceOf(JitCompiler);
+  describe('createCompiler', () => {
+    it('returns a JitCompiler with production strategies by default', () => {
+      const compiler = createCompiler();
+      expect(compiler).toBeInstanceOf(JitCompiler);
+    });
+
+    it('accepts custom strategy list', () => {
+      const compiler = createCompiler([new EffortFallbackStrategy()]);
+      expect(compiler).toBeInstanceOf(JitCompiler);
     });
 
     it('should be ready for compilation with strategies', () => {
-      // Verify the compiler is initialized and ready
-      // Actual compilation tests require ScriptRuntime and are in integration tests
-      const script = globalParser.read('(3) Pullups');
-      
+      const script = createParser().read('(3) Pullups');
+      const compiler = createCompiler();
+
       expect(script).toBeDefined();
       expect(script.statements.length).toBeGreaterThan(0);
-      expect(globalCompiler).toBeDefined();
-    });
-  });
-
-  describe('module-level behavior', () => {
-    it('should maintain same instance throughout test suite', () => {
-      // Store references
-      const parserRef1 = globalParser;
-      const compilerRef1 = globalCompiler;
-
-      // Access again
-      const parserRef2 = globalParser;
-      const compilerRef2 = globalCompiler;
-
-      // Should be exact same references (singleton behavior)
-      expect(parserRef1).toBe(parserRef2);
-      expect(compilerRef1).toBe(compilerRef2);
+      expect(compiler).toBeDefined();
     });
   });
 
@@ -118,18 +115,6 @@ describe('runtimeServices', () => {
 
     it('has EffortFallbackStrategy at index 9', () => {
       expect(PRODUCTION_STRATEGIES[9]).toBeInstanceOf(EffortFallbackStrategy);
-    });
-  });
-
-  describe('createCompiler', () => {
-    it('returns a JitCompiler with production strategies by default', () => {
-      const compiler = createCompiler();
-      expect(compiler).toBeInstanceOf(JitCompiler);
-    });
-
-    it('accepts custom strategy list', () => {
-      const compiler = createCompiler([new EffortFallbackStrategy()]);
-      expect(compiler).toBeInstanceOf(JitCompiler);
     });
   });
 });

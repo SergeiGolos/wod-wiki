@@ -5,7 +5,7 @@ import { MetricType } from "@/core/models/Metric";
 import type { ICodeStatement } from "@/core/models/CodeStatement";
 import { cursorFocusExtension, getCursorFocusState, renderPanelContent } from "../cursor-focus-panel";
 import { sectionField } from "../section-state";
-import { sharedParser } from "@/hooks/useRuntimeParser";
+import * as parserModule from "@/parser/parserInstance";
 import { ChoiceGroupMetric } from "@/runtime/compiler/metrics/ChoiceGroupMetric";
 import { ResistanceMetric } from "@/runtime/compiler/metrics/ResistanceMetric";
 
@@ -70,8 +70,10 @@ describe("cursorFocusExtension", () => {
       meta: { line: 1 },
     } as unknown as ICodeStatement;
 
-    vi.spyOn(sharedParser, "read").mockReturnValue({
-      statements: [statement],
+    vi.spyOn(parserModule, "createParser").mockReturnValue({
+      read: vi.fn().mockReturnValue({
+        statements: [statement],
+      }),
     } as any);
 
     const create = () => createView("Intro\n```wod\n10 Pushups\n```", 3);
