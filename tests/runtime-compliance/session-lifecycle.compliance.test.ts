@@ -15,16 +15,8 @@
  *   🟢 Full Session — Multi-Block
  *   🟢 Early Termination / Abort (.skip)
  */
-import { describe, it, expect, afterEach } from 'bun:test';
 import { TestScript, assertions } from '@/testing/script';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function currentBlockType(state: ScriptState): string | undefined {
-    return state.current?.blockType;
-}
+import { currentBlockType } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Full Session — Start to Finish (Effort)
@@ -50,7 +42,7 @@ describe('🟢 Full Session — Start to Finish (Effort)', () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
         expect((await script.snapshot()).depth).toBe(2);
-        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
+        expect(currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
     it('step 2: second userNext → session ends (depth = 0)', async () => {
@@ -92,7 +84,7 @@ describe('🟢 Full Session — Timer Auto-Complete', () => {
     it('step 1: userNext → Timer starts (no userNext needed to end)', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
-        expect(await currentBlockType(await script.snapshot())).toMatch(/timer/i);
+        expect(currentBlockType(await script.snapshot())).toMatch(/timer/i);
     });
 
     it('step 2: advanceClock(60_000) → timer expires, session auto-terminates (depth = 0)', async () => {

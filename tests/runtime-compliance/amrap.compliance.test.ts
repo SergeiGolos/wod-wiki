@@ -11,23 +11,8 @@
 import { describe, it, expect, afterEach } from 'bun:test';
 import { TestScript, assertions } from '@/testing/script';
 import type { ScriptState } from '@/testing/script';
-import { RoundState } from '@/runtime/memory/MemoryTypes';
+import { getRoundState } from '../helpers/compliance-helpers';
 import { MetricType } from '@/core/models/Metric';
-import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Reads the current round state from the AMRAP block on the stack.
- * Returns undefined when no AMRAP block is present.
- */
-function getRoundState(state: ScriptState): RoundState | undefined {
-    const amrapBlock = state.blocks.find((b: IRuntimeBlock) => b.blockType === 'AMRAP');
-    if (!amrapBlock) return undefined;
-    return amrapBlock.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
-}
 
 // ===========================================================================
 // 🟢 Classic AMRAP — "Cindy"
@@ -69,7 +54,7 @@ describe('🟢 Classic AMRAP — Cindy (20:00 / 3 children)', () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
     it('step 2: second userNext advances to 2nd exercise (Pushups)', async () => {
@@ -77,7 +62,7 @@ describe('🟢 Classic AMRAP — Cindy (20:00 / 3 children)', () => {
         await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
         expect(s.depth).toBeGreaterThanOrEqual(3);
     });
 
@@ -87,7 +72,7 @@ describe('🟢 Classic AMRAP — Cindy (20:00 / 3 children)', () => {
         await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
     it('step 4: 4th userNext starts round 2 (children cycle back to Pullups)', async () => {
@@ -96,7 +81,7 @@ describe('🟢 Classic AMRAP — Cindy (20:00 / 3 children)', () => {
         await script.tick(60_000);
         await oneRound();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('round counter increments correctly across 3 complete rounds', async () => {
@@ -107,14 +92,14 @@ describe('🟢 Classic AMRAP — Cindy (20:00 / 3 children)', () => {
             await oneRound();
         }
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(4);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(4);
     });
 
     it('total rounds is undefined (unbounded AMRAP)', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.total).toBeUndefined();
+        expect(getRoundState(s, 'AMRAP')?.total).toBeUndefined();
     });
 
     it('step N: tick(1_200_000) expires timer → session auto-terminates', async () => {
@@ -159,7 +144,7 @@ describe('🟢 Short AMRAP (2:00 / 1 child)', () => {
         await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('at least 2 rounds complete before clock advance', async () => {
@@ -203,14 +188,14 @@ describe('🟢 Single-Exercise AMRAP (10:00 / 1 child)', () => {
         await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(3);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(3);
     });
 
     it('total rounds is undefined (unbounded)', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.total).toBeUndefined();
+        expect(getRoundState(s, 'AMRAP')?.total).toBeUndefined();
     });
 
     it('timer expiry at 10:00 terminates session', async () => {
@@ -243,7 +228,7 @@ describe('🟢 AMRAP with - Sequential Grouping (Cindy variant)', () => {
         await script.next();
         const s = await script.snapshot();
         expect(s.depth).toBeGreaterThanOrEqual(3);
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
     it('round stays 1 after 2 of 3 children complete (cycle incomplete)', async () => {
@@ -252,7 +237,7 @@ describe('🟢 AMRAP with - Sequential Grouping (Cindy variant)', () => {
         await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
     it('3 userNexts complete round 1 → round 2 begins', async () => {
@@ -261,22 +246,22 @@ describe('🟢 AMRAP with - Sequential Grouping (Cindy variant)', () => {
         await script.tick(60_000);
         await oneRound();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('round counter matches Math.floor(nextCount / 3) + 1 pattern', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
         let s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
         await script.tick(60_000);
         await oneRound();
         s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
         await script.tick(60_000);
         await oneRound();
         s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(3);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(3);
     });
 
     it('timer expiry auto-terminates session', async () => {
@@ -309,7 +294,7 @@ describe('🟢 AMRAP with + Composed Grouping (single child group)', () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
     it('one userNext = one completed round', async () => {
@@ -317,7 +302,7 @@ describe('🟢 AMRAP with + Composed Grouping (single child group)', () => {
         await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('round increments sequentially: 1 → 2 → 3 → 4 → 5', async () => {
@@ -326,7 +311,7 @@ describe('🟢 AMRAP with + Composed Grouping (single child group)', () => {
         for (let expected = 2; expected <= 5; expected++) {
             await script.next();
             const s = await script.snapshot();
-            expect(getRoundState(s)?.current).toBe(expected);
+            expect(getRoundState(s, 'AMRAP')?.current).toBe(expected);
         }
     });
 
@@ -375,7 +360,7 @@ describe('🟢 AMRAP with Skippable Rest (:30 Rest)', () => {
         await script.next();
         s = await script.snapshot();
         expect(s.current?.blockType).not.toMatch(/Rest|Timer/i);
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('step 4b: tick(30_000) auto-expires :30 Rest → round 2 begins', async () => {
@@ -385,7 +370,7 @@ describe('🟢 AMRAP with Skippable Rest (:30 Rest)', () => {
         await script.next();
         await script.tick(30_000);
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('AMRAP timer expiry at 20:00 terminates session', async () => {
@@ -441,14 +426,14 @@ describe('🟢 AMRAP with Forced Rest (*:30 — Cannot Skip)', () => {
         await enterForcedRest();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
     it('tick(30_000) expires the forced rest → auto-pops → round 2 starts', async () => {
         await enterForcedRest();
         await script.tick(30_000);
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('AMRAP timer expiry ends session even while inside forced rest', async () => {
@@ -594,7 +579,7 @@ describe('🟢 AMRAP Skippable Rest — completionReason in system events', () =
         await setupAndReachRest();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 });
 
@@ -660,6 +645,6 @@ describe('🟢 AMRAP Forced Rest — completionReason never "user-advance"', () 
         await enterForcedRest();
         await script.tick(30_000);
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 });

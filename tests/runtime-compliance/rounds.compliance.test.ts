@@ -12,37 +12,8 @@
  */
 import { describe, it, expect, afterEach } from 'bun:test';
 import { TestScript, assertions } from '@/testing/script';
-import { RoundState } from '@/runtime/memory/MemoryTypes';
-import { MetricType, Metric } from '@/core/models/Metric';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Reads the current round state from the Rounds block on the stack.
- */
-function getRoundState(state: ScriptState): RoundState | undefined {
-    const roundsBlock = state.blocks.find(b => b.blockType === 'Rounds');
-    if (!roundsBlock) return undefined;
-    return roundsBlock.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
-}
-
-/**
- * Returns the current exercise block on top of stack.
- */
-function currentBlockType(state: ScriptState): string | undefined {
-    return state.current?.blockType;
-}
-
-/**
- * Returns display metrics for the current block.
- */
-function getDisplayMetrics(state: ScriptState): Metric[] {
-    const block = state.current;
-    if (!block) return [];
-    return block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics.toArray());
-}
+import { MetricType } from '@/core/models/Metric';
+import { getRoundState, blockDisplayMetrics } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Fixed Rounds — (3) 10 Pullups
@@ -62,8 +33,8 @@ describe('🟢 Fixed Rounds — (3) 10 Pullups', () => {
     it('step 1: first userNext starts round 1', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
-        expect(await getRoundState(await script.snapshot())?.current).toBe(1);
-        expect(await getRoundState(await script.snapshot())?.total).toBe(3);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(1);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.total).toBe(3);
         expect((await script.snapshot()).current?.blockType).toMatch(/effort/i);
     });
 
@@ -71,9 +42,9 @@ describe('🟢 Fixed Rounds — (3) 10 Pullups', () => {
         script = await TestScript.compile(SCRIPT);
         await script.next(); // start r1
         await script.next(); // r1 done -> r2
-        expect(await getRoundState(await script.snapshot())?.current).toBe(2);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(2);
         await script.next(); // r2 done -> r3
-        expect(await getRoundState(await script.snapshot())?.current).toBe(3);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(3);
     });
 
     it('step 4: final userNext terminates session', async () => {
@@ -113,7 +84,7 @@ describe('🟢 Rep Scheme Sequence — (21-15-9) Thrusters', () => {
     it('round 1 has 21 reps', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
-        const reps = await getDisplayMetrics(await script.snapshot()).find(m => m.type === MetricType.Rep);
+        const reps = await blockDisplayMetrics(await script.snapshot()).find(m => m.type === MetricType.Rep);
         expect(reps?.value).toBe(21);
     });
 
@@ -121,7 +92,7 @@ describe('🟢 Rep Scheme Sequence — (21-15-9) Thrusters', () => {
         script = await TestScript.compile(SCRIPT);
         await script.next(); // r1
         await script.next(); // r2
-        const reps = await getDisplayMetrics(await script.snapshot()).find(m => m.type === MetricType.Rep);
+        const reps = await blockDisplayMetrics(await script.snapshot()).find(m => m.type === MetricType.Rep);
         expect(reps?.value).toBe(15);
     });
 
@@ -130,7 +101,7 @@ describe('🟢 Rep Scheme Sequence — (21-15-9) Thrusters', () => {
         await script.next(); // r1
         await script.next(); // r2
         await script.next(); // r3
-        const reps = await getDisplayMetrics(await script.snapshot()).find(m => m.type === MetricType.Rep);
+        const reps = await blockDisplayMetrics(await script.snapshot()).find(m => m.type === MetricType.Rep);
         expect(reps?.value).toBe(9);
     });
 
@@ -176,14 +147,14 @@ describe('🟢 Rounds with Multiple Children — (3) 10 Pullups / 15 Pushups', (
     it('cycles through all children in each round', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next(); // r1, child 1
-        expect(await getRoundState(await script.snapshot())?.current).toBe(1);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(1);
         expect((await script.snapshot()).current?.blockType).toMatch(/effort/i);
         
         await script.next(); // r1, child 2
-        expect(await getRoundState(await script.snapshot())?.current).toBe(1);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(1);
         
         await script.next(); // r1 done -> r2, child 1
-        expect(await getRoundState(await script.snapshot())?.current).toBe(2);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(2);
     });
 
     it('presents correct exercises in order', async () => {
@@ -262,7 +233,7 @@ describe('🟢 Rounds with Skippable Rest', () => {
         await script.next(); // Pullups
         await script.next(); // Pushups
         await script.next(); // skip Rest
-        expect(await getRoundState(await script.snapshot())?.current).toBe(2);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(2);
     });
 
     it('step 4b: rest can be waited out', async () => {
@@ -271,7 +242,7 @@ describe('🟢 Rounds with Skippable Rest', () => {
         await script.next(); // Pullups
         await script.next(); // Pushups
         await script.tick(60_000);
-        expect(await getRoundState(await script.snapshot())?.current).toBe(2);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(2);
     });
 });
 
@@ -303,7 +274,7 @@ describe('🟢 Rounds with Forced Rest (Cannot Skip)', () => {
         await script.next(); // Pullups
         await script.next(); // Pushups
         await script.tick(60_000);
-        expect(await getRoundState(await script.snapshot())?.current).toBe(2);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(2);
     });
 
     it('final forced rest must also expire to end session', async () => {

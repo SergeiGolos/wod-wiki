@@ -10,28 +10,7 @@
  */
 import { describe, it, expect, afterEach } from 'bun:test';
 import { TestScript, assertions } from '@/testing/script';
-import { RoundState } from '@/runtime/memory/MemoryTypes';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Reads the current round state from the EMOM block on the stack.
- * Returns undefined when no EMOM block is present.
- */
-function getRoundState(state: ScriptState): RoundState | undefined {
-    const emomBlock = state.blocks.find(b => b.blockType === 'EMOM');
-    if (!emomBlock) return undefined;
-    return emomBlock.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
-}
-
-/**
- * Returns the blockType of the currently-active (top-of-stack) block.
- */
-function currentBlockType(state: ScriptState): string | undefined {
-    return state.current?.blockType;
-}
+import { getRoundState } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Basic EMOM — 3 Rounds
@@ -61,8 +40,8 @@ describe('🟢 Basic EMOM — 3 Rounds', () => {
     it('step 1: round counter initialises at 1', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
-        expect(await getRoundState(await script.snapshot())?.current).toBe(1);
-        expect(await getRoundState(await script.snapshot())?.total).toBe(3);
+        expect((await getRoundState(await script.snapshot(), 'EMOM'))?.current).toBe(1);
+        expect((await getRoundState(await script.snapshot(), 'EMOM'))?.total).toBe(3);
     });
 
     it('step 2: advanceClock(60_000) → R1 timer expires, child auto-pops, R2 starts', async () => {
@@ -71,7 +50,7 @@ describe('🟢 Basic EMOM — 3 Rounds', () => {
         await script.tick(60_000);
         // EMOM still on stack, round 2 in progress
         expect((await script.snapshot()).depth).toBeGreaterThanOrEqual(2);
-        expect(await getRoundState(await script.snapshot())?.current).toBe(2);
+        expect((await getRoundState(await script.snapshot(), 'EMOM'))?.current).toBe(2);
     });
 
     it('step 3: advanceClock(60_000) → R2 expires, R3 starts', async () => {
@@ -79,7 +58,7 @@ describe('🟢 Basic EMOM — 3 Rounds', () => {
         await script.next();
         await script.tick(60_000); // R1
         await script.tick(60_000); // R2
-        expect(await getRoundState(await script.snapshot())?.current).toBe(3);
+        expect((await getRoundState(await script.snapshot(), 'EMOM'))?.current).toBe(3);
     });
 
     it('step 4: advanceClock(60_000) → R3 expires → rounds exhausted → session ends', async () => {
@@ -123,7 +102,7 @@ describe('🟢 EMOM — Overrun Scenario', () => {
 
         // EMOM must still be alive and on round 2 (child was auto-popped)
         expect((await script.snapshot()).depth).toBeGreaterThanOrEqual(2);
-        expect(await getRoundState(await script.snapshot())?.current).toBe(2);
+        expect((await getRoundState(await script.snapshot(), 'EMOM'))?.current).toBe(2);
     });
 
     it('round advances even if exercise was not "completed" by user', async () => {
@@ -134,7 +113,7 @@ describe('🟢 EMOM — Overrun Scenario', () => {
         await script.tick(30_000);
 
         // Round must have advanced to 2
-        expect(await getRoundState(await script.snapshot())?.current).toBe(2);
+        expect((await getRoundState(await script.snapshot(), 'EMOM'))?.current).toBe(2);
     });
 
     it('no stuck state — timer is authoritative through all 3 rounds', async () => {

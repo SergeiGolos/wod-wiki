@@ -12,45 +12,7 @@
  */
 import { describe, it, expect, afterEach } from 'bun:test';
 import { TestScript } from '@/testing/script/TestScript';
-import { TimerState } from '@/runtime/memory/MemoryTypes';
-import { calculateElapsed } from '@/runtime/time/calculateElapsed';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function currentBlockType(script: TestScript): Promise<string | undefined> {
-    const s = await script.snapshot();
-    return s.current?.blockType;
-}
-
-/**
- * Returns the elapsed active time (ms) for the timer on the current block.
- * Uses calculateElapsed with the current clock timestamp.
- */
-async function currentTimerElapsedMs(script: TestScript): Promise<number | undefined> {
-    const s = await script.snapshot();
-    const block = s.current;
-    if (!block) return undefined;
-    const timeLoc = block.getMemoryByTag('time')[0];
-    const timer = timeLoc?.metrics[0]?.value as TimerState | undefined;
-    if (!timer) return undefined;
-    return calculateElapsed(timer, s.clockTime.getTime());
-}
-
-/**
- * Returns true if the current timer is paused (last span has ended set).
- */
-async function isTimerPaused(script: TestScript): Promise<boolean> {
-    const s = await script.snapshot();
-    const block = s.current;
-    if (!block) return false;
-    const timeLoc = block.getMemoryByTag('time')[0];
-    const timer = timeLoc?.metrics[0]?.value as TimerState | undefined;
-    if (!timer || timer.spans.length === 0) return false;
-    const lastSpan = timer.spans[timer.spans.length - 1];
-    return lastSpan.ended !== undefined;
-}
+import { currentBlockTypeAsync, currentTimerElapsedMs, isTimerPaused } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Pause / Resume
@@ -65,7 +27,7 @@ describe('🟢 Pause / Resume', () => {
     it('step 1: userNext → timer running', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
-        expect(await currentBlockType(script)).toMatch(/timer/i);
+        expect(await currentBlockTypeAsync(script)).toMatch(/timer/i);
     });
 
     it('step 2: advanceClock(120_000) → elapsed = 120s', async () => {
@@ -131,7 +93,7 @@ describe('🟢 Exact Boundary Expiry', () => {
     it('step 1: userNext → timer running', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
-        expect(await currentBlockType(script)).toMatch(/timer/i);
+        expect(await currentBlockTypeAsync(script)).toMatch(/timer/i);
     });
 
     it('step 2: advanceClock(60_000) → expires at exactly 60s, no overshoot', async () => {
@@ -156,7 +118,7 @@ describe('🟢 Past-Boundary Expiry', () => {
     it('step 1: userNext → timer running', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
-        expect(await currentBlockType(script)).toMatch(/timer/i);
+        expect(await currentBlockTypeAsync(script)).toMatch(/timer/i);
     });
 
     it('step 2: advanceClock(75_000) → expires, no error from overshooting by 15s', async () => {
@@ -210,14 +172,14 @@ describe('🟢 userNext on Effort → Parent Pushes Next Child', () => {
     it('step 1: userNext → child 1 (Pullups) on stack', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
-        expect(await currentBlockType(script)).toMatch(/effort/i);
+        expect(await currentBlockTypeAsync(script)).toMatch(/effort/i);
     });
 
     it('step 2: userNext → parent auto-pushes next child (Pushups)', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next(); // Pullups
         await script.next(); // Pushups auto-pushed
-        expect(await currentBlockType(script)).toMatch(/effort/i);
+        expect(await currentBlockTypeAsync(script)).toMatch(/effort/i);
         const s = await script.snapshot();
         expect(s.depth).toBeGreaterThan(1);
     });
@@ -236,7 +198,7 @@ describe('🟢 userNext on Last Child → Round Increments', () => {
     it('step 1: userNext → R1 (Pullups)', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
-        expect(await currentBlockType(script)).toMatch(/effort/i);
+        expect(await currentBlockTypeAsync(script)).toMatch(/effort/i);
         const s = await script.snapshot();
         expect(s.depth).toBeGreaterThan(0);
     });
@@ -291,14 +253,14 @@ describe('🟢 Rapid Double userNext', () => {
     it('step 1: userNext → Effort("Pullups") on stack', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
-        expect(await currentBlockType(script)).toMatch(/effort/i);
+        expect(await currentBlockTypeAsync(script)).toMatch(/effort/i);
     });
 
     it('step 2: second userNext → Pullups pops, Pushups pushed', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next(); // Pullups
         await script.next(); // Pushups
-        expect(await currentBlockType(script)).toMatch(/effort/i);
+        expect(await currentBlockTypeAsync(script)).toMatch(/effort/i);
         const s = await script.snapshot();
         expect(s.depth).toBeGreaterThan(0);
     });

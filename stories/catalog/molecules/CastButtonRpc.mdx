@@ -11,11 +11,10 @@ The Chromecast cast-control button that reflects the current cast session state 
 
 | System / Token | Usage |
 |----------------|-------|
-| `ChromecastSdk` | Browser Cast API and session state |
+| `getCastBackend` | ICastBackend factory — chromecast in production, local in dev |
 | `useSubscriptionManager` | Runtime subscription pipeline |
 | `useWorkbenchSyncStore` | Zustand store for workbench state |
 | `react-router useLocation` | Page context for cast syncing |
-
 ## Notifies
 
 | Callback / Event | Trigger | Payload |
@@ -26,11 +25,9 @@ The Chromecast cast-control button that reflects the current cast session state 
 ## Data Shapes
 
 ### Props
-
-None — state comes from `ChromecastSdk` and Zustand store.
+None — state comes from the cast backend and the Zustand store.
 
 ### Visual States
-
 | State | Description |
 |-------|-------------|
 | `disconnected` | Ready to cast — cast icon shown |

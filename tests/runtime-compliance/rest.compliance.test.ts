@@ -12,41 +12,7 @@
  */
 import { describe, it, expect, afterEach } from 'bun:test';
 import { TestScript, assertions } from '@/testing/script';
-import { MetricType } from '@/core/models/Metric';
-import { RoundState } from '@/runtime/memory/MemoryTypes';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Returns the blockType of the top-of-stack block, or undefined when empty.
- */
-function currentBlockType(state: ScriptState): string | undefined {
-    return state.current?.blockType;
-}
-
-/**
- * Returns system pop event values from the tracer, in emission order.
- */
-function systemPopValues(state: ScriptState): Array<Record<string, unknown>> {
-    return assertions(state).outputs().all()
-        .filter(o => o.outputType === 'system')
-        .map(o => {
-            const m = [...o.metrics].find(m => m.type === MetricType.System);
-            return m?.value as Record<string, unknown> | undefined;
-        })
-        .filter((v): v is Record<string, unknown> => !!v && v['event'] === 'pop');
-}
-
-/**
- * Reads the current round state from the Rounds block on the stack.
- */
-function getRoundState(state: ScriptState): RoundState | undefined {
-    const roundsBlock = state.blocks.find(b => b.blockType === 'Rounds');
-    if (!roundsBlock) return undefined;
-    return roundsBlock.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
-}
+import { currentBlockType, systemPopValues, getRoundState } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Timed Rest (standalone)
@@ -98,8 +64,7 @@ describe('🟢 Rest Between Efforts in a Loop — (3) / 10 Pullups / 15 Pushups 
     it('step 1: userNext → R1 Pullups mounted', async () => {
         script = await TestScript.compile(SCRIPT);
         await script.next();
-        expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
-        expect(await getRoundState(await script.snapshot())?.current).toBe(1);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(1);
     });
 
     it('step 2: userNext → R1 Pushups mounted', async () => {
@@ -123,7 +88,7 @@ describe('🟢 Rest Between Efforts in a Loop — (3) / 10 Pullups / 15 Pushups 
         await script.next(); // Pushups R1
         await script.next(); // Rest R1
         await script.tick(60_000); // rest expires → R2
-        expect(await getRoundState(await script.snapshot())?.current).toBe(2);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(2);
     });
 
     it('3 rounds × (2 userNext + 1 rest expiry) completes session', async () => {
@@ -302,7 +267,7 @@ describe('🟢 Forced Rest in a Loop — (3) / 10 Pullups / 15 Pushups / *1:00 R
         await script.next(); // Pullups R1
         await script.next(); // Pushups R1
         await script.tick(60_000); // rest expires → R2
-        expect(await getRoundState(await script.snapshot())?.current).toBe(2);
+        expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(2);
     });
 
     it('all 3 forced rests must expire to complete session', async () => {

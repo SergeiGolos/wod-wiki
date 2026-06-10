@@ -12,46 +12,7 @@
  */
 import { describe, it, expect, afterEach } from 'bun:test';
 import { TestScript, assertions } from '@/testing/script';
-import { MetricType } from '@/core/models/Metric';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Returns the blockType of the top-of-stack block, or undefined when empty.
- */
-function currentBlockType(state: ScriptState): string | undefined {
-    return state.current?.blockType;
-}
-
-/**
- * Checks whether any system pop event carries the given completionReason.
- * The completionReason lives in the system event's metric.value, not in
- * the completion output's completionReason field.
- */
-function anySystemPopHasReason(state: ScriptState, reason: string): boolean {
-    return assertions(state).outputs().all()
-        .filter(o => o.outputType === 'system')
-        .some(o => {
-            const sysMetric = [...o.metrics].find(m => m.type === MetricType.System);
-            const v = sysMetric?.value as Record<string, unknown> | undefined;
-            return v?.event === 'pop' && v?.completionReason === reason;
-        });
-}
-
-/**
- * Returns system pop event values from the tracer, in emission order.
- */
-function systemPopValues(state: ScriptState): Array<Record<string, unknown>> {
-    return assertions(state).outputs().all()
-        .filter(o => o.outputType === 'system')
-        .map(o => {
-            const m = [...o.metrics].find(m => m.type === MetricType.System);
-            return m?.value as Record<string, unknown> | undefined;
-        })
-        .filter((v): v is Record<string, unknown> => !!v && v['event'] === 'pop');
-}
+import { currentBlockType, anySystemPopHasReason, systemPopValues } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Countdown Timer — 5:00 Run

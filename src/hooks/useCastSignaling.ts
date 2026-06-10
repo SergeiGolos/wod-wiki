@@ -1,78 +1,30 @@
 /**
- * useCastSignaling — Public hook boundary for Chromecast / RPC cast access.
+ * useCastSignaling — Public cast surface for components in `src/components/`.
  *
- * Re-exports all cast-related classes and types from the services layer
- * so that components in `src/components/` never need to import directly
- * from `src/services/cast/`.
+ * Re-exports the cast types and concrete classes that downstream consumers
+ * (cast bridges, the cast timer panel, the workbench sync store) need to
+ * interact with the cast stack. The *implementation* of the cast stack —
+ * `ChromecastSdk`, `SenderCastSignaling`, `WebRtcRpcTransport`, the SDK
+ * config — is no longer exposed here. Callers go through the
+ * `ICastBackend` port (`@/services/cast/ICastBackend`) and
+ * `getCastBackend()` (`@/services/cast/getCastBackend`) to obtain a
+ * connected `IRpcTransport`, then hand it to the concrete view-session /
+ * subscription / event-provider / clock-sync classes re-exported below.
  *
- * Provides a `useCastSignaling` hook that manages ChromecastSdk state
- * reactively.
+ * Why a barrel at all? The components layer needs *some* path to the cast
+ * stack's concrete classes (the bridges wire their own subscription on
+ * top of the transport). Keeping the barrel narrow — types + a few
+ * concrete classes — preserves the seam: the components layer can be
+ * told "here is the cast stack" without re-exporting the SDK plumbing.
  */
 
-import { useState, useEffect } from 'react';
-
-// ── SDK & signaling ───────────────────────────────────────────────────────
-export { ChromecastSdk } from '@/services/cast/ChromecastSdk';
-export type { CastSdkState } from '@/services/cast/ChromecastSdk';
-export { SenderCastSignaling } from '@/services/cast/CastSignaling';
-
-// ── RPC transport & subscriptions ─────────────────────────────────────────
-export { WebRtcRpcTransport } from '@/services/cast/rpc/WebRtcRpcTransport';
+export {
+    type IViewSession,
+    ChromecastSenderViewSession,
+} from '@/services/cast/rpc/ViewSession';
 export { ChromecastRuntimeSubscription } from '@/services/cast/rpc/ChromecastRuntimeSubscription';
 export { ChromecastEventProvider } from '@/services/cast/rpc/ChromecastEventProvider';
 export { ClockSyncService } from '@/services/cast/rpc/ClockSync';
-export {
-  type IViewSession,
-  ChromecastSenderViewSession,
-  ChromecastReceiverViewSession,
-  LocalViewSession,
-} from '@/services/cast/rpc/ViewSession';
 
-// ── Configuration ─────────────────────────────────────────────────────────
-export { CAST_APP_ID, hasCustomCastAppId, DEFAULT_MEDIA_RECEIVER_APP_ID } from '@/services/cast/config';
-
-// ── Types ─────────────────────────────────────────────────────────────────
 export type { RpcWorkbenchUpdate, RpcMessage, RpcStackUpdate, RpcOutputStatement } from '@/services/cast/rpc/RpcMessages';
 export type { IRpcTransport } from '@/services/cast/rpc/IRpcTransport';
-
-// ── Legacy WebRTC transport ───────────────────────────────────────────────
-export { WebRTCTransport } from '@/services/cast/WebRTCTransport';
-
-// ── React hook ────────────────────────────────────────────────────────────
-
-import { ChromecastSdk as SDK } from '@/services/cast/ChromecastSdk';
-import type { CastSdkState } from '@/services/cast/ChromecastSdk';
-
-export interface UseCastSignalingReturn {
-  /** Current state of the Chromecast SDK */
-  sdkState: CastSdkState;
-  /** Whether a cast session is currently active */
-  isCasting: boolean;
-}
-
-/**
- * Hook to reactively observe Chromecast SDK state.
- *
- * Components should use this hook instead of reading from `ChromecastSdk`
- * directly, so they get reactive updates when the SDK state changes.
- *
- * @example
- * ```tsx
- * const { sdkState, isCasting } = useCastSignaling();
- * ```
- */
-export function useCastSignaling(): UseCastSignalingReturn {
-  const [sdkState, setSdkState] = useState<CastSdkState>(() => SDK.getState());
-  const [isCasting, setIsCasting] = useState(() => SDK.isSessionActive());
-
-  useEffect(() => {
-    const unsub = SDK.on('state-changed', (newState) => {
-      setSdkState(newState as CastSdkState);
-      setIsCasting(newState === 'session-active');
-    });
-
-    return unsub;
-  }, []);
-
-  return { sdkState, isCasting };
-}

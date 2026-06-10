@@ -1,21 +1,3 @@
-/**
- * Cast roundtrip integration test
- *
- * End-to-end check that:
- *  (1) ScriptRuntime stack events reach the cast side as RpcStackUpdate messages,
- *  (2) an RpcEvent injected from the cast side advances the runtime's block.
- *
- * Uses two FakeRpcTransports wired together (browser-side + receiver-side)
- * to model the bidirectional RPC session, and a tiny BrowserEventProxy that
- * mirrors the runtime-side mapping CastButtonRpc performs in production —
- * without dragging in React/Zustand.
- *
- * Story 2 "Done when" gate: a test that boots a real runtime with a fake
- * transport, injects an RpcEvent for "next" from the cast side, and asserts
- * the runtime advanced to the next block AND the cast side received a
- * matching RpcStackUpdate.
- */
-
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
@@ -25,6 +7,7 @@ import { EventBus } from '@/runtime/events';
 import { createMockClock } from '@/runtime/RuntimeClock';
 
 import { ChromecastRuntimeSubscription } from '@/services/cast/rpc/ChromecastRuntimeSubscription';
+import { routeRuntimeEventByName, type RuntimeEventHandles } from '@/services/cast/rpc/eventRouter';
 import type { RpcEvent, RpcStackUpdate } from '@/services/cast/rpc/RpcMessages';
 import type { IEvent } from '@/runtime/contracts/events';
 
@@ -43,31 +26,30 @@ import { NextEvent } from '@/runtime/events/NextEvent';
 import { createParser } from '@/parser/parserInstance';
 
 // ── BrowserEventProxy — maps RpcEvent names to runtime.handle() calls ────────
-// Typed, headless analog of CastButtonRpc's switch statement.
+// Headless analog of CastButtonRpc's switch statement. The decision logic
+// (event name → handle) lives in the shared `routeRuntimeEvent` module; this
+// class only adapts the test's `ScriptRuntime` to the `RuntimeEventHandles`
+// shape — same pattern CastButtonRpc uses with the zustand store's handles.
 
 class BrowserEventProxy {
     private readonly unsubMessage: () => void;
+    private readonly handles: RuntimeEventHandles;
 
     constructor(
         private readonly transport: FakeRpcTransport,
         private readonly runtime: ScriptRuntime,
     ) {
+        this.handles = {
+            onNext: () => {
+                this.runtime.handle(new NextEvent(undefined, this.runtime.nowProvider));
+            },
+            onStart: () => this.runtime.handle({ name: 'start', timestamp: new Date() } satisfies IEvent),
+            onPause: () => this.runtime.handle({ name: 'pause', timestamp: new Date() } satisfies IEvent),
+            onStop: () => this.runtime.handle({ name: 'stop', timestamp: new Date() } satisfies IEvent),
+        };
         this.unsubMessage = transport.onMessage((msg) => {
             if (msg.type !== 'rpc-event') return;
-            // CastButtonRpc maps cast event names to runtime-side handles.
-            // 'next' is the canonical advance; the production call site
-            // (useWorkbenchRuntime.ts) uses new NextEvent(undefined, runtime.nowProvider).
-            // We do the same here so the test exercises the same code path.
-            if (msg.name === 'next') {
-                this.runtime.handle(new NextEvent(undefined, this.runtime.nowProvider));
-                return;
-            }
-            const event: IEvent = {
-                name: msg.name,
-                timestamp: new Date(msg.timestamp),
-                data: msg.data,
-            };
-            this.runtime.handle(event);
+            routeRuntimeEventByName(msg.name, this.handles);
         });
     }
 

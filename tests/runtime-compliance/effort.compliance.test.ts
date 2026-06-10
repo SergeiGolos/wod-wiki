@@ -26,76 +26,7 @@ import { describe, it, expect, afterEach } from 'bun:test';
 import { TestScript, assertions } from '@/testing/script';
 import { MetricType } from '@/core/models/Metric';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Returns the blockType of the top-of-stack block, or undefined when empty.
- */
-function currentBlockType(state: ScriptState): string | undefined {
-    return state.current?.blockType;
-}
-
-/**
- * Checks whether the current block's display memory contains a metric of
- * the given type. This is the correct place to check parser-defined metrics
- * (Rep, Effort, Resistance, Distance) since they are NOT in output statements.
- */
-function blockHasDisplayMetric(state: ScriptState, metricType: MetricType | string): boolean {
-    const block = state.current;
-    if (!block) return false;
-    return block.getMemoryByTag('metric:display')
-        .flatMap(loc => loc.metrics.toArray())
-        .some(m => m.type === metricType);
-}
-
-/**
- * Returns the display metrics for the current block (flat array).
- */
-function blockDisplayMetrics(state: ScriptState) {
-    const block = state.current;
-    if (!block) return [];
-    return block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics.toArray());
-}
-
-/**
- * Checks whether any block currently on the runtime stack carries a display
- * metric of the given type. Useful when the block hasn't been popped yet (and
- * therefore its metrics haven't surfaced in output statements).
- */
-function stackHasMetric(state: ScriptState, metricType: MetricType | string): boolean {
-    return state.blocks
-        .flatMap(b => b.getMemoryByTag('metric:display'))
-        .flatMap(loc => loc.metrics.toArray())
-        .some(m => m.type === metricType);
-}
-
-/**
- * Checks whether any OUTPUT statement (segment/completion) includes a metric
- * of the given type. This is the OUTPUT-layer check — currently only timing
- * metrics appear here, NOT parser-defined display metrics.
- */
-function anyOutputHasMetric(state: ScriptState, metricType: MetricType | string): boolean {
-    return assertions(state).outputs().all().some(o =>
-        [...o.metrics].some(m => m.type === metricType)
-    );
-}
-
-/**
- * Checks whether any system pop event carries the given completionReason.
- * The completionReason lives in the system event's metric.value, not in
- * the completion output's completionReason field.
- */
-function anySystemPopHasReason(state: ScriptState, reason: string): boolean {
-    return assertions(state).outputs().all()
-        .filter(o => o.outputType === 'system')
-        .some(o => {
-            const sysMetric = [...o.metrics].find(m => m.type === MetricType.System);
-            const v = sysMetric?.value as Record<string, unknown> | undefined;
-            return v?.event === 'pop' && v?.completionReason === reason;
-        });
-}
+import { currentBlockType, blockHasDisplayMetric, blockDisplayMetrics, stackHasMetric, anyOutputHasMetric, anySystemPopHasReason } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Single Effort — "10 Pullups"
