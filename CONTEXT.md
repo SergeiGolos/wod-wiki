@@ -127,9 +127,6 @@ _Avoid_: parser plugin, ruleset.
 The ordered list of configured Dialects (`1..n`) each line is processed through, in
 order: a base **Units Dialect** first, then sport Dialects that compute *expecting*
 fused units, then a personal-overrides Dialect last. Later Dialects observe earlier
-Dialects' output (the `DialectRegistry` mutates the **Statement** in place).
-_Avoid_: pipeline, chain, middleware.
-
 **Strategy**:
 A priority-ranked compiler rule (`IRuntimeBlockStrategy`) that decides which
 **Behaviors** a runtime block receives.
@@ -143,6 +140,25 @@ _Avoid_: component, aspect (legacy in code), plugin.
 **Block**:
 A runtime execution unit (`IRuntimeBlock`) compiled from one or more Statements.
 _Avoid_: node, step.
+
+### Cast (sender-side)
+
+**Cast Backend**:
+The module that turns "user wants to cast" into a connected `IRpcTransport`.
+Defined by the `ICastBackend` port. Two adapters ship: `ChromecastBackend`
+(production; native device picker + WebRTC over the Cast message channel) and
+`LocalTabBackend` (dev / dual-pane preview; opens a popup tab and uses a
+`MessageChannel` over `BroadcastChannel` rendezvous). The factory
+`getCastBackend()` returns the build's adapter based on `VITE_CAST_BACKEND`.
+_Avoid_: cast manager, cast service, cast adapter (in conversation prefer
+"the chromecast adapter" or "the local adapter" — they're both Cast Backends).
+
+**Cast Backend Kind**:
+The build-time string (`chromecast` | `local` | `auto`) that the factory
+reads from `VITE_CAST_BACKEND`. `'auto'` resolves at runtime: `chromecast` in
+production-like builds (`MODE === 'production'`), `local` in dev. Release
+workflows set the value explicitly; dev workflows can leave it unset.
+_Avoid_: cast mode, cast variant.
 
 ## Relationships
 
