@@ -47,7 +47,6 @@ export interface IReadonlyStore {
 }
 
 /** Read-write per-store view. Returned from {@link IStorage.readwrite}. */
-/** Read-write per-store view. Returned from {@link IStorage.readwrite}. */
 export interface IReadWriteStore extends IReadonlyStore {
     /**
      * Put a value into the store. The key is derived from the value (each
@@ -58,6 +57,13 @@ export interface IReadWriteStore extends IReadonlyStore {
     put(value: StorageValue): Promise<StorageKey>;
     delete(key: StorageKey): Promise<void>;
 }
+
+export interface IStorageTransaction {
+    store(name: StoreName): IReadWriteStore;
+    done(): Promise<void>;
+}
+
+export interface IStorage {
     /** Open the underlying engine. Idempotent; safe to call multiple times. */
     open(): Promise<void>;
 
