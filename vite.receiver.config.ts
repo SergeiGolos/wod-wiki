@@ -13,6 +13,9 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
 export default defineConfig({
+    // Root must be playground so that /src/receiver-rpc.tsx in
+    // receiver-rpc.html resolves to playground/src/receiver-rpc.tsx.
+    root: resolve(__dirname, 'playground'),
     // Relative base so assets resolve correctly whether served at / or a subpath
     base: './',
     plugins: [react()],
@@ -22,8 +25,9 @@ export default defineConfig({
         },
     },
     build: {
-        // Output directly into storybook-static (files are merged, not replaced)
-        outDir: 'storybook-static',
+        // Output directly into project-root/storybook-static
+        // (absolute path required because root is now playground/)
+        outDir: resolve(__dirname, 'storybook-static'),
         // Do NOT empty — storybook build already populated this directory
         emptyOutDir: false,
         sourcemap: true,

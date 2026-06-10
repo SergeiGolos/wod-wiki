@@ -5,8 +5,13 @@
  * device or to a local-tab dual-pane mirror. It asks `getCastBackend()` for
  * the build's `ICastBackend`, calls `startSession()` from a user gesture,
  * and gets back a connected `IRpcTransport`. The transport is then handed
- * to a `ChromecastSenderViewSession` (which owns subscription / event
- * provider / clock sync on top of the transport).
+ * to a `CastSessionManager` (which owns subscription / event provider /
+ * clock sync on top of the transport).
+ *
+ * The active transport is exposed to the rest of the page via
+ * `CastTransportContext` (see `CastButtonRpc` return value). The bridge
+ * components (`WorkbenchCastBridge`, `EditorCastBridge`) consume it from
+ * context rather than the workbench sync store.
  *
  * This is the single seam for "is the cast going to a TV or a popup tab".
  * The chromecast adapter drives the native device picker; the local
@@ -15,12 +20,17 @@
  * identical for both.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { TvMinimal, Cast } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
-import { ChromecastSenderViewSession } from '@/hooks/useCastSignaling';
+import {
+    CastSessionManager,
+    type CastSessionHandle,
+    type ICastSubscription,
+} from '@/hooks/useCastSignaling';
 import { cn } from '@/lib/utils';
+import { CastTransportProvider } from '@/contexts/CastTransportContext';
 import { ProjectionSyncProvider } from '@/contexts/ProjectionSyncContext';
 import { workbenchModeResolver } from '@/app/cast/workbenchModeResolver';
 import { getCastBackend } from '@/services/cast/getCastBackend';
@@ -33,56 +43,45 @@ export const CastButtonRpc: React.FC = () => {
     const [backendState, setBackendState] = useState<ICastBackendState>(backend.state);
     const [isCasting, setIsCasting] = useState(false);
     const [isDisconnecting, setIsDisconnecting] = useState(false);
-    const [sessionSubscription, setSessionSubscription] = useState<ChromecastSenderViewSession['subscription']>(null);
-
-    const subscriptionManager = useWorkbenchSyncStore(s => s.subscriptionManager);
-    const castTransportFromStore = useWorkbenchSyncStore(s => s.castTransport);
-    const setCastTransport = useWorkbenchSyncStore(s => s.setCastTransport);
+    const [sessionSubscription, setSessionSubscription] = useState<ICastSubscription | null>(null);
+    const [sessionHandle, setSessionHandle] = useState<CastSessionHandle | null>(null);
 
     const buttonRef = useRef<HTMLButtonElement | null>(null);
-    const senderSessionRef = useRef<ChromecastSenderViewSession | null>(null);
+
+    // One manager per button lifetime. The manager is the source of
+    // truth for the active session — refs would defeat the point.
+    const sessionManager = useMemo(() => new CastSessionManager(), []);
+    const handleRef = useRef<CastSessionHandle | null>(null);
     const connectingRef = useRef(false);
 
     const cleanupCast = useCallback((notifyRemote: boolean) => {
-        const session = senderSessionRef.current;
-        senderSessionRef.current = null;
-
-        if (session) {
-            if (notifyRemote) {
-                session.endSession();
-            } else {
-                session.dispose();
-            }
+        const handle = handleRef.current;
+        handleRef.current = null;
+        if (handle) {
+            sessionManager.dispose(notifyRemote);
         }
-
+        setSessionHandle(null);
         setSessionSubscription(null);
-        setCastTransport(null);
         setIsCasting(false);
-    }, [setCastTransport]);
-    const connectSession = useCallback(async (options: {
-        existingTransport?: IRpcTransport;
-    } = {}) => {
-        // Prevent concurrent connectSession calls — the re-adopt effect
-        // can re-fire when this callback's reference changes (e.g. when
-        // subscriptionManager updates), and without a guard the overlapping
-        // async calls create-and-dispose sessions in a tight loop.
+    }, [sessionManager]);
+
+    const connectSession = useCallback(async (transport: IRpcTransport) => {
         if (connectingRef.current) return;
         connectingRef.current = true;
         try {
-            const currentSession = senderSessionRef.current;
-            currentSession?.dispose();
-            const viewSession = new ChromecastSenderViewSession(subscriptionManager);
-            senderSessionRef.current = viewSession;
-            viewSession.onDisconnected(() => {
-                cleanupCast(false);
-            });
-            await viewSession.connect({
-                existingTransport: options.existingTransport,
-            });
-            setCastTransport(viewSession.transport);
-            setSessionSubscription(viewSession.subscription);
+            // Read the registry once at connect time — we don't want
+            // this callback to invalidate on every store update.
+            const registry = useWorkbenchSyncStore.getState().subscriptionManager;
+            const handle = sessionManager.connect(transport, registry);
+            handleRef.current = handle;
+            setSessionHandle(handle);
+            setSessionSubscription(handle.subscription);
             setIsCasting(true);
-            viewSession.eventProvider?.onEvent((event) => {
+
+            // D-Pad events from the TV reach the local runtime through
+            // the handle's event provider. The router is shared with the
+            // cast-roundtrip test.
+            handle.eventProvider.onEvent((event) => {
                 const state = useWorkbenchSyncStore.getState();
                 routeRuntimeEvent(event, {
                     onNext: () => state.handles.handleNext(),
@@ -91,43 +90,29 @@ export const CastButtonRpc: React.FC = () => {
                     onStop: () => state.handles.handleStop(),
                 });
             });
-            const workbenchState = useWorkbenchSyncStore.getState();
+
+            // Push the current workbench mode immediately so the
+            // receiver doesn't sit on the waiting screen while it waits
+            // for the first reactive WorkbenchCastBridge effect tick.
+            const wb = useWorkbenchSyncStore.getState();
             const message = workbenchModeResolver.resolve({
-                viewMode: workbenchState.viewMode,
-                executionStatus: workbenchState.execution.status,
-                runtime: workbenchState.runtime,
-                analyticsSegments: workbenchState.analyticsSegments,
-                selectedBlock: workbenchState.selectedBlock,
-                documentItems: workbenchState.documentItems,
+                viewMode: wb.viewMode,
+                executionStatus: wb.execution.status,
+                runtime: wb.runtime,
+                analyticsSegments: wb.analyticsSegments,
+                selectedBlock: wb.selectedBlock,
+                documentItems: wb.documentItems,
             });
-            viewSession.transport?.send(message);
+            try {
+                handle.transport.send(message);
+            } catch {
+                // transport may be tearing down (race with goodbye);
+                // the receiver will see the disconnect.
+            }
         } finally {
             connectingRef.current = false;
         }
-    }, [subscriptionManager, setCastTransport, cleanupCast]);
-
-    // Re-adopt transport on mount/remount.
-    useEffect(() => {
-        const tryConnect = async () => {
-            if (!isCasting || senderSessionRef.current) return;
-
-            if (castTransportFromStore) {
-                try {
-                    await connectSession({ existingTransport: castTransportFromStore });
-                } catch (err) {
-                    console.error('[CastButtonRpc] Failed to re-adopt cast transport', err);
-                    cleanupCast(false);
-                }
-            }
-        };
-
-        tryConnect();
-    }, [isCasting, castTransportFromStore, connectSession, cleanupCast]);
-
-    const backendStateRef = useRef(backendState);
-    backendStateRef.current = backendState;
-    const isDisconnectingRef = useRef(false);
-    isDisconnectingRef.current = isDisconnecting;
+    }, [sessionManager]);
 
     // Subscribe to backend state changes.
     useEffect(() => {
@@ -144,13 +129,17 @@ export const CastButtonRpc: React.FC = () => {
         return unsub;
     }, [backend, cleanupCast]);
 
+    // Best-effort: tell the receiver we're going away when the tab
+    // closes. The transport-level disconnect handler on the receiver
+    // is the source of truth — this is the polite signal that gets the
+    // receiver back to the waiting screen promptly.
     useEffect(() => {
         const onPageHide = () => {
-            senderSessionRef.current?.sendDisposeSignal();
+            sessionManager.sendDisposeSignal();
         };
         window.addEventListener('pagehide', onPageHide);
         return () => window.removeEventListener('pagehide', onPageHide);
-    }, []);
+    }, [sessionManager]);
 
     useEffect(() => {
         const btn = buttonRef.current;
@@ -173,7 +162,7 @@ export const CastButtonRpc: React.FC = () => {
             try {
                 const transport = await backend.startSession();
                 setIsCasting(true);
-                await connectSession({ existingTransport: transport });
+                await connectSession(transport);
             } catch (err) {
                 const message = err instanceof Error ? err.message : String(err);
                 if (message.includes('cancel') || message === 'cancel') {
@@ -193,6 +182,11 @@ export const CastButtonRpc: React.FC = () => {
         return () => cleanupCast(false);
     }, [cleanupCast]);
 
+    const backendStateRef = useRef(backendState);
+    backendStateRef.current = backendState;
+    const isDisconnectingRef = useRef(isDisconnecting);
+    isDisconnectingRef.current = isDisconnecting;
+
     const isUnavailable = backendState === 'unavailable';
     const isAvailable = backendState === 'ready';
     const isConnected = backendState === 'session-active';
@@ -211,24 +205,26 @@ export const CastButtonRpc: React.FC = () => {
     }
 
     return (
-        <ProjectionSyncProvider chromecastSubscription={sessionSubscription}>
-            <Button
-                ref={buttonRef}
-                variant="ghost"
-                size="icon"
-                disabled={isCurrentlyBusy}
-                onClick={() => { /* listener attached imperatively */ }}
-                className={cn(
-                    'transition-all',
-                    isWebRtcActive && 'text-emerald-400 ring-2 ring-emerald-400/30',
-                    isCurrentlyConnecting && 'animate-pulse text-amber-400',
-                    !canInteract && 'opacity-50',
-                )}
-                aria-label={isWebRtcActive ? 'Stop casting' : 'Cast to TV'}
-                title={isWebRtcActive ? 'Stop casting' : isCurrentlyConnecting ? 'Connecting...' : 'Cast to TV'}
-            >
-                {isWebRtcActive ? <TvMinimal className="h-5 w-5" /> : <Cast className="h-5 w-5" />}
-            </Button>
-        </ProjectionSyncProvider>
+        <CastTransportProvider transport={sessionHandle?.transport ?? null}>
+            <ProjectionSyncProvider chromecastSubscription={sessionSubscription}>
+                <Button
+                    ref={buttonRef}
+                    variant="ghost"
+                    size="icon"
+                    disabled={isCurrentlyBusy}
+                    onClick={() => { /* listener attached imperatively */ }}
+                    className={cn(
+                        'transition-all',
+                        isWebRtcActive && 'text-emerald-400 ring-2 ring-emerald-400/30',
+                        isCurrentlyConnecting && 'animate-pulse text-amber-400',
+                        !canInteract && 'opacity-50',
+                    )}
+                    aria-label={isWebRtcActive ? 'Stop casting' : 'Cast to TV'}
+                    title={isWebRtcActive ? 'Stop casting' : isCurrentlyConnecting ? 'Connecting...' : 'Cast to TV'}
+                >
+                    {isWebRtcActive ? <TvMinimal className="h-5 w-5" /> : <Cast className="h-5 w-5" />}
+                </Button>
+            </ProjectionSyncProvider>
+        </CastTransportProvider>
     );
 };

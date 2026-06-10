@@ -30,7 +30,6 @@ import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 import type { IMetric } from '@/core/models/Metric';
 import { MetricContainer } from '@/core/models/MetricContainer';
-import type { IRpcTransport } from '@/hooks/useCastSignaling';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 
 /**
@@ -104,9 +103,6 @@ interface WorkbenchSyncState {
   cursorLine: number;
   highlightedLine: number | null;
 
-  // --- Cast Transport (shared between CastButtonRpc and WorkbenchCastBridge) ---
-  /** Active RPC transport while casting, null otherwise */
-  castTransport: IRpcTransport | null;
   // --- Subscription Manager (bridged from RuntimeLifecycleProvider) ---
   /** Current runtime subscription manager; used by CastButtonRpc to register cast subscriptions */
   subscriptionManager: SubscriptionManager | null;
@@ -132,7 +128,6 @@ interface WorkbenchSyncActions {
   setDocumentItems: (items: DocumentItem[]) => void;
   setSelectedBlock: (block: ScriptBlock | null) => void;
   setSelectedBlockId: (id: string | null) => void;
-  setCastTransport: (transport: IRpcTransport | null) => void;
   setSubscriptionManager: (mgr: SubscriptionManager | null) => void;
   setViewMode: (mode: ViewMode) => void;
 
@@ -177,7 +172,6 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   cursorLine: 1,
   highlightedLine: null,
 
-  castTransport: null,
   subscriptionManager: null,
   viewMode: 'plan' as ViewMode,
 
@@ -235,9 +229,8 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   setDocumentItems: (items) => set({ documentItems: items }),
   setSelectedBlock: (block) => set({ selectedBlock: block }),
   setSelectedBlockId: (id) => set({ selectedBlockId: id }),
-  setCursorLine: (line) => set({ cursorLine: line }),
-  setHighlightedLine: (line) => set({ highlightedLine: line }),
-  setCastTransport: (castTransport) => set({ castTransport }),
+  setCursorLine: (line: number) => set({ cursorLine: line }),
+  setHighlightedLine: (line: number | null) => set({ highlightedLine: line }),
   setSubscriptionManager: (subscriptionManager) => set({ subscriptionManager }),
   setViewMode: (viewMode) => set({ viewMode }),
 
@@ -272,7 +265,6 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
     cursorLine: 1,
     highlightedLine: null,
 
-    castTransport: null,
     subscriptionManager: null,
     viewMode: 'plan' as ViewMode,
   }),

@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
+import { useCastTransport } from '@/contexts/CastTransportContext';
 import type { EditorSection } from '@/components/Editor/extensions/section-state';
 import type { RpcWorkbenchUpdate, RpcMessage } from '@/hooks/useCastSignaling';
 import type { EditorState } from '@codemirror/state';
@@ -37,7 +37,7 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
   editorState,
   onSelectBlock,
 }) => {
-  const castTransport = useWorkbenchSyncStore(s => s.castTransport);
+  const castTransport = useCastTransport();
   const lastFingerprintRef = useRef('');
 
   useEffect(() => {

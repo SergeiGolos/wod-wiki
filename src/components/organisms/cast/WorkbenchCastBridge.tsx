@@ -2,13 +2,13 @@
  * WorkbenchCastBridge — renderless component that broadcasts workbench-level
  * display state to the Chromecast receiver via the active RPC transport.
  */
-
 import React, { useEffect, useRef } from 'react';
-import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
+import { useCastTransport } from '@/contexts/CastTransportContext';
 import { workbenchModeResolver } from '@/app/cast/workbenchModeResolver';
+import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 
 export const WorkbenchCastBridge: React.FC = () => {
-    const castTransport = useWorkbenchSyncStore((s) => s.castTransport);
+    const castTransport = useCastTransport();
     const runtime = useWorkbenchSyncStore((s) => s.runtime);
     const executionStatus = useWorkbenchSyncStore((s) => s.execution.status);
     const viewMode = useWorkbenchSyncStore((s) => s.viewMode);

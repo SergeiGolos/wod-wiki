@@ -35,7 +35,7 @@
 import { BroadcastChannelRpcTransport } from '../rpc/BroadcastChannelRpcTransport';
 import type { IRpcTransport } from '../rpc/IRpcTransport';
 import type { ICastBackend, ICastBackendState, StateUnsubscribe } from '../ICastBackend';
-
+import { LOCAL_RECEIVER_URL } from '../config';
 export const LOCAL_HANDSHAKE_TIMEOUT_MS = 5_000;
 
 interface LocalTabBackendDeps {
@@ -94,7 +94,10 @@ export class LocalTabBackend implements ICastBackend {
                 popup.postMessage(message, '*');
             }),
             generateId: deps.generateId ?? (() => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2))),
-            buildReceiverUrl: deps.buildReceiverUrl ?? ((origin: string, sessionId: string) => `${origin}${LOCAL_RECEIVER_HTML}?local=${sessionId}`),
+            buildReceiverUrl: deps.buildReceiverUrl ?? ((origin: string, sessionId: string) => {
+                const baseUrl = LOCAL_RECEIVER_URL || `${origin}${LOCAL_RECEIVER_HTML}`;
+                return `${baseUrl}?local=${sessionId}`;
+            }),
             MessageChannelCtor: deps.MessageChannelCtor ?? (typeof MessageChannel !== 'undefined' ? MessageChannel : (undefined as unknown as typeof MessageChannel)),
             getOrigin: deps.getOrigin ?? (() => (typeof window !== 'undefined' ? window.location.origin : '')),
             setTimeoutFn: deps.setTimeoutFn ?? ((handler, ms) => setTimeout(handler, ms)),

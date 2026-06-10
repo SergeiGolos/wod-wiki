@@ -95,6 +95,16 @@ line.
 ```
 *10 intervals of 60 seconds. Each minute, perform the composed (`+`) set. `EMOM` is a
 keyword the CrossFit dialect recognizes.*
+*The round count `(10)` is explicit. An **open EMOM** — one without a round count —
+defaults to 10 rounds in the current runtime:*
+
+```wod
+:60 EMOM
+  + 2 Burpees
+```
+*Runs 10 intervals of 60 seconds each. The default is set by `IntervalLogicStrategy`
+and may change in future versions.*
+
 
 ### AMRAP (As Many Rounds As Possible)
 
@@ -188,5 +198,20 @@ Text      → '// …'
 ```
 
 Units: distance `m | ft | mile | km | miles`; weight `kg | lb | bw`.
+
+### Parenthesized protocol keywords
+
+When a recognized protocol keyword (`EMOM`, `AMRAP`, `Tabata`) appears inside
+parentheses, the parser extracts it as a **Rounds metric** rather than an **Effort
+fragment**. This means:
+
+```wod
+10:00 (EMOM)
+```
+
+parses as `Duration(600000) + Rounds("EMOM")` — two metrics on a single statement.
+The `IntervalLogicStrategy` in the runtime compiler matches this combination to build
+an EMOM block. Changing this parser contract would affect `IntervalLogicStrategy` and
+`AmrapLogicStrategy` matchers.
 
 ➡ How each fragment turns into a metric: [03 — Domain Model](./03-domain-model.md).

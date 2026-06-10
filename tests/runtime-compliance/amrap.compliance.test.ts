@@ -12,7 +12,7 @@ import { it, expect } from 'bun:test';
 import { describeCompliance, assertions } from '@/testing/script';
 import type { TestScript } from '@/testing/script/TestScript';
 import type { ScriptState } from '@/testing/script';
-import { getRoundState } from '../helpers/compliance-helpers';
+import { getRoundState, anyOutputHasMetric } from '../helpers/compliance-helpers';
 import { MetricType } from '@/core/models/Metric';
 
 // ===========================================================================
@@ -617,5 +617,49 @@ describeCompliance('🟢 AMRAP Forced Rest — completionReason never "user-adva
         await script.tick(30_000);
         const s = await script.snapshot();
         expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
+    });
+});
+
+// ===========================================================================
+// 🟢 Sound Cues — AMRAP Timer
+// Spec: timer.md#sound-cues
+// ===========================================================================
+describeCompliance('🟢 Sound Cues — AMRAP Timer (2:00)', '2:00 AMRAP\n  5 Burpees', (ctx) => {
+
+    it('AMRAP timer-expiry emits a "timer-complete" sound output', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start AMRAP
+        await script.tick(120_000); // expire AMRAP timer
+        const snap = await script.snapshot();
+        expect(anyOutputHasMetric(snap, 'sound')).toBe(true);
+        const soundOutputs = assertions(snap).outputs().all().filter(o =>
+            o.metrics.some(m => m.type === 'sound')
+        );
+        const completeSound = soundOutputs.find(o =>
+            o.metrics.some(m => m.value?.trigger === 'complete')
+        );
+        expect(completeSound).toBeDefined();
+    });
+
+    it('AMRAP countdown beeps fire at 3-2-1 seconds remaining', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start AMRAP
+        // Skip through effort quickly
+        await script.next();
+        await script.tick(117_000); // advance to 3s remaining
+        await script.tick(1_000); // 2s
+        await script.tick(1_000); // 1s
+        await script.tick(1_000); // 0s → complete
+        const snap = await script.snapshot();
+        const soundOutputs = assertions(snap).outputs().all().filter(o =>
+            o.metrics.some(m => m.type === 'sound' && m.value?.trigger === 'countdown')
+        );
+        const countdownSeconds = soundOutputs.map(o => {
+            const m = o.metrics.find(m2 => m2.type === 'sound');
+            return m?.value?.atSecond;
+        }).sort();
+        expect(countdownSeconds).toContain(3);
+        expect(countdownSeconds).toContain(2);
+        expect(countdownSeconds).toContain(1);
     });
 });

@@ -10,7 +10,7 @@
  */
 import { it, expect } from 'bun:test';
 import { describeCompliance, assertions } from '@/testing/script';
-import { getRoundState } from '../helpers/compliance-helpers';
+import { getRoundState, anyOutputHasMetric } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Basic EMOM — 3 Rounds
@@ -156,5 +156,56 @@ describeCompliance('🟢 EMOM — Overrun Scenario', '(3) :30 EMOM\n  10 Heavy D
         // The EMOM block is still present below the child
         const emomBlock = (await script.snapshot()).blocks.find(b => b.blockType === 'EMOM');
         expect(emomBlock).toBeDefined();
+    });
+});
+
+
+// ===========================================================================
+// 🟢 Sound Cues — EMOM Timer
+// Spec: timer.md#sound-cues
+// ===========================================================================
+describeCompliance('🟢 Sound Cues — EMOM Timer (3 rounds)', '(3) :60 EMOM\n  5 Pullups', (ctx) => {
+
+    it('EMOM completion emits a "timer-complete" sound output', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start EMOM → first child
+        await script.next(); // complete child
+        await script.tick(60_000); // R1 timer expires → R2
+        await script.next(); // complete child
+        await script.tick(60_000); // R2 expires → R3
+        await script.next(); // complete child
+        await script.tick(60_000); // R3 expires → session ends
+        const snap = await script.snapshot();
+        expect(anyOutputHasMetric(snap, 'sound')).toBe(true);
+        const soundOutputs = assertions(snap).outputs().all().filter(o =>
+            o.metrics.some(m => m.type === 'sound')
+        );
+        const completeSounds = soundOutputs.filter(o =>
+            o.metrics.some(m => m.value?.trigger === 'complete')
+        );
+        // At least one timer-complete sound should be emitted (for the final round at minimum)
+        expect(completeSounds.length).toBeGreaterThan(0);
+    });
+
+    it('EMOM countdown beeps fire during interval countdown', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start EMOM → first child
+        await script.next(); // complete child early
+        // Now waiting for interval timer. Advance to last 3 seconds.
+        await script.tick(57_000); // 3s remaining
+        await script.tick(1_000); // 2s remaining
+        await script.tick(1_000); // 1s remaining
+        await script.tick(1_000); // 0s → complete
+        const snap = await script.snapshot();
+        const countdownSounds = assertions(snap).outputs().all().filter(o =>
+            o.metrics.some(m => m.type === 'sound' && m.value?.trigger === 'countdown')
+        );
+        const countdownSeconds = countdownSounds.map(o => {
+            const m = o.metrics.find(m2 => m2.type === 'sound');
+            return m?.value?.atSecond;
+        }).sort();
+        expect(countdownSeconds).toContain(3);
+        expect(countdownSeconds).toContain(2);
+        expect(countdownSeconds).toContain(1);
     });
 });

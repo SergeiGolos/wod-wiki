@@ -12,7 +12,7 @@
  */
 import { it, expect } from 'bun:test';
 import { describeCompliance, assertions } from '@/testing/script';
-import { currentBlockType, anySystemPopHasReason, systemPopValues } from '../helpers/compliance-helpers';
+import { currentBlockType, anySystemPopHasReason, systemPopValues, anyOutputHasMetric } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Countdown Timer — 5:00 Run
@@ -310,5 +310,168 @@ describeCompliance('🔴 Collectible Timer — :? Sprint', ':? Sprint', (ctx) =>
         await script.next(); // complete
 
         expect(await anySystemPopHasReason(await script.snapshot(), 'user-advance')).toBe(true);
+    });
+});
+
+// ===========================================================================
+// 🟢 Sound Cues — Countdown Timer
+// Spec: timer.md#sound-cues
+// ===========================================================================
+describeCompliance('🟢 Sound Cues — Countdown Timer (5:00 Run)', '5:00 Run', (ctx) => {
+
+    it('timer-completion emits a "timer-complete" sound output', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start timer
+        await script.tick(300_000); // expire
+        const snap = await script.snapshot();
+        expect(anyOutputHasMetric(snap, 'sound')).toBe(true);
+        // Verify the specific sound
+        const soundOutputs = assertions(snap).outputs().all().filter(o =>
+            o.metrics.some(m => m.type === 'sound')
+        );
+        const completeSound = soundOutputs.find(o =>
+            o.metrics.some(m => m.value?.trigger === 'complete')
+        );
+        expect(completeSound).toBeDefined();
+    });
+
+    it('countdown beeps fire at 3-2-1 seconds remaining', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start timer
+        await script.tick(297_000); // advance to 3s remaining
+        await script.tick(1_000); // 2s remaining
+        await script.tick(1_000); // 1s remaining
+        await script.tick(1_000); // 0s → complete
+        const snap = await script.snapshot();
+        const soundOutputs = assertions(snap).outputs().all().filter(o =>
+            o.metrics.some(m => m.type === 'sound' && m.value?.trigger === 'countdown')
+        );
+        const countdownSeconds = soundOutputs.map(o => {
+            const m = o.metrics.find(m => m.type === 'sound');
+            return m?.value?.atSecond;
+        }).sort();
+        expect(countdownSeconds).toContain(3);
+        expect(countdownSeconds).toContain(2);
+        expect(countdownSeconds).toContain(1);
+    });
+});
+
+// ===========================================================================
+// 🟢 Timer Label & Display — Countdown (5:00 Run)
+// ===========================================================================
+describeCompliance('🟢 Timer Label & Display — Countdown (5:00 Run)', '5:00 Run', (ctx) => {
+
+    it('block label includes "Run"', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const snap = await script.snapshot();
+        const label = snap.current?.label;
+        expect(label).toContain('Run');
+    });
+
+    it('display metrics include duration and effort', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const snap = await script.snapshot();
+        const a = assertions(snap);
+        const block = a.currentBlock();
+        expect(block).toBeDefined();
+        expect(block!.hasMetric('metric:display', 'duration')).toBe(true);
+        expect(block!.hasMetric('metric:display', 'effort')).toBe(true);
+        const effort = block!.displayMetric('effort');
+        expect(effort?.value).toBe('Run');
+    });
+
+    it('timer direction is "down" (countdown)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const snap = await script.snapshot();
+        const a = assertions(snap);
+        const timerState = a.currentBlock()?.timerState();
+        expect(timerState).toBeDefined();
+        expect(timerState!.direction).toBe('down');
+        expect(timerState!.durationMs).toBe(300_000);
+    });
+});
+
+// ===========================================================================
+// 🟢 Timer Label & Display — Count-up (^5:00 Row)
+// ===========================================================================
+describeCompliance('🟢 Timer Label & Display — Count-up (^5:00 Row)', '^5:00 Row', (ctx) => {
+
+    it('block label includes "Row"', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const snap = await script.snapshot();
+        const label = snap.current?.label;
+        expect(label).toContain('Row');
+    });
+
+    it('display metrics include duration and effort', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const snap = await script.snapshot();
+        const a = assertions(snap);
+        const block = a.currentBlock();
+        expect(block).toBeDefined();
+        expect(block!.hasMetric('metric:display', 'effort')).toBe(true);
+        const effort = block!.displayMetric('effort');
+        expect(effort?.value).toBe('Row');
+    });
+
+    it('timer direction is "up" (count-up / elapsed)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const snap = await script.snapshot();
+        const a = assertions(snap);
+        const timerState = a.currentBlock()?.timerState();
+        expect(timerState).toBeDefined();
+        expect(timerState!.direction).toBe('up');
+    });
+});
+
+// ===========================================================================
+// 🟢 Timer Label & Display — Collectible (:? Sprint)
+// ===========================================================================
+describeCompliance('🟢 Timer Label & Display — Collectible (:? Sprint)', ':? Sprint', (ctx) => {
+
+    it('block label includes "Sprint"', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const snap = await script.snapshot();
+        const label = snap.current?.label;
+        expect(label).toContain('Sprint');
+    });
+
+    it('display metrics include effort "Sprint"', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const snap = await script.snapshot();
+        const a = assertions(snap);
+        const block = a.currentBlock();
+        expect(block).toBeDefined();
+        expect(block!.hasMetric('metric:display', 'effort')).toBe(true);
+        const effort = block!.displayMetric('effort');
+        expect(effort?.value).toBe('Sprint');
+    });
+
+    it('timer direction is "up" (collectible / elapsed)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const snap = await script.snapshot();
+        const a = assertions(snap);
+        const timerState = a.currentBlock()?.timerState();
+        expect(timerState).toBeDefined();
+        expect(timerState!.direction).toBe('up');
+    });
+
+    it('collectible timer has no fixed duration', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const snap = await script.snapshot();
+        const a = assertions(snap);
+        const timerState = a.currentBlock()?.timerState();
+        expect(timerState).toBeDefined();
+        expect(timerState!.durationMs).toBeFalsy();
     });
 });

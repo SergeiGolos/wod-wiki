@@ -83,6 +83,15 @@ export class BroadcastChannelRpcTransport implements IRpcTransport {
     }
 
     /**
+     * Same-machine IPC — the popup shares the browser's clock with the
+     * opener, so the sender/receiver offset is always ~0ms. Skipping clock
+     * sync saves the multi-sample handshake at session start.
+     */
+    get needsClockSync(): boolean {
+        return false;
+    }
+
+    /**
      * Idempotent — the local transport is connected at construction
      * (after the parent's handshake), so this is a no-op when called by
      * a transport-agnostic view session.

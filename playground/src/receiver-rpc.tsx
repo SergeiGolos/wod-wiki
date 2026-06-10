@@ -18,9 +18,10 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CAST_NAMESPACE } from '@/types/cast/messages';
 import { ReceiverCastSignaling } from '@/services/cast/CastSignaling';
-import { WebRtcRpcTransport } from '@/services/cast/rpc/WebRtcRpcTransport';
+import { WebRtcRpcTransport, type ISignaling } from '@/services/cast/rpc/WebRtcRpcTransport';
 import { ChromecastProxyRuntime } from '@/services/cast/rpc/ChromecastProxyRuntime';
 import type { WorkbenchDisplayState } from '@/services/cast/rpc/ChromecastProxyRuntime';
+import { createReceiverSession, type ReceiverSessionHandle } from '@/services/cast/rpc/ReceiverSessionManager';
 import type { IRpcTransport } from '@/services/cast/rpc/IRpcTransport';
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
@@ -40,18 +41,22 @@ import {
     readLocalSessionIdFromUrl,
 } from '@/services/cast/adapters/LocalReceiverBackend';
 import '@/index.css';
-
 // ============================================================================
 // ReceiverApp — Main receiver component
 // ============================================================================
-const ReceiverApp: React.FC<{ transport?: IRpcTransport; runtime?: ChromecastProxyRuntime }> = ({ transport, runtime: externalRuntime }) => {
+const ReceiverApp: React.FC<{
+    transport?: IRpcTransport;
+    runtime?: ChromecastProxyRuntime;
+    /** Pre-built receiver session handle (local-tab path). */
+    externalHandle?: ReceiverSessionHandle;
+}> = ({ transport, runtime: externalRuntime, externalHandle }) => {
     const [proxyRuntime, setProxyRuntime] = useState<ChromecastProxyRuntime | null>(null);
     const [connectionStatus, setConnectionStatus] = useState('waiting-for-cast');
     const [workbenchState, setWorkbenchState] = useState<WorkbenchDisplayState>({ mode: 'idle' });
     const [dpadFlash, setDpadFlash] = useState(false);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
     const transportRef = useRef<IRpcTransport | null>(null);
-    const bootTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const activeSessionHandleRef = useRef<ReceiverSessionHandle | null>(null);
     const bootFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Persistent signaling instance (lives for the life of the Receiver app)
@@ -190,79 +195,56 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport; runtime?: ChromecastPro
         return cleanup;
     }, [proxyRuntime]);
 
-    /** 
-     * Initialize/Re-initialize the WebRTC transport and ProxyRuntime.
+    /**
+     * Initialize/Re-initialize the WebRTC transport and receiver session.
      * Called whenever a new signaling offer arrives.
+     *
+     * The session manager handles audio routing and the workbench
+     * subscription; the React tree only needs to observe the runtime
+     * and react to disconnect events.
      */
     const setupTransport = useCallback(() => {
         if (!signalingRef.current) return;
-
         console.log('[ReceiverApp] Setting up new transport session…');
-        
-        // 1. Cleanup existing session if active
-        if (transportRef.current) {
-            console.log('[ReceiverApp] Disposing previous transport for new connection');
-            transportRef.current.dispose();
-            transportRef.current = null;
-        }
-        if (runtimeRef.current) {
-            runtimeRef.current.dispose();
-            runtimeRef.current = null;
-        }
+
+        // 1. Dispose previous session + transport. The receiver session
+        //    manager's dispose() tears down the runtime and audio routing;
+        //    we then dispose the transport so the signaling facade can
+        //    be re-issued. ReceiverApp owns the signaling lifetime, not
+        //    the transport, so we wrap it in a non-disposable facade.
+        activeSessionHandleRef.current?.dispose();
+        activeSessionHandleRef.current = null;
+        transportRef.current?.dispose();
+        transportRef.current = null;
         setProxyRuntime(null);
 
-        // 2. Create new transport + runtime.
-        // Wrap the shared signaling in a non-disposable facade so that
-        // transport.dispose() cannot kill signalingRef.current and break
-        // reconnection — ReceiverApp owns the signaling lifetime, not the transport.
         const sharedSignaling = signalingRef.current;
-        const signalingFacade = {
-            send: (s: any) => sharedSignaling.send(s),
-            onSignal: (h: any) => sharedSignaling.onSignal(h),
+        const signalingFacade: ISignaling = {
+            send: (signal) => sharedSignaling.send(signal),
+            onSignal: (handler) => sharedSignaling.onSignal(handler),
             dispose: () => { /* no-op — signaling is owned by ReceiverApp */ },
         };
-        const transportInstance = transport ?? new WebRtcRpcTransport('answerer', signalingFacade as any);
-        const runtime = new ChromecastProxyRuntime(transportInstance);
-        
+        const transportInstance: IRpcTransport = new WebRtcRpcTransport('answerer', signalingFacade);
+        const handle = createReceiverSession(transportInstance);
         transportRef.current = transportInstance;
-        runtimeRef.current = runtime;
+        activeSessionHandleRef.current = handle;
 
-        transportInstance.onConnected(() => {
-            console.log('[ReceiverApp] RPC transport connected');
-            setConnectionStatus('connected');
-            setProxyRuntime(runtime);
-
-            // Subscribe to workbench display mode updates
-            runtime.subscribeToWorkbench((state) => {
-                setWorkbenchState(state);
-            });
-
-            // Enable audio on receiver by default
-            audioService.setEnabled(true);
-        });
-
-        transportInstance.onMessage((msg) => {
-            if (msg.type === 'rpc-audio') {
-                console.log(`[ReceiverApp] Playing remote sound: ${msg.name}`);
-                audioService.playSound(msg.name, msg.volume);
-            }
-        });
-
-        transportInstance.onDisconnected(() => {
+        const unsubDisconnect = handle.onDisconnected(() => {
             console.log('[ReceiverApp] RPC transport disconnected — returning to waiting screen');
             setConnectionStatus('disconnected');
-            // Return to waiting screen immediately so the user can see the
-            // receiver is ready for a new connection.
             setProxyRuntime(null);
-            // Clean up refs only if they still point to this session's objects
-            // (setupTransport() may have already replaced them).
-            if (runtimeRef.current === runtime) {
-                runtimeRef.current.dispose();
-                runtimeRef.current = null;
+            if (activeSessionHandleRef.current === handle) {
+                activeSessionHandleRef.current = null;
             }
             if (transportRef.current === transportInstance) {
                 transportRef.current = null;
             }
+        });
+
+        transportInstance.onConnected(() => {
+            console.log('[ReceiverApp] RPC transport connected');
+            setConnectionStatus('connected');
+            setProxyRuntime(handle.runtime);
         });
 
         transportInstance.connect().catch((err: unknown) => {
@@ -270,9 +252,9 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport; runtime?: ChromecastPro
             setConnectionStatus('error');
         });
 
-        return { transport: transportInstance, runtime };
-    }, [transport]);
-
+        // Track the unsub for cleanup if setupTransport runs again.
+        return () => unsubDisconnect();
+    }, []);
     // ── Transport initialization ──────────────────────────────────────────
     // Two paths:
     //  1. Local-tab mode: `transport` prop is provided (already connected
@@ -281,39 +263,73 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport; runtime?: ChromecastPro
     //  2. Chromecast mode: no transport prop — initialise the Cast Receiver
     //     Framework, create WebRTC signaling, and wait for a sender.
     useEffect(() => {
-        // ── Path 1: local-tab transport already connected ─────────────
-        if (transport) {
-            const runtime = externalRuntime ?? new ChromecastProxyRuntime(transport);
-            console.log('[ReceiverApp] local-tab transport provided — skipping CAF init');
+        // ── Path 1: receiver session already wired by parent ──────
+        // The session manager (passed in as `externalHandle` from
+        // LocalReceiverApp, or built here for legacy callers) handles
+        // workbench subscription, audio routing, and disconnect
+        // forwarding. The React tree just observes the handle.
+        if (externalHandle) {
+            console.log('[ReceiverApp] external handle provided — skipping CAF init');
+            const handle = externalHandle;
+            const runtime = externalRuntime ?? handle.runtime;
+            activeSessionHandleRef.current = handle;
             runtimeRef.current = runtime;
-            transportRef.current = transport;
-            runtime.subscribeToWorkbench((state) => {
+            setProxyRuntime(runtime);
+            setConnectionStatus('connected');
+            dismissBootLoader('ready');
+
+            const unsubWorkbench = handle.onWorkbenchUpdate((state) => {
                 setWorkbenchState(state);
             });
-            transport.onMessage((msg) => {
-                if (msg.type === 'rpc-audio') {
-                    audioService.playSound(msg.name, msg.volume);
+            const unsubDisconnect = handle.onDisconnected(() => {
+                console.log('[ReceiverApp] session disconnected');
+                setConnectionStatus('disconnected');
+                setProxyRuntime(null);
+                if (activeSessionHandleRef.current === handle) {
+                    activeSessionHandleRef.current = null;
                 }
             });
-            audioService.setEnabled(true);
-            setConnectionStatus('connected');
+
+            return () => {
+                unsubWorkbench();
+                unsubDisconnect();
+                // Don't dispose the handle when one was passed in —
+                // the parent (LocalReceiverApp) owns its lifetime.
+                runtimeRef.current = null;
+            };
+        }
+        // Legacy: callers passing `transport` only (no pre-built
+        // handle). Build a session manager around it for them.
+        if (transport) {
+            console.log('[ReceiverApp] legacy transport prop — building session in-place');
+            const handle = createReceiverSession(transport);
+            const runtime = externalRuntime ?? handle.runtime;
+            activeSessionHandleRef.current = handle;
+            transportRef.current = transport;
+            runtimeRef.current = runtime;
             setProxyRuntime(runtime);
+            setConnectionStatus('connected');
             dismissBootLoader('ready');
-            transport.onDisconnected(() => {
+
+            const unsubWorkbench = handle.onWorkbenchUpdate((state) => {
+                setWorkbenchState(state);
+            });
+            const unsubDisconnect = handle.onDisconnected(() => {
                 console.log('[ReceiverApp] local transport disconnected');
                 setConnectionStatus('disconnected');
                 setProxyRuntime(null);
-                if (runtimeRef.current === runtime) {
-                    runtimeRef.current.dispose();
-                    runtimeRef.current = null;
+                if (activeSessionHandleRef.current === handle) {
+                    activeSessionHandleRef.current = null;
                 }
-                transportRef.current = null;
+                if (transportRef.current === transport) {
+                    transportRef.current = null;
+                }
             });
+
             return () => {
-                // Only dispose if we created the runtime here (no externalRuntime).
-                if (!externalRuntime) {
-                    runtimeRef.current?.dispose();
-                }
+                unsubWorkbench();
+                unsubDisconnect();
+                handle.dispose();
                 runtimeRef.current = null;
                 transportRef.current = null;
             };
@@ -496,7 +512,7 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport; runtime?: ChromecastPro
 
 type LocalBootState =
     | { kind: 'handshaking' }
-    | { kind: 'connected'; transport: IRpcTransport; runtime: ChromecastProxyRuntime; dispose: () => void }
+    | { kind: 'connected'; handle: import('@/services/cast/rpc/ReceiverSessionManager').ReceiverSessionHandle }
     | { kind: 'failed'; error: Error };
 
 const LocalReceiverApp: React.FC = () => {
@@ -515,7 +531,8 @@ const LocalReceiverApp: React.FC = () => {
         console.log('[LocalReceiverApp] starting handshake', { sessionId, url: window.location.href });
 
         let cancelled = false;
-        let disposeSession: (() => void) | null = null;
+        let handleRef: import('@/services/cast/rpc/ReceiverSessionManager').ReceiverSessionHandle | null = null;
+        let transportDispose: (() => void) | null = null;
 
         acquireLocalReceiverSession({ sessionId })
             .then((result) => {
@@ -523,19 +540,22 @@ const LocalReceiverApp: React.FC = () => {
                     result.dispose();
                     return;
                 }
-                // Create the runtime eagerly (before React re-renders) so the
-                // transport.onMessage handler is registered before the sender
-                // can start clock sync.  Without this, the sender's first
-                // rpc-clock-sync-request arrives with no handler and is lost.
-                const runtime = new ChromecastProxyRuntime(result.transport);
-                disposeSession = () => { runtime.dispose(); result.dispose(); };
+                // Create the receiver session eagerly (before React re-renders)
+                // so the transport.onMessage handler is registered before the
+                // sender can start clock sync. Without this, the sender's
+                // first rpc-clock-sync-request arrives with no handler and is
+                // lost. The session manager handles audio routing and the
+                // workbench subscription that the React tree reads from.
+                const handle = createReceiverSession(result.transport);
+                handleRef = handle;
+                transportDispose = result.dispose;
                 const loader = document.getElementById('initial-loader');
                 if (loader) {
                     loader.dataset.bootDismissed = 'true';
                     loader.style.opacity = '0';
                     setTimeout(() => { loader.style.display = 'none'; }, 500);
                 }
-                setState({ kind: 'connected', transport: result.transport, runtime, dispose: disposeSession });
+                setState({ kind: 'connected', handle });
             })
             .catch((err: unknown) => {
                 if (cancelled) return;
@@ -546,7 +566,8 @@ const LocalReceiverApp: React.FC = () => {
 
         return () => {
             cancelled = true;
-            if (disposeSession) disposeSession();
+            handleRef?.dispose();
+            transportDispose?.();
         };
     }, [sessionId]);
 
@@ -581,7 +602,10 @@ const LocalReceiverApp: React.FC = () => {
         );
     }
 
-    return <ReceiverApp transport={state.transport} runtime={state.runtime} />;
+    return <ReceiverApp
+        runtime={state.handle.runtime}
+        externalHandle={state.handle}
+    />;
 };
 
 // ============================================================================

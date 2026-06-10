@@ -67,5 +67,24 @@ export const CAST_BACKEND: Exclude<CastBackendKind, 'auto'> = (
         : resolveAuto()
 ) as Exclude<CastBackendKind, 'auto'>;
 
+// Storybook production builds inject this via `config.define` in
+// `.storybook/main.mjs` so the receiver URL is baked at compile time.
+declare const __LOCAL_RECEIVER_URL__: string | undefined;
+
+/**
+ * Optional override for the local-tab receiver URL.
+ *
+ * When set (e.g. `https://preview.wod.wiki/receiver-rpc.html`), the local
+ * backend opens this URL instead of `${origin}/receiver-rpc.html`.  This is
+ * used by the published Storybook so that local-tab casts land on the
+ * canonical preview receiver rather than the Storybook domain.
+ */
+export const LOCAL_RECEIVER_URL = (
+    (typeof __LOCAL_RECEIVER_URL__ !== 'undefined' ? __LOCAL_RECEIVER_URL__ : import.meta.env.VITE_LOCAL_RECEIVER_URL)
+    || ''
+).trim();
 
 console.log('[Config] Cast backend:', CAST_BACKEND);
+if (LOCAL_RECEIVER_URL) {
+    console.log('[Config] Local receiver URL override:', LOCAL_RECEIVER_URL);
+}

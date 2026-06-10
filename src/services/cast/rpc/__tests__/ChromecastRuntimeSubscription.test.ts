@@ -20,6 +20,7 @@ class MockTransport implements IRpcTransport {
     onMessage(): RpcUnsubscribe { return () => {}; }
     onConnected(): RpcUnsubscribe { return () => {}; }
     onDisconnected(): RpcUnsubscribe { return () => {}; }
+    get needsClockSync(): boolean { return false; }
     dispose(): void {}
 }
 
