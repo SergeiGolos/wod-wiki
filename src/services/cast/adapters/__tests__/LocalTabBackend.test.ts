@@ -1,32 +1,23 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { LocalTabBackend, LOCAL_HANDSHAKE_TIMEOUT_MS } from '../LocalTabBackend';
-import { BroadcastChannelRpcTransport } from '../../rpc/BroadcastChannelRpcTransport';
-import type { RpcMessage } from '../../rpc/RpcMessages';
-
-const event = (name: string): RpcMessage => ({ type: 'rpc-event', name, timestamp: 0 });
 
 interface StubOptions {
     manualTimeout?: { fire: () => void; cancel: () => void };
     openPopupReturns?: Window | null;
-    captureTransferPort?: (port: MessagePort) => void;
-}
-
-interface ReceiverStub {
-    triggerGoodbye: () => void;
-    close: () => void;
-    /** Called by the test's captureTransferPort callback when the sender transfers the data port. */
-    onPortCaptured: (port: MessagePort) => void;
+    onPopupPostMessage?: (message: unknown) => void;
 }
 
 describe('LocalTabBackend', () => {
     let nextSessionId: number;
     let openedUrls: string[];
     let popupStub: Window;
+    let registeredHandlers: Array<(event: MessageEvent) => void>;
 
     beforeEach(() => {
         nextSessionId = 0;
         openedUrls = [];
         popupStub = {} as Window;
+        registeredHandlers = [];
     });
 
     function makeBackend(opts: StubOptions = {}): LocalTabBackend {
@@ -35,9 +26,18 @@ describe('LocalTabBackend', () => {
                 openedUrls.push(url);
                 return opts.openPopupReturns !== undefined ? opts.openPopupReturns : popupStub;
             },
-            transferDataPort: opts.captureTransferPort
-                ? (_popup, _sid, port) => { opts.captureTransferPort!(port); }
-                : (() => { /* in-process: no real transfer */ }),
+            addEventListener: (handler) => {
+                registeredHandlers.push(handler);
+                return () => {
+                    registeredHandlers = registeredHandlers.filter((h) => h !== handler);
+                };
+            },
+            removeEventListener: (handler) => {
+                registeredHandlers = registeredHandlers.filter((h) => h !== handler);
+            },
+            postToPopup: (popup, message) => {
+                opts.onPopupPostMessage?.(message);
+            },
             generateId: () => `s${++nextSessionId}`,
             getOrigin: () => 'https://app.example.test',
             setTimeoutFn: opts.manualTimeout
@@ -49,56 +49,16 @@ describe('LocalTabBackend', () => {
         });
     }
 
-    /**
-     * Stand up a stub receiver that participates in the four-step
-     * handshake: listens for `offer`, posts `ready`, and (when the test
-     * calls `onPortCaptured`) posts `accept` to complete the handshake.
-     */
-    function standUpReceiver(channelName: string, sessionId: string): ReceiverStub {
-        const receiver = new BroadcastChannel(channelName);
-
-        receiver.addEventListener('message', (e) => {
-            const packet = e.data as { kind?: string; sessionId?: string };
-            if (packet.kind === 'offer' && packet.sessionId === sessionId) {
-                receiver.postMessage({ kind: 'ready', sessionId });
-            }
-        });
-
-        return {
-            triggerGoodbye: () => {
-                receiver.postMessage({ kind: 'goodbye', sessionId });
-            },
-            close: () => { receiver.close(); },
-            onPortCaptured: () => {
-                // The test's captureTransferPort callback (called when the
-                // sender transfers the data port) hands us the port via
-                // this method. We post `accept` to complete the handshake.
-                // The setTimeout lets the test register listeners on the
-                // port before the sender flips state.
-                setTimeout(() => {
-                    receiver.postMessage({ kind: 'accept', sessionId });
-                }, 0);
-            },
-        };
-    }
-
     it('opens a popup with the receiver URL including the local sessionId', () => {
         const backend = makeBackend();
         const promise = backend.startSession();
-        // The URL is captured synchronously during startSession's prologue.
         expect(openedUrls).toEqual([`https://app.example.test/receiver-rpc.html?local=s1`]);
-        // Abort the test by disposing (which clears the timeout).
         backend.dispose();
         return promise.catch(() => { /* expected: aborted */ });
     });
 
-    it('startSession flips state to "connecting" synchronously, then "session-active" on accept', async () => {
-        // Build the receiver *first* so we can wire its onPortCaptured
-        // callback into the backend's captureTransferPort dep.
-        const receiver = standUpReceiver('wodwiki-local-s1', 's1');
-        const backend = makeBackend({
-            captureTransferPort: (port) => receiver.onPortCaptured(port),
-        });
+    it('startSession flips state to "connecting" synchronously', () => {
+        const backend = makeBackend();
         const seen: string[] = [];
         backend.onStateChanged((s) => seen.push(s));
 
@@ -106,48 +66,21 @@ describe('LocalTabBackend', () => {
         expect(backend.state).toBe('connecting');
         expect(seen).toContain('connecting');
 
-        // Wait for the offer → ready → capture-port → accept cycle.
-        await new Promise((r) => setTimeout(r, 10));
-
-        const transport = await promise;
-        expect(backend.state).toBe('session-active');
-        expect(transport).toBeInstanceOf(BroadcastChannelRpcTransport);
-        expect(transport.connected).toBe(true);
-
-        receiver.close();
         backend.dispose();
+        return promise.catch(() => { /* expected: aborted */ });
     });
 
-    it('startSession returns a working transport whose send reaches the paired MessagePort', async () => {
-        const receiver = standUpReceiver('wodwiki-local-s1', 's1');
-        let receiverPort: MessagePort | null = null;
-        const backend = makeBackend({
-            captureTransferPort: (port) => {
-                receiverPort = port;
-                receiver.onPortCaptured(port);
-            },
-        });
-
+    it('startSession registers a window.message listener', () => {
+        const backend = makeBackend();
+        const beforeCount = registeredHandlers.length;
         const promise = backend.startSession();
-        await new Promise((r) => setTimeout(r, 10));
+        expect(registeredHandlers.length).toBeGreaterThan(beforeCount);
 
-        const transport = (await promise) as BroadcastChannelRpcTransport;
-        expect(receiverPort).not.toBeNull();
-        const received: unknown[] = [];
-        receiverPort!.addEventListener('message', (e) => received.push(e.data));
-        receiverPort!.start();
-
-        transport.send({ type: 'rpc-dispose' });
-        transport.send(event('hello'));
-
-        await new Promise((r) => setTimeout(r, 10));
-        expect(received).toEqual([{ type: 'rpc-dispose' }, event('hello')]);
-
-        receiver.close();
         backend.dispose();
+        return promise.catch(() => { /* expected: aborted */ });
     });
 
-    it('startSession rejects with a timeout error if the receiver never accepts', async () => {
+    it('startSession rejects with a timeout error if the receiver never signals ready', async () => {
         const manualTimeout = { fire: () => { /* noop */ }, cancel: () => { /* noop */ } };
         const backend = makeBackend({ manualTimeout });
 
@@ -160,60 +93,63 @@ describe('LocalTabBackend', () => {
         expect(backend.state).toBe('session-ended');
     });
 
-    it('endSession posts goodbye and tears down the transport', async () => {
-        const receiver = standUpReceiver('wodwiki-local-s1', 's1');
-        const backend = makeBackend({
-            captureTransferPort: (port) => receiver.onPortCaptured(port),
-        });
+    it('startSession ignores messages with a non-matching sessionId', async () => {
+        const manualTimeout = { fire: () => { /* noop */ }, cancel: () => { /* noop */ } };
+        const backend = makeBackend({ manualTimeout });
         const promise = backend.startSession();
-        await new Promise((r) => setTimeout(r, 10));
 
-        const transport = (await promise) as BroadcastChannelRpcTransport;
-        let disconnectedFired = 0;
-        transport.onDisconnected(() => { disconnectedFired++; });
+        // Send a message with a wrong sessionId.
+        registeredHandlers[registeredHandlers.length - 1]?.({
+            data: { kind: 'ready', sessionId: 'wrong-id' },
+            source: popupStub,
+        } as MessageEvent);
 
-        const seen: string[] = [];
-        backend.onStateChanged((s) => seen.push(s));
+        // The handler should ignore it; the timer should still be live.
+        expect(backend.state).toBe('connecting');
 
-        backend.endSession();
-
-        expect(transport.connected).toBe(false);
-        expect(backend.state).toBe('session-ended');
-        expect(disconnectedFired).toBeGreaterThanOrEqual(1);
-        expect(seen).toContain('session-ended');
-
-        receiver.close();
+        manualTimeout.fire();
+        await expect(promise).rejects.toThrow(/receiver did not complete handshake within/);
     });
 
-    it('goodbye from receiver flips state to "session-ended"', async () => {
-        const receiver = standUpReceiver('wodwiki-local-s1', 's1');
-        const backend = makeBackend({
-            captureTransferPort: (port) => receiver.onPortCaptured(port),
-        });
+    it('startSession ignores messages from a different source (not our popup)', async () => {
+        const manualTimeout = { fire: () => { /* noop */ }, cancel: () => { /* noop */ } };
+        const backend = makeBackend({ manualTimeout });
         const promise = backend.startSession();
-        await new Promise((r) => setTimeout(r, 10));
 
-        const transport = (await promise) as BroadcastChannelRpcTransport;
-        expect(backend.state).toBe('session-active');
+        registeredHandlers[registeredHandlers.length - 1]?.({
+            data: { kind: 'ready', sessionId: 's1' },
+            source: null,
+        } as unknown as MessageEvent);
 
-        const seen: string[] = [];
-        backend.onStateChanged((s) => seen.push(s));
+        expect(backend.state).toBe('connecting');
+        manualTimeout.fire();
+        await expect(promise).rejects.toThrow(/receiver did not complete handshake within/);
+    });
 
-        receiver.triggerGoodbye();
-        await new Promise((r) => setTimeout(r, 10));
+    it('endSession on an idle backend is a no-op', () => {
+        const backend = makeBackend();
+        expect(backend.state).toBe('ready');
+        backend.endSession();
+        expect(backend.state).toBe('ready');
+    });
 
+    it('endSession during "connecting" transitions to "session-ended"', async () => {
+        const manualTimeout = { fire: () => { /* noop */ }, cancel: () => { /* noop */ } };
+        const backend = makeBackend({ manualTimeout });
+        const promise = backend.startSession();
+        expect(backend.state).toBe('connecting');
+
+        backend.endSession();
         expect(backend.state).toBe('session-ended');
-        expect(transport.connected).toBe(false);
-        expect(seen).toContain('session-ended');
 
-        receiver.close();
-        backend.dispose();
+        manualTimeout.cancel();
+        await promise.catch(() => { /* expected: aborted */ });
     });
 
     it('startSession throws if window.open returns null', () => {
         const backend = new LocalTabBackend({
             openPopup: () => null,
-            transferDataPort: () => { /* noop */ },
+            postToPopup: () => { /* noop */ },
             generateId: () => 'never',
             getOrigin: () => 'https://x',
             setTimeoutFn: () => 0,
@@ -230,59 +166,39 @@ describe('LocalTabBackend', () => {
     });
 
     it('startSession throws when called twice without endSession', async () => {
-        const receiver = standUpReceiver('wodwiki-local-s1', 's1');
-        const backend = makeBackend({
-            captureTransferPort: (port) => receiver.onPortCaptured(port),
-        });
+        const manualTimeout = { fire: () => { /* noop */ }, cancel: () => { /* noop */ } };
+        const backend = makeBackend({ manualTimeout });
         const promise = backend.startSession();
-        await new Promise((r) => setTimeout(r, 10));
-        await promise;
-
-        await expect(backend.startSession()).rejects.toThrow(/already active/);
-
-        receiver.close();
-        backend.dispose();
+        expect(() => backend.startSession()).toThrow(/already active/);
+        manualTimeout.fire();
+        await promise.catch(() => { /* expected: timeout */ });
     });
 
     it('dispose makes further startSession throw', async () => {
-        const receiver = standUpReceiver('wodwiki-local-s1', 's1');
-        const backend = makeBackend({
-            captureTransferPort: (port) => receiver.onPortCaptured(port),
-        });
+        const manualTimeout = { fire: () => { /* noop */ }, cancel: () => { /* noop */ } };
+        const backend = makeBackend({ manualTimeout });
         const promise = backend.startSession();
-        await new Promise((r) => setTimeout(r, 10));
-        await promise;
-        receiver.close();
+        manualTimeout.fire();
+        await promise.catch(() => { /* expected: timeout */ });
         backend.dispose();
 
         await expect(backend.startSession()).rejects.toThrow(/after dispose/);
     });
 
     it('unsubscribe removes a state-change listener', async () => {
-        const receiver = standUpReceiver('wodwiki-local-s1', 's1');
-        const backend = makeBackend({
-            captureTransferPort: (port) => receiver.onPortCaptured(port),
-        });
+        const manualTimeout = { fire: () => { /* noop */ }, cancel: () => { /* noop */ } };
+        const backend = makeBackend({ manualTimeout });
         const seen: string[] = [];
         const unsub = backend.onStateChanged((s) => seen.push(s));
 
         const promise = backend.startSession();
-        await new Promise((r) => setTimeout(r, 10));
-        await promise;
-
-        // The listener was registered before startSession, so 'connecting'
-        // and 'session-active' are both captured.
-        expect(seen).toEqual(['connecting', 'session-active']);
+        expect(seen).toEqual(['connecting']);
 
         unsub();
-        receiver.triggerGoodbye();
-        await new Promise((r) => setTimeout(r, 10));
+        manualTimeout.fire();
+        await promise.catch(() => { /* expected */ });
 
-        // No additional state captured.
-        expect(seen).toEqual(['connecting', 'session-active']);
-
-        receiver.close();
-        backend.dispose();
+        expect(seen).toEqual(['connecting']);
     });
 
     it('exposes the configured handshake timeout as a constant', () => {

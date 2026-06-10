@@ -5,72 +5,54 @@
  *  1. Generate a `sessionId` (uuid).
  *  2. Build the receiver URL: `${origin}/receiver-rpc.html?local=${sessionId}`.
  *  3. `window.open(...)` the receiver URL; keep the popup reference.
- *  4. Open a `BroadcastChannel('wodwiki-local-${sessionId}')` for the
- *     control channel (handshake + goodbye).
- *  5. Create a `MessageChannel`; keep `port1` as the sender's data port.
- *  6. Post `{ kind: 'offer', sessionId }` on the control channel and wait
- *     for `{ kind: 'ready' }` from the receiver (signals that the popup's
- *     `window.message` listener is attached and ready to receive the
- *     data-port transfer).
- *  7. Transfer `port2` to the popup via `popup.postMessage({...}, '*', [port2])`.
- *  8. Wait for `{ kind: 'accept' }` from the receiver.
- *  9. Wrap `port1` in a `BroadcastChannelRpcTransport` and resolve.
+ *  4. Listen on `window.addEventListener('message', ...)` for the
+ *     receiver's `{ kind: 'ready' }` packet (delivered via
+ *     `window.opener.postMessage`).
+ *  5. On `ready`: post `{ kind: 'offer', sessionId }` to the popup via
+ *     `popup.postMessage`, and transfer the data port via the same call.
+ *  6. Wait for the receiver's `{ kind: 'accept' }` packet on the
+ *     `window.message` listener.
+ *  7. Wrap `port1` in a `BroadcastChannelRpcTransport` and resolve.
  *
- * Why wait for `ready`?
- * ---------------------
- * `window.open` returns synchronously, *before* the popup has loaded
- * its scripts. If the sender posts the data-port message immediately
- * after `window.open`, the popup's `window.addEventListener('message', ...)`
- * isn't attached yet, and the message is lost. The receiver signals
- * "ready" *after* it has attached its listener, so the subsequent
- * `popup.postMessage(data-port, ..., [port2])` is delivered.
+ * Why `postMessage` instead of `BroadcastChannel`?
+ * -----------------------------------------------
+ * `BroadcastChannel` between a window and its popup *should* work per
+ * spec, but in practice the two browsing contexts can have different
+ * event loops, IPC channels, and the popup's React app mounts after
+ * the sender's listener is attached — leaving a window where the
+ * sender's `BroadcastChannel.postMessage` is queued but the receiver's
+ * listener is not yet on the same channel in the same context. This
+ * caused race-condition drops in practice.
  *
- * Disconnect:
- *  - Receiver posts `{ kind: 'goodbye' }` on the control channel on its
- *    `beforeunload`. We call `transport.notifyDisconnected()` and flip
- *    our state to `'session-ended'`.
- *  - If we tear down (button click → endSession), we post `{ kind: 'goodbye' }`
- *    ourselves, close the popup via `popup.close()`, and dispose the
- *    transport.
- *
- * Why two channels (control + data)?
- * ----------------------------------
- * `BroadcastChannel.postMessage` does NOT accept a transfer list, so it
- * cannot carry a `MessagePort`. The data port must be transferred via
- * `Window.postMessage` (which does accept a transfer list) using the
- * popup reference from `window.open`. The BroadcastChannel carries the
- * handshake and goodbye signal — both plain JSON.
- *
- * The data path is a faithful `MessagePort` round-trip: `port1` on the
- * sender, `port2` on the receiver, paired by the `MessageChannel`. The
- * transport wrapper around `port1` is `BroadcastChannelRpcTransport`; the
- * receiver wraps `port2` in its own transport (see `LocalReceiverBackend`).
- *
- * Test surface
- * ------------
- * Dependencies (`openPopup`, `transferDataPort`, `createBroadcastChannel`,
- * `setTimeoutFn`, `generateId`, etc.) are injected via the constructor.
- * Tests use a stub popup that captures the `postMessage` call and a
- * parallel `BroadcastChannel` to act as the receiver.
+ * `Window.postMessage` is the most reliable inter-context message
+ * path. The sender has the popup's `Window` reference from
+ * `window.open`. The popup has `window.opener` referencing the sender.
+ * Both use the same `addEventListener('message', ...)` API on the
+ * receiving end. There's no separate BroadcastChannel to keep in
+ * sync.
  */
 
 import { BroadcastChannelRpcTransport } from '../rpc/BroadcastChannelRpcTransport';
 import type { IRpcTransport } from '../rpc/IRpcTransport';
 import type { ICastBackend, ICastBackendState, StateUnsubscribe } from '../ICastBackend';
 
-/**
- * Handshake timeout: how long we wait for the receiver tab to load, send
- * `ready`, accept the data-port transfer, and post its `accept` on the
- * control channel. 5 seconds — long enough for a cold load on a dev
- * machine, short enough to surface a missing-receiver regression within
- * a user gesture.
- */
 export const LOCAL_HANDSHAKE_TIMEOUT_MS = 5_000;
 
 interface LocalTabBackendDeps {
     openPopup?: (url: string) => Window | null;
-    transferDataPort?: (popup: Window, sessionId: string, port: MessagePort) => void;
-    createBroadcastChannel?: (name: string) => BroadcastChannelLike;
+    /**
+     * Override the listener that receives messages from the popup.
+     * Defaults to the real `window.addEventListener('message', ...)`.
+     */
+    addEventListener?: (handler: (event: MessageEvent) => void) => () => void;
+    /** Override `window.removeEventListener`. */
+    removeEventListener?: (handler: (event: MessageEvent) => void) => void;
+    /**
+     * Post a message to the popup. Defaults to `popup.postMessage`.
+     * The `targetOrigin` is `*` because the popup is same-origin by
+     * construction (built from `getOrigin()` + the receiver HTML).
+     */
+    postToPopup?: (popup: Window, message: unknown) => void;
     generateId?: () => string;
     buildReceiverUrl?: (origin: string, sessionId: string) => string;
     MessageChannelCtor?: typeof MessageChannel;
@@ -79,23 +61,8 @@ interface LocalTabBackendDeps {
     clearTimeoutFn?: (handle: unknown) => void;
 }
 
-export interface BroadcastChannelLike {
-    postMessage(message: unknown): void;
-    addEventListener(type: 'message', handler: (event: { data: unknown }) => void): void;
-    removeEventListener(type: 'message', handler: (event: { data: unknown }) => void): void;
-    close(): void;
-}
-
 export const LOCAL_RECEIVER_HTML = '/receiver-rpc.html';
 
-/**
- * Control-channel packet kinds. Plain JSON only — never carry a port here.
- *
- *   'offer'  — sender → receiver, "I'm waiting to transfer the data port"
- *   'ready'  — receiver → sender, "my window.message listener is attached"
- *   'accept' — receiver → sender, "I have the data port, we can start"
- *   'goodbye'— either side, "tear down the session"
- */
 type ControlPacket = { kind: 'offer' | 'ready' | 'accept' | 'goodbye'; sessionId: string };
 
 export class LocalTabBackend implements ICastBackend {
@@ -103,22 +70,29 @@ export class LocalTabBackend implements ICastBackend {
     private readonly stateListeners = new Set<(s: ICastBackendState) => void>();
 
     private activePopup: Window | null = null;
-    private activeControl: BroadcastChannelLike | null = null;
     private activeTransport: BroadcastChannelRpcTransport | null = null;
     private activeTimeout: unknown = null;
     private activeSessionId: string | null = null;
     private pendingReject: ((reason: Error) => void) | null = null;
+    private messageUnsub: (() => void) | null = null;
     private disposed = false;
 
     private readonly deps: Required<LocalTabBackendDeps>;
 
     constructor(deps: LocalTabBackendDeps = {}) {
+        const defaultHandler = (handler: (event: MessageEvent) => void): (() => void) => {
+            window.addEventListener('message', handler);
+            return () => window.removeEventListener('message', handler);
+        };
         this.deps = {
-            openPopup: deps.openPopup ?? ((url: string) => window.open(url, '_blank', 'popup,width=1280,height=720') as Window | null),
-            transferDataPort: deps.transferDataPort ?? ((popup: Window, _sessionId: string, port: MessagePort) => {
-                popup.postMessage({ kind: 'data-port' }, '*', [port]);
+            openPopup: deps.openPopup ?? ((url: string) => window.open(url, '_blank', 'width=1280,height=720') as Window | null),
+            addEventListener: deps.addEventListener ?? defaultHandler,
+            removeEventListener: deps.removeEventListener ?? ((handler) => {
+                window.removeEventListener('message', handler);
             }),
-            createBroadcastChannel: deps.createBroadcastChannel ?? ((name: string) => new BroadcastChannel(name) as unknown as BroadcastChannelLike),
+            postToPopup: deps.postToPopup ?? ((popup: Window, message: unknown) => {
+                popup.postMessage(message, '*');
+            }),
             generateId: deps.generateId ?? (() => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2))),
             buildReceiverUrl: deps.buildReceiverUrl ?? ((origin: string, sessionId: string) => `${origin}${LOCAL_RECEIVER_HTML}?local=${sessionId}`),
             MessageChannelCtor: deps.MessageChannelCtor ?? (typeof MessageChannel !== 'undefined' ? MessageChannel : (undefined as unknown as typeof MessageChannel)),
@@ -160,6 +134,7 @@ export class LocalTabBackend implements ICastBackend {
         const sessionId = this.deps.generateId();
         this.activeSessionId = sessionId;
         const url = this.deps.buildReceiverUrl(this.deps.getOrigin(), sessionId);
+        console.log('[LocalTabBackend] startSession: opening popup', { url, sessionId });
 
         const popup = this.deps.openPopup(url);
         if (!popup) {
@@ -168,10 +143,7 @@ export class LocalTabBackend implements ICastBackend {
             throw new Error('LocalTabBackend: window.open returned null (popup blocked?)');
         }
         this.activePopup = popup;
-
-        const channelName = `wodwiki-local-${sessionId}`;
-        const control = this.deps.createBroadcastChannel(channelName);
-        this.activeControl = control;
+        console.log('[LocalTabBackend] popup opened', { sessionId });
 
         const mc = new this.deps.MessageChannelCtor();
         const ourPort = mc.port1;
@@ -192,82 +164,57 @@ export class LocalTabBackend implements ICastBackend {
             failHandshake(`LocalTabBackend: receiver did not complete handshake within ${LOCAL_HANDSHAKE_TIMEOUT_MS}ms`);
         }, LOCAL_HANDSHAKE_TIMEOUT_MS);
 
-        // The handshake is a four-step dance:
-        //   1. sender posts `offer` on control
-        //   2. receiver posts `ready` on control (after attaching its window.message listener)
-        //   3. sender transfers port2 via popup.postMessage
-        //   4. receiver posts `accept` on control
-        // Step 3 must come *after* step 2 — otherwise the receiver's
-        // window.message listener isn't attached yet and the port is lost.
+        const onMessage = (event: MessageEvent): void => {
+            if (event.source !== popup) return; // not from our popup
+            const data = event.data as { kind?: string; sessionId?: string; port?: MessagePort } | undefined;
+            if (!data || typeof data !== 'object' || typeof data.kind !== 'string') return;
+            if (data.sessionId !== sessionId) return;
 
-        const onReady = (event: { data: unknown }): void => {
-            const packet = event.data as ControlPacket;
-            if (!packet || typeof packet !== 'object' || typeof packet.kind !== 'string') return;
-            if (packet.sessionId !== sessionId) return;
-            if (packet.kind !== 'ready') return;
-
-            // Receiver has its window.message listener attached. Now is
-            // the right time to transfer the data port.
-            control.removeEventListener('message', onReady);
-            try {
-                this.deps.transferDataPort(popup, sessionId, theirPort);
-            } catch (err) {
+            if (data.kind === 'ready') {
+                console.log('[LocalTabBackend] received ready', { sessionId });
+                // Receiver is listening on its window.message listener.
+                // Post the offer and transfer the data port.
+                try {
+                    this.deps.postToPopup(popup, { kind: 'offer', sessionId });
+                    console.log('[LocalTabBackend] posted offer', { sessionId });
+                } catch (err) {
+                    failHandshake(err instanceof Error ? err.message : String(err));
+                    return;
+                }
+                try {
+                    popup.postMessage({ kind: 'data-port', sessionId }, '*', [theirPort]);
+                    console.log('[LocalTabBackend] transferred data port', { sessionId });
+                } catch (err) {
+                    failHandshake(err instanceof Error ? err.message : String(err));
+                }
+            } else if (data.kind === 'accept') {
+                console.log('[LocalTabBackend] received accept', { sessionId });
                 this.deps.clearTimeoutFn(this.activeTimeout);
                 this.activeTimeout = null;
-                failHandshake(err instanceof Error ? err.message : String(err));
-            }
-        };
+                this.pendingReject = null;
 
-        const onAccept = (event: { data: unknown }): void => {
-            const packet = event.data as ControlPacket;
-            if (!packet || typeof packet !== 'object' || typeof packet.kind !== 'string') return;
-            if (packet.sessionId !== sessionId) return;
-            if (packet.kind !== 'accept') return;
-
-            control.removeEventListener('message', onAccept);
-            this.deps.clearTimeoutFn(this.activeTimeout);
-            this.activeTimeout = null;
-            this.pendingReject = null;
-
-            const transport = new BroadcastChannelRpcTransport(ourPort);
-            transport.onDisconnected(() => {
-                if (this._state === 'session-active') {
-                    this.setState('session-ended');
+                const transport = new BroadcastChannelRpcTransport(ourPort);
+                transport.onDisconnected(() => {
+                    if (this._state === 'session-active') {
+                        this.setState('session-ended');
+                    }
+                });
+                transport.start();
+                this.activeTransport = transport;
+                this.setState('session-active');
+                resolve(transport);
+            } else if (data.kind === 'goodbye') {
+                if (this.activeTransport) {
+                    this.activeTransport.notifyDisconnected();
                 }
-            });
-            transport.start();
-            this.activeTransport = transport;
-            this.activeControl = control;
-            this.setState('session-active');
-            resolve(transport);
-        };
-
-        const goodbyeHandler = (event: { data: unknown }): void => {
-            const packet = event.data as ControlPacket;
-            if (!packet || typeof packet !== 'object' || typeof packet.kind !== 'string') return;
-            if (packet.sessionId !== sessionId) return;
-            if (packet.kind !== 'goodbye') return;
-
-            control.removeEventListener('message', goodbyeHandler);
-            if (this.activeTransport) {
-                this.activeTransport.notifyDisconnected();
+                this.activeTransport = null;
+                this.activePopup = null;
+                this.activeSessionId = null;
+                this.setState('session-ended');
             }
-            this.activeTransport = null;
-            this.activeControl = null;
-            this.activePopup = null;
-            this.activeSessionId = null;
-            this.setState('session-ended');
         };
 
-        control.addEventListener('message', onReady);
-        control.addEventListener('message', onAccept);
-        control.addEventListener('message', goodbyeHandler);
-
-        try {
-            control.postMessage({ kind: 'offer', sessionId } satisfies ControlPacket);
-        } catch (err) {
-            failHandshake(err instanceof Error ? err.message : String(err));
-        }
+        this.messageUnsub = this.deps.addEventListener(onMessage);
 
         return promise;
     }
@@ -275,15 +222,13 @@ export class LocalTabBackend implements ICastBackend {
     private cleanupOnError(): void {
         this.deps.clearTimeoutFn(this.activeTimeout);
         this.activeTimeout = null;
-        if (this.activeControl) {
-            try { this.activeControl.close(); } catch { /* ignore */ }
-            this.activeControl = null;
+        if (this.messageUnsub) {
+            this.messageUnsub();
+            this.messageUnsub = null;
         }
         // NOTE: do NOT close the popup here. The receiver React app needs
-        // to stay open so the user can read the error UI. The sender
-        // re-uses the active session id in a future `startSession()`;
-        // the popup closes on `endSession()` or on a successful
-        // follow-up session.
+        // to stay open so the user can read the error UI. The popup
+        // closes on `endSession()` or on a successful follow-up session.
         this.activeSessionId = null;
     }
 
@@ -291,21 +236,20 @@ export class LocalTabBackend implements ICastBackend {
         if (this._state !== 'session-active' && this._state !== 'connecting') {
             return;
         }
-        if (this.activeControl && this.activeSessionId) {
+        if (this.pendingReject) {
+            this.pendingReject(new Error('LocalTabBackend: endSession called during handshake'));
+            this.pendingReject = null;
+        }
+        if (this.activePopup && this.activeSessionId) {
             try {
-                this.activeControl.postMessage({ kind: 'goodbye', sessionId: this.activeSessionId } satisfies ControlPacket);
+                this.deps.postToPopup(this.activePopup, { kind: 'goodbye', sessionId: this.activeSessionId });
             } catch {
-                // channel may already be closed
+                // popup may already be closed
             }
         }
-        if (this.activeTransport) {
-            this.activeTransport.notifyDisconnected();
-            this.activeTransport.dispose();
-            this.activeTransport = null;
-        }
-        if (this.activeControl) {
-            try { this.activeControl.close(); } catch { /* ignore */ }
-            this.activeControl = null;
+        if (this.messageUnsub) {
+            this.messageUnsub();
+            this.messageUnsub = null;
         }
         if (this.activePopup) {
             try { this.activePopup.close(); } catch { /* ignore */ }
@@ -324,10 +268,6 @@ export class LocalTabBackend implements ICastBackend {
             this.pendingReject(new Error('LocalTabBackend: dispose() called during handshake'));
             this.pendingReject = null;
         }
-        // Always tear down our transport/control resources, but only
-        // close the popup if we had a successful session (i.e. the
-        // user is done casting). If the handshake failed, leave the
-        // popup open so the user can read the error UI.
         const hadSession = this._state === 'session-active' || this.activeTransport !== null;
         if (!hadSession) {
             this.activePopup = null;

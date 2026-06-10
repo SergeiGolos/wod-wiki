@@ -1,39 +1,37 @@
 /**
  * LocalReceiverBackend — receiver-side adapter for the local-tab dual-pane mirror.
  *
- * On the receiver side, this is the mirror of `LocalTabBackend` (the
- * sender-side adapter). Where the sender's local adapter opens a popup
- * tab, the receiver's local adapter *is* the popup tab — it acquires the
- * `MessagePort` the sender transferred, hands it to a
- * `BroadcastChannelRpcTransport`, and uses that as the transport for the
- * rest of the receiver-side cast stack.
+ * On the receiver side, this is the mirror of `LocalTabBackend`. The
+ * sender's local adapter opens this popup tab; we acquire the
+ * `MessagePort` the sender transferred, hand it to a
+ * `BroadcastChannelRpcTransport`, and use that as the transport for
+ * the rest of the receiver-side cast stack.
  *
- * The receiver React app (`receiver-rpc.tsx`) detects `?local=<id>` in
- * the URL and dispatches to this adapter instead of booting CAF.
+ * Handshake shape — uses `Window.postMessage` to talk to the opener:
+ *  1. The popup mounts and listens on `window.addEventListener('message', ...)`
+ *     for the sender's `{ kind: 'data-port' }` packet.
+ *  2. The popup posts `{ kind: 'ready' }` to the opener via
+ *     `window.opener.postMessage`, signaling that the data-port listener
+ *     is attached and the sender can proceed.
+ *  3. The popup waits for the sender's data-port transfer. The sender
+ *     posts it on receipt of `ready`.
+ *  4. The popup takes `event.ports[0]` from the data-port transfer,
+ *     wraps it in a `BroadcastChannelRpcTransport`, and posts
+ *     `{ kind: 'accept' }` to the opener.
+ *  5. The popup resolves the session to the React tree.
  *
- * Handshake shape (matches `LocalTabBackend`):
- *  1. The popup mounts and opens the control channel.
- *  2. The popup waits for the sender's `{ kind: 'offer' }` packet.
- *  3. The popup attaches a `window.message` listener and posts
- *     `{ kind: 'ready' }` on the control channel (signaling that the
- *     listener is ready to receive the data-port transfer).
- *  4. The popup waits for the data-port message from the sender.
- *  5. The popup takes `event.ports[0]` as the data port, wraps it in a
- *     `BroadcastChannelRpcTransport`, and posts `{ kind: 'accept' }` on
- *     the control channel.
- *  6. The popup resolves the session to the React tree.
+ * Why `postMessage` and not `BroadcastChannel`?
+ * -----------------------------------------------
+ * `BroadcastChannel` is supposed to work between same-origin browsing
+ * contexts (a window and its popup), but in practice the popup's
+ * React app mounts *after* the sender posts the offer, and the
+ * `BroadcastChannel` listener is attached in a different event loop
+ * tick than the sender's post. The queued message is dropped.
  *
- * Why post `ready` *after* attaching the window.message listener?
- * ---------------------------------------------------------------
- * `window.open` returns synchronously, *before* the popup has loaded
- * its scripts. The sender's `popup.postMessage(data-port, ...)` would
- * be lost if the popup's listener isn't attached yet. We reverse the
- * handshake so the receiver attaches the listener, then signals "ready"
- * to the sender, which then transfers the port. No race.
- *
- * If the popup never completes the handshake (sender side failed, popup
- * opened by mistake), the receiver surfaces an error to the React tree
- * rather than crashing.
+ * `Window.postMessage` is the most reliable inter-context message
+ * path. The popup has `window.opener`; the opener has the popup
+ * reference from `window.open`. Both use the same `addEventListener`
+ * API, with the same IPC layer regardless of event loop scheduling.
  */
 
 import { BroadcastChannelRpcTransport } from '../rpc/BroadcastChannelRpcTransport';
@@ -41,40 +39,25 @@ import type { IRpcTransport } from '../rpc/IRpcTransport';
 
 export const LOCAL_RECEIVER_HANDSHAKE_TIMEOUT_MS = 5_000;
 
-type ControlPacket = { kind: 'offer' | 'ready' | 'accept' | 'goodbye'; sessionId: string };
-
 export interface LocalReceiverSessionResult {
     transport: IRpcTransport;
-    /** Tear down the control channel; called by the receiver React app on unmount. */
     dispose: () => void;
 }
 
 export interface LocalReceiverSessionOptions {
-    /** Session id from the `?local=<id>` query param. */
     sessionId: string;
-    /** Override the window message listener (default: real `window`). */
     windowLike?: Window;
-    /** Override BroadcastChannel constructor (default: real). */
-    createBroadcastChannel?: (name: string) => BroadcastChannelLike;
-    /** Override setTimeout (default: real). */
+    addEventListener?: (handler: (event: MessageEvent) => void) => () => void;
+    postToOpener?: (message: unknown) => void;
     setTimeoutFn?: (handler: () => void, ms: number) => unknown;
     clearTimeoutFn?: (handle: unknown) => void;
-    /** Wait this long for the sender's offer before failing. */
     timeoutMs?: number;
-}
-
-export interface BroadcastChannelLike {
-    postMessage(message: unknown): void;
-    addEventListener(type: 'message', handler: (event: { data: unknown }) => void): void;
-    removeEventListener(type: 'message', handler: (event: { data: unknown }) => void): void;
-    close(): void;
 }
 
 /**
  * Acquire a `BroadcastChannelRpcTransport` from the sender's popup opener.
- * Resolves once the data port is paired and the BroadcastChannel handshake
- * is complete. Rejects if the sender never posts the offer within the
- * configured timeout, or if any other step of the handshake fails.
+ * Resolves once the data port is paired and the postMessage handshake is
+ * complete. Rejects on timeout or handshake failure.
  */
 export async function acquireLocalReceiverSession(
     options: LocalReceiverSessionOptions,
@@ -82,7 +65,15 @@ export async function acquireLocalReceiverSession(
     const {
         sessionId,
         windowLike = (typeof window !== 'undefined' ? window : undefined) as unknown as Window,
-        createBroadcastChannel = (name) => new BroadcastChannel(name) as unknown as BroadcastChannelLike,
+        addEventListener = (handler) => {
+            window.addEventListener('message', handler);
+            return () => window.removeEventListener('message', handler);
+        },
+        postToOpener = (message) => {
+            if (window.opener) {
+                window.opener.postMessage(message, '*');
+            }
+        },
         setTimeoutFn = (handler, ms) => setTimeout(handler, ms),
         clearTimeoutFn = (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
         timeoutMs = LOCAL_RECEIVER_HANDSHAKE_TIMEOUT_MS,
@@ -91,80 +82,71 @@ export async function acquireLocalReceiverSession(
     if (!windowLike) {
         throw new Error('LocalReceiverBackend: no window available');
     }
+    // Step 1: attach the window.message listener.
+    // Step 2: post `ready` so the sender knows the listener is in place
+    //         and can safely transfer the data port.
+    // Step 3: wait for the data-port message (which arrives after the
+    //         sender sees `ready`).
+    console.log('[LocalReceiverBackend] starting handshake', { sessionId });
 
-    // Step 1: open the control channel and wait for the sender's `offer`.
-    const control = createBroadcastChannel(`wodwiki-local-${sessionId}`);
-
-    await new Promise<void>((resolve, reject) => {
-        const onControlMessage = (event: { data: unknown }): void => {
-            const packet = event.data as ControlPacket;
-            if (!packet || typeof packet !== 'object' || typeof packet.kind !== 'string') return;
-            if (packet.sessionId !== sessionId) return;
-            if (packet.kind === 'offer') {
-                control.removeEventListener('message', onControlMessage);
-                clearTimeoutFn(timer);
-                resolve();
-            } else if (packet.kind === 'goodbye') {
-                control.removeEventListener('message', onControlMessage);
-                clearTimeoutFn(timer);
-                reject(new Error('LocalReceiverBackend: sender said goodbye before handshake completed'));
-            }
-        };
-        control.addEventListener('message', onControlMessage);
-        const timer = setTimeoutFn(() => {
-            control.removeEventListener('message', onControlMessage);
-            reject(new Error(`LocalReceiverBackend: sender did not post offer within ${timeoutMs}ms`));
-        }, timeoutMs);
+    // Use a one-shot listener that resolves when the data port arrives.
+    // We store the resolver so the listener (registered below) can
+    // call it from outside the `new Promise` closure.
+    let resolveDataPort!: (port: MessagePort) => void;
+    let rejectDataPort!: (err: Error) => void;
+    const dataPortPromise = new Promise<MessagePort>((resolve, reject) => {
+        resolveDataPort = resolve;
+        rejectDataPort = reject;
     });
-
-    // Step 2: attach the window.message listener for the data-port
-    // transfer, then post `ready` on the control channel. The sender
-    // transfers the port only after it sees `ready`, so by the time
-    // the port arrives the listener is already in place.
-    const dataPort = await new Promise<MessagePort>((resolve, reject) => {
-        const onMessage = (event: MessageEvent): void => {
-            const packet = event.data as { kind?: string; port?: unknown };
-            if (packet && packet.kind === 'data-port' && packet.port) {
-                windowLike.removeEventListener('message', onMessage);
-                clearTimeoutFn(timer);
-                resolve(packet.port as MessagePort);
-            }
-        };
-        windowLike.addEventListener('message', onMessage);
-        const timer = setTimeoutFn(() => {
-            windowLike.removeEventListener('message', onMessage);
-            reject(new Error(`LocalReceiverBackend: sender did not transfer data port within ${timeoutMs}ms`));
-        }, timeoutMs);
-
-        // Listener is attached — signal readiness to the sender.
-        try {
-            control.postMessage({ kind: 'ready', sessionId } satisfies ControlPacket);
-        } catch (err) {
-            windowLike.removeEventListener('message', onMessage);
+    let unregisterDataPort: (() => void) | null = null;
+    let timer: unknown = null;
+    unregisterDataPort = addEventListener((event: MessageEvent) => {
+        const data = event.data as { kind?: string; sessionId?: string; port?: unknown } | undefined;
+        if (!data || typeof data !== 'object' || typeof data.kind !== 'string') return;
+        if (data.sessionId !== sessionId) return;
+        if (data.kind === 'data-port' && event.ports?.[0]) {
+            console.log('[LocalReceiverBackend] received data port', { sessionId });
+            unregisterDataPort?.();
             clearTimeoutFn(timer);
-            reject(err instanceof Error ? err : new Error(String(err)));
+            resolveDataPort(event.ports[0]);
+        } else if (data.kind === 'goodbye') {
+            unregisterDataPort?.();
+            clearTimeoutFn(timer);
+            rejectDataPort(new Error('LocalReceiverBackend: sender said goodbye before handshake completed'));
         }
     });
+    timer = setTimeoutFn(() => {
+        unregisterDataPort?.();
+        rejectDataPort(new Error(`LocalReceiverBackend: sender did not transfer data port within ${timeoutMs}ms`));
+    }, timeoutMs);
 
-    // Step 3: wrap the data port in a transport and post `accept`.
+    // Listener is up — signal readiness. The sender, on receiving
+    // `ready`, transfers the data port via `popup.postMessage(...)` —
+    // the listener above receives it.
+    postToOpener({ kind: 'ready', sessionId });
+    console.log('[LocalReceiverBackend] posted ready', { sessionId });
+
+    const dataPort = await dataPortPromise;
+
+
+    // Wrap the data port in a transport and confirm acceptance.
     const transport = new BroadcastChannelRpcTransport(dataPort);
     transport.start();
-    control.postMessage({ kind: 'accept', sessionId } satisfies ControlPacket);
+    postToOpener({ kind: 'accept', sessionId });
 
-    // Step 4: handle future goodbye (sender-side teardown).
-    const onGoodbye = (event: { data: unknown }): void => {
-        const packet = event.data as ControlPacket;
-        if (packet && packet.kind === 'goodbye' && packet.sessionId === sessionId) {
+    // Handle future goodbye from the sender.
+    const onGoodbye = (event: MessageEvent): void => {
+        const data = event.data as { kind?: string; sessionId?: string } | undefined;
+        if (data && data.kind === 'goodbye' && data.sessionId === sessionId) {
             transport.notifyDisconnected();
         }
     };
-    control.addEventListener('message', onGoodbye);
+    const unsubGoodbye = addEventListener(onGoodbye);
 
     return {
         transport,
         dispose: () => {
-            control.removeEventListener('message', onGoodbye);
-            try { control.close(); } catch { /* ignore */ }
+            unsubGoodbye();
             transport.dispose();
         },
     };
@@ -178,3 +160,4 @@ export function readLocalSessionIdFromUrl(search: string = (typeof window !== 'u
     const params = new URLSearchParams(search);
     return params.get('local');
 }
+

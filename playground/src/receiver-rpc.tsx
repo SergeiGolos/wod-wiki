@@ -44,7 +44,7 @@ import '@/index.css';
 // ============================================================================
 // ReceiverApp — Main receiver component
 // ============================================================================
-const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => {
+const ReceiverApp: React.FC<{ transport?: IRpcTransport; runtime?: ChromecastProxyRuntime }> = ({ transport, runtime: externalRuntime }) => {
     const [proxyRuntime, setProxyRuntime] = useState<ChromecastProxyRuntime | null>(null);
     const [connectionStatus, setConnectionStatus] = useState('waiting-for-cast');
     const [workbenchState, setWorkbenchState] = useState<WorkbenchDisplayState>({ mode: 'idle' });
@@ -273,15 +273,58 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
         return { transport: transportInstance, runtime };
     }, [transport]);
 
-    // WebRTC connection via Cast Receiver SDK + persistent signaling
+    // ── Transport initialization ──────────────────────────────────────────
+    // Two paths:
+    //  1. Local-tab mode: `transport` prop is provided (already connected
+    //     BroadcastChannelRpcTransport).  Skip CAF entirely, wire up the
+    //     proxy runtime directly.
+    //  2. Chromecast mode: no transport prop — initialise the Cast Receiver
+    //     Framework, create WebRTC signaling, and wait for a sender.
     useEffect(() => {
+        // ── Path 1: local-tab transport already connected ─────────────
+        if (transport) {
+            const runtime = externalRuntime ?? new ChromecastProxyRuntime(transport);
+            console.log('[ReceiverApp] local-tab transport provided — skipping CAF init');
+            runtimeRef.current = runtime;
+            transportRef.current = transport;
+            runtime.subscribeToWorkbench((state) => {
+                setWorkbenchState(state);
+            });
+            transport.onMessage((msg) => {
+                if (msg.type === 'rpc-audio') {
+                    audioService.playSound(msg.name, msg.volume);
+                }
+            });
+            audioService.setEnabled(true);
+            setConnectionStatus('connected');
+            setProxyRuntime(runtime);
+            dismissBootLoader('ready');
+            transport.onDisconnected(() => {
+                console.log('[ReceiverApp] local transport disconnected');
+                setConnectionStatus('disconnected');
+                setProxyRuntime(null);
+                if (runtimeRef.current === runtime) {
+                    runtimeRef.current.dispose();
+                    runtimeRef.current = null;
+                }
+                transportRef.current = null;
+            });
+            return () => {
+                // Only dispose if we created the runtime here (no externalRuntime).
+                if (!externalRuntime) {
+                    runtimeRef.current?.dispose();
+                }
+                runtimeRef.current = null;
+                transportRef.current = null;
+            };
+        }
+        // ── Path 2: Chromecast — initialise CAF SDK ───────────────────
         const castContext = (window as any).cast?.framework?.CastReceiverContext?.getInstance();
         if (!castContext) {
             console.error('[ReceiverApp] Cast Receiver SDK not loaded');
             setConnectionStatus('error: no Cast SDK');
             return;
         }
-
         // Start the CAF receiver context FIRST — the custom namespace must be
         // declared in start() before addCustomMessageListener() is called.
         castContext.start({
@@ -294,7 +337,6 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
         });
         setConnectionStatus('cast-ready');
         console.log('[ReceiverApp] castContext.start() called — namespace registered');
-
         // ── Diagnostic: log ALL key events reaching the page ──────────
         // This capture-phase listener fires before anything else and logs
         // key info to the console (visible in chrome://inspect remote debug).
@@ -302,7 +344,6 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
         document.addEventListener('keydown', (e: KeyboardEvent) => {
             console.log(`[KeyDiag] key=${e.key} code=${e.code} keyCode=${e.keyCode} type=${e.type}`);
         }, true);
-
         castContext.addEventListener((window as any).cast.framework.system.EventType.READY, () => {
             console.log('[ReceiverApp] Cast Receiver READY');
             dismissBootLoader('ready');
@@ -311,22 +352,19 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
                 bootTimeoutRef.current = null;
             }
         });
-
         bootTimeoutRef.current = armReceiverBootFallback(() => {
             console.warn('[ReceiverApp] CAF READY did not arrive before the boot timeout; showing degraded waiting shell');
             setConnectionStatus(RECEIVER_BOOT_DEGRADED_STATUS);
             dismissBootLoader('timeout');
         }, RECEIVER_BOOT_READY_TIMEOUT_MS);
-
-        // Create signaling AFTER start(). 
+        // Create signaling AFTER start().
         // We keep this signaling instance alive for the duration of the app.
         const signaling = new ReceiverCastSignaling(castContext);
         signalingRef.current = signaling;
-
         // CRITICAL: Reconnection support.
-        // Listen for incoming signals. If we see a 'webrtc-offer', it means a 
+        // Listen for incoming signals. If we see a 'webrtc-offer', it means a
         // sender is trying to start a new session. We trigger setupTransport()
-        // to handle the handshake even if we were already connected to an 
+        // to handle the handshake even if we were already connected to an
         // old session (clearing it out first).
         signaling.onSignal((signal) => {
             if (signal.type === 'webrtc-offer') {
@@ -334,7 +372,6 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
                 setupTransport();
             }
         });
-
         return () => {
             if (bootTimeoutRef.current) {
                 clearTimeout(bootTimeoutRef.current);
@@ -459,7 +496,7 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
 
 type LocalBootState =
     | { kind: 'handshaking' }
-    | { kind: 'connected'; transport: IRpcTransport; dispose: () => void }
+    | { kind: 'connected'; transport: IRpcTransport; runtime: ChromecastProxyRuntime; dispose: () => void }
     | { kind: 'failed'; error: Error };
 
 const LocalReceiverApp: React.FC = () => {
@@ -475,6 +512,8 @@ const LocalReceiverApp: React.FC = () => {
             return;
         }
 
+        console.log('[LocalReceiverApp] starting handshake', { sessionId, url: window.location.href });
+
         let cancelled = false;
         let disposeSession: (() => void) | null = null;
 
@@ -484,14 +523,19 @@ const LocalReceiverApp: React.FC = () => {
                     result.dispose();
                     return;
                 }
-                disposeSession = result.dispose;
+                // Create the runtime eagerly (before React re-renders) so the
+                // transport.onMessage handler is registered before the sender
+                // can start clock sync.  Without this, the sender's first
+                // rpc-clock-sync-request arrives with no handler and is lost.
+                const runtime = new ChromecastProxyRuntime(result.transport);
+                disposeSession = () => { runtime.dispose(); result.dispose(); };
                 const loader = document.getElementById('initial-loader');
                 if (loader) {
                     loader.dataset.bootDismissed = 'true';
                     loader.style.opacity = '0';
                     setTimeout(() => { loader.style.display = 'none'; }, 500);
                 }
-                setState({ kind: 'connected', transport: result.transport, dispose: result.dispose });
+                setState({ kind: 'connected', transport: result.transport, runtime, dispose: disposeSession });
             })
             .catch((err: unknown) => {
                 if (cancelled) return;
@@ -537,7 +581,7 @@ const LocalReceiverApp: React.FC = () => {
         );
     }
 
-    return <ReceiverApp transport={state.transport} />;
+    return <ReceiverApp transport={state.transport} runtime={state.runtime} />;
 };
 
 // ============================================================================
