@@ -15,11 +15,18 @@ export interface IRpcTransport {
     /** Send a typed RPC message to the remote peer. */
     send(message: RpcMessage): void;
 
+    /**
+     * Begin the connection lifecycle if not already connected. The WebRTC
+     * implementation runs an SDP/ICE handshake; the local BroadcastChannel
+     * implementation has no setup work to do (the ports are already paired
+     * by the parent) and resolves immediately.
+     *
+     * Idempotent — if `connected` is already `true`, resolves without work.
+     */
+    connect(): Promise<void>;
+
     /** Register a handler for incoming RPC messages. Returns unsubscribe function. */
     onMessage(handler: (message: RpcMessage) => void): RpcUnsubscribe;
-
-    /** Whether the transport is currently connected and ready to send. */
-    readonly connected: boolean;
 
     /** Register a handler called when the transport connects. */
     onConnected(handler: () => void): RpcUnsubscribe;

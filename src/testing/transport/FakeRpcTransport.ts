@@ -73,7 +73,7 @@ export class FakeRpcTransport implements IRpcTransport {
     }
 
     /** Mark this transport as connected. Fires onConnected handlers. */
-    connect(): void {
+    async connect(): Promise<void> {
         if (this._disposed) {
             return;
         }

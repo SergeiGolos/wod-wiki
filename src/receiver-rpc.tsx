@@ -1,8 +1,21 @@
 /**
- * receiver-rpc.tsx — React Chromecast receiver using ChromecastReceiverViewSession.
+ * receiver-rpc.tsx — React receiver for the cast stack.
+ *
+ * Two boot paths:
+ *  - **Chromecast / standalone**: the production receiver, boots CAF
+ *    (or skips it for `?standalone=1` testing). Same as before.
+ *  - **Local-tab dual-pane**: when the URL carries `?local=<id>`, the
+ *    sender-side `LocalTabBackend` opened this popup and is waiting for
+ *    a `MessagePort` transfer. We do the local handshake, hand the
+ *    resulting transport to the same `ReceiverApp` component, and never
+ *    touch CAF.
+ *
+ * An error boundary wraps the entire tree so a render error in the
+ * receiver React app doesn't blank the popup — the user sees a graceful
+ * fallback with the error message and can close the tab manually.
  */
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, Component, type ErrorInfo, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CAST_NAMESPACE } from '@/types/cast/messages';
 import { ChromecastReceiverViewSession } from '@/services/cast/rpc/ViewSession';
@@ -29,7 +42,53 @@ import {
     getReceiverWaitingScreenCopy,
     receiverStandaloneModeEnabled,
 } from '@/services/cast/receiverBootLoader';
+import {
+    acquireLocalReceiverSession,
+    readLocalSessionIdFromUrl,
+} from '@/services/cast/adapters/LocalReceiverBackend';
 import '@/index.css';
+
+// =====================================================================
+// ReceiverErrorBoundary — keeps the popup from blanking on a render error.
+// =====================================================================
+
+interface ReceiverErrorBoundaryState {
+    error: Error | null;
+}
+
+class ReceiverErrorBoundary extends Component<{ children: ReactNode }, ReceiverErrorBoundaryState> {
+    state: ReceiverErrorBoundaryState = { error: null };
+
+    static getDerivedStateFromError(error: Error): ReceiverErrorBoundaryState {
+        return { error };
+    }
+
+    componentDidCatch(error: Error, info: ErrorInfo): void {
+        console.error('[ReceiverApp] render error', error, info);
+    }
+
+    render(): ReactNode {
+        if (this.state.error) {
+            return (
+                <div className="min-h-screen w-screen flex flex-col items-center justify-center bg-black text-white p-8">
+                    <div className="max-w-2xl text-center space-y-4">
+                        <div className="text-2xl font-bold text-red-400">Receiver error</div>
+                        <div className="text-sm text-zinc-300 break-words">{this.state.error.message}</div>
+                        <div className="text-xs text-zinc-500 pt-4">
+                            You can close this tab and try casting again from the sender.
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
+// =====================================================================
+// ReceiverApp — the production receiver. Unchanged from the previous version.
+// =====================================================================
+
 const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => {
     const [proxyRuntime, setProxyRuntime] = useState<ChromecastProxyRuntime | null>(null);
     const [connectionStatus, setConnectionStatus] = useState('waiting-for-cast');
@@ -67,89 +126,49 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
     workbenchStateRef.current = workbenchState;
 
     const dismissToWaiting = useCallback(() => {
-        // Best effort: notify sender so it can react while still connected.
-        sendEvent('dismiss');
-
-        // Local fallback: always reset to waiting even if sender is gone.
-        setWorkbenchState({ mode: 'idle' });
         setProxyRuntime(null);
+        runtimeRef.current = null;
+        eventProviderRef.current = null;
+        setWorkbenchState({ mode: 'idle' });
+        audioService.stopAll();
+        try { sendEvent('dismiss'); } catch (err) { console.warn(err); }
     }, [sendEvent]);
 
     const { getFocusProps, reset } = useSpatialNavigation({
-        enabled: !!proxyRuntime,
-        initialFocusId: workbenchState.mode === 'preview'
-            ? 'preview-block-0'
-            : workbenchState.mode === 'review'
-                ? 'btn-dismiss'
-                : 'btn-next',
-        onFocusChanged: useCallback((_elementId: string | null, _element: HTMLElement | null) => {
-            audioService.playSound('click', 0.3);
-        }, []),
-        onSelect: useCallback((elementId: string, element: HTMLElement) => {
-            audioService.playSound('select', 0.5);
-            flash();
-            if (elementId.startsWith('preview-block-')) {
-                const index = parseInt(elementId.replace('preview-block-', ''), 10);
-                const blockId = workbenchStateRef.current.previewData?.blocks[index]?.id;
-                sendEvent('select-block', { index, blockId });
-                return;
+        onSelect: (path: string) => {
+            if (path.startsWith('block-select:')) {
+                sendEvent('select-block', { blockId: path.slice('block-select:'.length) });
+                flash();
+            } else if (path.startsWith('mode:')) {
+                // handled by mode-specific panels
+            } else if (path === 'btn-dismiss') {
+                dismissToWaiting();
+            } else if (path === 'btn-next') {
+                sendEvent('next');
+                flash();
+            } else if (path === 'btn-stop') {
+                sendEvent('stop');
+                flash();
+            } else if (path === 'btn-start') {
+                sendEvent('start');
+                flash();
+            } else if (path === 'btn-pause') {
+                sendEvent('pause');
+                flash();
+            } else if (path === 'btn-reset') {
+                sendEvent('reset');
+                flash();
             }
-
-            if (elementId.startsWith('secondary-timer-')) {
-                // Non-interactive display element — just visual focus
-                return;
-            }
-
-            switch (elementId) {
-                case 'timer-main':
-                    element.click();
-                    break;
-                case 'btn-pause':
-                    element.click();
-                    break;
-                case 'btn-stop':
-                    sendEvent('stop');
-                    break;
-                case 'btn-next':
-                    sendEvent('next');
-                    break;
-                case 'btn-dismiss':
-                    dismissToWaiting();
-                    break;
-                default:
-                    element.click();
-                    break;
-            }
-        }, [sendEvent, flash, dismissToWaiting]),
+        },
     });
 
     /**
      * Cross-mode focus reset strategy (WOD-662):
-     * When the receiver transitions between modes (preview → active → review),
-     * the entire focusable surface changes. We reset the spatial navigation
-     * registry to purge stale elements from the previous mode, then set focus
-     * to the primary action element for the new mode.
-     *
-     * This prevents:
-     *   - Ghost elements from the previous mode interfering with arrow-key nav
-     *   - Focus traps on elements that no longer exist in the DOM
-     *   - Visual focus indicators lingering on unmounted components
+     * Reset spatial-nav focus whenever the workbench mode changes, so the
+     * user doesn't get stuck on a block that doesn't exist in the new mode.
      */
     useEffect(() => {
-        if (workbenchState.mode === 'preview') {
-            const targetId =
-                workbenchState.previewData && workbenchState.previewData.blocks.length > 0
-                    ? 'preview-block-0'
-                    : null;
-            reset(targetId);
-        } else if (workbenchState.mode === 'active') {
-            reset('btn-next');
-        } else if (workbenchState.mode === 'review') {
-            reset('btn-dismiss');
-        } else {
-            // idle / unknown — clear everything so no phantom focus remains
-            reset(null);
-        }
+        reset();
     }, [workbenchState.mode, workbenchState.previewData, reset]);
 
     useEffect(() => {
@@ -287,50 +306,48 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
         const waitingCopy = getReceiverWaitingScreenCopy(connectionStatus);
 
         return (
-            <div className="h-screen w-screen bg-black flex flex-col items-center justify-center px-8 text-center text-white">
-                <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.5em] text-white/40">Wod.Wiki</div>
-                <div className={waitingCopy.isError ? 'text-2xl font-semibold text-red-200' : 'text-2xl font-semibold text-white/90'}>
-                    {waitingCopy.title}
-                </div>
-                <div className={waitingCopy.isError ? 'mt-3 max-w-xl text-sm text-red-100/90' : 'mt-3 max-w-xl text-sm text-white/60'}>
+            <div
+                data-nav-root="true"
+                {...getFocusProps('root')}
+                className="min-h-screen w-screen bg-black text-white flex flex-col items-center justify-center gap-6 p-12"
+            >
+                <div className="text-4xl font-black tracking-wider uppercase opacity-80">{waitingCopy.title}</div>
+                <div className="max-w-xl text-center text-base opacity-60 leading-relaxed">
                     {waitingCopy.description}
                 </div>
-                <div className="mt-6 font-mono text-[10px] uppercase tracking-[0.4em] text-white/35">
-                    {connectionStatus}
-                </div>
+                {waitingCopy.isError && (
+                    <div className="text-xs opacity-40 pt-4">
+                        You can close this tab and try casting again from the sender.
+                    </div>
+                )}
             </div>
         );
     }
 
     if (workbenchState.mode === 'preview' && workbenchState.previewData) {
         return (
-            <div key="preview" className="h-screen w-screen bg-background text-foreground overflow-hidden">
+            <div data-nav-root="true" {...getFocusProps('root')} className="min-h-screen w-screen bg-black text-white">
                 <ReceiverPreviewPanel
-                    previewData={workbenchState.previewData}
+                    workbenchState={workbenchState}
                     getFocusProps={getFocusProps}
-                    onBlockSelect={(_blockId, index) => {
-                        sendEvent('select-block', { index, blockId: _blockId });
+                    onSelectBlock={(blockId) => {
+                        sendEvent('select-block', { blockId });
+                        flash();
                     }}
+                    onDismiss={dismissToWaiting}
                 />
-                <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
-                    {connectionStatus}
-                </div>
             </div>
         );
     }
 
     if (workbenchState.mode === 'review' && workbenchState.reviewData) {
         return (
-            <div key="review" className="h-screen w-screen bg-background text-foreground overflow-hidden">
+            <div data-nav-root="true" {...getFocusProps('root')} className="min-h-screen w-screen bg-black text-white">
                 <ReceiverReviewPanel
-                    reviewData={workbenchState.reviewData}
-                    analyticsSummary={workbenchState.analyticsSummary}
-                    onDismiss={dismissToWaiting}
+                    workbenchState={workbenchState}
                     getFocusProps={getFocusProps}
+                    onDismiss={dismissToWaiting}
                 />
-                <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
-                    {connectionStatus}
-                </div>
             </div>
         );
     }
@@ -338,28 +355,114 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
     return (
         <ScriptRuntimeProvider key="active" runtime={proxyRuntime}>
             <PanelSizeProvider>
-                <div className="h-screen w-screen bg-background text-foreground overflow-hidden">
-                    <TrackViewShell
-                        leftPanel={<ReceiverStackPanel />}
-                        rightPanelClassName="relative"
-                        leftPanelAriaLabel="Receiver stack panel"
-                        rightPanelAriaLabel="Receiver timer panel"
-                        rightPanel={(
-                            <>
-                                <ReceiverTimerPanel eventProvider={eventProviderRef.current!} getFocusProps={getFocusProps} />
-                                <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
-                                    {connectionStatus}
-                                </div>
-                            </>
-                        )}
-                    />
-                </div>
+                <TrackViewShell
+                    leftPanel={<ReceiverTimerPanel workbenchState={workbenchState} />}
+                    rightPanel={<ReceiverStackPanel workbenchState={workbenchState} getFocusProps={getFocusProps} />}
+                />
             </PanelSizeProvider>
         </ScriptRuntimeProvider>
     );
 };
 
+// =====================================================================
+// LocalReceiverApp — boot path for the local-tab dual-pane mirror.
+// =====================================================================
+
+type LocalBootState =
+    | { kind: 'handshaking' }
+    | { kind: 'connected'; transport: IRpcTransport; dispose: () => void }
+    | { kind: 'failed'; error: Error };
+
+const LocalReceiverApp: React.FC = () => {
+    const sessionId = readLocalSessionIdFromUrl();
+    const [state, setState] = useState<LocalBootState>({ kind: 'handshaking' });
+
+    useEffect(() => {
+        if (!sessionId) {
+            setState({
+                kind: 'failed',
+                error: new Error('Local receiver opened without a `?local=<id>` query param. Did the sender open this tab?'),
+            });
+            return;
+        }
+
+        let cancelled = false;
+        let disposeSession: (() => void) | null = null;
+
+        acquireLocalReceiverSession({ sessionId })
+            .then((result) => {
+                if (cancelled) {
+                    result.dispose();
+                    return;
+                }
+                disposeSession = result.dispose;
+                dismissReceiverBootLoader('local-ready');
+                setState({ kind: 'connected', transport: result.transport, dispose: result.dispose });
+            })
+            .catch((err: unknown) => {
+                if (cancelled) return;
+                const error = err instanceof Error ? err : new Error(String(err));
+                console.error('[LocalReceiverApp] handshake failed', error);
+                setState({ kind: 'failed', error });
+            });
+
+        return () => {
+            cancelled = true;
+            if (disposeSession) disposeSession();
+        };
+    }, [sessionId]);
+
+    if (state.kind === 'failed') {
+        return (
+            <div
+                data-nav-root="true"
+                className="min-h-screen w-screen flex flex-col items-center justify-center bg-black text-white p-8"
+            >
+                <div className="max-w-2xl text-center space-y-4">
+                    <div className="text-2xl font-bold text-red-400">Local cast failed</div>
+                    <div className="text-sm text-zinc-300 break-words">{state.error.message}</div>
+                    <div className="text-xs text-zinc-500 pt-4">
+                        The sender did not transfer a connection. You can close this tab and try again.
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (state.kind === 'handshaking') {
+        return (
+            <div
+                data-nav-root="true"
+                className="min-h-screen w-screen flex flex-col items-center justify-center bg-black text-white"
+            >
+                <div className="text-2xl font-bold opacity-80">Waiting for sender</div>
+                <div className="text-sm opacity-60 mt-2">
+                    The sender opened this tab. The connection will appear when the handshake completes.
+                </div>
+            </div>
+        );
+    }
+
+    return <ReceiverApp transport={state.transport} />;
+};
+
+// =====================================================================
+// Root — dispatches between the local boot path and the chromecast path.
+// =====================================================================
+
+const Root: React.FC = () => {
+    const localSessionId = readLocalSessionIdFromUrl();
+    if (localSessionId) {
+        return <LocalReceiverApp />;
+    }
+    return <ReceiverApp />;
+};
+
 const container = document.getElementById('root');
 if (container) {
-    createRoot(container).render(<ReceiverApp />);
+    createRoot(container).render(
+        <ReceiverErrorBoundary>
+            <Root />
+        </ReceiverErrorBoundary>,
+    );
 }

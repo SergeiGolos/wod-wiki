@@ -10,8 +10,8 @@
  *   🟡 Potentially borderline — implementation may differ
  *   🔴 Expected to FAIL (RED) — behaviour is not yet implemented
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import { TestScript, assertions } from '@/testing/script';
+import { describe, it, expect } from 'bun:test';
+import { TestScript, assertions, describeCompliance } from '@/testing/script';
 import { MetricType } from '@/core/models/Metric';
 import { getRoundState, blockDisplayMetrics } from '../helpers/compliance-helpers';
 
@@ -19,19 +19,14 @@ import { getRoundState, blockDisplayMetrics } from '../helpers/compliance-helper
 // 🟢 Fixed Rounds — (3) 10 Pullups
 // Spec: rounds.md#-fixed-rounds
 // ===========================================================================
-describe('🟢 Fixed Rounds — (3) 10 Pullups', () => {
-    const SCRIPT = '(3)\n  10 Pullups';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
-
+describeCompliance('🟢 Fixed Rounds — (3) 10 Pullups', '(3)\n  10 Pullups', (ctx) => {
     it('step 0: startSession → SessionRoot + WaitingToStart', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         expect((await script.snapshot()).depth).toBe(2);
     });
 
     it('step 1: first userNext starts round 1', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(1);
         expect(await getRoundState(await script.snapshot(), 'Rounds')?.total).toBe(3);
@@ -39,7 +34,7 @@ describe('🟢 Fixed Rounds — (3) 10 Pullups', () => {
     });
 
     it('step 2-3: userNext cycles through rounds 2 and 3', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start r1
         await script.next(); // r1 done -> r2
         expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(2);
@@ -48,7 +43,7 @@ describe('🟢 Fixed Rounds — (3) 10 Pullups', () => {
     });
 
     it('step 4: final userNext terminates session', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start r1
         await script.next(); // r1 done -> r2
         await script.next(); // r2 done -> r3
@@ -57,7 +52,7 @@ describe('🟢 Fixed Rounds — (3) 10 Pullups', () => {
     });
 
     it('child was pushed exactly 3 times (verified via tracer completions)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start r1
         await script.next(); // r2
         await script.next(); // r3
@@ -75,21 +70,16 @@ describe('🟢 Fixed Rounds — (3) 10 Pullups', () => {
 // 🟢 Rep Scheme Sequence — (21-15-9) Thrusters
 // Spec: rounds.md#-rep-scheme-sequence
 // ===========================================================================
-describe('🟢 Rep Scheme Sequence — (21-15-9) Thrusters', () => {
-    const SCRIPT = '(21-15-9)\n  Thrusters';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
-
+describeCompliance('🟢 Rep Scheme Sequence — (21-15-9) Thrusters', '(21-15-9)\n  Thrusters', (ctx) => {
     it('round 1 has 21 reps', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const reps = await blockDisplayMetrics(await script.snapshot()).find(m => m.type === MetricType.Rep);
         expect(reps?.value).toBe(21);
     });
 
     it('round 2 has 15 reps', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // r1
         await script.next(); // r2
         const reps = await blockDisplayMetrics(await script.snapshot()).find(m => m.type === MetricType.Rep);
@@ -97,7 +87,7 @@ describe('🟢 Rep Scheme Sequence — (21-15-9) Thrusters', () => {
     });
 
     it('round 3 has 9 reps', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // r1
         await script.next(); // r2
         await script.next(); // r3
@@ -106,7 +96,7 @@ describe('🟢 Rep Scheme Sequence — (21-15-9) Thrusters', () => {
     });
 
     it('session ends after 3 rounds', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // r1
         await script.next(); // r2
         await script.next(); // r3
@@ -119,14 +109,9 @@ describe('🟢 Rep Scheme Sequence — (21-15-9) Thrusters', () => {
 // 🟢 Single Round — (1) 10 Pullups
 // Spec: rounds.md#-single-round
 // ===========================================================================
-describe('🟢 Single Round — (1) 10 Pullups', () => {
-    const SCRIPT = '(1)\n  10 Pullups';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
-
+describeCompliance('🟢 Single Round — (1) 10 Pullups', '(1)\n  10 Pullups', (ctx) => {
     it('completes after one userNext', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start r1
         expect((await script.snapshot()).depth).toBeGreaterThan(0);
         await script.next(); // end
@@ -138,14 +123,9 @@ describe('🟢 Single Round — (1) 10 Pullups', () => {
 // 🟢 Rounds with Multiple Children
 // Spec: rounds.md#-rounds-with-multiple-children
 // ===========================================================================
-describe('🟢 Rounds with Multiple Children — (3) 10 Pullups / 15 Pushups', () => {
-    const SCRIPT = '(3)\n  10 Pullups\n  15 Pushups';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
-
+describeCompliance('🟢 Rounds with Multiple Children — (3) 10 Pullups / 15 Pushups', '(3)\n  10 Pullups\n  15 Pushups', (ctx) => {
     it('cycles through all children in each round', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // r1, child 1
         expect(await getRoundState(await script.snapshot(), 'Rounds')?.current).toBe(1);
         expect((await script.snapshot()).current?.blockType).toMatch(/effort/i);
@@ -158,7 +138,7 @@ describe('🟢 Rounds with Multiple Children — (3) 10 Pullups / 15 Pushups', (
     });
 
     it('presents correct exercises in order', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // r1 Pullups
         await script.next(); // r1 Pushups
         await script.next(); // r2 Pullups
@@ -211,14 +191,9 @@ describe('🟢 Large Round Count — (100) 5 Burpees', () => {
 // 🟢 Rounds with Skippable Rest
 // Spec: rounds.md#-rounds-with-skippable-rest
 // ===========================================================================
-describe('🟢 Rounds with Skippable Rest', () => {
-    const SCRIPT = '(3)\n  10 Pullups\n  15 Pushups\n  1:00 Rest';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
-
+describeCompliance('🟢 Rounds with Skippable Rest', '(3)\n  10 Pullups\n  15 Pushups\n  1:00 Rest', (ctx) => {
     it('step 3: rest is auto-pushed after pushups', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start -> Pullups (R1)
         await script.next(); // Pullups done -> Pushups (R1)
         await script.next(); // Pushups done -> Rest (R1)
@@ -228,7 +203,7 @@ describe('🟢 Rounds with Skippable Rest', () => {
     });
 
     it('step 4a: rest can be skipped via userNext', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start
         await script.next(); // Pullups
         await script.next(); // Pushups
@@ -237,7 +212,7 @@ describe('🟢 Rounds with Skippable Rest', () => {
     });
 
     it('step 4b: rest can be waited out', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start
         await script.next(); // Pullups
         await script.next(); // Pushups
@@ -250,14 +225,9 @@ describe('🟢 Rounds with Skippable Rest', () => {
 // 🟢 Rounds with Forced Rest (Cannot Skip)
 // Spec: rounds.md#-rounds-with-forced-rest-cannot-skip
 // ===========================================================================
-describe('🟢 Rounds with Forced Rest (Cannot Skip)', () => {
-    const SCRIPT = '(3)\n  10 Pullups\n  15 Pushups\n  *1:00 Rest';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
-
+describeCompliance('🟢 Rounds with Forced Rest (Cannot Skip)', '(3)\n  10 Pullups\n  15 Pushups\n  *1:00 Rest', (ctx) => {
     it('userNext during forced rest is a no-op', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start
         await script.next(); // Pullups
         await script.next(); // Pushups
@@ -269,7 +239,7 @@ describe('🟢 Rounds with Forced Rest (Cannot Skip)', () => {
     });
 
     it('rest auto-pops after timer expiry', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start
         await script.next(); // Pullups
         await script.next(); // Pushups
@@ -278,7 +248,7 @@ describe('🟢 Rounds with Forced Rest (Cannot Skip)', () => {
     });
 
     it('final forced rest must also expire to end session', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start
         
         for (let r = 0; r < 3; r++) {

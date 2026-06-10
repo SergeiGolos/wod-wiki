@@ -82,6 +82,15 @@ export class BroadcastChannelRpcTransport implements IRpcTransport {
         return this._connected;
     }
 
+    /**
+     * Idempotent — the local transport is connected at construction
+     * (after the parent's handshake), so this is a no-op when called by
+     * a transport-agnostic view session.
+     */
+    async connect(): Promise<void> {
+        if (!this._connected) this.start();
+    }
+
     send(message: RpcMessage): void {
         if (this._disposed) {
             throw new Error('BroadcastChannelRpcTransport: send after dispose');

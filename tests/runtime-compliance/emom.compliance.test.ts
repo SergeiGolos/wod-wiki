@@ -8,8 +8,8 @@
  * Legend:
  *   🟢 Expected to pass — behaviour is fully implemented
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import { TestScript, assertions } from '@/testing/script';
+import { it, expect } from 'bun:test';
+import { describeCompliance, assertions } from '@/testing/script';
 import { getRoundState } from '../helpers/compliance-helpers';
 
 // ===========================================================================
@@ -17,19 +17,14 @@ import { getRoundState } from '../helpers/compliance-helpers';
 // (3) :60 EMOM  5 Pullups
 // Spec: docs/finishline/compliance-scenarios/emom.md#-basic-emom--3-rounds
 // ===========================================================================
-describe('🟢 Basic EMOM — 3 Rounds', () => {
-    const SCRIPT = '(3) :60 EMOM\n  5 Pullups';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
-
+describeCompliance('🟢 Basic EMOM — 3 Rounds', '(3) :60 EMOM\n  5 Pullups', (ctx) => {
     it('step 0: startSession → SessionRoot + WaitingToStart (depth = 2)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         expect((await script.snapshot()).depth).toBe(2);
     });
 
     it('step 1: userNext starts EMOM and pushes 1st exercise (R1)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         // WaitingToStart popped; EMOM block + first exercise now on stack
         expect((await script.snapshot()).depth).toBeGreaterThanOrEqual(3);
@@ -38,14 +33,14 @@ describe('🟢 Basic EMOM — 3 Rounds', () => {
     });
 
     it('step 1: round counter initialises at 1', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect((await getRoundState(await script.snapshot(), 'EMOM'))?.current).toBe(1);
         expect((await getRoundState(await script.snapshot(), 'EMOM'))?.total).toBe(3);
     });
 
     it('step 2: advanceClock(60_000) → R1 timer expires, child auto-pops, R2 starts', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
         // EMOM still on stack, round 2 in progress
@@ -54,7 +49,7 @@ describe('🟢 Basic EMOM — 3 Rounds', () => {
     });
 
     it('step 3: advanceClock(60_000) → R2 expires, R3 starts', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000); // R1
         await script.tick(60_000); // R2
@@ -62,7 +57,7 @@ describe('🟢 Basic EMOM — 3 Rounds', () => {
     });
 
     it('step 4: advanceClock(60_000) → R3 expires → rounds exhausted → session ends', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000); // R1
         await script.tick(60_000); // R2
@@ -71,7 +66,7 @@ describe('🟢 Basic EMOM — 3 Rounds', () => {
     });
 
     it('all outputs are paired (segment + completion) through 3 timer-driven rounds', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
         await script.tick(60_000);
@@ -87,14 +82,9 @@ describe('🟢 Basic EMOM — 3 Rounds', () => {
 // Timer is authoritative — auto-pops child if user has not called next.
 // Spec: docs/finishline/compliance-scenarios/emom.md#-emom--overrun-scenario-skip
 // ===========================================================================
-describe('🟢 EMOM — Overrun Scenario', () => {
-    const SCRIPT = '(3) :30 EMOM\n  10 Heavy Deadlifts';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
-
+describeCompliance('🟢 EMOM — Overrun Scenario', '(3) :30 EMOM\n  10 Heavy Deadlifts', (ctx) => {
     it('timer auto-pops child when :30 expires without user calling next', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Start session — R1 child mounted
 
         // Do NOT call userNext — simulate overrun: 30s elapses before user acts
@@ -106,7 +96,7 @@ describe('🟢 EMOM — Overrun Scenario', () => {
     });
 
     it('round advances even if exercise was not "completed" by user', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
 
         // R1: user never calls next → timer forces advancement
@@ -117,7 +107,7 @@ describe('🟢 EMOM — Overrun Scenario', () => {
     });
 
     it('no stuck state — timer is authoritative through all 3 rounds', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
 
         // Never call userNext — let timers drive everything
@@ -129,7 +119,7 @@ describe('🟢 EMOM — Overrun Scenario', () => {
     });
 
     it('all outputs paired even when child is auto-popped via overrun', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
 
         await script.tick(30_000);
@@ -141,7 +131,7 @@ describe('🟢 EMOM — Overrun Scenario', () => {
     });
 
     it('force-popped child has completionReason "forced-pop"', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // R1 child mounted
 
         // Capture the child block before the timer auto-pops it
@@ -151,11 +141,11 @@ describe('🟢 EMOM — Overrun Scenario', () => {
 
         // The child should have been marked complete with the forced-pop reason
         expect(childBlock.isComplete).toBe(true);
-        expect((childBlock as any).completionReason).toBe('forced-pop');
+        expect((childBlock as unknown as { completionReason: string }).completionReason).toBe('forced-pop');
     });
 
     it('EMOM continues to next round after overrun, new child is pushed for R2', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
 
         await script.tick(30_000); // R1 overrun → auto-advance → R2 child pushed

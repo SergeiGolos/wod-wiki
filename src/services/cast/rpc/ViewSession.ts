@@ -183,8 +183,8 @@ export class ChromecastSenderViewSession implements IViewSession {
 
 interface ReceiverSessionDeps {
     createSignaling: (context: any) => ISignaling;
-    createTransport: (role: 'answerer', signaling: ISignaling) => WebRtcRpcTransport;
-    createRuntime: (transport: WebRtcRpcTransport) => ChromecastProxyRuntime;
+    createTransport: (role: 'answerer', signaling: ISignaling) => IRpcTransport;
+    createRuntime: (transport: IRpcTransport) => ChromecastProxyRuntime;
     createEventProvider: (runtime: ChromecastProxyRuntime) => IRuntimeEventProvider;
 }
 
@@ -196,7 +196,7 @@ const receiverDeps: ReceiverSessionDeps = {
 };
 
 export class ChromecastReceiverViewSession implements IViewSession {
-    transport: WebRtcRpcTransport | null = null;
+    transport: IRpcTransport | null = null;
     eventProvider: IRuntimeEventProvider | null = null;
     subscription: IRuntimeSubscription | null = null;
 
@@ -234,13 +234,20 @@ export class ChromecastReceiverViewSession implements IViewSession {
                 });
             }
         });
-    }
 
+        // If a default transport was provided (e.g. the local-tab dual-pane
+        // mirror that pre-builds a `BroadcastChannelRpcTransport`), use it
+        // eagerly — we don't need to wait for a WebRTC offer over CAF.
+        if (this.defaultTransport) {
+            this.recreateTransportSession().catch((err) => {
+                console.error('[ChromecastReceiverViewSession] Failed to establish local transport', err);
+            });
+        }
+    }
     onConnected(handler: () => void): RpcUnsubscribe {
         this.connectedHandlers.add(handler);
         return () => this.connectedHandlers.delete(handler);
     }
-
     onDisconnected(handler: () => void): RpcUnsubscribe {
         this.disconnectedHandlers.add(handler);
         return () => this.disconnectedHandlers.delete(handler);
@@ -270,7 +277,7 @@ export class ChromecastReceiverViewSession implements IViewSession {
             onSignal: (handler) => sharedSignaling.onSignal(handler),
             dispose: () => {},
         };
-        const transport = (this.defaultTransport as WebRtcRpcTransport | null) ?? this.deps.createTransport('answerer', signalingFacade);
+        const transport = this.defaultTransport ?? this.deps.createTransport('answerer', signalingFacade);
         const runtime = this.deps.createRuntime(transport);
         const eventProvider = this.deps.createEventProvider(runtime);
 

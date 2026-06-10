@@ -10,35 +10,30 @@
  *   🟢 Expected to pass — behaviour is fully implemented
  *   🔴 Expected to FAIL (RED) — behaviour is not yet implemented
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import { TestScript } from '@/testing/script/TestScript';
+import { it, expect } from 'bun:test';
+import { describeCompliance } from '@/testing/script';
 import { currentBlockTypeAsync, currentTimerElapsedMs, isTimerPaused } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Pause / Resume
 // Spec: state-transitions.md#-pause--resume-skip
 // ===========================================================================
-describe('🟢 Pause / Resume', () => {
-    const SCRIPT = '5:00 Run';
-    let script: TestScript | undefined;
-
-    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
-
+describeCompliance('🟢 Pause / Resume', '5:00 Run', (ctx) => {
     it('step 1: userNext → timer running', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockTypeAsync(script)).toMatch(/timer/i);
     });
 
     it('step 2: advanceClock(120_000) → elapsed = 120s', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(120_000);
         expect(await currentTimerElapsedMs(script)).toBe(120_000);
     });
 
     it('step 3: simulateEvent("timer:pause") → timer paused', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(120_000);
         await script.userEvent('timer:pause');
@@ -46,7 +41,7 @@ describe('🟢 Pause / Resume', () => {
     });
 
     it('step 4: advanceClock(60_000) while paused → elapsed still 120s', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(120_000);
         await script.userEvent('timer:pause');
@@ -56,7 +51,7 @@ describe('🟢 Pause / Resume', () => {
     });
 
     it('step 5: simulateEvent("timer:resume") → timer resumes (no longer paused)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(120_000);
         await script.userEvent('timer:pause');
@@ -66,7 +61,7 @@ describe('🟢 Pause / Resume', () => {
     });
 
     it('step 6: advanceClock(180_000) after resume → elapsed = 300s and timer expires', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();                          // start timer
         await script.tick(120_000);                   // run 120s
         await script.userEvent('timer:pause');        // pause at 120s
@@ -84,20 +79,15 @@ describe('🟢 Pause / Resume', () => {
 // 🟢 Exact Boundary Expiry
 // Spec: state-transitions.md#-exact-boundary-expiry
 // ===========================================================================
-describe('🟢 Exact Boundary Expiry', () => {
-    const SCRIPT = '1:00 Row';
-    let script: TestScript | undefined;
-
-    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
-
+describeCompliance('🟢 Exact Boundary Expiry', '1:00 Row', (ctx) => {
     it('step 1: userNext → timer running', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockTypeAsync(script)).toMatch(/timer/i);
     });
 
     it('step 2: advanceClock(60_000) → expires at exactly 60s, no overshoot', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
         const s = await script.snapshot();
@@ -109,20 +99,15 @@ describe('🟢 Exact Boundary Expiry', () => {
 // 🟢 Past-Boundary Expiry
 // Spec: state-transitions.md#-past-boundary-expiry
 // ===========================================================================
-describe('🟢 Past-Boundary Expiry', () => {
-    const SCRIPT = '1:00 Row';
-    let script: TestScript | undefined;
-
-    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
-
+describeCompliance('🟢 Past-Boundary Expiry', '1:00 Row', (ctx) => {
     it('step 1: userNext → timer running', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockTypeAsync(script)).toMatch(/timer/i);
     });
 
     it('step 2: advanceClock(75_000) → expires, no error from overshooting by 15s', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(75_000);
         const s = await script.snapshot();
@@ -134,14 +119,9 @@ describe('🟢 Past-Boundary Expiry', () => {
 // 🟢 Incremental vs. Bulk Advance
 // Spec: state-transitions.md#-incremental-vs-bulk-advance
 // ===========================================================================
-describe('🟢 Incremental vs. Bulk Advance', () => {
-    const SCRIPT = '1:00 Row';
-    let script: TestScript | undefined;
-
-    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
-
+describeCompliance('🟢 Incremental vs. Bulk Advance', '1:00 Row', (ctx) => {
     it('Test A: 10 × advanceClock(6_000) → timer expires after 10th advance', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         for (let i = 0; i < 10; i++) {
             await script.tick(6_000);
@@ -151,7 +131,7 @@ describe('🟢 Incremental vs. Bulk Advance', () => {
     });
 
     it('Test B: 1 × advanceClock(60_000) → identical outcome to Test A', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
         const s = await script.snapshot();
@@ -163,20 +143,15 @@ describe('🟢 Incremental vs. Bulk Advance', () => {
 // 🟢 userNext on Effort → Parent Pushes Next Child
 // Spec: state-transitions.md#-usernext-on-effort--parent-pushes-next-child
 // ===========================================================================
-describe('🟢 userNext on Effort → Parent Pushes Next Child', () => {
-    const SCRIPT = '(2)\n  10 Pullups\n  15 Pushups';
-    let script: TestScript | undefined;
-
-    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
-
+describeCompliance('🟢 userNext on Effort → Parent Pushes Next Child', '(2)\n  10 Pullups\n  15 Pushups', (ctx) => {
     it('step 1: userNext → child 1 (Pullups) on stack', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockTypeAsync(script)).toMatch(/effort/i);
     });
 
     it('step 2: userNext → parent auto-pushes next child (Pushups)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Pullups
         await script.next(); // Pushups auto-pushed
         expect(await currentBlockTypeAsync(script)).toMatch(/effort/i);
@@ -189,14 +164,9 @@ describe('🟢 userNext on Effort → Parent Pushes Next Child', () => {
 // 🟢 userNext on Last Child → Round Increments
 // Spec: state-transitions.md#-usernext-on-last-child--round-increments
 // ===========================================================================
-describe('🟢 userNext on Last Child → Round Increments', () => {
-    const SCRIPT = '(3)\n  10 Pullups';
-    let script: TestScript | undefined;
-
-    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
-
+describeCompliance('🟢 userNext on Last Child → Round Increments', '(3)\n  10 Pullups', (ctx) => {
     it('step 1: userNext → R1 (Pullups)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockTypeAsync(script)).toMatch(/effort/i);
         const s = await script.snapshot();
@@ -204,7 +174,7 @@ describe('🟢 userNext on Last Child → Round Increments', () => {
     });
 
     it('steps 1-4: 3 rounds cycle through and stack empties', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // R1
         await script.next(); // R2
         await script.next(); // R3
@@ -218,14 +188,9 @@ describe('🟢 userNext on Last Child → Round Increments', () => {
 // 🟢 userNext on Empty Stack — Graceful No-Op
 // Spec: state-transitions.md#-usernext-on-empty-stack--graceful-no-op
 // ===========================================================================
-describe('🟢 userNext on Empty Stack — Graceful No-Op', () => {
-    const SCRIPT = '10 Pullups';
-    let script: TestScript | undefined;
-
-    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
-
+describeCompliance('🟢 userNext on Empty Stack — Graceful No-Op', '10 Pullups', (ctx) => {
     it('userNext on empty stack → no crash, depth stays 0', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start
         await script.next(); // complete
 
@@ -244,20 +209,15 @@ describe('🟢 userNext on Empty Stack — Graceful No-Op', () => {
 // 🟢 Rapid Double userNext
 // Spec: state-transitions.md#-rapid-double-usernext
 // ===========================================================================
-describe('🟢 Rapid Double userNext', () => {
-    const SCRIPT = '10 Pullups\n15 Pushups';
-    let script: TestScript | undefined;
-
-    afterEach(async () => { if (script) { await script.dispose(); script = undefined; } });
-
+describeCompliance('🟢 Rapid Double userNext', '10 Pullups\n15 Pushups', (ctx) => {
     it('step 1: userNext → Effort("Pullups") on stack', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockTypeAsync(script)).toMatch(/effort/i);
     });
 
     it('step 2: second userNext → Pullups pops, Pushups pushed', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Pullups
         await script.next(); // Pushups
         expect(await currentBlockTypeAsync(script)).toMatch(/effort/i);
@@ -266,7 +226,7 @@ describe('🟢 Rapid Double userNext', () => {
     });
 
     it('step 3: third userNext immediately → clean termination, no duplicate pop', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Pullups
         await script.next(); // Pushups
         await script.next(); // terminate

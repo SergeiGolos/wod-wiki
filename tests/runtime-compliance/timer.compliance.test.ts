@@ -10,33 +10,29 @@
  *   🟡 Potentially borderline — implementation may differ
  *   🔴 Expected to FAIL (RED) — behaviour is not yet implemented
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import { TestScript, assertions } from '@/testing/script';
+import { it, expect } from 'bun:test';
+import { describeCompliance, assertions } from '@/testing/script';
 import { currentBlockType, anySystemPopHasReason, systemPopValues } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Countdown Timer — 5:00 Run
 // Spec: timer.md#-countdown-timer
 // ===========================================================================
-describe('🟢 Countdown Timer — 5:00 Run', () => {
-    const SCRIPT = '5:00 Run';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Countdown Timer — 5:00 Run', '5:00 Run', (ctx) => {
 
     it('step 0: startSession → depth = 2 (SessionRoot + WaitingToStart)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         expect((await script.snapshot()).depth).toBe(2);
     });
 
     it('step 1: userNext → Timer starts, direction = down', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockType(await script.snapshot())).toMatch(/timer/i);
     });
 
     it('step 2: advanceClock(150_000) → mid-timer, block still active', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(150_000);
         expect((await script.snapshot()).depth).toBeGreaterThan(0);
@@ -44,7 +40,7 @@ describe('🟢 Countdown Timer — 5:00 Run', () => {
     });
 
     it('step 3: advanceClock(150_000) more → timer expires, session ends', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(150_000);
         await script.tick(150_000);
@@ -56,20 +52,16 @@ describe('🟢 Countdown Timer — 5:00 Run', () => {
 // 🟢 Short Timer — :30 Plank
 // Spec: timer.md#-short-timer-30-format
 // ===========================================================================
-describe('🟢 Short Timer — :30 Plank', () => {
-    const SCRIPT = ':30 Plank';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Short Timer — :30 Plank', ':30 Plank', (ctx) => {
 
     it('step 1: userNext → Timer starts (30s)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockType(await script.snapshot())).toMatch(/timer/i);
     });
 
     it('step 2: advanceClock(30_000) → auto-pops at 30s', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(30_000);
         expect((await script.snapshot()).depth).toBe(0);
@@ -80,20 +72,16 @@ describe('🟢 Short Timer — :30 Plank', () => {
 // 🟢 Timer — Exact Boundary
 // Spec: timer.md#-timer--exact-boundary
 // ===========================================================================
-describe('🟢 Timer — Exact Boundary', () => {
-    const SCRIPT = '1:00 Row';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Timer — Exact Boundary', '1:00 Row', (ctx) => {
 
     it('step 1: userNext → timer running', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockType(await script.snapshot())).toMatch(/timer/i);
     });
 
     it('step 2: advanceClock(60_000) → expires at exactly 60s', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
         expect((await script.snapshot()).depth).toBe(0);
@@ -104,20 +92,16 @@ describe('🟢 Timer — Exact Boundary', () => {
 // 🟢 Timer — Mid-Stream Check
 // Spec: timer.md#-timer--mid-stream-check
 // ===========================================================================
-describe('🟢 Timer — Mid-Stream Check', () => {
-    const SCRIPT = '2:00 Bike';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Timer — Mid-Stream Check', '2:00 Bike', (ctx) => {
 
     it('step 1: userNext → timer running', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockType(await script.snapshot())).toMatch(/timer/i);
     });
 
     it('step 2: advanceClock(60_000) → still active, elapsed ~60s', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
         expect((await script.snapshot()).depth).toBeGreaterThan(0);
@@ -125,7 +109,7 @@ describe('🟢 Timer — Mid-Stream Check', () => {
     });
 
     it('step 3: advanceClock(60_000) → expires at 120s', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
         await script.tick(60_000);
@@ -137,20 +121,16 @@ describe('🟢 Timer — Mid-Stream Check', () => {
 // 🟢 Sequential Timers
 // Spec: timer.md#-sequential-timers
 // ===========================================================================
-describe('🟢 Sequential Timers — 5:00 Run / 3:00 Row', () => {
-    const SCRIPT = '5:00 Run\n3:00 Row';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Sequential Timers — 5:00 Run / 3:00 Row', '5:00 Run\n3:00 Row', (ctx) => {
 
     it('step 1: userNext → first timer (Run) starts', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockType(await script.snapshot())).toMatch(/timer/i);
     });
 
     it('step 2: advanceClock(300_000) → first expires, second timer (Row) auto-pushes', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(300_000);
         expect((await script.snapshot()).depth).toBeGreaterThan(0);
@@ -158,7 +138,7 @@ describe('🟢 Sequential Timers — 5:00 Run / 3:00 Row', () => {
     });
 
     it('step 3: advanceClock(180_000) → second expires, session ends', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(300_000);
         await script.tick(180_000);
@@ -170,41 +150,37 @@ describe('🟢 Sequential Timers — 5:00 Run / 3:00 Row', () => {
 // 🟡 Timer — Normal (Skippable by Default)
 // Spec: timer.md#-timer--normal-skippable-by-default
 // ===========================================================================
-describe('🟡 Timer — Normal (Skippable by Default)', () => {
-    const SCRIPT = '5:00 Run';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟡 Timer — Normal (Skippable by Default)', '5:00 Run', (ctx) => {
 
     it('step 1: userNext → timer starts (5:00 countdown)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockType(await script.snapshot())).toMatch(/timer/i);
     });
 
     it('step 2a: early userNext → timer dismissed, session ends (user-advance)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start timer
         await script.next(); // early skip
         expect((await script.snapshot()).depth).toBe(0);
     });
 
     it('step 2a: early skip carries completionReason = "user-advance"', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start timer
         await script.next(); // early skip
         expect(await anySystemPopHasReason(await script.snapshot(), 'user-advance')).toBe(true);
     });
 
     it('step 2b: advanceClock(300_000) → timer expires at 0:00, session ends (timer-expiry)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(300_000);
         expect((await script.snapshot()).depth).toBe(0);
     });
 
     it('step 2b: timer-expiry carries completionReason = "timer-expired"', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(300_000);
         // Check the timer block's pop specifically (last pop before session root)
@@ -218,25 +194,21 @@ describe('🟡 Timer — Normal (Skippable by Default)', () => {
 // 🔴 Forced Timer — Cannot Skip (`*` prefix)
 // Spec: timer.md#-forced-timer--cannot-skip--prefix
 // ===========================================================================
-describe('🔴 Forced Timer — Cannot Skip (*5:00 Run)', () => {
-    const SCRIPT = '*5:00 Run';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🔴 Forced Timer — Cannot Skip (*5:00 Run)', '*5:00 Run', (ctx) => {
 
     it('step 0: startSession → depth = 2 (SessionRoot + WaitingToStart)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         expect((await script.snapshot()).depth).toBe(2);
     });
 
     it('step 1: userNext → forced timer starts', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockType(await script.snapshot())).toMatch(/timer/i);
     });
 
     it('step 2: userNext (attempt skip) → no-op, block stays, countdown continues', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start timer
 
         const depthBeforeSkip = (await script.snapshot()).depth;
@@ -246,7 +218,7 @@ describe('🔴 Forced Timer — Cannot Skip (*5:00 Run)', () => {
     });
 
     it('multiple userNext calls during forced timer all produce zero stack changes', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start timer
 
         const depthAfterStart = (await script.snapshot()).depth;
@@ -257,7 +229,7 @@ describe('🔴 Forced Timer — Cannot Skip (*5:00 Run)', () => {
     });
 
     it('step 3: advanceClock(300_000) → timer expires → auto-pop, session ends', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start timer
         await script.next(); // attempt skip — no-op
         await script.tick(300_000);
@@ -265,7 +237,7 @@ describe('🔴 Forced Timer — Cannot Skip (*5:00 Run)', () => {
     });
 
     it('forced timer completionReason is never "user-advance"', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start
         await script.next(); // attempt skip
         await script.tick(300_000); // expire
@@ -280,7 +252,7 @@ describe('🔴 Forced Timer — Cannot Skip (*5:00 Run)', () => {
     });
 
     it('forced timer completionReason is "timer-expired"', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start
         await script.tick(300_000); // expire
 
@@ -295,20 +267,16 @@ describe('🔴 Forced Timer — Cannot Skip (*5:00 Run)', () => {
 // 🔴 Collectible Timer — :? Sprint
 // Spec: timer.md#-collectible-timer-skip
 // ===========================================================================
-describe('🔴 Collectible Timer — :? Sprint', () => {
-    const SCRIPT = ':? Sprint';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🔴 Collectible Timer — :? Sprint', ':? Sprint', (ctx) => {
 
     it('step 1: startSession + userNext → Timer starts with no fixed duration', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // WaitingToStart → timer block
         expect(await currentBlockType(await script.snapshot())).toMatch(/timer/i);
     });
 
     it('step 1: collectible timer is a count-up timer (no fixed duration)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
 
         // Confirm the block is still active (no auto-expiry since no fixed duration)
@@ -318,7 +286,7 @@ describe('🔴 Collectible Timer — :? Sprint', () => {
     });
 
     it('step 2: userNext manually completes the collectible timer', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start timer
         await script.tick(45_000); // let some time elapse
         await script.next(); // manually complete
@@ -326,7 +294,7 @@ describe('🔴 Collectible Timer — :? Sprint', () => {
     });
 
     it('step 2: captured time is recorded on manual completion', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start timer
         await script.tick(45_000); // 45 seconds elapsed
         await script.next(); // complete
@@ -336,7 +304,7 @@ describe('🔴 Collectible Timer — :? Sprint', () => {
     });
 
     it('step 2: manual completion carries completionReason = "user-advance"', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start
         await script.tick(45_000);
         await script.next(); // complete

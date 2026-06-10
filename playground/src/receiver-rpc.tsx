@@ -35,6 +35,10 @@ import {
     RECEIVER_BOOT_DEGRADED_STATUS,
     RECEIVER_BOOT_READY_TIMEOUT_MS,
 } from './receiverBootLoader';
+import {
+    acquireLocalReceiverSession,
+    readLocalSessionIdFromUrl,
+} from '@/services/cast/adapters/LocalReceiverBackend';
 import '@/index.css';
 
 // ============================================================================
@@ -449,9 +453,149 @@ const ReceiverApp: React.FC<{ transport?: IRpcTransport }> = ({ transport }) => 
     );
 };
 
+// ============================================================================
+// LocalReceiverApp — boot path for the local-tab dual-pane mirror.
+// ============================================================================
+
+type LocalBootState =
+    | { kind: 'handshaking' }
+    | { kind: 'connected'; transport: IRpcTransport; dispose: () => void }
+    | { kind: 'failed'; error: Error };
+
+const LocalReceiverApp: React.FC = () => {
+    const sessionId = readLocalSessionIdFromUrl();
+    const [state, setState] = useState<LocalBootState>({ kind: 'handshaking' });
+
+    useEffect(() => {
+        if (!sessionId) {
+            setState({
+                kind: 'failed',
+                error: new Error('Local receiver opened without a `?local=<id>` query param. Did the sender open this tab?'),
+            });
+            return;
+        }
+
+        let cancelled = false;
+        let disposeSession: (() => void) | null = null;
+
+        acquireLocalReceiverSession({ sessionId })
+            .then((result) => {
+                if (cancelled) {
+                    result.dispose();
+                    return;
+                }
+                disposeSession = result.dispose;
+                const loader = document.getElementById('initial-loader');
+                if (loader) {
+                    loader.dataset.bootDismissed = 'true';
+                    loader.style.opacity = '0';
+                    setTimeout(() => { loader.style.display = 'none'; }, 500);
+                }
+                setState({ kind: 'connected', transport: result.transport, dispose: result.dispose });
+            })
+            .catch((err: unknown) => {
+                if (cancelled) return;
+                const error = err instanceof Error ? err : new Error(String(err));
+                console.error('[LocalReceiverApp] handshake failed', error);
+                setState({ kind: 'failed', error });
+            });
+
+        return () => {
+            cancelled = true;
+            if (disposeSession) disposeSession();
+        };
+    }, [sessionId]);
+
+    if (state.kind === 'failed') {
+        return (
+            <div
+                data-nav-root="true"
+                className="min-h-screen w-screen flex flex-col items-center justify-center bg-black text-white p-8"
+            >
+                <div className="max-w-2xl text-center space-y-4">
+                    <div className="text-2xl font-bold text-red-400">Local cast failed</div>
+                    <div className="text-sm text-zinc-300 break-words">{state.error.message}</div>
+                    <div className="text-xs text-zinc-500 pt-4">
+                        The sender did not transfer a connection. You can close this tab and try again.
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (state.kind === 'handshaking') {
+        return (
+            <div
+                data-nav-root="true"
+                className="min-h-screen w-screen flex flex-col items-center justify-center bg-black text-white"
+            >
+                <div className="text-2xl font-bold opacity-80">Waiting for sender</div>
+                <div className="text-sm opacity-60 mt-2">
+                    The sender opened this tab. The connection will appear when the handshake completes.
+                </div>
+            </div>
+        );
+    }
+
+    return <ReceiverApp transport={state.transport} />;
+};
+
+// ============================================================================
+// Root — dispatches between the local boot path and the chromecast path.
+// ============================================================================
+
+const Root: React.FC = () => {
+    const localSessionId = readLocalSessionIdFromUrl();
+    if (localSessionId) {
+        return <LocalReceiverApp />;
+    }
+    return <ReceiverApp />;
+};
+
+// ============================================================================
+// ReceiverErrorBoundary — keeps the popup from blanking on a render error.
+// ============================================================================
+
+interface ReceiverErrorBoundaryState {
+    error: Error | null;
+}
+
+class ReceiverErrorBoundary extends React.Component<{ children: React.ReactNode }, ReceiverErrorBoundaryState> {
+    state: ReceiverErrorBoundaryState = { error: null };
+
+    static getDerivedStateFromError(error: Error): ReceiverErrorBoundaryState {
+        return { error };
+    }
+
+    componentDidCatch(error: Error, info: React.ErrorInfo): void {
+        console.error('[ReceiverApp] render error', error, info);
+    }
+
+    render(): React.ReactNode {
+        if (this.state.error) {
+            return (
+                <div className="min-h-screen w-screen flex flex-col items-center justify-center bg-black text-white p-8">
+                    <div className="max-w-2xl text-center space-y-4">
+                        <div className="text-2xl font-bold text-red-400">Receiver error</div>
+                        <div className="text-sm text-zinc-300 break-words">{this.state.error.message}</div>
+                        <div className="text-xs text-zinc-500 pt-4">
+                            You can close this tab and try casting again from the sender.
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
 // ── Mount ────────────────────────────────────────────────────────────────────
 
 const container = document.getElementById('root');
 if (container) {
-    createRoot(container).render(<ReceiverApp />);
+    createRoot(container).render(
+        <ReceiverErrorBoundary>
+            <Root />
+        </ReceiverErrorBoundary>,
+    );
 }

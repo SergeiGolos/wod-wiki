@@ -160,6 +160,10 @@ export class WebRtcRpcTransport implements IRpcTransport {
      */
     connect(timeoutMs = 15_000): Promise<void> {
         console.log(`[WebRtcRpcTransport:${this.role}] connect() starting, timeout=${timeoutMs}ms`);
+        if (this.connected) {
+            console.log(`[WebRtcRpcTransport:${this.role}] Already connected — short-circuiting`);
+            return Promise.resolve();
+        }
         return new Promise((resolve, reject) => {
             const t0 = Date.now();
             const timer = setTimeout(() => {
