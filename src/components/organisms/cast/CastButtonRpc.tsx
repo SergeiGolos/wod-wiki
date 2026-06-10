@@ -41,6 +41,7 @@ export const CastButtonRpc: React.FC = () => {
 
     const buttonRef = useRef<HTMLButtonElement | null>(null);
     const senderSessionRef = useRef<ChromecastSenderViewSession | null>(null);
+    const connectingRef = useRef(false);
 
     const cleanupCast = useCallback((notifyRemote: boolean) => {
         const session = senderSessionRef.current;
@@ -58,48 +59,51 @@ export const CastButtonRpc: React.FC = () => {
         setCastTransport(null);
         setIsCasting(false);
     }, [setCastTransport]);
-
     const connectSession = useCallback(async (options: {
         existingTransport?: IRpcTransport;
     } = {}) => {
-        const currentSession = senderSessionRef.current;
-        currentSession?.dispose();
-
-        const viewSession = new ChromecastSenderViewSession(subscriptionManager);
-        senderSessionRef.current = viewSession;
-
-        viewSession.onDisconnected(() => {
-            cleanupCast(false);
-        });
-
-        await viewSession.connect({
-            existingTransport: options.existingTransport,
-        });
-
-        setCastTransport(viewSession.transport);
-        setSessionSubscription(viewSession.subscription);
-        setIsCasting(true);
-
-        viewSession.eventProvider?.onEvent((event) => {
-            const state = useWorkbenchSyncStore.getState();
-            routeRuntimeEvent(event, {
-                onNext: () => state.handles.handleNext(),
-                onStart: () => state.handles.handleStart(),
-                onPause: () => state.handles.handlePause(),
-                onStop: () => state.handles.handleStop(),
+        // Prevent concurrent connectSession calls — the re-adopt effect
+        // can re-fire when this callback's reference changes (e.g. when
+        // subscriptionManager updates), and without a guard the overlapping
+        // async calls create-and-dispose sessions in a tight loop.
+        if (connectingRef.current) return;
+        connectingRef.current = true;
+        try {
+            const currentSession = senderSessionRef.current;
+            currentSession?.dispose();
+            const viewSession = new ChromecastSenderViewSession(subscriptionManager);
+            senderSessionRef.current = viewSession;
+            viewSession.onDisconnected(() => {
+                cleanupCast(false);
             });
-        });
-
-        const workbenchState = useWorkbenchSyncStore.getState();
-        const message = workbenchModeResolver.resolve({
-            viewMode: workbenchState.viewMode,
-            executionStatus: workbenchState.execution.status,
-            runtime: workbenchState.runtime,
-            analyticsSegments: workbenchState.analyticsSegments,
-            selectedBlock: workbenchState.selectedBlock,
-            documentItems: workbenchState.documentItems,
-        });
-        viewSession.transport?.send(message);
+            await viewSession.connect({
+                existingTransport: options.existingTransport,
+            });
+            setCastTransport(viewSession.transport);
+            setSessionSubscription(viewSession.subscription);
+            setIsCasting(true);
+            viewSession.eventProvider?.onEvent((event) => {
+                const state = useWorkbenchSyncStore.getState();
+                routeRuntimeEvent(event, {
+                    onNext: () => state.handles.handleNext(),
+                    onStart: () => state.handles.handleStart(),
+                    onPause: () => state.handles.handlePause(),
+                    onStop: () => state.handles.handleStop(),
+                });
+            });
+            const workbenchState = useWorkbenchSyncStore.getState();
+            const message = workbenchModeResolver.resolve({
+                viewMode: workbenchState.viewMode,
+                executionStatus: workbenchState.execution.status,
+                runtime: workbenchState.runtime,
+                analyticsSegments: workbenchState.analyticsSegments,
+                selectedBlock: workbenchState.selectedBlock,
+                documentItems: workbenchState.documentItems,
+            });
+            viewSession.transport?.send(message);
+        } finally {
+            connectingRef.current = false;
+        }
     }, [subscriptionManager, setCastTransport, cleanupCast]);
 
     // Re-adopt transport on mount/remount.
