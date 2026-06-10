@@ -16,30 +16,25 @@
  *   currentBlockType(ctx)           → (await ts.snapshot()).current?.blockType
  *   disposeSession(ctx)             → await ts.dispose()
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import { TestScript, assertions } from '@/testing/script';
+import { describe, it, expect } from 'bun:test';
+import { describeCompliance, assertions } from '@/testing/script';
 
-describe('🟢 Countdown Timer — 5:00 Run (TestScript port)', () => {
-    const SCRIPT = '5:00 Run';
-    let script: TestScript | undefined;
-
-    afterEach(async () => { if (script) await script.dispose(); script = undefined; });
-
+describeCompliance('🟢 Countdown Timer — 5:00 Run (TestScript port)', '5:00 Run', (ctx) => {
     it('step 0: compile → depth = 2 (SessionRoot + WaitingToStart)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         const state = await script.snapshot();
         expect(state.depth).toBe(2);
     });
 
     it('step 1: next() → Timer starts, direction = down', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const state = await script.snapshot();
         expect(state.current?.blockType).toMatch(/timer/i);
     });
 
     it('step 2: tick(150_000) → mid-timer, block still active', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(150_000);
         const state = await script.snapshot();
@@ -48,7 +43,7 @@ describe('🟢 Countdown Timer — 5:00 Run (TestScript port)', () => {
     });
 
     it('step 3: tick(150_000) more → timer expires, session ends', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(150_000);
         await script.tick(150_000);

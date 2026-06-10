@@ -20,30 +20,25 @@
  * The tests below cover the simple timer-expiry path.  For assertions
  * on output statements, see the original `rest.compliance.test.ts`.
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import { TestScript } from '@/testing/script';
+import { describe, it, expect } from 'bun:test';
+import { describeCompliance } from '@/testing/script';
 
-describe('🟢 Timed Rest (standalone) — 1:00 Rest (TestScript port)', () => {
-    const SCRIPT = '1:00 Rest';
-    let script: TestScript | undefined;
-
-    afterEach(async () => { if (script) await script.dispose(); script = undefined; });
-
+describeCompliance('🟢 Timed Rest (standalone) — 1:00 Rest (TestScript port)', '1:00 Rest', (ctx) => {
     it('step 0: compile → depth = 2 (SessionRoot + WaitingToStart)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         const state = await script.snapshot();
         expect(state.depth).toBe(2);
     });
 
     it('step 1: next() → Rest timer starts', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const state = await script.snapshot();
         expect(state.current?.blockType).toMatch(/rest|timer/i);
     });
 
     it('step 2: tick(60_000) → rest auto-completes, session ends', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
         const state = await script.snapshot();
