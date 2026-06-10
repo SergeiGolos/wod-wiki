@@ -233,12 +233,12 @@ export function CanvasPage({
 
   // ── Title-bar mode render ──────────────────────────────────────────────
   return (
-    <div className={cn('relative flex w-full min-h-screen justify-start items-start', className)}>
+    <div className={cn('relative flex flex-col lg:flex-row w-full min-h-screen justify-start items-start', className)}>
       <div className={cn(
-        'flex flex-col flex-1 min-w-0 3xl:max-w-7xl min-h-screen lg:rounded-[2.5rem]',
+        'flex flex-col w-full lg:w-[60%] min-h-screen lg:border-r border-border/50 lg:rounded-br-[2.5rem]',
         PAGE_SHELL_CONTENT_SURFACE_CLASS,
       )}>
-        {/* Sticky header — hidden on mobile (SidebarLayout navbar covers it), sticky on desktop */}
+        {/* Sticky header */}
         <div
           data-page-sticky-boundary="true"
           className="hidden lg:block lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md lg:pt-8"
@@ -254,7 +254,7 @@ export function CanvasPage({
               {actions}
             </div>
           </div>
-          {subheader && <div className="mt-4">{subheader}</div>}
+          {subheader && <div className="mt-4 px-6 lg:px-10">{subheader}</div>}
           <hr role="presentation" className="mt-4 md:mt-6 w-full border-t border-border opacity-50" />
         </div>
 
@@ -273,13 +273,16 @@ export function CanvasPage({
         </div>
       </div>
 
-      {/* TOC Sidebar — outside the content card, visible at Desktop XL+ */}
+      {/*
+        Index Sidebar Column — "Sticky Canvas" look
+        On desktop: 40% width, sticky.
+      */}
       {index.length > 0 && (
-        <aside className="hidden 3xl:block w-80 shrink-0 sticky top-0 self-start max-h-screen overflow-y-auto p-10">
+        <aside className="hidden lg:flex flex-col w-[40%] sticky top-0 self-start h-screen overflow-y-auto p-10 bg-muted/5 border-l border-border/30 shadow-inner">
           <div className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-6">
             On this page
           </div>
-          <nav className="flex flex-col gap-1 border-l border-border/40 ml-1">
+          <nav className="flex flex-col gap-1 border-l border-border/40 ml-1 flex-1">
             {index.map((link) => (
               <div key={link.id} className="flex items-center group -ml-px">
                 <button
