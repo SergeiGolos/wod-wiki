@@ -59,7 +59,8 @@ export interface IReadWriteStore extends IReadonlyStore {
 }
 
 export interface IStorageTransaction {
-    store(name: StoreName): IReadWriteStore;
+    readonly(store: StoreName): IReadonlyStore;
+    readwrite(store: StoreName): IReadWriteStore;
     done(): Promise<void>;
 }
 

@@ -149,7 +149,7 @@ export function JournalPageShell({
         On desktop: 40% width, sticky.
       */}
       {index.length > 0 && (
-        <aside className="hidden lg:flex flex-col w-[40%] sticky top-0 self-start h-screen overflow-y-auto p-10 bg-muted/5 border-l border-border/30 shadow-inner">
+        <aside className="hidden lg:flex flex-col w-[40%] sticky top-0 self-start h-screen overflow-y-auto p-10 bg-muted/5 shadow-inner">
           <div className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-6">
             On this page
           </div>
