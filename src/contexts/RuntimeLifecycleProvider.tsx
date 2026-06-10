@@ -4,6 +4,7 @@ import type { IRuntimeFactory } from '@/hooks/useRuntimeFactory';
 import type { ScriptBlock } from '@/components/Editor/types';
 import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeLifecycleContext';
 import { SubscriptionManagerContext } from './SubscriptionManagerContext';
+import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 
 export { useRuntimeLifecycle } from '@/components/layout/useRuntimeLifecycle';
 
@@ -55,6 +56,7 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
       currentSubManagerRef.current = null;
     }
     setSubscriptionManager(null);
+    useWorkbenchSyncStore.getState().setSubscriptionManager(null);
 
     // Dispose the runtime synchronously via the ref — NEVER inside a setState
     // updater.  React calls updater functions during the render phase; disposal
@@ -124,9 +126,11 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
         mgr.add(new LocalRuntimeSubscription({ id: 'local' }));
         currentSubManagerRef.current = mgr;
         setSubscriptionManager(mgr);
+        useWorkbenchSyncStore.getState().setSubscriptionManager(mgr);
       } else {
         currentSubManagerRef.current = null;
         setSubscriptionManager(null);
+        useWorkbenchSyncStore.getState().setSubscriptionManager(null);
       }
     } catch (err) {
       console.error('[RuntimeProvider] Error creating runtime:', err);

@@ -10,20 +10,12 @@ import { WorkoutActionButton } from '@/components/molecules/WorkoutActionButton'
 import { WhiteboardPlaygroundButton } from '@/components/atoms/WhiteboardPlaygroundButton';
 import { WidgetEditButton } from '@/components/atoms/WidgetEditButton';
 import { Play, Copy, ExternalLink, Calendar, Plus } from 'lucide-react';
-import { MemoryRouter } from 'react-router-dom';
 
 const meta: Meta = {
   title: 'design/Button Inventory',
   parameters: {
     layout: 'padded',
   },
-  decorators: [
-    (Story) => (
-      <MemoryRouter>
-        <Story />
-      </MemoryRouter>
-    ),
-  ],
 };
 
 export default meta;

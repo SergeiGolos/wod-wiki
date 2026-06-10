@@ -24,7 +24,7 @@
  */
 
 import { create } from 'zustand';
-import type { IScriptRuntime, UseRuntimeExecutionReturn } from '@/hooks/useRuntimeTimer';
+import type { IScriptRuntime, UseRuntimeExecutionReturn, SubscriptionManager } from '@/hooks/useRuntimeTimer';
 import type { ScriptBlock } from '@/components/Editor/types';
 import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
@@ -107,7 +107,9 @@ interface WorkbenchSyncState {
   // --- Cast Transport (shared between CastButtonRpc and WorkbenchCastBridge) ---
   /** Active RPC transport while casting, null otherwise */
   castTransport: IRpcTransport | null;
-
+  // --- Subscription Manager (bridged from RuntimeLifecycleProvider) ---
+  /** Current runtime subscription manager; used by CastButtonRpc to register cast subscriptions */
+  subscriptionManager: SubscriptionManager | null;
   // --- Navigation View Mode (synced from WorkbenchContext) ---
   /** Current view mode in the browser workbench — drives receiver display mode */
   viewMode: ViewMode;
@@ -130,9 +132,8 @@ interface WorkbenchSyncActions {
   setDocumentItems: (items: DocumentItem[]) => void;
   setSelectedBlock: (block: ScriptBlock | null) => void;
   setSelectedBlockId: (id: string | null) => void;
-  setCursorLine: (line: number) => void;
-  setHighlightedLine: (line: number | null) => void;
   setCastTransport: (transport: IRpcTransport | null) => void;
+  setSubscriptionManager: (mgr: SubscriptionManager | null) => void;
   setViewMode: (mode: ViewMode) => void;
 
   // --- Runtime & execution setters (replaces _hydrateRuntime) ---
@@ -177,7 +178,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   highlightedLine: null,
 
   castTransport: null,
-
+  subscriptionManager: null,
   viewMode: 'plan' as ViewMode,
 
   // --- Actions ---
@@ -237,6 +238,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   setCursorLine: (line) => set({ cursorLine: line }),
   setHighlightedLine: (line) => set({ highlightedLine: line }),
   setCastTransport: (castTransport) => set({ castTransport }),
+  setSubscriptionManager: (subscriptionManager) => set({ subscriptionManager }),
   setViewMode: (viewMode) => set({ viewMode }),
 
   // Bridge runtime setters
@@ -271,7 +273,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
     highlightedLine: null,
 
     castTransport: null,
-
+    subscriptionManager: null,
     viewMode: 'plan' as ViewMode,
   }),
 }));

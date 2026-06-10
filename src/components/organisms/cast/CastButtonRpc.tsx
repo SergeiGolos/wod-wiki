@@ -19,7 +19,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TvMinimal, Cast } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
-import { useSubscriptionManager } from '@/contexts/SubscriptionManagerContext';
 import { ChromecastSenderViewSession } from '@/hooks/useCastSignaling';
 import { cn } from '@/lib/utils';
 import { ProjectionSyncProvider } from '@/contexts/ProjectionSyncContext';
@@ -36,7 +35,7 @@ export const CastButtonRpc: React.FC = () => {
     const [isDisconnecting, setIsDisconnecting] = useState(false);
     const [sessionSubscription, setSessionSubscription] = useState<ChromecastSenderViewSession['subscription']>(null);
 
-    const subscriptionManager = useSubscriptionManager();
+    const subscriptionManager = useWorkbenchSyncStore(s => s.subscriptionManager);
     const castTransportFromStore = useWorkbenchSyncStore(s => s.castTransport);
     const setCastTransport = useWorkbenchSyncStore(s => s.setCastTransport);
 
