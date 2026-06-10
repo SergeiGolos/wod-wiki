@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collections Browser</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700;900&family=Source+Code+Pro:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+
+    :root {
+      --stripe-purple: #533afd;
+      --stripe-purple-hover: #4434d4;
+      --stripe-navy: #061b31;
+      --stripe-label: #273951;
+      --stripe-body: #64748b;
+      --stripe-border: #e5edf5;
+      --stripe-surface: #ffffff;
+      --stripe-brand-dark: #1c1e54;
+      --stripe-success: #15be53;
+      --stripe-shadow-blue: rgba(50,50,93,0.25);
+      --stripe-shadow-black: rgba(0,0,0,0.1);
+
+      --font-primary: 'Source Sans 3', system-ui, -apple-system, sans-serif;
+      --font-mono: 'Source Code Pro', ui-monospace, monospace;
+
+      --bg-muted: #f8fafc;
+      --bg-muted-hover: #f1f5f9;
+      --bg-primary-light: rgba(83, 58, 253, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-primary);
+      color: var(--stripe-body);
+      background-color: var(--stripe-surface);
+      font-size: 16px;
+      font-weight: 300;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Typography scale */
+    .text-display-hero { font-size: 56px; font-weight: 300; letter-spacing: -1.4px; color: var(--stripe-navy); }
+    .text-display-large { font-size: 48px; font-weight: 300; letter-spacing: -0.96px; color: var(--stripe-navy); }
+    .text-section-heading { font-size: 32px; font-weight: 300; letter-spacing: -0.64px; color: var(--stripe-navy); }
+    .text-sub-heading-large { font-size: 26px; font-weight: 300; letter-spacing: -0.26px; color: var(--stripe-navy); }
+    .text-sub-heading { font-size: 22px; font-weight: 300; letter-spacing: -0.22px; color: var(--stripe-navy); }
+    .text-body-large { font-size: 18px; font-weight: 300; color: var(--stripe-body); }
+    .text-body { font-size: 16px; font-weight: 300; color: var(--stripe-body); }
+    .text-caption { font-size: 13px; font-weight: 400; color: var(--stripe-body); }
+    .text-caption-small { font-size: 12px; font-weight: 400; color: var(--stripe-body); }
+    .text-code { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--stripe-navy); }
+    .font-bold { font-weight: 600; }
+    .font-black { font-weight: 900; }
+
+    /* Utilities */
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-center { justify-content: center; }
+    .justify-between { justify-content: space-between; }
+    .flex-1 { flex: 1; }
+    .gap-1 { gap: 4px; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .gap-4 { gap: 16px; }
+    .w-full { width: 100%; }
+    .h-full { height: 100%; }
+    .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    a { text-decoration: none; color: var(--stripe-purple); }
+    a:hover { color: var(--stripe-purple-hover); }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+    /* SVGs */
+    svg { display: block; }
+    .icon-sm { width: 12px; height: 12px; }
+    .icon-md { width: 16px; height: 16px; }
+    .icon-lg { width: 24px; height: 24px; }
+
+
+    .collections-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: var(--stripe-surface);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .search-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--stripe-border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .search-icon {
+      width: 20px;
+      height: 20px;
+      color: var(--stripe-body);
+      flex-shrink: 0;
+    }
+    .search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      color: var(--stripe-navy);
+      font-weight: 500;
+      font-family: inherit;
+    }
+    .search-input::placeholder {
+      color: var(--stripe-body);
+    }
+
+    .collection-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 24px;
+      width: 100%;
+      text-align: left;
+      transition: background-color 0.2s;
+      cursor: pointer;
+    }
+    .collection-row:hover {
+      background-color: var(--bg-muted);
+    }
+
+    .folder-icon-container {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px; /* rounded-xl */
+      background-color: var(--bg-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background-color 0.2s;
+    }
+    .collection-row:hover .folder-icon-container {
+      background-color: var(--stripe-surface);
+    }
+    .folder-icon {
+      width: 16px;
+      height: 16px;
+      color: #f59e0b; /* amber */
+    }
+
+    .collection-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .collection-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--stripe-navy);
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .collection-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .collection-count {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--stripe-body);
+    }
+    .category-badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 9999px;
+      background-color: var(--bg-primary-light);
+      color: var(--stripe-purple);
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+    }
+    .category-badge-other {
+      background-color: var(--bg-muted);
+      color: var(--stripe-body);
+      opacity: 0.5;
+    }
+
+    .collection-chevron {
+      width: 16px;
+      height: 16px;
+      color: var(--stripe-body);
+      opacity: 0;
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+    .collection-row:hover .collection-chevron {
+      opacity: 1;
+    }
+
+    </style>
+</head>
+<body>
+
+<div class="collections-container">
+
+  <div class="search-header">
+    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    <input type="text" class="search-input" placeholder="Search collections...">
+  </div>
+
+  <div class="collection-row">
+    <div class="folder-icon-container">
+      <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+    </div>
+    <div class="collection-content">
+      <div class="collection-name">The Girls</div>
+      <div class="collection-meta">
+        <span class="collection-count">21 workouts</span>
+        <span class="category-badge">Benchmark</span>
+      </div>
+    </div>
+    <svg class="collection-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+  </div>
+
+  <div class="collection-row">
+    <div class="folder-icon-container">
+      <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+    </div>
+    <div class="collection-content">
+      <div class="collection-name">Hero WODs</div>
+      <div class="collection-meta">
+        <span class="collection-count">108 workouts</span>
+        <span class="category-badge">Hero</span>
+        <span class="category-badge">Endurance</span>
+      </div>
+    </div>
+    <svg class="collection-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+  </div>
+
+  <div class="collection-row">
+    <div class="folder-icon-container">
+      <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+    </div>
+    <div class="collection-content">
+      <div class="collection-name">Travel WODs</div>
+      <div class="collection-meta">
+        <span class="collection-count">45 workouts</span>
+        <span class="category-badge category-badge-other">Other</span>
+      </div>
+    </div>
+    <svg class="collection-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+  </div>
+
+</div>
+
+</body>
+</html>

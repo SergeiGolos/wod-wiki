@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forward Planner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700;900&family=Source+Code+Pro:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+
+    :root {
+      --stripe-purple: #533afd;
+      --stripe-purple-hover: #4434d4;
+      --stripe-navy: #061b31;
+      --stripe-label: #273951;
+      --stripe-body: #64748b;
+      --stripe-border: #e5edf5;
+      --stripe-surface: #ffffff;
+      --stripe-brand-dark: #1c1e54;
+      --stripe-success: #15be53;
+      --stripe-shadow-blue: rgba(50,50,93,0.25);
+      --stripe-shadow-black: rgba(0,0,0,0.1);
+
+      --font-primary: 'Source Sans 3', system-ui, -apple-system, sans-serif;
+      --font-mono: 'Source Code Pro', ui-monospace, monospace;
+
+      --bg-muted: #f8fafc;
+      --bg-muted-hover: #f1f5f9;
+      --bg-primary-light: rgba(83, 58, 253, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-primary);
+      color: var(--stripe-body);
+      background-color: var(--stripe-surface);
+      font-size: 16px;
+      font-weight: 300;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Typography scale */
+    .text-display-hero { font-size: 56px; font-weight: 300; letter-spacing: -1.4px; color: var(--stripe-navy); }
+    .text-display-large { font-size: 48px; font-weight: 300; letter-spacing: -0.96px; color: var(--stripe-navy); }
+    .text-section-heading { font-size: 32px; font-weight: 300; letter-spacing: -0.64px; color: var(--stripe-navy); }
+    .text-sub-heading-large { font-size: 26px; font-weight: 300; letter-spacing: -0.26px; color: var(--stripe-navy); }
+    .text-sub-heading { font-size: 22px; font-weight: 300; letter-spacing: -0.22px; color: var(--stripe-navy); }
+    .text-body-large { font-size: 18px; font-weight: 300; color: var(--stripe-body); }
+    .text-body { font-size: 16px; font-weight: 300; color: var(--stripe-body); }
+    .text-caption { font-size: 13px; font-weight: 400; color: var(--stripe-body); }
+    .text-caption-small { font-size: 12px; font-weight: 400; color: var(--stripe-body); }
+    .text-code { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--stripe-navy); }
+    .font-bold { font-weight: 600; }
+    .font-black { font-weight: 900; }
+
+    /* Utilities */
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-center { justify-content: center; }
+    .justify-between { justify-content: space-between; }
+    .flex-1 { flex: 1; }
+    .gap-1 { gap: 4px; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .gap-4 { gap: 16px; }
+    .w-full { width: 100%; }
+    .h-full { height: 100%; }
+    .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    a { text-decoration: none; color: var(--stripe-purple); }
+    a:hover { color: var(--stripe-purple-hover); }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+    /* SVGs */
+    svg { display: block; }
+    .icon-sm { width: 12px; height: 12px; }
+    .icon-md { width: 16px; height: 16px; }
+    .icon-lg { width: 24px; height: 24px; }
+
+
+    .feed-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: var(--stripe-surface);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .date-header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background-color: rgba(248, 250, 252, 0.8); /* bg-muted/80 */
+      backdrop-filter: blur(4px);
+      border-top: 1px solid var(--stripe-border);
+      border-bottom: 1px solid var(--stripe-border);
+      padding: 8px 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .date-header.selected {
+      background-color: var(--bg-primary-light); /* stripe-purple/10 */
+      border-color: rgba(83, 58, 253, 0.3);
+    }
+
+    .date-text {
+      color: var(--stripe-navy);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .date-text.today-accent {
+      color: var(--stripe-purple);
+    }
+
+    .feed-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 24px;
+      width: 100%;
+      text-align: left;
+      transition: background-color 0.2s;
+      cursor: pointer;
+    }
+    .feed-card:hover {
+      background-color: var(--bg-muted);
+    }
+
+    .card-icon-container {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px; /* rounded-xl */
+      background-color: var(--bg-primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .card-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--stripe-purple);
+    }
+
+    .card-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--stripe-navy);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-subtitle {
+      font-size: 11px;
+      color: var(--stripe-body);
+      margin-top: 2px;
+    }
+
+    .card-chevron {
+      width: 16px;
+      height: 16px;
+      color: var(--stripe-body);
+      opacity: 0.4;
+      transition: color 0.2s, opacity 0.2s;
+      flex-shrink: 0;
+    }
+    .feed-card:hover .card-chevron {
+      color: var(--stripe-purple);
+      opacity: 1;
+    }
+
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 24px 4px;
+    }
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background-color: rgba(229, 237, 245, 0.4); /* border/40 */
+    }
+    .divider-label {
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--stripe-body);
+      opacity: 0.5;
+    }
+
+    .empty-date {
+      padding: 16px 24px;
+    }
+    .empty-link {
+      font-size: 13px;
+      color: var(--stripe-body);
+      opacity: 0.5;
+      text-decoration: none;
+      transition: color 0.2s, opacity 0.2s;
+    }
+    .empty-link:hover {
+      color: var(--stripe-purple);
+      opacity: 1;
+    }
+
+    /* Specific overrides for plan view multi-select */
+    .date-header {
+      cursor: pointer;
+      position: relative;
+    }
+    .date-header:hover {
+      background-color: var(--bg-muted-hover);
+    }
+
+    .multi-select-hint {
+      position: absolute;
+      right: 24px;
+      font-size: 10px;
+      color: var(--stripe-body);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .date-header:hover .multi-select-hint {
+      opacity: 0.5;
+    }
+
+    </style>
+</head>
+<body>
+
+<div class="feed-container">
+
+  <!-- Today (Selected state) -->
+  <div class="date-group">
+    <div class="date-header selected" title="Ctrl/⌘+click to select multiple">
+      <svg class="icon-sm" style="color: var(--stripe-purple);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      <span class="date-text today-accent">Mon, Oct 23 &mdash; Today</span>
+      <span class="multi-select-hint">⌘+click to select</span>
+    </div>
+
+    <div class="feed-card">
+      <div class="card-icon-container">
+        <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </div>
+      <div class="card-content">
+        <div class="card-title">Start today's journal entry</div>
+        <div class="card-subtitle">Blank &middot; Collection &middot; History &middot; Feed</div>
+      </div>
+      <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </div>
+  </div>
+
+  <!-- Tomorrow -->
+  <div class="date-group">
+    <div class="date-header" title="Ctrl/⌘+click to select multiple">
+      <svg class="icon-sm" style="color: var(--stripe-body);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      <span class="date-text">Tue, Oct 24</span>
+      <span class="multi-select-hint">⌘+click to select</span>
+    </div>
+
+    <div class="feed-card">
+      <div class="card-icon-container">
+        <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </div>
+      <div class="card-content">
+        <div class="card-title">Create journal entry</div>
+        <div class="card-subtitle">Blank &middot; Collection &middot; History &middot; Feed</div>
+      </div>
+      <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </div>
+  </div>
+
+  <!-- Next Day (Multi-selected) -->
+  <div class="date-group">
+    <div class="date-header selected" title="Ctrl/⌘+click to select multiple">
+      <svg class="icon-sm" style="color: var(--stripe-purple);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      <span class="date-text">Wed, Oct 25</span>
+      <span class="multi-select-hint">⌘+click to deselect</span>
+    </div>
+
+    <div class="feed-card">
+      <div class="card-icon-container">
+        <svg class="card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </div>
+      <div class="card-content">
+        <div class="card-title">Create journal entry</div>
+        <div class="card-subtitle">Blank &middot; Collection &middot; History &middot; Feed</div>
+      </div>
+      <svg class="card-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collection Workout List</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700;900&family=Source+Code+Pro:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+
+    :root {
+      --stripe-purple: #533afd;
+      --stripe-purple-hover: #4434d4;
+      --stripe-navy: #061b31;
+      --stripe-label: #273951;
+      --stripe-body: #64748b;
+      --stripe-border: #e5edf5;
+      --stripe-surface: #ffffff;
+      --stripe-brand-dark: #1c1e54;
+      --stripe-success: #15be53;
+      --stripe-shadow-blue: rgba(50,50,93,0.25);
+      --stripe-shadow-black: rgba(0,0,0,0.1);
+
+      --font-primary: 'Source Sans 3', system-ui, -apple-system, sans-serif;
+      --font-mono: 'Source Code Pro', ui-monospace, monospace;
+
+      --bg-muted: #f8fafc;
+      --bg-muted-hover: #f1f5f9;
+      --bg-primary-light: rgba(83, 58, 253, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-primary);
+      color: var(--stripe-body);
+      background-color: var(--stripe-surface);
+      font-size: 16px;
+      font-weight: 300;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Typography scale */
+    .text-display-hero { font-size: 56px; font-weight: 300; letter-spacing: -1.4px; color: var(--stripe-navy); }
+    .text-display-large { font-size: 48px; font-weight: 300; letter-spacing: -0.96px; color: var(--stripe-navy); }
+    .text-section-heading { font-size: 32px; font-weight: 300; letter-spacing: -0.64px; color: var(--stripe-navy); }
+    .text-sub-heading-large { font-size: 26px; font-weight: 300; letter-spacing: -0.26px; color: var(--stripe-navy); }
+    .text-sub-heading { font-size: 22px; font-weight: 300; letter-spacing: -0.22px; color: var(--stripe-navy); }
+    .text-body-large { font-size: 18px; font-weight: 300; color: var(--stripe-body); }
+    .text-body { font-size: 16px; font-weight: 300; color: var(--stripe-body); }
+    .text-caption { font-size: 13px; font-weight: 400; color: var(--stripe-body); }
+    .text-caption-small { font-size: 12px; font-weight: 400; color: var(--stripe-body); }
+    .text-code { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--stripe-navy); }
+    .font-bold { font-weight: 600; }
+    .font-black { font-weight: 900; }
+
+    /* Utilities */
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-center { justify-content: center; }
+    .justify-between { justify-content: space-between; }
+    .flex-1 { flex: 1; }
+    .gap-1 { gap: 4px; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .gap-4 { gap: 16px; }
+    .w-full { width: 100%; }
+    .h-full { height: 100%; }
+    .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    a { text-decoration: none; color: var(--stripe-purple); }
+    a:hover { color: var(--stripe-purple-hover); }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+    /* SVGs */
+    svg { display: block; }
+    .icon-sm { width: 12px; height: 12px; }
+    .icon-md { width: 16px; height: 16px; }
+    .icon-lg { width: 24px; height: 24px; }
+
+
+    .workouts-page {
+      background-color: var(--bg-muted);
+      min-height: 100vh;
+      padding: 48px 24px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .card-container {
+      width: 100%;
+      max-width: 600px;
+      background-color: var(--stripe-surface);
+      border-radius: 12px; /* 3xl roughly maps to 12px or more depending on system, using 12px per standard */
+      border: 1px solid var(--stripe-border);
+      box-shadow: var(--stripe-shadow-blue) 0px 30px 45px -30px, var(--stripe-shadow-black) 0px 18px 36px -18px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .search-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(229, 237, 245, 0.6); /* border/60 */
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .search-icon {
+      width: 20px;
+      height: 20px;
+      color: var(--stripe-body);
+      flex-shrink: 0;
+    }
+    .search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      color: var(--stripe-navy);
+      font-weight: 500;
+      font-family: inherit;
+    }
+    .search-input::placeholder {
+      color: var(--stripe-body);
+    }
+
+    .list-container {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .workout-row-wrapper {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(229, 237, 245, 0.6); /* divide-y divide-border/60 */
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .workout-row-wrapper:last-child {
+      border-bottom: none;
+    }
+
+    .workout-action-main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 12px;
+      border-radius: 16px; /* 2xl */
+      transition: background-color 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      text-align: left;
+    }
+    .workout-action-main:hover {
+      background-color: rgba(255, 255, 255, 0.8); /* bg-background/80 relative to muted context, but inside white card just a subtle grey */
+      background-color: var(--bg-muted);
+    }
+    .workout-action-main.selected {
+      background-color: var(--stripe-surface);
+      box-shadow: 0 0 0 2px rgba(83, 58, 253, 0.4); /* ring in stripe-purple */
+    }
+
+    .dumbbell-icon-container {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px; /* rounded-xl */
+      background-color: var(--bg-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background-color 0.2s;
+    }
+    .dumbbell-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--stripe-purple);
+    }
+
+    .workout-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .workout-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--stripe-navy);
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .workout-preview {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--stripe-body);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 4px;
+    }
+
+    .workout-chevron {
+      width: 16px;
+      height: 16px;
+      color: var(--stripe-body);
+      opacity: 0.4;
+      flex-shrink: 0;
+    }
+
+    .action-pill {
+      border-radius: 9999px;
+      border: 1px solid var(--stripe-border);
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--stripe-body);
+      background-color: transparent;
+      transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+      flex-shrink: 0;
+    }
+    .action-pill:hover {
+      background-color: rgba(255, 255, 255, 0.8);
+      background-color: var(--bg-muted);
+      color: var(--stripe-navy);
+    }
+    .action-pill.selected {
+      background-color: var(--stripe-surface);
+      color: var(--stripe-navy);
+      box-shadow: 0 0 0 2px rgba(83, 58, 253, 0.4);
+    }
+
+    </style>
+</head>
+<body>
+
+<div class="workouts-page">
+  <div class="card-container">
+
+    <div class="search-header">
+      <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" class="search-input" placeholder="Filter The Girls...">
+    </div>
+
+    <div class="list-container">
+
+      <div class="workout-row-wrapper">
+        <button class="workout-action-main selected">
+          <div class="dumbbell-icon-container">
+            <svg class="dumbbell-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11"></path><path d="M6.5 17.5h11"></path><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="4" y1="12" x2="20" y2="12"></line></svg>
+          </div>
+          <div class="workout-content">
+            <div class="workout-name">Fran</div>
+            <div class="workout-preview">21-15-9 Thrusters (95/65 lbs), Pull-ups</div>
+          </div>
+          <svg class="workout-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+        <button class="action-pill selected">Open</button>
+      </div>
+
+      <div class="workout-row-wrapper">
+        <button class="workout-action-main">
+          <div class="dumbbell-icon-container">
+            <svg class="dumbbell-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11"></path><path d="M6.5 17.5h11"></path><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="4" y1="12" x2="20" y2="12"></line></svg>
+          </div>
+          <div class="workout-content">
+            <div class="workout-name">Cindy</div>
+            <div class="workout-preview">20:00 AMRAP: 5 Pull-ups, 10 Push-ups, 15 Squats</div>
+          </div>
+          <svg class="workout-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+        <button class="action-pill">Open</button>
+      </div>
+
+      <div class="workout-row-wrapper">
+        <button class="workout-action-main">
+          <div class="dumbbell-icon-container">
+            <svg class="dumbbell-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11"></path><path d="M6.5 17.5h11"></path><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="4" y1="12" x2="20" y2="12"></line></svg>
+          </div>
+          <div class="workout-content">
+            <div class="workout-name">Grace</div>
+            <div class="workout-preview">30 Clean and Jerks for time (135/95 lbs)</div>
+          </div>
+          <svg class="workout-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+        <button class="action-pill">Open</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
