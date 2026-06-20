@@ -154,11 +154,15 @@ export class ScriptRuntime implements IScriptRuntime {
             this._activeContext.execute(action);
         } finally {
             this._activeContext = null;
-            // After the full execution turn settles (push + mount + child pushes all done),
-            // re-notify stack observers with the current state. This ensures blocks that
-            // set up timer memory during mount() are serialized with correct timer data.
-            // Without this, leaf blocks (no children pushed on mount) would have timer:null
-            // in the Chromecast snapshot because push fires before mount initializes memory.
+            // POST-MOUNT SNAPSHOT INVARIANT (see
+            // tests/runtime-compliance/post-mount-snapshot-invariant.compliance.test.ts):
+            // Snapshots reflect post-mount state. A block whose onMount has not
+            // completed must not appear in a snapshot. We re-notify stack observers
+            // here — AFTER the full execution turn (push + mount + child pushes) —
+            // so blocks that initialize timer memory during onMount are serialized
+            // with correct timer data. Without this, leaf blocks (no children pushed
+            // on mount) would have timer:null in the Chromecast snapshot because
+            // push fires before mount initializes memory.
             this._notifyStackSettled();
         }
     }

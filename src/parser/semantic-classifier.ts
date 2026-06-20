@@ -9,8 +9,6 @@ import { PropertyMetric } from '../runtime/compiler/metrics/PropertyMetric';
 import { RepMetric } from '../runtime/compiler/metrics/RepMetric';
 import { ResistanceMetric } from '../runtime/compiler/metrics/ResistanceMetric';
 import { RoundsMetric } from '../runtime/compiler/metrics/RoundsMetric';
-import { SlashMetric } from '../runtime/compiler/metrics/SlashMetric';
-import { PipeMetric } from '../runtime/compiler/metrics/PipeMetric';
 import { TextMetric } from '../runtime/compiler/metrics/TextMetric';
 import { hintMetric } from '../core/metrics/hints';
 import { EMPTY_UNIT } from '../runtime/compiler/metrics/dimensionFactory';
@@ -115,17 +113,9 @@ function classifyPrimitive(primitive: SyntaxPrimitive): MetricPair[] {
     }
 
     case 'effort':
+      // Slash and Pipe ride as effort primitives with raw '/' or '|'.
+      // fuseUnits matches the raw string.
       return [{ metrics: new EffortMetric(primitive.raw), meta: primitive.meta }];
-
-    case 'slash':
-      // A dedicated SlashMetric — never an effort, never displayed.
-      // fuseUnits consumes it for fraction conversion: 1/4 mile → 0.25 mile.
-      return [{ metrics: new SlashMetric(), meta: primitive.meta }];
-
-    case 'pipe':
-      // A dedicated PipeMetric — never an effort, never displayed.
-      // fuseUnits consumes it for choice grouping: Run | Walk → ChoiceGroupMetric.
-      return [{ metrics: new PipeMetric(), meta: primitive.meta }];
 
     case 'property': {
       const metricType = PROPERTY_KEY_TO_METRIC_TYPE[primitive.key.toLowerCase()] ?? MetricType.Custom;
@@ -168,8 +158,14 @@ function mergeFragments(pairs: MetricPair[]): MetricPair[] {
     const next = pairs[index];
 
     if (current.metrics instanceof EffortMetric && next.metrics instanceof EffortMetric) {
-      // SlashMetric (now its own type) sits between efforts as a separate pair,
-      // so the instanceof check already ensures we never merge across a slash.
+      // Slash and Pipe ride as effort primitives; never merge across them —
+      // they are grammar separators consumed by fuseUnits downstream.
+      if (current.metrics.effort === '/' || current.metrics.effort === '|' ||
+          next.metrics.effort === '/' || next.metrics.effort === '|') {
+        result.push(current);
+        current = next;
+        continue;
+      }
       const gap = next.meta.startOffset - current.meta.endOffset;
       if (gap <= 1) {
         const mergedMeta: SyntaxMeta = {

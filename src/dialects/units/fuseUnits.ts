@@ -30,14 +30,14 @@ function isBareNumber(m: IMetric): boolean {
     return m.type === MetricType.Rep && (typeof m.value === 'number' || m.value === undefined);
 }
 
-/** Whether a metric is a dedicated SlashMetric (grammar separator for fractions). */
+/** Whether a metric is the bare "/" separator (reclassified as an effort primitive). */
 function isSlashSeparator(m: IMetric): boolean {
-    return m.type === MetricType.Slash;
+    return m.type === MetricType.Effort && (typeof m.value === 'string' ? m.value : m.image) === '/';
 }
 
-/** Whether a metric is a dedicated PipeMetric (grammar separator for choices). */
+/** Whether a metric is the bare "|" separator (reclassified as an effort primitive). */
 function isPipeSeparator(m: IMetric): boolean {
-    return m.type === MetricType.Pipe;
+    return m.type === MetricType.Effort && (typeof m.value === 'string' ? m.value : m.image) === '|';
 }
 
 function effortText(m: IMetric): string | null {
@@ -126,10 +126,10 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
     const cur = pairs[i];
     const next = pairs[i + 1];
 
-    // ── Slash/PipeMetric guard: a bare separator that no pattern consumed is silently dropped ──
+    // ── Slash/Pipe guard: a bare separator that no pattern consumed is silently dropped ──
     // Slash: unhandled fractions (shouldn't happen if patterns below cover all cases).
     // Pipe: heterogeneous choice (e.g. "Run | 5" — Effort + Rep) where no ChoiceGroup is emitted.
-    if (cur.metric.type === MetricType.Slash || cur.metric.type === MetricType.Pipe) {
+    if (isSlashSeparator(cur.metric) || isPipeSeparator(cur.metric)) {
       continue;
     }
 

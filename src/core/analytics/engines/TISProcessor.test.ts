@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 import { TISProcessor } from './TISProcessor';
-import { IMetric, MetricType } from '../../../../core/models/Metric';
-import { EFFORT_DATA_METRIC_TYPE } from '../../../../core/analytics/effortResolution';
+import { IMetric, MetricType } from '../../models/Metric';
+import { EFFORT_DATA_METRIC_TYPE } from '../effortResolution';
 import type { IEffort } from '@/effort-registry/types';
 
 describe('TISProcessor', () => {

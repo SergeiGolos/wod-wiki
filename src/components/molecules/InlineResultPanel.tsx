@@ -21,7 +21,7 @@ import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type { WorkoutResult } from '@/types/storage';
 import { MetricType } from '@/core/models/Metric';
-import type { ProjectionResult } from '@/timeline/analytics/analytics/ProjectionResult';
+import type { ProjectionResult } from '@/core/analytics/ProjectionResult';
 import { ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

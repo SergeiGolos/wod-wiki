@@ -5,8 +5,6 @@ import { MetricType, IMetric } from '../../../core/models/Metric';
 import { RepMetric } from '../../../runtime/compiler/metrics/RepMetric';
 import { EffortMetric } from '../../../runtime/compiler/metrics/EffortMetric';
 import { ResistanceMetric } from '../../../runtime/compiler/metrics/ResistanceMetric';
-import { SlashMetric } from '../../../runtime/compiler/metrics/SlashMetric';
-import { PipeMetric } from '../../../runtime/compiler/metrics/PipeMetric';
 import { ChoiceGroupMetric } from '../../../runtime/compiler/metrics/ChoiceGroupMetric';
 import { fuseUnits } from '../fuseUnits';
 import { MetricContainer } from '../../../core/models/MetricContainer';
@@ -84,10 +82,10 @@ describe('fuseUnitsInMetrics', () => {
     expect(out[1].value).toBe('Swings');
   });
 
-  describe('{number}|{number} {unit} → ChoiceGroupMetric (pipe choices)', () => {
+  describe('{number}|{number} {unit} → ChoiceGroupMetric (pipe choices, "/" + "|" ride as effort primitives)', () => {
     it('emits a single ChoiceGroupMetric for N|N resistance', () => {
       const out = fuseUnitsInMetrics(
-        [new RepMetric(135), new PipeMetric(), new RepMetric(185), new EffortMetric('lbs')],
+        [new RepMetric(135), new EffortMetric('|'), new RepMetric(185), new EffortMetric('lbs')],
         std,
       );
       expect(out).toHaveLength(1);
@@ -100,7 +98,7 @@ describe('fuseUnitsInMetrics', () => {
 
     it('emits ChoiceGroupMetric + residual effort for N|N distance with label', () => {
       const out = fuseUnitsInMetrics(
-        [new RepMetric(200), new PipeMetric(), new RepMetric(400), new EffortMetric('m Run')],
+        [new RepMetric(200), new EffortMetric('|'), new RepMetric(400), new EffortMetric('m Run')],
         std,
       );
       expect(out).toHaveLength(2);
@@ -114,7 +112,7 @@ describe('fuseUnitsInMetrics', () => {
 
     it('emits ChoiceGroupMetric for @-resistance N|N', () => {
       const out = fuseUnitsInMetrics(
-        [new ResistanceMetric(95, ''), new PipeMetric(), new ResistanceMetric(135, ''), new EffortMetric('lb')],
+        [new ResistanceMetric(95, ''), new EffortMetric('|'), new ResistanceMetric(135, ''), new EffortMetric('lb')],
         std,
       );
       expect(out).toHaveLength(1);
@@ -138,12 +136,11 @@ describe('fuseUnitsInMetrics', () => {
 
     it('is idempotent: re-running on ChoiceGroupMetric output is a no-op', () => {
       const once = fuseUnitsInMetrics(
-        [new RepMetric(135), new PipeMetric(), new RepMetric(185), new EffortMetric('kg')],
+        [new RepMetric(135), new EffortMetric('|'), new RepMetric(185), new EffortMetric('kg')],
         std,
       );
       expect(once[0].type).toBe(MetricType.Choice);
       const twice = fuseUnitsInMetrics(once, std);
-      // ChoiceGroupMetric has type 'choice', not effort/number — no pattern fires
       expect(twice[0].type).toBe(MetricType.Choice);
       expect((twice[0] as ChoiceGroupMetric).alternatives.length).toBe(
         (once[0] as ChoiceGroupMetric).alternatives.length
@@ -154,7 +151,7 @@ describe('fuseUnitsInMetrics', () => {
   describe('effort|effort choice: Effort(A) Pipe Effort(B) → ChoiceGroupMetric', () => {
     it('emits a ChoiceGroupMetric for two efforts', () => {
       const out = fuseUnitsInMetrics(
-        [new EffortMetric('Run'), new PipeMetric(), new EffortMetric('Walk')],
+        [new EffortMetric('Run'), new EffortMetric('|'), new EffortMetric('Walk')],
         std,
       );
       expect(out).toHaveLength(1);
@@ -169,9 +166,9 @@ describe('fuseUnitsInMetrics', () => {
       const out = fuseUnitsInMetrics(
         [
           new EffortMetric('Run'),
-          new PipeMetric(),
+          new EffortMetric('|'),
           new EffortMetric('Walk'),
-          new PipeMetric(),
+          new EffortMetric('|'),
           new EffortMetric('Rest'),
         ],
         std,
@@ -185,7 +182,7 @@ describe('fuseUnitsInMetrics', () => {
 
     it('number|pipe|number/unit produces ChoiceGroupMetric, not effort split', () => {
       const out = fuseUnitsInMetrics(
-        [new RepMetric(135), new PipeMetric(), new RepMetric(185), new EffortMetric('kg')],
+        [new RepMetric(135), new EffortMetric('|'), new RepMetric(185), new EffortMetric('kg')],
         std,
       );
       expect(out).toHaveLength(1);
@@ -195,7 +192,7 @@ describe('fuseUnitsInMetrics', () => {
     it('heterogeneous pipe (Effort + Rep) silently drops the pipe', () => {
       // "Run | 5" — Effort + pipe + Rep — different types, no ChoiceGroup
       const out = fuseUnitsInMetrics(
-        [new EffortMetric('Run'), new PipeMetric(), new RepMetric(5)],
+        [new EffortMetric('Run'), new EffortMetric('|'), new RepMetric(5)],
         std,
       );
       // Pipe is consumed; Effort('Run') and Rep(5) remain
@@ -203,9 +200,10 @@ describe('fuseUnitsInMetrics', () => {
       expect(out[0].type).toBe(MetricType.Effort);
       expect(out[1].type).toBe(MetricType.Rep);
     });
+
     it('spanMeta covers the full effort choice range, not just the first effort', () => {
       const run = new EffortMetric('Run');
-      const pipe = new PipeMetric();
+      const pipe = new EffortMetric('|');
       const walk = new EffortMetric('Walk');
       const meta = new Map<IMetric, any>([
         [run, { startOffset: 0, endOffset: 3, raw: 'Run' }],
@@ -230,7 +228,7 @@ describe('fuseUnitsInMetrics', () => {
   describe('{number}/{number} {unit} → single decimal metric (fraction)', () => {
     it('converts 1/4 mile to Distance(0.25, "mile")', () => {
       const out = fuseUnitsInMetrics(
-        [new RepMetric(1), new SlashMetric(), new RepMetric(4), new EffortMetric('mile')],
+        [new RepMetric(1), new EffortMetric('/'), new RepMetric(4), new EffortMetric('mile')],
         std,
       );
       expect(out).toHaveLength(1);
@@ -239,7 +237,7 @@ describe('fuseUnitsInMetrics', () => {
 
     it('converts 1/2 kg to Resistance(0.5, "kg")', () => {
       const out = fuseUnitsInMetrics(
-        [new RepMetric(1), new SlashMetric(), new RepMetric(2), new EffortMetric('kg')],
+        [new RepMetric(1), new EffortMetric('/'), new RepMetric(2), new EffortMetric('kg')],
         std,
       );
       expect(out).toHaveLength(1);
@@ -248,7 +246,7 @@ describe('fuseUnitsInMetrics', () => {
 
     it('unhandled slash between non-fusable tokens is silently dropped', () => {
       const out = fuseUnitsInMetrics(
-        [new EffortMetric('Run'), new SlashMetric(), new RepMetric(5)],
+        [new EffortMetric('Run'), new EffortMetric('/'), new RepMetric(5)],
         std,
       );
       // Slash has no fraction pattern match — dropped. Effort and Rep remain.

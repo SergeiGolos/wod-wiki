@@ -1,9 +1,9 @@
-import { ISummaryProcessor } from '../../../../core/analytics/ISummaryProcessor';
-import { extractMetrics } from '../../../../core/analytics/extractMetrics';
+import { ISummaryProcessor } from '../ISummaryProcessor';
+import { extractMetrics } from '../extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
-import { IMetric, MetricType } from '../../../../core/models/Metric';
-import { IOutputStatement } from '../../../../core/models/OutputStatement';
-import { TimeSpan } from '../../../../runtime/models/TimeSpan';
+import { IMetric, MetricType } from '../../models/Metric';
+import { IOutputStatement } from '../../models/OutputStatement';
+import { TimeSpan } from '../../../runtime/models/TimeSpan';
 
 /**
  * RepProjectionEngine - Accumulates total repetitions across the whole workout.

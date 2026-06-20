@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 import { VolumeProjectionEngine } from './VolumeProjectionEngine';
-import { Exercise, Level, Category } from '../../../../exercise.d';
-import { IMetric, MetricType } from '../../../../core/models/Metric';
+import { Exercise, Level, Category } from '../../../exercise.d';
+import { IMetric, MetricType } from '../../models/Metric';
 
 describe('VolumeProjectionEngine', () => {
   const engine = new VolumeProjectionEngine();
