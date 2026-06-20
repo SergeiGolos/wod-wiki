@@ -385,9 +385,9 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   const selectedBlock = useMemo(() => blocks.find(b => b.id === selectedBlockId) || null, [blocks, selectedBlockId]);
   useEffect(() => {
     // If the id is set but the blocks haven't loaded yet, don't clear the block object.
-    if (selectedBlockId && !selectedBlock) return;
+    if (selectedBlockId && blocks.length === 0) return;
     useWorkbenchSyncStore.getState().setSelectedBlock(selectedBlock);
-  }, [selectedBlockId, selectedBlock]);
+  }, [selectedBlockId, selectedBlock, blocks.length]);
 
   // Results State
   const [results, setResults] = useState<WorkoutResults[]>([]);

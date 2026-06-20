@@ -40,7 +40,7 @@ export class DialectStack {
         for (const dialect of this.dialects) {
             dialect.transform?.(statement);
             const analysis = dialect.analyze(statement);
-            if (analysis.metrics?.length) {
+            if (analysis?.metrics?.length) {
                 statement.metrics.add(...analysis.metrics);
             }
         }

@@ -143,6 +143,8 @@ export async function importFromZip(
                 // note overwrites its original instead of duplicating.
                 await provider.saveEntry(entry);
                 imported++;
+            } else {
+                errors.push(`Failed to import ${filename}: Invalid markdown format or missing metadata`);
             }
         } catch (err) {
             errors.push(`Failed to import ${filename}: ${err instanceof Error ? err.message : String(err)}`);
