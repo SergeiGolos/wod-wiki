@@ -69,44 +69,11 @@ describe('Grouped Statements Compilation', () => {
         expect(efforts).toHaveLength(2);
     });
 
-    it.skip('emits split proportional outputs for grouped statements', () => {
-        const script = `
-- 10 Burpees
-+ 20 Pushups
-`.trim();
-        const runtime = createRuntime(script);
-        
-        // Advance through WaitingToStart if it exists, or just get the first block
-        // In this simple script, JitCompiler will be called to compile the group
-        const groupStatements = runtime.script.statements.filter(s => s.id > 0);
-        const block = compiler.compile(groupStatements, runtime);
-        expect(block).toBeDefined();
-
-        // Simulate execution
-        runtime.pushBlock(block!);
-        runtime.clock.advance(60000); // 60 seconds elapsed
-        runtime.popBlock();
-
-        const outputs = runtime.getOutputStatements().filter(o => o.outputType === 'segment');
-        
-        // Should have 2 segment outputs (one for Burpees, one for Pushups)
-        expect(outputs).toHaveLength(2);
-
-        const burpees = outputs[0];
-        const pushups = outputs[1];
-
-        // Burpees: 10 reps, Pushups: 20 reps. Total 30 reps.
-        // Burpees ratio: 1/3 (20s), Pushups ratio: 2/3 (40s)
-        
-        const burpeesElapsed = burpees.metrics.find(f => f.type === MetricType.Elapsed)?.value;
-        const pushupsElapsed = pushups.metrics.find(f => f.type === MetricType.Elapsed)?.value;
-
-        expect(burpeesElapsed).toBe(20000);
-        expect(pushupsElapsed).toBe(40000);
-
-        // Check virtual spans are sequential
-        expect(burpees.spans[0].duration).toBe(20000);
-        expect(pushups.spans[0].duration).toBe(40000);
-        expect(pushups.spans[0].started).toBe(burpees.spans[0].ended);
-    });
+    // TODO: Split proportional outputs for grouped statements.
+    // Blocked: the current output statement model emits one combined segment
+    // per block, not per-statement-within-a-group. Implementing split
+    // proportional elapsed/total across grouped children requires a new
+    // output splitting strategy in ReportOutputBehavior.
+    // Track: https://github.com/user/wod-wiki/issues/TBD
+    it.todo('emits split proportional outputs for grouped statements');
 });

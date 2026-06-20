@@ -1,417 +1,36 @@
 /**
- * ExportImportService
+ * ExportImportService — the single Note Portability module.
  *
- * Handles exporting and importing notes data as ZIP files in the browser.
- * Supports exporting all data or individual notes.
+ * Owns the round-trip a user performs: export a Note → archive → import →
+ * recover the Note. Format logic lives in the pure serializer/deserializer
+ * modules; browser file I/O (zip write, download, pick, read) is inlined here
+ * as private helpers — one adapter, not three decorative ports. Both the
+ * export and import sides go through JSZip directly (symmetric).
  *
- * Export format:
- * - Each note creates:
- *   - {noteId}.md - Markdown representation
- *   - {noteId}_statements.csv - Parsed code statements/metrics
- *   - {noteId}_results_{version}.csv - Results for each version
+ * Round-trip invariant: a re-imported Note preserves its `id`, `createdAt`,
+ * and `updatedAt` (recovered by the deserializer, honored by `saveEntry` via
+ * `NoteSaveInput`), so it overwrites its original instead of duplicating.
  */
 
-import JSZip from 'jszip';
 import type { HistoryEntry } from '@/types/history';
 import type { IContentProvider } from '@/types/content-provider';
+import { wallClockNow } from '@/runtime/INowProvider';
+import JSZip from 'jszip';
 
-// ──────────────────────────────────────────────────────────────
-// CSV Formatting Utilities
-// ──────────────────────────────────────────────────────────────
+import { statementsToCSV, resultsToCSV } from './export/NoteCsvFormatter';
+import { noteToMarkdown } from './export/NoteMarkdownSerializer';
+import { parseMarkdownToEntry } from './export/NoteMarkdownDeserializer';
 
-/**
- * Escape a CSV field value
- */
-function escapeCSV(value: string | number | boolean | null | undefined): string {
-    if (value === null || value === undefined) return '';
-    const str = String(value);
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return `"${str.replace(/"/g, '""')}"`;
-    }
-    return str;
+// ── File I/O helpers (the single browser adapter; was 3 decorative ports) ──
+
+/** Build a zip archive incrementally, then materialize it as a Blob. */
+class NoteArchive {
+    private readonly zip = new JSZip();
+    addText(name: string, content: string): void { this.zip.file(name, content); }
+    toBlob(): Promise<Blob> { return this.zip.generateAsync({ type: 'blob' }); }
 }
 
-/**
- * Convert array of objects to CSV string
- */
-function arrayToCSV(headers: string[], rows: (string | number | boolean | null | undefined)[][]): string {
-    const headerRow = headers.map(escapeCSV).join(',');
-    const dataRows = rows.map(row => row.map(escapeCSV).join(','));
-    return [headerRow, ...dataRows].join('\n');
-}
-
-// ──────────────────────────────────────────────────────────────
-// Note Serialization
-// ──────────────────────────────────────────────────────────────
-
-/**
- * Convert a note to markdown content
- */
-function noteToMarkdown(entry: HistoryEntry): string {
-    const metadata = [
-        `# ${entry.title}`,
-        '',
-        '## Metadata',
-        '',
-        `- **ID**: ${entry.id}`,
-        `- **Created**: ${new Date(entry.createdAt).toISOString()}`,
-        `- **Updated**: ${new Date(entry.updatedAt).toISOString()}`,
-        `- **Target Date**: ${new Date(entry.targetDate).toISOString()}`,
-        `- **Tags**: ${entry.tags.join(', ') || 'None'}`,
-    ];
-
-    if (entry.templateId) {
-        metadata.push(`- **Cloned From**: ${entry.templateId}`);
-    }
-
-    if (entry.clonedIds && entry.clonedIds.length > 0) {
-        metadata.push(`- **Cloned To**: ${entry.clonedIds.join(', ')}`);
-    }
-
-    metadata.push('', '## Content', '', entry.rawContent);
-
-    return metadata.join('\n');
-}
-
-/**
- * Convert parsed statements/metrics to CSV
- */
-function statementsToCSV(entry: HistoryEntry): string {
-    const headers = [
-        'Statement ID',
-        'Parent ID',
-        'Line',
-        'Fragment Type',
-        'Fragment Value',
-        'Fragment Behavior'
-    ];
-
-    const rows: (string | number | null)[][] = [];
-
-    // Extract statements from sections if they exist
-    if (entry.sections) {
-        for (const section of entry.sections) {
-            if (section.scriptBlock?.statements) {
-                for (const stmt of section.scriptBlock.statements) {
-                    if (stmt.metrics && stmt.metrics.length > 0) {
-                        for (const metric of stmt.metrics) {
-                            rows.push([
-                                stmt.id,
-                                stmt.parent ?? null,
-                                stmt.meta?.line ?? null,
-                                metric.type,
-                                metric.value !== undefined ? JSON.stringify(metric.value) : null,
-                                metric.origin ?? null,
-                            ]);
-                        }
-                    } else {
-                        // Statement without metrics
-                        rows.push([
-                            stmt.id,
-                            stmt.parent ?? null,
-                            stmt.meta?.line ?? null,
-                            null,
-                            null,
-                            null,
-                        ]);
-                    }
-                }
-            }
-        }
-    }
-
-    if (rows.length === 0) {
-        return arrayToCSV(headers, [['No statements found', null, null, null, null, null]]);
-    }
-
-    return arrayToCSV(headers, rows);
-}
-
-/**
- * Convert workout results to CSV format
- */
-function resultsToCSV(entry: HistoryEntry): string {
-    const headers = [
-        'Start Time',
-        'End Time',
-        'Duration (ms)',
-        'Rounds Completed',
-        'Total Rounds',
-        'Reps Completed',
-        'Completed',
-        'Fragment Type',
-        'Fragment Value',
-        'Metric Behavior',
-        'Metric Timestamp'
-    ];
-
-    const rows: (string | number | boolean | null)[][] = [];
-
-    if (entry.results) {
-        const result = entry.results;
-
-        // If there are logs, create a row for each segment output
-        if (result.logs && result.logs.length > 0) {
-            for (const log of result.logs) {
-                for (const metric of log.metrics) {
-                    rows.push([
-                        result.startTime,
-                        result.endTime,
-                        result.duration,
-                        result.roundsCompleted ?? null,
-                        result.totalRounds ?? null,
-                        result.repsCompleted ?? null,
-                        result.completed,
-                        metric.type,
-                        metric.value !== undefined ? JSON.stringify(metric.value) : null,
-                        metric.origin ?? null,
-                        log.timeSpan.started ?? null,
-                    ]);
-                }
-            }
-        } else {
-            // No log data, just the result summary
-            rows.push([
-                result.startTime,
-                result.endTime,
-                result.duration,
-                result.roundsCompleted ?? null,
-                result.totalRounds ?? null,
-                result.repsCompleted ?? null,
-                result.completed,
-                null,
-                null,
-                null,
-                null,
-            ]);
-        }
-    }
-
-    if (rows.length === 0) {
-        return arrayToCSV(headers, [['No results found', null, null, null, null, null, null, null, null, null, null]]);
-    }
-
-    return arrayToCSV(headers, rows);
-}
-
-// ──────────────────────────────────────────────────────────────
-// Export Functions
-// ──────────────────────────────────────────────────────────────
-
-/**
- * Export all notes from the provider as a ZIP file
- */
-export async function exportAllNotes(provider: IContentProvider): Promise<void> {
-    const zip = new JSZip();
-
-    // Get all entries
-    const entries = await provider.getEntries();
-
-    if (entries.length === 0) {
-        throw new Error('No notes to export');
-    }
-
-    // Create README
-    const readme = [
-        '# WOD Wiki Export',
-        '',
-        `Export Date: ${new Date().toISOString()}`,
-        `Total Notes: ${entries.length}`,
-        '',
-        '## File Structure',
-        '',
-        'Each note is exported with the following files:',
-        '- `{noteId}.md` - Markdown representation with metadata',
-        '- `{noteId}_statements.csv` - Parsed code statements and metrics',
-        '- `{noteId}_results.csv` - Workout results for all versions',
-        '',
-        '## Notes',
-        '',
-        ...entries.map(e => `- ${e.title} (${e.id})`),
-    ].join('\n');
-
-    zip.file('README.md', readme);
-
-    // Add each note
-    for (const entry of entries) {
-        const noteId = entry.id.replace(/[^a-zA-Z0-9-_]/g, '_');
-
-        // Add markdown file
-        zip.file(`${noteId}.md`, noteToMarkdown(entry));
-
-        // Add statements CSV
-        zip.file(`${noteId}_statements.csv`, statementsToCSV(entry));
-
-        // Add results CSV
-        zip.file(`${noteId}_results.csv`, resultsToCSV(entry));
-    }
-
-    // Generate and download the ZIP
-    const blob = await zip.generateAsync({ type: 'blob' });
-    downloadBlob(blob, `wod-wiki-export-${Date.now()}.zip`);
-}
-
-/**
- * Export a single note as a ZIP file
- */
-export async function exportNote(entry: HistoryEntry): Promise<void> {
-    const zip = new JSZip();
-    const noteId = entry.id.replace(/[^a-zA-Z0-9-_]/g, '_');
-
-    // Add markdown file
-    zip.file(`${noteId}.md`, noteToMarkdown(entry));
-
-    // Add statements CSV
-    zip.file(`${noteId}_statements.csv`, statementsToCSV(entry));
-
-    // Add results CSV
-    zip.file(`${noteId}_results.csv`, resultsToCSV(entry));
-
-    // Add README
-    const readme = [
-        `# ${entry.title}`,
-        '',
-        `Export Date: ${new Date().toISOString()}`,
-        '',
-        '## Files',
-        '',
-        `- \`${noteId}.md\` - Markdown representation with metadata`,
-        `- \`${noteId}_statements.csv\` - Parsed code statements and metrics`,
-        `- \`${noteId}_results.csv\` - Workout results`,
-    ].join('\n');
-
-    zip.file('README.md', readme);
-
-    // Generate and download the ZIP
-    const blob = await zip.generateAsync({ type: 'blob' });
-    const filename = `${entry.title.replace(/[^a-zA-Z0-9-_]/g, '_')}-${Date.now()}.zip`;
-    downloadBlob(blob, filename);
-}
-
-// ──────────────────────────────────────────────────────────────
-// Import Functions
-// ──────────────────────────────────────────────────────────────
-
-/**
- * Import notes from a ZIP file
- */
-export async function importFromZip(
-    file: File,
-    provider: IContentProvider
-): Promise<{ imported: number; errors: string[] }> {
-    const zip = await JSZip.loadAsync(file);
-    const errors: string[] = [];
-    let imported = 0;
-
-    // Find all markdown files
-    const mdFiles = Object.keys(zip.files).filter(name => name.endsWith('.md') && name !== 'README.md');
-
-    for (const filename of mdFiles) {
-        try {
-            const content = await zip.files[filename].async('text');
-            const entry = parseMarkdownToEntry(content);
-
-            if (entry) {
-                await provider.saveEntry(entry);
-                imported++;
-            }
-        } catch (err) {
-            errors.push(`Failed to import ${filename}: ${err instanceof Error ? err.message : String(err)}`);
-        }
-    }
-
-    return { imported, errors };
-}
-
-/**
- * Parse exported markdown back into an entry
- */
-function parseMarkdownToEntry(markdown: string): Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> | null {
-    try {
-        // Extract metadata section
-        const metadataMatch = markdown.match(/## Metadata\s+(.*?)\s+## Content/s);
-        if (!metadataMatch) return null;
-
-        const metadataLines = metadataMatch[1].split('\n').filter(line => line.trim());
-
-        // Parse metadata
-        const metadata: Record<string, string> = {};
-        for (const line of metadataLines) {
-            const match = line.match(/^- \*\*(.+?)\*\*:\s*(.+)$/);
-            if (match) {
-                metadata[match[1]] = match[2];
-            }
-        }
-
-        // Extract content
-        const contentMatch = markdown.match(/## Content\s+(.*)$/s);
-        const rawContent = contentMatch ? contentMatch[1].trim() : '';
-
-        // Extract title from first line
-        const titleMatch = markdown.match(/^# (.+)$/m);
-        const title = titleMatch ? titleMatch[1] : 'Imported Note';
-
-        // Parse tags
-        const tags = metadata['Tags'] && metadata['Tags'] !== 'None'
-            ? metadata['Tags'].split(',').map(t => t.trim())
-            : [];
-
-        // Parse dates
-        const targetDate = metadata['Target Date']
-            ? new Date(metadata['Target Date']).getTime()
-            : Date.now();
-
-        const result: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> = {
-            title,
-            rawContent,
-            tags,
-            targetDate,
-            sections: [],
-        };
-
-        if (metadata['Cloned From']) {
-            result.templateId = metadata['Cloned From'];
-        }
-
-        if (metadata['Cloned To']) {
-            result.clonedIds = metadata['Cloned To'].split(',').map(id => id.trim());
-        }
-
-        return result;
-    } catch (err) {
-        console.error('Failed to parse markdown:', err);
-        return null;
-    }
-}
-
-/**
- * Create a note from pasted markdown text
- */
-export function createNoteFromMarkdown(markdown: string): Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> {
-    // Try to parse as exported format first
-    const parsed = parseMarkdownToEntry(markdown);
-    if (parsed) return parsed;
-
-    // Otherwise, treat as plain markdown
-    const titleMatch = markdown.match(/^#\s+(.+)$/m);
-    const title = titleMatch ? titleMatch[1] : 'Imported Note';
-
-    return {
-        title,
-        rawContent: markdown,
-        tags: [],
-        targetDate: Date.now(),
-        sections: [],
-    };
-}
-
-// ──────────────────────────────────────────────────────────────
-// Utility Functions
-// ──────────────────────────────────────────────────────────────
-
-/**
- * Trigger a browser download for a blob
- */
+/** Trigger a browser download of a Blob under the given filename. */
 function downloadBlob(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -423,19 +42,120 @@ function downloadBlob(blob: Blob, filename: string): void {
     URL.revokeObjectURL(url);
 }
 
-/**
- * Trigger file picker and return selected file
- */
-export function pickFile(accept: string = '*'): Promise<File | null> {
-    return new Promise((resolve) => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = accept;
-        input.onchange = () => {
-            const file = input.files?.[0];
-            resolve(file ?? null);
-        };
-        input.oncancel = () => resolve(null);
-        input.click();
-    });
+/** Open the browser file picker; resolves to the chosen File or null. */
+function pickFileFromBrowser(accept: string = '*'): Promise<File | null> {
+    const { promise, resolve } = Promise.withResolvers<File | null>();
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = accept;
+    input.onchange = () => resolve(input.files?.[0] ?? null);
+    input.oncancel = () => resolve(null);
+    input.click();
+    return promise;
 }
+
+/** Sanitize a note id into a zip-safe filename stem (deduped from the old 2 sites). */
+function noteFilenameStem(id: string): string {
+    return id.replace(/[^a-zA-Z0-9-_]/g, '_');
+}
+
+// ── Export ────────────────────────────────────────────────────────────────
+
+export async function exportAllNotes(provider: IContentProvider): Promise<void> {
+    const entries = await provider.getEntries();
+    if (entries.length === 0) {
+        throw new Error('No notes to export');
+    }
+
+    const clock = wallClockNow;
+    const archive = new NoteArchive();
+
+    // README
+    const readme = [
+        '# WOD Wiki Note Export',
+        '',
+        `Exported: ${new Date(clock.nowMs()).toISOString()}`,
+        `Notes: ${entries.length}`,
+        '',
+        '## Files',
+        ...entries.map(e => `- ${noteFilenameStem(e.id)}.md — ${e.title}`),
+        '',
+        'Each .md file is a note with a `## Metadata` block (ID, Created, Updated,',
+        'Target Date, Tags) followed by `## Content`. Re-importing preserves note',
+        'identity (same ID → overwrites instead of duplicating).',
+    ].join('\n');
+    archive.addText('README.md', readme);
+
+    for (const entry of entries) {
+        archive.addText(`${noteFilenameStem(entry.id)}.md`, noteToMarkdown(entry, clock));
+    }
+
+    const blob = await archive.toBlob();
+    downloadBlob(blob, `wod-wiki-export-${clock.nowMs()}.zip`);
+}
+
+export async function exportNote(entry: HistoryEntry): Promise<void> {
+    const clock = wallClockNow;
+    const archive = new NoteArchive();
+    const noteId = noteFilenameStem(entry.id);
+
+    archive.addText(`${noteId}.md`, noteToMarkdown(entry, clock));
+    archive.addText(`${noteId}_statements.csv`, statementsToCSV(entry));
+    archive.addText(`${noteId}_results.csv`, resultsToCSV(entry));
+
+    const readme = [
+        `# ${entry.title}`,
+        '',
+        `Export Date: ${clock.now().toISOString()}`,
+        '',
+        '## Files',
+        '',
+        `- \`${noteId}.md\` - Markdown representation with metadata`,
+        `- \`${noteId}_statements.csv\` - Parsed code statements and metrics`,
+        `- \`${noteId}_results.csv\` - Workout results`,
+    ].join('\n');
+    archive.addText('README.md', readme);
+
+    const blob = await archive.toBlob();
+    const filename = `${noteFilenameStem(entry.title)}-${clock.nowMs()}.zip`;
+    downloadBlob(blob, filename);
+}
+
+// ── Import ────────────────────────────────────────────────────────────────
+
+export async function importFromZip(
+    file: File,
+    provider: IContentProvider
+): Promise<{ imported: number; errors: string[] }> {
+    const clock = wallClockNow;
+    const zip = await JSZip.loadAsync(file);
+    const errors: string[] = [];
+    let imported = 0;
+
+    const mdFiles = Object.keys(zip.files).filter(name => name.endsWith('.md') && name !== 'README.md');
+
+    for (const filename of mdFiles) {
+        try {
+            const content = await zip.files[filename].async('text');
+            const entry = parseMarkdownToEntry(content, clock);
+            if (entry) {
+                // saveEntry honors a recovered id (NoteSaveInput) so a re-imported
+                // note overwrites its original instead of duplicating.
+                await provider.saveEntry(entry);
+                imported++;
+            } else {
+                errors.push(`Failed to import ${filename}: Invalid markdown format or missing metadata`);
+            }
+        } catch (err) {
+            errors.push(`Failed to import ${filename}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+    }
+
+    return { imported, errors };
+}
+
+export function pickFile(accept: string = '*'): Promise<File | null> {
+    return pickFileFromBrowser(accept);
+}
+
+export { createNoteFromMarkdown } from './export/NoteMarkdownDeserializer';

@@ -24,7 +24,7 @@ import { calculateDuration } from '@/lib/timeUtils';
 
 import { TimerStackView } from '@/components/organisms/workout/TimerStackView';
 import { MetricTrackerCard } from '@/components/organisms/track/MetricTrackerCard';
-import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
+import { useWorkbenchSession } from '@/stores/workbenchSessionStore'
 import { metricPresentation } from '@/core/metrics/presentation';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
 
@@ -89,13 +89,13 @@ export interface TimerDisplayProps {
  */
 const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
   const runtime = useScriptRuntime();
-  const viewMode = useWorkbenchSyncStore(s => s.viewMode);
+  const viewMode = useWorkbenchSession(s => s.viewMode);
   // Subscribe to runtime execution status so the Play/Pause toggle reflects
   // the runtime state, not just whether a timer span is currently open.
   // This prevents the "Run while running silently does nothing" UX bug ([UX-02]):
   // even between segments where no timer span is open, the runtime is still
   // active and the button must show Pause (not Play).
-  const executionStatus = useWorkbenchSyncStore(s => s.execution.status);
+  const executionStatus = useWorkbenchSession(s => s.execution.status);
 
   // Flash message state for required-timer skip attempts
   // skipFlashKey increments on each skip, giving the flash element a unique key
@@ -401,7 +401,7 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
  * TimerDisplay - Enhanced timer display component
  */
 export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
-  const viewMode = useWorkbenchSyncStore(s => s.viewMode);
+  const viewMode = useWorkbenchSession(s => s.viewMode);
 
   // Global keydown listener for hardware 'Next' button support (Volume Up / Enter)
   useEffect(() => {

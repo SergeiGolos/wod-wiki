@@ -1,6 +1,5 @@
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { FakeRpcTransport } from '@/testing/transport/FakeRpcTransport';
-import type { IEvent } from '@/runtime/contracts/events';
 import type { MockClock } from '@/runtime/RuntimeClock';
 import type { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
 import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
@@ -10,12 +9,12 @@ import type { IOutputStatement } from '@/core/models/OutputStatement';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock } from '@/runtime/RuntimeClock';
-import { sharedParser } from '@/parser/parserInstance';
+import { createParser } from '@/parser/parserInstance';
 import { StartSessionAction } from '@/runtime/actions/stack/StartSessionAction';
 import { NextEvent } from '@/runtime/events/NextEvent';
 import { ChromecastRuntimeSubscription } from '@/services/cast/rpc/ChromecastRuntimeSubscription';
 import { connectPair } from '@/testing/transport/FakeRpcTransport';
-import { createFullCompiler } from '@/testing/compiler'
+import { createCompiler } from '@/testing/compiler'
 import { ScriptState } from './ScriptState';
 
 export interface TestScriptConfig {
@@ -53,57 +52,41 @@ export class TestScript {
 
     /** Compile a script (string of whiteboard text) into a TestScript. */
     static async compile(scriptText: string, config?: TestScriptConfig): Promise<TestScript> {
-        const script = sharedParser.read(scriptText) as WhiteboardScript;
-        const compiler = createFullCompiler();
+        const script = createParser().read(scriptText) as WhiteboardScript;
+        return TestScript._create(script, config);
+    }
+    /** Build a TestScript from a pre-parsed WhiteboardScript (avoids double-parse). */
+    static async fromScript(script: WhiteboardScript, config?: TestScriptConfig): Promise<TestScript> {
+        return TestScript._create(script, config);
+    }
+    /** Shared factory body — both compile() and fromScript() funnel here. */
+    private static async _create(script: WhiteboardScript, config?: TestScriptConfig): Promise<TestScript> {
+        const compiler = createCompiler();
         const clock = config?.clock ?? createMockClock(new Date('2024-01-01T12:00:00Z'));
         const stack = new RuntimeStack();
         const eventBus = new EventBus();
         const runtime = config?.runtime ?? new ScriptRuntime(script, compiler, { stack, clock, eventBus });
         const castTransport = config?.castTransport ?? new FakeRpcTransport();
-
         if (!config?.castTransport) {
             const browserFake = new FakeRpcTransport();
             connectPair(browserFake, castTransport);
         }
-
         const ts = new TestScript(runtime, clock, castTransport);
         runtime.do(new StartSessionAction());
         await ts.flushObservers();
         return ts;
     }
-
-    /** Build a TestScript from a pre-parsed WhiteboardScript (avoids double-parse). */
-    static async fromScript(script: WhiteboardScript, config?: TestScriptConfig): Promise<TestScript> {
-        const compiler = createFullCompiler();
-        const clock = config?.clock ?? createMockClock(new Date('2024-01-01T12:00:00Z'));
-        const stack = new RuntimeStack();
-        const eventBus = new EventBus();
-        const runtime = new ScriptRuntime(script, compiler, { stack, clock, eventBus });
-        const castTransport = config?.castTransport ?? new FakeRpcTransport();
-
-        if (!config?.castTransport) {
-            const browserFake = new FakeRpcTransport();
-            connectPair(browserFake, castTransport);
-        }
-
-        const ts = new TestScript(runtime, clock, castTransport);
-        runtime.do(new StartSessionAction());
-        await ts.flushObservers();
-        return ts;
-    }
-
     /** Construct from an existing runtime. */
     static from(runtime: ScriptRuntime, config?: TestScriptConfig): TestScript {
         const clock = config?.clock ?? createMockClock(new Date('2024-01-01T12:00:00Z'));
         const castTransport = config?.castTransport ?? new FakeRpcTransport();
-
         if (!config?.castTransport) {
             const browserFake = new FakeRpcTransport();
             connectPair(browserFake, castTransport);
         }
-
         return new TestScript(runtime, clock, castTransport);
     }
+
 
     /** Capture a frozen ScriptState snapshot of the current state. */
     async snapshot(): Promise<ScriptState> {
@@ -127,17 +110,6 @@ export class TestScript {
         return this;
     }
 
-    /** Inject an arbitrary event by name. */
-    async userEvent(name: string, data?: unknown): Promise<this> {
-        const event: IEvent = {
-            name,
-            timestamp: this._clock.currentDate,
-            data,
-        };
-        this.runtime.handle(event);
-        await this.flushObservers();
-        return this;
-    }
 
     /** Advance the mock clock by ms. Does NOT auto-dispatch a tick event. */
     async advance(ms: number): Promise<this> {

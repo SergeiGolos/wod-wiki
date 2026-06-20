@@ -8,18 +8,18 @@
  * with selectors for optimal re-render performance:
  *
  * ```tsx
- * import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
+ * import { useWorkbenchSession } from '@/stores/workbenchSessionStore';
  *
  * // Only re-renders when hoveredBlockKey changes
- * const hoveredBlockKey = useWorkbenchSyncStore(s => s.hoveredBlockKey);
+ * const hoveredBlockKey = useWorkbenchSession(s => s.hoveredBlockKey);
  * ```
  */
 
 import { useShallow } from 'zustand/react/shallow';
-import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
+import { useWorkbenchSession } from '@/stores/workbenchSessionStore'
 
 export const useWorkbenchSync = () => {
-  return useWorkbenchSyncStore(
+  return useWorkbenchSession(
     useShallow(s => ({
       runtime: s.runtime,
       execution: s.execution,

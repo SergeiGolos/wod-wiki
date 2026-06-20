@@ -17,6 +17,7 @@ import type { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IEvent } from './contracts/events/IEvent';
 import { ExecutionContext } from './ExecutionContext';
 import { OutputEmitter } from './OutputEmitter';
+import { RuntimeObservers } from './RuntimeObservers';
 import { PushBlockAction } from './actions/stack/PushBlockAction';
 import { PopBlockAction } from './actions/stack/PopBlockAction';
 import { IAnalyticsEngine } from '../core/contracts/IAnalyticsEngine';
@@ -47,13 +48,13 @@ export class ScriptRuntime implements IScriptRuntime {
     // analytics enrichment, and all runtime emission helpers.
     private readonly _output = new OutputEmitter();
 
-    // Tracker update tracking
-    private _trackerListeners: Set<TrackerListener> = new Set();
-    private _trackerSubscriptionUnsub: (() => void) | null = null;
-
-    // Stack observer tracking
-    private _stackObservers: Set<StackObserver> = new Set();
-    private _stackSubscriptionUnsub: (() => void) | null = null;
+    // Shared observer collaborator — owns the stack + tracker subscriber Sets
+    // and the post-mount snapshot contract. See `RuntimeObservers` for the seam.
+    // The tracker upstream is wired through `options.tracker.onUpdate` (set
+    // lazily by RuntimeObservers on the first subscribeToTracker call).
+    private readonly _observers = new RuntimeObservers({
+        onUpdate: (callback) => this.options.tracker?.onUpdate?.(callback) ?? (() => {}),
+    });
 
     // The current execution context for the "turn"
     private _activeContext: ExecutionContext | null = null;
@@ -63,14 +64,20 @@ export class ScriptRuntime implements IScriptRuntime {
         return this.options.tracker;
     }
 
+    // Unsubscribe function for the IRuntimeStack → stack snapshot bridge.
+    // The stack-snapshot fan-out itself is owned by _observers (see
+    // RuntimeObservers); this field only holds the unsubscribe for the
+    // upstream `this.stack.subscribe(...)` call in the constructor.
+    private _stackSubscriptionUnsub: (() => void) | null = null;
+
     // Unsubscribe function for the global NextEventHandler
     private _nextHandlerUnsub: (() => void) | null = null;
 
-    // Unsubscribe function for the global AbortEventHandler
     public get nowProvider(): INowProvider {
         return this._now;
     }
 
+    // Unsubscribe function for the global AbortEventHandler
     private _abortHandlerUnsub: (() => void) | null = null;
 
     constructor(
@@ -96,20 +103,24 @@ export class ScriptRuntime implements IScriptRuntime {
 
         this.jit = compiler;
 
-        // Bridge stack events to StackSnapshot observers and emit system outputs
+        // Wire the OutputEmitter's runtime deps once — the emission helpers
+        // read clock/stack/script from here instead of taking them per call.
+        this._output.attach({ clock: this.clock, stack: this.stack, script: this.script });
+
+        // Bridge stack events to StackSnapshot observers and emit system outputs.
+        // The stack-snapshot fan-out is owned by RuntimeObservers; we just
+        // translate the IRuntimeStack event into a StackSnapshot and delegate.
         this._stackSubscriptionUnsub = this.stack.subscribe((event) => {
             if (event.type === 'pop') {
-                this._output.emitSegmentFromResultMemory(event.block, event.depth, this.clock);
+                this._output.emitSegmentFromResultMemory(event.block, event.depth);
             }
 
             // Emit system output for push/pop events
             if (event.type === 'push' || event.type === 'pop') {
-                this._output.emitStackEvent(event, this.stack.blocks, this.clock);
+                this._output.emitStackEvent(event);
             }
 
-            // Notify stack observers
-            if (this._stackObservers.size === 0) return;
-
+            // Notify stack observers via the shared collaborator
             const snapshot: StackSnapshot = {
                 type: event.type === 'initial' ? 'initial' : event.type,
                 blocks: event.type === 'initial' ? event.blocks : event.blocks,
@@ -117,21 +128,14 @@ export class ScriptRuntime implements IScriptRuntime {
                 depth: event.type === 'initial' ? event.blocks.length : event.depth,
                 clockTime: this.clock.currentDate,
             };
-
-            for (const observer of this._stackObservers) {
-                try {
-                    observer(snapshot);
-                } catch (err) {
-                    console.error('[RT] Stack observer error:', err);
-                }
-            }
+            this._observers.emitStack(snapshot);
         });
 
         // Start the clock
         this.clock.start();
 
         // Emit 'load' output with initial state
-        this._output.emitLoad(this.script, this.clock);
+        this._output.emitLoad();
     }
 
     /**
@@ -150,32 +154,42 @@ export class ScriptRuntime implements IScriptRuntime {
             this._activeContext.execute(action);
         } finally {
             this._activeContext = null;
-            // After the full execution turn settles (push + mount + child pushes all done),
-            // re-notify stack observers with the current state. This ensures blocks that
-            // set up timer memory during mount() are serialized with correct timer data.
-            // Without this, leaf blocks (no children pushed on mount) would have timer:null
-            // in the Chromecast snapshot because push fires before mount initializes memory.
+            // POST-MOUNT SNAPSHOT INVARIANT (see
+            // tests/runtime-compliance/post-mount-snapshot-invariant.compliance.test.ts):
+            // Snapshots reflect post-mount state. A block whose onMount has not
+            // completed must not appear in a snapshot. We re-notify stack observers
+            // here — AFTER the full execution turn (push + mount + child pushes) —
+            // so blocks that initialize timer memory during onMount are serialized
+            // with correct timer data. Without this, leaf blocks (no children pushed
+            // on mount) would have timer:null in the Chromecast snapshot because
+            // push fires before mount initializes memory.
             this._notifyStackSettled();
         }
     }
 
-    private _notifyStackSettled(): void {
-        if (this._stackObservers.size === 0) return;
+    /** Build the 'initial' snapshot of the current stack. Shared by settle-time
+     *  notification (sync, all observers) and subscribe-time catch-up (deferred,
+     *  new observer only). The two delivery timings differ deliberately — see
+     *  the call sites. */
+    private _buildInitialSnapshot(): StackSnapshot {
         const blocks = this.stack.blocks;
-        if (blocks.length === 0) return;
-        const snapshot: StackSnapshot = {
+        return {
             type: 'initial',
             blocks,
             depth: blocks.length,
             clockTime: this.clock.currentDate,
         };
-        for (const observer of this._stackObservers) {
-            try {
-                observer(snapshot);
-            } catch (err) {
-                console.error('[RT] Stack observer error (settled):', err);
-            }
-        }
+    }
+
+    private _notifyStackSettled(): void {
+        // Delegate the post-turn re-emit to the shared collaborator. The
+        // collaborator owns the post-mount snapshot contract — it skips
+        // fan-out when there are no subscribers or the stack is empty.
+        this._observers.emitSettled(
+            this.stack.blocks,
+            this.stack.count,
+            this.clock.currentDate,
+        );
     }
 
     /**
@@ -209,7 +223,7 @@ export class ScriptRuntime implements IScriptRuntime {
         // Only emit 'event' output if it's NOT a tick event OR if it produced actions
         // This prevents flooding the log with empty tick cycles
         if (event.name !== 'tick' || actions.length > 0) {
-            this._output.emitRuntimeEvent(event, this.stack, this.clock);
+            this._output.emitRuntimeEvent(event);
         }
 
         if (actions.length === 0) return;
@@ -245,33 +259,9 @@ export class ScriptRuntime implements IScriptRuntime {
      * Subscribe to real-time tracker updates.
      */
     public subscribeToTracker(listener: TrackerListener): Unsubscribe {
-        this._trackerListeners.add(listener);
-
-        // If this is the first listener and we have a tracker, subscribe to it
-        if (this._trackerListeners.size === 1 && this.tracker?.onUpdate) {
-            this._trackerSubscriptionUnsub = this.tracker.onUpdate((update) => {
-                for (const l of this._trackerListeners) {
-                    try {
-                        l(update);
-                    } catch (err) {
-                        console.error('[RT] Tracker listener error:', err);
-                    }
-                }
-            });
-        }
-
-        return () => {
-            this._trackerListeners.delete(listener);
-            if (this._trackerListeners.size === 0 && this._trackerSubscriptionUnsub) {
-                this._trackerSubscriptionUnsub();
-                this._trackerSubscriptionUnsub = null;
-            }
-        };
+        return this._observers.subscribeToTracker(listener);
     }
 
-    /**
-     * Set the analytics engine for the runtime.
-     */
     public setAnalyticsEngine(engine: IAnalyticsEngine): void {
         this._output.setAnalyticsEngine(engine);
     }
@@ -291,25 +281,28 @@ export class ScriptRuntime implements IScriptRuntime {
      * an 'initial' snapshot with the current stack state.
      */
     public subscribeToStack(observer: StackObserver): Unsubscribe {
-        this._stackObservers.add(observer);
+        const unsub = this._observers.subscribeToStack(observer);
 
-        // Immediate notification of current state, deferred to next tick to avoid React render warnings
-        const initialSnapshot: StackSnapshot = {
-            type: 'initial',
-            blocks: this.stack.blocks,
-            depth: this.stack.count,
-            clockTime: this.clock.currentDate,
-        };
-
+        // Immediate notification of current state, deferred to next tick to
+        // avoid React render warnings. The collaborator is timing-agnostic;
+        // each adapter owns its own initial-snapshot policy (the proxy fires
+        // synchronously; ScriptRuntime defers). We call the observer
+        // directly — `emitStack` is a broadcast and would re-deliver to all
+        // existing subscribers, which is not the catch-up behavior either
+        // adapter had before this refactor.
+        const initialSnapshot = this._buildInitialSnapshot();
         setTimeout(() => {
-            if (this._stackObservers.has(observer)) {
+            // Re-check membership: the observer may have unsubscribed before
+            // the deferred callback fired.
+            if (!this._observers.hasStackObserver(observer)) return;
+            try {
                 observer(initialSnapshot);
+            } catch (err) {
+                console.error('[RT] Stack observer error (initial):', err);
             }
         }, 0);
 
-        return () => {
-            this._stackObservers.delete(observer);
-        };
+        return unsub;
     }
 
     /**
@@ -354,19 +347,15 @@ export class ScriptRuntime implements IScriptRuntime {
         // Clear output state to release references
         this._output.dispose();
 
-        // Clear stack observers
-        this._stackObservers.clear();
+        // Unsubscribe the IRuntimeStack → stack snapshot bridge.
         if (this._stackSubscriptionUnsub) {
             this._stackSubscriptionUnsub();
             this._stackSubscriptionUnsub = null;
         }
 
-        // Clear tracker listeners
-        this._trackerListeners.clear();
-        if (this._trackerSubscriptionUnsub) {
-            this._trackerSubscriptionUnsub();
-            this._trackerSubscriptionUnsub = null;
-        }
+        // Drop all stack + tracker subscribers (and any upstream tracker
+        // subscription the collaborator holds) in one call.
+        this._observers.dispose();
 
         // Clear the event bus
         this.eventBus.dispose();
@@ -387,7 +376,7 @@ export class ScriptRuntime implements IScriptRuntime {
         this.options.hooks?.onBeforePush?.(block, parentBlock);
 
         // Emit 'compiler' output for the new block
-        this._output.emitCompilerBlock(block, this.stack.count, this.clock);
+        this._output.emitCompilerBlock(block);
 
         // Start tracking span
         const parentSpanId = parentBlock

@@ -3,7 +3,7 @@ import type { ScriptBlock } from '@/components/Editor/types';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 import type { ExecutionStatus } from '@/runtime/hooks/useRuntimeExecution';
-import type { RpcWorkbenchUpdate } from '@/hooks/useCastSignaling';
+import type { RpcWorkbenchUpdate } from '@/services/cast/rpc/RpcMessages';
 import { buildPreviewProjection, buildReviewProjection } from './workbenchProjection';
 
 export interface WorkbenchModeResolverState {

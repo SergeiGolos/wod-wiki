@@ -10,7 +10,7 @@
  *   import { parse } from '../helpers/parser-test-utils';
  *   parse('10 Pullups').roots()[0].hasMetric(MetricType.Rep);
  */
-import { sharedParser } from '@/parser/parserInstance';
+import { createParser } from '@/parser/parserInstance';
 import { WhiteboardScript, type IScript } from '@/parser/WhiteboardScript';
 import { ICodeStatement } from '@/core/models/CodeStatement';
 import { IMetric, MetricType } from '@/core/models/Metric';
@@ -21,7 +21,7 @@ import { getHints, hasHint } from '@/core/metrics/hints';
 
 import { UnitsDialect } from '@/dialects/UnitsDialect';
 import { CrossFitDialect } from '@/dialects/CrossFitDialect';
-import { FenceDialect } from '@/dialects/FenceDialect';
+import { WodDialect } from '@/dialects/WodDialect';
 import { CardioDialect } from '@/dialects/CardioDialect';
 import { YogaDialect } from '@/dialects/YogaDialect';
 import { HabitsDialect } from '@/dialects/HabitsDialect';
@@ -33,7 +33,7 @@ import { ClimbDialect } from '@/dialects/ClimbDialect';
 export const ALL_DIALECTS: IDialect[] = [
     new UnitsDialect(),
     new CrossFitDialect(),
-    new FenceDialect(),
+    new WodDialect(),
     new CardioDialect(),
     new YogaDialect(),
     new HabitsDialect(),
@@ -86,7 +86,7 @@ export function createParserContext(
     const dialectList = options?.dialects ?? ALL_DIALECTS;
     const registry = registryFrom(dialectList);
 
-    const script = sharedParser.read(scriptText) as WhiteboardScript;
+    const script = createParser().readWithoutDialects(scriptText) as WhiteboardScript;
 
     // Apply dialect processing to all parsed statements.
     const stmts = script.statements as ICodeStatement[];

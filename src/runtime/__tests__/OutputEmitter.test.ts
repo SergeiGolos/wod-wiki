@@ -99,6 +99,18 @@ function makeScript(statements: any[] = []): WhiteboardScript {
     } as unknown as WhiteboardScript;
 }
 
+/** Wire clock/stack/script onto an emitter the way ScriptRuntime does. */
+function attachEmitter(
+    emitter: OutputEmitter,
+    opts: { clock?: IRuntimeClock; stack?: IRuntimeStack; script?: WhiteboardScript } = {},
+): void {
+    emitter.attach({
+        clock: opts.clock ?? makeClock(),
+        stack: opts.stack ?? makeStack(),
+        script: opts.script ?? makeScript(),
+    });
+}
+
 // ── Core API tests ───────────────────────────────────────────────────────────
 
 describe('OutputEmitter — core API', () => {
@@ -295,10 +307,9 @@ describe('OutputEmitter — emitStackEvent', () => {
     it('skips output creation when no listeners are present (GC guard)', () => {
         const emitter = new OutputEmitter();
         const block = makeBlock('b1');
-        const clock = makeClock();
 
-        // No listeners — should NOT emit (hasListeners guard)
-        emitter.emitStackEvent({ type: 'push', block, depth: 1 }, [block], clock);
+        // No listeners — should NOT emit (hasListeners guard fires before attach)
+        emitter.emitStackEvent({ type: 'push', block, depth: 1 });
 
         expect(emitter.getAll()).toHaveLength(0);
     });
@@ -307,9 +318,9 @@ describe('OutputEmitter — emitStackEvent', () => {
         const emitter = new OutputEmitter();
         emitter.subscribe(() => {}); // register a listener
         const block = makeBlock('b1');
-        const clock = makeClock();
+        attachEmitter(emitter, { stack: makeStack(block, 1) });
 
-        emitter.emitStackEvent({ type: 'push', block, depth: 1 }, [block], clock);
+        emitter.emitStackEvent({ type: 'push', block, depth: 1 });
 
         const all = emitter.getAll();
         expect(all).toHaveLength(1);
@@ -323,10 +334,10 @@ describe('OutputEmitter — emitStackEvent', () => {
 
         const parent = makeBlock('parent');
         const child = makeBlock('child');
-        const clock = makeClock();
+        // attached stack.blocks[0] is top (child), [1] is parent
+        attachEmitter(emitter, { stack: { blocks: [child, parent], count: 2, current: child } as unknown as IRuntimeStack });
 
-        // stackBlocks[0] is top (child), stackBlocks[1] is parent
-        emitter.emitStackEvent({ type: 'push', block: child, depth: 2 }, [child, parent], clock);
+        emitter.emitStackEvent({ type: 'push', block: child, depth: 2 });
 
         expect(received).toHaveLength(1);
         const metric = received[0].metrics.toArray()[0];
@@ -339,9 +350,9 @@ describe('OutputEmitter — emitStackEvent', () => {
         emitter.subscribe(o => received.push(o));
 
         const block = makeBlock('b1', { completionReason: 'timeout' });
-        const clock = makeClock();
+        attachEmitter(emitter, { stack: makeStack(block, 1) });
 
-        emitter.emitStackEvent({ type: 'pop', block, depth: 1 }, [block], clock);
+        emitter.emitStackEvent({ type: 'pop', block, depth: 1 });
 
         const metric = received[0].metrics.toArray()[0];
         expect((metric.value as any).completionReason).toBe('timeout');
@@ -353,9 +364,9 @@ describe('OutputEmitter — emitStackEvent', () => {
         emitter.subscribe(o => received.push(o));
 
         const block = makeBlock('b1'); // no completionReason
-        const clock = makeClock();
+        attachEmitter(emitter, { stack: makeStack(block, 1) });
 
-        emitter.emitStackEvent({ type: 'pop', block, depth: 1 }, [block], clock);
+        emitter.emitStackEvent({ type: 'pop', block, depth: 1 });
 
         const metric = received[0].metrics.toArray()[0];
         expect((metric.value as any).completionReason).toBe('normal');
@@ -368,7 +379,8 @@ describe('OutputEmitter — emitSegmentFromResultMemory', () => {
     it('emits nothing when block has no metric:result memory', () => {
         const emitter = new OutputEmitter();
         const block = makeBlock('b1'); // no resultLocs
-        emitter.emitSegmentFromResultMemory(block, 1, makeClock());
+        attachEmitter(emitter);
+        emitter.emitSegmentFromResultMemory(block, 1);
 
         expect(emitter.getAll()).toHaveLength(0);
     });
@@ -384,8 +396,8 @@ describe('OutputEmitter — emitSegmentFromResultMemory', () => {
                 { metrics: MetricContainer.empty('b1').add(metric2) },
             ],
         });
-
-        emitter.emitSegmentFromResultMemory(block, 1, makeClock());
+        attachEmitter(emitter);
+        emitter.emitSegmentFromResultMemory(block, 1);
 
         // 2 result groups → 2 segment outputs
         expect(emitter.getAll()).toHaveLength(2);
@@ -399,7 +411,8 @@ describe('OutputEmitter — emitSegmentFromResultMemory', () => {
             resultLocs: [{ metrics: MetricContainer.empty('b1') }],
         });
 
-        emitter.emitSegmentFromResultMemory(block, 1, makeClock());
+        attachEmitter(emitter);
+        emitter.emitSegmentFromResultMemory(block, 1);
 
         // Empty result → skipped
         expect(emitter.getAll()).toHaveLength(0);
@@ -427,7 +440,8 @@ describe('OutputEmitter — emitSegmentFromResultMemory', () => {
             displayLocs: [{ metrics: MetricContainer.empty('b1').add(displayMetric) }],
         });
 
-        emitter.emitSegmentFromResultMemory(block, 1, makeClock());
+        attachEmitter(emitter);
+        emitter.emitSegmentFromResultMemory(block, 1);
 
         const segments = emitter.getAll();
         expect(segments).toHaveLength(1);
@@ -438,17 +452,13 @@ describe('OutputEmitter — emitSegmentFromResultMemory', () => {
         expect(segments[0].metrics.toArray().find(m => m.image === 'Display')).toBeDefined();
     });
 });
-
-// ── emitRuntimeEvent ─────────────────────────────────────────────────────────
-
 describe('OutputEmitter — emitRuntimeEvent', () => {
     it('emits event output with current block key', () => {
         const emitter = new OutputEmitter();
         const block = makeBlock('active-block');
-        const stack = makeStack(block, 1);
-        const clock = makeClock();
+        attachEmitter(emitter, { stack: makeStack(block, 1) });
 
-        emitter.emitRuntimeEvent({ name: 'next', timestamp: new Date(), data: {} }, stack, clock);
+        emitter.emitRuntimeEvent({ name: 'next', timestamp: new Date(), data: {} });
 
         const all = emitter.getAll();
         expect(all).toHaveLength(1);
@@ -458,10 +468,9 @@ describe('OutputEmitter — emitRuntimeEvent', () => {
 
     it('falls back to "root" when stack has no current block', () => {
         const emitter = new OutputEmitter();
-        const stack = makeStack(undefined, 0); // no current block
-        const clock = makeClock();
+        attachEmitter(emitter, { stack: makeStack(undefined, 0) }); // no current block
 
-        emitter.emitRuntimeEvent({ name: 'tick', timestamp: new Date(), data: {} }, stack, clock);
+        emitter.emitRuntimeEvent({ name: 'tick', timestamp: new Date(), data: {} });
 
         expect(emitter.getAll()[0].sourceBlockKey).toBe('root');
     });
@@ -478,9 +487,9 @@ describe('OutputEmitter — emitCompilerBlock', () => {
                 { constructor: { name: 'LabelingBehavior' } },
             ] as any,
         });
-        const clock = makeClock();
+        attachEmitter(emitter, { stack: makeStack(undefined, 0) });
 
-        emitter.emitCompilerBlock(block, 0, clock);
+        emitter.emitCompilerBlock(block);
 
         const all = emitter.getAll();
         expect(all).toHaveLength(1);
@@ -515,8 +524,8 @@ describe('OutputEmitter — emitLoad', () => {
             },
         ]);
 
-        emitter.emitLoad(script, makeClock());
-
+        attachEmitter(emitter, { script });
+        emitter.emitLoad();
         expect(emitter.getAll()).toHaveLength(2);
         expect(emitter.getAll().every(o => o.outputType === 'load')).toBe(true);
     });
@@ -542,7 +551,8 @@ describe('OutputEmitter — emitLoad', () => {
             },
         ]);
 
-        emitter.emitLoad(script, makeClock());
+        attachEmitter(emitter, { script });
+        emitter.emitLoad();
 
         const all = emitter.getAll();
         expect(all[0].stackLevel).toBe(0); // root statement, depth 0

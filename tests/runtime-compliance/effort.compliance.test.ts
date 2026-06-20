@@ -22,112 +22,39 @@
  *   - 🟢 Effort with Forced Rest (*:30) — userNext is suppressed while the
  *     countdown is active; timer-expiry is the only valid completion reason.
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import { TestScript, assertions } from '@/testing/script';
+import { it, expect } from 'bun:test';
+import { describeCompliance, assertions } from '@/testing/script';
 import { MetricType } from '@/core/models/Metric';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Returns the blockType of the top-of-stack block, or undefined when empty.
- */
-function currentBlockType(state: ScriptState): string | undefined {
-    return state.current?.blockType;
-}
-
-/**
- * Checks whether the current block's display memory contains a metric of
- * the given type. This is the correct place to check parser-defined metrics
- * (Rep, Effort, Resistance, Distance) since they are NOT in output statements.
- */
-function blockHasDisplayMetric(state: ScriptState, metricType: MetricType | string): boolean {
-    const block = state.current;
-    if (!block) return false;
-    return block.getMemoryByTag('metric:display')
-        .flatMap(loc => loc.metrics.toArray())
-        .some(m => m.type === metricType);
-}
-
-/**
- * Returns the display metrics for the current block (flat array).
- */
-function blockDisplayMetrics(state: ScriptState) {
-    const block = state.current;
-    if (!block) return [];
-    return block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics.toArray());
-}
-
-/**
- * Checks whether any block currently on the runtime stack carries a display
- * metric of the given type. Useful when the block hasn't been popped yet (and
- * therefore its metrics haven't surfaced in output statements).
- */
-function stackHasMetric(state: ScriptState, metricType: MetricType | string): boolean {
-    return state.blocks
-        .flatMap(b => b.getMemoryByTag('metric:display'))
-        .flatMap(loc => loc.metrics.toArray())
-        .some(m => m.type === metricType);
-}
-
-/**
- * Checks whether any OUTPUT statement (segment/completion) includes a metric
- * of the given type. This is the OUTPUT-layer check — currently only timing
- * metrics appear here, NOT parser-defined display metrics.
- */
-function anyOutputHasMetric(state: ScriptState, metricType: MetricType | string): boolean {
-    return assertions(state).outputs().all().some(o =>
-        [...o.metrics].some(m => m.type === metricType)
-    );
-}
-
-/**
- * Checks whether any system pop event carries the given completionReason.
- * The completionReason lives in the system event's metric.value, not in
- * the completion output's completionReason field.
- */
-function anySystemPopHasReason(state: ScriptState, reason: string): boolean {
-    return assertions(state).outputs().all()
-        .filter(o => o.outputType === 'system')
-        .some(o => {
-            const sysMetric = [...o.metrics].find(m => m.type === MetricType.System);
-            const v = sysMetric?.value as Record<string, unknown> | undefined;
-            return v?.event === 'pop' && v?.completionReason === reason;
-        });
-}
+import { currentBlockType, blockHasDisplayMetric, blockDisplayMetrics, stackHasMetric, anyOutputHasMetric, anySystemPopHasReason } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Single Effort — "10 Pullups"
 // Spec: effort.md#-single-effort
 // ===========================================================================
-describe('🟢 Single Effort (10 Pullups)', () => {
-    const SCRIPT = '10 Pullups';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Single Effort (10 Pullups)', '10 Pullups', (ctx) => {
 
     it('step 0: startSession → SessionRoot + WaitingToStart (depth = 2)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         expect((await script.snapshot()).depth).toBe(2);
     });
 
     it('step 1: userNext → Effort mounted (depth = 2, blockType = effort)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect((await script.snapshot()).depth).toBe(2);
         expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
     it('step 2: second userNext → effort pops, session ends (depth = 0)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         expect((await script.snapshot()).depth).toBe(0);
     });
 
     it('all outputs are paired on clean termination', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
@@ -139,14 +66,10 @@ describe('🟢 Single Effort (10 Pullups)', () => {
 // 🟢 Effort with Weight — "10 Clean & Jerk @ 135 lb"
 // Spec: effort.md#-effort-with-weight
 // ===========================================================================
-describe('🟢 Effort with Weight (10 Clean & Jerk @ 135 lb)', () => {
-    const SCRIPT = '10 Clean & Jerk @ 135 lb';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Effort with Weight (10 Clean & Jerk @ 135 lb)', '10 Clean & Jerk @ 135 lb', (ctx) => {
 
     it('step 1: userNext → effort mounted, metrics include Resistance (135 lb)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
         // Resistance metric is stored in block display memory (not in outputs)
@@ -154,7 +77,7 @@ describe('🟢 Effort with Weight (10 Clean & Jerk @ 135 lb)', () => {
     });
 
     it('step 2: second userNext → clean termination (depth = 0)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         expect((await script.snapshot()).depth).toBe(0);
@@ -165,14 +88,10 @@ describe('🟢 Effort with Weight (10 Clean & Jerk @ 135 lb)', () => {
 // 🟢 Effort with Bodyweight — "20 Pushups bw"
 // Spec: effort.md#-effort-with-bodyweight
 // ===========================================================================
-describe('🟢 Effort with Bodyweight (20 Pushups bw)', () => {
-    const SCRIPT = '20 Pushups bw';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Effort with Bodyweight (20 Pushups bw)', '20 Pushups bw', (ctx) => {
 
     it('step 1: userNext → effort mounted, metrics include Resistance (bw)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
         // bw is parsed as a WeightUnit → ResistanceMetric; stored in block display memory
@@ -180,7 +99,7 @@ describe('🟢 Effort with Bodyweight (20 Pushups bw)', () => {
     });
 
     it('step 2: second userNext → clean termination (depth = 0)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         expect((await script.snapshot()).depth).toBe(0);
@@ -191,33 +110,29 @@ describe('🟢 Effort with Bodyweight (20 Pushups bw)', () => {
 // 🟢 Sequential Efforts — 3 exercises, no nesting
 // Spec: effort.md#-sequential-efforts-no-nesting
 // ===========================================================================
-describe('🟢 Sequential Efforts (10 Pullups / 15 Pushups / 20 Air Squats)', () => {
-    const SCRIPT = '10 Pullups\n15 Pushups\n20 Air Squats';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Sequential Efforts (10 Pullups / 15 Pushups / 20 Air Squats)', '10 Pullups\n15 Pushups\n20 Air Squats', (ctx) => {
 
     it('step 0: startSession → depth = 2 (SessionRoot + WaitingToStart)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         expect((await script.snapshot()).depth).toBe(2);
     });
 
     it('step 1: first userNext → Pullups effort mounted (depth ≥ 2)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // WaitingToStart → Pullups
         expect((await script.snapshot()).depth).toBeGreaterThanOrEqual(2);
         expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
     it('step 2: second userNext → Pushups effort becomes current', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Pullups
         await script.next(); // Pushups
         expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
     it('step 3: third userNext → Air Squats effort becomes current', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Pullups
         await script.next(); // Pushups
         await script.next(); // Air Squats
@@ -225,7 +140,7 @@ describe('🟢 Sequential Efforts (10 Pullups / 15 Pushups / 20 Air Squats)', ()
     });
 
     it('step 4: fourth userNext → session ends (depth = 0)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Pullups
         await script.next(); // Pushups
         await script.next(); // Air Squats
@@ -234,7 +149,7 @@ describe('🟢 Sequential Efforts (10 Pullups / 15 Pushups / 20 Air Squats)', ()
     });
 
     it('total outputs ≥ 8 (segment + completion for each of 3 efforts + session root outputs)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         await script.next();
@@ -251,14 +166,10 @@ describe('🟢 Sequential Efforts (10 Pullups / 15 Pushups / 20 Air Squats)', ()
 // Segment/completion output statements carry only timing metrics; display
 // metrics live in block memory and are verified via blockHasDisplayMetric.
 // ===========================================================================
-describe('🟢 Effort with Distance (400 m Run)', () => {
-    const SCRIPT = '400 m Run';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Effort with Distance (400 m Run)', '400 m Run', (ctx) => {
 
     it('distance metric is stored in block display memory (parsing works)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
         // Distance IS in block memory (parsing is correct)
@@ -266,7 +177,7 @@ describe('🟢 Effort with Distance (400 m Run)', () => {
     });
 
     it('distance metric has value 400 and unit "m" in block display memory', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const metrics = await blockDisplayMetrics(await script.snapshot());
         const distanceMetric = metrics.find(m => m.type === MetricType.Distance);
@@ -279,13 +190,13 @@ describe('🟢 Effort with Distance (400 m Run)', () => {
     it('distance metric is present on the runtime stack while block is active', async () => {
         // The block is still on the stack (not yet popped), so the metric lives
         // in block display memory — use stackHasMetric rather than anyOutputHasMetric.
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await stackHasMetric(await script.snapshot(), MetricType.Distance)).toBe(true);
     });
 
     it('step 2: second userNext → clean termination (depth = 0)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         expect((await script.snapshot()).depth).toBe(0);
@@ -297,20 +208,16 @@ describe('🟢 Effort with Distance (400 m Run)', () => {
 // A bare effort block (no timer prefix) completes immediately on userNext.
 // Spec: effort.md#-effort---usernext-is-always-skippable
 // ===========================================================================
-describe('🟢 Effort — userNext Is Always Skippable (10 Pullups)', () => {
-    const SCRIPT = '10 Pullups';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Effort — userNext Is Always Skippable (10 Pullups)', '10 Pullups', (ctx) => {
 
     it('userNext immediately mounts effort', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // WaitingToStart → Effort
         expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
     it('second userNext immediately pops effort regardless of elapsed time', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // mount
         await script.next(); // pop immediately — no minimum hold time
         expect((await script.snapshot()).depth).toBe(0);
@@ -318,14 +225,14 @@ describe('🟢 Effort — userNext Is Always Skippable (10 Pullups)', () => {
 
     it('completionReason is user-advance for effort block (via system event)', async () => {
         // completionReason lives in system pop events, not in completion outputs
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         expect(await anySystemPopHasReason(await script.snapshot(), 'user-advance')).toBe(true);
     });
 
     it('no time advance needed — userNext any time completes it', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // mount
         // No advanceClock at all — should still complete
         await script.next();
@@ -338,32 +245,28 @@ describe('🟢 Effort — userNext Is Always Skippable (10 Pullups)', () => {
 // :30 Rest is advisory — userNext dismisses it early OR timer auto-completes.
 // Spec: effort.md#-effort-with-timed-rest-after-skippable
 // ===========================================================================
-describe('🟢 Effort with Skippable Rest (:30 Rest)', () => {
-    const SCRIPT = '10 Pullups\n:30 Rest\n10 Pushups';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Effort with Skippable Rest (:30 Rest)', '10 Pullups\n:30 Rest\n10 Pushups', (ctx) => {
 
     it('step 0: startSession → depth = 2', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         expect((await script.snapshot()).depth).toBe(2);
     });
 
     it('step 1: userNext → Pullups effort mounted', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
     it('step 2: second userNext → Rest/Timer block becomes current', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Pullups
         await script.next(); // :30 Rest
         expect(await currentBlockType(await script.snapshot())).toMatch(/Rest|Timer/i);
     });
 
     it('step 3a: userNext on :30 Rest skips it — Pushups become current immediately', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Pullups
         await script.next(); // :30 Rest mounted
         expect(await currentBlockType(await script.snapshot())).toMatch(/Rest|Timer/i);
@@ -372,7 +275,7 @@ describe('🟢 Effort with Skippable Rest (:30 Rest)', () => {
     });
 
     it('step 3b: advanceClock(30_000) auto-expires :30 Rest → Pushups become current', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Pullups
         await script.next(); // :30 Rest mounted
         await script.tick(30_000); // rest auto-expires
@@ -381,7 +284,7 @@ describe('🟢 Effort with Skippable Rest (:30 Rest)', () => {
 
     it('rest completionReason is user-advance when skipped early (via system event)', async () => {
         // completionReason lives in system pop events, not in completion outputs
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Pullups
         await script.next(); // :30 Rest mounted
         await script.next(); // skip
@@ -390,7 +293,7 @@ describe('🟢 Effort with Skippable Rest (:30 Rest)', () => {
     });
 
     it('step 4: after rest, final userNext completes Pushups → session ends', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Pullups
         await script.next(); // :30 Rest
         await script.next(); // skip rest → Pushups
@@ -408,33 +311,30 @@ describe('🟢 Effort with Skippable Rest (:30 Rest)', () => {
 // The `*` prefix sets `behavior.required_timer` hint which configures
 // ExitBehavior with onNext:false so userNext is suppressed until timer fires.
 // ===========================================================================
-describe('🟢 Effort with Forced Rest After (*:30 — Cannot Skip)', () => {
-    const SCRIPT = '10 Pullups\n*:30 Rest\n10 Pushups';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Effort with Forced Rest After (*:30 — Cannot Skip)', '10 Pullups\n*:30 Rest\n10 Pushups', (ctx) => {
 
     /** Helper: drive to the point where forced rest is the current block. */
     async function enterForcedRest() {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // WaitingToStart → Pullups
         await script.next(); // Pullups → *:30 forced Rest
+        return script;
     }
 
     it('step 2: forced rest block is mounted after Pullups', async () => {
-        await enterForcedRest();
+        const script = await enterForcedRest();
         expect(await currentBlockType(await script.snapshot())).toMatch(/Rest|Timer/i);
     });
 
     it('step 3: userNext during *:30 forced rest is a no-op — stack depth unchanged', async () => {
-        await enterForcedRest();
+        const script = await enterForcedRest();
         const depthAtRest = (await script.snapshot()).depth;
         await script.next(); // attempt skip — MUST be suppressed
         expect((await script.snapshot()).depth).toBe(depthAtRest);
     });
 
     it('multiple userNext calls during *:30 forced rest all produce zero stack changes', async () => {
-        await enterForcedRest();
+        const script = await enterForcedRest();
         const depthAtRest = (await script.snapshot()).depth;
         await script.next();
         await script.next();
@@ -444,13 +344,13 @@ describe('🟢 Effort with Forced Rest After (*:30 — Cannot Skip)', () => {
     });
 
     it('forced rest block remains current after userNext attempts', async () => {
-        await enterForcedRest();
+        const script = await enterForcedRest();
         await script.next(); // no-op attempt
         expect(await currentBlockType(await script.snapshot())).toMatch(/Rest|Timer/i);
     });
 
     it('advanceClock(30_000) expires the forced rest → auto-pops → Pushups next', async () => {
-        await enterForcedRest();
+        const script = await enterForcedRest();
         await script.tick(30_000); // forced rest timer fires
         // Forced rest auto-popped; Pushups effort mounted
         expect(await currentBlockType(await script.snapshot())).toMatch(/effort/i);
@@ -460,7 +360,7 @@ describe('🟢 Effort with Forced Rest After (*:30 — Cannot Skip)', () => {
         // The Pullups pop will have 'user-advance' (correct).
         // The forced rest pop must NOT have 'user-advance' — it must be timer-expiry.
         // System events carry completionReason in metric.value.
-        await enterForcedRest();
+        const script = await enterForcedRest();
         await script.tick(30_000); // rest timer fires → auto-pop
 
         const systemPops = assertions(await script.snapshot()).outputs().all()
@@ -477,7 +377,7 @@ describe('🟢 Effort with Forced Rest After (*:30 — Cannot Skip)', () => {
     });
 
     it('after forced rest expires, userNext completes Pushups → session ends', async () => {
-        await enterForcedRest();
+        const script = await enterForcedRest();
         await script.tick(30_000); // rest expires → Pushups pushed
         await script.next(); // complete Pushups
         expect((await script.snapshot()).depth).toBe(0);

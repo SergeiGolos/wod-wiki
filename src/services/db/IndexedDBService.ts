@@ -23,7 +23,7 @@ import {
     SegmentDataType,
     Effort,
 } from '../../types/storage';
-
+import { sameNoteId } from '../persistence/sameNoteId';
 // ---------------------------------------------------------------------------
 // DB Schema type (idb generic)
 // ---------------------------------------------------------------------------
@@ -250,14 +250,11 @@ export class IndexedDBService {
     async getResultsForNote(noteId: string): Promise<WorkoutResult[]> {
         let results = await (await this.dbPromise).getAllFromIndex('results', 'by-note', noteId);
 
-        // Fallback: suffix matching for ID format mismatches (legacy compat)
+        // Fallback: suffix matching for ID format mismatches (legacy compat).
+        // Uses the shared sameNoteId helper so the rule lives in one place.
         if (results.length === 0) {
             const allResults = await (await this.dbPromise).getAll('results');
-            results = allResults.filter(r =>
-                r.noteId === noteId ||
-                r.noteId.endsWith('-' + noteId) ||
-                noteId.endsWith('-' + r.noteId)
-            );
+            results = allResults.filter(r => sameNoteId(r.noteId, noteId));
         }
 
         return results;

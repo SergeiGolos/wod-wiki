@@ -1,4 +1,4 @@
-import type { AttachmentCreateInput, IContentProvider, ContentProviderMode } from '../../types/content-provider';
+import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
 import { v4 as uuidv4 } from 'uuid';
 import { HistoryEntry, ProviderCapabilities, EntryQuery } from '../../types/history';
 import { Attachment } from '../../types/storage';
@@ -44,15 +44,15 @@ export class MockContentProvider implements IContentProvider {
         return this.entries.get(id) || null;
     }
 
-    async saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry> {
-        const id = uuidv4();
+    async saveEntry(entry: NoteSaveInput): Promise<HistoryEntry> {
+        const id = entry.id ?? uuidv4();
         const now = Date.now();
 
         const newEntry: HistoryEntry = {
             ...entry,
             id,
-            createdAt: now,
-            updatedAt: now,
+            createdAt: entry.createdAt ?? now,
+            updatedAt: entry.updatedAt ?? now,
             schemaVersion: 1
         };
 

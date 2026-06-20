@@ -7,7 +7,7 @@
  * without persistent database side-effects.
  */
 
-import type { AttachmentCreateInput, IContentProvider, ContentProviderMode } from '../../types/content-provider';
+import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { Attachment } from '../../types/storage';
 import { v4 as uuidv4 } from 'uuid';
@@ -52,16 +52,15 @@ export class StaticContentProvider implements IContentProvider {
     return this.entry;
   }
 
-  async saveEntry(
-    entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>
-  ): Promise<HistoryEntry> {
-    // In static mode, "saving" a new entry typically just updates the singleton
+  async saveEntry(entry: NoteSaveInput): Promise<HistoryEntry> {
+    // In static mode, "saving" a new entry typically just updates the singleton.
+    // Preserve recovered identity/timestamps (export → import round-trip).
     const now = Date.now();
     this.entry = {
       ...entry,
-      id: STATIC_ID,
-      createdAt: now,
-      updatedAt: now,
+      id: entry.id ?? STATIC_ID,
+      createdAt: entry.createdAt ?? now,
+      updatedAt: entry.updatedAt ?? now,
       schemaVersion: 1,
     };
     return this.entry;

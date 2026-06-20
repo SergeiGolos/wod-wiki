@@ -172,3 +172,97 @@ describe('syntax guide protocol examples compile to intended block types', () =>
     expect(state.blocks.some(block => /timer/i.test(block.blockType))).toBe(true);
   });
 });
+
+// ===========================================================================
+// Parameterized: all timer/protocol fixtures compile and run to completion
+// ===========================================================================
+
+function parseFrontmatter(raw: string): Record<string, string> {
+  const m = raw.match(/^---\n([\s\S]*?)\n---/)
+  if (!m) return {}
+  const obj: Record<string, string> = {}
+  for (const line of m[1].split('\n')) {
+    const [k, ...rest] = line.split(':')
+    if (k && rest.length) obj[k.trim()] = rest.join(':').trim().replace(/^"|"$/g, '')
+  }
+  return obj
+}
+
+function loadTimerProtocolFixtures(): Array<{ fileName: string; scriptText: string }> {
+  return readdirSync(syntaxDir)
+    .filter(fileName => fileName.endsWith('.md'))
+    .map(fileName => {
+      const raw = readFileSync(path.join(syntaxDir, fileName), 'utf8')
+      const fm = parseFrontmatter(raw)
+      return { fileName, fm, raw }
+    })
+    .filter(({ fm }) => fm.section === 'timers' || fm.section === 'protocols')
+    .map(({ fileName, raw }) => {
+      const [firstBlock] = extractScriptBlocks(raw)
+      return { fileName, scriptText: firstBlock }
+    })
+    .filter((entry): entry is { fileName: string; scriptText: string } => !!entry.scriptText)
+}
+
+describe('all timer/protocol syntax fixtures compile and run', () => {
+  const fixtures = loadTimerProtocolFixtures()
+  let script: TestScript | undefined
+
+  afterEach(async () => {
+    if (script) await script.dispose()
+    script = undefined
+  })
+
+  for (const { fileName, scriptText } of fixtures) {
+    describe(`${fileName}`, () => {
+      it('compiles and starts with depth >= 2 after next()', async () => {
+        script = await TestScript.compile(scriptText)
+        await script.next()
+        const snap = await script.snapshot()
+        expect(snap.depth).toBeGreaterThanOrEqual(2)
+      })
+
+      it('can be advanced to completion without runtime errors', async () => {
+        script = await TestScript.compile(scriptText)
+        await script.next()
+        // Advance through all blocks. Cap iterations to avoid infinite loops.
+        for (let i = 0; i < 500; i++) {
+          const snap = await script.snapshot()
+          if (snap.depth === 0) break
+          const current = snap.current
+          if (!current) break
+
+          // Count-up timers (^, :?) have no auto-expiry — complete via next()
+          if (/timer/i.test(current.blockType) && !current.isComplete) {
+            const timerState = assertions(snap).currentBlock()?.timerState()
+            if (timerState && timerState.direction === 'up') {
+              await script.tick(10_000)
+              await script.next()
+              continue
+            }
+          }
+
+          // Effort/Waiting blocks advance via next()
+          if (current.isComplete || /effort|waiting/i.test(current.blockType)) {
+            await script.next()
+            // If a container (AMRAP/EMOM/Rounds/Timer with children) is on the stack,
+            // advance time so the parent timer can expire instead of cycling children forever
+            const afterSnap = await script.snapshot()
+            const hasContainer = afterSnap.depth > 1 && afterSnap.blocks.some(b =>
+              /AMRAP|EMOM|Rounds|Timer/i.test(b.blockType)
+            )
+            if (hasContainer && afterSnap.depth > 0) {
+              await script.tick(60_000)
+            }
+            continue
+          }
+
+          // Timer / container blocks — advance time
+          await script.tick(60_000)
+        }
+        const snap = await script.snapshot()
+        expect(snap.depth).toBe(0)
+      })
+    })
+  }
+})

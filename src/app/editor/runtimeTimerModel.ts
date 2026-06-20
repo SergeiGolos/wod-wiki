@@ -1,4 +1,5 @@
-import { globalParser, runtimeFactory } from '@/hooks/useRuntimeFactory';
+import { createParser } from '@/parser/parserInstance';
+import { runtimeFactory } from '@/hooks/useRuntimeFactory';
 import type { IScriptRuntime } from '@/hooks/useRuntimeTimer';
 import type { IOutputStatement } from '@/core/models/OutputStatement';
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
@@ -10,7 +11,7 @@ export function prepareRuntimeBlock(block: ScriptBlock): ScriptBlock & { stateme
   if (block.statements?.length) {
     return block as ScriptBlock & { statements: NonNullable<ScriptBlock['statements']> };
   }
-  return { ...block, statements: globalParser.read(block.content).statements };
+  return { ...block, statements: createParser().read(block.content).statements };
 }
 
 export function createRuntimeForBlock(block: ScriptBlock): IScriptRuntime | null {

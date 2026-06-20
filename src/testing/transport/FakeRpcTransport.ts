@@ -18,6 +18,16 @@ export class FakeRpcTransport implements IRpcTransport {
         return this._connected;
     }
 
+    /**
+     * In-memory test transport — no real network, no clock skew. Tests that
+     * want to exercise clock-sync wiring set this on the specific instance;
+     * the default mirrors the local-tab transport, where sync would be a
+     * no-op handshake.
+     */
+    get needsClockSync(): boolean {
+        return false;
+    }
+
     /** All sent messages (append-only). */
     get messages(): readonly RpcMessage[] {
         return this.sent;
@@ -73,7 +83,7 @@ export class FakeRpcTransport implements IRpcTransport {
     }
 
     /** Mark this transport as connected. Fires onConnected handlers. */
-    connect(): void {
+    async connect(): Promise<void> {
         if (this._disposed) {
             return;
         }

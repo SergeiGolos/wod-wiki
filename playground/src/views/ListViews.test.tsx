@@ -26,12 +26,6 @@ mock.module('react-router-dom', () => ({
   ],
 }));
 
-mock.module('@/contexts/CommandContext', () => ({
-  useCommandPalette: () => ({
-    setIsOpen: mock(() => {}),
-    setStrategy: mock(() => {}),
-  }),
-}));
 
 const TODAY = localDateKey(new Date());
 const PAST_DATE = '2026-01-15';

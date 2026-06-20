@@ -9,10 +9,11 @@
  */
 
 import { useMemo } from 'react';
-import { sharedParser } from '@/parser/parserInstance';
+import { createParser } from '@/parser/parserInstance';
+import type { MdTimerRuntime } from '@/parser/md-timer';
 
 // ── Parser exports ────────────────────────────────────────────────────────
-export { sharedParser } from '@/parser/parserInstance';
+export { createParser } from '@/parser/parserInstance';
 export { MdTimerRuntime } from '@/parser/md-timer';
 export { whiteboardScriptLanguage } from '@/parser/whiteboard-script-language';
 export { extractStatements } from '@/parser/lezer-mapper';
@@ -21,7 +22,7 @@ export { extractStatements } from '@/parser/lezer-mapper';
 
 export interface UseRuntimeParserReturn {
   /** Parse a Whiteboard script string into an IScript */
-  parse: (text: string) => ReturnType<typeof sharedParser.read>;
+  parse: (text: string) => ReturnType<MdTimerRuntime['read']>;
 }
 
 /**
@@ -38,7 +39,7 @@ export interface UseRuntimeParserReturn {
 export function useRuntimeParser(): UseRuntimeParserReturn {
   return useMemo(
     () => ({
-      parse: (text: string) => sharedParser.read(text),
+      parse: (text: string) => createParser().read(text),
     }),
     [],
   );

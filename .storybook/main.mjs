@@ -71,10 +71,19 @@ const config = {
       __APP_VERSION__: JSON.stringify(pkg.version),
     };
 
+    // In production Storybook builds, point local-tab casts to the canonical
+    // preview receiver so the popup loads a fully-deployed receiver app
+    // rather than relying on the Storybook domain path structure.
+    // NOTE: `config.mode` is undefined in viteFinal; use NODE_ENV instead.
+    if (process.env.NODE_ENV === 'production') {
+      config.define = {
+        ...config.define,
+        __LOCAL_RECEIVER_URL__: JSON.stringify(process.env.VITE_LOCAL_RECEIVER_URL || 'https://preview.wod.wiki/receiver-rpc.html'),
+      };
+    }
+
     // Source maps are useful in dev but expensive in static builds
     const isDev = config.mode !== 'production';
-    config.build = config.build || {};
-    config.build.sourcemap = isDev;
 
     // Enable CSS source maps in dev only
     if (isDev) {
@@ -164,4 +173,4 @@ const config = {
   }
 };
 
-export default config;
+export default config;// PATCH applied

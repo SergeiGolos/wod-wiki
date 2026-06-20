@@ -14,22 +14,11 @@ import {
     CountupTimerBehavior,
     CountdownTimerBehavior, CountdownMode,
     SpanTrackingBehavior,
+    ChildSelectionBehavior,
     ChildSelectionConfig,
     ChildSelectionLoopCondition
 } from "../behaviors";
-import { ConcreteBehaviorFactory } from "./ConcreteBehaviorFactory";
-import type { IBehaviorFactory } from "./contracts/IBehaviorFactory";
 
-/**
- * Stable behavior names used by the default {@link ConcreteBehaviorFactory}.
- * Exposed here so tests and downstream code can reference them without
- * importing the concrete factory (which would defeat the seam).
- */
-export const BEHAVIOR_NAMES = {
-    CountdownTimer: 'countdown-timer',
-    CountupTimer: 'countup-timer',
-    ChildSelection: 'child-selection',
-} as const;
 
 /** Legacy timer config shape — kept for call-site backward compatibility */
 export interface TimerConfig {
@@ -63,34 +52,11 @@ export class BlockBuilder {
     private sourceIds: number[] = [];
     /** Pending round config stored by asRepeater(), consumed by asContainer() */
     private pendingRoundConfig: RepeaterConfig | undefined;
-    private _behaviorFactory: IBehaviorFactory;
 
-    constructor(private runtime: IScriptRuntime, behaviorFactory?: IBehaviorFactory) {
-        this._behaviorFactory = behaviorFactory ?? new ConcreteBehaviorFactory();
-    }
-
-    /**
-     * Replace the behavior factory.  Mostly useful for tests that
-     * want to record construction calls, and for plugins that want
-     * to swap in a custom factory (e.g. a {@link MockBehaviorFactory}).
-     */
-    setBehaviorFactory(factory: IBehaviorFactory): this {
-        this._behaviorFactory = factory;
-        return this;
-    }
-
-    /**
-     * Returns the active behavior factory.  Mostly for diagnostic /
-     * introspection.
-     */
-    getBehaviorFactory(): IBehaviorFactory {
-        return this._behaviorFactory;
-    }
+    constructor(private runtime: IScriptRuntime) {}
 
     addBehavior(behavior: IRuntimeBehavior): BlockBuilder {
-        // Key by constructor to allow replacement by type
-        // For now, let's assume one behavior per type is the rule for things like Timers/Loops.
-        // But ActionLayer, Sound, etc might be additive?
+
         // The user prompt implies "union".
         // But we also need "override".
         // Strategy: Key by constructor. High priority strategies run first and add behaviors.
@@ -137,6 +103,25 @@ export class BlockBuilder {
         return this;
     }
 
+    /**
+     * Move an already-added behavior to the LAST position in the behavior list.
+     *
+     * Behavior order = Map insertion order = RuntimeBlock.onNext execution order.
+     * When a later-running strategy needs a behavior added by an earlier
+     * strategy to execute AFTER its own behaviors, this is the explicit API.
+     * No-op when the behavior is not present (or already last).
+     *
+     * Replaces the previous `getBehavior → removeBehavior → addBehavior` dance
+     * (e.g. ChildrenStrategy's MetricPromotion reorder) with a named contract.
+     */
+    moveBehaviorLast<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
+        const behavior = this.behaviors.get(type);
+        if (!behavior) return this;
+        this.behaviors.delete(type);
+        this.behaviors.set(type, behavior);
+        return this;
+    }
+
     hasBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): boolean {
         return this.behaviors.has(type);
     }
@@ -180,6 +165,24 @@ export class BlockBuilder {
         this.sourceIds = ids;
         return this;
     }
+    getLabel(): string {
+        return this.label;
+    }
+    getBlockType(): string {
+        return this.blockType;
+    }
+    getFragments(): MetricContainer[] | undefined {
+        return this.metrics;
+    }
+    getSourceIds(): number[] {
+        return this.sourceIds;
+    }
+    getContext(): IBlockContext | undefined {
+        return this.context;
+    }
+    getKey(): BlockKey | undefined {
+        return this.key;
+    }
 
     // ============================================================================
     // Aspect Composer Methods - High-level composition helpers
@@ -207,37 +210,25 @@ export class BlockBuilder {
                 ? 'reset-interval'
                 : 'complete-block';
 
-            // Build through the behavior factory rather than `new` directly.
-            // The factory owns the only references to concrete behavior
-            // constructors in this file; downstream test code (or plugins)
-            // can swap in a different factory via `setBehaviorFactory`.
-            // The `restBlockFactory` closure is intentionally a builder
-            // concern (it talks to runtime/push-action plumbing that is
-            // not a behavior concern), so we still close over it here.
-            const countdownBehavior = this._behaviorFactory.createBehavior(
-                BEHAVIOR_NAMES.CountdownTimer,
-                {
-                    durationMs: config.durationMs,
-                    label: config.label,
-                    role: config.role,
-                    mode,
-                    required: config.required,
-                    restBlockFactory: config.injectRest ? (durationMs: number, label?: string) => {
-                        const restBlock = new RestBlock(this.runtime, { durationMs, label });
-                        return [new PushBlockAction(restBlock)];
-                    } : undefined
-                }
-            );
-            this.addBehavior(countdownBehavior);
+            // The `restBlockFactory` closure is a builder concern (it talks
+            // to runtime/push-action plumbing that is not a behavior concern),
+            // so it stays closed over here rather than moving into the behavior.
+            this.addBehavior(new CountdownTimerBehavior({
+                durationMs: config.durationMs,
+                label: config.label,
+                role: config.role,
+                mode,
+                required: config.required,
+                restBlockFactory: config.injectRest ? (durationMs: number, label?: string) => {
+                    const restBlock = new RestBlock(this.runtime, { durationMs, label });
+                    return [new PushBlockAction(restBlock)];
+                } : undefined
+            }));
         } else {
-            const countupBehavior = this._behaviorFactory.createBehavior(
-                BEHAVIOR_NAMES.CountupTimer,
-                {
-                    label: config.label,
-                    role: config.role
-                }
-            );
-            this.addBehavior(countupBehavior);
+            this.addBehavior(new CountupTimerBehavior({
+                label: config.label,
+                role: config.role
+            }));
         }
         return this;
     }
@@ -295,21 +286,17 @@ export class BlockBuilder {
         }
     ): BlockBuilder {
         const roundCfg = this.pendingRoundConfig;
-        const childSelectionBehavior = this._behaviorFactory.createBehavior(
-            BEHAVIOR_NAMES.ChildSelection,
-            {
-                childGroups: config.childGroups,
-                loop: config.addLoop
-                    ? { condition: config.loopConfig?.condition ?? 'timer-active' }
-                    : false,
-                injectRest: config.injectRest,
-                skipOnMount: config.skipOnMount,
-                // Forward round config from asRepeater() (absorbed from ReEntryBehavior)
-                startRound: roundCfg?.startRound,
-                totalRounds: roundCfg?.totalRounds,
-            }
-        );
-        this.addBehavior(childSelectionBehavior);
+        this.addBehavior(new ChildSelectionBehavior({
+            childGroups: config.childGroups,
+            loop: config.addLoop
+                ? { condition: config.loopConfig?.condition ?? 'timer-active' }
+                : false,
+            injectRest: config.injectRest,
+            skipOnMount: config.skipOnMount,
+            // Forward round config from asRepeater() (absorbed from ReEntryBehavior)
+            startRound: roundCfg?.startRound,
+            totalRounds: roundCfg?.totalRounds,
+        }));
 
         return this;
     }

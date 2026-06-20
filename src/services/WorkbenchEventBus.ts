@@ -1,5 +1,18 @@
+/**
+ * WorkbenchEventBus — cross-panel workbench event channel.
+ *
+ * The seam is {@link SimpleEventBus}; this module wraps it with typed
+ * emit / subscribe helpers so call sites do not have to discriminate the
+ * payload type at every use. Callers can also access the underlying
+ * {@link IServiceEventBus} via `workbenchEventBus.bus` for untyped use.
+ *
+ * No module-load global reads — the bus is a plain instance and ready to
+ * receive events as soon as the module is imported.
+ */
+
 import { ScriptBlock } from '../components/Editor/types';
 import { SimpleEventBus } from './events/SimpleEventBus';
+import type { IServiceEventBus } from './events/IServiceEventBus';
 
 export enum WorkbenchEvent {
     // Navigation / Sync
@@ -38,8 +51,14 @@ export type WorkbenchEventPayload =
     | { type: WorkbenchEvent.NAVIGATE_TO; payload: NavigateToPayload }
     | { type: WorkbenchEvent.START_WORKOUT; payload: StartWorkoutPayload };
 
-class WorkbenchEventBus {
-    private bus = new SimpleEventBus<WorkbenchEventPayload>();
+/**
+ * Typed helper bag around a {@link SimpleEventBus}. Each `onX` returns an
+ * unsubscribe function; each `emitX` is a typed payload builder. The
+ * underlying bus is exposed as `.bus` for tests and advanced callers
+ * that want to subscribe to multiple event types in one place.
+ */
+export class WorkbenchEventBus {
+    readonly bus: IServiceEventBus<WorkbenchEventPayload> = new SimpleEventBus<WorkbenchEventPayload>();
 
     // --- emit helpers ---
 
@@ -62,25 +81,25 @@ class WorkbenchEventBus {
     // --- subscribe helpers ---
 
     onScrollToBlock(callback: (payload: ScrollToBlockPayload) => void): () => void {
-        return this.bus.subscribe(e => {
+        return this.bus.subscribe((e) => {
             if (e.type === WorkbenchEvent.SCROLL_TO_BLOCK) callback(e.payload);
         });
     }
 
     onHighlightBlock(callback: (payload: HighlightBlockPayload) => void): () => void {
-        return this.bus.subscribe(e => {
+        return this.bus.subscribe((e) => {
             if (e.type === WorkbenchEvent.HIGHLIGHT_BLOCK) callback(e.payload);
         });
     }
 
     onStartWorkout(callback: (payload: StartWorkoutPayload) => void): () => void {
-        return this.bus.subscribe(e => {
+        return this.bus.subscribe((e) => {
             if (e.type === WorkbenchEvent.START_WORKOUT) callback(e.payload);
         });
     }
 
     onNavigateTo(callback: (payload: NavigateToPayload) => void): () => void {
-        return this.bus.subscribe(e => {
+        return this.bus.subscribe((e) => {
             if (e.type === WorkbenchEvent.NAVIGATE_TO) callback(e.payload);
         });
     }

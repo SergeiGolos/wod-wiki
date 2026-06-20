@@ -1,4 +1,3 @@
-import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import type { IContentProvider } from '@/types/content-provider';
 
 import { ContentProviderNotePersistence } from './ContentProviderNotePersistence';
@@ -11,7 +10,11 @@ export { IndexedDBNotePersistence, normalizeAnalyticsSegments } from './IndexedD
 export * from './types';
 
 export function createNotePersistence(provider: IContentProvider): INotePersistence {
-  if (provider instanceof IndexedDBContentProvider) {
+  // Pick the adapter from the provider's declared backend, not from class
+  // identity (`instanceof`). This keeps the factory decoupled from concrete
+  // provider classes — a second IndexedDB-backed provider works without
+  // editing this factory.
+  if (provider.persistenceBackend === 'indexed-db') {
     return new IndexedDBNotePersistence();
   }
 

@@ -15,9 +15,9 @@
  *
  * Spec: docs/finishline/compliance-scenarios/metric-inheritance.md
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import { TestScript, assertions } from '@/testing/script';
-import type { ScriptState } from '@/testing/script';
+import { it, expect } from 'bun:test';
+import { describeCompliance } from '@/testing/script';
+import type { TestScript, ScriptState } from '@/testing/script';
 import { MetricType } from '@/core/models/Metric';
 import { MetricContainer } from '@/core/models/MetricContainer';
 
@@ -129,67 +129,64 @@ async function currentHasDistance(state: ScriptState, script: TestScript): Promi
 //
 // Spec: metric-inheritance.md#-weight-inside-amrap
 // ===========================================================================
-describe('🟢 Weight Inside AMRAP — sibling weight isolation', () => {
-    const SCRIPT = '10:00 AMRAP\n  5 Thrusters 95 lb\n  10 Pushups';
-    let script: TestScript;
 
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Weight Inside AMRAP — sibling weight isolation', '10:00 AMRAP\n  5 Thrusters 95 lb\n  10 Pushups', (ctx) => {
 
     it('step 1: Thrusters effort is mounted after first userNext', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect((await script.snapshot()).current?.label).toMatch(/thrusters/i);
     });
 
     it('Thrusters effort carries a Resistance metric (95 lb, explicitly set)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
     });
 
     it('Thrusters resistance amount is 95', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const r = await currentResistance(await script.snapshot(), script);
         expect(r?.amount).toBe(95);
     });
 
     it('Thrusters resistance unit is lb', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const r = await currentResistance(await script.snapshot(), script);
         expect(r?.unit).toBe('lb');
     });
 
     it('Thrusters rep count is 5', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentReps(await script.snapshot(), script)).toBe(5);
     });
 
     it('step 2: Pushups effort is mounted after second userNext', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         expect((await script.snapshot()).current?.label).toMatch(/pushups/i);
     });
 
     it('Pushups effort carries NO Resistance metric (sibling weight must not bleed)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Thrusters
         await script.next(); // Pushups
         expect(await currentHasResistance(await script.snapshot(), script)).toBe(false);
     });
 
     it('Pushups rep count is 10', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         expect(await currentReps(await script.snapshot(), script)).toBe(10);
     });
 
     it('round 2: Thrusters still has 95 lb (not lost after one cycle)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Thrusters R1
         await script.next(); // Pushups R1
         await script.next(); // Thrusters R2
@@ -198,7 +195,7 @@ describe('🟢 Weight Inside AMRAP — sibling weight isolation', () => {
     });
 
     it('round 2: Pushups R2 still has NO resistance metric', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Thrusters R1
         await script.next(); // Pushups R1
         await script.next(); // Thrusters R2
@@ -207,7 +204,7 @@ describe('🟢 Weight Inside AMRAP — sibling weight isolation', () => {
     });
 
     it('AMRAP timer fires at 10:00 — clean termination', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(600_000);
         expect((await script.snapshot()).depth).toBe(0);
@@ -223,27 +220,23 @@ describe('🟢 Weight Inside AMRAP — sibling weight isolation', () => {
 //
 // Spec: metric-inheritance.md#-rep-scheme-promotion
 // ===========================================================================
-describe('🟢 Rep Scheme Promotion — (21-15-9) Thrusters + Pull-ups', () => {
-    const SCRIPT = '(21-15-9)\n  Thrusters\n  Pull-ups';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Rep Scheme Promotion — (21-15-9) Thrusters + Pull-ups', '(21-15-9)\n  Thrusters\n  Pull-ups', (ctx) => {
 
     it('Round 1 Thrusters — rep count is 21', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start → Round 1 → Thrusters
         expect(await currentReps(await script.snapshot(), script)).toBe(21);
     });
 
     it('Round 1 Pull-ups — rep count is 21 (same round, same count)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Thrusters R1
         await script.next(); // Pull-ups R1
         expect(await currentReps(await script.snapshot(), script)).toBe(21);
     });
 
     it('Round 2 Thrusters — rep count decreases to 15', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Thrusters R1
         await script.next(); // Pull-ups R1
         await script.next(); // Thrusters R2
@@ -251,7 +244,7 @@ describe('🟢 Rep Scheme Promotion — (21-15-9) Thrusters + Pull-ups', () => {
     });
 
     it('Round 2 Pull-ups — rep count is 15', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         await script.next(); // Thrusters R2
@@ -260,7 +253,7 @@ describe('🟢 Rep Scheme Promotion — (21-15-9) Thrusters + Pull-ups', () => {
     });
 
     it('Round 3 Thrusters — rep count decreases to 9', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         await script.next();
@@ -270,14 +263,14 @@ describe('🟢 Rep Scheme Promotion — (21-15-9) Thrusters + Pull-ups', () => {
     });
 
     it('Round 3 Pull-ups — rep count is 9', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         for (let i = 0; i < 5; i++) await script.next(); // R1×2 + R2×2 + R3 Thrusters
         await script.next(); // Pull-ups R3
         expect(await currentReps(await script.snapshot(), script)).toBe(9);
     });
 
     it('completing all 6 child advances terminates session', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         for (let i = 0; i < 7; i++) await script.next(); // 3 rounds × 2 children + start
         expect((await script.snapshot()).depth).toBe(0);
     });
@@ -294,15 +287,10 @@ describe('🟢 Rep Scheme Promotion — (21-15-9) Thrusters + Pull-ups', () => {
 //
 // Spec: metric-inheritance.md#-weight-cascading--parent-to-children
 // ===========================================================================
-describe('🟢 Weight Cascading — 95 lb cascades to round children', () => {
-    // 95 lb at root level followed by (3) rounds with Clean & Jerk children.
-    const SCRIPT = '95 lb\n(3)\n  Clean & Jerk';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Weight Cascading — 95 lb cascades to round children', '95 lb\n(3)\n  Clean & Jerk', (ctx) => {
 
     it('after AMRAP/rounds block starts, Clean & Jerk effort has a Resistance metric', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         // Advance past the root-level weight declaration into the rounds/effort
         await script.next(); // WaitingToStart → first block (could be 95 lb effort or rounds)
         // If 95 lb parses as standalone, advance again to reach the rounds child
@@ -314,7 +302,7 @@ describe('🟢 Weight Cascading — 95 lb cascades to round children', () => {
     });
 
     it('Clean & Jerk carries resistance amount 95', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         if (!(await script.snapshot()).current?.label?.match(/clean/i)) {
             await script.next();
@@ -323,7 +311,7 @@ describe('🟢 Weight Cascading — 95 lb cascades to round children', () => {
     });
 
     it('Clean & Jerk carries resistance unit lb', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         if (!(await script.snapshot()).current?.label?.match(/clean/i)) {
             await script.next();
@@ -332,7 +320,7 @@ describe('🟢 Weight Cascading — 95 lb cascades to round children', () => {
     });
 
     it('Round 2 Clean & Jerk still carries inherited 95 lb resistance', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         if (!(await script.snapshot()).current?.label?.match(/clean/i)) {
             await script.next(); // enter rounds → effort R1
@@ -343,7 +331,7 @@ describe('🟢 Weight Cascading — 95 lb cascades to round children', () => {
     });
 
     it('Round 3 Clean & Jerk still carries inherited 95 lb resistance', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         if (!(await script.snapshot()).current?.label?.match(/clean/i)) {
             await script.next();
@@ -364,60 +352,55 @@ describe('🟢 Weight Cascading — 95 lb cascades to round children', () => {
 //
 // Spec: metric-inheritance.md#-weight-override--child-overrides-parent
 // ===========================================================================
-describe('🟢 Weight Override — child overrides parent; sibling inherits parent', () => {
-    // Clean has its own 135 lb; Snatch inherits parent 95 lb.
-    const SCRIPT = '95 lb\n  Clean 135 lb\n  Snatch';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Weight Override — child overrides parent; sibling inherits parent', '95 lb\n  Clean 135 lb\n  Snatch', (ctx) => {
 
     it('Clean effort is the first child mounted after startSession + userNext', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect((await script.snapshot()).current?.label).toMatch(/clean/i);
     });
 
     it('Clean effort carries a Resistance metric (135 lb, child override)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
     });
 
     it('Clean resistance amount is 135 (child override wins over parent 95 lb)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentResistance(await script.snapshot(), script)?.amount).toBe(135);
     });
 
     it('Clean resistance unit is lb', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         expect(await currentResistance(await script.snapshot(), script)?.unit).toBe('lb');
     });
 
     it('Snatch effort is mounted after second userNext (Clean completes)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // Clean
         await script.next(); // Snatch
         expect((await script.snapshot()).current?.label).toMatch(/snatch/i);
     });
 
     it('Snatch effort carries a Resistance metric (inherited from parent 95 lb)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
     });
 
     it('Snatch resistance amount is 95 (parent default, no override)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         expect(await currentResistance(await script.snapshot(), script)?.amount).toBe(95);
     });
 
     it('Snatch resistance unit is lb (inherited from parent)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         expect(await currentResistance(await script.snapshot(), script)?.unit).toBe('lb');
@@ -433,14 +416,10 @@ describe('🟢 Weight Override — child overrides parent; sibling inherits pare
 //
 // Spec: metric-inheritance.md#-distance-unit-inheritance
 // ===========================================================================
-describe('🟢 Distance Unit Inheritance — 400 m cascades to round children', () => {
-    const SCRIPT = '400 m\n(3)\n  Run';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Distance Unit Inheritance — 400 m cascades to round children', '400 m\n(3)\n  Run', (ctx) => {
 
     it('RunN effort carries a Distance metric (400 m inherited from parent)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // WaitingToStart → first block
         // Advance past any non-Run block if needed
         if (!(await script.snapshot()).current?.label?.match(/run/i)) {
@@ -450,7 +429,7 @@ describe('🟢 Distance Unit Inheritance — 400 m cascades to round children', 
     });
 
     it('Run effort distance amount is 400', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         if (!(await script.snapshot()).current?.label?.match(/run/i)) {
             await script.next();
@@ -459,7 +438,7 @@ describe('🟢 Distance Unit Inheritance — 400 m cascades to round children', 
     });
 
     it('Run effort distance unit is m', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         if (!(await script.snapshot()).current?.label?.match(/run/i)) {
             await script.next();
@@ -468,7 +447,7 @@ describe('🟢 Distance Unit Inheritance — 400 m cascades to round children', 
     });
 
     it('All 3 rounds have Run effort with inherited 400 m distance', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         if (!(await script.snapshot()).current?.label?.match(/run/i)) {
             await script.next();
@@ -491,18 +470,13 @@ describe('🟢 Distance Unit Inheritance — 400 m cascades to round children', 
 //
 // Spec: metric-inheritance.md#-three-level-promotion
 // ===========================================================================
-describe('🟢 Three-Level Promotion — 75 kg through EMOM → Rounds → Effort', () => {
-    // Structure: 75 kg / (5) 1:00 EMOM / nested (3) / Clean
-    const SCRIPT = '75 kg\n(5) 1:00 EMOM\n  (3)\n    Clean';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Three-Level Promotion — 75 kg through EMOM → Rounds → Effort', '75 kg\n(5) 1:00 EMOM\n  (3)\n    Clean', (ctx) => {
 
     /**
      * Helper: advance through the structure until we reach an effort labelled "Clean".
      * Returns false if we run out of stack (session ended) before finding Clean.
      */
-    async function advanceToClean(maxSteps = 10): Promise<boolean> {
+    async function advanceToClean(script: TestScript, maxSteps = 10): Promise<boolean> {
         for (let i = 0; i < maxSteps; i++) {
             if ((await script.snapshot()).current?.label?.match(/clean/i)) return true;
             if ((await script.snapshot()).depth === 0) return false;
@@ -512,41 +486,41 @@ describe('🟢 Three-Level Promotion — 75 kg through EMOM → Rounds → Effor
     }
 
     it('Clean effort is reachable in the nested structure', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next(); // start
-        const found = await advanceToClean();
+        const found = await advanceToClean(script);
         expect(found).toBe(true);
     });
 
     it('Clean effort carries a Resistance metric (75 kg from root weight context)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
-        await advanceToClean();
+        await advanceToClean(script);
         expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
     });
 
     it('Clean effort resistance amount is 75', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
-        await advanceToClean();
+        await advanceToClean(script);
         expect(await currentResistance(await script.snapshot(), script)?.amount).toBe(75);
     });
 
     it('Clean effort resistance unit is kg', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
-        await advanceToClean();
+        await advanceToClean(script);
         expect(await currentResistance(await script.snapshot(), script)?.unit).toBe('kg');
     });
 
     it('Second Clean iteration (different EMOM interval) still carries 75 kg', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
-        await advanceToClean(); // find first Clean
+        await advanceToClean(script); // find first Clean
         await script.next();    // complete first Clean
         // Now advance to the second Clean (next round/interval)
         await script.tick(60_000); // EMOM interval ticks over
-        await advanceToClean();
+        await advanceToClean(script);
         expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
         expect(await currentResistance(await script.snapshot(), script)?.amount).toBe(75);
     });

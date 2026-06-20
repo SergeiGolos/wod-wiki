@@ -7,10 +7,10 @@ import type { Segment } from '@/core/models/AnalyticsModels';
 import type { AnalyticsGroup } from '@/core/models/AnalyticsModels';
 import { MetricType, type IMetric } from '@/core/models/Metric';
 import { MetricContainer } from '@/core/models/MetricContainer';
-mock.module('@/stores/workbenchSyncStore', () => {
+mock.module('@/stores/workbenchSessionStore', () => {
   const overrides = new Map();
   return {
-    useWorkbenchSyncStore: (selector: any) => {
+    useWorkbenchSession: (selector: any) => {
       const state = {
         userOutputOverrides: overrides,
         viewMode: 'track',

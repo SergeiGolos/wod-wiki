@@ -5,12 +5,12 @@ import type { IAnalyticsProcessorDescriptor } from './IAnalyticsProcessorDescrip
 import { PaceEnrichmentProcess } from './PaceEnrichmentProcess';
 import { PowerEnrichmentProcess } from './PowerEnrichmentProcess';
 import { TwoPassEffortResolutionProcess } from './TwoPassEffortResolutionProcess';
-import { RepProjectionEngine } from '../../timeline/analytics/analytics/engines/RepProjectionEngine';
-import { DistanceProjectionEngine } from '../../timeline/analytics/analytics/engines/DistanceProjectionEngine';
-import { VolumeProjectionEngine } from '../../timeline/analytics/analytics/engines/VolumeProjectionEngine';
-import { SessionLoadProjectionEngine } from '../../timeline/analytics/analytics/engines/SessionLoadProjectionEngine';
-import { MetMinuteProjectionEngine } from '../../timeline/analytics/analytics/engines/MetMinuteProjectionEngine';
-import { TISProcessor } from '../../timeline/analytics/analytics/engines/TISProcessor';
+import { RepProjectionEngine } from './engines/RepProjectionEngine';
+import { DistanceProjectionEngine } from './engines/DistanceProjectionEngine';
+import { VolumeProjectionEngine } from './engines/VolumeProjectionEngine';
+import { SessionLoadProjectionEngine } from './engines/SessionLoadProjectionEngine';
+import { MetMinuteProjectionEngine } from './engines/MetMinuteProjectionEngine';
+import { TISProcessor } from './engines/TISProcessor';
 
 /**
  * Standard built-in analytics profile.

@@ -43,19 +43,46 @@ import type { Unsubscribe } from './contracts/IRuntimeStack';
  * ## Emission helpers
  *
  * The five helpers that were private methods of ScriptRuntime are now methods
- * here. Each receives the context it needs as parameters (clock, stack, script)
- * rather than coupling OutputEmitter to IScriptRuntime.
+ * here. They read their clock/stack/script from {@link OutputEmitter.attach}
+ * (wired once by ScriptRuntime) rather than taking runtime-shaped args at every
+ * call — closing the "carve-out moved code without moving the bugs" defect.
  *
- * - emitLoad(script, clock)
- * - emitStackEvent(event, stackBlocks, clock)
- * - emitSegmentFromResultMemory(block, depth, clock)
- * - emitRuntimeEvent(event, stack, clock)
- * - emitCompilerBlock(block, stackCount, clock)
+ * - emitLoad()
+ * - emitStackEvent(event)
+ * - emitSegmentFromResultMemory(block, stackDepth)
+ * - emitRuntimeEvent(event)
+ * - emitCompilerBlock(block)
  */
 export class OutputEmitter {
     private _outputStatements: IOutputStatement[] = [];
     private _outputListeners: Set<OutputListener> = new Set();
     private _analyticsEngine: IAnalyticsEngine | null = null;
+
+    // Runtime dependencies wired once via attach() — the emission helpers read
+    // these instead of taking clock/stack/script across the seam at every call.
+    // This closes the "carve-out moved code without moving the bugs" defect:
+    // OutputEmitter no longer takes runtime-shaped args per emit.
+    private _clock: IRuntimeClock | null = null;
+    private _stack: IRuntimeStack | null = null;
+    private _script: WhiteboardScript | null = null;
+
+    /**
+     * Wire the runtime dependencies the emission helpers read. Called once by
+     * ScriptRuntime's constructor after its own stack/clock/script are set.
+     * Replaces the per-call clock/stack/script parameters the helpers used to take.
+     */
+    attach(deps: { clock: IRuntimeClock; stack: IRuntimeStack; script: WhiteboardScript }): void {
+        this._clock = deps.clock;
+        this._stack = deps.stack;
+        this._script = deps.script;
+    }
+
+    private _requireClock(): IRuntimeClock {
+        if (!this._clock) {
+            throw new Error('[OutputEmitter] emission helper called before attach() — clock is not wired');
+        }
+        return this._clock;
+    }
 
     // =========================================================================
     // Core output API
@@ -160,10 +187,15 @@ export class OutputEmitter {
 
     /**
      * Emit a `'load'` output for every statement in the script.
-     * Called once during ScriptRuntime construction.
+     * Called once during ScriptRuntime construction. Reads the attached script
+     * and clock (see {@link attach}); no runtime-shaped args cross the seam.
      */
-    emitLoad(script: WhiteboardScript, clock: IRuntimeClock): void {
-        const now = clock.currentDate;
+    emitLoad(): void {
+        if (!this._script) {
+            throw new Error('[OutputEmitter] emitLoad() called before attach() — script is not wired');
+        }
+        const script = this._script;
+        const now = this._requireClock().currentDate;
 
         for (const stmt of script.statements) {
             const rawText = script.source.substring(
@@ -202,18 +234,19 @@ export class OutputEmitter {
 
     /**
      * Emit a `'system'` output for a push or pop stack event.
-     * Called by the ScriptRuntime stack subscription handler.
+     * Reads the attached clock and stack blocks; only the event (which carries
+     * the affected block + depth) crosses the seam.
      */
-    emitStackEvent(
-        event: { type: 'push' | 'pop'; block: IRuntimeBlock; depth: number },
-        stackBlocks: readonly IRuntimeBlock[],
-        clock: IRuntimeClock
-    ): void {
+    emitStackEvent(event: { type: 'push' | 'pop'; block: IRuntimeBlock; depth: number }): void {
         // GC guard: only create objects when a listener wants them
         if (!this.hasListeners()) return;
 
-        const now = clock.currentDate;
+        const now = this._requireClock().currentDate;
         const block = event.block;
+        // The stack's current blocks at emit time — equivalent to the per-call
+        // `stackBlocks` arg this used to take (the subscription handler fires
+        // after the mutation, so attached stack state is the post-event state).
+        const stackBlocks = this._stack?.blocks ?? [];
 
         interface SystemValue {
             event: 'push' | 'pop';
@@ -258,17 +291,16 @@ export class OutputEmitter {
 
     /**
      * Emit `'segment'` outputs from a block's `metric:result` memory.
-     * Called when a block is popped from the stack.
+     * Called when a block is popped from the stack. `stackDepth` is the
+     * event-specific depth at pop time; clock is read from the attached deps.
      */
-    emitSegmentFromResultMemory(
-        block: IRuntimeBlock,
-        stackDepth: number,
-        clock: IRuntimeClock
-    ): void {
+    emitSegmentFromResultMemory(block: IRuntimeBlock, stackDepth: number): void {
         const resultLocs = block.getMemoryByTag('metric:result');
         const displayLocs = block.getMemoryByTag('metric:display');
 
         if (resultLocs.length === 0) return;
+
+        const fallbackEndMs = this._requireClock().currentDate.getTime();
 
         for (let i = 0; i < resultLocs.length; i++) {
             const resultFragments = MetricContainer.from(resultLocs[i].metrics, block.key.toString());
@@ -286,7 +318,6 @@ export class OutputEmitter {
 
             if (metrics.length === 0) continue;
 
-            const fallbackEndMs = clock.currentDate.getTime();
             const fallbackStartMs = block.executionTiming?.startTime?.getTime() ?? fallbackEndMs;
             const timeSpan = new TimeSpan(fallbackStartMs, fallbackEndMs);
             const spans = this._extractSpans(metrics.toArray());
@@ -305,16 +336,12 @@ export class OutputEmitter {
 
     /**
      * Emit an `'event'` output for a dispatched runtime event.
-     * Called by ScriptRuntime.handle() for non-tick events (or tick events that
-     * produced actions).
+     * Reads the attached clock and stack; only the event crosses the seam.
      */
-    emitRuntimeEvent(
-        event: IEvent,
-        stack: IRuntimeStack,
-        clock: IRuntimeClock
-    ): void {
-        const now = clock.currentDate;
-        const blockKey = stack.current?.key.toString() ?? 'root';
+    emitRuntimeEvent(event: IEvent): void {
+        const now = this._requireClock().currentDate;
+        const stack = this._stack;
+        const blockKey = stack?.current?.key.toString() ?? 'root';
 
         const metrics = MetricContainer.empty(blockKey).add({
             type: MetricType.System,
@@ -328,21 +355,20 @@ export class OutputEmitter {
             outputType: 'event',
             timeSpan: new TimeSpan(now.getTime(), now.getTime()),
             sourceBlockKey: blockKey,
-            stackLevel: stack.count,
+            stackLevel: stack?.count ?? 0,
             metrics,
         }));
     }
 
     /**
      * Emit a `'compiler'` output recording the behaviors attached to a block.
-     * Called by ScriptRuntime.pushBlock() before the block is pushed.
+     * Reads the attached clock and stack count; only the block crosses the seam.
      */
-    emitCompilerBlock(
-        block: IRuntimeBlock,
-        stackCount: number,
-        clock: IRuntimeClock
-    ): void {
-        const now = clock.currentDate;
+    emitCompilerBlock(block: IRuntimeBlock): void {
+        const now = this._requireClock().currentDate;
+        // Pre-push count, same as the per-call `stackCount` this used to take —
+        // ScriptRuntime calls this before queueing the PushBlockAction.
+        const stackCount = this._stack?.count ?? 0;
 
         const metrics = MetricContainer.empty(block.key.toString()).add({
             type: MetricType.Label,

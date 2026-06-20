@@ -17,7 +17,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { CollectionBrowsePanel } from '@/components/organisms/collections/CollectionBrowsePanel'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
-import { CommandProvider } from '@/contexts/CommandContext'
+
 import { getScriptCollections } from '@/repositories/script-collections';
 import type { ScriptCollection, ScriptCollectionItem } from '@/repositories/script-collections';
 import { EditorShellHeader } from '../_shared/EditorShellHeader';
@@ -92,15 +92,13 @@ const CollectionsPageShell: React.FC = () => {
             onDownload={handleDownload}
           />
           <div className="flex-1 min-h-0 overflow-y-scroll">
-            <CommandProvider>
-              <NoteEditor
-                value={content}
-                onChange={setContent}
-                onStartWorkout={() => {}}
-                className="h-full w-full"
-                theme={editorTheme}
-              />
-            </CommandProvider>
+            <NoteEditor
+              value={content}
+              onChange={setContent}
+              onStartWorkout={() => {}}
+              className="h-full w-full"
+              theme={editorTheme}
+            />
           </div>
         </div>
       </div>

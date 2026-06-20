@@ -1,6 +1,6 @@
 import { EditorState } from "@codemirror/state";
 import { whiteboardScriptLanguage } from "./whiteboard-script-language";
-import { extractStatements } from "./lezer-mapper";
+import { extractStatements, extractStatementsRaw } from "./lezer-mapper";
 import { IScript, WhiteboardScript } from "./WhiteboardScript";
 
 /**
@@ -36,6 +36,29 @@ export class MdTimerRuntime {
       return new WhiteboardScript(inputText, [], [{
         message: error?.message || 'Unknown parse error'
       }]);
+    }
+  }
+
+  /**
+   * Parse without running the Dialect Stack. Used by the parser test harness
+   * which applies its own Dialect set. Production consumers should use {@link read}.
+   */
+  readWithoutDialects(inputText: string): IScript {
+    if (!inputText || !inputText.trim()) {
+      return new WhiteboardScript(inputText, [], []);
+    }
+    try {
+      const doc = inputText.endsWith('\n') ? inputText : inputText + '\n';
+      const state = EditorState.create({
+        doc,
+        extensions: [whiteboardScriptLanguage]
+      });
+      const statements = extractStatementsRaw(state);
+      return new WhiteboardScript(inputText, statements, []);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Unknown parse error';
+      console.error('[MdTimerRuntime] Parse error:', msg);
+      return new WhiteboardScript(inputText, [], [{ message: msg }]);
     }
   }
 }

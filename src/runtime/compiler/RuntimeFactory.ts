@@ -10,7 +10,7 @@
  * 
  * @example
  * ```typescript
- * const factory = new RuntimeFactory(globalCompiler);
+ * const factory = new RuntimeFactory(createCompiler());
  * const runtime = factory.createRuntime(scriptBlock);
  * 
  * // With debug mode

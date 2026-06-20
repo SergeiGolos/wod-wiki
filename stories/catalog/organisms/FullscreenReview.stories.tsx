@@ -23,7 +23,7 @@ import { JitCompiler } from '@/runtime/compiler/JitCompiler';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock } from '@/runtime/RuntimeClock';
-import { sharedParser } from '@/parser/parserInstance';
+import { createParser } from '@/parser/parserInstance';
 import { WhiteboardScript } from '@/parser/WhiteboardScript';
 
 // Strategies
@@ -71,7 +71,7 @@ function runToCompletion(
   stepMs = 30_000,
   maxSteps = 50,
 ): { segments: Segment[]; runtime: ScriptRuntime } {
-  const script = sharedParser.read(scriptText) as WhiteboardScript;
+  const script = createParser().read(scriptText) as WhiteboardScript;
   const compiler = buildCompiler();
   const clock = createMockClock(new Date('2024-06-15T09:00:00Z'));
   const stack = new RuntimeStack();

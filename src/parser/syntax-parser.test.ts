@@ -151,47 +151,43 @@ describe('extractSyntaxFacts', () => {
     expect(byId.get(2)?.children).toEqual([]);
   });
 
-  describe('Slash and Pipe tokens — separate primitives for "/" and "|"', () => {
-    it('emits a slash primitive for a bare "/" between quantities', () => {
+  describe('Slash and Pipe tokens — ride as effort primitives with raw "/" or "|"', () => {
+    it('emits an effort primitive with raw "/" for a bare slash between quantities', () => {
       const state = buildState(`185/125 lb\n`);
       const facts = extractSyntaxFacts(state);
       const kinds = facts.statements[0].primitives.map((p) => p.kind);
-      expect(kinds).toContain('slash');
-      const slash = facts.statements[0].primitives.find((p) => p.kind === 'slash')!;
-      expect(slash.raw).toBe('/');
+      expect(kinds).toContain('effort');
+      const slash = facts.statements[0].primitives.find((p) => p.kind === 'effort' && p.raw === '/')!;
+      expect(slash).toBeDefined();
     });
 
-    it('does NOT emit a slash primitive for "//" (comment)', () => {
+    it('does NOT emit a slash for "//" (comment)', () => {
       const state = buildState(`Run // at pace\n`);
       const facts = extractSyntaxFacts(state);
-      const kinds = facts.statements[0].primitives.map((p) => p.kind);
-      expect(kinds).not.toContain('slash');
-      expect(kinds).toContain('text');
+      const raws = facts.statements[0].primitives.map((p) => p.raw);
+      expect(raws).not.toContain('/');
+      expect(facts.statements[0].primitives.some((p) => p.kind === 'text')).toBe(true);
     });
 
-    it('emits effort primitives on both sides of "/" in "Run/Walk"', () => {
+    it('emits effort primitives on both sides of "/" in "Run/Walk" (slash rides as effort)', () => {
       const state = buildState(`Run/Walk\n`);
       const facts = extractSyntaxFacts(state);
-      const kinds = facts.statements[0].primitives.map((p) => p.kind);
-      // slash appears as its own primitive between the two effort primitives
-      expect(kinds).toEqual(['effort', 'slash', 'effort']);
+      const raws = facts.statements[0].primitives.map((p) => p.raw);
+      expect(raws).toEqual(['Run', '/', 'Walk']);
     });
 
-    it('emits a pipe primitive for "|" (distinct from slash)', () => {
+    it('emits an effort primitive with raw "|" (distinct from "/")', () => {
       const state = buildState(`Run | Walk\n`);
       const facts = extractSyntaxFacts(state);
-      const kinds = facts.statements[0].primitives.map((p) => p.kind);
-      // pipe produces its own Pipe node type, separate from Slash
-      expect(kinds).toEqual(['effort', 'pipe', 'effort']);
-      const pipe = facts.statements[0].primitives.find((p) => p.kind === 'pipe')!;
-      expect(pipe.raw).toBe('|');
+      const raws = facts.statements[0].primitives.map((p) => p.raw);
+      expect(raws).toEqual(['Run', '|', 'Walk']);
     });
 
     it('emits effort primitives on both sides of "|" in "Sprint | Jog"', () => {
       const state = buildState(`Sprint | Jog\n`);
       const facts = extractSyntaxFacts(state);
-      const kinds = facts.statements[0].primitives.map((p) => p.kind);
-      expect(kinds).toEqual(['effort', 'pipe', 'effort']);
+      const raws = facts.statements[0].primitives.map((p) => p.raw);
+      expect(raws).toEqual(['Sprint', '|', 'Jog']);
     });
   });
 });

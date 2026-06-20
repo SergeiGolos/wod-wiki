@@ -29,4 +29,58 @@ export const isCustomCastAppId = (appId: string): boolean => {
 
 export const hasCustomCastAppId = isCustomCastAppId(CAST_APP_ID);
 
-console.log('[Config] Cast App ID:', CAST_APP_ID);
+/**
+ * Cast backend kind — selects which `ICastBackend` adapter the factory
+ * (`getCastBackend()`) returns.
+ *
+ *   'chromecast'  — `ChromecastBackend`. Production / preview builds. The
+ *                   user gesture opens the native Cast device picker; the
+ *                   transport is a `WebRtcRpcTransport` over the Cast
+ *                   message channel.
+ *   'local'       — `LocalTabBackend`. Dev / dual-pane preview. The user
+ *                   gesture opens a popup tab; the transport is a
+ *                   `BroadcastChannelRpcTransport` over a `MessageChannel`.
+ *   'auto'        — resolves at runtime: `chromecast` in production-like
+ *                   builds (`MODE === 'production'`), `local` in dev. This
+ *                   is the default — most builds don't need to set
+ *                   `VITE_CAST_BACKEND` explicitly.
+ *
+ * The release / verify workflows set `VITE_CAST_BACKEND=chromecast`
+ * explicitly. Dev workflows can leave it unset and get `'auto'` → `'local'`.
+ */
+export type CastBackendKind = 'chromecast' | 'local' | 'auto';
+
+const rawCastBackend = (import.meta.env.VITE_CAST_BACKEND ?? '').toString().trim().toLowerCase();
+
+function resolveAuto(): Exclude<CastBackendKind, 'auto'> {
+    // Vite exposes MODE: 'development' | 'production' | 'test'.
+    // In production-like builds (release, storybook publish), use the real
+    // Chromecast backend. In dev, default to the local mirror so the cast
+    // button is exercisable without a TV.
+    if (import.meta.env.MODE === 'production') return 'chromecast';
+    return 'local';
+}
+
+export const CAST_BACKEND: Exclude<CastBackendKind, 'auto'> = (
+    rawCastBackend === 'chromecast' || rawCastBackend === 'local'
+        ? rawCastBackend
+        : resolveAuto()
+) as Exclude<CastBackendKind, 'auto'>;
+
+// Storybook production builds inject this via `config.define` in
+// `.storybook/main.mjs` so the receiver URL is baked at compile time.
+declare const __LOCAL_RECEIVER_URL__: string | undefined;
+
+/**
+ * Optional override for the local-tab receiver URL.
+ *
+ * When set (e.g. `https://preview.wod.wiki/receiver-rpc.html`), the local
+ * backend opens this URL instead of `${origin}/receiver-rpc.html`.  This is
+ * used by the published Storybook so that local-tab casts land on the
+ * canonical preview receiver rather than the Storybook domain.
+ */
+export const LOCAL_RECEIVER_URL = (
+    (typeof __LOCAL_RECEIVER_URL__ !== 'undefined' ? __LOCAL_RECEIVER_URL__ : import.meta.env.VITE_LOCAL_RECEIVER_URL)
+    || ''
+).trim();
+

@@ -170,23 +170,6 @@ export enum MetricType {
   Calculated = 'calculated',
 
   /**
-   * **Slash** (Parser) — the "/" separator for fraction notation.
-   *
-   * A grammar-level token (`1/4 mile`) that the fuseUnits dialect consumes
-   * to produce a single decimal metric. Never surfaces in compiled blocks.
-   */
-  Slash = 'slash',
-
-  /**
-   * **Pipe** (Parser) — the "|" separator for choice notation.
-   *
-   * A grammar-level token (`Run | Walk`) that the fuseUnits dialect consumes
-   * to produce a ChoiceGroupMetric with homogeneous alternatives.
-   * Never surfaces in compiled blocks once resolved.
-   */
-  Pipe = 'pipe',
-
-  /**
    * **Choice** (Parser) — a pipe-separated OR expression.
    *
    * Emitted by Fusion when a pipe separates two homogeneous alternatives

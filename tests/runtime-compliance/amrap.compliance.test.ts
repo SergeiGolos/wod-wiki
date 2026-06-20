@@ -8,130 +8,112 @@
  * Legend:
  *   🟢 Expected to pass — behaviour is fully implemented
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import { TestScript, assertions } from '@/testing/script';
+import { it, expect } from 'bun:test';
+import { describeCompliance, assertions } from '@/testing/script';
+import type { TestScript } from '@/testing/script/TestScript';
 import type { ScriptState } from '@/testing/script';
-import { RoundState } from '@/runtime/memory/MemoryTypes';
+import { getRoundState, anyOutputHasMetric } from '../helpers/compliance-helpers';
 import { MetricType } from '@/core/models/Metric';
-import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Reads the current round state from the AMRAP block on the stack.
- * Returns undefined when no AMRAP block is present.
- */
-function getRoundState(state: ScriptState): RoundState | undefined {
-    const amrapBlock = state.blocks.find((b: IRuntimeBlock) => b.blockType === 'AMRAP');
-    if (!amrapBlock) return undefined;
-    return amrapBlock.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
-}
 
 // ===========================================================================
 // 🟢 Classic AMRAP — "Cindy"
 // ===========================================================================
-describe('🟢 Classic AMRAP — Cindy (20:00 / 3 children)', () => {
-    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats';
-    let script: TestScript;
+describeCompliance('🟢 Classic AMRAP — Cindy (20:00 / 3 children)', '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats', (ctx) => {
 
-    afterEach(async () => { if (script) await script.dispose(); });
-
-    async function oneRound() {
-        await script.next(); // Pullups done
-        await script.next(); // Pushups done
-        await script.next(); // Air Squats done  →  cycle complete, round advances
+    async function oneRound(s: TestScript) {
+        await s.next(); // Pullups done
+        await s.next(); // Pushups done
+        await s.next(); // Air Squats done  →  cycle complete, round advances
     }
 
     it('step 0: startSession → SessionRoot + WaitingToStart (depth = 2)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         const s = await script.snapshot();
         expect(s.depth).toBe(2);
     });
 
     it('step 1: first userNext starts AMRAP and pushes 1st exercise', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const s = await script.snapshot();
         expect(s.depth).toBeGreaterThanOrEqual(3);
     });
 
     it('step 1: AMRAP block is present on the stack after first userNext', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const s = await script.snapshot();
-        const amrapBlock = s.blocks.find((b: IRuntimeBlock) => b.blockType === 'AMRAP');
+        const amrapBlock = s.blocks.find((b) => b.blockType === 'AMRAP');
         expect(amrapBlock).toBeDefined();
     });
 
     it('step 1: round counter initialises at 1', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
     it('step 2: second userNext advances to 2nd exercise (Pushups)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
         expect(s.depth).toBeGreaterThanOrEqual(3);
     });
 
     it('step 3: third userNext advances to 3rd exercise (Air Squats)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
     it('step 4: 4th userNext starts round 2 (children cycle back to Pullups)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
-        await oneRound();
+        await oneRound(script);
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('round counter increments correctly across 3 complete rounds', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         for (let r = 1; r <= 3; r++) {
             await script.tick(60_000);
-            await oneRound();
+            await oneRound(script);
         }
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(4);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(4);
     });
 
     it('total rounds is undefined (unbounded AMRAP)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.total).toBeUndefined();
+        expect(getRoundState(s, 'AMRAP')?.total).toBeUndefined();
     });
 
     it('step N: tick(1_200_000) expires timer → session auto-terminates', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
-        await oneRound();
+        await oneRound(script);
         await script.tick(1_140_000);
         const s = await script.snapshot();
         expect(s.depth).toBe(0);
     });
 
     it('all outputs are paired (segment + completion for every block)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
-        await oneRound();
+        await oneRound(script);
         await script.tick(1_140_000);
         const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
         expect(unpaired).toEqual([]);
@@ -141,29 +123,25 @@ describe('🟢 Classic AMRAP — Cindy (20:00 / 3 children)', () => {
 // ===========================================================================
 // 🟢 Short AMRAP — 2:00 / 5 Burpees
 // ===========================================================================
-describe('🟢 Short AMRAP (2:00 / 1 child)', () => {
-    const SCRIPT = '2:00 AMRAP\n  5 Burpees';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Short AMRAP (2:00 / 1 child)', '2:00 AMRAP\n  5 Burpees', (ctx) => {
 
     it('step 1: userNext starts AMRAP and pushes child', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const s = await script.snapshot();
         expect(s.depth).toBeGreaterThanOrEqual(2);
     });
 
     it('step 2: second userNext completes round 1 and starts round 2', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('at least 2 rounds complete before clock advance', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         const s = await script.snapshot();
@@ -171,7 +149,7 @@ describe('🟢 Short AMRAP (2:00 / 1 child)', () => {
     });
 
     it('tick(120_000) expires 2:00 timer → session auto-terminates', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(120_000);
         const s = await script.snapshot();
@@ -182,14 +160,10 @@ describe('🟢 Short AMRAP (2:00 / 1 child)', () => {
 // ===========================================================================
 // 🟢 Single-Exercise AMRAP
 // ===========================================================================
-describe('🟢 Single-Exercise AMRAP (10:00 / 1 child)', () => {
-    const SCRIPT = '10:00 AMRAP\n  1 Snatch';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 Single-Exercise AMRAP (10:00 / 1 child)', '10:00 AMRAP\n  1 Snatch', (ctx) => {
 
     it('single child loops on successive userNext calls', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         await script.next();
@@ -198,23 +172,23 @@ describe('🟢 Single-Exercise AMRAP (10:00 / 1 child)', () => {
     });
 
     it('round increments on each userNext', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(3);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(3);
     });
 
     it('total rounds is undefined (unbounded)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.total).toBeUndefined();
+        expect(getRoundState(s, 'AMRAP')?.total).toBeUndefined();
     });
 
     it('timer expiry at 10:00 terminates session', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         await script.tick(600_000);
@@ -226,63 +200,59 @@ describe('🟢 Single-Exercise AMRAP (10:00 / 1 child)', () => {
 // ===========================================================================
 // 🟢 AMRAP with `-` Sequential Grouping
 // ===========================================================================
-describe('🟢 AMRAP with - Sequential Grouping (Cindy variant)', () => {
-    const SCRIPT = '20:00 AMRAP\n  - 5 Pullups\n  - 10 Pushups\n  - 15 Air Squats';
-    let script: TestScript;
+describeCompliance('🟢 AMRAP with - Sequential Grouping (Cindy variant)', '20:00 AMRAP\n  - 5 Pullups\n  - 10 Pushups\n  - 15 Air Squats', (ctx) => {
 
-    afterEach(async () => { if (script) await script.dispose(); });
-
-    async function oneRound() {
-        await script.next();
-        await script.next();
-        await script.next();
+    async function oneRound(s: TestScript) {
+        await s.next();
+        await s.next();
+        await s.next();
     }
 
     it('step 1: AMRAP mounts and first child pushed', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const s = await script.snapshot();
         expect(s.depth).toBeGreaterThanOrEqual(3);
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
     it('round stays 1 after 2 of 3 children complete (cycle incomplete)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
     it('3 userNexts complete round 1 → round 2 begins', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
-        await oneRound();
+        await oneRound(script);
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('round counter matches Math.floor(nextCount / 3) + 1 pattern', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         let s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
         await script.tick(60_000);
-        await oneRound();
+        await oneRound(script);
         s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
         await script.tick(60_000);
-        await oneRound();
+        await oneRound(script);
         s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(3);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(3);
     });
 
     it('timer expiry auto-terminates session', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
-        await oneRound();
+        await oneRound(script);
         await script.tick(1_200_000);
         const s = await script.snapshot();
         expect(s.depth).toBe(0);
@@ -292,46 +262,42 @@ describe('🟢 AMRAP with - Sequential Grouping (Cindy variant)', () => {
 // ===========================================================================
 // 🟢 AMRAP with `+` Composed Grouping
 // ===========================================================================
-describe('🟢 AMRAP with + Composed Grouping (single child group)', () => {
-    const SCRIPT = '20:00 AMRAP\n  + 5 Pullups\n  + 10 Pushups\n  + 15 Air Squats';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 AMRAP with + Composed Grouping (single child group)', '20:00 AMRAP\n  + 5 Pullups\n  + 10 Pushups\n  + 15 Air Squats', (ctx) => {
 
     it('exactly one child block on stack after first userNext (one composite group)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const s = await script.snapshot();
         expect(s.depth).toBe(3);
     });
 
     it('round 1 after first userNext starts the composite block', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
     it('one userNext = one completed round', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('round increments sequentially: 1 → 2 → 3 → 4 → 5', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         for (let expected = 2; expected <= 5; expected++) {
             await script.next();
             const s = await script.snapshot();
-            expect(getRoundState(s)?.current).toBe(expected);
+            expect(getRoundState(s, 'AMRAP')?.current).toBe(expected);
         }
     });
 
     it('timer expiry at 20:00 terminates session', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         await script.tick(1_200_000);
@@ -343,21 +309,17 @@ describe('🟢 AMRAP with + Composed Grouping (single child group)', () => {
 // ===========================================================================
 // 🟡 AMRAP with Skippable Rest Between Rounds
 // ===========================================================================
-describe('🟢 AMRAP with Skippable Rest (:30 Rest)', () => {
-    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  :30 Rest';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 AMRAP with Skippable Rest (:30 Rest)', '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  :30 Rest', (ctx) => {
 
     it('step 1: AMRAP starts, Pullups pushed', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         const s = await script.snapshot();
         expect(s.depth).toBeGreaterThanOrEqual(3);
     });
 
     it('step 3: after 2 exercises, a rest/timer block is the current block', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         await script.next();
@@ -366,7 +328,7 @@ describe('🟢 AMRAP with Skippable Rest (:30 Rest)', () => {
     });
 
     it('step 4a: userNext on :30 Rest skips it — round 2 begins immediately', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         await script.next();
@@ -375,21 +337,21 @@ describe('🟢 AMRAP with Skippable Rest (:30 Rest)', () => {
         await script.next();
         s = await script.snapshot();
         expect(s.current?.blockType).not.toMatch(/Rest|Timer/i);
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('step 4b: tick(30_000) auto-expires :30 Rest → round 2 begins', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.next();
         await script.next();
         await script.tick(30_000);
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('AMRAP timer expiry at 20:00 terminates session', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(1_200_000);
         const s = await script.snapshot();
@@ -400,27 +362,24 @@ describe('🟢 AMRAP with Skippable Rest (:30 Rest)', () => {
 // ===========================================================================
 // 🟢 AMRAP with Forced Rest (Cannot Skip)
 // ===========================================================================
-describe('🟢 AMRAP with Forced Rest (*:30 — Cannot Skip)', () => {
-    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  *:30 Rest';
-    let script: TestScript;
+describeCompliance('🟢 AMRAP with Forced Rest (*:30 — Cannot Skip)', '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  *:30 Rest', (ctx) => {
 
-    afterEach(async () => { if (script) await script.dispose(); });
-
-    async function enterForcedRest() {
-        script = await TestScript.compile(SCRIPT);
-        await script.next();
-        await script.next();
-        await script.next();
+    async function enterForcedRest(s: TestScript) {
+        await s.next();
+        await s.next();
+        await s.next();
     }
 
     it('step 3: a rest/timer block is mounted after 2 exercises', async () => {
-        await enterForcedRest();
+        const script = await ctx.compile();
+        await enterForcedRest(script);
         const s = await script.snapshot();
         expect(s.current?.blockType).toMatch(/Rest|Timer/i);
     });
 
     it('step 4: userNext during *:30 forced rest is a no-op — stack depth unchanged', async () => {
-        await enterForcedRest();
+        const script = await ctx.compile();
+        await enterForcedRest(script);
         const depthAtRest = (await script.snapshot()).depth;
         await script.next();
         const s = await script.snapshot();
@@ -428,7 +387,8 @@ describe('🟢 AMRAP with Forced Rest (*:30 — Cannot Skip)', () => {
     });
 
     it('multiple userNext calls during *:30 forced rest all produce zero stack changes', async () => {
-        await enterForcedRest();
+        const script = await ctx.compile();
+        await enterForcedRest(script);
         const depthAtRest = (await script.snapshot()).depth;
         await script.next();
         await script.next();
@@ -438,21 +398,24 @@ describe('🟢 AMRAP with Forced Rest (*:30 — Cannot Skip)', () => {
     });
 
     it('round counter stays at 1 while rest is active (no premature increment)', async () => {
-        await enterForcedRest();
+        const script = await ctx.compile();
+        await enterForcedRest(script);
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(1);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
     it('tick(30_000) expires the forced rest → auto-pops → round 2 starts', async () => {
-        await enterForcedRest();
+        const script = await ctx.compile();
+        await enterForcedRest(script);
         await script.tick(30_000);
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
     it('AMRAP timer expiry ends session even while inside forced rest', async () => {
-        await enterForcedRest();
+        const script = await ctx.compile();
+        await enterForcedRest(script);
         await script.tick(1_200_000);
         const s = await script.snapshot();
         expect(s.depth).toBe(0);
@@ -462,14 +425,10 @@ describe('🟢 AMRAP with Forced Rest (*:30 — Cannot Skip)', () => {
 // ===========================================================================
 // 🟢 AMRAP with `+` Composed Grouping — Proportional Output Splitting
 // ===========================================================================
-describe('🟢 AMRAP with + Composed Grouping — proportional output splitting', () => {
-    const SCRIPT = '20:00 AMRAP\n  + 5 Pullups\n  + 10 Pushups\n  + 15 Air Squats';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
+describeCompliance('🟢 AMRAP with + Composed Grouping — proportional output splitting', '20:00 AMRAP\n  + 5 Pullups\n  + 10 Pushups\n  + 15 Air Squats', (ctx) => {
 
     it('completing one composite round emits ≥ 3 completion outputs (one per exercise)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
         await script.next();
@@ -484,7 +443,7 @@ describe('🟢 AMRAP with + Composed Grouping — proportional output splitting'
     });
 
     it('each split completion contains exercise-specific Rep or Effort metric', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
         await script.next();
@@ -505,7 +464,7 @@ describe('🟢 AMRAP with + Composed Grouping — proportional output splitting'
     });
 
     it('elapsed time across split completions sums to total elapsed (within 1 % rounding)', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(60_000);
         await script.next();
@@ -527,7 +486,7 @@ describe('🟢 AMRAP with + Composed Grouping — proportional output splitting'
     });
 
     it('rep ratio 5:10:15 → split elapsed values are in ascending order', async () => {
-        script = await TestScript.compile(SCRIPT);
+        const script = await ctx.compile();
         await script.next();
         await script.tick(30_000);
         await script.next();
@@ -551,18 +510,7 @@ describe('🟢 AMRAP with + Composed Grouping — proportional output splitting'
 // ===========================================================================
 // 🟢 AMRAP Skippable Rest — completionReason in system events
 // ===========================================================================
-describe('🟢 AMRAP Skippable Rest — completionReason in system events', () => {
-    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  :30 Rest';
-    let script: TestScript;
-
-    afterEach(async () => { if (script) await script.dispose(); });
-
-    async function setupAndReachRest() {
-        script = await TestScript.compile(SCRIPT);
-        await script.next();
-        await script.next();
-        await script.next();
-    }
+describeCompliance('🟢 AMRAP Skippable Rest — completionReason in system events', '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  :30 Rest', (ctx) => {
 
     function systemPopValues(state: ScriptState): Array<Record<string, unknown>> {
         return assertions(state).outputs()
@@ -575,7 +523,10 @@ describe('🟢 AMRAP Skippable Rest — completionReason in system events', () =
     }
 
     it('skipping :30 Rest via userNext → completionReason = "user-advance" in system pop', async () => {
-        await setupAndReachRest();
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
         await script.next();
         const pops = systemPopValues(await script.snapshot());
         const lastPop = pops.at(-1);
@@ -583,7 +534,10 @@ describe('🟢 AMRAP Skippable Rest — completionReason in system events', () =
     });
 
     it('auto-expiring :30 Rest → completionReason is NOT "user-advance"', async () => {
-        await setupAndReachRest();
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
         await script.tick(30_000);
         const pops = systemPopValues(await script.snapshot());
         const lastPop = pops.at(-1);
@@ -591,27 +545,25 @@ describe('🟢 AMRAP Skippable Rest — completionReason in system events', () =
     });
 
     it('round advances to 2 after rest is skipped, confirming the pop was the rest block', async () => {
-        await setupAndReachRest();
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
         await script.next();
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 });
 
 // ===========================================================================
 // 🟢 AMRAP Forced Rest — completionReason never 'user-advance'
 // ===========================================================================
-describe('🟢 AMRAP Forced Rest — completionReason never "user-advance"', () => {
-    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  *:30 Rest';
-    let script: TestScript;
+describeCompliance('🟢 AMRAP Forced Rest — completionReason never "user-advance"', '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  *:30 Rest', (ctx) => {
 
-    afterEach(async () => { if (script) await script.dispose(); });
-
-    async function enterForcedRest() {
-        script = await TestScript.compile(SCRIPT);
-        await script.next();
-        await script.next();
-        await script.next();
+    async function enterForcedRest(s: TestScript) {
+        await s.next();
+        await s.next();
+        await s.next();
     }
 
     function systemPopValues(state: ScriptState): Array<Record<string, unknown>> {
@@ -625,7 +577,8 @@ describe('🟢 AMRAP Forced Rest — completionReason never "user-advance"', () 
     }
 
     it('after forced rest expires via timer, last system pop is NOT "user-advance"', async () => {
-        await enterForcedRest();
+        const script = await ctx.compile();
+        await enterForcedRest(script);
         await script.tick(30_000);
         const pops = systemPopValues(await script.snapshot());
         const lastPop = pops.at(-1);
@@ -633,7 +586,8 @@ describe('🟢 AMRAP Forced Rest — completionReason never "user-advance"', () 
     });
 
     it('after userNext attempts + timer expiry, no forced-rest pop has "user-advance"', async () => {
-        await enterForcedRest();
+        const script = await ctx.compile();
+        await enterForcedRest(script);
         await script.next();
         await script.next();
         await script.tick(30_000);
@@ -643,7 +597,8 @@ describe('🟢 AMRAP Forced Rest — completionReason never "user-advance"', () 
     });
 
     it('forced rest completion output has no completionReason = "user-advance"', async () => {
-        await enterForcedRest();
+        const script = await ctx.compile();
+        await enterForcedRest(script);
         await script.tick(30_000);
 
         const completions = assertions(await script.snapshot()).outputs().completions();
@@ -657,9 +612,54 @@ describe('🟢 AMRAP Forced Rest — completionReason never "user-advance"', () 
     });
 
     it('after forced rest timer fires, round 2 begins (confirming correct pop path)', async () => {
-        await enterForcedRest();
+        const script = await ctx.compile();
+        await enterForcedRest(script);
         await script.tick(30_000);
         const s = await script.snapshot();
-        expect(getRoundState(s)?.current).toBe(2);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
+    });
+});
+
+// ===========================================================================
+// 🟢 Sound Cues — AMRAP Timer
+// Spec: timer.md#sound-cues
+// ===========================================================================
+describeCompliance('🟢 Sound Cues — AMRAP Timer (2:00)', '2:00 AMRAP\n  5 Burpees', (ctx) => {
+
+    it('AMRAP timer-expiry emits a "timer-complete" sound output', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start AMRAP
+        await script.tick(120_000); // expire AMRAP timer
+        const snap = await script.snapshot();
+        expect(anyOutputHasMetric(snap, 'sound')).toBe(true);
+        const soundOutputs = assertions(snap).outputs().all().filter(o =>
+            o.metrics.some(m => m.type === 'sound')
+        );
+        const completeSound = soundOutputs.find(o =>
+            o.metrics.some(m => m.value?.trigger === 'complete')
+        );
+        expect(completeSound).toBeDefined();
+    });
+
+    it('AMRAP countdown beeps fire at 3-2-1 seconds remaining', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start AMRAP
+        // Skip through effort quickly
+        await script.next();
+        await script.tick(117_000); // advance to 3s remaining
+        await script.tick(1_000); // 2s
+        await script.tick(1_000); // 1s
+        await script.tick(1_000); // 0s → complete
+        const snap = await script.snapshot();
+        const soundOutputs = assertions(snap).outputs().all().filter(o =>
+            o.metrics.some(m => m.type === 'sound' && m.value?.trigger === 'countdown')
+        );
+        const countdownSeconds = soundOutputs.map(o => {
+            const m = o.metrics.find(m2 => m2.type === 'sound');
+            return m?.value?.atSecond;
+        }).sort();
+        expect(countdownSeconds).toContain(3);
+        expect(countdownSeconds).toContain(2);
+        expect(countdownSeconds).toContain(1);
     });
 });

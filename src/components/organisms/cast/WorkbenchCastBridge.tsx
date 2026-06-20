@@ -2,19 +2,19 @@
  * WorkbenchCastBridge — renderless component that broadcasts workbench-level
  * display state to the Chromecast receiver via the active RPC transport.
  */
-
 import React, { useEffect, useRef } from 'react';
-import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
+import { useCastTransport } from '@/contexts/CastTransportContext';
 import { workbenchModeResolver } from '@/app/cast/workbenchModeResolver';
+import { useWorkbenchSession } from '@/stores/workbenchSessionStore'
 
 export const WorkbenchCastBridge: React.FC = () => {
-    const castTransport = useWorkbenchSyncStore((s) => s.castTransport);
-    const runtime = useWorkbenchSyncStore((s) => s.runtime);
-    const executionStatus = useWorkbenchSyncStore((s) => s.execution.status);
-    const viewMode = useWorkbenchSyncStore((s) => s.viewMode);
-    const selectedBlock = useWorkbenchSyncStore((s) => s.selectedBlock);
-    const documentItems = useWorkbenchSyncStore((s) => s.documentItems);
-    const analyticsSegments = useWorkbenchSyncStore((s) => s.analyticsSegments);
+    const castTransport = useCastTransport();
+    const runtime = useWorkbenchSession((s) => s.runtime);
+    const executionStatus = useWorkbenchSession((s) => s.execution.status);
+    const viewMode = useWorkbenchSession((s) => s.viewMode);
+    const selectedBlock = useWorkbenchSession((s) => s.selectedBlock);
+    const documentItems = useWorkbenchSession((s) => s.documentItems);
+    const analyticsSegments = useWorkbenchSession((s) => s.analyticsSegments);
 
     // Fingerprint of the last sent message — avoids redundant sends
     const lastFingerprintRef = useRef<string>('');

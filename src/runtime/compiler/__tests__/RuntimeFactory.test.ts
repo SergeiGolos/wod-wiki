@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import { RuntimeFactory } from '../RuntimeFactory';
-import { globalParser } from '@/runtime/services/runtimeServices';
+import { createParser } from '@/parser/parserInstance';
 import type { ScriptBlock } from '@/components/Editor/types';
 import { MetricType } from '@/core/models/Metric';
 
 describe('RuntimeFactory', () => {
-  const factory = new RuntimeFactory(globalParser);
+  const factory = new RuntimeFactory(createParser());
 
   function makeBlock(content: string, statements?: ScriptBlock['statements']): ScriptBlock {
     return {
@@ -13,7 +13,7 @@ describe('RuntimeFactory', () => {
       startLine: 0,
       endLine: 2,
       content,
-      statements: statements ?? globalParser.read(content).statements,
+      statements: statements ?? createParser().read(content).statements,
       state: 'parsed',
       widgetIds: {},
       version: 1,

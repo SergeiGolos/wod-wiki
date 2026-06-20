@@ -3,7 +3,7 @@ import { ICodeStatement } from "../core/models/CodeStatement";
 import { IMetric, MetricType } from "../core/models/Metric";
 import { MetricContainer } from "../core/models/MetricContainer";
 import { hintsToContainer } from "../core/metrics/hints";
-
+import { EMPTY_UNIT } from "../runtime/compiler/metrics/dimensionFactory";
 export const ClimbMetricType = {
   Discipline: 'climb-discipline',
   Grade: 'climb-grade',
@@ -231,7 +231,7 @@ export class ClimbDialect implements IDialect {
     const attemptMetric = metrics.find(metric => {
       if (metric.type !== MetricType.Resistance) return false;
       const value = metric.value as { amount?: unknown; unit?: unknown } | undefined;
-      return value && typeof value.amount === 'number' && String(value.unit ?? metric.unit ?? '') === '';
+      return value && typeof value.amount === 'number' && String(value.unit ?? metric.unit ?? EMPTY_UNIT) === EMPTY_UNIT;
     });
 
     return (attemptMetric?.value as { amount?: number } | undefined)?.amount;

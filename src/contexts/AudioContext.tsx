@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { audioService } from '@/hooks/useBrowserServices';
-import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
+import { useCastTransport } from '@/contexts/CastTransportContext';
 
 interface AudioContextType {
     isEnabled: boolean;
@@ -15,7 +15,7 @@ const WodAudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export function AudioProvider({ children }: { children: React.ReactNode }) {
     const [isEnabled, setIsEnabled] = useState(audioService.isEnabled());
-    const castTransport = useWorkbenchSyncStore(s => s.castTransport);
+    const castTransport = useCastTransport();
 
     useEffect(() => {
         // Sync service state with component state

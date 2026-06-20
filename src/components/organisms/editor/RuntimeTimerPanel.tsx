@@ -24,10 +24,9 @@ import { TimerDisplay } from "@/panels/wallclock-panel";
 import { VisualStatePanel } from "@/panels/visual-state-panel";
 import { PanelSizeProvider, usePanelSize } from "@/panels/panel-system/PanelSizeContext";
 import { useScreenMode } from "@/panels/panel-system/useScreenMode";
-import { ScriptRuntimeProvider, useRuntimeExecution, type UseRuntimeExecutionReturn, SubscriptionManager, NextEvent, ScriptRuntime } from "@/hooks/useRuntimeTimer";
+import { ScriptRuntimeProvider, useRuntimeExecution, type UseRuntimeExecutionReturn, NextEvent, ScriptRuntime } from "@/hooks/useRuntimeTimer";
 import type { IScriptRuntime, StackSnapshot } from "@/hooks/useRuntimeTimer";
-import { ChromecastRuntimeSubscription, ChromecastEventProvider, ClockSyncService } from "@/hooks/useCastSignaling";
-import { useWorkbenchSyncStore } from "@/stores/workbenchSyncStore";
+import { useCastTransport } from "@/contexts/CastTransportContext";
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from '@/components/Editor/extensions/gutter-unified';
@@ -244,6 +243,11 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     onComplete?.(block.id, results);
   }, [block.id, execution.elapsedTime, execution.startTime, onComplete, runtime]);
 
+  // Cast bridge — read the active transport from context (provided by
+  // `CastButtonRpc`). The inline runtime has no inline subscription
+  // (the workbench runtime's subscription handles the cast stream).
+  const castTransport = useCastTransport();
+
   // Track completion: notify parent immediately so it can switch to results view.
   // The parent (FullscreenTimer) will unmount this panel when it transitions.
   // Also send review mode to Chromecast BEFORE the panel unmounts (which would
@@ -256,18 +260,17 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       // Send review data to Chromecast so the receiver transitions to the
       // review screen. This must happen before the panel unmounts and the
       // cast subscription is disposed.
-      const transport = useWorkbenchSyncStore.getState().castTransport;
-      if (transport?.connected) {
+      if (castTransport?.connected) {
         const allOutputs = runtime?.getOutputStatements() || [];
         const segmentCount = countSegmentOutputs(allOutputs);
         const reviewMessage = buildCompletedRuntimeProjection({
           totalDurationMs: execution.elapsedTime,
           segmentCount,
         });
-        try { transport.send(reviewMessage); } catch { /* ignore */ }
+        try { castTransport.send(reviewMessage); } catch { /* ignore */ }
       }
     }
-  }, [execution.status, completedAt, handleComplete]);
+  }, [execution.status, completedAt, handleComplete, castTransport]);
 
   const handleStop = () => {
     execution.stop();
@@ -302,51 +305,11 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     runtime?.handle(new NextEvent(undefined, runtime!.nowProvider));
   };
 
-  // ── Chromecast RPC syncing ──────────────────────────────────────────
-  // When a cast transport is active (connected from the app-level CastButtonRpc),
-  // wire the local runtime into the Chromecast RPC pipeline so the receiver
-  // gets proper stack snapshots, output statements, and timer data.
-  const castTransport = useWorkbenchSyncStore(s => s.castTransport);
-
-  useEffect(() => {
-    const rt = runtime;
-    if (!castTransport?.connected || !rt) return;
-
-    // Signal active mode to receiver
-    try { castTransport.send({ type: 'rpc-workbench-update', mode: 'active' }); } catch { /* ignore */ }
-
-    // Create a local SubscriptionManager that fans out runtime events
-    const subMgr = new SubscriptionManager(rt);
-    const chromecastSub = new ChromecastRuntimeSubscription(castTransport, { id: 'inline-chromecast' });
-    subMgr.add(chromecastSub);
-
-    // Remote control: D-Pad events from receiver → local runtime
-    const eventProvider = new ChromecastEventProvider(castTransport);
-    const unsubEvents = eventProvider.onEvent((event) => {
-      switch (event.name) {
-        case 'next': runtime?.handle(new NextEvent(undefined, runtime!.nowProvider)); break;
-        case 'start': execution.start(); break;
-        case 'pause': execution.pause(); break;
-        case 'stop': handleStop(); break;
-      }
-    });
-
-    // Clock sync (best-effort, non-blocking)
-    const clockSync = new ClockSyncService(castTransport);
-    clockSync.sync().catch(() => {});
-
-    return () => {
-      unsubEvents();
-      eventProvider.dispose();
-      clockSync.dispose();
-      subMgr.dispose();
-      // Do NOT send mode='idle' here — let EditorCastBridge or WorkbenchCastBridge
-      // handle the mode transition. Sending 'idle' would flash the waiting screen
-      // before the correct mode (preview or review) is re-sent by the bridge.
-    };
-    // Only re-run when transport connection changes or runtime is created
-  }, [castTransport?.connected, runtime, execution, handleStop, ready]);
-
+  // The cast stack is wired by `CastSessionManager` against the workbench
+  // `SubscriptionManager`. The inline runtime's snapshots flow to the
+  // receiver through the workbench runtime. D-Pad events are routed by
+  // `CastButtonRpc` against the workbench handles. The completion-message
+  // send below is a one-shot projection that doesn't need a session.
   if (showChoiceWizard) {
     return (
       <PanelSizeProvider>
