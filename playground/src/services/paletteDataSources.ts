@@ -10,14 +10,11 @@ import { indexedDBService } from '@/services/db/IndexedDBService';
 import { playgroundDB } from './playgroundDB';
 import type { CanvasRoute } from '../canvas/canvasRoutes';
 import type { ScriptCollection } from '@/repositories/script-collections';
+import type { WorkoutItem as IndexWorkoutItem } from '../lib/workoutIndex';
 
-export type WorkoutItem = {
-  id: string;
-  name: string;
-  category: string;
-  content?: string;
-  searchHidden?: boolean;
-};
+// Re-export the canonical `WorkoutItem` so consumers and the test type-alias
+// (`import('./paletteDataSources').WorkoutItem`) keep resolving to one shape.
+export type WorkoutItem = IndexWorkoutItem;
 
 // ── Global search ─────────────────────────────────────────────────────────
 

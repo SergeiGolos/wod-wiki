@@ -1,11 +1,12 @@
 import { useMemo, useCallback, useEffect, useState } from 'react';
+import type { WorkoutItem } from '../lib/workoutIndex';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { localDateKey, type JournalEntrySummary } from './queriable-list/JournalDateScroll';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { playgroundDB } from '../services/playgroundDB';
 import { useJournalQueryState } from '../hooks/useJournalQueryState';
 import { useShowPlaygrounds } from '../hooks/useShowPlaygrounds';
-import { createJournalEntryFlow } from '../services/journalEntryFlow';
+import { useCreateJournalEntry } from '../hooks/useCreateJournalEntry';
 import type { FilteredListItem } from './queriable-list/types';
 import { JournalFeed } from './JournalFeed';
 
@@ -15,7 +16,7 @@ interface JournalWeeklyPageProps {
   onSelect: (item: any) => void;
   onCreateEntry?: (date: Date) => void;
   /** Workout library items forwarded from App — used by the Collection source in the create palette. */
-  workoutItems?: { id: string; name: string; category: string; content?: string }[];
+  workoutItems?: WorkoutItem[];
 }
 
 export function JournalWeeklyPage({ onSelect, onCreateEntry, workoutItems = [] }: JournalWeeklyPageProps) {
@@ -190,23 +191,7 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry, workoutItems = [] }
       setDateParam(key);
     }
   }, [toggleMultiSelect, setDateParam]);
-
-  const handleCreateNote = useCallback(async (dateKey: string) => {
-    await createJournalEntryFlow({
-      dateKey,
-      workoutItems,
-      onCreated: async (content) => {
-        await playgroundDB.savePage({
-          id: `journal/${dateKey}`,
-          category: 'journal',
-          name: dateKey,
-          content,
-          updatedAt: Date.now(),
-        });
-        navigate(`/journal/${dateKey}`);
-      },
-    });
-  }, [workoutItems, navigate]);
+  const handleCreateNote = useCreateJournalEntry({ workoutItems })
 
   const handleSelect = useCallback((item: FilteredListItem) => {
     if (item.type === 'result') {

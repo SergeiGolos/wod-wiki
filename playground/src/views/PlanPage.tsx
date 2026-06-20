@@ -7,11 +7,12 @@
  */
 
 import { useMemo, useCallback, useEffect, useState } from 'react';
+import type { WorkoutItem } from '../lib/workoutIndex';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { localDateKey, type JournalEntrySummary } from './queriable-list/JournalDateScroll';
 import { playgroundDB } from '../services/playgroundDB';
 import { useJournalQueryState } from '../hooks/useJournalQueryState';
-import { createJournalEntryFlow } from '../services/journalEntryFlow';
+import { useCreateJournalEntry } from '../hooks/useCreateJournalEntry';
 import { JournalFeed } from './JournalFeed';
 
 function addDays(date: Date, n: number): Date {
@@ -21,7 +22,7 @@ function addDays(date: Date, n: number): Date {
 }
 
 interface PlanPageProps {
-  workoutItems?: { id: string; name: string; category: string; content?: string }[];
+  workoutItems?: WorkoutItem[];
 }
 
 export function PlanPage({ workoutItems = [] }: PlanPageProps) {
@@ -150,22 +151,7 @@ export function PlanPage({ workoutItems = [] }: PlanPageProps) {
     }
   }, [toggleMultiSelect, setDateParam]);
 
-  const handleCreateNote = useCallback(async (dateKey: string) => {
-    await createJournalEntryFlow({
-      dateKey,
-      workoutItems,
-      onCreated: async (content) => {
-        await playgroundDB.savePage({
-          id: `journal/${dateKey}`,
-          category: 'journal',
-          name: dateKey,
-          content,
-          updatedAt: Date.now(),
-        });
-        navigate(`/journal/${dateKey}`);
-      },
-    });
-  }, [workoutItems, navigate]);
+  const handleCreateNote = useCreateJournalEntry({ workoutItems })
 
   const handleOpenEntry = useCallback((key: string) => {
     navigate(`/journal/${key}`);

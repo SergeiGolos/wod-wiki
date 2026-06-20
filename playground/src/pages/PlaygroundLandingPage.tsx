@@ -12,6 +12,7 @@ import { CodeExampleWidget, type CodeExampleWidgetConfig } from '../components/m
 import { SyntaxGroupWidget, type SyntaxGroupWidgetConfig } from '../components/molecules/SyntaxGroupWidget'
 import { syntaxGuideReference } from '@/content/syntaxGuideReference'
 import { playgroundPath, reviewPath, workoutPath } from '../lib/routes'
+import { useWorkoutItems } from '../lib/workoutIndex'
 import { LandingTemplate } from '../templates/LandingTemplate'
 
 const ATTENTION_CONFIG: AttentionWidgetConfig = {
@@ -86,12 +87,6 @@ const SYNTAX_GROUP_CONFIGS: SyntaxGroupWidgetConfig[] = [
   },
 ]
 
-const workoutFiles = import.meta.glob('../../../markdown/**/*.md', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-})
-
 export function PlaygroundLandingPage() {
   const navigate = useNavigate()
   const { theme, setTheme } = useTheme()
@@ -103,25 +98,7 @@ export function PlaygroundLandingPage() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   }, [theme])
 
-  const workoutItems = useMemo(() => {
-    return Object.entries(workoutFiles).map(([path, fileContent]) => {
-      const parts = path.split('/')
-      const fileName = parts[parts.length - 1].replace('.md', '')
-
-      let category = 'General'
-      const markdownIdx = parts.indexOf('markdown')
-      if (markdownIdx !== -1 && parts.length > markdownIdx + 2) {
-        category = parts[markdownIdx + 2]
-      }
-
-      return {
-        id: path,
-        name: fileName,
-        category,
-        content: fileContent as string,
-      }
-    })
-  }, [])
+  const workoutItems = useWorkoutItems()
 
   const handleSelectWorkout = useCallback(
     (item: { name: string; category?: string }) => {
