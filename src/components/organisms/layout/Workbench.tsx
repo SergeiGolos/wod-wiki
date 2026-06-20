@@ -19,6 +19,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { planPath } from '@/lib/routes';
 import type { NoteEditorProps } from '@/components/organisms/editor/NoteEditor';
 import { CommandProvider } from '@/contexts/CommandContext';
+import { DebugModeProvider } from '@/contexts/DebugModeContext';
 import { PaletteShell } from '@/components/organisms/command-palette/PaletteShell';
 import { Upload } from 'lucide-react';
 import { useTutorialStore } from '@/hooks/useTutorialStore';
@@ -477,18 +478,20 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 export const Workbench: React.FC<WorkbenchProps> = (props) => {
   return (
     <CommandProvider>
-      <WorkbenchProvider
-        initialContent={props.initialContent}
-        initialActiveEntryId={props.initialActiveEntryId}
-        initialViewMode={props.initialViewMode}
-        mode={props.mode}
-        provider={props.provider}
-      >
-        <RuntimeLifecycleProvider factory={runtimeFactory}>
-          <WorkbenchCastBridge />
-          <WorkbenchContent {...props} />
-        </RuntimeLifecycleProvider>
-      </WorkbenchProvider>
+      <DebugModeProvider>
+        <WorkbenchProvider
+          initialContent={props.initialContent}
+          initialActiveEntryId={props.initialActiveEntryId}
+          initialViewMode={props.initialViewMode}
+          mode={props.mode}
+          provider={props.provider}
+        >
+          <RuntimeLifecycleProvider factory={runtimeFactory}>
+            <WorkbenchCastBridge />
+            <WorkbenchContent {...props} />
+          </RuntimeLifecycleProvider>
+        </WorkbenchProvider>
+      </DebugModeProvider>
     </CommandProvider>
   );
 };

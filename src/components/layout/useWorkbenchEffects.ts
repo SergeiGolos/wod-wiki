@@ -48,6 +48,7 @@ export function useWorkbenchEffects(): void {
   } = useWorkbench();
 
   const selectedBlockId = useWorkbenchSyncStore(s => s.selectedBlockId);
+  const selectedBlock = useWorkbenchSyncStore(s => s.selectedBlock);
 
   // --- Document structure → store ---
   const documentItems = useMemo(() => {
@@ -68,14 +69,6 @@ export function useWorkbenchEffects(): void {
     setActiveBlockId(item?.id || null);
   }, [documentItems, cursorLine, setActiveBlockId]);
 
-  // --- Selected block resolution → store ---
-  const selectedBlock = useMemo(() => {
-    return blocks.find(b => b.id === selectedBlockId) || null;
-  }, [blocks, selectedBlockId]);
-
-  useEffect(() => {
-    store.getState().setSelectedBlock(selectedBlock);
-  }, [selectedBlock]);
 
   // Clear stale analytics whenever the user navigates to a different note.
   const lastSelectedBlockIdRef = useRef<string | null | undefined>(undefined);
@@ -89,10 +82,6 @@ export function useWorkbenchEffects(): void {
     }
   }, [selectedBlockId]);
 
-  // --- View mode → store ---
-  useEffect(() => {
-    store.getState().setViewMode(viewMode);
-  }, [viewMode]);
 
   // --- Runtime lifecycle & execution ---
   const {

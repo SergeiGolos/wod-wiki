@@ -9,6 +9,7 @@ import { buildAppNavTree } from './nav/appNavTree'
 import { NavSearchInput } from '@/components/molecules/NavSearchInput'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { CommandProvider } from '@/contexts/CommandContext'
+import { DebugModeProvider } from '@/contexts/DebugModeContext'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { PaletteShell } from '@/components/organisms/command-palette/PaletteShell'
 import { globalSearchSource } from './services/paletteDataSources'
@@ -620,55 +621,57 @@ export function App() {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
-      <EffortRegistryProvider>
-        <AudioProvider>
-          <BrowserRouter>
-            <NuqsAdapter>
-            <GlobalState />
-            <ScrollToTop />
-            <Toaster />
-            <CommandProvider>
-              <NavProvider tree={navTree}>
-                <Routes>
-                  <Route path="/legacy" element={<PlaygroundLandingPage />} />
-                  <Route path="/concept3" element={<Concept3LandingPage />} />
-                  <Route path="/getting-started" element={<GettingStartedRedirect />} />
-                  <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
-                  <Route path="/syntax" element={<SyntaxRedirect />} />
-                  <Route path="/syntax/*" element={<SyntaxRedirect />} />
-                  <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.plan} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.collectionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.collectionWorkout} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.load} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><LoadZipPage /></Suspense>} />
-                  <Route path={ROUTE_PATTERNS.loadJournal} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><JournalZipLoadPage /></Suspense>} />
-                  <Route path={ROUTE_PATTERNS.loadJournalDate} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><JournalZipLoadPage /></Suspense>} />
-                  <Route path={ROUTE_PATTERNS.playgroundRoot} element={<PlaygroundRedirect />} />
-                  <Route path={ROUTE_PATTERNS.playground} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.notePlaygroundAlias} element={<NotePlaygroundRedirect />} />
-                  <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />
-                  <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
-                  <Route path={ROUTE_PATTERNS.review} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><ReviewPage /></Suspense>} />
-                  <Route path="/workout/:category/:name" element={<WorkoutRedirect />} />
-                  {canvasRoutes.map(({ route }) => (
-                    <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  ))}
-                  <Route path={ROUTE_PATTERNS.efforts} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.effort} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="*" element={<NotFoundPage />} />
-                </Routes>
-              </NavProvider>
-            </CommandProvider>
-          </NuqsAdapter>
-        </BrowserRouter>
-      </AudioProvider>
-    </EffortRegistryProvider>
+      <DebugModeProvider>
+        <EffortRegistryProvider>
+          <AudioProvider>
+            <BrowserRouter>
+              <NuqsAdapter>
+              <GlobalState />
+              <ScrollToTop />
+              <Toaster />
+              <CommandProvider>
+                <NavProvider tree={navTree}>
+                  <Routes>
+                    <Route path="/legacy" element={<PlaygroundLandingPage />} />
+                    <Route path="/concept3" element={<Concept3LandingPage />} />
+                    <Route path="/getting-started" element={<GettingStartedRedirect />} />
+                    <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
+                    <Route path="/syntax" element={<SyntaxRedirect />} />
+                    <Route path="/syntax/*" element={<SyntaxRedirect />} />
+                    <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path={ROUTE_PATTERNS.plan} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path={ROUTE_PATTERNS.collectionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path={ROUTE_PATTERNS.collectionWorkout} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path={ROUTE_PATTERNS.load} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><LoadZipPage /></Suspense>} />
+                    <Route path={ROUTE_PATTERNS.loadJournal} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><JournalZipLoadPage /></Suspense>} />
+                    <Route path={ROUTE_PATTERNS.loadJournalDate} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><JournalZipLoadPage /></Suspense>} />
+                    <Route path={ROUTE_PATTERNS.playgroundRoot} element={<PlaygroundRedirect />} />
+                    <Route path={ROUTE_PATTERNS.playground} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path={ROUTE_PATTERNS.notePlaygroundAlias} element={<NotePlaygroundRedirect />} />
+                    <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />
+                    <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
+                    <Route path={ROUTE_PATTERNS.review} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><ReviewPage /></Suspense>} />
+                    <Route path="/workout/:category/:name" element={<WorkoutRedirect />} />
+                    {canvasRoutes.map(({ route }) => (
+                      <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    ))}
+                    <Route path={ROUTE_PATTERNS.efforts} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path={ROUTE_PATTERNS.effort} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </NavProvider>
+              </CommandProvider>
+            </NuqsAdapter>
+          </BrowserRouter>
+        </AudioProvider>
+      </EffortRegistryProvider>
+      </DebugModeProvider>
     </ThemeProvider>
   )
 }

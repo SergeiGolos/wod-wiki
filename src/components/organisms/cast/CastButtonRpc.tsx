@@ -27,8 +27,8 @@ import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
 import {
     CastSessionManager,
     type CastSessionHandle,
-    type ICastSubscription,
-} from '@/hooks/useCastSignaling';
+} from '@/services/cast/rpc/CastSessionManager';
+import type { ICastSubscription } from '@/hooks/useRuntimeTimer';
 import { cn } from '@/lib/utils';
 import { CastTransportProvider } from '@/contexts/CastTransportContext';
 import { ProjectionSyncProvider } from '@/contexts/ProjectionSyncContext';

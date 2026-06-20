@@ -6,7 +6,6 @@ import { IntervalLogicStrategy } from '../compiler/strategies/logic/IntervalLogi
 import { GenericTimerStrategy } from '../compiler/strategies/components/GenericTimerStrategy';
 import { GenericLoopStrategy } from '../compiler/strategies/components/GenericLoopStrategy';
 import { GenericGroupStrategy } from '../compiler/strategies/components/GenericGroupStrategy';
-import { RestBlockStrategy } from '../compiler/strategies/components/RestBlockStrategy';
 import { SoundStrategy } from '../compiler/strategies/enhancements/SoundStrategy';
 import { ReportOutputStrategy } from '../compiler/strategies/enhancements/ReportOutputStrategy';
 import { ChildrenStrategy } from '../compiler/strategies/enhancements/ChildrenStrategy';
@@ -17,6 +16,12 @@ import type { IRuntimeBlockStrategy } from '../contracts/IRuntimeBlockStrategy';
 /**
  * The canonical strategy set — the single source of truth for which strategies
  * are registered, in what order. Production and test both use this list.
+ *
+ * Note: `RestBlockStrategy` is NOT in this list. It is a direct-build strategy
+ * (`match()` returns false; the real entry is `build()`), invoked explicitly by
+ * `RestBlockBehavior` at runtime to construct the inter-round rest block.
+ * It shares the `IRuntimeBlockStrategy` interface for uniformity but never runs
+ * through the JIT match pipeline.
  */
 export const PRODUCTION_STRATEGIES: IRuntimeBlockStrategy[] = [
   // Logic (priority 90)
@@ -27,7 +32,6 @@ export const PRODUCTION_STRATEGIES: IRuntimeBlockStrategy[] = [
   new GenericTimerStrategy(),
   new GenericLoopStrategy(),
   new GenericGroupStrategy(),
-  new RestBlockStrategy(),
 
   // Enhancements (priority 15–50)
   new SoundStrategy(),

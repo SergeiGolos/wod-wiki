@@ -2,24 +2,10 @@
  * CastTransportContext — provides the active cast `IRpcTransport` to
  * the bridges that read it.
  *
- * Before this context existed, the cast transport was held in the
- * workbench sync store (`workbenchSyncStore.castTransport`). The
- * store had accumulated cast plumbing that didn't belong there —
- * specifically, the goal of letting `WorkbenchCastBridge` and
- * `EditorCastBridge` observe the transport without prop-drilling
- * through a tree that may not even be cast-aware.
- *
- * The cleaner seam: `CastButtonRpc` is always mounted in the tree
- * above the bridges. It owns the cast lifecycle and exposes the
- * transport via context. The bridges consume it from context, the
- * same React-native mechanism they already use for everything else.
- *
- * The transport is also exposed (for one-shot writes) via
- * `useWorkbenchSyncStore.getState().castTransport` in code paths
- * that need a synchronous read outside React's render cycle (e.g.
- * the inline `RuntimeTimerPanel` sending a completion message).
- * That field is kept as a one-shot accessor — the store is no
- * longer the cast's source of truth.
+ * `CastButtonRpc` is always mounted in the tree above the bridges. It
+ * owns the cast lifecycle and exposes the transport via context. The
+ * bridges consume it from context, the same React-native mechanism
+ * they already use for everything else.
  */
 
 import React, { createContext, useContext, useMemo } from 'react';

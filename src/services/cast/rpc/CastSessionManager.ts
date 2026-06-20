@@ -32,7 +32,6 @@
  * page lifetime and `connect()` is called from the user's cast gesture.
  */
 
-import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 import type { ICastSubscription } from '@/runtime/contracts/ICastSubscription';
 import type { IRuntimeEventProvider } from '@/runtime/contracts/IRuntimeEventProvider';
 import type { IRuntimeSubscription } from '@/runtime/contracts/IRuntimeSubscription';
@@ -107,7 +106,6 @@ const defaultDeps: CastSessionManagerDeps = {
 export class CastSessionManager {
     private activeHandle: CastSessionHandle | null = null;
     private activeMeta: ActiveMeta | null = null;
-    private extraSubscriptions = new Map<string, ExtraSubscriptionEntry>();
 
     constructor(
         private readonly deps: CastSessionManagerDeps = defaultDeps,
@@ -198,47 +196,6 @@ export class CastSessionManager {
         this.activeHandle.transport.send({ type: 'rpc-dispose' });
     }
 
-    /**
-     * Register an additional runtime against the active cast session.
-     *
-     * `connect()` registers a subscription against the workbench
-     * `SubscriptionManager`. Components that spin up their own
-     * `ScriptRuntime` (the editor's `RuntimeTimerPanel`, for example)
-     * use this method to add a cast subscription for that runtime
-     * without re-running clock sync or building a second event
-     * provider. The added subscription shares the transport and the
-     * clock-sync session.
-     *
-     * The runtime's stack snapshots and outputs are wired to the new
-     * subscription via the runtime's own `subscribeToStack` and
-     * `subscribeToOutput` methods. The subscription is disposed when
-     * `unregisterRuntime(id)` is called or when the session is torn
-     * down — at which point the runtime's listeners are NOT removed
-     * (that's the runtime's own dispose responsibility).
-     *
-     * Throws if no session is active.
-     */
-    registerRuntime(runtime: IScriptRuntime, id: string = 'inline-runtime'): string {
-        if (!this.activeHandle) {
-            throw new Error('CastSessionManager.registerRuntime: no active session');
-        }
-        const sub = this.deps.createSubscription(this.activeHandle.transport, id);
-        runtime.subscribeToStack((snapshot) => sub.onStackSnapshot(snapshot));
-        runtime.subscribeToOutput((output) => sub.onOutput(output));
-        this.extraSubscriptions.set(id, { subscription: sub });
-        return id;
-    }
-
-    /**
-     * Remove a previously registered inline runtime subscription.
-     * Idempotent — missing ids are silently ignored.
-     */
-    unregisterRuntime(id: string): void {
-        const entry = this.extraSubscriptions.get(id);
-        if (!entry) return;
-        this.extraSubscriptions.delete(id);
-        entry.subscription.dispose();
-    }
 
     /**
      * Tear down the active session, if any. Idempotent.
@@ -274,12 +231,6 @@ export class CastSessionManager {
         handle.subscription.dispose();
         handle.eventProvider.dispose();
         meta?.clockSync?.dispose();
-
-        // Dispose any extra subscriptions registered via registerRuntime.
-        for (const entry of this.extraSubscriptions.values()) {
-            entry.subscription.dispose();
-        }
-        this.extraSubscriptions.clear();
     }
 }
 
@@ -288,8 +239,4 @@ interface ActiveMeta {
     subscriptionId: string;
     unsubDisconnected: RpcUnsubscribe;
     clockSync: ClockSyncService | null;
-}
-
-interface ExtraSubscriptionEntry {
-    subscription: IRuntimeSubscription;
 }

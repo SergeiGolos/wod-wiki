@@ -380,6 +380,15 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   // selectedBlockId is read directly from the Zustand store — no local state needed.
   const selectedBlockId = useWorkbenchSyncStore(s => s.selectedBlockId);
 
+  // Keep the store's selectedBlock object in sync with the canonical selectedBlockId.
+  // This replaces the re-derivation that used to live in useWorkbenchEffects.
+  const selectedBlock = useMemo(() => blocks.find(b => b.id === selectedBlockId) || null, [blocks, selectedBlockId]);
+  useEffect(() => {
+    // If the id is set but the blocks haven't loaded yet, don't clear the block object.
+    if (selectedBlockId && !selectedBlock) return;
+    useWorkbenchSyncStore.getState().setSelectedBlock(selectedBlock);
+  }, [selectedBlockId, selectedBlock]);
+
   // Results State
   const [results, setResults] = useState<WorkoutResults[]>([]);
 
@@ -484,8 +493,16 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       return; // Safety guard — these views don't exist in static mode
     }
 
+    // Update the canonical store immediately instead of mirroring later in useWorkbenchEffects.
+    useWorkbenchSyncStore.getState().setViewMode(newMode);
     navigation.goTo(newMode, { noteId: routeId });
   }, [resolvedMode, navigation, routeId]);
+
+  // Keep the canonical store viewMode aligned with route-driven changes
+  // (e.g., startWorkout/completeWorkout navigation or external deep links).
+  useEffect(() => {
+    useWorkbenchSyncStore.getState().setViewMode(viewMode);
+  }, [viewMode]);
 
   const selectBlock = useCallback((id: string | null) => {
     useWorkbenchSyncStore.getState().setSelectedBlockId(id);

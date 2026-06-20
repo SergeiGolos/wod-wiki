@@ -19,7 +19,7 @@ import { wallClockNow } from '@/runtime/INowProvider';
 
 import { statementsToCSV, resultsToCSV } from './export/NoteCsvFormatter';
 import { noteToMarkdown } from './export/NoteMarkdownSerializer';
-import { parseMarkdownToEntry, createNoteFromMarkdown as _createNoteFromMarkdown } from './export/NoteMarkdownDeserializer';
+import { parseMarkdownToEntry } from './export/NoteMarkdownDeserializer';
 import { BrowserFileWriter } from './export/BrowserFileWriter';
 import { BrowserFilePicker } from './export/BrowserFilePicker';
 import { BrowserFileDownloader } from './export/BrowserFileDownloader';
@@ -59,7 +59,7 @@ export async function exportAllNotes(provider: IContentProvider): Promise<void> 
 
   for (const entry of entries) {
     const noteId = entry.id.replace(/[^a-zA-Z0-9-_]/g, '_');
-    zip.addText(`${noteId}.md`, noteToMarkdown(entry, clock));
+    zip.addText(`${noteId}.md`, noteToMarkdown(entry));
     zip.addText(`${noteId}_statements.csv`, statementsToCSV(entry));
     zip.addText(`${noteId}_results.csv`, resultsToCSV(entry));
   }
@@ -74,7 +74,7 @@ export async function exportNote(entry: HistoryEntry): Promise<void> {
   const downloader = new BrowserFileDownloader();
 
   const noteId = entry.id.replace(/[^a-zA-Z0-9-_]/g, '_');
-  zip.addText(`${noteId}.md`, noteToMarkdown(entry, clock));
+  zip.addText(`${noteId}.md`, noteToMarkdown(entry));
   zip.addText(`${noteId}_statements.csv`, statementsToCSV(entry));
   zip.addText(`${noteId}_results.csv`, resultsToCSV(entry));
 
@@ -102,6 +102,7 @@ export async function importFromZip(
   file: File,
   provider: IContentProvider
 ): Promise<{ imported: number; errors: string[] }> {
+  const clock = wallClockNow;
   // Import still uses JSZip directly to read the zip
   // (IFileWriter is for writing; reading is a separate concern not yet port-seamed)
   const JSZip = (await import('jszip')).default;
@@ -114,7 +115,7 @@ export async function importFromZip(
   for (const filename of mdFiles) {
     try {
       const content = await zip.files[filename].async('text');
-      const entry = parseMarkdownToEntry(content);
+      const entry = parseMarkdownToEntry(content, clock);
       if (entry) {
         await provider.saveEntry(entry);
         imported++;
@@ -127,12 +128,8 @@ export async function importFromZip(
   return { imported, errors };
 }
 
-// ── Public API ────────────────────────────────────────────────────────────
-
 export function pickFile(accept: string = '*'): Promise<File | null> {
   return new BrowserFilePicker().pick(accept);
 }
 
-export function createNoteFromMarkdown(markdown: string): Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> {
-  return _createNoteFromMarkdown(markdown);
-}
+export { createNoteFromMarkdown } from './export/NoteMarkdownDeserializer';

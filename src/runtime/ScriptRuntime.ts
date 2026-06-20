@@ -159,16 +159,25 @@ export class ScriptRuntime implements IScriptRuntime {
         }
     }
 
-    private _notifyStackSettled(): void {
-        if (this._stackObservers.size === 0) return;
+    /** Build the 'initial' snapshot of the current stack. Shared by settle-time
+     *  notification (sync, all observers) and subscribe-time catch-up (deferred,
+     *  new observer only). The two delivery timings differ deliberately — see
+     *  the call sites. */
+    private _buildInitialSnapshot(): StackSnapshot {
         const blocks = this.stack.blocks;
-        if (blocks.length === 0) return;
-        const snapshot: StackSnapshot = {
+        return {
             type: 'initial',
             blocks,
             depth: blocks.length,
             clockTime: this.clock.currentDate,
         };
+    }
+
+    private _notifyStackSettled(): void {
+        if (this._stackObservers.size === 0) return;
+        const blocks = this.stack.blocks;
+        if (blocks.length === 0) return;
+        const snapshot = this._buildInitialSnapshot();
         for (const observer of this._stackObservers) {
             try {
                 observer(snapshot);
@@ -294,12 +303,7 @@ export class ScriptRuntime implements IScriptRuntime {
         this._stackObservers.add(observer);
 
         // Immediate notification of current state, deferred to next tick to avoid React render warnings
-        const initialSnapshot: StackSnapshot = {
-            type: 'initial',
-            blocks: this.stack.blocks,
-            depth: this.stack.count,
-            clockTime: this.clock.currentDate,
-        };
+        const initialSnapshot = this._buildInitialSnapshot();
 
         setTimeout(() => {
             if (this._stackObservers.has(observer)) {

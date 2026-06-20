@@ -227,7 +227,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
 
   setHoveredBlockKey: (key) => set({ hoveredBlockKey: key }),
   setDocumentItems: (items) => set({ documentItems: items }),
-  setSelectedBlock: (block) => set({ selectedBlock: block }),
+  setSelectedBlock: (block) => set({ selectedBlock: block, selectedBlockId: block?.id ?? null }),
   setSelectedBlockId: (id) => set({ selectedBlockId: id }),
   setCursorLine: (line: number) => set({ cursorLine: line }),
   setHighlightedLine: (line: number | null) => set({ highlightedLine: line }),

@@ -1,8 +1,18 @@
-import type { INowProvider } from '@/runtime/INowProvider';
+import { type INowProvider, wallClockNow } from '@/runtime/INowProvider';
 import type { HistoryEntry } from '@/types/history';
 
+/**
+ * Parse exported-markdown back into a (partial) HistoryEntry.
+ *
+ * Time is read exclusively through `clock` (an `INowProvider`) — never via
+ * `Date.now()` directly — so the import path is deterministic under a frozen
+ * clock. The clock is only consulted for the `Target Date` fallback when the
+ * markdown omits it; every field that *is* present in the metadata is
+ * recovered verbatim (this is what makes the round-trip preserve timestamps).
+ */
 export function parseMarkdownToEntry(
-  markdown: string
+  markdown: string,
+  clock: INowProvider = wallClockNow,
 ): Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> | null {
   try {
     // Extract metadata section
@@ -34,10 +44,11 @@ export function parseMarkdownToEntry(
         ? metadata['Tags'].split(',').map((t) => t.trim())
         : [];
 
-    // Parse dates
+    // Parse dates — recover the stored Target Date verbatim; only fall back to
+    // the clock when the metadata omits it.
     const targetDate = metadata['Target Date']
       ? new Date(metadata['Target Date']).getTime()
-      : Date.now();
+      : clock.nowMs();
 
     const result: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> = {
       title,
@@ -61,12 +72,20 @@ export function parseMarkdownToEntry(
   }
 }
 
+/**
+ * Create a (partial) HistoryEntry from arbitrary markdown. Exported-format
+ * markdown round-trips through {@link parseMarkdownToEntry}; plain markdown
+ * gets a minimal entry whose `targetDate` is the clock's current time.
+ *
+ * Time comes exclusively from `clock` (defaulting to the wall clock) — never
+ * from `Date.now()`.
+ */
 export function createNoteFromMarkdown(
   markdown: string,
-  clock?: INowProvider
+  clock: INowProvider = wallClockNow,
 ): Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> {
   // Try to parse as exported format first
-  const parsed = parseMarkdownToEntry(markdown);
+  const parsed = parseMarkdownToEntry(markdown, clock);
   if (parsed) return parsed;
 
   // Otherwise, treat as plain markdown
@@ -77,7 +96,7 @@ export function createNoteFromMarkdown(
     title,
     rawContent: markdown,
     tags: [],
-    targetDate: clock?.nowMs() ?? Date.now(),
+    targetDate: clock.nowMs(),
     sections: [],
   };
 }

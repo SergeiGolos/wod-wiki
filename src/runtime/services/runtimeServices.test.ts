@@ -8,7 +8,6 @@ import { IntervalLogicStrategy } from '../compiler/strategies/logic/IntervalLogi
 import { GenericTimerStrategy } from '../compiler/strategies/components/GenericTimerStrategy';
 import { GenericLoopStrategy } from '../compiler/strategies/components/GenericLoopStrategy';
 import { GenericGroupStrategy } from '../compiler/strategies/components/GenericGroupStrategy';
-import { RestBlockStrategy } from '../compiler/strategies/components/RestBlockStrategy';
 import { SoundStrategy } from '../compiler/strategies/enhancements/SoundStrategy';
 import { ReportOutputStrategy } from '../compiler/strategies/enhancements/ReportOutputStrategy';
 import { ChildrenStrategy } from '../compiler/strategies/enhancements/ChildrenStrategy';
@@ -73,8 +72,8 @@ describe('runtimeServices', () => {
   });
 
   describe('PRODUCTION_STRATEGIES', () => {
-    it('contains all 10 strategies', () => {
-      expect(PRODUCTION_STRATEGIES).toHaveLength(10);
+    it('contains 9 strategies (RestBlockStrategy is direct-built, not JIT-matched)', () => {
+      expect(PRODUCTION_STRATEGIES).toHaveLength(9);
     });
 
     it('has AmrapLogicStrategy at index 0', () => {
@@ -97,24 +96,20 @@ describe('runtimeServices', () => {
       expect(PRODUCTION_STRATEGIES[4]).toBeInstanceOf(GenericGroupStrategy);
     });
 
-    it('has RestBlockStrategy at index 5', () => {
-      expect(PRODUCTION_STRATEGIES[5]).toBeInstanceOf(RestBlockStrategy);
+    it('has SoundStrategy at index 5', () => {
+      expect(PRODUCTION_STRATEGIES[5]).toBeInstanceOf(SoundStrategy);
     });
 
-    it('has SoundStrategy at index 6', () => {
-      expect(PRODUCTION_STRATEGIES[6]).toBeInstanceOf(SoundStrategy);
+    it('has ReportOutputStrategy at index 6', () => {
+      expect(PRODUCTION_STRATEGIES[6]).toBeInstanceOf(ReportOutputStrategy);
     });
 
-    it('has ReportOutputStrategy at index 7', () => {
-      expect(PRODUCTION_STRATEGIES[7]).toBeInstanceOf(ReportOutputStrategy);
+    it('has ChildrenStrategy at index 7', () => {
+      expect(PRODUCTION_STRATEGIES[7]).toBeInstanceOf(ChildrenStrategy);
     });
 
-    it('has ChildrenStrategy at index 8', () => {
-      expect(PRODUCTION_STRATEGIES[8]).toBeInstanceOf(ChildrenStrategy);
-    });
-
-    it('has EffortFallbackStrategy at index 9', () => {
-      expect(PRODUCTION_STRATEGIES[9]).toBeInstanceOf(EffortFallbackStrategy);
+    it('has EffortFallbackStrategy at index 8', () => {
+      expect(PRODUCTION_STRATEGIES[8]).toBeInstanceOf(EffortFallbackStrategy);
     });
   });
 });

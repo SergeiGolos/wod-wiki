@@ -84,7 +84,3 @@ export const LOCAL_RECEIVER_URL = (
     || ''
 ).trim();
 
-console.log('[Config] Cast backend:', CAST_BACKEND);
-if (LOCAL_RECEIVER_URL) {
-    console.log('[Config] Local receiver URL override:', LOCAL_RECEIVER_URL);
-}
