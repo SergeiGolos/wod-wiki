@@ -9,6 +9,7 @@
 
 import { describe, expect, it, beforeEach } from 'bun:test';
 import { createWorkbenchSessionStore } from './workbenchSessionStore';
+import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 import type { INowProvider } from '@/runtime/INowProvider';
 import type { INotePersistence } from '@/services/persistence';
 import type { NoteMutation, NoteLocator, GetNoteOptions } from '@/services/persistence';
@@ -414,4 +415,166 @@ describe('workbenchSessionStore', () => {
 
     expect(() => store.getState().flushSave()).not.toThrow();
   });
-});
+
+  // ── Reactive observer seams (S2) ────────────────────────────────
+  // The handoff Step 4 requires the live subscription path be exercised, not
+  // just the log fallback. Build a minimal IScriptRuntime stub so the store
+  // can wire `subscribeToOutput` + `subscribeToStack` and we can emit
+  // synthetic events to verify the round-trip.
+
+  /** Minimal IScriptRuntime for testing the session's reactive wiring. */
+  class FakeRuntime {
+    public readonly outputs: unknown[] = [];
+    private readonly outputListeners: Set<(output: unknown) => void> = new Set();
+    private readonly stackListeners: Set<(snapshot: unknown) => void> = new Set();
+
+    subscribeToOutput(listener: (output: unknown) => void): () => void {
+      this.outputListeners.add(listener);
+      return () => { this.outputListeners.delete(listener); };
+    }
+
+    subscribeToStack(listener: (snapshot: unknown) => void): () => void {
+      this.stackListeners.add(listener);
+      return () => { this.stackListeners.delete(listener); };
+    }
+
+    getOutputStatements(): unknown[] {
+      return [...this.outputs];
+    }
+
+    addOutput(output: unknown): void {
+      this.outputs.push(output);
+      for (const l of this.outputListeners) l(output);
+    }
+
+    emitStack(snapshot: unknown): void {
+      for (const l of this.stackListeners) l(snapshot);
+    }
+
+    // The remaining IScriptRuntime surface is not exercised by these tests
+    // (the session only calls subscribeToOutput / subscribeToStack /
+    // getOutputStatements here). Cast to `unknown as IScriptRuntime` so the
+    // type system is satisfied without us having to stub 15 fields.
+    dispose = () => {};
+  }
+
+  it('setRuntime wires subscribeToOutput; emitted output grows outputStatementList + derives analytics', () => {
+    const store = createWorkbenchSessionStore({
+      nowProvider: now,
+      notePersistence,
+      provider,
+      setTimeout: timer.setTimeoutFn,
+      clearTimeout: timer.clearTimeoutFn,
+      navigate: () => undefined,
+    });
+    const fakeRuntime = new FakeRuntime();
+    // Cast: the session only touches subscribeToOutput / subscribeToStack /
+    // getOutputStatements on the runtime; the rest of IScriptRuntime's
+    // 13-method / 10-field surface isn't exercised by these tests.
+    store.getState().setRuntime(fakeRuntime as unknown as IScriptRuntime);
+    // Initial state: empty output buffer → no analytics segments.
+    expect(store.getState().outputStatementList).toEqual([]);
+    expect(store.getState().analyticsSegments).toEqual([]);
+
+
+    // Emit a synthetic segment. The session's captured `subscribeToOutput`
+    // listener fires `appendOutputStatement({})`, which:
+    //   - appends a placeholder to `outputStatementList`
+    //   - re-derives `analyticsSegments` from `runtime.getOutputStatements()`
+    //     (which now contains the synthetic segment).
+    const syntheticSegment = {
+      id: 1,
+      outputType: 'segment' as const,
+      timeSpan: { started: Date.parse('2026-01-01T00:00:00Z'), ended: Date.parse('2026-01-01T00:01:00Z') },
+      spans: [],
+      elapsed: 60_000,
+      total: 60_000,
+      metrics: [],
+      sourceBlockKey: 'wod-1',
+      stackLevel: 0,
+    };
+    fakeRuntime.addOutput(syntheticSegment);
+
+    // Live path round-trip verified: the placeholder grew + analytics derived.
+    expect(store.getState().outputStatementList.length).toBe(1);
+    expect(store.getState().analyticsSegments.length).toBeGreaterThan(0);
+  });
+
+  it('setRuntime wires subscribeToStack; emitted snapshot updates activeSegmentIds + activeStatementIds', () => {
+    const store = createWorkbenchSessionStore({
+      nowProvider: now,
+      notePersistence,
+      provider,
+      setTimeout: timer.setTimeoutFn,
+      clearTimeout: timer.clearTimeoutFn,
+      navigate: () => undefined,
+    });
+
+    const fakeRuntime = new FakeRuntime();
+    store.getState().setRuntime(fakeRuntime as unknown as IScriptRuntime);
+
+    // Emit a synthetic snapshot with two blocks; the leaf (top) carries
+    // sourceIds. The session derives segmentIds from block-key hashes and
+    // statementIds from the leaf's sourceIds.
+    fakeRuntime.emitStack({
+      type: 'push',
+      depth: 2,
+      blocks: [
+        { key: { toString: () => 'block-root' }, sourceIds: [10, 20] },
+        { key: { toString: () => 'block-leaf' }, sourceIds: [30, 40] },
+      ],
+      clockTime: new Date(0),
+    });
+
+    const state = store.getState();
+    expect(state.activeSegmentIds.size).toBe(2);
+    // The leaf's sourceIds: {30, 40}.
+    expect(Array.from(state.activeStatementIds).sort()).toEqual([30, 40]);
+  });
+
+  it('setRuntime(null) tears down subscriptions + clears the live output list (analytics falls back to logs)', () => {
+    const store = createWorkbenchSessionStore({
+      nowProvider: now,
+      notePersistence,
+      provider,
+      setTimeout: timer.setTimeoutFn,
+      clearTimeout: timer.clearTimeoutFn,
+      navigate: () => undefined,
+    });
+
+    const fakeRuntime = new FakeRuntime();
+    store.getState().setRuntime(fakeRuntime as unknown as IScriptRuntime);
+    fakeRuntime.addOutput({
+      id: 1,
+      outputType: 'segment',
+      timeSpan: { started: 0, ended: 60_000 },
+      spans: [],
+      elapsed: 60_000,
+      total: 60_000,
+      metrics: [],
+      sourceBlockKey: 'wod-1',
+      stackLevel: 0,
+    });
+    expect(store.getState().outputStatementList.length).toBe(1);
+
+    // Dispose the runtime. Live list clears; analytics fall back to logs.
+    store.getState().setRuntime(null);
+    expect(store.getState().runtime).toBeNull();
+    expect(store.getState().outputStatementList).toEqual([]);
+
+    // After disposal, further emits from the old runtime have no effect on
+    // the session — the subscription was torn down.
+    fakeRuntime.addOutput({
+      id: 2,
+      outputType: 'segment',
+      timeSpan: { started: 0, ended: 60_000 },
+      spans: [],
+      elapsed: 60_000,
+      total: 60_000,
+      metrics: [],
+      sourceBlockKey: 'wod-1',
+      stackLevel: 0,
+    });
+    expect(store.getState().outputStatementList).toEqual([]);
+  });
+ });

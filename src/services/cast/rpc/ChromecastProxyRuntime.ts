@@ -11,7 +11,8 @@ import { RuntimeStackOptions, RuntimeStackTracker, TrackerUpdate, TrackerSnapsho
 import { TimeSpan } from '@/runtime/models/TimeSpan';
 import { BlockKey } from '@/core/models/BlockKey';
 import { WhiteboardScript } from '@/parser/WhiteboardScript';
-import { JitCompiler } from '@/runtime/compiler/JitCompiler';
+import type { IJitCompiler } from '@/runtime/contracts/IJitCompiler';
+import { RuntimeObservers } from '@/runtime/RuntimeObservers';
 import { IAnalyticsEngine } from '@/core/contracts/IAnalyticsEngine';
 import { INowProvider, wallClockNow } from '@/runtime/INowProvider';
 import type { IRpcTransport } from './IRpcTransport';
@@ -162,19 +163,28 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     readonly script: WhiteboardScript = new WhiteboardScript('', []);
     readonly eventBus: IEventBus;
     readonly stack: IRuntimeStack;
-    readonly jit: JitCompiler = null as any; // Not available on proxy
+    // The proxy has no upstream JIT — it never compiles (the browser owns
+    // execution). Typed as the interface; the value is a stub that throws if
+    // anyone ever calls it on the proxy.
+    readonly jit: IJitCompiler = createProxyJitStub();
     readonly clock: IRuntimeClock;
-    readonly errors: never[] = [];
     readonly nowProvider: INowProvider;
     readonly tracker: RuntimeStackTracker;
 
+    // Output emission stays inline (OutputEmitter is the proven extraction
+    // for output, see Finding 03).
+    private outputListeners = new Set<OutputListener>();
+    private outputs: IOutputStatement[] = [];
+
+    // Shared observer collaborator — owns the stack + tracker subscriber Sets
+    // and the post-mount snapshot contract (see Finding 03). The proxy has
+    // no upstream tracker; tracker updates are driven directly via
+    // `_observers.emitTracker(update)` from RPC messages.
+    private readonly _observers = new RuntimeObservers(null);
+
+    private transportUnsub: (() => void) | null = null;
     private proxyStack: ProxyStack;
     private proxyEventBus: ProxyEventBus;
-    private stackObservers = new Set<StackObserver>();
-    private outputListeners = new Set<OutputListener>();
-    private trackerListeners = new Set<TrackerListener>();
-    private outputs: IOutputStatement[] = [];
-    private transportUnsub: (() => void) | null = null;
     private disposed = false;
 
     // Track real-time tracker state on the proxy
@@ -223,15 +233,17 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     // ── Subscription API (fully functional) ─────────────────────────────────
 
     subscribeToStack(observer: StackObserver): Unsubscribe {
-        this.stackObservers.add(observer);
-        // Immediately send current state
+        const unsub = this._observers.subscribeToStack(observer);
+        // The proxy fires its initial snapshot synchronously (preserves
+        // the pre-extraction contract; see ChromecastProxyRuntime.test.ts:69-73).
+        // ScriptRuntime defers; the collaborator is timing-agnostic.
         observer({
             type: 'initial',
             blocks: this.proxyStack.blocks,
             depth: this.proxyStack.count,
             clockTime: this._now.now(),
         });
-        return () => this.stackObservers.delete(observer);
+        return unsub;
     }
 
     subscribeToOutput(listener: OutputListener): Unsubscribe {
@@ -240,11 +252,12 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     }
 
     /**
-     * Subscribe to real-time tracker updates.
+     * Subscribe to real-time tracker updates. The proxy has no upstream
+     * tracker — RPC drives updates through `_observers.emitTracker(update)`
+     * in `handleTrackerUpdate`. The collaborator's source is `null`.
      */
     subscribeToTracker(listener: TrackerListener): Unsubscribe {
-        this.trackerListeners.add(listener);
-        return () => this.trackerListeners.delete(listener);
+        return this._observers.subscribeToTracker(listener);
     }
 
     /**
@@ -255,7 +268,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         // No-op
     }
 
-    finalizeAnalytics(): import('../../../core/models/OutputStatement').IOutputStatement[] {
+    finalizeAnalytics(): IOutputStatement[] {
         // No-op on proxy — analytics finalization happens on the browser.
         return [];
     }
@@ -358,9 +371,11 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         this.transportUnsub = null;
 
         this.proxyEventBus.dispose();
-        this.stackObservers.clear();
+        // Drop all stack + tracker subscribers in one call (the proxy has
+        // no upstream tracker, so the collaborator has nothing to tear down
+        // besides the Sets).
+        this._observers.dispose();
         this.outputListeners.clear();
-        this.trackerListeners.clear();
         this.workbenchListeners.clear();
         this.outputs = [];
         this.blockCache.clear();
@@ -471,17 +486,20 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             depth: message.depth,
             clockTime: new Date(message.clockTime),
         };
-        for (const observer of this.stackObservers) {
-            observer(snapshot);
-        }
+        // Notify stack observers via the shared collaborator
+        this._observers.emitStack(snapshot);
     }
 
     private handleOutput(message: RpcOutputStatement): void {
         // Create a minimal output statement that satisfies the interface
         // for display purposes on the receiver
+        // Wire format widens outputType to `string`; the local type is the
+        // `OutputStatementType` literal union. The sender's protocol is the
+        // trusted source — we validate at the boundary via a typed cast.
+        const outputType = message.outputType as IOutputStatement['outputType'];
         const output: IOutputStatement = {
             id: 0,
-            outputType: message.outputType as any,
+            outputType,
             sourceBlockKey: message.sourceBlockKey,
             stackLevel: message.stackLevel,
             metrics: message.metrics,
@@ -504,7 +522,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             getFragment: () => undefined,
             getDisplayMetrics: () => message.metrics,
             getFragmentsByOrigin: () => message.metrics,
-        } as any;
+        } as unknown as IOutputStatement;
 
         this.addOutput(output);
     }
@@ -530,10 +548,8 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             this.trackerState = { ...update.snapshot };
         }
 
-        // Notify listeners
-        for (const listener of this.trackerListeners) {
-            listener(update);
-        }
+        // Notify listeners via the shared collaborator
+        this._observers.emitTracker(update);
     }
 
     private handleWorkbenchUpdate(message: RpcWorkbenchUpdate): void {
@@ -586,4 +602,22 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             listener(this._workbenchState);
         }
     }
+}
+
+/**
+ * Stub IJitCompiler for the proxy. The proxy never compiles — the browser
+ * owns execution and pushes serialized block state via RPC. If anything
+ * ever calls `compile` on the proxy, this throws so the call site fails
+ * loudly rather than silently mis-compiling.
+ */
+function createProxyJitStub(): IJitCompiler {
+    return {
+        compile() {
+            throw new Error(
+                '[ChromecastProxyRuntime] jit.compile() called on the proxy — ' +
+                'compilation happens on the sender (browser). Push a serialized ' +
+                'rpc-stack-update instead.',
+            );
+        },
+    };
 }

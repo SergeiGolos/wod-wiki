@@ -58,6 +58,12 @@ const ReceiverApp: React.FC<{
     const transportRef = useRef<IRpcTransport | null>(null);
     const activeSessionHandleRef = useRef<ReceiverSessionHandle | null>(null);
     const bootFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Boot-fallback timer for the Chromecast CAF path. Distinct from
+    // bootFadeTimerRef (loader fade): this one fires if the CAF READY event
+    // never arrives (see armReceiverBootFallback, receiverBootLoader.ts).
+    // Was undeclared prior to Finding 05 Step 1 — caused a device-only
+    // ReferenceError on real Chromecast hardware.
+    const bootTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Persistent signaling instance (lives for the life of the Receiver app)
     const signalingRef = useRef<ReceiverCastSignaling | null>(null);
@@ -255,86 +261,100 @@ const ReceiverApp: React.FC<{
         // Track the unsub for cleanup if setupTransport runs again.
         return () => unsubDisconnect();
     }, []);
+    // ── Shared session wiring (paths 1 & 2) ──────────────────────────
+    // Both the externalHandle path (parent owns lifetime) and the legacy
+    // transport path (this receiver builds + disposes the handle) do the same
+    // bookkeeping + subscriptions. The only thing that varies is **who owns
+    // the handle's lifetime** — captured by `ownsLifetime`. Extracted per
+    // Finding 05 Step 2 so the bug a missing ref caused in path 3 (the CAF
+    // bootTimeoutRef crash) cannot recur here through drift.
+    const wireSession = useCallback((
+        handle: ReceiverSessionHandle,
+        options: {
+            ownsLifetime: boolean;
+            /** External runtime override (used when the parent supplies one). */
+            runtime?: ChromecastProxyRuntime;
+            /** Transport to bookkeep in `transportRef` (path 2 only). */
+            transport?: IRpcTransport | null;
+            /** Log label for the disconnect event. */
+            disconnectedLog: string;
+        },
+    ): (() => void) => {
+        const runtime = options.runtime ?? handle.runtime;
+        activeSessionHandleRef.current = handle;
+        runtimeRef.current = runtime;
+        if (options.transport) {
+            transportRef.current = options.transport;
+        }
+        setProxyRuntime(runtime);
+        setConnectionStatus('connected');
+        dismissBootLoader('ready');
+
+        const unsubWorkbench = handle.onWorkbenchUpdate((state) => {
+            setWorkbenchState(state);
+        });
+        const unsubDisconnect = handle.onDisconnected(() => {
+            console.log(options.disconnectedLog);
+            setConnectionStatus('disconnected');
+            setProxyRuntime(null);
+            if (activeSessionHandleRef.current === handle) {
+                activeSessionHandleRef.current = null;
+            }
+            if (options.transport && transportRef.current === options.transport) {
+                transportRef.current = null;
+            }
+        });
+
+        return () => {
+            unsubWorkbench();
+            unsubDisconnect();
+            if (options.ownsLifetime) {
+                handle.dispose();
+            }
+            clearSessionRefs();
+        };
+    }, [dismissBootLoader]);
+
+    // ── Shared ref-clearing for session cleanup (all paths) ──────────
+    // Path 1/2 (via wireSession) and path 3 (direct CAF cleanup) both null
+    // the runtime + transport refs on teardown. Centralized so the shape is
+    // identical across paths — Finding 05 Step 3.
+    const clearSessionRefs = useCallback(() => {
+        runtimeRef.current = null;
+        transportRef.current = null;
+    }, []);
+
     // ── Transport initialization ──────────────────────────────────────────
-    // Two paths:
-    //  1. Local-tab mode: `transport` prop is provided (already connected
-    //     BroadcastChannelRpcTransport).  Skip CAF entirely, wire up the
-    //     proxy runtime directly.
-    //  2. Chromecast mode: no transport prop — initialise the Cast Receiver
-    //     Framework, create WebRTC signaling, and wait for a sender.
+    // Three paths (Finding 05):
+    //  1. Local-tab + parent-supplied handle: externalHandle. Skip CAF.
+    //  2. Local-tab + bare transport: build a session via createReceiverSession.
+    //  3. Chromecast: initialise CAF SDK, signaling, and wait for a sender.
+    // Paths 1 and 2 share `wireSession` (above); path 3 keeps its own block.
     useEffect(() => {
-        // ── Path 1: receiver session already wired by parent ──────
-        // The session manager (passed in as `externalHandle` from
-        // LocalReceiverApp, or built here for legacy callers) handles
-        // workbench subscription, audio routing, and disconnect
-        // forwarding. The React tree just observes the handle.
+        // ── Path 1: external handle provided by parent ──────────
+        // The session manager (LocalReceiverApp) owns the handle's lifetime.
+        // The React tree just observes it via wireSession.
         if (externalHandle) {
             console.log('[ReceiverApp] external handle provided — skipping CAF init');
-            const handle = externalHandle;
-            const runtime = externalRuntime ?? handle.runtime;
-            activeSessionHandleRef.current = handle;
-            runtimeRef.current = runtime;
-            setProxyRuntime(runtime);
-            setConnectionStatus('connected');
-            dismissBootLoader('ready');
-
-            const unsubWorkbench = handle.onWorkbenchUpdate((state) => {
-                setWorkbenchState(state);
+            return wireSession(externalHandle, {
+                ownsLifetime: false,
+                runtime: externalRuntime,
+                disconnectedLog: '[ReceiverApp] session disconnected',
             });
-            const unsubDisconnect = handle.onDisconnected(() => {
-                console.log('[ReceiverApp] session disconnected');
-                setConnectionStatus('disconnected');
-                setProxyRuntime(null);
-                if (activeSessionHandleRef.current === handle) {
-                    activeSessionHandleRef.current = null;
-                }
-            });
-
-            return () => {
-                unsubWorkbench();
-                unsubDisconnect();
-                // Don't dispose the handle when one was passed in —
-                // the parent (LocalReceiverApp) owns its lifetime.
-                runtimeRef.current = null;
-            };
         }
-        // Legacy: callers passing `transport` only (no pre-built
-        // handle). Build a session manager around it for them.
+        // ── Path 2: legacy transport prop — build session in-place ──
+        // This receiver owns the handle's lifetime (creates + disposes it).
         if (transport) {
             console.log('[ReceiverApp] legacy transport prop — building session in-place');
             const handle = createReceiverSession(transport);
-            const runtime = externalRuntime ?? handle.runtime;
-            activeSessionHandleRef.current = handle;
-            transportRef.current = transport;
-            runtimeRef.current = runtime;
-            setProxyRuntime(runtime);
-            setConnectionStatus('connected');
-            dismissBootLoader('ready');
-
-            const unsubWorkbench = handle.onWorkbenchUpdate((state) => {
-                setWorkbenchState(state);
+            return wireSession(handle, {
+                ownsLifetime: true,
+                runtime: externalRuntime,
+                transport,
+                disconnectedLog: '[ReceiverApp] local transport disconnected',
             });
-            const unsubDisconnect = handle.onDisconnected(() => {
-                console.log('[ReceiverApp] local transport disconnected');
-                setConnectionStatus('disconnected');
-                setProxyRuntime(null);
-                if (activeSessionHandleRef.current === handle) {
-                    activeSessionHandleRef.current = null;
-                }
-                if (transportRef.current === transport) {
-                    transportRef.current = null;
-                }
-            });
-
-            return () => {
-                unsubWorkbench();
-                unsubDisconnect();
-                handle.dispose();
-                runtimeRef.current = null;
-                transportRef.current = null;
-            };
         }
-        // ── Path 2: Chromecast — initialise CAF SDK ───────────────────
+        // ── Path 3: Chromecast — initialise CAF SDK ───────────────
         const castContext = (window as any).cast?.framework?.CastReceiverContext?.getInstance();
         if (!castContext) {
             console.error('[ReceiverApp] Cast Receiver SDK not loaded');
@@ -389,6 +409,7 @@ const ReceiverApp: React.FC<{
             }
         });
         return () => {
+            // CAF-specific: boot-fallback + boot-fade timers
             if (bootTimeoutRef.current) {
                 clearTimeout(bootTimeoutRef.current);
                 bootTimeoutRef.current = null;
@@ -397,14 +418,16 @@ const ReceiverApp: React.FC<{
                 clearTimeout(bootFadeTimerRef.current);
                 bootFadeTimerRef.current = null;
             }
+            // Dispose transport + runtime (CAF-specific — paths 1/2 don't,
+            // because the ReceiverSessionHandle owns them via its dispose()).
             runtimeRef.current?.dispose();
             transportRef.current?.dispose();
             signaling.dispose();
             signalingRef.current = null;
-            runtimeRef.current = null;
-            transportRef.current = null;
+            // Same ref-clearing shape as paths 1/2 (wireSession's cleanup).
+            clearSessionRefs();
         };
-    }, [setupTransport]);
+    }, [setupTransport, wireSession, clearSessionRefs]);
 
     // Escape/Backspace handler (stop event — not part of spatial navigation)
     useEffect(() => {
