@@ -12,18 +12,34 @@
 import { useMemo } from 'react'
 
 /**
- * Eager glob of every markdown file under `playground/markdown/`.
- * Keys are source-relative paths (`../../markdown/...`); values are the
- * raw file contents (eager, query `?raw`, default import). Consumers that
- * need a `wodFiles: Record<string, string>` map should pass this object
- * directly — see `MarkdownCanvasPage`.
- *
- * `lib/workoutIndex.ts` lives at `playground/src/lib/`. Three `..` segments
- * traverse: `lib/` → `src/` → `playground/` → `markdown/`.
+ * Eager glob of every markdown file under the repo-root `markdown/` directory,
+ * with keys normalised to the canonical `../../markdown/...` form (see
+ * `normalizeWorkoutKey` below). Values are the raw file contents (eager,
+ * query `?raw`, default import). Consumers that need a
+ * `wodFiles: Record<string, string>` map should pass this object directly —
+ * see `MarkdownCanvasPage`.
  */
-export const workoutFiles = import.meta.glob(
+// Vite glob keys are relative to THIS module, so they change depth whenever the
+// file moves — that drift is what broke every canvas page ("Source not found")
+// when this glob moved out of App.tsx (2 levels deep) into lib/ (3 levels).
+const rawWorkoutFiles = import.meta.glob(
   '../../../markdown/**/*.md',
   { eager: true, query: '?raw', import: 'default' },
+)
+
+// Normalise to the canonical `../../markdown/...` contract that resolveSource,
+// MarkdownCanvasPage.test.tsx, and HomeView.stories.tsx all already expect, so
+// the exported keys stay stable regardless of where this file lives.
+function normalizeWorkoutKey(relPath: string): string {
+  const idx = relPath.indexOf('markdown/')
+  return idx === -1 ? relPath : '../../' + relPath.slice(idx)
+}
+
+export const workoutFiles: Record<string, string> = Object.fromEntries(
+  Object.entries(rawWorkoutFiles).map(([path, content]) => [
+    normalizeWorkoutKey(path),
+    content,
+  ]),
 )
 
 export interface WorkoutItem {
