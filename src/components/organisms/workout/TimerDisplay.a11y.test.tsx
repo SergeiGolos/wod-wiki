@@ -23,8 +23,8 @@ mock.module('@/runtime/context/RuntimeContext', () => ({
   useScriptRuntime: () => null,
 }));
 
-mock.module('@/stores/workbenchSyncStore', () => ({
-  useWorkbenchSyncStore: (selector: any) => {
+mock.module('@/stores/workbenchSessionStore', () => ({
+  useWorkbenchSession: (selector: any) => {
     const state = { viewMode: 'track', execution: { status: 'idle' } };
     return selector ? selector(state) : state;
   },
@@ -133,8 +133,8 @@ describe('TimerDisplay — Keyboard Navigation', () => {
     });
 
     it('does not trigger shortcuts outside track view', () => {
-      mock.module('@/stores/workbenchSyncStore', () => ({
-        useWorkbenchSyncStore: (selector: any) => {
+      mock.module('@/stores/workbenchSessionStore', () => ({
+        useWorkbenchSession: (selector: any) => {
           const state = { viewMode: 'editor', execution: { status: 'idle' } };
           return selector ? selector(state) : state;
         },
@@ -150,8 +150,8 @@ describe('TimerDisplay — Keyboard Navigation', () => {
       expect(nexted).toBe(false);
 
       // Restore mock
-      mock.module('@/stores/workbenchSyncStore', () => ({
-        useWorkbenchSyncStore: (selector: any) => {
+      mock.module('@/stores/workbenchSessionStore', () => ({
+        useWorkbenchSession: (selector: any) => {
           const state = { viewMode: 'track', execution: { status: 'idle' } };
           return selector ? selector(state) : state;
         },

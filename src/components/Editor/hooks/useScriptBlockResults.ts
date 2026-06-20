@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import type { WorkoutResult } from '@/types/storage';
-import { useWorkbench } from '@/contexts/WorkbenchContext';
+import { useWorkbenchSession } from '@/stores/workbenchSessionStore'
 
 export interface UseScriptBlockResultsReturn {
   /** All results for this section, sorted most recent first */
@@ -32,16 +32,12 @@ export function useScriptBlockResults(
   const [results, setResults] = useState<WorkoutResult[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Attempt to consume WorkbenchContext for in-memory results (Static Mode)
-  let workbench: ReturnType<typeof useWorkbench> | undefined;
-  try {
-    workbench = useWorkbench();
-  } catch {
-    // Silent fail if outside provider
-  }
-
-  const extendedResults = extendedResultsOverride ?? workbench?.currentEntry?.extendedResults;
-
+  // Read the in-memory `currentEntry` from the Workbench Session (Static
+  // Mode populates this on mount; production backends hydrate via
+  // `loadEntry` from the route's `noteId`).
+  const currentEntry = useWorkbenchSession((s) => s.currentEntry);
+  const getNote = useWorkbenchSession((s) => s.getNote);
+  const extendedResults = extendedResultsOverride ?? currentEntry?.extendedResults;
   useEffect(() => {
     if (!noteId || !sectionId) {
       setResults([]);
@@ -71,9 +67,10 @@ export function useScriptBlockResults(
             console.log(`[useScriptBlockResults] No in-memory matches for section: ${sectionId}. Section IDs in extendedResults:`, extendedResults.map(r => r.sectionId));
         }
       }
-
-      // 2. Fallback through the note persistence seam (History Mode)
-      if (!workbench) {
+      // 2. Fallback through the note persistence seam (History Mode).
+      // The session exposes `getNote` as a proxy to the injected port;
+      // skip if no port is wired (e.g. outside a provider).
+      if (typeof getNote !== 'function') {
         if (!cancelled) {
           setResults([]);
           setLoading(false);
@@ -82,7 +79,7 @@ export function useScriptBlockResults(
       }
 
       try {
-        const entry = await workbench.notePersistence.getNote(noteId!, {
+        const entry = await getNote(noteId!, {
           projection: 'history-detail',
           resultSelection: {
             mode: 'all-for-section',
@@ -105,7 +102,7 @@ export function useScriptBlockResults(
     fetchResults();
 
     return () => { cancelled = true; };
-  }, [noteId, sectionId, extendedResults]);
+  }, [noteId, sectionId, extendedResults, getNote]);
 
   return { results, loading };
 }

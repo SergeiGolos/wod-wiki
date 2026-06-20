@@ -17,6 +17,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { planPath } from '@/lib/routes';
+import { resolveWorkbenchProvider } from '@/app/workbench/workbenchProviders';
 import type { NoteEditorProps } from '@/components/organisms/editor/NoteEditor';
 import { CommandProvider } from '@/contexts/CommandContext';
 import { DebugModeProvider } from '@/contexts/DebugModeContext';
@@ -29,16 +30,17 @@ import { useTheme } from '@/contexts/ThemeProvider';
 import { ResponsiveViewport } from '@/panels/panel-system/ResponsiveViewport';
 import { createPlanView, createTrackView, createReviewView } from '@/panels/panel-system/viewDescriptors';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
-import { WorkbenchProvider, useWorkbench } from '@/contexts/WorkbenchContext';
+import { WorkbenchSessionProvider, useWorkbenchSession } from '@/stores/workbenchSessionStore';
+import { useWorkbenchSessionStore } from '@/stores/workbenchSessionStore.shim';
 import { RuntimeLifecycleProvider } from '@/contexts/RuntimeLifecycleProvider';
-import { useWorkbenchEffects } from '@/components/layout/useWorkbenchEffects';
+import { useWorkbenchSessionLifecycle } from '@/hooks/useWorkbenchSessionLifecycle';
 import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
 import { useDebugMode } from '@/contexts/DebugModeContext';
 import { runtimeFactory } from '@/hooks/useRuntimeFactory';
 import type { ContentProviderMode, IContentProvider } from '@/types/content-provider';
-import type { HistoryEntry, WorkoutResults } from '@/types/history';
+import type { WorkoutResults } from '@/types/history';
 import { workbenchEventBus } from '@/hooks/useBrowserServices';
-import { getWorkbenchDocumentTitle, loadWorkbenchDisplayEntry } from '@/app/workbench/workbenchEntryLoader';
+import { getWorkbenchDocumentTitle } from '@/app/workbench/workbenchEntryLoader';
 import { WorkbenchCastBridge } from '@/components/organisms/cast/WorkbenchCastBridge';
 import { useScreenMode } from '@/panels/panel-system/useScreenMode';
 import { MetricType } from '@/core/models/Metric';
@@ -66,37 +68,43 @@ export interface WorkbenchProps extends Omit<NoteEditorProps, 'onBlocksChange' |
   hidePlanUnlessDebug?: boolean;
 }
 
-// --- Main Workbench Content ---
 const WorkbenchContent: React.FC<WorkbenchProps> = ({
   initialContent,
   theme: propTheme,
   hidePlanUnlessDebug = false,
+  provider,
   ...editorProps
 }) => {
-  useWorkbenchEffects();
+  // Step 3's thin adapter — reads its inputs from the Workbench Session
+  // directly. No second `useWorkbench()` call: the bindings below feed both
+  // the adapter and the rest of the body.
+  const viewMode = useWorkbenchSession((s) => s.viewMode);
+  const setViewMode = useWorkbenchSession((s) => s.setViewMode);
+  const content = useWorkbenchSession((s) => s.content);
+  const setContent = useWorkbenchSession((s) => s.setContent);
+  const setBlocks = useWorkbenchSession((s) => s.setBlocks);
+  const activeBlockId = useWorkbenchSession((s) => s.activeBlockId);
+  const setActiveBlockId = useWorkbenchSession((s) => s.setActiveBlockId);
+  const setSelectedBlockId = useWorkbenchSession((s) => s.setSelectedBlockId);
+  const saveState = useWorkbenchSession((s) => s.saveState);
+  const panelLayouts = useWorkbenchSession((s) => s.panelLayouts);
+  const attachments = useWorkbenchSession((s) => s.attachments);
+  const addAttachment = useWorkbenchSession((s) => s.addAttachment);
+  const deleteAttachment = useWorkbenchSession((s) => s.deleteAttachment);
+  const completeWorkout = useWorkbenchSession((s) => s.completeWorkout);
+  const contextEntry = useWorkbenchSession((s) => s.currentEntry);
+  useWorkbenchSessionLifecycle({
+    viewMode,
+    selectedBlock: useWorkbenchSession((s) => s.selectedBlock),
+    completeWorkout,
+    startWorkout: useWorkbenchSession((s) => s.handles.handleStartWorkoutAction),
+  });
   const navigate = useNavigate();
   const { noteId: routeId } = useParams<{ noteId: string }>();
   const { theme, setTheme } = useTheme();
   const { isDebugMode } = useDebugMode();
 
-  // Consume Workbench Context (document state, view mode, panel layouts)
-  const {
-    content,
-    viewMode,
-    panelLayouts,
-    activeBlockId: _activeBlockId,
-    setBlocks,
-    setActiveBlockId,
-    selectBlock: _selectBlock,
-    setContent,
-    setViewMode,
-    saveState,
-    completeWorkout,
-    currentEntry: contextEntry,
-    addAttachment,
-    attachments,
-    deleteAttachment,
-  } = useWorkbench();
+  // `useWorkbench` was destructured above (hoisted for the adapter).
 
   const handleDownload = useCallback((att: Attachment) => {
     const blob = att.data instanceof ArrayBuffer
@@ -112,8 +120,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, []);
-
-  const { provider } = useWorkbench();
+  // `provider` is destructured above (one call, hoisted for the adapter).
 
   // Drag and drop state
   const [isDragging, setIsDragging] = useState(false);
@@ -182,33 +189,11 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     };
   }, [addAttachment]);
 
-  // Current entry state
-  const [currentEntry, setCurrentEntry] = useState<HistoryEntry | null>(null);
-
-  // Current entry tags (for Add to Notebook button)
+  // Current entry is owned by the Workbench Session (S1b). Read it from the
+  // store; tag bookkeeping for the notebook toggle stays local because it
+  // only matters for the UI header button.
+  const currentEntry = contextEntry;
   const [currentEntryTags, setCurrentEntryTags] = useState<string[]>([]);
-  useEffect(() => {
-    if (!routeId) {
-      setCurrentEntry(null);
-      return;
-    }
-
-    const loadEntry = async () => {
-      const entry = await loadWorkbenchDisplayEntry(routeId, provider);
-      if (entry) {
-        setCurrentEntry(entry);
-        return;
-      }
-
-      // 3. Nothing found
-      setCurrentEntry(null);
-      setCurrentEntryTags([]);
-    };
-
-    loadEntry();
-  }, [routeId, provider]);
-
-  // Sync tags if entry changes externally
   useEffect(() => {
     if (currentEntry) {
       setCurrentEntryTags(currentEntry.tags);
@@ -219,15 +204,15 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const handleNotebookToggleForCurrent = useCallback(async (notebookId: string, isAdding: boolean) => {
-    if (!routeId || provider.mode !== 'history') return;
+    if (!routeId || !provider || provider.mode !== 'history') return;
     const tag = toNotebookTag(notebookId);
     const newTags = isAdding
       ? [...currentEntryTags, tag]
-      : currentEntryTags.filter(t => t !== tag);
+      : currentEntryTags.filter((t) => t !== tag);
     await provider.updateEntry(routeId, { tags: newTags });
     setCurrentEntryTags(newTags);
     if (currentEntry) {
-      setCurrentEntry({ ...currentEntry, tags: newTags });
+      useWorkbenchSessionStore.getState().setCurrentEntry({ ...currentEntry, tags: newTags });
     }
   }, [routeId, provider, currentEntryTags, currentEntry]);
 
@@ -259,7 +244,8 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     handleNext,
     handleStartWorkoutAction,
   } = useWorkbenchSync();
-
+  const handleBlockHover = (blockKey: string | null) => setHoveredBlockKey(blockKey);
+  const handleBlockClick = (blockKey: string) => workbenchEventBus.emitScrollToBlock(blockKey, 'track');
 
   // Handle NAVIGATE_TO requests from syntax links
   useEffect(() => {
@@ -292,14 +278,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     }
   }, [hidePlanUnlessDebug, isDebugMode, viewMode, setViewMode]);
 
-  const handleBlockHover = useCallback((blockKey: string | null) => {
-    setHoveredBlockKey(blockKey);
-  }, [setHoveredBlockKey]);
-
-  const handleBlockClick = useCallback((blockKey: string) => {
-    workbenchEventBus.emitScrollToBlock(blockKey, 'track');
-  }, []);
-
+  // Inline handleBlockHover/handleBlockClick declared above.
   // Handle SCROLL_TO_BLOCK requests
   useEffect(() => {
     const cleanup = workbenchEventBus.onScrollToBlock(({ blockId }) => {
@@ -317,28 +296,22 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   }, [documentItems, setHighlightedLine]);
 
   const handleCompleteWorkout = useCallback((blockId: string, results: WorkoutResults | undefined) => {
-    // Sync selection so completeWorkout knows which section these results belong to
-    _selectBlock(blockId);
-    // Persist result via provider (WorkbenchContext handles navigation/save)
     if (results) {
-      completeWorkout(results);
+      void completeWorkout(results);
     }
-  }, [_selectBlock, completeWorkout]);
-
-  // --- View Components ---
+    void blockId;
+  }, [completeWorkout]);
 
   const planPanel = (
-    <div id="tutorial-editor" className="h-full">
-      <PlanPanel
-        sourceNoteId={contextEntry?.id}
-        initialContent={initialContent}
-        value={content}
-        onStartWorkout={handleStartWorkoutAction}
-        onCompleteWorkout={handleCompleteWorkout}
-        setBlocks={setBlocks}
-        setContent={setContent}
-      />
-    </div>
+    <PlanPanel
+      sourceNoteId={contextEntry?.id}
+      initialContent={initialContent}
+      value={content}
+      onStartWorkout={handleStartWorkoutAction}
+      onCompleteWorkout={handleCompleteWorkout}
+      setBlocks={setBlocks}
+      setContent={setContent}
+    />
   );
 
   const trackPrimaryPanel = (
@@ -347,18 +320,16 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       execution={execution}
       selectedBlock={selectedBlock}
       documentItems={documentItems}
-      activeBlockId={_activeBlockId || undefined}
+      activeBlockId={activeBlockId || undefined}
+      onSelectBlock={(blockId) => blockId && setSelectedBlockId(blockId)}
+      onSetActiveBlockId={setActiveBlockId}
       onBlockHover={handleBlockHover}
       onBlockClick={handleBlockClick}
-      onSelectBlock={_selectBlock}
-      onSetActiveBlockId={setActiveBlockId}
+      onStop={handleStop}
       onStart={handleStart}
       onPause={handlePause}
-      onStop={handleStop}
       onNext={handleNext}
       activeSegmentIds={activeSegmentIds}
-      activeStatementIds={activeStatementIds}
-      hoveredBlockKey={hoveredBlockKey}
       content={content}
       onStartWorkout={handleStartWorkoutAction}
       setBlocks={setBlocks}
@@ -453,9 +424,9 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
             onClose={() => setIsDetailsOpen(false)}
             entry={currentEntry}
             provider={provider}
-            onEntryUpdate={(updated) => setCurrentEntry(updated)}
+            onEntryUpdate={(updated) => useWorkbenchSessionStore.getState().setCurrentEntry(updated)}
             onClone={async (targetDate?: number) => {
-              if (routeId && provider.mode === 'history') {
+              if (routeId && provider && provider.mode === 'history') {
                 const cloned = await provider.cloneEntry(routeId, targetDate);
                 navigate(planPath(cloned.id));
               }
@@ -476,21 +447,27 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 };
 
 export const Workbench: React.FC<WorkbenchProps> = (props) => {
+  const { initialContent = '', initialActiveEntryId, initialViewMode, mode: _mode = 'static', provider: externalProvider } = props;
+  // Resolve the content provider + persistence once. The session store
+  // needs both as collaborators; we hand them to `WorkbenchSessionProvider`
+  // and also forward the resolved provider to `WorkbenchContent` for the
+  // adapter + clone/entry-update paths that talk to it directly.
+  const resolved = useMemo(
+    () => resolveWorkbenchProvider(initialContent, externalProvider),
+    [initialContent, externalProvider],
+  );
   return (
     <CommandProvider>
       <DebugModeProvider>
-        <WorkbenchProvider
-          initialContent={props.initialContent}
-          initialActiveEntryId={props.initialActiveEntryId}
-          initialViewMode={props.initialViewMode}
-          mode={props.mode}
-          provider={props.provider}
+        <WorkbenchSessionProvider
+          provider={resolved.provider}
+          notePersistence={resolved.notePersistence}
         >
           <RuntimeLifecycleProvider factory={runtimeFactory}>
             <WorkbenchCastBridge />
-            <WorkbenchContent {...props} />
+            <WorkbenchContent {...props} initialContent={initialContent} initialActiveEntryId={initialActiveEntryId} initialViewMode={initialViewMode} provider={resolved.provider} />
           </RuntimeLifecycleProvider>
-        </WorkbenchProvider>
+        </WorkbenchSessionProvider>
       </DebugModeProvider>
     </CommandProvider>
   );

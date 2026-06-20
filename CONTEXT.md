@@ -160,6 +160,34 @@ production-like builds (`MODE === 'production'`), `local` in dev. Release
 workflows set the value explicitly; dev workflows can leave it unset.
 _Avoid_: cast mode, cast variant.
 
+### Workbench
+
+**Workbench Session**:
+The coherent state of the workout-editing session the workbench holds: the open
+note's content and parsed document, the active view, the selected block, the
+running workout's runtime and execution, the accumulated analytics, the
+results, and the actions on them. One module (`workbenchSessionStore`);
+exercisable without React. Persistence and loads go through injected
+**Persistence** / **Storage Adapter** collaborators; selection and view changes
+emit navigation intents through an injected callback. The runtime instance is
+hydrated from a **Workbench Effect** (it owns a `dispose()` lifecycle and cannot
+live in a plain store); analytics and active segments are derived reactively from
+the runtime's **output + stack observer seams** while a runtime is mounted, and
+from persisted logs otherwise — so the live and fallback paths share one
+derivation. The runtime is *driven* by execution controls in a Workbench Effect,
+not by the session; the session only observes it.
+_Avoid_: workbench context, workbench store (legacy split names).
+
+**Workbench Effect**:
+A renderless React adapter whose only job is the genuinely lifecycle-bound work
+a plain store cannot own: runtime create/dispose, wake-lock, before-unload
+guards, unmount reset, and reading route params into the **Workbench Session**.
+Generalizes the cast "Bridge" pattern. Today `useWorkbenchEffects`,
+`WorkbenchCastBridge`, `EditorCastBridge` are Workbench Effects; after the
+Workbench Session deepening, one thin effect replaces the hydration + bridge
+work and the rest dissolve into the session store.
+_Avoid_: bridge (cast-specific legacy), effects hook (too generic).
+
 ## Relationships
 
 - A **Statement** owns many **Metrics**; each Metric has exactly one **Origin**.

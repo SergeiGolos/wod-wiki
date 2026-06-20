@@ -23,7 +23,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { TvMinimal, Cast } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
-import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
+import { useWorkbenchSessionStore } from '@/stores/workbenchSessionStore.shim';
 import {
     CastSessionManager,
     type CastSessionHandle,
@@ -71,7 +71,7 @@ export const CastButtonRpc: React.FC = () => {
         try {
             // Read the registry once at connect time — we don't want
             // this callback to invalidate on every store update.
-            const registry = useWorkbenchSyncStore.getState().subscriptionManager;
+            const registry = useWorkbenchSessionStore.getState().subscriptionManager;
             const handle = sessionManager.connect(transport, registry);
             handleRef.current = handle;
             setSessionHandle(handle);
@@ -82,7 +82,7 @@ export const CastButtonRpc: React.FC = () => {
             // the handle's event provider. The router is shared with the
             // cast-roundtrip test.
             handle.eventProvider.onEvent((event) => {
-                const state = useWorkbenchSyncStore.getState();
+                const state = useWorkbenchSessionStore.getState();
                 routeRuntimeEvent(event, {
                     onNext: () => state.handles.handleNext(),
                     onStart: () => state.handles.handleStart(),
@@ -96,7 +96,7 @@ export const CastButtonRpc: React.FC = () => {
             // for the first reactive WorkbenchCastBridge effect tick.
             // The send (with disconnect-tolerant error handling) is
             // owned by the session — the resolver stays here.
-            const wb = useWorkbenchSyncStore.getState();
+            const wb = useWorkbenchSessionStore.getState();
             const message = workbenchModeResolver.resolve({
                 viewMode: wb.viewMode,
                 executionStatus: wb.execution.status,

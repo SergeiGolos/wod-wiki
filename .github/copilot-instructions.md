@@ -39,6 +39,7 @@ bun install                    # Install dependencies
 bun run test                   # Run unit tests
 bun run test:components        # Run integration tests
 bun run test:all               # Run all tests
+bun run test:markdown        # Markdown fixture compile suite (collections + syntax) — decoupled from test:all
 bun run storybook              # Start dev server
 bun run build-storybook        # Build (NEVER cancel — may take up to 60 min)
 bun x tsc --noEmit             # Type check
