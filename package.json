@@ -35,6 +35,7 @@
     "test:all": "bun run test && bun run test:components",
     "test:coverage": "bun test ./src --preload ./tests/unit-setup.ts --coverage --coverage-reporter=lcov",
     "test:storybook": "bunx vitest run --config vitest.storybook.config.js",
+    "test:glob": "bunx vitest run --config vitest.glob.config.ts",
     "test:ui": "bun run test:storybook && bun run test:e2e",
     "test:playground": "bun tests/run-isolated.ts ./playground/src --preload ./tests/unit-setup.ts",
     "test:playground:shared": "bun test ./playground/src --preload ./tests/unit-setup.ts",
