@@ -13,6 +13,7 @@ import { SlashMetric } from '../runtime/compiler/metrics/SlashMetric';
 import { PipeMetric } from '../runtime/compiler/metrics/PipeMetric';
 import { TextMetric } from '../runtime/compiler/metrics/TextMetric';
 import { hintMetric } from '../core/metrics/hints';
+import { EMPTY_UNIT } from '../runtime/compiler/metrics/dimensionFactory';
 import { SyntaxFacts, SyntaxMeta, SyntaxPrimitive } from './syntax-facts';
 
 type MetricPair = { metrics: any; meta: SyntaxMeta };
@@ -107,7 +108,7 @@ function classifyPrimitive(primitive: SyntaxPrimitive): MetricPair[] {
       // base Units Dialect later fuses any following unit word (e.g. "kg") into
       // a dimensioned metric (see dialects/units/fuseUnits).
       if (primitive.hasAtSign) {
-        return [{ metrics: new ResistanceMetric(primitive.value, ''), meta: primitive.meta }];
+        return [{ metrics: new ResistanceMetric(primitive.value, EMPTY_UNIT), meta: primitive.meta }];
       }
 
       return [{ metrics: new RepMetric(primitive.value), meta: primitive.meta }];

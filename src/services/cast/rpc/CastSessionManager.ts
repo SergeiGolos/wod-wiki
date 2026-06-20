@@ -183,17 +183,28 @@ export class CastSessionManager {
         return this.activeHandle;
     }
 
-    /**
-     * Send a `rpc-dispose` to the receiver so it can reset to its
-     * waiting screen, without tearing down the local session.
-     *
-     * Used by the `pagehide` handler — the user closed the tab, so the
-     * local session is about to vanish, but the receiver will only
-     * notice the goodbye if we tell it explicitly.
-     */
     sendDisposeSignal(): void {
         if (!this.activeHandle?.transport.connected) return;
         this.activeHandle.transport.send({ type: 'rpc-dispose' });
+    }
+
+    /**
+     * Send a workbench update through the active session's transport, with
+     * the disconnect-tolerant error handling the connect-time push needs.
+     * Centralizes the outbound send so CastButtonRpc (and any other caller)
+     * doesn't have to know about transport lifecycle. The resolver stays at
+     * the call site — this is the I/O seam, not the policy seam.
+     */
+    pushInitialWorkbench(message: import('./RpcMessages').RpcWorkbenchUpdate): boolean {
+        if (!this.activeHandle) return false;
+        try {
+            this.activeHandle.transport.send(message);
+            return true;
+        } catch {
+            // transport may be tearing down (race with goodbye);
+            // the receiver will see the disconnect.
+            return false;
+        }
     }
 
 

@@ -94,6 +94,8 @@ export const CastButtonRpc: React.FC = () => {
             // Push the current workbench mode immediately so the
             // receiver doesn't sit on the waiting screen while it waits
             // for the first reactive WorkbenchCastBridge effect tick.
+            // The send (with disconnect-tolerant error handling) is
+            // owned by the session — the resolver stays here.
             const wb = useWorkbenchSyncStore.getState();
             const message = workbenchModeResolver.resolve({
                 viewMode: wb.viewMode,
@@ -103,12 +105,7 @@ export const CastButtonRpc: React.FC = () => {
                 selectedBlock: wb.selectedBlock,
                 documentItems: wb.documentItems,
             });
-            try {
-                handle.transport.send(message);
-            } catch {
-                // transport may be tearing down (race with goodbye);
-                // the receiver will see the disconnect.
-            }
+            handle.pushInitialWorkbench(message);
         } finally {
             connectingRef.current = false;
         }

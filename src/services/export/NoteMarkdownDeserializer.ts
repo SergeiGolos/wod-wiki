@@ -2,18 +2,32 @@ import { type INowProvider, wallClockNow } from '@/runtime/INowProvider';
 import type { HistoryEntry } from '@/types/history';
 
 /**
+ * The deserializer's output: a fully-recoverable note. `id`, `createdAt`, and
+ * `updatedAt` are present when the markdown was produced by `noteToMarkdown`
+ * (the export path writes them); plain-markdown imports omit them so the
+ * storage layer mints fresh values. This is what makes the export → import
+ * round-trip preserve note identity instead of creating duplicates.
+ */
+export type ParsedNoteEntry = Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> & {
+    id?: string;
+    createdAt?: number;
+    updatedAt?: number;
+};
+
+/**
  * Parse exported-markdown back into a (partial) HistoryEntry.
  *
  * Time is read exclusively through `clock` (an `INowProvider`) — never via
  * `Date.now()` directly — so the import path is deterministic under a frozen
  * clock. The clock is only consulted for the `Target Date` fallback when the
  * markdown omits it; every field that *is* present in the metadata is
- * recovered verbatim (this is what makes the round-trip preserve timestamps).
+ * recovered verbatim — including `ID`, `Created`, and `Updated`, so a
+ * re-imported note preserves its identity and timestamps (round-trip safe).
  */
 export function parseMarkdownToEntry(
   markdown: string,
   clock: INowProvider = wallClockNow,
-): Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> | null {
+): ParsedNoteEntry | null {
   try {
     // Extract metadata section
     const metadataMatch = markdown.match(/## Metadata\s+(.*?)\s+## Content/s);
@@ -49,14 +63,29 @@ export function parseMarkdownToEntry(
     const targetDate = metadata['Target Date']
       ? new Date(metadata['Target Date']).getTime()
       : clock.nowMs();
-
-    const result: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> = {
+    const result: ParsedNoteEntry = {
       title,
       rawContent,
       tags,
       targetDate,
       sections: [],
     };
+
+    // Recover the identity + timestamp fields the serializer writes, so the
+    // export → import round-trip preserves them (rather than minting fresh
+    // values). Absent for plain-markdown imports — left undefined, and the
+    // storage layer mints fresh ones.
+    if (metadata['ID']) {
+      result.id = metadata['ID'];
+    }
+    if (metadata['Created']) {
+      const createdMs = Date.parse(metadata['Created']);
+      if (!Number.isNaN(createdMs)) result.createdAt = createdMs;
+    }
+    if (metadata['Updated']) {
+      const updatedMs = Date.parse(metadata['Updated']);
+      if (!Number.isNaN(updatedMs)) result.updatedAt = updatedMs;
+    }
 
     if (metadata['Cloned From']) {
       result.templateId = metadata['Cloned From'];
@@ -83,7 +112,7 @@ export function parseMarkdownToEntry(
 export function createNoteFromMarkdown(
   markdown: string,
   clock: INowProvider = wallClockNow,
-): Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> {
+): ParsedNoteEntry {
   // Try to parse as exported format first
   const parsed = parseMarkdownToEntry(markdown, clock);
   if (parsed) return parsed;

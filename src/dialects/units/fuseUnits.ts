@@ -1,10 +1,9 @@
 import { IMetric, MetricType } from "../../core/models/Metric";
 import { ICodeStatement } from "../../core/models/CodeStatement";
 import { UnitSet, Dimension } from "../../core/metrics/units";
-import { DistanceMetric } from "../../runtime/compiler/metrics/DistanceMetric";
 import { ResistanceMetric } from "../../runtime/compiler/metrics/ResistanceMetric";
 import { EffortMetric } from "../../runtime/compiler/metrics/EffortMetric";
-import { MeasuredMetric } from "../../runtime/compiler/metrics/MeasuredMetric";
+import { metricForDimension, EMPTY_UNIT } from "../../runtime/compiler/metrics/dimensionFactory";
 
 import { ChoiceGroupMetric } from "../../runtime/compiler/metrics/ChoiceGroupMetric";
 
@@ -25,49 +24,33 @@ interface MetaPair {
   meta: Meta;
 }
 
-/**
- * Build the dimensioned metric for a fused number + unit. Length and mass map to
- * their dedicated classes (analytics depends on them); every other dimension
- * uses the generic {@link MeasuredMetric}. The stored unit is the token *as
- * written* (`miles`), not the canonical spelling, to preserve display fidelity.
- */
-function metricForUnit(amount: number | undefined, token: string, dimension: Dimension): IMetric {
-  switch (dimension) {
-    case 'length':
-      return new DistanceMetric(amount, token);
-    case 'mass':
-      return new ResistanceMetric(amount, token);
-    default:
-      return new MeasuredMetric(amount, token, dimension);
-  }
-}
 
 function isBareNumber(m: IMetric): boolean {
-  // RepMetric carries a number, or `undefined` for a collectible `?` quantity.
-  return m.type === MetricType.Rep && (typeof m.value === 'number' || m.value === undefined);
+    // RepMetric carries a number, or `undefined` for a collectible `?` quantity.
+    return m.type === MetricType.Rep && (typeof m.value === 'number' || m.value === undefined);
 }
 
 /** Whether a metric is a dedicated SlashMetric (grammar separator for fractions). */
 function isSlashSeparator(m: IMetric): boolean {
-  return m.type === MetricType.Slash;
+    return m.type === MetricType.Slash;
 }
 
 /** Whether a metric is a dedicated PipeMetric (grammar separator for choices). */
 function isPipeSeparator(m: IMetric): boolean {
-  return m.type === MetricType.Pipe;
+    return m.type === MetricType.Pipe;
 }
 
 function effortText(m: IMetric): string | null {
-  if (m.type !== MetricType.Effort && m.type !== MetricType.Text) return null;
-  if (typeof m.value === 'string') return m.value;
-  return typeof m.image === 'string' ? m.image : null;
+    if (m.type !== MetricType.Effort && m.type !== MetricType.Text) return null;
+    if (typeof m.value === 'string') return m.value;
+    return typeof m.image === 'string' ? m.image : null;
 }
 
 /** Whether a metric is a Distance/Resistance whose unit slot is still empty. */
 function hasEmptyUnit(m: IMetric): boolean {
-  if (m.type !== MetricType.Distance && m.type !== MetricType.Resistance) return false;
-  const v = m.value as { amount?: number; unit?: string } | undefined;
-  return !!v && v.amount !== undefined && (!v.unit || v.unit === '');
+    if (m.type !== MetricType.Distance && m.type !== MetricType.Resistance) return false;
+    const v = m.value as { amount?: number; unit?: string } | undefined;
+    return !!v && v.amount !== undefined && (!v.unit || v.unit === EMPTY_UNIT);
 }
 
 /** Meta spanning the number metric through the consumed unit token. */
@@ -203,8 +186,8 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
             ? (second.metric.value as number | undefined)
             : (second.metric.value as { amount?: number }).amount;
 
-          const alt1 = metricForUnit(amount1, match.token, match.unit.dimension);
-          const alt2 = metricForUnit(amount2, match.token, match.unit.dimension);
+          const alt1 = metricForDimension(amount1, match.token, match.unit.dimension);
+          const alt2 = metricForDimension(amount2, match.token, match.unit.dimension);
 
           // Homogeneous check: both alternatives must resolve to the same MetricType.
           if (alt1.type === alt2.type) {
@@ -250,7 +233,7 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
 
           if (numerator !== undefined && denominator !== undefined && denominator !== 0) {
             const decimal = numerator / denominator;
-            const fused = metricForUnit(decimal, match.token, match.unit.dimension);
+            const fused = metricForDimension(decimal, match.token, match.unit.dimension);
             const fracMeta = fusedMeta(cur.meta, fourth.meta, match.token);
             out.push({
               metric: fused,
@@ -279,7 +262,7 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
             ? (cur.metric.value as number | undefined)
             : (cur.metric.value as { amount?: number }).amount;
           out.push({
-            metric: metricForUnit(amount, match.token, match.unit.dimension),
+            metric: metricForDimension(amount, match.token, match.unit.dimension),
             meta: fusedMeta(cur.meta, next.meta, match.token),
           });
           if (match.rest) {

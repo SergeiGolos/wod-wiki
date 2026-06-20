@@ -86,7 +86,7 @@ export function createParserContext(
     const dialectList = options?.dialects ?? ALL_DIALECTS;
     const registry = registryFrom(dialectList);
 
-    const script = createParser().read(scriptText) as WhiteboardScript;
+    const script = createParser().readWithoutDialects(scriptText) as WhiteboardScript;
 
     // Apply dialect processing to all parsed statements.
     const stmts = script.statements as ICodeStatement[];

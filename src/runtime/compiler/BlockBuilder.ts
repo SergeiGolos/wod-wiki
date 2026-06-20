@@ -103,6 +103,25 @@ export class BlockBuilder {
         return this;
     }
 
+    /**
+     * Move an already-added behavior to the LAST position in the behavior list.
+     *
+     * Behavior order = Map insertion order = RuntimeBlock.onNext execution order.
+     * When a later-running strategy needs a behavior added by an earlier
+     * strategy to execute AFTER its own behaviors, this is the explicit API.
+     * No-op when the behavior is not present (or already last).
+     *
+     * Replaces the previous `getBehavior → removeBehavior → addBehavior` dance
+     * (e.g. ChildrenStrategy's MetricPromotion reorder) with a named contract.
+     */
+    moveBehaviorLast<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
+        const behavior = this.behaviors.get(type);
+        if (!behavior) return this;
+        this.behaviors.delete(type);
+        this.behaviors.set(type, behavior);
+        return this;
+    }
+
     hasBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): boolean {
         return this.behaviors.has(type);
     }

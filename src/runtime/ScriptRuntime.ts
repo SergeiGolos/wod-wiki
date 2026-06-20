@@ -96,15 +96,19 @@ export class ScriptRuntime implements IScriptRuntime {
 
         this.jit = compiler;
 
+        // Wire the OutputEmitter's runtime deps once — the emission helpers
+        // read clock/stack/script from here instead of taking them per call.
+        this._output.attach({ clock: this.clock, stack: this.stack, script: this.script });
+
         // Bridge stack events to StackSnapshot observers and emit system outputs
         this._stackSubscriptionUnsub = this.stack.subscribe((event) => {
             if (event.type === 'pop') {
-                this._output.emitSegmentFromResultMemory(event.block, event.depth, this.clock);
+                this._output.emitSegmentFromResultMemory(event.block, event.depth);
             }
 
             // Emit system output for push/pop events
             if (event.type === 'push' || event.type === 'pop') {
-                this._output.emitStackEvent(event, this.stack.blocks, this.clock);
+                this._output.emitStackEvent(event);
             }
 
             // Notify stack observers
@@ -131,7 +135,7 @@ export class ScriptRuntime implements IScriptRuntime {
         this.clock.start();
 
         // Emit 'load' output with initial state
-        this._output.emitLoad(this.script, this.clock);
+        this._output.emitLoad();
     }
 
     /**
@@ -218,7 +222,7 @@ export class ScriptRuntime implements IScriptRuntime {
         // Only emit 'event' output if it's NOT a tick event OR if it produced actions
         // This prevents flooding the log with empty tick cycles
         if (event.name !== 'tick' || actions.length > 0) {
-            this._output.emitRuntimeEvent(event, this.stack, this.clock);
+            this._output.emitRuntimeEvent(event);
         }
 
         if (actions.length === 0) return;
@@ -391,7 +395,7 @@ export class ScriptRuntime implements IScriptRuntime {
         this.options.hooks?.onBeforePush?.(block, parentBlock);
 
         // Emit 'compiler' output for the new block
-        this._output.emitCompilerBlock(block, this.stack.count, this.clock);
+        this._output.emitCompilerBlock(block);
 
         // Start tracking span
         const parentSpanId = parentBlock

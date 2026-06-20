@@ -3,26 +3,29 @@ import { ICodeStatement } from '../core/models/CodeStatement';
 
 import { classifyStatements } from './semantic-classifier';
 import { extractSyntaxFacts } from './syntax-parser';
-import { UnitsDialect } from '../dialects/UnitsDialect';
+import { dialectStack } from '../dialects/DialectStack';
 
 /**
- * Base Units Dialect applied as the final parser-pipeline layer. Units are not a
- * grammar concept: the parser emits bare Number + Text, and this layer fuses the
- * adjacent pairs into dimensioned metrics. Running it here means every parse
- * consumer (read(), the editor preview, tests) gets units uniformly. Fusion is
- * idempotent, so the compile-time Dialect Stack may run additional unit-bearing
- * dialects on top without double-counting.
+ * Extract statements WITHOUT running the Dialect Stack.
+ *
+ * Used by the parser test harness (which applies its own Dialect set) and by
+ * any consumer that needs the raw classified statements before Dialect
+ * processing. Production consumers should use {@link extractStatements}.
  */
-const baseUnits = new UnitsDialect();
+export function extractStatementsRaw(state: EditorState): ICodeStatement[] {
+  const facts = extractSyntaxFacts(state);
+  return classifyStatements(facts);
+}
 
 /**
  * Extracts WhiteboardScript statements from the CodeMirror editor state using the Lezer tree.
+ *
+ * The Dialect Stack (base Units + sport Dialects + personal-overrides) runs on
+ * every statement here, so every parse consumer (read(), the editor preview,
+ * tests) gets fused units and sport hints uniformly. See `DialectStack.ts`.
  */
 export function extractStatements(state: EditorState): ICodeStatement[] {
-  const facts = extractSyntaxFacts(state);
-  const statements = classifyStatements(facts);
-  for (const statement of statements) {
-    baseUnits.transform(statement);
-  }
+  const statements = extractStatementsRaw(state);
+  dialectStack.processAll(statements);
   return statements;
 }

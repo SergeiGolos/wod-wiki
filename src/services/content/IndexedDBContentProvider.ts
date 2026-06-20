@@ -8,7 +8,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
 import { toShortId } from '../../lib/idUtils';
-import type { AttachmentCreateInput, IContentProvider, ContentProviderMode } from '../../types/content-provider';
+import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { Note, NoteSegment, WorkoutResult, SegmentDataType, Attachment } from '../../types/storage';
@@ -48,6 +48,7 @@ function toSegmentDataType(sectionType: SectionType): SegmentDataType {
 
 export class IndexedDBContentProvider implements IContentProvider {
     readonly mode: ContentProviderMode = 'history';
+    readonly persistenceBackend = 'indexed-db' as const;
     readonly capabilities: ProviderCapabilities = {
         canWrite: true,
         canDelete: true,
@@ -214,10 +215,16 @@ export class IndexedDBContentProvider implements IContentProvider {
         return cloned;
     }
 
-    async saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry> {
+    async saveEntry(entry: NoteSaveInput): Promise<HistoryEntry> {
         const now = Date.now();
-        let noteId = entry.type === 'playground' ? formatPlaygroundTimestampId(now) : uuidv4();
-        if (entry.type === 'playground') {
+        // Preserve a recovered id (export → import round-trip) so a re-imported
+        // note overwrites its original instead of duplicating. Absent on the
+        // normal create path → mint a fresh id (playground uses timestamp ids).
+        let noteId = entry.id;
+        if (!noteId) {
+            noteId = entry.type === 'playground' ? formatPlaygroundTimestampId(now) : uuidv4();
+        }
+        if (entry.type === 'playground' && !entry.id) {
             const baseNoteId = noteId;
             let attempt = 0;
             while (await indexedDBService.getNote(noteId)) {
@@ -228,6 +235,10 @@ export class IndexedDBContentProvider implements IContentProvider {
                 noteId = `${baseNoteId}-${attempt}`;
             }
         }
+
+        // Preserve recovered timestamps; mint fresh when absent.
+        const createdAt = entry.createdAt ?? now;
+        const updatedAt = entry.updatedAt ?? now;
 
         // TRANSITION TO SEGMENTS
         const sections = parseDocumentSections(entry.rawContent);
@@ -243,7 +254,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                 rawContent: section.displayContent,
                 level: section.level,
                 scriptBlock: section.scriptBlock,
-                createdAt: now,
+                createdAt,
             };
             await indexedDBService.saveSegment(segment);
             segmentIds.push(section.id);
@@ -257,8 +268,8 @@ export class IndexedDBContentProvider implements IContentProvider {
             type: entry.type || 'note',
             templateId: entry.templateId,
             clonedIds: entry.clonedIds,
-            createdAt: now,
-            updatedAt: now,
+            createdAt,
+            updatedAt,
             targetDate: entry.targetDate || now,
             segmentIds
         };
@@ -268,8 +279,8 @@ export class IndexedDBContentProvider implements IContentProvider {
         return {
             ...entry,
             id: noteId,
-            createdAt: now,
-            updatedAt: now,
+            createdAt,
+            updatedAt,
             targetDate: entry.targetDate || now,
             schemaVersion: 1
         };

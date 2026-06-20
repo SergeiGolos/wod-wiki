@@ -95,19 +95,15 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new ExitBehavior({ mode: 'deferred' }));
 
         // =====================================================================
-        // Promotion ordering fix — MetricPromotionBehavior must run AFTER
+        // Promotion ordering — MetricPromotionBehavior must run AFTER
         // ChildSelectionBehavior in onNext so it sees the round that
         // ChildSelectionBehavior just advanced via advanceRound().
         //
         // GenericLoopStrategy adds MetricPromotionBehavior before this strategy
-        // runs, so it would execute before ChildSelectionBehavior.onNext. We
-        // remove and re-add it here to move it to the end of the Map (Map
-        // preserves insertion order; delete + re-add puts the key last).
+        // runs. moveBehaviorLast is the explicit, contract-named API for moving
+        // an earlier-added behavior to the end of the behavior list
+        // (replaces the former delete + re-add hack).
         // =====================================================================
-        const promotionBehavior = builder.getBehavior(MetricPromotionBehavior);
-        if (promotionBehavior) {
-            builder.removeBehavior(MetricPromotionBehavior);
-            builder.addBehavior(promotionBehavior);
-        }
+        builder.moveBehaviorLast(MetricPromotionBehavior);
     }
 }
