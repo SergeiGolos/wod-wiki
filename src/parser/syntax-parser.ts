@@ -9,11 +9,9 @@ import {
   HeadingPrimitive,
   LapPrimitive,
   MetricObjectPrimitive,
-  PipePrimitive,
   PropertyPrimitive,
   QuantityPrimitive,
   RoundsPrimitive,
-  SlashPrimitive,
   SyntaxFacts,
   SyntaxMeta,
   SyntaxPrimitive,
@@ -221,11 +219,11 @@ function mapFragmentToPrimitive(
       return primitive;
     }
 
+    // Slash and Pipe ride as effort primitives with raw '/' or '|'.
+    // fuseUnits matches the raw string — no dedicated primitive kinds needed.
     case terms.Slash: {
-      // A bare "/" is emitted as a dedicated SlashPrimitive.
-      // The fuseUnits dialect uses it for fraction conversion: `1/4 mile` → 0.25 mile.
-      const primitive: SlashPrimitive = {
-        kind: 'slash',
+      const primitive: EffortPrimitive = {
+        kind: 'effort',
         raw,
         meta,
       };
@@ -233,10 +231,8 @@ function mapFragmentToPrimitive(
     }
 
     case terms.Pipe: {
-      // A bare "|" is emitted as a dedicated PipePrimitive.
-      // The fuseUnits dialect uses it for choice grouping: `Run | Walk` → ChoiceGroupMetric.
-      const primitive: PipePrimitive = {
-        kind: 'pipe',
+      const primitive: EffortPrimitive = {
+        kind: 'effort',
         raw,
         meta,
       };

@@ -19,7 +19,7 @@ import { AnalyticsEngine } from '@/core/analytics/AnalyticsEngine';
 import { StandardAnalyticsProfile } from '@/core/analytics/StandardAnalyticsProfile';
 import type { AnalyticsProfileContext } from '@/core/analytics/IAnalyticsProfile';
 import { TwoPassEffortResolutionProcess } from '@/core/analytics/TwoPassEffortResolutionProcess';
-import { MetMinuteProjectionEngine } from '@/timeline/analytics/analytics/engines/MetMinuteProjectionEngine';
+import { MetMinuteProjectionEngine } from '@/core/analytics/engines/MetMinuteProjectionEngine';
 import { InMemoryEffortRegistry } from '@/effort-registry/InMemoryEffortRegistry';
 import { EffortResolver } from '@/effort-registry/EffortResolver';
 import { OutputStatement } from '@/core/models/OutputStatement';

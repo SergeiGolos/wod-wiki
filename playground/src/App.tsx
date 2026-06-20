@@ -3,16 +3,16 @@ import type { MutableRefObject } from 'react'
 import { SidebarLayout } from '@/templates/SidebarLayout'
 import { Navbar, NavbarSection, NavbarSpacer } from '@/components/organisms/layout/Navbar'
 import { NavProvider } from './nav/NavContext'
-import { useNav } from './nav/NavContext'
 import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
 import { NavSearchInput } from '@/components/molecules/NavSearchInput'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
-import { CommandProvider } from '@/contexts/CommandContext'
+import { DebugModeProvider } from '@/contexts/DebugModeContext'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { PaletteShell } from '@/components/organisms/command-palette/PaletteShell'
 import { globalSearchSource } from './services/paletteDataSources'
-import { createJournalEntryFlow } from './services/journalEntryFlow'
+import { useCreateJournalEntry } from './hooks/useCreateJournalEntry'
+import { usePageScrollSync } from './hooks/usePageScrollSync'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
 import { AudioProvider } from '@/contexts/AudioContext'
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom'
@@ -20,10 +20,10 @@ import {
   ROUTE_PATTERNS,
   isPlaygroundNotePath,
   isJournalEntryPath,
-  playgroundPath,
   workoutPath,
-  journalEntryPath,
   reviewPath,
+  matchFeedItem,
+  matchFeedDetail,
   NotePlaygroundRedirect,
   WorkoutRedirect,
   GettingStartedRedirect,
@@ -46,9 +46,7 @@ import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import { indexedDBService } from '@/services/db/IndexedDBService'
-import { playgroundDB } from './services/playgroundDB'
 import type { WorkoutResult } from '@/types/storage'
-import { EditorView } from '@codemirror/view'
 // ── Extracted page components ────────────────────────────────────────────────
 import { WallClockPage } from './pages/WallClockPage'
 import { ReviewPage } from './pages/ReviewPage'
@@ -90,23 +88,18 @@ const SYNTAX_LINKS = [
   { id: 'document', label: 'Document', type: 'heading' as const },
 ]
 
-// Load all markdown files from the markdown directory
-const workoutFiles = import.meta.glob('../../markdown/**/*.md', { eager: true, query: '?raw', import: 'default' })
-console.log('[App] workoutFiles keys:', Object.keys(workoutFiles).length);
+// `workoutFiles` (raw glob) and `WorkoutItem` (typed item) live in `lib/workoutIndex`.
+// `workoutFiles` is passed through to `MarkdownCanvasPage` as `wodFiles`; the typed
+// `workoutItems` array is passed to leaves that filter/search it. Both are kept as
+// props to leaf components — see `MarkdownCanvasPage.test.tsx` for the contract.
+import { workoutFiles, useWorkoutItems, type WorkoutItem } from './lib/workoutIndex'
+export type { WorkoutItem }
 
-export interface WorkoutItem {
-  id: string
-  name: string
-  category: string
-  content: string
-  /** When true, this item is excluded from all search results (front matter: `search: hidden`) */
-  searchHidden?: boolean
-}
 function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<() => void> }) {
   const navigate = useNavigate()
   const { category: urlCategory, name: urlName, collection: urlCollection, workout: urlWorkout, id: playgroundId } = useParams<{ category: string; name: string; collection: string; workout: string; id: string }>()
   const location = useLocation()
-  
+
   const { theme } = useTheme()
   const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
 
@@ -118,42 +111,10 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
 
   // Feed route detection — parsed from pathname since AppContent useParams only
   // captures generic {category, name, id} and feed routes use different param names.
-  const feedItemMatch   = location.pathname.match(/^\/feeds\/([^/]+)\/([^/]+)\/([^/]+)$/)
-  const feedDetailMatch = !feedItemMatch && location.pathname.match(/^\/feeds\/([^/]+)$/)
+  const feedItemMatch = matchFeedItem(location.pathname)
+  const feedDetailMatch = feedItemMatch ? null : matchFeedDetail(location.pathname)
 
-  const workoutItems = useMemo(() => {
-    return Object.entries(workoutFiles).map(([path, fileContent]) => {
-      const parts = path.split('/')
-      const fileName = parts[parts.length - 1].replace('.md', '')
-      
-      // Path format: ../../markdown/{collections|canvas}/{category}/{file}.md
-      // or ../../markdown/{collections|canvas}/{file}.md
-      let category = 'General'
-      const markdownIdx = parts.indexOf('markdown')
-      if (markdownIdx !== -1 && parts.length > markdownIdx + 2) {
-        category = parts[markdownIdx + 2]
-      }
-
-      // Parse front matter to check for `search: hidden`
-      const raw = fileContent as string
-      let searchHidden = false
-      const fmMatch = raw.match(/^---[\r\n]([\s\S]*?)[\r\n]---/)
-      if (fmMatch) {
-        const searchLine = fmMatch[1].match(/^search:\s*(\S+)/m)
-        if (searchLine && searchLine[1].toLowerCase() === 'hidden') {
-          searchHidden = true
-        }
-      }
-
-      return {
-        id: path,
-        name: fileName,
-        category: category,
-        content: raw,
-        searchHidden,
-      }
-    })
-  }, [workoutFiles])
+  const workoutItems = useWorkoutItems()
 
   // Canvas page for the current pathname (null if not a canvas route)
   const canvasPage = findCanvasPage(location.pathname)
@@ -310,26 +271,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     return []
   }, [location.pathname, canvasPage, recentResults, workoutItems, handleSelectWorkout])
 
-  /**
-  /**
-   * Runs the n-step palette flow then saves the entry and navigates to it.
-   */
-  const handleCreateJournalEntry = useCallback(async (date: Date) => {
-    const y = date.getFullYear()
-    const m = String(date.getMonth() + 1).padStart(2, '0')
-    const d = String(date.getDate()).padStart(2, '0')
-    const dateKey = `${y}-${m}-${d}`
-
-    await createJournalEntryFlow({
-      dateKey,
-      workoutItems,
-      onCreated: async (content) => {
-        const id = `journal/${dateKey}`
-        await playgroundDB.savePage({ id, name: dateKey, category: 'journal', content, updatedAt: Date.now() })
-        navigate(journalEntryPath(dateKey))
-      },
-    })
-  }, [navigate, workoutItems])
+  const handleCreateJournalEntry = useCreateJournalEntry({ workoutItems })
 
   // Open the palette for global search (Ctrl+/ or search button)
   const openSearchPalette = useCallback(() => {
@@ -372,107 +314,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
   )
 
-  // ── NavContext integration ────────────────────────────────────────────────
-  const { setL3Items, registerScrollFn, dispatch: navDispatch } = useNav()
-
-  const editorViewRef = useRef<EditorView | null>(null)
-  const handleViewCreated = useCallback((view: EditorView) => {
-    editorViewRef.current = view
-  }, [])
-
-  const scrollToSection = useCallback((id: string) => {
-    // 1. Try standard DOM element (Canvas/List pages)
-    //    Use scrollIntoView so the browser finds the correct scroll container
-    //    (works inside nested flex layouts like HomeView > CanvasPage).
-    const el = document.getElementById(id)
-    if (el) {
-      // Apply a temporary scroll-margin so the sticky header is not covered.
-      const prev = el.style.scrollMarginTop
-      el.style.scrollMarginTop = '96px'
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      // Restore after animation frame so the style doesn't persist.
-      requestAnimationFrame(() => { el.style.scrollMarginTop = prev })
-      return
-    }
-
-    // 2. Try CodeMirror line (Editor pages)
-    if (editorViewRef.current) {
-      const view = editorViewRef.current
-      const content = view.state.doc.toString()
-      const lines = content.split('\n')
-      
-      let lineIdx = -1
-
-      if (id.startsWith('wod-line-')) {
-        const lineNum = parseInt(id.replace('wod-line-', ''), 10)
-        lineIdx = lineNum - 1
-      } else {
-        lineIdx = lines.findIndex(line => {
-          const match = line.match(/^(#{1,6})\s+(.*)$/)
-          if (match) {
-            let label = match[2].trim()
-            const timeMatch = label.match(/(\d{1,2}:\d{2})/)
-            if (timeMatch) {
-              const timestamp = timeMatch[1]
-              label = label.replace(timestamp, '').replace(/\s+/g, ' ').trim()
-              if (!label) label = timestamp
-            }
-            const headerId = label.toLowerCase().replace(/[^\w]+/g, '-')
-            return headerId === id
-          }
-          return false
-        })
-      }
-
-      if (lineIdx >= 0 && lineIdx < lines.length) {
-        const pos = view.state.doc.line(lineIdx + 1).from
-        view.dispatch({
-          selection: { anchor: pos, head: pos },
-          effects: [EditorView.scrollIntoView(pos, { y: 'start', yMargin: 20 })]
-        })
-        // Also scroll the window to the editor's container if needed
-        const editorEl = view.dom.parentElement
-        if (editorEl) {
-          const y = editorEl.getBoundingClientRect().top + window.scrollY - 120
-          window.scrollTo({ top: y, behavior: 'smooth' })
-        }
-      }
-    }
-  }, [])
-
-  // Register the scroll function with NavContext so NavSidebar L3 clicks scroll correctly
-  useEffect(() => {
-    registerScrollFn(scrollToSection)
-  }, [scrollToSection, registerScrollFn])
-
-  // Track scroll position to keep NavContext activeL3Id in sync
-  useEffect(() => {
-    if (currentNavLinks.length === 0) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        let bestId: string | null = null
-        let bestRatio = -1
-        entries.forEach(e => {
-          if (e.isIntersecting && e.intersectionRatio > bestRatio) {
-            bestRatio = e.intersectionRatio
-            bestId = e.target.id
-          }
-        })
-        if (bestId) navDispatch({ type: 'SET_ACTIVE_L3', id: bestId })
-      },
-      { rootMargin: '-10% 0px -50% 0px', threshold: [0, 0.25, 0.5, 1] }
-    )
-    currentNavLinks.forEach(link => {
-      const el = document.getElementById(link.id)
-      if (el) observer.observe(el)
-    })
-    return () => observer.disconnect()
-  }, [currentNavLinks, navDispatch])
-
-  // Sync currentNavLinks → NavContext L3 items (feeds sidebar accordion + right panel)
-  useEffect(() => {
-    setL3Items(mapIndexToL3(currentNavLinks))
-  }, [currentNavLinks, setL3Items])
+  const { handleViewCreated, scrollToSection } = usePageScrollSync(currentNavLinks)
 
   useEffect(() => {
     if (theme !== 'system') return
@@ -527,12 +369,12 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
           ) : location.pathname === '/feeds' ? (
             <FeedsPage />
           ) : feedDetailMatch ? (
-            <FeedDetailPage feedSlug={decodeURIComponent(feedDetailMatch[1]!)} />
+            <FeedDetailPage feedSlug={decodeURIComponent(feedDetailMatch)} />
           ) : feedItemMatch ? (
             <FeedItemPage
-              feedSlug={decodeURIComponent(feedItemMatch[1]!)}
-              feedDate={decodeURIComponent(feedItemMatch[2]!)}
-              feedItem={decodeURIComponent(feedItemMatch[3]!)}
+              feedSlug={decodeURIComponent(feedItemMatch[0])}
+              feedDate={decodeURIComponent(feedItemMatch[1])}
+              feedItem={decodeURIComponent(feedItemMatch[2])}
               theme={actualTheme}
               onViewCreated={handleViewCreated}
               onScrollToSection={scrollToSection}
@@ -620,14 +462,14 @@ export function App() {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
-      <EffortRegistryProvider>
-        <AudioProvider>
-          <BrowserRouter>
-            <NuqsAdapter>
-            <GlobalState />
-            <ScrollToTop />
-            <Toaster />
-            <CommandProvider>
+      <DebugModeProvider>
+        <EffortRegistryProvider>
+          <AudioProvider>
+            <BrowserRouter>
+              <NuqsAdapter>
+              <GlobalState />
+              <ScrollToTop />
+              <Toaster />
               <NavProvider tree={navTree}>
                 <Routes>
                   <Route path="/legacy" element={<PlaygroundLandingPage />} />
@@ -664,11 +506,11 @@ export function App() {
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </NavProvider>
-            </CommandProvider>
-          </NuqsAdapter>
-        </BrowserRouter>
-      </AudioProvider>
-    </EffortRegistryProvider>
+            </NuqsAdapter>
+          </BrowserRouter>
+        </AudioProvider>
+      </EffortRegistryProvider>
+      </DebugModeProvider>
     </ThemeProvider>
   )
 }

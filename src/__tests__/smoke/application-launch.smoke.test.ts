@@ -186,13 +186,6 @@ describe('Application Launch Smoke Tests', () => {
     it('should initialize JitCompiler without strategies', () => {
       const compiler = new JitCompiler();
       expect(compiler).toBeDefined();
-      expect(compiler.getDialectRegistry()).toBeDefined();
-    });
-
-    it('should initialize JitCompiler with custom DialectRegistry', () => {
-      const registry = new DialectRegistry();
-      const compiler = new JitCompiler([], registry);
-      expect(compiler.getDialectRegistry()).toBe(registry);
     });
 
     it('should register strategies', () => {
@@ -372,14 +365,10 @@ describe('Application Launch Smoke Tests', () => {
   describe('End-to-End Initialization Smoke Test', () => {
     it('should initialize full runtime stack without errors', () => {
       // 1. Initialize services
-      const registry = new DialectRegistry();
-      const dialect = new MockDialect();
-      registry.register(dialect);
-
       const eventBus = new EventBus();
 
       // 2. Initialize compiler
-      const compiler = new JitCompiler([], registry);
+      const compiler = new JitCompiler();
       const strategy = new MockStrategy();
       compiler.registerStrategy(strategy);
 
@@ -396,7 +385,6 @@ describe('Application Launch Smoke Tests', () => {
       );
 
       // 5. Verify all components are connected
-      expect(runtime.jit.getDialectRegistry()).toBe(registry);
       expect(runtime.stack).toBe(stack);
       expect(runtime.clock).toBe(clock);
       expect(runtime.eventBus).toBe(eventBus);
@@ -466,7 +454,6 @@ describe('Application Launch Smoke Tests', () => {
     it('should handle empty strategy list in compiler', () => {
       const compiler = new JitCompiler([]);
       expect(compiler).toBeDefined();
-      expect(compiler.getDialectRegistry()).toBeDefined();
     });
 
     it('should handle null/undefined in process gracefully', () => {

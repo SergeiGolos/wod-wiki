@@ -12,4 +12,4 @@ export * from './contracts/TestIdContract';
 export type { RuntimeSnapshot, SnapshotDiff } from './contracts/SnapshotTypes';
 
 // Compiler factory
-export { createFullCompiler, createCompiler, PRODUCTION_STRATEGIES } from './compiler';
+export { createCompiler, PRODUCTION_STRATEGIES } from './compiler';

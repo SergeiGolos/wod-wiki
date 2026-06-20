@@ -9,7 +9,7 @@ export interface SyntaxMeta {
 }
 
 interface BasePrimitive {
-  kind: 'lap' | 'duration' | 'rounds' | 'action' | 'text' | 'heading' | 'quantity' | 'effort' | 'slash' | 'pipe' | 'property' | 'metric_object';
+  kind: 'lap' | 'duration' | 'rounds' | 'action' | 'text' | 'heading' | 'quantity' | 'effort' | 'property' | 'metric_object';
   raw: string;
   meta: SyntaxMeta;
 }
@@ -56,24 +56,16 @@ export interface QuantityPrimitive extends BasePrimitive {
   hasAtSign: boolean;
 }
 
+/**
+ * Effort primitive — emitted for any free text including the bare "/" and "|"
+ * separator tokens. Slash/Pipe were grammar-level primitives consumed only by
+ * fuseUnits; they now ride as `EffortPrimitive` with raw '/' or '|' and the
+ * dialect matches the raw string:
+ *   1/4 mile → 0.25 mile (slash converts to a single decimal)
+ *   Run | Walk → ChoiceGroupMetric([Effort('Run'), Effort('Walk')]) (pipe groups)
+ */
 export interface EffortPrimitive extends BasePrimitive {
   kind: 'effort';
-}
-
-/**
- * Slash primitive — emitted for a bare "/" between quantities.
- * The fuseUnits dialect uses this for fraction conversion: `1/4 mile` → 0.25 mile.
- */
-export interface SlashPrimitive extends BasePrimitive {
-  kind: 'slash';
-}
-
-/**
- * Pipe primitive — emitted for a bare "|" between alternatives.
- * The fuseUnits dialect uses this for choice grouping: `Run | Walk` → ChoiceGroupMetric.
- */
-export interface PipePrimitive extends BasePrimitive {
-  kind: 'pipe';
 }
 
 export interface PropertyPrimitive extends BasePrimitive {
@@ -92,8 +84,6 @@ export type SyntaxPrimitive =
   | HeadingPrimitive
   | QuantityPrimitive
   | EffortPrimitive
-  | SlashPrimitive
-  | PipePrimitive
   | PropertyPrimitive
   | MetricObjectPrimitive;
 export interface SyntaxStatement {

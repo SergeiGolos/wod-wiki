@@ -309,6 +309,15 @@ bun test tests/jit-compilation --preload ./tests/setup.ts
 bun run test:all
 ```
 
+### Markdown Fixture Compilation Tests
+```bash
+# Run the markdown compile suite only (markdown/collections + markdown/canvas/syntax).
+# This iterates every markdown WOD fixture and compiles/runs it — slow (~90s+).
+# Decoupled from test:components / test:all so day-to-day runs stay fast; run
+# explicitly when validating fixture changes or before release.
+bun run test:markdown
+```
+
 ### Storybook Tests
 ```bash
 # Run Storybook component tests (requires Playwright)

@@ -1,5 +1,12 @@
 # Cast Architecture Simplification Plan
 
+> **Status: SUPERSEDED (2026-Q2).** All four phases shipped.
+> Sender session management: `src/services/cast/rpc/CastSessionManager.ts`.
+> Receiver session management: `src/services/cast/rpc/ReceiverSessionManager.ts`.
+> `ViewSession.ts` deleted; `castTransport` in `CastTransportContext.tsx`.
+> Remaining friction (ReceiverApp init paths, CastButtonRpc orchestration)
+> is tracked in [global plan Track 4](gml/improve/04-cast-session-wiring-layer.md).
+
 ## Problem Statement
 
 The cast system has 5 distinct code paths that all do the same job — wire a sender's runtime to a receiver over an `IRpcTransport` — but with different patterns, different error handling, and duplicated wiring:
@@ -318,3 +325,14 @@ After each phase:
 - [ ] Local-tab cast: D-Pad events (next/start/pause/stop) route correctly
 - [ ] Local-tab cast: disconnect cleans up both sides
 - [ ] No runaway clock sync loop in console
+
+## Progress (2026-06-19)
+
+**S4a (Phase 4 partial) is done.** See `docs/gml/improve/EXECUTION-LOG.md` and `docs/gml/improve/04-cast-session-wiring-layer.md` for details. Specifically:
+
+- `registerRuntime` / `unregisterRuntime` deleted from `CastSessionManager.ts` (0 production callers).
+- `useCastSignaling.ts` barrel deleted; 4 consumers now import from real sources.
+- `eventRouter.ts` **kept** (2 real consumers: `CastButtonRpc` and the cast-roundtrip test — one consumer would have been a hypothetical seam, two is a real one).
+- `config.ts` import-time `console.log`s removed; stale `CastTransportContext` comment rewritten.
+
+Phases 1–3 and the remaining Phase 4 work (ViewSession cleanup, SubscriptionManagerContext removal) are tracked under S4b and S4c in `docs/gml/improve/00-global-plan.md`.

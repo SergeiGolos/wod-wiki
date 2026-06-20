@@ -23,12 +23,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { TvMinimal, Cast } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
-import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
+import { useWorkbenchSessionStore } from '@/stores/workbenchSessionStore.shim';
 import {
     CastSessionManager,
     type CastSessionHandle,
-    type ICastSubscription,
-} from '@/hooks/useCastSignaling';
+} from '@/services/cast/rpc/CastSessionManager';
+import type { ICastSubscription } from '@/hooks/useRuntimeTimer';
 import { cn } from '@/lib/utils';
 import { CastTransportProvider } from '@/contexts/CastTransportContext';
 import { ProjectionSyncProvider } from '@/contexts/ProjectionSyncContext';
@@ -71,7 +71,7 @@ export const CastButtonRpc: React.FC = () => {
         try {
             // Read the registry once at connect time — we don't want
             // this callback to invalidate on every store update.
-            const registry = useWorkbenchSyncStore.getState().subscriptionManager;
+            const registry = useWorkbenchSessionStore.getState().subscriptionManager;
             const handle = sessionManager.connect(transport, registry);
             handleRef.current = handle;
             setSessionHandle(handle);
@@ -82,7 +82,7 @@ export const CastButtonRpc: React.FC = () => {
             // the handle's event provider. The router is shared with the
             // cast-roundtrip test.
             handle.eventProvider.onEvent((event) => {
-                const state = useWorkbenchSyncStore.getState();
+                const state = useWorkbenchSessionStore.getState();
                 routeRuntimeEvent(event, {
                     onNext: () => state.handles.handleNext(),
                     onStart: () => state.handles.handleStart(),
@@ -94,7 +94,9 @@ export const CastButtonRpc: React.FC = () => {
             // Push the current workbench mode immediately so the
             // receiver doesn't sit on the waiting screen while it waits
             // for the first reactive WorkbenchCastBridge effect tick.
-            const wb = useWorkbenchSyncStore.getState();
+            // The send (with disconnect-tolerant error handling) is
+            // owned by the session — the resolver stays here.
+            const wb = useWorkbenchSessionStore.getState();
             const message = workbenchModeResolver.resolve({
                 viewMode: wb.viewMode,
                 executionStatus: wb.execution.status,
@@ -103,12 +105,7 @@ export const CastButtonRpc: React.FC = () => {
                 selectedBlock: wb.selectedBlock,
                 documentItems: wb.documentItems,
             });
-            try {
-                handle.transport.send(message);
-            } catch {
-                // transport may be tearing down (race with goodbye);
-                // the receiver will see the disconnect.
-            }
+            handle.pushInitialWorkbench(message);
         } finally {
             connectingRef.current = false;
         }

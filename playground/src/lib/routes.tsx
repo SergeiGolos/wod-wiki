@@ -341,3 +341,26 @@ export function isEffortPath(pathname: string): boolean {
 export function isAiFirstPath(pathname: string): boolean {
   return pathname === '/ai-first' || pathname.startsWith('/ai-first/');
 }
+
+/**
+ * Capture the three segments of `/feeds/:feedSlug/:feedDate/:feedItem`.
+ * Returns `[feedSlug, feedDate, feedItem]` (raw, URL-encoded) or `null` if
+ * the pathname is not a feed-item path. `AppContent` uses this because
+ * `useParams` only captures generic `{category, name, id}`.
+ */
+export function matchFeedItem(pathname: string): [string, string, string] | null {
+  const m = pathname.match(/^\/feeds\/([^/]+)\/([^/]+)\/([^/]+)$/);
+  return m ? [m[1]!, m[2]!, m[3]!] : null;
+}
+
+/**
+ * Capture the slug of `/feeds/:feedSlug`. Returns the slug or `null` if
+ * the pathname is not a feed-detail path. Does not match feed-item paths
+ * (those are 3-segment, this is 1-segment) — caller checks `matchFeedItem`
+ * first if both may match.
+ */
+export function matchFeedDetail(pathname: string): string | null {
+  const m = pathname.match(/^\/feeds\/([^/]+)$/);
+  return m ? m[1]! : null;
+}
+

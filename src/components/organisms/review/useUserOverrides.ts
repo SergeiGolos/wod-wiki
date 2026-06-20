@@ -11,7 +11,7 @@
 import { useCallback, useEffect } from 'react';
 import { MetricType, type IMetric } from '@/core/models/Metric';
 import { MetricContainer } from '@/core/models/MetricContainer';
-import { useWorkbenchSyncStore } from '@/stores/workbenchSyncStore';
+import { useWorkbenchSession } from '@/stores/workbenchSessionStore'
 
 const STORAGE_KEY = 'wod-wiki:userOutputOverrides';
 
@@ -35,9 +35,9 @@ export interface UseUserOverridesReturn {
 }
 
 export function useUserOverrides(persistToStorage = false): UseUserOverridesReturn {
-  const overrides = useWorkbenchSyncStore((s) => s.userOutputOverrides);
-  const storeSet = useWorkbenchSyncStore((s) => s.setUserOverride);
-  const storeClear = useWorkbenchSyncStore((s) => s.clearUserOverride);
+  const overrides = useWorkbenchSession((s) => s.userOutputOverrides);
+  const storeSet = useWorkbenchSession((s) => s.setUserOverride);
+  const storeClear = useWorkbenchSession((s) => s.clearUserOverride);
 
   // ── Restore from localStorage on mount ────────────────────
 

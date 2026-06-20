@@ -1,15 +1,16 @@
 /**
- * useRuntimeFactory — Public hook boundary for compiler and factory access.
+ * useRuntimeFactory — Compiler / runtime factory exports.
+ *
+ * The React hook (`useRuntimeFactory`) was removed per Finding 06 Step 5
+ * (dead code cleanup) — 0 callers; consumers import the singleton directly.
+ * The singleton + type remain because they're the canonical
+ * "production runtime factory" entry point used by `Workbench.tsx`,
+ * `runtimeTimerModel.ts`, and `RuntimeLifecycleProvider`.
  */
 
-import { useMemo } from 'react';
-
-// ── Compiler / runtime factory exports ───────────────────────────────────
 export { createCompiler, PRODUCTION_STRATEGIES } from '@/runtime/services/runtimeServices';
 export { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 export type { IRuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
-
-// ── Singleton factory ─────────────────────────────────────────────────────
 
 import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 import { createCompiler } from '@/runtime/services/runtimeServices';
@@ -18,14 +19,3 @@ import { createCompiler } from '@/runtime/services/runtimeServices';
  * Shared RuntimeFactory singleton — built from the canonical compiler factory.
  */
 export const runtimeFactory = new RuntimeFactory(createCompiler());
-
-// ── React hook ────────────────────────────────────────────────────────────
-
-export interface UseRuntimeFactoryReturn {
-  /** Shared RuntimeFactory instance */
-  factory: RuntimeFactory;
-}
-
-export function useRuntimeFactory(): UseRuntimeFactoryReturn {
-  return useMemo(() => ({ factory: runtimeFactory }), []);
-}

@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider';
 import { AudioProvider } from '@/contexts/AudioContext';
 import { DebugModeProvider } from '@/contexts/DebugModeContext';
-import { CommandProvider } from '@/contexts/CommandContext';
+
 import { NotebookProvider } from '@/contexts/NotebookContext';
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing';
 
@@ -34,13 +34,12 @@ export const StorybookHost: React.FC<StorybookHostProps> = ({
                 <DebugModeProvider>
                     <MemoryRouter initialEntries={initialEntries}>
                         <NuqsTestingAdapter>
-                            <NotebookProvider>
-                                <CommandProvider>
-                                    <div style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
-                                        {children}
-                                    </div>
-                                </CommandProvider>
-                            </NotebookProvider>
+                        <NotebookProvider>
+                            <div style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
+                                {children}
+                            </div>
+                        </NotebookProvider>
+
                         </NuqsTestingAdapter>
                     </MemoryRouter>
                 </DebugModeProvider>

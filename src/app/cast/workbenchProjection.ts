@@ -2,7 +2,7 @@ import { formatTimeMMSS } from '@/lib/formatTime';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
 import type { ScriptBlock } from '@/components/Editor/types';
-import type { RpcWorkbenchUpdate } from '@/hooks/useCastSignaling';
+import type { RpcWorkbenchUpdate } from '@/services/cast/rpc/RpcMessages';
 
 export function buildReviewProjection(
   analyticsSegments: Segment[],

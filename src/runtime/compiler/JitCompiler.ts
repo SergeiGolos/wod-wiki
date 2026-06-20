@@ -2,7 +2,6 @@ import type { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import type { IScriptRuntime } from "../contracts/IScriptRuntime";
 import type { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
 import type { ICodeStatement } from "@/core/models/CodeStatement";
-import { DialectRegistry } from "../../services/DialectRegistry";
 import { BlockBuilder } from "./BlockBuilder";
 import { getHints } from "@/core/metrics/hints";
 import { MetricType } from "@/core/models/Metric";
@@ -15,7 +14,6 @@ import type { IPromotionResolver } from "./contracts/IPromotionResolver";
  * Coordinates strategy application to build composed RuntimeBlocks.
  */
 export class JitCompiler implements IJitCompiler {
-  private dialectRegistry: DialectRegistry;
   private _promotionResolver: IPromotionResolver;
 
   /**
@@ -34,10 +32,8 @@ export class JitCompiler implements IJitCompiler {
 
   constructor(
     private strategies: IRuntimeBlockStrategy[] = [],
-    dialectRegistry?: DialectRegistry,
     promotionResolver?: IPromotionResolver
   ) {
-    this.dialectRegistry = dialectRegistry || new DialectRegistry();
     this._promotionResolver = promotionResolver ?? new PromotionResolver();
   }
 
@@ -45,10 +41,6 @@ export class JitCompiler implements IJitCompiler {
     this.strategies.push(strategy);
     // Invalidate cache whenever the strategy set changes.
     this._strategyMatchCache.clear();
-  }
-
-  getDialectRegistry(): DialectRegistry {
-    return this.dialectRegistry;
   }
 
   /**
@@ -60,10 +52,6 @@ export class JitCompiler implements IJitCompiler {
    * excluded: two structurally identical blocks (e.g. "5 Burpees" and
    * "10 Pullups") share the same matching strategies and can reuse the
    * same cache entry, which is both correct and more efficient.
-   *
-   * Note: `processAll()` must have been called on `nodes` before this
-   * method so that the statement metrics reflect any dialect-added hint
-   * markers (e.g. 'workout.emom').
    */
   private _statementCacheKey(nodes: ICodeStatement[]): string {
     return nodes.map(n => {
@@ -103,9 +91,6 @@ export class JitCompiler implements IJitCompiler {
             return clone;
         });
     }
-
-    this.dialectRegistry.processAll(effectiveNodes);
-
 
     // Strategy matching is deterministic for a given statement structure.
     // Use the cache to skip the filter+sort on repeated compilations of the

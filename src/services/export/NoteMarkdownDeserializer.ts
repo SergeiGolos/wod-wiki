@@ -1,9 +1,33 @@
-import type { INowProvider } from '@/runtime/INowProvider';
+import { type INowProvider, wallClockNow } from '@/runtime/INowProvider';
 import type { HistoryEntry } from '@/types/history';
 
+/**
+ * The deserializer's output: a fully-recoverable note. `id`, `createdAt`, and
+ * `updatedAt` are present when the markdown was produced by `noteToMarkdown`
+ * (the export path writes them); plain-markdown imports omit them so the
+ * storage layer mints fresh values. This is what makes the export → import
+ * round-trip preserve note identity instead of creating duplicates.
+ */
+export type ParsedNoteEntry = Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> & {
+    id?: string;
+    createdAt?: number;
+    updatedAt?: number;
+};
+
+/**
+ * Parse exported-markdown back into a (partial) HistoryEntry.
+ *
+ * Time is read exclusively through `clock` (an `INowProvider`) — never via
+ * `Date.now()` directly — so the import path is deterministic under a frozen
+ * clock. The clock is only consulted for the `Target Date` fallback when the
+ * markdown omits it; every field that *is* present in the metadata is
+ * recovered verbatim — including `ID`, `Created`, and `Updated`, so a
+ * re-imported note preserves its identity and timestamps (round-trip safe).
+ */
 export function parseMarkdownToEntry(
-  markdown: string
-): Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> | null {
+  markdown: string,
+  clock: INowProvider = wallClockNow,
+): ParsedNoteEntry | null {
   try {
     // Extract metadata section
     const metadataMatch = markdown.match(/## Metadata\s+(.*?)\s+## Content/s);
@@ -34,18 +58,34 @@ export function parseMarkdownToEntry(
         ? metadata['Tags'].split(',').map((t) => t.trim())
         : [];
 
-    // Parse dates
+    // Parse dates — recover the stored Target Date verbatim; only fall back to
+    // the clock when the metadata omits it.
     const targetDate = metadata['Target Date']
       ? new Date(metadata['Target Date']).getTime()
-      : Date.now();
-
-    const result: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> = {
+      : clock.nowMs();
+    const result: ParsedNoteEntry = {
       title,
       rawContent,
       tags,
       targetDate,
       sections: [],
     };
+
+    // Recover the identity + timestamp fields the serializer writes, so the
+    // export → import round-trip preserves them (rather than minting fresh
+    // values). Absent for plain-markdown imports — left undefined, and the
+    // storage layer mints fresh ones.
+    if (metadata['ID']) {
+      result.id = metadata['ID'];
+    }
+    if (metadata['Created']) {
+      const createdMs = Date.parse(metadata['Created']);
+      if (!Number.isNaN(createdMs)) result.createdAt = createdMs;
+    }
+    if (metadata['Updated']) {
+      const updatedMs = Date.parse(metadata['Updated']);
+      if (!Number.isNaN(updatedMs)) result.updatedAt = updatedMs;
+    }
 
     if (metadata['Cloned From']) {
       result.templateId = metadata['Cloned From'];
@@ -61,12 +101,20 @@ export function parseMarkdownToEntry(
   }
 }
 
+/**
+ * Create a (partial) HistoryEntry from arbitrary markdown. Exported-format
+ * markdown round-trips through {@link parseMarkdownToEntry}; plain markdown
+ * gets a minimal entry whose `targetDate` is the clock's current time.
+ *
+ * Time comes exclusively from `clock` (defaulting to the wall clock) — never
+ * from `Date.now()`.
+ */
 export function createNoteFromMarkdown(
   markdown: string,
-  clock?: INowProvider
-): Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> {
+  clock: INowProvider = wallClockNow,
+): ParsedNoteEntry {
   // Try to parse as exported format first
-  const parsed = parseMarkdownToEntry(markdown);
+  const parsed = parseMarkdownToEntry(markdown, clock);
   if (parsed) return parsed;
 
   // Otherwise, treat as plain markdown
@@ -77,7 +125,7 @@ export function createNoteFromMarkdown(
     title,
     rawContent: markdown,
     tags: [],
-    targetDate: clock?.nowMs() ?? Date.now(),
+    targetDate: clock.nowMs(),
     sections: [],
   };
 }

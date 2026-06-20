@@ -30,7 +30,8 @@
     "postinstall": "node scripts/fix-codemirror-deps.cjs",
     "setup": "bun setup-testing.js",
     "test": "bun test ./src --preload ./tests/unit-setup.ts",
-    "test:components": "bun test tests --preload ./tests/setup.ts",
+    "test:components": "bun test tests --path-ignore-patterns='tests/wods/all-wods.test.ts' --path-ignore-patterns='tests/canvas/syntax-source-markdown.test.ts' --preload ./tests/setup.ts",
+    "test:markdown": "bun test tests/wods/all-wods.test.ts tests/canvas/syntax-source-markdown.test.ts --preload ./tests/setup.ts",
     "test:all": "bun run test && bun run test:components",
     "test:coverage": "bun test ./src --preload ./tests/unit-setup.ts --coverage --coverage-reporter=lcov",
     "test:storybook": "bunx vitest run --config vitest.storybook.config.js",
@@ -126,8 +127,9 @@
     "@types/node": "^25.9.1",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
-    "@vitest/browser": "^4.1.6",
-    "@vitest/coverage-v8": "^4.1.6",
+    "@vitest/browser": "^4.1.9",
+    "@vitest/browser-playwright": "^4.1.6",
+    "@vitest/coverage-v8": "^4.1.9",
     "autoprefixer": "^10.5.0",
     "bun-types": "^1.3.14",
     "concurrently": "^9.2.1",
@@ -148,7 +150,7 @@
     "typescript": "^6.0.3",
     "vite": "^8.0.13",
     "vite-plugin-dts": "^5.0.1",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.9"
   },
   "resolutions": {
     "@codemirror/state": "^6.6.0",

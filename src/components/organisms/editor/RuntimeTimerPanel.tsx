@@ -305,13 +305,11 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     runtime?.handle(new NextEvent(undefined, runtime!.nowProvider));
   };
 
-  // The cast stack is now wired by `CastSessionManager` against the
-  // workbench `SubscriptionManager`. The inline runtime's snapshots
-  // flow to the receiver through the workbench runtime (or via
-  // `registerRuntime` for code paths that still need an inline
-  // subscription). D-Pad events are routed by `CastButtonRpc`
-  // against the workbench handles. The completion-message send
-  // below is a one-shot projection that doesn't need a session.
+  // The cast stack is wired by `CastSessionManager` against the workbench
+  // `SubscriptionManager`. The inline runtime's snapshots flow to the
+  // receiver through the workbench runtime. D-Pad events are routed by
+  // `CastButtonRpc` against the workbench handles. The completion-message
+  // send below is a one-shot projection that doesn't need a session.
   if (showChoiceWizard) {
     return (
       <PanelSizeProvider>

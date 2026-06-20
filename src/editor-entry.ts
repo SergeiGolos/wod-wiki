@@ -23,7 +23,6 @@ export type { Exercise, Muscle, Force, Level, Mechanic, Equipment, Category } fr
 
 // UI Components
 export { CommandPalette } from './components/organisms/command-palette/CommandPalette';
-export { CommandProvider, useCommandContext } from './contexts/CommandContext';
 export type { Command } from './components/organisms/command-palette/types';
 export { Dialog, DialogContent, DialogHeader, DialogTitle } from './components/atoms/Dialog';
 export type { DialogProps } from './components/atoms/Dialog';

@@ -9,18 +9,17 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Play } from 'lucide-react'
+import { Play } from 'lucide-react'
 import { useQueryState } from 'nuqs'
-import type { EditorView } from '@codemirror/view'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
-import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
-import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
-import { ReviewGrid } from '@/components/organisms/review/ReviewGrid'
 import { useDebugMode } from '@/contexts/DebugModeContext'
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
+import { useCanvasEditorSource } from '../hooks/useCanvasEditorSource'
+import { useMobileRunOverride } from '../hooks/useMobileRunOverride'
+import { CanvasPanelContent } from './CanvasPanelContent'
 import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePanel'
 import { CanvasEditorPanel } from '../components/organisms/canvas/CanvasEditorPanel'
 import { SplitCanvasTemplate } from '../templates/SplitCanvasTemplate'
@@ -97,24 +96,19 @@ export function MarkdownCanvasPage({
   const stickyAlign = viewDef?.align ?? 'right'
   const initialActiveSection = contentSections[0] ?? sections[0] ?? null
 
-  // Editor state
   const initialSource = viewDef?.source ? resolveSource(viewDef.source, wodFiles) : ''
   const initialSourceKey = viewDef?.source || INITIAL_SOURCE_KEY
-  const [editorSource, setEditorSource] = useState(initialSource)
-  const [editorOpacity, setEditorOpacity] = useState(1)
-  const [isEditorLoading, setIsEditorLoading] = useState(false)
   const [activeSectionId, setActiveSectionId] = useState<string | null>(initialActiveSection?.id ?? null)
   const [activeSectionTitle, setActiveSectionTitle] = useState(initialActiveSection?.heading ?? 'Whiteboard Script')
   const [activeSectionTheme, setActiveSectionTheme] = useState(() =>
     getSectionTheme(initialActiveSection ?? sections[0] ?? { id: 'default', heading: 'Whiteboard Script', level: 1, attrs: [], prose: '', commands: [], buttons: [] })
   )
   const [selectedExamples, setSelectedExamples] = useState<Record<string, number>>({})
-  const [activeSourceKey, setActiveSourceKey] = useState(initialSourceKey)
-  const [activeOriginalSource, setActiveOriginalSource] = useState(initialSource)
-  const editorSourceRef = useRef(initialSource)
-  const editorViewRef = useRef<EditorView | null>(null)
-  const sourceEditsRef = useRef(new Map([[initialSourceKey, { original: initialSource, current: initialSource }]]))
-  const swapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const {
+    editorSource, editorOpacity, isEditorLoading, activeOriginalSource,
+    swapSource, handleEditorChange, resetActiveSource,
+    setEditorView, getSource,
+  } = useCanvasEditorSource({ initialSource, initialSourceKey, contentOverride })
   const wodFilesRef = useRef(wodFiles)
   wodFilesRef.current = wodFiles
 
@@ -135,66 +129,6 @@ export function MarkdownCanvasPage({
     return () => { cancelled = true }
   }, [canvasNoteId])
 
-  const focusEditor = useCallback(() => {
-    requestAnimationFrame(() => editorViewRef.current?.focus())
-  }, [])
-
-  const swapSource = useCallback((raw: string, sourceKey = raw) => {
-    const saved = sourceEditsRef.current.get(sourceKey)
-    const nextSource = saved?.current ?? raw
-    const originalSource = saved?.original ?? raw
-
-    if (!saved) {
-      sourceEditsRef.current.set(sourceKey, { original: raw, current: raw })
-    }
-
-    setActiveSourceKey(sourceKey)
-    setActiveOriginalSource(originalSource)
-    focusEditor()
-
-    if (nextSource === editorSourceRef.current) {
-      setIsEditorLoading(false)
-      return
-    }
-
-    if (swapTimerRef.current) clearTimeout(swapTimerRef.current)
-    setIsEditorLoading(true)
-    setEditorOpacity(0)
-    swapTimerRef.current = setTimeout(() => {
-      editorSourceRef.current = nextSource
-      setEditorSource(nextSource)
-      setEditorOpacity(1)
-      setIsEditorLoading(false)
-      swapTimerRef.current = null
-      focusEditor()
-    }, 180)
-  }, [focusEditor])
-
-  const handleEditorChange = useCallback((value: string) => {
-    setEditorSource(value)
-    editorSourceRef.current = value
-    const sourceState = sourceEditsRef.current.get(activeSourceKey) ?? { original: activeOriginalSource, current: activeOriginalSource }
-    sourceEditsRef.current.set(activeSourceKey, { ...sourceState, current: value })
-  }, [activeOriginalSource, activeSourceKey])
-
-  const resetActiveSource = useCallback(() => {
-    const sourceState = sourceEditsRef.current.get(activeSourceKey)
-    const original = sourceState?.original ?? activeOriginalSource
-    sourceEditsRef.current.set(activeSourceKey, { original, current: original })
-    editorSourceRef.current = original
-    setEditorSource(original)
-    setActiveOriginalSource(original)
-    focusEditor()
-  }, [activeOriginalSource, activeSourceKey, focusEditor])
-
-  // Content override
-  const prevContentOverride = useRef<string | undefined>(undefined)
-  useEffect(() => {
-    if (contentOverride && contentOverride !== prevContentOverride.current) {
-      prevContentOverride.current = contentOverride
-      swapSource(contentOverride, `content-override:${contentOverride}`)
-    }
-  }, [contentOverride, swapSource])
 
   // ScriptBlocks ref
   const scriptBlocksRef = useRef<ScriptBlock[]>([])
@@ -333,9 +267,9 @@ export function MarkdownCanvasPage({
         const block = scriptBlocksRef.current[0] ?? null
         if (block) runtime.setFullscreenBlock(block)
       },
-      getSource: () => editorSourceRef.current,
+      getSource,
     })
-  }, [runtime, isMobile])
+  }, [runtime, isMobile, getSource])
 
   // Commands for InlineCommandBar on wod blocks
   const canvasCommands = useMemo<ScriptCommand[]>(() => [
@@ -361,116 +295,41 @@ export function MarkdownCanvasPage({
     runtime.panelMode === 'review' ? 'Review' :
     isEditorLoading ? `${activeSectionTitle} · loading` : activeSectionTitle
 
-  const panelContent = (() => {
-    if (runtime.panelMode === 'running' && runtime.viewTimerBlock) {
-      return (
-        <RuntimeTimerPanel
-          block={runtime.viewTimerBlock}
-          autoStart
-          onClose={runtime.closeViewRuntime}
-          onComplete={runtime.handleViewComplete}
-          isExpanded
-        />
-      )
-    }
-    if (runtime.panelMode === 'review') {
-      return (
-        <div className="flex flex-col h-full">
-          <button
-            onClick={() => runtime.setPanelMode('editor')}
-            className="flex items-center gap-1.5 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors shrink-0 border-b border-border/40"
-          >
-            <ArrowLeft className="size-3" />
-            Back to editor
-          </button>
-          <div className="flex-1 min-h-0 overflow-auto">
-            <ReviewGrid
-              runtime={null}
-              segments={runtime.reviewSegments}
-              selectedSegmentIds={runtime.selectedSegmentIds}
-              gridViewPreset={isDebugMode ? 'debug' : 'default'}
-              onSelectSegment={(id, modifiers, visibleIds) => {
-                runtime.setSelectedSegmentIds((prev) => {
-                  const next = new Set(prev)
-                  if (modifiers?.ctrlKey) {
-                    if (next.has(id)) next.delete(id); else next.add(id)
-                  } else if (modifiers?.shiftKey && visibleIds) {
-                    const lastId = Array.from(prev).pop()
-                    if (lastId !== undefined) {
-                      const startIdx = visibleIds.indexOf(lastId)
-                      const endIdx = visibleIds.indexOf(id)
-                      if (startIdx !== -1 && endIdx !== -1) {
-                        const min = Math.min(startIdx, endIdx)
-                        const max = Math.max(startIdx, endIdx)
-                        for (let i = min; i <= max; i++) next.add(visibleIds[i])
-                      } else { next.add(id) }
-                    } else { next.add(id) }
-                  } else { next.clear(); next.add(id) }
-                  return next
-                })
-              }}
-              groups={[]}
-            />
-          </div>
-        </div>
-      )
-    }
-    const isEditorDirty = editorSource !== activeOriginalSource
-    return (
-      <div style={{ opacity: editorOpacity, transition: 'opacity 180ms ease', height: '100%' }} className="flex flex-col">
-        <div className="flex items-center justify-between gap-3 border-b border-border/40 bg-primary/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-          <span>Try editing this example ↓</span>
-          {isEditorDirty ? (
-            <button
-              type="button"
-              onClick={resetActiveSource}
-              className="rounded-full border border-primary/30 px-3 py-1 text-[10px] font-black text-primary transition-colors hover:bg-primary/10"
-            >
-              Reset to example
-            </button>
-          ) : null}
-        </div>
-        <div className="min-h-0 flex-1">
-          <NoteEditor
-            noteId={canvasNoteId}
-            value={editorSource}
-            onChange={handleEditorChange}
-            onBlocksChange={(blocks) => { scriptBlocksRef.current = blocks }}
-            onViewCreated={(view) => { editorViewRef.current = view }}
-            activeSectionId={activeSectionId}
-            theme={theme}
-            readonly={false}
-            showLineNumbers={false}
-            enableOverlay={false}
-            enableInlineRuntime={false}
-            extendedResults={runtime.persistedResults}
-            commands={canvasCommands}
-            hideDefaultCommands={false}
-            className="h-full"
-          />
-        </div>
-      </div>
-    )
-  })()
+  const panelContent = (
+    <CanvasPanelContent
+      panelMode={runtime.panelMode}
+      viewTimerBlock={runtime.viewTimerBlock}
+      reviewSegments={runtime.reviewSegments}
+      selectedSegmentIds={runtime.selectedSegmentIds}
+      setSelectedSegmentIds={runtime.setSelectedSegmentIds}
+      setPanelMode={runtime.setPanelMode}
+      closeViewRuntime={runtime.closeViewRuntime}
+      handleViewComplete={runtime.handleViewComplete}
+      editorSource={editorSource}
+      editorOpacity={editorOpacity}
+      activeOriginalSource={activeOriginalSource}
+      handleEditorChange={handleEditorChange}
+      resetActiveSource={resetActiveSource}
+      canvasNoteId={canvasNoteId}
+      theme={theme}
+      commands={canvasCommands}
+      activeSectionId={activeSectionId}
+      onBlocksChange={(blocks) => { scriptBlocksRef.current = blocks }}
+      onViewCreated={setEditorView}
+      persistedResults={runtime.persistedResults}
+      isDebugMode={isDebugMode}
+    />
+  )
 
   const showPanelButtons = !!(viewDef && runtime.panelMode === 'editor')
 
   // On mobile, timer/wall-clock blocks always run fullscreen (not in-panel).
-  const mobileRunState = useMemo(() => {
-    if (!isMobile) return runtime.runState
-    const base = runtime.runState
-    return {
-      ...base,
-      onRun: () => {
-        const block = scriptBlocksRef.current[0]
-        if (block && blockHasTimer(block)) {
-          runtime.setFullscreenBlock(block)
-        } else {
-          base.onRun()
-        }
-      },
-    }
-  }, [runtime.runState, runtime.setFullscreenBlock, isMobile])
+  const mobileRunState = useMobileRunOverride({
+    isMobile,
+    baseRunState: runtime.runState,
+    setFullscreenBlock: runtime.setFullscreenBlock,
+    scriptBlocksRef,
+  })
 
   const desktopPanel = viewDef && (
     <CanvasEditorPanel
