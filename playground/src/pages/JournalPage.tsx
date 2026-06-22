@@ -130,7 +130,7 @@ export function JournalPage({
       if (activeRuntimeId && timerBlock) {
         playgroundRecorder.record({
           runBlock: timerBlock,
-          destinationBlocks: scriptBlocks,
+
           destination: parseNoteId(fullNoteId),
           resultId: activeRuntimeId,
           data: workoutResults,
