@@ -20,7 +20,7 @@ import { decodeZip } from '../services/decodeZip';
 import { parseJournalDate } from '../services/parseJournalDate';
 import { getTodayDateKey, isDateInPast } from '../services/dateUtils';
 import { journalEntryPath, ROUTE_PATTERNS } from '../lib/routes';
-import { playgroundDB } from '../services/playgroundDB';
+import { playgroundContent } from '../services/playgroundContent';
 import { toast } from '@/hooks/use-toast';
 
 export interface JournalZipProcessorState {
@@ -157,7 +157,7 @@ export function useJournalZipProcessor(): JournalZipProcessorState {
       try {
         setState({ state: 'creating' });
         const id = `journal/${dateKey}`;
-        await playgroundDB.savePage({
+        await playgroundContent.savePage({
           id,
           name: dateKey,
           category: 'journal',

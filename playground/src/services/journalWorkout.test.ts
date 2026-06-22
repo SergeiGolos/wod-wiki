@@ -32,11 +32,9 @@ mock.module('@/repositories/script-collections', () => ({
   getScriptCollections: () => [],
 }));
 
-mock.module('./playgroundDB', () => ({
-  PlaygroundDBService: {
-    pageId: (category: string, name: string) => `${category}/${name}`,
-  },
-  playgroundDB: {
+mock.module('./playgroundContent', () => ({
+  pageId: (category: string, name: string) => `${category}/${name}`,
+  playgroundContent: {
     getPage: async (id: string) => existingPages.get(id),
     savePage: async (page: SavedPage) => {
       savedPages.push(page);
@@ -321,5 +319,41 @@ Rest 3 minutes between rounds`;
     expect(savedPages).toHaveLength(1);
     // Should not have the trailing whitespace from old content
     expect(savedPages[0]?.content).not.toMatch(/Old content   \n/);
+  });
+});
+
+describe('resolveResultSectionId', () => {
+  it('returns the journal block id when the run content matches', async () => {
+    const { resolveResultSectionId } = await journalWorkoutModule;
+    // Source/feed block id (start line 5) differs from the journal block id
+    // (start line 7) for identical content — this is the clone-then-run bug.
+    const runBlock = { id: 'wod-5-deadbeef', content: '21-15-9\nThrusters 95lb\nPull-ups' };
+    const journalBlocks = [
+      { id: 'title-0-aaaaaaaa', content: '# 2026-06-20' },
+      { id: 'wod-7-deadbeef', content: '21-15-9\nThrusters 95lb\nPull-ups' },
+    ];
+    expect(resolveResultSectionId(runBlock, journalBlocks)).toBe('wod-7-deadbeef');
+  });
+
+  it('falls back to the run block id when no journal block matches', async () => {
+    const { resolveResultSectionId } = await journalWorkoutModule;
+    const runBlock = { id: 'wod-5-deadbeef', content: 'For time: Run 5k' };
+    const journalBlocks = [{ id: 'wod-7-cafebabe', content: 'AMRAP 10\n10 Push-ups' }];
+    expect(resolveResultSectionId(runBlock, journalBlocks)).toBe('wod-5-deadbeef');
+  });
+
+  it('matches ignoring trailing whitespace', async () => {
+    const { resolveResultSectionId } = await journalWorkoutModule;
+    // appendWorkoutToJournal writes wodContent.trimEnd(); the carried source
+    // block may keep a trailing newline. Only outer whitespace differs — the
+    // per-line content is identical, so a whole-string trim must match.
+    const runBlock = { id: 'src', content: '10 Rounds\n10 Squats\n' };
+    const journalBlocks = [{ id: 'journal', content: '10 Rounds\n10 Squats' }];
+    expect(resolveResultSectionId(runBlock, journalBlocks)).toBe('journal');
+  });
+
+  it('returns an empty string for a null run block', async () => {
+    const { resolveResultSectionId } = await journalWorkoutModule;
+    expect(resolveResultSectionId(null, [])).toBe('');
   });
 });

@@ -17,7 +17,7 @@ import { JournalPageShell } from '@/panels/page-shells'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
-import { PlaygroundDBService } from '../services/playgroundDB'
+import { pageId } from '../services/playgroundContent'
 import { pendingRuntimes } from '../runtimeStore'
 import { runPath } from '../lib/routes'
 import { appendWorkoutToJournal } from '../services/journalWorkout'
@@ -51,7 +51,7 @@ export function WorkoutEditorPage({
 }: WorkoutEditorPageProps) {
   const usePopup = INLINE_RUNTIME_CATEGORIES.has(category)
   const isCollection = !NON_COLLECTION_CATEGORIES.has(category)
-  const noteId = PlaygroundDBService.pageId(category, name)
+  const noteId = pageId(category, name)
   const navigate = useNavigate()
   const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({ category, name, mdContent })
   const sourceNote = useMemo(() => {

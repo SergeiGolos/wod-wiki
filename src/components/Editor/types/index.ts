@@ -125,6 +125,8 @@ export interface WorkoutResults {
 export interface ScriptBlock {
   /** Unique identifier for this block */
   id: string;
+  /** Content-stable identity — hash of fenced content, survives line moves (see `blockContentId`). */
+  contentId?: string;
 
   /** WOD dialect — determines which strategies are loaded */
   dialect?: import('./section').FenceDialect;

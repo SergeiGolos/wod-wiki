@@ -23,11 +23,15 @@ export interface UseScriptBlockResultsReturn {
  * @param noteId   - The note containing the WOD block (short or full UUID)
  * @param sectionId - The WOD section ID within the note
  * @param extendedResultsOverride - Optional explicit in-memory results (bypasses context)
+ * @param contentId - Optional content-stable block id; when present, results are
+ *                    matched on `blockContentId` first (survives line moves),
+ *                    falling back to the line-based `sectionId` / `segmentId`.
  */
 export function useScriptBlockResults(
   noteId: string | undefined,
   sectionId: string | undefined,
   extendedResultsOverride?: WorkoutResult[],
+  contentId?: string,
 ): UseScriptBlockResultsReturn {
   const [results, setResults] = useState<WorkoutResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +56,9 @@ export function useScriptBlockResults(
       // Use extendedResults array if available (Mutable Static mode)
       if (Array.isArray(extendedResults)) {
         const inMemoryMatches = extendedResults.filter(
-          r => r.sectionId === sectionId || r.segmentId === sectionId
+          r => (contentId ? r.blockContentId === contentId : false)
+            || r.sectionId === sectionId
+            || r.segmentId === sectionId
         );
         
         console.log(`[useScriptBlockResults] Found ${inMemoryMatches.length} in-memory results for section: ${sectionId} (Total in currentEntry: ${extendedResults.length})`);
@@ -102,7 +108,7 @@ export function useScriptBlockResults(
     fetchResults();
 
     return () => { cancelled = true; };
-  }, [noteId, sectionId, extendedResults, getNote]);
+  }, [noteId, sectionId, extendedResults, getNote, contentId]);
 
   return { results, loading };
 }

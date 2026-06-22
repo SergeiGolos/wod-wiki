@@ -30,8 +30,8 @@ mock.module('../lib/routes', () => ({
   },
 }));
 
-mock.module('../services/playgroundDB', () => ({
-  playgroundDB: {
+mock.module('../services/playgroundContent', () => ({
+  playgroundContent: {
     savePage: mock(() => Promise.resolve()),
   },
 }));

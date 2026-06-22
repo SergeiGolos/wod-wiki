@@ -1,6 +1,6 @@
 import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay'
 
-import { playgroundDB, PlaygroundDBService } from './playgroundDB'
+import { playgroundContent, pageId as makePageId } from './playgroundContent'
 
 const MAX_TIMESTAMP_ID_RETRIES = 10
 
@@ -19,9 +19,9 @@ export async function createPlaygroundPage(content: string): Promise<string> {
   const now = Date.now()
   for (let attempt = 0; attempt <= MAX_TIMESTAMP_ID_RETRIES; attempt++) {
     const name = attempt === 0 ? baseName : `${baseName}-${attempt}`
-    const pageId = PlaygroundDBService.pageId('playground', name)
+    const pageId = makePageId('playground', name)
     try {
-      await playgroundDB.addPage({
+      await playgroundContent.addPage({
         id: pageId,
         category: 'playground',
         name,

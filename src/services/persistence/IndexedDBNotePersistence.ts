@@ -28,8 +28,6 @@ function limitResults(results: WorkoutResult[], limit?: number): WorkoutResult[]
   return limit == null ? results : results.slice(0, limit);
 }
 
-export { sameNoteId } from './sameNoteId';
-import { sameNoteId } from './sameNoteId';
 
 interface PersistableMetricSource {
   readonly type: string;
@@ -352,7 +350,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
       if (!result) {
         throw new NotePersistenceError('RESULT_NOT_FOUND', `Result not found: ${selection.resultId}`);
       }
-      if (!sameNoteId(result.noteId, note.id)) {
+      if (result.noteId !== note.id) {
         throw new NotePersistenceError(
           'RESULT_NOTE_MISMATCH',
           `Result ${selection.resultId} does not belong to note ${note.id}`,

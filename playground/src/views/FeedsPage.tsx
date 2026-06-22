@@ -13,7 +13,7 @@
 import { useMemo, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getScriptFeeds } from '@/repositories/script-feeds';
-import { playgroundDB } from '../services/playgroundDB';
+import { playgroundContent } from '../services/playgroundContent';
 import { localDateKey } from './queriable-list/JournalDateScroll';
 import type { JournalEntrySummary } from './queriable-list/JournalDateScroll';
 import { appendWorkoutToJournal } from '../services/journalWorkout';
@@ -46,7 +46,7 @@ export function FeedsPage() {
         );
         const entries = await Promise.all(
           dateKeys.map(async key => {
-            const page = await playgroundDB.getPage(`journal/${key}`).catch(() => undefined);
+            const page = await playgroundContent.getPage(`journal/${key}`).catch(() => undefined);
             if (!page) return null;
             const headingMatch = page.content.match(/^#\s+(.+)$/m);
             return [key, { title: headingMatch?.[1]?.trim() ?? key, updatedAt: page.updatedAt }] as const;

@@ -72,6 +72,8 @@ export interface WorkoutResult {
     noteId: string;       // Link to parent Note (for easier querying)
     sectionId?: string;   // Legacy link to old section
 
+    blockContentId?: string;   // Content-stable block identity (preferred join key); sectionId is the legacy fallback
+
     data: WorkoutResults; // The actual results data
 
     completedAt: number;  // When the workout was finished

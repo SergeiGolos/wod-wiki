@@ -309,7 +309,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       //    hasn't finished its async fetch yet.
       if (Array.isArray(extendedResults) && extendedResults.length > 0) {
         const matches = extendedResults
-          .filter(r => r.sectionId === section.id || r.segmentId === section.id)
+          .filter(r => (section.contentId ? r.blockContentId === section.contentId : false)
+            || r.sectionId === section.id
+            || r.segmentId === section.id)
           .sort((a, b) => b.completedAt - a.completedAt);
 
         if (matches.length > 0) {
@@ -839,6 +841,7 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
 
   return {
     id: section.id,
+    contentId: section.contentId,
     dialect: section.dialect || "wod",
     startLine: section.startLine - 1, // Convert to 0-indexed for ScriptBlock compat
     endLine: section.endLine - 1,

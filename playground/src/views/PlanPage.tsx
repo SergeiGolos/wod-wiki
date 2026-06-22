@@ -10,7 +10,7 @@ import { useMemo, useCallback, useEffect, useState } from 'react';
 import type { WorkoutItem } from '../lib/workoutIndex';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { localDateKey, type JournalEntrySummary } from './queriable-list/JournalDateScroll';
-import { playgroundDB } from '../services/playgroundDB';
+import { playgroundContent } from '../services/playgroundContent';
 import { useJournalQueryState } from '../hooks/useJournalQueryState';
 import { useCreateJournalEntry } from '../hooks/useCreateJournalEntry';
 import { JournalFeed } from './JournalFeed';
@@ -54,8 +54,8 @@ export function PlanPage({ workoutItems = [] }: PlanPageProps) {
       setIsLoading(true);
       try {
         const [lower, upper] = await Promise.all([
-          playgroundDB.getPagesByCategory('journal'),
-          playgroundDB.getPagesByCategory('Journal'),
+          playgroundContent.getPagesByCategory('journal'),
+          playgroundContent.getPagesByCategory('Journal'),
         ]);
         if (cancelled) return;
         const map = new Map<string, JournalEntrySummary>();

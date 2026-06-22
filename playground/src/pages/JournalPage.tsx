@@ -29,6 +29,8 @@ import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
 import { derivePageMode } from '@/types/content-type'
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground'
 import { appendWorkoutToJournal } from '../services/journalWorkout'
+import { playgroundRecorder } from '../services/resultRecorder'
+import { parseNoteId } from '../lib/noteIdentity'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { toast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/atoms/primitives/toast'
@@ -61,6 +63,7 @@ export function JournalPage({
   const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null)
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
   const [results, setResults] = useState<WorkoutResult[]>([])
+  const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
   // Playground notes are stored in wodwiki-playground with key 'journal/<id>'.
   // Result persistence lives in wodwiki-db (indexedDBService) keyed by this full id.
   const fullNoteId = `journal/${noteId}`
@@ -120,15 +123,16 @@ export function JournalPage({
   )
 
   const handleTimerComplete = useCallback(
-    (blockId: string, workoutResults: any) => {
+    (_blockId: string, workoutResults: any) => {
       setIsTimerOpen(false)
-      // Persist result when we have a runtimeId.
-      // Use noteId (the date key) directly — this is what NoteEditor uses for lookups.
-      if (activeRuntimeId) {
-        indexedDBService.saveResult({
-          id: activeRuntimeId,
-          noteId: fullNoteId,
-          sectionId: blockId,
+      // Persist through the Result Recorder — the single seam that owns
+      // identity (noteId, blockContentId, sectionId) + the write.
+      if (activeRuntimeId && timerBlock) {
+        playgroundRecorder.record({
+          runBlock: timerBlock,
+          destinationBlocks: scriptBlocks,
+          destination: parseNoteId(fullNoteId),
+          resultId: activeRuntimeId,
           data: workoutResults,
           completedAt: workoutResults?.endTime ?? Date.now(),
         }).then(() => {
@@ -143,7 +147,7 @@ export function JournalPage({
         setIsReviewOpen(true)
       }
     },
-    [activeRuntimeId, fullNoteId, refreshResults],
+    [activeRuntimeId, fullNoteId, refreshResults, scriptBlocks, timerBlock],
   )
 
   const handleCloseReview = useCallback(() => {
@@ -151,7 +155,6 @@ export function JournalPage({
     setReviewSegments([])
   }, [])
 
-  const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
   const index = useNotePageNav({
     content,
     scriptBlocks,

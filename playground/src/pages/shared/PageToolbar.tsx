@@ -33,7 +33,7 @@ import { useTheme } from '@/contexts/ThemeProvider'
 import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../../components/atoms/BuyMeACoffee'
 import { useNav } from '../../nav/NavContext'
 import { CalendarSplitButton } from '@/components/molecules/CalendarSplitButton'
-import { playgroundDB } from '../../services/playgroundDB'
+import { playgroundContent } from '../../services/playgroundContent'
 import type { NavItemL3 } from '../../nav/navTypes'
 import { useAudio } from '@/contexts/AudioContext'
 
@@ -98,7 +98,7 @@ export function ActionsMenu({
 
   const handleResetData = async () => {
     localStorage.clear()
-    await playgroundDB.clearAll()
+    await playgroundContent.clearAll()
     window.location.reload()
   }
 

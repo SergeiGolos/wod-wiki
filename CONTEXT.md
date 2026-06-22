@@ -188,6 +188,23 @@ Workbench Session deepening, one thin effect replaces the hydration + bridge
 work and the rest dissolve into the session store.
 _Avoid_: bridge (cast-specific legacy), effects hook (too generic).
 
+### Identity & result recording
+
+**Note Identity (NoteRef)**:
+A typed, routable reference to a playground note — `{ kind: 'journal' | 'playground' | 'workout'; id; raw }`. The single home for parsing the composite `noteId` string (`category/name`) and the kind→route rule, replacing ad-hoc `noteId.split('/')` switches. `raw` carries the original string verbatim as the storage key, so parsing never rewrites stored ids.
+_Avoid_: note id (overloaded), note ref (informal).
+`playground/src/lib/noteIdentity.ts` — `parseNoteId`, `noteRefToPath`.
+
+**Block Content Id**:
+A content-stable identity for a **Block** — a hash of its normalized fenced content, independent of where the block sits in the document. Unlike the line-embedded section id, it survives clone / reorder / edit-above, so results keyed by it stay linked to the right workout even when the block moves. Carried as `contentId` on **ScriptBlock** / **Section** and as `blockContentId` on **WorkoutResult**; the line-based `sectionId` is retained as a legacy fallback join key. Minted in **both** section-building paths (the editor's `section-state` and the persistence `sectionParser`) via one `blockContentId()` function, so a live block and its persisted clone share an id. Two blocks with identical content share an id by design (same workout → shared history, scoped per note).
+_Avoid_: content hash (implementation detail), stable id (ambiguous).
+`src/components/Editor/utils/sectionParser.ts` — `blockContentId`.
+
+**Result Recorder**:
+The single playground seam for persisting a **WorkoutResult**. Owns identity resolution (noteId from a **Note Identity**, blockContentId from the run block, sectionId resolved against the destination note's blocks) and the write — replacing the per-page ad-hoc `saveResult` / `mutateNote` calls that each re-derived identity from scratch. Built by `createResultRecorder(sink)` (testable with an in-memory sink); `playgroundRecorder` is the production instance over the **Storage** `results` store.
+_Avoid_: result service, result saver (too generic).
+`playground/src/services/resultRecorder.ts`.
+
 ## Relationships
 
 - A **Statement** owns many **Metrics**; each Metric has exactly one **Origin**.
