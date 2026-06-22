@@ -60,13 +60,22 @@ export async function appendWorkoutToJournal({
   const existing = await playgroundContent.getPage(noteId);
   const baseContent = existing?.content ?? `# ${dateKey}\n`;
 
+  // Deduplication: if the note already contains this exact WOD block,
+  // reuse it instead of appending a duplicate. Two blocks with identical
+  // content share the same contentId, so results recorded against one
+  // would match both — rendering the block twice with the same results.
+  const normalizedWod = wodContent.trim();
+  const wodFence = `\`\`\`wod\n${normalizedWod}\n\`\`\``;
+  if (baseContent.includes(wodFence)) {
+    return noteId;
+  }
+
   const resolvedSourceLabel = sourceNoteLabel?.trim() || category;
   const resolvedSourcePath = sourceNotePath?.trim() || `/collections/${encodeURIComponent(category)}`;
   const collection = getScriptCollection(category);
   const siblingLinks = collection?.items
     .filter(item => item.id !== workoutName)
     .map(item => `[${category}-${item.id}](/collections/${encodeURIComponent(category)}/${encodeURIComponent(item.id)})`) ?? [];
-  
   const lines = [
     `\n## ${workoutName}`,
     `Source: [${resolvedSourceLabel}](${resolvedSourcePath})`,
