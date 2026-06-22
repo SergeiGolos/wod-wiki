@@ -58,20 +58,16 @@ export function useScriptBlockResults(
         const inMemoryMatches = extendedResults.filter(
           r => contentId ? r.blockContentId === contentId : false
         );
-        
-        console.log(`[useScriptBlockResults] Found ${inMemoryMatches.length} in-memory results for section: ${sectionId} (Total in currentEntry: ${extendedResults.length})`);
-        
+
         if (inMemoryMatches.length > 0) {
           if (!cancelled) {
             setResults(inMemoryMatches.sort((a, b) => b.completedAt - a.completedAt));
             setLoading(false);
             return;
           }
-        } else {
-            console.log(`[useScriptBlockResults] No in-memory matches for section: ${sectionId}. Section IDs in extendedResults:`, extendedResults.map(r => r.sectionId));
         }
-            console.log(`[useScriptBlockResults] No in-memory matches for section: ${sectionId}. ContentIds in extendedResults:`, extendedResults.map(r => r.blockContentId));
       }
+
       // 2. Fallback through the note persistence seam (History Mode).
       // The session exposes `getNote` as a proxy to the injected port;
       // skip if no port is wired (e.g. outside a provider).
@@ -88,12 +84,12 @@ export function useScriptBlockResults(
           projection: 'history-detail',
           resultSelection: {
             mode: 'all-for-section',
-            blockContentId: contentId ?? sectionId,
+            blockContentId: (contentId ?? sectionId) as string,
           },
         });
         if (!cancelled) {
           // Sort by completedAt descending (most recent first)
-          setResults(all.sort((a, b) => b.completedAt - a.completedAt));
+          setResults((entry?.extendedResults ?? []).sort((a, b) => b.completedAt - a.completedAt));
         }
       } catch (err) {
         console.error('[useScriptBlockResults] Failed to fetch results:', err);

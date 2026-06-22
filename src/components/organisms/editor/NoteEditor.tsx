@@ -322,7 +322,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           projection: "history-detail",
           resultSelection: {
             mode: "all-for-section",
-            blockContentId: section.contentId,
+            blockContentId: section.contentId!,
           },
         })
         .then((entry) => {

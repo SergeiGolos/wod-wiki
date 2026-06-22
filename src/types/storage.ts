@@ -76,8 +76,6 @@ export interface WorkoutResult {
 
     completedAt: number;  // When the workout was finished
 }
-
-// ---------------------------------------------------------------------------
 // Attachment — external temporal data blobs (GPS / HR)
 // ---------------------------------------------------------------------------
 /**
