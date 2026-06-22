@@ -64,8 +64,9 @@ export function JournalPage({
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
   const [results, setResults] = useState<WorkoutResult[]>([])
   const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
-  // Notes stored via playgroundContent (journal/{id}); results persisted
-  // via indexedDBService keyed by this full id.
+  // Playground notes are stored in wodwiki-playground with key 'journal/<id>'.
+  // Result persistence lives in wodwiki-db (indexedDBService) keyed by this full id.
+  const fullNoteId = `journal/${noteId}`
 
   const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({
     category: 'journal',
@@ -129,6 +130,7 @@ export function JournalPage({
       if (activeRuntimeId && timerBlock) {
         playgroundRecorder.record({
           runBlock: timerBlock,
+          destinationBlocks: scriptBlocks,
           destination: parseNoteId(fullNoteId),
           resultId: activeRuntimeId,
           data: workoutResults,
