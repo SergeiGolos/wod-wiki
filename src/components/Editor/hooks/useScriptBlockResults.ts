@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import type { WorkoutResult } from '@/types/storage';
 import { useWorkbenchSession } from '@/stores/workbenchSessionStore'
+import { groupResultsByVersion } from '@/utils/groupResultsByVersion';
 
 export interface UseScriptBlockResultsReturn {
   /** All results for this section, sorted most recent first */
@@ -55,9 +56,8 @@ export function useScriptBlockResults(
       // 1. Check for in-memory results (Static Mode or immediate UI update)
       // Use extendedResults array if available (Mutable Static mode)
       if (Array.isArray(extendedResults)) {
-        const inMemoryMatches = extendedResults.filter(
-          r => contentId ? r.blockContentId === contentId : false
-        );
+        const { current } = groupResultsByVersion(extendedResults, sectionId ?? '', contentId)
+        const inMemoryMatches = current
 
         if (inMemoryMatches.length > 0) {
           if (!cancelled) {

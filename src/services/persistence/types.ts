@@ -92,8 +92,9 @@ export interface NoteMutation {
   }>;
   workoutResult?: {
     id?: string;
-    segmentId?: string;   // NoteSegment FK (for analytics versioning)
+    blockId?: string;       // Section position identity
     blockContentId?: string;  // Content-stable join key
+    version?: number;        // Content generation at this position
     data: WorkoutResults;
     completedAt?: number;
     analyticsSegments?: AnalyticsSegmentInput[];

@@ -19,6 +19,7 @@ import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutResult } from '@/types/storage'
 import { useNav } from '../../nav/NavContext'
 import { extractPageIndex, mapIndexToL3 } from './pageUtils'
+import { groupResultsByVersion } from '@/utils/groupResultsByVersion';
 
 export interface UseNotePageNavOptions {
   /** Current editor content. */
@@ -50,15 +51,12 @@ export function useNotePageNav({
       if (link.type !== 'wod') return link
       const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
       const block = scriptBlocks.find(b => b.startLine + 1 === lineNum)
-
       let badge: { hasResult?: boolean; resultCount?: number } = {}
       if (results && block) {
-        const sectionResults = results.filter(
-          r => r.blockContentId === block.contentId,
-        )
+        const { current } = groupResultsByVersion(results, block.id, block.contentId)
         badge = {
-          hasResult: sectionResults.length > 0,
-          resultCount: sectionResults.length,
+          hasResult: current.length > 0,
+          resultCount: current.length,
         }
       }
 

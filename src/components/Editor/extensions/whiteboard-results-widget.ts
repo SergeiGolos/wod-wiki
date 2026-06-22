@@ -75,17 +75,17 @@ class ReactResultsWidget extends WidgetType {
 
   constructor(
     readonly sectionId: string,
-    readonly results: WorkoutResult[],
+    readonly allResults: WorkoutResult[],
+    readonly currentContentId: string | undefined,
   ) {
     super();
   }
-
   eq(other: ReactResultsWidget): boolean {
     if (other.sectionId !== this.sectionId) return false;
-    if (other.results.length !== this.results.length) return false;
-    // Quick equality check: compare completion timestamps of first two entries
-    for (let i = 0; i < Math.min(2, this.results.length); i++) {
-      if (this.results[i].completedAt !== other.results[i].completedAt) return false;
+    if (other.currentContentId !== this.currentContentId) return false;
+    if (other.allResults.length !== this.allResults.length) return false;
+    for (let i = 0; i < Math.min(2, this.allResults.length); i++) {
+      if (this.allResults[i].completedAt !== other.allResults[i].completedAt) return false;
     }
     return true;
   }
@@ -99,7 +99,8 @@ class ReactResultsWidget extends WidgetType {
     this.root.render(
       React.createElement(InlineResultPanel, {
         sectionId: this.sectionId,
-        results: this.results,
+        allResults: this.allResults,
+        currentContentId: this.currentContentId,
         onOpenReview: (result: WorkoutResult) => {
           const detail: WodResultClickDetail = { sectionId: this.sectionId, result };
           view.dom.dispatchEvent(
@@ -120,9 +121,8 @@ class ReactResultsWidget extends WidgetType {
     }
   }
 
-  /** Estimated height: each row ~60px collapsed, more when expanded */
   get estimatedHeight(): number {
-    return 5 + (this.results.length * 60);
+    return 5 + (this.allResults.length * 60);
   }
 
   ignoreEvent(): boolean {
@@ -139,19 +139,17 @@ function _buildResultsDecorations(state: EditorState): DecorationSet {
 
   for (const section of sections) {
     if (section.type !== 'wod') continue;
-    const results = resultsMap.get(section.id);
-    if (!results || results.length === 0) continue;
+    const allResults = resultsMap.get(section.id);
+    if (!allResults || allResults.length === 0) continue;
 
     const doc = state.doc;
-
-    // Results Table (after the closing fence)
     if (section.endLine > doc.lines) continue;
     const anchorPos = section.to;
     if (anchorPos < 0 || anchorPos > doc.length) continue;
 
     decos.push(
       Decoration.widget({
-        widget: new ReactResultsWidget(section.id, results),
+        widget: new ReactResultsWidget(section.id, allResults, section.contentId),
         block: true,
         side: 1,
       }).range(anchorPos),

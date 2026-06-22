@@ -70,7 +70,12 @@ export interface WorkoutResult {
     segmentVersion?: number;
     noteId: string;       // Link to parent Note (for easier querying)
 
-    blockContentId?: string;   // Content-stable block identity — the single join key
+    /** Section position identity — which block in the note this result belongs to. */
+    blockId?: string;
+    /** Content-stable identity — hash of the fenced content at recording time. */
+    blockContentId?: string;
+    /** Content generation at this position. Assigned at record time via computeVersion(). */
+    version?: number;
 
     data: WorkoutResults; // The actual results data
 

@@ -29,7 +29,7 @@ import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
 import { derivePageMode } from '@/types/content-type'
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground'
 import { appendWorkoutToJournal } from '../services/journalWorkout'
-import { playgroundRecorder } from '../services/resultRecorder'
+import { playgroundRecorder, computeVersion } from '../services/resultRecorder'
 import { parseNoteId } from '../lib/noteIdentity'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { toast } from '@/hooks/use-toast'
@@ -126,11 +126,13 @@ export function JournalPage({
     (_blockId: string, workoutResults: any) => {
       setIsTimerOpen(false)
       // Persist through the Result Recorder — the single seam that owns
-      // identity (noteId, blockContentId, sectionId) + the write.
+      // identity (noteId, blockId, blockContentId, version) + the write.
       if (activeRuntimeId && timerBlock) {
+        const version = computeVersion(timerBlock.id, timerBlock.contentId, results)
         playgroundRecorder.record({
           runBlock: timerBlock,
-
+          blockId: timerBlock.id,
+          version,
           destination: parseNoteId(fullNoteId),
           resultId: activeRuntimeId,
           data: workoutResults,
@@ -147,7 +149,7 @@ export function JournalPage({
         setIsReviewOpen(true)
       }
     },
-    [activeRuntimeId, fullNoteId, refreshResults, scriptBlocks, timerBlock],
+    [activeRuntimeId, fullNoteId, refreshResults, results, scriptBlocks, timerBlock],
   )
 
   const handleCloseReview = useCallback(() => {

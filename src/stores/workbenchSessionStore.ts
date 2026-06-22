@@ -36,6 +36,7 @@ import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 import { getAnalyticsFromLogs, getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer';
 import type { NoteLocator, GetNoteOptions } from '@/services/persistence';
+import { computeVersion } from '@/utils/computeVersion';
 import type { INotePersistence } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';
 import type { Attachment } from '@/types/storage';
@@ -646,7 +647,7 @@ export function createWorkbenchSessionStore(
         const { v4: uuidv4 } = await import('uuid');
         const resultId = uuidv4();
         const state = get();
-        const { content, selectedBlock, selectedBlockId, analyticsSegments, currentEntry } = state;
+        const { content, selectedBlock, selectedBlockId, analyticsSegments, currentEntry, results: stateResults } = state;
 
         const provider = deps.provider;
         const notePersistence = deps.notePersistence;
@@ -669,12 +670,17 @@ export function createWorkbenchSessionStore(
           if (routeId || provider.mode === 'static') {
             const targetId = routeId || 'static';
             if (notePersistence) {
+              const blockId = selectedBlockId ?? ''
+              const version = computeVersion(blockId, selectedBlock?.contentId, stateResults as any)
+
               notePersistence.mutateNote(targetId, {
                 rawContent: payload.rawContent,
                 metadata: { title: payload.title },
                 workoutResult: {
                   id: payload.resultId,
-                  blockContentId: selectedBlock?.contentId ?? selectedBlockId,
+                  blockId,
+                  blockContentId: selectedBlock?.contentId ?? '',
+                  version,
                   data: payload.results,
                   analyticsSegments:
                     analyticsSegments.length > 0 ? analyticsSegments : undefined,

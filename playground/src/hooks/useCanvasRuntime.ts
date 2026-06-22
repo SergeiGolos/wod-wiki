@@ -5,6 +5,7 @@ import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResult } from '@/types/storage'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { notePersistence } from '@/services/persistence'
+import { computeVersion } from '../services/resultRecorder'
 import { activeRuntimes, pendingRuntimes } from '../runtimeStore'
 import { runPath } from '../lib/routes'
 import type { RunButtonState } from '../components/molecules/SectionButtons'
@@ -68,7 +69,7 @@ export function useCanvasRuntime({
     setPanelMode('editor')
   }, [])
 
-  const handleViewComplete = useCallback((blockId: string, results: WorkoutResults) => {
+  const handleViewComplete = useCallback((_blockId: string, results: WorkoutResults) => {
     const block = activeViewBlockRef.current
     if (block) activeRuntimes.delete(block.id)
     activeViewBlockRef.current = null
@@ -76,10 +77,14 @@ export function useCanvasRuntime({
 
     if (results) {
       const runtimeId = activeViewRuntimeId ?? uuidv4()
+      const blockId = block?.id ?? ''
+      const version = computeVersion(blockId, block?.contentId, persistedResults)
       const nextResult: WorkoutResult = {
         id: runtimeId,
         noteId: canvasNoteId,
+        blockId,
         blockContentId: block?.contentId,
+        version,
         data: results,
         completedAt: results.endTime || Date.now(),
       }
@@ -90,7 +95,9 @@ export function useCanvasRuntime({
       notePersistence.mutateNote(canvasNoteId, {
         workoutResult: {
           id: runtimeId,
+          blockId,
           blockContentId: block?.contentId,
+          version,
           data: results,
           completedAt: results.endTime || Date.now(),
         },

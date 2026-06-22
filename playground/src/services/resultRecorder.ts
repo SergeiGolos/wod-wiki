@@ -1,21 +1,21 @@
 /**
  * resultRecorder — the single playground seam for persisting a workout result.
  *
- * Replaces the three ad-hoc write paths (JournalPage's direct
- * `indexedDBService.saveResult`, WallClockPage's `notePersistence.mutateNote`,
- * and the NoteEditor in-memory build), each of which re-derived the result's
- * identity (noteId, blockContentId) per call-site. The Recorder
- * owns that identity resolution + the write, so callers pass a run block and a
- * destination NoteRef and get a correctly-keyed result.
+ * Owns identity resolution + the write. Callers pass a run block, a blockId
+ * (section position), a pre-computed version number, and a destination NoteRef.
  *
- * Identity policy (additive — never orphans historical results):
- *  - noteId         = destination.raw        (canonical playground id)
- *  - blockContentId  = runBlock.contentId    (stable across clone/reorder; the
- *                                             preferred join key)
+ * Identity policy:
+ *  - noteId          = destination.raw        (canonical playground id)
+ *  - blockId         = section.id             (position in the note)
+ *  - blockContentId  = runBlock.contentId     (content hash at recording time)
+ *  - version         = computed by caller     (content generation at this position)
  *
- * Tested through `createResultRecorder` with an in-memory sink — no IndexedDB.
+ * Version is computed by the pure `computeVersion()` function, which the caller
+ * invokes with the already-loaded results for the note. The recorder itself
+ * stays a simple write primitive.
  */
 import { indexedDBService } from '@/services/db/IndexedDBService';
+export { computeVersion } from '@/utils/computeVersion';
 import type { WorkoutResult } from '@/types/storage';
 import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
 import type { NoteRef } from '../lib/noteIdentity';
@@ -28,6 +28,10 @@ export interface ResultSink {
 export interface RecordResultInput {
   /** The block that was actually run — carries `contentId` + `content`. */
   runBlock: ScriptBlock;
+  /** Section position identity — which block in the note. */
+  blockId: string;
+  /** Content generation at this position. Compute via `computeVersion()`. */
+  version: number;
   /** The destination note; `raw` becomes the result's `noteId`. */
   destination: NoteRef;
   /** Stable id for this result (the runtimeId). */
@@ -42,19 +46,20 @@ export interface ResultRecorder {
   record(input: RecordResultInput): Promise<WorkoutResult>;
 }
 
+
 /**
  * Build a Recorder over an injected sink. Tests pass an in-memory sink;
  * production uses the pre-wired `playgroundRecorder` below.
  */
 export function createResultRecorder(sink: ResultSink): ResultRecorder {
   return {
-    record({ runBlock, destination, resultId, data, completedAt }) {
+    record({ runBlock, blockId, version, destination, resultId, data, completedAt }) {
       const result: WorkoutResult = {
         id: resultId,
         noteId: destination.raw,
-        // Content-stable identity — the preferred join key; survives the run
-        // block being cloned/reordered relative to its source.
+        blockId,
         blockContentId: runBlock.contentId,
+        version,
         data,
         completedAt,
       };

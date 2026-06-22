@@ -29,6 +29,8 @@ describe('createResultRecorder', () => {
 
     const result = await recorder.record({
       runBlock: makeBlock(),
+      blockId: makeBlock().id,
+      version: 1,
       destination: { kind: 'journal', id: '2026-06-20', raw: 'journal/2026-06-20' } satisfies NoteRef,
       resultId: 'run-1',
       data: { startTime: 0, endTime: 60000, duration: 60000, completed: true } as any,
@@ -46,7 +48,9 @@ describe('createResultRecorder', () => {
 
     await recorder.record({
       runBlock: makeBlock({ contentId: 'content-hash-xyz' }),
-      destination: { kind: 'effort', id: 'fran', raw: 'effort/fran' } as NoteRef,
+      blockId: 'wod-5-deadbeef',
+      version: 1,
+      destination: { kind: 'effort', id: 'fran', raw: 'effort/fran' } as unknown as NoteRef,
       resultId: 'run-2',
       data: {} as any,
       completedAt: 1,
@@ -62,6 +66,8 @@ describe('createResultRecorder', () => {
 
     await recorder.record({
       runBlock: makeBlock(),
+      blockId: 'wod-5-deadbeef',
+      version: 1,
       destination: { kind: 'journal', id: 'd', raw: 'journal/d' } as NoteRef,
       resultId: 'run-3',
       data: {} as any,
