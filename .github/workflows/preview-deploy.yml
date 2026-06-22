@@ -83,7 +83,7 @@ jobs:
       - name: Deploy to S3
         run: |
           set -euo pipefail
-          PREFIX="pr/$PR_NUMBER/"
+          PREFIX="${{ needs.build.outputs.branch-slug }}/"
           echo "Uploading to s3://$S3_BUCKET/$PREFIX"
           aws s3 sync ./dist/ "s3://$S3_BUCKET/$PREFIX" \
             --delete \
@@ -95,11 +95,11 @@ jobs:
       - name: Create CloudFront cache invalidation
         run: |
           set -euo pipefail
-          PREFIX="pr/$PR_NUMBER/*"
-          echo "Creating CloudFront invalidation for /$PREFIX"
+          PREFIX="/${{ needs.build.outputs.branch-slug }}/*"
+          echo "Creating CloudFront invalidation for $PREFIX"
           aws cloudfront create-invalidation \
             --distribution-id "$CF_DISTRIBUTION_ID" \
-            --paths "/$PREFIX"
+            --paths "$PREFIX"
           echo "invalidation_path=$PREFIX" >> $GITHUB_OUTPUT
 
   # ── Post PR comment ─────────────────────────────────────────────────────────
@@ -175,33 +175,38 @@ jobs:
       AWS_DEFAULT_REGION: us-east-1
       S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
       CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_BRANCH: ${{ github.event.pull_request.head.ref }}
     steps:
+      - name: Derive branch slug
+        id: slug
+        run: |
+          SLUG=$(echo "$PR_BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
+          echo "slug=$SLUG" >> $GITHUB_OUTPUT
+
       - name: Delete S3 prefix objects
         run: |
           set -euo pipefail
-          PREFIX="pr/$PR_NUMBER/"
+          PREFIX="${{ steps.slug.outputs.slug }}/"
           echo "Deleting s3://$S3_BUCKET/$PREFIX"
           aws s3 rm "s3://$S3_BUCKET/$PREFIX" --recursive 2>&1
-          echo "s3_prefix_deleted=$PREFIX" >> $GITHUB_OUTPUT
 
       - name: Create CloudFront invalidation for deleted path
         run: |
           set -euo pipefail
-          PREFIX="pr/$PR_NUMBER/*"
-          echo "Invalidating CloudFront cache for /$PREFIX"
+          PREFIX="/${{ steps.slug.outputs.slug }}/*"
+          echo "Invalidating CloudFront cache for $PREFIX"
           aws cloudfront create-invalidation \
             --distribution-id "$CF_DISTRIBUTION_ID" \
-            --paths "/$PREFIX"
+            --paths "$PREFIX"
 
       - name: Post destroy comment
         uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const pr = process.env.PR_NUMBER;
             const merged = context.payload.pull_request?.merged;
             const action = merged ? 'merged' : 'closed';
+            const pr = context.payload.pull_request?.number;
             const marker = `<!-- wod-wiki-preview-${pr} -->`;
             const body = `${marker}\n` +
               `## 🗑️ Preview destroyed\n\n` +
@@ -212,7 +217,7 @@ jobs:
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: parseInt(pr),
+              issue_number: pr,
             });
 
             const existing = comments.find((c) =>
