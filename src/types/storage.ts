@@ -67,12 +67,10 @@ export interface NoteSegment {
 export interface WorkoutResult {
     id: string;           // UUID
 
-    segmentId?: string;   // Link to specific NoteSegment
     segmentVersion?: number;
     noteId: string;       // Link to parent Note (for easier querying)
-    sectionId?: string;   // Legacy link to old section
 
-    blockContentId?: string;   // Content-stable block identity (preferred join key); sectionId is the legacy fallback
+    blockContentId?: string;   // Content-stable block identity — the single join key
 
     data: WorkoutResults; // The actual results data
 

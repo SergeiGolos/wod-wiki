@@ -52,9 +52,9 @@ export function useNotePageNav({
       const block = scriptBlocks.find(b => b.startLine + 1 === lineNum)
 
       let badge: { hasResult?: boolean; resultCount?: number } = {}
-      if (results) {
+      if (results && block) {
         const sectionResults = results.filter(
-          r => r.sectionId === link.id || r.segmentId === link.id,
+          r => r.blockContentId === block.contentId,
         )
         badge = {
           hasResult: sectionResults.length > 0,

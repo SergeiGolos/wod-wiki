@@ -26,8 +26,7 @@ const note: Note = {
 const olderSectionResult: WorkoutResult = {
   id: 'older',
   noteId: note.id,
-  sectionId: 'wod-a',
-  segmentId: 'wod-a',
+  blockContentId: 'wod-a',
   data: { startTime: 100, endTime: 200, duration: 100, logs: [], completed: true },
   completedAt: 200,
 };
@@ -35,17 +34,14 @@ const olderSectionResult: WorkoutResult = {
 const latestSectionResult: WorkoutResult = {
   id: 'latest',
   noteId: note.id,
-  sectionId: 'wod-a',
-  segmentId: 'wod-a',
+  blockContentId: 'wod-a',
   data: { startTime: 300, endTime: 450, duration: 150, logs: [], completed: true },
   completedAt: 450,
 };
-
 const otherResult: WorkoutResult = {
   id: 'other',
   noteId: note.id,
-  sectionId: 'wod-b',
-  segmentId: 'wod-b',
+  blockContentId: 'wod-b',
   data: { startTime: 500, endTime: 700, duration: 200, logs: [], completed: true },
   completedAt: 700,
 };
@@ -64,8 +60,8 @@ function createHarness(latestSegments: NoteSegment[] = []) {
     },
     getLatestSegmentVersion: async () => undefined,
     getResultsForNote: async (noteId: string) => results.filter(result => result.noteId === noteId),
-    getResultsForSection: async (_noteId: string, sectionId: string) =>
-      results.filter(result => result.sectionId === sectionId || result.segmentId === sectionId),
+    getResultsForSection: async (_noteId: string, blockContentId: string) =>
+      results.filter(result => result.blockContentId === blockContentId),
     getResultById: async (resultId: string) => results.find(result => result.id === resultId),
     getAttachmentsForNote: async () => [],
     saveAttachment: async (attachment: import('@/types/storage').Attachment) => {
@@ -229,7 +225,7 @@ describe('IndexedDBNotePersistence', () => {
 
     const entry = await persistence.getNote(note.id, {
       projection: 'review',
-      resultSelection: { mode: 'latest-for-section', sectionId: 'wod-a' },
+      resultSelection: { mode: 'latest-for-section', blockContentId: 'wod-a' },
     });
 
     expect(entry.results?.duration).toBe(150);
@@ -242,7 +238,7 @@ describe('IndexedDBNotePersistence', () => {
 
     const entry = await persistence.getNote(note.id, {
       projection: 'history-detail',
-      resultSelection: { mode: 'all-for-section', sectionId: 'wod-a' },
+      resultSelection: { mode: 'all-for-section', blockContentId: 'wod-a' },
     });
 
     expect(entry.extendedResults?.map(result => result.id)).toEqual(['latest', 'older']);

@@ -79,6 +79,7 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
       props.onBlocksChange?.([
         {
           id: 'block-1',
+          contentId: 'block-1',
           content: '10 thrusters',
         } as any,
       ])
@@ -159,6 +160,7 @@ const page: ParsedCanvasPage = {
       level: 1,
       attrs: [],
       prose: '',
+      proseChunks: [],
       view: {
         name: 'home',
         state: 'note',
@@ -176,6 +178,7 @@ const page: ParsedCanvasPage = {
       level: 2,
       attrs: [],
       prose: 'Run a workout.',
+      proseChunks: [],
       commands: [],
       buttons: [],
     },
@@ -193,6 +196,7 @@ const examplePage: ParsedCanvasPage = {
       level: 1,
       attrs: [],
       prose: '',
+      proseChunks: [],
       view: {
         name: 'examples',
         state: 'note',
@@ -210,6 +214,7 @@ const examplePage: ParsedCanvasPage = {
       level: 2,
       attrs: ['density:compact', 'theme:emerald'],
       prose: 'Try different source variants.',
+      proseChunks: [],
       commands: [],
       buttons: [],
       examples: [
@@ -303,8 +308,7 @@ describe('MarkdownCanvasPage result persistence', () => {
     await waitFor(() => expect(saveResultCalls).toHaveLength(1))
     expect(saveResultCalls[0]).toMatchObject({
       noteId: 'canvas:home',
-      sectionId: 'block-1',
-      segmentId: 'block-1',
+      blockContentId: 'block-1',
       data: sampleWorkoutResults,
     })
 
@@ -319,8 +323,7 @@ describe('MarkdownCanvasPage result persistence', () => {
     storedResults.push({
       id: 'stored-result-1',
       noteId: 'canvas:home',
-      sectionId: 'block-1',
-      segmentId: 'block-1',
+      blockContentId: 'block-1',
       data: sampleWorkoutResults as any,
       completedAt: sampleWorkoutResults.endTime,
     })

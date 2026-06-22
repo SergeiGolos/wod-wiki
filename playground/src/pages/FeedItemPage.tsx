@@ -3,9 +3,8 @@
  *
  * Renders a single feed workout in the JournalPageShell.
  * Content is read-only at source (build-time), but local edits are
- * saved to playgroundDB under `feed/{slug}/{date}/{item}` so scratch
+ * saved to playgroundContent under `feed/{slug}/{date}/{item}` so scratch
  * edits are preserved across sessions.
- *
  * Action bar exposes:
  *   - Add to Today   → appends the wod block to today's journal
  *   - Plan for date  → appends to a specific date's journal (calendar picker)
@@ -56,10 +55,8 @@ export function FeedItemPage({
 
   const item = getScriptFeedItem(feedSlug, feedDate, feedItem);
   const feed = getScriptFeed(feedSlug);
-
-  // Store local edits under a deterministic key in playgroundDB.
+  // Store local edits under a deterministic key in playgroundContent.
   // The feed item's canonical content is the mdContent fallback.
-  const playgroundCategory = `feed/${feedSlug}/${feedDate}`;
   const { content, onChange, onLineChange, onBlur } = usePlaygroundContent({
     category: playgroundCategory,
     name: feedItem,

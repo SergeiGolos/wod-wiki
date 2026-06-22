@@ -252,7 +252,7 @@ export class IndexedDBService {
 
     async getResultsForSection(noteId: string, sectionId: string): Promise<WorkoutResult[]> {
         const noteResults = await this.getResultsForNote(noteId);
-        return noteResults.filter(r => r.sectionId === sectionId || r.segmentId === sectionId);
+        return noteResults.filter(r => r.blockContentId === sectionId);
     }
 
     async getResultById(resultId: string): Promise<WorkoutResult | undefined> {

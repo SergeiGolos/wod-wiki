@@ -1,5 +1,5 @@
 import React from 'react'
-import type { CanvasSection } from '../../../canvas/parseCanvasMarkdown'
+import { getSectionProse, type CanvasSection } from '../../../canvas/parseCanvasMarkdown'
 import type { WorkoutItem } from '../../../App'
 import { CollectionWorkoutsList } from '../../../views/queriable-list/CollectionWorkoutsList'
 import { CanvasSection as CanvasSectionComponent } from '../../molecules/CanvasSection'
@@ -63,8 +63,8 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
       {heroSlot}
 
       {contentSections.map((section, idx) => {
-        if (isCollection && collectionSlug && workoutItems && section.prose.includes('{{workouts}}')) {
-          const [beforeProse = '', afterProse = ''] = section.prose.split('{{workouts}}')
+        if (isCollection && collectionSlug && workoutItems && getSectionProse(section).includes('{{workouts}}')) {
+          const [beforeProse = '', afterProse = ''] = getSectionProse(section).split('{{workouts}}')
           return [
             <CanvasSectionComponent
               key={`${section.id}-before-workouts`}
@@ -108,7 +108,7 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
             key={`${section.id}-default`}
             section={section}
             idx={idx}
-            prose={section.prose}
+            prose={getSectionProse(section)}
             blockId={section.id}
             keySuffix="default"
             isActive={activeSectionId === section.id}

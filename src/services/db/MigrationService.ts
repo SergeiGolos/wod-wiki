@@ -66,7 +66,7 @@ export const migrationService = {
 
                         const result: WorkoutResult = {
                             id: uuidv4(),
-                            segmentId: segmentId,
+                            blockContentId: segmentId,
                             noteId: entry.id,
                             data: legacyResult,
                             completedAt: legacyResult.completedAt || legacyResult.endTime || Date.now()

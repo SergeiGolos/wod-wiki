@@ -251,7 +251,8 @@ export class IndexedDBNotePersistence implements INotePersistence {
       ...mutation.metadata,
       rawContent: mutation.rawContent,
       results: mutation.workoutResult?.data,
-      sectionId: mutation.workoutResult?.sectionId,
+      segmentId: mutation.workoutResult?.segmentId,  // NoteSegment FK (for analytics)
+      blockContentId: mutation.workoutResult?.blockContentId,  // content-stable join key
       resultId,
     };
 
@@ -360,7 +361,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
     }
 
     if (selection.mode === 'latest-for-section' || selection.mode === 'all-for-section') {
-      const results = sortNewest(await this.storage.getResultsForSection(note.id, selection.sectionId));
+      const results = sortNewest(await this.storage.getResultsForSection(note.id, selection.blockContentId));
       if (selection.mode === 'all-for-section') {
         const extendedResults = limitResults(results, selection.limit);
         return { results: extendedResults[0]?.data, extendedResults };

@@ -646,7 +646,7 @@ export function createWorkbenchSessionStore(
         const { v4: uuidv4 } = await import('uuid');
         const resultId = uuidv4();
         const state = get();
-        const { content, selectedBlockId, analyticsSegments, currentEntry } = state;
+        const { content, selectedBlock, selectedBlockId, analyticsSegments, currentEntry } = state;
 
         const provider = deps.provider;
         const notePersistence = deps.notePersistence;
@@ -659,7 +659,6 @@ export function createWorkbenchSessionStore(
           title,
           rawContent: content,
           results: result,
-          sectionId: selectedBlockId ?? undefined,
           resultId,
         };
 
@@ -675,7 +674,7 @@ export function createWorkbenchSessionStore(
                 metadata: { title: payload.title },
                 workoutResult: {
                   id: payload.resultId,
-                  sectionId: payload.sectionId,
+                  blockContentId: selectedBlock?.contentId ?? selectedBlockId,
                   data: payload.results,
                   analyticsSegments:
                     analyticsSegments.length > 0 ? analyticsSegments : undefined,
@@ -756,7 +755,7 @@ export function createWorkbenchSessionStore(
               const resultSelection = routeResultId
                 ? { mode: 'by-result-id' as const, resultId: routeResultId }
                 : routeSectionId && routeView === 'review'
-                  ? { mode: 'latest-for-section' as const, sectionId: routeSectionId }
+                  ? { mode: 'latest-for-section' as const, blockContentId: routeSectionId }
                   : { mode: 'latest' as const };
               const entry = await notePersistence.getNote(routeId, {
                 projection: routeView === 'review' ? 'review' : 'workbench',

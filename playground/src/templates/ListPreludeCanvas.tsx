@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { CanvasProse } from '../canvas/CanvasProse';
-import type { ParsedCanvasPage } from '../canvas/parseCanvasMarkdown';
+import { getSectionProse, type ParsedCanvasPage } from '../canvas/parseCanvasMarkdown';
 
 export interface ListPreludeCanvasProps {
   page: ParsedCanvasPage;
@@ -20,7 +20,7 @@ export function ListPreludeCanvas({ page, className }: ListPreludeCanvasProps) {
               <h2 className="text-xl font-black tracking-tight text-foreground uppercase lg:text-2xl">
                 {section.heading}
               </h2>
-              {section.prose && <CanvasProse prose={section.prose} />}
+              {section.proseChunks.length > 0 && <CanvasProse prose={getSectionProse(section)} />}
             </div>
           </section>
         ))}

@@ -32,7 +32,7 @@ import {
 } from './lib/routes'
 import { Concept3LandingPage } from './pages/Concept3LandingPage'
 import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
-import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
+import { findCanvasPage, canvasRoutes, getSectionProse } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { JournalWeeklyPage } from './views/ListViews'
 import { PlanPage } from './views/PlanPage'
@@ -187,7 +187,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
           links.push({ id: s.id, label: s.heading, type: 'heading' as const })
 
           // Extract standard WOD blocks from prose
-          const lines = s.prose.split('\n')
+          const lines = getSectionProse(s).split('\n')
           let wodCount = 0
           lines.forEach((line, i) => {
             if (/^```(wod|log|plan)\s*$/.test(line.trim())) {
@@ -204,7 +204,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             }
           })
           
-          if (isCollection && collectionSlug && s.prose.includes('{{workouts}}')) {
+          if (isCollection && collectionSlug && getSectionProse(s).includes('{{workouts}}')) {
              links.push({ id: 'collection-workouts', label: 'Explore', type: 'heading' as const })
              const collectionItems = workoutItems.filter(item => 
                item.category === collectionSlug && item.name.toLowerCase() !== 'readme'
@@ -223,7 +223,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         
         // Fallback: if it's a collection but no section has the {{workouts}} tag,
         // we might still want to list them if they are appended at the bottom.
-        const hasWorkoutsTag = canvasPage.sections.some(s => s.prose.includes('{{workouts}}'))
+        const hasWorkoutsTag = canvasPage.sections.some(s => getSectionProse(s).includes('{{workouts}}'))
         if (isCollection && collectionSlug && !hasWorkoutsTag) {
           links.push({ id: 'collection-workouts', label: 'Explore', type: 'heading' as const })
           const collectionItems = workoutItems.filter(item => 

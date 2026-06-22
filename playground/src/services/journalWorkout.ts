@@ -98,38 +98,3 @@ export async function appendWorkoutToJournal({
 
   return noteId;
 }
-
-/**
- * Minimal view of a script block — enough to match a run against a note's
- * parsed blocks. Structural so it accepts both `ScriptBlock` and `Section`.
- */
-export interface ResultSectionBlock {
-  content?: string;
-  id: string;
-}
-
-/**
- * Resolve the section id a workout result should be persisted against.
- *
- * A run started from a read-only source (collection / feed) is cloned into the
- * journal before it runs, so the runtime carries the *source* block. That
- * block's section id embeds its start line in the source note, which differs
- * from the same content's start line in the destination journal note — the
- * clone prepends a heading + back-links, shifting lines. The journal renders
- * results keyed by its own section ids, so persisting against the source id
- * makes the first run's result invisible there (only a relaunch from the
- * journal, which uses the journal block, records a value). Match the run by
- * content against the journal's parsed blocks and return that block's id;
- * fall back to the run block's own id when no match is found.
- */
-export function resolveResultSectionId(
-  runBlock: ResultSectionBlock | null | undefined,
-  journalBlocks: ResultSectionBlock[],
-): string {
-  const needle = runBlock?.content?.trim();
-  if (needle) {
-    const match = journalBlocks.find((b) => b.content?.trim() === needle);
-    if (match) return match.id;
-  }
-  return runBlock?.id ?? '';
-}

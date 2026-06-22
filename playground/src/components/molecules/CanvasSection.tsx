@@ -60,7 +60,7 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
   // paragraph it was authored under.
   const useInlineChunks = prose === undefined
   const chunks = useInlineChunks
-    ? (section.proseChunks ?? [{ kind: 'prose' as const, text: section.prose }])
+    ? section.proseChunks
     : [{ kind: 'prose' as const, text: prose }]
   const renderBottomButtonGroup = !useInlineChunks && section.buttons.length > 0
 

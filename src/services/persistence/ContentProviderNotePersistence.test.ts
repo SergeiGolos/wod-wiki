@@ -28,8 +28,7 @@ const BASE_ENTRY: HistoryEntry = {
 const WORKOUT_RESULT: WorkoutResult = {
   id: 'result-001',
   noteId: BASE_ENTRY.id,
-  sectionId: 'wod-a',
-  segmentId: 'wod-a',
+  blockContentId: 'wod-a',
   data: { startTime: 1000, endTime: 1430, duration: 430, logs: [], completed: true },
   completedAt: 1430,
 };
@@ -37,12 +36,10 @@ const WORKOUT_RESULT: WorkoutResult = {
 const OLDER_RESULT: WorkoutResult = {
   id: 'result-000',
   noteId: BASE_ENTRY.id,
-  sectionId: 'wod-a',
-  segmentId: 'wod-a',
+  blockContentId: 'wod-a',
   data: { startTime: 500, endTime: 1000, duration: 500, logs: [], completed: true },
   completedAt: 1000,
 };
-
 // ── Mock provider builder ─────────────────────────────────────────────────────
 
 function makeMockProvider(overrides: Partial<{
@@ -193,12 +190,11 @@ describe('ContentProviderNotePersistence > getNote', () => {
 
     const entry = await persistence.getNote(BASE_ENTRY.id, {
       projection: 'history-detail',
-      resultSelection: { mode: 'all-for-section', sectionId: 'wod-a' },
+      resultSelection: { mode: 'all-for-section', blockContentId: 'wod-a' },
     });
 
     expect(entry.extendedResults?.map(r => r.id)).toEqual(['result-001', 'result-000']);
   });
-
   it('includes attachments when includeAttachments=true', async () => {
     const attachment = {
       id: 'att-1', noteId: BASE_ENTRY.id, label: 'Garmin',
@@ -302,7 +298,7 @@ describe('ContentProviderNotePersistence > mutateNote', () => {
     const entry = await persistence.mutateNote(BASE_ENTRY.id, {
       workoutResult: {
         id: 'result-new',
-        sectionId: 'wod-a',
+        blockContentId: 'wod-a',
         data: { startTime: 2000, endTime: 2350, duration: 350, logs: [], completed: true },
       },
     });

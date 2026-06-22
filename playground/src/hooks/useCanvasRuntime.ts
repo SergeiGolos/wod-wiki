@@ -79,8 +79,7 @@ export function useCanvasRuntime({
       const nextResult: WorkoutResult = {
         id: runtimeId,
         noteId: canvasNoteId,
-        segmentId: blockId,
-        sectionId: blockId,
+        blockContentId: block?.contentId,
         data: results,
         completedAt: results.endTime || Date.now(),
       }
@@ -91,7 +90,7 @@ export function useCanvasRuntime({
       notePersistence.mutateNote(canvasNoteId, {
         workoutResult: {
           id: runtimeId,
-          sectionId: blockId,
+          blockContentId: block?.contentId,
           data: results,
           completedAt: results.endTime || Date.now(),
         },

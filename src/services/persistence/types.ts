@@ -29,11 +29,11 @@ export type ResultSelection =
     }
   | {
       mode: 'latest-for-section';
-      sectionId: string;
+      blockContentId: string;
     }
   | {
       mode: 'all-for-section';
-      sectionId: string;
+      blockContentId: string;
       limit?: number;
     }
   | {
@@ -92,7 +92,8 @@ export interface NoteMutation {
   }>;
   workoutResult?: {
     id?: string;
-    sectionId?: string;
+    segmentId?: string;   // NoteSegment FK (for analytics versioning)
+    blockContentId?: string;  // Content-stable join key
     data: WorkoutResults;
     completedAt?: number;
     analyticsSegments?: AnalyticsSegmentInput[];

@@ -56,9 +56,7 @@ export function useScriptBlockResults(
       // Use extendedResults array if available (Mutable Static mode)
       if (Array.isArray(extendedResults)) {
         const inMemoryMatches = extendedResults.filter(
-          r => (contentId ? r.blockContentId === contentId : false)
-            || r.sectionId === sectionId
-            || r.segmentId === sectionId
+          r => contentId ? r.blockContentId === contentId : false
         );
         
         console.log(`[useScriptBlockResults] Found ${inMemoryMatches.length} in-memory results for section: ${sectionId} (Total in currentEntry: ${extendedResults.length})`);
@@ -72,6 +70,7 @@ export function useScriptBlockResults(
         } else {
             console.log(`[useScriptBlockResults] No in-memory matches for section: ${sectionId}. Section IDs in extendedResults:`, extendedResults.map(r => r.sectionId));
         }
+            console.log(`[useScriptBlockResults] No in-memory matches for section: ${sectionId}. ContentIds in extendedResults:`, extendedResults.map(r => r.blockContentId));
       }
       // 2. Fallback through the note persistence seam (History Mode).
       // The session exposes `getNote` as a proxy to the injected port;
@@ -89,10 +88,9 @@ export function useScriptBlockResults(
           projection: 'history-detail',
           resultSelection: {
             mode: 'all-for-section',
-            sectionId: sectionId!,
+            blockContentId: contentId ?? sectionId,
           },
         });
-        const all: WorkoutResult[] = entry?.extendedResults ?? [];
         if (!cancelled) {
           // Sort by completedAt descending (most recent first)
           setResults(all.sort((a, b) => b.completedAt - a.completedAt));

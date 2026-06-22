@@ -257,11 +257,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       if (results && viewRef.current) {
         const view = viewRef.current;
         const now = results.endTime || Date.now();
+        const section = sections.find(s => s.id === blockId);
         const newResult = {
           id: uuidv4(),
           noteId: noteId ?? "",
-          sectionId: blockId,
-          segmentId: blockId,
+          blockContentId: section?.contentId,
           data: results,
           completedAt: now,
         };
@@ -303,15 +303,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
     for (const section of wodSections) {
       // 1. Priority: In-memory results from props (Static/Lesson Mode)
-      //    Only use the prop when it actually contains matching results;
-      //    otherwise fall through to persistent storage so existing
-      //    results are visible on initial load even when the parent
-      //    hasn't finished its async fetch yet.
       if (Array.isArray(extendedResults) && extendedResults.length > 0) {
         const matches = extendedResults
-          .filter(r => (section.contentId ? r.blockContentId === section.contentId : false)
-            || r.sectionId === section.id
-            || r.segmentId === section.id)
+          .filter(r => r.blockContentId === section.contentId)
           .sort((a, b) => b.completedAt - a.completedAt);
 
         if (matches.length > 0) {
@@ -328,7 +322,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           projection: "history-detail",
           resultSelection: {
             mode: "all-for-section",
-            sectionId: section.id,
+            blockContentId: section.contentId,
           },
         })
         .then((entry) => {
