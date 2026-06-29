@@ -1,9 +1,13 @@
 # UUID-Canonical Note Identity & Journal Unification
 
-**Status**: Accepted — 2026-06-28
+**Status**: Accepted — 2026-06-28.
+**Implementation status (2026-06-28):** schema (V8 commit), identity policy
+(placement A — Recorder above the (kept) two-adapter seam), and `JournalPage`
+→ `WorkbenchSessionStore` code move all landed. The `findOrMigrate`
+route-boundary call in `JournalPage` materialises the ADR outcome for the
+journal path.
 **Related**: `cross-note-result-aggregation.md` (resolves its "deferred note-UUID"
 consequence); `versioned-block-identity.md`.
-
 ## Context
 
 `JournalPage` and the Workbench are the same `Note` model in the same IndexedDB
