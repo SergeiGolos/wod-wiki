@@ -1,11 +1,17 @@
 /**
  * JournalPage — /journal/:id
  *
- * Stored-note page. Renders a journal entry identified by its date-key (id
- * URL parameter) in the editor. Supports inline timer and review overlays so
- * the user can start and review workouts without leaving the journal.
+ * Renders a journal entry identified by its date-key (id URL parameter) in the
+ * editor. Supports inline timer and review overlays so the user can start and
+ * review workouts without leaving the journal.
+ *
+ * Wired onto the WorkbenchSessionStore (per note-identity-uuid-canonical ADR):
+ * the page mounts its own session via WorkbenchSessionProvider with the default
+ * IndexedDBNotePersistence, resolves the route id through findOrMigrate so
+ * legacy journal notes migrate lazily to UUID, and reads/writes through the
+ * session's loadEntry / setContent / getNote seams. The Recorder still owns
+ * result-identity (Recorder-above-adapters, cross-note-result-aggregation ADR).
  */
-
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { EditorView } from '@codemirror/view'
@@ -17,10 +23,9 @@ import { FullscreenReview } from '@/components/organisms/review/FullscreenReview
 import { JournalPageShell } from '@/panels/page-shells'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
-import type { WorkoutResult } from '@/types/storage'
 import { indexedDBService } from '@/services/db/IndexedDBService'
+import { notePersistence } from '@/services/persistence'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
-import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pendingRuntimes } from '../runtimeStore'
 // NotePageActions replaced by PageActions (see navbar-wodblock-actions-assessment-2026-05-08.md)
 import { PageActions } from './shared/PageActions'
@@ -36,6 +41,10 @@ import { toast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/atoms/primitives/toast'
 import { applyTemplate } from './shared/pageUtils'
 import newPlaygroundTemplate from '../templates/new-playground.md?raw'
+import {
+  WorkbenchSessionProvider,
+  useWorkbenchSession,
+} from '@/stores/workbenchSessionStore'
 
 const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
 
@@ -46,7 +55,11 @@ export interface JournalPageProps {
   onSearch?: () => void
 }
 
-export function JournalPage({
+/**
+ * Inner page — runs inside the session provider. Reads/writes through the
+ * WorkbenchSessionStore; mounts the editor + overlays.
+ */
+function JournalPageInner({
   theme,
   onViewCreated,
   onScrollToSection,
@@ -62,27 +75,78 @@ export function JournalPage({
   const [timerBlock, setTimerBlock] = useState<ScriptBlock | null>(null)
   const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null)
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
-  const [results, setResults] = useState<WorkoutResult[]>([])
   const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
-  // Playground notes are stored in wodwiki-playground with key 'journal/<id>'.
-  // Result persistence lives in wodwiki-db (indexedDBService) keyed by this full id.
+  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
+
+  // --- Session wiring (note-identity-uuid-canonical ADR) ---
+  // The provider above mounts a fresh store instance for this page; the
+  // workbench has its own (independent) instance, so they don't bleed.
+  const content = useWorkbenchSession((s) => s.content)
+  const currentEntry = useWorkbenchSession((s) => s.currentEntry)
+  const setContent = useWorkbenchSession((s) => s.setContent)
+  const setBlocks = useWorkbenchSession((s) => s.setBlocks)
+  const sessionBlocks = useWorkbenchSession((s) => s.blocks)
+  const getNoteFromSession = useWorkbenchSession((s) => s.getNote)
+  const sessionLoadEntry = useWorkbenchSession((s) => s.loadEntry)
+  const setCurrentEntry = useWorkbenchSession((s) => s.setCurrentEntry)
+  const resetStore = useWorkbenchSession((s) => s.resetStore)
+
+  // The journal's extended results are the array the editor's inline panel
+  // renders against. The session's `s.results` is the cumulative *completed*
+  // list (a different concept); the per-note extended results live on the entry.
+  const extendedResults = currentEntry?.extendedResults ?? []
+
+  // The journal route id is `journal/<date>`. Pass it through findOrMigrate
+  // so legacy route-id-keyed notes get re-keyed to UUID + slug atomically on
+  // first read; once migrated, subsequent loads hit the UUID row.
   const fullNoteId = `journal/${noteId}`
 
-  const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({
-    category: 'journal',
-    name: noteId,
-    mdContent: PLAYGROUND_TEMPLATE.content,
-  })
-
-  const refreshResults = useCallback(() => {
-    indexedDBService.getResultsForNote(fullNoteId)
-      .then(results => setResults(results))
-      .catch(() => {})
-  }, [fullNoteId])
-
+  // Load (and migrate) the note on mount + whenever the route id changes.
   useEffect(() => {
-    refreshResults()
-  }, [refreshResults])
+    let cancelled = false
+    const load = async () => {
+      try {
+        // V8 — resolve slug -> UUID; migrates legacy notes on first read.
+        const migrated = await indexedDBService.findOrMigrate(fullNoteId)
+        if (cancelled) return
+        const routeId = migrated?.id ?? fullNoteId
+        await sessionLoadEntry({
+          routeId,
+          routeView: 'plan',
+        })
+      } catch (err) {
+        // IndexedDB unavailable (e.g. Storybook) — keep the page responsive
+        // by leaving the session empty; the editor still shows the template.
+        if (!cancelled) console.warn('[JournalPage] loadEntry failed', err)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [fullNoteId, sessionLoadEntry])
+
+  // Refresh results after a workout — re-fetch the entry's results slice and
+  // push through the session so the editor's inline panel re-renders.
+  const refreshResults = useCallback(async () => {
+    try {
+      const entry = await getNoteFromSession(fullNoteId, {
+        projection: 'workbench',
+        resultSelection: { mode: 'all-for-note' },
+      })
+      if (entry) setCurrentEntry(entry)
+    } catch {
+      // IndexedDB unavailable — keep what we have.
+    }
+  }, [fullNoteId, getNoteFromSession, setCurrentEntry])
+
+  // Tear down the page-local session on unmount (provider also does this,
+  // but we want the local state gone before remount).
+  useEffect(() => {
+    return () => {
+      resetStore()
+    }
+  }, [resetStore])
 
   // Consume ?autoStart=<runtimeId> placed by WorkoutEditorPage when it redirects
   // here after appending a block to the journal note.
@@ -97,7 +161,7 @@ export function JournalPage({
       setIsTimerOpen(true)
     }
     // Remove the param from the URL so sharing / refresh doesn't re-trigger
-    setSearchParams(prev => {
+    setSearchParams((prev) => {
       prev.delete('autoStart')
       return prev
     }, { replace: true })
@@ -127,6 +191,9 @@ export function JournalPage({
       setIsTimerOpen(false)
       // Persist through the Result Recorder — the single seam that owns
       // identity (noteId, blockId, blockContentId, version) + the write.
+      // The Recorder resolves identity and delegates to notePersistence.mutateNote
+      // (placement A, cross-note-result-aggregation ADR), so the workbench-style
+      // atomic write path is used for journal results too.
       if (activeRuntimeId && timerBlock) {
         playgroundRecorder.record({
           runBlock: timerBlock,
@@ -147,7 +214,7 @@ export function JournalPage({
         setIsReviewOpen(true)
       }
     },
-    [activeRuntimeId, fullNoteId, refreshResults, results, scriptBlocks, timerBlock],
+    [activeRuntimeId, fullNoteId, refreshResults, timerBlock],
   )
 
   const handleCloseReview = useCallback(() => {
@@ -155,14 +222,18 @@ export function JournalPage({
     setReviewSegments([])
   }, [])
 
+  // Sync the session's blocks into the local scriptBlocks state the editor
+  // callback chain expects. The session is the source of truth.
+  useEffect(() => {
+    if (sessionBlocks) setScriptBlocks(sessionBlocks)
+  }, [sessionBlocks])
+
   const index = useNotePageNav({
     content,
     scriptBlocks,
     onStartWorkout: handleStartWorkout,
-    results,
+    results: extendedResults,
   })
-
-  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
 
   const handleScheduleBlock = useCallback(
     async (block: ScriptBlock, date: Date) => {
@@ -199,12 +270,15 @@ export function JournalPage({
     onPlay: mode === 'journal-active' ? handleStartWorkout : undefined,
     onShare: shareBlock,
     onOpenInPlayground: mode === 'journal-plan'
-      ? (block) => openBlockInPlayground(block, navigate)
+      ? (block: ScriptBlock) => openBlockInPlayground(block, navigate)
       : undefined,
     onSchedule: setPendingScheduleBlock,
   })
 
-  if (loading) {
+  // Loading is the moment between mount and the loadEntry call resolving.
+  // `currentEntry` is null while the load is in flight; after the first load
+  // it stays non-null (until unmount resets the page-local session).
+  if (!currentEntry && content === '') {
     return (
       <div className="flex-1 flex items-center justify-center text-zinc-400">
         Loading…
@@ -229,17 +303,15 @@ export function JournalPage({
         editor={
           <NoteEditor
             value={content}
-            onChange={onChange}
-            onCursorPositionChange={onLineChange}
-            onBlur={onBlur}
+            onChange={setContent}
             noteId={noteId}
             commands={commands}
             enableInlineRuntime={false}
             onViewCreated={handleInternalViewCreated}
             theme={theme}
             showLineNumbers={false}
-            onBlocksChange={setScriptBlocks}
-            extendedResults={results}
+            onBlocksChange={setBlocks}
+            extendedResults={extendedResults}
           />
         }
         timerOverlay={
@@ -273,14 +345,14 @@ export function JournalPage({
         >
           <div
             className="bg-card border border-border rounded-xl p-5 shadow-2xl"
-            onClick={e => e.stopPropagation()}
+            onClick={(e: React.SyntheticEvent) => e.stopPropagation()}
           >
             <p className="text-sm font-semibold mb-4 text-foreground">
               Schedule for&hellip;
             </p>
             <CalendarCard
               selectedDate={null}
-              onDateSelect={(date) => {
+              onDateSelect={(date: Date) => {
                 handleScheduleBlock(pendingScheduleBlock, date)
                 setPendingScheduleBlock(null)
               }}
@@ -289,5 +361,19 @@ export function JournalPage({
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * JournalPage — outer wrapper. Mounts a page-local WorkbenchSessionProvider
+ * with the default IndexedDBNotePersistence so the session's loadEntry /
+ * setContent / getNote seams work without further wiring. Unmounting the page
+ * tears the session down via the provider.
+ */
+export function JournalPage(props: JournalPageProps) {
+  return (
+    <WorkbenchSessionProvider notePersistence={notePersistence}>
+      <JournalPageInner {...props} />
+    </WorkbenchSessionProvider>
   )
 }
