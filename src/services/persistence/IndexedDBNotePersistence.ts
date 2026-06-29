@@ -87,6 +87,7 @@ function appendMetricPoints(
   segmentVersion: number,
   now: number,
   source: PersistableMetricSource,
+  blockContentId: string | undefined,
 ): void {
   const value = extractMetricValue(source);
   if (value === undefined) return;
@@ -100,6 +101,7 @@ function appendMetricPoints(
   points.push({
     id: `${segmentId}-${metricKey}-${now}`,
     noteId,
+    blockContentId,
     segmentId,
     segmentVersion,
     resultId,
@@ -133,6 +135,7 @@ export function normalizeAnalyticsSegments(
   noteId: string,
   resultId?: string,
   segmentVersions: Record<string, number | undefined> = {},
+  blockContentId?: string,
 ): AnalyticsDataPoint[] {
   const now = Date.now();
   const resolvedResultId = resultId ?? '';
@@ -145,6 +148,7 @@ export function normalizeAnalyticsSegments(
       points.push({
         id: `${segmentId}-elapsed-${now}`,
         noteId,
+        blockContentId,
         segmentId,
         segmentVersion,
         resultId: resolvedResultId,
@@ -162,14 +166,14 @@ export function normalizeAnalyticsSegments(
 
     const metricSources = segment.metrics
       ? MetricContainer.from(segment.metrics, segmentId).toArray()
-      : Object.entries(segment.metric).map(([key, value]) => ({
+      : Object.entries(segment.metric ?? {}).map(([key, value]) => ({
           type: key,
           key,
           value,
         }));
 
     for (const source of metricSources as PersistableMetricSource[]) {
-      appendMetricPoints(points, segment, noteId, resolvedResultId, segmentId, segmentVersion, now, source);
+      appendMetricPoints(points, segment, noteId, resolvedResultId, segmentId, segmentVersion, now, source, blockContentId);
     }
   }
 
@@ -268,6 +272,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
         note.id,
         mutation.analytics?.resultId ?? resultId,
         segmentVersions,
+        mutation.workoutResult?.blockContentId,
       );
       // Persist derived analytics rows for future cross-workout trend queries.
       // Non-load-bearing: WorkoutResult.data.logs is the authoritative source.

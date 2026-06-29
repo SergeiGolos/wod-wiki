@@ -254,4 +254,49 @@ describe('IndexedDBNotePersistence', () => {
     expect(entries).toHaveLength(1);
     expect(entries[0].id).toBe(note.id);
   });
+
+  // V6 — by-content stamp
+  it('normalizeAnalyticsSegments stamps blockContentId on every persisted point', async () => {
+    const { normalizeAnalyticsSegments } = await persistenceModule;
+
+    const points = normalizeAnalyticsSegments(
+      [{ id: 'segment-x', elapsed: 42, name: 'Run' }],
+      note.id,
+      'result-x',
+      { 'segment-x': 3 },
+      'bc-fran',
+    );
+
+    expect(points.length).toBeGreaterThan(0);
+    for (const pt of points) {
+      expect(pt.blockContentId).toBe('bc-fran');
+      expect(pt.noteId).toBe(note.id);
+      expect(pt.resultId).toBe('result-x');
+      expect(pt.segmentVersion).toBe(3);
+    }
+  });
+
+  it('mutateNote threads workoutResult.blockContentId into analytics points', async () => {
+    const { IndexedDBNotePersistence } = await persistenceModule;
+    const { storage, contentProvider, savedAnalyticsPoints } = createHarness();
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
+
+    await persistence.mutateNote(note.id, {
+      workoutResult: {
+        id: 'result-threading',
+        blockId: 'wod-a',
+        blockContentId: 'bc-threaded',
+        version: 1,
+        data: { startTime: 0, endTime: 1000, duration: 1000, logs: [], completed: true } as never,
+        completedAt: 1000,
+        analyticsSegments: [{ id: 'segment-thread', elapsed: 5, name: 'Run' }],
+      },
+    });
+
+    expect(savedAnalyticsPoints.length).toBeGreaterThan(0);
+    for (const pt of savedAnalyticsPoints) {
+      expect(pt.blockContentId).toBe('bc-threaded');
+      expect(pt.noteId).toBe(note.id);
+    }
+  });
 });

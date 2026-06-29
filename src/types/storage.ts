@@ -108,6 +108,8 @@ export interface Attachment {
 export interface AnalyticsDataPoint {
     id: string;
     noteId: string;
+    /** V6 — content-stable join key; drives the `analytics.by-content` index for cross-workout trend queries. */
+    blockContentId?: string;
     segmentId: string;
     segmentVersion: number;
     resultId: string;     // Link to raw WorkoutResult

@@ -95,6 +95,7 @@ export interface NoteMutation {
     blockId?: string;       // Section position identity
     blockContentId?: string;  // Content-stable join key
     version?: number;        // Content generation at this position
+    segmentId?: string;     // NoteSegment FK (for analytics segmentVersion lookup)
     data: WorkoutResults;
     completedAt?: number;
     analyticsSegments?: AnalyticsSegmentInput[];

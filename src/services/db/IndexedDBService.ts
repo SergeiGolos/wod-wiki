@@ -40,7 +40,13 @@ export interface WodWikiDB extends DBSchema {
     results: {
         key: string;
         value: WorkoutResult;
-        indexes: { 'by-segment': string; 'by-note': string; 'by-completed': number };
+        indexes: {
+            'by-segment': string;   // legacy: field absent; left as-is to keep schema shape stable
+            'by-note': string;
+            'by-completed': number;
+            'by-content': string;   // V6 — blockContentId; cross-note collection aggregation
+            'by-block': string;     // V6 — blockId; efficient per-clone journal queries
+        };
     };
     attachments: {
         key: string;
@@ -50,7 +56,12 @@ export interface WodWikiDB extends DBSchema {
     analytics: {
         key: string;
         value: AnalyticsDataPoint;
-        indexes: { 'by-type': string; 'by-segment': string; 'by-result': string };
+        indexes: {
+            'by-type': string;      // legacy: field is `type`, not `metricType`; left as-is
+            'by-segment': string;
+            'by-result': string;
+            'by-content': string;   // V6 — blockContentId; cross-workout trend queries
+        };
     };
     efforts: {
         key: string;
@@ -60,7 +71,7 @@ export interface WodWikiDB extends DBSchema {
 }
 
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 5; // V5 — Effort Registry store
+const DB_VERSION = 6; // V6 — by-content / by-block indexes for cross-note result aggregation
 
 export class IndexedDBService {
     private dbPromise: Promise<IDBPDatabase<WodWikiDB>>;
@@ -72,7 +83,6 @@ export class IndexedDBService {
                 // Fresh-start strategy: drop everything below V4
                 // -------------------------------------------------------
                 if (oldVersion < 4) {
-                    // Remove all legacy stores
                     const names = Array.from(db.objectStoreNames);
                     for (const name of names) {
                         db.deleteObjectStore(name);
@@ -86,7 +96,7 @@ export class IndexedDBService {
                     store.createIndex('by-target-date', 'targetDate');
                 }
 
-                // ---- Segments (replaces scripts + section_history) ----
+                // ---- Segments ----
                 if (!db.objectStoreNames.contains('segments')) {
                     const store = db.createObjectStore('segments', { keyPath: ['id', 'version'] });
                     store.createIndex('by-note', 'noteId');
@@ -99,24 +109,39 @@ export class IndexedDBService {
                     store.createIndex('by-segment', 'segmentId');
                     store.createIndex('by-note', 'noteId');
                     store.createIndex('by-completed', 'completedAt');
+                } else {
+                    // V6 upgrade — add by-content + by-block (idempotent)
+                    const results = db.transaction('results', 'versionchange').objectStore('results');
+                    if (!results.indexNames.contains('by-content')) {
+                        results.createIndex('by-content', 'blockContentId');
+                    }
+                    if (!results.indexNames.contains('by-block')) {
+                        results.createIndex('by-block', 'blockId');
+                    }
                 }
 
-                // ---- Attachments (new in V4) ----
+                // ---- Attachments ----
                 if (!db.objectStoreNames.contains('attachments')) {
                     const store = db.createObjectStore('attachments', { keyPath: 'id' });
                     store.createIndex('by-note', 'noteId');
                     store.createIndex('by-time', 'createdAt');
                 }
 
-                // ---- Analytics (new in V4) ----
+                // ---- Analytics ----
                 if (!db.objectStoreNames.contains('analytics')) {
                     const store = db.createObjectStore('analytics', { keyPath: 'id' });
                     store.createIndex('by-type', 'metricType');
                     store.createIndex('by-segment', 'segmentId');
                     store.createIndex('by-result', 'resultId');
+                } else {
+                    // V6 upgrade — add by-content (idempotent)
+                    const analytics = db.transaction('analytics', 'versionchange').objectStore('analytics');
+                    if (!analytics.indexNames.contains('by-content')) {
+                        analytics.createIndex('by-content', 'blockContentId');
+                    }
                 }
 
-                // ---- Efforts (new in V5) ----
+                // ---- Efforts ----
                 if (!db.objectStoreNames.contains('efforts')) {
                     const store = db.createObjectStore('efforts', { keyPath: 'slug' });
                     store.createIndex('by-discipline', 'baseAttributes.discipline');
@@ -272,6 +297,16 @@ export class IndexedDBService {
         return results;
     }
 
+    /** V6 — all results across the user's notes that share this content hash. Cross-note collection aggregation. */
+    async getResultsByContentId(blockContentId: string): Promise<WorkoutResult[]> {
+        return (await this.dbPromise).getAllFromIndex('results', 'by-content', blockContentId);
+    }
+
+    /** V6 — all results for one block position (per-clone journal history). */
+    async getResultsForBlock(blockId: string): Promise<WorkoutResult[]> {
+        return (await this.dbPromise).getAllFromIndex('results', 'by-block', blockId);
+    }
+
     // =======================================================================
     // Attachments (new in V4)
     // =======================================================================
@@ -300,6 +335,11 @@ export class IndexedDBService {
             await store.put(pt);
         }
         await tx.done;
+    }
+
+    /** V6 — cross-workout trend: all derived metrics across notes that share this content hash. */
+    async getAnalyticsByContentId(blockContentId: string): Promise<AnalyticsDataPoint[]> {
+        return (await this.dbPromise).getAllFromIndex('analytics', 'by-content', blockContentId);
     }
 
     // =======================================================================
