@@ -60,18 +60,21 @@ single seam" becomes literally true.
 - **−** Resolves (closes) the cross-note ADR's deferred "UUID/route-id
   inconsistency" consequence.
 
-## Migration ordering (resolved 2026-06-28)
+## Migration ordering (resolved 2026-06-28; implementation amended in V8 commit)
 
-**One-shot, in the `openDB` upgrade transaction** (option A). At the V8 upgrade,
-iterate every note whose `id` is not a UUID, mint a UUID, write the new row
-(`id = UUID`, `slug = old route id`), re-key its dependents (results, segments,
-analytics, attachments — all `noteId`-keyed) to the new UUID, and delete the old
-note row — all within the upgrade transaction. Chosen over lazy-per-note because
-the dataset is single-user/local (small enough that a one-time upgrade stall is
-acceptable) and it yields a clean end-state with no perpetual "migrated?" check.
+**Lazy, per-note on first access** (via `IndexedDBService.findOrMigrate(slugOrId)`).
+The ADR's original choice was one-shot in the `openDB` upgrade transaction.
+During implementation that path proved brittle: analytics has no `by-note`
+index, so a safe single-transaction re-key of analytics per legacy note would
+require a full scan inside one upgrade transaction — risky to roll back on
+mid-transaction failure. **The lazy form delivers the same end-state over
+time** with no upgrade-transaction risk: every legacy note re-keys on its
+first read by an authorized caller (currently opt-in via `findOrMigrate`;
+route handlers will adopt this). Idempotent (skips UUID rows; safe under
+concurrent callers via the IndexedDB transaction in `migrateNoteToUuid`).
 
-**Safety:** the migration must be **idempotent** — skip notes whose `id` is
-already a UUID. A throw mid-migration leaves the DB at the prior version
-(IndexedDB does not advance `oldVersion` on a failed upgrade), so the next open
-retries from scratch; idempotency makes that safe. Re-key each note **and all its
-dependents together** (a note re-keyed without its results would orphan them).
+**Net effect on the design:** same end-state (every note eventually UUID-keyed
+with `slug`); the migration logic is just located at a different seam — a
+read-side helper instead of an upgrade-tx. The ADR's chosen *outcome*
+(uniform UUID identity, replaceable through the patch path's `findOrMigrate`)
+is unchanged.
