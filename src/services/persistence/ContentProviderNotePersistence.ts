@@ -105,7 +105,10 @@ export class ContentProviderNotePersistence implements INotePersistence {
       ...mutation.metadata,
       rawContent: mutation.rawContent,
       results: mutation.workoutResult?.data,
+      blockId: mutation.workoutResult?.blockId,
       blockContentId: mutation.workoutResult?.blockContentId,
+      version: mutation.workoutResult?.version,
+      segmentId: mutation.workoutResult?.segmentId,
       resultId: mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv4() : undefined),
     };
 

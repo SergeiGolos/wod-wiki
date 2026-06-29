@@ -286,7 +286,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         };
     }
 
-    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'type' | 'clonedIds' | 'targetDate'>> & { blockContentId?: string; resultId?: string }): Promise<HistoryEntry> {
+    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate'>> & { sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number }): Promise<HistoryEntry> {
         let note = await indexedDBService.getNote(id);
 
         if (!note) {
@@ -379,15 +379,14 @@ export class IndexedDBContentProvider implements IContentProvider {
                 id: patch.resultId || uuidv4(),
                 segmentVersion: latestSegment?.version,
                 noteId: note.id,   // Use resolved UUID (not raw route param)
+                blockId: patch.blockId,
                 blockContentId: patch.blockContentId,
+                version: patch.version,
                 data: resultData,
                 completedAt: resultData.endTime || now
             };
             await indexedDBService.saveResult(newResult);
         }
-
-        note.updatedAt = now;
-        await indexedDBService.saveNote(note);
 
         return {
             id: note.id,
