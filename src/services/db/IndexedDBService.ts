@@ -258,15 +258,15 @@ export class IndexedDBService {
         const byId = await this.getNote(idOrSlug);
         if (byId) {
             if (!isUuid(byId.id)) {
-                await this.migrateNoteToUuid(byId);
-                return this.getNote(byId.id);
+                const newId = await this.migrateNoteToUuid(byId);
+                return this.getNote(newId);
             }
             return byId;
         }
         const bySlug = await this.getNoteBySlug(idOrSlug);
         if (bySlug && !isUuid(bySlug.id)) {
-            await this.migrateNoteToUuid(bySlug);
-            return this.getNote(bySlug.id);
+            const newId = await this.migrateNoteToUuid(bySlug);
+            return this.getNote(newId);
         }
         return bySlug;
     }
@@ -277,7 +277,7 @@ export class IndexedDBService {
      * Idempotent (skips UUID rows). The put-new + delete-old contract is the
      * only way to re-key a note in IndexedDB (keyPaths can't be mutated).
      */
-    private async migrateNoteToUuid(oldNote: Note): Promise<void> {
+    private async migrateNoteToUuid(oldNote: Note): Promise<string> {
         const oldId = oldNote.id;
         const newId = uuidV4();
         const migrated: Note = { ...oldNote, id: newId, slug: oldId };
@@ -314,6 +314,7 @@ export class IndexedDBService {
 
         await tx.objectStore('notes').delete(oldId);
         await tx.done;
+        return newId;
     }
 
     // =======================================================================

@@ -25,6 +25,7 @@ import type { ScriptBlock } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { notePersistence } from '@/services/persistence'
+import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { pendingRuntimes } from '../runtimeStore'
 // NotePageActions replaced by PageActions (see navbar-wodblock-actions-assessment-2026-05-08.md)
@@ -59,6 +60,10 @@ export interface JournalPageProps {
 // a new identity every render, retriggering useNotePageNav's index memo and
 // looping setL3Items through NavContext ("Maximum update depth exceeded").
 const EMPTY_RESULTS: never[] = []
+
+// Stateless over the shared `indexedDBService` store (see IndexedDBContentProvider
+// doc) — the session's `provider` port; loadEntry bails without it.
+const journalContentProvider = new IndexedDBContentProvider()
 
 /**
  * Inner page — runs inside the session provider. Reads/writes through the
@@ -377,7 +382,7 @@ function JournalPageInner({
  */
 export function JournalPage(props: JournalPageProps) {
   return (
-    <WorkbenchSessionProvider notePersistence={notePersistence}>
+    <WorkbenchSessionProvider notePersistence={notePersistence} provider={journalContentProvider}>
       <JournalPageInner {...props} />
     </WorkbenchSessionProvider>
   )
