@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 
 /**
  * Action that records a round update on the tracker.
@@ -22,7 +22,7 @@ export class TrackRoundAction implements IRuntimeAction {
         throw new Error('Cannot modify readonly property type');
     }
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IRuntimeContext): void {
         if (runtime.tracker?.recordRound) {
             runtime.tracker.recordRound(this.blockId, this.currentRound, this.totalRounds);
         }

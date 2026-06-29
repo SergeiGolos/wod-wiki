@@ -92,14 +92,14 @@ export interface WodWikiDB extends DBSchema {
 }
 
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 7; // V6 by-content + V8 slug/by-slug + lazy UUID migration
+const DB_VERSION = 9; // V9 — re-fire upgrade to (re)create by-slug + V6 indexes; upgrade mutations now use the upgrade transaction (db.transaction() inside upgrade was unreliable)
 
 export class IndexedDBService {
     private dbPromise: Promise<IDBPDatabase<WodWikiDB>>;
 
     constructor() {
         this.dbPromise = openDB<WodWikiDB>(DB_NAME, DB_VERSION, {
-            upgrade(db, oldVersion) {
+            upgrade(db, oldVersion, _newVersion, tx) {
                 // -------------------------------------------------------
                 // Fresh-start strategy: drop everything below V4
                 // -------------------------------------------------------
@@ -115,9 +115,10 @@ export class IndexedDBService {
                     const store = db.createObjectStore('notes', { keyPath: 'id' });
                     store.createIndex('by-updated', 'updatedAt');
                     store.createIndex('by-target-date', 'targetDate');
+                    store.createIndex('by-slug', 'slug');
                 } else {
                     // V8 — add by-slug (idempotent)
-                    const notesStore = db.transaction('notes', 'versionchange').objectStore('notes');
+                    const notesStore = tx.objectStore('notes');
                     if (!notesStore.indexNames.contains('by-slug')) {
                         notesStore.createIndex('by-slug', 'slug');
                     }
@@ -138,7 +139,7 @@ export class IndexedDBService {
                     store.createIndex('by-completed', 'completedAt');
                 } else {
                     // V6 — add by-content + by-block (idempotent)
-                    const results = db.transaction('results', 'versionchange').objectStore('results');
+                    const results = tx.objectStore('results');
                     if (!results.indexNames.contains('by-content')) {
                         results.createIndex('by-content', 'blockContentId');
                     }
@@ -162,7 +163,7 @@ export class IndexedDBService {
                     store.createIndex('by-result', 'resultId');
                 } else {
                     // V6 — add by-content (idempotent)
-                    const analytics = db.transaction('analytics', 'versionchange').objectStore('analytics');
+                    const analytics = tx.objectStore('analytics');
                     if (!analytics.indexNames.contains('by-content')) {
                         analytics.createIndex('by-content', 'blockContentId');
                     }

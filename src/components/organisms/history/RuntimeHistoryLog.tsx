@@ -90,7 +90,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
         depth: output.stackLevel,
         isHeader,
         status,
-        duration: output.elapsed,
+        duration: (output.getMetric?.(MetricType.Elapsed)?.value as number) ?? 0,
         startTime: output.timeSpan.started,
         endTime: output.timeSpan.ended,
         label: metricPresentation.presentGroup(metrics, 'history-label')

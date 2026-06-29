@@ -2,7 +2,7 @@
 import { MetricContainer } from '../../core/models/MetricContainer';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { RuntimeBlock } from '../RuntimeBlock';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../contracts/IRuntimeContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
@@ -79,7 +79,7 @@ export class EffortBlock extends RuntimeBlock {
   private lastCompletionMode: 'incremental' | 'bulk' = 'incremental';
 
   constructor(
-    runtime: IScriptRuntime,
+    runtime: IRuntimeContext,
     sourceIds: number[],
     private readonly config: EffortBlockConfig,
     metrics?: MetricContainer[]
@@ -119,17 +119,17 @@ export class EffortBlock extends RuntimeBlock {
     }));
   }
 
-  mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  mount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
     const actions = super.mount(runtime, options);
     actions.push(...this.getMetricActions());
     return actions;
   }
 
-  unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  unmount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
     return super.unmount(runtime, options);
   }
 
-  dispose(runtime: IScriptRuntime): void {
+  dispose(runtime: IRuntimeContext): void {
     super.dispose(runtime);
     if (this.context) {
       this.context.release();

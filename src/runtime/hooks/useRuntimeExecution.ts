@@ -13,6 +13,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import type { ScriptRuntime } from '../ScriptRuntime';
 import { TickEvent } from '../events/TickEvent';
+import { wallClockNow } from '../INowProvider';
 
 /** Fixed execution tick rate in milliseconds (50 ticks per second) */
 const EXECUTION_TICK_RATE_MS = 20;
@@ -125,7 +126,7 @@ export const useRuntimeExecution = (
     }
 
     setStatus('running');
-    const now = Date.now();
+    const now = runtime?.nowProvider?.nowMs() ?? wallClockNow.nowMs();
     startTimeRef.current = now - elapsedTime; // Resume from paused time
 
     // Only set startTime on first start (not resume)
@@ -217,7 +218,7 @@ export const useRuntimeExecution = (
     if (status !== 'running' || !startTimeRef.current) return;
 
     const updateInterval = setInterval(() => {
-      setElapsedTime(Date.now() - startTimeRef.current!);
+      setElapsedTime((runtime?.nowProvider?.nowMs() ?? wallClockNow.nowMs()) - startTimeRef.current!);
     }, 100); // Update display every 100ms
 
     return () => clearInterval(updateInterval);

@@ -89,9 +89,6 @@ function createMockOutput(): IOutputStatement {
         metrics: [],
         metricMeta: new Map(),
         timeSpan: { started: Date.now(), ended: Date.now() + 1000 },
-        spans: [],
-        elapsed: 1000,
-        total: 1000,
     } as any;
 }
 

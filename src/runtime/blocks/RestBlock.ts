@@ -1,4 +1,4 @@
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../contracts/IRuntimeContext';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
@@ -47,7 +47,7 @@ export interface RestBlockConfig {
  */
 export class RestBlock extends RuntimeBlock {
     constructor(
-        runtime: IScriptRuntime,
+        runtime: IRuntimeContext,
         config: RestBlockConfig
     ) {
         if (config.durationMs < 0) {
@@ -131,15 +131,15 @@ export class RestBlock extends RuntimeBlock {
         return behaviors;
     }
 
-    mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    mount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         return super.mount(runtime, options);
     }
 
-    unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    unmount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         return super.unmount(runtime, options);
     }
 
-    dispose(runtime: IScriptRuntime): void {
+    dispose(runtime: IRuntimeContext): void {
         super.dispose(runtime);
         if (this.context) {
             this.context.release();

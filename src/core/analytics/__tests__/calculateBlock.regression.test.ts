@@ -17,12 +17,13 @@ function createOutput(
     timeSpan: { started: 0, ended: elapsedMs },
     sourceBlockKey: 'test-block',
     stackLevel: 0,
-    metrics: MetricContainer.from(
-      metrics.map((metric) => ({
+    metrics: MetricContainer.from([
+      ...metrics.map((metric) => ({
         ...metric,
         origin: 'runtime' as const,
       })),
-    ),
+      { type: MetricType.Elapsed, value: elapsedMs, origin: 'runtime' as const },
+    ]),
   });
 }
 

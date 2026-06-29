@@ -1,6 +1,6 @@
 import { IRuntimeBlockStrategy } from '../../contracts/IRuntimeBlockStrategy';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { BlockBuilder } from '../BlockBuilder';
 import { WaitingToStartBlock } from '../../blocks/WaitingToStartBlock';
@@ -38,14 +38,14 @@ export class WaitingToStartStrategy implements IRuntimeBlockStrategy {
     /**
      * Idle blocks are not matched from statements — they are created directly.
      */
-    match(_statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(_statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         return false;
     }
 
     /**
      * Composable apply — not used for idle blocks.
      */
-    apply(_builder: BlockBuilder, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+    apply(_builder: BlockBuilder, _statements: ICodeStatement[], _runtime: IRuntimeContext): void {
         // No-op for direct build
     }
 
@@ -63,7 +63,7 @@ export class WaitingToStartStrategy implements IRuntimeBlockStrategy {
      * runtime.do(new PushBlockAction(idle));
      * ```
      */
-    build(runtime: IScriptRuntime): IRuntimeBlock {
+    build(runtime: IRuntimeContext): IRuntimeBlock {
         return new WaitingToStartBlock(runtime);
     }
 }

@@ -320,12 +320,10 @@ export class OutputEmitter {
 
             const fallbackStartMs = block.executionTiming?.startTime?.getTime() ?? fallbackEndMs;
             const timeSpan = new TimeSpan(fallbackStartMs, fallbackEndMs);
-            const spans = this._extractSpans(metrics.toArray());
 
             this.add(new OutputStatement({
                 outputType: 'segment',
                 timeSpan,
-                spans: spans.length > 0 ? spans : undefined,
                 sourceBlockKey: block.key.toString(),
                 sourceStatementId: block.sourceIds?.[i] ?? block.sourceIds?.[0],
                 stackLevel: stackDepth,
@@ -390,28 +388,4 @@ export class OutputEmitter {
     // =========================================================================
     // Private helpers
     // =========================================================================
-
-    private _extractSpans(metrics: IMetric[]): TimeSpan[] {
-        const spansMetric = metrics.find(
-            m => m.type === MetricType.Spans || m.type === 'spans'
-        ) as (IMetric & { spans?: unknown }) | undefined;
-
-        if (!spansMetric) return [];
-
-        const rawSpans = Array.isArray(spansMetric.value)
-            ? spansMetric.value
-            : Array.isArray(spansMetric.spans)
-                ? spansMetric.spans
-                : [];
-
-        return (rawSpans as Array<{ started?: unknown; ended?: unknown }>)
-            .map(raw => {
-                if (typeof raw.started !== 'number' || isNaN(raw.started)) return undefined;
-                if (typeof raw.ended === 'number' && !isNaN(raw.ended)) {
-                    return new TimeSpan(raw.started, raw.ended);
-                }
-                return new TimeSpan(raw.started);
-            })
-            .filter((s): s is TimeSpan => s !== undefined);
-    }
 }

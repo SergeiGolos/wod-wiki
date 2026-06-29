@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { MetricContainer } from '../../../core/models/MetricContainer';
 import { MemoryLocation } from '../../memory/MemoryLocation';
 
@@ -40,7 +40,7 @@ export class UpdateNextPreviewAction implements IRuntimeAction {
         this.payload = { nextStatementIds };
     }
 
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
         // Find the block on the stack
         const block = runtime.stack.blocks.find(
             b => b.key.toString() === this.blockKey

@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 
 /**
  * Action that aborts the current session by force-popping all blocks from the stack.
@@ -18,7 +18,7 @@ import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 export class AbortSessionAction implements IRuntimeAction {
     readonly type = 'abort-session';
 
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
         const MAX_ITERATIONS = 100; // Safety limit to prevent infinite loops
         let iterations = 0;
         const collectedActions: IRuntimeAction[] = [];

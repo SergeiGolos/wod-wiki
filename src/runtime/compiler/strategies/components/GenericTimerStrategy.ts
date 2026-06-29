@@ -1,7 +1,7 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricType } from "@/core/models/Metric";
 import { DurationMetric } from "../../metrics/DurationMetric";
 import { hasHint } from "@/core/metrics/hints";
@@ -25,7 +25,7 @@ import {
 export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     priority = 50; // Mid priority
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
 
         // Match if duration metrics exists in ANY statement, ignoring runtime-generated ones
@@ -34,7 +34,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         ));
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IRuntimeContext): void {
         // Skip if a timer behavior was already added by a higher-priority strategy
         if (builder.hasTimerBehavior()) {
             return;

@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { NextAction } from './NextAction';
 import { RuntimeLogger } from '../../RuntimeLogger';
@@ -17,7 +17,7 @@ export class PopBlockAction implements IRuntimeAction {
 
     constructor(private readonly options: BlockLifecycleOptions = {}) { }
 
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
         const current = runtime.stack.current;
         if (!current) {
             return [];

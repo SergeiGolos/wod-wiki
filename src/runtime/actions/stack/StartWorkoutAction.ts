@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { SessionRootStrategy } from '../../compiler/strategies/SessionRootStrategy';
 import { SessionRootConfig } from '../../blocks/SessionRootBlock';
@@ -38,7 +38,7 @@ export class StartWorkoutAction implements IRuntimeAction {
 
     constructor(private readonly options: StartWorkoutOptions = {}) {}
 
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
         // Guard: Check if workout already started (root block on stack)
         if (runtime.stack.count > 0) {
             console.warn('[StartWorkoutAction] Workout already started - stack is not empty');

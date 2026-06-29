@@ -14,6 +14,7 @@ import type { IRuntimeBlock } from './IRuntimeBlock';
 import type { ICodeStatement } from '../../core/models/CodeStatement';
 import type { AnalyticsContext } from '../../core/analytics/AnalyticsContext';
 import type { INowProvider } from '../INowProvider';
+import type { IRuntimeContext } from './IRuntimeContext';
 
 /**
  * Interface for the Just-In-Time compiler that converts parsed statements
@@ -21,7 +22,7 @@ import type { INowProvider } from '../INowProvider';
  * avoid a mutual-import cycle between the two interface files.
  */
 export interface IJitCompiler {
-    compile(nodes: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined;
+    compile(nodes: ICodeStatement[], runtime: IRuntimeContext): IRuntimeBlock | undefined;
 }
 
 /**

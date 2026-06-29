@@ -55,6 +55,11 @@ export interface JournalPageProps {
   onSearch?: () => void
 }
 
+// Stable empty-results fallback. A fresh `[]` here would give `extendedResults`
+// a new identity every render, retriggering useNotePageNav's index memo and
+// looping setL3Items through NavContext ("Maximum update depth exceeded").
+const EMPTY_RESULTS: never[] = []
+
 /**
  * Inner page — runs inside the session provider. Reads/writes through the
  * WorkbenchSessionStore; mounts the editor + overlays.
@@ -94,7 +99,7 @@ function JournalPageInner({
   // The journal's extended results are the array the editor's inline panel
   // renders against. The session's `s.results` is the cumulative *completed*
   // list (a different concept); the per-note extended results live on the entry.
-  const extendedResults = currentEntry?.extendedResults ?? []
+  const extendedResults = currentEntry?.extendedResults ?? EMPTY_RESULTS
 
   // The journal route id is `journal/<date>`. Pass it through findOrMigrate
   // so legacy route-id-keyed notes get re-keyed to UUID + slug atomically on

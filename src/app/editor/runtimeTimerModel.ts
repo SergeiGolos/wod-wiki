@@ -4,6 +4,7 @@ import type { IScriptRuntime } from '@/hooks/useRuntimeTimer';
 import type { IOutputStatement } from '@/core/models/OutputStatement';
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
 import { toStoredOutputStatement } from '@/components/Editor/types';
+import type { INowProvider } from '@/runtime/INowProvider';
 
 const factory = runtimeFactory;
 
@@ -24,11 +25,12 @@ export function buildWorkoutResults(
     readonly startTime?: number;
     readonly elapsedTime: number;
     readonly completed: boolean;
+    readonly now: INowProvider;
   },
 ): WorkoutResults {
   return {
-    startTime: options.startTime || Date.now(),
-    endTime: Date.now(),
+    startTime: options.startTime ?? options.now.nowMs(),
+    endTime: options.now.nowMs(),
     duration: options.elapsedTime,
     completed: options.completed,
     logs: outputs.map(toStoredOutputStatement),

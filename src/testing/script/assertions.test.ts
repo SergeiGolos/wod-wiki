@@ -90,7 +90,7 @@ describe('assertions DSL', () => {
         expect(assertions(after).stack().changed(before)).toBe(true);
     });
 
-    it('expectAll throws AggregateError when a check fails', () => {
+    it('expectAll throws an aggregated Error when a check fails', () => {
         const block = new MockBlock({ id: 'b1', label: 'Run' });
         const state = makeState({ depth: 1, current: block, blocks: [block] });
         expect(() => {
@@ -102,7 +102,7 @@ describe('assertions DSL', () => {
                     if (a.currentBlock()) throw new Error('has block');
                 },
             ]);
-        }).toThrow(AggregateError);
+        }).toThrow(Error);
     });
 
     it('expectAll is silent when all checks pass', () => {

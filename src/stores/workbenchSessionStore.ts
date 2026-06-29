@@ -685,7 +685,7 @@ export function createWorkbenchSessionStore(
                 destination: parseNoteId(targetId),
                 resultId: payload.resultId,
                 data: payload.results,
-                completedAt: payload.results.endTime || Date.now(),
+                completedAt: payload.results.endTime,
                 analyticsSegments: analyticsSegments.length > 0 ? analyticsSegments : undefined,
               });
               const refreshed = await notePersistence.getNote(targetId, {
