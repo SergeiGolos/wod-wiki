@@ -1,7 +1,7 @@
 import { IRuntimeBlockStrategy } from '../../contracts/IRuntimeBlockStrategy';
 import { IRuntimeBehavior } from '../../contracts/IRuntimeBehavior';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
@@ -48,21 +48,21 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
     /**
      * Root blocks are not matched from statements - they are created directly.
      */
-    match(_statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(_statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         return false;
     }
 
     /**
      * Composable apply - not used for root blocks.
      */
-    apply(_builder: unknown, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+    apply(_builder: unknown, _statements: ICodeStatement[], _runtime: IRuntimeContext): void {
         // No-op for direct build
     }
 
     /**
      * Builds an idle block with the specified configuration.
      */
-    build(runtime: IScriptRuntime, config: IdleBlockConfig): IRuntimeBlock {
+    build(runtime: IRuntimeContext, config: IdleBlockConfig): IRuntimeBlock {
         const blockKey = new BlockKey(config.id);
         const context = new BlockContext(runtime, blockKey.toString(), 'Idle');
 

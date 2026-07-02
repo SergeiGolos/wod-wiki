@@ -1,6 +1,6 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { PushBlockAction } from './PushBlockAction';
 import { applyEffortEnrichment } from '../../compiler/EffortEnrichmentPass';
 
@@ -16,7 +16,7 @@ export class CompileAndPushBlockAction implements IRuntimeAction {
         public readonly options: BlockLifecycleOptions = {}
     ) { }
 
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
         if (!this.statementIds || this.statementIds.length === 0) {
             return [];
         }

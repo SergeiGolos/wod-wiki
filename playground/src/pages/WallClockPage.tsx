@@ -31,6 +31,7 @@ export function WallClockPage() {
       if (!results || !runtimeId || !pending) return
       playgroundRecorder.record({
         runBlock: pending.block,
+        blockId: pending.block.id,
         destination: parseNoteId(pending.noteId),
         resultId: runtimeId,
         data: results,

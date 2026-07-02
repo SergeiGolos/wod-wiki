@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 
 /**
  * Action that skips the current segment (leaf block).
@@ -10,7 +10,7 @@ export class SkipCurrentBlockAction implements IRuntimeAction {
 
     constructor(private readonly rootBlockId: string) { }
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IRuntimeContext): void {
         const current = runtime.stack.current;
         if (current && current.key.toString() !== this.rootBlockId) {
             // Mark current block as complete - stack will pop it during sweep

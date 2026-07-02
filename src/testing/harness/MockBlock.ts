@@ -186,10 +186,19 @@ class MockBehaviorContext implements IBehaviorContext {
         timestamp: f.timestamp ?? now
       }));
 
+      if (timerSpans.length > 0) {
+        taggedMetrics.unshift({
+          type: MetricType.Spans,
+          value: timerSpans,
+          origin: 'runtime',
+          timestamp: now,
+          sourceBlockKey: this._mockBlock.key.toString(),
+        });
+      }
+
       const output = new OutputStatement({
         outputType: type,
         timeSpan: new TimeSpan(startTime, endTime),
-        spans: timerSpans.length > 0 ? timerSpans : undefined,
         sourceBlockKey: this._mockBlock.key.toString(),
         sourceStatementId: this._mockBlock.sourceIds?.[0],
         stackLevel: this.stackLevel,

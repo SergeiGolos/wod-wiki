@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { IOutputStatement } from '../../core/models/OutputStatement';
+import { MetricType } from '@/core/models/Metric';
 import { cn } from '@/lib/utils';
 import { Clock, CheckCircle2, ListTree, Timer, Table2 } from 'lucide-react';
 import { useTimerElapsed, useRoundDisplay, useScriptRuntime, useNextPreview } from '@/hooks/useRuntimeTimer';
@@ -21,11 +22,8 @@ export const HistorySummaryView: React.FC<{
     // Filter for completed items (usually blocks/segments)
     const completedItems = outputs.filter(o => o.outputType === 'segment');
 
-    // Calculate total duration from spans or fallback to timeSpan
-    // Using 'elapsed' property from OutputStatement if available, or manual calc
     const totalDurationMs = completedItems.reduce((acc, curr) => {
-        // Safe access to elapsed or duration
-        return acc + (curr.elapsed ?? ((curr.timeSpan.ended ?? Date.now()) - curr.timeSpan.started));
+        return acc + ((curr.getMetric(MetricType.Elapsed)?.value as number) ?? 0);
     }, 0);
 
     const formatDuration = (ms: number) => {
@@ -290,7 +288,7 @@ export const RuntimeStackView: React.FC<{
 
         if (levelOutputs.length === 0) return null;
 
-        const totalDuration = levelOutputs.reduce((acc, curr) => acc + (curr.elapsed ?? ((curr.timeSpan.ended ?? Date.now()) - curr.timeSpan.started)), 0);
+        const totalDuration = levelOutputs.reduce((acc, curr) => acc + ((curr.getMetric(MetricType.Elapsed)?.value as number) ?? 0), 0);
         const formatDuration = (ms: number) => {
             const seconds = Math.floor(ms / 1000);
             const m = Math.floor(seconds / 60);

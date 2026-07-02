@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 
 /**
  * Action for declaratively unregistering an event handler.
@@ -21,7 +21,7 @@ export class UnregisterEventHandlerAction implements IRuntimeAction {
     public readonly handlerId: string
   ) {}
 
-  do(runtime: IScriptRuntime): void {
+  do(runtime: IRuntimeContext): void {
     runtime.eventBus.unregisterById(this.handlerId);
   }
 }

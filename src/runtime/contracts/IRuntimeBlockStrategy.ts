@@ -1,5 +1,5 @@
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "./IScriptRuntime";
+import type { IRuntimeContext } from "./IRuntimeContext";
 import { BlockBuilder } from "../compiler/BlockBuilder";
 
 export interface IRuntimeBlockStrategy {
@@ -16,11 +16,11 @@ export interface IRuntimeBlockStrategy {
     /**
      * Checks if this strategy applies to the given statement.
      */
-    match(statements: ICodeStatement[], runtime: IScriptRuntime): boolean;
+    match(statements: ICodeStatement[], runtime: IRuntimeContext): boolean;
 
     /**
      * Applies this strategy to the block builder.
      * Note: This replaces `compile`. The builder accumulates state.
      */
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void;
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IRuntimeContext): void;
 }

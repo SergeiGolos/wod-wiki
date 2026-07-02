@@ -1,5 +1,5 @@
 import type { IRuntimeBlock } from "../contracts/IRuntimeBlock";
-import type { IScriptRuntime } from "../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../contracts/IRuntimeContext";
 import type { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
 import type { ICodeStatement } from "@/core/models/CodeStatement";
 import { BlockBuilder } from "./BlockBuilder";
@@ -64,7 +64,7 @@ export class JitCompiler implements IJitCompiler {
     }).join('|');
   }
 
-  compile(nodes: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
+  compile(nodes: ICodeStatement[], runtime: IRuntimeContext): IRuntimeBlock | undefined {
     if (nodes.length === 0) {
       return undefined;
     }

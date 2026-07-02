@@ -28,9 +28,6 @@ function createMockOutput(options: {
     id: options.id ?? 1,
     outputType: options.outputType ?? 'segment',
     timeSpan,
-    spans: [],
-    elapsed: timeSpan.duration,
-    total: timeSpan.duration,
     sourceBlockKey: options.sourceBlockKey ?? 'block-1',
     stackLevel: options.stackLevel ?? 0,
     metrics,
@@ -66,7 +63,10 @@ describe('AnalyticsTransformer', () => {
           outputType: 'segment',
           started: startTime,
           ended: startTime + 60000,
-          metrics: [{ type: MetricType.Effort, value: 'Warmup', image: 'Warmup' }]
+          metrics: [
+            { type: MetricType.Effort, value: 'Warmup', image: 'Warmup' },
+            { type: MetricType.Elapsed, value: 60000, origin: 'runtime' },
+          ]
         })
       ];
 
@@ -182,11 +182,12 @@ describe('AnalyticsTransformer', () => {
           started: spanStart,
           ended: spanEnd,
           sourceBlockKey: 'timed-block',
-          metrics: [{ type: MetricType.Effort, value: 'Run', image: 'Run' }],
+          metrics: [
+            { type: MetricType.Effort, value: 'Run', image: 'Run' },
+            { type: MetricType.Spans, value: [new TimeSpan(spanStart, spanEnd)], origin: 'runtime' },
+            { type: MetricType.Elapsed, value: spanEnd - spanStart, origin: 'runtime' },
+          ],
         });
-        // Inject real spans (TimeSpan objects use epoch ms)
-        (output as any).spans = [new TimeSpan(spanStart, spanEnd)];
-        (output as any).elapsed = spanEnd - spanStart; // 3000ms
 
         const segments = transformer.fromOutputStatements([output], workoutStart);
 

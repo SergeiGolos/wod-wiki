@@ -45,11 +45,6 @@ export interface StoredOutputStatement {
   readonly id: number;
   readonly outputType: OutputStatementType;
   readonly timeSpan: { started: number; ended?: number };
-  readonly spans: ReadonlyArray<{ started: number; ended?: number }>;
-  /** Pause-aware active time in ms (pre-computed so it survives serialisation). */
-  readonly elapsed: number;
-  /** Wall-clock bracket in ms (pre-computed so it survives serialisation). */
-  readonly total: number;
   /** Flat IMetric array — MetricContainer class not needed after serialisation. */
   readonly metrics: IMetric[];
   /** Plain string array — Set<string> does not survive JSON serialisation. */
@@ -64,8 +59,7 @@ export interface StoredOutputStatement {
 /**
  * Convert a live IOutputStatement into a StoredOutputStatement.
  *
- * Eagerly computes derived values (`elapsed`, `total`) and normalises
- * non-serialisable types (`Set` → `string[]`, `MetricContainer` → `IMetric[]`)
+ * Normalises non-serialisable types (`Set` → `string[]`, `MetricContainer` → `IMetric[]`)
  * so the result survives a JSON / IndexedDB round-trip without data loss.
  */
 export function toStoredOutputStatement(output: IOutputStatement): StoredOutputStatement {
@@ -73,9 +67,6 @@ export function toStoredOutputStatement(output: IOutputStatement): StoredOutputS
     id: output.id,
     outputType: output.outputType,
     timeSpan: { started: output.timeSpan.started, ended: output.timeSpan.ended },
-    spans: output.spans.map(s => ({ started: s.started, ended: s.ended })),
-    elapsed: output.elapsed,
-    total: output.total,
     metrics: output.metrics.toArray(),
     hints: (() => { const h = getHints(output); return h.length ? h : undefined; })(),
     sourceBlockKey: output.sourceBlockKey,

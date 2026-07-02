@@ -1,28 +1,44 @@
 /**
- * resultRecorder — the single playground seam for persisting a workout result.
+ * resultRecorder — the single seam for persisting a workout result.
  *
- * Owns identity resolution + the write. Callers pass a run block, a blockId
- * (section position), a pre-computed version number, and a destination NoteRef.
- *
- * Identity policy:
- *  - noteId          = destination.raw        (canonical playground id)
- *  - blockId         = section.id             (position in the note)
- *  - blockContentId  = runBlock.contentId     (content hash at recording time)
- *  - version         = computed by caller     (content generation at this position)
- *
- * Version is computed by the pure `computeVersion()` function, which the caller
- * invokes with the already-loaded results for the note. The recorder itself
- * stays a simple write primitive.
+ * Owns identity resolution (noteId · blockId · blockContentId · version) and
+ * delegates the write to an INotePersistence port. Placement A per
+ * `docs/adr/cross-note-result-aggregation.md`: the Recorder sits ABOVE the two
+ * persistence adapters so a single identity policy feeds both IndexedDB-full
+ * (with analytics + attachments) and provider-delegated (demo) backends.
  */
 import { indexedDBService } from '@/services/db/IndexedDBService';
-export { computeVersion } from '@/utils/computeVersion';
+import { notePersistence } from '@/services/persistence';
+import { computeVersion } from '@/utils/computeVersion';
 import type { WorkoutResult } from '@/types/storage';
 import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
+import type { Segment } from '@/core/models/AnalyticsModels';
 import type { NoteRef } from '../lib/noteIdentity';
 
-/** Minimal write primitive the Recorder needs — IndexedDBService satisfies it. */
-export interface ResultSink {
-  saveResult(result: WorkoutResult): Promise<unknown>;
+/** Re-export so callers (e.g. Canvas Runtime) can compute in tests / fallback paths. */
+export { computeVersion } from '@/utils/computeVersion';
+
+/**
+ * Writer port the Recorder needs.
+ *
+ * `IndexedDBNotePersistence` and `ContentProviderNotePersistence` both satisfy
+ * this. Kept narrow so the Recorder's true collaborator set is visible.
+ */
+export interface ResultMutation {
+  workoutResult?: {
+    id?: string;
+    blockId?: string;
+    blockContentId?: string;
+    version?: number;
+    segmentId?: string;
+    data: WorkoutResults;
+    completedAt?: number;
+    analyticsSegments?: Segment[];
+  };
+}
+
+export interface ResultWriter {
+  mutateNote(locator: { id: string }, mutation: ResultMutation): Promise<unknown>;
 }
 
 export interface RecordResultInput {
@@ -30,9 +46,7 @@ export interface RecordResultInput {
   runBlock: ScriptBlock;
   /** Section position identity — which block in the note. */
   blockId: string;
-  /** Content generation at this position. Compute via `computeVersion()`. */
-  version: number;
-  /** The destination note; `raw` becomes the result's `noteId`. */
+  /** Destination note ref; `.raw` becomes the result's `noteId`. */
   destination: NoteRef;
   /** Stable id for this result (the runtimeId). */
   resultId: string;
@@ -40,33 +54,62 @@ export interface RecordResultInput {
   data: WorkoutResults;
   /** Completion timestamp (Unix ms). */
   completedAt: number;
+  /** Optional analytics segments to persist atomically with this result. */
+  analyticsSegments?: Segment[];
 }
 
 export interface ResultRecorder {
   record(input: RecordResultInput): Promise<WorkoutResult>;
 }
 
-
 /**
- * Build a Recorder over an injected sink. Tests pass an in-memory sink;
- * production uses the pre-wired `playgroundRecorder` below.
+ * Build a Recorder over an injected writer. Tests pass a stub writer;
+ * production uses `playgroundRecorder` (wired to `notePersistence`).
  */
-export function createResultRecorder(sink: ResultSink): ResultRecorder {
+export function createResultRecorder(writer: ResultWriter): ResultRecorder {
   return {
-    record({ runBlock, blockId, version, destination, resultId, data, completedAt }) {
+    async record({ runBlock, blockId, destination, resultId, data, completedAt, analyticsSegments }) {
+      const noteId = destination.raw;
+      // Identity in one place: never let callers pre-compute it.
+      const existing = await indexedDBService.getResultsForNote(noteId);
+      const version = computeVersion(blockId, runBlock.contentId, existing);
+
+      // Delegate the write through the chosen writer (INotePersistence.mutateNote).
+      // The writer routes through the adapter that backs it — IndexedDB-full for
+      // production, provider-delegated for demos — but identity policy is unified here.
+      await writer.mutateNote(
+        { id: noteId },
+        {
+          workoutResult: {
+            id: resultId,
+            blockId,
+            blockContentId: runBlock.contentId,
+            version,
+            segmentId: runBlock.id,
+            data,
+            completedAt,
+            analyticsSegments,
+          },
+        },
+      );
+
       const result: WorkoutResult = {
         id: resultId,
-        noteId: destination.raw,
+        noteId,
         blockId,
         blockContentId: runBlock.contentId,
         version,
         data,
         completedAt,
       };
-      return sink.saveResult(result).then(() => result);
+      return result;
     },
   };
 }
 
-/** Pre-wired Recorder over the IndexedDB results store — the one callers use. */
-export const playgroundRecorder = createResultRecorder(indexedDBService);
+/**
+ * Pre-wired Recorder over the default persistence adapter — the one callers use.
+ * Sits above IndexedDBNotePersistence (which writes results atomically with
+ * analytics + attachments) so a single identity policy feeds both adapters.
+ */
+export const playgroundRecorder = createResultRecorder(notePersistence);

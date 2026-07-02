@@ -4,8 +4,8 @@ import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResult } from '@/types/storage'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
-import { notePersistence } from '@/services/persistence'
-import { computeVersion } from '../services/resultRecorder'
+import { playgroundRecorder } from '../services/resultRecorder';
+import { parseNoteId } from '../lib/noteIdentity';
 import { activeRuntimes, pendingRuntimes } from '../runtimeStore'
 import { runPath } from '../lib/routes'
 import type { RunButtonState } from '../components/molecules/SectionButtons'
@@ -78,29 +78,26 @@ export function useCanvasRuntime({
     if (results) {
       const runtimeId = activeViewRuntimeId ?? uuidv4()
       const blockId = block?.id ?? ''
-      const version = computeVersion(blockId, block?.contentId, persistedResults)
-      const nextResult: WorkoutResult = {
+      // Optimistic local update — the Recorder persists asynchronously.
+      const optimisticNextResult = {
         id: runtimeId,
         noteId: canvasNoteId,
         blockId,
         blockContentId: block?.contentId,
-        version,
         data: results,
         completedAt: results.endTime || Date.now(),
       }
       setPersistedResults((previous) => {
-        const deduped = previous.filter((result) => result.id !== nextResult.id)
-        return [nextResult, ...deduped].sort((a, b) => b.completedAt - a.completedAt)
+        const deduped = previous.filter((result) => result.id !== optimisticNextResult.id)
+        return [optimisticNextResult, ...deduped].sort((a, b) => b.completedAt - a.completedAt)
       })
-      notePersistence.mutateNote(canvasNoteId, {
-        workoutResult: {
-          id: runtimeId,
-          blockId,
-          blockContentId: block?.contentId,
-          version,
-          data: results,
-          completedAt: results.endTime || Date.now(),
-        },
+      playgroundRecorder.record({
+        runBlock: block!,
+        blockId,
+        destination: parseNoteId(canvasNoteId),
+        resultId: runtimeId,
+        data: results,
+        completedAt: results.endTime || Date.now(),
       }).catch(() => {})
     }
 

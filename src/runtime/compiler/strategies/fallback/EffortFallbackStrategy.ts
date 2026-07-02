@@ -1,7 +1,7 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricType } from "@/core/models/Metric";
 
 // Specific behaviors not covered by aspect composers
@@ -22,7 +22,7 @@ import { compose } from "../../BlockTemplateComposer";
 export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
     priority = 0;
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
 
         // Check if ANY statement has timer, rounds, or children
@@ -33,7 +33,7 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         return !hasTimer && !hasRounds && !hasChildren;
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IRuntimeContext): void {
         // Route through the shared chassis composer — key, context, label,
         // source IDs, fragments, and the timer aspect are all handled by
         // `compose()`. Only the exit behavior is the delta.

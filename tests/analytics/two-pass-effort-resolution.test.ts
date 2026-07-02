@@ -46,7 +46,6 @@ function makeSegment(
     stackLevel: 0,
     timeSpan: { started: 0, ended: 60_000 },
     metrics: container,
-    isLeaf: true,
   });
 }
 

@@ -3,7 +3,7 @@ import { IBlockContext } from "../contracts/IBlockContext";
 import { BlockKey } from "../../core/models/BlockKey";
 import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import { RuntimeBlock } from "../RuntimeBlock";
-import { IScriptRuntime } from "../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../contracts/IRuntimeContext";
 import { IMetric, MetricType } from "../../core/models/Metric";
 import { MetricContainer } from "../../core/models/MetricContainer";
 import { MemoryLocation } from "../memory/MemoryLocation";
@@ -53,7 +53,7 @@ export class BlockBuilder {
     /** Pending round config stored by asRepeater(), consumed by asContainer() */
     private pendingRoundConfig: RepeaterConfig | undefined;
 
-    constructor(private runtime: IScriptRuntime) {}
+    constructor(private runtime: IRuntimeContext) {}
 
     addBehavior(behavior: IRuntimeBehavior): BlockBuilder {
 

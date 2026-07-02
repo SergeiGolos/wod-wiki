@@ -238,6 +238,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       startTime: execution.startTime ?? undefined,
       elapsedTime: execution.elapsedTime,
       completed,
+      now: runtime.nowProvider,
     });
 
     onComplete?.(block.id, results);

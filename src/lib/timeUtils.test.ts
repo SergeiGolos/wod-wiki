@@ -47,7 +47,7 @@ describe('timeUtils Contract', () => {
         { start: 1000, stop: 2000 }, // 1000ms
         { start: 3000, stop: 5000 }, // 2000ms
       ];
-      expect(calculateDuration(spans)).toBe(3000);
+      expect(calculateDuration(spans, 999999999)).toBe(3000);
     });
 
     it('should use provided "now" for open spans', () => {
@@ -56,15 +56,15 @@ describe('timeUtils Contract', () => {
     });
 
     it('should return 0 for empty or invalid spans', () => {
-      expect(calculateDuration([])).toBe(0);
-      expect(calculateDuration(undefined as any)).toBe(0);
+      expect(calculateDuration([], 999999999)).toBe(0);
+      expect(calculateDuration(undefined as any, 999999999)).toBe(0);
     });
 
     it('should prevent negative durations from malformed spans', () => {
       const spans = [
         { start: 5000, stop: 2000 } // Stop before start
       ];
-      expect(calculateDuration(spans)).toBe(0);
+      expect(calculateDuration(spans, 999999999)).toBe(0);
     });
   });
 

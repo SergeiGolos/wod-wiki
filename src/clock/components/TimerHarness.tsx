@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
 import { formatTimestamp, formatDurationSmart } from '../../lib/formatTime';
 import { calculateDuration } from '../../lib/timeUtils';
+import { getRuntimeNowMs } from '../../runtime/hooks/runtimeNow';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../runtime/RuntimeBlock';
 import { CountdownTimerBehavior, CountupTimerBehavior } from '../../runtime/behaviors';
@@ -101,10 +102,10 @@ export const TimerHarness: React.FC<TimerHarnessProps> = ({
         spans = timeSpans;
       } else if (autoStart) {
         // Running timer: start time in the past, no stop time
-        spans = [new TimeSpan(Date.now() - durationMs)];
+        spans = [new TimeSpan(getRuntimeNowMs() - durationMs)];
       } else {
         // Stopped timer: start and stop time
-        const now = Date.now();
+        const now = getRuntimeNowMs();
         spans = [new TimeSpan(now - durationMs, now)];
       }
 
@@ -240,7 +241,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
 }) => {
   const formatElapsedTime = formatDurationSmart;
 
-  const elapsedMs = calculateDuration(timeSpans, Date.now());
+  const elapsedMs = calculateDuration(timeSpans, getRuntimeNowMs());
   const elapsedDisplay = timerType === 'countdown'
     ? `-${formatElapsedTime(elapsedMs)}`
     : formatElapsedTime(elapsedMs);
@@ -301,7 +302,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
                   const duration = span.started
                     ? span.ended
                       ? Math.round((span.ended - span.started) / 1000)
-                      : Math.round((Date.now() - span.started) / 1000)
+                      : Math.round((getRuntimeNowMs() - span.started) / 1000)
                     : 0;
 
                   return (

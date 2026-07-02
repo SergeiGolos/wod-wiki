@@ -22,9 +22,12 @@ export type SegmentDataType = 'script' | 'youtube' | 'markdown' | 'header' | 'fr
  * Think of this as the "Folder" or "File" container.
  */
 export interface Note {
-    id: string;           // UUID
+    id: string;           // UUID — canonical storage identity (V8)
     title: string;        // Display name
     rawContent: string;   // Current/Draft content (for search/preview)
+
+    // V8 — routing sugar; routes resolve slug -> UUID on load. Never a storage or join key.
+    slug?: string;
 
     // Metadata
     tags: string[];
@@ -108,6 +111,8 @@ export interface Attachment {
 export interface AnalyticsDataPoint {
     id: string;
     noteId: string;
+    /** V6 — content-stable join key; drives the `analytics.by-content` index for cross-workout trend queries. */
+    blockContentId?: string;
     segmentId: string;
     segmentVersion: number;
     resultId: string;     // Link to raw WorkoutResult

@@ -1,5 +1,5 @@
 import type { IRuntimeAction } from "@/runtime/contracts/IRuntimeAction";
-import type { IScriptRuntime } from "@/runtime/contracts/IScriptRuntime";
+import type { IRuntimeContext } from "@/runtime/contracts/IRuntimeContext";
 import type { IEvent } from "@/runtime/contracts/events/IEvent";
 import { INowProvider, wallClockNow } from "@/runtime/INowProvider";
 
@@ -37,7 +37,7 @@ export class EmitEventAction implements IRuntimeAction {
     this.timestamp = timestamp ?? now.now();
   }
 
-  do(runtime: IScriptRuntime): IRuntimeAction[] {
+  do(runtime: IRuntimeContext): IRuntimeAction[] {
     const event: IEvent = {
       name: this.eventName,
       timestamp: this.timestamp,

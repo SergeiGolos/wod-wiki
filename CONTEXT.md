@@ -117,6 +117,19 @@ calls into domain operations (latest-version lookup, cascade delete,
 analytics write) — they do not embed engine specifics.
 _Avoid_: data layer, store (overloaded).
 ### Dialect & runtime
+**Block Dialect**:
+The fence tag that declares a block's domain (` ```wod `, ` ```climb `) — the one
+property that parser and analytics key on (the runtime never reads the tag — it is
+shaped indirectly via the hints the **Dialect Stack** produces, so there is no
+tag-keyed strategy seam). Selects dialect-specific
+overrides for a block; the universal defaults (base **Dialect Stack**, default
+grammar, default analytics) always run underneath. A Block Dialect overrides; it
+does not replace — no override for a concern means the default applies.
+Each Block Dialect declares its own fence tags and aliases (`wod` → `wod`,
+`whiteboard`); the registered set is the single source of truth for which fences
+the parser treats as runnable — there is no closed enum of dialects.
+_Avoid_: fence flavor, language tag, code-language.
+
 **Dialect**:
 A composable analyzer (`IDialect`) that recognizes a domain's patterns (CrossFit,
 Cardio, Yoga…), contributes a **Unit** set, and emits **Hint** markers plus
@@ -191,14 +204,22 @@ _Avoid_: bridge (cast-specific legacy), effects hook (too generic).
 ### Identity & result recording
 
 **Note Identity (NoteRef)**:
-A typed, routable reference to a playground note — `{ kind: 'journal' | 'playground' | 'workout'; id; raw }`. The single home for parsing the composite `noteId` string (`category/name`) and the kind→route rule, replacing ad-hoc `noteId.split('/')` switches. `raw` carries the original string verbatim as the storage key, so parsing never rewrites stored ids.
+A typed, routable reference to a note — `{ kind: 'journal' | 'playground' | 'workout'; id; raw }`. A note's canonical storage identity is its **UUID** (`Note.id`); that UUID is what **Blocks**, **WorkoutResults**, and cross-note references point to. `raw` is the **Slug** — routing sugar resolved to the UUID on load, never the storage or join key. `parseNoteId` / `noteRefToPath` are the single home for the composite-id parse and the kind→route rule.
 _Avoid_: note id (overloaded), note ref (informal).
 `playground/src/lib/noteIdentity.ts` — `parseNoteId`, `noteRefToPath`.
+
+**Slug**:
+The routing-sugar string for a **Note** (`journal/2024-01-15`, a collection id) — what appears in the URL and what a user types. Distinct from the note's **UUID**: the slug resolves to the UUID on load and is never a storage or join key.
+_Avoid_: url, path, route id (overloaded — a route resolves *to* the UUID; it isn't the id).
 
 **Block Content Id**:
 A content-stable identity for a **Block** — a hash of its normalized fenced content, independent of where the block sits in the document. Unlike the line-embedded section id, it survives clone / reorder / edit-above, so results keyed by it stay linked to the right workout even when the block moves. Carried as `contentId` on **ScriptBlock** / **Section** and as `blockContentId` on **WorkoutResult**; the line-based `sectionId` is retained as a legacy fallback join key. Minted in **both** section-building paths (the editor's `section-state` and the persistence `sectionParser`) via one `blockContentId()` function, so a live block and its persisted clone share an id. Two blocks with identical content share an id by design (same workout → shared history, scoped per note).
 _Avoid_: content hash (implementation detail), stable id (ambiguous).
 `src/components/Editor/utils/sectionParser.ts` — `blockContentId`.
+
+**Collection**:
+Bundled, read-only workout seed-data a user loads into their own notes. A block cloned from a Collection shares its **Block Content Id** with the source (identical content → identical hash), so the same workout run across different notes and days is one identity, not many. Distinct from a **Note**, which the user owns and edits.
+_Avoid_: bundle, library, pack.
 
 **Result Recorder**:
 The single playground seam for persisting a **WorkoutResult**. Owns identity resolution (noteId from a **Note Identity**, blockContentId from the run block, sectionId resolved against the destination note's blocks) and the write — replacing the per-page ad-hoc `saveResult` / `mutateNote` calls that each re-derived identity from scratch. Built by `createResultRecorder(sink)` (testable with an in-memory sink); `playgroundRecorder` is the production instance over the **Storage** `results` store.
@@ -217,6 +238,8 @@ _Avoid_: result service, result saver (too generic).
   applies it; the **Dialect Stack** composes these sets in order (later wins).
 - The parser is **Unit**-free: it emits bare Number + Text; **Fusion** (a Dialect
   concern) turns them into dimensioned Metrics.
+- A block cloned from a **Collection** shares its **Block Content Id** with the
+  source, so results for the same workout aggregate across notes by content id.
 
 ## Example dialogue
 

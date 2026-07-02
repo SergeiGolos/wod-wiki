@@ -87,6 +87,7 @@ function appendMetricPoints(
   segmentVersion: number,
   now: number,
   source: PersistableMetricSource,
+  blockContentId: string | undefined,
 ): void {
   const value = extractMetricValue(source);
   if (value === undefined) return;
@@ -100,6 +101,7 @@ function appendMetricPoints(
   points.push({
     id: `${segmentId}-${metricKey}-${now}`,
     noteId,
+    blockContentId,
     segmentId,
     segmentVersion,
     resultId,
@@ -133,6 +135,7 @@ export function normalizeAnalyticsSegments(
   noteId: string,
   resultId?: string,
   segmentVersions: Record<string, number | undefined> = {},
+  blockContentId?: string,
 ): AnalyticsDataPoint[] {
   const now = Date.now();
   const resolvedResultId = resultId ?? '';
@@ -145,6 +148,7 @@ export function normalizeAnalyticsSegments(
       points.push({
         id: `${segmentId}-elapsed-${now}`,
         noteId,
+        blockContentId,
         segmentId,
         segmentVersion,
         resultId: resolvedResultId,
@@ -162,14 +166,14 @@ export function normalizeAnalyticsSegments(
 
     const metricSources = segment.metrics
       ? MetricContainer.from(segment.metrics, segmentId).toArray()
-      : Object.entries(segment.metric).map(([key, value]) => ({
+      : Object.entries(segment.metric ?? {}).map(([key, value]) => ({
           type: key,
           key,
           value,
         }));
 
     for (const source of metricSources as PersistableMetricSource[]) {
-      appendMetricPoints(points, segment, noteId, resolvedResultId, segmentId, segmentVersion, now, source);
+      appendMetricPoints(points, segment, noteId, resolvedResultId, segmentId, segmentVersion, now, source, blockContentId);
     }
   }
 
@@ -213,8 +217,17 @@ export class IndexedDBNotePersistence implements INotePersistence {
 
   async listNotes(query: NoteQuery = {}): Promise<HistoryEntry[]> {
     if (query.ids && query.ids.length > 0) {
+      const projection = query.projection ?? 'summary';
       return Promise.all(
-        query.ids.map(id => this.getNote(id, { projection: query.projection ?? 'summary' })),
+        query.ids.map(id => this.getNote(id, {
+          projection,
+          // Mirror the list branch: history-detail means "every result for the
+          // note", not the default 'latest' single-result projection. Without
+          // this, callers like the canvas that load via listNotes({ids}) get an
+          // entry with no extendedResults, so the inline results bar never
+          // hydrates on reload.
+          ...(projection === 'history-detail' && { resultSelection: { mode: 'all-for-note' as const } }),
+        })),
       );
     }
 
@@ -241,9 +254,23 @@ export class IndexedDBNotePersistence implements INotePersistence {
   }
 
   async mutateNote(locator: NoteLocator, mutation: NoteMutation): Promise<HistoryEntry> {
-    const note = await this.resolveNote(locator);
+    let note = await this.resolveNote(locator);
     if (!note) {
-      throw new NotePersistenceError('NOTE_NOT_FOUND', `Note not found: ${this.describeLocator(locator)}`);
+      // Recording a result onto a note that has no row yet (e.g. a static
+      // canvas surface whose body is file-backed, never written to the store):
+      // lazily create a minimal note so the result has a home. Without this,
+      // mutateNote threw NOTE_NOT_FOUND and the recorder's .catch swallowed it,
+      // so the result was never persisted and nothing hydrated on reload.
+      // Scoped to result writes — content/attachment mutations still require an
+      // existing note.
+      if (mutation.workoutResult) {
+        const id = this.locatorToId(locator);
+        const now = Date.now();
+        note = { id, title: id, rawContent: '', tags: [], createdAt: now, updatedAt: now, targetDate: now, segmentIds: [] };
+        await this.storage.saveNote(note);
+      } else {
+        throw new NotePersistenceError('NOTE_NOT_FOUND', `Note not found: ${this.describeLocator(locator)}`);
+      }
     }
 
     const resultId = mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv4() : undefined);
@@ -252,7 +279,9 @@ export class IndexedDBNotePersistence implements INotePersistence {
       rawContent: mutation.rawContent,
       results: mutation.workoutResult?.data,
       segmentId: mutation.workoutResult?.segmentId,  // NoteSegment FK (for analytics)
+      blockId: mutation.workoutResult?.blockId,  // line-based position key
       blockContentId: mutation.workoutResult?.blockContentId,  // content-stable join key
+      version: mutation.workoutResult?.version,  // content generation
       resultId,
     };
 
@@ -268,6 +297,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
         note.id,
         mutation.analytics?.resultId ?? resultId,
         segmentVersions,
+        mutation.workoutResult?.blockContentId,
       );
       // Persist derived analytics rows for future cross-workout trend queries.
       // Non-load-bearing: WorkoutResult.data.logs is the authoritative source.
@@ -330,13 +360,18 @@ export class IndexedDBNotePersistence implements INotePersistence {
     const direct = await this.storage.getNote(id);
     if (direct) return direct;
     const notes = await this.storage.getAllNotes();
-    return notes.find(note => toShortId(note.id) === id || note.title.toLowerCase() === id.toLowerCase());
+    return notes.find(note => toShortId(note.id) === id || note.slug === id || note.title.toLowerCase() === id.toLowerCase());
   }
 
   private describeLocator(locator: NoteLocator): string {
     return typeof locator === 'string'
       ? locator
       : locator.id ?? locator.shortId ?? locator.title ?? '<empty locator>';
+  }
+
+  private locatorToId(locator: NoteLocator): string {
+    if (typeof locator === 'string') return locator;
+    return locator.id ?? locator.shortId ?? locator.title ?? '';
   }
 
   private async getAnalyticsSegmentVersions(segments: AnalyticsSegmentInput[]): Promise<Record<string, number | undefined>> {

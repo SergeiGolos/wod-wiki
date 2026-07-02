@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 
 /**
  * TrackMetricAction - Updates a metric on the active span.
@@ -14,7 +14,7 @@ export class TrackMetricAction implements IRuntimeAction {
         public readonly unit: string
     ) { }
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IRuntimeContext): void {
         if (runtime.tracker?.recordMetric) {
             runtime.tracker.recordMetric(this.blockId, this.metricKey, this.value, this.unit);
         }

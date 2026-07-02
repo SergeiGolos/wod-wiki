@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { SnapshotClock } from '../../RuntimeClock';
 import { INowProvider, wallClockNow } from '../../INowProvider';
@@ -17,7 +17,7 @@ export class NextAction implements IRuntimeAction {
     private readonly now: INowProvider = wallClockNow,
   ) {}
 
-  do(runtime: IScriptRuntime): IRuntimeAction[] {
+  do(runtime: IRuntimeContext): IRuntimeAction[] {
     // Validate runtime state
     if (!this.validateRuntimeState(runtime)) {
       return [];
@@ -55,7 +55,7 @@ export class NextAction implements IRuntimeAction {
     }
   }
 
-  private validateRuntimeState(runtime: IScriptRuntime): boolean {
+  private validateRuntimeState(runtime: IRuntimeContext): boolean {
     // Check for undefined/null stack
     if (!runtime.stack) {
       return false;

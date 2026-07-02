@@ -1,9 +1,8 @@
 import { BlockKey } from '../core/models/BlockKey';
-import { IScriptRuntime } from './contracts/IScriptRuntime';
+import type { IRuntimeContext } from './contracts/IRuntimeContext';
 import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions, CompletionDecision, IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
-import type { IRuntimeActionable } from './contracts/primitives/IRuntimeActionable';
 import { IBlockContext } from './contracts/IBlockContext';
 import { BlockContext } from './BlockContext';
 import { BehaviorContext } from './BehaviorContext';
@@ -27,7 +26,7 @@ import { PopBlockAction } from './actions/stack/PopBlockAction';
  */
 export interface RuntimeBlockOptions {
     /** The owning runtime. */
-    runtime: IScriptRuntime;
+    runtime: IRuntimeContext;
     /** Source statement ids this block was compiled from. Defaults to `[]`. */
     sourceIds?: number[];
     /** Behaviors composed onto this block. Defaults to `[]`. */
@@ -98,7 +97,7 @@ export class RuntimeBlock implements IRuntimeBlock {
     private _eventUnsubscribers: Array<() => void> = [];
 
     // Runtime reference (set during mount)
-    protected _runtime?: IScriptRuntime;
+    protected _runtime?: IRuntimeContext;
 
     constructor(options: RuntimeBlockOptions) {
         const {
@@ -197,7 +196,7 @@ export class RuntimeBlock implements IRuntimeBlock {
     /**
      * Called when this block is pushed onto the runtime stack.
      */
-    mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    mount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         this._runtime = runtime;
 
         // Use provided clock or fall back to runtime clock
@@ -240,7 +239,7 @@ export class RuntimeBlock implements IRuntimeBlock {
      * @param runtime The script runtime context
      * @param options Lifecycle options including optional clock for timing consistency
      */
-    inspectNext(runtime: IRuntimeActionable, options?: BlockLifecycleOptions): CompletionDecision {
+    inspectNext(runtime: IRuntimeContext, options?: BlockLifecycleOptions): CompletionDecision {
         if (!this._behaviorContext) {
             // Mirror next()'s no-context behavior: return an empty decision.
             // DO NOT warn — inspectNext is a pure read; calling before mount
@@ -255,7 +254,7 @@ export class RuntimeBlock implements IRuntimeBlock {
             this,
             clock,
             this._behaviorContext.stackLevel,
-            runtime as IScriptRuntime,
+            runtime,
             this._behaviorContext.getCapabilities(),
         );
         // Snapshot completion state so we can restore it after inspection.
@@ -315,7 +314,7 @@ export class RuntimeBlock implements IRuntimeBlock {
      * @param runtime The script runtime context
      * @param options Lifecycle options including optional clock for timing consistency
      */
-    next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    next(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         if (!this._behaviorContext) {
             console.warn('[RuntimeBlock] next() called before mount()');
             return [];
@@ -351,7 +350,7 @@ export class RuntimeBlock implements IRuntimeBlock {
      * @param runtime The script runtime context
      * @param options Lifecycle options including optional clock for timing consistency
      */
-    unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    unmount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         // Use provided clock or fall back to runtime clock
         const clock = options?.clock ?? runtime.clock;
         this.executionTiming.endTime = options?.completedAt ?? clock.currentDate;
@@ -413,7 +412,7 @@ export class RuntimeBlock implements IRuntimeBlock {
     /**
      * Called for final cleanup.
      */
-    dispose(runtime: IScriptRuntime): void {
+    dispose(runtime: IRuntimeContext): void {
         // Create a temporary context if needed for dispose
         const ctx = this._behaviorContext ?? new BehaviorContext(
             this,
@@ -472,7 +471,7 @@ export class RuntimeBlock implements IRuntimeBlock {
      * Emit a system output for next lifecycle event.
      * Called directly from next() to ensure accurate timing.
      */
-    private emitNextSystemOutput(runtime: IScriptRuntime, clock: IRuntimeClock): void {
+    private emitNextSystemOutput(runtime: IRuntimeContext, clock: IRuntimeClock): void {
         const now = clock.currentDate;
 
         // Build structured data for the metrics value
