@@ -1,6 +1,6 @@
 import { IRuntimeBlockStrategy } from '../../../contracts/IRuntimeBlockStrategy';
 import { IRuntimeBlock } from '../../../contracts/IRuntimeBlock';
-import { IScriptRuntime } from '../../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../../contracts/IRuntimeContext';
 import { ICodeStatement } from '../../../../core/models/CodeStatement';
 import { BlockBuilder } from '../../BlockBuilder';
 import { RestBlock, RestBlockConfig } from '../../../blocks/RestBlock';
@@ -49,14 +49,14 @@ export class RestBlockStrategy implements IRuntimeBlockStrategy {
      * Rest blocks are currently auto-generated, not parsed from statements.
      * Returns false — RestBlocks are created directly via build().
      */
-    match(_statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(_statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         return false;
     }
 
     /**
      * Composable apply — not used for rest blocks.
      */
-    apply(_builder: BlockBuilder, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+    apply(_builder: BlockBuilder, _statements: ICodeStatement[], _runtime: IRuntimeContext): void {
         // No-op for direct build
     }
 
@@ -77,7 +77,7 @@ export class RestBlockStrategy implements IRuntimeBlockStrategy {
      * });
      * ```
      */
-    build(runtime: IScriptRuntime, config: RestBlockConfig): IRuntimeBlock {
+    build(runtime: IRuntimeContext, config: RestBlockConfig): IRuntimeBlock {
         return new RestBlock(runtime, config);
     }
 
@@ -91,7 +91,7 @@ export class RestBlockStrategy implements IRuntimeBlockStrategy {
      * @throws {RangeError} If durationMs is negative
      */
     buildWithDuration(
-        runtime: IScriptRuntime,
+        runtime: IRuntimeContext,
         durationMs: number,
         label?: string
     ): IRuntimeBlock {

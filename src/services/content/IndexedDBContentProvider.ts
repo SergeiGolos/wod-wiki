@@ -286,7 +286,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         };
     }
 
-    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'type' | 'clonedIds' | 'targetDate'>> & { sectionId?: string; resultId?: string }): Promise<HistoryEntry> {
+    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate'>> & { sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number }): Promise<HistoryEntry> {
         let note = await indexedDBService.getNote(id);
 
         if (!note) {
@@ -372,23 +372,21 @@ export class IndexedDBContentProvider implements IContentProvider {
         // Handle Results (linked to latest version state of note)
         if (patch.results) {
             const resultData = patch.results;
-            const latestSegment = patch.sectionId
-                ? await indexedDBService.getLatestSegmentVersion(patch.sectionId)
+            const latestSegment = patch.blockContentId
+                ? await indexedDBService.getLatestSegmentVersion(patch.blockContentId)
                 : undefined;
             const newResult: WorkoutResult = {
                 id: patch.resultId || uuidv4(),
-                segmentId: patch.sectionId, // Link to the NoteSegment that was executed
                 segmentVersion: latestSegment?.version,
                 noteId: note.id,   // Use resolved UUID (not raw route param)
-                sectionId: patch.sectionId, // Legacy compat
+                blockId: patch.blockId,
+                blockContentId: patch.blockContentId,
+                version: patch.version,
                 data: resultData,
                 completedAt: resultData.endTime || now
             };
             await indexedDBService.saveResult(newResult);
         }
-
-        note.updatedAt = now;
-        await indexedDBService.saveNote(note);
 
         return {
             id: note.id,

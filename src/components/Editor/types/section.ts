@@ -33,6 +33,8 @@ export type FrontMatterSubtype = 'default' | 'youtube' | 'strava' | 'amazon' | '
 export interface Section {
   /** Stable identifier (survives re-parse if structurally equivalent) */
   id: string;
+  /** Content-stable identity (wod only) — survives clone/reorder/edit-above; results join on this. */
+  contentId?: string;
 
   /** Structural type — determines which renderer is used */
   type: SectionType;

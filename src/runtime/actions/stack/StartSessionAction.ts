@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { SessionRootStrategy, buildChildGroupsWithContext } from '../../compiler/strategies/SessionRootStrategy';
 import { SessionRootConfig } from '../../blocks/SessionRootBlock';
@@ -37,7 +37,7 @@ export class StartSessionAction implements IRuntimeAction {
 
     constructor(private readonly options: StartSessionOptions = {}) {}
 
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
         // Guard: Check if workout already started
         if (runtime.stack.count > 0) {
             console.warn('[StartSessionAction] Session already started - stack is not empty');

@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { PopBlockAction } from './PopBlockAction';
 import { NextAction } from './NextAction';
 
@@ -31,7 +31,7 @@ export class ClearChildrenAction implements IRuntimeAction {
 
     constructor(private readonly targetBlockKey: string) { }
 
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
         const actions: IRuntimeAction[] = [];
         const MAX_ITERATIONS = 20; // Safety limit matching ExecutionContext
         let iterations = 0;

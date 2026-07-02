@@ -12,11 +12,9 @@ interface SavedPage {
 const savedPages: SavedPage[] = [];
 const existingPages = new Map<string, SavedPage>();
 
-mock.module('../services/playgroundDB', () => ({
-  PlaygroundDBService: {
-    pageId: (category: string, name: string) => `${category}/${name}`,
-  },
-  playgroundDB: {
+mock.module('../services/playgroundContent', () => ({
+  pageId: (category: string, name: string) => `${category}/${name}`,
+  playgroundContent: {
     getPage: async (id: string) => existingPages.get(id),
     savePage: async (page: SavedPage) => {
       savedPages.push(page);

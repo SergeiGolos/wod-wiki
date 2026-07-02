@@ -46,11 +46,9 @@ mock.module('@/services/db/IndexedDBService', () => ({
   },
 }));
 
-mock.module('./playgroundDB', () => ({
-  PlaygroundDBService: {
-    pageId: (category: string, name: string) => `${category}/${name}`,
-  },
-  playgroundDB: {
+mock.module('./playgroundContent', () => ({
+  pageId: (category: string, name: string) => `${category}/${name}`,
+  playgroundContent: {
     getPagesByCategory: mock(() => Promise.resolve([])),
   },
 }));

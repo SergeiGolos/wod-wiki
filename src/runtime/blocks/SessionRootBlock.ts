@@ -1,4 +1,4 @@
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../contracts/IRuntimeContext';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
@@ -58,7 +58,7 @@ export interface SessionRootConfig {
  */
 export class SessionRootBlock extends RuntimeBlock {
     constructor(
-        runtime: IScriptRuntime,
+        runtime: IRuntimeContext,
         config: SessionRootConfig
     ) {
         const sessionLabel = config.label ?? 'Session';
@@ -83,7 +83,7 @@ export class SessionRootBlock extends RuntimeBlock {
      * @param config Session configuration
      * @param runtime Script runtime (needed for WaitingToStartInjectorBehavior)
      */
-    static buildBehaviors(config: SessionRootConfig, runtime: IScriptRuntime): IRuntimeBehavior[] {
+    static buildBehaviors(config: SessionRootConfig, runtime: IRuntimeContext): IRuntimeBehavior[] {
         const behaviors: IRuntimeBehavior[] = [];
         const totalRounds = config.totalRounds ?? 1;
         const sessionLabel = config.label ?? 'Session';
@@ -166,15 +166,15 @@ export class SessionRootBlock extends RuntimeBlock {
         return behaviors;
     }
 
-    mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    mount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         return super.mount(runtime, options);
     }
 
-    unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    unmount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         return super.unmount(runtime, options);
     }
 
-    dispose(runtime: IScriptRuntime): void {
+    dispose(runtime: IRuntimeContext): void {
         super.dispose(runtime);
         if (this.context) {
             this.context.release();

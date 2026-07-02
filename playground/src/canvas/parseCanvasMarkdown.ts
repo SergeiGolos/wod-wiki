@@ -67,18 +67,29 @@ export interface CanvasSection {
   heading: string
   level: number
   attrs: string[]         // e.g. ['sticky', 'dark', 'full-bleed', 'density:compact']
-  prose: string           // Prose-only string (no fences). Kept for legacy callers.
+  /** Prose-only body. Derived from proseChunks; present on parser-built sections. */
+  prose?: string
   /** Ordered, fence-aware body: prose segments interleaved with buttons so
-   *  each button renders after the paragraph it was defined under. Optional
-   *  for callers that hand-build sections (e.g. tests); the renderer falls
-   *  back to a single-prose chunk when absent. */
-  proseChunks?: ProseChunk[]
+   *  each button renders after the paragraph it was defined under. */
+  proseChunks: ProseChunk[]
   view?: ViewBlock
   commands: CommandBlock[]
   buttons: ButtonBlock[]
   examples?: ExampleBlock[]
 }
 
+
+/**
+ * Derive the flat prose string from a section's ordered chunks.
+ * Concatenates all `prose` chunks in order — the inverse of the
+ * parser's prose→chunks pass. Returns '' for sections with no prose chunks.
+ */
+export function getSectionProse(section: CanvasSection): string {
+  return section.proseChunks
+    .filter((c): c is { kind: 'prose'; text: string } => c.kind === 'prose')
+    .map(c => c.text)
+    .join('')
+}
 export interface ParsedCanvasPage {
   frontmatter: Record<string, any>
   template: string
@@ -197,10 +208,6 @@ function parseExampleBlock(content: string): ExampleBlock {
   }
 }
 
-/** Canvas-DSL block types — these are stripped from prose; all other fenced
- *  blocks (javascript, bash, etc.) are preserved so markdown renderers can
- *  display them as styled code blocks. */
-const CANVAS_BLOCK_TYPES = new Set(['view', 'command', 'button', 'example'])
 
 /**
  * Extract view / command / button fenced blocks from section text,
@@ -217,7 +224,6 @@ const CANVAS_BLOCK_TYPES = new Set(['view', 'command', 'button', 'example'])
  * segments only.
  */
 function extractBlocks(text: string): {
-  prose: string
   proseChunks: ProseChunk[]
   view?: ViewBlock
   commands: CommandBlock[]
@@ -270,19 +276,6 @@ function extractBlocks(text: string): {
       buttonByFenceIdx.push(null)
     }
   }
-  // Build the legacy `prose` field by excising ALL canvas-specific fence
-  // ranges (view / command / button / example). Non-canvas fences are
-  // preserved so markdown renderers can display them as code blocks.
-  let legacyProse = ''
-  let legacyPos = 0
-  for (const fence of fences) {
-    if (CANVAS_BLOCK_TYPES.has(fence.type)) {
-      legacyProse += text.slice(legacyPos, fence.start)
-      legacyPos = fence.end
-    }
-  }
-  legacyProse += text.slice(legacyPos)
-  const prose = legacyProse.trim()
 
   // Walk the source text once more, slicing the prose and interleaving
   // button chunks at the position each `button` fence was authored. Each
@@ -301,7 +294,7 @@ function extractBlocks(text: string): {
   }
   proseChunks.push({ kind: 'prose', text: text.slice(pos) })
 
-  return { prose, proseChunks, view, commands, buttons, examples }
+  return { proseChunks, view, commands, buttons, examples }
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -317,7 +310,7 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   let cur: Acc | null = null
 
   const flush = (acc: Acc) => {
-    const { prose, proseChunks, view, commands, buttons, examples } = extractBlocks(acc.lines.join('\n'))
+    const { proseChunks, view, commands, buttons, examples } = extractBlocks(acc.lines.join('\n'))
 
     // Support explicit ID in attributes (e.g. {#statement})
     const explicitId = acc.attrs.find(a => a.startsWith('#'))?.slice(1)
@@ -327,7 +320,6 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
       heading:     acc.heading,
       level:       acc.level,
       attrs:       acc.attrs.filter(a => !a.startsWith('#')), // Strip ID from visual attrs
-      prose,
       proseChunks,
       view,
       commands,

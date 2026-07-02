@@ -3,7 +3,7 @@ import type { WorkoutItem } from '../lib/workoutIndex';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { localDateKey, type JournalEntrySummary } from './queriable-list/JournalDateScroll';
 import { indexedDBService } from '@/services/db/IndexedDBService';
-import { playgroundDB } from '../services/playgroundDB';
+import { playgroundContent } from '../services/playgroundContent';
 import { useJournalQueryState } from '../hooks/useJournalQueryState';
 import { useShowPlaygrounds } from '../hooks/useShowPlaygrounds';
 import { useCreateJournalEntry } from '../hooks/useCreateJournalEntry';
@@ -68,8 +68,8 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry, workoutItems = [] }
       try {
         const [rawResults, lowerPages, upperPages] = await Promise.all([
           indexedDBService.getRecentResults(100),
-          playgroundDB.getPagesByCategory('journal'),
-          playgroundDB.getPagesByCategory('Journal'),
+          playgroundContent.getPagesByCategory('journal'),
+          playgroundContent.getPagesByCategory('Journal'),
         ]);
 
         if (cancelled) return;

@@ -33,7 +33,7 @@ import {
 import { getSectionTheme, getSectionThemeStyles } from './canvasSectionUtils'
 import { pipelineStepToNavAction, executeNavAction } from '../nav/navTypes'
 import type { NavActionDeps } from '../nav/navTypes'
-import type { ParsedCanvasPage, CanvasSection } from './parseCanvasMarkdown'
+import { getSectionProse, type ParsedCanvasPage, type CanvasSection } from './parseCanvasMarkdown'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { notePersistence } from '@/services/persistence'
@@ -89,7 +89,7 @@ export function MarkdownCanvasPage({
     [navigate, onSelect],
   )
 
-  const hasWorkoutsTag = sections.some((s) => s.prose.includes('{{workouts}}'))
+  const hasWorkoutsTag = sections.some((s) => getSectionProse(s).includes('{{workouts}}'))
   const contentSections = sections.slice(1)
 
   const viewDef = sections.find((s) => s.view)?.view ?? null

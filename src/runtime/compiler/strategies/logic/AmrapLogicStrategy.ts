@@ -1,7 +1,7 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricType } from "@/core/models/Metric";
 import { DurationMetric } from "../../metrics/DurationMetric";
 import { compose } from "../../BlockTemplateComposer";
@@ -24,7 +24,7 @@ import {
 export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
     priority = 90; // High priority - runs before generic strategies
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
         
         // Match if ANY statement has timer and ANY statement has rounds/amrap keyword
@@ -39,7 +39,7 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         return hasTimer && (hasRounds || hasRoundsKeyword);
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IRuntimeContext): void {
         const firstStatementWithTimer = statements.find(s => s.hasMetric(MetricType.Duration)) || statements[0];
 
         const timerFragment = firstStatementWithTimer.metrics.find(

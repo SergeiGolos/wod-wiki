@@ -163,6 +163,7 @@ function buildScriptBlock(view: EditorView, section: EditorSection): ScriptBlock
       : "";
   return {
     id: section.id,
+    contentId: section.contentId,
     dialect: section.dialect || "wod",
     startLine: section.startLine - 1,
     endLine: section.endLine - 1,
@@ -353,13 +354,12 @@ export const WhiteboardCompanion: React.FC<WhiteboardCompanionProps> = ({
   extendedResults,
 }) => {
   const noteId = propNoteId || (view.state as any).noteId || "current";
-  const { results } = useScriptBlockResults(noteId, sectionId, extendedResults);
-
   const section = useMemo(
     () => getSection(view, sectionId),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [view, sectionId, docVersion],
   );
+  const { results } = useScriptBlockResults(noteId, sectionId, extendedResults, section?.contentId);
 
   const statements = useMemo(
     () => (section ? parseContent(view, section) : []),

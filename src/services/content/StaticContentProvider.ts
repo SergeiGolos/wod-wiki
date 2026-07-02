@@ -74,7 +74,7 @@ export class StaticContentProvider implements IContentProvider {
 
   async updateEntry(
     _id: string,
-    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'targetDate' | 'clonedIds'>> & { sectionId?: string; resultId?: string }
+    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'targetDate' | 'clonedIds'>> & { blockContentId?: string; resultId?: string }
   ): Promise<HistoryEntry> {
     const now = Date.now();
     
@@ -91,12 +91,10 @@ export class StaticContentProvider implements IContentProvider {
         const currentResults = this.entry.extendedResults || [];
         console.log(`[StaticProvider] Appending result ${resultId} to extendedResults (prev count: ${currentResults.length})`);
         
-        // Wrap raw results into the WorkoutResult storage format
         const newResult = {
             id: resultId,
             noteId: this.entry.id,
-            sectionId: patch.sectionId,
-            segmentId: patch.sectionId,
+            blockContentId: patch.blockContentId,
             data: patch.results,
             completedAt: patch.results.endTime || now
         };

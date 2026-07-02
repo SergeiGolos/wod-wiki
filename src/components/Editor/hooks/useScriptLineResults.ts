@@ -39,15 +39,12 @@ export interface LineExecutionSummary {
 
 /**
  * Extract elapsed ms from an output statement.
- * Prefers the Elapsed metric; falls back to the deprecated `.elapsed` property.
+ * Reads the Elapsed metric from the statement's metrics array.
  */
 function extractElapsed(output: IOutputStatement | StoredOutputStatement): number {
   const elapsedMetric = output.metrics?.find(m => m.type === MetricType.Elapsed);
   if (elapsedMetric?.value !== undefined && typeof elapsedMetric.value === 'number') {
     return elapsedMetric.value;
-  }
-  if (typeof output.elapsed === 'number' && output.elapsed > 0) {
-    return output.elapsed;
   }
   return 0;
 }

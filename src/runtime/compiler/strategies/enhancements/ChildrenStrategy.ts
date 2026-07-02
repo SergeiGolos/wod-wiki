@@ -1,7 +1,7 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricPromotionBehavior } from "../../../behaviors/MetricPromotionBehavior";
 
 // Specific behaviors not covered by aspect composers
@@ -22,13 +22,13 @@ import {
 export class ChildrenStrategy implements IRuntimeBlockStrategy {
     priority = 50;
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         return statements && statements.length > 0 &&
             statements[0].children &&
             statements[0].children.length > 0;
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], _runtime: IRuntimeContext): void {
         // Skip if children already handled
         if (builder.hasBehavior(ChildSelectionBehavior)) {
             return;

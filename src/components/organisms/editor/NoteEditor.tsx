@@ -257,11 +257,17 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       if (results && viewRef.current) {
         const view = viewRef.current;
         const now = results.endTime || Date.now();
+        // Read the section live from the editor state instead of the React
+        // `sections` closure — the callback is memoised on [noteId,
+        // onCompleteWorkout] so the closure value is stale (typically the
+        // initial empty array), which made every optimistic result land with
+        // `blockContentId: undefined` and render as hidden history instead of
+        // a visible result row.
+        const section = view.state.field(sectionField).sections.find(s => s.id === blockId);
         const newResult = {
           id: uuidv4(),
           noteId: noteId ?? "",
-          sectionId: blockId,
-          segmentId: blockId,
+          blockContentId: section?.contentId,
           data: results,
           completedAt: now,
         };
@@ -303,18 +309,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
     for (const section of wodSections) {
       // 1. Priority: In-memory results from props (Static/Lesson Mode)
-      //    Only use the prop when it actually contains matching results;
-      //    otherwise fall through to persistent storage so existing
-      //    results are visible on initial load even when the parent
-      //    hasn't finished its async fetch yet.
       if (Array.isArray(extendedResults) && extendedResults.length > 0) {
-        const matches = extendedResults
-          .filter(r => r.sectionId === section.id || r.segmentId === section.id)
-          .sort((a, b) => b.completedAt - a.completedAt);
-
-        if (matches.length > 0) {
+        const blockResults = extendedResults.filter(r => r.blockId === section.id)
+        if (blockResults.length > 0) {
           viewRef.current.dispatch({
-            effects: [updateSectionResults.of({ sectionId: section.id, results: matches })],
+            effects: [updateSectionResults.of({ sectionId: section.id, results: blockResults })],
           });
           continue;
         }
@@ -326,7 +325,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           projection: "history-detail",
           resultSelection: {
             mode: "all-for-section",
-            sectionId: section.id,
+            blockContentId: section.contentId!,
           },
         })
         .then((entry) => {
@@ -839,6 +838,7 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
 
   return {
     id: section.id,
+    contentId: section.contentId,
     dialect: section.dialect || "wod",
     startLine: section.startLine - 1, // Convert to 0-indexed for ScriptBlock compat
     endLine: section.endLine - 1,

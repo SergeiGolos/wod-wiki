@@ -7,7 +7,7 @@
 
 import type { PaletteDataSource, PaletteItem } from '@/components/organisms/command-palette/palette-types';
 import { indexedDBService } from '@/services/db/IndexedDBService';
-import { playgroundDB } from './playgroundDB';
+import { playgroundContent } from './playgroundContent';
 import type { CanvasRoute } from '../canvas/canvasRoutes';
 import type { ScriptCollection } from '@/repositories/script-collections';
 import type { WorkoutItem as IndexWorkoutItem } from '../lib/workoutIndex';
@@ -273,8 +273,8 @@ export function feedSource(excludeDateKey?: string): PaletteDataSource {
     label: 'Recent Feed',
     search: async (query) => {
       const [lower, upper] = await Promise.all([
-        playgroundDB.getPagesByCategory('journal'),
-        playgroundDB.getPagesByCategory('Journal'),
+        playgroundContent.getPagesByCategory('journal'),
+        playgroundContent.getPagesByCategory('Journal'),
       ]);
       const q = query.toLowerCase();
       return [...lower, ...upper]
@@ -327,8 +327,8 @@ export function journalHistorySource(excludeDateKey?: string): PaletteDataSource
     label: 'Past Entries',
     search: async (query) => {
       const [lower, upper] = await Promise.all([
-        playgroundDB.getPagesByCategory('journal'),
-        playgroundDB.getPagesByCategory('Journal'),
+        playgroundContent.getPagesByCategory('journal'),
+        playgroundContent.getPagesByCategory('Journal'),
       ]);
       const q = query.toLowerCase();
       return [...lower, ...upper]

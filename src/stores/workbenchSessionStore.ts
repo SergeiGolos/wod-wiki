@@ -37,11 +37,13 @@ import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 import { getAnalyticsFromLogs, getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer';
 import type { NoteLocator, GetNoteOptions } from '@/services/persistence';
 import type { INotePersistence } from '@/services/persistence';
-import type { HistoryEntry } from '@/types/history';
-import type { Attachment } from '@/types/storage';
+import { parseNoteId } from '../../playground/src/lib/noteIdentity';
 import { toNotebookTag } from '@/types/notebook';
 import { fileProcessor } from '@/hooks/useBrowserServices';
 import { loadStaticWorkbenchContent } from '@/app/workbench/workbenchProviders';
+import { playgroundRecorder } from '../../playground/src/services/resultRecorder';
+import type { HistoryEntry } from '@/types/history';
+import type { Attachment } from '@/types/storage';
 import { wallClockNow } from '@/runtime/INowProvider';
 import { hashCode } from '@/lib/utils';
 import type { INowProvider } from '@/runtime/INowProvider';
@@ -646,7 +648,7 @@ export function createWorkbenchSessionStore(
         const { v4: uuidv4 } = await import('uuid');
         const resultId = uuidv4();
         const state = get();
-        const { content, selectedBlockId, analyticsSegments, currentEntry } = state;
+        const { content, selectedBlock, selectedBlockId, analyticsSegments, currentEntry } = state;
 
         const provider = deps.provider;
         const notePersistence = deps.notePersistence;
@@ -659,7 +661,6 @@ export function createWorkbenchSessionStore(
           title,
           rawContent: content,
           results: result,
-          sectionId: selectedBlockId ?? undefined,
           resultId,
         };
 
@@ -670,25 +671,28 @@ export function createWorkbenchSessionStore(
           if (routeId || provider.mode === 'static') {
             const targetId = routeId || 'static';
             if (notePersistence) {
-              notePersistence.mutateNote(targetId, {
-                rawContent: payload.rawContent,
-                metadata: { title: payload.title },
-                workoutResult: {
-                  id: payload.resultId,
-                  sectionId: payload.sectionId,
-                  data: payload.results,
-                  analyticsSegments:
-                    analyticsSegments.length > 0 ? analyticsSegments : undefined,
-                },
-              })
-                .then((updated) => {
-                  if (currentEntry?.id === updated.id || provider.mode === 'static') {
-                    set({ currentEntry: updated });
-                  }
-                })
-                .catch((err: unknown) => {
-                  console.error('[WorkbenchSession] Failed to auto-update workout:', err);
+              // First persist any pending note content update (separate from result write).
+              if (payload.rawContent !== undefined) {
+                await notePersistence.mutateNote(targetId, {
+                  rawContent: payload.rawContent,
+                  metadata: { title: payload.title },
                 });
+              }
+              // Then resolve identity + persist the result via the Recorder (placement A).
+              await playgroundRecorder.record({
+                runBlock: selectedBlock!,
+                blockId: selectedBlockId ?? '',
+                destination: parseNoteId(targetId),
+                resultId: payload.resultId,
+                data: payload.results,
+                completedAt: payload.results.endTime,
+                analyticsSegments: analyticsSegments.length > 0 ? analyticsSegments : undefined,
+              });
+              const refreshed = await notePersistence.getNote(targetId, {
+                projection: 'workbench',
+                includeAttachments: true,
+              });
+              if (refreshed) set({ currentEntry: refreshed });
             }
           } else {
             // Brand-new entry — auto-tag with active notebook.
@@ -697,7 +701,7 @@ export function createWorkbenchSessionStore(
               const activeNotebookId = localStorage.getItem('wodwiki:active-notebook');
               if (activeNotebookId) tags.push(toNotebookTag(activeNotebookId));
             }
-            provider.saveEntry({
+            await provider.saveEntry({
               ...payload,
               tags,
               notes: '',
@@ -756,7 +760,7 @@ export function createWorkbenchSessionStore(
               const resultSelection = routeResultId
                 ? { mode: 'by-result-id' as const, resultId: routeResultId }
                 : routeSectionId && routeView === 'review'
-                  ? { mode: 'latest-for-section' as const, sectionId: routeSectionId }
+                  ? { mode: 'latest-for-section' as const, blockContentId: routeSectionId }
                   : { mode: 'latest' as const };
               const entry = await notePersistence.getNote(routeId, {
                 projection: routeView === 'review' ? 'review' : 'workbench',

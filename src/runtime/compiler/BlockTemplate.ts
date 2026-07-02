@@ -23,7 +23,7 @@
  */
 import type { IMetric } from '@/core/models/Metric';
 import type { ICodeStatement } from '@/core/models/CodeStatement';
-import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
+import type { IRuntimeContext } from '@/runtime/contracts/IRuntimeContext';
 import type { IBlockContext } from '@/runtime/contracts/IBlockContext';
 import type { BlockKey } from '@/core/models/BlockKey';
 import type { CountdownMode, CountdownTimerConfig } from '../behaviors/CountdownTimerBehavior';
@@ -63,7 +63,7 @@ export interface BlockTemplate {
     /** Source statements the strategy is currently compiling. */
     statements: ICodeStatement[];
     /** Runtime used to construct per-block `BlockContext` instances. */
-    runtime: IScriptRuntime;
+    runtime: IRuntimeContext;
     /** Optional pre-minted `BlockKey` (otherwise a fresh one is created). */
     key?: BlockKey;
     /** Optional pre-built `BlockContext` (otherwise a fresh one is created). */

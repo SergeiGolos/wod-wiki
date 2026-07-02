@@ -7,6 +7,7 @@ import { audioService } from '@/hooks/useBrowserServices';
 import type { WorkoutEvent } from '@/hooks/useBrowserServices';
 import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
 import { toStoredOutputStatement } from '@/components/Editor/types';
+import { wallClockNow } from '@/runtime/INowProvider';
 
 /**
  * Hook to encapsulate Workbench runtime logic.
@@ -62,10 +63,11 @@ export const useWorkbenchRuntime = <T extends ScriptBlock | null = ScriptBlock |
 
             const isFinishing = execution.status === 'running' || execution.status === 'paused';
             if (isFinishing && execution.startTime) {
+                const now = latestRef.current.runtime?.nowProvider ?? wallClockNow;
                 console.log('[useWorkbenchRuntime] Saving partial workout results on unmount');
                 completeWorkout({
                     startTime: execution.startTime,
-                    endTime: Date.now(),
+                    endTime: now.nowMs(),
                     duration: execution.elapsedTime,
                     completed: false // Explicitly marked as partial
                 });
@@ -78,12 +80,13 @@ export const useWorkbenchRuntime = <T extends ScriptBlock | null = ScriptBlock |
     // save output statements and navigate to review automatically.
     useEffect(() => {
         if (execution.status === 'completed' && execution.startTime) {
+            const now = latestRef.current.runtime?.nowProvider ?? wallClockNow;
             // Finalize summary metrics before completion
             runtime?.finalizeAnalytics();
 
             completeWorkout({
                 startTime: execution.startTime,
-                endTime: Date.now(),
+                endTime: now.nowMs(),
                 duration: execution.elapsedTime,
                 logs: (runtime?.getOutputStatements() || []).map(toStoredOutputStatement),
                 completed: true
@@ -101,12 +104,13 @@ export const useWorkbenchRuntime = <T extends ScriptBlock | null = ScriptBlock |
         const { runtime, execution, completeWorkout } = latestRef.current;
 
         execution.stop();
+        const now = latestRef.current.runtime?.nowProvider ?? wallClockNow;
         // Finalize summary metrics before completion
         runtime?.finalizeAnalytics();
         
         completeWorkout({
-            startTime: execution.startTime || Date.now(),
-            endTime: Date.now(),
+            startTime: execution.startTime ?? now.nowMs(),
+            endTime: now.nowMs(),
             duration: execution.elapsedTime,
             logs: (runtime?.getOutputStatements() || []).map(toStoredOutputStatement),
             completed: true

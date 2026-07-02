@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { IdleBlockStrategy, IdleBlockConfig } from '../../compiler/strategies/IdleBlockStrategy';
 import { PushBlockAction } from './PushBlockAction';
@@ -35,7 +35,7 @@ export class PushIdleBlockAction implements IRuntimeAction {
         throw new Error('Cannot modify readonly property type');
     }
 
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
         // Convert old IdleBehaviorConfig to new IdleBlockConfig
         const idleConfig: IdleBlockConfig = {
             id: this.id,

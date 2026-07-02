@@ -8,9 +8,10 @@
 
 import { useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { reviewPath, playgroundPath, journalEntryPath, workoutPath } from '../lib/routes'
+import { reviewPath } from '../lib/routes'
+import { parseNoteId, noteRefToPath } from '../lib/noteIdentity'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
-import { notePersistence } from '@/services/persistence'
+import { playgroundRecorder } from '../services/resultRecorder'
 import { pendingRuntimes } from '../runtimeStore'
 
 export function WallClockPage() {
@@ -26,15 +27,15 @@ export function WallClockPage() {
   const pending = pendingRef.current
 
   const handleComplete = useCallback(
-    (blockId: string, results: any) => {
+    (_blockId: string, results: any) => {
       if (!results || !runtimeId || !pending) return
-      notePersistence.mutateNote(pending.noteId, {
-        workoutResult: {
-          id: runtimeId,
-          sectionId: blockId,
-          data: results,
-          completedAt: results.endTime || Date.now(),
-        },
+      playgroundRecorder.record({
+        runBlock: pending.block,
+        blockId: pending.block.id,
+        destination: parseNoteId(pending.noteId),
+        resultId: runtimeId,
+        data: results,
+        completedAt: results.endTime || Date.now(),
       }).then(() => {
         if (results.completed) {
           navigate(reviewPath(runtimeId), { replace: true })
@@ -46,18 +47,9 @@ export function WallClockPage() {
 
   const handleClose = useCallback(() => {
     if (!pending) { navigate('/'); return }
-    // Go back to the note
-    // Go back to the note
-    const parts = pending.noteId.split('/')
-    if (parts.length >= 2 && parts[0] === 'playground') {
-      navigate(playgroundPath(parts[1]!), { replace: true })
-    } else if (parts.length >= 2 && parts[0] === 'journal') {
-      navigate(journalEntryPath(parts[1]!), { replace: true })
-    } else if (parts.length >= 2) {
-      navigate(workoutPath(parts[0]!, parts[1]!), { replace: true })
-    } else {
-      navigate('/', { replace: true })
-    }
+    // Route back to the note via the typed NoteRef — the kind→path rule lives
+    // in noteRefToPath, not an ad-hoc noteId.split('/') switch here.
+    navigate(noteRefToPath(parseNoteId(pending.noteId)), { replace: true })
   }, [pending, navigate])
 
   if (!pending) {

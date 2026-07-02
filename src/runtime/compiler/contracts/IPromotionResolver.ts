@@ -14,7 +14,7 @@
  * `JitCompiler` is left with a one-liner call to `resolvePromotions`.
  */
 import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
-import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
+import type { IRuntimeContext } from '@/runtime/contracts/IRuntimeContext';
 import type { IMetric } from '@/core/models/Metric';
 
 export interface PromotionResolution {
@@ -38,6 +38,6 @@ export interface IPromotionResolver {
      */
     resolvePromotions(
         parentBlock: IRuntimeBlock | undefined,
-        runtime: IScriptRuntime
+        runtime: IRuntimeContext
     ): PromotionResolution;
 }

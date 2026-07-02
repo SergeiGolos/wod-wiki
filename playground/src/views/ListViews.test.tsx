@@ -50,8 +50,8 @@ mock.module('@/services/db/IndexedDBService', () => ({
   },
 }));
 
-mock.module('../services/playgroundDB', () => ({
-  playgroundDB: {
+mock.module('../services/playgroundContent', () => ({
+  playgroundContent: {
     getPagesByCategory: async () => [
       {
         id: `journal/${TODAY}`,

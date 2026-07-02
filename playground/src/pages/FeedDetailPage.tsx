@@ -8,7 +8,7 @@
 import { useMemo, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getScriptFeed } from '@/repositories/script-feeds';
-import { playgroundDB } from '../services/playgroundDB';
+import { playgroundContent } from '../services/playgroundContent';
 import { localDateKey } from '../views/queriable-list/JournalDateScroll';
 import type { JournalEntrySummary } from '../views/queriable-list/JournalDateScroll';
 import { appendWorkoutToJournal } from '../services/journalWorkout';
@@ -43,7 +43,7 @@ export function FeedDetailPage({ feedSlug }: FeedDetailPageProps) {
         const dateKeys = Array.from(new Set(feed.items.map(i => i.feedDate)));
         const entries = await Promise.all(
           dateKeys.map(async key => {
-            const page = await playgroundDB.getPage(`journal/${key}`).catch(() => undefined);
+            const page = await playgroundContent.getPage(`journal/${key}`).catch(() => undefined);
             if (!page) return null;
             const headingMatch = page.content.match(/^#\s+(.+)$/m);
             return [key, { title: headingMatch?.[1]?.trim() ?? key, updatedAt: page.updatedAt }] as const;

@@ -14,6 +14,7 @@
  */
 
 import { StateField, StateEffect, EditorState, Transaction } from "@codemirror/state";
+import { blockContentId } from "../utils/sectionParser";
 
 /** WOD dialect identifiers */
 export type EditorDialect = "wod" | "log" | "plan";
@@ -40,6 +41,8 @@ export type EmbedType = "image" | "link" | "youtube";
 export interface EditorSection {
   /** Stable identifier (hash-based, survives structural-equivalent re-parses) */
   id: string;
+  /** Content-stable identity (wod only) — survives clone/reorder; results join on this (see `blockContentId`). */
+  contentId?: string;
   /** Section type */
   type: EditorSectionType;
   /** Markdown subtype (only for type === "markdown") */
@@ -345,8 +348,13 @@ function parseSections(state: EditorState): EditorSection[] {
       }
 
       const content = doc.sliceString(line.from, doc.line(closeLine).to);
+      // Content-stable id over the INNER fenced content (matches the
+      // sectionParser cleanText path) so a block keeps its identity across
+      // clone / reorder / line shifts.
+      const contentId = blockContentId(doc.sliceString(contentFrom, contentTo));
       sections.push({
         id: generateSectionId("wod", openLine, content),
+        contentId,
         type: "wod",
         from: line.from,
         to: doc.line(closeLine).to,

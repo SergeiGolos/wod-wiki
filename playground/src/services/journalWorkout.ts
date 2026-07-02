@@ -12,7 +12,7 @@
  */
 
 import { getScriptCollection } from '@/repositories/script-collections';
-import { playgroundDB, PlaygroundDBService } from './playgroundDB';
+import { playgroundContent, pageId } from './playgroundContent';
 
 export interface AppendWorkoutOptions {
   /** Display name of the workout (e.g. 'Fran'). */
@@ -55,10 +55,20 @@ export async function appendWorkoutToJournal({
 }: AppendWorkoutOptions): Promise<string> {
   const d = date ?? new Date();
   const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const noteId = PlaygroundDBService.pageId('journal', dateKey);
+  const noteId = pageId('journal', dateKey);
 
-  const existing = await playgroundDB.getPage(noteId);
+  const existing = await playgroundContent.getPage(noteId);
   const baseContent = existing?.content ?? `# ${dateKey}\n`;
+
+  // Deduplication: if the note already contains this exact WOD block,
+  // reuse it instead of appending a duplicate. Two blocks with identical
+  // content share the same contentId, so results recorded against one
+  // would match both — rendering the block twice with the same results.
+  const normalizedWod = wodContent.trim();
+  const wodFence = `\`\`\`wod\n${normalizedWod}\n\`\`\``;
+  if (baseContent.includes(wodFence)) {
+    return noteId;
+  }
 
   const resolvedSourceLabel = sourceNoteLabel?.trim() || category;
   const resolvedSourcePath = sourceNotePath?.trim() || `/collections/${encodeURIComponent(category)}`;
@@ -66,7 +76,6 @@ export async function appendWorkoutToJournal({
   const siblingLinks = collection?.items
     .filter(item => item.id !== workoutName)
     .map(item => `[${category}-${item.id}](/collections/${encodeURIComponent(category)}/${encodeURIComponent(item.id)})`) ?? [];
-  
   const lines = [
     `\n## ${workoutName}`,
     `Source: [${resolvedSourceLabel}](${resolvedSourcePath})`,
@@ -88,7 +97,7 @@ export async function appendWorkoutToJournal({
 
   const updatedContent = baseContent.trimEnd() + '\n' + section;
 
-  await playgroundDB.savePage({
+  await playgroundContent.savePage({
     id: noteId,
     name: dateKey,
     category: 'journal',
