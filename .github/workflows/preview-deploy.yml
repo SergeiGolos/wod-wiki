@@ -33,8 +33,27 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Derive branch slug
+        id: slug
+        run: |
+          # Sanitize branch name: lowercase, no spaces, no special chars
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          SLUG=$(echo "$BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\\+//;s/-\\+$//' | tr '[:upper:]' '[:lower:]')
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "slug=$SLUG" >> $GITHUB_OUTPUT
+
+      # Build with VITE_BASE_PATH set so the emitted HTML references
+      # /<slug>/dist/assets/... matching the S3 layout and CF function.
+      # Without this, Vite defaults base to '/' and the SPA loads HTML
+      # (the SPA-fallback index.html) instead of the JS bundle at
+      # /assets/main-*.js, so the app never hydrates.
       - name: Build playground
-        run: bun run build-playground && bun x vite build --config vite.receiver.config.ts
+        env:
+          VITE_BASE_PATH: /${{ steps.slug.outputs.slug }}/dist/
+        run: |
+          bun run build-playground
+          VITE_BASE_PATH="/${{ steps.slug.outputs.slug }}/dist/" \
+            bun x vite build --config vite.receiver.config.ts
 
       - name: Persist build artifact
         uses: actions/upload-artifact@v4
@@ -42,15 +61,6 @@ jobs:
           name: preview-build-${{ github.event.pull_request.number }}
           path: playground/dist/
           retention-days: 1
-
-      - name: Derive branch slug
-        id: slug
-        run: |
-          # Sanitize branch name: lowercase, no spaces, no special chars
-          BRANCH="${{ github.head_ref || github.ref_name }}"
-          SLUG=$(echo "$BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
-          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
-          echo "slug=$SLUG" >> $GITHUB_OUTPUT
 
       - name: Set artifact dir
         id: artifact-dir
