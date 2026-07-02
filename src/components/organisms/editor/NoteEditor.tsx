@@ -257,7 +257,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       if (results && viewRef.current) {
         const view = viewRef.current;
         const now = results.endTime || Date.now();
-        const section = sections.find(s => s.id === blockId);
+        // Read the section live from the editor state instead of the React
+        // `sections` closure — the callback is memoised on [noteId,
+        // onCompleteWorkout] so the closure value is stale (typically the
+        // initial empty array), which made every optimistic result land with
+        // `blockContentId: undefined` and render as hidden history instead of
+        // a visible result row.
+        const section = view.state.field(sectionField).sections.find(s => s.id === blockId);
         const newResult = {
           id: uuidv4(),
           noteId: noteId ?? "",
