@@ -82,7 +82,9 @@ jobs:
       - name: Deploy to S3
         run: |
           set -euo pipefail
-          PREFIX="${{ needs.build.outputs.branch-slug }}/"
+          # Sync to s3://<bucket>/<slug>/dist/ — the CF SPA fallback function
+          # (wod-wiki-production-spa-fallback) expects the build at /<slug>/dist/.
+          PREFIX="${{ needs.build.outputs.branch-slug }}/dist/"
           echo "Uploading to s3://$S3_BUCKET/$PREFIX"
           aws s3 sync ./dist/ "s3://$S3_BUCKET/$PREFIX" \
             --delete \
@@ -196,7 +198,7 @@ jobs:
       - name: Delete S3 prefix objects
         run: |
           set -euo pipefail
-          PREFIX="${{ steps.slug.outputs.slug }}/"
+          PREFIX="${{ steps.slug.outputs.slug }}/dist/"
           echo "Deleting s3://$S3_BUCKET/$PREFIX"
           aws s3 rm "s3://$S3_BUCKET/$PREFIX" --recursive 2>&1
 
