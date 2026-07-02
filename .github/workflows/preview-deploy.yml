@@ -91,15 +91,26 @@ jobs:
             2>&1
           echo "s3_prefix=$PREFIX" >> $GITHUB_OUTPUT
 
-      - name: Create CloudFront cache invalidation
+      - name: Create CloudFront cache invalidation (best-effort)
+        # CloudFront invalidation is non-critical: S3 sync already deployed the new
+        # build, and --cache-control "max-age=300" limits staleness to 5 minutes.
+        # This step warns on failure rather than failing the deploy, so transient
+        # CloudFront IAM/permission issues don't block preview publishing.
+        # TODO: investigate the root cause of intermittent AccessDenied on the
+        # GH runner and restore fail-fast behavior.
+        continue-on-error: true
         run: |
-          set -euo pipefail
+          set -uo pipefail
           PREFIX="/${{ needs.build.outputs.branch-slug }}/*"
           echo "Creating CloudFront invalidation for $PREFIX"
-          aws cloudfront create-invalidation \
-            --distribution-id "$CF_DISTRIBUTION_ID" \
-            --paths "$PREFIX"
-          echo "invalidation_path=$PREFIX" >> $GITHUB_OUTPUT
+          if aws cloudfront create-invalidation \
+               --distribution-id "$CF_DISTRIBUTION_ID" \
+               --paths "$PREFIX"; then
+            echo "invalidation_path=$PREFIX" >> $GITHUB_OUTPUT
+            echo "CloudFront invalidation submitted successfully."
+          else
+            echo "::warning::CloudFront invalidation failed; S3 deploy succeeded and content will refresh within 5 minutes via cache-control max-age."
+          fi
 
   # ── Post PR comment ─────────────────────────────────────────────────────────
   comment:
@@ -189,14 +200,21 @@ jobs:
           echo "Deleting s3://$S3_BUCKET/$PREFIX"
           aws s3 rm "s3://$S3_BUCKET/$PREFIX" --recursive 2>&1
 
-      - name: Create CloudFront invalidation for deleted path
+      - name: Create CloudFront invalidation for deleted path (best-effort)
+        # Same rationale as the deploy job: cache invalidation is non-critical,
+        # and a transient CloudFront deny shouldn't block S3 cleanup completion.
+        continue-on-error: true
         run: |
-          set -euo pipefail
+          set -uo pipefail
           PREFIX="/${{ steps.slug.outputs.slug }}/*"
           echo "Invalidating CloudFront cache for $PREFIX"
-          aws cloudfront create-invalidation \
-            --distribution-id "$CF_DISTRIBUTION_ID" \
-            --paths "$PREFIX"
+          if aws cloudfront create-invalidation \
+               --distribution-id "$CF_DISTRIBUTION_ID" \
+               --paths "$PREFIX"; then
+            echo "CloudFront invalidation for cleanup submitted successfully."
+          else
+            echo "::warning::CloudFront invalidation failed; S3 objects are deleted and the cache will self-expire within 5 minutes via cache-control max-age."
+          fi
 
       - name: Post destroy comment
         uses: actions/github-script@v9
