@@ -3,7 +3,6 @@ import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { StackSnapshot } from '../contracts/IRuntimeStack';
 import { IOutputStatement } from '@/core/models/OutputStatement';
 import { Unsubscribe } from '../contracts/IRuntimeStack';
-import { TrackerUpdate } from '../contracts/IRuntimeOptions';
 
 /**
  * SubscriptionManager — fans out runtime stack and output events to
@@ -22,7 +21,6 @@ export class SubscriptionManager {
     private subscriptions = new Map<string, IRuntimeSubscription>();
     private stackUnsub: Unsubscribe | null = null;
     private outputUnsub: Unsubscribe | null = null;
-    private trackerUnsub: Unsubscribe | null = null;
     private disposed = false;
 
     constructor(private readonly runtime: IScriptRuntime) {
@@ -47,18 +45,6 @@ export class SubscriptionManager {
             }
         });
 
-        // Subscribe to tracker updates
-        if (this.runtime.tracker?.onUpdate) {
-            this.trackerUnsub = this.runtime.tracker.onUpdate((update: TrackerUpdate) => {
-                for (const sub of this.subscriptions.values()) {
-                    try {
-                        sub.onTrackerUpdate(update);
-                    } catch (err) {
-                        console.error(`[SubscriptionManager] Error in subscription '${sub.id}' onTrackerUpdate:`, err);
-                    }
-                }
-            });
-        }
     }
 
     /**
@@ -94,14 +80,6 @@ export class SubscriptionManager {
                 subscription.onOutput(output);
             }
 
-            // Forward initial tracker state
-            if (this.runtime.tracker?.getSnapshot) {
-                subscription.onTrackerUpdate({
-                    type: 'snapshot',
-                    snapshot: this.runtime.tracker.getSnapshot(),
-                    timestamp: Date.now()
-                });
-            }
         } catch (err) {
             console.error(`[SubscriptionManager] Error catching up subscription '${subscription.id}':`, err);
         }
@@ -145,8 +123,6 @@ export class SubscriptionManager {
         this.stackUnsub = null;
         this.outputUnsub?.();
         this.outputUnsub = null;
-        this.trackerUnsub?.();
-        this.trackerUnsub = null;
 
         // Dispose all subscriptions
         for (const sub of this.subscriptions.values()) {

@@ -1,10 +1,7 @@
 import { describe, expect, it, afterEach } from 'bun:test';
 import { CountdownTimerBehavior } from '../CountdownTimerBehavior';
 import { CountupTimerBehavior } from '../CountupTimerBehavior';
-import { ReEntryBehavior } from '../ReEntryBehavior';
-import { RoundsEndBehavior } from '../RoundsEndBehavior';
 import { LabelingBehavior } from '../LabelingBehavior';
-import { LeafExitBehavior } from '../LeafExitBehavior';
 import { ButtonBehavior } from '../ButtonBehavior';
 import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
 
@@ -68,93 +65,6 @@ describe('Time Aspect Behaviors', () => {
     });
 });
 
-describe('Iteration Aspect Behaviors', () => {
-    let harness: BehaviorTestHarness;
-    afterEach(() => { harness?.dispose(); });
-
-    describe('ReEntryBehavior', () => {
-        it('should initialize round state with defaults', () => {
-            harness = new BehaviorTestHarness().withClock(new Date(1000));
-            const behavior = new ReEntryBehavior();
-            const block = new MockBlock('test-block', [behavior], { label: 'Test Block' });
-            harness.push(block);
-            harness.mount();
-
-            const roundPush = block.recordings.pushMemory.find(p => p.tag === 'round');
-            expect(roundPush).toBeDefined();
-            expect(roundPush!.metrics).toEqual(expect.arrayContaining([
-                expect.objectContaining({
-                    value: 1,
-                    current: 1,
-                    total: undefined,
-                })
-            ]));
-        });
-
-        it('should initialize with custom config', () => {
-            harness = new BehaviorTestHarness().withClock(new Date(1000));
-            const behavior = new ReEntryBehavior({ totalRounds: 5, startRound: 2 });
-            const block = new MockBlock('test-block', [behavior], { label: 'Test Block' });
-            harness.push(block);
-            harness.mount();
-
-            const roundPush = block.recordings.pushMemory.find(p => p.tag === 'round');
-            expect(roundPush).toBeDefined();
-            expect(roundPush!.metrics).toEqual(expect.arrayContaining([
-                expect.objectContaining({
-                    value: 2,
-                    current: 2,
-                    total: 5,
-                })
-            ]));
-        });
-    });
-
-    describe('ReEntryBehavior onNext', () => {
-        it('is a no-op (round advancement handled by ChildSelectionBehavior)', () => {
-            harness = new BehaviorTestHarness().withClock(new Date(1000));
-            const behavior = new ReEntryBehavior({ totalRounds: 5, startRound: 2 });
-            const block = new MockBlock('test-block', [behavior], { label: 'Test Block' });
-            harness.push(block);
-            harness.mount();
-
-            harness.next();
-
-            // onNext no longer advances rounds — ChildSelectionBehavior does that
-            expect(block.recordings.updateMemory).toHaveLength(0);
-            expect(block.recordings.emitEvent).toHaveLength(0);
-        });
-    });
-
-    describe('RoundsEndBehavior', () => {
-        it('should mark complete when rounds exceeded', () => {
-            harness = new BehaviorTestHarness().withClock(new Date(1000));
-            const reEntry = new ReEntryBehavior({ totalRounds: 3, startRound: 4 });
-            const roundsEnd = new RoundsEndBehavior();
-            const block = new MockBlock('test-block', [reEntry, roundsEnd], { label: 'Test Block' });
-            harness.push(block);
-            harness.mount();
-
-            harness.next();
-
-            expect(block.recordings.markComplete.some(mc => mc.reason === 'rounds-exhausted')).toBe(true);
-        });
-
-        it('should not mark complete when rounds remaining', () => {
-            harness = new BehaviorTestHarness().withClock(new Date(1000));
-            const reEntry = new ReEntryBehavior({ totalRounds: 3, startRound: 2 });
-            const roundsEnd = new RoundsEndBehavior();
-            const block = new MockBlock('test-block', [reEntry, roundsEnd], { label: 'Test Block' });
-            harness.push(block);
-            harness.mount();
-
-            harness.next();
-
-            expect(block.recordings.markComplete).toHaveLength(0);
-        });
-    });
-});
-
 describe('Display Aspect Behaviors', () => {
     let harness: BehaviorTestHarness;
     afterEach(() => { harness?.dispose(); });
@@ -190,23 +100,6 @@ describe('Display Aspect Behaviors', () => {
                     value: expect.objectContaining({ text: 'Test Block' })
                 })
             ]));
-        });
-    });
-});
-
-describe('Completion Aspect Behaviors', () => {
-    let harness: BehaviorTestHarness;
-    afterEach(() => { harness?.dispose(); });
-
-    describe('LeafExitBehavior', () => {
-        it('should subscribe to specified event types', () => {
-            harness = new BehaviorTestHarness().withClock(new Date(1000));
-            const behavior = new LeafExitBehavior({ onNext: false, onEvents: ['timer:complete', 'user:skip'] });
-            const block = new MockBlock('test-block', [behavior], { label: 'Test Block' });
-            harness.push(block);
-            harness.mount();
-
-            expect(block.recordings.subscribe).toHaveLength(2);
         });
     });
 });

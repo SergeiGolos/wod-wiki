@@ -1,5 +1,5 @@
 import React from 'react';
-import { useWorkoutTracker } from '@/hooks/useRuntimeTimer';
+import { useOutputStatements } from '@/hooks/useRuntimeTimer';
 import { Sigma } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { computeColumnLabel } from '@/core/metrics/presentation';
@@ -111,9 +111,23 @@ export function formatTrackerValue(value: unknown, type: string, unit?: string):
  * (e.g., milliseconds → MM:SS, integers → plain, decimals → 1 d.p.).
  */
 export const MetricTrackerCard: React.FC<MetricTrackerCardProps> = ({ className }) => {
-    const { metrics } = useWorkoutTracker();
-
-    const analyticsResults = metrics['session-totals'] || {};
+    const { outputs } = useOutputStatements();
+    // Session-totals arrive as live 'analytics' outputs (one per segment); each
+    // projection is a Label metric (image=name) paired with its value metric.
+    const analyticsResults: Record<string, { value: unknown; unit?: string }> = {};
+    for (let i = outputs.length - 1; i >= 0; i--) {
+        if (outputs[i].outputType !== 'analytics') continue;
+        const metrics = outputs[i].metrics;
+        for (let j = 0; j + 1 < metrics.length; j += 2) {
+            const labelMetric = metrics[j];
+            const valueMetric = metrics[j + 1];
+            if (labelMetric && valueMetric) {
+                const name = labelMetric.image ?? String(labelMetric.value);
+                analyticsResults[name] = { value: valueMetric.value, unit: valueMetric.unit };
+            }
+        }
+        break;
+    }
     const entries = Object.entries(analyticsResults);
     const hasData = entries.length > 0;
 

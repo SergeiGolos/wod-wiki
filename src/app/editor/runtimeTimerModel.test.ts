@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { MetricContainer } from '@/core/models/MetricContainer';
 import { MetricType } from '@/core/models/Metric';
 import { buildWorkoutResults, countSegmentOutputs, prepareRuntimeBlock } from './runtimeTimerModel';
+import { frozenNow } from '@/runtime/INowProvider';
 import type { ScriptBlock } from '@/components/Editor/types';
 
 function makeBlock(content: string): ScriptBlock {
@@ -81,6 +82,7 @@ describe('runtimeTimerModel', () => {
       startTime,
       elapsedTime: 60000,
       completed: true,
+      now: frozenNow(new Date(startTime)),
     });
 
     expect(results.startTime).toBe(startTime);
@@ -90,18 +92,16 @@ describe('runtimeTimerModel', () => {
   });
 
   it('uses Date.now() as startTime fallback when not provided', () => {
-    const before = Date.now();
-
+    const startTime = Date.now();
     const results = buildWorkoutResults([], {
       elapsedTime: 0,
       completed: false,
+      now: frozenNow(new Date(startTime)),
     });
 
-    const after = Date.now();
-
-    // startTime should be within the current test window
-    expect(results.startTime).toBeGreaterThanOrEqual(before);
-    expect(results.startTime).toBeLessThanOrEqual(after);
+    // startTime should fall back to the provider's now
+    expect(results.startTime).toBe(startTime);
+    expect(results.endTime).toBe(startTime);
     expect(results.duration).toBe(0);
     expect(results.completed).toBe(false);
     expect(results.logs).toHaveLength(0);
@@ -111,6 +111,7 @@ describe('runtimeTimerModel', () => {
     const results = buildWorkoutResults([], {
       startTime: 1_700_000_000_000,
       elapsedTime: 0,
+      now: frozenNow(new Date(1_700_000_000_000)),
       completed: false,
     });
 

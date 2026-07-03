@@ -1,4 +1,4 @@
-import type { IScriptRuntime, OutputListener, TrackerListener } from './contracts/IScriptRuntime';
+import type { IScriptRuntime, OutputListener } from './contracts/IScriptRuntime';
 import type { IJitCompiler } from './contracts/IJitCompiler';
 import type { IRuntimeStack, Unsubscribe, StackObserver, StackSnapshot } from './contracts/IRuntimeStack';
 import type { WhiteboardScript } from '../parser/WhiteboardScript';
@@ -6,8 +6,7 @@ import type { RuntimeError } from './actions/ErrorAction';
 import type { IEventBus } from './contracts/events/IEventBus';
 import {
     DEFAULT_RUNTIME_OPTIONS,
-    RuntimeStackOptions,
-    RuntimeStackTracker
+    RuntimeStackOptions
 } from './contracts/IRuntimeOptions';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
@@ -48,21 +47,14 @@ export class ScriptRuntime implements IScriptRuntime {
     // analytics enrichment, and all runtime emission helpers.
     private readonly _output = new OutputEmitter();
 
-    // Shared observer collaborator — owns the stack + tracker subscriber Sets
-    // and the post-mount snapshot contract. See `RuntimeObservers` for the seam.
-    // The tracker upstream is wired through `options.tracker.onUpdate` (set
-    // lazily by RuntimeObservers on the first subscribeToTracker call).
-    private readonly _observers = new RuntimeObservers({
-        onUpdate: (callback) => this.options.tracker?.onUpdate?.(callback) ?? (() => {}),
-    });
+    // Shared observer collaborator — owns the stack subscriber Set and the
+    // post-mount snapshot contract. See `RuntimeObservers` for the seam.
+    private readonly _observers = new RuntimeObservers();
 
     // The current execution context for the "turn"
     private _activeContext: ExecutionContext | null = null;
     private readonly _now: INowProvider;
 
-    public get tracker(): RuntimeStackTracker | undefined {
-        return this.options.tracker;
-    }
 
     // Unsubscribe function for the IRuntimeStack → stack snapshot bridge.
     // The stack-snapshot fan-out itself is owned by _observers (see
@@ -255,13 +247,6 @@ export class ScriptRuntime implements IScriptRuntime {
         this._output.add(output);
     }
 
-    /**
-     * Subscribe to real-time tracker updates.
-     */
-    public subscribeToTracker(listener: TrackerListener): Unsubscribe {
-        return this._observers.subscribeToTracker(listener);
-    }
-
     public setAnalyticsEngine(engine: IAnalyticsEngine): void {
         this._output.setAnalyticsEngine(engine);
     }
@@ -378,12 +363,6 @@ export class ScriptRuntime implements IScriptRuntime {
         // Emit 'compiler' output for the new block
         this._output.emitCompilerBlock(block);
 
-        // Start tracking span
-        const parentSpanId = parentBlock
-            ? this.options.tracker?.getActiveSpanId?.(parentBlock.key.toString()) ?? null
-            : null;
-        this.options.tracker?.startSpan?.(block, parentSpanId);
-
         // Wrap block if wrapper is configured
         const wrappedBlock = this.options.wrapper?.wrap?.(block, parentBlock) ?? block;
 
@@ -420,19 +399,15 @@ export class ScriptRuntime implements IScriptRuntime {
         // Execute the pop action (which handles unmount, dispose, output statement, parent.next)
         this.do(new PopBlockAction(lifecycle));
 
-        // End tracking span
-        const ownerKey = currentBlock.key.toString();
-        this.options.tracker?.endSpan?.(ownerKey);
-
         // Cleanup wrapper
         this.options.wrapper?.cleanup?.(currentBlock);
 
         // Unregister hooks by owner
-        this.options.hooks?.unregisterByOwner?.(ownerKey);
+        this.options.hooks?.unregisterByOwner?.(currentBlock.key.toString());
 
         // Log the pop
         this.options.logger?.debug?.('runtime.popBlock', {
-            blockKey: ownerKey,
+            blockKey: currentBlock.key.toString(),
             stackDepth: this.stack.count,
         });
 

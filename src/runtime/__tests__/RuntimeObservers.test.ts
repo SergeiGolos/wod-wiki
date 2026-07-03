@@ -8,7 +8,7 @@
  *
  * Output emission semantics (buffer, analytics, GC guard, deferred
  * catch-up) live in OutputEmitter and are tested there. This
- * collaborator only owns stack + tracker subscriber sets.
+ * collaborator only owns the stack subscriber set.
  *
  * Initial-snapshot timing is the adapter's responsibility, not the
  * collaborator's: ScriptRuntime defers via setTimeout, the proxy
@@ -16,8 +16,7 @@
  * only.
  */
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
-import { RuntimeObservers, type RuntimeObserversTrackerSource } from '../RuntimeObservers';
-import type { TrackerUpdate } from '../contracts/IRuntimeOptions';
+import { RuntimeObservers } from '../RuntimeObservers';
 import type { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import type { StackSnapshot } from '../contracts/IRuntimeStack';
 
@@ -27,15 +26,6 @@ function makeBlock(label: string): IRuntimeBlock {
 
 const BLOCK_A = makeBlock('A');
 const BLOCK_B = makeBlock('B');
-
-const TRACKER_UPDATE: TrackerUpdate = {
-    type: 'metric',
-    blockId: 'b1',
-    key: 'reps',
-    value: 5,
-    unit: 'reps',
-    timestamp: 0,
-};
 
 function snapshot(type: StackSnapshot['type'], depth: number, blocks: readonly IRuntimeBlock[] = [BLOCK_A]): StackSnapshot {
     return { type, depth, blocks, clockTime: new Date(0) };
@@ -128,85 +118,12 @@ describe('RuntimeObservers', () => {
         });
     });
 
-    describe('tracker listeners (auto-wired upstream source)', () => {
-        it('wires the upstream source on the first listener and tears it down on last unsubscribe', () => {
-            const upstreamUnsub = mock(() => {});
-            const onUpdate = mock((_cb: (u: TrackerUpdate) => void) => upstreamUnsub);
-            const source: RuntimeObserversTrackerSource = { onUpdate };
-            const obs = new RuntimeObservers(source);
-
-            // No source wire yet
-            expect(onUpdate).not.toHaveBeenCalled();
-
-            // First listener triggers the upstream wire
-            const received1: TrackerUpdate[] = [];
-            const unsub1 = obs.subscribeToTracker(u => received1.push(u));
-            expect(onUpdate).toHaveBeenCalledTimes(1);
-
-            // Second listener does NOT re-wire
-            const received2: TrackerUpdate[] = [];
-            const unsub2 = obs.subscribeToTracker(u => received2.push(u));
-            expect(onUpdate).toHaveBeenCalledTimes(1);
-
-            // Adapter-issued emit goes to both
-            obs.emitTracker(TRACKER_UPDATE);
-            expect(received1).toEqual([TRACKER_UPDATE]);
-            expect(received2).toEqual([TRACKER_UPDATE]);
-
-            // First unsubscribe — upstream still wired (one listener left)
-            unsub1();
-            expect(upstreamUnsub).not.toHaveBeenCalled();
-            obs.emitTracker(TRACKER_UPDATE);
-            expect(received2).toHaveLength(2);
-
-            // Second unsubscribe — upstream torn down
-            unsub2();
-            expect(upstreamUnsub).toHaveBeenCalledTimes(1);
-        });
-
-        it('does not wire a missing upstream source', () => {
-            const obs = new RuntimeObservers(null);
-            // Should not throw even though there is no upstream
-            const unsub = obs.subscribeToTracker(() => {});
-            expect(typeof unsub).toBe('function');
-            unsub();
-        });
-
-        it('isolates listener errors', () => {
-            const received: TrackerUpdate[] = [];
-            const consoleError = mock(() => {});
-            const originalError = console.error;
-            console.error = consoleError;
-
-            try {
-                observers.subscribeToTracker(() => { throw new Error('boom'); });
-                observers.subscribeToTracker(u => received.push(u));
-                observers.emitTracker(TRACKER_UPDATE);
-                expect(received).toEqual([TRACKER_UPDATE]);
-                expect(consoleError).toHaveBeenCalled();
-            } finally {
-                console.error = originalError;
-            }
-        });
-    });
-
     describe('dispose', () => {
-        it('clears all subscribers and tears down upstream', () => {
-            const upstreamUnsub = mock(() => {});
-            const onUpdate = mock((_cb: (u: TrackerUpdate) => void) => upstreamUnsub);
-            const obs = new RuntimeObservers({ onUpdate });
-
-            obs.subscribeToStack(() => {});
-            obs.subscribeToTracker(() => {});
-
-            expect(obs.stackObserverCount).toBe(1);
-            expect(obs.trackerListenerCount).toBe(1);
-
-            obs.dispose();
-
-            expect(obs.stackObserverCount).toBe(0);
-            expect(obs.trackerListenerCount).toBe(0);
-            expect(upstreamUnsub).toHaveBeenCalledTimes(1);
+        it('clears all stack subscribers', () => {
+            observers.subscribeToStack(() => {});
+            expect(observers.stackObserverCount).toBe(1);
+            observers.dispose();
+            expect(observers.stackObserverCount).toBe(0);
         });
 
         it('makes emit calls no-ops after dispose', () => {

@@ -1,12 +1,12 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricType } from "@/core/models/Metric";
 import { MetricContainer } from "@/core/models/MetricContainer";
 import { DurationMetric } from "../../metrics/DurationMetric";
 import { RoundsMetric } from "../../metrics/RoundsMetric";
-import { hasHint } from "@/core/metrics/hints";
+import { hasHint, CONSUMED_HINTS } from "@/core/metrics/hints";
 import { compose } from "../../BlockTemplateComposer";
 import type { BlockTemplate } from "../../BlockTemplate";
 // Specific behaviors not covered by aspect composers
@@ -29,13 +29,14 @@ import {
  */
 export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
     priority = 90; // High priority
+    readonly id = 'interval-logic';
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
         
         // Match if ANY statement has timer and (hint or EMOM keyword)
         const hasTimer = statements.some(s => s.metrics.some(f => f.type === MetricType.Duration));
-        const isInterval = statements.some(s => hasHint(s, 'behavior.repeating_interval'));
+        const isInterval = statements.some(s => hasHint(s, CONSUMED_HINTS.REPEATING_INTERVAL));
 
         // EMOM can be parsed as 'Action' OR 'Effort' depending on parser version
         const hasEmomAction = statements.some(s => s.metrics.some(
@@ -46,7 +47,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         return hasTimer && (isInterval || hasEmomAction);
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IRuntimeContext): void {
         const firstStatementWithTimer = statements.find(s => s.metrics.some(
             f => f.type === MetricType.Duration
         )) || statements[0];

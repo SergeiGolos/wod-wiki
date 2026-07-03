@@ -18,6 +18,7 @@ import type { WorkoutResult } from '@/types/storage';
 import type { StoredOutputStatement } from '@/components/Editor/types';
 import { MetricType } from '@/core/models/Metric';
 import { journalEntryPath } from '../../lib/routes';
+import { parseNoteId } from '../../lib/noteIdentity';
 import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 
 const ORIGIN_OPTIONS = [
@@ -252,16 +253,14 @@ export function EffortsNavPanel(_props: NavPanelProps) {
                 hour: '2-digit',
                 minute: '2-digit',
               });
-              // noteId format: journal/YYYY-MM-DD or playground/...
-              const noteIdParts = result.noteId.split('/');
-              const noteType = noteIdParts[0];
-              const noteKey = noteIdParts[1] ?? result.noteId;
+              const ref = parseNoteId(result.noteId);
 
               const handleClick = () => {
-                if (noteType === 'journal' && noteKey) {
-                  navigate(journalEntryPath(noteKey));
+                // Today only journal results are navigable from this panel
+                // (behavior preserved — other kinds routed via noteRefToPath later).
+                if (ref.kind === 'journal' && ref.id) {
+                  navigate(journalEntryPath(ref.id));
                 }
-                // For other note types, we could navigate generically
               };
 
               return (

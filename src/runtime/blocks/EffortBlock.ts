@@ -2,12 +2,11 @@
 import { MetricContainer } from '../../core/models/MetricContainer';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { RuntimeBlock } from '../RuntimeBlock';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../contracts/IRuntimeContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
-import { TrackMetricAction } from '../actions/tracking/TrackMetricAction';
 import { CountupTimerBehavior } from '../behaviors/CountupTimerBehavior';
 import { LabelingBehavior } from '../behaviors/LabelingBehavior';
 
@@ -79,7 +78,7 @@ export class EffortBlock extends RuntimeBlock {
   private lastCompletionMode: 'incremental' | 'bulk' = 'incremental';
 
   constructor(
-    runtime: IScriptRuntime,
+    runtime: IRuntimeContext,
     sourceIds: number[],
     private readonly config: EffortBlockConfig,
     metrics?: MetricContainer[]
@@ -119,17 +118,17 @@ export class EffortBlock extends RuntimeBlock {
     }));
   }
 
-  mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  mount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
     const actions = super.mount(runtime, options);
     actions.push(...this.getMetricActions());
     return actions;
   }
 
-  unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+  unmount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
     return super.unmount(runtime, options);
   }
 
-  dispose(runtime: IScriptRuntime): void {
+  dispose(runtime: IRuntimeContext): void {
     super.dispose(runtime);
     if (this.context) {
       this.context.release();
@@ -192,9 +191,6 @@ export class EffortBlock extends RuntimeBlock {
   private getMetricActions(): IRuntimeAction[] {
     const blockId = this.key.toString();
     const actions: IRuntimeAction[] = [];
-
-    // 1. Sync to tracker via action
-    actions.push(new TrackMetricAction(blockId, 'reps', this.currentReps, 'reps'));
 
     // 2. Emit event for UI
     actions.push(new EmitEventAction('reps:updated', {

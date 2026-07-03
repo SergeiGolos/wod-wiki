@@ -22,9 +22,12 @@ export type SegmentDataType = 'script' | 'youtube' | 'markdown' | 'header' | 'fr
  * Think of this as the "Folder" or "File" container.
  */
 export interface Note {
-    id: string;           // UUID
+    id: string;           // UUID — canonical storage identity (V8)
     title: string;        // Display name
     rawContent: string;   // Current/Draft content (for search/preview)
+
+    // V8 — routing sugar; routes resolve slug -> UUID on load. Never a storage or join key.
+    slug?: string;
 
     // Metadata
     tags: string[];
@@ -67,17 +70,20 @@ export interface NoteSegment {
 export interface WorkoutResult {
     id: string;           // UUID
 
-    segmentId?: string;   // Link to specific NoteSegment
     segmentVersion?: number;
     noteId: string;       // Link to parent Note (for easier querying)
-    sectionId?: string;   // Legacy link to old section
+
+    /** Section position identity — which block in the note this result belongs to. */
+    blockId?: string;
+    /** Content-stable identity — hash of the fenced content at recording time. */
+    blockContentId?: string;
+    /** Content generation at this position. Assigned at record time via computeVersion(). */
+    version?: number;
 
     data: WorkoutResults; // The actual results data
 
     completedAt: number;  // When the workout was finished
 }
-
-// ---------------------------------------------------------------------------
 // Attachment — external temporal data blobs (GPS / HR)
 // ---------------------------------------------------------------------------
 /**
@@ -105,6 +111,8 @@ export interface Attachment {
 export interface AnalyticsDataPoint {
     id: string;
     noteId: string;
+    /** V6 — content-stable join key; drives the `analytics.by-content` index for cross-workout trend queries. */
+    blockContentId?: string;
     segmentId: string;
     segmentVersion: number;
     resultId: string;     // Link to raw WorkoutResult

@@ -1,7 +1,7 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 
 // New aspect-based behaviors
 import {
@@ -21,12 +21,13 @@ import {
  */
 export class SoundStrategy implements IRuntimeBlockStrategy {
     priority = 20;
+    readonly id = 'sound';
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         return statements && statements.length > 0;
     }
 
-    apply(builder: BlockBuilder, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, _statements: ICodeStatement[], _runtime: IRuntimeContext): void {
         // Skip if sound already added by Logic strategy
         if (builder.hasBehavior(SoundCueBehavior)) {
             return;

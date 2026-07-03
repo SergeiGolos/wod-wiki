@@ -2,12 +2,13 @@
 
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/AnalyticsModels';
 
-import { IMetric } from '../core/models/Metric';
+import { IMetric, MetricType } from '../core/models/Metric';
 import { MetricContainer } from '../core/models/MetricContainer';
 import { getHints } from '../core/metrics/hints';
 import { IOutputStatement } from '../core/models/OutputStatement';
 import type { StoredOutputStatement } from '../components/Editor/types';
 import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
+import { INowProvider, wallClockNow } from '../runtime/INowProvider';
 
 /**
  * Union accepted by the transformer — either a live OutputStatement (from a
@@ -95,7 +96,7 @@ export class AnalyticsTransformer {
    * Transform OutputStatements into UI-ready Segments.
    * This is the primary API for the new runtime architecture.
    */
-  fromOutputStatements(outputs: OutputLike[], workoutStartTime?: number): SegmentWithMetadata[] {
+  fromOutputStatements(outputs: OutputLike[], workoutStartTime?: number, now: INowProvider = wallClockNow): SegmentWithMetadata[] {
     if (!outputs || outputs.length === 0) {
       return [];
     }
@@ -118,12 +119,15 @@ export class AnalyticsTransformer {
       const intentDuration = durationFrag?.value !== undefined ? (durationFrag.value as number) / 1000 : undefined;
 
       // Real Time: pause-aware elapsed time and wall-clock total
-      // These are stored as properties on OutputStatement class or plain objects
-      const elapsed = (output.elapsed || 0) / 1000;
-      const total = (output.total || 0) / 1000;
+      // These are stored as canonical metrics on OutputStatement.
+      const elapsedMetric = outputMetrics.find(m => m.type === MetricType.Elapsed);
+      const elapsed = (typeof elapsedMetric?.value === 'number' ? elapsedMetric.value : 0) / 1000;
+
+      const totalMetric = outputMetrics.find(m => m.type === MetricType.Total);
+      const total = (typeof totalMetric?.value === 'number' ? totalMetric.value : 0) / 1000;
 
       const startTimeMs = output.timeSpan?.started ?? startTime;
-      const endTimeMs = output.timeSpan?.ended ?? Date.now();
+      const endTimeMs = output.timeSpan?.ended ?? now.nowMs();
 
       const extractedMetrics = extractMetricsFromGroups([outputMetrics.toArray()]);
 
@@ -140,8 +144,10 @@ export class AnalyticsTransformer {
 
       // Spans are recorded using the runtime clock.
       // We convert them to session-relative seconds for visualization.
-      const rawSpans = (output.spans && output.spans.length > 0)
-        ? output.spans
+      const spansMetric = outputMetrics.find(m => m.type === MetricType.Spans);
+      const metricSpans = Array.isArray(spansMetric?.value) ? spansMetric.value : [];
+      const rawSpans = metricSpans.length > 0
+        ? metricSpans
         : (output.timeSpan ? [output.timeSpan] : []);
 
       const spans = rawSpans.map(s => ({
@@ -314,8 +320,9 @@ export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): Analyti
  * @param outputs - StoredOutputStatement[] from WorkoutResult.data.logs
  * @param workoutStartTime - Optional workout start timestamp (ms). Used to
  *   anchor relative timing in the segment timeline.
+ * @param now - Optional clock provider; defaults to wall-clock.
  */
-export function getAnalyticsFromLogs(outputs: StoredOutputStatement[], workoutStartTime?: number): AnalyticsResult {
+export function getAnalyticsFromLogs(outputs: StoredOutputStatement[], workoutStartTime?: number, now?: INowProvider): AnalyticsResult {
   if (!outputs || outputs.length === 0) return { segments: [], groups: [] };
 
   const transformer = new AnalyticsTransformer();
@@ -327,7 +334,7 @@ export function getAnalyticsFromLogs(outputs: StoredOutputStatement[], workoutSt
     o.outputType === 'milestone'
   );
   
-  const segments = transformer.fromOutputStatements(filteredOutputs, workoutStartTime);
+  const segments = transformer.fromOutputStatements(filteredOutputs, workoutStartTime, now);
 
   if (segments.length === 0) {
     return { segments: [], groups: [] };

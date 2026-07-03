@@ -3,7 +3,7 @@ import { IBlockContext } from "../contracts/IBlockContext";
 import { BlockKey } from "../../core/models/BlockKey";
 import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import { RuntimeBlock } from "../RuntimeBlock";
-import { IScriptRuntime } from "../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../contracts/IRuntimeContext";
 import { IMetric, MetricType } from "../../core/models/Metric";
 import { MetricContainer } from "../../core/models/MetricContainer";
 import { MemoryLocation } from "../memory/MemoryLocation";
@@ -16,7 +16,9 @@ import {
     SpanTrackingBehavior,
     ChildSelectionBehavior,
     ChildSelectionConfig,
-    ChildSelectionLoopCondition
+    ChildSelectionLoopCondition,
+    ExitBehavior,
+    MetricPromotionBehavior
 } from "../behaviors";
 
 
@@ -52,8 +54,10 @@ export class BlockBuilder {
     private sourceIds: number[] = [];
     /** Pending round config stored by asRepeater(), consumed by asContainer() */
     private pendingRoundConfig: RepeaterConfig | undefined;
+    /** Declared exit intent — resolved into a single ExitBehavior in build(). */
+    private declaredExitMode: 'immediate' | 'deferred' | undefined;
 
-    constructor(private runtime: IScriptRuntime) {}
+    constructor(private runtime: IRuntimeContext) {}
 
     addBehavior(behavior: IRuntimeBehavior): BlockBuilder {
 
@@ -94,11 +98,15 @@ export class BlockBuilder {
 
     /**
      * Remove a behavior by its constructor type.
-     * Used by enhancement strategies to remove conflicting behaviors
-    * added by earlier strategies (e.g., removing LeafExitBehavior
-    * when child-selection behavior takes over completion management).
+     *
+     * Private: this is a mechanic `build()` uses to resolve a declared exit
+     * intent (see `declareExit`) into exactly one `ExitBehavior`. Strategies
+     * declare intent instead of calling this directly — see §2.3 of
+     * docs/architectural-cleanup-tier-2-consolidations.md for why strategies
+     * used to mutate each other's contributions this way, and why that
+     * coupling was removed.
      */
-    removeBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
+    private removeBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
         this.behaviors.delete(type);
         return this;
     }
@@ -107,14 +115,14 @@ export class BlockBuilder {
      * Move an already-added behavior to the LAST position in the behavior list.
      *
      * Behavior order = Map insertion order = RuntimeBlock.onNext execution order.
-     * When a later-running strategy needs a behavior added by an earlier
-     * strategy to execute AFTER its own behaviors, this is the explicit API.
-     * No-op when the behavior is not present (or already last).
      *
-     * Replaces the previous `getBehavior → removeBehavior → addBehavior` dance
-     * (e.g. ChildrenStrategy's MetricPromotion reorder) with a named contract.
+     * Private: `build()` calls this once to canonicalize ordering (e.g.
+     * MetricPromotionBehavior must run after ChildSelectionBehavior so it sees
+     * the round ChildSelectionBehavior just advanced). No-op when the behavior
+     * is not present (or already last). Strategies no longer call this
+     * directly — see §2.3 of docs/architectural-cleanup-tier-2-consolidations.md.
      */
-    moveBehaviorLast<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
+    private moveBehaviorLast<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
         const behavior = this.behaviors.get(type);
         if (!behavior) return this;
         this.behaviors.delete(type);
@@ -124,6 +132,22 @@ export class BlockBuilder {
 
     hasBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): boolean {
         return this.behaviors.has(type);
+    }
+    /**
+     * Declare the block's exit intent. Strategies call this instead of adding
+     * or removing ExitBehavior across each other. 'deferred' supersedes
+     * 'immediate' (a container strategy overrides a leaf strategy's
+     * immediate-exit guess). Resolved into a single ExitBehavior in build().
+     */
+    declareExit(mode: 'immediate' | 'deferred'): BlockBuilder {
+        if (mode === 'deferred' || this.declaredExitMode === undefined) {
+            this.declaredExitMode = mode;
+        }
+        return this;
+    }
+    /** The declared exit intent (resolved into a single ExitBehavior in build). */
+    get exitMode(): 'immediate' | 'deferred' | undefined {
+        return this.declaredExitMode;
     }
 
     getBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): T | undefined {
@@ -308,6 +332,23 @@ export class BlockBuilder {
         // Add Universal Invariants - automatically added to ALL blocks
         // These behaviors are added implicitly and don't require strategy opt-in
         this.addBehaviorIfMissing(new CompletionTimestampBehavior());
+        // Resolve declared exit intent into exactly one ExitBehavior. Strategies
+        // declare intent (declareExit) rather than add/remove ExitBehavior across
+        // each other; 'deferred' wins over 'immediate'. A declared intent supersedes
+        // any ExitBehavior a strategy added directly (e.g. a timer strategy's default
+        // exit is overridden by a container's 'deferred') — matching the former
+        // removeBehavior+re-add that ChildrenStrategy did inline.
+        if (this.declaredExitMode) {
+            this.removeBehavior(ExitBehavior);
+            this.addBehavior(new ExitBehavior(
+                this.declaredExitMode === 'immediate'
+                    ? { mode: 'immediate', onNext: true }
+                    : { mode: 'deferred' }
+            ));
+        }
+        // Canonical order: MetricPromotionBehavior runs after ChildSelectionBehavior
+        // so it observes the round ChildSelectionBehavior just advanced.
+        this.moveBehaviorLast(MetricPromotionBehavior);
 
         const block = new RuntimeBlock({
             runtime: this.runtime,

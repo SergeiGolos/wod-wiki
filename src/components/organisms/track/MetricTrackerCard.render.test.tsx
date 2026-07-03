@@ -1,15 +1,19 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test';
 import { cleanup, render, screen } from '@testing-library/react';
 
-mock.module('@/hooks/useRuntimeTimer', () => ({
-  useWorkoutTracker: () => ({
-    metrics: {
-      'session-totals': {
-        totalLoad: { value: 1200, unit: 'kg' },
-        calculated: { value: 420, unit: 'pts' },
-        custom_metric: { value: 'Zone 2', unit: '' },
-      },
-    },
+mock.module('@/runtime/hooks/useOutputStatements', () => ({
+  useOutputStatements: () => ({
+    outputs: [{
+      outputType: 'analytics',
+      metrics: [
+        { type: 'label', image: 'totalLoad', value: 'totalLoad' },
+        { type: 'metric', image: '1200 kg', value: 1200, unit: 'kg' },
+        { type: 'label', image: 'calculated', value: 'calculated' },
+        { type: 'metric', image: '420 pts', value: 420, unit: 'pts' },
+        { type: 'label', image: 'custom_metric', value: 'custom_metric' },
+        { type: 'metric', image: 'Zone 2 ', value: 'Zone 2', unit: '' },
+      ],
+    }],
   }),
 }));
 

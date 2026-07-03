@@ -1,7 +1,7 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricType } from "@/core/models/Metric";
 import { RoundsMetric } from "../../metrics/RoundsMetric";
 import { compose } from "../../BlockTemplateComposer";
@@ -11,7 +11,6 @@ import type { BlockTemplate } from "../../BlockTemplate";
 import {
     MetricPromotionBehavior,
     LabelingBehavior,
-    ExitBehavior,
 } from "../../../behaviors";
 
 /**
@@ -23,13 +22,14 @@ import {
  */
 export class GenericLoopStrategy implements IRuntimeBlockStrategy {
     priority = 50;
+    readonly id = 'generic-loop';
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
         return statements.some(s => s.metrics.some(f => f.type === MetricType.Rounds));
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IRuntimeContext): void {
         // Skip if round behaviors already added by higher-priority strategy
         if (builder.hasRoundConfig()) {
             return;
@@ -108,10 +108,10 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             promotions
         }));
 
-        // Leaf Exit Aspect - for round blocks with no children (e.g., "(3) Pullups"),
-        // add an immediate exit so userNext completes the block.
-        // ChildrenStrategy will remove this if the block has children, replacing it
-        // with a deferred exit that fires after all child iterations complete.
-        builder.addBehavior(new ExitBehavior({ mode: 'immediate', onNext: true }));
+        // Leaf Exit Aspect — for round blocks with no children (e.g., "(3) Pullups"),
+        // declare an immediate exit so userNext completes the block. If the block
+        // turns out to have children, ChildrenStrategy declares 'deferred', which
+        // supersedes this. Resolved into one ExitBehavior in BlockBuilder.build().
+        builder.declareExit('immediate');
     }
 }

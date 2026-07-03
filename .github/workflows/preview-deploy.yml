@@ -1,0 +1,233 @@
+name: Preview Deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: none
+
+env:
+  BUN_VERSION: "1.3.x"
+
+jobs:
+  # ── Build ──────────────────────────────────────────────────────────────────
+  build:
+    name: Build Preview
+    runs-on: ubuntu-22.04
+    if: github.event.action != 'closed'
+    outputs:
+      branch-slug: ${{ steps.slug.outputs.slug }}
+      artifact-dir: ${{ steps.artifact-dir.outputs.dir }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build playground
+        run: bun run build-playground && bun x vite build --config vite.receiver.config.ts
+
+      - name: Persist build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-build-${{ github.event.pull_request.number }}
+          path: playground/dist/
+          retention-days: 1
+
+      - name: Derive branch slug
+        id: slug
+        run: |
+          # Sanitize branch name: lowercase, no spaces, no special chars
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          SLUG=$(echo "$BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "slug=$SLUG" >> $GITHUB_OUTPUT
+
+      - name: Set artifact dir
+        id: artifact-dir
+        run: |
+          echo "dir=playground/dist" >> $GITHUB_OUTPUT
+
+  # ── Deploy ─────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to S3 + CloudFront
+    runs-on: ubuntu-22.04
+    needs: build
+    if: github.event.action != 'closed'
+    environment: preview
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
+      CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
+      BRANCH_SLUG: ${{ needs.build.outputs.branch-slug }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: preview-build-${{ github.event.pull_request.number }}
+          path: ./dist/
+
+      - name: Deploy to S3
+        run: |
+          set -euo pipefail
+          PREFIX="${{ needs.build.outputs.branch-slug }}/"
+          echo "Uploading to s3://$S3_BUCKET/$PREFIX"
+          aws s3 sync ./dist/ "s3://$S3_BUCKET/$PREFIX" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate" \
+            --exclude "*.map" \
+            2>&1
+          echo "s3_prefix=$PREFIX" >> $GITHUB_OUTPUT
+
+      - name: Create CloudFront cache invalidation
+        run: |
+          set -euo pipefail
+          PREFIX="/${{ needs.build.outputs.branch-slug }}/*"
+          echo "Creating CloudFront invalidation for $PREFIX"
+          aws cloudfront create-invalidation \
+            --distribution-id "$CF_DISTRIBUTION_ID" \
+            --paths "$PREFIX"
+          echo "invalidation_path=$PREFIX" >> $GITHUB_OUTPUT
+
+  # ── Post PR comment ─────────────────────────────────────────────────────────
+  comment:
+    name: Post Preview Link
+    runs-on: ubuntu-22.04
+    needs: [build, deploy]
+    if: github.event.action != 'closed'
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      BRANCH_SLUG: ${{ needs.build.outputs.branch-slug }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Post PR comment
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const slug = process.env.BRANCH_SLUG;
+            const pr = process.env.PR_NUMBER;
+            // Preview is at: https://{branch-slug}.preview.wod.wiki
+            const previewUrl = `https://${slug}.preview.wod.wiki`;
+            const marker = `<!-- wod-wiki-preview-${pr} -->`;
+            const body = `${marker}\n` +
+              `## 🚀 Preview deployed\n\n` +
+              `| Item | Value |\n` +
+              `| --- | --- |\n` +
+              `| PR | #${pr} |\n` +
+              `| Branch | \`${slug}\` |\n` +
+              `| Preview URL | [${previewUrl}](${previewUrl}) |\n\n` +
+              `> Build and deploy powered by AWS S3 + CloudFront. ` +
+              `Destroyed automatically when this PR is closed or merged.`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parseInt(pr),
+            });
+
+            const existing = comments.find((c) =>
+              c.user.type === 'Bot' && c.body.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt(pr),
+                body,
+              });
+            }
+
+  # ── Destroy ────────────────────────────────────────────────────────────────
+  destroy:
+    name: Destroy Preview
+    runs-on: ubuntu-22.04
+    if: github.event.action == 'closed'
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
+      CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
+      PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+    steps:
+      - name: Derive branch slug
+        id: slug
+        run: |
+          SLUG=$(echo "$PR_BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
+          echo "slug=$SLUG" >> $GITHUB_OUTPUT
+
+      - name: Delete S3 prefix objects
+        run: |
+          set -euo pipefail
+          PREFIX="${{ steps.slug.outputs.slug }}/"
+          echo "Deleting s3://$S3_BUCKET/$PREFIX"
+          aws s3 rm "s3://$S3_BUCKET/$PREFIX" --recursive 2>&1
+
+      - name: Create CloudFront invalidation for deleted path
+        run: |
+          set -euo pipefail
+          PREFIX="/${{ steps.slug.outputs.slug }}/*"
+          echo "Invalidating CloudFront cache for $PREFIX"
+          aws cloudfront create-invalidation \
+            --distribution-id "$CF_DISTRIBUTION_ID" \
+            --paths "$PREFIX"
+
+      - name: Post destroy comment
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const merged = context.payload.pull_request?.merged;
+            const action = merged ? 'merged' : 'closed';
+            const pr = context.payload.pull_request?.number;
+            const marker = `<!-- wod-wiki-preview-${pr} -->`;
+            const body = `${marker}\n` +
+              `## 🗑️ Preview destroyed\n\n` +
+              `PR #${pr} was **${action}** — preview resources have been ` +
+              `removed from S3 and the CloudFront cache has been invalidated.\n\n` +
+              `> Automatic cleanup complete.`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr,
+            });
+
+            const existing = comments.find((c) =>
+              c.user.type === 'Bot' && c.body.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            }

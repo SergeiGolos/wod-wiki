@@ -123,14 +123,14 @@ describe('CanvasSection inline button rendering', () => {
     expect(matches).toHaveLength(1)
   })
 
-  it('falls back to a single prose chunk when proseChunks is absent (legacy sections)', () => {
+  it('renders a section with a single prose chunk', () => {
     const section: CanvasSectionType = {
-      id: 'sec-legacy',
-      heading: 'Legacy',
+      id: 'sec-single',
+      heading: 'Single',
       level: 2,
       attrs: [],
       prose: 'Some legacy prose.',
-      // proseChunks intentionally omitted
+      proseChunks: [{ kind: 'prose', text: 'Some legacy prose.' }],
       commands: [],
       buttons: [],
     }
@@ -145,8 +145,8 @@ describe('CanvasSection inline button rendering', () => {
         onExampleSelect={() => {}}
         selectedExampleIndex={0}
       />,
-    )
+    );
 
-    expect(screen.getByText(/some legacy prose/i)).toBeTruthy()
-  })
+    expect(screen.getByText(/some legacy prose/i)).toBeTruthy();
+  });
 })

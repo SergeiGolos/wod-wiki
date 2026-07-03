@@ -3,7 +3,7 @@ import { JitCompiler } from '../../JitCompiler';
 import { IScriptRuntime } from '../../../contracts/IScriptRuntime';
 import { CodeStatement } from '@/core/models/CodeStatement';
 import { hintMetric } from '@/core/metrics/hints';
-import { TimerMetric } from '../../metrics/TimerMetric';
+import { DurationMetric } from '../../metrics/DurationMetric';
 import { RoundsMetric } from '../../metrics/RoundsMetric';
 import { AmrapLogicStrategy } from '../logic/AmrapLogicStrategy';
 import { IntervalLogicStrategy } from '../logic/IntervalLogicStrategy';
@@ -32,7 +32,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
     let compiler: JitCompiler;
 
     // Mock Fragments for testing
-    class MockTimerMetric extends TimerMetric {
+    class MockTimerMetric extends DurationMetric {
         constructor(ms: number, forceUp: boolean = false) {
             const meta = new CodeMetadata(0, 0, 0, 0);
             super('0:00', meta, forceUp);

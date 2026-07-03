@@ -1,5 +1,5 @@
 import { MetricContainer } from "../../../core/models/MetricContainer";
-import type { IScriptRuntime } from "../IScriptRuntime";
+import type { IRuntimeContext } from "../IRuntimeContext";
 import type { IRuntimeBlock } from "../IRuntimeBlock";
 
 /**
@@ -19,7 +19,7 @@ export interface IMetricPromoter {
      * @param parentBlock The parent block that is promoting metrics
      * @returns MetricContainer of metrics to inject into children
      */
-    getPromotedFragments(runtime: IScriptRuntime, parentBlock: IRuntimeBlock): MetricContainer;
+    getPromotedFragments(runtime: IRuntimeContext, parentBlock: IRuntimeBlock): MetricContainer;
 }
 
 /**

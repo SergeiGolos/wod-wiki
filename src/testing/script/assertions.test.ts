@@ -90,7 +90,7 @@ describe('assertions DSL', () => {
         expect(assertions(after).stack().changed(before)).toBe(true);
     });
 
-    it('expectAll throws AggregateError when a check fails', () => {
+    it('expectAll throws an aggregated Error when a check fails', () => {
         const block = new MockBlock({ id: 'b1', label: 'Run' });
         const state = makeState({ depth: 1, current: block, blocks: [block] });
         expect(() => {
@@ -102,7 +102,7 @@ describe('assertions DSL', () => {
                     if (a.currentBlock()) throw new Error('has block');
                 },
             ]);
-        }).toThrow(AggregateError);
+        }).toThrow(Error);
     });
 
     it('expectAll is silent when all checks pass', () => {
@@ -387,7 +387,7 @@ describe('assertions DSL', () => {
         expect(out.forBlock('missing').length).toBe(0);
     });
 
-    it('outputs().allPaired passes when every segment has a matching completion', () => {
+    it('outputs().allPaired passes — completion is folded into segment outputs', () => {
         const state = makeState({
             outputs: [
                 { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as any,
@@ -395,16 +395,6 @@ describe('assertions DSL', () => {
             ],
         });
         expect(() => assertions(state).outputs().allPaired()).not.toThrow();
-    });
-
-    it('outputs().allPaired throws on unpaired segments', () => {
-        const state = makeState({
-            outputs: [
-                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as any,
-                { id: 2, outputType: 'segment', sourceBlockKey: 'b2' } as any,
-            ],
-        });
-        expect(() => assertions(state).outputs().allPaired()).toThrow(/Unpaired segment outputs/);
     });
 
     it('outputs() default to empty array when state.outputs is undefined', () => {

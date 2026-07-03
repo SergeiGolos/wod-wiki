@@ -49,7 +49,7 @@
     "build:app": "bun x vite build --config playground/vite.config.ts",
     "build-playground": "bun x vite build --config playground/vite.config.ts",
     "preview:app": "bun x vite preview --config playground/vite.config.ts",
-    "playground": "bun x vite --config playground/vite.config.ts",
+    "playground": "bun --bun x vite --config playground/vite.config.ts",
     "build": "bun run build-storybook",
     "storybook": "node scripts/storybook-start.mjs",
     "storybook:debug": "set NODE_OPTIONS=--inspect=9229 && bun x storybook dev -p 6006",

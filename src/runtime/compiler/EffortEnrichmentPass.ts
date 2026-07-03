@@ -15,7 +15,7 @@ import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import type { IEffortResolver } from '@/effort-registry/types';
 import { EFFORT_DATA_METRIC_TYPE } from '@/core/analytics/effortResolution';
 import type { IMetric, MetricType } from '@/core/models/Metric';
-import { MemoryLocation } from '@/runtime/memory/MemoryLocation';
+import { IMemoryLocation, MemoryLocation } from '@/runtime/memory/MemoryLocation';
 
 export interface EffortEnrichmentPassOptions {
   /** Effort resolver for label → definition lookup. */
@@ -35,18 +35,25 @@ export interface EffortEnrichmentPassOptions {
 export function applyEffortEnrichment(root: IRuntimeBlock, options: EffortEnrichmentPassOptions): void {
   const { resolver, overwrite = false, debug = false } = options;
   const visited = new Set<string>();
+    function walk(block: IRuntimeBlock): void {
+        // Guard against circular references in the block tree
+        if (visited.has(block.key.toString())) {
+            if (debug) console.log(`[EffortEnrichment] Skipping visited block: ${block.key}`);
+            return;
+        }
+        visited.add(block.key.toString());
 
-  function walk(block: IRuntimeBlock): void {
-    // Guard against circular references in the block tree
-    if (visited.has(block.key.toString())) {
-      if (debug) console.log(`[EffortEnrichment] Skipping visited block: ${block.key}`);
-      return;
+        // Attempt to enrich this block if it's an exercise block
+        tryEnrichBlock(block, resolver, overwrite, debug);
+
+        // Recurse into child blocks so nested exercises also get enriched.
+        // (Previously the function was a no-op stub that never recursed —
+        // children with their own effort labels were silently skipped.)
+        const children = (block as unknown as { children?: readonly IRuntimeBlock[] }).children;
+        if (Array.isArray(children)) {
+            for (const child of children) walk(child);
+        }
     }
-    visited.add(block.key.toString());
-
-    // Attempt to enrich this block if it's an exercise block
-    tryEnrichBlock(block, resolver, overwrite, debug);
-  }
 
   walk(root);
 }
@@ -79,10 +86,15 @@ function tryEnrichBlock(
     if (debug) console.log(`[EffortEnrichment] Skipping block already enriched: ${label}`);
     return;
   }
-
-  // Resolve the effort
   try {
-    const resolved = resolver.resolveEffort(label);
+  // Resolve the effort. `resolved.effort.hints` carries effort-defined hints
+  // (Tier 3 §3.3) — they reach the same `metric:hint` memory location as
+  // dialect-emitted hints and are consumed by the same strategies.
+  const resolved = resolver.resolveEffort(label);
+  const effortHints = resolved.effort.hints;
+  if (effortHints && Object.keys(effortHints).length > 0) {
+      block.mergeHints(effortHints);
+  }
 
     if (debug) {
       console.log(`[EffortEnrichment] Resolved effort: ${label} → ${resolved.label} (MET: ${resolved.met})`);
@@ -99,17 +111,17 @@ function tryEnrichBlock(
 
     // Create or update a private metrics memory location
     const privateMetrics = block.getMetricMemoryByVisibility('private');
-    const existingEffortDataLocation = privateMetrics.find(loc =>
+    const existingLoc: IMemoryLocation | undefined = privateMetrics.find(loc =>
       loc.metrics.toArray().some(m => m.type === EFFORT_DATA_METRIC_TYPE),
     );
 
-    if (existingEffortDataLocation && overwrite) {
+    if (existingLoc && overwrite) {
       // Update existing effort-data location: remove old effort-data and add new one
-      const existingMetrics = existingEffortDataLocation.metrics.toArray();
+      const existingMetrics = existingLoc.metrics.toArray();
       const filtered = existingMetrics.filter(m => m.type !== EFFORT_DATA_METRIC_TYPE);
       filtered.push(effortDataMetric);
-      existingEffortDataLocation.update(filtered);
-    } else if (!existingEffortDataLocation) {
+      existingLoc.update(filtered);
+    } else if (!existingLoc) {
       // Create new private metrics location
       const location = new MemoryLocation('metric:tracked', [effortDataMetric]);
       block.pushMemory(location);

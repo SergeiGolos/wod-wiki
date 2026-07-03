@@ -35,9 +35,6 @@ export type OutputStatementType = 'segment' | 'milestone' | 'completion' | 'metr
  * - `MetricType.Duration` — **Duration**: parser-defined planned target
  * - `MetricType.SystemTime` — **TimeStamp**: system Date.now() when logged
  *
- * The direct properties `spans`, `elapsed`, `total` are **deprecated proxies**
- * kept for backward compatibility. Prefer `getMetric(MetricType.Elapsed)`,
- * etc., or use `getDisplayMetrics()` for UI rendering.
  */
 export interface IOutputStatement extends ICodeStatement, IMetricSource {
     readonly id: number;
@@ -46,37 +43,6 @@ export interface IOutputStatement extends ICodeStatement, IMetricSource {
 
     /** Execution timing — when this output occurred */
     readonly timeSpan: TimeSpan;
-
-    /**
-     * **Time** — raw TimeSpan[] from the block's timer memory.
-     * 
-     * @deprecated Access via `getMetric(MetricType.Spans)` or
-     * `getAllMetricsByType(MetricType.Spans)` instead.
-     * This property is a convenience proxy over the SpansMetric.
-     * 
-     * @see docs/architecture/time-terminology.md
-     */
-    readonly spans: ReadonlyArray<TimeSpan>;
-
-    /**
-     * **Elapsed** — pause-aware active time in milliseconds.
-     * 
-     * @deprecated Access via `getMetric(MetricType.Elapsed)?.value` instead.
-     * This property is a convenience proxy computed from SpansMetric data.
-     * 
-     * @see docs/architecture/time-terminology.md
-     */
-    readonly elapsed: number;
-
-    /**
-     * **Total** — wall-clock bracket in milliseconds.
-     * 
-     * @deprecated Access via `getMetric(MetricType.Total)?.value` instead.
-     * This property is a convenience proxy computed from SpansMetric data.
-     * 
-     * @see docs/architecture/time-terminology.md
-     */
-    readonly total: number;
 
     /** The source statement ID that triggered this output (if any) */
     readonly sourceStatementId?: number;
@@ -110,7 +76,9 @@ export interface IOutputStatement extends ICodeStatement, IMetricSource {
      * - `'timer-expired'` — block's own timer completed
      * - `'rounds-complete'` — all rounds finished
      * 
-     * Only present on `'completion'` output type.
+     * Present on the `'segment'` output emitted when a block pops — there is
+     * no separate `'completion'` output type; completion data is a field on
+     * the closing segment itself.
      */
     readonly completionReason?: string;
 }
@@ -118,10 +86,8 @@ export interface IOutputStatement extends ICodeStatement, IMetricSource {
 /**
  * Options for creating an OutputStatement.
  * 
- * Time data should be provided primarily through `metrics` (SpansMetric,
- * ElapsedMetric, TotalMetric). The `spans` option is a **deprecated**
- * convenience — it populates the legacy `OutputStatement.spans` property
- * and is used to compute the deprecated `.elapsed` / `.total` proxies.
+ * Time data should be provided through `metrics` (SpansMetric,
+ * ElapsedMetric, TotalMetric).
  */
 export interface OutputStatementOptions {
     /** Output type classification */
@@ -129,14 +95,6 @@ export interface OutputStatementOptions {
 
     /** Execution timing */
     timeSpan: TimeSpan;
-
-    /**
-     * @deprecated Pass time data via SpansMetric in `metrics` instead.
-     * Raw time spans from the block's timer memory.
-     * When provided, the deprecated `elapsed` and `total` properties are
-     * computed from these spans.
-     */
-    spans?: TimeSpan[];
 
     /** The block key that produced this output */
     sourceBlockKey: string;
@@ -166,11 +124,6 @@ export interface OutputStatementOptions {
 /**
  * Concrete implementation of IOutputStatement.
  * Created by the runtime when a block unmounts.
- *
- * Direct time properties (`spans`, `elapsed`, `total`) are **deprecated
- * proxies** — canonical data lives in the `metrics` array as
- * SpansMetric, ElapsedMetric, and TotalMetric.
- * Use `getMetric()` / `getDisplayMetrics()` for new code.
  */
 export class OutputStatement implements IOutputStatement, IMetricSource {
     private static nextId = 1000000; // Start at a high number to avoid collision with parsed statement IDs
@@ -179,29 +132,11 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
     readonly outputType: OutputStatementType;
     readonly timeSpan: TimeSpan;
 
-    /**
-     * @deprecated Use `getMetric(MetricType.Spans)` instead.
-     * Convenience proxy over SpansMetric data.
-     */
-    readonly spans: ReadonlyArray<TimeSpan>;
-
     readonly sourceStatementId?: number;
     readonly sourceBlockKey: string;
     readonly stackLevel: number;
     readonly metrics: MetricContainer;
     readonly metricMeta: Map<IMetric, CodeMetadata>;
-
-    /**
-     * @deprecated Use `getMetric(MetricType.Elapsed)?.value` instead.
-     * Convenience proxy computed from SpansMetric data.
-     */
-    readonly elapsed: number;
-
-    /**
-     * @deprecated Use `getMetric(MetricType.Total)?.value` instead.
-     * Convenience proxy computed from SpansMetric data.
-     */
-    readonly total: number;
 
     readonly completionReason?: string;
     readonly parent?: number;
@@ -213,7 +148,6 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
         this.id = OutputStatement.nextId++;
         this.outputType = options.outputType;
         this.timeSpan = options.timeSpan;
-        this.spans = options.spans ? [...options.spans] : [];
         this.sourceBlockKey = options.sourceBlockKey;
         this.sourceStatementId = options.sourceStatementId;
         this.stackLevel = options.stackLevel;
@@ -223,9 +157,6 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
         this.parent = options.parent;
         this.children = options.children ?? [];
         this.isLeaf = this.children.length === 0;
-
-        this.elapsed = this.calculateElapsed();
-        this.total = this.calculateTotal();
 
         // Placeholder metadata — OutputStatements are runtime-generated, not parsed.
         this.meta = { line: 0, columnStart: 0, columnEnd: 0, startOffset: 0, endOffset: 0, length: 0 };
@@ -272,33 +203,6 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
      */
     get rawMetrics(): IMetric[] {
         return this.metrics.rawMetrics;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // Deprecated proxy computation (kept for backward compat)
-    // ═══════════════════════════════════════════════════════════════
-
-    private static spanLength(span: TimeSpan, now: number): number {
-        return Math.max(0, (span.ended ?? now) - span.started);
-    }
-
-    private calculateElapsed(): number {
-        const now = Date.now();
-        if (this.spans.length === 0) {
-            return OutputStatement.spanLength(this.timeSpan, now);
-        }
-        return this.spans.reduce((sum, span) => sum + OutputStatement.spanLength(span, now), 0);
-    }
-
-    private calculateTotal(): number {
-        const now = Date.now();
-        if (this.spans.length === 0) {
-            return OutputStatement.spanLength(this.timeSpan, now);
-        }
-        const firstStart = this.spans[0].started;
-        const lastSpan = this.spans[this.spans.length - 1];
-        const lastEnd = lastSpan.ended ?? now;
-        return Math.max(0, lastEnd - firstStart);
     }
 
     /**

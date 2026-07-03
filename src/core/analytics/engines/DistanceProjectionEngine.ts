@@ -14,7 +14,7 @@ import { TimeSpan } from '../../../runtime/models/TimeSpan';
 export class DistanceProjectionEngine implements ISummaryProcessor {
   public readonly id = 'distance-projection';
   public readonly name = 'DistanceProjectionEngine';
-  public readonly dialects = ['wod', 'log', 'plan'] as const;
+  public readonly fenceTypes = ['wod', 'log', 'plan'] as const;
   public readonly requiredMetrics = [MetricType.Distance] as const;
 
   summarize(outputs: IOutputStatement[]): ProjectionResult[] {

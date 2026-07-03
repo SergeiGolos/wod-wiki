@@ -295,6 +295,38 @@ describe('OutputStatement implements IMetricSource', () => {
     });
 });
 
+function spanLength(span: TimeSpanImpl, now = Date.now()): number {
+    return Math.max(0, (span.ended ?? now) - span.started);
+}
+
+function calculateElapsed(spans: TimeSpanImpl[], timeSpan: TimeSpanImpl): number {
+    if (spans.length === 0) {
+        return spanLength(timeSpan);
+    }
+    return spans.reduce((sum, span) => sum + spanLength(span), 0);
+}
+
+function calculateTotal(spans: TimeSpanImpl[], timeSpan: TimeSpanImpl): number {
+    if (spans.length === 0) {
+        return spanLength(timeSpan);
+    }
+    const firstStart = spans[0].started;
+    const lastSpan = spans[spans.length - 1];
+    const lastEnd = lastSpan.ended ?? Date.now();
+    return Math.max(0, lastEnd - firstStart);
+}
+
+function makeTimeMetrics(
+    spans: TimeSpanImpl[],
+    timeSpan: TimeSpanImpl
+): IMetric[] {
+    return [
+        frag(MetricType.Spans, 'runtime', spans),
+        frag(MetricType.Elapsed, 'runtime', calculateElapsed(spans, timeSpan)),
+        frag(MetricType.Total, 'runtime', calculateTotal(spans, timeSpan)),
+    ];
+}
+
 describe('OutputStatement time semantics (spans, elapsed, total)', () => {
     beforeEach(() => {
         OutputStatement.resetIdCounter();
@@ -302,7 +334,7 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
 
     it('should default to empty spans array when none provided', () => {
         const output = new OutputStatement(makeOptions());
-        expect(output.spans).toEqual([]);
+        expect(output.getAllMetricsByType(MetricType.Spans)).toHaveLength(0);
     });
 
     it('should store provided spans', () => {
@@ -310,13 +342,14 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
             new TimeSpanImpl(1000, 4000),
             new TimeSpanImpl(6000, 9000),
         ];
-        const output = new OutputStatement({
-            ...makeOptions(),
-            spans,
-        });
-        expect(output.spans).toHaveLength(2);
-        expect(output.spans[0].started).toBe(1000);
-        expect(output.spans[1].ended).toBe(9000);
+        const output = new OutputStatement(makeOptions([
+            frag(MetricType.Spans, 'runtime', spans),
+        ]));
+        const metric = output.getMetric(MetricType.Spans);
+        const metricSpans = metric?.value as TimeSpanImpl[];
+        expect(metricSpans).toHaveLength(2);
+        expect(metricSpans[0].started).toBe(1000);
+        expect(metricSpans[1].ended).toBe(9000);
     });
 
     it('should compute elapsed as sum of span durations (pause-aware)', () => {
@@ -325,12 +358,10 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
             new TimeSpanImpl(1000, 4000), // 3000ms
             new TimeSpanImpl(6000, 9000), // 3000ms
         ];
-        const output = new OutputStatement({
-            ...makeOptions(),
-            spans,
-        });
+        const timeSpan = makeTimeSpan();
+        const output = new OutputStatement(makeOptions(makeTimeMetrics(spans, timeSpan)));
         // elapsed = 3000 + 3000 = 6000ms (excludes the 2s pause)
-        expect(output.elapsed).toBe(6000);
+        expect(output.getMetric(MetricType.Elapsed)?.value).toBe(6000);
     });
 
     it('should compute total as wall-clock bracket from first start to last end', () => {
@@ -339,12 +370,10 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
             new TimeSpanImpl(1000, 4000),
             new TimeSpanImpl(6000, 9000),
         ];
-        const output = new OutputStatement({
-            ...makeOptions(),
-            spans,
-        });
+        const timeSpan = makeTimeSpan();
+        const output = new OutputStatement(makeOptions(makeTimeMetrics(spans, timeSpan)));
         // total = 9000 - 1000 = 8000ms (includes the 2s pause)
-        expect(output.total).toBe(8000);
+        expect(output.getMetric(MetricType.Total)?.value).toBe(8000);
     });
 
     it('should fall back to timeSpan.duration when no spans provided', () => {
@@ -354,20 +383,22 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
             timeSpan,
             sourceBlockKey: 'test-block',
             stackLevel: 0,
+            metrics: [
+                frag(MetricType.Elapsed, 'runtime', timeSpan.duration),
+                frag(MetricType.Total, 'runtime', timeSpan.duration),
+            ],
         });
-        expect(output.elapsed).toBe(10000);
-        expect(output.total).toBe(10000);
+        expect(output.getMetric(MetricType.Elapsed)?.value).toBe(10000);
+        expect(output.getMetric(MetricType.Total)?.value).toBe(10000);
     });
 
     it('should handle timestamp (start === end) as zero-duration span', () => {
         // A "timestamp" is a degenerate span with start === end
         const timestamp = new TimeSpanImpl(5000, 5000);
-        const output = new OutputStatement({
-            ...makeOptions(),
-            spans: [timestamp],
-        });
-        expect(output.elapsed).toBe(0);
-        expect(output.total).toBe(0);
+        const timeSpan = makeTimeSpan();
+        const output = new OutputStatement(makeOptions(makeTimeMetrics([timestamp], timeSpan)));
+        expect(output.getMetric(MetricType.Elapsed)?.value).toBe(0);
+        expect(output.getMetric(MetricType.Total)?.value).toBe(0);
     });
 
     it('should handle multiple timestamps with zero elapsed but nonzero total', () => {
@@ -377,25 +408,21 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
             new TimeSpanImpl(5000, 5000), // timestamp at t=5s
             new TimeSpanImpl(8000, 8000), // timestamp at t=8s
         ];
-        const output = new OutputStatement({
-            ...makeOptions(),
-            spans,
-        });
+        const timeSpan = makeTimeSpan();
+        const output = new OutputStatement(makeOptions(makeTimeMetrics(spans, timeSpan)));
         // Each timestamp has 0 duration → elapsed = 0
-        expect(output.elapsed).toBe(0);
+        expect(output.getMetric(MetricType.Elapsed)?.value).toBe(0);
         // total = 8000 - 1000 = 7000ms (wall-clock bracket)
-        expect(output.total).toBe(7000);
+        expect(output.getMetric(MetricType.Total)?.value).toBe(7000);
     });
 
     it('should handle single continuous span (no pauses)', () => {
         const spans = [new TimeSpanImpl(2000, 12000)]; // 10s
-        const output = new OutputStatement({
-            ...makeOptions(),
-            spans,
-        });
+        const timeSpan = makeTimeSpan();
+        const output = new OutputStatement(makeOptions(makeTimeMetrics(spans, timeSpan)));
         // elapsed === total when there's only one span
-        expect(output.elapsed).toBe(10000);
-        expect(output.total).toBe(10000);
+        expect(output.getMetric(MetricType.Elapsed)?.value).toBe(10000);
+        expect(output.getMetric(MetricType.Total)?.value).toBe(10000);
     });
 
     it('should handle mix of timestamps and spans', () => {
@@ -405,24 +432,22 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
             new TimeSpanImpl(7000, 7000), // timestamp (0ms)
             new TimeSpanImpl(8000, 11000), // 3000ms active
         ];
-        const output = new OutputStatement({
-            ...makeOptions(),
-            spans,
-        });
+        const timeSpan = makeTimeSpan();
+        const output = new OutputStatement(makeOptions(makeTimeMetrics(spans, timeSpan)));
         // elapsed = 0 + 3000 + 0 + 3000 = 6000ms
-        expect(output.elapsed).toBe(6000);
+        expect(output.getMetric(MetricType.Elapsed)?.value).toBe(6000);
         // total = 11000 - 1000 = 10000ms
-        expect(output.total).toBe(10000);
+        expect(output.getMetric(MetricType.Total)?.value).toBe(10000);
     });
 
-    it('should be readonly (spans array)', () => {
+    it('should expose provided spans via the Spans metric', () => {
         const spans = [new TimeSpanImpl(1000, 4000)];
-        const output = new OutputStatement({
-            ...makeOptions(),
-            spans,
-        });
-        // ReadonlyArray — original array mutations don't affect output
+        const output = new OutputStatement(makeOptions([
+            frag(MetricType.Spans, 'runtime', spans.slice()),
+        ]));
+        // Mutating the original array must not affect the metric value.
         spans.push(new TimeSpanImpl(5000, 8000));
-        expect(output.spans).toHaveLength(1);
+        const metricSpans = output.getMetric(MetricType.Spans)?.value as TimeSpanImpl[];
+        expect(metricSpans).toHaveLength(1);
     });
 });

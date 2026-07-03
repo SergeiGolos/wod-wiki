@@ -1,7 +1,7 @@
 import { IBlockContext } from './contracts/IBlockContext';
 import { IMemoryReference } from './contracts/IMemoryReference';
 import { TypedMemoryReference } from './impl/TypedMemoryReference';
-import { IScriptRuntime } from './contracts/IScriptRuntime';
+import type { IRuntimeContext } from './contracts/IRuntimeContext';
 import { IRuntimeMemory } from './contracts/IRuntimeMemory';
 import { RuntimeMemory } from './RuntimeMemory';
 import { MemoryTypeEnum } from './models/MemoryTypeEnum';
@@ -36,7 +36,7 @@ export class BlockContext implements IBlockContext {
     private _memory: IRuntimeMemory;
 
     constructor(
-        private readonly runtime: IScriptRuntime,
+        private readonly runtime: IRuntimeContext,
         public readonly ownerId: string,
         public readonly exerciseId: string = '',
         initialReferences: IMemoryReference[] = [],
@@ -124,7 +124,7 @@ export class BlockContext implements IBlockContext {
             // Dispatch memory:release event
             this.runtime.eventBus.dispatch(
                 new MemoryReleaseEvent(ref, lastValue, this.runtime.nowProvider),
-                this.runtime
+            this.runtime
             );
         }
 

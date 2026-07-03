@@ -17,7 +17,6 @@ import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/G
 import { GenericLoopStrategy } from '@/runtime/compiler/strategies/components/GenericLoopStrategy';
 import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
 import { ReportOutputStrategy } from '@/runtime/compiler/strategies/enhancements/ReportOutputStrategy';
-import { RestBlockStrategy } from '@/runtime/compiler/strategies/components/RestBlockStrategy';
 import { SoundStrategy } from '@/runtime/compiler/strategies/enhancements/SoundStrategy';
 import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
 
@@ -82,7 +81,6 @@ describe('cast roundtrip integration', () => {
         const compiler = new JitCompiler();
         compiler.registerStrategy(new GenericTimerStrategy());
         compiler.registerStrategy(new GenericLoopStrategy());
-        compiler.registerStrategy(new RestBlockStrategy());
         compiler.registerStrategy(new ChildrenStrategy());
         compiler.registerStrategy(new ReportOutputStrategy());
         compiler.registerStrategy(new SoundStrategy());

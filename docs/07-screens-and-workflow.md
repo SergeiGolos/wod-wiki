@@ -78,7 +78,7 @@ domain:
 
 | Store | Key | Indexes | Holds |
 |-------|-----|---------|-------|
-| `notes` | `id` | `by-updated`, `by-target-date` | The Markdown workout/journal notes (the **plan**) |
+| `notes` | `id` | `by-updated`, `by-target-date`, `by-slug` | The Markdown workout/journal notes (the **plan**); `slug` (→ `by-slug`) is routing sugar resolved to the UUID `id` on load |
 | `segments` | `[id, version]` | `by-note`, `by-type` | Versioned structural slices of a note |
 | `results` | `id` | `by-segment`, `by-note`, `by-completed` | **WorkoutResults** from tracking (the **reality**) |
 | `attachments` | `id` | `by-note`, `by-time` | Files attached to a note |

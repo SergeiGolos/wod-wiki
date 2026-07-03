@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryState } from 'nuqs';
 import { playgroundPath, ROUTE_PATTERNS } from '../lib/routes';
 import { decodeZip } from '../services/decodeZip';
-import { playgroundDB, PlaygroundDBService } from '../services/playgroundDB';
+import { playgroundContent, pageId as makePageId } from '../services/playgroundContent';
 import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay';
 
 export function useZipProcessor() {
@@ -22,8 +22,8 @@ export function useZipProcessor() {
         if (cancelled) return;
         const now = Date.now();
         const id = formatPlaygroundTimestampId(now);
-        const pageId = PlaygroundDBService.pageId('playground', id);
-        await playgroundDB.savePage({
+        const pageId = makePageId('playground', id)
+        await playgroundContent.savePage({
           id: pageId,
           category: 'playground',
           name: id,

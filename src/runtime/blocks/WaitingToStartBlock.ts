@@ -1,4 +1,4 @@
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../contracts/IRuntimeContext';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
@@ -25,7 +25,7 @@ import {
  *
  * 1. Mount: Emits 'segment' output with "Ready to Start" message
  * 2. User clicks next → ExitBehavior marks complete, returns PopBlockAction
- * 3. Unmount: Emits 'completion' output
+ * 3. Pop: emits a 'segment' output carrying the completion reason
  * 4. Parent receives control, pushes next child
  *
  * ## Behavior Chain
@@ -36,7 +36,7 @@ import {
  * - ExitBehavior (pop on user advance)
  */
 export class WaitingToStartBlock extends RuntimeBlock {
-    constructor(runtime: IScriptRuntime) {
+    constructor(runtime: IRuntimeContext) {
         const blockKey = new BlockKey('waiting-to-start');
         const context = new BlockContext(runtime, blockKey.toString(), 'WaitingToStart');
         const behaviors = WaitingToStartBlock.buildBehaviors();
@@ -95,15 +95,15 @@ export class WaitingToStartBlock extends RuntimeBlock {
         return behaviors;
     }
 
-    mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    mount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         return super.mount(runtime, options);
     }
 
-    unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    unmount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         return super.unmount(runtime, options);
     }
 
-    dispose(runtime: IScriptRuntime): void {
+    dispose(runtime: IRuntimeContext): void {
         super.dispose(runtime);
         if (this.context) {
             this.context.release();

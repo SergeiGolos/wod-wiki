@@ -93,8 +93,12 @@ export interface OutputOptions {
  *   }
  *   
  *   onUnmount(ctx: IBehaviorContext) {
- *     // Emit completion output
- *     ctx.emitOutput('completion', [elapsedFragment], { label: 'Timer Complete' });
+ *     // Emit a milestone marking this behavior's own completion. The block's
+ *     // final 'segment' output (carrying completionReason) is emitted separately
+ *     // by the runtime when the block pops — behaviors should not emit their own
+ *     // 'segment'/'completion'-shaped output on unmount; see ReportOutputBehavior
+ *     // for the canonical pattern (write result memory, let the pop emit the segment).
+ *     ctx.emitOutput('milestone', [elapsedFragment], { label: 'Timer Complete' });
  *     return [];
  *   }
  * }
@@ -179,23 +183,25 @@ export interface IBehaviorContext {
      * Output can be emitted at any lifecycle point:
      * - onMount: 'segment' started
      * - onNext: 'segment' per iteration, 'milestone' events
-     * - onUnmount: 'completion' final results
-     * 
-     * @param type The type of output ('segment', 'milestone', 'completion', 'metric', 'label')
+     * - onUnmount: write final results to memory (see ReportOutputBehavior) rather
+     *   than emitting directly — the runtime emits exactly one 'segment' output per
+     *   block pop, carrying those results plus a `completionReason` field
+     *
+     * @param type The type of output ('segment', 'milestone', 'metric', 'label')
      * @param metrics The data metrics that make up this output
      * @param options Optional metadata (label)
-     * 
+     *
      * @example
      * ```typescript
      * // Emit a segment for round 3
      * ctx.emitOutput('segment', [
      *   { metricType: MetricType.Rounds, value: 3, origin: 'runtime' }
      * ], { label: 'Round 3 of 5' });
-     * 
-     * // Emit completion with elapsed time
-     * ctx.emitOutput('completion', [
+     *
+     * // Emit a milestone marking a notable event mid-execution
+     * ctx.emitOutput('milestone', [
      *   { metricType: MetricType.Duration, value: elapsed, origin: 'runtime' }
-     * ], { label: 'Completed' });
+     * ], { label: 'Halfway' });
      * ```
      */
     emitOutput(

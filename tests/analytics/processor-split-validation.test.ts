@@ -7,8 +7,11 @@
  *   1. Realtime processors enrich per-segment as outputs arrive.
  *   2. Summary processors aggregate across the accumulated segment history.
  *   3. StandardAnalyticsProfile drives engine assembly — no hardcoded lists.
- *   4. Legacy IAnalyticsStage shim behaves equivalently to split interfaces.
- *   5. Error isolation: one failing processor does not break the pipeline.
+ *   4. Error isolation: one failing processor does not break the pipeline.
+ *
+ * The legacy IAnalyticsStage shim (AnalyticsEngine.addStage) was removed as
+ * part of the Tier 1 architectural cleanup (docs/architectural-cleanup-tier-1-deletions.md
+ * §1.4) — it had zero production callers. Its parity test was removed with it.
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
@@ -247,74 +250,7 @@ describe('ADR-0001 + ADR-0005 Processor Split Validation', () => {
     });
   });
 
-  describe('4. Legacy addStage() parity with split interfaces', () => {
-    it('legacy stage produces identical results to split processors', () => {
-      const engineSplit = new AnalyticsEngine();
-      const engineLegacy = new AnalyticsEngine();
-
-      const realtime: IRealtimeProcessor = {
-        id: 'rt',
-        process: (out: IOutputStatement) => {
-          out.metrics.add({
-            type: 'rt-flag' as MetricType,
-            image: 'yes',
-            value: 1,
-            origin: 'analyzed',
-            timestamp: new Date(0),
-          });
-          return out;
-        },
-      };
-
-      const summary: ISummaryProcessor = {
-        id: 'sum',
-        summarize: (outputs: IOutputStatement[]): ProjectionResult[] => [{
-          name: 'Count',
-          value: outputs.length,
-          unit: 'segments',
-          timeSpan: { started: 0, ended: 1000 },
-        }],
-      };
-
-      engineSplit.addRealtimeProcessor(realtime);
-      engineSplit.addSummaryProcessor(summary);
-
-      engineLegacy.addStage({
-        id: 'legacy-mirror',
-        enrich: (out: IOutputStatement) => {
-          out.metrics.add({
-            type: 'rt-flag' as MetricType,
-            image: 'yes',
-            value: 1,
-            origin: 'analyzed',
-            timestamp: new Date(0),
-          });
-          return out;
-        },
-        project: (outputs: IOutputStatement[]): ProjectionResult[] => [{
-          name: 'Count',
-          value: outputs.length,
-          unit: 'segments',
-          timeSpan: { started: 0, ended: 1000 },
-        }],
-      });
-
-      const seg = makeSegment('s1');
-      const splitResult = engineSplit.run(seg);
-      const legacyResult = engineLegacy.run(makeSegment('s1'));
-
-      expect(splitResult.getMetric('rt-flag' as MetricType)?.value).toBe(1);
-      expect(legacyResult.getMetric('rt-flag' as MetricType)?.value).toBe(1);
-
-      const splitAnalytics = engineSplit.finalize();
-      const legacyAnalytics = engineLegacy.finalize();
-
-      expect(splitAnalytics[0].getMetric(MetricType.Label)?.value).toBe('Count');
-      expect(legacyAnalytics[0].getMetric(MetricType.Label)?.value).toBe('Count');
-    });
-  });
-
-  describe('5. Error isolation across the pipeline', () => {
+  describe('4. Error isolation across the pipeline', () => {
     it('continues when a realtime processor throws', () => {
       const engine = new AnalyticsEngine();
 

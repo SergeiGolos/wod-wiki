@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../contracts/IRuntimeContext';
 
 /**
  * Runtime error information.
@@ -53,10 +53,10 @@ export class ErrorAction implements IRuntimeAction {
     public readonly context?: unknown
   ) { }
 
-  do(runtime: IScriptRuntime): void {
+  do(runtime: IRuntimeContext): void {
     // Initialize errors array if it doesn't exist
     // Use type assertion for runtime with mutable errors array
-    const runtimeWithErrors = runtime as IScriptRuntime & { errors: RuntimeError[] };
+    const runtimeWithErrors = runtime as IRuntimeContext & { errors: RuntimeError[] };
     if (!runtimeWithErrors.errors) {
       runtimeWithErrors.errors = [];
     }

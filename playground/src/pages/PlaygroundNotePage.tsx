@@ -22,7 +22,7 @@ import {
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutResult } from '@/types/storage'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
-import { PlaygroundDBService } from '../services/playgroundDB'
+import { pageId } from '../services/playgroundContent'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { pendingRuntimes } from '../runtimeStore'
 import { runPath } from '../lib/routes'
@@ -54,7 +54,7 @@ export function PlaygroundNotePage({
   const { id } = useParams<{ id: string }>()
   const pageName = id ?? 'playground'
   // noteId is the full playground page identifier (for example, 'playground/<pageName>') so results can be grouped correctly in the journal
-  const noteId = PlaygroundDBService.pageId('playground', pageName)
+  const noteId = pageId('playground', pageName)
   const pageTitle = useMemo(() => (id ? formatPlaygroundPageTitle(id) : 'Playground'), [id])
   const navigate = useNavigate()
   const { content, loading, onChange, onLineChange, onBlur, resetToOriginal } = usePlaygroundContent({

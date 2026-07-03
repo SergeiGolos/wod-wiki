@@ -17,7 +17,6 @@ export { useNextPreview } from '@/runtime/hooks/useNextPreview';
 export { useRuntimeExecution } from '@/runtime/hooks/useRuntimeExecution';
 export type { UseRuntimeExecutionReturn } from '@/runtime/hooks/useRuntimeExecution';
 export { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
-export { useWorkoutTracker } from '@/runtime/hooks/useWorkoutTracker';
 
 // ── Runtime context ───────────────────────────────────────────────────────
 export { useScriptRuntime, ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
@@ -46,7 +45,6 @@ export { SubscriptionManager } from '@/runtime/subscriptions/SubscriptionManager
 export { LocalRuntimeSubscription } from '@/runtime/subscriptions/LocalRuntimeSubscription';
 
 // ── Runtime tracking ──────────────────────────────────────────────────────
-export { WorkoutTracker } from '@/runtime/tracking/WorkoutTracker';
 
 // ── Runtime adapters & logging ────────────────────────────────────────────
 export { RuntimeAdapter } from '@/runtime/adapters/RuntimeAdapter';

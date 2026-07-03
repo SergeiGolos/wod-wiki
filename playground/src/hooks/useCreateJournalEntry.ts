@@ -13,7 +13,7 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createJournalEntryFlow } from '../services/journalEntryFlow'
-import { playgroundDB } from '../services/playgroundDB'
+import { playgroundContent } from '../services/playgroundContent'
 import { journalEntryPath } from '../lib/routes'
 
 export type CreateEntryInput = Date | string
@@ -44,7 +44,7 @@ export function useCreateJournalEntry(_opts: UseCreateJournalEntryOptions = {}) 
       await createJournalEntryFlow({
         dateKey,
         onCreated: async (content) => {
-          await playgroundDB.savePage({
+          await playgroundContent.savePage({
             id: `journal/${dateKey}`,
             name: dateKey,
             category: 'journal',

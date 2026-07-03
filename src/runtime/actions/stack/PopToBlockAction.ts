@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 
 /**
  * Action that pops all blocks from the stack until reaching the target block.
@@ -12,7 +12,7 @@ export class PopToBlockAction implements IRuntimeAction {
 
     constructor(private readonly targetBlockId: string) { }
 
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
         const MAX_ITERATIONS = 100; // Safety limit
         let iterations = 0;
         const allActions: IRuntimeAction[] = [];
@@ -51,7 +51,7 @@ export class PopToBlockAction implements IRuntimeAction {
      * This prevents intermediate blocks from pushing new children or triggering
      * cascading events during force-complete.
      */
-    private popSilently(runtime: IScriptRuntime): IRuntimeAction[] {
+    private popSilently(runtime: IRuntimeContext): IRuntimeAction[] {
         const current = runtime.stack.current;
         if (!current) return [];
 

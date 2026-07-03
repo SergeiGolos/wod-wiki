@@ -1,4 +1,4 @@
-import { IScriptRuntime, OutputListener, TrackerListener } from '@/runtime/contracts/IScriptRuntime';
+import { IScriptRuntime, OutputListener } from '@/runtime/contracts/IScriptRuntime';
 import { IRuntimeStack, Unsubscribe, StackSnapshot, StackObserver, StackListener, StackEvent } from '@/runtime/contracts/IRuntimeStack';
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
 import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
@@ -7,7 +7,7 @@ import { IEventBus, EventCallback, EventHandlerOptions } from '@/runtime/contrac
 import { IEvent } from '@/runtime/contracts/events/IEvent';
 import { IEventHandler } from '@/runtime/contracts/events/IEventHandler';
 import { IOutputStatement } from '@/core/models/OutputStatement';
-import { RuntimeStackOptions, RuntimeStackTracker, TrackerUpdate, TrackerSnapshot } from '@/runtime/contracts/IRuntimeOptions';
+import { RuntimeStackOptions } from '@/runtime/contracts/IRuntimeOptions';
 import { TimeSpan } from '@/runtime/models/TimeSpan';
 import { BlockKey } from '@/core/models/BlockKey';
 import { WhiteboardScript } from '@/parser/WhiteboardScript';
@@ -16,7 +16,7 @@ import { RuntimeObservers } from '@/runtime/RuntimeObservers';
 import { IAnalyticsEngine } from '@/core/contracts/IAnalyticsEngine';
 import { INowProvider, wallClockNow } from '@/runtime/INowProvider';
 import type { IRpcTransport } from './IRpcTransport';
-import type { RpcMessage, RpcStackUpdate, RpcOutputStatement, RpcWorkbenchUpdate, RpcTrackerUpdate, RpcClockSyncResponse } from './RpcMessages';
+import type { RpcMessage, RpcStackUpdate, RpcOutputStatement, RpcWorkbenchUpdate, RpcClockSyncResponse } from './RpcMessages';
 import { ProxyBlock } from './ProxyBlock';
 // ── Stub implementations ────────────────────────────────────────────────────
 
@@ -169,26 +169,20 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     readonly jit: IJitCompiler = createProxyJitStub();
     readonly clock: IRuntimeClock;
     readonly nowProvider: INowProvider;
-    readonly tracker: RuntimeStackTracker;
 
     // Output emission stays inline (OutputEmitter is the proven extraction
     // for output, see Finding 03).
     private outputListeners = new Set<OutputListener>();
     private outputs: IOutputStatement[] = [];
 
-    // Shared observer collaborator — owns the stack + tracker subscriber Sets
-    // and the post-mount snapshot contract (see Finding 03). The proxy has
-    // no upstream tracker; tracker updates are driven directly via
-    // `_observers.emitTracker(update)` from RPC messages.
-    private readonly _observers = new RuntimeObservers(null);
+    // Shared observer collaborator — owns the stack subscriber Set and the
+    // post-mount snapshot contract (see Finding 03).
+    private readonly _observers = new RuntimeObservers();
 
     private transportUnsub: (() => void) | null = null;
     private proxyStack: ProxyStack;
     private proxyEventBus: ProxyEventBus;
     private disposed = false;
-
-    // Track real-time tracker state on the proxy
-    private trackerState: TrackerSnapshot = { metrics: {}, rounds: {} };
 
     /**
      * Cache of active ProxyBlock instances keyed by block key string.
@@ -219,11 +213,6 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         this.nowProvider = this._now;
         this.clock = new ProxyClock(this._now);
 
-        this.tracker = {
-            onUpdate: (callback: TrackerListener) => this.subscribeToTracker(callback),
-            getSnapshot: () => ({ ...this.trackerState })
-        };
-
         // Listen for incoming RPC messages from the browser
         this.transportUnsub = this.transport.onMessage((message: RpcMessage) => {
             this.handleRpcMessage(message);
@@ -249,15 +238,6 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     subscribeToOutput(listener: OutputListener): Unsubscribe {
         this.outputListeners.add(listener);
         return () => this.outputListeners.delete(listener);
-    }
-
-    /**
-     * Subscribe to real-time tracker updates. The proxy has no upstream
-     * tracker — RPC drives updates through `_observers.emitTracker(update)`
-     * in `handleTrackerUpdate`. The collaborator's source is `null`.
-     */
-    subscribeToTracker(listener: TrackerListener): Unsubscribe {
-        return this._observers.subscribeToTracker(listener);
     }
 
     /**
@@ -371,9 +351,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         this.transportUnsub = null;
 
         this.proxyEventBus.dispose();
-        // Drop all stack + tracker subscribers in one call (the proxy has
-        // no upstream tracker, so the collaborator has nothing to tear down
-        // besides the Sets).
+        // Drop all stack subscribers in one call.
         this._observers.dispose();
         this.outputListeners.clear();
         this.workbenchListeners.clear();
@@ -396,9 +374,6 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
                 break;
             case 'rpc-output':
                 this.handleOutput(message);
-                break;
-            case 'rpc-tracker-update':
-                this.handleTrackerUpdate(message);
                 break;
             case 'rpc-workbench-update':
                 this.handleWorkbenchUpdate(message);
@@ -429,8 +404,6 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             }
             // Clear cached blocks — the stack is fully reset
             this.blockCache.clear();
-            // Also reset tracker state
-            this.trackerState = { metrics: {}, rounds: {} };
         }
 
         let blocks: ProxyBlock[];
@@ -525,31 +498,6 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         } as unknown as IOutputStatement;
 
         this.addOutput(output);
-    }
-
-    private handleTrackerUpdate(message: RpcTrackerUpdate): void {
-        const update = message.update as TrackerUpdate;
-        
-        // Update local proxy state
-        if (update.type === 'metric') {
-            const blockId = update.blockId;
-            const key = update.key!;
-            const blockMetrics = this.trackerState.metrics[blockId] || {};
-            this.trackerState.metrics[blockId] = {
-                ...blockMetrics,
-                [key]: { value: update.value, unit: update.unit }
-            };
-        } else if (update.type === 'round') {
-            this.trackerState.rounds[update.blockId] = { 
-                current: update.current!, 
-                total: update.total 
-            };
-        } else if (update.type === 'snapshot') {
-            this.trackerState = { ...update.snapshot };
-        }
-
-        // Notify listeners via the shared collaborator
-        this._observers.emitTracker(update);
     }
 
     private handleWorkbenchUpdate(message: RpcWorkbenchUpdate): void {

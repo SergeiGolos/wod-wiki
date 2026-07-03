@@ -29,12 +29,6 @@ export type { CountdownTimerConfig, CountdownMode } from './CountdownTimerBehavi
 // ============================================================================
 // Iteration Aspect
 // ============================================================================
-/** @deprecated Round init is now handled by ChildSelectionBehavior (startRound/totalRounds config) */
-export { ReEntryBehavior } from './ReEntryBehavior';
-/** @deprecated Use the startRound/totalRounds fields on ChildSelectionBehavior */
-export type { ReEntryConfig } from './ReEntryBehavior';
-/** @deprecated Safety net is now built into ChildSelectionBehavior */
-export { RoundsEndBehavior } from './RoundsEndBehavior';
 export { MetricPromotionBehavior } from './MetricPromotionBehavior';
 export type { MetricPromotionConfig, PromotionRule } from './MetricPromotionBehavior';
 
@@ -47,13 +41,6 @@ export type { MetricPromotionConfig, PromotionRule } from './MetricPromotionBeha
  */
 export { ExitBehavior } from './ExitBehavior';
 export type { ExitConfig } from './ExitBehavior';
-/** @deprecated Use ExitBehavior({ mode: 'immediate' }) */
-export { LeafExitBehavior } from './LeafExitBehavior';
-/** @deprecated Use ExitBehavior({ mode: 'immediate' }) */
-export type { LeafExitConfig } from './LeafExitBehavior';
-/** @deprecated Use ExitBehavior({ mode: 'deferred' }) */
-export { CompletedBlockPopBehavior } from './CompletedBlockPopBehavior';
-// RoundsEndBehavior is also a completion behavior
 
 // ============================================================================
 // Display Aspect

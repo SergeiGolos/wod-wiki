@@ -1,7 +1,6 @@
 import { IRuntimeBlockStrategy } from '../../contracts/IRuntimeBlockStrategy';
-import { IRuntimeBehavior } from '../../contracts/IRuntimeBehavior';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
@@ -44,25 +43,26 @@ export interface IdleBlockConfig {
  */
 export class IdleBlockStrategy implements IRuntimeBlockStrategy {
     priority = 100; // Root is highest priority if it were ever matched
+    readonly id = 'idle';
 
     /**
      * Root blocks are not matched from statements - they are created directly.
      */
-    match(_statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(_statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         return false;
     }
 
     /**
      * Composable apply - not used for root blocks.
      */
-    apply(_builder: unknown, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+    apply(_builder: unknown, _statements: ICodeStatement[], _runtime: IRuntimeContext): void {
         // No-op for direct build
     }
 
     /**
      * Builds an idle block with the specified configuration.
      */
-    build(runtime: IScriptRuntime, config: IdleBlockConfig): IRuntimeBlock {
+    build(runtime: IRuntimeContext, config: IdleBlockConfig): IRuntimeBlock {
         const blockKey = new BlockKey(config.id);
         const context = new BlockContext(runtime, blockKey.toString(), 'Idle');
 
@@ -132,16 +132,4 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
         }
     }
 
-    /**
-     * Builds the behavior list for an idle block (deprecated).
-     * @deprecated Use build() method which uses BlockBuilder with aspect composers
-     */
-    buildBehaviors(_config: IdleBlockConfig): IRuntimeBehavior[] {
-        throw new Error('buildBehaviors is deprecated. Use build() method instead.');
-    }
 }
-
-/**
- * Default instance for convenience.
- */
-export const idleBlockStrategy = new IdleBlockStrategy();

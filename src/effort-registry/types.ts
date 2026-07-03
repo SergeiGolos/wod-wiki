@@ -60,6 +60,14 @@ export interface IEffort {
   updatedAt?: string;
   /** Free-form markdown description / notes */
   body?: string;
+  /**
+   * Compiler hints attached to any block resolved to this effort. Consumed by
+   * strategies exactly like dialect-emitted hints — see `CONSUMED_HINTS` in
+   * `core/metrics/hints.ts`. Use sparingly: any key not in `CONSUMED_HINTS`
+   * is currently inert (analytics-only). For effort-specific metadata, prefer
+   * a domain metric.
+   */
+  hints?: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------

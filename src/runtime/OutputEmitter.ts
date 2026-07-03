@@ -151,6 +151,9 @@ export class OutputEmitter {
 
     setAnalyticsEngine(engine: IAnalyticsEngine): void {
         this._analyticsEngine = engine;
+        // Route live session-totals (one 'analytics' output per segment) through
+        // the output stream so the UI updates in real time without a tracker.
+        engine.setLiveOutputEmitter((o) => this.add(o));
     }
 
     /**
@@ -267,14 +270,14 @@ export class OutputEmitter {
             const parentBlock = stackBlocks.length > 1 ? stackBlocks[1] : undefined;
             if (parentBlock) value.parentKey = parentBlock.key.toString();
         } else {
-            value.completionReason = (block as any).completionReason ?? 'normal';
+            value.completionReason = block.completionReason ?? 'normal';
         }
 
         const metric: IMetric = {
             type: MetricType.System,
             image: event.type === 'push'
                 ? `push: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}]`
-                : `pop: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}] reason=${(block as any).completionReason ?? 'normal'}`,
+                : `pop: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}] reason=${block.completionReason ?? 'normal'}`,
             value,
             origin: 'runtime',
             timestamp: now,
@@ -320,12 +323,11 @@ export class OutputEmitter {
 
             const fallbackStartMs = block.executionTiming?.startTime?.getTime() ?? fallbackEndMs;
             const timeSpan = new TimeSpan(fallbackStartMs, fallbackEndMs);
-            const spans = this._extractSpans(metrics.toArray());
 
             this.add(new OutputStatement({
                 outputType: 'segment',
+                completionReason: block.completionReason,
                 timeSpan,
-                spans: spans.length > 0 ? spans : undefined,
                 sourceBlockKey: block.key.toString(),
                 sourceStatementId: block.sourceIds?.[i] ?? block.sourceIds?.[0],
                 stackLevel: stackDepth,
@@ -390,28 +392,4 @@ export class OutputEmitter {
     // =========================================================================
     // Private helpers
     // =========================================================================
-
-    private _extractSpans(metrics: IMetric[]): TimeSpan[] {
-        const spansMetric = metrics.find(
-            m => m.type === MetricType.Spans || m.type === 'spans'
-        ) as (IMetric & { spans?: unknown }) | undefined;
-
-        if (!spansMetric) return [];
-
-        const rawSpans = Array.isArray(spansMetric.value)
-            ? spansMetric.value
-            : Array.isArray(spansMetric.spans)
-                ? spansMetric.spans
-                : [];
-
-        return (rawSpans as Array<{ started?: unknown; ended?: unknown }>)
-            .map(raw => {
-                if (typeof raw.started !== 'number' || isNaN(raw.started)) return undefined;
-                if (typeof raw.ended === 'number' && !isNaN(raw.ended)) {
-                    return new TimeSpan(raw.started, raw.ended);
-                }
-                return new TimeSpan(raw.started);
-            })
-            .filter((s): s is TimeSpan => s !== undefined);
-    }
 }

@@ -2,7 +2,7 @@ import { ICodeStatement } from "../../../core/models/CodeStatement";
 import { MetricType } from "../../../core/models/Metric";
 import { MetricContainer } from "../../../core/models/MetricContainer";
 import { metricPresentation } from "../../../core/metrics/presentation";
-import { hasHint } from "../../../core/metrics/hints";
+import { hasHint, CONSUMED_HINTS } from "../../../core/metrics/hints";
 
 export interface LabelOptions {
   includeMetric?: boolean;
@@ -93,10 +93,10 @@ export class LabelComposer {
 
   private static getLogicKeyword(statements: ICodeStatement[], metrics: MetricContainer): string | undefined {
     // Check hints first (from Dialect analysis)
-    if (statements.some(s => hasHint(s, 'workout.amrap'))) return 'AMRAP';
-    if (statements.some(s => hasHint(s, 'workout.emom'))) return 'EMOM';
-    if (statements.some(s => hasHint(s, 'workout.tabata'))) return 'TABATA';
-    if (statements.some(s => hasHint(s, 'workout.for_time'))) return 'FOR TIME';
+    if (statements.some(s => hasHint(s, CONSUMED_HINTS.LABEL_AMRAP))) return 'AMRAP';
+    if (statements.some(s => hasHint(s, CONSUMED_HINTS.LABEL_EMOM))) return 'EMOM';
+    if (statements.some(s => hasHint(s, CONSUMED_HINTS.LABEL_TABATA))) return 'TABATA';
+    if (statements.some(s => hasHint(s, CONSUMED_HINTS.LABEL_FOR_TIME))) return 'FOR TIME';
 
     // Fallback: Check for keywords in metrics
     const keywords = ['AMRAP', 'EMOM', 'TABATA', 'FOR TIME'];

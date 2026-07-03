@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import type { WorkoutResult } from '@/types/storage';
 import { useWorkbenchSession } from '@/stores/workbenchSessionStore'
+import { groupResultsByVersion } from '@/utils/groupResultsByVersion';
 
 export interface UseScriptBlockResultsReturn {
   /** All results for this section, sorted most recent first */
@@ -23,11 +24,15 @@ export interface UseScriptBlockResultsReturn {
  * @param noteId   - The note containing the WOD block (short or full UUID)
  * @param sectionId - The WOD section ID within the note
  * @param extendedResultsOverride - Optional explicit in-memory results (bypasses context)
+ * @param contentId - Optional content-stable block id; when present, results are
+ *                    matched on `blockContentId` first (survives line moves),
+ *                    falling back to the line-based `sectionId` / `segmentId`.
  */
 export function useScriptBlockResults(
   noteId: string | undefined,
   sectionId: string | undefined,
   extendedResultsOverride?: WorkoutResult[],
+  contentId?: string,
 ): UseScriptBlockResultsReturn {
   const [results, setResults] = useState<WorkoutResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,22 +56,18 @@ export function useScriptBlockResults(
       // 1. Check for in-memory results (Static Mode or immediate UI update)
       // Use extendedResults array if available (Mutable Static mode)
       if (Array.isArray(extendedResults)) {
-        const inMemoryMatches = extendedResults.filter(
-          r => r.sectionId === sectionId || r.segmentId === sectionId
-        );
-        
-        console.log(`[useScriptBlockResults] Found ${inMemoryMatches.length} in-memory results for section: ${sectionId} (Total in currentEntry: ${extendedResults.length})`);
-        
+        const { current } = groupResultsByVersion(extendedResults, sectionId ?? '', contentId)
+        const inMemoryMatches = current
+
         if (inMemoryMatches.length > 0) {
           if (!cancelled) {
             setResults(inMemoryMatches.sort((a, b) => b.completedAt - a.completedAt));
             setLoading(false);
             return;
           }
-        } else {
-            console.log(`[useScriptBlockResults] No in-memory matches for section: ${sectionId}. Section IDs in extendedResults:`, extendedResults.map(r => r.sectionId));
         }
       }
+
       // 2. Fallback through the note persistence seam (History Mode).
       // The session exposes `getNote` as a proxy to the injected port;
       // skip if no port is wired (e.g. outside a provider).
@@ -83,13 +84,12 @@ export function useScriptBlockResults(
           projection: 'history-detail',
           resultSelection: {
             mode: 'all-for-section',
-            sectionId: sectionId!,
+            blockContentId: (contentId ?? sectionId) as string,
           },
         });
-        const all: WorkoutResult[] = entry?.extendedResults ?? [];
         if (!cancelled) {
           // Sort by completedAt descending (most recent first)
-          setResults(all.sort((a, b) => b.completedAt - a.completedAt));
+          setResults((entry?.extendedResults ?? []).sort((a, b) => b.completedAt - a.completedAt));
         }
       } catch (err) {
         console.error('[useScriptBlockResults] Failed to fetch results:', err);
@@ -102,7 +102,7 @@ export function useScriptBlockResults(
     fetchResults();
 
     return () => { cancelled = true; };
-  }, [noteId, sectionId, extendedResults, getNote]);
+  }, [noteId, sectionId, extendedResults, getNote, contentId]);
 
   return { results, loading };
 }

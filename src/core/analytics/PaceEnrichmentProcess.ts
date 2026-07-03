@@ -15,7 +15,7 @@ import { MetricType } from '../models/Metric';
  */
 export class PaceEnrichmentProcess implements IRealtimeProcessor {
     public readonly id = 'pace-enrichment';
-    public readonly dialects = ['wod', 'log'] as const;
+    public readonly fenceTypes = ['wod', 'log'] as const;
 
     process(output: IOutputStatement): IOutputStatement {
         if (output.outputType !== 'segment' || !output.isLeaf) return output;

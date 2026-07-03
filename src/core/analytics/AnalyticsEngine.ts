@@ -1,21 +1,21 @@
 import { IAnalyticsEngine } from '../contracts/IAnalyticsEngine';
-import { IAnalyticsStage } from './IAnalyticsStage';
 import type { IRealtimeProcessor } from './IRealtimeProcessor';
 import type { ISummaryProcessor } from './ISummaryProcessor';
 import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
-import { MetricType } from '../models/Metric';
+import { IMetric, MetricType } from '../models/Metric';
 import { MetricContainer } from '../models/MetricContainer';
-import { IRuntimeStackTracker } from '../contracts/RuntimeStackTracker';
 import { ProjectionResult } from './ProjectionResult';
 
 export class AnalyticsEngine implements IAnalyticsEngine {
   private realtimeProcessors: IRealtimeProcessor[] = [];
   private summaryProcessors: ISummaryProcessor[] = [];
   private outputHistory: IOutputStatement[] = [];
-  private tracker?: IRuntimeStackTracker;
+  /** Emits a live 'analytics' output per segment so the UI updates in real time. */
+  private _onLiveOutput?: (output: IOutputStatement) => void;
 
-  setTracker(tracker: IRuntimeStackTracker): void {
-    this.tracker = tracker;
+  /** Wire a sink for live analytics outputs (one per segment, as projections update). */
+  setLiveOutputEmitter(emit: (output: IOutputStatement) => void): void {
+    this._onLiveOutput = emit;
   }
 
   addRealtimeProcessor(processor: IRealtimeProcessor): void {
@@ -24,34 +24,6 @@ export class AnalyticsEngine implements IAnalyticsEngine {
 
   addSummaryProcessor(processor: ISummaryProcessor): void {
     this.summaryProcessors.push(processor);
-  }
-
-  /**
-   * @deprecated Use {@link addRealtimeProcessor} and {@link addSummaryProcessor}
-   *   instead. This shim routes legacy stages into the typed lists for backward
-   *   compatibility during migration.
-   */
-  addStage(stage: IAnalyticsStage): void {
-    if (!stage.enrich && !stage.project) {
-      console.warn(`[AnalyticsEngine] Stage '${stage.id}' implements neither enrich nor project — skipping.`);
-      return;
-    }
-
-    if (stage.enrich) {
-      const shim: IRealtimeProcessor = {
-        id: stage.id,
-        process: (output: IOutputStatement) => stage.enrich!(output),
-      };
-      this.addRealtimeProcessor(shim);
-    }
-
-    if (stage.project) {
-      const shim: ISummaryProcessor = {
-        id: stage.id,
-        summarize: (outputs: IOutputStatement[]) => stage.project!(outputs),
-      };
-      this.addSummaryProcessor(shim);
-    }
   }
 
   run(output: IOutputStatement): IOutputStatement {
@@ -65,15 +37,16 @@ export class AnalyticsEngine implements IAnalyticsEngine {
       }
     }
 
-    // Accumulate segment outputs for summary processors
+    // Accumulate segment outputs for summary processors, and emit a live
+    // 'analytics' output so session-totals reach the UI over the output stream
+    // (no separate tracker channel). Bounded recursion: the emitted 'analytics'
+    // output is not a 'segment', so re-entering run() does not re-trigger this.
     if (current.outputType === 'segment') {
       this.outputHistory.push(current);
-
-      // Phase 2: live summary update — runs after every new segment
-      if (this.tracker?.recordMetric) {
-        const projections = this._runSummaries();
-        for (const p of projections) {
-          this.tracker.recordMetric('session-totals', p.name, p.value, p.unit);
+      if (this._onLiveOutput) {
+        const now = Date.now();
+        for (const stmt of this._buildProjectionOutputs(this._runSummaries(), now)) {
+          this._onLiveOutput(stmt);
         }
       }
     }
@@ -82,10 +55,12 @@ export class AnalyticsEngine implements IAnalyticsEngine {
   }
 
   finalize(): IOutputStatement[] {
-    const projections = this._runSummaries();
-    const now = Date.now();
+    return this._buildProjectionOutputs(this._runSummaries(), Date.now());
+  }
 
-    const results: IOutputStatement[] = projections.map(p => {
+  /** Build one 'analytics' OutputStatement per summary projection. */
+  private _buildProjectionOutputs(projections: ProjectionResult[], now: number): IOutputStatement[] {
+    return projections.map(p => {
       const metrics = MetricContainer.empty(`projection-${p.name}`).add(
         {
           type: MetricType.Label,
@@ -94,6 +69,8 @@ export class AnalyticsEngine implements IAnalyticsEngine {
           origin: p.origin ?? 'analyzed',
           timestamp: new Date(now),
         },
+        // Projection value metric — constructed from a ProjectionResult, whose
+        // shape the compiler can't verify against IMetric, hence the boundary cast.
         {
           type: (p.metricType as MetricType) || MetricType.Metric,
           image: `${p.value} ${p.unit}`,
@@ -102,7 +79,7 @@ export class AnalyticsEngine implements IAnalyticsEngine {
           origin: p.origin ?? 'analyzed',
           timestamp: new Date(now),
           ...(p.metadata ? { metadata: p.metadata } : {}),
-        } as any
+        } as unknown as IMetric
       );
       return new OutputStatement({
         outputType: 'analytics',
@@ -112,8 +89,6 @@ export class AnalyticsEngine implements IAnalyticsEngine {
         metrics,
       });
     });
-
-    return results;
   }
 
   /** Run all summary processors over current output history. */

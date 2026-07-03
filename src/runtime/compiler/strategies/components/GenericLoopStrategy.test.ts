@@ -7,7 +7,6 @@ import { GenericLoopStrategy } from './GenericLoopStrategy';
 import {
     LabelingBehavior,
     MetricPromotionBehavior,
-    ExitBehavior,
 } from '../../../behaviors';
 
 const runtime = stubRuntime();
@@ -41,7 +40,7 @@ describe('GenericLoopStrategy', () => {
             const stmts = [makeStatement([new RoundsMetric(5)])];
             const result = apply(strategy, stmts, runtime);
             expect(result.blockType).toBe('Rounds');
-            expect(result.hasBehavior(ExitBehavior)).toBe(true);
+            expect(result.exitMode).toBe('immediate');
             expect(result.hasBehavior(LabelingBehavior)).toBe(true);
         });
         it('uses asRepeater so the builder has round config after apply', () => {

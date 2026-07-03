@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { NextAction } from './NextAction';
 import { RuntimeLogger } from '../../RuntimeLogger';
@@ -17,7 +17,7 @@ export class PopBlockAction implements IRuntimeAction {
 
     constructor(private readonly options: BlockLifecycleOptions = {}) { }
 
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
         const current = runtime.stack.current;
         if (!current) {
             return [];
@@ -60,9 +60,10 @@ export class PopBlockAction implements IRuntimeAction {
             RuntimeLogger.logPop(popped, (popped as any).completionReason);
         }
 
-        // Output statements are emitted by block behaviors (e.g., ReportOutputBehavior)
-        // during onUnmount. PopBlockAction does NOT emit its own
-        // output to avoid duplicate 'completion' entries.
+        // The 'segment' OutputStatement for this pop is emitted by the stack's
+        // pop-event listener (OutputEmitter.emitSegmentFromResultMemory), which
+        // reads the result memory ReportOutputBehavior.onUnmount wrote. PopBlockAction
+        // does not emit output itself — there is exactly one emission site per pop.
 
         // If a parent block exists, queue a NextAction to notify it of child completion.
         // This decouples the pop and next steps into separate actions, ensuring each

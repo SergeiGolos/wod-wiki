@@ -1,4 +1,5 @@
 import { JitCompiler } from '../compiler/JitCompiler';
+import { Registry } from '@/core/Registry';
 
 // Strategies (ordered by specificity)
 import { AmrapLogicStrategy } from '../compiler/strategies/logic/AmrapLogicStrategy';
@@ -14,41 +15,72 @@ import { EffortFallbackStrategy } from '../compiler/strategies/fallback/EffortFa
 import type { IRuntimeBlockStrategy } from '../contracts/IRuntimeBlockStrategy';
 
 /**
- * The canonical strategy set — the single source of truth for which strategies
- * are registered, in what order. Production and test both use this list.
+ * Consumer-facing strategy registry, pre-seeded with the built-in strategies.
  *
- * Note: `RestBlockStrategy` is NOT in this list. It is a direct-build strategy
- * (`match()` returns false; the real entry is `build()`), invoked explicitly by
- * `RestBlockBehavior` at runtime to construct the inter-round rest block.
- * It shares the `IRuntimeBlockStrategy` interface for uniformity but never runs
- * through the JIT match pipeline.
+ * Replaces the previous hardcoded `PRODUCTION_STRATEGIES` flat array. Consumer
+ * code can call `strategyRegistry.register(new MyStrategy())` to add their
+ * own strategies without editing the library.
+ *
+ * @example
+ * ```typescript
+ * import { strategyRegistry } from 'wod-wiki/core';
+ * strategyRegistry.register(new MySportStrategy());
+ * ```
+ *
+ * Note: rest blocks are NOT produced by a JIT strategy. They are built
+ * directly at runtime (PushRestBlockAction / BlockBuilder) and pushed onto
+ * the stack, so no rest strategy appears in this registry.
  */
-export const PRODUCTION_STRATEGIES: IRuntimeBlockStrategy[] = [
-  // Logic (priority 90)
-  new AmrapLogicStrategy(),
-  new IntervalLogicStrategy(),
+export const strategyRegistry = new Registry<IRuntimeBlockStrategy>([
+    // Logic (priority 90)
+    new AmrapLogicStrategy(),
+    new IntervalLogicStrategy(),
 
-  // Components (priority 50)
-  new GenericTimerStrategy(),
-  new GenericLoopStrategy(),
-  new GenericGroupStrategy(),
+    // Components (priority 50)
+    new GenericTimerStrategy(),
+    new GenericLoopStrategy(),
+    new GenericGroupStrategy(),
 
-  // Enhancements (priority 15–50)
-  new SoundStrategy(),
-  new ReportOutputStrategy(),
-  new ChildrenStrategy(),
+    // Enhancements (priority 15–50)
+    new SoundStrategy(),
+    new ReportOutputStrategy(),
+    new ChildrenStrategy(),
 
-  // Fallback (priority 0)
-  new EffortFallbackStrategy(),
+    // Fallback (priority 0)
+    new EffortFallbackStrategy(),
+]);
+/**
+ * Legacy array form of the production strategy set, preserved in the exact
+ * insertion order the tests assert (the `Registry.list()` form sorts by
+ * priority and therefore differs). Use `strategyRegistry` for new code.
+ */
+export const PRODUCTION_STRATEGIES: readonly IRuntimeBlockStrategy[] = [
+    // Logic (priority 90)
+    new AmrapLogicStrategy(),
+    new IntervalLogicStrategy(),
+    // Components (priority 50)
+    new GenericTimerStrategy(),
+    new GenericLoopStrategy(),
+    new GenericGroupStrategy(),
+    // Enhancements (priority 15–50)
+    new SoundStrategy(),
+    new ReportOutputStrategy(),
+    new ChildrenStrategy(),
+    // Fallback (priority 0)
+    new EffortFallbackStrategy(),
 ];
 
 /**
- * Create a JitCompiler with the given strategies (or the production set).
+ * Create a JitCompiler with the given strategies (or the registered set).
+ *
+ * The default argument now reads from the consumer-facing
+ * {@link strategyRegistry} so consumer registrations are honored. Pass an
+ * explicit array to override (e.g. in tests).
  */
 export function createCompiler(strategies?: IRuntimeBlockStrategy[]): JitCompiler {
-  const compiler = new JitCompiler();
-  for (const strategy of (strategies ?? PRODUCTION_STRATEGIES)) {
-    compiler.registerStrategy(strategy);
-  }
-  return compiler;
+    const compiler = new JitCompiler();
+    for (const strategy of (strategies ?? strategyRegistry.list())) {
+        compiler.registerStrategy(strategy);
+    }
+    return compiler;
 }

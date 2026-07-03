@@ -10,10 +10,9 @@
  */
 
 // Root / Direct-build strategies
-export { IdleBlockStrategy, idleBlockStrategy } from './IdleBlockStrategy';
+export { IdleBlockStrategy } from './IdleBlockStrategy';
 export type { IdleBlockConfig } from './IdleBlockStrategy';
-export { SessionRootStrategy, sessionRootStrategy } from './SessionRootStrategy';
-export { WaitingToStartStrategy } from './WaitingToStartStrategy';
+export { SessionRootStrategy } from './SessionRootStrategy';
 
 // Logic strategies (Priority 90)
 export { AmrapLogicStrategy } from './logic/AmrapLogicStrategy';
@@ -23,7 +22,6 @@ export { IntervalLogicStrategy } from './logic/IntervalLogicStrategy';
 export { GenericTimerStrategy } from './components/GenericTimerStrategy';
 export { GenericLoopStrategy } from './components/GenericLoopStrategy';
 export { GenericGroupStrategy } from './components/GenericGroupStrategy';
-export { RestBlockStrategy } from './components/RestBlockStrategy';
 
 // Enhancement strategies (Priority 20-50)
 export { ChildrenStrategy } from './enhancements/ChildrenStrategy';

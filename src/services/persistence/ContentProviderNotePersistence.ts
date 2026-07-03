@@ -38,7 +38,7 @@ function selectResults(entry: HistoryEntry, selection?: ResultSelection): Partia
   }
 
   if (mode === 'latest-for-section' || mode === 'all-for-section') {
-    const matches = all.filter(r => r.sectionId === resolvedSelection.sectionId || r.segmentId === resolvedSelection.sectionId);
+    const matches = all.filter(r => r.blockContentId === resolvedSelection.blockContentId);
     if (mode === 'all-for-section') {
       const limited = resolvedSelection.limit ? matches.slice(0, resolvedSelection.limit) : matches;
       return { results: limited[0]?.data, extendedResults: limited };
@@ -105,7 +105,10 @@ export class ContentProviderNotePersistence implements INotePersistence {
       ...mutation.metadata,
       rawContent: mutation.rawContent,
       results: mutation.workoutResult?.data,
-      sectionId: mutation.workoutResult?.sectionId,
+      blockId: mutation.workoutResult?.blockId,
+      blockContentId: mutation.workoutResult?.blockContentId,
+      version: mutation.workoutResult?.version,
+      segmentId: mutation.workoutResult?.segmentId,
       resultId: mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv4() : undefined),
     };
 

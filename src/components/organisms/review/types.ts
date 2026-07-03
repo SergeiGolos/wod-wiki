@@ -50,7 +50,7 @@ export interface GridRow {
   /** **Total** (Wall-clock) — total time from first start to last end (seconds) */
   readonly total: number;
 
-  /** Completion reason (only for 'completion' type) */
+  /** Completion reason, carried on the closing 'segment' output for a block */
   readonly completionReason?: string;
   /** Fragment-type → cell data (canonical source of truth) */
   readonly cells: Map<MetricType, GridCell>;

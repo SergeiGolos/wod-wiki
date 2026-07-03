@@ -51,6 +51,31 @@ function generateSectionId(type: SectionType, startLine: number, content: string
 }
 
 /**
+ * Compute a content-stable identity for a wod block: a hash of its normalized
+ * (trimmed) fenced content, independent of where the block sits in the
+ * document. Unlike the line-embedded section id, this survives clone /
+ * reorder / edit-above, so results keyed by it stay linked to the right
+ * workout even when the block moves.
+ *
+ * Written as `blockContentId` on ScriptBlock / Section and (by the Result
+ * Recorder) on WorkoutResult, with the line-based `sectionId` retained as a
+ * legacy fallback. Two blocks with identical content share an id by design —
+ * identical content is treated as the same workout (history scoped per note).
+ */
+export function blockContentId(content: string): string {
+  const normalized = content.trim();
+  // FNV-1a 32-bit over the FULL content (generateSectionId hashes only the
+  // first 64 chars; identity must cover the whole block to avoid prefix
+  // collisions between distinct workouts).
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < normalized.length; i++) {
+    hash ^= normalized.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `bc-${(hash >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+/**
  * Detect the dialect from a ScriptBlock (fallback to 'wod').
  */
 function blockDialect(block: ScriptBlock): FenceDialect {
@@ -304,9 +329,11 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
       const cleanLineCount = cleanRawContent.split('\n').length;
 
       const sectionId = metadata?.id || generateSectionId('wod', scriptBlock.startLine, cleanText);
+      const contentId = blockContentId(cleanText);
 
       sections.push({
         id: sectionId,
+        contentId,
         type: 'wod',
         dialect,
         rawContent: cleanRawContent,
@@ -317,6 +344,7 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
         scriptBlock: {
           ...scriptBlock,
           id: sectionId, // Ensure ScriptBlock ID matches Section ID
+          contentId,
           content: cleanText,
           dialect,
           version: metadata?.version || 1,

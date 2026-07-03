@@ -3,10 +3,11 @@ import { IEventHandler } from './contracts/events/IEventHandler';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
-import { IScriptRuntime } from './contracts/IScriptRuntime';
+import type { IRuntimeContext } from './contracts/IRuntimeContext';
 import { IMetric } from '../core/models/Metric';
 import { MetricContainer } from '../core/models/MetricContainer';
 import { OutputStatement, OutputStatementType } from '../core/models/OutputStatement';
+import type { OutputStatementOptions } from '../core/models/OutputStatement';
 import { TimeSpan } from './models/TimeSpan';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
 import {
@@ -58,7 +59,7 @@ export class BehaviorContext implements IBehaviorContext {
         readonly block: IRuntimeBlock,
         readonly clock: IRuntimeClock,
         readonly stackLevel: number,
-        private runtime: IScriptRuntime,
+        private runtime: IRuntimeContext,
         sharedCapabilities?: Set<string>
     ) {
         this._capabilities = sharedCapabilities ?? new Set<string>();
@@ -69,10 +70,10 @@ export class BehaviorContext implements IBehaviorContext {
 
     subscribe(eventType: BehaviorEventType, listener: BehaviorEventListener, options?: SubscribeOptions): Unsubscribe {
         const self = this;
-        const handler: IEventHandler = {
+        const handler = {
             id: `behavior-${this.block.key.toString()}-${eventType}-${Date.now()}`,
             name: `BehaviorHandler-${this.block.label}-${eventType}`,
-            handler: (event: IEvent, _runtime: IScriptRuntime): IRuntimeAction[] => {
+            handler: (event: IEvent, _runtime: IRuntimeContext): IRuntimeAction[] => {
                 // For event callbacks, use the dispatching runtime's live clock
                 // instead of the frozen mount-time SnapshotClock. This is critical
                 // for tick handlers that need to see current time (e.g., TimerEndingBehavior).
@@ -81,7 +82,7 @@ export class BehaviorContext implements IBehaviorContext {
                 });
                 return listener(event, callbackCtx);
             }
-        };
+        } as unknown as IEventHandler;
 
         // Register with event bus scoped to this block
         const unsub = this.runtime.eventBus.register(
@@ -167,7 +168,7 @@ export class BehaviorContext implements IBehaviorContext {
             stackLevel: this.stackLevel,
             metrics: taggedFragments,
             completionReason: _options?.completionReason,
-        });
+        } as OutputStatementOptions);
 
         // Add to runtime's output collection and notify subscribers
         this.addOutputToRuntime(output);

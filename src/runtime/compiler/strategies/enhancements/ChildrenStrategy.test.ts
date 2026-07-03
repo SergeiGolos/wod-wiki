@@ -3,7 +3,7 @@ import { apply, stubRuntime, makeStatement } from '@/testing/harness/StrategyTes
 import { MetricType } from '@/core/models/Metric';
 import { BlockBuilder } from '@/runtime/compiler/BlockBuilder';
 import { ChildrenStrategy } from './ChildrenStrategy';
-import { ChildSelectionBehavior, ExitBehavior, MetricPromotionBehavior } from '../../../behaviors';
+import { ChildSelectionBehavior, MetricPromotionBehavior } from '../../../behaviors';
 
 const runtime = stubRuntime();
 
@@ -21,20 +21,11 @@ describe('ChildrenStrategy', () => {
         expect(apply(new ChildrenStrategy(), [emptyChildren], runtime).matched).toBe(false);
     });
 
-    it('returns early when builder already has ChildSelectionBehavior', () => {
+    it('declares a deferred exit and adds ChildSelectionBehavior', () => {
         const builder = new BlockBuilder(runtime);
-        builder.addBehavior(new ChildSelectionBehavior({ childGroups: [[1]] }));
-        builder.addBehavior(new ExitBehavior({ mode: 'immediate' }));
-        new ChildrenStrategy().apply(builder, [makeStatement([], { children: [[1]] })], runtime);
-        expect(builder.hasBehavior(ExitBehavior)).toBe(true);
-    });
-
-    it('removes ExitBehavior and adds ChildSelectionBehavior plus deferred ExitBehavior', () => {
-        const builder = new BlockBuilder(runtime);
-        builder.addBehavior(new ExitBehavior({ mode: 'immediate' }));
         new ChildrenStrategy().apply(builder, [makeStatement([], { children: [[1]] })], runtime);
         expect(builder.hasBehavior(ChildSelectionBehavior)).toBe(true);
-        expect(builder.hasBehavior(ExitBehavior)).toBe(true);
+        expect(builder.exitMode).toBe('deferred');
     });
 
     it('sets up looping when builder has countdown timer', () => {
@@ -42,10 +33,10 @@ describe('ChildrenStrategy', () => {
         builder.asTimer({ direction: 'down', durationMs: 60000 });
         new ChildrenStrategy().apply(builder, [makeStatement([], { children: [[1]] })], runtime);
         expect(builder.hasBehavior(ChildSelectionBehavior)).toBe(true);
-        expect(builder.hasBehavior(ExitBehavior)).toBe(true);
+        expect(builder.exitMode).toBe('deferred');
     });
 
-    it('reorders MetricPromotionBehavior to end if present', () => {
+    it('adds ChildSelectionBehavior alongside a pre-existing MetricPromotionBehavior', () => {
         const builder = new BlockBuilder(runtime);
         builder.addBehavior(new MetricPromotionBehavior({ promotions: [] }));
         new ChildrenStrategy().apply(builder, [makeStatement([], { children: [[1]] })], runtime);

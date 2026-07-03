@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { INowProvider, wallClockNow } from '../../INowProvider';
 /**
  * Action for playing sounds during workout execution.
@@ -46,7 +46,7 @@ export class PlaySoundAction implements IRuntimeAction {
    * Executes the sound playback by emitting a 'sound:play' event.
    * UI components should register handlers for this event to play audio.
    */
-  do(runtime: IScriptRuntime): IRuntimeAction[] {
+  do(runtime: IRuntimeContext): IRuntimeAction[] {
     const event = {
       name: 'sound:play',
       timestamp: this.now.now(),

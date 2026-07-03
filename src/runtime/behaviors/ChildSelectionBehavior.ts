@@ -8,7 +8,6 @@ import { PushRestBlockAction } from '../actions/stack/PushRestBlockAction';
 import { ChildrenStatusState, RoundState, TimerState } from '../memory/MemoryTypes';
 import { calculateElapsed } from '../time/calculateElapsed';
 import { CurrentRoundMetric } from '../compiler/metrics/CurrentRoundMetric';
-import { TrackRoundAction } from '../actions/tracking/TrackRoundAction';
 
 export type ChildSelectionLoopCondition = 'always' | 'timer-active' | 'rounds-remaining';
 
@@ -64,7 +63,6 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
                 blockId,
                 ctx.clock.currentDate,
             )]);
-            actions.push(new TrackRoundAction(blockId, this.config.startRound, this.config.totalRounds));
         }
 
         // Handle interval timer resets for EMOM synchronization
@@ -313,7 +311,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         );
 
         ctx.updateMemory('round', [roundFragment]);
-        return [new TrackRoundAction(blockId, nextRound, total)];
+        return [];
     }
 
     private createNextPreview(ctx: IBehaviorContext, nextGroup?: number[]): UpdateNextPreviewAction {

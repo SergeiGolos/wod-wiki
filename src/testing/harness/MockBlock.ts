@@ -186,10 +186,19 @@ class MockBehaviorContext implements IBehaviorContext {
         timestamp: f.timestamp ?? now
       }));
 
+      if (timerSpans.length > 0) {
+        taggedMetrics.unshift({
+          type: MetricType.Spans,
+          value: timerSpans,
+          origin: 'runtime',
+          timestamp: now,
+          sourceBlockKey: this._mockBlock.key.toString(),
+        });
+      }
+
       const output = new OutputStatement({
         outputType: type,
         timeSpan: new TimeSpan(startTime, endTime),
-        spans: timerSpans.length > 0 ? timerSpans : undefined,
         sourceBlockKey: this._mockBlock.key.toString(),
         sourceStatementId: this._mockBlock.sourceIds?.[0],
         stackLevel: this.stackLevel,
@@ -572,6 +581,12 @@ export class MockBlock implements IRuntimeBlock {
    */
   getMetricMemoryByVisibility(visibility: MetricVisibility): IMemoryLocation[] {
     return this._memory.filter(loc => getMetricVisibility(loc.tag) === visibility);
+  }
+
+  /** MockBlock ignores effort-defined hints (the contract is honored by the
+   *  real RuntimeBlock; tests can inspect `this._memory` directly). */
+  mergeHints(_hints: Readonly<Record<string, unknown>>): void {
+    // no-op for tests
   }
 
 }

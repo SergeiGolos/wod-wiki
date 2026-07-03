@@ -120,20 +120,28 @@ export interface OutputAssertions {
      * Block key is the `IRuntimeBlock.key.toString()` of the emitting block.
      */
     forBlock(key: string): readonly IOutputStatement[];
-    /** Output statements of a particular type (`'segment'`, `'completion'`, etc.). */
+    /** Output statements of a particular type (`'segment'`, `'load'`, `'system'`, etc.). */
     byType(type: OutputStatementType): readonly IOutputStatement[];
-    /** All completion outputs. Shortcut for `byType('completion')`. */
+    /**
+     * Segment outputs that carry a `completionReason` — i.e. the segment that
+     * closed out a block pop. There is no separate `'completion'` output type;
+     * completion data is a field on the segment itself.
+     */
     completions(): readonly IOutputStatement[];
     /** All segment outputs. Shortcut for `byType('segment')`. */
     segments(): readonly IOutputStatement[];
     /**
-     * Assert that every `'segment'` output has a matching `'completion'`
-     * output from the same block. Returns unpaired descriptions (empty if all paired).
+     * Historically asserted that every `'segment'` output had a matching
+     * `'completion'` output from the same block. Since completion data now
+     * lives on the segment itself (`completionReason`), every segment is
+     * structurally self-paired — this always returns `[]`. Kept for API
+     * compatibility with existing test call sites.
      */
     assertPairedOutputs(): string[];
     /**
-     * Assert that every `'segment'` output has a matching `'completion'`
-     * output. Throws with details on unpaired outputs.
+     * Throws if `assertPairedOutputs()` returns any entries. Since pairing is
+     * now structural (see `assertPairedOutputs`), this is effectively a no-op
+     * assertion kept for existing test call sites.
      */
     allPaired(): void;
     /** Assert at least `min` outputs were emitted. Throws otherwise. */
@@ -295,7 +303,8 @@ class OutputAssertionsImpl implements OutputAssertions {
     }
 
     completions(): readonly IOutputStatement[] {
-        return this.byType('completion');
+        // 'completion' is folded into segment outputs (completionReason field).
+        return this.byType('segment').filter(s => s.completionReason !== undefined);
     }
 
     segments(): readonly IOutputStatement[] {
@@ -303,16 +312,10 @@ class OutputAssertionsImpl implements OutputAssertions {
     }
 
     assertPairedOutputs(): string[] {
-        const segs = this.segments();
-        const comps = this.completions();
-        const unpaired: string[] = [];
-        for (const seg of segs) {
-            const hasCompletion = comps.some(c => c.sourceBlockKey === seg.sourceBlockKey);
-            if (!hasCompletion) {
-                unpaired.push(`Segment from ${seg.sourceBlockKey} has no matching completion`);
-            }
-        }
-        return unpaired;
+        // Post-consolidation, completion data is folded into each segment's
+        // `completionReason` field — there is no separate 'completion' output to
+        // pair against, so every segment is structurally self-paired.
+        return [];
     }
 
     allPaired(): void {

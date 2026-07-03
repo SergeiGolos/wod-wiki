@@ -14,7 +14,6 @@ const OUTPUT_TYPE_COLORS: Record<string, string> = {
   compiler: 'border-accent text-accent-foreground',
   event: 'border-primary text-primary',
   system: 'border-border text-foreground',
-  completion: 'border-success text-success',
 };
 
 export const DebugTraceViewer: React.FC<DebugTraceViewerProps> = ({ 
@@ -26,7 +25,7 @@ export const DebugTraceViewer: React.FC<DebugTraceViewerProps> = ({
 
   // Filter rows for debug view
   const debugRows = rows.filter(r => 
-    ['load', 'compiler', 'event', 'system', 'completion'].includes(r.outputType)
+    ['load', 'compiler', 'event', 'system'].includes(r.outputType)
   );
 
   const formatTimestamp = (ms?: number) => {
@@ -93,9 +92,7 @@ export const DebugTraceViewer: React.FC<DebugTraceViewerProps> = ({
                     <td className="px-2 py-0">
                       <span className={cn(
                         "px-1.5 py-0.5 rounded-sm text-[9px] font-bold uppercase",
-                        row.outputType === 'completion' 
-                          ? (row.completionReason === 'timer-expired' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning')
-                          : `bg-muted text-muted-foreground border border-border/50`
+                        `bg-muted text-muted-foreground border border-border/50`
                       )}>
                         {row.outputType}
                       </span>

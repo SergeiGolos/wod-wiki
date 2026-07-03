@@ -1,6 +1,6 @@
 import { IRuntimeBlockStrategy } from '../../contracts/IRuntimeBlockStrategy';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { BlockBuilder } from '../BlockBuilder';
 import { SessionRootBlock, SessionRootConfig } from '../../blocks/SessionRootBlock';
@@ -29,18 +29,19 @@ import { MetricType } from '../../../core/models/Metric';
  */
 export class SessionRootStrategy implements IRuntimeBlockStrategy {
     priority = 100;
+    readonly id = 'session-root';
 
     /**
      * Root blocks are not matched from statements — they are created directly.
      */
-    match(_statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(_statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         return false;
     }
 
     /**
      * Composable apply — not used for root blocks.
      */
-    apply(_builder: BlockBuilder, _statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+    apply(_builder: BlockBuilder, _statements: ICodeStatement[], _runtime: IRuntimeContext): void {
         // No-op for direct build
     }
 
@@ -61,7 +62,7 @@ export class SessionRootStrategy implements IRuntimeBlockStrategy {
      * });
      * ```
      */
-    build(runtime: IScriptRuntime, config: SessionRootConfig): IRuntimeBlock {
+    build(runtime: IRuntimeContext, config: SessionRootConfig): IRuntimeBlock {
         return new SessionRootBlock(runtime, config);
     }
 
@@ -86,7 +87,7 @@ export class SessionRootStrategy implements IRuntimeBlockStrategy {
      * ```
      */
     buildFromStatements(
-        runtime: IScriptRuntime,
+        runtime: IRuntimeContext,
         statements: ICodeStatement[],
         options?: { label?: string; totalRounds?: number }
     ): IRuntimeBlock {
@@ -101,11 +102,6 @@ export class SessionRootStrategy implements IRuntimeBlockStrategy {
         return this.build(runtime, config);
     }
 }
-
-/**
- * Default instance for convenience.
- */
-export const sessionRootStrategy = new SessionRootStrategy();
 
 // ---------------------------------------------------------------------------
 // Helpers for metric-context detection (exported for use in StartSessionAction)

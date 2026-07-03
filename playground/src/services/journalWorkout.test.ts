@@ -32,11 +32,9 @@ mock.module('@/repositories/script-collections', () => ({
   getScriptCollections: () => [],
 }));
 
-mock.module('./playgroundDB', () => ({
-  PlaygroundDBService: {
-    pageId: (category: string, name: string) => `${category}/${name}`,
-  },
-  playgroundDB: {
+mock.module('./playgroundContent', () => ({
+  pageId: (category: string, name: string) => `${category}/${name}`,
+  playgroundContent: {
     getPage: async (id: string) => existingPages.get(id),
     savePage: async (page: SavedPage) => {
       savedPages.push(page);

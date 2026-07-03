@@ -197,9 +197,18 @@ export interface IRuntimeBlock extends IBlockRef {
      * Push a new memory location onto the block's memory list.
      * Multiple locations with the same tag can coexist.
      *
-     * @param location The memory location to add
-     */
     pushMemory(location: IMemoryLocation): void;
+
+    /**
+     * Merge a set of compiler hints (e.g. from an effort markdown file) into
+     * the block. Hints are stored as `MetricType.Hint` metrics in a
+     * `metric:hint` memory location and surface to strategies exactly the
+     * same way dialect-emitted hints do. Use sparingly: any hint key not
+     * in `CONSUMED_HINTS` (see `core/metrics/hints.ts`) is currently
+     * inert (analytics-only). For effort-specific metrics, prefer a
+     * domain metric.
+     */
+    mergeHints(hints: Readonly<Record<string, unknown>>): void;
 
     /**
      * Get all memory locations matching the given tag.

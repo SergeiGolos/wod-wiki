@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import { parseCanvasMarkdown } from './parseCanvasMarkdown'
+import { parseCanvasMarkdown, getSectionProse } from './parseCanvasMarkdown'
 
 describe('parseCanvasMarkdown', () => {
   it('extracts inline example blocks and keeps attribute values on the section', () => {
@@ -30,7 +30,7 @@ source: examples/weight.md
     const section = page?.sections[1]
     expect(section?.id).toBe('metrics')
     expect(section?.attrs).toEqual(['sticky', 'density:compact', 'theme:emerald'])
-    expect(section?.prose).toContain('Compare different measurement styles.')
+    expect(getSectionProse(section!)).toContain('Compare different measurement styles.')
     expect(section?.examples).toEqual([
       { label: 'Reps only', source: 'examples/reps.md' },
       { label: 'With weight', source: 'examples/weight.md' },
@@ -87,10 +87,11 @@ pipeline:
       expect(secondButton.button.label).toBe('Second →')
     }
 
-    // The legacy `prose` field remains a prose-only concatenation.
-    expect(section?.prose).toContain('First paragraph.')
-    expect(section?.prose).toContain('Second paragraph.')
-    expect(section?.prose).not.toContain('First →')
+    // Prose is derived from proseChunks via getSectionProse.
+    const prose = getSectionProse(section!)
+    expect(prose).toContain('First paragraph.')
+    expect(prose).toContain('Second paragraph.')
+    expect(prose).not.toContain('First →')
   })
 
   it('places a button before any prose when authored at the start of a section', () => {

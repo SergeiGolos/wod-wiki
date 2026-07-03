@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { playgroundDB, PlaygroundDBService } from '../services/playgroundDB';
+import { playgroundContent, pageId as makePageId } from '../services/playgroundContent';
 import { useEditorSave } from './useEditorSave';
 
 interface UsePlaygroundContentOptions {
@@ -49,7 +49,7 @@ export function usePlaygroundContent({
   name,
   mdContent,
 }: UsePlaygroundContentOptions): UsePlaygroundContentResult {
-  const pageId = PlaygroundDBService.pageId(category, name);
+  const pageId = makePageId(category, name);
   const [content, setContent] = useState(mdContent);
   const [loading, setLoading] = useState(true);
   const [isModified, setIsModified] = useState(false);
@@ -67,7 +67,7 @@ export function usePlaygroundContent({
   useEffect(() => { mdContentRef.current = mdContent; }, [mdContent]);
 
   const handleSave = useCallback(async (value: string) => {
-    await playgroundDB.savePage({
+    await playgroundContent.savePage({
       id: pageIdRef.current,
       category: categoryRef.current,
       name: nameRef.current,
@@ -88,7 +88,7 @@ export function usePlaygroundContent({
     async function load() {
       setLoading(true);
       try {
-        const page = await playgroundDB.getPage(pageId);
+        const page = await playgroundContent.getPage(pageId);
         if (cancelled) return;
 
         if (page) {
@@ -98,7 +98,7 @@ export function usePlaygroundContent({
           setContent(mdContent);
           setIsModified(false);
           // Seed IDB so block IDs get locked in
-          await playgroundDB.savePage({
+          await playgroundContent.savePage({
             id: pageId,
             category,
             name,
@@ -133,7 +133,7 @@ export function usePlaygroundContent({
   const resetToOriginal = useCallback(async () => {
     setContent(mdContent);
     setIsModified(false);
-    await playgroundDB.savePage({
+    await playgroundContent.savePage({
       id: pageId,
       category,
       name,

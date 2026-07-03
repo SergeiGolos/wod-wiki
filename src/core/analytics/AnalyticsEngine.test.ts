@@ -2,12 +2,10 @@ import { describe, it, expect, mock, beforeEach } from 'bun:test';
 import { AnalyticsEngine } from './AnalyticsEngine';
 import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
 import { MetricContainer } from '../models/MetricContainer';
-import { IAnalyticsStage } from './IAnalyticsStage';
 import { IRealtimeProcessor } from './IRealtimeProcessor';
 import { ISummaryProcessor } from './ISummaryProcessor';
 import { ProjectionResult } from './ProjectionResult';
 import { MetricType } from '../models/Metric';
-import { IRuntimeStackTracker } from '../contracts/RuntimeStackTracker';
 
 function makeSegmentOutput(id: string, extraMetrics?: { type: MetricType; value: unknown }[]): IOutputStatement {
   const metrics = MetricContainer.empty(id);
@@ -98,48 +96,6 @@ describe('AnalyticsEngine', () => {
     expect(summarized).toBe(true);
     expect(results).toHaveLength(1);
     expect(results[0].outputType).toBe('analytics');
-  });
-
-  it('should route legacy IAnalyticsStage through addStage shim', () => {
-    const engine = new AnalyticsEngine();
-    const order: string[] = [];
-
-    const stage: IAnalyticsStage = {
-      id: 'legacy',
-      enrich: (out: IOutputStatement) => {
-        order.push('enrich');
-        return out;
-      },
-      project: (_outputs: IOutputStatement[]): ProjectionResult[] => {
-        order.push('project');
-        return [{
-          name: 'Legacy',
-          value: 1,
-          unit: 'x',
-          timeSpan: { started: 0, ended: 1000 },
-        }];
-      },
-    };
-
-    engine.addStage(stage);
-    engine.run(makeSegmentOutput('s1'));
-    engine.finalize();
-
-    expect(order).toEqual(['enrich', 'project']);
-  });
-
-  it('should skip legacy stage with neither enrich nor project', () => {
-    const engine = new AnalyticsEngine();
-    const warnSpy = mock(() => {});
-    const originalWarn = console.warn;
-    console.warn = warnSpy as unknown as typeof console.warn;
-
-    try {
-      engine.addStage({ id: 'noop' } as IAnalyticsStage);
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-    } finally {
-      console.warn = originalWarn;
-    }
   });
 
   describe('processor split behavior', () => {
@@ -285,15 +241,10 @@ describe('AnalyticsEngine', () => {
       }
     });
 
-    it('pushes live summary projections to tracker after each segment', () => {
+    it('emits a live analytics output after each segment', () => {
       const engine = new AnalyticsEngine();
-      const recordedMetrics: { owner: string; key: string; value: unknown; unit?: string }[] = [];
-
-      const tracker: IRuntimeStackTracker = {
-        recordMetric: (owner, key, value, unit) => {
-          recordedMetrics.push({ owner, key, value, unit });
-        },
-      } as IRuntimeStackTracker;
+      const emitted: IOutputStatement[] = [];
+      engine.setLiveOutputEmitter((o) => emitted.push(o));
 
       const summary: ISummaryProcessor = {
         id: 'live-sum',
@@ -305,14 +256,15 @@ describe('AnalyticsEngine', () => {
         }],
       };
 
-      engine.setTracker(tracker);
       engine.addSummaryProcessor(summary);
       engine.run(makeSegmentOutput('s1'));
       engine.run(makeSegmentOutput('s2'));
 
-      expect(recordedMetrics).toHaveLength(2);
-      expect(recordedMetrics[0]).toEqual({ owner: 'session-totals', key: 'Count', value: 1, unit: 'segments' });
-      expect(recordedMetrics[1]).toEqual({ owner: 'session-totals', key: 'Count', value: 2, unit: 'segments' });
+      // One live 'analytics' output per segment, each carrying the projection.
+      expect(emitted).toHaveLength(2);
+      expect(emitted[0].outputType).toBe('analytics');
+      const valueMetric = emitted[0].metrics.find(m => m.value === 1);
+      expect(valueMetric?.unit).toBe('segments');
     });
 
     it('finalize produces analytics OutputStatements with metrics', () => {

@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { RestBlock } from '../../blocks/RestBlock';
 import { PushBlockAction } from './PushBlockAction';
 
@@ -25,7 +25,7 @@ export class PushRestBlockAction implements IRuntimeAction {
         public readonly label: string = 'Rest'
     ) { }
 
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
         const restBlock = new RestBlock(runtime, {
             durationMs: this.durationMs,
             label: this.label,

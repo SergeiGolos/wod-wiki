@@ -1,7 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../contracts/IRuntimeContext';
 import { WaitingToStartBlock } from '../blocks/WaitingToStartBlock';
 import { PushBlockAction } from '../actions/stack/PushBlockAction';
 
@@ -22,7 +22,7 @@ import { PushBlockAction } from '../actions/stack/PushBlockAction';
  * actual first child from childGroups[0].
  */
 export class WaitingToStartInjectorBehavior implements IRuntimeBehavior {
-    constructor(private readonly runtime: IScriptRuntime) {}
+    constructor(private readonly runtime: IRuntimeContext) {}
 
     onMount(_ctx: IBehaviorContext): IRuntimeAction[] {
         const waitingBlock = new WaitingToStartBlock(this.runtime);

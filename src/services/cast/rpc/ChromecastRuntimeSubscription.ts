@@ -1,9 +1,8 @@
 import { ICastSubscription } from '@/runtime/contracts/ICastSubscription';
 import { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
 import { IOutputStatement } from '@/core/models/OutputStatement';
-import { TrackerUpdate } from '@/runtime/contracts/IRuntimeOptions';
 import { IRpcTransport } from './IRpcTransport';
-import { serializeStackSnapshot, serializeOutput, serializeTrackerUpdate, serializeAnalyticsSummary } from './RpcSerializer';
+import { serializeStackSnapshot, serializeOutput, serializeAnalyticsSummary } from './RpcSerializer';
 
 /**
  * ChromecastRuntimeSubscription — sends runtime state updates to the Chromecast
@@ -43,12 +42,6 @@ export class ChromecastRuntimeSubscription implements ICastSubscription {
         if (!this.transport.connected) return;
         this.transport.send(serializeOutput(output));
     }
-
-    onTrackerUpdate(update: TrackerUpdate): void {
-        if (!this.transport.connected) return;
-        this.transport.send(serializeTrackerUpdate(update));
-    }
-
     /**
      * Send analytics summary with projection results to Chromecast.
      * Called by browser when workout completes to show focused review.

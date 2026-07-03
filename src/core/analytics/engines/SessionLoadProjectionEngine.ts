@@ -18,7 +18,7 @@ import { TimeSpan } from '../../../runtime/models/TimeSpan';
 export class SessionLoadProjectionEngine implements ISummaryProcessor {
   public readonly id = 'session-load-projection';
   public readonly name = 'SessionLoadProjectionEngine';
-  public readonly dialects = ['wod', 'log'] as const;
+  public readonly fenceTypes = ['wod', 'log'] as const;
 
   summarize(outputs: IOutputStatement[]): ProjectionResult[] {
     return this.calculateFromWorkout(extractMetrics(outputs));

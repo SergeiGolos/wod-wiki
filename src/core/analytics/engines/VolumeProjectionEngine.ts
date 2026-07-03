@@ -22,7 +22,7 @@ import { TimeSpan } from '../../../runtime/models/TimeSpan';
 export class VolumeProjectionEngine implements ISummaryProcessor {
   public readonly id = 'volume-projection';
   public readonly name = "VolumeProjectionEngine";
-  public readonly dialects = ['wod', 'log', 'plan'] as const;
+  public readonly fenceTypes = ['wod', 'log', 'plan'] as const;
   public readonly requiredMetrics = [MetricType.Rep, MetricType.Resistance] as const;
 
   summarize(outputs: IOutputStatement[]): ProjectionResult[] {

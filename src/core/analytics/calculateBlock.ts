@@ -396,7 +396,9 @@ function extractNumericCandidates(
     }
   }
 
-  const durationSeconds = output.elapsed / 1000;
+  const elapsedMetric = output.getMetric?.(MetricType.Elapsed);
+  const elapsedMs = typeof elapsedMetric?.value === 'number' ? elapsedMetric.value : 0;
+  const durationSeconds = elapsedMs / 1000;
   if (Number.isFinite(durationSeconds) && durationSeconds >= 0) {
     candidates.push({ key: 'duration', value: durationSeconds });
     candidates.push({ key: 'elapsed', value: durationSeconds });

@@ -25,7 +25,7 @@ import {
   type ExtractedScriptBlock,
 } from './paletteDataSources';
 import type { ScriptCollection, ScriptCollectionItem } from '@/repositories/script-collections';
-import type { PlaygroundPage } from './playgroundDB';
+import type { PlaygroundPage } from './playgroundContent';
 
 export const JOURNAL_BLANK_TEMPLATE = `# Journal Entry\n\n\`\`\`wod\n\n\`\`\`\n`;
 

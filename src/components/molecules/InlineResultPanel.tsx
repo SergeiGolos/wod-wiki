@@ -10,7 +10,7 @@
  * A "Full Review" button in the expanded view opens the FullscreenReview dialog.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { ReviewGrid } from '@/components/organisms/review/ReviewGrid';
 import { AnalyticsScorecard, getMetricStyle } from '@/components/organisms/review/AnalyticsScorecard';
 import { CollectionWizard } from '@/components/organisms/review/CollectionWizard';
@@ -20,6 +20,7 @@ import { useDebugMode } from '@/contexts/DebugModeContext';
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type { WorkoutResult } from '@/types/storage';
+import { groupResultsByVersion } from '@/utils/groupResultsByVersion';
 import { MetricType } from '@/core/models/Metric';
 import type { ProjectionResult } from '@/core/analytics/ProjectionResult';
 import { ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
@@ -29,7 +30,10 @@ import { cn } from '@/lib/utils';
 
 export interface InlineResultPanelProps {
   sectionId: string;
-  results: WorkoutResult[];
+  /** All results for this blockId (all versions). Widget groups into current + history. */
+  allResults: WorkoutResult[];
+  /** Section's current contentId — used to determine which results are "current". */
+  currentContentId?: string;
   /** Open the full-screen review dialog */
   onOpenReview?: (result: WorkoutResult) => void;
 }
@@ -90,15 +94,14 @@ function deriveSegmentsFromResult(result: WorkoutResult): {
 
   return { segments, projections };
 }
-
-// ─── Component ─────────────────────────────────────────────────────
-
 export const InlineResultPanel: React.FC<InlineResultPanelProps> = ({
-  results,
+  allResults,
+  currentContentId,
   onOpenReview,
 }) => {
   // Track which result is expanded (null = all collapsed)
   const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const toggleResult = useCallback(
     (resultId: string) => {
@@ -107,12 +110,44 @@ export const InlineResultPanel: React.FC<InlineResultPanelProps> = ({
     [],
   );
 
+  // Group results by version (derived from allResults + currentContentId)
+ const { current, currentVersion, history } = useMemo(
+    () => groupResultsByVersion(allResults, undefined, currentContentId),
+    [allResults, currentContentId],
+  )
+
+  const hasCurrent = current.length > 0
+  const hasHistory = history.size > 0
+  const sortedHistory = Array.from(history.entries()).sort((a, b) => b[0] - a[0])
+
   return (
     <div className="cm-wod-results-inlay">
       {/* Separator line */}
       <div className="cm-wod-results-separator" />
 
-      {results.map((result) => {
+      {/* Version header — only when there's history (multi-version block) */}
+      {hasHistory && (
+        <div className="flex items-center gap-2 px-4 py-1.5 text-[11px] text-muted-foreground">
+          <span className={hasCurrent ? 'text-emerald-500' : 'text-muted-foreground/50'}>
+            {hasCurrent ? '●' : '○'}
+          </span>
+          <span>
+            {hasCurrent
+              ? `v${currentVersion} · ${current.length} result${current.length === 1 ? '' : 's'}`
+              : `No results · v${currentVersion}`}
+          </span>
+          <button
+            type="button"
+            className="ml-auto text-primary hover:underline"
+            onClick={() => setShowHistory(v => !v)}
+          >
+            {showHistory ? '▴ Hide' : `▾ ${sortedHistory.length} previous`}
+          </button>
+        </div>
+      )}
+
+      {/* Current-version result rows */}
+      {current.map((result) => {
         const { segments, projections } = deriveSegmentsFromResult(result);
         const isExpanded = expandedResultId === result.id;
 
@@ -128,6 +163,29 @@ export const InlineResultPanel: React.FC<InlineResultPanelProps> = ({
           />
         );
       })}
+
+      {/* History compact cards — shown when toggle is open */}
+      {showHistory && sortedHistory.length > 0 && (
+        <div className="border-t border-border/30 px-4 py-2 space-y-2">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            Previous Versions
+          </div>
+          {sortedHistory.map(([version, group]) => (
+            <div
+              key={version}
+              className="rounded-md border border-border/40 bg-muted/30 px-3 py-2 opacity-80"
+            >
+              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                <span className="font-semibold">v{version}</span>
+                <span className="truncate flex-1">
+                  {group.contentId ? `hash: ${group.contentId.slice(0, 12)}…` : 'no contentId'}
+                </span>
+                <span>{group.results.length} result{group.results.length === 1 ? '' : 's'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

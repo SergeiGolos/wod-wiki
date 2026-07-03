@@ -304,6 +304,12 @@ export class TestableBlock implements IRuntimeBlock {
       this._calls.push(call);
     }
   }
+
+  /** TestableBlock delegates everything to the wrapped block; effort hints
+   *  are merged onto the wrapped block by the compilation pipeline. */
+  mergeHints(hints: Readonly<Record<string, unknown>>): void {
+    this._wrapped.mergeHints(hints);
+  }
 }
 
 /**

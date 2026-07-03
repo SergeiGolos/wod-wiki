@@ -110,12 +110,6 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                     completionLabel
                 );
                 this.writeResultGroups(ctx, resultGroups);
-
-                for (const group of resultGroups) {
-                    ctx.emitOutput('completion', group.toArray(), {
-                        label: completionLabel,
-                    });
-                }
                 return [];
             }
         }
@@ -128,10 +122,6 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             );
 
         this.writeResultMemory(ctx, resultFragments);
-
-        ctx.emitOutput('completion', resultFragments.toArray(), {
-            label: completionLabel,
-        });
 
         return [];
     }

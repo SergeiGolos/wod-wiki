@@ -109,13 +109,13 @@ export enum MetricType {
    */
   SystemTime = 'system-time',
 
-  /** @deprecated Use Spans. This represented runtime timer state in block memory. */
+  /** Live timer state written into block memory by the count-up/count-down timer behaviors. */
   Time = 'time',
 
-  /** @deprecated Calculated from Spans when needed. Σ(end − start) of active segments. */
+  /** Active elapsed time — Σ(end − start) of active spans; derived during analytics. */
   Elapsed = 'elapsed',
 
-  /** @deprecated Calculated from Spans when needed. lastEnd − firstStart. */
+  /** Total wall-clock bracket (lastEnd − firstStart) for a block; derived during analytics. */
   Total = 'total',
 
   Rep = 'rep',

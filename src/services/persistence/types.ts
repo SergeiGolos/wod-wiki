@@ -29,11 +29,11 @@ export type ResultSelection =
     }
   | {
       mode: 'latest-for-section';
-      sectionId: string;
+      blockContentId: string;
     }
   | {
       mode: 'all-for-section';
-      sectionId: string;
+      blockContentId: string;
       limit?: number;
     }
   | {
@@ -92,7 +92,10 @@ export interface NoteMutation {
   }>;
   workoutResult?: {
     id?: string;
-    sectionId?: string;
+    blockId?: string;       // Section position identity
+    blockContentId?: string;  // Content-stable join key
+    version?: number;        // Content generation at this position
+    segmentId?: string;     // NoteSegment FK (for analytics segmentVersion lookup)
     data: WorkoutResults;
     completedAt?: number;
     analyticsSegments?: AnalyticsSegmentInput[];
@@ -124,6 +127,7 @@ export class NotePersistenceError extends Error {
 
 export interface NotePersistenceStorage {
   getNote(id: string): Promise<Note | undefined>;
+  saveNote(note: Note): Promise<string>;
   getAllNotes(): Promise<Note[]>;
   getLatestSegments(segmentIds: string[]): Promise<NoteSegment[]>;
   getLatestSegmentVersion(segmentId: string): Promise<NoteSegment | undefined>;

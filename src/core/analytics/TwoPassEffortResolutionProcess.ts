@@ -27,7 +27,7 @@ import { EFFORT_DATA_METRIC_TYPE } from './effortResolution';
  */
 export class TwoPassEffortResolutionProcess implements IRealtimeProcessor {
   public readonly id = 'two-pass-effort-resolution';
-  public readonly dialects = ['wod', 'log', 'plan'] as const;
+  public readonly fenceTypes = ['wod', 'log', 'plan'] as const;
 
   constructor(private readonly resolver: IEffortResolver) {}
 

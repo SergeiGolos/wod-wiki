@@ -1,7 +1,7 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricType } from "@/core/models/Metric";
 import { compose } from "../../BlockTemplateComposer";
 import type { BlockTemplate } from "../../BlockTemplate";
@@ -21,8 +21,9 @@ import {
  */
 export class GenericGroupStrategy implements IRuntimeBlockStrategy {
     priority = 50; // Same as GenericTimer/GenericLoop; runs before ChildrenStrategy (same priority, registered earlier)
+    readonly id = 'generic-group';
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
         
         // Match if ANY statement has children but NO statement has timer/rounds
@@ -33,7 +34,7 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
         return hasChildren && !hasTimer && !hasRounds;
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IRuntimeContext): void {
         // If we have a timer or loop behavior, the identity is already set (Timer/Rounds/AMRAP/EMOM).
         if (builder.hasTimerBehavior() || builder.hasRoundConfig()) {
             return;
