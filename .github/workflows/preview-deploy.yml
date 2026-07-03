@@ -33,8 +33,27 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Derive branch slug
+        id: slug
+        run: |
+          # Sanitize branch name: lowercase, no spaces, no special chars
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          SLUG=$(echo "$BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\\+//;s/-\\+$//' | tr '[:upper:]' '[:lower:]')
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "slug=$SLUG" >> $GITHUB_OUTPUT
+
+      # Build with VITE_BASE_PATH set so the emitted HTML references
+      # /<slug>/dist/assets/... matching the S3 layout and CF function.
+      # Without this, Vite defaults base to '/' and the SPA loads HTML
+      # (the SPA-fallback index.html) instead of the JS bundle at
+      # /assets/main-*.js, so the app never hydrates.
       - name: Build playground
-        run: bun run build-playground && bun x vite build --config vite.receiver.config.ts
+        env:
+          VITE_BASE_PATH: /${{ steps.slug.outputs.slug }}/dist/
+        run: |
+          bun run build-playground
+          VITE_BASE_PATH="/${{ steps.slug.outputs.slug }}/dist/" \
+            bun x vite build --config vite.receiver.config.ts
 
       - name: Persist build artifact
         uses: actions/upload-artifact@v4
@@ -42,15 +61,6 @@ jobs:
           name: preview-build-${{ github.event.pull_request.number }}
           path: playground/dist/
           retention-days: 1
-
-      - name: Derive branch slug
-        id: slug
-        run: |
-          # Sanitize branch name: lowercase, no spaces, no special chars
-          BRANCH="${{ github.head_ref || github.ref_name }}"
-          SLUG=$(echo "$BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
-          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
-          echo "slug=$SLUG" >> $GITHUB_OUTPUT
 
       - name: Set artifact dir
         id: artifact-dir
@@ -82,7 +92,9 @@ jobs:
       - name: Deploy to S3
         run: |
           set -euo pipefail
-          PREFIX="${{ needs.build.outputs.branch-slug }}/"
+          # Sync to s3://<bucket>/<slug>/dist/ — the CF SPA fallback function
+          # (wod-wiki-production-spa-fallback) expects the build at /<slug>/dist/.
+          PREFIX="${{ needs.build.outputs.branch-slug }}/dist/"
           echo "Uploading to s3://$S3_BUCKET/$PREFIX"
           aws s3 sync ./dist/ "s3://$S3_BUCKET/$PREFIX" \
             --delete \
@@ -91,15 +103,26 @@ jobs:
             2>&1
           echo "s3_prefix=$PREFIX" >> $GITHUB_OUTPUT
 
-      - name: Create CloudFront cache invalidation
+      - name: Create CloudFront cache invalidation (best-effort)
+        # CloudFront invalidation is non-critical: S3 sync already deployed the new
+        # build, and --cache-control "max-age=300" limits staleness to 5 minutes.
+        # This step warns on failure rather than failing the deploy, so transient
+        # CloudFront IAM/permission issues don't block preview publishing.
+        # TODO: investigate the root cause of intermittent AccessDenied on the
+        # GH runner and restore fail-fast behavior.
+        continue-on-error: true
         run: |
-          set -euo pipefail
+          set -uo pipefail
           PREFIX="/${{ needs.build.outputs.branch-slug }}/*"
           echo "Creating CloudFront invalidation for $PREFIX"
-          aws cloudfront create-invalidation \
-            --distribution-id "$CF_DISTRIBUTION_ID" \
-            --paths "$PREFIX"
-          echo "invalidation_path=$PREFIX" >> $GITHUB_OUTPUT
+          if aws cloudfront create-invalidation \
+               --distribution-id "$CF_DISTRIBUTION_ID" \
+               --paths "$PREFIX"; then
+            echo "invalidation_path=$PREFIX" >> $GITHUB_OUTPUT
+            echo "CloudFront invalidation submitted successfully."
+          else
+            echo "::warning::CloudFront invalidation failed; S3 deploy succeeded and content will refresh within 5 minutes via cache-control max-age."
+          fi
 
   # ── Post PR comment ─────────────────────────────────────────────────────────
   comment:
@@ -185,18 +208,25 @@ jobs:
       - name: Delete S3 prefix objects
         run: |
           set -euo pipefail
-          PREFIX="${{ steps.slug.outputs.slug }}/"
+          PREFIX="${{ steps.slug.outputs.slug }}/dist/"
           echo "Deleting s3://$S3_BUCKET/$PREFIX"
           aws s3 rm "s3://$S3_BUCKET/$PREFIX" --recursive 2>&1
 
-      - name: Create CloudFront invalidation for deleted path
+      - name: Create CloudFront invalidation for deleted path (best-effort)
+        # Same rationale as the deploy job: cache invalidation is non-critical,
+        # and a transient CloudFront deny shouldn't block S3 cleanup completion.
+        continue-on-error: true
         run: |
-          set -euo pipefail
+          set -uo pipefail
           PREFIX="/${{ steps.slug.outputs.slug }}/*"
           echo "Invalidating CloudFront cache for $PREFIX"
-          aws cloudfront create-invalidation \
-            --distribution-id "$CF_DISTRIBUTION_ID" \
-            --paths "$PREFIX"
+          if aws cloudfront create-invalidation \
+               --distribution-id "$CF_DISTRIBUTION_ID" \
+               --paths "$PREFIX"; then
+            echo "CloudFront invalidation for cleanup submitted successfully."
+          else
+            echo "::warning::CloudFront invalidation failed; S3 objects are deleted and the cache will self-expire within 5 minutes via cache-control max-age."
+          fi
 
       - name: Post destroy comment
         uses: actions/github-script@v9
