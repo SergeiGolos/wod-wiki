@@ -80,14 +80,16 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
       <div
         id={blockId}
         data-section-id={keySuffix === 'default' ? section.id : undefined}
-        className="group relative flex min-h-[70vh] lg:min-h-[80vh] items-center justify-center overflow-hidden border-b border-border/50 bg-muted/20 px-6 py-16 lg:px-10 lg:py-24"
+        className="group relative flex min-h-[70vh] lg:min-h-[80vh] items-center justify-center overflow-hidden border-b-2 border-primary/10 bg-gradient-to-b from-primary/[0.08] via-muted/30 to-background px-6 py-16 lg:px-10 lg:py-24"
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/30 via-transparent to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_75%_60%_at_50%_0%,_var(--tw-gradient-stops))] from-primary/30 via-primary/5 to-transparent" />
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.08]"
+          className="pointer-events-none absolute inset-0 text-primary opacity-[0.15]"
           style={{
             backgroundImage: 'radial-gradient(circle, currentColor 1.5px, transparent 1.5px)',
-            backgroundSize: '28px 28px',
+            backgroundSize: '24px 24px',
+            maskImage: 'radial-gradient(ellipse 70% 60% at 50% 40%, black 40%, transparent 90%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 40%, black 40%, transparent 90%)',
           }}
         />
 
