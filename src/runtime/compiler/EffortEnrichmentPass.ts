@@ -14,7 +14,10 @@
  * `block.mergeHints`) arrive too late to affect strategy `match()`/`apply()`
  * decisions — those already ran against the pre-compile *statement*, which
  * this pass never touches. See docs/architectural-cleanup-tier-3-extensibility.md
- * §3.3 verification notes for the full explanation and options for fixing it.
+ * §3.3 verification notes for the full explanation, and
+ * docs/adr/effort-hints-pre-compile-resolution.md for the proposed fix
+ * (a sibling pre-compile pass, `applyEffortHintsToStatements`, not yet
+ * implemented as of this comment).
  *
  * @see ADR-0008 Decision 1: Compile-Time Effort Enrichment
  */

@@ -55,6 +55,7 @@ export function FeedItemPage({
 
   const item = getScriptFeedItem(feedSlug, feedDate, feedItem);
   const feed = getScriptFeed(feedSlug);
+  const playgroundCategory = `feed/${feedSlug}/${feedDate}`;
   // Store local edits under a deterministic key in playgroundContent.
   // The feed item's canonical content is the mdContent fallback.
   const { content, onChange, onLineChange, onBlur } = usePlaygroundContent({
