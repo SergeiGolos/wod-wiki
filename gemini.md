@@ -6,7 +6,7 @@ This file provides guidance for Google Gemini when working with code in this rep
 
 WOD Wiki is a React component library for parsing, displaying, and executing workout definitions using a specialized syntax. It features a Monaco Editor integration, JIT compiler for workout scripts, and components styled with Tailwind CSS.
 
-**Tech Stack**: TypeScript, React, Storybook, Vitest, Monaco Editor, Tailwind CSS, Chevrotain parser
+**Tech Stack**: TypeScript, React, Storybook, Bun Test, Monaco Editor, Tailwind CSS, Lezer parser (CodeMirror)
 **Package Manager**: bun
 
 ## Essential Development Commands
@@ -36,10 +36,10 @@ WOD Wiki is a React component library for parsing, displaying, and executing wor
 
 ### Core Components
 
-**JIT Compiler System** (`src/runtime/JitCompiler.ts`)
-- Just-In-Time compiler for workout scripts
-- Uses strategy pattern with `IRuntimeBlockStrategy` implementations
-- Coordinates fragment compilation, metric inheritance, and block creation
+**JIT Compiler System** (`src/runtime/compiler/JitCompiler.ts`)
+- Just-In-Time compiler for workout scripts — compiles lazily, as each block is pushed onto the stack (not upfront)
+- Composition pipeline: all matching `IRuntimeBlockStrategy` implementations (priority-ordered: logic → components → enhancements → fallback) apply to a shared `BlockBuilder`, rather than one strategy fully owning a block
+- Coordinates metric classification, metric inheritance/promotion (e.g. rep schemes like `21-15-9` projected round-by-round into child blocks), and block creation
 
 **Runtime Stack** (`src/runtime/RuntimeStack.ts`)
 - Stack-based execution environment for workout blocks
@@ -47,14 +47,17 @@ WOD Wiki is a React component library for parsing, displaying, and executing wor
 - Consumer-managed disposal pattern (consumer must call `dispose()` on popped blocks)
 - Performance targets: push/pop < 1ms, current() < 0.1ms, dispose() < 50ms
 
-**Parser System** (`src/parser/`)
-- Chevrotain-based parser for workout syntax
-- Files: `timer.parser.ts`, `timer.tokens.ts`, `timer.visitor.ts`
-- Parses workout scripts into `CodeStatement` nodes
+**Parser System** (`src/parser/`, `src/grammar/`)
+- Lezer-based parser (CodeMirror's LR parser) for workout syntax — not Chevrotain
+- Grammar/tokens: `src/grammar/whiteboardscript.grammar` (compiled to `src/grammar/parser.ts` / `parser.terms.ts`)
+- Pipeline: `md-timer.ts` (entry) → Lezer CST → `syntax-parser.ts` (CST → typed `SyntaxPrimitive`s + indentation tree) → `semantic-classifier.ts` (primitives → `IMetric`s) → dialect stack (`src/dialects/`, e.g. unit fusion) → `WhiteboardScript`
+- Parses workout scripts into `ICodeStatement` nodes (`src/core/models/CodeStatement.ts`), each carrying a `MetricContainer` of typed metrics
+- See `src/parser/README.md` for the two-seam design and `docs/parser-compiler-runtime-metrics.md` for the full pipeline
 
-**Fragment System** (`src/fragments/`)
-- Types for parsed workout components (TimerFragment, RepFragment, EffortFragment, etc.)
-- Each fragment represents a specific workout metric or action
+**Metric System** (`src/core/models/Metric.ts`, `src/runtime/compiler/metrics/`)
+- There is no `src/fragments/` directory — "fragments" were replaced by typed `IMetric` objects (RepMetric, EffortMetric, DurationMetric, ResistanceMetric, DistanceMetric, RoundsMetric, etc.)
+- Each metric has a `type: MetricType` and `origin: MetricOrigin` (parser/compiler/dialect/runtime/user/...), which drives ownership precedence downstream
+- Metrics are the universal currency: the same `IMetric`/`MetricContainer` shapes flow from parsing through compilation, runtime memory, and the logged output statements
 
 **Editor Integration** (`src/editor/`)
 - Monaco Editor integration with custom syntax highlighting
@@ -65,19 +68,18 @@ WOD Wiki is a React component library for parsing, displaying, and executing wor
 ```
 src/
 ├── clock/              # Timer/clock components and hooks
-├── components/         # Shared React components
-│   └── fragments/      # Fragment visualization components
-├── editor/             # Monaco Editor integration
-├── fragments/          # Parsed statement fragment types
-├── parser/             # Workout script parsing logic
-├── runtime/            # JIT compiler and execution engine
+├── components/         # Shared React components (atoms/molecules/organisms/Editor/metrics/workout/workbench)
+├── core/               # Core models (CodeStatement, Metric, MetricContainer, OutputStatement)
+├── dialects/           # Post-parse dialect stack (e.g. unit fusion — src/dialects/units/)
+├── editor/             # Editor-adjacent utilities
+├── grammar/            # Lezer grammar source + generated parser tables
+├── parser/             # Workout script parsing logic (Lezer-based, see src/parser/README.md)
+├── runtime/            # JIT compiler, runtime stack, behaviors, memory, metrics
 └── types/              # TypeScript type definitions
 
 stories/                # Storybook stories
-├── clock/             # Clock component demonstrations
-├── compiler/          # JIT compiler visualization
-├── parsing/           # Parser examples
-└── runtime/           # Runtime execution demos
+├── catalog/            # Component catalog stories
+└── design/             # Design-system stories
 ```
 
 ## Critical Development Patterns
@@ -88,10 +90,11 @@ stories/                # Storybook stories
 3. **Resource cleanup**: Implement robust disposal patterns with multiple-call safety
 
 ### Parser Development
-- Update token definitions in `src/parser/timer.tokens.ts`
-- Modify parser rules in `src/parser/timer.parser.ts`
-- Update visitor in `src/parser/timer.visitor.ts`
-- Test with Parser stories in Storybook
+- Update tokens/grammar rules in `src/grammar/whiteboardscript.grammar` (regenerates `src/grammar/parser.ts` / `parser.terms.ts` via `lezer-generator`)
+- Update CST → primitive mapping in `src/parser/syntax-parser.ts`
+- Update primitive → metric classification in `src/parser/semantic-classifier.ts`
+- Update unit/dialect fusion in `src/dialects/` if the change involves combining a number with a unit word
+- Test with Parser stories in Storybook and `src/parser/*.test.ts`
 
 ### Component Development
 - Use existing Tailwind CSS classes rather than custom CSS
@@ -186,8 +189,8 @@ After making changes, always validate:
 
 ### Public API Exports
 - Main library exports are handled through individual component exports
-- Fragment visualization components exported from `src/components/fragments/index.ts`
-- No single main index.ts file exists - exports are distributed across modules
+- Metric visualization/display components live under `src/components/metrics/` and `src/components/molecules/` (e.g. `MetricSourceRow.tsx`) — not a `src/components/fragments/` directory
+- No single main index.ts file exists - exports are distributed across modules (`src/index.ts`, `src/core-entry.ts`, `src/clock-entry.ts`, `src/editor-entry.ts`)
 
 ### Documentation Files
 - Save new Markdown documentation to `/docs` directory
@@ -219,7 +222,7 @@ After making changes, always validate:
 - Leverage the existing JIT compiler patterns for new features
 - Use the runtime stack lifecycle management correctly
 - Integrate with the Monaco Editor system when working on editor features
-- Follow the fragment system patterns for new workout components
+- Follow the metric-classification patterns (typed `IMetric` subclasses with an `origin`) for new workout syntax, not a "fragment system" — that concept was replaced by metrics
 
 ### Documentation Standards
 - Provide clear API documentation with examples

@@ -2,18 +2,71 @@ import { IMetric, MetricOrigin, MetricType } from '../models/Metric';
 import { MetricContainer } from '../models/MetricContainer';
 
 /**
- * Hint helpers — semantic markers expressed as metrics.
+ * Hint helpers + canonical hint vocabulary contract.
  *
  * A "hint" is a dot-namespaced string (e.g. `workout.amrap`,
- * `behavior.required_timer`) that dialects and the parser attach to a statement
- * so that compiler strategies and the label composer can make decisions. Hints
- * used to live in a parallel `Set<string>` channel on the statement; they now
- * flow through the single metric channel as {@link MetricType.Hint} metrics.
+ * `behavior.required_timer`) that dialects, effort markdown files, and the
+ * parser attach to a statement so that compiler strategies and the label
+ * composer can make decisions. Hints used to live in a parallel `Set<string>`
+ * channel on the statement; they now flow through the single metric channel
+ * as {@link MetricType.Hint} metrics.
  *
  * Hint metrics are deliberately excluded from display resolution
  * (see ownership `legacyAdapters`) and from runtime block fragments
  * (see `BlockBuilder.setFragments`), so they never surface as visible metrics.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * CANONICAL HINT VOCABULARY (Tier 3 §3.2)
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * A new dialect or effort author can self-serve the answer to "which
+ * hints are actually consumed by the runtime?" by reading
+ * {@link CONSUMED_HINTS}. Any other hint key is **analytics-only** today:
+ * it reaches the output stream and processors, but does not affect
+ * compilation, label generation, or exit ordering. There is no hidden
+ * "the strategy that consumes this hint" to discover.
+ *
+ * Categories:
+ *
+ * - **compiler-consumed** — `BEHAVIOR_REPEATING_INTERVAL`,
+ *   `BEHAVIOR_REQUIRED_TIMER`, `BEHAVIOR_INJECT_REST`. Setting one of these
+ *   from a dialect (or an effort — see Tier 3 §3.3) flips a strategy-level
+ *   decision at compile time (e.g. IntervalLogicStrategy matches on
+ *   `BEHAVIOR_REPEATING_INTERVAL`).
+ * - **label-consumed** — `LABEL_AMRAP`, `LABEL_EMOM`, `LABEL_TABATA`,
+ *   `LABEL_FOR_TIME`. These override the generated label in
+ *   `LabelComposer.getLogicKeyword` (the only consumer).
+ * - **analytics-only / sport-domain** — every other hint a sport dialect
+ *   emits (e.g. `workout.run`, `ClimbMetricType.Grade`, `domain.climb.*`)
+ *   is intentionally analytics-only: it surfaces on the output stream
+ *   for processors and review-grid consumers, and never affects
+ *   compilation. If you write a custom analytics processor, gate it via
+ *   `requiredMetrics` (see `IAnalyticsProcessorDescriptor`) — not by
+ *   inventing a new hint.
+ *
+ * If you need a new compiler-consumed or label-consumed hint, add it
+ * here and update the consumer(s) in the same PR. If you only need
+ * analytics-only data, emit a regular `MetricType.Metric` (or a
+ * domain-specific MetricType) — no new hint key required.
  */
+
+/** Hint keys currently consumed by compiler strategies or the label composer. */
+export const CONSUMED_HINTS = {
+  /** IntervalLogicStrategy: treats the block as an EMOM-style repeating interval. */
+  REPEATING_INTERVAL: 'behavior.repeating_interval',
+  /** GenericTimerStrategy: block cannot be skipped past until timer:complete fires. */
+  REQUIRED_TIMER: 'behavior.required_timer',
+  /** GenericTimerStrategy: injects a rest block between repeating intervals. */
+  INJECT_REST: 'behavior.inject_rest',
+  /** LabelComposer: overrides the generated label with a workout-type name. */
+  LABEL_AMRAP: 'workout.amrap',
+  LABEL_EMOM: 'workout.emom',
+  LABEL_TABATA: 'workout.tabata',
+  LABEL_FOR_TIME: 'workout.for_time',
+} as const;
+
+/** Derived from CONSUMED_HINTS — useful for runtime validation ("is this hint consumed?"). */
+export const CONSUMED_HINT_KEYS: readonly string[] = Object.values(CONSUMED_HINTS);
 
 /** A read surface that exposes metrics, via `rawMetrics` or a `metrics` field. */
 interface MetricBearing {

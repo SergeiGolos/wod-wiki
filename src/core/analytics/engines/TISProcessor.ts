@@ -37,7 +37,7 @@ import type { ResolvedEffortData } from '../effortResolution';
 export class TISProcessor implements ISummaryProcessor {
   public readonly id = 'tis-projection';
   public readonly name = 'TISProcessor';
-  public readonly dialects = ['wod', 'log', 'plan'] as const;
+  public readonly fenceTypes = ['wod', 'log', 'plan'] as const;
   public readonly requiredMetrics = [MetricType.Action] as const;
 
   /** Population-average METmax when VO2max is unknown (≈ VO2max 40 mL/kg/min). */

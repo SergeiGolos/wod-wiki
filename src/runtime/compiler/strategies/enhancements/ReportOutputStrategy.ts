@@ -18,6 +18,7 @@ import { ReportOutputBehavior } from "../../../behaviors";
  */
 export class ReportOutputStrategy implements IRuntimeBlockStrategy {
     priority = 15;
+    readonly id = 'report-output';
 
     match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         return statements && statements.length > 0;

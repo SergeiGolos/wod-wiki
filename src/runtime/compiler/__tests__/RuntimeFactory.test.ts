@@ -36,22 +36,6 @@ describe('RuntimeFactory', () => {
     expect(runtime!.analyticsContext!.effortResolver).toBeDefined();
   });
 
-  it('wires tracker into the analytics engine when provided in options', () => {
-    const tracker = {
-      recordMetric: () => {},
-      onUpdate: (cb: any) => () => {},
-    };
-
-    const block = makeBlock('10 Pushups');
-    const runtime = factory.createRuntime(block, { tracker });
-
-    expect(runtime).not.toBeNull();
-    // The engine is internal; we verify via behavior: analyticsContext exists
-    // and the runtime accepted the tracker without throwing.
-    expect(runtime!.analyticsContext).toBeDefined();
-  });
-
-
   it('collapses Choice metrics before runtime creation', () => {
     const block = makeBlock('135|185 lbs');
     expect(block.statements.some(stmt => stmt.metrics.some(m => m.type === MetricType.Choice))).toBe(true);

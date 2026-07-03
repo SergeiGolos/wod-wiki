@@ -63,6 +63,52 @@ function parseStringArray(lines: string[], key: string): string[] {
 
   return result;
 }
+/** Parse a flat string→string map from a single `{ k: v, k: v }` line OR
+ *  a multi-line `k: v` block. Booleans/numbers are coerced; everything
+ *  else is a string. Returns undefined when no entries are found. */
+function parseKeyValues(lines: string[], key: string): Record<string, unknown> | undefined {
+  const result: Record<string, unknown> = {};
+  let inBlock = false;
+  for (const line of lines) {
+    const trimmed = line.trimStart();
+    if (inBlock) {
+      if (trimmed.startsWith('}')) {
+        inBlock = false;
+        continue;
+      }
+      const m = trimmed.match(/^([\w.\-]+):\s*(.*)$/);
+      if (m) {
+        const [, k, raw] = m;
+        if (raw === 'true') result[k] = true;
+        else if (raw === 'false') result[k] = false;
+        else if (raw !== '' && !Number.isNaN(Number(raw))) result[k] = Number(raw);
+        else result[k] = raw;
+      }
+    } else if (trimmed.startsWith(`${key}:`) && trimmed.includes('{')) {
+      const start = trimmed.indexOf('{');
+      const end = trimmed.lastIndexOf('}');
+      if (end > start) {
+        const inner = trimmed.slice(start + 1, end);
+        for (const pair of inner.split(',')) {
+          const m = pair.match(/^\s*([\w.\-]+)\s*:\s*(.*?)\s*$/);
+          if (m) {
+            const [, k, raw] = m;
+            if (raw === 'true') result[k] = true;
+            else if (raw === 'false') result[k] = false;
+            else if (raw !== '' && !Number.isNaN(Number(raw))) result[k] = Number(raw);
+            else result[k] = raw;
+          }
+        }
+        inBlock = false;
+        return Object.keys(result).length > 0 ? result : undefined;
+      }
+    } else if (trimmed.startsWith(`${key}:`) && !trimmed.includes('{')) {
+      inBlock = true;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
 
 /** Parse a single markdown file into an IEffort */
 function parseEffortFile(raw: string): IEffort | null {
@@ -77,6 +123,7 @@ function parseEffortFile(raw: string): IEffort | null {
   const discipline = parseScalar(lines, 'discipline');
   const intensityTier = parseScalar(lines, 'intensityTier') as IntensityTier | undefined;
   const aliases = parseStringArray(lines, 'aliases');
+  const hints = parseKeyValues(lines, 'hints');
 
   if (!id || !slug || !label || !metStr) return null;
 
@@ -97,6 +144,7 @@ function parseEffortFile(raw: string): IEffort | null {
     },
     registrySource: 'bundled',
     ...(body ? { body } : {}),
+    ...(hints && Object.keys(hints).length > 0 ? { hints } : {}),
   };
 }
 

@@ -16,7 +16,9 @@ import {
     SpanTrackingBehavior,
     ChildSelectionBehavior,
     ChildSelectionConfig,
-    ChildSelectionLoopCondition
+    ChildSelectionLoopCondition,
+    ExitBehavior,
+    MetricPromotionBehavior
 } from "../behaviors";
 
 
@@ -52,6 +54,8 @@ export class BlockBuilder {
     private sourceIds: number[] = [];
     /** Pending round config stored by asRepeater(), consumed by asContainer() */
     private pendingRoundConfig: RepeaterConfig | undefined;
+    /** Declared exit intent — resolved into a single ExitBehavior in build(). */
+    private declaredExitMode: 'immediate' | 'deferred' | undefined;
 
     constructor(private runtime: IRuntimeContext) {}
 
@@ -124,6 +128,22 @@ export class BlockBuilder {
 
     hasBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): boolean {
         return this.behaviors.has(type);
+    }
+    /**
+     * Declare the block's exit intent. Strategies call this instead of adding
+     * or removing ExitBehavior across each other. 'deferred' supersedes
+     * 'immediate' (a container strategy overrides a leaf strategy's
+     * immediate-exit guess). Resolved into a single ExitBehavior in build().
+     */
+    declareExit(mode: 'immediate' | 'deferred'): BlockBuilder {
+        if (mode === 'deferred' || this.declaredExitMode === undefined) {
+            this.declaredExitMode = mode;
+        }
+        return this;
+    }
+    /** The declared exit intent (resolved into a single ExitBehavior in build). */
+    get exitMode(): 'immediate' | 'deferred' | undefined {
+        return this.declaredExitMode;
     }
 
     getBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): T | undefined {
@@ -308,6 +328,23 @@ export class BlockBuilder {
         // Add Universal Invariants - automatically added to ALL blocks
         // These behaviors are added implicitly and don't require strategy opt-in
         this.addBehaviorIfMissing(new CompletionTimestampBehavior());
+        // Resolve declared exit intent into exactly one ExitBehavior. Strategies
+        // declare intent (declareExit) rather than add/remove ExitBehavior across
+        // each other; 'deferred' wins over 'immediate'. A declared intent supersedes
+        // any ExitBehavior a strategy added directly (e.g. a timer strategy's default
+        // exit is overridden by a container's 'deferred') — matching the former
+        // removeBehavior+re-add that ChildrenStrategy did inline.
+        if (this.declaredExitMode) {
+            this.removeBehavior(ExitBehavior);
+            this.addBehavior(new ExitBehavior(
+                this.declaredExitMode === 'immediate'
+                    ? { mode: 'immediate', onNext: true }
+                    : { mode: 'deferred' }
+            ));
+        }
+        // Canonical order: MetricPromotionBehavior runs after ChildSelectionBehavior
+        // so it observes the round ChildSelectionBehavior just advanced.
+        this.moveBehaviorLast(MetricPromotionBehavior);
 
         const block = new RuntimeBlock({
             runtime: this.runtime,

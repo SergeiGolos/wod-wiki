@@ -21,6 +21,7 @@ import { compose } from "../../BlockTemplateComposer";
  */
 export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
     priority = 0;
+    readonly id = 'effort-fallback';
 
     match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;

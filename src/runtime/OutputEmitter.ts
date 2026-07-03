@@ -151,6 +151,9 @@ export class OutputEmitter {
 
     setAnalyticsEngine(engine: IAnalyticsEngine): void {
         this._analyticsEngine = engine;
+        // Route live session-totals (one 'analytics' output per segment) through
+        // the output stream so the UI updates in real time without a tracker.
+        engine.setLiveOutputEmitter((o) => this.add(o));
     }
 
     /**
@@ -267,14 +270,14 @@ export class OutputEmitter {
             const parentBlock = stackBlocks.length > 1 ? stackBlocks[1] : undefined;
             if (parentBlock) value.parentKey = parentBlock.key.toString();
         } else {
-            value.completionReason = (block as any).completionReason ?? 'normal';
+            value.completionReason = block.completionReason ?? 'normal';
         }
 
         const metric: IMetric = {
             type: MetricType.System,
             image: event.type === 'push'
                 ? `push: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}]`
-                : `pop: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}] reason=${(block as any).completionReason ?? 'normal'}`,
+                : `pop: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}] reason=${block.completionReason ?? 'normal'}`,
             value,
             origin: 'runtime',
             timestamp: now,
@@ -323,6 +326,7 @@ export class OutputEmitter {
 
             this.add(new OutputStatement({
                 outputType: 'segment',
+                completionReason: block.completionReason,
                 timeSpan,
                 sourceBlockKey: block.key.toString(),
                 sourceStatementId: block.sourceIds?.[i] ?? block.sourceIds?.[0],

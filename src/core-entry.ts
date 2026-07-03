@@ -1,3 +1,5 @@
+// Hint vocabulary (Tier 3 §3.2)
+export { CONSUMED_HINTS, CONSUMED_HINT_KEYS, hintMetric, hasHint, getHints, hintsToContainer } from './core/metrics/hints';
 /**
  * Core Entry Point for WOD Wiki
  * 
@@ -57,11 +59,23 @@ export * from './runtime/blocks/SessionRootBlock';
 export * from './runtime/blocks/WaitingToStartBlock';
 export * from './runtime/blocks/RestBlock';
 
-// Strategies
-export * from './runtime/compiler/strategies';
+// Extension registries (Tier 3 §3.4)
+export { dialectRegistry } from './dialects/DialectStack';
+export type { IDialect, DialectAnalysis } from './core/models/Dialect';
+export { strategyRegistry } from './runtime/services/runtimeServices';
+export type { IRealtimeProcessor } from './core/analytics/IRealtimeProcessor';
+export type { ISummaryProcessor } from './core/analytics/ISummaryProcessor';
+export type { IAnalyticsProcessorDescriptor } from './core/analytics/IAnalyticsProcessorDescriptor';
 
+// Effort registry (Tier 3 §3.4)
+export { CompositeEffortRegistry, InMemoryEffortRegistry, IndexedDBEffortRegistry } from './effort-registry';
+export { EffortResolver } from './effort-registry';
+export { bundledEfforts, BUNDLED_EFFORT_COUNT } from './effort-registry/data/bundled-efforts';
+export type { IEffort, IEffortRegistry, IEffortResolver, ResolvedEffort } from './effort-registry';
+
+// Registries
+export { Registry } from './core/Registry';
 // Fragments
-export * from './runtime/compiler/metrics/TimerMetric';
 export * from './runtime/compiler/metrics/RoundsMetric';
 export * from './runtime/compiler/metrics/RepMetric';
 export * from './runtime/compiler/metrics/EffortMetric';

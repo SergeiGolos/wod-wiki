@@ -21,6 +21,7 @@ import {
  */
 export class GenericGroupStrategy implements IRuntimeBlockStrategy {
     priority = 50; // Same as GenericTimer/GenericLoop; runs before ChildrenStrategy (same priority, registered earlier)
+    readonly id = 'generic-group';
 
     match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;

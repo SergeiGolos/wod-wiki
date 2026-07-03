@@ -153,6 +153,7 @@ describe('OutputEmitter — core API', () => {
         const engine: IAnalyticsEngine = {
             run: vi.fn().mockReturnValue(enriched),
             finalize: vi.fn().mockReturnValue([]),
+            setLiveOutputEmitter: () => {},
         };
         emitter.setAnalyticsEngine(engine);
 
@@ -248,6 +249,7 @@ describe('OutputEmitter — finalizeAnalytics', () => {
         const engine: IAnalyticsEngine = {
             run: vi.fn().mockImplementation(o => o),
             finalize: vi.fn().mockReturnValue([summary]),
+            setLiveOutputEmitter: () => {},
         };
         emitter.setAnalyticsEngine(engine);
 
@@ -268,7 +270,8 @@ describe('OutputEmitter — finalizeAnalytics', () => {
             const emitter = new OutputEmitter();
             const engine: IAnalyticsEngine = {
                 run: vi.fn().mockImplementation(o => o),
-                finalize: vi.fn().mockReturnValue([makeOutput('segment')]),
+            finalize: vi.fn().mockReturnValue([makeOutput('segment')]),
+            setLiveOutputEmitter: () => {},
             };
             emitter.setAnalyticsEngine(engine);
             emitter.subscribe(() => { throw new Error('finalize listener error'); });

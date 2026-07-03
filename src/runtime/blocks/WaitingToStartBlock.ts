@@ -25,7 +25,7 @@ import {
  *
  * 1. Mount: Emits 'segment' output with "Ready to Start" message
  * 2. User clicks next → ExitBehavior marks complete, returns PopBlockAction
- * 3. Unmount: Emits 'completion' output
+ * 3. Pop: emits a 'segment' output carrying the completion reason
  * 4. Parent receives control, pushes next child
  *
  * ## Behavior Chain

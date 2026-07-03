@@ -1,5 +1,4 @@
 import { IRuntimeBlockStrategy } from '../../contracts/IRuntimeBlockStrategy';
-import { IRuntimeBehavior } from '../../contracts/IRuntimeBehavior';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
 import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
@@ -44,6 +43,7 @@ export interface IdleBlockConfig {
  */
 export class IdleBlockStrategy implements IRuntimeBlockStrategy {
     priority = 100; // Root is highest priority if it were ever matched
+    readonly id = 'idle';
 
     /**
      * Root blocks are not matched from statements - they are created directly.
@@ -132,16 +132,4 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
         }
     }
 
-    /**
-     * Builds the behavior list for an idle block (deprecated).
-     * @deprecated Use build() method which uses BlockBuilder with aspect composers
-     */
-    buildBehaviors(_config: IdleBlockConfig): IRuntimeBehavior[] {
-        throw new Error('buildBehaviors is deprecated. Use build() method instead.');
-    }
 }
-
-/**
- * Default instance for convenience.
- */
-export const idleBlockStrategy = new IdleBlockStrategy();

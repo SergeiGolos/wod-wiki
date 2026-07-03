@@ -2,13 +2,10 @@ import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy"
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
-import { MetricPromotionBehavior } from "../../../behaviors/MetricPromotionBehavior";
 
 // Specific behaviors not covered by aspect composers
 import {
-    ChildSelectionBehavior,
     CountdownTimerBehavior,
-    ExitBehavior,
 } from "../../../behaviors";
 
 /**
@@ -21,6 +18,7 @@ import {
  */
 export class ChildrenStrategy implements IRuntimeBlockStrategy {
     priority = 50;
+    readonly id = 'children';
 
     match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         return statements && statements.length > 0 &&
@@ -29,11 +27,6 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], _runtime: IRuntimeContext): void {
-        // Skip if children already handled
-        if (builder.hasBehavior(ChildSelectionBehavior)) {
-            return;
-        }
-
         // children is already number[][] (grouped child statement IDs)
         const children = statements[0].children!;
 
@@ -46,12 +39,6 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         // Check if a countdown timer controls completion (AMRAP/EMOM pattern)
         const countdown = builder.getBehavior(CountdownTimerBehavior);
         const hasCountdownCompletion = !!countdown;
-
-        // Remove ExitBehavior if present — children manage advancement,
-        // not simple leaf exit. (Was: removeBehavior(LeafExitBehavior))
-        if (builder.hasBehavior(ExitBehavior)) {
-            builder.removeBehavior(ExitBehavior);
-        }
 
         // =====================================================================
         // Round config — must be stored BEFORE asContainer() consumes it
@@ -88,22 +75,11 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         });
 
         // =====================================================================
-        // Completion Aspect — deferred exit for all container blocks.
-        // Fires on next() only once block.isComplete is set externally
-        // (timer expiry, rounds exhausted). Replaces CompletedBlockPopBehavior.
+        // Completion Aspect — declare a deferred exit for all container blocks.
+        // Fires on next() only once block.isComplete is set externally (timer
+        // expiry, rounds exhausted). Resolved into one ExitBehavior in build();
+        // supersedes any leaf strategy's 'immediate' declaration.
         // =====================================================================
-        builder.addBehavior(new ExitBehavior({ mode: 'deferred' }));
-
-        // =====================================================================
-        // Promotion ordering — MetricPromotionBehavior must run AFTER
-        // ChildSelectionBehavior in onNext so it sees the round that
-        // ChildSelectionBehavior just advanced via advanceRound().
-        //
-        // GenericLoopStrategy adds MetricPromotionBehavior before this strategy
-        // runs. moveBehaviorLast is the explicit, contract-named API for moving
-        // an earlier-added behavior to the end of the behavior list
-        // (replaces the former delete + re-add hack).
-        // =====================================================================
-        builder.moveBehaviorLast(MetricPromotionBehavior);
+        builder.declareExit('deferred');
     }
 }

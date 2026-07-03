@@ -21,6 +21,7 @@ import {
  */
 export class SoundStrategy implements IRuntimeBlockStrategy {
     priority = 20;
+    readonly id = 'sound';
 
     match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         return statements && statements.length > 0;

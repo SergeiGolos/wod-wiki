@@ -63,14 +63,9 @@ describe('ScriptRuntime Lifecycle', () => {
   const script = new WhiteboardScript('test', []);
   const compiler = {} as JitCompiler; // Mock compiler
 
-  it('sequences push hooks, tracker, wrapper, and logger in order', () => {
+  it('sequences push hooks, wrapper, and logger in order', () => {
     const callOrder: string[] = [];
 
-    const tracker = {
-      getActiveSpanId: vi.fn().mockReturnValue(null),
-      startSpan: vi.fn(() => callOrder.push('tracker.startSpan')),
-      endSpan: vi.fn(),
-    };
     const wrapper = {
       wrap: vi.fn((block: IRuntimeBlock) => {
         callOrder.push('wrapper.wrap');
@@ -88,7 +83,6 @@ describe('ScriptRuntime Lifecycle', () => {
     };
 
     const options: IRuntimeOptions = {
-      tracker,
       wrapper,
       logger,
       hooks,
@@ -108,7 +102,6 @@ describe('ScriptRuntime Lifecycle', () => {
 
     expect(callOrder).toEqual([
       'hooks.beforePush',
-      'tracker.startSpan',
       'wrapper.wrap',
       'logger.debug',
       'hooks.afterPush',
@@ -118,11 +111,6 @@ describe('ScriptRuntime Lifecycle', () => {
   it('propagates errors from unmount instead of swallowing them', () => {
     const callOrder: string[] = [];
 
-    const tracker = {
-      getActiveSpanId: vi.fn(),
-      startSpan: vi.fn(),
-      endSpan: vi.fn(() => callOrder.push('tracker.endSpan')),
-    };
     const wrapper = {
       wrap: vi.fn((block: IRuntimeBlock) => block),
       cleanup: vi.fn(() => callOrder.push('wrapper.cleanup')),
@@ -138,7 +126,6 @@ describe('ScriptRuntime Lifecycle', () => {
     };
 
     const options: IRuntimeOptions = {
-      tracker,
       wrapper,
       logger,
       hooks,

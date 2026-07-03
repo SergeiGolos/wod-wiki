@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { ScriptRuntime, SubscriptionManager, LocalRuntimeSubscription, WorkoutTracker } from '@/hooks/useRuntimeTimer';
+import { ScriptRuntime, SubscriptionManager, LocalRuntimeSubscription } from '@/hooks/useRuntimeTimer';
 import type { IRuntimeFactory } from '@/hooks/useRuntimeFactory';
 import type { ScriptBlock } from '@/components/Editor/types';
 import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeLifecycleContext';
@@ -111,12 +111,7 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
         }
       }
 
-      // Create a new tracker for the new workout session
-      const tracker = new WorkoutTracker();
-
-      // Now create the new runtime and update state.
-      // Pass the tracker in the options
-      const newRuntime = factoryRef.current.createRuntime(block, { tracker }) as ScriptRuntime | null;
+      const newRuntime = factoryRef.current.createRuntime(block) as ScriptRuntime | null;
       currentRuntimeRef.current = newRuntime;
       setRuntime(newRuntime);
 

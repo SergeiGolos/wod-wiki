@@ -7,7 +7,7 @@ import type { IOutputStatement } from '../../core/models/OutputStatement';
 import type { IRuntimeAction } from './IRuntimeAction';
 import type { IEvent } from './events/IEvent';
 import type { IAnalyticsEngine } from '../../core/contracts/IAnalyticsEngine';
-import type { RuntimeStackOptions, RuntimeStackTracker, TrackerUpdate } from './IRuntimeOptions';
+import type { RuntimeStackOptions } from './IRuntimeOptions';
 import type { IRuntimeActionable } from './primitives/IRuntimeActionable';
 import type { BlockLifecycleOptions } from './primitives/IBlockLifecycle';
 import type { IRuntimeBlock } from './IRuntimeBlock';
@@ -30,14 +30,8 @@ export interface IJitCompiler {
  */
 export type OutputListener = (output: IOutputStatement) => void;
 
-/**
- * Listener callback for real-time tracker updates.
- */
-export type TrackerListener = (update: TrackerUpdate) => void;
-
 export interface IScriptRuntime extends IRuntimeActionable {
     options: RuntimeStackOptions;
-    tracker?: RuntimeStackTracker;
     script: WhiteboardScript;
 
     eventBus: IEventBus;
@@ -131,26 +125,15 @@ export interface IScriptRuntime extends IRuntimeActionable {
      * @example
      * ```typescript
      * runtime.addOutput(new OutputStatement({
-     *   outputType: 'completion',
+     *   outputType: 'segment',
      *   timeSpan: new TimeSpan(start, end),
      *   sourceBlockKey: block.key.toString(),
+     *   completionReason: 'user-advance',
      *   metrics: [],
      * }));
      * ```
      */
     addOutput(output: IOutputStatement): void;
-
-    // ============================================================================
-    // Tracker Update API
-    // ============================================================================
-
-    /**
-     * Subscribe to real-time tracker updates (reps, rounds).
-     * 
-     * @param listener Callback invoked for each tracker update
-     * @returns Unsubscribe function to stop receiving notifications
-     */
-    subscribeToTracker(listener: TrackerListener): Unsubscribe;
 
     // ============================================================================
     // Stack Observer API

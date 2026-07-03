@@ -9,7 +9,7 @@ import { BehaviorContext } from './BehaviorContext';
 import { RuntimeLogger } from './RuntimeLogger';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
 import { MetricVisibility, getMetricVisibility } from './memory/MetricVisibility';
-import { IMetric, MetricType } from '../core/models/Metric';
+import { IMetric, MetricOrigin, MetricType } from '../core/models/Metric';
 import { MetricContainer } from '../core/models/MetricContainer';
 import { OutputStatement } from '../core/models/OutputStatement';
 import { TimeSpan } from './models/TimeSpan';
@@ -145,6 +145,32 @@ export class RuntimeBlock implements IRuntimeBlock {
      */
     pushMemory(location: IMemoryLocation): void {
         this._memory.push(location);
+    }
+
+    /**
+     * Merge a set of compiler hints (e.g. from an effort markdown file) into
+     * a `metric:hint` memory location. Hints are surfaced to strategies
+     * exactly the same way dialect-emitted hints are. Duplicate keys are
+     * overwritten (the effort hint wins, matching the doc's
+     * "more specific wins" precedence).
+     */
+    mergeHints(hints: Readonly<Record<string, unknown>>): void {
+        if (!hints || Object.keys(hints).length === 0) return;
+        const existing = this._memory.find(loc => loc.tag === 'metric:hint');
+        const newMetrics: IMetric[] = Object.entries(hints).map(([key, _value]) => ({
+            type: MetricType.Hint,
+            value: key,
+            image: key,
+            origin: 'compiler' as MetricOrigin,
+            timestamp: new Date(),
+        }));
+        if (existing) {
+            const newKeys = new Set(newMetrics.map(m => m.value as string));
+            const kept = existing.metrics.toArray().filter(m => !(m.type === MetricType.Hint && newKeys.has(m.value as string)));
+            existing.update([...kept, ...newMetrics]);
+        } else {
+            this._memory.push(new MemoryLocation('metric:hint', newMetrics));
+        }
     }
 
     /**

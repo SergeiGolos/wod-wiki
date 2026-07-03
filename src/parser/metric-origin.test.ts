@@ -8,7 +8,6 @@ import { RepMetric } from '../runtime/compiler/metrics/RepMetric';
 import { ResistanceMetric } from '../runtime/compiler/metrics/ResistanceMetric';
 import { RoundsMetric } from '../runtime/compiler/metrics/RoundsMetric';
 import { TextMetric } from '../runtime/compiler/metrics/TextMetric';
-import { TimerMetric } from '../runtime/compiler/metrics/TimerMetric';
 import { CodeMetadata } from '../core/models/CodeMetadata';
 
 describe('Fragment Origin Marking', () => {
@@ -65,11 +64,6 @@ describe('Fragment Origin Marking', () => {
 
         it('TextMetric has origin: parser', () => {
             const metric = new TextMetric('Hello', 'h1', mockMeta);
-            expect(metric.origin).toBe('parser');
-        });
-
-        it('TimerMetric has origin: parser', () => {
-            const metric = new TimerMetric('5:00', mockMeta);
             expect(metric.origin).toBe('parser');
         });
     });

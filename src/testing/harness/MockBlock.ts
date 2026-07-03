@@ -583,4 +583,10 @@ export class MockBlock implements IRuntimeBlock {
     return this._memory.filter(loc => getMetricVisibility(loc.tag) === visibility);
   }
 
+  /** MockBlock ignores effort-defined hints (the contract is honored by the
+   *  real RuntimeBlock; tests can inspect `this._memory` directly). */
+  mergeHints(_hints: Readonly<Record<string, unknown>>): void {
+    // no-op for tests
+  }
+
 }

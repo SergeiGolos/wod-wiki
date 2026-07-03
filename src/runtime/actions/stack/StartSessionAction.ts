@@ -75,7 +75,7 @@ export class StartSessionAction implements IRuntimeAction {
             totalRounds: this.options.totalRounds,
         };
 
-        // Create session root block
+        // Direct-build: SessionRootStrategy is invoked by class here, not via JitCompiler.compile()
         const strategy = new SessionRootStrategy();
         const rootBlock = strategy.build(runtime, config);
 

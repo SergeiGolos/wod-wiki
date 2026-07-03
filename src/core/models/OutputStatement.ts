@@ -76,7 +76,9 @@ export interface IOutputStatement extends ICodeStatement, IMetricSource {
      * - `'timer-expired'` — block's own timer completed
      * - `'rounds-complete'` — all rounds finished
      * 
-     * Only present on `'completion'` output type.
+     * Present on the `'segment'` output emitted when a block pops — there is
+     * no separate `'completion'` output type; completion data is a field on
+     * the closing segment itself.
      */
     readonly completionReason?: string;
 }

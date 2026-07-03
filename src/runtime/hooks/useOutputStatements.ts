@@ -76,7 +76,6 @@ export function useOutputStatements(runtime?: IScriptRuntime | null): OutputStat
     const byId = new Map<number, IOutputStatement>();
     const byBlockKey = new Map<string, IOutputStatement[]>();
     const segments: IOutputStatement[] = [];
-    const completions: IOutputStatement[] = [];
     const metrics: IOutputStatement[] = [];
 
     for (const output of outputs) {
@@ -93,14 +92,14 @@ export function useOutputStatements(runtime?: IScriptRuntime | null): OutputStat
         case 'segment':
           segments.push(output);
           break;
-        case 'completion':
-          completions.push(output);
-          break;
         case 'metric':
           metrics.push(output);
           break;
       }
     }
+    // 'completion' is folded into segment outputs (completionReason field);
+    // surface completed-block segments as the completions collection.
+    const completions = segments.filter(s => s.completionReason !== undefined);
 
     return { outputs, byId, byBlockKey, segments, completions, metrics };
   }, [outputs]);

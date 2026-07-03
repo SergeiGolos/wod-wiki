@@ -36,7 +36,7 @@ export interface RestBlockConfig {
  * 1. Mount: Emits 'segment' output with rest label and duration, starts countdown timer
  * 2. Timer counts down via CountdownTimerBehavior span tracking
  * 3. CountdownTimerBehavior marks complete when elapsed >= durationMs
- * 4. Unmount: Emits 'completion' output, plays rest-over sound cue
+ * 4. Pop: emits a 'segment' output carrying the completion reason, plays rest-over sound cue
  *
  * ## Behavior Chain
  *

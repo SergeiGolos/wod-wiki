@@ -270,8 +270,7 @@ describe('Application Launch Smoke Tests', () => {
 
     it('should initialize ScriptRuntime with custom options', () => {
       const customOptions = {
-        debug: true,
-        tracker: undefined
+        debug: true
       };
 
       const runtime = new ScriptRuntime(

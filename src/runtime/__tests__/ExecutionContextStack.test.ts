@@ -515,7 +515,6 @@ describe('ExecutionContext: handle() method', () => {
             getOutputStatements: () => [],
             addOutput: () => {},
             subscribeToStack: () => () => {},
-            subscribeToTracker: () => () => {},
             setAnalyticsEngine: () => {},
             dispose: () => {},
         } as any;
@@ -576,7 +575,6 @@ describe('ExecutionContext: handle() method', () => {
             getOutputStatements: () => [],
             addOutput: () => {},
             subscribeToStack: () => () => {},
-            subscribeToTracker: () => () => {},
             setAnalyticsEngine: () => {},
             dispose: () => {},
         } as any;

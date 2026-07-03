@@ -45,6 +45,9 @@ export class AppliedStrategy {
     getBehavior<T extends IRuntimeBehavior>(type: new (...args: unknown[]) => T): T | undefined {
         return this.builder.getBehavior(type);
     }
+    get exitMode(): 'immediate' | 'deferred' | undefined {
+        return this.builder.exitMode;
+    }
 }
 
 /**
@@ -244,7 +247,6 @@ export function stubRuntime(): IScriptRuntime {
         subscribeToOutput: () => () => {},
         getOutputStatements: () => [],
         addOutput: () => {},
-        subscribeToTracker: () => () => {},
         subscribeToStack: () => () => {},
         setAnalyticsEngine: () => {},
         finalizeAnalytics: () => [],

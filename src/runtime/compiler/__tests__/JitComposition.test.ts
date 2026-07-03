@@ -3,7 +3,7 @@ import { JitCompiler } from "../JitCompiler";
 import { IScriptRuntime } from "../../contracts/IScriptRuntime";
 import { CodeStatement } from "@/core/models/CodeStatement";
 import { hintMetric } from '@/core/metrics/hints';
-import { TimerMetric } from "../metrics/TimerMetric";
+import { DurationMetric } from "../metrics/DurationMetric";
 import { RoundsMetric } from "../metrics/RoundsMetric";
 import { RepMetric } from "../metrics/RepMetric";
 import { AmrapLogicStrategy } from "../strategies/logic/AmrapLogicStrategy";
@@ -34,7 +34,7 @@ describe("JIT Composition", () => {
     });
 
     // Mock Fragments for testing since we don't want to rely on parsing logic in unit test
-    class MockTimerMetric extends TimerMetric {
+    class MockTimerMetric extends DurationMetric {
         constructor(ms: number, forceUp: boolean = false) {
              // Compute a proper image string so LabelComposer can read it
              const totalSecs = Math.floor(ms / 1000);

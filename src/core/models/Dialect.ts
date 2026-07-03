@@ -2,23 +2,6 @@ import { ICodeStatement } from "./CodeStatement";
 import { MetricContainer } from "./MetricContainer";
 
 /**
- * Mode for inheritance rules - how child statements should handle parent values
- */
-export type InheritanceMode = 'clear' | 'modify' | 'ensure';
-
-/**
- * Rule describing how a property should be inherited by child statements
- */
-export interface InheritanceRule {
-  /** Property to inherit (e.g., 'timer', 'weight') */
-  property: string;
-  /** How the child should handle the value */
-  mode: InheritanceMode;
-  /** Value to inherit (for 'ensure' mode) */
-  value?: unknown;
-}
-
-/**
  * Result of dialect analysis on a statement.
  *
  * Dialects emit semantic markers and dialect-specific values as a single
@@ -32,8 +15,6 @@ export interface DialectAnalysis {
    * values. Each may carry a `MetricAction` (currently only `suppress`).
    */
   metrics?: MetricContainer;
-  /** Inheritance rules for child statements (optional) */
-  inheritance?: InheritanceRule[];
 }
 
 /**

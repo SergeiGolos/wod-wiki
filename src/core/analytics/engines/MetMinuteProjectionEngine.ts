@@ -19,7 +19,7 @@ import type { ResolvedEffortData } from '../effortResolution';
 export class MetMinuteProjectionEngine implements ISummaryProcessor {
   public readonly id = 'met-minute-projection';
   public readonly name = 'MetMinuteProjectionEngine';
-  public readonly dialects = ['wod', 'log'] as const;
+  public readonly fenceTypes = ['wod', 'log'] as const;
   public readonly requiredMetrics = [MetricType.Action] as const;
 
   summarize(outputs: IOutputStatement[]): ProjectionResult[] {

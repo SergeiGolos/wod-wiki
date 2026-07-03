@@ -11,19 +11,20 @@ import { NextAction } from './NextAction';
  * so the full lifecycle runs:
  *
  * 1. PopBlockAction checks isComplete → marks 'forced-pop' if not yet complete
- * 2. Unmount fires → ReportOutputBehavior emits 'completion' with fragments
+ * 2. Unmount fires → ReportOutputBehavior writes result memory (elapsed/spans),
+ *    then the pop emits a single 'segment' output carrying those fragments
  * 3. Block is disposed and cleaned up
  *
  * After all children are cleared, a NextAction is queued so the parent
- * block (now on top) receives its next() call, where CompletedBlockPopBehavior
- * can pop it cleanly.
+ * block (now on top) receives its next() call, where the container's
+ * ExitBehavior (deferred) can pop it cleanly.
  *
  * ## Example: AMRAP timer expires mid-exercise
  *
  * Stack: [Session, AMRAP, Pullups]
  * Timer fires → ClearChildrenAction(AMRAP.key)
  * → PopBlockAction pops Pullups (forced-pop, fragments reported)
- * → NextAction on AMRAP → CompletedBlockPopBehavior → PopBlockAction
+ * → NextAction on AMRAP → ExitBehavior (deferred) → PopBlockAction
  * → Session receives next(), advances to review
  */
 export class ClearChildrenAction implements IRuntimeAction {
@@ -78,7 +79,7 @@ export class ClearChildrenAction implements IRuntimeAction {
         }
 
         // Queue a NextAction so the target block (now on top) gets its next() call.
-        // For AMRAP/EMOM, CompletedBlockPopBehavior will fire and pop the parent.
+        // For AMRAP/EMOM, ExitBehavior (deferred) will fire and pop the parent.
         if (runtime.stack.current?.key.toString() === this.targetBlockKey) {
             actions.push(new NextAction(undefined, runtime.nowProvider));
         }

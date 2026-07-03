@@ -29,7 +29,6 @@ import { RuntimeStackOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { StartSessionAction } from '../actions/stack/StartSessionAction';
 import { createAnalyticsEngineForBlock } from '../../core/analytics/createAnalyticsEngineForBlock';
-import { IRuntimeStackTracker } from '../../core/contracts/RuntimeStackTracker';
 import { collapseUnresolvedChoices } from './metrics/ChoiceResolution';
 
 /**
@@ -104,9 +103,6 @@ export class RuntimeFactory implements IRuntimeFactory {
     // Wire analytics engine automatically for all runtimes
     const { engine, analyticsContext } = createAnalyticsEngineForBlock(block, options?.analyticsOptions);
     runtime.analyticsContext = analyticsContext;
-    if (options?.tracker) {
-      engine.setTracker(options.tracker as IRuntimeStackTracker);
-    }
     runtime.setAnalyticsEngine(engine);
 
     // Start the workout by dispatching StartSessionAction

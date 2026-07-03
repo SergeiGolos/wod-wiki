@@ -12,6 +12,7 @@ import { PushBlockAction } from './PushBlockAction';
  */
 export class PushIdleBlockAction implements IRuntimeAction {
     private _type = 'push-idle-block';
+    // Direct-build: IdleBlockStrategy is invoked by class here, not via JitCompiler.compile()
     private strategy = new IdleBlockStrategy();
 
     constructor(

@@ -4,7 +4,7 @@ import { ICodeStatement } from "@/core/models/CodeStatement";
 import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricType } from "@/core/models/Metric";
 import { DurationMetric } from "../../metrics/DurationMetric";
-import { hasHint } from "@/core/metrics/hints";
+import { hasHint, CONSUMED_HINTS } from "@/core/metrics/hints";
 import { compose } from "../../BlockTemplateComposer";
 import type { BlockTemplate } from "../../BlockTemplate";
 
@@ -24,6 +24,7 @@ import {
  */
 export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     priority = 50; // Mid priority
+    readonly id = 'generic-timer';
 
     match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
@@ -50,8 +51,8 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
 
         const direction = timerFragment?.direction || 'up';
         const durationMs = timerFragment?.value || undefined;
-        const isRequired = statements.some(s => hasHint(s, 'behavior.required_timer'));
-        const injectRest = statements.some(s => hasHint(s, 'behavior.inject_rest'));
+        const isRequired = statements.some(s => hasHint(s, CONSUMED_HINTS.REQUIRED_TIMER));
+        const injectRest = statements.some(s => hasHint(s, CONSUMED_HINTS.INJECT_REST));
         const isCountdown = !!(durationMs && direction === 'down');
 
         // Build the common chassis via the template composer; strategy-specific

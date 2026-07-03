@@ -185,7 +185,7 @@ describe('ReportOutputBehavior', () => {
         expect(block.recordings.emitOutput.length).toBe(countAfterMount);
     });
 
-    it('computes timer results and emits completion output on unmount', () => {
+    it('computes timer results and writes them to result memory on unmount', () => {
         const timer: TimerState = {
             spans: [new TimeSpan(0, 600), new TimeSpan(800, 1000)],
             direction: 'down',
@@ -218,16 +218,6 @@ describe('ReportOutputBehavior', () => {
                 expect.objectContaining({ type: MetricType.SystemTime }),
             ])
         );
-
-        const completionOutputs = block.recordings.emitOutput.filter(o => o.type === 'completion');
-        expect(completionOutputs).toHaveLength(1);
-        expect(completionOutputs[0].metrics).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({ type: MetricType.Elapsed, value: 800 }),
-                expect.objectContaining({ type: MetricType.Total, value: 1000 }),
-            ])
-        );
-        expect(completionOutputs[0].options).toEqual(expect.objectContaining({ label: 'Workout' }));
     });
 
     it('creates degenerate span for non-timer blocks on unmount', () => {

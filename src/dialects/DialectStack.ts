@@ -1,5 +1,6 @@
 import type { ICodeStatement } from '@/core/models/CodeStatement';
 import type { IDialect } from '@/core/models/Dialect';
+import { Registry } from '@/core/Registry';
 import { UnitsDialect } from './UnitsDialect';
 import { CrossFitDialect } from './CrossFitDialect';
 import { WodDialect } from './WodDialect';
@@ -25,9 +26,9 @@ import { ClimbDialect } from './ClimbDialect';
  * the per-statement `transform` + `analyze` + append loop.
  */
 export class DialectStack {
-    private readonly dialects: IDialect[];
+    private readonly dialects: readonly IDialect[];
 
-    constructor(dialects: IDialect[]) {
+    constructor(dialects: readonly IDialect[]) {
         this.dialects = dialects;
     }
 
@@ -60,20 +61,39 @@ export class DialectStack {
 }
 
 /**
- * The production Dialect Stack: base Units → all sport Dialects.
+ * Consumer-facing dialect registry, pre-seeded with the built-in dialects.
  *
- * Sport Dialects finally run in production (previously they existed but were
- * never registered). This is a behavior change — new hints may surface in
- * production. The before/after hint snapshot (see `05-dialect-stack.md`
- * Implementation) is the guard.
+ * Replaces the previous `createDialectStack(overrides)` parameter as the way
+ * to extend the dialect set. Consumer code can call
+ * `dialectRegistry.register(new MyDialect())` to add a personal-overrides
+ * dialect, and the production `dialectStack` below reads its ordered list
+ * from this registry.
  *
- * To register a personal-overrides Dialect, use {@link createDialectStack}
- * with a custom list.
+ * Built-ins can be removed or overridden by `id`.
+ */
+export const dialectRegistry = new Registry<IDialect>([
+    // Base — fuses bare Number + unit-word into dimensioned metrics.
+    // Must run first so sport Dialects see fused units.
+    new UnitsDialect(),
+
+    // Sport Dialects — emit hints (workout.amrap, workout.emom, etc.)
+    // and domain-specific metrics (climb grades, cardio distances).
+    new CrossFitDialect(),
+    new WodDialect(),
+    new CardioDialect(),
+    new YogaDialect(),
+    new HabitsDialect(),
+    new ClimbDialect(),
+]);
+
+/**
+ * Build a DialectStack from an explicit list — preserved signature for
+ * tests and the `personal-overrides` pattern. Production uses
+ * {@link dialectStack} (which reads the registry) via `extractStatements`.
  */
 export function createDialectStack(overrides: IDialect[] = []): DialectStack {
     return new DialectStack([
         // Base — fuses bare Number + unit-word into dimensioned metrics.
-        // Must run first so sport Dialects see fused units.
         new UnitsDialect(),
         // Sport Dialects — emit hints (workout.amrap, workout.emom, etc.)
         // and domain-specific metrics (climb grades, cardio distances).
@@ -91,7 +111,10 @@ export function createDialectStack(overrides: IDialect[] = []): DialectStack {
 
 /**
  * Module singleton — the default Dialect Stack used by the parse pipeline.
- * Equivalent to the old `const baseUnits = new UnitsDialect()` but with the
- * full sport-Dialect set wired.
+ *
+ * Reads from {@link dialectRegistry} on construction, so any consumer
+ * `register()` call made before the first parse is honored. Equivalent to
+ * the old `const baseUnits = new UnitsDialect()` but with the full
+ * sport-Dialect set wired.
  */
-export const dialectStack: DialectStack = createDialectStack();
+export const dialectStack: DialectStack = new DialectStack(dialectRegistry.list());

@@ -15,7 +15,7 @@ import { MetricType } from '../models/Metric';
  */
 export class PowerEnrichmentProcess implements IRealtimeProcessor {
     public readonly id = 'power-enrichment';
-    public readonly dialects = ['wod', 'log'] as const;
+    public readonly fenceTypes = ['wod', 'log'] as const;
     public readonly requiredMetrics = [MetricType.Rep, MetricType.Resistance] as const;
 
     process(output: IOutputStatement): IOutputStatement {

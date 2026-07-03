@@ -397,4 +397,13 @@ export class ProxyBlock implements IRuntimeBlock {
             }
         }
     }
+    /**
+     * ProxyBlock is a no-op for effort-defined hints (the proxy mirrors the
+     * compiled state; effort hints are an authoring-time concern that the
+     * browser resolved into `metric:hint` before the proxy was created).
+     */
+    mergeHints(_hints: Readonly<Record<string, unknown>>): void {
+        // no-op
+    }
 }
+

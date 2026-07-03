@@ -9,11 +9,13 @@ import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
  *
  * Each block receives the full lifecycle:
  *  1. markComplete('user-abort') — marks the block as intentionally terminated
- *  2. unmount() — allows behaviors (e.g. ReportOutputBehavior) to emit completion outputs
- *  3. stack.pop() — triggers emitSegmentOutputFromResultMemory in ScriptRuntime
+ *  2. unmount() — runs behaviors (e.g. ReportOutputBehavior) which write result memory
+ *  3. stack.pop() — triggers emitSegmentFromResultMemory in ScriptRuntime, the sole
+ *     site that turns a pop into a 'segment' OutputStatement
  *  4. dispose() — releases block resources
  *
- * This ensures assertPairedOutputs() still passes after an abort.
+ * This ensures every aborted block still gets a well-formed 'segment' output
+ * (checked by assertPairedOutputs() in tests).
  */
 export class AbortSessionAction implements IRuntimeAction {
     readonly type = 'abort-session';
@@ -32,9 +34,10 @@ export class AbortSessionAction implements IRuntimeAction {
                 current.markComplete('user-abort');
             }
 
-            // Unmount triggers ReportOutputBehavior.onUnmount() which emits 'completion' output.
-            // Filter out 'emit-event' actions to prevent cascading timer:complete / timer:stop
-            // events from triggering further block transitions during the abort drain.
+            // Unmount runs ReportOutputBehavior.onUnmount(), which writes result memory
+            // (elapsed/spans/round) that the later stack.pop() reads to build the 'segment'
+            // output. Filter out 'emit-event' actions to prevent cascading timer:complete /
+            // timer:stop events from triggering further block transitions during the abort drain.
             const unmountActions = current.unmount(runtime, { completedAt: runtime.clock.currentDate }) ?? [];
             const safeActions = unmountActions.filter(a => a.type !== 'emit-event');
             collectedActions.push(...safeActions);

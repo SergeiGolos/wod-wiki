@@ -6,7 +6,7 @@ import { ParsedCodeStatement, ICodeStatement } from "@/core/models/CodeStatement
 import { MetricType } from "@/core/models/Metric";
 import { IRuntimeBlockStrategy } from "../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../BlockBuilder";
-import { TimerMetric } from "@/runtime/compiler/metrics/TimerMetric";
+import { DurationMetric } from "@/runtime/compiler/metrics/DurationMetric";
 import { MemoryLocation } from "../../memory/MemoryLocation";
 
 class MockStrategy implements IRuntimeBlockStrategy {
@@ -34,7 +34,7 @@ describe("JIT Compiler Injection", () => {
             getMetricMemoryByVisibility: mock((visibility) => {
                 if (visibility === 'promote') {
                     // Return a memory location with a promoted timer metrics
-                    const timerFragment = new TimerMetric("60", { line: 0 } as any);
+                    const timerFragment = new DurationMetric("60", { line: 0 } as any);
                     const loc = new MemoryLocation('metric:promote', [timerFragment]);
                     return [loc];
                 }
@@ -76,7 +76,7 @@ describe("JIT Compiler Injection", () => {
         const metrics = injectedFragments[0]; // Injected should be first (appended to empty)
         expect(metrics).toBeDefined();
         expect(metrics.type).toBe(MetricType.Duration);
-        expect((metrics as TimerMetric).image).toBe("60");
+        expect((metrics as DurationMetric).image).toBe("60");
     });
 
     it("should append promoted metrics to existing metrics", () => {
@@ -88,7 +88,7 @@ describe("JIT Compiler Injection", () => {
 
         // Child node with existing metrics
         const childNode = new ParsedCodeStatement();
-        const existingFragment = new TimerMetric("30", { line: 0 } as any);
+        const existingFragment = new DurationMetric("30", { line: 0 } as any);
         childNode.metrics = [existingFragment];
 
         compiler.compile([childNode], runtime);
@@ -100,7 +100,7 @@ describe("JIT Compiler Injection", () => {
         // According to our logic: [...node.metrics, ...promotedFragments]
         // So existing first, promoted second
         expect(metrics[0]).toBe(existingFragment);
-        expect((metrics[1] as TimerMetric).image).toBe("60");
+        expect((metrics[1] as DurationMetric).image).toBe("60");
     });
 
     it("should respect origin precedence when sorting metrics", () => {
@@ -108,7 +108,7 @@ describe("JIT Compiler Injection", () => {
         parentBlock = {
             getMetricMemoryByVisibility: mock((visibility) => {
                 if (visibility === 'promote') {
-                    const timerFragment = new TimerMetric("60", { line: 0 } as any);
+                    const timerFragment = new DurationMetric("60", { line: 0 } as any);
                     (timerFragment as any).origin = 'compiler'; // Higher precedence (rank 2)
                     const loc = new MemoryLocation('metric:promote', [timerFragment]);
                     return [loc];
@@ -124,7 +124,7 @@ describe("JIT Compiler Injection", () => {
 
         // Child node with lower precedence metrics (parser, rank 3)
         const childNode = new ParsedCodeStatement();
-        const existingFragment = new TimerMetric("30", { line: 0 } as any);
+        const existingFragment = new DurationMetric("30", { line: 0 } as any);
         (existingFragment as any).origin = 'parser';
         childNode.metrics = [existingFragment];
 
@@ -151,6 +151,6 @@ describe("JIT Compiler Injection", () => {
         const effectiveFragment = compiledNode.getMetric(MetricType.Duration);
         expect(effectiveFragment).toBeDefined();
         // Should be the one with higher precedence (compiler i.e. "60")
-        expect((effectiveFragment as TimerMetric).image).toBe("60");
+        expect((effectiveFragment as DurationMetric).image).toBe("60");
     });
 });

@@ -29,6 +29,7 @@ import { MetricType } from '../../../core/models/Metric';
  */
 export class SessionRootStrategy implements IRuntimeBlockStrategy {
     priority = 100;
+    readonly id = 'session-root';
 
     /**
      * Root blocks are not matched from statements — they are created directly.
@@ -101,11 +102,6 @@ export class SessionRootStrategy implements IRuntimeBlockStrategy {
         return this.build(runtime, config);
     }
 }
-
-/**
- * Default instance for convenience.
- */
-export const sessionRootStrategy = new SessionRootStrategy();
 
 // ---------------------------------------------------------------------------
 // Helpers for metric-context detection (exported for use in StartSessionAction)

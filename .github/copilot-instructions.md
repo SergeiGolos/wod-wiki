@@ -65,9 +65,9 @@ bun x playwright test --headed # E2E with visible browser (for debugging)
 
 When generating code that touches these subsystems, understand their patterns:
 
-- **Parser** (`src/parser/`): Chevrotain-based. Token definitions → parser rules → visitor transforms. Changes require updating all three layers.
-- **Runtime** (`src/runtime/`): Stack-based execution with JIT compilation. Blocks use constructor-based init and require consumer-managed `dispose()`.
-- **Fragments** (`src/fragments/`): Typed workout components. Each fragment type maps to a specific workout metric.
+- **Parser** (`src/parser/`, `src/grammar/`): Lezer-based (CodeMirror's LR parser), not Chevrotain. Grammar (`src/grammar/whiteboardscript.grammar`) → CST → `syntax-parser.ts` (typed primitives + indentation tree) → `semantic-classifier.ts` (primitives → `IMetric`s) → dialect stack (`src/dialects/`, e.g. unit fusion). Changes to syntax require updating the grammar, the primitive mapping, and the classifier together.
+- **Runtime** (`src/runtime/`): Stack-based execution with JIT compilation (`src/runtime/compiler/JitCompiler.ts`). Compilation is lazy — blocks compile as they're pushed, not upfront. Blocks use constructor-based init and require consumer-managed `dispose()`.
+- **Metrics** (`src/core/models/Metric.ts`, `src/runtime/compiler/metrics/`): There is no `src/fragments/` directory — typed `IMetric` objects (RepMetric, EffortMetric, DurationMetric, etc.), each carrying an `origin`, replaced the old fragment system as the universal data currency from parsing through logged output.
 - **Editor** (`src/editor/`): Monaco Editor integration with custom language support.
 
 ### What NOT to Do

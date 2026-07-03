@@ -7,7 +7,6 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
-import { TrackMetricAction } from '../actions/tracking/TrackMetricAction';
 import { CountupTimerBehavior } from '../behaviors/CountupTimerBehavior';
 import { LabelingBehavior } from '../behaviors/LabelingBehavior';
 
@@ -192,9 +191,6 @@ export class EffortBlock extends RuntimeBlock {
   private getMetricActions(): IRuntimeAction[] {
     const blockId = this.key.toString();
     const actions: IRuntimeAction[] = [];
-
-    // 1. Sync to tracker via action
-    actions.push(new TrackMetricAction(blockId, 'reps', this.currentReps, 'reps'));
 
     // 2. Emit event for UI
     actions.push(new EmitEventAction('reps:updated', {

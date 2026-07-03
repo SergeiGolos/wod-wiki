@@ -38,7 +38,7 @@ export interface SessionRootConfig {
  * 2. First next(): WaitingToStart pops → ChildRunner pushes first workout block
  * 3. Subsequent next(): ChildRunner pushes remaining workout blocks in sequence
  * 4. Final next(): All children done → marks complete and pops
- * 5. Unmount: Emits 'completion' output, records history
+ * 5. Pop: emits a 'segment' output carrying the completion reason, records history
  *
  * ## Behavior Chain Order
  *

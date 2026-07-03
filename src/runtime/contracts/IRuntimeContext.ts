@@ -7,7 +7,7 @@ import type { WhiteboardScript } from '../../parser/WhiteboardScript'
 import type { RuntimeError } from '../actions/ErrorAction'
 import type { AnalyticsContext } from '../../core/analytics/AnalyticsContext'
 import type { INowProvider } from '../INowProvider'
-import type { RuntimeStackOptions, RuntimeStackTracker } from './IRuntimeOptions'
+import type { RuntimeStackOptions } from './IRuntimeOptions'
 import type { IOutputStatement } from '../../core/models/OutputStatement'
 import type { IEvent } from './events/IEvent'
 
@@ -48,8 +48,6 @@ export interface IRuntimeContext extends IRuntimeActionable {
     nowProvider: INowProvider
     /** Runtime options (hooks, tracker, wrapper, logger). */
     options: RuntimeStackOptions
-    /** Optional span tracker. */
-    tracker?: RuntimeStackTracker
     /** Errors collected during execution. */
     errors?: RuntimeError[]
     /** Optional analytics context for compile-time effort enrichment. */

@@ -83,7 +83,6 @@ class MockSubscription implements IRuntimeSubscription {
     }
     onStackSnapshot(): void {}
     onOutput(): void {}
-    onTrackerUpdate(): void {}
     dispose(): void {
         this.disposeCalls++;
     }

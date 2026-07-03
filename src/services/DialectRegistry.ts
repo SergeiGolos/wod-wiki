@@ -65,8 +65,6 @@ export class DialectRegistry {
         statement.metrics.add(...analysis.metrics);
       }
 
-      // Note: Inheritance rules (analysis.inheritance) are designed for future use
-      // to allow parent blocks to influence child behavior (see Dialect.ts for details).
     }
   }
 

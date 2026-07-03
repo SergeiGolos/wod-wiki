@@ -23,6 +23,7 @@ import {
  */
 export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
     priority = 90; // High priority - runs before generic strategies
+    readonly id = 'amrap-logic';
 
     match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
