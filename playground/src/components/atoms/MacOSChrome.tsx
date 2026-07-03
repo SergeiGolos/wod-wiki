@@ -3,7 +3,7 @@ import { RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /** MacOS-style chrome wrapper for sticky panels */
-export function MacOSChrome({ title, children, onReset, headerActions, className }: { title: string; children: ReactNode; onReset?: () => void; headerActions?: ReactNode; className?: string }) {
+export function MacOSChrome({ title, subtitle, children, onReset, headerActions, className }: { title: string; subtitle?: string; children: ReactNode; onReset?: () => void; headerActions?: ReactNode; className?: string }) {
   return (
     <div className={cn('flex flex-col w-full h-full rounded-2xl lg:rounded-3xl overflow-hidden border border-border shadow-2xl bg-background', className)}>
       <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20 border-b border-border/60 shrink-0">
@@ -22,7 +22,14 @@ export function MacOSChrome({ title, children, onReset, headerActions, className
           <div className="size-2.5 rounded-full bg-emerald-500/30" />
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</span>
+          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+            {title}
+            {subtitle && (
+              <span className="ml-1.5 font-medium normal-case tracking-normal text-muted-foreground/50">
+                · {subtitle}
+              </span>
+            )}
+          </span>
           {headerActions}
           {onReset && (
             <button

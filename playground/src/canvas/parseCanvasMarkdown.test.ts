@@ -186,6 +186,59 @@ Just some prose with a list:
     })
   })
 
+  it('hides view/command/example fences from prose — they are invisible anchor/trigger blocks', () => {
+    const page = parseCanvasMarkdown(`---
+template: canvas
+route: /guide/demo
+---
+
+# Demo
+
+## Whiteboard Script {sticky}
+
+Here is the demo panel.
+
+\`\`\`view
+name:    demo
+state:   note
+source:  examples/demo.md
+align:   right
+width:   48%
+\`\`\`
+
+\`\`\`command
+target: demo
+pipeline:
+  - set-source: examples/other.md
+\`\`\`
+
+\`\`\`example
+label: Reps only
+source: examples/reps.md
+\`\`\`
+
+After the anchors.
+`)
+
+    const section = page?.sections[1]
+    const prose = getSectionProse(section!)
+    expect(prose).toContain('Here is the demo panel.')
+    expect(prose).toContain('After the anchors.')
+    expect(prose).not.toContain('name:')
+    expect(prose).not.toContain('source:  examples/demo.md')
+    expect(prose).not.toContain('target: demo')
+    expect(prose).not.toContain('set-source: examples/other.md')
+    expect(prose).not.toContain('label: Reps only')
+    expect(prose).not.toContain('```view')
+    expect(prose).not.toContain('```command')
+    expect(prose).not.toContain('```example')
+
+    // Still parsed into their structured fields, just not left in the prose.
+    expect(section?.view?.name).toBe('demo')
+    expect(section?.commands).toHaveLength(1)
+    expect(section?.examples).toEqual([{ label: 'Reps only', source: 'examples/reps.md' }])
+  })
+
   it('keeps non-canvas fenced code blocks inside the prose segments', () => {
     const page = parseCanvasMarkdown(`---
 template: canvas

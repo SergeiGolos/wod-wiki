@@ -52,6 +52,7 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
   const density = getSectionDensity(section)
   const sectionTheme = getSectionThemeStyles(section)
   const examples = section.examples ?? []
+  const isHero = idx === -1
 
   // When the parent supplies an override `prose` string (e.g. the
   // `{{workouts}}` split in collection mode), we render it as a single
@@ -73,7 +74,10 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
         'group relative border-b border-border/50 transition-colors duration-300',
         hasViewDef
           ? fullBleed
-            ? 'min-h-[35vh] flex items-center justify-center py-12 lg:py-16 px-6 lg:px-10'
+            ? cn(
+                'flex items-center justify-center px-6 lg:px-10',
+                isHero ? 'min-h-[70vh] lg:min-h-[80vh] py-16 lg:py-24' : 'min-h-[35vh] py-12 lg:py-16',
+              )
             : density === 'compact'
               ? 'py-10 lg:py-12 px-6 lg:px-10'
               : 'py-14 lg:py-20 px-6 lg:px-10'

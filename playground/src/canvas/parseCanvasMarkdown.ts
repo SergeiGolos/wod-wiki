@@ -278,19 +278,26 @@ function extractBlocks(text: string): {
   }
 
   // Walk the source text once more, slicing the prose and interleaving
-  // button chunks at the position each `button` fence was authored. Each
-  // prose segment contains the raw text between the previous button
-  // (or start) and this one — including any non-button canvas fences,
-  // which the renderer leaves untouched so fenced code blocks render.
+  // button chunks at the position each `button` fence was authored. The
+  // `view`/`command`/`example` fences are anchor/trigger blocks only — they
+  // drive the sticky panel but have no prose representation of their own —
+  // so they're excised from the prose entirely, same as `button`. Any other
+  // fence type (e.g. a `wod` code sample) is left untouched so it renders as
+  // a normal fenced code block.
+  const invisibleFenceTypes = new Set(['view', 'command', 'example'])
   const proseChunks: ProseChunk[] = []
   let pos = 0
   for (let i = 0; i < fences.length; i++) {
     const fence = fences[i]
     const button = buttonByFenceIdx[i]
-    if (!button) continue
-    proseChunks.push({ kind: 'prose', text: text.slice(pos, fence.start) })
-    proseChunks.push({ kind: 'button', button })
-    pos = fence.end
+    if (button) {
+      proseChunks.push({ kind: 'prose', text: text.slice(pos, fence.start) })
+      proseChunks.push({ kind: 'button', button })
+      pos = fence.end
+    } else if (invisibleFenceTypes.has(fence.type)) {
+      proseChunks.push({ kind: 'prose', text: text.slice(pos, fence.start) })
+      pos = fence.end
+    }
   }
   proseChunks.push({ kind: 'prose', text: text.slice(pos) })
 
