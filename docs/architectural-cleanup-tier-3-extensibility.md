@@ -2,7 +2,7 @@
 
 > Part of [Architectural Cleanup](./architectural-cleanup.md). This tier directly targets the stated flexibility goals: **techie users programming core behaviors against specific efforts, dialect-specific analytics, and easy dialect authoring/expansion.** The finding across all four items is the same shape — a mechanism that already exists and already works (hints, strategies, `requiredMetrics`) is either mis-scoped or not exposed, rather than something missing needing to be invented. Every proposal below reuses existing machinery instead of adding a new one.
 >
-> **Status: not started.** [Tier 1](./architectural-cleanup-tier-1-deletions.md) is implemented and verified; it also removed the unused `DialectAnalysis.inheritance` field from `Dialect.ts` (§1.4), which shifted the line numbers cited below for the `IDialect` interface — updated inline.
+> **Status: not started.** [Tier 1](./architectural-cleanup-tier-1-deletions.md) and [Tier 2](./architectural-cleanup-tier-2-consolidations.md) are both implemented and verified. Tier 1 removed the unused `DialectAnalysis.inheritance` field from `Dialect.ts` (§1.4) and shrank a comment in `runtimeServices.ts`, shifting the line numbers cited below for `IDialect` and `PRODUCTION_STRATEGIES` — both updated inline. Tier 2 did not touch any file this document cites with a line number beyond those two.
 
 ---
 

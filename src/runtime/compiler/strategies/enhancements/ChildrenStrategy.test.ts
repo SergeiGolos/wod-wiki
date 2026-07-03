@@ -3,7 +3,7 @@ import { apply, stubRuntime, makeStatement } from '@/testing/harness/StrategyTes
 import { MetricType } from '@/core/models/Metric';
 import { BlockBuilder } from '@/runtime/compiler/BlockBuilder';
 import { ChildrenStrategy } from './ChildrenStrategy';
-import { ChildSelectionBehavior, ExitBehavior, MetricPromotionBehavior } from '../../../behaviors';
+import { ChildSelectionBehavior, MetricPromotionBehavior } from '../../../behaviors';
 
 const runtime = stubRuntime();
 

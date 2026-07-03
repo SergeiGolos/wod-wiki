@@ -7,7 +7,6 @@ import { GenericLoopStrategy } from './GenericLoopStrategy';
 import {
     LabelingBehavior,
     MetricPromotionBehavior,
-    ExitBehavior,
 } from '../../../behaviors';
 
 const runtime = stubRuntime();

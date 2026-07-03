@@ -98,11 +98,15 @@ export class BlockBuilder {
 
     /**
      * Remove a behavior by its constructor type.
-     * Used by enhancement strategies to remove conflicting behaviors
-    * added by earlier strategies (e.g., removing LeafExitBehavior
-    * when child-selection behavior takes over completion management).
+     *
+     * Private: this is a mechanic `build()` uses to resolve a declared exit
+     * intent (see `declareExit`) into exactly one `ExitBehavior`. Strategies
+     * declare intent instead of calling this directly — see §2.3 of
+     * docs/architectural-cleanup-tier-2-consolidations.md for why strategies
+     * used to mutate each other's contributions this way, and why that
+     * coupling was removed.
      */
-    removeBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
+    private removeBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
         this.behaviors.delete(type);
         return this;
     }
@@ -111,14 +115,14 @@ export class BlockBuilder {
      * Move an already-added behavior to the LAST position in the behavior list.
      *
      * Behavior order = Map insertion order = RuntimeBlock.onNext execution order.
-     * When a later-running strategy needs a behavior added by an earlier
-     * strategy to execute AFTER its own behaviors, this is the explicit API.
-     * No-op when the behavior is not present (or already last).
      *
-     * Replaces the previous `getBehavior → removeBehavior → addBehavior` dance
-     * (e.g. ChildrenStrategy's MetricPromotion reorder) with a named contract.
+     * Private: `build()` calls this once to canonicalize ordering (e.g.
+     * MetricPromotionBehavior must run after ChildSelectionBehavior so it sees
+     * the round ChildSelectionBehavior just advanced). No-op when the behavior
+     * is not present (or already last). Strategies no longer call this
+     * directly — see §2.3 of docs/architectural-cleanup-tier-2-consolidations.md.
      */
-    moveBehaviorLast<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
+    private moveBehaviorLast<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
         const behavior = this.behaviors.get(type);
         if (!behavior) return this;
         this.behaviors.delete(type);

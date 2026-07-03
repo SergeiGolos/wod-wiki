@@ -2,7 +2,7 @@
 
 > Part of [Architectural Cleanup](./architectural-cleanup.md). Each item here is a case of the same job being done more than one way. The fix is mechanical (no new concepts introduced), but each does involve a small design decision — noted per item — so these carry slightly more risk than Tier 1's pure deletions.
 >
-> **Status: not started.** [Tier 1](./architectural-cleanup-tier-1-deletions.md) is implemented and verified. One overlap with Tier 1 is called out inline in §2.1 below — Tier 1 already removed `WorkoutTracker`'s no-op span methods and hot-path logging as small dead-code items, ahead of this section's larger proposal to remove the tracker entirely.
+> **Status: ✅ Implemented and independently re-verified.** [Tier 1](./architectural-cleanup-tier-1-deletions.md) is also implemented and verified. See the [Verification Appendix](#verification-appendix) at the end of this document for what was checked, a real regression that was found and fixed, and one item flagged for the user's judgment rather than silently fixed.
 
 ---
 
@@ -359,3 +359,79 @@ function runTurn(runtime: IScriptRuntime, initialAction: IRuntimeAction, maxDept
 Every action/behavior already types its `do`/`onNext`/etc. parameter as `IRuntimeContext`, not `IScriptRuntime` — so this is a type-compatible change at every call site, not a breaking one. `ExecutionContext.ts` and its 189 LOC are deleted; `IScriptRuntime`'s 21-vs-9 split becomes visibly real (nothing pretends to implement the wide interface just to move through a turn).
 
 **Design decision required:** confirm no turn-scoped code anywhere reaches for an `IScriptRuntime`-only member (e.g. `subscribeToOutput`, `finalizeAnalytics`) expecting it to be available mid-turn — the review found none, since all actions/behaviors are already typed against `IRuntimeContext`, but this is worth a grep-confirm before deleting `ExecutionContext`.
+
+**What was actually implemented (§2.5):** the class was not deleted. `ExecutionContext` still exists, but was narrowed from `implements IScriptRuntime` to `implements IRuntimeContext` and stripped of the 8 wide-only members (`pushBlock`, `popBlock`, `subscribeToOutput`, `getOutputStatements`, `subscribeToStack`, `setAnalyticsEngine`, `finalizeAnalytics`, `dispose`). This achieves the same goal this section describes ("adding a member to `IScriptRuntime` no longer forces a matching pass-through") without renaming the one production call site (`ScriptRuntime.ts:144`) or its test call sites. See the Verification Appendix for the full comparison.
+
+---
+
+## Verification Appendix
+
+This section documents an independent re-verification of the implementation, performed after the fact against the actual git diff, live test runs, and two dedicated code-reading audits — not a re-review of the plan.
+
+### What was checked
+
+Two focused audits verified each of the five items against the actual source (not the implementation report's claims): §2.1 (tracker removal) and §2.2 (output consolidation) in one pass; §2.3 (builder resolves exit), §2.4 (honest deprecations), and §2.5 (ExecutionContext narrowing) in a second pass. Test and build results were reproduced independently:
+
+- `bun test ./src --preload ./tests/unit-setup.ts` → 2690 pass / 1 fail before fixes (the pre-existing `workbenchSessionStore` failure), same after.
+- `bun run test:components`-equivalent full `tests/` run → diffed byte-for-byte against a clean pre-Tier-1/2 baseline (via `git stash`). One extra failure appeared in one run (`widgetBlockPreview — decoration building`) but was confirmed pre-existing suite-order flakiness, not a regression: the file is completely untouched by this changeset's diff, and the test passes cleanly (18/18) when run in isolation via its own file path.
+- `bun x vite build` → succeeds throughout.
+
+### Verdicts
+
+| Item | Verdict | Notes |
+|---|---|---|
+| §2.1 Tracker removal | **PARTIAL → fixed** | Architecture correctly consolidated (AnalyticsEngine → OutputEmitter → MetricTrackerCard verified end-to-end), but the removal shipped with one real regression and several un-migrated test files. See below. |
+| §2.2 Output consolidation | **PARTIAL → fixed** | The double-fire is genuinely eliminated (traced the full pop path — confirmed exactly one `'segment'` output per pop) and the fix is correctly scoped (milestone/non-final-segment emissions untouched). ~9 comments across 8 files still described the pre-fix behavior. Fixed. |
+| §2.3 Builder resolves exit | **FULLY MATCHES PLAN** | `declareExit('immediate'\|'deferred')` + `BlockBuilder.build()` centrally resolving exit mode and canonical ordering, exactly as sketched. Two trivial nits (see below), fixed. |
+| §2.4 Honest deprecations | **FULLY MATCHES PLAN** | Both `@deprecated` tags removed and replaced with accurate documentation (Option B from this doc, chosen consistently for both). |
+| §2.5 ExecutionContext narrowing | **Reasonable alternate design** | Narrowed the existing class's implemented interface rather than deleting it for a `runTurn()` function (see note above). Single production call site, zero `as any` casts, no member reached outside the narrow surface, tests pass. |
+
+### Gap found: a real regression in §2.1
+
+**`src/runtime/ScriptRuntime.ts` — undefined `ownerKey` (fixed).** The diff removed `const ownerKey = currentBlock.key.toString();` together with the adjacent `this.options.tracker?.endSpan?.(ownerKey);` line it fed — correctly, since the tracker call is gone — but left two other uses of `ownerKey` dangling further down in `popBlock()`:
+
+```ts
+this.options.hooks?.unregisterByOwner?.(ownerKey);   // TS2304: Cannot find name 'ownerKey'
+this.options.logger?.debug?.('runtime.popBlock', {
+    blockKey: ownerKey,                               // same
+    stackDepth: this.stack.count,
+});
+```
+
+This was a confirmed `tsc` error (`TS2304`), but **latent** at runtime — both call sites are behind optional chaining on `hooks`/`logger`, which are unset in every current test, so it never threw during verification. It would throw `ReferenceError: ownerKey is not defined` the moment any caller configures `options.hooks.unregisterByOwner` or `options.logger.debug` and calls `popBlock()`. **Fixed** by replacing both remaining `ownerKey` references with `currentBlock.key.toString()` inline.
+
+### Gap found: un-migrated tracker references across test files (§2.1)
+
+Beyond the production code (which was correctly and completely migrated — `WorkoutTracker.ts`, `TrackMetricAction.ts`, `TrackRoundAction.ts`, the `RuntimeStackTracker` contract, and the Chromecast RPC mirror are all genuinely deleted, not stubbed), several test files still referenced the removed `tracker` option or `onTrackerUpdate` interface member. All were fixed:
+
+- **`src/runtime/compiler/__tests__/RuntimeFactory.test.ts`** — an entire test, `'wires tracker into the analytics engine when provided in options'`, still constructed a fake tracker and passed `{ tracker }` into `createRuntime`, a key `RuntimeStackOptions` no longer accepts. Deleted (there's no direct replacement at this scope — session totals are now proven end-to-end by `AnalyticsEngine.test.ts` and `MetricTrackerCard`'s own tests).
+- **`src/__tests__/smoke/application-launch.smoke.test.ts`** — `customOptions = { debug: true, tracker: undefined }`. Dropped the dead `tracker: undefined` key. (Separately, `debug` itself is not a valid `RuntimeStackOptions` key either — the real field is `debugMode` — but that mismatch predates this changeset entirely and is out of scope here.)
+- **`src/runtime/subscriptions/__tests__/SubscriptionManager.test.ts`** — 12 occurrences of `onTrackerUpdate: () => {}` in mocks typed as `IRuntimeSubscription`, which no longer declares that member. Removed all 12.
+- **`src/services/cast/rpc/__tests__/CastSessionManager.test.ts`** — a `MockSubscription implements IRuntimeSubscription` class with a dead `onTrackerUpdate(): void {}` method (found by an independent sweep, not in the original audit's list — different syntax shape than the object-literal cases above, so a narrower grep missed it). Removed.
+- **`src/runtime/__tests__/ExecutionContextStack.test.ts`**, **`src/runtime/subscriptions/__tests__/LocalEventProvider.test.ts`**, **`src/testing/harness/StrategyTestHarness.ts`** — three more mock objects with a dead `subscribeToTracker: () => () => {}` property (and one dead `tracker: null as any,` property in `LocalEventProvider.test.ts`), found by an independent repo-wide sweep. All masked by `as any`/`as unknown as X` casts so they never surfaced as `tsc` errors, but were stale nonetheless. Removed.
+- **`src/runtime/__tests__/RuntimeStackLifecycle.test.ts`** — two tests constructed a full `tracker = { startSpan: vi.fn(...), endSpan: vi.fn(...) }` mock and included it in the `options` object passed to `ScriptRuntime` — but neither test's own assertion (`expect(callOrder).toEqual([...])`) ever expected a `tracker.*` entry in the recorded call order, meaning the mocks were already dead weight before this audit even started, just masked by `as any`. The first test's title, `'sequences push hooks, tracker, wrapper, and logger in order'`, was also inaccurate once tracker sequencing was removed. Deleted both dead mocks and renamed the title to `'sequences push hooks, wrapper, and logger in order'`.
+
+None of these test-file gaps were caught by `bun test` (which doesn't type-check) or by `vite build`'s bundler alone in every case — some only surface under a dedicated `tsc --noEmit` pass. **Takeaway for future tiers:** run `tsc --noEmit` explicitly as part of verification, not just the test suites and the bundler — a mock object typed loosely enough (`as any`) can hide a stale reference from every other check.
+
+### Gap found: stale comments describing removed behavior (§2.2)
+
+The double-fire elimination itself was correctly implemented and verified (traced: `ReportOutputBehavior.onUnmount` writes result memory only; `OutputEmitter.emitSegmentFromResultMemory`, triggered by the stack's pop event, is the sole site that turns a pop into an `OutputStatement`, and it now carries `completionReason`). But ~9 comments and JSDoc examples across 8 files still described the pre-fix behavior ("Unmount emits 'completion' output") as if it were current — exactly the kind of misleading residue this document's own §2.4 warns about for `@deprecated` tags, just for prose instead of annotations. All updated to describe the current single-emission-per-pop design:
+
+- `src/runtime/actions/stack/PopBlockAction.ts` — comment explaining why the action doesn't emit output rewritten to name the actual current emission site.
+- `src/runtime/actions/stack/AbortSessionAction.ts` — class-level lifecycle doc and an inline comment, both updated (2 locations).
+- `src/runtime/actions/stack/ClearChildrenAction.ts` — lifecycle doc step 2 updated.
+- `src/runtime/blocks/RestBlock.ts`, `WaitingToStartBlock.ts`, `SessionRootBlock.ts` — each had a "Unmount: Emits 'completion' output" lifecycle-doc line, updated to describe the pop-time 'segment' emission.
+- `src/runtime/contracts/IBehaviorContext.ts` — a full worked `@example` showing `onUnmount` calling `ctx.emitOutput('completion', ...)` (the exact anti-pattern this section removed) rewritten to emit `'milestone'` instead and note the correct pattern (write result memory, let the pop emit the segment); plus the `emitOutput` doc's lifecycle-point list and its second inline example, both updated.
+- `src/runtime/contracts/IScriptRuntime.ts` — the `addOutput` JSDoc example constructed an `OutputStatement` with `outputType: 'completion'`; updated to `'segment'` with a `completionReason` field.
+- `src/testing/script/assertions.ts` — the `OutputAssertions` interface doc comments for `byType`, `completions()`, `assertPairedOutputs()`, and `allPaired()` all described pairing a `'segment'` against a separate `'completion'` output; updated to describe the actual (already-correct) implementation, where `completions()` filters segments by `completionReason` and `assertPairedOutputs()` always returns `[]` because pairing is now structural.
+- `src/core/models/OutputStatement.ts` and `src/components/organisms/review/types.ts` — both had a `completionReason` field doc claiming it's "only present on `'completion'` output type"; updated to say it's present on the closing `'segment'` output.
+- `stories/catalog/molecules/MetricTrackerCard.mdx` — the component's Storybook doc page still described `useWorkoutTracker()`/`WorkoutTracker` as its data source (a docs file, not source, but still actively misleading for anyone consulting the component catalog). Updated to describe the actual `useOutputStatements()` + `'analytics'`-output mechanism.
+
+### Two trivial nits fixed in §2.3
+
+- `GenericLoopStrategy.test.ts` and `ChildrenStrategy.test.ts` each had a dead `ExitBehavior` import left over from before the `declareExit`-based rewrite (flagged by `tsc` as `TS6133`). Removed both; confirmed each file's other imports (`MetricPromotionBehavior`, `ChildSelectionBehavior`) are still genuinely used.
+- `BlockBuilder.removeBehavior` and `BlockBuilder.moveBehaviorLast` were still `public`, even though — confirmed by a repo-wide grep — nothing outside `BlockBuilder.build()` itself calls either anymore. This was exactly the coupling this section's proposal wanted removed at the type level, not just by convention (a future strategy author could still reach for them). Made both `private` and rewrote their doc comments to point at this document instead of the now-obsolete "used by enhancement strategies" framing. Verified via `tsc --noEmit` that no caller broke.
+
+### Flagged, not fixed: the dead `'completion'` type literal
+
+`OutputStatementType` (`src/core/models/OutputStatement.ts:20`) still lists `'completion'` as a legal literal, even though nothing in the codebase emits it anymore after this section's fix. Unlike the comment fixes above, **this was deliberately left alone** rather than silently removed: it's an exported public type, and removing a union member is a genuine API-surface change — a downstream TypeScript consumer doing an exhaustive `switch` over `OutputStatementType`, or any historical `OutputStatement` data already persisted to IndexedDB from before this change with `outputType: 'completion'`, could be affected in ways this audit didn't fully scope. Recommend a deliberate follow-up decision (remove the literal in a documented breaking-change pass, or keep it permanently as a legacy-data-compatible value) rather than folding it into this verification pass.
