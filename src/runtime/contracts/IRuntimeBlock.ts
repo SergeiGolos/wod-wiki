@@ -196,17 +196,25 @@ export interface IRuntimeBlock extends IBlockRef {
     /**
      * Push a new memory location onto the block's memory list.
      * Multiple locations with the same tag can coexist.
-     *
+     */
     pushMemory(location: IMemoryLocation): void;
 
     /**
      * Merge a set of compiler hints (e.g. from an effort markdown file) into
      * the block. Hints are stored as `MetricType.Hint` metrics in a
-     * `metric:hint` memory location and surface to strategies exactly the
-     * same way dialect-emitted hints do. Use sparingly: any hint key not
-     * in `CONSUMED_HINTS` (see `core/metrics/hints.ts`) is currently
-     * inert (analytics-only). For effort-specific metrics, prefer a
-     * domain metric.
+     * `metric:hint` memory location.
+     *
+     * IMPORTANT: unlike dialect-emitted hints (which are attached to the
+     * *statement* before `JitCompiler.compile()` runs, and so are visible to
+     * `hasHint`/`getHints` calls inside strategy `match()`/`apply()`), hints
+     * merged here land on the *block* — which only exists after compilation.
+     * They currently do NOT reach any strategy decision; `hasHint`/`getHints`
+     * never read from block memory. See
+     * docs/architectural-cleanup-tier-3-extensibility.md §3.3 verification
+     * notes for the full explanation. Use sparingly: any hint key not in
+     * `CONSUMED_HINTS` (see `core/metrics/hints.ts`) is analytics-only even
+     * when the read-path gap above is fixed. For effort-specific metrics,
+     * prefer a domain metric.
      */
     mergeHints(hints: Readonly<Record<string, unknown>>): void;
 

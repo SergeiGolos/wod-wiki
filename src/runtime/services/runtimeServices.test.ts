@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { PRODUCTION_STRATEGIES, createCompiler } from './runtimeServices';
+import { PRODUCTION_STRATEGIES, createCompiler, strategyRegistry } from './runtimeServices';
 import { createParser } from '../../parser/parserInstance';
 import { MdTimerRuntime } from '../../parser/md-timer';
 import { JitCompiler } from '../compiler/JitCompiler';
@@ -72,44 +72,39 @@ describe('runtimeServices', () => {
   });
 
   describe('PRODUCTION_STRATEGIES', () => {
+    // PRODUCTION_STRATEGIES now derives from strategyRegistry.list(), which is
+    // priority-sorted (descending) rather than insertion-ordered — so these
+    // assertions check presence and relative priority ordering instead of
+    // fixed indices, which would be fragile against future priority tweaks.
     it('contains 9 strategies (RestBlockStrategy is direct-built, not JIT-matched)', () => {
       expect(PRODUCTION_STRATEGIES).toHaveLength(9);
     });
 
-    it('has AmrapLogicStrategy at index 0', () => {
-      expect(PRODUCTION_STRATEGIES[0]).toBeInstanceOf(AmrapLogicStrategy);
+    it('contains every production strategy exactly once', () => {
+      const expectedTypes = [
+        AmrapLogicStrategy, IntervalLogicStrategy,
+        GenericTimerStrategy, GenericLoopStrategy, GenericGroupStrategy,
+        SoundStrategy, ReportOutputStrategy, ChildrenStrategy,
+        EffortFallbackStrategy,
+      ];
+      for (const Type of expectedTypes) {
+        const matches = PRODUCTION_STRATEGIES.filter(s => s instanceof Type);
+        expect(matches).toHaveLength(1);
+      }
     });
 
-    it('has IntervalLogicStrategy at index 1', () => {
-      expect(PRODUCTION_STRATEGIES[1]).toBeInstanceOf(IntervalLogicStrategy);
+    it('is sorted by descending priority', () => {
+      for (let i = 1; i < PRODUCTION_STRATEGIES.length; i++) {
+        expect(PRODUCTION_STRATEGIES[i].priority).toBeLessThanOrEqual(PRODUCTION_STRATEGIES[i - 1].priority);
+      }
     });
 
-    it('has GenericTimerStrategy at index 2', () => {
-      expect(PRODUCTION_STRATEGIES[2]).toBeInstanceOf(GenericTimerStrategy);
-    });
-
-    it('has GenericLoopStrategy at index 3', () => {
-      expect(PRODUCTION_STRATEGIES[3]).toBeInstanceOf(GenericLoopStrategy);
-    });
-
-    it('has GenericGroupStrategy at index 4', () => {
-      expect(PRODUCTION_STRATEGIES[4]).toBeInstanceOf(GenericGroupStrategy);
-    });
-
-    it('has SoundStrategy at index 5', () => {
-      expect(PRODUCTION_STRATEGIES[5]).toBeInstanceOf(SoundStrategy);
-    });
-
-    it('has ReportOutputStrategy at index 6', () => {
-      expect(PRODUCTION_STRATEGIES[6]).toBeInstanceOf(ReportOutputStrategy);
-    });
-
-    it('has ChildrenStrategy at index 7', () => {
-      expect(PRODUCTION_STRATEGIES[7]).toBeInstanceOf(ChildrenStrategy);
-    });
-
-    it('has EffortFallbackStrategy at index 8', () => {
-      expect(PRODUCTION_STRATEGIES[8]).toBeInstanceOf(EffortFallbackStrategy);
+    it('shares the same strategy instances as strategyRegistry (no duplicate construction)', () => {
+      const registryList = strategyRegistry.list();
+      expect(PRODUCTION_STRATEGIES).toHaveLength(registryList.length);
+      PRODUCTION_STRATEGIES.forEach((s, i) => {
+        expect(s).toBe(registryList[i]); // same instance, not just same type
+      });
     });
   });
 });
