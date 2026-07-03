@@ -245,6 +245,37 @@ const components: Components = {
   },
 }
 
+// A big, high-contrast headline treatment for a hero section's lead
+// sentence — swapped in for just the first paragraph, so it reads as
+// marketing copy rather than another documentation paragraph.
+const heroLeadComponents: Components = {
+  ...components,
+  p({ children }) {
+    return (
+      <p className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground leading-[1.08] my-0">
+        {children}
+      </p>
+    )
+  },
+  strong({ children }) {
+    return <strong className="font-black text-primary">{children}</strong>
+  },
+}
+
+// A step up from the default body copy — for a hero's supporting
+// paragraphs, which should read as subhead copy, not the same muted
+// small-print used by every other section's explainer text.
+const heroBodyComponents: Components = {
+  ...components,
+  p({ children }) {
+    return (
+      <p className="text-base lg:text-lg font-medium text-foreground/75 leading-relaxed my-4 first:mt-0">
+        {children}
+      </p>
+    )
+  },
+}
+
 // ── Plugins ───────────────────────────────────────────────────────────────────
 
 const remarkPlugins = [remarkGfm]
@@ -280,9 +311,17 @@ function FrontmatterCard({ fields }: { fields: Record<string, string> }) {
 export interface CanvasProseProps {
   prose: string
   className?: string
+  /** 'heroLead' for a hero's big headline sentence, 'heroBody' for its supporting paragraphs. */
+  variant?: 'default' | 'heroLead' | 'heroBody'
 }
 
-export function CanvasProse({ prose, className }: CanvasProseProps) {
+const componentsByVariant: Record<NonNullable<CanvasProseProps['variant']>, Components> = {
+  default: components,
+  heroLead: heroLeadComponents,
+  heroBody: heroBodyComponents,
+}
+
+export function CanvasProse({ prose, className, variant = 'default' }: CanvasProseProps) {
   if (!prose) return null
   const { fields, body } = splitFrontmatter(prose)
   return (
@@ -291,7 +330,7 @@ export function CanvasProse({ prose, className }: CanvasProseProps) {
       {body && (
         <ReactMarkdown
           remarkPlugins={remarkPlugins}
-          components={components}
+          components={componentsByVariant[variant]}
         >
           {body}
         </ReactMarkdown>

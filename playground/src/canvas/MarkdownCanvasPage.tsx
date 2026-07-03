@@ -20,6 +20,7 @@ import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCanvasEditorSource } from '../hooks/useCanvasEditorSource'
 import { useMobileRunOverride } from '../hooks/useMobileRunOverride'
 import { CanvasPanelContent } from './CanvasPanelContent'
+import { CanvasSection as CanvasSectionCard } from '../components/molecules/CanvasSection'
 import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePanel'
 import { CanvasEditorPanel } from '../components/organisms/canvas/CanvasEditorPanel'
 import { SplitCanvasTemplate } from '../templates/SplitCanvasTemplate'
@@ -27,6 +28,7 @@ import {
   getCanvasNoteId,
   resolveSource,
   blockHasTimer,
+  resolveContentOwners,
   STICKY_NAV_HEIGHT,
   INITIAL_SOURCE_KEY,
 } from './canvasUtils'
@@ -67,7 +69,7 @@ export function MarkdownCanvasPage({
   contentOverride,
   panelHeaderActions,
   onPanelActionsReady,
-  heroSlot,
+  heroSlot: heroSlotProp,
 }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
   const { isDebugMode } = useDebugMode()
@@ -92,6 +94,9 @@ export function MarkdownCanvasPage({
   const hasWorkoutsTag = sections.some((s) => getSectionProse(s).includes('{{workouts}}'))
   const contentSections = sections.slice(1)
 
+  const heroSection = sections[0] ?? null
+  const heroHasContent = !!heroSection && (getSectionProse(heroSection).trim() !== '' || heroSection.buttons.length > 0)
+
   const viewDef = sections.find((s) => s.view)?.view ?? null
   const stickyAlign = viewDef?.align ?? 'right'
   const initialActiveSection = contentSections[0] ?? sections[0] ?? null
@@ -100,6 +105,17 @@ export function MarkdownCanvasPage({
   const initialSourceKey = viewDef?.source || INITIAL_SOURCE_KEY
   const [activeSectionId, setActiveSectionId] = useState<string | null>(initialActiveSection?.id ?? null)
   const [activeSectionTitle, setActiveSectionTitle] = useState(initialActiveSection?.heading ?? 'Whiteboard Script')
+  // Tracks the heading of whichever section *owns* the panel's current
+  // content (see `contentOwnerBySection` below). Sections that only narrate
+  // the same code sample (e.g. "Plan"/"Run"/"Analytics" beats) show this
+  // alongside their own title — "still looking at X" — instead of appearing
+  // to desync from the content.
+  const [contentOwnerTitle, setContentOwnerTitle] = useState(initialActiveSection?.heading ?? 'Whiteboard Script')
+
+  // See `resolveContentOwners` in canvasUtils.ts for why ownership is
+  // resolved from document position rather than from scroll-triggered side
+  // effects (it's what makes scrolling back UP correctly restore content).
+  const contentOwnerBySection = useMemo(() => resolveContentOwners(contentSections), [contentSections])
   const [activeSectionTheme, setActiveSectionTheme] = useState(() =>
     getSectionTheme(initialActiveSection ?? sections[0] ?? { id: 'default', heading: 'Whiteboard Script', level: 1, attrs: [], prose: '', commands: [], buttons: [] })
   )
@@ -133,24 +149,49 @@ export function MarkdownCanvasPage({
   // ScriptBlocks ref
   const scriptBlocksRef = useRef<ScriptBlock[]>([])
 
+  // Id of whichever owner section's content is currently applied to the
+  // panel (`null` means the original `view` source, before any owner).
+  // Comparing against this — rather than reacting to "did this section have
+  // steps" — is what lets re-entering a section (from either scroll
+  // direction) skip a no-op re-apply while still correctly resetting when
+  // the resolved owner actually changes.
+  const appliedContentOwnerIdRef = useRef<string | null>(
+    contentOwnerBySection.get(initialActiveSection?.id ?? '')?.id ?? null,
+  )
+
   // Activate section
   const activateSection = useCallback((section: CanvasSection) => {
     setActiveSectionId(section.id)
     setActiveSectionTitle(section.heading)
     setActiveSectionTheme(getSectionTheme(section))
 
-    const sectionExamples = section.examples ?? []
-    if (sectionExamples.length > 0) {
-      const selectedIndex = selectedExamples[section.id] ?? 0
-      const example = sectionExamples[selectedIndex] ?? sectionExamples[0]
+    const owner = contentOwnerBySection.get(section.id) ?? null
+    setContentOwnerTitle(owner?.heading ?? initialActiveSection?.heading ?? 'Whiteboard Script')
+
+    const ownerKey = owner?.id ?? null
+    if (ownerKey === appliedContentOwnerIdRef.current) return
+    appliedContentOwnerIdRef.current = ownerKey
+
+    if (!owner) {
+      // Scrolled back above the first content-owning section — restore the
+      // panel's original source instead of leaving a later section's example
+      // showing.
+      swapSource(initialSource, initialSourceKey)
+      return
+    }
+
+    const ownerExamples = owner.examples ?? []
+    if (ownerExamples.length > 0) {
+      const selectedIndex = selectedExamples[owner.id] ?? 0
+      const example = ownerExamples[selectedIndex] ?? ownerExamples[0]
       if (example?.source) {
         swapSource(resolveSource(example.source, wodFilesRef.current), example.source)
       }
     }
 
-    for (const cmd of section.commands) {
+    for (const cmd of owner.commands) {
       const steps = cmd.pipeline
-        .filter((step) => !(sectionExamples.length > 0 && step.action === 'set-source'))
+        .filter((step) => !(ownerExamples.length > 0 && step.action === 'set-source'))
         .map((step) => pipelineStepToNavAction(step, cmd.open ?? 'view'))
       if (steps.length === 0) continue
       executeNavAction(
@@ -158,7 +199,7 @@ export function MarkdownCanvasPage({
         depsRef.current,
       )
     }
-  }, [selectedExamples, swapSource])
+  }, [selectedExamples, swapSource, contentOwnerBySection, initialActiveSection, initialSource, initialSourceKey])
 
   const handleExampleSelect = useCallback((section: CanvasSection, index: number) => {
     setSelectedExamples((prev) => ({ ...prev, [section.id]: index }))
@@ -166,6 +207,8 @@ export function MarkdownCanvasPage({
     setActiveSectionId(section.id)
     setActiveSectionTitle(section.heading)
     setActiveSectionTheme(getSectionTheme(section))
+    setContentOwnerTitle(section.heading)
+    appliedContentOwnerIdRef.current = section.id
 
     const example = section.examples?.[index]
     if (example?.source) {
@@ -295,6 +338,14 @@ export function MarkdownCanvasPage({
     runtime.panelMode === 'review' ? 'Review' :
     isEditorLoading ? `${activeSectionTitle} · loading` : activeSectionTitle
 
+  // Only shown when the active section is narrating the same source the
+  // panel already loaded (see `contentOwnerTitle` above) — makes it explicit
+  // that the panel hasn't gone stale, it's just still on the same example.
+  const panelSubtitle =
+    runtime.panelMode === 'editor' && !isEditorLoading && activeSectionTitle !== contentOwnerTitle
+      ? contentOwnerTitle
+      : undefined
+
   const panelContent = (
     <CanvasPanelContent
       panelMode={runtime.panelMode}
@@ -331,10 +382,27 @@ export function MarkdownCanvasPage({
     scriptBlocksRef,
   })
 
+  const heroSlot = heroSlotProp ?? (heroHasContent && heroSection ? (
+    <CanvasSectionCard
+      section={heroSection}
+      idx={-1}
+      prose={undefined}
+      blockId={`${heroSection.id}-hero`}
+      keySuffix="hero"
+      showEyebrow={false}
+      isActive={false}
+      hasViewDef={!!viewDef}
+      deps={deps}
+      onExampleSelect={handleExampleSelect}
+      selectedExampleIndex={0}
+    />
+  ) : null)
+
   const desktopPanel = viewDef && (
     <CanvasEditorPanel
       variant="desktop"
       panelTitle={panelTitle}
+      panelSubtitle={panelSubtitle}
       panelContent={panelContent}
       panelThemeClass={activePanelTheme.panel}
       headerActions={panelHeaderActions}
@@ -349,6 +417,7 @@ export function MarkdownCanvasPage({
     <CanvasEditorPanel
       variant="mobile"
       panelTitle={panelTitle}
+      panelSubtitle={panelSubtitle}
       panelContent={panelContent}
       panelThemeClass={activePanelTheme.panel}
       headerActions={panelHeaderActions}

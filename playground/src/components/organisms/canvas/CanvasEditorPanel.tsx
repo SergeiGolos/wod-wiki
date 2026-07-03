@@ -11,6 +11,7 @@ import { STICKY_NAV_HEIGHT, MOBILE_STICKY_TOP } from '../../../canvas/canvasUtil
 interface CanvasEditorPanelProps {
   variant: 'desktop' | 'mobile'
   panelTitle: string
+  panelSubtitle?: string
   panelContent: React.ReactNode
   panelThemeClass?: string
   headerActions?: React.ReactNode
@@ -23,6 +24,7 @@ interface CanvasEditorPanelProps {
 export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   variant,
   panelTitle,
+  panelSubtitle,
   panelContent,
   panelThemeClass,
   headerActions,
@@ -34,6 +36,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   const chrome = (
     <MacOSChrome
       title={panelTitle}
+      subtitle={panelSubtitle}
       headerActions={headerActions}
       className={cn('transition-colors duration-300', panelThemeClass)}
     >

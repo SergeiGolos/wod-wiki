@@ -7,10 +7,13 @@ type: home
 
 # WOD Wiki {sticky dark full-bleed}
 
-## Wall Clock enabled Journal powered by Whiteboard
- 
-If that was a bunch of jibberish to you, scroll down to learn more in our interactive [Canvas]() overview.  Browse examples in the library of pre-encoded
+**Write it in Markdown. Run it as a Timer. Own the Analytics.**
 
+WOD Wiki compiles a plain-text workout into a live `WallClock` timer, then logs every round straight back into your training journal — one file, one loop, no app-switching.
+
+It's local-first and open source — your workouts are markdown files you keep, not rows in someone else's database — and fully extensible with [custom dialects](/guide/syntax/dialects) when the built-in grammar doesn't fit your sport.
+
+Scroll down for the interactive walkthrough, or jump straight in:
 
 ```button
 label:  Zero to Hero →
@@ -35,25 +38,19 @@ pipeline:
   - launch: dialog
 ```
 
-
-## The Whiteboard Script {sticky #statement theme:violet}
-
 ```view
 name:    home-demo
 state:   note
-source:  wods/examples/getting-started/statement-1.md
+source:  wods/examples/home/welcome-1.md
 runtime: in-memory
 launch:  host
 align:   right
 width:   45%
 ```
 
-```command
-target: home-demo
-pipeline:
-  - set-source: wods/examples/home/welcome-1.md
-  - set-state: note
-```
+## The Whiteboard Script {sticky #statement theme:violet}
+
+This is a Whiteboard Script — the same markdown you just scrolled past, now live in the editor on the right. Edit it, then press Run.
 
 ### 1 · Plan
 
@@ -167,6 +164,51 @@ pipeline:
   - set-state: track
 ```
 
+## Own Your Data {sticky #data theme:sky}
+
+Every workout, note, and result is a plain markdown file on your machine — not a row locked inside someone else's database. Sync it with git, back it up yourself, or read it in any text editor, forever.
+
+WOD Wiki is fully open source. Fork it, self-host it, or send a pull request.
+
+```button
+label:  View on GitHub ↗
+target: home-demo
+pipeline:
+  - navigate: https://github.com/SergeiGolos/wod-wiki
+```
+
+## Custom Dialects {sticky #dialects theme:rose}
+
+Fence types like `wod` and `log` tell the runtime what kind of note it's looking at — a workout to run, or a session to record. Don't like the defaults? Author your own dialect and the parser, tracker, and analytics all pick it up automatically.
+
+```command
+target: home-demo
+pipeline:
+  - set-source: wods/examples/syntax/dialect-wod.md
+  - set-state: note
+```
+
+```button
+label:  Explore Dialect Examples →
+target: home-demo
+pipeline:
+  - navigate: /guide/syntax/dialects
+```
+
 ## What's Next {sticky full-bleed dark}
 
-Ready to go deeper? Work through the six-step guide or explore the full syntax reference.
+Ready to go deeper? Work through the six-step guide, explore the full syntax reference, or star the project on GitHub.
+
+```button
+label:  Zero to Hero →
+target: home-demo
+pipeline:
+  - navigate: /guide/getting-started
+```
+
+```button
+label:  View on GitHub ↗
+target: home-demo
+pipeline:
+  - navigate: https://github.com/SergeiGolos/wod-wiki
+```

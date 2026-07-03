@@ -20,11 +20,11 @@ export const SplitCanvasTemplate: React.FC<SplitCanvasTemplateProps> = ({
 }) => {
   return (
     <section className="relative border-b border-border/50">
+      {heroSlot}
       <div className="lg:flex">
         {stickyAlign === 'left' && desktopPanel}
         <div className={cn('w-full', hasViewDef && 'lg:w-[40%]')}>
           {mobilePanel}
-          {heroSlot}
           {children}
         </div>
         {stickyAlign === 'right' && desktopPanel}
