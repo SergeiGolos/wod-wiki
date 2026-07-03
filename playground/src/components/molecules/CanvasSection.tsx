@@ -1,6 +1,6 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
-import type { CanvasSection as CanvasSectionType } from '../../canvas/parseCanvasMarkdown'
+import type { CanvasSection as CanvasSectionType, ButtonBlock } from '../../canvas/parseCanvasMarkdown'
 import {
   isFullBleed,
   isDark,
@@ -13,6 +13,15 @@ import { CanvasProse } from '../../canvas/CanvasProse'
 import { SectionButtons } from './SectionButtons'
 import { ExampleTabs } from './ExampleTabs'
 import type { RunButtonState } from './SectionButtons'
+
+/** Splits prose at the first blank line — used to pull a hero's opening
+ *  sentence out as a big headline, with everything after it as subtext. */
+function splitLeadParagraph(text: string): { lead: string; rest: string } {
+  const trimmed = text.replace(/^\s+/, '')
+  const match = trimmed.match(/\n\s*\n/)
+  if (!match || match.index === undefined) return { lead: trimmed, rest: '' }
+  return { lead: trimmed.slice(0, match.index), rest: trimmed.slice(match.index).trimStart() }
+}
 
 interface CanvasSectionProps {
   section: CanvasSectionType
@@ -54,6 +63,58 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
   const examples = section.examples ?? []
   const isHero = idx === -1
 
+  // The hero gets a dedicated layout — a kicker badge, a big lead headline
+  // pulled out of the opening sentence, subtext, and every CTA button
+  // grouped into one row — rather than the generic numbered-card treatment
+  // used for every other section.
+  if (isHero) {
+    const heroButtons: ButtonBlock[] = section.proseChunks
+      .filter((c) => c.kind === 'button')
+      .map((c) => (c as { kind: 'button'; button: ButtonBlock }).button)
+    const firstProse = section.proseChunks.find((c) => c.kind === 'prose' && c.text.trim() !== '')
+    const { lead, rest } = firstProse && firstProse.kind === 'prose'
+      ? splitLeadParagraph(firstProse.text.trim())
+      : { lead: '', rest: '' }
+
+    return (
+      <div
+        id={blockId}
+        data-section-id={keySuffix === 'default' ? section.id : undefined}
+        className="group relative flex min-h-[70vh] lg:min-h-[80vh] items-center justify-center overflow-hidden border-b border-border/50 bg-muted/20 px-6 py-16 lg:px-10 lg:py-24"
+      >
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/30 via-transparent to-transparent" />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.08]"
+          style={{
+            backgroundImage: 'radial-gradient(circle, currentColor 1.5px, transparent 1.5px)',
+            backgroundSize: '28px 28px',
+          }}
+        />
+
+        <div className="relative max-w-2xl w-full text-center">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-4 py-1.5">
+            <span className="size-1.5 rounded-full bg-primary" />
+            <span className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">
+              {section.heading}
+            </span>
+          </div>
+
+          {lead && <CanvasProse prose={lead} variant="heroLead" className="mb-5" />}
+          {rest && <CanvasProse prose={rest} variant="heroBody" className="mb-2" />}
+
+          {heroButtons.length > 0 && (
+            <SectionButtons
+              activations={heroButtons.map((b, i) => buttonToActivation(b, i))}
+              fullBleed
+              runState={hasViewDef ? runState : undefined}
+              deps={deps}
+            />
+          )}
+        </div>
+      </div>
+    )
+  }
+
   // When the parent supplies an override `prose` string (e.g. the
   // `{{workouts}}` split in collection mode), we render it as a single
   // chunk and fall back to the bottom button group. Otherwise we use the
@@ -74,10 +135,7 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
         'group relative border-b border-border/50 transition-colors duration-300',
         hasViewDef
           ? fullBleed
-            ? cn(
-                'flex items-center justify-center px-6 lg:px-10',
-                isHero ? 'min-h-[70vh] lg:min-h-[80vh] py-16 lg:py-24' : 'min-h-[35vh] py-12 lg:py-16',
-              )
+            ? 'flex items-center justify-center min-h-[35vh] py-12 lg:py-16 px-6 lg:px-10'
             : density === 'compact'
               ? 'py-10 lg:py-12 px-6 lg:px-10'
               : 'py-14 lg:py-20 px-6 lg:px-10'
