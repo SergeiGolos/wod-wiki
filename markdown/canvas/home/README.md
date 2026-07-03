@@ -9,7 +9,7 @@ type: home
 
 **Write it in Markdown. Run it as a Timer. Own the Analytics.**
 
-WOD Wiki compiles a plain-text workout into a live WallClock timer, then logs every round straight back into your training journal — one file, one loop, no app-switching.
+WOD Wiki compiles a plain-text workout into a live `WallClock` timer, then logs every round straight back into your training journal — one file, one loop, no app-switching.
 
 It's local-first and open source — your workouts are markdown files you keep, not rows in someone else's database — and fully extensible with [custom dialects](/guide/syntax/dialects) when the built-in grammar doesn't fit your sport.
 

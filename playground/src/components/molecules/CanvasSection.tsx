@@ -94,13 +94,7 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
         />
 
         <div className="relative max-w-2xl w-full text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-4 py-1.5">
-            <span className="size-1.5 rounded-full bg-primary" />
-            <span className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">
-              {section.heading}
-            </span>
-          </div>
-
+        
           {lead && <CanvasProse prose={lead} variant="heroLead" className="mb-5" />}
           {rest && <CanvasProse prose={rest} variant="heroBody" className="mb-2" />}
 
