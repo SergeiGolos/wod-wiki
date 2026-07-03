@@ -26,10 +26,27 @@ import { ClimbDialect } from './ClimbDialect';
  * the per-statement `transform` + `analyze` + append loop.
  */
 export class DialectStack {
-    private readonly dialects: readonly IDialect[];
+    private readonly dialects?: readonly IDialect[];
+    private readonly registry?: Registry<IDialect>;
 
-    constructor(dialects: readonly IDialect[]) {
-        this.dialects = dialects;
+    /**
+     * Accepts either a frozen array (the `createDialectStack(overrides)` /
+     * test-fixture case) or a live `Registry<IDialect>` (the production
+     * singleton below). When constructed from a registry, every `process()`
+     * call re-reads `registry.list()`, so a `dialectRegistry.register(...)`
+     * made by a consumer after import is honored on the next parse — a
+     * frozen array snapshot taken once at module-load time would not see it.
+     */
+    constructor(dialects: readonly IDialect[] | Registry<IDialect>) {
+        if (dialects instanceof Registry) {
+            this.registry = dialects;
+        } else {
+            this.dialects = dialects;
+        }
+    }
+
+    private get effectiveDialects(): readonly IDialect[] {
+        return this.registry ? this.registry.list() : (this.dialects ?? []);
     }
 
     /**
@@ -38,7 +55,7 @@ export class DialectStack {
      * metrics (hint markers + domain values) are appended onto the statement.
      */
     process(statement: ICodeStatement): void {
-        for (const dialect of this.dialects) {
+        for (const dialect of this.effectiveDialects) {
             dialect.transform?.(statement);
             const analysis = dialect.analyze(statement);
             if (analysis?.metrics?.length) {
@@ -54,9 +71,9 @@ export class DialectStack {
         }
     }
 
-    /** The ordered Dialect list (for inspection / testing). */
+    /** The ordered Dialect list (for inspection / testing). Live when registry-backed. */
     get list(): readonly IDialect[] {
-        return this.dialects;
+        return this.effectiveDialects;
     }
 }
 
@@ -112,9 +129,10 @@ export function createDialectStack(overrides: IDialect[] = []): DialectStack {
 /**
  * Module singleton — the default Dialect Stack used by the parse pipeline.
  *
- * Reads from {@link dialectRegistry} on construction, so any consumer
- * `register()` call made before the first parse is honored. Equivalent to
- * the old `const baseUnits = new UnitsDialect()` but with the full
- * sport-Dialect set wired.
+ * Registry-backed (not a frozen array snapshot): every `process()`/`processAll()`
+ * call re-reads {@link dialectRegistry} live, so a consumer `dialectRegistry.register(...)`
+ * call is honored on the very next parse, no matter when it happens relative to
+ * module load. Equivalent to the old `const baseUnits = new UnitsDialect()` but
+ * with the full sport-Dialect set wired, and genuinely extensible.
  */
-export const dialectStack: DialectStack = new DialectStack(dialectRegistry.list());
+export const dialectStack: DialectStack = new DialectStack(dialectRegistry);

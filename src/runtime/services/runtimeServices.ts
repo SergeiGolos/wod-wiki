@@ -50,25 +50,16 @@ export const strategyRegistry = new Registry<IRuntimeBlockStrategy>([
     new EffortFallbackStrategy(),
 ]);
 /**
- * Legacy array form of the production strategy set, preserved in the exact
- * insertion order the tests assert (the `Registry.list()` form sorts by
- * priority and therefore differs). Use `strategyRegistry` for new code.
+ * Legacy array form of the production strategy set, kept for backward
+ * compatibility. Derived from {@link strategyRegistry} (same instances, same
+ * priority-sorted order `JitCompiler` itself would apply) rather than
+ * re-constructing a separate set of strategy instances — a previous version
+ * of this export built its own `new XxxStrategy()` list independently,
+ * which meant `strategyRegistry.register()`/`unregister()` calls silently
+ * had no effect on anything reading `PRODUCTION_STRATEGIES` directly. Use
+ * `strategyRegistry` (or `createCompiler()`, which reads it live) for new code.
  */
-export const PRODUCTION_STRATEGIES: readonly IRuntimeBlockStrategy[] = [
-    // Logic (priority 90)
-    new AmrapLogicStrategy(),
-    new IntervalLogicStrategy(),
-    // Components (priority 50)
-    new GenericTimerStrategy(),
-    new GenericLoopStrategy(),
-    new GenericGroupStrategy(),
-    // Enhancements (priority 15–50)
-    new SoundStrategy(),
-    new ReportOutputStrategy(),
-    new ChildrenStrategy(),
-    // Fallback (priority 0)
-    new EffortFallbackStrategy(),
-];
+export const PRODUCTION_STRATEGIES: readonly IRuntimeBlockStrategy[] = strategyRegistry.list();
 
 /**
  * Create a JitCompiler with the given strategies (or the registered set).

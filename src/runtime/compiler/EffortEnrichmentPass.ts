@@ -1,12 +1,20 @@
 /**
  * EffortEnrichmentPass — Post-compilation pass that injects planned effort metrics.
  *
- * Runs AFTER JIT compilation completes. Walks the compiled block tree and
- * enriches exercise blocks with resolved effort-data metrics containing planned
- * MET, discipline factor, and intensity information.
+ * Runs AFTER JIT compilation completes, once per compiled block (there is no
+ * block tree — see `applyEffortEnrichment`'s doc comment). Enriches exercise
+ * blocks with resolved effort-data metrics containing planned MET, discipline
+ * factor, and intensity information.
  *
  * This enables the runtime UI to display "planned 12 MET-min" and effort identity
  * during execution, before analytics finalization.
+ *
+ * IMPORTANT: because this pass runs strictly after `JitCompiler.compile()`,
+ * any hints it merges onto the block (`resolved.effort.hints`, via
+ * `block.mergeHints`) arrive too late to affect strategy `match()`/`apply()`
+ * decisions — those already ran against the pre-compile *statement*, which
+ * this pass never touches. See docs/architectural-cleanup-tier-3-extensibility.md
+ * §3.3 verification notes for the full explanation and options for fixing it.
  *
  * @see ADR-0008 Decision 1: Compile-Time Effort Enrichment
  */
@@ -27,35 +35,23 @@ export interface EffortEnrichmentPassOptions {
 }
 
 /**
- * Enriches a compiled block tree with planned effort metrics.
+ * Enriches a single compiled block with planned effort metrics.
  *
- * @param root Root block of the compiled tree
+ * There is no block *tree* to walk here: the JIT compiler is lazy and
+ * per-round (see docs/parser-compiler-runtime-metrics.md) — `JitCompiler.compile()`
+ * returns exactly one block per call, and `IRuntimeBlock` has no `children`
+ * field. Each child block gets its own `applyEffortEnrichment` call when
+ * *it* is compiled and pushed (see `CompileAndPushBlockAction`), so a single,
+ * non-recursive call here already covers every block in the workout — an
+ * earlier version of this function attempted to recurse into `block.children`,
+ * which is dead code (no `IRuntimeBlock` implementation ever has that field).
+ *
+ * @param block The single compiled block to enrich (not a tree root)
  * @param options Resolver and configuration
  */
-export function applyEffortEnrichment(root: IRuntimeBlock, options: EffortEnrichmentPassOptions): void {
+export function applyEffortEnrichment(block: IRuntimeBlock, options: EffortEnrichmentPassOptions): void {
   const { resolver, overwrite = false, debug = false } = options;
-  const visited = new Set<string>();
-    function walk(block: IRuntimeBlock): void {
-        // Guard against circular references in the block tree
-        if (visited.has(block.key.toString())) {
-            if (debug) console.log(`[EffortEnrichment] Skipping visited block: ${block.key}`);
-            return;
-        }
-        visited.add(block.key.toString());
-
-        // Attempt to enrich this block if it's an exercise block
-        tryEnrichBlock(block, resolver, overwrite, debug);
-
-        // Recurse into child blocks so nested exercises also get enriched.
-        // (Previously the function was a no-op stub that never recursed —
-        // children with their own effort labels were silently skipped.)
-        const children = (block as unknown as { children?: readonly IRuntimeBlock[] }).children;
-        if (Array.isArray(children)) {
-            for (const child of children) walk(child);
-        }
-    }
-
-  walk(root);
+  tryEnrichBlock(block, resolver, overwrite, debug);
 }
 
 function tryEnrichBlock(
@@ -88,8 +84,12 @@ function tryEnrichBlock(
   }
   try {
   // Resolve the effort. `resolved.effort.hints` carries effort-defined hints
-  // (Tier 3 §3.3) — they reach the same `metric:hint` memory location as
-  // dialect-emitted hints and are consumed by the same strategies.
+  // (Tier 3 §3.3), merged into 'metric:hint' block memory below. NOTE: this
+  // runs after JitCompiler.compile() has already returned, so these hints
+  // are NOT visible to hasHint()/getHints() during strategy match()/apply()
+  // (those only read statement metrics, attached before compilation) — see
+  // IRuntimeBlock.mergeHints's doc comment and
+  // docs/architectural-cleanup-tier-3-extensibility.md §3.3 for the gap.
   const resolved = resolver.resolveEffort(label);
   const effortHints = resolved.effort.hints;
   if (effortHints && Object.keys(effortHints).length > 0) {

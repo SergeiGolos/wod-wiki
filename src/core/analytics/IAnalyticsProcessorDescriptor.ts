@@ -28,6 +28,12 @@ export interface IAnalyticsProcessorDescriptor {
    * processor to activate (AND semantics).
    * Omit or leave undefined when applicability cannot be expressed
    * with a simple metric list (e.g. disjunctive conditions).
+   *
+   * Typed `MetricType | string` (matching `IMetric.type`'s own type) so a
+   * custom dialect's domain metric type (e.g. `ClimbMetricType.Grade`,
+   * a plain string constant, not a `MetricType` enum member) can be used
+   * here directly — this was already the documented example above before
+   * the type was widened to actually allow it.
    */
-  readonly requiredMetrics?: readonly MetricType[];
+  readonly requiredMetrics?: readonly (MetricType | string)[];
 }

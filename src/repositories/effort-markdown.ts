@@ -76,6 +76,14 @@ function parseKeyValues(lines: string[], key: string): Record<string, unknown> |
         inBlock = false;
         continue;
       }
+      // A non-indented line marks the next top-level frontmatter key — end
+      // the block here rather than absorbing it (checked against the
+      // original `line`, not `trimmed`, since trimStart() always leaves a
+      // non-whitespace character regardless of the source indentation).
+      if (/^\S/.test(line)) {
+        inBlock = false;
+        continue;
+      }
       const m = trimmed.match(/^([\w.\-]+):\s*(.*)$/);
       if (m) {
         const [, k, raw] = m;
@@ -111,7 +119,7 @@ function parseKeyValues(lines: string[], key: string): Record<string, unknown> |
 
 
 /** Parse a single markdown file into an IEffort */
-function parseEffortFile(raw: string): IEffort | null {
+export function parseEffortFile(raw: string): IEffort | null {
   const fm = extractFrontmatter(raw);
   if (!fm) return null;
 

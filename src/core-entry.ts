@@ -63,6 +63,7 @@ export * from './runtime/blocks/RestBlock';
 export { dialectRegistry } from './dialects/DialectStack';
 export type { IDialect, DialectAnalysis } from './core/models/Dialect';
 export { strategyRegistry } from './runtime/services/runtimeServices';
+export { realtimeProcessorRegistry, summaryProcessorRegistry } from './core/analytics/StandardAnalyticsProfile';
 export type { IRealtimeProcessor } from './core/analytics/IRealtimeProcessor';
 export type { ISummaryProcessor } from './core/analytics/ISummaryProcessor';
 export type { IAnalyticsProcessorDescriptor } from './core/analytics/IAnalyticsProcessorDescriptor';
