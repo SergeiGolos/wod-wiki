@@ -2,11 +2,13 @@
 
 > Part of [Architectural Cleanup](./architectural-cleanup.md). This tier directly targets the stated flexibility goals: **techie users programming core behaviors against specific efforts, dialect-specific analytics, and easy dialect authoring/expansion.** The finding across all four items is the same shape — a mechanism that already exists and already works (hints, strategies, `requiredMetrics`) is either mis-scoped or not exposed, rather than something missing needing to be invented. Every proposal below reuses existing machinery instead of adding a new one.
 >
-> **Status: not started.** [Tier 1](./architectural-cleanup-tier-1-deletions.md) and [Tier 2](./architectural-cleanup-tier-2-consolidations.md) are both implemented and verified. Tier 1 removed the unused `DialectAnalysis.inheritance` field from `Dialect.ts` (§1.4) and shrank a comment in `runtimeServices.ts`, shifting the line numbers cited below for `IDialect` and `PRODUCTION_STRATEGIES` — both updated inline. Tier 2 did not touch any file this document cites with a line number beyond those two.
+> **Status: ⚠️ Apparently implemented, not independently verified.** [Tier 1](./architectural-cleanup-tier-1-deletions.md) and [Tier 2](./architectural-cleanup-tier-2-consolidations.md) went through the same rigor: independent code audits, real bugs found and fixed, `tsc`/test/build re-verification, written up as verification appendices. **Tier 3 has not had that pass.** A commit landed mid-cleanup (concurrent with the Tier 2 verification work, by a different agent/session or the user directly) whose message claims Tier 3 is complete, and a light inspection of the diff supports that: `src/core/Registry.ts` (new — the §3.4 `Registry<T>` class), `src/dialects/DialectStack.ts` (`dialectRegistry`, §3.4), `src/core/metrics/hints.ts` (`CONSUMED_HINTS` vocabulary, §3.2), `src/effort-registry/types.ts` (`IEffort.hints`, §3.3), `src/runtime/compiler/EffortEnrichmentPass.ts` (the child-recursion bug from §3.3 fixed), `src/core/analytics/IAnalyticsProcessorDescriptor.ts` (`dialects` → `fenceTypes` rename, §3.1), and `core-entry.ts` (all four now exported, §3.4) are all present and closely match this document's proposals — several of the new code comments even cite this document's section numbers directly. Per the item-by-item status notes below, this reflects an inspection of the diff only — no independent audit (line-by-line correctness check, `tsc --noEmit`, full test/build re-verification, dangling-reference sweep) has been run against it, unlike Tiers 1 and 2. Treat "implemented" as provisional until that audit happens.
 
 ---
 
 ## 3.1 Two unrelated "dialect" concepts collide on one filter field
+
+> ⚠️ **Apparently implemented, unverified.** `IAnalyticsProcessorDescriptor.dialects` was renamed to `fenceTypes`, with a doc comment explicitly noting the fence-vs-sport-dialect distinction and pointing sport-specific filtering at `requiredMetrics` — matching this section's proposal. Not independently checked for every call site that referenced the old `dialects` field name.
 
 **What exists today.** The codebase has two independent things both called "dialect":
 
@@ -67,6 +69,8 @@ No processor needs to know *which sport dialect* produced a metric — it only n
 ---
 
 ## 3.2 Dialect output is ~90% inert — define the hint vocabulary as the real contract
+
+> ⚠️ **Apparently implemented, unverified.** `src/core/metrics/hints.ts` now defines `CONSUMED_HINTS`/`CONSUMED_HINT_KEYS` with a header comment explaining the consumed-vs-analytics-only split in the same terms as this section, and is exported from `core-entry.ts`. Not independently checked that every strategy that reads a hint string literal was migrated to reference the new constants (vs. still comparing against a raw string).
 
 **What exists today.** Of everything the six sport dialects compute, grepping every consumer of hints (`hasHint`/`getHints`) across production code turns up exactly:
 
@@ -139,6 +143,8 @@ This also surfaces a decision point rather than leaving it implicit: CrossFit's 
 ---
 
 ## 3.3 Effort → behavior binding: reuse hints, don't invent a new binding system
+
+> ⚠️ **Apparently implemented, unverified.** `IEffort` gained an optional `hints?: Record<string, unknown>` field with a doc comment pointing at `CONSUMED_HINTS`, matching this section's proposal. Separately, `EffortEnrichmentPass`'s `walk()` was changed from a non-recursive stub to one that recurses into `block.children` — the exact bug this section flagged. Not independently checked: whether effort hints actually reach the same memory location dialect hints do end-to-end, whether the effort-vs-dialect hint precedence question this section raised as a design decision was addressed one way or the other, and whether `applyEffortEnrichment`'s gate on `analyticsContext?.effortResolver` being set was loosened.
 
 **What exists today.** There is currently **no path** to attach a runtime behavior to a specific effort (exercise). The effort registry (`src/effort-registry/types.ts:42-63`, `IEffort`) carries only analytics attributes — `baseAttributes: { met, discipline, disciplineFactor, intensityTier }` — and a `derivation` chain for numeric variants. No strategy or behavior anywhere keys off effort `slug` (confirmed by grep: zero hits for `slug` in `src/runtime/behaviors` or `src/runtime/compiler/strategies`).
 
@@ -236,6 +242,8 @@ Because effort hints land in the same place dialect hints do, **no strategy need
 ---
 
 ## 3.4 One registration story, exported to consumers
+
+> ⚠️ **Apparently implemented, unverified.** A new `src/core/Registry.ts` implements the `Registry<T>` shape this section proposes almost verbatim (`register`/`unregister`/`has`/`get`/`list`, priority-sorted, "last registration wins" on `id` collision — the doc's own recommended default). `dialectRegistry` (in `DialectStack.ts`) and `strategyRegistry` (in `runtimeServices.ts`) both exist, and `core-entry.ts` now exports `Registry`, `dialectRegistry`, `strategyRegistry`, the effort registry classes, and the hint vocabulary. Not independently checked: whether a `summaryProcessorRegistry`/`realtimeProcessorRegistry` equivalent was added for `StandardAnalyticsProfile` (this section's third hardcoded list) or whether that one was left as-is; whether the `dialectRegistry` genuinely reaches production compilation (i.e. `extractStatements`/`lezer-mapper.ts` reads from the registry rather than a separately-hardcoded stack); and whether the reject-vs-override design decision this section flagged for `register()` was made deliberately or defaulted silently.
 
 **What exists today.** Three separate hardcoded lists gate every extension point in the system:
 
