@@ -3,9 +3,11 @@
  *
  * ADR-0010 (IKEA Effect): after a user creates their first page they land in
  * an empty editor with nothing to feel ownership of. The wizard closes that
- * cold-start gap — but only once. This hook returns `true` exactly once per
- * browser installation; after `markFirstNoteDone()` runs (wizard completed or
- * dismissed), it returns `false` forever.
+ * cold-start gap — but only after the user *completes* it. Once
+ * `markFirstNoteDone()` runs (wizard completed via Done button), it returns
+ * `false` forever for this installation. Dismissal (Skip / Esc / backdrop)
+ * does NOT flip the gate; the dismissed-state sub-ticket (#662) handles the
+ * "wizard was dismissed" case via a separate localStorage flag.
  *
  * Lives in localStorage (per-installation, disposable metadata) so a user who
  * wipes their content does not see the wizard again. The trigger lives in the
