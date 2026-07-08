@@ -60,13 +60,19 @@ test.describe('Concept 3 landing page', () => {
     expect(pageErrors).toEqual([])
   })
 
-  test('preserves the previous playground landing page at /legacy', async ({ page }) => {
+  test('preserves the previous playground landing page at /legacy and does not render onboarding UI', async ({ page }) => {
     const { pageErrors } = monitorPageErrors(page)
 
     await page.goto('/legacy', { waitUntil: 'domcontentloaded', timeout: 20_000 })
 
     await expect(page.getByRole('heading', { name: 'Build and preview widget-driven workout pages.' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Run this example' })).toBeVisible()
+
+    // ADR-0010 boundary: the Goal Gradient banner lives on the canvas home
+    // (`/`) only. The legacy landing must not render it (no "Step 1 of N"
+    // credit, no "Getting started" progress label).
+    await expect(page.getByText(/Step 1 of \d+/)).toHaveCount(0)
+    await expect(page.getByText('Getting started')).toHaveCount(0)
 
     expect(pageErrors).toEqual([])
   })
