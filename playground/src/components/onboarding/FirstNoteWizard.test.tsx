@@ -55,15 +55,15 @@ describe('FirstNoteWizard close contract', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  // Note on consumer-side wiring (covered by PlaygroundNotePage's manual
-  // verification, not unit-tested here because rendering the full page
-  // pulls in EditorView, IndexedDB, theme provider, command palette, etc.):
-  // the consumer must flip `open` to false on `onClose(false)` for the
-  // controlled Dialog to close. The fix for the #662-revision trap
-  // (PlaygroundNotePage.tsx: now binds `open={isFirstNote && !isInitialized
-  // && !dismissed}` and calls `setDismissed(true)` in handleWizardClose's
-  // !completed branch) is the canonical pattern. A future refactor that
-  // extracts this into a `useFirstNoteWizardState()` hook would let this
-  // test move to a renderHook-based assertion — that's the layer-shape
-  // work the wayfinder map parked as a fog item.
+  // Note on consumer-side wiring: rendering the full PlaygroundNotePage
+  // pulls in EditorView, IndexedDB, theme provider, command palette, etc.,
+  // so this file tests the wizard in isolation. The consumer wiring
+  // (`open={isFirstNote && !isInitialized && !dismissed}` + the dismissed
+  // `setDismissed(true)` branch in handleClose) is exercised by
+  // useFirstNoteWizardState.test.ts via renderHook, which is the real
+  // regression guard for the #662-revision trap (a literal `return`
+  // inside the !completed branch left the dialog non-dismissible).
+  // Standard Headless UI controlled-Dialog pattern; jsdom doesn't fire
+  // leave transitions, so testing the unmount via fireEvent+assertion
+  // here times out — the renderHook tests are the right surface.
 })
