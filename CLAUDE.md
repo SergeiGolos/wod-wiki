@@ -282,3 +282,18 @@ After making changes, always validate:
 - JIT compilation should complete within milliseconds for typical workout scripts
 - Monaco Editor performance depends on efficient syntax highlighting and suggestion systems
 - Memory management is critical - always dispose of runtime blocks properly
+
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `github.com/SergeiGolos/wod-wiki` via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) created on demand by the `triage` skill. `wontfix` is pre-existing; the other four are new. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Multi-context layout: shared root `CONTEXT.md`, `CONTEXT-MAP.md` indexing per-context `CONTEXT.md` files (`src/CONTEXT.md`, `playground/CONTEXT.md`), system-wide ADRs in `docs/adr/`. See `docs/agents/domain.md`.
