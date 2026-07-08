@@ -1,12 +1,21 @@
 /**
  * FirstNoteWizard — a 3-step, one-shot, dismissable Dialog.
  *
- * ADR-0010 (IKEA Effect): runs exactly once (gated by `useIsFirstNoteEver`),
- * collects three quick answers, and writes them to the user's local profile so
- * they've *built* a personalized config in ~30 seconds. Dismissable via Esc or
- * backdrop click — forcing completion would kill the IKEA effect (the user must
- * choose to build). It is a Dialog, not a full-page flow, so it never breaks
- * navigation history.
+ * ADR-0010 (IKEA Effect): runs at most once per installation (gated by
+ * `useIsFirstNoteEver`), collects three quick answers, and writes them to
+ * the user's local profile so they've *built* a personalized config in
+ * ~30 seconds. Dismissable via Skip / Esc / backdrop click — forcing
+ * completion would kill the IKEA effect (the user must choose to build).
+ *
+ * Close contract: `onClose` is invoked with `completed: true` only when the
+ * user reaches the final step and clicks "Done". All other close paths
+ * (Skip button, Esc, backdrop) invoke `onClose(false)`. The consumer uses
+ * the boolean to decide whether to flip the one-shot gate (only on
+ * completion) and whether to refresh derived state from the profile
+ * (only on completion — dismissal writes no profile).
+ *
+ * It is a Dialog, not a full-page flow, so it never breaks navigation
+ * history.
  */
 
 import { useState } from 'react';
@@ -20,8 +29,12 @@ import {
 
 export interface FirstNoteWizardProps {
   open: boolean;
-  /** Called after the wizard is completed or dismissed (flip the one-shot flag here). */
-  onClose: () => void;
+  /** Called when the wizard closes. `completed` is `true` only from the
+   * final-step Done button; `false` from Skip / Esc / backdrop. The
+   * consumer decides what to do with each (e.g. flip the one-shot gate,
+   * refresh profile-derived state) — the wizard itself does not flip
+   * any persistent flag. */
+  onClose: (completed: boolean) => void;
 }
 
 const GOALS: { value: TrainingGoal; label: string; hint: string }[] = [
@@ -52,7 +65,7 @@ export function FirstNoteWizard({ open, onClose }: FirstNoteWizardProps) {
       defaultUnits: units ?? undefined,
       pinnedEffort: pinnedEffort.trim() || undefined,
     });
-    onClose();
+    onClose(true);
   };
 
   const next = () => {
@@ -62,7 +75,7 @@ export function FirstNoteWizard({ open, onClose }: FirstNoteWizardProps) {
   const back = () => setStep((s) => Math.max(0, s - 1));
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(false); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Make it yours — 30 seconds</DialogTitle>
@@ -172,7 +185,7 @@ export function FirstNoteWizard({ open, onClose }: FirstNoteWizardProps) {
         <div className="mt-6 flex items-center justify-between">
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => onClose(false)}
             className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
           >
             Skip
