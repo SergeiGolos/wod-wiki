@@ -37,6 +37,11 @@ import { ToastAction } from '@/components/atoms/primitives/toast'
 import { DEFAULT_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundContent'
 import { formatPlaygroundPageTitle } from '@/lib/playgroundDisplay'
 import { localDateKey } from '../views/queriable-list/JournalDateScroll'
+import { useOnboardingProgress } from '../hooks/useOnboardingProgress'
+import { useIsFirstNoteEver } from '../hooks/useIsFirstNoteEver'
+import { FirstNoteWizard } from '../components/onboarding/FirstNoteWizard'
+import { getProfile } from '../services/playgroundProfile'
+import { Pin } from 'lucide-react'
 
 export interface PlaygroundNotePageProps {
   theme: string
@@ -57,11 +62,33 @@ export function PlaygroundNotePage({
   const noteId = pageId('playground', pageName)
   const pageTitle = useMemo(() => (id ? formatPlaygroundPageTitle(id) : 'Playground'), [id])
   const navigate = useNavigate()
-  const { content, loading, onChange, onLineChange, onBlur, resetToOriginal } = usePlaygroundContent({
+  const { content, loading, onChange: persistOnChange, onLineChange, onBlur, resetToOriginal } = usePlaygroundContent({
     category: 'playground',
     name: pageName,
     mdContent: DEFAULT_PLAYGROUND_CONTENT.content,
   })
+
+  // Onboarding (ADR-0010, Goal Gradient) — mark meaningful actions.
+  const { mark } = useOnboardingProgress()
+  const onChange = useCallback(
+    (value: string) => {
+      mark('editedNote')
+      persistOnChange(value)
+    },
+    [mark, persistOnChange],
+  )
+
+  // First-Note Wizard (ADR-0010, IKEA Effect) — one-shot per installation.
+  const { isFirstNote, markFirstNoteDone } = useIsFirstNoteEver()
+
+  // Pinned effort (ADR-0010, IKEA payoff) — the wizard's answer becomes a
+  // visible quick-insert button, so "I answered questions" becomes "I built
+  // something." Re-read from the local profile whenever the wizard closes.
+  const [pinnedEffort, setPinnedEffort] = useState<string>(() => getProfile().pinnedEffort ?? '')
+  const handleWizardClose = useCallback(() => {
+    markFirstNoteDone()
+    setPinnedEffort(getProfile().pinnedEffort ?? '')
+  }, [markFirstNoteDone])
 
   const [results, setResults] = useState<WorkoutResult[]>([])
 
@@ -77,7 +104,9 @@ export function PlaygroundNotePage({
 
   // Place cursor at the $CURSOR token position on first mount
   const cursorPlaced = useRef(false)
+  const editorViewRef = useRef<EditorView | null>(null)
   const handleInternalViewCreated = useCallback((view: EditorView) => {
+    editorViewRef.current = view
     onViewCreated?.(view)
     if (cursorPlaced.current) return
     cursorPlaced.current = true
@@ -85,18 +114,28 @@ export function PlaygroundNotePage({
     view.dispatch({ selection: EditorSelection.cursor(offset) })
   }, [onViewCreated])
 
+  // Insert the pinned effort at the editor's cursor (IKEA payoff).
+  const insertPinnedEffort = useCallback(() => {
+    const view = editorViewRef.current
+    if (!view || !pinnedEffort) return
+    view.focus()
+    view.dispatch(view.state.replaceSelection(pinnedEffort))
+  }, [pinnedEffort])
+
   const handleStartWorkout = useCallback(
     (block: ScriptBlock) => {
+      mark('ranWorkout')
       const runtimeId = uuidv4()
       pendingRuntimes.set(runtimeId, { block, noteId })
       navigate(runPath(runtimeId))
     },
-    [noteId, navigate],
+    [noteId, navigate, mark],
   )
 
   const handleAddToToday = useCallback(
     async (block: ScriptBlock) => {
       try {
+        mark('loggedEffort')
         const journalNoteId = await appendWorkoutToJournal({
           workoutName: pageTitle,
           category: 'playground',
@@ -119,7 +158,7 @@ export function PlaygroundNotePage({
         toast({ title: 'Error', description: 'Could not add to journal', variant: 'destructive' })
       }
     },
-    [pageTitle, pageName, navigate],
+    [pageTitle, pageName, navigate, mark],
   )
 
   const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
@@ -244,18 +283,32 @@ export function PlaygroundNotePage({
 
   return (
     <>
+      <FirstNoteWizard open={isFirstNote} onClose={handleWizardClose} />
       <JournalPageShell
         title={pageTitle}
         index={index}
         onScrollToSection={onScrollToSection}
         actions={
-          <PageActions
-            mode="playground"
-            currentWorkout={{ name: pageTitle, content }}
-            index={index}
-            onSearch={onSearch ?? (() => {})}
-            onReset={resetToOriginal}
-          />
+          <div className="flex items-center gap-2">
+            {pinnedEffort && (
+              <button
+                type="button"
+                onClick={insertPinnedEffort}
+                title={`Insert ${pinnedEffort} at the cursor`}
+                className="inline-flex items-center gap-1 rounded-pill border border-brand/40 bg-brand/5 px-2.5 py-1 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/10 dark:text-brand-light"
+              >
+                <Pin className="size-3" aria-hidden="true" />
+                {pinnedEffort}
+              </button>
+            )}
+            <PageActions
+              mode="playground"
+              currentWorkout={{ name: pageTitle, content }}
+              index={index}
+              onSearch={onSearch ?? (() => {})}
+              onReset={resetToOriginal}
+            />
+          </div>
         }
         editor={
           <NoteEditor
