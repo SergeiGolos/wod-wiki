@@ -30,4 +30,9 @@ describe('playgroundProfile', () => {
     window.localStorage.setItem('wodwiki.profile.v1', '{not valid json');
     expect(getProfile()).toEqual({});
   });
+
+  it('firstNoteUsedAt round-trips through updateProfile + getProfile', () => {
+    updateProfile({ firstNoteUsedAt: 1234567890 });
+    expect(getProfile().firstNoteUsedAt).toBe(1234567890);
+  });
 });

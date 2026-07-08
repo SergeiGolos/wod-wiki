@@ -40,7 +40,7 @@ import { localDateKey } from '../views/queriable-list/JournalDateScroll'
 import { useOnboardingProgress } from '../hooks/useOnboardingProgress'
 import { useFirstNoteWizardState } from '../hooks/useFirstNoteWizardState'
 import { FirstNoteWizard } from '../components/onboarding/FirstNoteWizard'
-import { getProfile } from '../services/playgroundProfile'
+import { getProfile, updateProfile } from '../services/playgroundProfile'
 import { Pin } from 'lucide-react'
 
 export interface PlaygroundNotePageProps {
@@ -118,9 +118,17 @@ export function PlaygroundNotePage({
   }, [onViewCreated])
 
   // Insert the pinned effort at the editor's cursor (IKEA payoff).
+  // Also marks `firstNoteUsedAt` on the profile on the first click — the
+  // page reads that flag to apply the IKEA strong-treatment styling on
+  // the first note only (see wayfinder #665). After the first click the
+  // button steps down to the regular quiet treatment.
   const insertPinnedEffort = useCallback(() => {
     const view = editorViewRef.current
     if (!view || !pinnedEffort) return
+    const profile = getProfile()
+    if (!profile.firstNoteUsedAt) {
+      updateProfile({ firstNoteUsedAt: Date.now() })
+    }
     view.focus()
     view.dispatch(view.state.replaceSelection(pinnedEffort))
   }, [pinnedEffort])
@@ -294,13 +302,23 @@ export function PlaygroundNotePage({
         actions={
           <div className="flex items-center gap-2">
             {pinnedEffort && (
+              // IKEA strong treatment renders only on the first note the
+              // user inserts the pinned effort on. Subsequent notes step
+              // down to the regular quiet treatment.
               <button
                 type="button"
                 onClick={insertPinnedEffort}
                 title={`Insert ${pinnedEffort} at the cursor`}
-                className="inline-flex items-center gap-1 rounded-pill border border-brand/40 bg-brand/5 px-2.5 py-1 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/10 dark:text-brand-light"
+                className={!getProfile().firstNoteUsedAt
+                  ? 'inline-flex items-center gap-1.5 rounded-pill border border-brand/60 border-l-2 border-l-brand bg-brand/10 pl-3 pr-3 py-1.5 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/15 dark:text-brand-light'
+                  : 'inline-flex items-center gap-1 rounded-pill border border-brand/40 bg-brand/5 px-2.5 py-1 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/10 dark:text-brand-light'}
               >
-                <Pin className="size-3" aria-hidden="true" />
+                <Pin
+                  className={!getProfile().firstNoteUsedAt
+                    ? 'size-4 text-brand-deep dark:text-brand-light'
+                    : 'size-3'}
+                  aria-hidden="true"
+                />
                 {pinnedEffort}
               </button>
             )}

@@ -26,6 +26,10 @@ export interface PlaygroundProfile {
   defaultUnits?: UnitSystem;
   /** Effort id/slug the user pinned as their favorite. */
   pinnedEffort?: string;
+  /** Epoch ms when the user first used the pinned-effort quick-insert.
+   *  Read by `PlaygroundNotePage` to apply the IKEA strong-treatment
+   *  styling on the first note only (see wayfinder #665). */
+  firstNoteUsedAt?: number;
 }
 
 const STORAGE_KEY = 'wodwiki.profile.v1';
