@@ -35,4 +35,9 @@ describe('playgroundProfile', () => {
     updateProfile({ firstNoteUsedAt: 1234567890 });
     expect(getProfile().firstNoteUsedAt).toBe(1234567890);
   });
+
+  it('completionCelebrated round-trips through updateProfile + getProfile', () => {
+    updateProfile({ completionCelebrated: true });
+    expect(getProfile().completionCelebrated).toBe(true);
+  });
 });

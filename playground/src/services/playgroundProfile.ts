@@ -30,6 +30,11 @@ export interface PlaygroundProfile {
    *  Read by `PlaygroundNotePage` to apply the IKEA strong-treatment
    *  styling on the first note only (see wayfinder #665). */
   firstNoteUsedAt?: number;
+  /** One-shot flag — true after the Goal Gradient completion celebration
+   *  has been shown. Read by `OnboardingBanner` to gate the pill (see
+   *  wayfinder #668). Survives across home-page visits so the user sees
+   *  the celebration once per installation. */
+  completionCelebrated?: boolean;
 }
 
 const STORAGE_KEY = 'wodwiki.profile.v1';
