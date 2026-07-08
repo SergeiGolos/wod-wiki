@@ -1,6 +1,8 @@
 import { useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Moon, Sun, Sparkles, PanelTop, LayoutGrid } from 'lucide-react'
+import { useOnboardingProgress } from '../hooks/useOnboardingProgress'
+import { OnboardingBanner } from '../components/onboarding/OnboardingBanner'
 import { useTheme } from '@/contexts/ThemeProvider'
 import { Switch } from '@/components/atoms/primitives/switch'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
@@ -92,6 +94,10 @@ export function PlaygroundLandingPage() {
   const { theme, setTheme } = useTheme()
   const workoutSectionRef = useRef<HTMLElement | null>(null)
 
+  // Goal Gradient (ADR-0010): the banner credits the visit + shows progress;
+  // we keep `mark` here to record running the example.
+  const { mark } = useOnboardingProgress()
+
   const isDarkMode = useMemo(() => {
     if (theme === 'dark') return true
     if (theme === 'light') return false
@@ -159,10 +165,11 @@ export function PlaygroundLandingPage() {
         '',
       ].join('\n')
 
+      mark('ranWorkout')
       const id = await createPlaygroundPage(template)
       navigate(playgroundPath(id))
     },
-    [navigate],
+    [navigate, mark],
   )
 
   const handleOpenDocs = useCallback(
@@ -191,6 +198,7 @@ export function PlaygroundLandingPage() {
       }
       heroSlot={<AttentionWidget config={ATTENTION_CONFIG} onAction={handleAttentionAction} />}
     >
+      <OnboardingBanner className="mt-6" hint="Start by editing the example below" />
       <section ref={workoutSectionRef} id="workout-widget-surface" className="mt-8 grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <CodeExampleWidget

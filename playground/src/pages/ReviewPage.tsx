@@ -11,6 +11,7 @@ import { FullscreenReview } from '@/components/organisms/review/FullscreenReview
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import type { Segment } from '@/core/models/AnalyticsModels'
+import { useOnboardingProgress } from '../hooks/useOnboardingProgress'
 
 export function ReviewPage() {
   const { runtimeId } = useParams<{ runtimeId: string }>()
@@ -18,6 +19,12 @@ export function ReviewPage() {
   const [segments, setSegments] = useState<Segment[] | null>(null)
   const [title, setTitle] = useState('Workout Review')
   const [error, setError] = useState<string | null>(null)
+
+  // Onboarding (ADR-0010, Goal Gradient) — opening a review is the fifth step.
+  const { mark } = useOnboardingProgress()
+  useEffect(() => {
+    mark('openedReview')
+  }, [mark])
 
   useEffect(() => {
     const resultId = runtimeId

@@ -24,6 +24,7 @@ import { CanvasSection as CanvasSectionCard } from '../components/molecules/Canv
 import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePanel'
 import { CanvasEditorPanel } from '../components/organisms/canvas/CanvasEditorPanel'
 import { SplitCanvasTemplate } from '../templates/SplitCanvasTemplate'
+import { OnboardingBanner } from '../components/onboarding/OnboardingBanner'
 import {
   getCanvasNoteId,
   resolveSource,
@@ -382,7 +383,10 @@ export function MarkdownCanvasPage({
     scriptBlocksRef,
   })
 
-  const heroSlot = heroSlotProp ?? (heroHasContent && heroSection ? (
+  // Goal Gradient (ADR-0010): the home page gets an onboarding credit/progress
+  // strip above the markdown hero. Other canvas routes are unaffected.
+  const isHome = route === '/'
+  const heroContent = heroSlotProp ?? (heroHasContent && heroSection ? (
     <CanvasSectionCard
       section={heroSection}
       idx={-1}
@@ -397,6 +401,12 @@ export function MarkdownCanvasPage({
       selectedExampleIndex={0}
     />
   ) : null)
+  const heroSlot = isHome ? (
+    <>
+      <OnboardingBanner className="mb-6" hint="Start by editing the workout below" />
+      {heroContent}
+    </>
+  ) : heroContent
 
   const desktopPanel = viewDef && (
     <CanvasEditorPanel
