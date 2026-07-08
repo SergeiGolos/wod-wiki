@@ -39,6 +39,7 @@ import { formatPlaygroundPageTitle } from '@/lib/playgroundDisplay'
 import { localDateKey } from '../views/queriable-list/JournalDateScroll'
 import { useOnboardingProgress } from '../hooks/useOnboardingProgress'
 import { useIsFirstNoteEver } from '../hooks/useIsFirstNoteEver'
+import { useProfileInitialized } from '../hooks/useProfileInitialized'
 import { FirstNoteWizard } from '../components/onboarding/FirstNoteWizard'
 import { getProfile } from '../services/playgroundProfile'
 import { Pin } from 'lucide-react'
@@ -79,15 +80,32 @@ export function PlaygroundNotePage({
   )
 
   // First-Note Wizard (ADR-0010, IKEA Effect) — one-shot per installation.
+  // The wizard renders when ALL three gates allow: the user has never
+  // completed it, the profile is empty, AND they have not dismissed it
+  // on this page mount. The `dismissed` flag is per-mount state — it
+  // suppresses the wizard for the current note, but the wizard
+  // reappears on the next note navigation (the page is keyed by
+  // effectivePlaygroundId, so navigating notes remounts it) if the
+  // profile is still empty. This honors ADR-0010 Decision 2
+  // (Dismissal semantics): dismissal never flips the completion gate
+  // or marks the profile initialized; it only hides the wizard for
+  // the current note.
   const { isFirstNote, markFirstNoteDone } = useIsFirstNoteEver()
+  const { isInitialized } = useProfileInitialized()
+  const [dismissed, setDismissed] = useState(false)
 
   // Pinned effort (ADR-0010, IKEA payoff) — the wizard's answer becomes a
   // visible quick-insert button, so "I answered questions" becomes "I built
-  // something." Re-read from the local profile whenever the wizard closes.
+  // something." Refresh from the local profile on completion; on dismissal
+  // the profile is unchanged so the existing pinnedEffort is preserved.
   const [pinnedEffort, setPinnedEffort] = useState<string>(() => getProfile().pinnedEffort ?? '')
-  const handleWizardClose = useCallback(() => {
-    markFirstNoteDone()
-    setPinnedEffort(getProfile().pinnedEffort ?? '')
+  const handleWizardClose = useCallback((completed: boolean) => {
+    if (completed) {
+      markFirstNoteDone()
+      setPinnedEffort(getProfile().pinnedEffort ?? '')
+    } else {
+      setDismissed(true)
+    }
   }, [markFirstNoteDone])
 
   const [results, setResults] = useState<WorkoutResult[]>([])
@@ -283,7 +301,7 @@ export function PlaygroundNotePage({
 
   return (
     <>
-      <FirstNoteWizard open={isFirstNote} onClose={handleWizardClose} />
+      <FirstNoteWizard open={isFirstNote && !isInitialized && !dismissed} onClose={handleWizardClose} />
       <JournalPageShell
         title={pageTitle}
         index={index}

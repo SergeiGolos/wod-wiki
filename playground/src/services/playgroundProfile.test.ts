@@ -21,6 +21,9 @@ describe('playgroundProfile', () => {
       defaultUnits: 'kg',
       pinnedEffort: 'Pullups',
     });
+    // updateProfile also writes the profileInitialized flag, read by
+    // useProfileInitialized to gate the First-Note Wizard's re-appearance.
+    expect(window.localStorage.getItem('wodwiki.profileInitialized.v1')).toBe('true');
   });
 
   it('tolerates malformed stored JSON', () => {

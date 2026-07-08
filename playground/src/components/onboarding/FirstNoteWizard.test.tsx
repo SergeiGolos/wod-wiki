@@ -54,4 +54,16 @@ describe('FirstNoteWizard close contract', () => {
 
     expect(screen.queryByRole('dialog')).toBeNull()
   })
+
+  // Note on consumer-side wiring (covered by PlaygroundNotePage's manual
+  // verification, not unit-tested here because rendering the full page
+  // pulls in EditorView, IndexedDB, theme provider, command palette, etc.):
+  // the consumer must flip `open` to false on `onClose(false)` for the
+  // controlled Dialog to close. The fix for the #662-revision trap
+  // (PlaygroundNotePage.tsx: now binds `open={isFirstNote && !isInitialized
+  // && !dismissed}` and calls `setDismissed(true)` in handleWizardClose's
+  // !completed branch) is the canonical pattern. A future refactor that
+  // extracts this into a `useFirstNoteWizardState()` hook would let this
+  // test move to a renderHook-based assertion — that's the layer-shape
+  // work the wayfinder map parked as a fog item.
 })

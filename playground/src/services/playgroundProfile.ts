@@ -10,8 +10,14 @@
  * store (`playgroundContent`). They are intentionally disposable and
  * per-installation. Unknown keys are ignored on read; the shape can evolve with
  * no migration.
+ *
+ * `updateProfile` also writes the `wodwiki.profileInitialized.v1` flag on
+ * every call, regardless of patch content. A patch of all-undefined (the
+ * "user clicked through without selecting" path through
+ * `FirstNoteWizard.finish`) still sets the flag — the user has interacted
+ * with the profile, even if they chose nothing. The flag is read by
+ * `useProfileInitialized` to gate the wizard's re-appearance.
  */
-
 export type TrainingGoal = 'general' | 'sport' | 'hybrid' | 'rehab';
 export type UnitSystem = 'lb' | 'kg';
 
@@ -42,6 +48,11 @@ export function updateProfile(patch: Partial<PlaygroundProfile>): PlaygroundProf
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      // Mark the profile as initialized on every write — even an
+      // all-undefined patch counts (user clicked through without
+      // selecting). The flag is read by `useProfileInitialized`; see
+      // that file's docstring for the full rationale.
+      window.localStorage.setItem('wodwiki.profileInitialized.v1', 'true');
     } catch {
       // Non-fatal — preferences are disposable.
     }
