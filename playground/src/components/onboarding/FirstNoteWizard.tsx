@@ -18,7 +18,7 @@
  * history.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/atoms/Dialog';
 import { cn } from '@/lib/utils';
 import {
@@ -26,6 +26,7 @@ import {
   type TrainingGoal,
   type UnitSystem,
 } from '../../services/playgroundProfile';
+import { clearProgress, getProgress, writeProgress } from '../../services/firstNoteProgress';
 
 export interface FirstNoteWizardProps {
   open: boolean;
@@ -50,12 +51,25 @@ const UNITS: { value: UnitSystem; label: string }[] = [
 ];
 
 const SUGGESTED_EFFORTS = ['Pullups', 'Pushups', 'Air Squats', 'Burpees', 'Row', 'Deadlift'];
-
 export function FirstNoteWizard({ open, onClose }: FirstNoteWizardProps) {
-  const [step, setStep] = useState(0);
-  const [goal, setGoal] = useState<TrainingGoal | null>(null);
-  const [units, setUnits] = useState<UnitSystem | null>(null);
-  const [pinnedEffort, setPinnedEffort] = useState<string>('');
+  // Partial-progress resume (ADR-0010, ticket #663): the four state
+  // values are seeded from localStorage on mount, and persisted on every
+  // change. If the user dismisses mid-wizard, the next mount resumes
+  // from where they left off — they don't re-pick goal or units they
+  // already answered. The blob is cleared on the Done path because the
+  // answers are now in `playgroundProfile` and the progress blob is
+  // redundant.
+  const [step, setStep] = useState<number>(() => getProgress().step)
+  const [goal, setGoal] = useState<TrainingGoal | null>(() => getProgress().goal)
+  const [units, setUnits] = useState<UnitSystem | null>(() => getProgress().units)
+  const [pinnedEffort, setPinnedEffort] = useState<string>(() => getProgress().pinnedEffort)
+
+  // Persist any change to the progress blob. Re-runs on every state
+  // change, which is acceptable: localStorage writes are cheap and
+  // idempotent.
+  useEffect(() => {
+    writeProgress({ step, goal, units, pinnedEffort })
+  }, [step, goal, units, pinnedEffort])
 
   const totalSteps = 3;
 
@@ -65,9 +79,10 @@ export function FirstNoteWizard({ open, onClose }: FirstNoteWizardProps) {
       defaultUnits: units ?? undefined,
       pinnedEffort: pinnedEffort.trim() || undefined,
     });
-    onClose(true);
+    // Clear the progress blob — the answers are now in the profile.
+    clearProgress()
+    onClose(true)
   };
-
   const next = () => {
     if (step < totalSteps - 1) setStep((s) => s + 1);
     else finish();
