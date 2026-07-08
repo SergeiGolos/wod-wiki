@@ -2,9 +2,15 @@
  * OnboardingBanner — the Goal Gradient credit / progress strip (ADR-0010).
  *
  * On mount it credits the visit (`mark('visitedLanding')`). It shows a
- * "Step 1 of N · Start by editing the example" credit until the user has done
- * more than land, then a progress bar, then hides itself once onboarding is
- * complete. Self-contained so any landing surface can drop it in.
+ * "Step 1 of N · Start by editing the workout below" credit until the user
+ * has done more than land, then a progress bar, then hides itself once
+ * onboarding is complete.
+ *
+ * Owning surface: the canvas home page (`/`) — mounted by
+ * `MarkdownCanvasPage` when `route === '/'`. ADR-0010 (Decision 1, Boundary)
+ * gives the Goal Gradient "land" credit a single owning surface; the
+ * legacy landing (`/legacy`) does not render this banner. Do not mount
+ * this component on additional surfaces without updating the ADR.
  */
 
 import { useEffect } from 'react';
