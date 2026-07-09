@@ -38,9 +38,9 @@ import { DEFAULT_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundConten
 import { formatPlaygroundPageTitle } from '@/lib/playgroundDisplay'
 import { localDateKey } from '../views/queriable-list/JournalDateScroll'
 import { useOnboardingEvents } from '../hooks/useOnboardingEvents'
+import { useCursorInsert } from '../hooks/useCursorInsert'
 import { useFirstNoteWizardState } from '../hooks/useFirstNoteWizardState'
 import { FirstNoteWizard } from '../components/onboarding/FirstNoteWizard'
-import { getProfile, updateProfile } from '../services/playgroundProfile'
 import { Pin } from 'lucide-react'
 
 export interface PlaygroundNotePageProps {
@@ -86,15 +86,15 @@ export function PlaygroundNotePage({
   // profile-initialized, per-mount dismissal); the page just binds.
   const { open: wizardOpen, handleClose: rawHandleClose } = useFirstNoteWizardState()
 
-  // Pinned effort (ADR-0010, IKEA payoff) — the wizard's answer becomes a
-  // visible quick-insert button, so "I answered questions" becomes "I built
-  // something." Refresh from the local profile on completion; on dismissal
-  // the profile is unchanged so the existing pinnedEffort is preserved.
-  const [pinnedEffort, setPinnedEffort] = useState<string>(() => getProfile().pinnedEffort ?? '')
+  // Pinned effort (ADR-0010, IKEA payoff) — see useCursorInsert for the
+  // IKEA payoff surface contract. The hook owns the editor view
+  // registration, the profile reads/writes (firstNoteUsedAt + pinnedEffort),
+  // and the strong-treatment signal. The page just binds.
+  const { insert: insertPinnedEffort, hasInserted, pinnedEffort, refreshPinnedEffort, registerView } = useCursorInsert()
   const handleWizardClose = useCallback((completed: boolean) => {
     rawHandleClose(completed)
-    if (completed) setPinnedEffort(getProfile().pinnedEffort ?? '')
-  }, [rawHandleClose])
+    if (completed) refreshPinnedEffort()
+  }, [rawHandleClose, refreshPinnedEffort])
 
   const [results, setResults] = useState<WorkoutResult[]>([])
 
@@ -108,33 +108,18 @@ export function PlaygroundNotePage({
     refreshResults()
   }, [refreshResults])
 
-  // Place cursor at the $CURSOR token position on first mount
+  // Place cursor at the $CURSOR token position on first mount.
+  // Register the view with the cursor-insert hook so the IKEA payoff
+  // button can dispatch into it. The hook owns the editor-view coupling.
   const cursorPlaced = useRef(false)
-  const editorViewRef = useRef<EditorView | null>(null)
   const handleInternalViewCreated = useCallback((view: EditorView) => {
-    editorViewRef.current = view
+    registerView(view)
     onViewCreated?.(view)
     if (cursorPlaced.current) return
     cursorPlaced.current = true
     const offset = Math.min(DEFAULT_PLAYGROUND_CONTENT.cursorOffset, view.state.doc.length)
     view.dispatch({ selection: EditorSelection.cursor(offset) })
-  }, [onViewCreated])
-
-  // Insert the pinned effort at the editor's cursor (IKEA payoff).
-  // Also marks `firstNoteUsedAt` on the profile on the first click — the
-  // page reads that flag to apply the IKEA strong-treatment styling on
-  // the first note only (see wayfinder #665). After the first click the
-  // button steps down to the regular quiet treatment.
-  const insertPinnedEffort = useCallback(() => {
-    const view = editorViewRef.current
-    if (!view || !pinnedEffort) return
-    const profile = getProfile()
-    if (!profile.firstNoteUsedAt) {
-      updateProfile({ firstNoteUsedAt: Date.now() })
-    }
-    view.focus()
-    view.dispatch(view.state.replaceSelection(pinnedEffort))
-  }, [pinnedEffort])
+  }, [onViewCreated, registerView])
 
   const handleStartWorkout = useCallback(
     (block: ScriptBlock) => {
@@ -312,12 +297,12 @@ export function PlaygroundNotePage({
                 type="button"
                 onClick={insertPinnedEffort}
                 title={`Insert ${pinnedEffort} at the cursor`}
-                className={!getProfile().firstNoteUsedAt
+                className={!hasInserted
                   ? 'inline-flex items-center gap-1.5 rounded-pill border border-brand/60 border-l-2 border-l-brand bg-brand/10 pl-3 pr-3 py-1.5 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/15 dark:text-brand-light'
                   : 'inline-flex items-center gap-1 rounded-pill border border-brand/40 bg-brand/5 px-2.5 py-1 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/10 dark:text-brand-light'}
               >
                 <Pin
-                  className={!getProfile().firstNoteUsedAt
+                  className={!hasInserted
                     ? 'size-4 text-brand-deep dark:text-brand-light'
                     : 'size-3'}
                   aria-hidden="true"
