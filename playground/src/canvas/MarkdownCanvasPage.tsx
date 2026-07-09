@@ -440,7 +440,7 @@ export function MarkdownCanvasPage({
   const activeHeaderActions = isHome ? (
     <div className="flex items-center gap-2">
       {panelHeaderActions}
-      <OnboardingBanner />
+      <OnboardingBanner chapters={page.chapters} />
     </div>
   ) : panelHeaderActions
 

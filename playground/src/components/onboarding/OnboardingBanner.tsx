@@ -6,14 +6,18 @@
  * details on desktop, featuring a hover overlay for step navigation.
  *
  * It uses the localStorage-backed onboarding progress state to display a
- * read-only roadmap checklist of onboarding tasks.
+ * read-only roadmap checklist of onboarding tasks, plus a "Chapters"
+ * section that aggregates cross-route chapter quest progress via
+ * `useChapterProgress`.
  */
 
 import { useEffect, useState } from 'react';
 import { Check, Dumbbell, Play, Timer, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingProgress, type OnboardingStep } from '../../hooks/useOnboardingProgress';
+import { useChapterProgress } from '../../hooks/useChapterProgress';
 import { getProfile, updateProfile } from '../../services/playgroundProfile';
+import type { Chapter } from '../../canvas/parseCanvasMarkdown';
 
 const COMPLETION_DISPLAY_MS = 2000;
 
@@ -27,6 +31,9 @@ const ONBOARDING_STEPS_META = [
 
 export interface OnboardingBannerProps {
   className?: string;
+  /** Page-level chapter declarations. Each chapter's quest ids are
+   *  aggregated across all routes in the localStorage ledger. */
+  chapters?: Chapter[];
 }
 
 function getHintText(stepsComplete: number): string {
@@ -44,8 +51,26 @@ function getHintText(stepsComplete: number): string {
   }
 }
 
-export function OnboardingBanner({ className }: OnboardingBannerProps) {
+/** Resolve a Lucide icon component from the chapter's `badge` string.
+ *  Defaults to Trophy when the named icon isn't supported. */
+function chapterIcon(badge: string): typeof Trophy {
+  switch (badge) {
+    case 'trophy':
+      return Trophy;
+    case 'dumbbell':
+      return Dumbbell;
+    case 'timer':
+      return Timer;
+    case 'play':
+      return Play;
+    default:
+      return Trophy;
+  }
+}
+
+export function OnboardingBanner({ className, chapters = [] }: OnboardingBannerProps) {
   const { progress, stepsComplete, totalSteps, isComplete, mark } = useOnboardingProgress();
+  const { chapters: chapterProgress } = useChapterProgress(chapters);
 
   useEffect(() => {
     mark('visitedLanding');
@@ -78,7 +103,7 @@ export function OnboardingBanner({ className }: OnboardingBannerProps) {
             <Check className="size-3.5" />
             <span className={cn(
               'text-[8px] font-black uppercase tracking-wider',
-              isCelebrative && 'animate-pulse'
+              isCelebrative && 'animate-pulse',
             )}>
               {isCelebrative ? 'Complete! 🎉' : 'Done'}
             </span>
@@ -143,7 +168,7 @@ export function OnboardingBanner({ className }: OnboardingBannerProps) {
                 <div className="flex flex-col">
                   <span className={cn(
                     'text-[10px] font-bold leading-none',
-                    isStepFuture ? 'text-muted-foreground/70' : 'text-foreground'
+                    isStepFuture ? 'text-muted-foreground/70' : 'text-foreground',
                   )}>
                     {step.label}
                   </span>
@@ -152,9 +177,75 @@ export function OnboardingBanner({ className }: OnboardingBannerProps) {
                   </span>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
+
+        {chapterProgress.length > 0 && (
+          <>
+            <div className="mt-3 pt-2.5 border-t border-border/60">
+              <h5 className="text-[10px] font-black uppercase tracking-widest text-foreground">
+                Chapters
+              </h5>
+              <p className="text-[9px] text-muted-foreground mt-0.5">
+                Unlock each chapter by completing its quest on the chapter page.
+              </p>
+            </div>
+            <div className="flex flex-col gap-1 mt-1.5" data-testid="onboarding-chapters">
+              {chapterProgress.map((cp) => {
+                const Icon = chapterIcon(cp.chapter.badge);
+                return (
+                  <div
+                    key={cp.chapter.id}
+                    data-testid={`chapter-row-${cp.chapter.id}`}
+                    data-completed={cp.isComplete ? 'true' : 'false'}
+                    className={cn(
+                      'w-full text-left p-1.5 flex items-start gap-2.5 rounded-md',
+                      cp.isComplete && 'bg-emerald-500/5',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'flex size-4 shrink-0 items-center justify-center rounded-full mt-0.5',
+                        cp.isComplete
+                          ? 'bg-emerald-500 text-white'
+                          : 'border border-muted-foreground/40 text-muted-foreground/70',
+                      )}
+                    >
+                      {cp.isComplete ? (
+                        <Check className="size-2.5" />
+                      ) : (
+                        <Icon className="size-2.5" />
+                      )}
+                    </span>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={cn(
+                          'text-[10px] font-bold leading-none',
+                          cp.isComplete
+                            ? 'text-foreground line-through decoration-emerald-500/60'
+                            : 'text-foreground',
+                        )}>
+                          {cp.chapter.title}
+                        </span>
+                        <span className="text-[8px] text-muted-foreground tabular-nums">
+                          {cp.completedCount}/{cp.totalCount}
+                        </span>
+                      </div>
+                      <span className="text-[8px] text-muted-foreground leading-normal mt-0.5 truncate">
+                        {cp.totalCount === 0
+                          ? 'No quests linked yet.'
+                          : cp.isComplete
+                            ? 'Chapter complete.'
+                            : `${cp.totalCount - cp.completedCount} quest${cp.totalCount - cp.completedCount === 1 ? '' : 's'} remaining.`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
