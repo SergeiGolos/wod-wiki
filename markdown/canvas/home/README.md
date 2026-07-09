@@ -38,6 +38,8 @@ pipeline:
   - launch: dialog
 ```
 
+{{hero-carousel}}
+
 ```view
 name:    home-demo
 state:   note
