@@ -117,7 +117,11 @@ export function useSyntaxChallenge({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageRoute, questKey]);
 
-  const decorated = quests.map((q) => ({
+  // Spread the ledger-aware `rest.quests` (which carries `isCompleted`)
+  // into the returned `quests` so the banner sees the live completion
+  // state from localStorage. The input `quests` parameter lacks
+  // `isCompleted` and is only used above for the validation effect.
+  const decorated = rest.quests.map((q) => ({
     ...q,
     result: results[q.id] ?? { pass: false, reason: 'No validator result.' },
   }));

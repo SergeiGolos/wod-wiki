@@ -865,7 +865,7 @@ function notifyBlockChanges(
     .filter((b): b is ScriptBlock => b !== null);
 
   const blocksJson = JSON.stringify(
-    blocks.map((b) => ({ id: b.id, startLine: b.startLine, endLine: b.endLine }))
+    blocks.map((b) => ({ id: b.id, startLine: b.startLine, endLine: b.endLine, content: b.content }))
   );
 
   if (blocksJson !== lastBlocksJson) {

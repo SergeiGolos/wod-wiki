@@ -15,18 +15,18 @@
  *     e2e/live-app/challenge-and-chapters.e2e.ts
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const LEDGER_KEY = 'wodwiki.quests.v1';
 
-async function clearLedger(page: import('@playwright/test').Page) {
+async function clearLedger(page: Page) {
   await page.evaluate((k) => {
     window.localStorage.removeItem(k);
   }, LEDGER_KEY);
 }
 
 async function seedLedger(
-  page: import('@playwright/test').Page,
+  page: Page,
   entries: Record<string, Record<string, boolean>>,
 ) {
   await page.evaluate(
@@ -37,37 +37,50 @@ async function seedLedger(
   );
 }
 
-async function getEditorView(page: import('@playwright/test').Page) {
-  // The canvas editor exposes the CodeMirror view via the NoteEditor ref
-  // (see NoteEditor.tsx). The view is reachable through the .cm-editor
-  // element's parent in the test DOM.
+async function getEditorView(page: Page) {
+  // The canvas page renders the editor TWICE (desktop + mobile panels).
+  // At a desktop viewport only one is visible. Pick the one whose
+  // __codemirrorView is reachable from a visible .cm-editor element
+  // (offsetParent !== null means display:none is OFF).
   return page.evaluateHandle(() => {
-    const el = document.querySelector('.cm-editor')?.parentElement as
-      | (HTMLElement & { __codemirrorView?: any })
-      | null;
-    if (!el?.__codemirrorView) {
-      throw new Error('CodeMirror view was not exposed for test automation');
+    const editors = Array.from(
+      document.querySelectorAll('.cm-editor'),
+    ) as Array<HTMLElement>;
+    for (const ed of editors) {
+      if (ed.offsetParent === null) continue;
+      const parent = ed.parentElement as
+        | (HTMLElement & { __codemirrorView?: any })
+        | null;
+      if (parent?.__codemirrorView) return parent.__codemirrorView;
     }
-    return el.__codemirrorView;
+    throw new Error(
+      'No visible CodeMirror view was exposed for test automation',
+    );
   });
 }
 
 async function setEditorContent(
-  page: import('@playwright/test').Page,
+  page: Page,
   content: string,
 ) {
-  const handle = await getEditorView(page);
-  await page.evaluate(
-    ([view, text]) => {
-      (view as any).dispatch({
-        changes: { from: 0, to: (view as any).state.doc.length, insert: text },
-      });
-      (view as any).focus();
-    },
-    [handle, content],
-  );
-  // Give the React tree a tick to flush `onBlocksChange` and revalidate.
-  await page.waitForTimeout(200);
+  // The NoteEditor's update listener (NoteEditor.tsx:554-557) fires
+  // onBlocksChange on every view.dispatch that mutates the doc, so a
+  // programmatic whole-doc replacement is sufficient to drive the
+  // setLiveBlock → useSyntaxChallenge revalidation chain.
+  await page.evaluate((text) => {
+    const el = document.querySelector('.cm-editor')?.parentElement as
+      | (HTMLElement & { __codemirrorView?: any })
+      | null;
+    const view = el?.__codemirrorView;
+    if (!view) {
+      throw new Error('CodeMirror view was not exposed for test automation');
+    }
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: text },
+    });
+  }, content);
+  // Give React a tick to flush setLiveBlock → useSyntaxChallenge.
+  await page.waitForTimeout(300);
 }
 
 test.describe('Challenge and chapter flows', () => {
@@ -93,8 +106,9 @@ test.describe('Challenge and chapter flows', () => {
     // Type a 3-round wod block that satisfies all three quests at once.
     await setEditorContent(
       page,
-      '```wod\n(3 Rounds)\n  10 KB Swings\n  *:30 Rest\n```',
+      '```wod\n(3 Rounds)\n10 KB Swings\n*:30 Rest\n```',
     );
+
 
     // All three rows flip to data-completed="true".
     await expect
@@ -163,28 +177,33 @@ test.describe('Challenge and chapter flows', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('[data-testid="onboarding-chapters"]', { state: 'attached' });
 
-    await expect(firstCompleted('chapter-row-basics'), 'Basics chapter row should be complete on /').toBe('true');
-    await expect(firstCompleted('chapter-row-sequences'), 'Sequences chapter row should still be incomplete on /').toBe('false');
+    const basicsCompleted = await firstCompleted('chapter-row-basics');
+    const sequencesCompleted = await firstCompleted('chapter-row-sequences');
+    expect(basicsCompleted, 'Basics chapter row should be complete on /').toBe('true');
+    expect(sequencesCompleted, 'Sequences chapter row should still be incomplete on /').toBe('false');
   });
 
   test('localStorage clear resets all quests across all pages', async ({ page }) => {
-    // Pre-seed a non-empty ledger.
+    // Pre-seed a non-empty ledger, then reload so the OnboardingBanner
+    // hook (which reads localStorage on mount) sees the seeded values.
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await seedLedger(page, {
       '/challenge': { 'first-movement': true },
       '/chapters/basics': { 'basics-movement': true, 'basics-reps': true },
     });
+    await page.reload({ waitUntil: 'domcontentloaded' });
 
-    // Verify the seeded state surfaces in the OnboardingBanner popover
-    // (the rows render in two visibility variants; assert the first one).
-    await page.waitForSelector('[data-testid="chapter-row-basics"]');
+    // The chapter rows render in two visibility variants (desktop + mobile
+    // popover). Use `state: 'attached'` to avoid waiting for visibility,
+    // which hangs because two elements are matched.
+    await page.waitForSelector('[data-testid="chapter-row-basics"]', { state: 'attached' });
     let basicsCompleted = await page.locator('[data-testid="chapter-row-basics"]').first().getAttribute('data-completed');
     expect(basicsCompleted).toBe('true');
 
     // Clear the ledger via the public surface (clearLedger) and reload.
     await clearLedger(page);
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('[data-testid="chapter-row-basics"]');
+    await page.waitForSelector('[data-testid="chapter-row-basics"]', { state: 'attached' });
     basicsCompleted = await page.locator('[data-testid="chapter-row-basics"]').first().getAttribute('data-completed');
     expect(basicsCompleted).toBe('false');
   });
