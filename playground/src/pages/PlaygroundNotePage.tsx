@@ -37,7 +37,7 @@ import { ToastAction } from '@/components/atoms/primitives/toast'
 import { DEFAULT_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundContent'
 import { formatPlaygroundPageTitle } from '@/lib/playgroundDisplay'
 import { localDateKey } from '../views/queriable-list/JournalDateScroll'
-import { useOnboardingProgress } from '../hooks/useOnboardingProgress'
+import { useOnboardingEvents } from '../hooks/useOnboardingEvents'
 import { useFirstNoteWizardState } from '../hooks/useFirstNoteWizardState'
 import { FirstNoteWizard } from '../components/onboarding/FirstNoteWizard'
 import { getProfile, updateProfile } from '../services/playgroundProfile'
@@ -68,14 +68,17 @@ export function PlaygroundNotePage({
     mdContent: DEFAULT_PLAYGROUND_CONTENT.content,
   })
 
-  // Onboarding (ADR-0010, Goal Gradient) — mark meaningful actions.
-  const { mark } = useOnboardingProgress()
+  // Onboarding (ADR-0010, Goal Gradient) — see useOnboardingEvents for the
+  // typed event API. The hook owns the step-string mapping; the page
+  // calls semantic handlers (onEditNote / onRunWorkout / onLogEffort)
+  // that wrap the corresponding mark(step) calls.
+  const { onEditNote, onRunWorkout, onLogEffort } = useOnboardingEvents()
   const onChange = useCallback(
     (value: string) => {
-      mark('editedNote')
+      onEditNote()
       persistOnChange(value)
     },
-    [mark, persistOnChange],
+    [onEditNote, persistOnChange],
   )
 
   // First-Note Wizard (ADR-0010, IKEA Effect) — see useFirstNoteWizardState
@@ -135,18 +138,18 @@ export function PlaygroundNotePage({
 
   const handleStartWorkout = useCallback(
     (block: ScriptBlock) => {
-      mark('ranWorkout')
+      onRunWorkout()
       const runtimeId = uuidv4()
       pendingRuntimes.set(runtimeId, { block, noteId })
       navigate(runPath(runtimeId))
     },
-    [noteId, navigate, mark],
+    [noteId, navigate, onRunWorkout],
   )
 
   const handleAddToToday = useCallback(
     async (block: ScriptBlock) => {
       try {
-        mark('loggedEffort')
+        onLogEffort()
         const journalNoteId = await appendWorkoutToJournal({
           workoutName: pageTitle,
           category: 'playground',
@@ -169,7 +172,7 @@ export function PlaygroundNotePage({
         toast({ title: 'Error', description: 'Could not add to journal', variant: 'destructive' })
       }
     },
-    [pageTitle, pageName, navigate, mark],
+    [pageTitle, pageName, navigate, onLogEffort],
   )
 
   const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
