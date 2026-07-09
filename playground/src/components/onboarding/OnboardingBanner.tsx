@@ -23,7 +23,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { ArrowDown, Check } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingProgress } from '../../hooks/useOnboardingProgress';
 import { getProfile, updateProfile } from '../../services/playgroundProfile';
@@ -87,7 +87,7 @@ export function OnboardingBanner({
             Step 1 of {totalSteps}
           </span>
           {hint}
-          <ArrowDown className="size-4 animate-bounce" aria-hidden="true" />
+          <ChevronDown className="size-4" aria-hidden="true" />
         </p>
       ) : (
         <ProgressBar value={stepsComplete} max={totalSteps} label="Getting started" />
