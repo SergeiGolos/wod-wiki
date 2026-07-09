@@ -25,6 +25,8 @@ import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePane
 import { CanvasEditorPanel } from '../components/organisms/canvas/CanvasEditorPanel'
 import { SplitCanvasTemplate } from '../templates/SplitCanvasTemplate'
 import { OnboardingBanner } from '../components/onboarding/OnboardingBanner'
+import { ChallengeBanner } from '../components/molecules/ChallengeBanner'
+import { useSyntaxChallenge } from '../hooks/useSyntaxChallenge'
 import {
   getCanvasNoteId,
   resolveSource,
@@ -146,6 +148,20 @@ export function MarkdownCanvasPage({
     return () => { cancelled = true }
   }, [canvasNoteId])
 
+  // Reactive state mirror of the first script block so quest validation
+  // re-runs on every editor compile. Kept in sync via `onBlocksChange`.
+  const [liveBlock, setLiveBlock] = useState<ScriptBlock | null>(null)
+
+  // Page-level quests are extracted from ```quest fenced blocks by the
+  // canvas parser and shipped on `page.quests`. They drive the challenge
+  // banner and the syntax-validation hook.
+  const pageQuests = page.quests ?? []
+
+  const challenge = useSyntaxChallenge({
+    pageRoute: page.route,
+    quests: pageQuests,
+    block: liveBlock,
+  })
 
   // ScriptBlocks ref
   const scriptBlocksRef = useRef<ScriptBlock[]>([])
@@ -347,6 +363,24 @@ export function MarkdownCanvasPage({
       ? contentOwnerTitle
       : undefined
 
+
+  // Stable `onBlocksChange` so the editor's internal effect (which depends on
+  // the prop reference) doesn't refire every parent render. Guards on
+  // content identity so a no-op re-emission from the editor doesn't
+  // re-render the whole canvas page.
+  const handleBlocksChange = useCallback(
+    (blocks: ScriptBlock[]) => {
+      const next = blocks[0] ?? null;
+      scriptBlocksRef.current = blocks;
+      setLiveBlock((prev) => {
+        if (prev?.content === next?.content && prev?.id === next?.id) {
+          return prev;
+        }
+        return next;
+      });
+    },
+    [],
+  )
   const panelContent = (
     <CanvasPanelContent
       panelMode={runtime.panelMode}
@@ -366,7 +400,7 @@ export function MarkdownCanvasPage({
       theme={theme}
       commands={canvasCommands}
       activeSectionId={activeSectionId}
-      onBlocksChange={(blocks) => { scriptBlocksRef.current = blocks }}
+      onBlocksChange={handleBlocksChange}
       onViewCreated={setEditorView}
       persistedResults={runtime.persistedResults}
       isDebugMode={isDebugMode}
@@ -470,6 +504,12 @@ export function MarkdownCanvasPage({
           hasViewDef={!!viewDef}
         />
       </SplitCanvasTemplate>
+
+      {pageQuests.length > 0 && (
+        <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
+          <ChallengeBanner quests={challenge.quests} />
+        </div>
+      )}
     </div>
   )
 }

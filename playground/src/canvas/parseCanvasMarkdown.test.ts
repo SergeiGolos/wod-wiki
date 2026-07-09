@@ -276,4 +276,107 @@ pipeline:
       expect(firstProse.text).toContain('key: value')
     }
   })
+
+  describe('page-level quest blocks', () => {
+    it('extracts ```quest blocks from anywhere in the body', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /challenge
+---
+
+# Accept the Challenge
+
+Intro paragraph that stays in the prose.
+
+\`\`\`quest
+id: first-movement
+label: Add your first movement
+desc: Type a movement line.
+validation:
+  type: has-movement
+\`\`\`
+
+\`\`\`quest
+id: first-rounds
+label: Wrap it in rounds
+validation:
+  type: min-rounds
+  count: 3
+\`\`\`
+`)
+
+      expect(page).not.toBeNull()
+      expect(page?.quests).toEqual([
+        {
+          id: 'first-movement',
+          label: 'Add your first movement',
+          desc: 'Type a movement line.',
+          validation: { type: 'has-movement' },
+        },
+        {
+          id: 'first-rounds',
+          label: 'Wrap it in rounds',
+          validation: { type: 'min-rounds', count: 3 },
+        },
+      ])
+    })
+
+    it('strips quest blocks from the body so they do not bleed into section prose', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /challenge
+---
+
+# Top
+
+\`\`\`quest
+id: hidden
+label: hidden
+validation:
+  type: has-movement
+\`\`\`
+
+## Section A
+
+Body of section A.
+`)
+      expect(page?.quests.map((q) => q.id)).toEqual(['hidden'])
+      const sectionA = page?.sections.find((s) => s.id === 'section-a')
+      expect(sectionA?.proseChunks.some((c) => c.kind === 'prose' && c.text.includes('hidden'))).toBe(false)
+    })
+
+    it('skips quest blocks with no id', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /challenge
+---
+
+# Top
+
+\`\`\`quest
+label: no id
+validation:
+  type: has-movement
+\`\`\`
+`)
+      expect(page?.quests).toEqual([])
+    })
+
+    it('defaults label to id when label is missing', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /challenge
+---
+
+# Top
+
+\`\`\`quest
+id: my-id
+validation:
+  type: has-movement
+\`\`\`
+`)
+      expect(page?.quests[0]?.label).toBe('my-id')
+    })
+  })
 })

@@ -95,6 +95,21 @@ export interface ParsedCanvasPage {
   template: string
   route: string
   sections: CanvasSection[]
+  /**
+   * Page-level quests, extracted from ```quest fenced blocks that appear
+   * before the first section heading. Each entry is consumed by
+   * `useSyntaxChallenge` to validate the page's compiled editor block.
+   */
+  quests: Quest[]
+}
+
+/** Page-level quest — same shape as the validator's `Quest.validation` so
+ *  `useSyntaxChallenge` can pass it through unchanged. */
+export interface Quest {
+  id: string
+  label: string
+  desc?: string
+  validation?: { type: string; [key: string]: unknown }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -223,6 +238,86 @@ function parseExampleBlock(content: string): ExampleBlock {
  * was authored under. `prose` is the legacy concatenation of the prose
  * segments only.
  */
+
+/** Parse the inner content of a single ```quest fenced block. Returns
+ *  `null` when the block is missing the required `id` field. */
+function parseQuestBlock(content: string): Quest | null {
+  const meta: Record<string, string> = {};
+  const validation: Record<string, string> = {};
+  let inValidation = false;
+  for (const raw of content.split('\n')) {
+    // Strip leading whitespace so indented sub-fields (e.g. inside
+    // `validation:`) match the field regex.
+    const line = raw.trim();
+    if (line === '') continue;
+    const m = line.match(/^(\w[\w-]*):\s*(.*)$/);
+    if (!m) continue;
+    const key = m[1];
+    const value = m[2].trim().replace(/^["']|["']$/g, '');
+    if (key === 'validation') {
+      inValidation = true;
+      continue;
+    }
+    if (inValidation) validation[key] = value;
+    else meta[key] = value;
+  }
+  if (!meta.id) return null;
+  const q: Quest = { id: meta.id, label: meta.label ?? meta.id };
+  if (meta.desc) q.desc = meta.desc;
+  if (Object.keys(validation).length > 0) {
+    // Coerce numeric fields (e.g. `count: 3` → `3` instead of `"3"`) so
+    // validator schemas like `min-rounds` work without extra parsing.
+    const v: Record<string, unknown> = { ...validation };
+    for (const k of Object.keys(v)) {
+      const num = Number(v[k]);
+      if (v[k] !== '' && !isNaN(num) && String(num) === v[k]) v[k] = num;
+    }
+    q.validation = v as Quest['validation'];
+  }
+  return q;
+}
+
+/** Strip page-level ```quest fenced blocks from the body. The block
+ *  text is always removed from the body so it doesn't bleed into section
+ *  parsing or prose rendering, but the parsed quest is collected
+ *  regardless of where the block sits (pre-heading or in-section) so
+ *  authors can place quests in the section that introduces them. */
+function extractPageQuests(body: string): { quests: Quest[]; body: string } {
+  const lines = body.split('\n');
+  const quests: Quest[] = [];
+  const out: string[] = [];
+  let inFence = false;
+  let buffer: string[] = [];
+  const flushFence = () => {
+    const q = parseQuestBlock(buffer.join('\n'));
+    if (q) quests.push(q);
+    buffer = [];
+  };
+  for (const line of lines) {
+    if (inFence) {
+      if (/^```\s*$/.test(line)) {
+        flushFence();
+        inFence = false;
+      } else {
+        buffer.push(line);
+      }
+      continue;
+    }
+    const fenceMatch = line.match(/^```(\w+)\s*$/);
+    if (fenceMatch) {
+      if (fenceMatch[1] === 'quest') {
+        inFence = true;
+      } else {
+        out.push(line);
+      }
+      continue;
+    }
+    out.push(line);
+  }
+  if (inFence) flushFence();
+  return { quests, body: out.join('\n') };
+}
+
 function extractBlocks(text: string): {
   proseChunks: ProseChunk[]
   view?: ViewBlock
@@ -310,6 +405,9 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   const { meta, body } = parseFrontmatter(raw)
   if (String(meta['template'] ?? '') !== 'canvas') return null
 
+  // Pull page-level quest blocks out of the body before section splitting.
+  const { quests, body: bodyWithoutQuests } = extractPageQuests(body)
+
   const route = String(meta['route'] ?? defaultRoute)
   const sections: CanvasSection[] = []
 
@@ -335,7 +433,7 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
     })
   }
 
-  for (const line of body.split('\n')) {
+  for (const line of bodyWithoutQuests.split('\n')) {
     const h = parseHeadingLine(line)
     if (h) {
       if (cur) flush(cur)
@@ -346,5 +444,5 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   }
   if (cur) flush(cur)
 
-  return { template: 'canvas', route, sections, frontmatter: meta }
+  return { template: 'canvas', route, sections, frontmatter: meta, quests }
 }
