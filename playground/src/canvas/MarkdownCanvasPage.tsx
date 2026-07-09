@@ -401,12 +401,14 @@ export function MarkdownCanvasPage({
       selectedExampleIndex={0}
     />
   ) : null)
-  const heroSlot = isHome ? (
-    <>
-      <OnboardingBanner className="mb-6" hint="Start by editing the workout below" />
-      {heroContent}
-    </>
-  ) : heroContent
+  const heroSlot = heroContent
+
+  const activeHeaderActions = isHome ? (
+    <div className="flex items-center gap-2">
+      {panelHeaderActions}
+      <OnboardingBanner />
+    </div>
+  ) : panelHeaderActions
 
   const desktopPanel = viewDef && (
     <CanvasEditorPanel
@@ -415,9 +417,7 @@ export function MarkdownCanvasPage({
       panelSubtitle={panelSubtitle}
       panelContent={panelContent}
       panelThemeClass={activePanelTheme.panel}
-      headerActions={panelHeaderActions}
-      showPanelButtons={showPanelButtons}
-      viewDefButtons={viewDef.buttons}
+      headerActions={activeHeaderActions}
       runState={runtime.runState}
       deps={deps}
     />
@@ -430,8 +430,7 @@ export function MarkdownCanvasPage({
       panelSubtitle={panelSubtitle}
       panelContent={panelContent}
       panelThemeClass={activePanelTheme.panel}
-      headerActions={panelHeaderActions}
-      showPanelButtons={showPanelButtons}
+      headerActions={activeHeaderActions}
       viewDefButtons={viewDef.buttons}
       runState={mobileRunState}
       deps={deps}

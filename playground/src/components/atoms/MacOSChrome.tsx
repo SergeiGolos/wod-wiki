@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils'
 /** MacOS-style chrome wrapper for sticky panels */
 export function MacOSChrome({ title, subtitle, children, onReset, headerActions, className }: { title: string; subtitle?: string; children: ReactNode; onReset?: () => void; headerActions?: ReactNode; className?: string }) {
   return (
-    <div className={cn('flex flex-col w-full h-full rounded-2xl lg:rounded-3xl overflow-hidden border border-border shadow-2xl bg-background', className)}>
-      <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20 border-b border-border/60 shrink-0">
+    <div className={cn('flex flex-col w-full h-full rounded-2xl lg:rounded-3xl border border-border shadow-2xl bg-background', className)}>
+      <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20 border-b border-border/60 shrink-0 rounded-t-2xl lg:rounded-t-3xl">
         {/* Traffic lights — red is a clickable reset when onReset is provided */}
         <div className="flex gap-1.5">
           {onReset ? (
@@ -42,7 +42,7 @@ export function MacOSChrome({ title, subtitle, children, onReset, headerActions,
           )}
         </div>
       </div>
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-b-2xl lg:rounded-b-3xl">
         {children}
       </div>
     </div>
