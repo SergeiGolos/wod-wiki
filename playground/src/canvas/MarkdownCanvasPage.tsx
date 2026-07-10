@@ -13,12 +13,13 @@ import { Play } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
+import { FullscreenReview } from '@/components/organisms/review/FullscreenReview'
 import { useDebugMode } from '@/contexts/DebugModeContext'
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCanvasEditorSource } from '../hooks/useCanvasEditorSource'
-import { useMobileRunOverride } from '../hooks/useMobileRunOverride'
+import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
 import { CanvasPanelContent } from './CanvasPanelContent'
 import { CanvasSection as CanvasSectionCard } from '../components/molecules/CanvasSection'
 import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePanel'
@@ -30,11 +31,11 @@ import { useSyntaxChallenge } from '../hooks/useSyntaxChallenge'
 import {
   getCanvasNoteId,
   resolveSource,
-  blockHasTimer,
   resolveContentOwners,
   STICKY_NAV_HEIGHT,
   INITIAL_SOURCE_KEY,
 } from './canvasUtils'
+import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { getSectionTheme, getSectionThemeStyles } from './canvasSectionUtils'
 import { pipelineStepToNavAction, executeNavAction } from '../nav/navTypes'
 import type { NavActionDeps } from '../nav/navTypes'
@@ -133,7 +134,7 @@ export function MarkdownCanvasPage({
 
   // Runtime hook
   const getBlock = useCallback(() => scriptBlocksRef.current[0] ?? null, [])
-  const runtime = useCanvasRuntime({ canvasNoteId, navigate, getBlock })
+  const runtime = useCanvasRuntime({ canvasNoteId, getBlock })
 
   // Persisted results loading
   useEffect(() => {
@@ -161,6 +162,12 @@ export function MarkdownCanvasPage({
     pageRoute: page.route,
     quests: pageQuests,
     block: liveBlock,
+  })
+
+  useCompletionChallenge({
+    pageRoute: page.route,
+    quests: pageQuests,
+    fullscreen: runtime.fullscreen,
   })
 
   // ScriptBlocks ref
@@ -220,7 +227,6 @@ export function MarkdownCanvasPage({
 
   const handleExampleSelect = useCallback((section: CanvasSection, index: number) => {
     setSelectedExamples((prev) => ({ ...prev, [section.id]: index }))
-    runtime.setPanelMode('editor')
     setActiveSectionId(section.id)
     setActiveSectionTitle(section.heading)
     setActiveSectionTheme(getSectionTheme(section))
@@ -231,7 +237,7 @@ export function MarkdownCanvasPage({
     if (example?.source) {
       swapSource(resolveSource(example.source, wodFilesRef.current), example.source)
     }
-  }, [swapSource, runtime])
+  }, [swapSource])
 
   // NavActionDeps
   const [headingParam, setHeadingParam] = useQueryState('h', { history: 'replace', shallow: true })
@@ -244,8 +250,13 @@ export function MarkdownCanvasPage({
       if (h !== undefined) setHeadingParam(h, { history: replace ? 'replace' : 'push' })
     },
     swapSource: (source: string) => swapSource(resolveSource(source, wodFilesRef.current), source),
-    setPanelState: runtime.setPanelState,
-  }), [navigate, swapSource, setHeadingParam, runtime.setPanelState])
+    setPanelState: (state) => {
+      if (state === 'track') {
+        const block = getBlock()
+        if (block) runtime.setFullscreen({ kind: 'timer', block, results: null })
+      }
+    },
+  }), [navigate, swapSource, setHeadingParam, getBlock, runtime.setFullscreen])
 
   const depsRef = useRef(deps)
   depsRef.current = deps
@@ -314,22 +325,17 @@ export function MarkdownCanvasPage({
     onPanelActionsReadyRef.current?.({
       run: () => {
         const block = scriptBlocksRef.current[0] ?? null
-        if (!block) return
-        if (isMobile && blockHasTimer(block)) {
-          runtime.setFullscreenBlock(block)
-        } else {
-          runtime.launchViewRuntime(block)
-        }
+        if (block) runtime.setFullscreen({ kind: 'timer', block, results: null })
       },
-      reset: () => runtime.closeViewRuntime(),
-      results: () => runtime.setPanelMode('review'),
+      reset: () => runtime.setFullscreen(null),
+      results: () => {},
       fullscreen: () => {
         const block = scriptBlocksRef.current[0] ?? null
-        if (block) runtime.setFullscreenBlock(block)
+        if (block) runtime.setFullscreen({ kind: 'timer', block, results: null })
       },
       getSource,
     })
-  }, [runtime, isMobile, getSource])
+  }, [runtime, getSource])
 
   // Commands for InlineCommandBar on wod blocks
   const canvasCommands = useMemo<ScriptCommand[]>(() => [
@@ -339,27 +345,27 @@ export function MarkdownCanvasPage({
       icon: <Play className="h-3 w-3 fill-current" />,
       primary: true,
       onClick: (block) => {
-        if (isMobile && blockHasTimer(block)) {
-          runtime.setFullscreenBlock(block)
-        } else {
-          runtime.launchViewRuntime(block)
-        }
+        runtime.setFullscreen({ kind: 'timer', block, results: null })
       },
     },
-  ], [runtime, isMobile])
+  ], [runtime])
 
-  const activePanelTheme = getSectionThemeStyles({ attrs: [`theme:${activeSectionTheme}`] } as any)
+  const activePanelTheme = getSectionThemeStyles({
+    id: '',
+    heading: '',
+    prose: [],
+    buttons: [],
+    attrs: [`theme:${activeSectionTheme}`],
+  } satisfies CanvasSection)
 
   const panelTitle =
-    runtime.panelMode === 'running' ? 'Running…' :
-    runtime.panelMode === 'review' ? 'Review' :
     isEditorLoading ? `${activeSectionTitle} · loading` : activeSectionTitle
 
   // Only shown when the active section is narrating the same source the
   // panel already loaded (see `contentOwnerTitle` above) — makes it explicit
   // that the panel hasn't gone stale, it's just still on the same example.
   const panelSubtitle =
-    runtime.panelMode === 'editor' && !isEditorLoading && activeSectionTitle !== contentOwnerTitle
+    !isEditorLoading && activeSectionTitle !== contentOwnerTitle
       ? contentOwnerTitle
       : undefined
 
@@ -383,14 +389,6 @@ export function MarkdownCanvasPage({
   )
   const panelContent = (
     <CanvasPanelContent
-      panelMode={runtime.panelMode}
-      viewTimerBlock={runtime.viewTimerBlock}
-      reviewSegments={runtime.reviewSegments}
-      selectedSegmentIds={runtime.selectedSegmentIds}
-      setSelectedSegmentIds={runtime.setSelectedSegmentIds}
-      setPanelMode={runtime.setPanelMode}
-      closeViewRuntime={runtime.closeViewRuntime}
-      handleViewComplete={runtime.handleViewComplete}
       editorSource={editorSource}
       editorOpacity={editorOpacity}
       activeOriginalSource={activeOriginalSource}
@@ -407,15 +405,7 @@ export function MarkdownCanvasPage({
     />
   )
 
-  const showPanelButtons = !!(viewDef && runtime.panelMode === 'editor')
-
-  // On mobile, timer/wall-clock blocks always run fullscreen (not in-panel).
-  const mobileRunState = useMobileRunOverride({
-    isMobile,
-    baseRunState: runtime.runState,
-    setFullscreenBlock: runtime.setFullscreenBlock,
-    scriptBlocksRef,
-  })
+  const showPanelButtons = !!viewDef
 
   // Goal Gradient (ADR-0010): the home page gets an onboarding credit/progress
   // strip above the markdown hero. Other canvas routes are unaffected.
@@ -466,19 +456,34 @@ export function MarkdownCanvasPage({
       panelThemeClass={activePanelTheme.panel}
       headerActions={activeHeaderActions}
       viewDefButtons={viewDef.buttons}
-      runState={mobileRunState}
+      runState={runtime.runState}
       deps={deps}
     />
   )
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {runtime.fullscreenBlock && (
+      {runtime.fullscreen?.kind === 'timer' && (
         <FullscreenTimer
-          block={runtime.fullscreenBlock}
-          onClose={() => runtime.setFullscreenBlock(null)}
+          block={runtime.fullscreen.block}
+          onClose={() => runtime.setFullscreen(null)}
           autoStart
-          onCompleteWorkout={() => runtime.setFullscreenBlock(null)}
+          onCompleteWorkout={(_blockId, results) => {
+            const block = getBlock()
+            if (block) {
+              runtime.handleWorkoutComplete(block, results)
+              const { segments } = getAnalyticsFromLogs(results.logs || [], results.startTime)
+              runtime.setFullscreen({ kind: 'review', segments, results })
+            }
+          }}
+        />
+      )}
+
+      {runtime.fullscreen?.kind === 'review' && (
+        <FullscreenReview
+          segments={runtime.fullscreen.segments}
+          onClose={() => runtime.setFullscreen(null)}
+          title="Workout Review"
         />
       )}
 
@@ -497,14 +502,13 @@ export function MarkdownCanvasPage({
           handleSelectWorkout={handleSelectWorkout}
           activeSectionId={activeSectionId}
           selectedExamples={selectedExamples}
-          runState={mobileRunState}
+          runState={runtime.runState}
           deps={deps}
           handleExampleSelect={handleExampleSelect}
           hasWorkoutsTag={hasWorkoutsTag}
           hasViewDef={!!viewDef}
         />
       </SplitCanvasTemplate>
-
       {pageQuests.length > 0 && (
         <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
           <ChallengeBanner quests={challenge.quests} />

@@ -41,7 +41,7 @@ import { parseNoteId } from '../../playground/src/lib/noteIdentity';
 import { toNotebookTag } from '@/types/notebook';
 import { fileProcessor } from '@/hooks/useBrowserServices';
 import { loadStaticWorkbenchContent } from '@/app/workbench/workbenchProviders';
-import { playgroundRecorder } from '../../playground/src/services/resultRecorder';
+import { createResultRecorder, playgroundRecorder } from '../../playground/src/services/resultRecorder';
 import type { HistoryEntry } from '@/types/history';
 import type { Attachment } from '@/types/storage';
 import { wallClockNow } from '@/runtime/INowProvider';
@@ -679,7 +679,7 @@ export function createWorkbenchSessionStore(
                 });
               }
               // Then resolve identity + persist the result via the Recorder (placement A).
-              await playgroundRecorder.record({
+              await createResultRecorder(notePersistence).record({
                 runBlock: selectedBlock!,
                 blockId: selectedBlockId ?? '',
                 destination: parseNoteId(targetId),

@@ -1,6 +1,5 @@
 import { stripFrontmatter } from '@/utils/frontmatter'
 import type { ScriptBlock } from '@/components/Editor/types'
-import { MetricType } from '@/core/models/Metric'
 import type { CanvasSection } from './parseCanvasMarkdown'
 
 export const STICKY_NAV_HEIGHT = 104
@@ -54,14 +53,6 @@ export function resolveSource(dslPath: string, wodFiles: Record<string, string>)
   }
   return key in wodFiles ? stripFrontmatter(wodFiles[key]) : `# Source not found\n\nPath: \`${dslPath}\`\nResolved: \`${key}\``
 }
-/**
- * True when a parsed ScriptBlock contains at least one statement with a Duration
- * metric — i.e. it drives a countdown / wall-clock timer when run.
- */
-export function blockHasTimer(block: ScriptBlock): boolean {
-  return (block.statements ?? []).some((s) => s.hasMetric(MetricType.Duration))
-}
-
 /** True when a section declares its own example(s) or a command with at least one step. */
 export function sectionOwnsContent(section: CanvasSection): boolean {
   return (section.examples ?? []).length > 0 || section.commands.some((cmd) => cmd.pipeline.length > 0)
