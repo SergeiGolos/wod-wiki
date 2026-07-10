@@ -276,4 +276,231 @@ pipeline:
       expect(firstProse.text).toContain('key: value')
     }
   })
+
+  describe('page-level quest blocks', () => {
+    it('extracts ```quest blocks from anywhere in the body', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /challenge
+---
+
+# Accept the Challenge
+
+Intro paragraph that stays in the prose.
+
+\`\`\`quest
+id: first-movement
+label: Add your first movement
+desc: Type a movement line.
+validation:
+  type: has-movement
+\`\`\`
+
+\`\`\`quest
+id: first-rounds
+label: Wrap it in rounds
+validation:
+  type: min-rounds
+  count: 3
+\`\`\`
+`)
+
+      expect(page).not.toBeNull()
+      expect(page?.quests).toEqual([
+        {
+          id: 'first-movement',
+          label: 'Add your first movement',
+          desc: 'Type a movement line.',
+          validation: { type: 'has-movement' },
+        },
+        {
+          id: 'first-rounds',
+          label: 'Wrap it in rounds',
+          validation: { type: 'min-rounds', count: 3 },
+        },
+      ])
+    })
+
+    it('strips quest blocks from the body so they do not bleed into section prose', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /challenge
+---
+
+# Top
+
+\`\`\`quest
+id: hidden
+label: hidden
+validation:
+  type: has-movement
+\`\`\`
+
+## Section A
+
+Body of section A.
+`)
+      expect(page?.quests.map((q) => q.id)).toEqual(['hidden'])
+      const sectionA = page?.sections.find((s) => s.id === 'section-a')
+      expect(sectionA?.proseChunks.some((c) => c.kind === 'prose' && c.text.includes('hidden'))).toBe(false)
+    })
+
+    it('skips quest blocks with no id', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /challenge
+---
+
+# Top
+
+\`\`\`quest
+label: no id
+validation:
+  type: has-movement
+\`\`\`
+`)
+      expect(page?.quests).toEqual([])
+    })
+
+    it('defaults label to id when label is missing', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /challenge
+---
+
+# Top
+
+\`\`\`quest
+id: my-id
+validation:
+  type: has-movement
+\`\`\`
+`)
+      expect(page?.quests[0]?.label).toBe('my-id')
+    })
+  })
+
+  describe('page-level chapter blocks', () => {
+    it('extracts ```chapter blocks with quest and section id lists', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /
+---
+
+# Top
+
+\`\`\`chapter
+id: basics
+title: Basics
+badge: trophy
+quests: first-movement, first-reps
+sections: [statement, metrics]
+\`\`\`
+
+\`\`\`chapter
+id: sequences
+title: Sequences
+badge: dumbbell
+quests: first-timer
+sections: timers, groups
+\`\`\`
+`)
+
+      expect(page?.chapters).toEqual([
+        {
+          id: 'basics',
+          title: 'Basics',
+          badge: 'trophy',
+          questIds: ['first-movement', 'first-reps'],
+          sectionIds: ['statement', 'metrics'],
+        },
+        {
+          id: 'sequences',
+          title: 'Sequences',
+          badge: 'dumbbell',
+          questIds: ['first-timer'],
+          sectionIds: ['timers', 'groups'],
+        },
+      ])
+    })
+
+    it('defaults badge to "trophy" when missing', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /
+---
+
+# Top
+
+\`\`\`chapter
+id: basics
+title: Basics
+quests: q1
+sections: sec1
+\`\`\`
+`)
+      expect(page?.chapters[0]?.badge).toBe('trophy')
+    })
+
+    it('skips chapter blocks missing id or title', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /
+---
+
+# Top
+
+\`\`\`chapter
+badge: trophy
+quests: q1
+\`\`\`
+
+\`\`\`chapter
+id: only-id
+\`\`\`
+`)
+      expect(page?.chapters).toEqual([])
+    })
+
+    it('tolerates empty quests and sections lists', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /
+---
+
+# Top
+
+\`\`\`chapter
+id: basics
+title: Basics
+\`\`\`
+`)
+      expect(page?.chapters[0]?.questIds).toEqual([])
+      expect(page?.chapters[0]?.sectionIds).toEqual([])
+    })
+
+    it('strips chapter blocks from the body so they do not bleed into prose', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /
+---
+
+# Top
+
+\`\`\`chapter
+id: hidden
+title: Hidden Chapter
+quests: q1
+sections: sec1
+\`\`\`
+
+## Section A
+
+Body text.
+`)
+      expect(page?.chapters.map((c) => c.id)).toEqual(['hidden'])
+      const sectionA = page?.sections.find((s) => s.id === 'section-a')
+      expect(sectionA?.proseChunks.some((c) => c.kind === 'prose' && c.text.includes('Hidden Chapter'))).toBe(false)
+    })
+  })
 })

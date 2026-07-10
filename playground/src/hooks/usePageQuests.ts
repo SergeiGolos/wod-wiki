@@ -1,13 +1,22 @@
 /**
- * usePageQuests — hook for loading, tracking, and validating page-specific quests.
+ * usePageQuests — hook for loading, tracking, and validating page-specific
+ * quests, namespaced by the current page route.
  *
- * Automatically hydrates quest completion status from the global localStorage ledger.
- * Exposes helper actions for marking quests complete and toggling them (Storybook
- * sandbox path).
+ * Hydrates quest completion status from the global localStorage ledger,
+ * scoped to the supplied `pageRoute` so identical quest ids on different
+ * pages (e.g. `round-1` on two different chapters) don't collide.
+ *
+ * Exposes helper actions for marking quests complete and toggling them
+ * (Storybook sandbox path).
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { readQuestProgress, markQuestComplete, toggleQuestState, type QuestProgress } from '../services/questProgress';
+import {
+  readQuestProgress,
+  markQuestComplete as ledgerMark,
+  toggleQuestState as ledgerToggle,
+  type QuestProgress,
+} from '../services/questProgress';
 
 export interface Quest {
   id: string;
@@ -28,29 +37,40 @@ export interface UsePageQuestsResult {
   toggleQuest: (questId: string) => void;
 }
 
-export function usePageQuests(pageQuests: Quest[]): UsePageQuestsResult {
-  const [progress, setProgress] = useState<QuestProgress>(readQuestProgress);
+export function usePageQuests(
+  pageRoute: string,
+  pageQuests: Quest[],
+): UsePageQuestsResult {
+  const [progress, setProgress] = useState<QuestProgress>(() =>
+    readQuestProgress(pageRoute),
+  );
 
   // Sync state reactively across local actions and storage changes
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key === 'wodwiki.quests.v1') {
-        setProgress(readQuestProgress());
+        setProgress(readQuestProgress(pageRoute));
       }
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  }, [pageRoute]);
 
-  const markComplete = useCallback((questId: string) => {
-    markQuestComplete(questId);
-    setProgress(readQuestProgress());
-  }, []);
+  const markComplete = useCallback(
+    (questId: string) => {
+      ledgerMark(pageRoute, questId);
+      setProgress(readQuestProgress(pageRoute));
+    },
+    [pageRoute],
+  );
 
-  const toggleQuest = useCallback((questId: string) => {
-    toggleQuestState(questId);
-    setProgress(readQuestProgress());
-  }, []);
+  const toggleQuest = useCallback(
+    (questId: string) => {
+      ledgerToggle(pageRoute, questId);
+      setProgress(readQuestProgress(pageRoute));
+    },
+    [pageRoute],
+  );
 
   const questsWithStatus = pageQuests.map((q) => ({
     ...q,

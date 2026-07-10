@@ -1,163 +1,80 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResult } from '@/types/storage'
-import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
-import { playgroundRecorder } from '../services/resultRecorder';
-import { parseNoteId } from '../lib/noteIdentity';
-import { activeRuntimes, pendingRuntimes } from '../runtimeStore'
-import { runPath } from '../lib/routes'
+import { playgroundRecorder } from '../services/resultRecorder'
+import { parseNoteId } from '../lib/noteIdentity'
 import type { RunButtonState } from '../components/molecules/SectionButtons'
 
-type PanelMode = 'editor' | 'running' | 'review'
+export type FullscreenState =
+  | { kind: 'timer'; block: ScriptBlock; results: WorkoutResults | null }
+  | { kind: 'review'; segments: Segment[]; results: WorkoutResults }
+  | null
 
-interface UseCanvasRuntimeOptions {
+export interface UseCanvasRuntimeOptions {
   canvasNoteId: string
-  navigate: (to: string) => void
   getBlock: () => ScriptBlock | null
 }
 
 export interface UseCanvasRuntimeReturn {
-  panelMode: PanelMode
-  setPanelMode: (mode: PanelMode) => void
-  viewTimerBlock: ScriptBlock | null
-  reviewSegments: Segment[]
-  selectedSegmentIds: Set<number>
-  setSelectedSegmentIds: React.Dispatch<React.SetStateAction<Set<number>>>
   persistedResults: WorkoutResult[]
   setPersistedResults: React.Dispatch<React.SetStateAction<WorkoutResult[]>>
-  activeViewRuntimeId: string | null
-  fullscreenBlock: ScriptBlock | null
-  setFullscreenBlock: (block: ScriptBlock | null) => void
-  launchViewRuntime: (block: ScriptBlock) => void
-  closeViewRuntime: () => void
-  handleViewComplete: (blockId: string, results: WorkoutResults) => void
-  hasActiveViewRuntime: boolean
+  fullscreen: FullscreenState
+  setFullscreen: (state: FullscreenState) => void
   runState: RunButtonState
-  setPanelState: (state: 'note' | 'review' | 'track', open?: 'view' | 'dialog' | 'route') => void
+  handleWorkoutComplete: (block: ScriptBlock, results: WorkoutResults) => void
 }
 
 export function useCanvasRuntime({
   canvasNoteId,
-  navigate,
   getBlock,
 }: UseCanvasRuntimeOptions): UseCanvasRuntimeReturn {
-  const [panelMode, setPanelMode] = useState<PanelMode>('editor')
-  const [viewTimerBlock, setViewTimerBlock] = useState<ScriptBlock | null>(null)
-  const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
-  const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<number>>(new Set())
   const [persistedResults, setPersistedResults] = useState<WorkoutResult[]>([])
-  const [activeViewRuntimeId, setActiveViewRuntimeId] = useState<string | null>(null)
-  const activeViewBlockRef = useRef<ScriptBlock | null>(null)
-  const [fullscreenBlock, setFullscreenBlock] = useState<ScriptBlock | null>(null)
+  const [fullscreen, setFullscreen] = useState<FullscreenState>(null)
 
-  const launchViewRuntime = useCallback((block: ScriptBlock) => {
-    activeViewBlockRef.current = block
-    activeRuntimes.set(block.id, block)
-    setActiveViewRuntimeId(uuidv4())
-    setViewTimerBlock(block)
-    setPanelMode('running')
-  }, [])
-
-  const closeViewRuntime = useCallback(() => {
-    const block = activeViewBlockRef.current
-    if (block) activeRuntimes.delete(block.id)
-    activeViewBlockRef.current = null
-    setActiveViewRuntimeId(null)
-    setViewTimerBlock(null)
-    setPanelMode('editor')
-  }, [])
-
-  const handleViewComplete = useCallback((_blockId: string, results: WorkoutResults) => {
-    const block = activeViewBlockRef.current
-    if (block) activeRuntimes.delete(block.id)
-    activeViewBlockRef.current = null
-    setViewTimerBlock(null)
-
-    if (results) {
-      const runtimeId = activeViewRuntimeId ?? uuidv4()
-      const blockId = block?.id ?? ''
-      // Optimistic local update — the Recorder persists asynchronously.
-      const optimisticNextResult = {
-        id: runtimeId,
-        noteId: canvasNoteId,
-        blockId,
-        blockContentId: block?.contentId,
-        data: results,
-        completedAt: results.endTime || Date.now(),
-      }
-      setPersistedResults((previous) => {
-        const deduped = previous.filter((result) => result.id !== optimisticNextResult.id)
-        return [optimisticNextResult, ...deduped].sort((a, b) => b.completedAt - a.completedAt)
-      })
-      playgroundRecorder.record({
-        runBlock: block!,
-        blockId,
-        destination: parseNoteId(canvasNoteId),
-        resultId: runtimeId,
-        data: results,
-        completedAt: results.endTime || Date.now(),
-      }).catch(() => {})
+  const handleWorkoutComplete = useCallback((block: ScriptBlock, results: WorkoutResults) => {
+    const runtimeId = uuidv4()
+    const blockId = block.id
+    const optimisticNextResult = {
+      id: runtimeId,
+      noteId: canvasNoteId,
+      blockId,
+      blockContentId: block.contentId,
+      data: results,
+      completedAt: results.endTime || Date.now(),
     }
-
-    setActiveViewRuntimeId(null)
-    if (results.completed && results.logs && results.logs.length > 0) {
-      const { segments } = getAnalyticsFromLogs(results.logs as any, results.startTime)
-      setReviewSegments(segments)
-    } else {
-      setReviewSegments([])
-    }
-    setSelectedSegmentIds(new Set())
-    setPanelMode('review')
-  }, [activeViewRuntimeId, canvasNoteId])
-
-  const hasActiveViewRuntime = viewTimerBlock !== null
-
-  const setPanelState = useCallback((state: 'note' | 'review' | 'track', open?: 'view' | 'dialog' | 'route') => {
-    if (state === 'note') {
-      closeViewRuntime()
-    } else if (state === 'review') {
-      setPanelMode('review')
-    } else if (state === 'track') {
-      const block = getBlock()
-      if (!block) return
-      if (open === 'view') {
-        launchViewRuntime(block)
-      } else if (open === 'route') {
-        const runtimeId = uuidv4()
-        pendingRuntimes.set(runtimeId, { block, noteId: canvasNoteId })
-        navigate(runPath(runtimeId))
-      } else {
-        setFullscreenBlock(block)
-      }
-    }
-  }, [closeViewRuntime, getBlock, launchViewRuntime, navigate, canvasNoteId])
+    setPersistedResults((previous) => {
+      const deduped = previous.filter((result) => result.id !== optimisticNextResult.id)
+      return [optimisticNextResult, ...deduped].sort((a, b) => b.completedAt - a.completedAt)
+    })
+    playgroundRecorder.record({
+      runBlock: block,
+      blockId,
+      destination: parseNoteId(canvasNoteId),
+      resultId: runtimeId,
+      data: results,
+      completedAt: results.endTime || Date.now(),
+    }).catch(() => {})
+  }, [canvasNoteId])
 
   const runState: RunButtonState = {
-    isReconnect: hasActiveViewRuntime && panelMode !== 'running',
-    onReconnect: () => setPanelMode('running'),
-    onRun: () => setPanelState('track', 'view'),
-    onFullscreen: () => setPanelState('track', 'route'),
+    isReconnect: false,
+    onReconnect: () => {},
+    onRun: () => {
+      const block = getBlock()
+      if (block) {
+        setFullscreen({ kind: 'timer', block, results: null })
+      }
+    },
   }
 
   return {
-    panelMode,
-    setPanelMode,
-    viewTimerBlock,
-    reviewSegments,
-    selectedSegmentIds,
-    setSelectedSegmentIds,
     persistedResults,
     setPersistedResults,
-    activeViewRuntimeId,
-    fullscreenBlock,
-    setFullscreenBlock,
-    launchViewRuntime,
-    closeViewRuntime,
-    handleViewComplete,
-    hasActiveViewRuntime,
+    fullscreen,
+    setFullscreen,
     runState,
-    setPanelState,
+    handleWorkoutComplete,
   }
 }

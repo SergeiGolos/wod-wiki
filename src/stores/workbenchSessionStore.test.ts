@@ -30,7 +30,8 @@ class FakeNotePersistence implements INotePersistence {
   private readonly notes = new Map<string, HistoryEntry>();
 
   async getNote(locator: NoteLocator, _options?: GetNoteOptions): Promise<HistoryEntry> {
-    const id = String(locator);
+    const id = typeof locator === 'string' ? locator : locator.id;
+    if (!id) throw new Error('missing note id in locator');
     const note = this.notes.get(id);
     if (!note) throw new Error(`note not found: ${id}`);
     return note;
@@ -42,7 +43,8 @@ class FakeNotePersistence implements INotePersistence {
 
   async mutateNote(locator: NoteLocator, mutation: NoteMutation): Promise<HistoryEntry> {
     this.mutated.push({ locator, mutation });
-    const id = String(locator);
+    const id = typeof locator === 'string' ? locator : locator.id;
+    if (!id) throw new Error('missing note id in locator');
     const existing = this.notes.get(id);
     if (!existing) throw new Error(`note not found: ${id}`);
     return existing;
@@ -255,6 +257,14 @@ describe('workbenchSessionStore', () => {
     const entry = makeEntry({ id: 'note-3' });
     notePersistence.seed(entry);
     store.setState({ currentEntry: entry });
+    store.setState({
+      selectedBlock: {
+        id: 'block-1',
+        contentId: 'block-1',
+        content: '10 thrusters',
+      },
+      selectedBlockId: 'block-1',
+    });
 
     // Pre-seed analytics segments (the live runtime seam populates these).
     store.setState({
@@ -284,9 +294,9 @@ describe('workbenchSessionStore', () => {
     const resultId = await store.getState().completeWorkout(result);
     expect(resultId).toMatch(/^[0-9a-f-]+$/);
 
-    expect(notePersistence.mutated.length).toBe(1);
-    const call = notePersistence.mutated[0];
-    expect(String(call.locator)).toBe('note-3');
+    expect(notePersistence.mutated.length).toBe(2);
+    const call = notePersistence.mutated[1];
+    expect(typeof call.locator === 'string' ? call.locator : call.locator.id).toBe('note-3');
     expect(call.mutation.workoutResult).toBeDefined();
     // `workoutResult.id` is the generated `resultId` (separate from
     // `WorkoutResults.startTime`/etc.); the session's `completeWorkout`

@@ -5,6 +5,30 @@ route: /
 type: home
 ---
 
+```chapter
+id: basics
+title: Basics
+badge: trophy
+quests: basics-movement, basics-reps
+sections: [statement, metrics]
+```
+
+```chapter
+id: sequences
+title: Sequences
+badge: dumbbell
+quests: sequences-timer, sequences-rounds
+sections: [timers, groups]
+```
+
+```chapter
+id: protocols
+title: Protocols
+badge: timer
+quests: protocols-rounds, protocols-tag
+sections: [protocols, dialects]
+```
+
 # WOD Wiki {sticky dark full-bleed}
 
 **Write it in Markdown. Run it as a Timer. Own the Analytics.**
@@ -37,6 +61,8 @@ pipeline:
   - set-state: note
   - launch: dialog
 ```
+
+{{hero-carousel}}
 
 ```view
 name:    home-demo
@@ -204,6 +230,27 @@ label:  Zero to Hero →
 target: home-demo
 pipeline:
   - navigate: /guide/getting-started
+```
+
+```button
+label:  Chapter 1: Basics →
+target: home-demo
+pipeline:
+  - navigate: /chapters/basics
+```
+
+```button
+label:  Chapter 2: Sequences →
+target: home-demo
+pipeline:
+  - navigate: /chapters/sequences
+```
+
+```button
+label:  Chapter 3: Protocols →
+target: home-demo
+pipeline:
+  - navigate: /chapters/protocols
 ```
 
 ```button

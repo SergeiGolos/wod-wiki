@@ -95,6 +95,42 @@ export interface ParsedCanvasPage {
   template: string
   route: string
   sections: CanvasSection[]
+  /**
+   * Page-level quests, extracted from ```quest fenced blocks that appear
+   * before the first section heading. Each entry is consumed by
+   * `useSyntaxChallenge` to validate the page's compiled editor block.
+   */
+  quests: Quest[]
+  /**
+   * Page-level chapters, extracted from ```chapter fenced blocks.
+   * Chapters are a visual grouping layer that the OnboardingBanner
+   * reads to show progressive-completion badges. Their `questIds` may
+   * reference quests on OTHER pages (cross-route completion is read
+   * directly from the localStorage ledger).
+   */
+  chapters: Chapter[]
+}
+
+/** Page-level quest — same shape as the validator's `Quest.validation` so
+ *  `useSyntaxChallenge` can pass it through unchanged. */
+export interface Quest {
+  id: string
+  label: string
+  desc?: string
+  validation?: { type: string; [key: string]: unknown }
+}
+
+/** A chapter groups one or more home-page sections and references the
+ *  quest ids whose completion unlocks the chapter badge. */
+export interface Chapter {
+  id: string
+  title: string
+  /** Lucide icon name — resolved by the renderer. */
+  badge: string
+  /** Quest ids (any page) whose completion contributes to this chapter. */
+  questIds: string[]
+  /** Section ids (on this page) that belong to this chapter, for visual grouping. */
+  sectionIds: string[]
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -223,6 +259,159 @@ function parseExampleBlock(content: string): ExampleBlock {
  * was authored under. `prose` is the legacy concatenation of the prose
  * segments only.
  */
+
+/** Parse the inner content of a single ```quest fenced block. Returns
+ *  `null` when the block is missing the required `id` field. */
+function parseQuestBlock(content: string): Quest | null {
+  const meta: Record<string, string> = {};
+  const validation: Record<string, string> = {};
+  let inValidation = false;
+  for (const raw of content.split('\n')) {
+    // Strip leading whitespace so indented sub-fields (e.g. inside
+    // `validation:`) match the field regex.
+    const line = raw.trim();
+    if (line === '') continue;
+    const m = line.match(/^(\w[\w-]*):\s*(.*)$/);
+    if (!m) continue;
+    const key = m[1];
+    const value = m[2].trim().replace(/^["']|["']$/g, '');
+    if (key === 'validation') {
+      inValidation = true;
+      continue;
+    }
+    if (inValidation) validation[key] = value;
+    else meta[key] = value;
+  }
+  if (!meta.id) return null;
+  const q: Quest = { id: meta.id, label: meta.label ?? meta.id };
+  if (meta.desc) q.desc = meta.desc;
+  if (Object.keys(validation).length > 0) {
+    // Coerce numeric fields (e.g. `count: 3` → `3` instead of `"3"`) so
+    // validator schemas like `min-rounds` work without extra parsing.
+    const v: Record<string, unknown> = { ...validation };
+    for (const k of Object.keys(v)) {
+      const num = Number(v[k]);
+      if (v[k] !== '' && !isNaN(num) && String(num) === v[k]) v[k] = num;
+    }
+    q.validation = v as Quest['validation'];
+  }
+  return q;
+}
+
+/** Strip page-level ```quest fenced blocks from the body. The block
+ *  text is always removed from the body so it doesn't bleed into section
+ *  parsing or prose rendering, but the parsed quest is collected
+ *  regardless of where the block sits (pre-heading or in-section) so
+ *  authors can place quests in the section that introduces them. */
+function extractPageQuests(body: string): { quests: Quest[]; body: string } {
+  const lines = body.split('\n');
+  const quests: Quest[] = [];
+  const out: string[] = [];
+  let inFence = false;
+  let buffer: string[] = [];
+  const flushFence = () => {
+    const q = parseQuestBlock(buffer.join('\n'));
+    if (q) quests.push(q);
+    buffer = [];
+  };
+  for (const line of lines) {
+    if (inFence) {
+      if (/^```\s*$/.test(line)) {
+        flushFence();
+        inFence = false;
+      } else {
+        buffer.push(line);
+      }
+      continue;
+    }
+    const fenceMatch = line.match(/^```(\w+)\s*$/);
+    if (fenceMatch) {
+      if (fenceMatch[1] === 'quest') {
+        inFence = true;
+      } else {
+        out.push(line);
+      }
+      continue;
+    }
+    out.push(line);
+  }
+  if (inFence) flushFence();
+  return { quests, body: out.join('\n') };
+}
+
+/** Parse the inner content of a single ```chapter fenced block. Returns
+ *  `null` when the block is missing the required `id` or `title` field. */
+function parseChapterBlock(content: string): Chapter | null {
+  const meta: Record<string, string> = {};
+  for (const raw of content.split('\n')) {
+    const line = raw.trim();
+    if (line === '') continue;
+    const m = line.match(/^(\w[\w-]*):\s*(.*)$/);
+    if (!m) continue;
+    meta[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
+  }
+  if (!meta.id || !meta.title) return null;
+  const c: Chapter = {
+    id: meta.id,
+    title: meta.title,
+    badge: meta.badge || 'trophy',
+    questIds: parseIdList(meta.quests),
+    sectionIds: parseIdList(meta.sections),
+  };
+  return c;
+}
+
+/** Parse a comma- or whitespace-separated list of ids from a flat field
+ *  value, tolerating `[bracket]` syntax. Empty / null returns []. */
+function parseIdList(raw: string | undefined): string[] {
+  if (!raw) return [];
+  const stripped = raw.replace(/^\[|\]$/g, '').trim();
+  if (!stripped) return [];
+  return stripped
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** Strip page-level ```chapter fenced blocks from the body. Page-wide
+ *  scope (same as ```quest). The block text is removed so it doesn't
+ *  bleed into section parsing. */
+function extractPageChapters(body: string): { chapters: Chapter[]; body: string } {
+  const lines = body.split('\n');
+  const chapters: Chapter[] = [];
+  const out: string[] = [];
+  let inFence = false;
+  let buffer: string[] = [];
+  const flushFence = () => {
+    const c = parseChapterBlock(buffer.join('\n'));
+    if (c) chapters.push(c);
+    buffer = [];
+  };
+  for (const line of lines) {
+    if (inFence) {
+      if (/^```\s*$/.test(line)) {
+        flushFence();
+        inFence = false;
+      } else {
+        buffer.push(line);
+      }
+      continue;
+    }
+    const fenceMatch = line.match(/^```(\w+)\s*$/);
+    if (fenceMatch) {
+      if (fenceMatch[1] === 'chapter') {
+        inFence = true;
+      } else {
+        out.push(line);
+      }
+      continue;
+    }
+    out.push(line);
+  }
+  if (inFence) flushFence();
+  return { chapters, body: out.join('\n') };
+}
+
 function extractBlocks(text: string): {
   proseChunks: ProseChunk[]
   view?: ViewBlock
@@ -310,6 +499,11 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   const { meta, body } = parseFrontmatter(raw)
   if (String(meta['template'] ?? '') !== 'canvas') return null
 
+  // Pull page-level quest and chapter blocks out of the body before
+  // section splitting. Both are page-wide (collect+strip every block).
+  const { quests, body: bodyWithoutQuests } = extractPageQuests(body)
+  const { chapters } = extractPageChapters(bodyWithoutQuests)
+
   const route = String(meta['route'] ?? defaultRoute)
   const sections: CanvasSection[] = []
 
@@ -335,7 +529,7 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
     })
   }
 
-  for (const line of body.split('\n')) {
+  for (const line of bodyWithoutQuests.split('\n')) {
     const h = parseHeadingLine(line)
     if (h) {
       if (cur) flush(cur)
@@ -346,5 +540,5 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   }
   if (cur) flush(cur)
 
-  return { template: 'canvas', route, sections, frontmatter: meta }
+  return { template: 'canvas', route, sections, frontmatter: meta, quests, chapters }
 }

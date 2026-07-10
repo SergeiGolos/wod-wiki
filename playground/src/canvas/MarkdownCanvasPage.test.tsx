@@ -104,22 +104,21 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
   },
 }))
 
-mock.module('@/components/organisms/editor/RuntimeTimerPanel', () => ({
-  RuntimeTimerPanel: ({ onComplete }: { onComplete: (blockId: string, results: typeof sampleWorkoutResults) => void }) => (
-    <button data-testid="complete-runtime" onClick={() => onComplete('block-1', sampleWorkoutResults)}>
-      Complete runtime
+mock.module('@/components/organisms/review/FullscreenTimer', () => ({
+  FullscreenTimer: (props: { onCompleteWorkout: (blockId: string, results: typeof sampleWorkoutResults) => void }) => (
+    <button data-testid="complete-fullscreen" onClick={() => props.onCompleteWorkout('block-1', sampleWorkoutResults)}>
+      Complete fullscreen
     </button>
   ),
 }))
 
-mock.module('@/components/organisms/review/FullscreenTimer', () => ({
-  FullscreenTimer: () => null,
+mock.module('@/components/organisms/review/FullscreenReview', () => ({
+  FullscreenReview: () => <div data-testid="fullscreen-review" />,
 }))
 
 mock.module('@/components/organisms/review/ReviewGrid', () => ({
   ReviewGrid: () => <div data-testid="review-grid" />,
 }))
-
 mock.module('@/services/AnalyticsTransformer', () => ({
   getAnalyticsFromLogs: () => ({
     segments: [{ id: 1, label: 'segment-1' }],
@@ -135,11 +134,6 @@ mock.module('../components/atoms/MacOSChrome', () => ({
   ),
 }))
 
-mock.module('@/components/molecules/ButtonGroup', () => ({
-  ButtonGroup: ({ primary }: { primary: { action: { handler: () => void } } }) => (
-    <button onClick={primary.action.handler}>Run</button>
-  ),
-}))
 
 mock.module('./CanvasProse', () => ({
   CanvasProse: ({ prose }: { prose: string }) => <div>{prose}</div>,
@@ -232,7 +226,7 @@ function getRenderedEditors() {
 }
 
 function getRenderedRuntimeButtons() {
-  return screen.getAllByTestId('complete-runtime')
+  return screen.getAllByTestId('complete-fullscreen')
 }
 
 function getEditorValue() {
@@ -299,7 +293,7 @@ describe('MarkdownCanvasPage result persistence', () => {
       panelActions?.run()
     })
 
-    await waitFor(() => expect(getRenderedRuntimeButtons()).toHaveLength(2))
+    await waitFor(() => expect(getRenderedRuntimeButtons()).toHaveLength(1))
 
     act(() => {
       getRenderedRuntimeButtons()[0].click()

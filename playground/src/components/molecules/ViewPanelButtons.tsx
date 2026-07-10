@@ -1,6 +1,5 @@
 import React from 'react'
-import { Eye, Maximize2, Play } from 'lucide-react'
-import { ButtonGroup } from '@/components/molecules/ButtonGroup'
+import { Eye, Play } from 'lucide-react'
 import { executeNavAction, isRunActivation } from '../../nav/navTypes'
 import type { INavActivation, NavActionDeps } from '../../nav/navTypes'
 import type { RunButtonState } from './SectionButtons'
@@ -30,21 +29,17 @@ export const ViewPanelButtons: React.FC<ViewPanelButtonsProps> = ({
         View
       </button>
     ) : (
-      <ButtonGroup
-        variant="primary"
-        primary={{
-          id: first.id || 'run',
-          label: first.label,
-          icon: first.icon ?? Play,
-          action: { type: 'call', handler: runState.onRun },
-        }}
-        secondary={{
-          id: 'fullscreen',
-          label: 'Run fullscreen',
-          icon: Maximize2,
-          action: { type: 'call', handler: runState.onFullscreen },
-        }}
-      />
+      <button
+        type="button"
+        onClick={runState.onRun}
+        className="flex items-center gap-2 transition-all active:scale-95 bg-primary text-primary-foreground hover:bg-primary/90 font-black uppercase tracking-widest rounded-full shadow-lg shadow-primary/25 min-h-[44px] px-6 py-2 text-xs"
+      >
+        {(() => {
+          const Icon = first.icon || Play
+          return <Icon className="shrink-0 size-4 fill-current sm:size-3" />
+        })()}
+        <span>{first.label}</span>
+      </button>
     )
     return (
       <div className="flex flex-wrap items-center gap-3 justify-end pt-3 px-1">
