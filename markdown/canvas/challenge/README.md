@@ -36,6 +36,14 @@ validation:
   count: 3
 ```
 
+```quest
+id: first-complete
+label: Run and complete the workout
+desc: Press Run in the editor and let the workout finish.
+validation:
+  type: workout-complete
+```
+
 ## The Starting Line {sticky #start theme:emerald}
 
 You're handed a blank script. Build it up — one line at a time.
@@ -56,8 +64,7 @@ Duration. Rounds go in `(...)` at the top.
 
 ## What "Done" Looks Like
 
-When the banner shows all three challenges complete, you've shipped your
-first real script. Press **Run** in the editor to start the WallClock.
+When the banner shows all challenges complete, you've written and executed your first real script. Press **Run** in the editor to start the WallClock and complete the final challenge.
 
 ```button
 label:  Back to Home →
