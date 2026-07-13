@@ -73,7 +73,7 @@ export default defineConfig({
             '@': resolve(__dirname, '../src'),
         },
     },
-    server: { allowedHosts: true, 
+    server: {
         allowedHosts: true,
         host: '0.0.0.0',
         ...(https ? { https } : {}),

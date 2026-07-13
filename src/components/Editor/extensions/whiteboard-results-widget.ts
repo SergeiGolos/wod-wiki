@@ -117,7 +117,19 @@ class ReactResultsWidget extends WidgetType {
     if (this.root) {
       const r = this.root;
       this.root = null;
-      r.unmount();
+      
+      const isTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+      if (isTestEnv) {
+        r.unmount();
+      } else {
+        queueMicrotask(() => {
+          try {
+            r.unmount();
+          } catch (e) {
+            // Ignore errors if already unmounted or cleaned up
+          }
+        });
+      }
     }
   }
 

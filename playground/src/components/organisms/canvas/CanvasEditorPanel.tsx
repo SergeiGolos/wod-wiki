@@ -19,6 +19,7 @@ interface CanvasEditorPanelProps {
   viewDefButtons?: Array<{ label: string; pipeline: PipelineStep[]; open?: OpenMode }>
   runState?: RunButtonState
   deps: NavActionDeps
+  width?: string
 }
 
 export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
@@ -32,6 +33,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   viewDefButtons,
   runState,
   deps,
+  width,
 }) => {
   const chrome = (
     <MacOSChrome
@@ -55,10 +57,18 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   if (variant === 'desktop') {
     return (
       <div
-        className="w-[60%] self-start sticky hidden lg:flex flex-col p-6 pt-8 pb-8 gap-3"
-        style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(100vh - ${STICKY_NAV_HEIGHT}px)` }}
+        className="self-start sticky hidden lg:flex flex-col p-6 pt-8 pb-8 gap-3"
+        style={{
+          top: `${STICKY_NAV_HEIGHT}px`,
+          height: `calc(100vh - ${STICKY_NAV_HEIGHT}px)`,
+          width: width || '60%',
+        }}
       >
-        <div className="flex-1 min-h-0">{chrome}</div>
+        <div className="flex-1 min-h-0 flex flex-col justify-center py-4">
+          <div className="max-h-[72vh] min-h-[400px] h-full flex flex-col">
+            {chrome}
+          </div>
+        </div>
         {buttons}
       </div>
     )

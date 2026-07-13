@@ -504,10 +504,21 @@ class ReactWidgetBlock extends WidgetType {
     if (this.root) {
       const r = this.root;
       this.root = null;
-      // Unmount synchronously so pending unmounts don't bleed into subsequent
-      // tests via the setTimeout queue (deferred approach caused race conditions
-      // in bun:test with React 18 concurrent mode).
-      r.unmount();
+      
+      const isTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+      if (isTestEnv) {
+        // Unmount synchronously in tests so pending unmounts don't bleed into subsequent
+        // tests (deferred approach causes race conditions in bun:test).
+        r.unmount();
+      } else {
+        queueMicrotask(() => {
+          try {
+            r.unmount();
+          } catch (e) {
+            // Ignore errors if already unmounted or cleaned up
+          }
+        });
+      }
     }
   }
 

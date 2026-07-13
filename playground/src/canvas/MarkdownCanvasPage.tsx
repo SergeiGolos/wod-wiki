@@ -33,6 +33,7 @@ import {
   resolveSource,
   resolveContentOwners,
   STICKY_NAV_HEIGHT,
+  MOBILE_STICKY_TOP,
   INITIAL_SOURCE_KEY,
 } from './canvasUtils'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
@@ -103,6 +104,7 @@ export function MarkdownCanvasPage({
 
   const viewDef = sections.find((s) => s.view)?.view ?? null
   const stickyAlign = viewDef?.align ?? 'right'
+  const editorWidth = viewDef?.width || '60%'
   const initialActiveSection = contentSections[0] ?? sections[0] ?? null
 
   const initialSource = viewDef?.source ? resolveSource(viewDef.source, wodFiles) : ''
@@ -261,12 +263,38 @@ export function MarkdownCanvasPage({
   const depsRef = useRef(deps)
   depsRef.current = deps
 
+  // Scroll tracking rootMargin calculation
+  const [activeScrollRootMargin, setActiveScrollRootMargin] = useState(`-${STICKY_NAV_HEIGHT}px 0px -30% 0px`)
+
+  useEffect(() => {
+    const updateRootMargin = () => {
+      const isMobileViewport = window.innerWidth < 1024
+      const hasStickyMobilePanel = !!document.querySelector('.lg\\:hidden.sticky')
+      
+      if (isMobileViewport && hasStickyMobilePanel) {
+        const viewportHeight = window.innerHeight
+        const topOffset = Math.round((viewportHeight / 2) + (MOBILE_STICKY_TOP / 2))
+        setActiveScrollRootMargin(`-${topOffset}px 0px -30% 0px`)
+      } else {
+        setActiveScrollRootMargin(`-${STICKY_NAV_HEIGHT}px 0px -30% 0px`)
+      }
+    }
+    
+    updateRootMargin()
+    window.addEventListener('resize', updateRootMargin)
+    const timer = setTimeout(updateRootMargin, 150)
+    return () => {
+      window.removeEventListener('resize', updateRootMargin)
+      clearTimeout(timer)
+    }
+  }, [contentSections])
+
   // Scroll tracking
   const hasUserScrolledRef = useRef(false)
   useActiveScrollSection({
     ids: contentSections.map((s) => s.id),
     enabled: contentSections.length > 0,
-    rootMargin: `-${STICKY_NAV_HEIGHT}px 0px -30% 0px`,
+    rootMargin: activeScrollRootMargin,
     threshold: [0, 0.1, 0.25, 0.5, 0.75],
     dataAttribute: 'data-section-id',
     scrollDirection: 'topmost-when-up',
@@ -294,7 +322,21 @@ export function MarkdownCanvasPage({
     requestAnimationFrame(() => {
       const el = document.querySelector(`[data-section-id="${headingParam}"]`)
       if (!el) return
-      const top = (el as HTMLElement).getBoundingClientRect().top + window.scrollY - STICKY_NAV_HEIGHT
+      
+      const isMobileViewport = window.innerWidth < 1024
+      const hasStickyMobilePanel = !!document.querySelector('.lg\\:hidden.sticky')
+      
+      let offset = STICKY_NAV_HEIGHT
+      if (isMobileViewport) {
+        if (hasStickyMobilePanel) {
+          const viewportHeight = window.innerHeight
+          offset = (viewportHeight / 2) + (MOBILE_STICKY_TOP / 2) + 8
+        } else {
+          offset = MOBILE_STICKY_TOP + 10
+        }
+      }
+      
+      const top = (el as HTMLElement).getBoundingClientRect().top + window.scrollY - offset
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
     })
   }, [contentSections, headingParam])
@@ -311,7 +353,20 @@ export function MarkdownCanvasPage({
     if (nextQuery && nextQuery !== previousQuery) {
       const listElement = document.getElementById('collection-workouts')
       if (listElement) {
-        const top = listElement.getBoundingClientRect().top + window.scrollY - STICKY_NAV_HEIGHT
+        const isMobileViewport = window.innerWidth < 1024
+        const hasStickyMobilePanel = !!document.querySelector('.lg\\:hidden.sticky')
+        
+        let offset = STICKY_NAV_HEIGHT
+        if (isMobileViewport) {
+          if (hasStickyMobilePanel) {
+            const viewportHeight = window.innerHeight
+            offset = (viewportHeight / 2) + (MOBILE_STICKY_TOP / 2) + 8
+          } else {
+            offset = MOBILE_STICKY_TOP + 10
+          }
+        }
+        
+        const top = listElement.getBoundingClientRect().top + window.scrollY - offset
         window.scrollTo({ top, behavior: 'smooth' })
       }
     }
@@ -444,6 +499,7 @@ export function MarkdownCanvasPage({
       headerActions={activeHeaderActions}
       runState={runtime.runState}
       deps={deps}
+      width={editorWidth}
     />
   )
 
@@ -490,6 +546,7 @@ export function MarkdownCanvasPage({
       <SplitCanvasTemplate
         stickyAlign={stickyAlign as 'left' | 'right'}
         hasViewDef={!!viewDef}
+        editorWidth={editorWidth}
         heroSlot={heroSlot}
         mobilePanel={mobilePanel}
         desktopPanel={desktopPanel}

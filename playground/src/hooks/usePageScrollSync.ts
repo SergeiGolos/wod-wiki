@@ -47,9 +47,23 @@ export function usePageScrollSync(currentNavLinks: PageNavLink[]): UsePageScroll
     //    (works inside nested flex layouts like HomeView > CanvasPage).
     const el = document.getElementById(id)
     if (el) {
-      // Apply a temporary scroll-margin so the sticky header is not covered.
+      // Apply a temporary scroll-margin so the sticky header/mobile editor is not covered.
       const prev = el.style.scrollMarginTop
-      el.style.scrollMarginTop = '96px'
+      
+      const isMobileViewport = window.innerWidth < 1024
+      const hasStickyMobilePanel = !!document.querySelector('.lg\\:hidden.sticky')
+      
+      let scrollMargin = '96px'
+      if (isMobileViewport) {
+        if (hasStickyMobilePanel) {
+          // Offset by 50vh (editor) + (MOBILE_STICKY_TOP / 2) (33px) + 7px buffer
+          scrollMargin = 'calc(50vh + 40px)'
+        } else {
+          scrollMargin = '75px'
+        }
+      }
+
+      el.style.scrollMarginTop = scrollMargin
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
       // Restore after animation frame so the style doesn't persist.
       requestAnimationFrame(() => { el.style.scrollMarginTop = prev })
@@ -91,9 +105,9 @@ export function usePageScrollSync(currentNavLinks: PageNavLink[]): UsePageScroll
           selection: { anchor: pos, head: pos },
           effects: [EditorView.scrollIntoView(pos, { y: 'start', yMargin: 20 })],
         })
-        // Also scroll the window to the editor's container if needed.
+        // Also scroll the window to the editor's container if needed on desktop only.
         const editorEl = view.dom.parentElement
-        if (editorEl) {
+        if (editorEl && window.innerWidth >= 1024) {
           const y = editorEl.getBoundingClientRect().top + window.scrollY - 120
           window.scrollTo({ top: y, behavior: 'smooth' })
         }
