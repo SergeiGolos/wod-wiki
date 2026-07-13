@@ -36,6 +36,12 @@ export interface InlineResultPanelProps {
   currentContentId?: string;
   /** Open the full-screen review dialog */
   onOpenReview?: (result: WorkoutResult) => void;
+  /**
+   * When true, clicking a result row opens the fullscreen review directly
+   * instead of expanding inline. Used by canvas pages where the editor panel
+   * is too small for the inline ReviewGrid.
+   */
+  compactMode?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────
@@ -98,6 +104,7 @@ export const InlineResultPanel: React.FC<InlineResultPanelProps> = ({
   allResults,
   currentContentId,
   onOpenReview,
+  compactMode = false,
 }) => {
   // Track which result is expanded (null = all collapsed)
   const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
@@ -160,6 +167,7 @@ export const InlineResultPanel: React.FC<InlineResultPanelProps> = ({
             isExpanded={isExpanded}
             onToggle={() => toggleResult(result.id)}
             onOpenReview={() => onOpenReview?.(result)}
+            compactMode={compactMode}
           />
         );
       })}
@@ -199,6 +207,7 @@ interface ResultRowProps {
   isExpanded: boolean;
   onToggle: () => void;
   onOpenReview: () => void;
+  compactMode?: boolean;
 }
 
 const ResultRow: React.FC<ResultRowProps> = ({
@@ -208,6 +217,7 @@ const ResultRow: React.FC<ResultRowProps> = ({
   isExpanded,
   onToggle,
   onOpenReview,
+  compactMode = false,
 }) => {
   const { isDebugMode } = useDebugMode();
   const { overrides, setOverride } = useUserOverrides(false);
@@ -264,11 +274,13 @@ const ResultRow: React.FC<ResultRowProps> = ({
       <button
         type="button"
         className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors text-left group w-full"
-        onClick={onToggle}
+        onClick={compactMode ? onOpenReview : onToggle}
       >
-        {/* Expand/collapse chevron */}
+        {/* Expand/collapse chevron (or maximize icon in compact mode) */}
         <span className="flex-shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors">
-          {isExpanded ? (
+          {compactMode ? (
+            <Maximize2 className="h-3.5 w-3.5" />
+          ) : isExpanded ? (
             <ChevronDown className="h-3.5 w-3.5" />
           ) : (
             <ChevronRight className="h-3.5 w-3.5" />

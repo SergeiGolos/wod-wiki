@@ -73,6 +73,7 @@ export function CanvasPanelContent({
           showLineNumbers={false}
           enableOverlay={false}
           enableInlineRuntime={false}
+          forceFullscreenReview
           extendedResults={persistedResults}
           commands={commands}
           hideDefaultCommands={false}

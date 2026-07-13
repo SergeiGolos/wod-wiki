@@ -67,6 +67,7 @@ import {
   wodResultsField,
   updateSectionResults,
   WOD_RESULT_CLICK_EVENT,
+  compactResultsMode,
   type WodResultClickDetail,
 } from "@/components/Editor/extensions/whiteboard-results-widget";
 import { OverlayTrack } from "@/components/organisms/editor/OverlayTrack";
@@ -151,6 +152,13 @@ export interface NoteEditorProps {
    */
   enableInlineRuntime?: boolean;
   /**
+   * When true, clicking a result row opens the fullscreen review overlay
+   * directly instead of expanding the inline AnalyticsScorecard + ReviewGrid.
+   * Used by canvas pages where the editor panel is too narrow for inline
+   * results. Default: false (inline expand, as on /playground and /journal).
+   */
+  forceFullscreenReview?: boolean;
+  /**
    * Registry of custom widget components rendered inside ```widget:<name> blocks.
    * Keys are widget names (e.g. "hero"), values are React components.
    * Each registered widget replaces the fenced block with a full-width React component.
@@ -196,6 +204,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   commands,
   hideDefaultCommands = false,
   enableInlineRuntime = true,
+  forceFullscreenReview = false,
   widgetComponents,
   onButtonAction,
   scrollToSectionId,
@@ -535,6 +544,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Results bar widgets — shown after each WOD block's closing fence
       ...wodResultsWidget,
 
+      // Compact results mode: result rows open fullscreen review on click
+      // instead of expanding inline (canvas pages with small editor panels)
+      ...(forceFullscreenReview ? [compactResultsMode.of(true)] : []),
+
       // Full-row widget block replacements (```widget:<name>``` sections)
       ...(widgetComponents && widgetComponents.size > 0
         ? [widgetBlockPreview(widgetComponents)]
@@ -590,6 +603,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       notePersistence,
       widgetComponents,
       onButtonAction,
+      forceFullscreenReview,
     ]
   );
 
