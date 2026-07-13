@@ -4,10 +4,12 @@
  * the page quest ledger; clicking a challenge scrolls to its section.
  */
 
+import { useEffect, useRef, useState } from 'react';
 import { Check, Sparkles } from 'lucide-react';
 import type { Quest } from '../../canvas/parseCanvasMarkdown';
 import { usePageQuests } from '../../hooks/usePageQuests';
 import { cn } from '@/lib/utils';
+import { ChallengeCard } from './ChallengeCard';
 
 export interface ChallengeHeaderBadgeProps {
   pageRoute: string;
@@ -15,7 +17,6 @@ export interface ChallengeHeaderBadgeProps {
   /** challenge id → section id, used for scroll-to-section navigation. */
   challengeSectionMap: Map<string, string>;
   onScrollToSection?: (sectionId: string) => void;
-  className?: string;
 }
 
 export function ChallengeHeaderBadge({
@@ -23,9 +24,11 @@ export function ChallengeHeaderBadge({
   quests,
   challengeSectionMap,
   onScrollToSection,
-  className,
 }: ChallengeHeaderBadgeProps) {
   const { quests: questsWithStatus, stepsComplete, totalSteps, isComplete } = usePageQuests(pageRoute, quests);
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   if (totalSteps === 0) return null;
 
@@ -34,12 +37,47 @@ export function ChallengeHeaderBadge({
     if (sectionId) {
       onScrollToSection?.(sectionId);
     }
+    setOpen(false);
   };
 
+  // Close on Escape; also close when focus leaves the badge container.
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+
+    const handleFocusOut = (e: FocusEvent) => {
+      const next = e.relatedTarget as Node | null;
+      const container = buttonRef.current?.parentElement;
+      if (container && next && !container.contains(next)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    panelRef.current?.addEventListener('focusout', handleFocusOut);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      panelRef.current?.removeEventListener('focusout', handleFocusOut);
+    };
+  }, [open]);
+
   return (
-    <div className={cn('relative group py-1 shrink-0', className)}>
+    <div className="relative py-1 shrink-0"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
       <button
+        ref={buttonRef}
         type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 cursor-pointer focus:outline-none select-none text-left rounded-full border border-border/70 bg-background px-2 py-0.5 hover:bg-muted/40 transition-colors"
       >
         {isComplete ? (
@@ -57,57 +95,45 @@ export function ChallengeHeaderBadge({
         </span>
       </button>
 
-      {/* Hover popover challenge list */}
-      <div className="absolute left-0 top-full mt-1.5 w-64 rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-3 z-50 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto scale-95 group-hover:scale-100 transition-all duration-150 origin-top-left before:content-[''] before:absolute before:-top-1.5 before:left-0 before:right-0 before:h-1.5">
-        <div className="mb-2.5 pb-2 border-b border-border/60 flex items-center justify-between gap-2">
-          <div>
-            <h5 className="text-[10px] font-black uppercase tracking-widest text-foreground">
-              Syntax Challenges
-            </h5>
-            <p className="text-[9px] text-muted-foreground mt-0.5">
-              Click a challenge to jump to its section.
-            </p>
+      {/* Dropdown menu */}
+      {open && (
+        <div
+          ref={panelRef}
+          role="menu"
+          aria-orientation="vertical"
+          className="absolute left-0 top-full mt-1.5 w-64 rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-3 z-50 origin-top-left"
+        >
+          <div className="mb-2.5 pb-2 border-b border-border/60 flex items-center justify-between gap-2">
+            <div>
+              <h5 className="text-[10px] font-black uppercase tracking-widest text-foreground">
+                Syntax Challenges
+              </h5>
+              <p className="text-[9px] text-muted-foreground mt-0.5">
+                Click a challenge to jump to its section.
+              </p>
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground tabular-nums">
+              {stepsComplete}/{totalSteps}
+            </span>
           </div>
-          <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground tabular-nums">
-            {stepsComplete}/{totalSteps}
-          </span>
-        </div>
 
-        <div className="flex flex-col gap-1">
-          {questsWithStatus.map((q) => {
-            const sectionId = challengeSectionMap.get(q.id);
-            return (
-              <button
-                key={q.id}
-                type="button"
-                disabled={!sectionId}
-                onClick={() => handleChallengeClick(q.id)}
-                className={cn(
-                  'w-full text-left flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors',
-                  q.isCompleted
-                    ? 'bg-primary/5 text-foreground'
-                    : 'hover:bg-muted/40 text-foreground',
-                  !sectionId && 'opacity-60 cursor-default',
-                )}
-              >
-                <span
-                  className={cn(
-                    'flex size-4 shrink-0 items-center justify-center rounded-full',
-                    q.isCompleted
-                      ? 'bg-emerald-500 text-white'
-                      : 'border border-muted-foreground/40 text-muted-foreground/70',
-                  )}
-                >
-                  {q.isCompleted && <Check className="size-2.5" strokeWidth={3} />}
-                </span>
-                <span className={cn('font-medium', q.isCompleted && 'line-through decoration-primary/40')}>
-                  {q.label}
-                </span>
-              </button>
-            );
-          })}
+          <div className="flex flex-col gap-1">
+            {questsWithStatus.map((q) => {
+              const sectionId = challengeSectionMap.get(q.id);
+              return (
+                <ChallengeCard
+                  key={q.id}
+                  quest={q}
+                  onClick={sectionId ? () => handleChallengeClick(q.id) : undefined}
+                  disabled={!sectionId}
+                  compact
+                  className="border-0 bg-transparent hover:bg-muted/40"
+                />
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

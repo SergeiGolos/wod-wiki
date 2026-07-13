@@ -56,9 +56,10 @@ export interface ChallengeCardProps {
   onClick?: () => void;
   className?: string;
   compact?: boolean;
+  disabled?: boolean;
 }
 
-export function ChallengeCard({ quest, onClick, className, compact = false }: ChallengeCardProps) {
+export function ChallengeCard({ quest, onClick, className, compact = false, disabled = false }: ChallengeCardProps) {
   const Icon = getQuestIcon(quest.id);
 
   const hint = quest.isCompleted
@@ -73,6 +74,7 @@ export function ChallengeCard({ quest, onClick, className, compact = false }: Ch
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       data-testid={`challenge-row-${quest.id}`}
       data-completed={quest.isCompleted ? 'true' : 'false'}
       className={cn(
@@ -80,7 +82,8 @@ export function ChallengeCard({ quest, onClick, className, compact = false }: Ch
         quest.isCompleted
           ? 'border-primary/40 bg-primary/5'
           : 'border-border/50 bg-background/60',
-        onClick && 'cursor-pointer hover:bg-background/80',
+        onClick && !disabled && 'cursor-pointer hover:bg-background/80',
+        disabled && 'opacity-60 cursor-default',
         compact && 'px-2.5 py-1.5',
         className,
       )}

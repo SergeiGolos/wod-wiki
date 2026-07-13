@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, fireEvent } from '@testing-library/react'
 
 import { ChallengeHeaderBadge } from './ChallengeHeaderBadge'
 import type { Quest } from '../../canvas/parseCanvasMarkdown'
@@ -20,7 +20,7 @@ afterEach(() => {
 })
 
 describe('ChallengeHeaderBadge', () => {
-  it('renders a badge with completed / total next to the title group', () => {
+  it('renders a badge with completed / total', () => {
     const quests: Quest[] = [
       { id: 'done-quest', label: 'Done quest' },
       { id: 'pending-quest', label: 'Pending quest' },
@@ -37,7 +37,7 @@ describe('ChallengeHeaderBadge', () => {
     expect(screen.getAllByText('1/2').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('calls onScrollToSection with the mapped section id when a challenge is clicked', () => {
+  it('opens the dropdown on click and calls onScrollToSection when a challenge is clicked', () => {
     const quests: Quest[] = [{ id: 'done-quest', label: 'Done quest' }]
     const onScrollToSection = mock(() => {})
 
@@ -50,8 +50,11 @@ describe('ChallengeHeaderBadge', () => {
       />,
     )
 
+    const badge = screen.getByRole('button', { expanded: false })
+    fireEvent.click(badge)
+
     const item = screen.getByText('Done quest')
-    item.click()
+    fireEvent.click(item)
     expect(onScrollToSection).toHaveBeenCalledWith('sec-1')
   })
 
