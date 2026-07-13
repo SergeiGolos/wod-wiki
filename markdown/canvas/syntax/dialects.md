@@ -64,6 +64,8 @@ pipeline:
 
 Use `log` when the block records what happened. Logs preserve performed work, notes, and subjective effort without pretending to be tomorrow's prescription.
 
+{{challenge:dialects-log}}
+
 ```command
 target: ex
 pipeline:
@@ -83,6 +85,8 @@ pipeline:
 ## `climb` — Indoor Bouldering {sticky}
 
 Use `climb` for route and problem logs. Grades, send types, attempts, and beta notes become explicit climbing signals while staying readable as plain Markdown.
+
+{{challenge:dialects-climb}}
 
 ```command
 target: ex

@@ -46,6 +46,8 @@ width:   50%
 
 An outer rounds group containing a timed conditioning block, followed by a named strength block with rest. Each group runs sequentially — the runtime handles the transitions.
 
+{{challenge:complex-time}}
+
 ```command
 target: ex
 pipeline:
@@ -62,6 +64,8 @@ pipeline:
 ## Full Training Session {sticky}
 
 Warmup → Strength → Conditioning → Cool-down. Four named groups in one note, each with its own protocol and rest pattern.
+
+{{challenge:complex-rounds}}
 
 ```command
 target: ex

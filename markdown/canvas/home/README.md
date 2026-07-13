@@ -79,6 +79,8 @@ validation:
 
 WOD Wiki compiles a plain-text workout into a live `WallClock` timer, then logs every round straight back to your training journal — one file, one loop, no app-switching. Your first Quick-Start challenge is already complete: **welcome.**
 
+{{challenge:qs-arrive}}
+
 ```view
 name:    home-demo
 state:   note
@@ -116,6 +118,10 @@ pipeline:
 ## Learn the Syntax {sticky #learn theme:emerald}
 
 Or keep scrolling to try the live demo and pick up the syntax as you go.
+
+{{challenge:qs-edit}}
+
+{{challenge:qs-run}}
 
 ```button
 label:  ▾ Try the Demo

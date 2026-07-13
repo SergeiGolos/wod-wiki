@@ -54,6 +54,8 @@ width:   50%
 
 The simplest workout is one exercise on one line. No reps, no timer — just a movement. The runtime will ask you to log how many you did when you finish.
 
+{{challenge:basics-movement}}
+
 ```command
 target: ex
 pipeline:
@@ -77,6 +79,8 @@ Every file follows the same three rules.
 
 **Indentation means nesting** — anything indented under a group belongs to that group.
 
+{{challenge:basics-reps}}
+
 ```command
 target: ex
 pipeline:
@@ -86,6 +90,8 @@ pipeline:
 ## Measurements {sticky}
 
 Add weights (`225lb`, `100kg`) and distances (`400m`, `2000m`, `10 miles`) directly to movement lines. The runtime tracks them and surfaces them in the Review grid.
+
+{{challenge:basics-load}}
 
 ```command
 target: ex

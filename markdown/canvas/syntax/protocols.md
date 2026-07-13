@@ -56,6 +56,8 @@ A bare duration (`5:00 Run`, `:30 Plank`) counts down from that time. Movements 
 
 Use `*` to mark a timer as required or non-skippable. `*:30 Rest` is a common pattern, but the rest behavior comes from the word `Rest`, not from `*` alone.
 
+{{challenge:protocols-timer}}
+
 ```command
 target: ex
 pipeline:
@@ -127,6 +129,10 @@ pipeline:
 ## Classic AMRAP {sticky}
 
 **As Many Rounds As Possible.** Set a time cap, mark the block `AMRAP`, and race the clock. `20:00 AMRAP` is the canonical guide form.
+
+{{challenge:protocols-rounds}}
+
+{{challenge:protocols-tag}}
 
 ```command
 target: ex

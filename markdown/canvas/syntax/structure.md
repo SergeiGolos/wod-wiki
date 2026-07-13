@@ -47,6 +47,8 @@ width:   50%
 
 `(3 Rounds)` repeats the indented block three times. The runtime shows which round you're on and advances automatically.
 
+{{challenge:structure-rounds}}
+
 ```command
 target: ex
 pipeline:
@@ -114,6 +116,8 @@ pipeline:
 ## Rep Schemes {sticky}
 
 Rep schemes use dash-separated values inside parentheses. `(21-15-9)` creates three rounds and applies those rep targets to every movement in the block.
+
+{{challenge:structure-repscheme}}
 
 ```command
 target: ex

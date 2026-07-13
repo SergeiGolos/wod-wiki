@@ -64,6 +64,8 @@ pipeline:
 
 Log rate of perceived exertion and reps in reserve per set. These are first-class effort dimensions that feed into calculated metrics and history search.
 
+{{challenge:metrics-custom}}
+
 ```command
 target: ex
 pipeline:
@@ -114,6 +116,8 @@ pipeline:
 ## Calculated Metrics {sticky}
 
 Use a `calculate` block to derive values from custom metrics across the workout. The runtime evaluates these after completion (and live during tracking) using the collected data.
+
+{{challenge:metrics-calc}}
 
 ```command
 target: ex
