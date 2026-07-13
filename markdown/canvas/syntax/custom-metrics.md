@@ -1,9 +1,33 @@
 ---
 search: hidden
 template: canvas
-route: /syntax/custom-metrics
+route: /guide/syntax/custom-metrics
 type: syntax
 ---
+
+```chapter
+id: custom-metrics
+title: Custom Metrics
+badge: activity
+quests: metrics-custom, metrics-calc
+sections: []
+```
+
+```quest
+id: metrics-custom
+label: Add a custom metric
+validation:
+  type: contains-token
+  value: rpe
+```
+
+```quest
+id: metrics-calc
+label: Add a calculate block
+validation:
+  type: contains-token
+  value: calculate
+```
 
 # Custom Metrics {sticky dark full-bleed}
 
@@ -118,12 +142,12 @@ pipeline:
 label:  ← Core Concepts
 target: ex
 pipeline:
-  - navigate: /syntax/basics
+  - navigate: /guide/syntax/basics
 ```
 
 ```button
 label:  Structure & Reps →
 target: ex
 pipeline:
-  - navigate: /syntax/structure
+  - navigate: /guide/syntax/structure
 ```

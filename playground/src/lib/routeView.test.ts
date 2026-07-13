@@ -10,7 +10,6 @@ import type { ParsedCanvasPage } from '../canvas/parseCanvasMarkdown'
 import {
   resolveRouteView,
   SYNTAX_LINKS,
-  ZERO_TO_HERO_LINKS,
   type RouteViewDeps,
   type RouteViewParams,
 } from './routeView'
@@ -101,11 +100,6 @@ describe('resolveRouteView — playground route', () => {
 })
 
 describe('resolveRouteView — docs routes', () => {
-  it('returns the Zero-to-Hero links for /guide/getting-started', () => {
-    const view = resolveRouteView('/guide/getting-started', NO_PARAMS, makeDeps())
-    expect(view.nav).toBe(ZERO_TO_HERO_LINKS)
-  })
-
   it('returns the Syntax links for /guide/syntax', () => {
     const view = resolveRouteView('/guide/syntax', NO_PARAMS, makeDeps())
     expect(view.nav).toBe(SYNTAX_LINKS)

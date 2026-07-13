@@ -5,6 +5,37 @@ route: /guide/syntax/protocols
 type: syntax
 ---
 
+```chapter
+id: protocols
+title: Protocols
+badge: timer
+quests: protocols-timer, protocols-rounds, protocols-tag
+sections: []
+```
+
+```quest
+id: protocols-timer
+label: Add a rest or time cap
+validation:
+  type: has-timer
+```
+
+```quest
+id: protocols-rounds
+label: Add a 3-round cap
+validation:
+  type: min-rounds
+  count: 3
+```
+
+```quest
+id: protocols-tag
+label: Add a workout tag
+validation:
+  type: contains-token
+  value: AMRAP
+```
+
 # Timers & Protocols {sticky dark full-bleed}
 
 Prefix any movement with a duration to turn it into a timed block. Timers combined with specific workout structures create powerful protocols like AMRAP, EMOM, and Tabata.
@@ -29,6 +60,27 @@ Use `*` to mark a timer as required or non-skippable. `*:30 Rest` is a common pa
 target: ex
 pipeline:
   - set-source: wods/examples/syntax/timers-rest.md
+```
+
+```button
+label:  Try It →
+target: ex
+pipeline:
+  - set-state: track
+```
+
+## Timer Modifiers {sticky}
+
+Use `^` to force a timer to count up instead of down.
+
+Use `*` to mark a timer as required or non-skippable.
+
+Use `:?` when you want the runtime to record the actual time taken.
+
+```command
+target: ex
+pipeline:
+  - set-source: wods/examples/syntax/timer-modifiers.md
 ```
 
 ```button
@@ -228,7 +280,7 @@ pipeline:
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Structure & Rep Schemes
+label:  ← Structure & Reps
 target: ex
 pipeline:
   - navigate: /guide/syntax/structure

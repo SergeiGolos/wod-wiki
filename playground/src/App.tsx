@@ -17,7 +17,7 @@ import { useCreateJournalEntry } from './hooks/useCreateJournalEntry'
 import { usePageScrollSync } from './hooks/usePageScrollSync'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
 import { AudioProvider } from '@/contexts/AudioContext'
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import {
   ROUTE_PATTERNS,
   reviewPath,
@@ -295,6 +295,10 @@ export function App() {
                   <Route path="/concept3" element={<Concept3LandingPage />} />
                   <Route path="/getting-started" element={<GettingStartedRedirect />} />
                   <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
+                  <Route path="/chapters/basics" element={<Navigate to="/guide/syntax/basics" replace />} />
+                  <Route path="/chapters/sequences" element={<Navigate to="/guide/syntax" replace />} />
+                  <Route path="/chapters/protocols" element={<Navigate to="/guide/syntax/protocols" replace />} />
+                  <Route path="/challenge" element={<Navigate to="/" replace />} />
                   <Route path="/syntax" element={<SyntaxRedirect />} />
                   <Route path="/syntax/*" element={<SyntaxRedirect />} />
                   <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />

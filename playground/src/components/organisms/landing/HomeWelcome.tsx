@@ -21,7 +21,7 @@ const inlineDocLinkClassName = 'mx-1 inline-flex h-auto items-center gap-1 px-0 
 
 const WRITE_NOTE_DOC_LINKS = {
   movement: {
-    to: '/guide/getting-started?h=statement',
+    to: '/guide/syntax/basics',
     label: 'Movement',
   },
   reps: {

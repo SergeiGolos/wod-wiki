@@ -15,12 +15,10 @@ function getSectionProse(id: string): string {
 }
 
 describe('home feature markdown rendering', () => {
-  it('keeps feature list item content in the parsed Home canvas sections', () => {
-    expect(getSectionProse('metrics')).toContain('Add reps, load, and distance to any movement')
-    expect(getSectionProse('timer')).toContain('Prefix a movement with a time to run it as a countdown timer')
-    expect(getSectionProse('groups')).toContain('Wrap movements in `(N Rounds)` to repeat them')
-    expect(getSectionProse('protocols')).toContain('AMRAP — As Many Rounds As Possible')
-    expect(getSectionProse('data')).toContain('Every workout, note, and result is a plain markdown file')
+  it('keeps the new home canvas sections in the parsed home page', () => {
+    expect(getSectionProse('jump-in')).toContain('Skip the tour and start using the app now')
+    expect(getSectionProse('learn')).toContain('keep scrolling to try the live demo')
+    expect(getSectionProse('whats-next')).toContain('Ready to go deeper?')
   })
 
   it('renders analytics labels as bold prefixes with their labels intact', () => {

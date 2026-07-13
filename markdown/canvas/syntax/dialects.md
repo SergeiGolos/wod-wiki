@@ -5,6 +5,30 @@ route: /guide/syntax/dialects
 type: syntax
 ---
 
+```chapter
+id: dialects
+title: Dialects
+badge: file-text
+quests: dialects-log, dialects-climb
+sections: []
+```
+
+```quest
+id: dialects-log
+label: Write a log block
+validation:
+  type: contains-token
+  value: \`\`\`log
+```
+
+```quest
+id: dialects-climb
+label: Write a climb block
+validation:
+  type: contains-token
+  value: \`\`\`climb
+```
+
 # Dialect Examples {sticky dark full-bleed}
 
 Dialect fences tell WOD Wiki what kind of training note a block represents. The line grammar stays familiar, while the fence gives the editor, review grid, and analytics layer the right intent.

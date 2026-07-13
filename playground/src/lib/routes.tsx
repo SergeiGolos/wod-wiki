@@ -210,9 +210,9 @@ export function TrackerRedirect(): ReactNode {
   return <Navigate to={runPath(runtimeId!)} replace />
 }
 
-/** Redirect /getting-started → /guide/getting-started */
+/** Redirect /getting-started → / (retired: content folded into home) */
 export function GettingStartedRedirect(): ReactNode {
-  return <Navigate to="/guide/getting-started" replace />
+  return <Navigate to="/" replace />
 }
 
 /** Redirect /syntax/* → /guide/syntax/* */
@@ -255,15 +255,47 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
     },
     to: ({ collection, workout }) => workoutPath(collection, workout),
   },
-  // /getting-started  →  /guide/getting-started
+  // /getting-started  →  / (retired: content folded into home)
   {
     match: (p) => {
       if (p !== '/getting-started') return false;
       return {};
     },
-    to: () => '/guide/getting-started',
+    to: () => '/',
   },
-  // /syntax/*  →  /guide/syntax/*
+  // /chapters/basics  →  /guide/syntax/basics
+  {
+    match: (p) => {
+      if (p !== '/chapters/basics') return false;
+      return {};
+    },
+    to: () => '/guide/syntax/basics',
+  },
+  // /chapters/sequences  →  /guide/syntax (split content; no single canonical page)
+  {
+    match: (p) => {
+      if (p !== '/chapters/sequences') return false;
+      return {};
+    },
+    to: () => '/guide/syntax',
+  },
+  // /chapters/protocols  →  /guide/syntax/protocols
+  {
+    match: (p) => {
+      if (p !== '/chapters/protocols') return false;
+      return {};
+    },
+    to: () => '/guide/syntax/protocols',
+  },
+  // /challenge  →  / (retired: quick-start challenge chain now lives on home)
+  {
+    match: (p) => {
+      if (p !== '/challenge') return false;
+      return {};
+    },
+    to: () => '/',
+  },
+  // /syntax/*  →  /guide/syntax/* (covers old /syntax/custom-metrics route)
   {
     match: (p) => {
       const m = p.match(/^\/syntax(\/.+)?$/);

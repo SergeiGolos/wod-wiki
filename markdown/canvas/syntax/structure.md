@@ -5,6 +5,30 @@ route: /guide/syntax/structure
 type: syntax
 ---
 
+```chapter
+id: structure
+title: Structure
+badge: blocks
+quests: structure-rounds, structure-repscheme
+sections: []
+```
+
+```quest
+id: structure-rounds
+label: Wrap movements in 2+ rounds
+validation:
+  type: min-rounds
+  count: 2
+```
+
+```quest
+id: structure-repscheme
+label: Write a rep scheme
+validation:
+  type: contains-token
+  value: 21-15-9
+```
+
 # Structure & Rep Schemes {sticky dark full-bleed}
 
 Groups organise movements into repeating blocks, named sections, or nested structures. Rep schemes define how many times you perform those movements.

@@ -25,16 +25,6 @@ import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 
 // ─── Docs-page nav constants (moved from App.tsx) ──────────────────────────
 
-export const ZERO_TO_HERO_LINKS = [
-  { id: 'introduction', label: 'Introduction', type: 'heading' as const },
-  { id: 'statement', label: 'Step 1: Movements', type: 'heading' as const },
-  { id: 'metrics', label: 'Step 2: Metrics', type: 'heading' as const },
-  { id: 'timer', label: 'Step 3: Timers', type: 'heading' as const },
-  { id: 'groups', label: 'Step 4: Groups', type: 'heading' as const },
-  { id: 'protocols', label: 'Step 5: Protocols', type: 'heading' as const },
-  { id: 'review', label: 'Step 6: Review', type: 'heading' as const },
-]
-
 export const SYNTAX_LINKS = [
   { id: 'introduction', label: 'Introduction', type: 'heading' as const },
   { id: 'anatomy', label: 'Statement Anatomy', type: 'heading' as const },
@@ -190,7 +180,6 @@ function deriveWorkout(
     '/journal': 'Journal',
     '/plan': 'Plan',
     '/feeds': 'Feeds',
-    '/guide/getting-started': 'Zero to Hero',
     '/guide/syntax': 'Syntax',
     '/collections': 'Collections',
   }
@@ -280,7 +269,6 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
   }
 
   // 2. Docs pages
-  if (pathname === '/guide/getting-started') return ZERO_TO_HERO_LINKS
   if (pathname === '/guide/syntax') return SYNTAX_LINKS
 
   // 3. Journal list page — top-10 distinct session dates

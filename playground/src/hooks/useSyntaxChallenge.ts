@@ -104,10 +104,17 @@ export function useSyntaxChallenge({
   // into the returned `quests` so the banner sees the live completion
   // state from localStorage. The input `quests` parameter lacks
   // `isCompleted` and is only used above for the validation effect.
-  const decorated = questsWithStatus.map((q) => ({
-    ...q,
-    result: results[q.id] ?? { pass: false, reason: 'No validator result.' },
-  }));
+  const decorated = questsWithStatus.map((q) => {
+    const raw = results[q.id] ?? { pass: false, reason: 'No validator result.' };
+    // Once a quest is marked complete (externally or by this hook), the banner
+    // should show a clean success state even if the current editor no longer
+    // passes the validator. This matters for event-based quests like `qs-arrive`
+    // (mount) and `qs-edit` (edit) that have no live validation schema.
+    const result = q.isCompleted
+      ? { ...raw, pass: true, detail: 'Completed' }
+      : raw;
+    return { ...q, result };
+  });
 
   return {
     quests: decorated,

@@ -121,7 +121,7 @@ pipeline:
 label:  Open Custom Metrics & Calculations →
 target: preview
 pipeline:
-  - navigate: /guide/syntax/custom-and-calculated-metrics
+  - navigate: /guide/syntax/custom-metrics
 ```
 
 ## Start Writing {sticky full-bleed dark}

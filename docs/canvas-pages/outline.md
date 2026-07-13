@@ -112,26 +112,70 @@ new validators are required.
 
 ### Home — `/` · Quick Start
 
-**Content (lean — ~3 screens, down from 8):**
-- The pitch (markdown → live timer → journal) in one paragraph.
-- One canonical live example in the `home-demo` panel (the existing 3-round KB
-  circuit). The deep-dive sections (Metrics, Timers, Groups, Protocols,
-  Dialects) **move out** — they are the tutorials' job.
-- A "What's next" hub linking the tutorial path.
+**Content (lean — ~4 screens, down from 8):**
+1. **Hero / pitch + Quick-Start meter** — markdown → live timer → journal, in one
+   paragraph. **Gamification starts on this screen:** the Quick-Start challenge
+   chain is visible in the hero with *endowed progress* — a first-time visitor
+   lands at 1/3 done, never at zero (see Challenges below).
+2. **Jump-In hub** *(see below)* — the "use it now or learn first" fork.
+3. **Live demo** — the canonical example in the `home-demo` panel (the existing
+   3-round KB circuit). The deep-dive sections move out to the tutorials.
+4. **What's next hub** — links into the tutorial path.
 
-**Challenges (the Quick Start chain):**
+#### Home · Jump-In hub (the decision fork)
 
-| Quest id  | Label                | Validation         | Fires when                                                                                                                                 |
-| --------- | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `qs-edit` | Change the workout   | *(edit-event)*     | `block.content` diverges from the demo's initial source — reuses the existing `editedNote` onboarding action-site, not a syntax validator. |
-| `qs-run`  | Run it to the finish | `workout-complete` | Fullscreen review reaches `completed === true`.                                                                                            |
+Placed **immediately after the pitch, before any challenge**, this section
+offers two clear paths — *start using the app right now* or *keep scrolling to
+learn the syntax.* It respects that many users arrive already knowing what they
+want (browse workouts, open their journal, or just start typing) and shouldn't
+be forced through a tutorial first.
+
+**Path A — "Jump right in"** *(primary buttons, leave the page)*
+
+| Button | Pipeline / route | What it does |
+|---|---|---|
+| 📓 Open Journal | `navigate: /journal` | Land on the training journal — history of completed sessions. |
+| 🗂️ Browse Collections | `navigate: /collections` | Browse benchmark workout libraries (Dan John, ZombieFit, …). |
+| ✍️ New Workout Note | `set-source: query:new` · `set-state: note` · `launch: dialog` | Open a blank playground note — start typing immediately. |
+
+**Path B — "Learn the syntax first"** *(secondary, stays on page)*
+
+| Button | Pipeline | What it does |
+|---|---|---|
+| ▾ Keep scrolling | `scroll-to: home-demo` *(visual cue)* | Drops to the live demo + quick-start challenges below. |
+| 🎓 Zero to Hero | `navigate: /guide/syntax/basics` | Jumps straight to the first tutorial (the collapsed replacement for the retired `/guide/getting-started`). |
+
+**Design note:** Path A buttons are full-app navigations (`/journal`,
+`/collections`, new-note dialog) using the same `button` + `pipeline` mechanism
+the current home already uses for "Open a New Note." Path B is the soft on-ramp:
+the scroll cue keeps the user on the page where the demo and challenges live,
+while the Zero-to-Hero button is the explicit escape hatch to the structured
+tutorial. The hub is **non-gated** — no quest blocks here, just navigation.
+The gamification lives in the Quick-Start meter on the hero above (endowed
+1/3 on arrival); this hub sits beside it as the "jump in now" alternative.
+
+**Challenges (the Quick Start chain — endowed progress):**
+
+The chain starts **pre-credited**. `qs-arrive` auto-completes the instant the
+page mounts, so a first-time visitor lands at **1 of 3 done (33%)** — never at
+zero. This is the endowed-progress / goal-gradient effect: a visible head start
+measurably increases the chance the user finishes the chain. `qs-arrive`
+subsumes the existing `visitedLanding` onboarding step (same mount event —
+don't double-track).
+
+| Quest id | Label | Validation | Fires when |
+|---|---|---|---|
+| `qs-arrive` | Welcome to WOD Wiki | *(mount-event)* | Auto-marks on page mount via `usePageQuests.markComplete` — same pattern as the existing `visitedLanding` effect in `OnboardingBanner`. Endows 1/3. |
+| `qs-edit` | Change the workout | *(edit-event)* | `block.content` diverges from the demo's initial source — reuses the existing `editedNote` onboarding action-site. |
+| `qs-run` | Run it to the finish | `workout-complete` | Fullscreen review reaches `completed === true`. |
 
 **Badge:** none of its own — Home is the **dashboard**. It shows every tutorial
 badge aggregating (the existing `useChapterProgress` cross-route read). All
 badges lit = "Syntax complete" state.
 
-**Measurement:** `qs-edit` via the onboarding action-site write;
-`qs-run` via `useCompletionChallenge` (already implemented). Both persist to
+**Measurement:** `qs-arrive` via a mount effect (`markComplete` on first
+render); `qs-edit` via the onboarding action-site write; `qs-run` via
+`useCompletionChallenge` (already implemented). All three persist to
 `wodwiki.quests.v1` under route `/`.
 
 **Crosslinks:** → Basics (start here) · → Protocols (skip to running) · ↔ AI-First · ↔ Syntax index
@@ -401,7 +445,7 @@ Every page reachable from Home in ≤ 2 hops; every page links back to its prere
 
 **Home slim-down**
 - [ ] Remove the Metrics / Timers / Groups / Protocols / Custom-Dialects walkthrough sections from Home; keep pitch + one demo + quick-start quests + hub links.
-- [ ] Wire `qs-edit` to the existing `editedNote` action-site; `qs-run` to `useCompletionChallenge`.
+- [ ] Wire `qs-arrive` to a mount effect (same as `visitedLanding` — subsume it, don't double-track); `qs-edit` to the existing `editedNote` action-site; `qs-run` to `useCompletionChallenge`.
 
 **Coverage guarantee**
 - [ ] After migration, run the §5 coverage map as a checklist: each of the 23 grammar elements verified present on exactly one page.

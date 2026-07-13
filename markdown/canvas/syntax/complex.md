@@ -5,6 +5,29 @@ route: /guide/syntax/complex
 type: syntax
 ---
 
+```chapter
+id: complex
+title: Complex Workouts
+badge: puzzle
+quests: complex-time, complex-rounds
+sections: []
+```
+
+```quest
+id: complex-time
+label: Add a timed block to the session
+validation:
+  type: has-timer
+```
+
+```quest
+id: complex-rounds
+label: Use 2+ rounds across sections
+validation:
+  type: min-rounds
+  count: 2
+```
+
 # Complex Workouts {sticky dark full-bleed}
 
 Put it all together. Nested groups, mixed protocols, and chained timers let you describe any training structure in a single note. These examples use every concept from the guide.

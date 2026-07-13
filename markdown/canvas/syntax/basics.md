@@ -5,6 +5,36 @@ route: /guide/syntax/basics
 type: syntax
 ---
 
+```chapter
+id: basics
+title: Basics
+badge: trophy
+quests: basics-movement, basics-reps, basics-load
+sections: []
+```
+
+```quest
+id: basics-movement
+label: Add a movement
+validation:
+  type: has-movement
+```
+
+```quest
+id: basics-reps
+label: Add a rep count
+validation:
+  type: has-reps
+```
+
+```quest
+id: basics-load
+label: Add a load or distance
+validation:
+  type: contains-token
+  value: lb
+```
+
 # Core Concepts {sticky dark full-bleed}
 
 Everything in WOD Wiki starts with a `wod` block — a fenced code block tagged with the word `wod`.
@@ -114,27 +144,6 @@ Prefix a line with `//` to add a passive coach annotation. Comments are notes to
 target: ex
 pipeline:
   - set-source: wods/examples/syntax/actions-comments.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## Timer Modifiers {sticky}
-
-Use `^` to force a timer to count up instead of down.
-
-Use `*` to mark a timer as required or non-skippable. `*:30 Rest` is a common pattern, but the rest behavior comes from the word `Rest`, not from `*` alone.
-
-Use `:?` when you want the runtime to record the actual time taken.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/examples/syntax/timer-modifiers.md
 ```
 
 ```button

@@ -18,6 +18,7 @@ import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCanvasEditorSource } from '../hooks/useCanvasEditorSource'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
+import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
 import { CanvasPanelContent } from './CanvasPanelContent'
 import { CanvasSection as CanvasSectionCard } from '../components/molecules/CanvasSection'
 import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePanel'
@@ -164,6 +165,13 @@ export function MarkdownCanvasPage({
     pageRoute: page.route,
     quests: pageQuests,
     fullscreen: runtime.fullscreen,
+  })
+
+  useQuickStartAutoComplete({
+    pageRoute: page.route,
+    quests: pageQuests,
+    initialSource,
+    currentSource: editorSource,
   })
 
   // ScriptBlocks ref
