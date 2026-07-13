@@ -75,6 +75,7 @@ export const playgroundContent = {
   async savePage(page: PlaygroundPage): Promise<string> {
     const saved = await provider.saveEntry({
       id: page.id,
+      slug: page.slug,
       title: page.name,
       rawContent: page.content,
       tags: [],

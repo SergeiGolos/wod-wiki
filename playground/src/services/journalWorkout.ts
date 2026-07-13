@@ -98,7 +98,8 @@ export async function appendWorkoutToJournal({
   const updatedContent = baseContent.trimEnd() + '\n' + section;
 
   await playgroundContent.savePage({
-    id: noteId,
+    id: existing?.id ?? noteId,
+    slug: existing?.slug ?? noteId,
     name: dateKey,
     category: 'journal',
     content: updatedContent,
