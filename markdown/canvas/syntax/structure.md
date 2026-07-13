@@ -40,7 +40,7 @@ source:  wods/examples/getting-started/groups-1.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   48%
+width:   50%
 ```
 
 ## Simple Rounds {sticky}

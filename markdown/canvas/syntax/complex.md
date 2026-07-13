@@ -39,7 +39,7 @@ source:  wods/examples/syntax/complex-nested-protocols.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   48%
+width:   50%
 ```
 
 ## Nested Protocols {sticky}

@@ -65,7 +65,6 @@ export interface CurrentWorkout {
  */
 export type PageKind =
   | 'journal'
-  | 'plan'
   | 'feeds'
   | 'feedDetail'
   | 'feedItem'
@@ -178,7 +177,6 @@ function deriveWorkout(
   const named: Record<string, string> = {
     '/': 'Home',
     '/journal': 'Journal',
-    '/plan': 'Plan',
     '/feeds': 'Feeds',
     '/guide/syntax': 'Syntax',
     '/collections': 'Collections',
@@ -294,7 +292,6 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
 }
 function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanvasPage | null): PageKind {
   if (pathname === '/journal') return 'journal'
-  if (pathname === '/plan') return 'plan'
   if (pathname === '/feeds') return 'feeds'
   if (flags.feedDetailMatch) return 'feedDetail'
   if (flags.feedItemMatch) return 'feedItem'
@@ -311,8 +308,6 @@ function deriveShell(page: PageKind, pathname: string, workout: CurrentWorkout):
   switch (page) {
     case 'journal':
       return { wrap: 'canvas', title: 'Journal', actionsMode: 'journal-active', withIndex: true }
-    case 'plan':
-      return { wrap: 'canvas', title: 'Plan', actionsMode: 'journal-active', withIndex: true }
     case 'collections':
       return { wrap: 'canvas', title: 'Collections', subheader: 'filter-collections', actionsMode: 'collection-readonly' }
     case 'canvas':

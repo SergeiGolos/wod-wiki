@@ -113,6 +113,12 @@ describe('resolveRedirect', () => {
     expect(resolveRedirect('/tracker/abc-123')).toBe('/run/abc-123')
   })
 
+  it('redirects /plan → /journal?mode=plan (unified journal list)', () => {
+    expect(resolveRedirect('/plan')).toBe('/journal?mode=plan')
+    // /plan?zip=… callers (e.g. feed → plan pre-fill) preserve caller intent
+    // via the PlanRedirect component, not the matrix entry.
+  })
+
   it('returns null for already-canonical paths', () => {
     expect(resolveRedirect('/playground/my-note')).toBeNull()
     expect(resolveRedirect('/journal/2026-05-19')).toBeNull()
@@ -147,7 +153,7 @@ describe('resolveRedirect', () => {
 
 describe('ROUTE_REDIRECTS structure', () => {
   it('contains exactly the declared legacy aliases', () => {
-    expect(ROUTE_REDIRECTS).toHaveLength(9)
+    expect(ROUTE_REDIRECTS).toHaveLength(10)
   })
 
   it('every rule has a match function and a to function', () => {

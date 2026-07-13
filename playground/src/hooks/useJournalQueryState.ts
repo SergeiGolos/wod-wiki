@@ -1,19 +1,26 @@
 /**
  * useJournalQueryState — Centralized nuqs-backed URL state for the Journal page.
  *
- * Manages three URL parameters:
- *   `d`    — selected date (YYYY-MM-DD), defaults to today
- *   `month`— visible month in the calendar widget (YYYY-MM)
- *   `tags` — active tag filters (comma-separated)
+ * Manages four URL parameters:
+ *   `s`     — focused date key (YYYY-MM-DD), drives the list page's filter
+ *   `month` — visible month in the calendar widget (YYYY-MM)
+ *   `tags`  — active tag filters (comma-separated)
+ *   `mode`  — list-page view mode: 'all' | 'history' | 'today' | 'plan'
  *
- * All controls (WeekCalendarStrip, CalendarCard, tag chips, FilteredList)
- * read and write through these hooks so the URL is always the source of truth.
+ * All controls (WeekCalendarStrip, CalendarCard, tag chips, ModeToggle, the
+ * JournalListPage) read and write through these hooks so the URL is always
+ * the source of truth.
  */
 
-import { useQueryState } from 'nuqs';
+import { useQueryState, parseAsStringEnum } from 'nuqs';
 import { useMemo, useCallback } from 'react';
 
 const TAGS_SEPARATOR = ',';
+
+/** Visible-window mode for the unified JournalListPage. */
+export type JournalViewMode = 'history' | 'today' | 'plan' | 'all'
+
+const JOURNAL_VIEW_MODES: readonly JournalViewMode[] = ['history', 'today', 'plan', 'all']
 
 function parseTags(raw: string): string[] {
   if (!raw) return [];
@@ -103,6 +110,16 @@ export function useJournalQueryState() {
     [selectedTags, setSelectedTags],
   );
 
+  // ── View-mode parameter ────────────────────────────────────────────────
+  // Drives the unified JournalListPage's visible window.
+  // 'all' (default) — history + today + plan; 'history' — past only;
+  // 'today' — today only; 'plan' — today + future planning window.
+  const [mode, setMode] = useQueryState(
+    'mode',
+    parseAsStringEnum<JournalViewMode>([...JOURNAL_VIEW_MODES])
+      .withDefault('all'),
+  )
+
   return {
     // Date
     dateParam,
@@ -114,6 +131,10 @@ export function useJournalQueryState() {
     monthParam,
     currentMonth,
     setCurrentMonth,
+
+    // View mode
+    mode,
+    setMode,
 
     // Tags
     selectedTags,

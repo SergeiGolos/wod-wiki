@@ -27,18 +27,18 @@ The journal workflows are **well-implemented** with good coverage for core CRUD 
 
 ### Entry Points Discovered
 
-1. **Journal List Page** (`/journal`)
+1. **Journal List Page** (`/journal`, `?mode=history|today|plan|all`)
    - "Create journal entry" card appears for dates without entries
    - Triggered by clicking the card in `JournalFeed`
-   - Calls `handleCreateNote` in `ListViews.tsx`
+   - Calls `handleCreateNote` in `JournalListPage.tsx`
+   - The `/plan` legacy URL is preserved as a redirect to `?mode=plan`
 
-2. **Plan Page** (`/plan`)
+2. **Plan Mode** (`/journal?mode=plan`)
    - Same create-card flow for future dates
-   - Calls `handleCreateNote` in `PlanPage.tsx`
+   - Lives in the same `JournalListPage`; mode is the only difference
 
 3. **App-level Palette** (via `Cmd+K`)
    - Direct palette entry via `handleCreateJournalEntry` in `App.tsx`
-
 ### Create Flow Implementation
 
 The `createJournalEntryFlow` (`journalEntryFlow.ts`) provides a sophisticated multi-step palette flow:

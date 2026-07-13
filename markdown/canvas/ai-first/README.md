@@ -16,7 +16,7 @@ source:  wods/examples/getting-started/statement-1.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   45%
+width:   50%
 ```
 
 ## Why Text Wins {sticky #why-text theme:violet}

@@ -5,14 +5,14 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Journal, Plan, Feeds, Collections, Efforts
+ *   L1: Home, Journal, Feeds, Collections, Efforts
  *   L2 of Home:        Zero to Hero + Syntax/* (canvas pages)
- *   L2 of Journal:     <JournalNavPanel>   — calendar filter + tag chips
- *   L2 of Plan:        <JournalNavPanel>   — same calendar, forward-looking
+ *   L2 of Journal:     <JournalNavPanel>   — calendar + mode toggle + tag chips;
+ *                                          view-mode (history/today/plan/all)
+ *                                          drives the unified JournalListPage
  *   L2 of Feeds:       <FeedsNavPanel>     — feed selector
  *   L2 of Collections: <CollectionsNavPanel> — category toggles
  *   L2 of Efforts:     <EffortsNavPanel>   — origin/discipline filters + recent workouts
- *
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  */
 
@@ -21,7 +21,6 @@ import {
   RectangleStackIcon,
   FolderIcon,
   CodeBracketIcon,
-  CalendarDaysIcon,
 } from '@heroicons/react/20/solid'
 import { RssIcon, Dumbbell } from 'lucide-react'
 
@@ -111,16 +110,6 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       icon: RectangleStackIcon,
       action: { type: 'route', to: ROUTE_PATTERNS.journal },
       isActive: isRouteActive(ROUTE_PATTERNS.journal),
-      panel: JournalNavPanel,
-    },
-
-    {
-      id: 'plan',
-      label: 'Plan',
-      level: 1,
-      icon: CalendarDaysIcon,
-      action: { type: 'route', to: ROUTE_PATTERNS.plan },
-      isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.plan,
       panel: JournalNavPanel,
     },
 

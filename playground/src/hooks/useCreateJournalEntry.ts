@@ -1,6 +1,6 @@
 /**
- * useCreateJournalEntry — wraps the triplicated "create a journal entry"
- * flow that `App.tsx`, `ListViews.tsx`, and `PlanPage.tsx` each duplicated.
+ * useCreateJournalEntry — wraps the "create a journal entry" flow that lives
+ * in `JournalListPage`'s onCreateNote callback.
  *
  * The flow runs the n-step palette chain via `createJournalEntryFlow`, then
  * saves the page in IndexedDB and navigates to it. The hook owns the wiring;
@@ -21,8 +21,8 @@ export type CreateEntryInput = Date | string
 export interface UseCreateJournalEntryOptions {
   /**
    * Workout library items. Currently unused — `createJournalEntryFlow` does
-   * not read them, but the prop is kept on the hook so leaf components that
-   * forward `workoutItems` (ListViews, PlanPage) keep a stable interface.
+   * not read them, but the prop is kept on the hook so the JournalListPage
+   * leaf can forward `workoutItems` from App without a contract change.
    */
   workoutItems?: readonly unknown[]
 }

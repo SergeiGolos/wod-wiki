@@ -86,7 +86,7 @@ source:  wods/examples/home/welcome-1.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   45%
+width:   50%
 ```
 
 ## Jump Right In {sticky #jump-in theme:sky}

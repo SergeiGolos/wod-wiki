@@ -66,7 +66,6 @@ describe('resolveRouteView — named routes', () => {
   it('classifies the named routes to their labels', () => {
     const cases = [
       ['/', 'Home'],
-      ['/plan', 'Plan'],
       ['/feeds', 'Feeds'],
       ['/collections', 'Collections'],
     ] as const

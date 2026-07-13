@@ -42,12 +42,12 @@ hidden during hero + Jump-In, sticky from Learn the Syntax onward.
 
 ### Sections
 
-| # | Section id | Heading | Content |
-|---|---|---|---|
-| 0 | `wod-wiki` | WOD Wiki | Hero pitch. Editor panel hidden. |
-| 1 | `jump-in` | Jump Right In | Navigation hub — open journal, browse collections, new note. Editor panel hidden. |
-| 2 | `learn` | Learn the Syntax | Try the demo or go to Basics tutorial. **Editor panel appears here (sticky).** |
-| 3 | `whats-next` | What's Next | Links to all six tutorial pages + new note. |
+| #   | Section id   | Heading          | Content                                                                           |
+| --- | ------------ | ---------------- | --------------------------------------------------------------------------------- |
+| 0   | `wod-wiki`   | WOD Wiki         | Hero pitch. Editor panel hidden.                                                  |
+| 1   | `jump-in`    | Jump Right In    | Navigation hub — open journal, browse collections, new note. Editor panel hidden. |
+| 2   | `learn`      | Learn the Syntax | Try the demo or go to Basics tutorial. **Editor panel appears here (sticky).**    |
+| 3   | `whats-next` | What's Next      | Links to all six tutorial pages + new note.                                       |
 
 ### Demo source
 
@@ -60,7 +60,7 @@ hidden during hero + Jump-In, sticky from Learn the Syntax onward.
   *:30 Rest
 ```
 
-### Challenges
+so### Challenges
 
 | Quest id | Label | Validation | Fires when |
 |---|---|---|---|
@@ -70,14 +70,14 @@ hidden during hero + Jump-In, sticky from Learn the Syntax onward.
 
 ### Chapter declarations (cross-route badges)
 
-| Chapter | Badge | Quests (completed on tutorial pages) |
-|---|---|---|
-| `basics` | 🏆 trophy | `basics-movement`, `basics-reps`, `basics-load` |
-| `structure` | 🧱 blocks | `structure-rounds`, `structure-repscheme` |
-| `protocols` | ⏱️ timer | `protocols-timer`, `protocols-rounds`, `protocols-tag` |
-| `complex` | 🧩 puzzle | `complex-time`, `complex-rounds` |
-| `custom-metrics` | 📊 activity | `metrics-custom`, `metrics-calc` |
-| `dialects` | 📋 file-text | `dialects-log`, `dialects-climb` |
+| Chapter          | Badge        | Quests (completed on tutorial pages)                   |
+| ---------------- | ------------ | ------------------------------------------------------ |
+| `basics`         | 🏆 trophy    | `basics-movement`, `basics-reps`, `basics-load`        |
+| `structure`      | 🧱 blocks    | `structure-rounds`, `structure-repscheme`              |
+| `protocols`      | ⏱️ timer     | `protocols-timer`, `protocols-rounds`, `protocols-tag` |
+| `complex`        | 🧩 puzzle    | `complex-time`, `complex-rounds`                       |
+| `custom-metrics` | 📊 activity  | `metrics-custom`, `metrics-calc`                       |
+| `dialects`       | 📋 file-text | `dialects-log`, `dialects-climb`                       |
 
 ### Measurement
 

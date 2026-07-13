@@ -47,7 +47,7 @@ source:  wods/examples/syntax/core-rules.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   48%
+width:   50%
 ```
 
 ## A Single Movement {sticky}

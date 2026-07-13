@@ -26,13 +26,13 @@ import {
   GettingStartedRedirect,
   SyntaxRedirect,
   TrackerRedirect,
+  PlanRedirect,
 } from './lib/routes'
 import { Concept3LandingPage } from './pages/Concept3LandingPage'
 import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
 import { canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
-import { JournalWeeklyPage } from './views/ListViews'
-import { PlanPage } from './views/PlanPage'
+import { JournalListPage } from './views/JournalListPage'
 import { FeedsPage } from './views/FeedsPage'
 import { FeedDetailPage } from './pages/FeedDetailPage'
 import { FeedItemPage } from './pages/FeedItemPage'
@@ -146,9 +146,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   // AppContent state, so no callback plumbing is needed. See docs/adr/app-route-view.md.
   const renderInner: Record<PageKind, () => ReactNode> = {
     journal: () => (
-      <JournalWeeklyPage onSelect={handleSelectWorkout} onCreateEntry={handleCreateJournalEntry} workoutItems={workoutItems} />
+      <JournalListPage onSelect={handleSelectWorkout} onCreateEntry={handleCreateJournalEntry} workoutItems={workoutItems} />
     ),
-    plan: () => <PlanPage workoutItems={workoutItems} />,
     feeds: () => <FeedsPage />,
     feedDetail: () => <FeedDetailPage feedSlug={decodeURIComponent(view.feedDetailMatch!)} />,
     feedItem: () => (
@@ -301,8 +300,7 @@ export function App() {
                   <Route path="/challenge" element={<Navigate to="/" replace />} />
                   <Route path="/syntax" element={<SyntaxRedirect />} />
                   <Route path="/syntax/*" element={<SyntaxRedirect />} />
-                  <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.plan} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.plan} element={<PlanRedirect />} />
                   <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />

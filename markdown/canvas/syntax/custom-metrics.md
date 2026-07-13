@@ -40,7 +40,7 @@ source:  wods/syntax/custom-metrics-1.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   48%
+width:   50%
 ```
 
 ## Intensity {sticky}

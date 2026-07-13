@@ -7,7 +7,7 @@
  *
  */
 
-import { Navigate, useParams } from 'react-router-dom'
+import { Navigate, useParams, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 
 // ---------------------------------------------------------------------------
@@ -215,6 +215,14 @@ export function GettingStartedRedirect(): ReactNode {
   return <Navigate to="/" replace />
 }
 
+/** Redirect /plan → /journal?mode=plan, preserving any caller-supplied query string. */
+export function PlanRedirect(): ReactNode {
+  const search = useLocation().search
+  // The plan-mode param is appended last; any caller `?zip=...` is preserved.
+  const suffix = search && search.startsWith('?') ? `${search}&mode=plan` : '?mode=plan'
+  return <Navigate to={`/journal${suffix}`} replace />
+}
+
 /** Redirect /syntax/* → /guide/syntax/* */
 export function SyntaxRedirect(): ReactNode {
   const { '*': splat } = useParams()
@@ -313,6 +321,16 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
     },
     to: ({ runtimeId }) => runPath(runtimeId),
   },
+  // /plan  →  /journal?mode=plan
+  // The plan view folded into the unified JournalListPage; preserve as an alias
+  // so external links, command palettes, and bookmarks resolve cleanly.
+  {
+    match: (p) => {
+      if (p !== '/plan') return false
+      return {}
+    },
+    to: () => '/journal?mode=plan',
+  },
 ];
 
 /**
@@ -327,6 +345,8 @@ export function resolveRedirect(pathname: string): string | null {
       return rule.to(params);
     }
   }
+
+
   return null;
 }
 

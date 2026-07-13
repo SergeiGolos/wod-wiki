@@ -47,7 +47,7 @@ source:  wods/examples/syntax/timers-rest.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   48%
+width:   50%
 ```
 
 ## Timers and Rest {sticky}

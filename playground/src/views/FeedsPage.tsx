@@ -1,7 +1,7 @@
 /**
  * FeedsPage — /feeds
  *
- * Mirrors JournalWeeklyPage: explicit dateKeys array, no infinite scroll.
+ * Mirrors JournalListPage: explicit dateKeys array, no infinite scroll.
  * Only shows dates that have feed content.  The caller (this component)
  * decides which dates to show based on loaded data + URL filter state.
  *
