@@ -79,7 +79,7 @@ export function MarkdownCanvasPage({
   const navigate = useNavigate()
   const { isDebugMode } = useDebugMode()
   const isMobile = useIsMobile()
-  const { sections, route } = page
+  const { sections, route, chapters } = page
   const canvasNoteId = useMemo(() => getCanvasNoteId(route), [route])
 
   const isCollection = route.startsWith('/collections/')
@@ -564,6 +564,8 @@ export function MarkdownCanvasPage({
           handleExampleSelect={handleExampleSelect}
           hasWorkoutsTag={hasWorkoutsTag}
           hasViewDef={!!viewDef}
+          chapters={chapters}
+          challengeQuests={challenge.quests}
         />
       </SplitCanvasTemplate>
       {pageQuests.length > 0 && (

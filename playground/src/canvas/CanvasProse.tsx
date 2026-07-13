@@ -272,13 +272,13 @@ const heroLeadComponents: Components = {
       return (
         <span className="flex flex-col select-none mt-4 w-full gap-5 sm:gap-7">
           <span className="block text-3xl sm:text-4xl lg:text-5xl text-primary font-black text-left pl-[5%] sm:pl-[10%] transform hover:translate-x-1 transition-transform duration-200">
-            Write it in Markdown.
+            Write it in <span className="inline-block border-b-4 border-primary/70 pb-1 hover:scale-105 transition-transform duration-200">Markdown</span>.
           </span>
           <span className="block text-3xl sm:text-4xl lg:text-5xl text-primary font-black text-center transform hover:scale-[1.02] transition-transform duration-200">
-            Run it as a Timer.
+            <span className="inline-block border-b-4 border-primary/70 pb-1 hover:scale-105 transition-transform duration-200">Run</span> it as a Timer.
           </span>
           <span className="block text-3xl sm:text-4xl lg:text-5xl text-primary font-black text-right pr-[5%] sm:pr-[10%] transform hover:-translate-x-1 transition-transform duration-200">
-            Own the Analytics.
+            Own the <span className="inline-block border-b-4 border-primary/70 pb-1 hover:scale-105 transition-transform duration-200">Analytics</span>.
           </span>
         </span>
       )

@@ -1,10 +1,11 @@
 import React from 'react'
-import { getSectionProse, type CanvasSection } from '../../../canvas/parseCanvasMarkdown'
+import { getSectionProse, type CanvasSection, type Chapter } from '../../../canvas/parseCanvasMarkdown'
 import type { WorkoutItem } from '../../../App'
 import { CanvasSection as CanvasSectionComponent } from '../../molecules/CanvasSection'
 import { HeroCarousel, HERO_CAROUSEL_TOKEN } from '../../organisms/landing/HeroCarousel'
 import type { RunButtonState } from '../../molecules/SectionButtons'
 import type { NavActionDeps } from '../../../nav/navTypes'
+import type { Quest } from '../../../hooks/usePageQuests'
 
 interface CanvasProsePanelProps {
   heroSlot?: React.ReactNode
@@ -21,6 +22,8 @@ interface CanvasProsePanelProps {
   handleExampleSelect: (section: CanvasSection, index: number) => void
   hasWorkoutsTag: boolean
   hasViewDef: boolean
+  chapters?: Chapter[]
+  challengeQuests?: Array<Quest & { isCompleted: boolean }>
 }
 
 export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
@@ -38,6 +41,8 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
   handleExampleSelect,
   hasWorkoutsTag,
   hasViewDef,
+  chapters = [],
+  challengeQuests = [],
 }) => {
   const renderCollectionListSection = (key: string) => (
     <div
@@ -107,6 +112,8 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
               deps={deps}
               onExampleSelect={handleExampleSelect}
               selectedExampleIndex={selectedExamples[section.id] ?? 0}
+              chapters={chapters}
+              challengeQuests={challengeQuests}
             />,
             renderCollectionListSection(`${section.id}-workouts`),
             afterProse.trim() || section.buttons.length > 0 ? (
@@ -125,6 +132,8 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
                 deps={deps}
                 onExampleSelect={handleExampleSelect}
                 selectedExampleIndex={selectedExamples[section.id] ?? 0}
+                chapters={chapters}
+                challengeQuests={challengeQuests}
               />
             ) : null,
           ]
@@ -143,6 +152,8 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
             deps={deps}
             onExampleSelect={handleExampleSelect}
             selectedExampleIndex={selectedExamples[section.id] ?? 0}
+            chapters={chapters}
+            challengeQuests={challengeQuests}
           />
         )
       })}

@@ -1,6 +1,6 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
-import type { CanvasSection as CanvasSectionType, ButtonBlock } from '../../canvas/parseCanvasMarkdown'
+import type { CanvasSection as CanvasSectionType, ButtonBlock, Chapter } from '../../canvas/parseCanvasMarkdown'
 import {
   isFullBleed,
   isDark,
@@ -13,7 +13,7 @@ import { CanvasProse } from '../../canvas/CanvasProse'
 import { SectionButtons } from './SectionButtons'
 import { ExampleTabs } from './ExampleTabs'
 import type { RunButtonState } from './SectionButtons'
-
+import type { Quest } from '../../hooks/usePageQuests'
 /** Splits prose at the first blank line — used to pull a hero's opening
  *  sentence out as a big headline, with everything after it as subtext. */
 function splitLeadParagraph(text: string): { lead: string; rest: string } {
@@ -38,6 +38,8 @@ interface CanvasSectionProps {
   deps: NavActionDeps
   onExampleSelect: (section: CanvasSectionType, index: number) => void
   selectedExampleIndex: number
+  chapters?: Chapter[]
+  challengeQuests?: Array<Quest & { isCompleted: boolean }>
 }
 
 export const CanvasSection: React.FC<CanvasSectionProps> = ({
@@ -55,6 +57,8 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
   deps,
   onExampleSelect,
   selectedExampleIndex,
+  chapters = [],
+  challengeQuests = [],
 }) => {
   const fullBleed = isFullBleed(section)
   const dark = isDark(section)
@@ -62,6 +66,25 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
   const sectionTheme = getSectionThemeStyles(section)
   const examples = section.examples ?? []
   const isHero = idx === -1
+
+  // Find if this section has an associated quest
+  const linkedQuest = React.useMemo(() => {
+    if (!chapters || !challengeQuests) return null
+    for (const ch of chapters) {
+      const secIdx = ch.sectionIds.indexOf(section.id)
+      if (secIdx >= 0 && ch.questIds[secIdx]) {
+        const qId = ch.questIds[secIdx]
+        const quest = challengeQuests.find(q => q.id === qId)
+        if (quest) {
+          return {
+            quest,
+            chapterTitle: ch.title,
+          }
+        }
+      }
+    }
+    return null
+  }, [chapters, challengeQuests, section.id])
 
   // The hero gets a dedicated layout — a kicker badge, a big lead headline
   // pulled out of the opening sentence, subtext, and every CTA button
@@ -166,11 +189,22 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
           ? fullBleed ? 'max-w-md w-full text-center' : 'max-w-sm'
           : 'max-w-4xl w-full mx-auto',
       )}>
-        {showEyebrow && (!fullBleed || !hasViewDef) && (
-          <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
-            {String(idx + 1).padStart(2, '0')}
+        {showEyebrow && (!fullBleed || !hasViewDef) && linkedQuest && (
+          <div className="mb-4 flex items-center gap-2 select-none min-h-[14px]">
+            {linkedQuest.quest.isCompleted ? (
+              <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+                Challenge Complete
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-muted-foreground/80 bg-muted/60 px-2 py-0.5 rounded-full border border-border/50">
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500" />
+                {linkedQuest.chapterTitle}: Challenge Pending
+              </span>
+            )}
           </div>
         )}
+
 
         {showHeading ? (
           <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase leading-tight mb-5">
