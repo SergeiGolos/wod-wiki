@@ -74,6 +74,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             return {
                 id: note.id,
                 title: note.title,
+                slug: note.slug,
                 createdAt: note.createdAt,
                 updatedAt: note.updatedAt,
                 targetDate: note.targetDate || note.createdAt,
@@ -120,7 +121,7 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         if (!note) {
             const allNotes = await indexedDBService.getAllNotes();
-            const resolved = allNotes.find((n: Note) => toShortId(n.id) === id || n.title.toLowerCase() === id.toLowerCase());
+            const resolved = allNotes.find((n: Note) => n.slug === id || toShortId(n.id) === id || n.title.toLowerCase() === id.toLowerCase());
             note = resolved || undefined;
         }
 
@@ -181,6 +182,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         return {
             id: note.id,
             title: note.title,
+            slug: note.slug,
             createdAt: note.createdAt,
             updatedAt: note.updatedAt,
             targetDate: note.targetDate || note.createdAt,
@@ -188,7 +190,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             sections,
             results: latestResult?.data,
             tags: note.tags,
-            type: (note.type as any) || 'note',
+            type: note.type ?? 'note',
             templateId: note.templateId,
             clonedIds: note.clonedIds,
             schemaVersion: 1,
@@ -262,6 +264,7 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         const note: Note = {
             id: noteId,
+            slug: entry.slug,
             title: entry.title,
             rawContent: entry.rawContent,
             tags: entry.tags,
@@ -291,7 +294,7 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         if (!note) {
             const allNotes = await indexedDBService.getAllNotes();
-            const resolved = allNotes.find((n: Note) => toShortId(n.id) === id || n.title.toLowerCase() === id.toLowerCase());
+            const resolved = allNotes.find((n: Note) => n.slug === id || toShortId(n.id) === id || n.title.toLowerCase() === id.toLowerCase());
             note = resolved || undefined;
         }
 

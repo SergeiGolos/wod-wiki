@@ -17,7 +17,7 @@ import { useCreateJournalEntry } from './hooks/useCreateJournalEntry'
 import { usePageScrollSync } from './hooks/usePageScrollSync'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
 import { AudioProvider } from '@/contexts/AudioContext'
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import {
   ROUTE_PATTERNS,
   reviewPath,
@@ -26,13 +26,13 @@ import {
   GettingStartedRedirect,
   SyntaxRedirect,
   TrackerRedirect,
+  PlanRedirect,
 } from './lib/routes'
 import { Concept3LandingPage } from './pages/Concept3LandingPage'
 import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
 import { canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
-import { JournalWeeklyPage } from './views/ListViews'
-import { PlanPage } from './views/PlanPage'
+import { JournalListPage } from './views/JournalListPage'
 import { FeedsPage } from './views/FeedsPage'
 import { FeedDetailPage } from './pages/FeedDetailPage'
 import { FeedItemPage } from './pages/FeedItemPage'
@@ -40,6 +40,8 @@ import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
+import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
+import { getChallengeSectionMap } from './canvas/parseCanvasMarkdown'
 // ── Extracted page components ────────────────────────────────────────────────
 import { WallClockPage } from './pages/WallClockPage'
 import { ReviewPage } from './pages/ReviewPage'
@@ -146,9 +148,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   // AppContent state, so no callback plumbing is needed. See docs/adr/app-route-view.md.
   const renderInner: Record<PageKind, () => ReactNode> = {
     journal: () => (
-      <JournalWeeklyPage onSelect={handleSelectWorkout} onCreateEntry={handleCreateJournalEntry} workoutItems={workoutItems} />
+      <JournalListPage onSelect={handleSelectWorkout} onCreateEntry={handleCreateJournalEntry} workoutItems={workoutItems} />
     ),
-    plan: () => <PlanPage workoutItems={workoutItems} />,
     feeds: () => <FeedsPage />,
     feedDetail: () => <FeedDetailPage feedSlug={decodeURIComponent(view.feedDetailMatch!)} />,
     feedItem: () => (
@@ -172,6 +173,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         theme={actualTheme}
         workoutItems={workoutItems}
         onSelect={handleSelectWorkout}
+        onScrollToSection={scrollToSection}
       />
     ),
     playground: () => (
@@ -194,6 +196,18 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     ),
   }
 
+  const canvasTitleAccessory =
+    view.page === 'canvas' && view.canvasPage && view.canvasPage.quests.length > 0
+      ? (
+        <ChallengeHeaderBadge
+          pageRoute={view.canvasPage.route}
+          quests={view.canvasPage.quests}
+          challengeSectionMap={getChallengeSectionMap(view.canvasPage)}
+          onScrollToSection={scrollToSection}
+        />
+      )
+      : undefined
+
   const renderShell = (inner: ReactNode): ReactNode => {
     if (view.shell.wrap === 'bare') return inner
     const subheader =
@@ -205,6 +219,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     return (
       <CanvasPage
         title={view.shell.title}
+        titleAccessory={canvasTitleAccessory}
         subheader={subheader}
         index={view.shell.withIndex ? currentNavLinks : undefined}
         onScrollToSection={view.shell.withIndex ? scrollToSection : undefined}
@@ -225,6 +240,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             <span className="text-sm font-semibold text-zinc-950 dark:text-white truncate">
               {currentWorkout.name}
             </span>
+            {canvasTitleAccessory}
           </div>
           <NavbarSpacer />
           <NavbarSection>
@@ -295,10 +311,13 @@ export function App() {
                   <Route path="/concept3" element={<Concept3LandingPage />} />
                   <Route path="/getting-started" element={<GettingStartedRedirect />} />
                   <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
+                  <Route path="/chapters/basics" element={<Navigate to="/guide/syntax/basics" replace />} />
+                  <Route path="/chapters/sequences" element={<Navigate to="/guide/syntax" replace />} />
+                  <Route path="/chapters/protocols" element={<Navigate to="/guide/syntax/protocols" replace />} />
+                  <Route path="/challenge" element={<Navigate to="/" replace />} />
                   <Route path="/syntax" element={<SyntaxRedirect />} />
                   <Route path="/syntax/*" element={<SyntaxRedirect />} />
-                  <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.plan} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.plan} element={<PlanRedirect />} />
                   <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
@@ -313,6 +332,7 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.notePlaygroundAlias} element={<NotePlaygroundRedirect />} />
                   <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />
                   <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
                   <Route path={ROUTE_PATTERNS.review} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><ReviewPage /></Suspense>} />

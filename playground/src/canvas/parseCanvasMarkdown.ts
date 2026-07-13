@@ -58,15 +58,58 @@ export interface ExampleBlock {
  *  button that should render immediately after the preceding prose segment.
  *  The renderer concatenates chunks in order; buttons never appear in
  *  `section.prose`, which is a prose-only string for legacy consumers. */
+export type SectionTheme = 'slate' | 'amber' | 'emerald' | 'sky' | 'violet' | 'rose'
+export type SectionDensity = 'default' | 'compact'
+
+export const SECTION_THEME_STYLES: Record<SectionTheme, { panel: string; accent: string; progress: string }> = {
+  slate: {
+    panel: 'border-slate-500/35 shadow-slate-500/12',
+    accent: 'from-slate-500/70 via-slate-400/25 to-transparent',
+    progress: 'from-slate-500 to-slate-400',
+  },
+  amber: {
+    panel: 'border-amber-500/35 shadow-amber-500/12',
+    accent: 'from-amber-500/75 via-amber-400/25 to-transparent',
+    progress: 'from-amber-500 to-orange-400',
+  },
+  emerald: {
+    panel: 'border-emerald-500/35 shadow-emerald-500/12',
+    accent: 'from-emerald-500/75 via-emerald-400/25 to-transparent',
+    progress: 'from-emerald-500 to-teal-400',
+  },
+  sky: {
+    panel: 'border-sky-500/35 shadow-sky-500/12',
+    accent: 'from-sky-500/75 via-sky-400/25 to-transparent',
+    progress: 'from-sky-500 to-cyan-400',
+  },
+  violet: {
+    panel: 'border-violet-500/35 shadow-violet-500/12',
+    accent: 'from-violet-500/75 via-fuchsia-400/25 to-transparent',
+    progress: 'from-violet-500 to-fuchsia-400',
+  },
+  rose: {
+    panel: 'border-rose-500/35 shadow-rose-500/12',
+    accent: 'from-rose-500/75 via-pink-400/25 to-transparent',
+    progress: 'from-rose-500 to-pink-400',
+  },
+}
+
 export type ProseChunk =
   | { kind: 'prose'; text: string }
   | { kind: 'button'; button: ButtonBlock }
+  | { kind: 'widget'; widget: 'hero-carousel' | 'workouts-list' }
+  | { kind: 'challenge'; id: string }
 
 export interface CanvasSection {
   id: string
   heading: string
   level: number
   attrs: string[]         // e.g. ['sticky', 'dark', 'full-bleed', 'density:compact']
+  theme?: SectionTheme
+  density?: SectionDensity
+  isDark?: boolean
+  isFullBleed?: boolean
+  isSticky?: boolean
   /** Prose-only body. Derived from proseChunks; present on parser-built sections. */
   prose?: string
   /** Ordered, fence-aware body: prose segments interleaved with buttons so
@@ -109,6 +152,21 @@ export interface ParsedCanvasPage {
    * directly from the localStorage ledger).
    */
   chapters: Chapter[]
+}
+
+/** Map each challenge id to the id of the section that contains its
+ *  `{{challenge:<id>}}` directive. Used by the header badge dropdown to
+ *  scroll to the relevant section when a challenge is selected. */
+export function getChallengeSectionMap(page: ParsedCanvasPage): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const section of page.sections) {
+    for (const chunk of section.proseChunks) {
+      if (chunk.kind === 'challenge') {
+        map.set(chunk.id, section.id)
+      }
+    }
+  }
+  return map
 }
 
 /** Page-level quest — same shape as the validator's `Quest.validation` so
@@ -201,7 +259,7 @@ function parseViewBlock(content: string): ViewBlock {
     runtime: kv['runtime'],
     launch:  kv['launch'],
     align:   (kv['align'] as 'left' | 'right') ?? 'right',
-    width:   kv['width']   ?? '48%',
+    width:   kv['width']   ?? '50%',
     buttons,
   }
 }
@@ -412,6 +470,57 @@ function extractPageChapters(body: string): { chapters: Chapter[]; body: string 
   return { chapters, body: out.join('\n') };
 }
 
+function splitProseForWidgets(text: string): ProseChunk[] {
+  if (!text) return []
+  const tokens = [
+    { token: '{{hero-carousel}}', widget: 'hero-carousel' as const },
+    { token: '{{workouts}}', widget: 'workouts-list' as const },
+  ]
+
+  let chunks: ProseChunk[] = [{ kind: 'prose', text }]
+
+  for (const { token, widget } of tokens) {
+    const nextChunks: ProseChunk[] = []
+    for (const chunk of chunks) {
+      if (chunk.kind !== 'prose') {
+        nextChunks.push(chunk)
+        continue
+      }
+      const parts = chunk.text.split(token)
+      for (let i = 0; i < parts.length; i++) {
+        if (i > 0) {
+          nextChunks.push({ kind: 'widget', widget })
+        }
+        nextChunks.push({ kind: 'prose', text: parts[i] })
+      }
+    }
+    chunks = nextChunks
+  }
+
+  // Challenge directive: {{challenge:<id>}} — rendered inline inside the
+  // section that authors it, rather than as a page-bottom list.
+  const challengeRe = /\{\{challenge:([^}]+)\}\}/g
+  const afterChallenge: ProseChunk[] = []
+  for (const chunk of chunks) {
+    if (chunk.kind !== 'prose') {
+      afterChallenge.push(chunk)
+      continue
+    }
+    const text = chunk.text
+    let lastIndex = 0
+    let match: RegExpExecArray | null
+    challengeRe.lastIndex = 0
+    while ((match = challengeRe.exec(text)) !== null) {
+      afterChallenge.push({ kind: 'prose', text: text.slice(lastIndex, match.index) })
+      afterChallenge.push({ kind: 'challenge', id: match[1].trim() })
+      lastIndex = match.index + match[0].length
+    }
+    afterChallenge.push({ kind: 'prose', text: text.slice(lastIndex) })
+  }
+  chunks = afterChallenge
+
+  return chunks.filter((c) => c.kind !== 'prose' || c.text !== '')
+}
 function extractBlocks(text: string): {
   proseChunks: ProseChunk[]
   view?: ViewBlock
@@ -480,15 +589,15 @@ function extractBlocks(text: string): {
     const fence = fences[i]
     const button = buttonByFenceIdx[i]
     if (button) {
-      proseChunks.push({ kind: 'prose', text: text.slice(pos, fence.start) })
+      proseChunks.push(...splitProseForWidgets(text.slice(pos, fence.start)))
       proseChunks.push({ kind: 'button', button })
       pos = fence.end
     } else if (invisibleFenceTypes.has(fence.type)) {
-      proseChunks.push({ kind: 'prose', text: text.slice(pos, fence.start) })
+      proseChunks.push(...splitProseForWidgets(text.slice(pos, fence.start)))
       pos = fence.end
     }
   }
-  proseChunks.push({ kind: 'prose', text: text.slice(pos) })
+  proseChunks.push(...splitProseForWidgets(text.slice(pos)))
 
   return { proseChunks, view, commands, buttons, examples }
 }
@@ -515,12 +624,22 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
 
     // Support explicit ID in attributes (e.g. {#statement})
     const explicitId = acc.attrs.find(a => a.startsWith('#'))?.slice(1)
+    const cleanAttrs = acc.attrs.filter(a => !a.startsWith('#'))
+    const hasAttr = (a: string) => cleanAttrs.includes(a)
+    const getAttrValue = (key: string) =>
+      cleanAttrs.find(attr => attr.startsWith(`${key}:`))?.slice(key.length + 1)
 
     sections.push({
       id:          explicitId || slugify(acc.heading) || `section-${sections.length}`,
       heading:     acc.heading,
       level:       acc.level,
-      attrs:       acc.attrs.filter(a => !a.startsWith('#')), // Strip ID from visual attrs
+      attrs:       cleanAttrs,
+      theme:       (getAttrValue('theme') ?? 'slate') as any,
+      density:     (getAttrValue('density') ?? 'default') as any,
+      isDark:      hasAttr('dark'),
+      isFullBleed: hasAttr('full-bleed'),
+      isSticky:    hasAttr('sticky'),
+      prose:       getSectionProse({ proseChunks } as any),
       proseChunks,
       view,
       commands,

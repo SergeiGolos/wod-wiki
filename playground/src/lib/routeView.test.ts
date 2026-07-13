@@ -10,7 +10,6 @@ import type { ParsedCanvasPage } from '../canvas/parseCanvasMarkdown'
 import {
   resolveRouteView,
   SYNTAX_LINKS,
-  ZERO_TO_HERO_LINKS,
   type RouteViewDeps,
   type RouteViewParams,
 } from './routeView'
@@ -51,6 +50,13 @@ describe('resolveRouteView — journal nav', () => {
     expect(view.workout.name).toBe('Journal')
     expect(view.workout.category).toBe('General')
   })
+
+  it('classifies /journal/ (trailing slash) as the journal list, not an entry', () => {
+    const view = resolveRouteView('/journal/', NO_PARAMS, makeDeps())
+    expect(view.isJournalEntryRoute).toBe(false)
+    expect(view.journalEntryId).toBeUndefined()
+    expect(view.page).toBe('journal')
+  })
 })
 
 describe('resolveRouteView — journal entry route', () => {
@@ -67,7 +73,6 @@ describe('resolveRouteView — named routes', () => {
   it('classifies the named routes to their labels', () => {
     const cases = [
       ['/', 'Home'],
-      ['/plan', 'Plan'],
       ['/feeds', 'Feeds'],
       ['/collections', 'Collections'],
     ] as const
@@ -101,11 +106,6 @@ describe('resolveRouteView — playground route', () => {
 })
 
 describe('resolveRouteView — docs routes', () => {
-  it('returns the Zero-to-Hero links for /guide/getting-started', () => {
-    const view = resolveRouteView('/guide/getting-started', NO_PARAMS, makeDeps())
-    expect(view.nav).toBe(ZERO_TO_HERO_LINKS)
-  })
-
   it('returns the Syntax links for /guide/syntax', () => {
     const view = resolveRouteView('/guide/syntax', NO_PARAMS, makeDeps())
     expect(view.nav).toBe(SYNTAX_LINKS)

@@ -5,6 +5,36 @@ route: /guide/syntax/basics
 type: syntax
 ---
 
+```chapter
+id: basics
+title: Basics
+badge: trophy
+quests: basics-movement, basics-reps, basics-load
+sections: []
+```
+
+```quest
+id: basics-movement
+label: Add a movement
+validation:
+  type: has-movement
+```
+
+```quest
+id: basics-reps
+label: Add a rep count
+validation:
+  type: has-reps
+```
+
+```quest
+id: basics-load
+label: Add a load or distance
+validation:
+  type: contains-token
+  value: lb
+```
+
 # Core Concepts {sticky dark full-bleed}
 
 Everything in WOD Wiki starts with a `wod` block — a fenced code block tagged with the word `wod`.
@@ -17,12 +47,14 @@ source:  wods/examples/syntax/core-rules.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   48%
+width:   50%
 ```
 
 ## A Single Movement {sticky}
 
 The simplest workout is one exercise on one line. No reps, no timer — just a movement. The runtime will ask you to log how many you did when you finish.
+
+{{challenge:basics-movement}}
 
 ```command
 target: ex
@@ -47,6 +79,8 @@ Every file follows the same three rules.
 
 **Indentation means nesting** — anything indented under a group belongs to that group.
 
+{{challenge:basics-reps}}
+
 ```command
 target: ex
 pipeline:
@@ -56,6 +90,8 @@ pipeline:
 ## Measurements {sticky}
 
 Add weights (`225lb`, `100kg`) and distances (`400m`, `2000m`, `10 miles`) directly to movement lines. The runtime tracks them and surfaces them in the Review grid.
+
+{{challenge:basics-load}}
 
 ```command
 target: ex
@@ -114,27 +150,6 @@ Prefix a line with `//` to add a passive coach annotation. Comments are notes to
 target: ex
 pipeline:
   - set-source: wods/examples/syntax/actions-comments.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## Timer Modifiers {sticky}
-
-Use `^` to force a timer to count up instead of down.
-
-Use `*` to mark a timer as required or non-skippable. `*:30 Rest` is a common pattern, but the rest behavior comes from the word `Rest`, not from `*` alone.
-
-Use `:?` when you want the runtime to record the actual time taken.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/examples/syntax/timer-modifiers.md
 ```
 
 ```button

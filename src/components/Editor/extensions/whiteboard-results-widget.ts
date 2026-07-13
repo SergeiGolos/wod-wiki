@@ -32,6 +32,7 @@ import { sectionField } from './section-state';
 import type { WorkoutResult } from '@/types/storage';
 import { createRoot, type Root } from 'react-dom/client';
 import { InlineResultPanel } from '@/components/molecules/InlineResultPanel';
+import { Facet } from '@codemirror/state';
 
 // ── Custom DOM event ─────────────────────────────────────────────────
 
@@ -50,6 +51,17 @@ export const updateSectionResults = StateEffect.define<{
   sectionId: string;
   results: WorkoutResult[];
 }>();
+
+// ── Facet: compact results mode ──────────────────────────────────────
+
+/**
+ * When enabled, result rows open the fullscreen review directly on click
+ * instead of expanding inline. Used by canvas pages where the editor panel
+ * is too small for the inline ReviewGrid.
+ */
+export const compactResultsMode = Facet.define<boolean, boolean>({
+  combine: (values) => values[values.length - 1] ?? false,
+});
 
 // ── StateFields ──────────────────────────────────────────────────────
 
@@ -77,12 +89,14 @@ class ReactResultsWidget extends WidgetType {
     readonly sectionId: string,
     readonly allResults: WorkoutResult[],
     readonly currentContentId: string | undefined,
+    readonly compact: boolean,
   ) {
     super();
   }
   eq(other: ReactResultsWidget): boolean {
     if (other.sectionId !== this.sectionId) return false;
     if (other.currentContentId !== this.currentContentId) return false;
+    if (other.compact !== this.compact) return false;
     if (other.allResults.length !== this.allResults.length) return false;
     for (let i = 0; i < Math.min(2, this.allResults.length); i++) {
       if (this.allResults[i].completedAt !== other.allResults[i].completedAt) return false;
@@ -101,6 +115,7 @@ class ReactResultsWidget extends WidgetType {
         sectionId: this.sectionId,
         allResults: this.allResults,
         currentContentId: this.currentContentId,
+        compactMode: this.compact,
         onOpenReview: (result: WorkoutResult) => {
           const detail: WodResultClickDetail = { sectionId: this.sectionId, result };
           view.dom.dispatchEvent(
@@ -147,6 +162,7 @@ class ReactResultsWidget extends WidgetType {
 function _buildResultsDecorations(state: EditorState): DecorationSet {
   const { sections } = state.field(sectionField);
   const resultsMap: Map<string, WorkoutResult[]> = state.field(wodResultsField);
+  const compact = state.facet(compactResultsMode);
   const decos: Range<Decoration>[] = [];
 
   for (const section of sections) {
@@ -161,7 +177,7 @@ function _buildResultsDecorations(state: EditorState): DecorationSet {
 
     decos.push(
       Decoration.widget({
-        widget: new ReactResultsWidget(section.id, allResults, section.contentId),
+        widget: new ReactResultsWidget(section.id, allResults, section.contentId, compact),
         block: true,
         side: 1,
       }).range(anchorPos),

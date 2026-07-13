@@ -4,13 +4,17 @@
  * Features:
  *   - Mini month-view calendar (CalendarCard)
  *   - Tag chip filter
+ *   - View-mode toggle (History / Today / Plan / All) — controls the unified
+ *     JournalListPage's visible window via the ?mode= URL param
  *
  * Context-aware date click behaviour:
- *   - On /journal        → updates the ?d= filter query param (scroll to date)
+ *   - On /journal        → updates the ?s= filter query param (scroll to date)
  *   - On /journal/:date  → navigates to the clicked date's entry page
  */
-
 import { useMatch, useNavigate } from 'react-router-dom'
+
+
+import { ModeToggle } from '../../components/atoms/ModeToggle'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { cn } from '@/lib/utils'
 import { useJournalQueryState } from '../../hooks/useJournalQueryState'
@@ -19,7 +23,7 @@ import type { NavPanelProps } from '../navTypes'
 const PLACEHOLDER_TAGS = ['strength', 'cardio', 'mobility', 'kettlebell', 'swim']
 
 export function JournalNavPanel(_props: NavPanelProps) {
-  const { selectedDate, setSelectedDate, dateParam, selectedTags, toggleTag } =
+  const { selectedDate, setSelectedDate, dateParam, selectedTags, toggleTag, mode, setMode } =
     useJournalQueryState()
 
   // Detect if we're viewing a specific journal entry (/journal/:date)
@@ -74,6 +78,12 @@ export function JournalNavPanel(_props: NavPanelProps) {
             {dateParam} ×
           </button>
         </div>
+      )}
+
+      {/* View-mode toggle — controls the unified JournalListPage window. */}
+      {/* Hidden on entry pages; the toggle is irrelevant once a single date is open. */}
+      {!isEntryPage && (
+        <ModeToggle value={mode} onChange={setMode} />
       )}
 
       {/* Mini calendar */}

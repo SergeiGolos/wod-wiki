@@ -77,8 +77,24 @@ describe('resolveRedirect', () => {
     )
   })
 
-  it('redirects /getting-started → /guide/getting-started', () => {
-    expect(resolveRedirect('/getting-started')).toBe('/guide/getting-started')
+  it('redirects /getting-started → /', () => {
+    expect(resolveRedirect('/getting-started')).toBe('/')
+  })
+
+  it('redirects /chapters/basics → /guide/syntax/basics', () => {
+    expect(resolveRedirect('/chapters/basics')).toBe('/guide/syntax/basics')
+  })
+
+  it('redirects /chapters/sequences → /guide/syntax', () => {
+    expect(resolveRedirect('/chapters/sequences')).toBe('/guide/syntax')
+  })
+
+  it('redirects /chapters/protocols → /guide/syntax/protocols', () => {
+    expect(resolveRedirect('/chapters/protocols')).toBe('/guide/syntax/protocols')
+  })
+
+  it('redirects /challenge → /', () => {
+    expect(resolveRedirect('/challenge')).toBe('/')
   })
 
   it('redirects /syntax → /guide/syntax', () => {
@@ -95,6 +111,12 @@ describe('resolveRedirect', () => {
 
   it('redirects /tracker/:runtimeId → /run/:runtimeId', () => {
     expect(resolveRedirect('/tracker/abc-123')).toBe('/run/abc-123')
+  })
+
+  it('redirects /plan → /journal?mode=plan (unified journal list)', () => {
+    expect(resolveRedirect('/plan')).toBe('/journal?mode=plan')
+    // /plan?zip=… callers (e.g. feed → plan pre-fill) preserve caller intent
+    // via the PlanRedirect component, not the matrix entry.
   })
 
   it('returns null for already-canonical paths', () => {
@@ -131,7 +153,7 @@ describe('resolveRedirect', () => {
 
 describe('ROUTE_REDIRECTS structure', () => {
   it('contains exactly the declared legacy aliases', () => {
-    expect(ROUTE_REDIRECTS).toHaveLength(5)
+    expect(ROUTE_REDIRECTS).toHaveLength(10)
   })
 
   it('every rule has a match function and a to function', () => {
@@ -245,7 +267,7 @@ describe('route family helpers', () => {
     expect(isJournalEntryPath('/journal/2026-05-19')).toBe(true)
     expect(isJournalEntryPath('/journal/abc')).toBe(true)
     expect(isJournalEntryPath('/journal')).toBe(false)
-    expect(isJournalEntryPath('/journal/')).toBe(true)
+  expect(isJournalEntryPath('/journal/')).toBe(false)
     expect(isJournalEntryPath('/playground/note')).toBe(false)
   })
 
@@ -319,11 +341,11 @@ describe('TrackerRedirect', () => {
 })
 
 describe('GettingStartedRedirect', () => {
-  it('renders Navigate to /guide/getting-started with replace', async () => {
+  it('renders Navigate to / with replace', async () => {
     const { GettingStartedRedirect } = redirectComponents!
     render(<GettingStartedRedirect />)
 
-    expect(lastNavigateTo).toBe('/guide/getting-started')
+    expect(lastNavigateTo).toBe('/')
     expect(lastNavigateReplace).toBe(true)
   })
 })

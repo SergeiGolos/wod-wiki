@@ -1,9 +1,33 @@
 ---
 search: hidden
 template: canvas
-route: /syntax/custom-metrics
+route: /guide/syntax/custom-metrics
 type: syntax
 ---
+
+```chapter
+id: custom-metrics
+title: Custom Metrics
+badge: activity
+quests: metrics-custom, metrics-calc
+sections: []
+```
+
+```quest
+id: metrics-custom
+label: Add a custom metric
+validation:
+  type: contains-token
+  value: rpe
+```
+
+```quest
+id: metrics-calc
+label: Add a calculate block
+validation:
+  type: contains-token
+  value: calculate
+```
 
 # Custom Metrics {sticky dark full-bleed}
 
@@ -16,7 +40,7 @@ source:  wods/syntax/custom-metrics-1.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   48%
+width:   50%
 ```
 
 ## Intensity {sticky}
@@ -39,6 +63,8 @@ pipeline:
 ## RPE & RIR {sticky}
 
 Log rate of perceived exertion and reps in reserve per set. These are first-class effort dimensions that feed into calculated metrics and history search.
+
+{{challenge:metrics-custom}}
 
 ```command
 target: ex
@@ -91,6 +117,8 @@ pipeline:
 
 Use a `calculate` block to derive values from custom metrics across the workout. The runtime evaluates these after completion (and live during tracking) using the collected data.
 
+{{challenge:metrics-calc}}
+
 ```command
 target: ex
 pipeline:
@@ -118,12 +146,12 @@ pipeline:
 label:  ← Core Concepts
 target: ex
 pipeline:
-  - navigate: /syntax/basics
+  - navigate: /guide/syntax/basics
 ```
 
 ```button
 label:  Structure & Reps →
 target: ex
 pipeline:
-  - navigate: /syntax/structure
+  - navigate: /guide/syntax/structure
 ```

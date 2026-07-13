@@ -17,7 +17,7 @@ source:  wods/examples/syntax/core-rules.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   48%
+width:   50%
 ```
 
 ## Core Concepts {sticky}
@@ -114,14 +114,14 @@ Attach line-local properties to a workout and derive summary values with a docum
 ```command
 target: preview
 pipeline:
-  - set-source: wods/examples/syntax/custom-metrics.md
+- set-source: wods/examples/syntax/custom-metrics-1.md
 ```
 
 ```button
 label:  Open Custom Metrics & Calculations →
 target: preview
 pipeline:
-  - navigate: /guide/syntax/custom-and-calculated-metrics
+  - navigate: /guide/syntax/custom-metrics
 ```
 
 ## Start Writing {sticky full-bleed dark}

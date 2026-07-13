@@ -76,9 +76,9 @@ function JournalPageInner({
   onSearch,
 }: JournalPageProps) {
   const { id } = useParams<{ id: string }>()
-  const noteId = id!
+  const noteId = id ?? ''
   const navigate = useNavigate()
-  const mode = derivePageMode('journal', noteId)
+  const mode = derivePageMode('journal', id)
   const [searchParams, setSearchParams] = useSearchParams()
   const [isTimerOpen, setIsTimerOpen] = useState(false)
   const [isReviewOpen, setIsReviewOpen] = useState(false)
@@ -100,6 +100,7 @@ function JournalPageInner({
   const sessionLoadEntry = useWorkbenchSession((s) => s.loadEntry)
   const setCurrentEntry = useWorkbenchSession((s) => s.setCurrentEntry)
   const resetStore = useWorkbenchSession((s) => s.resetStore)
+  const flushSave = useWorkbenchSession((s) => s.flushSave)
 
   // The journal's extended results are the array the editor's inline panel
   // renders against. The session's `s.results` is the cumulative *completed*
@@ -109,10 +110,18 @@ function JournalPageInner({
   // The journal route id is `journal/<date>`. Pass it through findOrMigrate
   // so legacy route-id-keyed notes get re-keyed to UUID + slug atomically on
   // first read; once migrated, subsequent loads hit the UUID row.
-  const fullNoteId = `journal/${noteId}`
+  const fullNoteId = id ? `journal/${id}` : ''
+
+  // Defense-in-depth: if mounted without an :id param (trailing-slash edge
+  // case, stale route match), redirect to the journal index instead of
+  // constructing a bogus "journal/undefined" route id.
+  useEffect(() => {
+    if (!id) navigate('/journal', { replace: true })
+  }, [id, navigate])
 
   // Load (and migrate) the note on mount + whenever the route id changes.
   useEffect(() => {
+    if (!fullNoteId) return
     let cancelled = false
     const load = async () => {
       try {
@@ -123,6 +132,7 @@ function JournalPageInner({
         await sessionLoadEntry({
           routeId,
           routeView: 'plan',
+          propInitialContent: PLAYGROUND_TEMPLATE.content,
         })
       } catch (err) {
         // IndexedDB unavailable (e.g. Storybook) — keep the page responsive
@@ -151,12 +161,15 @@ function JournalPageInner({
   }, [fullNoteId, getNoteFromSession, setCurrentEntry])
 
   // Tear down the page-local session on unmount (provider also does this,
-  // but we want the local state gone before remount).
+  // Flush any pending save before tearing down the page-local session.
+  // resetStore cancels the autosave timer but does NOT write in-flight
+  // content — without this, edits made within the debounce window are lost.
   useEffect(() => {
     return () => {
+      flushSave()
       resetStore()
     }
-  }, [resetStore])
+  }, [flushSave, resetStore])
 
   // Consume ?autoStart=<runtimeId> placed by WorkoutEditorPage when it redirects
   // here after appending a block to the journal note.

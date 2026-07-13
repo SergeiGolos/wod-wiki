@@ -1,19 +1,17 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
-import type { CanvasSection as CanvasSectionType, ButtonBlock } from '../../canvas/parseCanvasMarkdown'
-import {
-  isFullBleed,
-  isDark,
-  getSectionDensity,
-  getSectionThemeStyles,
-} from '../../canvas/canvasSectionUtils'
+import { HeroCarousel } from '../organisms/landing/HeroCarousel'
+import { CollectionWorkoutsList } from '../../views/queriable-list/CollectionWorkoutsList'
+import type { CanvasSection as CanvasSectionType, ButtonBlock, Chapter, Quest } from '../../canvas/parseCanvasMarkdown'
+import { SECTION_THEME_STYLES } from '../../canvas/parseCanvasMarkdown'
 import { buttonToActivation } from '../../nav/navTypes'
 import type { NavActionDeps } from '../../nav/navTypes'
 import { CanvasProse } from '../../canvas/CanvasProse'
 import { SectionButtons } from './SectionButtons'
 import { ExampleTabs } from './ExampleTabs'
+import { ChallengeCard } from './ChallengeCard'
 import type { RunButtonState } from './SectionButtons'
-
+import type { WorkoutItem } from '../../App'
 /** Splits prose at the first blank line — used to pull a hero's opening
  *  sentence out as a big headline, with everything after it as subtext. */
 function splitLeadParagraph(text: string): { lead: string; rest: string } {
@@ -38,6 +36,14 @@ interface CanvasSectionProps {
   deps: NavActionDeps
   onExampleSelect: (section: CanvasSectionType, index: number) => void
   selectedExampleIndex: number
+  chapters?: Chapter[]
+  challengeQuests?: Array<Quest & { isCompleted: boolean }>
+  isCollection?: boolean
+  collectionSlug?: string | null
+  workoutItems?: WorkoutItem[]
+  handleSelectWorkout?: (item: WorkoutItem) => void
+  /** Called when an inline challenge asks to scroll to its section. */
+  onScrollToSection?: (sectionId: string) => void
 }
 
 export const CanvasSection: React.FC<CanvasSectionProps> = ({
@@ -55,13 +61,39 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
   deps,
   onExampleSelect,
   selectedExampleIndex,
+  chapters = [],
+  challengeQuests = [],
+  isCollection = false,
+  collectionSlug = null,
+  workoutItems = [],
+  handleSelectWorkout,
+  onScrollToSection,
 }) => {
-  const fullBleed = isFullBleed(section)
-  const dark = isDark(section)
-  const density = getSectionDensity(section)
-  const sectionTheme = getSectionThemeStyles(section)
+  const fullBleed = !!section.isFullBleed
+  const dark = !!section.isDark
+  const density = section.density
+  const sectionTheme = SECTION_THEME_STYLES[section.theme || 'slate'] ?? SECTION_THEME_STYLES.slate
   const examples = section.examples ?? []
   const isHero = idx === -1
+
+  // Find if this section has an associated quest
+  const linkedQuest = React.useMemo(() => {
+    if (!chapters || !challengeQuests) return null
+    for (const ch of chapters) {
+      const secIdx = ch.sectionIds.indexOf(section.id)
+      if (secIdx >= 0 && ch.questIds[secIdx]) {
+        const qId = ch.questIds[secIdx]
+        const quest = challengeQuests.find(q => q.id === qId)
+        if (quest) {
+          return {
+            quest,
+            chapterTitle: ch.title,
+          }
+        }
+      }
+    }
+    return null
+  }, [chapters, challengeQuests, section.id])
 
   // The hero gets a dedicated layout — a kicker badge, a big lead headline
   // pulled out of the opening sentence, subtext, and every CTA button
@@ -71,10 +103,17 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
     const heroButtons: ButtonBlock[] = section.proseChunks
       .filter((c) => c.kind === 'button')
       .map((c) => (c as { kind: 'button'; button: ButtonBlock }).button)
-    const firstProse = section.proseChunks.find((c) => c.kind === 'prose' && c.text.trim() !== '')
+
+    const firstProseIndex = section.proseChunks.findIndex(
+      (c) => c.kind === 'prose' && c.text.trim() !== '',
+    )
+    const firstProse = firstProseIndex >= 0 ? section.proseChunks[firstProseIndex] : null
     const { lead, rest } = firstProse && firstProse.kind === 'prose'
       ? splitLeadParagraph(firstProse.text.trim())
       : { lead: '', rest: '' }
+
+    // Everything after the first prose chunk (challenge cards, sub-headings, etc.)
+    const remainingChunks = section.proseChunks.slice(firstProseIndex + 1)
 
     return (
       <div
@@ -94,9 +133,37 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
         />
 
         <div className="relative max-w-2xl w-full text-center">
-        
+
           {lead && <CanvasProse prose={lead} variant="heroLead" className="mb-5" />}
           {rest && <CanvasProse prose={rest} variant="heroBody" className="mb-2" />}
+
+          {remainingChunks.map((chunk, chunkIdx) => {
+            if (chunk.kind === 'prose') {
+              const text = chunk.text.trim()
+              if (!text) return null
+              return (
+                <CanvasProse
+                  key={`hero-prose-${chunkIdx}`}
+                  prose={text}
+                  className="mt-6 mb-2"
+                />
+              )
+            }
+            if (chunk.kind === 'challenge') {
+              const quest = challengeQuests.find((q) => q.id === chunk.id)
+              if (!quest) return null
+              return (
+                <div key={`hero-challenge-${chunkIdx}`} className="my-4 flex justify-center">
+                  <ChallengeCard
+                    quest={quest}
+                    onClick={() => onScrollToSection?.(blockId)}
+                    compact
+                  />
+                </div>
+              )
+            }
+            return null
+          })}
 
           {heroButtons.length > 0 && (
             <SectionButtons
@@ -118,9 +185,10 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
   // paragraph it was authored under.
   const useInlineChunks = prose === undefined
   const chunks = useInlineChunks
-    ? section.proseChunks
+    ? section.proseChunks ?? []
     : [{ kind: 'prose' as const, text: prose }]
-  const renderBottomButtonGroup = !useInlineChunks && section.buttons.length > 0
+  const hasInlineButtons = chunks.some((c) => c.kind === 'button')
+  const renderBottomButtonGroup = !hasInlineButtons && (section.buttons ?? []).length > 0
 
   return (
     <div
@@ -166,11 +234,22 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
           ? fullBleed ? 'max-w-md w-full text-center' : 'max-w-sm'
           : 'max-w-4xl w-full mx-auto',
       )}>
-        {showEyebrow && (!fullBleed || !hasViewDef) && (
-          <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
-            {String(idx + 1).padStart(2, '0')}
+        {showEyebrow && (!fullBleed || !hasViewDef) && linkedQuest && (
+          <div className="mb-4 flex items-center gap-2 select-none min-h-[14px]">
+            {linkedQuest.quest.isCompleted ? (
+              <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+                Challenge Complete
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-muted-foreground/80 bg-muted/60 px-2 py-0.5 rounded-full border border-border/50">
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500" />
+                {linkedQuest.chapterTitle}: Challenge Pending
+              </span>
+            )}
           </div>
         )}
+
 
         {showHeading ? (
           <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase leading-tight mb-5">
@@ -193,16 +272,61 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
               />
             )
           }
-          // chunk.kind === 'button'
-          return (
-            <SectionButtons
-              key={`button-${chunkIdx}`}
-              activations={[buttonToActivation(chunk.button, chunkIdx)]}
-              fullBleed={fullBleed}
-              runState={hasViewDef ? runState : undefined}
-              deps={deps}
-            />
-          )
+          if (chunk.kind === 'button') {
+            return (
+              <SectionButtons
+                key={`button-${chunkIdx}`}
+                activations={[buttonToActivation(chunk.button, chunkIdx)]}
+                fullBleed={fullBleed}
+                runState={hasViewDef ? runState : undefined}
+                deps={deps}
+              />
+            )
+          }
+          if (chunk.kind === 'widget') {
+            if (chunk.widget === 'hero-carousel') {
+              return (
+                <div key={`hero-carousel-${chunkIdx}`} className="my-6">
+                  <HeroCarousel />
+                </div>
+              )
+            }
+            if (chunk.widget === 'workouts-list') {
+              if (isCollection && collectionSlug && workoutItems.length > 0 && handleSelectWorkout) {
+                return (
+                  <div
+                    key={`workouts-${chunkIdx}`}
+                    id="collection-workouts"
+                    className="border-b border-border/50 bg-card my-6"
+                  >
+                    <div className="w-full mx-auto">
+                      <CollectionWorkoutsList
+                        category={collectionSlug}
+                        workoutItems={workoutItems}
+                        onSelect={handleSelectWorkout}
+                        showSearch={false}
+                        variant="flat"
+                      />
+                    </div>
+                  </div>
+                )
+              }
+            }
+          }
+          if (chunk.kind === 'challenge') {
+            const quest = challengeQuests.find((q) => q.id === chunk.id)
+            if (!quest) return null
+            return (
+              <div key={`challenge-${chunkIdx}`} className="my-4">
+                <ChallengeCard
+                  quest={quest}
+                  onClick={() => onScrollToSection?.(blockId)}
+                  compact
+                />
+              </div>
+            )
+          }
+          return null
         })}
 
         {examples.length > 0 ? (

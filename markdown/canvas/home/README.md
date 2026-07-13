@@ -9,60 +9,77 @@ type: home
 id: basics
 title: Basics
 badge: trophy
-quests: basics-movement, basics-reps
-sections: [statement, metrics]
+quests: basics-movement, basics-reps, basics-load
+sections: []
 ```
 
 ```chapter
-id: sequences
-title: Sequences
-badge: dumbbell
-quests: sequences-timer, sequences-rounds
-sections: [timers, groups]
+id: structure
+title: Structure
+badge: blocks
+quests: structure-rounds, structure-repscheme
+sections: []
 ```
 
 ```chapter
 id: protocols
 title: Protocols
 badge: timer
-quests: protocols-rounds, protocols-tag
-sections: [protocols, dialects]
+quests: protocols-timer, protocols-rounds, protocols-tag
+sections: []
+```
+
+```chapter
+id: complex
+title: Complex Workouts
+badge: puzzle
+quests: complex-time, complex-rounds
+sections: []
+```
+
+```chapter
+id: custom-metrics
+title: Custom Metrics
+badge: activity
+quests: metrics-custom, metrics-calc
+sections: []
+```
+
+```chapter
+id: dialects
+title: Dialects
+badge: file-text
+quests: dialects-log, dialects-climb
+sections: []
+```
+
+```quest
+id: qs-arrive
+label: Welcome to WOD Wiki
+desc: You landed on the playground dashboard.
+```
+
+```quest
+id: qs-edit
+label: Change the workout
+desc: Make any edit to the demo script.
+```
+
+```quest
+id: qs-run
+label: Run it to the finish
+desc: Press Run and let the workout complete.
+validation:
+  type: workout-complete
 ```
 
 # WOD Wiki {sticky dark full-bleed}
 
 **Write it in Markdown. Run it as a Timer. Own the Analytics.**
 
-WOD Wiki compiles a plain-text workout into a live `WallClock` timer, then logs every round straight back into your training journal — one file, one loop, no app-switching.
+WOD Wiki compiles a plain-text workout into a live `WallClock` timer, then logs every round straight back to your training journal — one file, one loop, no app-switching.
 
-It's local-first and open source — your workouts are markdown files you keep, not rows in someone else's database — and fully extensible with [custom dialects](/guide/syntax/dialects) when the built-in grammar doesn't fit your sport.
-
-Scroll down for the interactive walkthrough, or jump straight in:
-
-```button
-label:  Zero to Hero →
-target: home-demo
-pipeline:
-  - navigate: /guide/getting-started
-```
-
-```button
-label:  Explore Full Syntax →
-target: home-demo
-pipeline:
-  - navigate: /guide/syntax
-```
-
-```button
-label:  Open a New Note →
-target: home-demo
-pipeline:
-  - set-source: query:new
-  - set-state: note
-  - launch: dialog
-```
-
-{{hero-carousel}}
+{{challenge:qs-arrive}}
 
 ```view
 name:    home-demo
@@ -71,191 +88,98 @@ source:  wods/examples/home/welcome-1.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   45%
+width:   50%
 ```
 
-## The Whiteboard Script {sticky #statement theme:violet}
+**Jump Right In**
 
-This is a Whiteboard Script — the same markdown you just scrolled past, now live in the editor on the right. Edit it, then press Run.
-
-### 1 · Plan
-
-Write the workout and notes in free-form Markdown.
-
-Whiteboard blocks are fenced ``` Markdown. Change `10 Pushups` to `12` — tracked effort for later analytics reflects that.
-
-### 2 · Run
-
-Press **Run** to fire up the WallClock — a live timer that tracks your effort.
+Skip the tour and start using the app now.
 
 ```button
-label:  Try It →
-target: home-demo
+label:  📓 Open Journal
 pipeline:
-  - set-state: track
+  - navigate: /journal
 ```
-
-### 3 · Analytics
-
-The result lands in the same table shape.
-A ResultsView row with the columns you already use: Date · Effort · Reps · Volume · MET-min · TIS. The Rep cell is the same metric, with a new user-origin value.
-
-
-
-## Metrics {sticky #metrics density:compact theme:emerald}
-
-Add reps, load, and distance to any movement — the parser understands all three.
-
-```example
-label: Reps only
-source: wods/examples/getting-started/metrics-1.md
-```
-
-```example
-label: With weight
-source: wods/examples/getting-started/metrics-2.md
-```
-
-```example
-label: With distance
-source: wods/examples/getting-started/metrics-3.md
-```
-
-`10 Pushups`, `5 Deadlift 225lb`, `Run 400m` — all valid.
 
 ```button
-label:  Try This →
-target: home-demo
+label:  🗂️ Browse Collections
 pipeline:
-  - set-state: track
+  - navigate: /collections
 ```
 
-## Timers {sticky #timer theme:amber}
-
-Prefix a movement with a time to run it as a countdown timer.
-
-```command
-target: home-demo
+```button
+label:  ✍️ New Workout Note
 pipeline:
-  - set-source: wods/examples/getting-started/timer-1.md
+  - set-source: query:new
   - set-state: note
+  - launch: dialog
 ```
 
-`:30` is 30 seconds. `5:00` is 5 minutes. `1:30:00` is 90 minutes.
+## Learn the Syntax {sticky #learn theme:emerald}
+
+Or keep scrolling to try the live demo and pick up the syntax as you go.
+
+{{challenge:qs-edit}}
+
+{{challenge:qs-run}}
 
 ```button
-label:  Try This →
-target: home-demo
+label:  ▾ Try the Demo
 pipeline:
-  - set-state: track
-```
-
-## Groups {sticky #groups theme:sky}
-
-Wrap movements in `(N Rounds)` to repeat them — indent everything inside the group.
-
-```command
-target: home-demo
-pipeline:
-  - set-source: wods/examples/getting-started/groups-1.md
-  - set-state: note
-```
-
-The runtime counts rounds automatically and shows your position in the sequence.
-
-```button
-label:  Try This →
-target: home-demo
-pipeline:
-  - set-state: track
-```
-
-## Protocols {sticky #protocols theme:rose}
-
-AMRAP — As Many Rounds As Possible. Set a time cap and race the clock.
-
-```command
-target: home-demo
-pipeline:
-  - set-source: wods/examples/getting-started/protocols-1.md
-  - set-state: note
-```
-
-When the cap hits, the runtime stops and logs completed rounds and partial reps.
-
-```button
-label:  Try This →
-target: home-demo
-pipeline:
-  - set-state: track
-```
-
-## Own Your Data {sticky #data theme:sky}
-
-Every workout, note, and result is a plain markdown file on your machine — not a row locked inside someone else's database. Sync it with git, back it up yourself, or read it in any text editor, forever.
-
-WOD Wiki is fully open source. Fork it, self-host it, or send a pull request.
-
-```button
-label:  View on GitHub ↗
-target: home-demo
-pipeline:
-  - navigate: https://github.com/SergeiGolos/wod-wiki
-```
-
-## Custom Dialects {sticky #dialects theme:rose}
-
-Fence types like `wod` and `log` tell the runtime what kind of note it's looking at — a workout to run, or a session to record. Don't like the defaults? Author your own dialect and the parser, tracker, and analytics all pick it up automatically.
-
-```command
-target: home-demo
-pipeline:
-  - set-source: wods/examples/syntax/dialect-wod.md
+  - set-source: wods/examples/home/welcome-1.md
   - set-state: note
 ```
 
 ```button
-label:  Explore Dialect Examples →
-target: home-demo
+label:  🎓 Zero to Hero
 pipeline:
-  - navigate: /guide/syntax/dialects
+  - navigate: /guide/syntax/basics
 ```
 
 ## What's Next {sticky full-bleed dark}
 
-Ready to go deeper? Work through the six-step guide, explore the full syntax reference, or star the project on GitHub.
+Ready to go deeper? Work through the tutorials, explore the full syntax reference, or open a new note.
 
 ```button
-label:  Zero to Hero →
-target: home-demo
+label:  🎓 Basics
 pipeline:
-  - navigate: /guide/getting-started
+  - navigate: /guide/syntax/basics
 ```
 
 ```button
-label:  Chapter 1: Basics →
-target: home-demo
+label:  🧱 Structure & Reps
 pipeline:
-  - navigate: /chapters/basics
+  - navigate: /guide/syntax/structure
 ```
 
 ```button
-label:  Chapter 2: Sequences →
-target: home-demo
+label:  ⏱️ Timers & Protocols
 pipeline:
-  - navigate: /chapters/sequences
+  - navigate: /guide/syntax/protocols
 ```
 
 ```button
-label:  Chapter 3: Protocols →
-target: home-demo
+label:  🧩 Complex Workouts
 pipeline:
-  - navigate: /chapters/protocols
+  - navigate: /guide/syntax/complex
 ```
 
 ```button
-label:  View on GitHub ↗
-target: home-demo
+label:  📊 Custom Metrics
 pipeline:
-  - navigate: https://github.com/SergeiGolos/wod-wiki
+  - navigate: /guide/syntax/custom-metrics
+```
+
+```button
+label:  📋 Dialects
+pipeline:
+  - navigate: /guide/syntax/dialects
+```
+
+```button
+label:  ✍️ Open a New Note
+pipeline:
+  - set-source: query:new
+  - set-state: note
+  - launch: dialog
 ```

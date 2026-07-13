@@ -40,6 +40,7 @@ mock.module('react-router-dom', () => ({
 
 mock.module('nuqs', () => ({
   useQueryState: () => [null, () => {}],
+  parseAsStringEnum: () => ({ withDefault: () => 'all' }),
 }))
 
 mock.module('@/services/persistence', () => ({
@@ -147,6 +148,8 @@ const page: ParsedCanvasPage = {
   frontmatter: {},
   template: 'canvas',
   route: '/',
+  quests: [],
+  chapters: [],
   sections: [
     {
       id: 'hero',
@@ -160,7 +163,7 @@ const page: ParsedCanvasPage = {
         state: 'note',
         source: 'home-source.md',
         align: 'right',
-        width: '48%',
+        width: '50%',
         buttons: [],
       },
       commands: [],
@@ -183,6 +186,8 @@ const examplePage: ParsedCanvasPage = {
   frontmatter: {},
   template: 'canvas',
   route: '/',
+  quests: [],
+  chapters: [],
   sections: [
     {
       id: 'hero',
@@ -196,7 +201,7 @@ const examplePage: ParsedCanvasPage = {
         state: 'note',
         source: 'initial.md',
         align: 'right',
-        width: '48%',
+        width: '50%',
         buttons: [],
       },
       commands: [],

@@ -61,7 +61,7 @@ TIS — doc 08), then charts/queries them.
 |--------|-------|---------|
 | Home | `/` | Landing |
 | Import (zip) | `/load`, `/load/journal`, `/load/journal/:date` | Import a workout/journal entry encoded in a URL |
-| Guides | `/guide/getting-started`, `/guide/syntax` | In-app help |
+| Guides | `/guide/syntax/basics`, `/guide/syntax` | In-app help |
 | Cast receiver | `playground/receiver-rpc.html`, `tv/` | Chromecast/TV display of the live timer |
 | Not found | `*` | 404 |
 

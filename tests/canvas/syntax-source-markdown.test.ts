@@ -70,7 +70,7 @@ function resolveDslPath(dslPath: string): string {
 }
 
 function extractScriptBlocks(raw: string): string[] {
-  const matches = Array.from(raw.matchAll(/```wod\n([\s\S]*?)```/g))
+  const matches = Array.from(raw.matchAll(/```(?:wod|climb|log|plan)\n([\s\S]*?)```/g))
   return matches.map(match => match[1].trim()).filter(Boolean)
 }
 

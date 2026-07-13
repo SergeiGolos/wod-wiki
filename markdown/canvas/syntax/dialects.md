@@ -5,6 +5,30 @@ route: /guide/syntax/dialects
 type: syntax
 ---
 
+```chapter
+id: dialects
+title: Dialects
+badge: file-text
+quests: dialects-log, dialects-climb
+sections: []
+```
+
+```quest
+id: dialects-log
+label: Write a log block
+validation:
+  type: contains-token
+  value: \`\`\`log
+```
+
+```quest
+id: dialects-climb
+label: Write a climb block
+validation:
+  type: contains-token
+  value: \`\`\`climb
+```
+
 # Dialect Examples {sticky dark full-bleed}
 
 Dialect fences tell WOD Wiki what kind of training note a block represents. The line grammar stays familiar, while the fence gives the editor, review grid, and analytics layer the right intent.
@@ -40,6 +64,8 @@ pipeline:
 
 Use `log` when the block records what happened. Logs preserve performed work, notes, and subjective effort without pretending to be tomorrow's prescription.
 
+{{challenge:dialects-log}}
+
 ```command
 target: ex
 pipeline:
@@ -59,6 +85,8 @@ pipeline:
 ## `climb` — Indoor Bouldering {sticky}
 
 Use `climb` for route and problem logs. Grades, send types, attempts, and beta notes become explicit climbing signals while staying readable as plain Markdown.
+
+{{challenge:dialects-climb}}
 
 ```command
 target: ex

@@ -14,19 +14,17 @@ import { useQueryState } from 'nuqs'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import { FullscreenReview } from '@/components/organisms/review/FullscreenReview'
-import { useDebugMode } from '@/contexts/DebugModeContext'
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
-import { useIsMobile } from '../hooks/useIsMobile'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCanvasEditorSource } from '../hooks/useCanvasEditorSource'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
+import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
 import { CanvasPanelContent } from './CanvasPanelContent'
 import { CanvasSection as CanvasSectionCard } from '../components/molecules/CanvasSection'
 import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePanel'
 import { CanvasEditorPanel } from '../components/organisms/canvas/CanvasEditorPanel'
 import { SplitCanvasTemplate } from '../templates/SplitCanvasTemplate'
 import { OnboardingBanner } from '../components/onboarding/OnboardingBanner'
-import { ChallengeBanner } from '../components/molecules/ChallengeBanner'
 import { useSyntaxChallenge } from '../hooks/useSyntaxChallenge'
 import {
   getCanvasNoteId,
@@ -37,12 +35,10 @@ import {
   INITIAL_SOURCE_KEY,
 } from './canvasUtils'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
-import { getSectionTheme, getSectionThemeStyles } from './canvasSectionUtils'
-import { pipelineStepToNavAction, executeNavAction } from '../nav/navTypes'
-import type { NavActionDeps } from '../nav/navTypes'
-import { getSectionProse, type ParsedCanvasPage, type CanvasSection } from './parseCanvasMarkdown'
+import { type ParsedCanvasPage, type CanvasSection, SECTION_THEME_STYLES, type SectionTheme } from './parseCanvasMarkdown'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
+import { executeNavAction, pipelineStepToNavAction, type NavActionDeps } from '../nav/navTypes'
 import { notePersistence } from '@/services/persistence'
 
 export interface MarkdownCanvasPageProps {
@@ -55,6 +51,8 @@ export interface MarkdownCanvasPageProps {
   panelHeaderActions?: React.ReactNode
   onPanelActionsReady?: (actions: PanelActions) => void
   heroSlot?: React.ReactNode
+  /** Called when an inline challenge asks to scroll to its owning section. */
+  onScrollToSection?: (sectionId: string) => void
 }
 
 export interface PanelActions {
@@ -75,11 +73,10 @@ export function MarkdownCanvasPage({
   panelHeaderActions,
   onPanelActionsReady,
   heroSlot: heroSlotProp,
+  onScrollToSection,
 }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
-  const { isDebugMode } = useDebugMode()
-  const isMobile = useIsMobile()
-  const { sections, route } = page
+  const { sections, route, chapters } = page
   const canvasNoteId = useMemo(() => getCanvasNoteId(route), [route])
 
   const isCollection = route.startsWith('/collections/')
@@ -96,16 +93,21 @@ export function MarkdownCanvasPage({
     [navigate, onSelect],
   )
 
-  const hasWorkoutsTag = sections.some((s) => getSectionProse(s).includes('{{workouts}}'))
+  const hasWorkoutsTag = sections.some((s) => s.proseChunks.some(c => c.kind === 'widget' && c.widget === 'workouts-list'))
   const contentSections = sections.slice(1)
 
   const heroSection = sections[0] ?? null
-  const heroHasContent = !!heroSection && (getSectionProse(heroSection).trim() !== '' || heroSection.buttons.length > 0)
+  const heroHasContent = !!heroSection && (heroSection.proseChunks.some(c => c.kind === 'prose' && c.text.trim() !== '') || heroSection.buttons.length > 0)
 
   const viewDef = sections.find((s) => s.view)?.view ?? null
   const stickyAlign = viewDef?.align ?? 'right'
-  const editorWidth = viewDef?.width || '60%'
+  const editorWidth = viewDef?.width ?? '50%'
   const initialActiveSection = contentSections[0] ?? sections[0] ?? null
+
+  // On the home page the editor panel is hidden during the hero and Jump-In
+  // hub, then becomes sticky from the "Learn the Syntax" section onward.
+  // On all other pages the panel is present from the first content section.
+  const editorAppearsAtSectionId = route === '/' ? 'learn' : undefined
 
   const initialSource = viewDef?.source ? resolveSource(viewDef.source, wodFiles) : ''
   const initialSourceKey = viewDef?.source || INITIAL_SOURCE_KEY
@@ -122,8 +124,8 @@ export function MarkdownCanvasPage({
   // resolved from document position rather than from scroll-triggered side
   // effects (it's what makes scrolling back UP correctly restore content).
   const contentOwnerBySection = useMemo(() => resolveContentOwners(contentSections), [contentSections])
-  const [activeSectionTheme, setActiveSectionTheme] = useState(() =>
-    getSectionTheme(initialActiveSection ?? sections[0] ?? { id: 'default', heading: 'Whiteboard Script', level: 1, attrs: [], prose: '', commands: [], buttons: [] })
+  const [activeSectionTheme, setActiveSectionTheme] = useState<SectionTheme>(() =>
+    (initialActiveSection ?? sections[0])?.theme ?? 'slate'
   )
   const [selectedExamples, setSelectedExamples] = useState<Record<string, number>>({})
   const {
@@ -172,6 +174,13 @@ export function MarkdownCanvasPage({
     fullscreen: runtime.fullscreen,
   })
 
+  useQuickStartAutoComplete({
+    pageRoute: page.route,
+    quests: pageQuests,
+    initialSource,
+    currentSource: editorSource,
+  })
+
   // ScriptBlocks ref
   const scriptBlocksRef = useRef<ScriptBlock[]>([])
 
@@ -189,7 +198,7 @@ export function MarkdownCanvasPage({
   const activateSection = useCallback((section: CanvasSection) => {
     setActiveSectionId(section.id)
     setActiveSectionTitle(section.heading)
-    setActiveSectionTheme(getSectionTheme(section))
+    setActiveSectionTheme(section.theme ?? 'slate')
 
     const owner = contentOwnerBySection.get(section.id) ?? null
     setContentOwnerTitle(owner?.heading ?? initialActiveSection?.heading ?? 'Whiteboard Script')
@@ -231,7 +240,7 @@ export function MarkdownCanvasPage({
     setSelectedExamples((prev) => ({ ...prev, [section.id]: index }))
     setActiveSectionId(section.id)
     setActiveSectionTitle(section.heading)
-    setActiveSectionTheme(getSectionTheme(section))
+    setActiveSectionTheme(section.theme ?? 'slate')
     setContentOwnerTitle(section.heading)
     appliedContentOwnerIdRef.current = section.id
 
@@ -246,13 +255,13 @@ export function MarkdownCanvasPage({
   const [collectionQuery] = useQueryState('q', { defaultValue: '', shallow: true })
 
   const deps = useMemo<NavActionDeps>(() => ({
-    navigate: (to, opts) => navigate(to, { replace: opts?.replace }),
-    setQueryParam: (params, replace) => {
+    navigate: (to: string, opts?: { replace?: boolean }) => navigate(to, { replace: opts?.replace }),
+    setQueryParam: (params: Record<string, string | null>, replace?: boolean) => {
       const h = params['h']
       if (h !== undefined) setHeadingParam(h, { history: replace ? 'replace' : 'push' })
     },
     swapSource: (source: string) => swapSource(resolveSource(source, wodFilesRef.current), source),
-    setPanelState: (state) => {
+    setPanelState: (state: 'note' | 'track' | 'review') => {
       if (state === 'track') {
         const block = getBlock()
         if (block) runtime.setFullscreen({ kind: 'timer', block, results: null })
@@ -405,13 +414,7 @@ export function MarkdownCanvasPage({
     },
   ], [runtime])
 
-  const activePanelTheme = getSectionThemeStyles({
-    id: '',
-    heading: '',
-    prose: [],
-    buttons: [],
-    attrs: [`theme:${activeSectionTheme}`],
-  } satisfies CanvasSection)
+  const activePanelTheme = SECTION_THEME_STYLES[activeSectionTheme] ?? SECTION_THEME_STYLES.slate
 
   const panelTitle =
     isEditorLoading ? `${activeSectionTitle} · loading` : activeSectionTitle
@@ -456,11 +459,9 @@ export function MarkdownCanvasPage({
       onBlocksChange={handleBlocksChange}
       onViewCreated={setEditorView}
       persistedResults={runtime.persistedResults}
-      isDebugMode={isDebugMode}
     />
   )
 
-  const showPanelButtons = !!viewDef
 
   // Goal Gradient (ADR-0010): the home page gets an onboarding credit/progress
   // strip above the markdown hero. Other canvas routes are unaffected.
@@ -470,7 +471,7 @@ export function MarkdownCanvasPage({
       section={heroSection}
       idx={-1}
       prose={undefined}
-      blockId={`${heroSection.id}-hero`}
+      blockId={heroSection.id}
       keySuffix="hero"
       showEyebrow={false}
       isActive={false}
@@ -478,6 +479,8 @@ export function MarkdownCanvasPage({
       deps={deps}
       onExampleSelect={handleExampleSelect}
       selectedExampleIndex={0}
+      onScrollToSection={onScrollToSection}
+      challengeQuests={challenge.quests}
     />
   ) : null)
   const heroSlot = heroContent
@@ -544,12 +547,7 @@ export function MarkdownCanvasPage({
       )}
 
       <SplitCanvasTemplate
-        stickyAlign={stickyAlign as 'left' | 'right'}
-        hasViewDef={!!viewDef}
-        editorWidth={editorWidth}
         heroSlot={heroSlot}
-        mobilePanel={mobilePanel}
-        desktopPanel={desktopPanel}
       >
         <CanvasProsePanel
           contentSections={contentSections}
@@ -564,13 +562,16 @@ export function MarkdownCanvasPage({
           handleExampleSelect={handleExampleSelect}
           hasWorkoutsTag={hasWorkoutsTag}
           hasViewDef={!!viewDef}
+          chapters={chapters}
+          challengeQuests={challenge.quests}
+          onScrollToSection={onScrollToSection}
+          mobilePanel={mobilePanel}
+          desktopPanel={desktopPanel}
+          stickyAlign={stickyAlign as 'left' | 'right'}
+          editorWidth={editorWidth}
+          editorAppearsAtSectionId={editorAppearsAtSectionId}
         />
       </SplitCanvasTemplate>
-      {pageQuests.length > 0 && (
-        <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
-          <ChallengeBanner quests={challenge.quests} />
-        </div>
-      )}
     </div>
   )
 }

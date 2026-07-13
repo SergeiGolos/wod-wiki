@@ -1,5 +1,4 @@
 import { stripFrontmatter } from '@/utils/frontmatter'
-import type { ScriptBlock } from '@/components/Editor/types'
 import type { CanvasSection } from './parseCanvasMarkdown'
 
 export const STICKY_NAV_HEIGHT = 104

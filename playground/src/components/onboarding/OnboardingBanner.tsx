@@ -12,9 +12,17 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Check, Dumbbell, Play, Timer, Trophy } from 'lucide-react';
+import { Activity, Blocks, Check, Dumbbell, FileText, Play, Puzzle, Timer, Trophy } from 'lucide-react';
+import {
+  StructureBlocksBadge,
+  ProtocolsTimerBadge,
+  ComplexPuzzleBadge,
+  BasicsMovementIcon,
+  MetricsCustomIcon,
+  DialectsLogIcon,
+} from '../ChallengeBadges';
 import { cn } from '@/lib/utils';
-import { useOnboardingProgress, type OnboardingStep } from '../../hooks/useOnboardingProgress';
+import { useOnboardingProgress } from '../../hooks/useOnboardingProgress';
 import { useChapterProgress } from '../../hooks/useChapterProgress';
 import { getProfile, updateProfile } from '../../services/playgroundProfile';
 import type { Chapter } from '../../canvas/parseCanvasMarkdown';
@@ -53,16 +61,24 @@ function getHintText(stepsComplete: number): string {
 
 /** Resolve a Lucide icon component from the chapter's `badge` string.
  *  Defaults to Trophy when the named icon isn't supported. */
-function chapterIcon(badge: string): typeof Trophy {
+function chapterIcon(badge: string): React.ComponentType<React.SVGProps<SVGSVGElement>> {
   switch (badge) {
     case 'trophy':
-      return Trophy;
+      return BasicsMovementIcon;
     case 'dumbbell':
       return Dumbbell;
     case 'timer':
-      return Timer;
+      return ProtocolsTimerBadge;
     case 'play':
       return Play;
+    case 'blocks':
+      return StructureBlocksBadge;
+    case 'puzzle':
+      return ComplexPuzzleBadge;
+    case 'activity':
+      return MetricsCustomIcon;
+    case 'file-text':
+      return DialectsLogIcon;
     default:
       return Trophy;
   }
@@ -142,7 +158,6 @@ export function OnboardingBanner({ className, chapters = [] }: OnboardingBannerP
               (step.id === 5 && progress.loggedEffort)
             );
             const isStepFuture = !isStepDone && !isStepActive;
-            const Icon = step.icon;
             return (
               <div
                 key={step.id}

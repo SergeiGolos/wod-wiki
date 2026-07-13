@@ -1,14 +1,19 @@
 import React from 'react'
-import { getSectionProse, type CanvasSection } from '../../../canvas/parseCanvasMarkdown'
+import { type CanvasSection, type Chapter, type Quest } from '../../../canvas/parseCanvasMarkdown'
 import type { WorkoutItem } from '../../../App'
 import { CanvasSection as CanvasSectionComponent } from '../../molecules/CanvasSection'
-import { HeroCarousel, HERO_CAROUSEL_TOKEN } from '../../organisms/landing/HeroCarousel'
+import { CollectionWorkoutsList } from '../../../views/queriable-list/CollectionWorkoutsList'
 import type { RunButtonState } from '../../molecules/SectionButtons'
 import type { NavActionDeps } from '../../../nav/navTypes'
 
 interface CanvasProsePanelProps {
   heroSlot?: React.ReactNode
   mobilePanel?: React.ReactNode
+  desktopPanel?: React.ReactNode
+  /** "left" | "right" — which side the desktop panel sticks to in the split view. */
+  stickyAlign?: 'left' | 'right'
+  /** Width of the desktop panel column (CSS length). */
+  editorWidth?: string
   contentSections: CanvasSection[]
   isCollection: boolean
   collectionSlug: string | null
@@ -21,11 +26,69 @@ interface CanvasProsePanelProps {
   handleExampleSelect: (section: CanvasSection, index: number) => void
   hasWorkoutsTag: boolean
   hasViewDef: boolean
+  chapters?: Chapter[]
+  challengeQuests?: Array<Quest & { isCompleted: boolean }>
+  /** Called when an inline challenge asks to scroll to its owning section. */
+  onScrollToSection?: (sectionId: string) => void
+  /**
+   * Section id at which the editor panel should appear. Sections before this
+   * render full-width (no panel). From this section onward, the layout
+   * switches to a split view with the panel sticky on the side specified by
+   * `stickyAlign`. Undefined = panel is present from the first section
+   * (original behavior).
+   */
+  editorAppearsAtSectionId?: string
 }
+
+interface RenderSectionArgs {
+  activeSectionId: string | null
+  selectedExamples: Record<string, number>
+  handleExampleSelect: (section: CanvasSection, index: number) => void
+  hasViewDef: boolean
+  runState?: RunButtonState
+  deps: NavActionDeps
+  chapters?: Chapter[]
+  challengeQuests?: Array<Quest & { isCompleted: boolean }>
+  isCollection: boolean
+  collectionSlug: string | null
+  workoutItems: WorkoutItem[] | undefined
+  handleSelectWorkout: (item: WorkoutItem) => void
+  onScrollToSection?: (sectionId: string) => void
+}
+
+const renderSection = (
+  section: CanvasSection,
+  idx: number,
+  args: RenderSectionArgs,
+) => (
+  <CanvasSectionComponent
+    key={`${section.id}-default`}
+    section={section}
+    idx={idx}
+    blockId={section.id}
+    keySuffix="default"
+    isActive={args.activeSectionId === section.id}
+    hasViewDef={args.hasViewDef}
+    runState={args.runState}
+    deps={args.deps}
+    onExampleSelect={args.handleExampleSelect}
+    selectedExampleIndex={args.selectedExamples[section.id] ?? 0}
+    chapters={args.chapters}
+    challengeQuests={args.challengeQuests}
+    isCollection={args.isCollection}
+    collectionSlug={args.collectionSlug}
+    workoutItems={args.workoutItems}
+    handleSelectWorkout={args.handleSelectWorkout}
+    onScrollToSection={args.onScrollToSection}
+  />
+)
 
 export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
   heroSlot,
   mobilePanel,
+  desktopPanel,
+  stickyAlign = 'right',
+  editorWidth = '60%',
   contentSections,
   isCollection,
   collectionSlug,
@@ -38,13 +101,54 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
   handleExampleSelect,
   hasWorkoutsTag,
   hasViewDef,
+  chapters = [],
+  challengeQuests = [],
+  onScrollToSection,
+  editorAppearsAtSectionId,
 }) => {
-  const renderCollectionListSection = (key: string) => (
-    <div
-      key={key}
-      id="collection-workouts"
-      className="border-b border-border/50 bg-card"
-    >
+  // Split content sections at the boundary. Sections before the boundary
+  // render full-width (no panel); sections from the boundary onward render
+  // in a split layout with the desktop panel sticky on the chosen side.
+  // If the boundary section isn't found in contentSections, fall back to
+  // the default layout (panel present from the first section).
+  const splitIndex = editorAppearsAtSectionId
+    ? contentSections.findIndex((s) => s.id === editorAppearsAtSectionId)
+    : -1
+  const hasSplit = splitIndex > 0 && !!desktopPanel
+
+  const renderArgs: RenderSectionArgs = {
+    activeSectionId,
+    selectedExamples,
+    handleExampleSelect,
+    hasViewDef,
+    runState,
+    deps,
+    chapters,
+    challengeQuests,
+    isCollection,
+    collectionSlug,
+    workoutItems,
+    handleSelectWorkout,
+    onScrollToSection,
+  }
+
+  // Dynamic width for prose in the split view on desktop viewports.
+  const [proseWidthStyle, setProseWidthStyle] = React.useState<React.CSSProperties | undefined>(undefined)
+  React.useEffect(() => {
+    if (!hasSplit) {
+      setProseWidthStyle(undefined)
+      return
+    }
+    const update = () => {
+      setProseWidthStyle(window.innerWidth >= 1024 ? { width: `calc(100% - ${editorWidth})` } : undefined)
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [hasSplit, editorWidth])
+
+  const collectionList = isCollection && !hasWorkoutsTag && collectionSlug && workoutItems ? (
+    <div id="collection-workouts" className="border-b border-border/50 bg-card">
       <div className="w-full mx-auto">
         <CollectionWorkoutsList
           category={collectionSlug ?? ''}
@@ -55,101 +159,40 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
         />
       </div>
     </div>
-  )
+  ) : null
+
+  if (hasSplit) {
+    const preSections = contentSections.slice(0, splitIndex)
+    const postSections = contentSections.slice(splitIndex)
+    return (
+      <>
+        {heroSlot}
+        {preSections.map((section, idx) => renderSection(section, idx, renderArgs))}
+        <div className="lg:flex">
+          {stickyAlign === 'left' && desktopPanel}
+          <div className="w-full min-w-0" style={{ ...proseWidthStyle, flexBasis: proseWidthStyle?.width, maxWidth: proseWidthStyle?.width }}>
+            {mobilePanel}
+            {postSections.map((section, idx) => renderSection(section, idx, renderArgs))}
+            {collectionList}
+          </div>
+          {stickyAlign === 'right' && desktopPanel}
+        </div>
+      </>
+    )
+  }
 
   return (
     <>
       {mobilePanel}
-      {heroSlot}
-      {contentSections.map((section, idx) => {
-        const sectionProse = getSectionProse(section);
-        const hasHeroCarousel = sectionProse.includes(HERO_CAROUSEL_TOKEN);
-
-        if (hasHeroCarousel) {
-          const [beforeProse = '', afterProse = ''] = sectionProse.split(HERO_CAROUSEL_TOKEN);
-          return (
-            <div
-              key={`${section.id}-hero`}
-              id={section.id}
-              className="border-b border-border/50 bg-card"
-            >
-              <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-                {beforeProse.trim() && (
-                  <div className="prose-canvas mb-6 max-w-3xl">
-                    <pre className="whitespace-pre-wrap font-sans text-sm text-foreground">{beforeProse.trim()}</pre>
-                  </div>
-                )}
-                <HeroCarousel />
-                {afterProse.trim() && (
-                  <div className="prose-canvas mt-6 max-w-3xl">
-                    <pre className="whitespace-pre-wrap font-sans text-sm text-foreground">{afterProse.trim()}</pre>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        }
-
-        if (isCollection && collectionSlug && workoutItems && getSectionProse(section).includes('{{workouts}}')) {
-          const [beforeProse = '', afterProse = ''] = getSectionProse(section).split('{{workouts}}')
-          return [
-            <CanvasSectionComponent
-              key={`${section.id}-before-workouts`}
-              section={section}
-              idx={idx}
-              prose={beforeProse}
-              blockId={section.id}
-              keySuffix="before-workouts"
-              renderButtons={false}
-              isActive={activeSectionId === section.id}
-              hasViewDef={hasViewDef}
-              runState={runState}
-              deps={deps}
-              onExampleSelect={handleExampleSelect}
-              selectedExampleIndex={selectedExamples[section.id] ?? 0}
-            />,
-            renderCollectionListSection(`${section.id}-workouts`),
-            afterProse.trim() || section.buttons.length > 0 ? (
-              <CanvasSectionComponent
-                key={`${section.id}-after-workouts`}
-                section={section}
-                idx={idx}
-                prose={afterProse}
-                blockId={`${section.id}-after`}
-                keySuffix="after-workouts"
-                showHeading={false}
-                showEyebrow={false}
-                isActive={activeSectionId === section.id}
-                hasViewDef={hasViewDef}
-                runState={runState}
-                deps={deps}
-                onExampleSelect={handleExampleSelect}
-                selectedExampleIndex={selectedExamples[section.id] ?? 0}
-              />
-            ) : null,
-          ]
-        }
-        return (
-          <CanvasSectionComponent
-            key={`${section.id}-default`}
-            section={section}
-            idx={idx}
-            prose={sectionProse}
-            blockId={section.id}
-            keySuffix="default"
-            isActive={activeSectionId === section.id}
-            hasViewDef={hasViewDef}
-            runState={runState}
-            deps={deps}
-            onExampleSelect={handleExampleSelect}
-            selectedExampleIndex={selectedExamples[section.id] ?? 0}
-          />
-        )
-      })}
-
-      {isCollection && !hasWorkoutsTag && collectionSlug && workoutItems && (
-        renderCollectionListSection('collection-workouts-fallback')
-      )}
+      <div className="lg:flex">
+        {stickyAlign === 'left' && desktopPanel}
+        <div className="w-full min-w-0" style={{ ...proseWidthStyle, flexBasis: proseWidthStyle?.width, maxWidth: proseWidthStyle?.width }}>
+          {heroSlot}
+          {contentSections.map((section, idx) => renderSection(section, idx, renderArgs))}
+          {collectionList}
+        </div>
+        {stickyAlign === 'right' && desktopPanel}
+      </div>
     </>
   )
 }

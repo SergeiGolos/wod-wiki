@@ -5,6 +5,29 @@ route: /guide/syntax/complex
 type: syntax
 ---
 
+```chapter
+id: complex
+title: Complex Workouts
+badge: puzzle
+quests: complex-time, complex-rounds
+sections: []
+```
+
+```quest
+id: complex-time
+label: Add a timed block to the session
+validation:
+  type: has-timer
+```
+
+```quest
+id: complex-rounds
+label: Use 2+ rounds across sections
+validation:
+  type: min-rounds
+  count: 2
+```
+
 # Complex Workouts {sticky dark full-bleed}
 
 Put it all together. Nested groups, mixed protocols, and chained timers let you describe any training structure in a single note. These examples use every concept from the guide.
@@ -16,12 +39,14 @@ source:  wods/examples/syntax/complex-nested-protocols.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   48%
+width:   50%
 ```
 
 ## Nested Protocols {sticky}
 
 An outer rounds group containing a timed conditioning block, followed by a named strength block with rest. Each group runs sequentially — the runtime handles the transitions.
+
+{{challenge:complex-time}}
 
 ```command
 target: ex
@@ -39,6 +64,8 @@ pipeline:
 ## Full Training Session {sticky}
 
 Warmup → Strength → Conditioning → Cool-down. Four named groups in one note, each with its own protocol and rest pattern.
+
+{{challenge:complex-rounds}}
 
 ```command
 target: ex

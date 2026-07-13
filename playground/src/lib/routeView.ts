@@ -25,16 +25,6 @@ import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 
 // ─── Docs-page nav constants (moved from App.tsx) ──────────────────────────
 
-export const ZERO_TO_HERO_LINKS = [
-  { id: 'introduction', label: 'Introduction', type: 'heading' as const },
-  { id: 'statement', label: 'Step 1: Movements', type: 'heading' as const },
-  { id: 'metrics', label: 'Step 2: Metrics', type: 'heading' as const },
-  { id: 'timer', label: 'Step 3: Timers', type: 'heading' as const },
-  { id: 'groups', label: 'Step 4: Groups', type: 'heading' as const },
-  { id: 'protocols', label: 'Step 5: Protocols', type: 'heading' as const },
-  { id: 'review', label: 'Step 6: Review', type: 'heading' as const },
-]
-
 export const SYNTAX_LINKS = [
   { id: 'introduction', label: 'Introduction', type: 'heading' as const },
   { id: 'anatomy', label: 'Statement Anatomy', type: 'heading' as const },
@@ -75,7 +65,6 @@ export interface CurrentWorkout {
  */
 export type PageKind =
   | 'journal'
-  | 'plan'
   | 'feeds'
   | 'feedDetail'
   | 'feedItem'
@@ -159,7 +148,8 @@ function detectFlags(pathname: string, params: RouteViewParams): RouteFlags {
   const effectivePlaygroundId =
     playgroundId || (pathname.startsWith('/note/playground/') ? urlName : undefined)
   const isJournalEntryRoute = isJournalEntryPath(pathname)
-  const journalEntryId = isJournalEntryRoute ? decodeURIComponent(urlName ?? playgroundId!) : undefined
+  const rawJournalId = urlName ?? playgroundId
+  const journalEntryId = isJournalEntryRoute && rawJournalId ? decodeURIComponent(rawJournalId) : undefined
   const feedItemMatch = matchFeedItem(pathname)
   const feedDetailMatch = feedItemMatch ? null : matchFeedDetail(pathname)
   return { isPlaygroundRoute, effectivePlaygroundId, isJournalEntryRoute, journalEntryId, feedItemMatch, feedDetailMatch }
@@ -188,9 +178,7 @@ function deriveWorkout(
   const named: Record<string, string> = {
     '/': 'Home',
     '/journal': 'Journal',
-    '/plan': 'Plan',
     '/feeds': 'Feeds',
-    '/guide/getting-started': 'Zero to Hero',
     '/guide/syntax': 'Syntax',
     '/collections': 'Collections',
   }
@@ -280,7 +268,6 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
   }
 
   // 2. Docs pages
-  if (pathname === '/guide/getting-started') return ZERO_TO_HERO_LINKS
   if (pathname === '/guide/syntax') return SYNTAX_LINKS
 
   // 3. Journal list page — top-10 distinct session dates
@@ -305,8 +292,7 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
   return []
 }
 function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanvasPage | null): PageKind {
-  if (pathname === '/journal') return 'journal'
-  if (pathname === '/plan') return 'plan'
+  if (pathname === '/journal' || pathname === '/journal/') return 'journal'
   if (pathname === '/feeds') return 'feeds'
   if (flags.feedDetailMatch) return 'feedDetail'
   if (flags.feedItemMatch) return 'feedItem'
@@ -323,8 +309,6 @@ function deriveShell(page: PageKind, pathname: string, workout: CurrentWorkout):
   switch (page) {
     case 'journal':
       return { wrap: 'canvas', title: 'Journal', actionsMode: 'journal-active', withIndex: true }
-    case 'plan':
-      return { wrap: 'canvas', title: 'Plan', actionsMode: 'journal-active', withIndex: true }
     case 'collections':
       return { wrap: 'canvas', title: 'Collections', subheader: 'filter-collections', actionsMode: 'collection-readonly' }
     case 'canvas':

@@ -22,8 +22,6 @@ import {
   validateScriptBlock,
   type ValidationResult,
 } from '../services/syntaxChallengeValidator';
-import { createParser } from '@/parser/parserInstance';
-import type { ICodeStatement } from '@/core/models/CodeStatement';
 import type { ScriptBlock } from '@/components/Editor/types';
 
 export interface UseSyntaxChallengeArgs {
@@ -48,28 +46,12 @@ export function useSyntaxChallenge({
   block,
   enabled = true,
 }: UseSyntaxChallengeArgs): UseSyntaxChallengeResult {
-  const { markComplete, ...rest } = usePageQuests(pageRoute, quests);
+  const { markComplete, quests: questsWithStatus, isComplete } = usePageQuests(pageRoute, quests);
 
   // Snapshot of which quests have been auto-completed by *this* hook so we
   // don't ping the ledger on every render. Cleared when the page route or
   // quest identities change.
   const [autoCompleted, setAutoCompleted] = useState<Set<string>>(new Set());
-
-  // Compile `block.content` → statements. The editor's `onBlocksChange`
-  // doesn't ship statements, so we run the parser here. Memoized on the
-  // content string so identical re-renders don't reparse.
-  const compiledStatements = useMemo<ICodeStatement[]>(() => {
-    if (!block?.content) return [];
-    try {
-      const script = createParser().read(block.content);
-      return script.statements ?? [];
-    } catch (err) {
-      if (typeof console !== 'undefined') {
-        console.warn('[useSyntaxChallenge] parser error:', err);
-      }
-      return [];
-    }
-  }, [block?.content]);
 
   const results = useMemo<Record<string, ValidationResult>>(() => {
     const out: Record<string, ValidationResult> = {};
@@ -79,10 +61,7 @@ export function useSyntaxChallenge({
       }
       return out;
     }
-    // Prefer the editor's precompiled statements when present; otherwise
-    // fall back to the freshly compiled list above.
-    const statements = block.statements ?? compiledStatements;
-    const virtualBlock = { content: block.content, statements };
+    const virtualBlock = { content: block.content, statements: block.statements ?? [] };
     for (const q of quests) {
       if (q.validation?.type === 'workout-complete') {
         out[q.id] = { pass: false, reason: 'Validated at runtime.' };
@@ -91,11 +70,11 @@ export function useSyntaxChallenge({
       out[q.id] = validateScriptBlock(virtualBlock, q.validation);
     }
     return out;
-  }, [block, quests, enabled, compiledStatements]);
+  }, [block, quests, enabled]);
 
   useEffect(() => {
     if (!enabled) return;
-    for (const q of quests) {
+    for (const q of questsWithStatus) {
       if (q.isCompleted) continue;
       if (autoCompleted.has(q.id)) continue;
       const r = results[q.id];
@@ -109,7 +88,7 @@ export function useSyntaxChallenge({
         });
       }
     }
-  }, [enabled, quests, results, autoCompleted, markComplete]);
+  }, [enabled, questsWithStatus, results, autoCompleted, markComplete]);
 
   // Reset the auto-completed set when the page route or the *identity* of
   // the quest list changes. Keyed on a stable quest-id string so a fresh
@@ -125,14 +104,21 @@ export function useSyntaxChallenge({
   // into the returned `quests` so the banner sees the live completion
   // state from localStorage. The input `quests` parameter lacks
   // `isCompleted` and is only used above for the validation effect.
-  const decorated = rest.quests.map((q) => ({
-    ...q,
-    result: results[q.id] ?? { pass: false, reason: 'No validator result.' },
-  }));
+  const decorated = questsWithStatus.map((q) => {
+    const raw = results[q.id] ?? { pass: false, reason: 'No validator result.' };
+    // Once a quest is marked complete (externally or by this hook), the banner
+    // should show a clean success state even if the current editor no longer
+    // passes the validator. This matters for event-based quests like `qs-arrive`
+    // (mount) and `qs-edit` (edit) that have no live validation schema.
+    const result = q.isCompleted
+      ? { ...raw, pass: true, detail: 'Completed' }
+      : raw;
+    return { ...q, result };
+  });
 
   return {
     quests: decorated,
-    isComplete: rest.isComplete,
+    isComplete,
     results,
   };
 }

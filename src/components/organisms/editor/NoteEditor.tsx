@@ -58,6 +58,7 @@ import { gutterUnified } from "@/components/Editor/extensions/gutter-unified";
 import { cursorFocusExtension, getCursorFocusState } from "@/components/Editor/extensions/cursor-focus-panel";
 import { lineIdsExtension } from "@/components/Editor/extensions/line-ids";
 
+import { createParser } from "@/parser/parserInstance";
 import type { INotePersistence } from "@/services/persistence";
 import { createFileDropHandler, deriveReviewSegments, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
 
@@ -66,6 +67,7 @@ import {
   wodResultsField,
   updateSectionResults,
   WOD_RESULT_CLICK_EVENT,
+  compactResultsMode,
   type WodResultClickDetail,
 } from "@/components/Editor/extensions/whiteboard-results-widget";
 import { OverlayTrack } from "@/components/organisms/editor/OverlayTrack";
@@ -150,6 +152,13 @@ export interface NoteEditorProps {
    */
   enableInlineRuntime?: boolean;
   /**
+   * When true, clicking a result row opens the fullscreen review overlay
+   * directly instead of expanding the inline AnalyticsScorecard + ReviewGrid.
+   * Used by canvas pages where the editor panel is too narrow for inline
+   * results. Default: false (inline expand, as on /playground and /journal).
+   */
+  forceFullscreenReview?: boolean;
+  /**
    * Registry of custom widget components rendered inside ```widget:<name> blocks.
    * Keys are widget names (e.g. "hero"), values are React components.
    * Each registered widget replaces the fenced block with a full-width React component.
@@ -195,6 +204,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   commands,
   hideDefaultCommands = false,
   enableInlineRuntime = true,
+  forceFullscreenReview = false,
   widgetComponents,
   onButtonAction,
   scrollToSectionId,
@@ -534,6 +544,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Results bar widgets — shown after each WOD block's closing fence
       ...wodResultsWidget,
 
+      // Compact results mode: result rows open fullscreen review on click
+      // instead of expanding inline (canvas pages with small editor panels)
+      ...(forceFullscreenReview ? [compactResultsMode.of(true)] : []),
+
       // Full-row widget block replacements (```widget:<name>``` sections)
       ...(widgetComponents && widgetComponents.size > 0
         ? [widgetBlockPreview(widgetComponents)]
@@ -589,6 +603,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       notePersistence,
       widgetComponents,
       onButtonAction,
+      forceFullscreenReview,
     ]
   );
 
@@ -836,6 +851,15 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
       ? state.doc.sliceString(section.contentFrom, section.contentTo)
       : "";
 
+  let statements: any[] = [];
+  try {
+    if (content.trim()) {
+      statements = createParser().read(content).statements ?? [];
+    }
+  } catch (e) {
+    // Silently ignore parse errors
+  }
+
   return {
     id: section.id,
     contentId: section.contentId,
@@ -843,6 +867,7 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
     startLine: section.startLine - 1, // Convert to 0-indexed for ScriptBlock compat
     endLine: section.endLine - 1,
     content,
+    statements,
     state: "idle",
     version: 1,
     createdAt: Date.now(),

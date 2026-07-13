@@ -8,7 +8,7 @@
  * @updated WOD-712 home page content fix
  */
 
-import { parseCanvasMarkdown, getSectionProse, type ParsedCanvasPage } from './parseCanvasMarkdown'
+import { parseCanvasMarkdown, type ParsedCanvasPage } from './parseCanvasMarkdown'
 export { getSectionProse } from './parseCanvasMarkdown'
 
 // Routes from markdown/canvas/**/*.md (explicit routes)

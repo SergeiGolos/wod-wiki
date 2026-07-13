@@ -7,7 +7,7 @@
  *
  */
 
-import { Navigate, useParams } from 'react-router-dom'
+import { Navigate, useParams, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 
 // ---------------------------------------------------------------------------
@@ -210,9 +210,17 @@ export function TrackerRedirect(): ReactNode {
   return <Navigate to={runPath(runtimeId!)} replace />
 }
 
-/** Redirect /getting-started → /guide/getting-started */
+/** Redirect /getting-started → / (retired: content folded into home) */
 export function GettingStartedRedirect(): ReactNode {
-  return <Navigate to="/guide/getting-started" replace />
+  return <Navigate to="/" replace />
+}
+
+/** Redirect /plan → /journal?mode=plan, preserving any caller-supplied query string. */
+export function PlanRedirect(): ReactNode {
+  const search = useLocation().search
+  // The plan-mode param is appended last; any caller `?zip=...` is preserved.
+  const suffix = search && search.startsWith('?') ? `${search}&mode=plan` : '?mode=plan'
+  return <Navigate to={`/journal${suffix}`} replace />
 }
 
 /** Redirect /syntax/* → /guide/syntax/* */
@@ -255,15 +263,47 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
     },
     to: ({ collection, workout }) => workoutPath(collection, workout),
   },
-  // /getting-started  →  /guide/getting-started
+  // /getting-started  →  / (retired: content folded into home)
   {
     match: (p) => {
       if (p !== '/getting-started') return false;
       return {};
     },
-    to: () => '/guide/getting-started',
+    to: () => '/',
   },
-  // /syntax/*  →  /guide/syntax/*
+  // /chapters/basics  →  /guide/syntax/basics
+  {
+    match: (p) => {
+      if (p !== '/chapters/basics') return false;
+      return {};
+    },
+    to: () => '/guide/syntax/basics',
+  },
+  // /chapters/sequences  →  /guide/syntax (split content; no single canonical page)
+  {
+    match: (p) => {
+      if (p !== '/chapters/sequences') return false;
+      return {};
+    },
+    to: () => '/guide/syntax',
+  },
+  // /chapters/protocols  →  /guide/syntax/protocols
+  {
+    match: (p) => {
+      if (p !== '/chapters/protocols') return false;
+      return {};
+    },
+    to: () => '/guide/syntax/protocols',
+  },
+  // /challenge  →  / (retired: quick-start challenge chain now lives on home)
+  {
+    match: (p) => {
+      if (p !== '/challenge') return false;
+      return {};
+    },
+    to: () => '/',
+  },
+  // /syntax/*  →  /guide/syntax/* (covers old /syntax/custom-metrics route)
   {
     match: (p) => {
       const m = p.match(/^\/syntax(\/.+)?$/);
@@ -281,6 +321,16 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
     },
     to: ({ runtimeId }) => runPath(runtimeId),
   },
+  // /plan  →  /journal?mode=plan
+  // The plan view folded into the unified JournalListPage; preserve as an alias
+  // so external links, command palettes, and bookmarks resolve cleanly.
+  {
+    match: (p) => {
+      if (p !== '/plan') return false
+      return {}
+    },
+    to: () => '/journal?mode=plan',
+  },
 ];
 
 /**
@@ -295,6 +345,8 @@ export function resolveRedirect(pathname: string): string | null {
       return rule.to(params);
     }
   }
+
+
   return null;
 }
 
@@ -309,7 +361,7 @@ export function isPlaygroundNotePath(pathname: string): boolean {
 
 /** Detect whether a location pathname belongs to the journal entry family. */
 export function isJournalEntryPath(pathname: string): boolean {
-  return pathname.startsWith('/journal/') && pathname !== '/journal';
+  return pathname.startsWith('/journal/') && pathname !== '/journal' && pathname !== '/journal/';
 }
 
 /** Detect whether a location pathname belongs to the tracker/run family. */

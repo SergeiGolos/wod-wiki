@@ -5,6 +5,30 @@ route: /guide/syntax/structure
 type: syntax
 ---
 
+```chapter
+id: structure
+title: Structure
+badge: blocks
+quests: structure-rounds, structure-repscheme
+sections: []
+```
+
+```quest
+id: structure-rounds
+label: Wrap movements in 2+ rounds
+validation:
+  type: min-rounds
+  count: 2
+```
+
+```quest
+id: structure-repscheme
+label: Write a rep scheme
+validation:
+  type: contains-token
+  value: 21-15-9
+```
+
 # Structure & Rep Schemes {sticky dark full-bleed}
 
 Groups organise movements into repeating blocks, named sections, or nested structures. Rep schemes define how many times you perform those movements.
@@ -16,12 +40,14 @@ source:  wods/examples/getting-started/groups-1.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   48%
+width:   50%
 ```
 
 ## Simple Rounds {sticky}
 
 `(3 Rounds)` repeats the indented block three times. The runtime shows which round you're on and advances automatically.
+
+{{challenge:structure-rounds}}
 
 ```command
 target: ex
@@ -90,6 +116,8 @@ pipeline:
 ## Rep Schemes {sticky}
 
 Rep schemes use dash-separated values inside parentheses. `(21-15-9)` creates three rounds and applies those rep targets to every movement in the block.
+
+{{challenge:structure-repscheme}}
 
 ```command
 target: ex

@@ -5,6 +5,37 @@ route: /guide/syntax/protocols
 type: syntax
 ---
 
+```chapter
+id: protocols
+title: Protocols
+badge: timer
+quests: protocols-timer, protocols-rounds, protocols-tag
+sections: []
+```
+
+```quest
+id: protocols-timer
+label: Add a rest or time cap
+validation:
+  type: has-timer
+```
+
+```quest
+id: protocols-rounds
+label: Add a 3-round cap
+validation:
+  type: min-rounds
+  count: 3
+```
+
+```quest
+id: protocols-tag
+label: Add a workout tag
+validation:
+  type: contains-token
+  value: AMRAP
+```
+
 # Timers & Protocols {sticky dark full-bleed}
 
 Prefix any movement with a duration to turn it into a timed block. Timers combined with specific workout structures create powerful protocols like AMRAP, EMOM, and Tabata.
@@ -16,7 +47,7 @@ source:  wods/examples/syntax/timers-rest.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   48%
+width:   50%
 ```
 
 ## Timers and Rest {sticky}
@@ -25,10 +56,33 @@ A bare duration (`5:00 Run`, `:30 Plank`) counts down from that time. Movements 
 
 Use `*` to mark a timer as required or non-skippable. `*:30 Rest` is a common pattern, but the rest behavior comes from the word `Rest`, not from `*` alone.
 
+{{challenge:protocols-timer}}
+
 ```command
 target: ex
 pipeline:
   - set-source: wods/examples/syntax/timers-rest.md
+```
+
+```button
+label:  Try It →
+target: ex
+pipeline:
+  - set-state: track
+```
+
+## Timer Modifiers {sticky}
+
+Use `^` to force a timer to count up instead of down.
+
+Use `*` to mark a timer as required or non-skippable.
+
+Use `:?` when you want the runtime to record the actual time taken.
+
+```command
+target: ex
+pipeline:
+  - set-source: wods/examples/syntax/timer-modifiers.md
 ```
 
 ```button
@@ -75,6 +129,10 @@ pipeline:
 ## Classic AMRAP {sticky}
 
 **As Many Rounds As Possible.** Set a time cap, mark the block `AMRAP`, and race the clock. `20:00 AMRAP` is the canonical guide form.
+
+{{challenge:protocols-rounds}}
+
+{{challenge:protocols-tag}}
 
 ```command
 target: ex
@@ -228,7 +286,7 @@ pipeline:
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Structure & Rep Schemes
+label:  ← Structure & Reps
 target: ex
 pipeline:
   - navigate: /guide/syntax/structure

@@ -10,6 +10,7 @@
  *  - File links (.pdf, .mov, etc.) with a download/open icon
  */
 
+import { Children } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
@@ -258,6 +259,30 @@ const heroLeadComponents: Components = {
     )
   },
   strong({ children }) {
+    const text = Children.toArray(children)
+      .map((c) => (typeof c === 'string' || typeof c === 'number' ? String(c) : ''))
+      .join('')
+      .trim()
+
+    if (
+      text.includes('Write it in Markdown') &&
+      text.includes('Run it as a Timer') &&
+      text.includes('Own the Analytics')
+    ) {
+      return (
+        <span className="flex flex-col select-none mt-4 w-full gap-5 sm:gap-7">
+          <span className="block text-3xl sm:text-4xl lg:text-5xl text-primary font-black text-left pl-[5%] sm:pl-[10%] transform hover:translate-x-1 transition-transform duration-200">
+            Write it in <span className="inline-block border-b-4 border-primary/70 pb-1 hover:scale-105 transition-transform duration-200">Markdown</span>.
+          </span>
+          <span className="block text-3xl sm:text-4xl lg:text-5xl text-primary font-black text-center transform hover:scale-[1.02] transition-transform duration-200">
+            <span className="inline-block border-b-4 border-primary/70 pb-1 hover:scale-105 transition-transform duration-200">Run</span> it as a Timer.
+          </span>
+          <span className="block text-3xl sm:text-4xl lg:text-5xl text-primary font-black text-right pr-[5%] sm:pr-[10%] transform hover:-translate-x-1 transition-transform duration-200">
+            Own the <span className="inline-block border-b-4 border-primary/70 pb-1 hover:scale-105 transition-transform duration-200">Analytics</span>.
+          </span>
+        </span>
+      )
+    }
     return <strong className="font-black text-primary">{children}</strong>
   },
 }

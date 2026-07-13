@@ -46,6 +46,8 @@ export interface CanvasPageProps {
   // ── Title-bar mode ──────────────────────────────────────────────────────
   /** Title shown in the sticky header bar (enables title-bar mode). */
   title?: string;
+  /** Content rendered next to the title in title-bar mode (e.g. a challenge badge). */
+  titleAccessory?: ReactNode;
   /** Right-side actions (e.g. New Entry, Cast, Audio toggle). */
   actions?: ReactNode;
   /**
@@ -75,6 +77,7 @@ export interface CanvasPageProps {
 
 export function CanvasPage({
   title,
+  titleAccessory,
   actions,
   subheader,
   children,
@@ -244,11 +247,14 @@ export function CanvasPage({
           className="hidden lg:block lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md lg:pt-8"
         >
           <div className="flex items-center justify-between px-6 lg:px-10">
-            <div className="flex items-center gap-4 truncate">
+            <div className="flex items-center gap-4 min-w-0">
               <div className="h-10 w-2 shrink-0 rounded-full bg-primary" />
-              <h1 className="text-2xl md:text-4xl font-black tracking-tight text-foreground leading-none truncate">
-                {title}
-              </h1>
+              <div className="flex items-center gap-3 min-w-0">
+                <h1 className="text-2xl md:text-4xl font-black tracking-tight text-foreground leading-none truncate">
+                  {title}
+                </h1>
+                {titleAccessory}
+              </div>
             </div>
             <div className="flex items-center gap-2 md:gap-4 shrink-0">
               {actions}
