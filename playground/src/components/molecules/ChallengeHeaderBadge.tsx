@@ -27,13 +27,9 @@ export function ChallengeHeaderBadge({
 }: ChallengeHeaderBadgeProps) {
   const { quests: questsWithStatus, stepsComplete, totalSteps, isComplete } = usePageQuests(pageRoute, quests);
   const [open, setOpen] = useState(false);
-  const [hasHover, setHasHover] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setHasHover(window.matchMedia('(hover: hover)').matches);
-  }, []);
+  const closeTimeoutRef = useRef<number | null>(null);
   if (totalSteps === 0) return null;
 
   const handleChallengeClick = (questId: string) => {
@@ -44,7 +40,7 @@ export function ChallengeHeaderBadge({
     setOpen(false);
   };
 
-  // Close on Escape, focusout, and click-outside
+  // Close on Escape, focusout, click-outside, and delayed pointer-leave
   useEffect(() => {
     if (!open) return;
 
@@ -83,10 +79,44 @@ export function ChallengeHeaderBadge({
     };
   }, [open]);
 
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        window.clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  const cancelClose = () => {
+    if (closeTimeoutRef.current) {
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimeoutRef.current = window.setTimeout(() => setOpen(false), 150);
+  };
+
+  const handlePointerEnter = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') {
+      cancelClose();
+      setOpen(true);
+    }
+  };
+
+  const handlePointerLeave = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') {
+      scheduleClose();
+    }
+  };
+
   return (
     <div className="relative py-1.5 shrink-0"
-      onMouseEnter={hasHover ? () => setOpen(true) : undefined}
-      onMouseLeave={hasHover ? () => setOpen(false) : undefined}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
     >
       <button
         ref={buttonRef}
@@ -117,7 +147,7 @@ export function ChallengeHeaderBadge({
           ref={panelRef}
           role="menu"
           aria-orientation="vertical"
-          className="absolute left-0 top-full mt-1.5 w-64 rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-3 z-50 origin-top-left"
+          className="absolute left-0 top-full mt-1.5 w-64 rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-3 z-50 origin-top-left before:content-[''] before:absolute before:-top-1.5 before:left-0 before:right-0 before:h-1.5 before:bg-transparent"
         >
           <div className="mb-2.5 pb-2 border-b border-border/60 flex items-center justify-between gap-2">
             <div>
