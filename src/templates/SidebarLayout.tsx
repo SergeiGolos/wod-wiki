@@ -70,13 +70,13 @@ export function SidebarLayout({
         </MobileSidebar>
 
         {/* Mobile header with hamburger + navbar */}
-        <header className="sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-card lg:hidden overflow-hidden">
+        <header className="sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-card lg:hidden">
           <div className="py-2.5 shrink-0">
             <NavbarItem onClick={() => setShowSidebar(true)} aria-label="Open navigation">
               <OpenMenuIcon />
             </NavbarItem>
           </div>
-          <div className="min-w-0 flex-1 overflow-hidden">{navbar}</div>
+          <div className="min-w-0 flex-1">{navbar}</div>
         </header>
 
         {/* Content */}

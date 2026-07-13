@@ -240,6 +240,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             <span className="text-sm font-semibold text-zinc-950 dark:text-white truncate">
               {currentWorkout.name}
             </span>
+            {canvasTitleAccessory}
           </div>
           <NavbarSpacer />
           <NavbarSection>
