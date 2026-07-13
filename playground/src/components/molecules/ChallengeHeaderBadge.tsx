@@ -68,7 +68,7 @@ export function ChallengeHeaderBadge({
   }, [open]);
 
   return (
-    <div className="relative py-1 shrink-0"
+    <div className="relative py-1.5 shrink-0"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
@@ -77,17 +77,17 @@ export function ChallengeHeaderBadge({
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 cursor-pointer focus:outline-none select-none text-left rounded-full border border-border/70 bg-background px-2 py-0.5 hover:bg-muted/40 transition-colors"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1.5 cursor-pointer focus:outline-none select-none text-left rounded-full border border-border/70 bg-background px-3 py-1 hover:bg-muted/40 hover:border-border transition-colors shadow-sm"
       >
         {isComplete ? (
-          <Check className="size-3 text-emerald-500" />
+          <Check className="size-4 text-emerald-500" />
         ) : (
-          <Sparkles className="size-3 text-muted-foreground" />
+          <Sparkles className="size-4 text-muted-foreground" />
         )}
         <span
           className={cn(
-            'text-[9px] font-black uppercase tracking-wider',
+            'text-[10px] font-black uppercase tracking-wider',
             isComplete ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground',
           )}
         >
