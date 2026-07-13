@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'bun:test'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
 import { cleanup, render, screen } from '@testing-library/react'
 
 import { CanvasSection } from './CanvasSection'
@@ -149,4 +149,58 @@ describe('CanvasSection inline button rendering', () => {
 
     expect(screen.getByText(/some legacy prose/i)).toBeTruthy();
   });
+})
+
+describe('CanvasSection inline challenge rendering', () => {
+  it('renders a compact challenge card for a challenge chunk and scrolls on click', () => {
+    const section = makeSection([
+      { kind: 'prose', text: 'Do the challenge.' },
+      { kind: 'challenge', id: 'basics-movement' },
+    ])
+    const onScrollToSection = mock(() => {})
+
+    render(
+      <CanvasSection
+        section={section}
+        idx={0}
+        blockId={section.id}
+        keySuffix="default"
+        deps={noopDeps}
+        onExampleSelect={() => {}}
+        selectedExampleIndex={0}
+        challengeQuests={[
+          { id: 'basics-movement', label: 'Add a movement', isCompleted: false },
+        ]}
+        onScrollToSection={onScrollToSection}
+      />,
+    )
+
+    expect(screen.getByText('Add a movement')).toBeTruthy()
+    const card = screen.getByTestId('challenge-row-basics-movement')
+    expect(card).toBeTruthy()
+    card.click()
+    expect(onScrollToSection).toHaveBeenCalledWith('sec-1')
+  })
+
+  it('renders nothing for a challenge chunk whose quest is not supplied', () => {
+    const section = makeSection([
+      { kind: 'prose', text: 'Do the challenge.' },
+      { kind: 'challenge', id: 'missing-quest' },
+    ])
+
+    render(
+      <CanvasSection
+        section={section}
+        idx={0}
+        blockId={section.id}
+        keySuffix="default"
+        deps={noopDeps}
+        onExampleSelect={() => {}}
+        selectedExampleIndex={0}
+        challengeQuests={[]}
+      />,
+    )
+
+    expect(screen.queryByTestId('challenge-row-missing-quest')).toBeNull()
+  })
 })

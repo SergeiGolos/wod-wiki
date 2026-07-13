@@ -25,7 +25,6 @@ import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePane
 import { CanvasEditorPanel } from '../components/organisms/canvas/CanvasEditorPanel'
 import { SplitCanvasTemplate } from '../templates/SplitCanvasTemplate'
 import { OnboardingBanner } from '../components/onboarding/OnboardingBanner'
-import { ChallengeBanner } from '../components/molecules/ChallengeBanner'
 import { useSyntaxChallenge } from '../hooks/useSyntaxChallenge'
 import {
   getCanvasNoteId,
@@ -52,6 +51,8 @@ export interface MarkdownCanvasPageProps {
   panelHeaderActions?: React.ReactNode
   onPanelActionsReady?: (actions: PanelActions) => void
   heroSlot?: React.ReactNode
+  /** Called when an inline challenge asks to scroll to its owning section. */
+  onScrollToSection?: (sectionId: string) => void
 }
 
 export interface PanelActions {
@@ -72,6 +73,7 @@ export function MarkdownCanvasPage({
   panelHeaderActions,
   onPanelActionsReady,
   heroSlot: heroSlotProp,
+  onScrollToSection,
 }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
   const { sections, route, chapters } = page
@@ -99,7 +101,7 @@ export function MarkdownCanvasPage({
 
   const viewDef = sections.find((s) => s.view)?.view ?? null
   const stickyAlign = viewDef?.align ?? 'right'
-  const editorWidth = viewDef?.width || '60%'
+  const editorWidth = viewDef?.width ?? '50%'
   const initialActiveSection = contentSections[0] ?? sections[0] ?? null
 
   // On the home page the editor panel is hidden during the hero and Jump-In
@@ -477,6 +479,7 @@ export function MarkdownCanvasPage({
       deps={deps}
       onExampleSelect={handleExampleSelect}
       selectedExampleIndex={0}
+      onScrollToSection={onScrollToSection}
     />
   ) : null)
   const heroSlot = heroContent
@@ -560,6 +563,7 @@ export function MarkdownCanvasPage({
           hasViewDef={!!viewDef}
           chapters={chapters}
           challengeQuests={challenge.quests}
+          onScrollToSection={onScrollToSection}
           mobilePanel={mobilePanel}
           desktopPanel={desktopPanel}
           stickyAlign={stickyAlign as 'left' | 'right'}
@@ -567,11 +571,6 @@ export function MarkdownCanvasPage({
           editorAppearsAtSectionId={editorAppearsAtSectionId}
         />
       </SplitCanvasTemplate>
-      {pageQuests.length > 0 && (
-        <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
-          <ChallengeBanner quests={challenge.quests} />
-        </div>
-      )}
     </div>
   )
 }

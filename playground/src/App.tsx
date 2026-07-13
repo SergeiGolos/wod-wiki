@@ -40,6 +40,8 @@ import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
+import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
+import { getChallengeSectionMap } from './canvas/parseCanvasMarkdown'
 // ── Extracted page components ────────────────────────────────────────────────
 import { WallClockPage } from './pages/WallClockPage'
 import { ReviewPage } from './pages/ReviewPage'
@@ -171,6 +173,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         theme={actualTheme}
         workoutItems={workoutItems}
         onSelect={handleSelectWorkout}
+        onScrollToSection={scrollToSection}
       />
     ),
     playground: () => (
@@ -193,6 +196,18 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     ),
   }
 
+  const canvasTitleAccessory =
+    view.page === 'canvas' && view.canvasPage && view.canvasPage.quests.length > 0
+      ? (
+        <ChallengeHeaderBadge
+          pageRoute={view.canvasPage.route}
+          quests={view.canvasPage.quests}
+          challengeSectionMap={getChallengeSectionMap(view.canvasPage)}
+          onScrollToSection={scrollToSection}
+        />
+      )
+      : undefined
+
   const renderShell = (inner: ReactNode): ReactNode => {
     if (view.shell.wrap === 'bare') return inner
     const subheader =
@@ -204,6 +219,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     return (
       <CanvasPage
         title={view.shell.title}
+        titleAccessory={canvasTitleAccessory}
         subheader={subheader}
         index={view.shell.withIndex ? currentNavLinks : undefined}
         onScrollToSection={view.shell.withIndex ? scrollToSection : undefined}
@@ -315,6 +331,7 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.notePlaygroundAlias} element={<NotePlaygroundRedirect />} />
                   <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />
                   <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
                   <Route path={ROUTE_PATTERNS.review} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><ReviewPage /></Suspense>} />

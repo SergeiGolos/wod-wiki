@@ -1,9 +1,6 @@
 import React from 'react'
 
 interface SplitCanvasTemplateProps {
-  stickyAlign: 'left' | 'right'
-  hasViewDef: boolean
-  editorWidth?: string
   heroSlot?: React.ReactNode
   children: React.ReactNode
 }

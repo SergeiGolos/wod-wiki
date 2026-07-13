@@ -1,11 +1,10 @@
 import React from 'react'
-import { type CanvasSection, type Chapter } from '../../../canvas/parseCanvasMarkdown'
+import { type CanvasSection, type Chapter, type Quest } from '../../../canvas/parseCanvasMarkdown'
 import type { WorkoutItem } from '../../../App'
 import { CanvasSection as CanvasSectionComponent } from '../../molecules/CanvasSection'
 import { CollectionWorkoutsList } from '../../../views/queriable-list/CollectionWorkoutsList'
 import type { RunButtonState } from '../../molecules/SectionButtons'
 import type { NavActionDeps } from '../../../nav/navTypes'
-import type { Quest } from '../../../hooks/usePageQuests'
 
 interface CanvasProsePanelProps {
   heroSlot?: React.ReactNode
@@ -29,6 +28,8 @@ interface CanvasProsePanelProps {
   hasViewDef: boolean
   chapters?: Chapter[]
   challengeQuests?: Array<Quest & { isCompleted: boolean }>
+  /** Called when an inline challenge asks to scroll to its owning section. */
+  onScrollToSection?: (sectionId: string) => void
   /**
    * Section id at which the editor panel should appear. Sections before this
    * render full-width (no panel). From this section onward, the layout
@@ -52,6 +53,7 @@ interface RenderSectionArgs {
   collectionSlug: string | null
   workoutItems: WorkoutItem[] | undefined
   handleSelectWorkout: (item: WorkoutItem) => void
+  onScrollToSection?: (sectionId: string) => void
 }
 
 const renderSection = (
@@ -77,6 +79,7 @@ const renderSection = (
     collectionSlug={args.collectionSlug}
     workoutItems={args.workoutItems}
     handleSelectWorkout={args.handleSelectWorkout}
+    onScrollToSection={args.onScrollToSection}
   />
 )
 
@@ -100,6 +103,7 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
   hasViewDef,
   chapters = [],
   challengeQuests = [],
+  onScrollToSection,
   editorAppearsAtSectionId,
 }) => {
   // Split content sections at the boundary. Sections before the boundary
@@ -125,6 +129,7 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
     collectionSlug,
     workoutItems,
     handleSelectWorkout,
+    onScrollToSection,
   }
 
   // Dynamic width for prose in the split view on desktop viewports.
@@ -165,7 +170,7 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
         {preSections.map((section, idx) => renderSection(section, idx, renderArgs))}
         <div className="lg:flex">
           {stickyAlign === 'left' && desktopPanel}
-          <div className="w-full" style={proseWidthStyle}>
+          <div className="w-full min-w-0" style={{ ...proseWidthStyle, flexBasis: proseWidthStyle?.width, maxWidth: proseWidthStyle?.width }}>
             {mobilePanel}
             {postSections.map((section, idx) => renderSection(section, idx, renderArgs))}
             {collectionList}
@@ -181,7 +186,7 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
       {mobilePanel}
       <div className="lg:flex">
         {stickyAlign === 'left' && desktopPanel}
-        <div className="w-full" style={proseWidthStyle}>
+        <div className="w-full min-w-0" style={{ ...proseWidthStyle, flexBasis: proseWidthStyle?.width, maxWidth: proseWidthStyle?.width }}>
           {heroSlot}
           {contentSections.map((section, idx) => renderSection(section, idx, renderArgs))}
           {collectionList}

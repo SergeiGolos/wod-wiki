@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import { parseCanvasMarkdown, getSectionProse } from './parseCanvasMarkdown'
+import { parseCanvasMarkdown, getSectionProse, getChallengeSectionMap } from './parseCanvasMarkdown'
 
 describe('parseCanvasMarkdown', () => {
   it('extracts inline example blocks and keeps attribute values on the section', () => {
@@ -506,6 +506,63 @@ Body text.
       expect(page?.chapters.map((c) => c.id)).toEqual(['hidden'])
       const sectionA = page?.sections.find((s) => s.id === 'section-a')
       expect(sectionA?.proseChunks.some((c) => c.kind === 'prose' && c.text.includes('Hidden Chapter'))).toBe(false)
+    })
+  })
+
+  describe('inline challenge directives', () => {
+    it('creates a challenge chunk for {{challenge:<id>}} and excludes it from prose', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /guide/challenge
+---
+
+# Demo
+
+## Basics
+
+Learn the movement syntax.
+
+{{challenge:basics-movement}}
+
+Keep going after the challenge.
+`)
+      expect(page).not.toBeNull()
+      const section = page?.sections.find((s) => s.id === 'basics')
+      expect(section).not.toBeUndefined()
+      expect(section?.proseChunks.map((c) => c.kind)).toEqual([
+        'prose',
+        'challenge',
+        'prose',
+      ])
+      const challengeChunk = section?.proseChunks.find((c) => c.kind === 'challenge')
+      expect(challengeChunk).toEqual({ kind: 'challenge', id: 'basics-movement' })
+      expect(getSectionProse(section!)).not.toContain('{{challenge')
+      expect(getChallengeSectionMap(page!)).toEqual(new Map([['basics-movement', 'basics']]))
+    })
+
+    it('supports multiple challenge directives in one section', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /guide/challenge
+---
+
+# Demo
+
+## Basics
+
+{{challenge:basics-movement}}
+
+{{challenge:basics-reps}}
+`)
+      const section = page?.sections.find((s) => s.id === 'basics')
+      const challenges = section?.proseChunks.filter((c): c is { kind: 'challenge'; id: string } => c.kind === 'challenge')
+      expect(challenges?.map((c) => c.id)).toEqual(['basics-movement', 'basics-reps'])
+      expect(getChallengeSectionMap(page!)).toEqual(
+        new Map([
+          ['basics-movement', 'basics'],
+          ['basics-reps', 'basics'],
+        ]),
+      )
     })
   })
 })

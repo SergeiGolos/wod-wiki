@@ -98,6 +98,7 @@ export type ProseChunk =
   | { kind: 'prose'; text: string }
   | { kind: 'button'; button: ButtonBlock }
   | { kind: 'widget'; widget: 'hero-carousel' | 'workouts-list' }
+  | { kind: 'challenge'; id: string }
 
 export interface CanvasSection {
   id: string
@@ -151,6 +152,21 @@ export interface ParsedCanvasPage {
    * directly from the localStorage ledger).
    */
   chapters: Chapter[]
+}
+
+/** Map each challenge id to the id of the section that contains its
+ *  `{{challenge:<id>}}` directive. Used by the header badge dropdown to
+ *  scroll to the relevant section when a challenge is selected. */
+export function getChallengeSectionMap(page: ParsedCanvasPage): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const section of page.sections) {
+    for (const chunk of section.proseChunks) {
+      if (chunk.kind === 'challenge') {
+        map.set(chunk.id, section.id)
+      }
+    }
+  }
+  return map
 }
 
 /** Page-level quest — same shape as the validator's `Quest.validation` so
@@ -243,7 +259,7 @@ function parseViewBlock(content: string): ViewBlock {
     runtime: kv['runtime'],
     launch:  kv['launch'],
     align:   (kv['align'] as 'left' | 'right') ?? 'right',
-    width:   kv['width']   ?? '48%',
+    width:   kv['width']   ?? '50%',
     buttons,
   }
 }
@@ -480,6 +496,28 @@ function splitProseForWidgets(text: string): ProseChunk[] {
     }
     chunks = nextChunks
   }
+
+  // Challenge directive: {{challenge:<id>}} — rendered inline inside the
+  // section that authors it, rather than as a page-bottom list.
+  const challengeRe = /\{\{challenge:([^}]+)\}\}/g
+  const afterChallenge: ProseChunk[] = []
+  for (const chunk of chunks) {
+    if (chunk.kind !== 'prose') {
+      afterChallenge.push(chunk)
+      continue
+    }
+    const text = chunk.text
+    let lastIndex = 0
+    let match: RegExpExecArray | null
+    challengeRe.lastIndex = 0
+    while ((match = challengeRe.exec(text)) !== null) {
+      afterChallenge.push({ kind: 'prose', text: text.slice(lastIndex, match.index) })
+      afterChallenge.push({ kind: 'challenge', id: match[1].trim() })
+      lastIndex = match.index + match[0].length
+    }
+    afterChallenge.push({ kind: 'prose', text: text.slice(lastIndex) })
+  }
+  chunks = afterChallenge
 
   return chunks.filter((c) => c.kind !== 'prose' || c.text !== '')
 }

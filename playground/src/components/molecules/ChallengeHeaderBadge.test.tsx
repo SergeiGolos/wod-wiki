@@ -1,0 +1,69 @@
+import { afterEach, describe, expect, it, mock } from 'bun:test'
+import { cleanup, render, screen } from '@testing-library/react'
+
+import { ChallengeHeaderBadge } from './ChallengeHeaderBadge'
+import type { Quest } from '../../canvas/parseCanvasMarkdown'
+
+mock.module('../../hooks/usePageQuests', () => ({
+  usePageQuests: (pageRoute: string, quests: Quest[]) => ({
+    quests: quests.map((q) => ({ ...q, isCompleted: q.id === 'done-quest' })),
+    stepsComplete: quests.filter((q) => q.id === 'done-quest').length,
+    totalSteps: quests.length,
+    isComplete: quests.every((q) => q.id === 'done-quest'),
+    markComplete: () => {},
+    toggleQuest: () => {},
+  }),
+}))
+
+afterEach(() => {
+  cleanup()
+})
+
+describe('ChallengeHeaderBadge', () => {
+  it('renders a badge with completed / total next to the title group', () => {
+    const quests: Quest[] = [
+      { id: 'done-quest', label: 'Done quest' },
+      { id: 'pending-quest', label: 'Pending quest' },
+    ]
+
+    render(
+      <ChallengeHeaderBadge
+        pageRoute="/guide/demo"
+        quests={quests}
+        challengeSectionMap={new Map([['done-quest', 'sec-1']])}
+      />,
+    )
+
+    expect(screen.getAllByText('1/2').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('calls onScrollToSection with the mapped section id when a challenge is clicked', () => {
+    const quests: Quest[] = [{ id: 'done-quest', label: 'Done quest' }]
+    const onScrollToSection = mock(() => {})
+
+    render(
+      <ChallengeHeaderBadge
+        pageRoute="/guide/demo"
+        quests={quests}
+        challengeSectionMap={new Map([['done-quest', 'sec-1']])}
+        onScrollToSection={onScrollToSection}
+      />,
+    )
+
+    const item = screen.getByText('Done quest')
+    item.click()
+    expect(onScrollToSection).toHaveBeenCalledWith('sec-1')
+  })
+
+  it('returns null when there are no quests', () => {
+    const { container } = render(
+      <ChallengeHeaderBadge
+        pageRoute="/guide/demo"
+        quests={[]}
+        challengeSectionMap={new Map()}
+      />,
+    )
+
+    expect(container.firstChild).toBeNull()
+  })
+})

@@ -9,53 +9,11 @@
  * presentational and has no opinions on what counts as "pass."
  */
 
-import { CheckCircle2, Circle, Sparkles, Check } from 'lucide-react';
-import type { Quest } from '../../hooks/usePageQuests';
+import { Sparkles } from 'lucide-react';
+import type { Quest } from '../../canvas/parseCanvasMarkdown';
 import type { ValidationResult } from '../../services/syntaxChallengeValidator';
 import { cn } from '@/lib/utils';
-import {
-  BasicsMovementIcon,
-  BasicsRepsIcon,
-  BasicsLoadIcon,
-  StructureRoundsIcon,
-  StructureRepSchemeIcon,
-  ProtocolsTimerBadge,
-  ProtocolsTagIcon,
-  MetricsCustomIcon,
-  MetricsCalcIcon,
-  DialectsLogIcon,
-} from '../ChallengeBadges';
-
-function getQuestIcon(id: string): React.ComponentType<React.SVGProps<SVGSVGElement>> | null {
-  switch (id) {
-    case 'basics-movement':
-      return BasicsMovementIcon;
-    case 'basics-reps':
-      return BasicsRepsIcon;
-    case 'basics-load':
-      return BasicsLoadIcon;
-    case 'structure-rounds':
-    case 'complex-rounds':
-    case 'protocols-rounds':
-      return StructureRoundsIcon;
-    case 'structure-repscheme':
-      return StructureRepSchemeIcon;
-    case 'protocols-timer':
-    case 'complex-time':
-      return ProtocolsTimerBadge;
-    case 'protocols-tag':
-      return ProtocolsTagIcon;
-    case 'metrics-custom':
-      return MetricsCustomIcon;
-    case 'metrics-calc':
-      return MetricsCalcIcon;
-    case 'dialects-log':
-    case 'dialects-climb':
-      return DialectsLogIcon;
-    default:
-      return null;
-  }
-}
+import { ChallengeCard } from './ChallengeCard';
 
 export interface ChallengeBannerProps {
   quests: Array<Quest & { isCompleted: boolean; result: ValidationResult }>;
@@ -100,79 +58,8 @@ export function ChallengeBanner({ quests, className }: ChallengeBannerProps) {
 
       <ul className="space-y-2">
         {quests.map((q) => (
-          <li
-            key={q.id}
-            data-testid={`challenge-row-${q.id}`}
-            data-completed={q.isCompleted ? 'true' : 'false'}
-            className={cn(
-              'flex items-start gap-3 rounded-xl border px-3 py-2 text-sm transition-colors',
-              q.isCompleted
-                ? 'border-primary/40 bg-primary/5'
-                : 'border-border/50 bg-background/60',
-            )}
-          >
-            {(() => {
-              const Icon = getQuestIcon(q.id);
-              if (Icon) {
-                return (
-                  <span className="relative size-6 shrink-0 mt-0.5">
-                    <Icon className="w-full h-full" />
-                    {q.isCompleted && (
-                      <span className="absolute -bottom-1 -right-1 flex size-3.5 items-center justify-center rounded-full bg-emerald-500 text-white border border-background shadow">
-                        <Check className="size-2" strokeWidth={3} />
-                      </span>
-                    )}
-                  </span>
-                );
-              }
-              return (
-                <span
-                  className={cn(
-                    'mt-0.5 shrink-0',
-                    q.isCompleted ? 'text-primary' : 'text-muted-foreground/50',
-                  )}
-                  aria-hidden="true"
-                >
-                  {q.isCompleted ? (
-                    <CheckCircle2 className="size-4" />
-                  ) : (
-                    <Circle className="size-4" />
-                  )}
-                </span>
-              );
-            })()}
-            <div className="min-w-0 flex-1">
-              <p
-                className={cn(
-                  'font-semibold',
-                  q.isCompleted
-                    ? 'text-foreground line-through decoration-primary/40'
-                    : 'text-foreground',
-                )}
-              >
-                {q.label}
-              </p>
-              {q.desc && (
-                <p className="mt-0.5 text-xs text-muted-foreground">{q.desc}</p>
-              )}
-              <p
-                data-testid={`challenge-hint-${q.id}`}
-                className={cn(
-                  'mt-1 text-xs',
-                  q.isCompleted
-                    ? 'text-primary/80'
-                    : q.result.pass
-                    ? 'text-primary/80'
-                    : 'text-muted-foreground',
-                )}
-              >
-                {q.isCompleted
-                  ? 'Challenge complete.'
-                  : q.result.pass
-                  ? `Ready — ${q.result.detail ?? 'looks good'}`
-                  : q.result.reason ?? 'Open the editor to begin.'}
-              </p>
-            </div>
+          <li key={q.id}>
+            <ChallengeCard quest={q} />
           </li>
         ))}
       </ul>

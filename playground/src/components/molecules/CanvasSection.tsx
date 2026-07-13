@@ -2,15 +2,15 @@ import React from 'react'
 import { cn } from '@/lib/utils'
 import { HeroCarousel } from '../organisms/landing/HeroCarousel'
 import { CollectionWorkoutsList } from '../../views/queriable-list/CollectionWorkoutsList'
-import type { CanvasSection as CanvasSectionType, ButtonBlock, Chapter } from '../../canvas/parseCanvasMarkdown'
+import type { CanvasSection as CanvasSectionType, ButtonBlock, Chapter, Quest } from '../../canvas/parseCanvasMarkdown'
 import { SECTION_THEME_STYLES } from '../../canvas/parseCanvasMarkdown'
 import { buttonToActivation } from '../../nav/navTypes'
 import type { NavActionDeps } from '../../nav/navTypes'
 import { CanvasProse } from '../../canvas/CanvasProse'
 import { SectionButtons } from './SectionButtons'
 import { ExampleTabs } from './ExampleTabs'
+import { ChallengeCard } from './ChallengeCard'
 import type { RunButtonState } from './SectionButtons'
-import type { Quest } from '../../hooks/usePageQuests'
 import type { WorkoutItem } from '../../App'
 /** Splits prose at the first blank line — used to pull a hero's opening
  *  sentence out as a big headline, with everything after it as subtext. */
@@ -42,6 +42,8 @@ interface CanvasSectionProps {
   collectionSlug?: string | null
   workoutItems?: WorkoutItem[]
   handleSelectWorkout?: (item: WorkoutItem) => void
+  /** Called when an inline challenge asks to scroll to its section. */
+  onScrollToSection?: (sectionId: string) => void
 }
 
 export const CanvasSection: React.FC<CanvasSectionProps> = ({
@@ -65,6 +67,7 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
   collectionSlug = null,
   workoutItems = [],
   handleSelectWorkout,
+  onScrollToSection,
 }) => {
   const fullBleed = !!section.isFullBleed
   const dark = !!section.isDark
@@ -274,6 +277,19 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
                 )
               }
             }
+          }
+          if (chunk.kind === 'challenge') {
+            const quest = challengeQuests.find((q) => q.id === chunk.id)
+            if (!quest) return null
+            return (
+              <div key={`challenge-${chunkIdx}`} className="my-4">
+                <ChallengeCard
+                  quest={quest}
+                  onClick={() => onScrollToSection?.(blockId)}
+                  compact
+                />
+              </div>
+            )
           }
           return null
         })}
