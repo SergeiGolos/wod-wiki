@@ -11,6 +11,7 @@ import { SectionButtons } from './SectionButtons'
 import { ExampleTabs } from './ExampleTabs'
 import type { RunButtonState } from './SectionButtons'
 import type { Quest } from '../../hooks/usePageQuests'
+import type { WorkoutItem } from '../../App'
 /** Splits prose at the first blank line — used to pull a hero's opening
  *  sentence out as a big headline, with everything after it as subtext. */
 function splitLeadParagraph(text: string): { lead: string; rest: string } {
@@ -65,10 +66,10 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
   workoutItems = [],
   handleSelectWorkout,
 }) => {
-  const fullBleed = section.isFullBleed
-  const dark = section.isDark
+  const fullBleed = !!section.isFullBleed
+  const dark = !!section.isDark
   const density = section.density
-  const sectionTheme = SECTION_THEME_STYLES[section.theme] ?? SECTION_THEME_STYLES.slate
+  const sectionTheme = SECTION_THEME_STYLES[section.theme || 'slate'] ?? SECTION_THEME_STYLES.slate
   const examples = section.examples ?? []
   const isHero = idx === -1
 

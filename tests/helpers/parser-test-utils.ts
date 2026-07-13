@@ -84,15 +84,16 @@ export function createParserContext(
     options?: ParserTestOptions,
 ): ParserTestContext {
     const dialectList = options?.dialects ?? ALL_DIALECTS;
-    const registry = registryFrom(dialectList);
+    const actualDialects = dialectList.some(d => d instanceof UnitsDialect)
+        ? dialectList
+        : [new UnitsDialect(), ...dialectList];
+    const registry = registryFrom(actualDialects);
 
     const script = createParser().readWithoutDialects(scriptText) as WhiteboardScript;
 
     // Apply dialect processing to all parsed statements.
     const stmts = script.statements as ICodeStatement[];
-    if (dialectList.length > 0) {
-        registry.processAll(stmts);
-    }
+    registry.processAll(stmts);
 
     return {
         source: scriptText,
@@ -112,14 +113,14 @@ export function createParserContextFromScript(
     options?: ParserTestOptions,
 ): ParserTestContext {
     const dialectList = options?.dialects ?? ALL_DIALECTS;
-    const registry = registryFrom(dialectList);
+    const actualDialects = dialectList.some(d => d instanceof UnitsDialect)
+        ? dialectList
+        : [new UnitsDialect(), ...dialectList];
+    const registry = registryFrom(actualDialects);
 
     // Apply dialect processing to all parsed statements.
     const stmts = script.statements as ICodeStatement[];
-    if (dialectList.length > 0) {
-        registry.processAll(stmts);
-    }
-
+    registry.processAll(stmts);
     return {
         source: '',
         script,

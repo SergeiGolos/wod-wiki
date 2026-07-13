@@ -10,7 +10,7 @@
  *  - File links (.pdf, .mov, etc.) with a download/open icon
  */
 
-import React, { Children } from 'react'
+import { Children } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'

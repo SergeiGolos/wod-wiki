@@ -10,12 +10,12 @@
  */
 
 import { CheckCircle2, Circle, Sparkles } from 'lucide-react';
-import type { Quest } from '@/hooks/usePageQuests';
-import type { ValidationResult } from '@/services/syntaxChallengeValidator';
+import type { Quest } from '../../hooks/usePageQuests';
+import type { ValidationResult } from '../../services/syntaxChallengeValidator';
 import { cn } from '@/lib/utils';
 
 export interface ChallengeBannerProps {
-  quests: Array<Quest & { result: ValidationResult }>;
+  quests: Array<Quest & { isCompleted: boolean; result: ValidationResult }>;
   className?: string;
 }
 

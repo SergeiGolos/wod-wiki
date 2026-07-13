@@ -46,7 +46,7 @@ export function useSyntaxChallenge({
   block,
   enabled = true,
 }: UseSyntaxChallengeArgs): UseSyntaxChallengeResult {
-  const { markComplete, ...rest } = usePageQuests(pageRoute, quests);
+  const { markComplete, quests: questsWithStatus, isComplete } = usePageQuests(pageRoute, quests);
 
   // Snapshot of which quests have been auto-completed by *this* hook so we
   // don't ping the ledger on every render. Cleared when the page route or
@@ -74,7 +74,7 @@ export function useSyntaxChallenge({
 
   useEffect(() => {
     if (!enabled) return;
-    for (const q of quests) {
+    for (const q of questsWithStatus) {
       if (q.isCompleted) continue;
       if (autoCompleted.has(q.id)) continue;
       const r = results[q.id];
@@ -88,7 +88,7 @@ export function useSyntaxChallenge({
         });
       }
     }
-  }, [enabled, quests, results, autoCompleted, markComplete]);
+  }, [enabled, questsWithStatus, results, autoCompleted, markComplete]);
 
   // Reset the auto-completed set when the page route or the *identity* of
   // the quest list changes. Keyed on a stable quest-id string so a fresh
@@ -104,14 +104,14 @@ export function useSyntaxChallenge({
   // into the returned `quests` so the banner sees the live completion
   // state from localStorage. The input `quests` parameter lacks
   // `isCompleted` and is only used above for the validation effect.
-  const decorated = rest.quests.map((q) => ({
+  const decorated = questsWithStatus.map((q) => ({
     ...q,
     result: results[q.id] ?? { pass: false, reason: 'No validator result.' },
   }));
 
   return {
     quests: decorated,
-    isComplete: rest.isComplete,
+    isComplete,
     results,
   };
 }

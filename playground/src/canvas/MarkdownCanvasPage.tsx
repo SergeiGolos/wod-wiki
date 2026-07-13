@@ -14,9 +14,7 @@ import { useQueryState } from 'nuqs'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import { FullscreenReview } from '@/components/organisms/review/FullscreenReview'
-import { useDebugMode } from '@/contexts/DebugModeContext'
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
-import { useIsMobile } from '../hooks/useIsMobile'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCanvasEditorSource } from '../hooks/useCanvasEditorSource'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
@@ -37,9 +35,10 @@ import {
   INITIAL_SOURCE_KEY,
 } from './canvasUtils'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
-import { getSectionProse, type ParsedCanvasPage, type CanvasSection, SECTION_THEME_STYLES, type SectionTheme } from './parseCanvasMarkdown'
+import { type ParsedCanvasPage, type CanvasSection, SECTION_THEME_STYLES, type SectionTheme } from './parseCanvasMarkdown'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
+import { executeNavAction, pipelineStepToNavAction, type NavActionDeps } from '../nav/navTypes'
 import { notePersistence } from '@/services/persistence'
 
 export interface MarkdownCanvasPageProps {
@@ -74,8 +73,6 @@ export function MarkdownCanvasPage({
   heroSlot: heroSlotProp,
 }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
-  const { isDebugMode } = useDebugMode()
-  const isMobile = useIsMobile()
   const { sections, route, chapters } = page
   const canvasNoteId = useMemo(() => getCanvasNoteId(route), [route])
 
@@ -243,13 +240,13 @@ export function MarkdownCanvasPage({
   const [collectionQuery] = useQueryState('q', { defaultValue: '', shallow: true })
 
   const deps = useMemo<NavActionDeps>(() => ({
-    navigate: (to, opts) => navigate(to, { replace: opts?.replace }),
-    setQueryParam: (params, replace) => {
+    navigate: (to: string, opts?: { replace?: boolean }) => navigate(to, { replace: opts?.replace }),
+    setQueryParam: (params: Record<string, string | null>, replace?: boolean) => {
       const h = params['h']
       if (h !== undefined) setHeadingParam(h, { history: replace ? 'replace' : 'push' })
     },
     swapSource: (source: string) => swapSource(resolveSource(source, wodFilesRef.current), source),
-    setPanelState: (state) => {
+    setPanelState: (state: 'note' | 'track' | 'review') => {
       if (state === 'track') {
         const block = getBlock()
         if (block) runtime.setFullscreen({ kind: 'timer', block, results: null })
@@ -447,11 +444,9 @@ export function MarkdownCanvasPage({
       onBlocksChange={handleBlocksChange}
       onViewCreated={setEditorView}
       persistedResults={runtime.persistedResults}
-      isDebugMode={isDebugMode}
     />
   )
 
-  const showPanelButtons = !!viewDef
 
   // Goal Gradient (ADR-0010): the home page gets an onboarding credit/progress
   // strip above the markdown hero. Other canvas routes are unaffected.

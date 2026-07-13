@@ -147,6 +147,8 @@ const page: ParsedCanvasPage = {
   frontmatter: {},
   template: 'canvas',
   route: '/',
+  quests: [],
+  chapters: [],
   sections: [
     {
       id: 'hero',
@@ -183,6 +185,8 @@ const examplePage: ParsedCanvasPage = {
   frontmatter: {},
   template: 'canvas',
   route: '/',
+  quests: [],
+  chapters: [],
   sections: [
     {
       id: 'hero',

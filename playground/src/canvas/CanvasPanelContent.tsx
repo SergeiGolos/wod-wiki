@@ -4,7 +4,6 @@
  * Renders the markdown note editor for editing the current canvas section.
  * Owns no state; everything it shows is decided by its props.
  */
-import React from 'react'
 import type { EditorView } from '@codemirror/view'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
@@ -30,8 +29,6 @@ export interface CanvasPanelContentProps {
   // Editor persistence
   persistedResults: WorkoutResult[]
 
-  // Debug
-  isDebugMode: boolean
 }
 
 export function CanvasPanelContent({
@@ -47,7 +44,6 @@ export function CanvasPanelContent({
   onBlocksChange,
   onViewCreated,
   persistedResults,
-  isDebugMode,
 }: CanvasPanelContentProps) {
   const isEditorDirty = editorSource !== activeOriginalSource
   return (
