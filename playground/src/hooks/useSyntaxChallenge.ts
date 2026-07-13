@@ -22,8 +22,6 @@ import {
   validateScriptBlock,
   type ValidationResult,
 } from '../services/syntaxChallengeValidator';
-import { createParser } from '@/parser/parserInstance';
-import type { ICodeStatement } from '@/core/models/CodeStatement';
 import type { ScriptBlock } from '@/components/Editor/types';
 
 export interface UseSyntaxChallengeArgs {
@@ -55,22 +53,6 @@ export function useSyntaxChallenge({
   // quest identities change.
   const [autoCompleted, setAutoCompleted] = useState<Set<string>>(new Set());
 
-  // Compile `block.content` → statements. The editor's `onBlocksChange`
-  // doesn't ship statements, so we run the parser here. Memoized on the
-  // content string so identical re-renders don't reparse.
-  const compiledStatements = useMemo<ICodeStatement[]>(() => {
-    if (!block?.content) return [];
-    try {
-      const script = createParser().read(block.content);
-      return script.statements ?? [];
-    } catch (err) {
-      if (typeof console !== 'undefined') {
-        console.warn('[useSyntaxChallenge] parser error:', err);
-      }
-      return [];
-    }
-  }, [block?.content]);
-
   const results = useMemo<Record<string, ValidationResult>>(() => {
     const out: Record<string, ValidationResult> = {};
     if (!enabled || !block) {
@@ -79,10 +61,7 @@ export function useSyntaxChallenge({
       }
       return out;
     }
-    // Prefer the editor's precompiled statements when present; otherwise
-    // fall back to the freshly compiled list above.
-    const statements = block.statements ?? compiledStatements;
-    const virtualBlock = { content: block.content, statements };
+    const virtualBlock = { content: block.content, statements: block.statements ?? [] };
     for (const q of quests) {
       if (q.validation?.type === 'workout-complete') {
         out[q.id] = { pass: false, reason: 'Validated at runtime.' };
@@ -91,7 +70,7 @@ export function useSyntaxChallenge({
       out[q.id] = validateScriptBlock(virtualBlock, q.validation);
     }
     return out;
-  }, [block, quests, enabled, compiledStatements]);
+  }, [block, quests, enabled]);
 
   useEffect(() => {
     if (!enabled) return;

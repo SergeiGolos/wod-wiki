@@ -58,6 +58,7 @@ import { gutterUnified } from "@/components/Editor/extensions/gutter-unified";
 import { cursorFocusExtension, getCursorFocusState } from "@/components/Editor/extensions/cursor-focus-panel";
 import { lineIdsExtension } from "@/components/Editor/extensions/line-ids";
 
+import { createParser } from "@/parser/parserInstance";
 import type { INotePersistence } from "@/services/persistence";
 import { createFileDropHandler, deriveReviewSegments, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
 
@@ -836,6 +837,15 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
       ? state.doc.sliceString(section.contentFrom, section.contentTo)
       : "";
 
+  let statements: any[] = [];
+  try {
+    if (content.trim()) {
+      statements = createParser().read(content).statements ?? [];
+    }
+  } catch (e) {
+    // Silently ignore parse errors
+  }
+
   return {
     id: section.id,
     contentId: section.contentId,
@@ -843,6 +853,7 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
     startLine: section.startLine - 1, // Convert to 0-indexed for ScriptBlock compat
     endLine: section.endLine - 1,
     content,
+    statements,
     state: "idle",
     version: 1,
     createdAt: Date.now(),

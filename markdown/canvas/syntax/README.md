@@ -114,7 +114,7 @@ Attach line-local properties to a workout and derive summary values with a docum
 ```command
 target: preview
 pipeline:
-  - set-source: wods/examples/syntax/custom-metrics.md
+- set-source: wods/examples/syntax/custom-metrics-1.md
 ```
 
 ```button

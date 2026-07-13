@@ -37,10 +37,7 @@ import {
   INITIAL_SOURCE_KEY,
 } from './canvasUtils'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
-import { getSectionTheme, getSectionThemeStyles } from './canvasSectionUtils'
-import { pipelineStepToNavAction, executeNavAction } from '../nav/navTypes'
-import type { NavActionDeps } from '../nav/navTypes'
-import { getSectionProse, type ParsedCanvasPage, type CanvasSection } from './parseCanvasMarkdown'
+import { getSectionProse, type ParsedCanvasPage, type CanvasSection, SECTION_THEME_STYLES, type SectionTheme } from './parseCanvasMarkdown'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { notePersistence } from '@/services/persistence'
@@ -96,11 +93,11 @@ export function MarkdownCanvasPage({
     [navigate, onSelect],
   )
 
-  const hasWorkoutsTag = sections.some((s) => getSectionProse(s).includes('{{workouts}}'))
+  const hasWorkoutsTag = sections.some((s) => s.proseChunks.some(c => c.kind === 'widget' && c.widget === 'workouts-list'))
   const contentSections = sections.slice(1)
 
   const heroSection = sections[0] ?? null
-  const heroHasContent = !!heroSection && (getSectionProse(heroSection).trim() !== '' || heroSection.buttons.length > 0)
+  const heroHasContent = !!heroSection && (heroSection.proseChunks.some(c => c.kind === 'prose' && c.text.trim() !== '') || heroSection.buttons.length > 0)
 
   const viewDef = sections.find((s) => s.view)?.view ?? null
   const stickyAlign = viewDef?.align ?? 'right'
@@ -122,8 +119,8 @@ export function MarkdownCanvasPage({
   // resolved from document position rather than from scroll-triggered side
   // effects (it's what makes scrolling back UP correctly restore content).
   const contentOwnerBySection = useMemo(() => resolveContentOwners(contentSections), [contentSections])
-  const [activeSectionTheme, setActiveSectionTheme] = useState(() =>
-    getSectionTheme(initialActiveSection ?? sections[0] ?? { id: 'default', heading: 'Whiteboard Script', level: 1, attrs: [], prose: '', commands: [], buttons: [] })
+  const [activeSectionTheme, setActiveSectionTheme] = useState<SectionTheme>(() =>
+    (initialActiveSection ?? sections[0])?.theme ?? 'slate'
   )
   const [selectedExamples, setSelectedExamples] = useState<Record<string, number>>({})
   const {
@@ -189,7 +186,7 @@ export function MarkdownCanvasPage({
   const activateSection = useCallback((section: CanvasSection) => {
     setActiveSectionId(section.id)
     setActiveSectionTitle(section.heading)
-    setActiveSectionTheme(getSectionTheme(section))
+    setActiveSectionTheme(section.theme ?? 'slate')
 
     const owner = contentOwnerBySection.get(section.id) ?? null
     setContentOwnerTitle(owner?.heading ?? initialActiveSection?.heading ?? 'Whiteboard Script')
@@ -231,7 +228,7 @@ export function MarkdownCanvasPage({
     setSelectedExamples((prev) => ({ ...prev, [section.id]: index }))
     setActiveSectionId(section.id)
     setActiveSectionTitle(section.heading)
-    setActiveSectionTheme(getSectionTheme(section))
+    setActiveSectionTheme(section.theme ?? 'slate')
     setContentOwnerTitle(section.heading)
     appliedContentOwnerIdRef.current = section.id
 
@@ -405,13 +402,7 @@ export function MarkdownCanvasPage({
     },
   ], [runtime])
 
-  const activePanelTheme = getSectionThemeStyles({
-    id: '',
-    heading: '',
-    prose: [],
-    buttons: [],
-    attrs: [`theme:${activeSectionTheme}`],
-  } satisfies CanvasSection)
+  const activePanelTheme = SECTION_THEME_STYLES[activeSectionTheme] ?? SECTION_THEME_STYLES.slate
 
   const panelTitle =
     isEditorLoading ? `${activeSectionTitle} · loading` : activeSectionTitle

@@ -16,16 +16,21 @@ function getSectionProse(id: string): string {
 
 describe('home feature markdown rendering', () => {
   it('keeps feature list item content in the parsed Home canvas sections', () => {
-    expect(getSectionProse('smart-timer')).toContain('Counts up / down / interval based on your script')
-    expect(getSectionProse('smart-timer')).toContain('Full-screen mode during workouts')
-    expect(getSectionProse('chromecast-home-gym-ready')).toContain('Cast the timer to any TV in your gym with one click')
-    expect(getSectionProse('collections-library')).toContain('Browse by category (strength, cardio, mobility)')
-    expect(getSectionProse('browse-the-library')).toContain('Hundreds of ready-to-run workouts')
+    expect(getSectionProse('metrics')).toContain('Add reps, load, and distance to any movement')
+    expect(getSectionProse('timer')).toContain('Prefix a movement with a time to run it as a countdown timer')
+    expect(getSectionProse('groups')).toContain('Wrap movements in `(N Rounds)` to repeat them')
+    expect(getSectionProse('protocols')).toContain('AMRAP — As Many Rounds As Possible')
+    expect(getSectionProse('data')).toContain('Every workout, note, and result is a plain markdown file')
   })
 
   it('renders analytics labels as bold prefixes with their labels intact', () => {
+    const testProse = [
+      '- **Pre:** estimated time, total reps, projected volume',
+      '- **Post:** actual vs. estimated, intensity graph, per-block breakdown'
+    ].join('\n')
+
     const html = renderToStaticMarkup(
-      <CanvasProse prose={getSectionProse('pre-post-analytics')} />,
+      <CanvasProse prose={testProse} />,
     )
 
     expect(html).toContain('<strong class="font-black text-foreground">Pre:</strong>')

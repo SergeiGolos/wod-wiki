@@ -30,6 +30,11 @@ source: examples/weight.md
     const section = page?.sections[1]
     expect(section?.id).toBe('metrics')
     expect(section?.attrs).toEqual(['sticky', 'density:compact', 'theme:emerald'])
+    expect(section?.theme).toBe('emerald')
+    expect(section?.density).toBe('compact')
+    expect(section?.isSticky).toBe(true)
+    expect(section?.isDark).toBe(false)
+    expect(section?.isFullBleed).toBe(false)
     expect(getSectionProse(section!)).toContain('Compare different measurement styles.')
     expect(section?.examples).toEqual([
       { label: 'Reps only', source: 'examples/reps.md' },
