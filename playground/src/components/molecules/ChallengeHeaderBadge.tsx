@@ -27,9 +27,13 @@ export function ChallengeHeaderBadge({
 }: ChallengeHeaderBadgeProps) {
   const { quests: questsWithStatus, stepsComplete, totalSteps, isComplete } = usePageQuests(pageRoute, quests);
   const [open, setOpen] = useState(false);
+  const [hasHover, setHasHover] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    setHasHover(window.matchMedia('(hover: hover)').matches);
+  }, []);
   if (totalSteps === 0) return null;
 
   const handleChallengeClick = (questId: string) => {
@@ -40,7 +44,7 @@ export function ChallengeHeaderBadge({
     setOpen(false);
   };
 
-  // Close on Escape; also close when focus leaves the badge container.
+  // Close on Escape, focusout, and click-outside
   useEffect(() => {
     if (!open) return;
 
@@ -59,25 +63,37 @@ export function ChallengeHeaderBadge({
       }
     };
 
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const container = buttonRef.current?.parentElement;
+      if (container && !container.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
     panelRef.current?.addEventListener('focusout', handleFocusOut);
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
       panelRef.current?.removeEventListener('focusout', handleFocusOut);
     };
   }, [open]);
 
   return (
     <div className="relative py-1.5 shrink-0"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={hasHover ? () => setOpen(true) : undefined}
+      onMouseLeave={hasHover ? () => setOpen(false) : undefined}
     >
       <button
         ref={buttonRef}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen(true)}
+        onClick={() => setOpen((prev) => !prev)}
         className="flex items-center gap-1.5 cursor-pointer focus:outline-none select-none text-left rounded-full border border-border/70 bg-background px-3 py-1 hover:bg-muted/40 hover:border-border transition-colors shadow-sm"
       >
         {isComplete ? (
