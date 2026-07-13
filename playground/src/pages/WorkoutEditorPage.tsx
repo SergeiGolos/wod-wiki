@@ -35,6 +35,19 @@ export interface WorkoutEditorPageProps {
   name: string
   mdContent: string
   theme: string
+  /**
+   * Optional override for the run-button behavior.
+   * - 'inline' opens the wall-clock popup in-place (useful for Storybook scenarios).
+   * - 'journal' appends to the journal and navigates there (production default for collections).
+   * When omitted, behavior is derived from the category.
+   */
+  runMode?: 'inline' | 'journal'
+  /**
+   * Strip non-runtime commands (Today, Schedule) from the WOD block action bar.
+   * Useful in Storybook scenarios where journal persistence is out of scope.
+   * Does not affect the production Playground pages.
+   */
+  hidePlanningCommands?: boolean
   onViewCreated?: (view: EditorView) => void
   onScrollToSection?: (id: string) => void
   onSearch?: () => void
@@ -45,11 +58,13 @@ export function WorkoutEditorPage({
   name,
   mdContent,
   theme,
+  runMode,
+  hidePlanningCommands,
   onViewCreated,
   onScrollToSection,
   onSearch,
 }: WorkoutEditorPageProps) {
-  const usePopup = INLINE_RUNTIME_CATEGORIES.has(category)
+  const usePopup = runMode ? runMode === 'inline' : INLINE_RUNTIME_CATEGORIES.has(category)
   const isCollection = !NON_COLLECTION_CATEGORIES.has(category)
   const noteId = pageId(category, name)
   const navigate = useNavigate()
@@ -139,8 +154,8 @@ export function WorkoutEditorPage({
   const commands = useScriptBlockCommands('collection-readonly', {
     onPlay: handleStartWorkout,
     onShare: shareBlock,
-    onAddToToday: (block) => handleScheduleBlock(block, new Date()),
-    onSchedule: setPendingScheduleBlock,
+    onAddToToday: hidePlanningCommands ? undefined : (block) => handleScheduleBlock(block, new Date()),
+    onSchedule: hidePlanningCommands ? undefined : setPendingScheduleBlock,
     onOpenInPlayground: (block) => openBlockInPlayground(block, navigate),
   })
 

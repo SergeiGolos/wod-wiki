@@ -1,20 +1,21 @@
 /**
- * Catalog / Pages / WorkoutEditorPage
+ * Catalog / Testing / Benchmarks
  *
- * Renders: {@link import('../../../playground/src/pages/WorkoutEditorPage').WorkoutEditorPage}
+ * Storybook scenarios for the canonical benchmark WODs. Each story renders
+ * the read-only workout editor with the run + review routes wired in, so
+ * clicking Play exercises the full editor → timer → analytics workflow.
  *
  * Stories:
- *  1. Fran — classic benchmark girl WOD
+ *  1. Fran — 21-15-9 thrusters / pull-ups
  *  2. Murph — hero workout
- *  3. AmrapWorkout — AMRAP 20 workout
- *  4. EmptyEditor — empty editor state
- *  5. SyntaxMode — syntax highlighting mode
- *  6. Mobile — mobile viewport
+ *  3. AmrapWorkout — 20:00 AMRAP
+ *  4. EmptyEditor — empty benchmark note
  */
 
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { WorkoutEditorPage } from '../../../playground/src/pages/WorkoutEditorPage';
+import { WorkoutEditorPage } from '../../../../playground/src/pages/WorkoutEditorPage';
+import { WorkoutScenarioShell } from '../../_shared/WorkoutScenarioShell';
 
 const FRAN_CONTENT = `# Fran
 
@@ -56,16 +57,16 @@ const AMRAP_CONTENT = `# AMRAP 20
 const EMPTY_CONTENT = '';
 
 const meta: Meta<typeof WorkoutEditorPage> = {
-  title: 'catalog/pages/WorkoutEditorPage',
+  title: 'testing/benchmarks',
   component: WorkoutEditorPage,
   parameters: {
     layout: 'fullscreen',
-    router: { initialEntries: ['/workout/benchmarks/fran'] },
     docs: {
       description: {
         component:
-          'Full-page workout editor — view and run a workout from the collections library. ' +
-          'Shows the editor with Run / Today / Plan commands on each WOD block.',
+          'Test scenarios for the canonical benchmark WODs (Fran, Murph, AMRAP, empty). ' +
+          'Wrapped with the run + review routes so Play opens the wall-clock popup and ' +
+          'completed workouts persist analytics.',
       },
     },
   },
@@ -75,12 +76,15 @@ const meta: Meta<typeof WorkoutEditorPage> = {
     mdContent: FRAN_CONTENT,
     theme: 'vs',
   },
+  render: (args) =>
+    React.createElement(WorkoutScenarioShell, { ...args, runMode: 'inline' }),
 };
 
 export default meta;
 
 export const Fran: StoryObj<typeof WorkoutEditorPage> = {
-  name: 'Benchmark — Fran',
+  name: 'Fran',
+  parameters: { router: { initialEntries: ['/workout/benchmarks/fran'] } },
   args: {
     category: 'benchmarks',
     name: 'Fran',
@@ -89,19 +93,17 @@ export const Fran: StoryObj<typeof WorkoutEditorPage> = {
 };
 
 export const Murph: StoryObj<typeof WorkoutEditorPage> = {
-  name: 'Benchmark — Murph',
+  name: 'Murph',
+  parameters: { router: { initialEntries: ['/workout/benchmarks/murph'] } },
   args: {
     category: 'benchmarks',
     name: 'Murph',
     mdContent: MURPH_CONTENT,
   },
-  parameters: {
-    router: { initialEntries: ['/workout/benchmarks/murph'] },
-  },
 };
 
 export const AmrapWorkout: StoryObj<typeof WorkoutEditorPage> = {
-  name: 'AMRAP workout',
+  name: 'AMRAP 20',
   args: {
     category: 'benchmarks',
     name: 'AMRAP 20',
@@ -115,41 +117,5 @@ export const EmptyEditor: StoryObj<typeof WorkoutEditorPage> = {
     category: 'benchmarks',
     name: 'New Workout',
     mdContent: EMPTY_CONTENT,
-  },
-};
-
-export const SyntaxMode: StoryObj<typeof WorkoutEditorPage> = {
-  name: 'Syntax page (inline runtime)',
-  args: {
-    category: 'syntax',
-    name: 'Syntax Guide',
-    mdContent: `# Whiteboard Script Guide
-
-## Basic Statement
-
-\`\`\`wod
-10:00
-  Run
-\`\`\`
-
-## Groups
-
-\`\`\`wod
-(3x)
-  10 Air Squats
-\`\`\`
-`,
-  },
-};
-
-export const Mobile: StoryObj<typeof WorkoutEditorPage> = {
-  name: 'Mobile viewport',
-  args: {
-    category: 'benchmarks',
-    name: 'Fran',
-    mdContent: FRAN_CONTENT,
-  },
-  parameters: {
-    viewport: { defaultViewport: 'mobile1' },
   },
 };
