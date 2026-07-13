@@ -16,10 +16,9 @@ actually earned on the `/guide/syntax/*` tutorial pages.
 
 | Section (anchor) | Theme | What it covers |
 |---|---|---|
-| **WOD Wiki** (`#sticky dark full-bleed`) | dark | Hero pitch: plain-text markdown compiled into a live `WallClock` timer, then logged back to a training journal. The persistent `home-demo` panel sits to the right. |
-| **Jump Right In** (`#jump-in theme:sky`) | sky | Buttons that skip the tour and go straight to the journal, collections, or a new workout note. |
-| **Learn the Syntax** (`#learn theme:emerald`) | emerald | Buttons that either load the hero demo into the editor or navigate to the `/guide/syntax/basics` tutorial. |
-| **What's Next** (`#full-bleed dark`) | dark | Navigation hub to all six tutorial chapters and the new-workout dialog. |
+| **WOD Wiki** (`#sticky dark full-bleed`) | dark | Hero pitch: plain-text markdown compiled into a live `WallClock` timer, then logged back to a training journal. The editor panel is **hidden** during the hero — it only appears after the user scrolls past the Jump-In hub. |
+| **Jump Right In** (`#jump-in theme:sky`) | sky | Buttons that skip the tour and go straight to the journal, collections, or a new workout note. The editor panel is still hidden so the user is not pushed into the tutorial before they choose a path. |
+| **Learn the Syntax** (`#learn theme:emerald`) | emerald | Buttons that either load the hero demo into the editor or navigate to the `/guide/syntax/basics` tutorial. This is the first section where the `home-demo` editor panel becomes visible and sticky. |
 
 ---
 

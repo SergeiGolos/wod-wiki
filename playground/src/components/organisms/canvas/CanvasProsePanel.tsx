@@ -10,6 +10,11 @@ import type { Quest } from '../../../hooks/usePageQuests'
 interface CanvasProsePanelProps {
   heroSlot?: React.ReactNode
   mobilePanel?: React.ReactNode
+  desktopPanel?: React.ReactNode
+  /** "left" | "right" — which side the desktop panel sticks to in the split view. */
+  stickyAlign?: 'left' | 'right'
+  /** Width of the desktop panel column (CSS length). */
+  editorWidth?: string
   contentSections: CanvasSection[]
   isCollection: boolean
   collectionSlug: string | null
@@ -24,11 +29,63 @@ interface CanvasProsePanelProps {
   hasViewDef: boolean
   chapters?: Chapter[]
   challengeQuests?: Array<Quest & { isCompleted: boolean }>
+  /**
+   * Section id at which the editor panel should appear. Sections before this
+   * render full-width (no panel). From this section onward, the layout
+   * switches to a split view with the panel sticky on the side specified by
+   * `stickyAlign`. Undefined = panel is present from the first section
+   * (original behavior).
+   */
+  editorAppearsAtSectionId?: string
 }
+
+interface RenderSectionArgs {
+  activeSectionId: string | null
+  selectedExamples: Record<string, number>
+  handleExampleSelect: (section: CanvasSection, index: number) => void
+  hasViewDef: boolean
+  runState?: RunButtonState
+  deps: NavActionDeps
+  chapters?: Chapter[]
+  challengeQuests?: Array<Quest & { isCompleted: boolean }>
+  isCollection: boolean
+  collectionSlug: string | null
+  workoutItems: WorkoutItem[] | undefined
+  handleSelectWorkout: (item: WorkoutItem) => void
+}
+
+const renderSection = (
+  section: CanvasSection,
+  idx: number,
+  args: RenderSectionArgs,
+) => (
+  <CanvasSectionComponent
+    key={`${section.id}-default`}
+    section={section}
+    idx={idx}
+    blockId={section.id}
+    keySuffix="default"
+    isActive={args.activeSectionId === section.id}
+    hasViewDef={args.hasViewDef}
+    runState={args.runState}
+    deps={args.deps}
+    onExampleSelect={args.handleExampleSelect}
+    selectedExampleIndex={args.selectedExamples[section.id] ?? 0}
+    chapters={args.chapters}
+    challengeQuests={args.challengeQuests}
+    isCollection={args.isCollection}
+    collectionSlug={args.collectionSlug}
+    workoutItems={args.workoutItems}
+    handleSelectWorkout={args.handleSelectWorkout}
+  />
+)
 
 export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
   heroSlot,
   mobilePanel,
+  desktopPanel,
+  stickyAlign = 'right',
+  editorWidth = '60%',
   contentSections,
   isCollection,
   collectionSlug,
@@ -43,46 +100,94 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
   hasViewDef,
   chapters = [],
   challengeQuests = [],
+  editorAppearsAtSectionId,
 }) => {
+  // Split content sections at the boundary. Sections before the boundary
+  // render full-width (no panel); sections from the boundary onward render
+  // in a split layout with the desktop panel sticky on the chosen side.
+  // If the boundary section isn't found in contentSections, fall back to
+  // the default layout (panel present from the first section).
+  const splitIndex = editorAppearsAtSectionId
+    ? contentSections.findIndex((s) => s.id === editorAppearsAtSectionId)
+    : -1
+  const hasSplit = splitIndex > 0 && !!desktopPanel
+
+  const renderArgs: RenderSectionArgs = {
+    activeSectionId,
+    selectedExamples,
+    handleExampleSelect,
+    hasViewDef,
+    runState,
+    deps,
+    chapters,
+    challengeQuests,
+    isCollection,
+    collectionSlug,
+    workoutItems,
+    handleSelectWorkout,
+  }
+
+  // Dynamic width for prose in the split view on desktop viewports.
+  const [proseWidthStyle, setProseWidthStyle] = React.useState<React.CSSProperties | undefined>(undefined)
+  React.useEffect(() => {
+    if (!hasSplit) {
+      setProseWidthStyle(undefined)
+      return
+    }
+    const update = () => {
+      setProseWidthStyle(window.innerWidth >= 1024 ? { width: `calc(100% - ${editorWidth})` } : undefined)
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [hasSplit, editorWidth])
+
+  const collectionList = isCollection && !hasWorkoutsTag && collectionSlug && workoutItems ? (
+    <div id="collection-workouts" className="border-b border-border/50 bg-card">
+      <div className="w-full mx-auto">
+        <CollectionWorkoutsList
+          category={collectionSlug ?? ''}
+          workoutItems={workoutItems ?? []}
+          onSelect={handleSelectWorkout}
+          showSearch={false}
+          variant="flat"
+        />
+      </div>
+    </div>
+  ) : null
+
+  if (hasSplit) {
+    const preSections = contentSections.slice(0, splitIndex)
+    const postSections = contentSections.slice(splitIndex)
+    return (
+      <>
+        {heroSlot}
+        {preSections.map((section, idx) => renderSection(section, idx, renderArgs))}
+        <div className="lg:flex">
+          {stickyAlign === 'left' && desktopPanel}
+          <div className="w-full" style={proseWidthStyle}>
+            {mobilePanel}
+            {postSections.map((section, idx) => renderSection(section, idx, renderArgs))}
+            {collectionList}
+          </div>
+          {stickyAlign === 'right' && desktopPanel}
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       {mobilePanel}
-      {heroSlot}
-      {contentSections.map((section, idx) => (
-        <CanvasSectionComponent
-          key={`${section.id}-default`}
-          section={section}
-          idx={idx}
-          blockId={section.id}
-          keySuffix="default"
-          isActive={activeSectionId === section.id}
-          hasViewDef={hasViewDef}
-          runState={runState}
-          deps={deps}
-          onExampleSelect={handleExampleSelect}
-          selectedExampleIndex={selectedExamples[section.id] ?? 0}
-          chapters={chapters}
-          challengeQuests={challengeQuests}
-          isCollection={isCollection}
-          collectionSlug={collectionSlug}
-          workoutItems={workoutItems}
-          handleSelectWorkout={handleSelectWorkout}
-        />
-      ))}
-
-      {isCollection && !hasWorkoutsTag && collectionSlug && workoutItems && (
-        <div id="collection-workouts" className="border-b border-border/50 bg-card">
-          <div className="w-full mx-auto">
-            <CollectionWorkoutsList
-              category={collectionSlug ?? ''}
-              workoutItems={workoutItems ?? []}
-              onSelect={handleSelectWorkout}
-              showSearch={false}
-              variant="flat"
-            />
-          </div>
+      <div className="lg:flex">
+        {stickyAlign === 'left' && desktopPanel}
+        <div className="w-full" style={proseWidthStyle}>
+          {heroSlot}
+          {contentSections.map((section, idx) => renderSection(section, idx, renderArgs))}
+          {collectionList}
         </div>
-      )}
+        {stickyAlign === 'right' && desktopPanel}
+      </div>
     </>
   )
 }

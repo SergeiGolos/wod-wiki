@@ -102,6 +102,11 @@ export function MarkdownCanvasPage({
   const editorWidth = viewDef?.width || '60%'
   const initialActiveSection = contentSections[0] ?? sections[0] ?? null
 
+  // On the home page the editor panel is hidden during the hero and Jump-In
+  // hub, then becomes sticky from the "Learn the Syntax" section onward.
+  // On all other pages the panel is present from the first content section.
+  const editorAppearsAtSectionId = route === '/' ? 'learn' : undefined
+
   const initialSource = viewDef?.source ? resolveSource(viewDef.source, wodFiles) : ''
   const initialSourceKey = viewDef?.source || INITIAL_SOURCE_KEY
   const [activeSectionId, setActiveSectionId] = useState<string | null>(initialActiveSection?.id ?? null)
@@ -538,12 +543,7 @@ export function MarkdownCanvasPage({
       )}
 
       <SplitCanvasTemplate
-        stickyAlign={stickyAlign as 'left' | 'right'}
-        hasViewDef={!!viewDef}
-        editorWidth={editorWidth}
         heroSlot={heroSlot}
-        mobilePanel={mobilePanel}
-        desktopPanel={desktopPanel}
       >
         <CanvasProsePanel
           contentSections={contentSections}
@@ -560,6 +560,11 @@ export function MarkdownCanvasPage({
           hasViewDef={!!viewDef}
           chapters={chapters}
           challengeQuests={challenge.quests}
+          mobilePanel={mobilePanel}
+          desktopPanel={desktopPanel}
+          stickyAlign={stickyAlign as 'left' | 'right'}
+          editorWidth={editorWidth}
+          editorAppearsAtSectionId={editorAppearsAtSectionId}
         />
       </SplitCanvasTemplate>
       {pageQuests.length > 0 && (
