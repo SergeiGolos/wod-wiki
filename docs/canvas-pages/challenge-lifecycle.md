@@ -1,205 +1,180 @@
 # Challenge Lifecycle — how challenges are presented, handled & completed across the canvas pages
 
-This is the cross-cutting summary. It covers the **standalone Challenge page**
-(`/challenge`), then traces a single challenge from *presentation* → *handling*
-→ *completion* across every canvas page type, and maps the validation schemas
-and storage that make it all work.
+This is the cross-cutting summary. It traces a single challenge from *presentation* → *handling* → *completion* across the current playground canvas pages, and maps the validation schemas and storage that make it all work.
+
+The canvas has been restructured around four page types:
+
+1. **Home** (`/`) — a quick-start quest chain with a live demo editor.
+2. **Syntax index** (`/guide/syntax`) — a reference landing page with no quests.
+3. **Tutorial quest pages** (`/guide/syntax/*`) — six guided pages, each with live syntax quests and a chapter badge.
+4. **Retired challenge page** (`/challenge`) — no longer reachable; redirects to `/`.
 
 ---
 
-## The Challenge Page — `/challenge`
+## The four page types
 
-**Source:** `markdown/canvas/challenge/README.md`
-**Frontmatter type:** `challenge` · **Route:** `/challenge`
+### Home — `/` (`markdown/canvas/home/README.md`)
 
-A self-contained four-quest gauntlet. Unlike chapter pages (which feed home-page
-badges), this page has **no chapter block** — its quests complete in place and
-show only in the `ChallengeBanner`. It is the only page that mixes **live
-syntax** quests with a **runtime** quest.
+The home page carries its own **Quick-Start** quest chain, presented in the `ChallengeBanner` above the live demo editor.
 
-| Quest id | Label | Validation type | How to satisfy |
+| Quest id | Label | Validation | How to satisfy |
 |---|---|---|---|
-| `first-movement` | Add your first movement | `has-movement` | One movement line. |
-| `first-timer` | Add a rest or time cap | `has-timer` | A Duration line, e.g. `*:30 Rest`. |
-| `first-rounds` | Wrap it in rounds | `min-rounds` · `count: 3` | `(3 Rounds)` header. |
-| `first-complete` | Run and complete the workout | `workout-complete` | Press **Run**, let the WallClock finish. |
+| `qs-arrive` | Welcome to WOD Wiki | none | Auto-completed on mount by `useQuickStartAutoComplete`. |
+| `qs-edit` | Change the workout | none | Auto-completed by `useQuickStartAutoComplete` when the demo editor content diverges from `initialSource`. |
+| `qs-run` | Run it to the finish | `workout-complete` | Press **Run** and let the workout complete; handled by `useCompletionChallenge`. |
 
-The scratchpad (`wods/examples/challenge/welcome-2.md`) starts blank. The tip
-on the page frames the whole page: *"every challenge wants you to add **one more
-thing** to this script."*
+The home page also declares the six tutorial chapters in `chapter` blocks so that the global `OnboardingBanner` can show cross-route progress.
 
-**`workout-complete` is unique to this page.** It is not in the static validator
-registry — it is handled by `useCompletionChallenge`, which watches the
-fullscreen review state and fires when `fullscreen.results.completed === true`.
+### Syntax index — `/guide/syntax` (`markdown/canvas/syntax/README.md`)
 
----
+A pure reference page. **No quests, no chapter blocks.** It links into the six tutorial pages and lets the user open a new workout note. The editor preview on this page is read-only from a challenge perspective — running examples does not write to the quest ledger.
 
-## The three tiers of challenge
+### Tutorial quest pages — `/guide/syntax/*`
 
-The canvas pages present challenges at three levels of commitment:
+Each tutorial page is a self-contained lesson with a live editor, a `quest` block, and a `chapter` block. The chapter badge is displayed on the home page (`OnboardingBanner`), while the quests themselves are completed on the tutorial page.
 
-```
-        read-first                    type-to-pass                  run-to-pass
- ┌─────────────────────┐      ┌─────────────────────────┐      ┌──────────────────────┐
- │  Syntax reference   │      │   Chapter pages         │      │   Challenge page     │
- │  /guide/syntax/*    │      │   /chapters/*           │      │   /challenge         │
- │                     │      │                         │      │                      │
- │  No quests.         │      │  Live syntax quests.    │      │  Syntax quests +     │
- │  Examples you       │      │  Type into a blank      │      │  one runtime quest   │
- │  load + run.        │      │  scratchpad.            │      │  (run to finish).    │
- │                     │      │                         │      │                      │
- │  → onboarding step  │      │  → chapter badge        │      │  → in-page banner    │
- └─────────────────────┘      └─────────────────────────┘      └──────────────────────┘
-```
-
-| Tier | Pages | Input required | Reward |
+| Page | Source | Chapter | Quests |
 |---|---|---|---|
-| **Showcase** | `/guide/syntax/*` | Click "Try It →" (run a curated example) | Global onboarding step `ranWorkout` (indirect) |
-| **Authoring** | `/chapters/basics\|sequences\|protocols` | Type valid syntax into a blank scratchpad | Chapter badge 🏆🏋️⏱️ on the home banner |
-| **Execution** | `/challenge` | Type valid syntax **and** run the workout to completion | In-page `ChallengeBanner` all-complete |
+| `/guide/syntax/basics` | `syntax/basics.md` | basics (trophy) | `basics-movement`, `basics-reps`, `basics-load` |
+| `/guide/syntax/structure` | `syntax/structure.md` | structure (blocks) | `structure-rounds`, `structure-repscheme` |
+| `/guide/syntax/protocols` | `syntax/protocols.md` | protocols (timer) | `protocols-timer`, `protocols-rounds`, `protocols-tag` |
+| `/guide/syntax/complex` | `syntax/complex.md` | complex (puzzle) | `complex-time`, `complex-rounds` |
+| `/guide/syntax/custom-metrics` | `syntax/custom-metrics.md` | custom-metrics (activity) | `metrics-custom`, `metrics-calc` |
+| `/guide/syntax/dialects` | `syntax/dialects.md` | dialects (file-text) | `dialects-log`, `dialects-climb` |
+
+### Retired challenge page — `/challenge`
+
+The old standalone challenge page has been retired. Its route now redirects to `/`. The four-quest gauntlet (`first-movement`, `first-timer`, `first-rounds`, `first-complete`) is no longer reachable. Challenge-style discovery is now handled by the home quick-start chain and the tutorial quest pages.
 
 ---
 
 ## How challenges are PRESENTED
 
-A challenge surfaces to the user through the **`ChallengeBanner`**, rendered
-inline near the canvas editor on any page that ships `quest` blocks. The banner
-is purely presentational — it reads all state from `useSyntaxChallenge`.
+A challenge surfaces to the user through the **`ChallengeBanner`**, rendered inline near the canvas editor on any page that ships `quest` blocks. The banner is purely presentational — it reads all state from `useSyntaxChallenge`.
 
 - **One row per quest**, in frontmatter order.
-- Each row shows: a **pass/fail icon** (✓ `CheckCircle2` / ○ `Circle`), the quest
-  **label**, and a **live hint** — the validator's `reason` (when failing) or
-  `detail` (when passing), updating on every keystroke.
-- The header shows `stepsComplete / totalSteps` and a "all complete" sparkle
-  state when every quest passes.
-- Quests with **no validation schema** render disabled and never pass (a
-  frontmatter typo can't silently complete).
+- Each row shows: a **pass/fail icon** (✓ `CheckCircle2` / ○ `Circle`), the quest **label**, and a **live hint** — the validator's `reason` (when failing) or `detail` (when passing), updating as the user types or edits.
+- The header shows `stepsComplete / totalSteps` and a sparkle state when every quest passes.
+- Quests with **no validation schema** remain in a non-passing state until something else marks them complete (e.g. `qs-arrive`/`qs-edit` on the home page). Their live hint falls back to the validator's `reason` or *"Open the editor to begin."* A frontmatter typo cannot silently complete a quest.
 
-The **chapter badges** are presented separately, on the home page's
-`OnboardingBanner`: a per-chapter row with the badge icon, a
-`completedCount/totalCount` counter, and "Chapter complete." / "N quests
-remaining." text.
+The **chapter badges** are presented separately, on the home page's `OnboardingBanner`: a per-chapter row with the badge icon, a `completedCount/totalCount` counter, and "Done" / remaining text. That badge is driven by `useChapterProgress`, not by the local `ChallengeBanner`.
 
 ---
 
 ## How challenges are HANDLED (the validation pipeline)
 
+The canvas page wires three hooks together:
+
 ```
- editor keystroke
+ editor keystroke / mount / run-complete
       │
-      ▼
- ScriptBlock { content, statements: undefined }      ← editor emits raw content
-      │
-      ▼
- useSyntaxChallenge  ── re-parses block.content ──▶  parsed statements
-      │  (memoised on content; parser built per-call, lightweight)
-      ▼
- validateScriptBlock(block, quest.validation)
-      │
-      ▼
- VALIDATORS[schema.type]  ──▶  { pass, reason?, detail? }
-      │
-      ├─ pass? ──▶ markComplete(questId)   (idempotent, once per mount)
-      └─ fail?  ──▶ banner shows reason as the live hint
+      ├─ live content ──▶ useSyntaxChallenge
+      ├─ mount/edit divergence ──▶ useQuickStartAutoComplete
+      └─ review completed ──▶ useCompletionChallenge
 ```
 
-### The validator registry (`syntaxChallengeValidator.ts`)
+### `useSyntaxChallenge` — live syntax validation
 
-| `type` | Logic | Operates on |
-|---|---|---|
-| `has-movement` | `countMovements > 0` | parsed statement tree |
-| `exactly-movements` | `countMovements === count` | parsed statement tree |
-| `has-reps` | any non-synthetic `Rep` metric | parsed statement tree |
-| `has-timer` | any non-synthetic `Duration`/`Time` metric | parsed statement tree |
-| `min-rounds` | `totalRounds >= count` | parsed statement tree |
-| `contains-token` | `block.content.includes(value)` | **raw unparsed text** |
-| `workout-complete` | *(not in registry)* | runtime review state (see below) |
+Observes the active `ScriptBlock` and the page's `quest` list. On every keystroke (debounced upstream), it re-parses `block.content` through `MdTimerRuntime.read()` and runs each quest's `validation` schema through `validateScriptBlock`. When a quest passes and is not yet marked complete, it calls `markComplete(questId)` exactly once per mount.
 
-**Synthetic-statement guard.** The parser injects a synthetic statement at the
-top of every `wod` block (carrying `{ type:'effort', value:'wod' }` and a
-`domain.wod` hint). Every tree-walking validator skips it via `isSynthetic()` —
-otherwise an empty fence or a markdown heading would pass `has-movement`.
+- `workout-complete` quests are skipped here; they return `{ pass: false, reason: 'Validated at runtime.' }` so the banner can show that state.
+- Already-completed quests are overridden to `{ pass: true, detail: 'Completed' }` in the returned result so the banner shows a clean success state even if the editor no longer passes the validator.
 
-**Unknown-type safety.** `validateScriptBlock` returns `{ pass:false, reason }`
-for any type not in the registry. Nothing passes by accident.
+### `useCompletionChallenge` — runtime workout completion
 
-### The two completion hooks
+Filters the quest list to `validation.type === 'workout-complete'` and watches the `fullscreen` runtime state. When `fullscreen.kind === 'review'` and `fullscreen.results.completed === true`, it marks every matching quest complete once per mount (guarded by a `firedRef`).
 
-| Hook | Fires on | Quests it handles |
-|---|---|---|
-| `useSyntaxChallenge` | live re-parse of editor content (per keystroke, debounced) | every quest whose `validation.type` is in the registry |
-| `useCompletionChallenge` | fullscreen review reaching `results.completed === true` | only `validation.type === 'workout-complete'` |
+Used for `qs-run` on the home page and previously for `first-complete` on the retired `/challenge` page.
 
-`useCompletionChallenge` filters its quest list to `workout-complete` quests,
-watches the `fullscreen` state, and marks each complete exactly once (a `fired`
-ref guards duplicates within a mount).
+### `useQuickStartAutoComplete` — mount/edit events
+
+Auto-completes the home-page quick-start quests for events the static syntax validator cannot see:
+
+- `qs-arrive` — marks complete on mount (endowed progress).
+- `qs-edit` — marks complete when the current editor source diverges from `initialSource`.
+- `qs-run` — left to `useCompletionChallenge` (`workout-complete`).
+
+Safe on any page; if no `qs-arrive`/`qs-edit` quests exist, it is a no-op.
 
 ---
 
 ## How challenges are COMPLETED (storage & aggregation)
 
 ### Per-page ledger
+
 - **Key:** `localStorage["wodwiki.quests.v1"]`
-- **Shape:** `Record<pageRoute, Record<questId, boolean>>` — namespaced by route
-  so identical quest ids on different pages (e.g. two chapters with `rounds`
-  quests) never collide.
-- **Write:** `markQuestComplete(pageRoute, questId)` — **monotonic** in
-  production (once true, stays true). A `toggleQuestState` sandbox path exists
-  for Storybook debugging.
-- **Reactivity:** a synthetic `storage` event is dispatched on write, so all
-  mounted hooks re-read.
+- **Shape:** `Record<pageRoute, Record<questId, boolean>>` — namespaced by route so identical quest ids on different pages never collide.
+- **Write:** `markQuestComplete(pageRoute, questId)` from `usePageQuests` — monotonic in production (once true, stays true). A `toggleQuestState` sandbox path exists for Storybook debugging.
+- **Reactivity:** `usePageQuests` listens to the browser `storage` event and re-reads after local writes, so the banner and badges update without a page reload.
 
 ### Cross-route badge aggregation (`useChapterProgress`)
-Chapter badges live in the home-page `OnboardingBanner`, but their quests are
-completed on chapter pages. The hook:
 
-1. Reads the **entire** ledger once (and on every `storage` event).
-2. For each chapter, checks each `questId` across **all** routes — `isDone(id)`
-   returns true if **any** route has it marked.
+Chapter badges live on the home page, but their quests are completed on the tutorial pages. The hook:
+
+1. Reads the **entire** ledger once and on every `storage` event keyed to `wodwiki.quests.v1`.
+2. For each chapter, checks each `questId` across **all** routes — `isDone(id)` returns true if any route has it marked complete.
 3. `isComplete = questIds.length > 0 && questIds.every(isDone)`.
 
-This is the contract that lets the home page declare chapter blocks (referencing
-quests it doesn't own) and still show correct progress.
+Because the ledger is route-scoped but the lookup is cross-route, the home page can declare chapter blocks that reference quests completed on any tutorial page and still show correct progress.
 
 ### Global onboarding steps (parallel system)
+
 - **Key:** `localStorage["wodwiki.onboarding.v1"]` — five booleans.
-- Independent of quests/chapters; marked at action sites (`editedNote`,
-  `ranWorkout`, `loggedEffort`, `openedReview`; `visitedLanding` auto on mount).
+- Independent of quests/chapters; marked at action sites (`editedNote`, `ranWorkout`, `loggedEffort`, `openedReview`; `visitedLanding` auto on mount).
 - Unknown keys coerce to `false`, so the set is version-tolerant.
+
+---
+
+## Validator types
+
+The `syntaxChallengeValidator.ts` registry supports the following types. Unknown types fail closed.
+
+| Type | Logic | Required schema field | Operates on |
+|---|---|---|---|
+| `has-movement` | `countMovements > 0` | — | parsed statement tree |
+| `has-reps` | any non-synthetic `Rep` metric | — | parsed statement tree |
+| `has-timer` | any non-synthetic `Duration`/`Time` metric | — | parsed statement tree |
+| `min-rounds` | `totalRounds >= count` | `count` | parsed statement tree |
+| `contains-token` | `block.content.includes(value)` | `value` | raw editor text |
+| `workout-complete` | *(not in registry)* | — | runtime review state |
+
+**Synthetic-statement guard.** The parser injects a synthetic statement at the top of every `wod` block carrying `{ type:'effort', value:'wod' }` and a `domain.wod` hint. Every tree-walking validator skips it via `isSynthetic()` — otherwise an empty fence or a markdown heading would pass `has-movement`.
+
+**Unknown-type safety.** `validateScriptBlock` returns `{ pass:false, reason: 'Unknown validation type "..."' }` for any type not in the registry. Nothing passes by accident.
+
+---
+
+## Summary table — every quest across the canvas
+
+| Page | Quest id | Validation | Reward / aggregation | Measured by |
+|---|---|---|---|---|
+| `/` | `qs-arrive` | none | Quick-start banner | Mount event |
+| `/` | `qs-edit` | none | Quick-start banner | Content divergence from `initialSource` |
+| `/` | `qs-run` | `workout-complete` | Quick-start banner | Review `completed === true` |
+| `/guide/syntax/basics` | `basics-movement` | `has-movement` | 🏆 Basics badge | Effort metric on a non-synthetic statement |
+| `/guide/syntax/basics` | `basics-reps` | `has-reps` | 🏆 Basics badge | Rep metric present |
+| `/guide/syntax/basics` | `basics-load` | `contains-token` `lb` | 🏆 Basics badge | Raw text includes `lb` |
+| `/guide/syntax/structure` | `structure-rounds` | `min-rounds` (2) | 🧱 Structure badge | Sum of Rounds metrics ≥ 2 |
+| `/guide/syntax/structure` | `structure-repscheme` | `contains-token` `21-15-9` | 🧱 Structure badge | Raw text includes `21-15-9` |
+| `/guide/syntax/protocols` | `protocols-timer` | `has-timer` | ⏱️ Protocols badge | Duration/Time metric present |
+| `/guide/syntax/protocols` | `protocols-rounds` | `min-rounds` (3) | ⏱️ Protocols badge | Sum of Rounds metrics ≥ 3 |
+| `/guide/syntax/protocols` | `protocols-tag` | `contains-token` `AMRAP` | ⏱️ Protocols badge | Raw text includes `AMRAP` |
+| `/guide/syntax/complex` | `complex-time` | `has-timer` | 🧩 Complex badge | Duration/Time metric present |
+| `/guide/syntax/complex` | `complex-rounds` | `min-rounds` (2) | 🧩 Complex badge | Sum of Rounds metrics ≥ 2 |
+| `/guide/syntax/custom-metrics` | `metrics-custom` | `contains-token` `rpe` | 📊 Custom Metrics badge | Raw text includes `rpe` |
+| `/guide/syntax/custom-metrics` | `metrics-calc` | `contains-token` `calculate` | 📊 Custom Metrics badge | Raw text includes `calculate` |
+| `/guide/syntax/dialects` | `dialects-log` | `contains-token` `\`\`\`log` | 📋 Dialects badge | Raw text includes the token declared in source |
+| `/guide/syntax/dialects` | `dialects-climb` | `contains-token` `\`\`\`climb` | 📋 Dialects badge | Raw text includes the token declared in source |
+| `/guide/syntax` | — | — | none | no quests |
+| `/challenge` (retired) | — | — | — | redirects to `/` |
 
 ---
 
 ## End-to-end: one quest's journey
 
-Taking `sequences-rounds` (`min-rounds` · `count: 2`) on `/chapters/sequences`:
+Taking `structure-rounds` (`min-rounds` · `count: 2`) on `/guide/syntax/structure`:
 
-1. **Present.** Page parses its `quest` block; `ChallengeBanner` shows
-   "Add a 2+ round header" with a fail pill and the hint
-   *"Need at least 2 rounds — found 0."*
-2. **Handle.** User types `(2 Rounds)`. `useSyntaxChallenge` re-parses
-   `block.content`; the `(2 Rounds)` header compiles to a `Rounds: 2` metric on
-   the parent statement. `totalRounds >= 2` → `{ pass: true, detail: "2 rounds" }`.
-3. **Complete.** The hook calls `markComplete('/chapters/sequences',
-   'sequences-rounds')` → writes the ledger under that route. The banner pill
-   flips to ✓.
-4. **Aggregate.** Home page's `useChapterProgress` sees the ledger entry;
-   `sequences-rounds` is now done. Once `sequences-timer` is also done, the
-   🏋️ Sequences badge lights up on the home banner.
-
----
-
-## Summary table — every challenge across the canvas
-
-| Page | Quest id | Validation | Reward | Measured by |
-|---|---|---|---|---|
-| `/chapters/basics` | `basics-movement` | `has-movement` | 🏆 Basics badge | Effort metric on a non-synthetic statement |
-| `/chapters/basics` | `basics-reps` | `has-reps` | 🏆 Basics badge | Rep metric present |
-| `/chapters/sequences` | `sequences-timer` | `has-timer` | 🏋️ Sequences badge | Duration/Time metric present |
-| `/chapters/sequences` | `sequences-rounds` | `min-rounds` (2) | 🏋️ Sequences badge | Sum of Rounds metrics ≥ 2 |
-| `/chapters/protocols` | `protocols-rounds` | `min-rounds` (3) | ⏱️ Protocols badge | Sum of Rounds metrics ≥ 3 |
-| `/chapters/protocols` | `protocols-tag` | `contains-token` `AMRAP` | ⏱️ Protocols badge | Raw text includes "AMRAP" |
-| `/challenge` | `first-movement` | `has-movement` | in-page banner | Effort metric present |
-| `/challenge` | `first-timer` | `has-timer` | in-page banner | Duration/Time metric present |
-| `/challenge` | `first-rounds` | `min-rounds` (3) | in-page banner | Sum of Rounds metrics ≥ 3 |
-| `/challenge` | `first-complete` | `workout-complete` | in-page banner | Review `completed === true` |
-| `/guide/syntax/*` | — | — | onboarding `ranWorkout` (indirect) | run action site |
+1. **Present.** The page parses its `quest` block; `ChallengeBanner` shows "Wrap movements in 2+ rounds" with a fail pill and the hint *"Need at least 2 rounds — found 0."*
+2. **Handle.** The user types `(2 Rounds)`. `useSyntaxChallenge` re-parses `block.content`; the `(2 Rounds)` header compiles to a `Rounds: 2` metric on the parent statement. `totalRounds >= 2` → `{ pass: true, detail: "2 rounds" }`.
+3. **Complete.** The hook calls `markComplete('/guide/syntax/structure', 'structure-rounds')` → writes the ledger under that route. The banner pill flips to ✓.
+4. **Aggregate.** The home page's `useChapterProgress` sees the ledger entry; `structure-rounds` is now done. Once `structure-repscheme` is also done, the 🧱 Structure badge lights up on the home banner.

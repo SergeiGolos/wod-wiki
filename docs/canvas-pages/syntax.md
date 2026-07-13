@@ -1,172 +1,91 @@
-# Syntax Reference Pages — `/guide/syntax/*`
+# Syntax Reference Index — `/guide/syntax`
 
-**Sources:** `markdown/canvas/syntax/{README,basics,structure,protocols,complex,dialects}.md`
-**Frontmatter type:** `syntax`
+**Source:** `markdown/canvas/syntax/README.md`  
+**Frontmatter type:** `syntax`  
 **Template:** canvas (split-canvas: sticky prose left, live editor right)
 
-The syntax pages are the **reference / showcase** layer. They are read-first
-documentation: each section loads a curated example into the side editor and
-offers a "Try It →" button that switches the panel to `track` mode (runs the
-WallClock). They ship **no quests** and unlock **no badges** — they exist to
-teach grammar by live demonstration.
+The `/guide/syntax` page is the **reference map** for WOD Wiki's workout syntax. It has no chapter badge and no quests of its own; instead, each section previews a concept and links to the matching tutorial page, where the actual quests and badge progression live.
 
-> These are distinct from the **chapter pages** (`/chapters/*`), which are
-> quest-driven and badge-unlocking, and from the standalone **challenge page**
-> (`/challenge`).
+> The index is distinct from the tutorial pages (`/guide/syntax/basics`, `/guide/syntax/structure`, etc.) and from the home page (`/`), which is the main quest-driven entry point.
 
 ---
 
-## Page inventory
+## Live example panel
 
-| Route | File | Title | # sections |
+The page declares a single shared `preview` view on the right-hand panel:
+
+```view
+name:    preview
+state:   note
+source:  wods/examples/syntax/core-rules.md
+runtime: in-memory
+launch:  host
+align:   right
+width:   48%
+```
+
+Every section uses a `command` block to swap the editor source into that `preview` panel, and a `button` block to navigate to the related tutorial page. There is no "Try It →" timer start on the index itself.
+
+---
+
+## Index sections
+
+| Section | Summary | Source swapped into `preview` | Links to |
 |---|---|---|---|
-| `/guide/syntax` | `syntax/README.md` | Syntax Reference (index) | 7 |
-| `/guide/syntax/basics` | `syntax/basics.md` | Core Concepts | 8 |
-| `/guide/syntax/structure` | `syntax/structure.md` | Structure & Rep Schemes | 8 |
-| `/guide/syntax/protocols` | `syntax/protocols.md` | Timers & Protocols | 13 |
-| `/guide/syntax/complex` | `syntax/complex.md` | Complex Workouts | 5 |
-| `/guide/syntax/dialects` | `syntax/dialects.md` | Dialect Examples | 7 |
+| **Syntax Reference** | Page header and orientation. | default `wods/examples/syntax/core-rules.md` | — |
+| **Core Concepts** | `wod` fences, one statement per line, measurements, effort notes, actions, comments, timer modifiers. | `wods/examples/syntax/core-rules.md` | `/guide/syntax/basics` |
+| **Dialect Examples** | Fence types as intent signals: `wod`, `log`, `plan`, `climb`. | `wods/examples/syntax/dialect-climb-bouldering.md` | `/guide/syntax/dialects` |
+| **Structure & Rep Schemes** | Rounds, named groups, nested groups, mixed sections, rep schemes. | `wods/examples/getting-started/groups-1.md` | `/guide/syntax/structure` |
+| **Timers & Protocols** | Time prefixes, rest, AMRAP, EMOM, Tabata, custom intervals, distance intervals. | `wods/examples/syntax/timers-rest.md` | `/guide/syntax/protocols` |
+| **Advanced · Complex Workouts** | Nested protocols, full sessions, barbell cycling, partner workouts. | `wods/examples/syntax/complex-nested-protocols.md` | `/guide/syntax/complex` |
+| **Custom Metrics & Calculations** | Inline JSON metrics and document-level `calculate` blocks. | `wods/examples/syntax/custom-metrics-1.md` | `/guide/syntax/custom-metrics` |
+| **Start Writing** | Call to action to open a blank note. | `query:new` (dialog) | new workout note dialog |
 
-*Section counts include the final navigation CTA ("What's Next" / "Start Writing"
-/ "Finish Line" / "Syntax Reference") present on every page.*
-
----
-
-## Shared example model
-
-Every syntax page uses the same two-block pattern per section:
-
-1. **`command` block** — swaps the editor source to a specific example file
-   (`set-source: wods/examples/...`). The panel is a single shared `view`
-   (`name: ex` / `name: preview`) declared once at the top of the page.
-2. **`button` block ("Try It →")** — fires `set-state: track` to start the timer
-   on the loaded example. Some reference-only sections (e.g. `log`, `plan`,
-   `climb` dialects) omit the Try-It button because there's nothing to *run*.
-
-There are **no `example` tab blocks** and **no `quest` blocks** on any syntax
-page. The example is always a single source-swap followed by an optional run.
+The final section also includes a **← Back to Home** button that navigates to `/`.
 
 ---
 
-## `/guide/syntax` — Index
+## Example pattern: source swap + navigation
 
-**Content:** The map. Every concept builds on the last; this page orients and
-links into the deep-dive sub-pages. Persistent `preview` panel loads
-`wods/examples/syntax/core-rules.md`.
+Each index section follows the same two-block pattern. For example, the Core Concepts section:
 
-| Section | Loads example | Button |
-|---|---|---|
-| Core Concepts | `syntax/core-rules.md` | → `/guide/syntax/basics` |
-| Dialect Examples | `syntax/dialect-climb-bouldering.md` | → `/guide/syntax/dialects` |
-| Structure & Rep Schemes | `getting-started/groups-1.md` | → `/guide/syntax/structure` |
-| Timers & Protocols | `syntax/timers-rest.md` | → `/guide/syntax/protocols` |
-| Advanced · Complex Workouts | `syntax/complex-nested-protocols.md` | → `/guide/syntax/complex` |
-| Custom Metrics & Calculations | `syntax/custom-metrics-1.md` | → `/guide/syntax/custom-and-calculated-metrics` |
-| Start Writing (full-bleed) | — | New Workout Note (opens a blank dialog) |
+```command
+target: preview
+pipeline:
+  - set-source: wods/examples/syntax/core-rules.md
+```
 
-**Challenges:** none. **Accomplishment:** none directly (running may mark the
-global onboarding `ranWorkout` step).
+```button
+label:  Open Core Concepts →
+target: preview
+pipeline:
+  - navigate: /guide/syntax/basics
+```
 
----
-
-## `/guide/syntax/basics` — Core Concepts
-
-**Content:** Foundational rules — `wod` fences, one statement per line,
-indent-to-nest, and the full set of line decorators.
-
-| Section | Example source | Try It? |
-|---|---|---|
-| A Single Movement | `syntax/single-movement.md` | ✓ track |
-| Three Core Rules | `syntax/core-rules.md` | — |
-| Measurements | `syntax/measurements.md` | ✓ track |
-| Unknown Load (`?lb`) | `syntax/metrics-5.md` | ✓ track |
-| Supplemental Data | `syntax/effort-notes.md` | ✓ track |
-| Setup Actions & Comments | `syntax/actions-comments.md` | ✓ track |
-| Timer Modifiers (`^`, `*`, `:?`) | `syntax/timer-modifiers.md` | ✓ track |
-| What's Next | — | nav to index / structure |
-
-**Examples by type:** each is a single curated `.md` showing exactly one concept.
-The "Three Core Rules" section is the only pure-read one (no run).
+The `command` block loads a representative example file into the `preview` panel. The `button` block navigates the user to the tutorial page where the full section, runnable examples, and quests are located.
 
 ---
 
-## `/guide/syntax/structure` — Structure & Rep Schemes
+## Crosslinks to tutorial pages
 
-**Content:** Grouping movements — rounds, named sections, nesting, and rep
-schemes.
+The index maps one-to-one to the six tutorial pages that carry quests and chapter badges:
 
-| Section | Example source | Try It? |
-|---|---|---|
-| Simple Rounds `(3 Rounds)` | `getting-started/groups-1.md` | ✓ |
-| Named Groups `(Warmup)` | `syntax/named-groups.md` | ✓ |
-| Nested Groups | `syntax/groups-4.md` | ✓ |
-| Mixed Sections | `syntax/mixed-sections.md` | ✓ |
-| Rep Schemes `(21-15-9)` | `syntax/groups-2.md` | ✓ |
-| Descending Reps — 21-15-9 (Fran) | `syntax/groups-2.md` | ✓ |
-| Multiple Sets `(5 Sets)` | `syntax/multiple-sets.md` | ✓ |
+| Index section | Tutorial page | Chapter badge | Quests |
+|---|---|---|---|
+| Core Concepts | `/guide/syntax/basics` | basics (`trophy`) | `basics-movement`, `basics-reps`, `basics-load` |
+| Structure & Rep Schemes | `/guide/syntax/structure` | structure (`blocks`) | `structure-rounds`, `structure-repscheme` |
+| Timers & Protocols | `/guide/syntax/protocols` | protocols (`timer`) | `protocols-timer`, `protocols-rounds`, `protocols-tag` |
+| Advanced · Complex Workouts | `/guide/syntax/complex` | complex (`puzzle`) | `complex-time`, `complex-rounds` |
+| Custom Metrics & Calculations | `/guide/syntax/custom-metrics` | custom-metrics (`activity`) | `metrics-custom`, `metrics-calc` |
+| Dialect Examples | `/guide/syntax/dialects` | dialects (`file-text`) | `dialects-log`, `dialects-climb` |
 
 ---
 
-## `/guide/syntax/protocols` — Timers & Protocols
+## Challenges and accomplishment
 
-**Content:** Time domains and classic protocols — countdowns, rest, AMRAP, EMOM,
-Tabata, custom intervals, distance intervals. The largest reference page.
+- **Quests defined on the index:** none.
+- **Chapter blocks on the index:** none.
+- **Accomplishment on the index itself:** none directly.
+- **How progress is measured:** quests are completed on the linked tutorial pages via `useSyntaxChallenge` validating live editor content against each quest schema. The index only routes users to those pages; it does not track completion.
 
-| Section | Example source | Try It? |
-|---|---|---|
-| Timers and Rest | `syntax/timers-rest.md` | ✓ |
-| Longer Durations (`H:MM:SS`) | `syntax/longer-duration.md` | ✓ |
-| Mixed Timers | `syntax/mixed-timers.md` | ✓ |
-| Classic AMRAP | `syntax/classic-amrap.md` | ✓ |
-| AMRAP with a Time Cap | `syntax/time-cap.md` | ✓ |
-| Multiple AMRAP Windows | `syntax/multiple-amrap-windows.md` | ✓ |
-| Basic EMOM | `syntax/basic-emom.md` | ✓ |
-| Longer Intervals `(5) 2:00 EMOM` | `syntax/longer-intervals.md` | ✓ |
-| Alternating EMOM | `syntax/alternating-emom.md` | ✓ |
-| Standard Tabata `(8) :20 / :10` | `syntax/protocols-4.md` | ✓ |
-| Custom Intervals `:40 / *:20` `(5)` | `syntax/custom-intervals.md` | ✓ |
-| Intervals with Distance | `syntax/distance-intervals.md` | ✓ |
-
----
-
-## `/guide/syntax/complex` — Complex Workouts
-
-**Content:** Putting it all together — nested protocols, full multi-section
-sessions, barbell-cycling EMOMs, partner workouts. Uses every concept above.
-
-| Section | Example source | Try It? |
-|---|---|---|
-| Nested Protocols | `syntax/complex-nested-protocols.md` | ✓ |
-| Full Training Session | `syntax/complex-full-session.md` | ✓ |
-| Barbell Cycling | `syntax/complex-barbell-cycling.md` | ✓ |
-| Partner Workout | `syntax/complex-partner-workout.md` | ✓ |
-| Finish Line | — | New Workout Note dialog |
-
----
-
-## `/guide/syntax/dialects` — Dialect Examples
-
-**Content:** Fence types as intent signals. Same line grammar, different
-runtime/review/analytics behavior. Note: dialect sections that are *records*
-(`log`, `plan`, `climb`) intentionally **omit** the Try-It run button.
-
-| Section | Example source | Try It? |
-|---|---|---|
-| `wod` — Workout Definition | `syntax/dialect-wod.md` | ✓ track |
-| `log` — Completed Session | `syntax/dialect-log.md` | — |
-| `plan` — Future Template | `syntax/dialect-plan.md` | — |
-| `climb` — Indoor Bouldering | `syntax/dialect-climb-bouldering.md` | — |
-| `climb` — Outdoor Sport Day | `syntax/dialect-climb-sport.md` | — |
-| `climb` — Hangboard Training | `syntax/dialect-climb-hangboard.md` | — |
-
----
-
-## Challenges · Accomplishment · Measurement
-
-| Attribute | Syntax pages |
-|---|---|
-| **Quests defined** | **None.** No `quest` blocks on any page. |
-| **Chapter blocks** | **None.** No `chapter` blocks. |
-| **Accomplishment on completion** | None directly — these are reference pages, not gated challenges. |
-| **Indirect signal** | Pressing "Try It →" runs the timer, which can satisfy the global onboarding step `ranWorkout` (`wodwiki.onboarding.v1`). |
-| **How measured** | N/A for quests. The onboarding `ranWorkout` boolean is set at the run action site. |
+The tutorial pages use a shared `ex` view (instead of the index's `preview` view) and pair each `command` source swap with a `button` that calls `set-state: track` to run the example.
