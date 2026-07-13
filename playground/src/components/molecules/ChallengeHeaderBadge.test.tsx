@@ -5,7 +5,7 @@ import { ChallengeHeaderBadge } from './ChallengeHeaderBadge'
 import type { Quest } from '../../canvas/parseCanvasMarkdown'
 
 mock.module('../../hooks/usePageQuests', () => ({
-  usePageQuests: (pageRoute: string, quests: Quest[]) => ({
+  usePageQuests: (_pageRoute: string, quests: Quest[]) => ({
     quests: quests.map((q) => ({ ...q, isCompleted: q.id === 'done-quest' })),
     stepsComplete: quests.filter((q) => q.id === 'done-quest').length,
     totalSteps: quests.length,
