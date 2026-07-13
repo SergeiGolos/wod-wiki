@@ -58,6 +58,32 @@ describe('ChallengeHeaderBadge', () => {
     expect(onScrollToSection).toHaveBeenCalledWith('sec-1')
   })
 
+  it('opens on click and ignores touch hover', () => {
+    const quests: Quest[] = [{ id: 'pending-quest', label: 'Pending quest' }]
+
+    render(
+      <ChallengeHeaderBadge
+        pageRoute="/guide/demo"
+        quests={quests}
+        challengeSectionMap={new Map([['pending-quest', 'sec-1']])}
+      />,
+    )
+
+    const badge = screen.getByRole('button', { expanded: false })
+
+    // Touch devices should not open the menu on pointer enter
+    fireEvent.pointerEnter(badge, { pointerType: 'touch' })
+    expect(screen.queryByText('Pending quest')).toBeNull()
+
+    // Tapping the badge should toggle the menu open
+    fireEvent.click(badge)
+    expect(screen.queryByText('Pending quest')).not.toBeNull()
+
+    // Clicking the badge again should close it
+    fireEvent.click(badge)
+    expect(screen.queryByText('Pending quest')).toBeNull()
+  })
+
   it('returns null when there are no quests', () => {
     const { container } = render(
       <ChallengeHeaderBadge
