@@ -49,6 +49,7 @@ export interface HistoryEntry {
   type?: 'note' | 'template' | 'playground'; // Default to 'note' if undefined
   templateId?: string;                 // ID of the template/note this was cloned from
   clonedIds?: string[];                // IDs of notes cloned FROM this entry (reverse links)
+  slug?: string;                        // V8 — route slug (e.g. 'journal/2026-07-13'); UUID-keyed notes carry their original route id here
 }
 
 /**

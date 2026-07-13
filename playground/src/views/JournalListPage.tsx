@@ -182,7 +182,7 @@ export function JournalListPage({
 
         const entryMap = new Map<string, JournalEntrySummary>()
         ;[...lowerPages, ...upperPages].forEach(page => {
-          const dateKey = page.id.replace(/^journal\//, '')
+          const dateKey = (page.slug ?? page.id).replace(/^journal\//, '')
           if (/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
             const headingMatch = page.content.match(/^#\s+(.+)$/m)
             entryMap.set(dateKey, {

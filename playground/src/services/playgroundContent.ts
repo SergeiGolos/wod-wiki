@@ -19,6 +19,8 @@ import type { HistoryEntry } from '@/types/history';
 export interface PlaygroundPage {
   /** `category/name` composite — also the Note.id and WorkoutResult.noteId. */
   id: string;
+  /** V8 — route slug (e.g. 'journal/2026-07-13'); present on UUID-keyed notes. */
+  slug?: string;
   category: string;
   name: string;
   content: string;
@@ -35,11 +37,22 @@ function categoryOf(id: string): string {
   return idx < 0 ? id : id.slice(0, idx);
 }
 
+/**
+ * Resolve the "routing id" — the `category/name` composite used by the rest
+ * of the app. For UUID-keyed notes (post-V8-migration), this comes from the
+ * `slug` field; for legacy notes it's the `id` itself.
+ */
+function routeIdOf(entry: HistoryEntry): string {
+  return entry.slug ?? entry.id;
+}
+
 function toPage(entry: HistoryEntry): PlaygroundPage {
+  const rid = routeIdOf(entry);
   return {
     id: entry.id,
-    category: categoryOf(entry.id),
-    name: entry.title || entry.id,
+    slug: entry.slug,
+    category: categoryOf(rid),
+    name: entry.title || rid,
     content: entry.rawContent ?? '',
     updatedAt: entry.updatedAt ?? Date.now(),
   };
@@ -87,7 +100,7 @@ export const playgroundContent = {
 
   async getPagesByCategory(category: string): Promise<PlaygroundPage[]> {
     const entries = await provider.getEntries();
-    return entries.filter((e) => categoryOf(e.id) === category).map(toPage);
+    return entries.filter((e) => categoryOf(routeIdOf(e)) === category).map(toPage);
   },
 
   async deletePage(id: string): Promise<void> {

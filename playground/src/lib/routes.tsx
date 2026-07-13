@@ -361,7 +361,7 @@ export function isPlaygroundNotePath(pathname: string): boolean {
 
 /** Detect whether a location pathname belongs to the journal entry family. */
 export function isJournalEntryPath(pathname: string): boolean {
-  return pathname.startsWith('/journal/') && pathname !== '/journal';
+  return pathname.startsWith('/journal/') && pathname !== '/journal' && pathname !== '/journal/';
 }
 
 /** Detect whether a location pathname belongs to the tracker/run family. */

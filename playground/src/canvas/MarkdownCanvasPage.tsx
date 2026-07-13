@@ -471,7 +471,7 @@ export function MarkdownCanvasPage({
       section={heroSection}
       idx={-1}
       prose={undefined}
-      blockId={`${heroSection.id}-hero`}
+      blockId={heroSection.id}
       keySuffix="hero"
       showEyebrow={false}
       isActive={false}
@@ -480,6 +480,7 @@ export function MarkdownCanvasPage({
       onExampleSelect={handleExampleSelect}
       selectedExampleIndex={0}
       onScrollToSection={onScrollToSection}
+      challengeQuests={challenge.quests}
     />
   ) : null)
   const heroSlot = heroContent

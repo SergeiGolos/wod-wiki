@@ -74,6 +74,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             return {
                 id: note.id,
                 title: note.title,
+                slug: note.slug,
                 createdAt: note.createdAt,
                 updatedAt: note.updatedAt,
                 targetDate: note.targetDate || note.createdAt,
@@ -181,6 +182,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         return {
             id: note.id,
             title: note.title,
+            slug: note.slug,
             createdAt: note.createdAt,
             updatedAt: note.updatedAt,
             targetDate: note.targetDate || note.createdAt,
@@ -188,7 +190,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             sections,
             results: latestResult?.data,
             tags: note.tags,
-            type: (note.type as any) || 'note',
+            type: note.type ?? 'note',
             templateId: note.templateId,
             clonedIds: note.clonedIds,
             schemaVersion: 1,

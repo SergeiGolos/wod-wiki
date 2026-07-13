@@ -209,6 +209,7 @@ describe('workbenchSessionStore', () => {
     });
 
     provider.seed(makeEntry({ id: 'note-1' }));
+    store.getState().setCurrentEntry(makeEntry({ id: 'note-1' }));
     expect(provider.updated.length).toBe(0);
 
     store.getState().setContent('# Title\n\n```wod\nbody\n```\n');
@@ -237,6 +238,7 @@ describe('workbenchSessionStore', () => {
     });
 
     provider.seed(makeEntry({ id: 'note-2' }));
+    store.getState().setCurrentEntry(makeEntry({ id: 'note-2' }));
     store.getState().setContent('# Title\n\n```wod\nunsaved\n```\n');
     expect(provider.updated.length).toBe(0);
 

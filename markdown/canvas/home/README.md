@@ -77,7 +77,7 @@ validation:
 
 **Write it in Markdown. Run it as a Timer. Own the Analytics.**
 
-WOD Wiki compiles a plain-text workout into a live `WallClock` timer, then logs every round straight back to your training journal — one file, one loop, no app-switching. Your first Quick-Start challenge is already complete: **welcome.**
+WOD Wiki compiles a plain-text workout into a live `WallClock` timer, then logs every round straight back to your training journal — one file, one loop, no app-switching.
 
 {{challenge:qs-arrive}}
 
@@ -91,7 +91,7 @@ align:   right
 width:   50%
 ```
 
-## Jump Right In {sticky #jump-in theme:sky}
+**Jump Right In**
 
 Skip the tour and start using the app now.
 

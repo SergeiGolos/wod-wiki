@@ -103,10 +103,17 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
     const heroButtons: ButtonBlock[] = section.proseChunks
       .filter((c) => c.kind === 'button')
       .map((c) => (c as { kind: 'button'; button: ButtonBlock }).button)
-    const firstProse = section.proseChunks.find((c) => c.kind === 'prose' && c.text.trim() !== '')
+
+    const firstProseIndex = section.proseChunks.findIndex(
+      (c) => c.kind === 'prose' && c.text.trim() !== '',
+    )
+    const firstProse = firstProseIndex >= 0 ? section.proseChunks[firstProseIndex] : null
     const { lead, rest } = firstProse && firstProse.kind === 'prose'
       ? splitLeadParagraph(firstProse.text.trim())
       : { lead: '', rest: '' }
+
+    // Everything after the first prose chunk (challenge cards, sub-headings, etc.)
+    const remainingChunks = section.proseChunks.slice(firstProseIndex + 1)
 
     return (
       <div
@@ -126,9 +133,37 @@ export const CanvasSection: React.FC<CanvasSectionProps> = ({
         />
 
         <div className="relative max-w-2xl w-full text-center">
-        
+
           {lead && <CanvasProse prose={lead} variant="heroLead" className="mb-5" />}
           {rest && <CanvasProse prose={rest} variant="heroBody" className="mb-2" />}
+
+          {remainingChunks.map((chunk, chunkIdx) => {
+            if (chunk.kind === 'prose') {
+              const text = chunk.text.trim()
+              if (!text) return null
+              return (
+                <CanvasProse
+                  key={`hero-prose-${chunkIdx}`}
+                  prose={text}
+                  className="mt-6 mb-2"
+                />
+              )
+            }
+            if (chunk.kind === 'challenge') {
+              const quest = challengeQuests.find((q) => q.id === chunk.id)
+              if (!quest) return null
+              return (
+                <div key={`hero-challenge-${chunkIdx}`} className="my-4 flex justify-center">
+                  <ChallengeCard
+                    quest={quest}
+                    onClick={() => onScrollToSection?.(blockId)}
+                    compact
+                  />
+                </div>
+              )
+            }
+            return null
+          })}
 
           {heroButtons.length > 0 && (
             <SectionButtons

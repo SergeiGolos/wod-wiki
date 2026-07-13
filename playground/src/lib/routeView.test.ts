@@ -50,6 +50,13 @@ describe('resolveRouteView — journal nav', () => {
     expect(view.workout.name).toBe('Journal')
     expect(view.workout.category).toBe('General')
   })
+
+  it('classifies /journal/ (trailing slash) as the journal list, not an entry', () => {
+    const view = resolveRouteView('/journal/', NO_PARAMS, makeDeps())
+    expect(view.isJournalEntryRoute).toBe(false)
+    expect(view.journalEntryId).toBeUndefined()
+    expect(view.page).toBe('journal')
+  })
 })
 
 describe('resolveRouteView — journal entry route', () => {

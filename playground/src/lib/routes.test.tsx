@@ -267,7 +267,7 @@ describe('route family helpers', () => {
     expect(isJournalEntryPath('/journal/2026-05-19')).toBe(true)
     expect(isJournalEntryPath('/journal/abc')).toBe(true)
     expect(isJournalEntryPath('/journal')).toBe(false)
-    expect(isJournalEntryPath('/journal/')).toBe(true)
+  expect(isJournalEntryPath('/journal/')).toBe(false)
     expect(isJournalEntryPath('/playground/note')).toBe(false)
   })
 

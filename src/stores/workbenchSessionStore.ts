@@ -112,6 +112,8 @@ export interface WorkbenchSessionState {
   saveState: SaveState;
   /** Last content persisted to the provider. Used by the autosave machine. */
   lastSavedContent: string;
+  /** Route id from the last loadEntry call — used as the save target for new (not-yet-persisted) entries. */
+  loadedRouteId: string | null;
 
   // --- Results & History (S1b: migrated from WorkbenchContext) ---
   results: WorkoutResults[];
@@ -289,6 +291,7 @@ const initialState: WorkbenchSessionState = {
   activeBlockId: null,
   saveState: 'idle',
   lastSavedContent: '',
+  loadedRouteId: null,
 
   // Results & History (S1b)
   results: [],
@@ -432,7 +435,7 @@ export function createWorkbenchSessionStore(
     const runAutosave = () => {
       autosaveHandle = null;
       const state = get();
-      const { content, lastSavedContent, saveState } = state;
+      const { content, lastSavedContent, saveState, currentEntry, loadedRouteId } = state;
       const provider = deps.provider;
       if (!provider) return;
       if (!provider.capabilities.canWrite) return;
@@ -441,14 +444,18 @@ export function createWorkbenchSessionStore(
 
       const titleMatch = content.match(/^#\s+(.+)$/m);
       const title = titleMatch ? titleMatch[1].trim() : 'Untitled Session';
-      const targetId = get().activeBlockId /* best-effort — full target id resolution lives in the React layer for now */ ?? 'static';
+
+      // Existing note → update; new note (not yet persisted) → create via saveEntry.
+      const targetId = currentEntry?.id ?? loadedRouteId;
+      if (!targetId) return;
 
       set({ saveState: 'saving' });
-      provider.updateEntry(targetId, {
-        rawContent: content,
-        title,
-      }).then(() => {
-        set({ lastSavedContent: content, saveState: 'saved' });
+      const saveOp = currentEntry
+        ? provider.updateEntry(targetId, { rawContent: content, title })
+        : provider.saveEntry({ id: targetId, title, rawContent: content, tags: [], targetDate: Date.now(), type: 'playground' });
+
+      saveOp.then((saved: HistoryEntry) => {
+        set({ lastSavedContent: content, saveState: 'saved', ...(currentEntry ? {} : { currentEntry: saved }) });
         // Grace period: reset to 'idle' after 3s, mirroring the prior UX.
         setTimeoutFn(() => {
           const current = get();
@@ -511,16 +518,20 @@ export function createWorkbenchSessionStore(
         const provider = deps.provider;
         if (!provider || !provider.capabilities.canWrite) return;
         if (state.content === state.lastSavedContent) return;
+        if (state.saveState === 'saving') return; // autosave in flight — trust it to complete
         const titleMatch = state.content.match(/^#\s+(.+)$/m);
         const title = titleMatch ? titleMatch[1].trim() : 'Untitled Session';
-        const targetId = state.activeBlockId ?? 'static';
+        const targetId = state.currentEntry?.id ?? state.loadedRouteId;
+        if (!targetId) return;
 
         set({ saveState: 'saving' });
         try {
-          await provider.updateEntry(targetId, {
-            rawContent: state.content,
-            title,
-          });
+          if (state.currentEntry) {
+            await provider.updateEntry(targetId, { rawContent: state.content, title });
+          } else {
+            const saved = await provider.saveEntry({ id: targetId, title, rawContent: state.content, tags: [], targetDate: Date.now(), type: 'playground' });
+            set({ currentEntry: saved });
+          }
           set({ lastSavedContent: state.content, saveState: 'saved' });
         } catch (err: unknown) {
           console.error('[WorkbenchSession] Flush-save failed:', err);
@@ -752,7 +763,7 @@ export function createWorkbenchSessionStore(
         // Clear current note state while loading to avoid stale comparisons.
         get().setContent('');
         get().setBlocks([]);
-        set({ currentEntry: null });
+        set({ currentEntry: null, loadedRouteId: routeId ?? null });
 
         if (routeId) {
           if (provider.mode === 'history' || provider.mode === 'static') {

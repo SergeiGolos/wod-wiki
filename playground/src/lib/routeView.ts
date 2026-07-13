@@ -148,7 +148,8 @@ function detectFlags(pathname: string, params: RouteViewParams): RouteFlags {
   const effectivePlaygroundId =
     playgroundId || (pathname.startsWith('/note/playground/') ? urlName : undefined)
   const isJournalEntryRoute = isJournalEntryPath(pathname)
-  const journalEntryId = isJournalEntryRoute ? decodeURIComponent(urlName ?? playgroundId!) : undefined
+  const rawJournalId = urlName ?? playgroundId
+  const journalEntryId = isJournalEntryRoute && rawJournalId ? decodeURIComponent(rawJournalId) : undefined
   const feedItemMatch = matchFeedItem(pathname)
   const feedDetailMatch = feedItemMatch ? null : matchFeedDetail(pathname)
   return { isPlaygroundRoute, effectivePlaygroundId, isJournalEntryRoute, journalEntryId, feedItemMatch, feedDetailMatch }
@@ -291,7 +292,7 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
   return []
 }
 function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanvasPage | null): PageKind {
-  if (pathname === '/journal') return 'journal'
+  if (pathname === '/journal' || pathname === '/journal/') return 'journal'
   if (pathname === '/feeds') return 'feeds'
   if (flags.feedDetailMatch) return 'feedDetail'
   if (flags.feedItemMatch) return 'feedItem'
