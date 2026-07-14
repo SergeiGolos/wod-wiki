@@ -323,7 +323,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     for (const section of wodSections) {
       // 1. Priority: In-memory results from props (Static/Lesson Mode)
       if (Array.isArray(extendedResults) && extendedResults.length > 0) {
-        const blockResults = extendedResults.filter(r => r.blockId === section.id)
+        const blockResults = extendedResults.filter(r =>
+          r.blockContentId === section.contentId || r.blockId === section.id
+        )
         if (blockResults.length > 0) {
           viewRef.current.dispatch({
             effects: [updateSectionResults.of({ sectionId: section.id, results: blockResults })],
