@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { EditorView, Decoration, type DecorationSet } from '@codemirror/view';
-import { EditorState, StateField, Range } from '@codemirror/state';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { EditorView } from '@codemirror/view';
 import type { ScriptBlock } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
 import { journalNotes } from '../services/journalNotes';
@@ -26,35 +25,9 @@ interface JournalDatePageProps {
   onViewCreated?: (view: EditorView) => void;
 }
 
-
-
-const boundaryExtension = StateField.define<DecorationSet>({
-  create(state) {
-    return buildBoundaryDecorations(state);
-  },
-  update(value, tr) {
-    // Markers are static metadata inserted at load time. Map through edits
-    // (O(changes)) instead of rebuilding from scratch (O(document)).
-    return tr.docChanged ? value.map(tr.changes) : value;
-  },
-  provide: f => EditorView.decorations.from(f),
-});
-
-function buildBoundaryDecorations(state: EditorState): DecorationSet {
-  const builder: Range<Decoration>[] = [];
-  const doc = state.doc.toString();
-  let match;
-  const re = /^<!-- uuid:([0-9a-fA-F-]+) -->\n?/gm;
-  while ((match = re.exec(doc)) !== null) {
-    const from = match.index;
-    const to = from + match[0].length;
-    builder.push(Decoration.replace({ inclusive: false }).range(from, to));
-    if (from > 0) {
-      const line = state.doc.lineAt(from);
-      builder.push(Decoration.line({ class: 'wodwiki-note-boundary-line' }).range(line.from));
-    }
-  }
-  return Decoration.set(builder, true);
+interface NoteBoundary {
+  uuid: string;
+  startLine: number; // 0-indexed
 }
 
 export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDatePageProps) {
@@ -67,6 +40,10 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   const [timerBlock, setTimerBlock] = useState<ScriptBlock | null>(null);
   const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null);
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([]);
+
+  const boundariesRef = useRef<NoteBoundary[]>([]);
+  const [blocks, setBlocks] = useState<ScriptBlock[]>([]);
+  const timeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const autoStartId = searchParams.get('autoStart');
@@ -86,24 +63,21 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
 
   const handleCloseReview = useCallback(() => setIsReviewOpen(false), []);
 
-  const [blocks, setBlocks] = useState<ScriptBlock[]>([]);
-  const timeoutRef = useRef<number | undefined>(undefined);
-  const initialLoadRef = useRef(false);
-
+  const resolveNoteUuid = useCallback((startLine: number): string => {
+    const boundaries = boundariesRef.current;
+    let uuid = boundaries[0]?.uuid ?? journalDate;
+    for (const b of boundaries) {
+      if (b.startLine <= startLine) uuid = b.uuid;
+      else break;
+    }
+    return uuid;
+  }, [journalDate]);
 
   const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"]) => {
     const match = blockId.match(/^wod-(\d+)-/);
     if (!match) return;
     const startLine = parseInt(match[1], 10);
-    const lines = content.split('\n').slice(0, startLine);
-    let uuid = journalDate;
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const m = lines[i].match(/^<!-- uuid:([0-9a-fA-F-]+) -->/);
-      if (m) {
-        uuid = m[1];
-        break;
-      }
-    }
+    const uuid = resolveNoteUuid(startLine);
     const runBlock = blocks.find(b => b.id === blockId);
     if (!runBlock) return;
 
@@ -123,18 +97,33 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       }
     }).catch(() => {});
     setActiveRuntimeId(null);
-  }, [content, blocks, journalDate, activeRuntimeId]);
+  }, [resolveNoteUuid, blocks, activeRuntimeId]);
 
   useEffect(() => {
     let cancelled = false;
     journalNotes.listByDate(journalDate).then(async (entries) => {
       if (cancelled) return;
       setNotes(entries);
-      const stitched = entries.map(n => `<!-- uuid:${n.id} -->\n${n.rawContent.trim()}`).join('\n\n');
-      setContent(stitched);
+
+      const pieces: string[] = [];
+      const boundaries: NoteBoundary[] = [];
+      let currentLine = 0;
+      for (const entry of entries) {
+        const trimmed = entry.rawContent.trim();
+        if (currentLine > 0) {
+          pieces.push('');
+          currentLine += 1;
+        }
+        boundaries.push({ uuid: entry.id, startLine: currentLine });
+        const lineCount = trimmed.split('\n').length;
+        pieces.push(trimmed);
+        currentLine += lineCount;
+      }
+      boundariesRef.current = boundaries;
+      setContent(pieces.join('\n'));
+
       const resultsArrays = await Promise.all(entries.map(n => indexedDBService.getResultsForNote(n.id)));
       if (!cancelled) setAllResults(resultsArrays.flat());
-      initialLoadRef.current = true;
     }).catch(() => {
       if (!cancelled) setNotes([]);
     });
@@ -142,16 +131,16 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   }, [journalDate]);
 
   const save = useCallback((value: string) => {
-    if (!notes) return;
-    const parts = value.split(/^<!-- uuid:([0-9a-fA-F-]+) -->\n?/gm);
-    // parts[0] is text before first marker (usually empty)
-    // parts[1] is uuid1, parts[2] is content1, parts[3] is uuid2, parts[4] is content2...
-    for (let i = 1; i < parts.length; i += 2) {
-      const uuid = parts[i];
-      const noteContent = parts[i + 1] || '';
-      journalNotes.update(uuid, noteContent.trim()).catch(() => {});
+    const boundaries = boundariesRef.current;
+    if (!boundaries.length) return;
+    const lines = value.split('\n');
+    for (let i = 0; i < boundaries.length; i++) {
+      const start = boundaries[i].startLine;
+      const end = i + 1 < boundaries.length ? boundaries[i + 1].startLine - 1 : lines.length;
+      const noteContent = lines.slice(start, end).join('\n').replace(/^\n+/, '').replace(/\n+$/, '');
+      journalNotes.update(boundaries[i].uuid, noteContent).catch(() => {});
     }
-  }, [notes]);
+  }, []);
 
   const onChange = useCallback((value: string) => {
     setContent(value);
@@ -163,8 +152,6 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     clearTimeout(timeoutRef.current);
     save(content);
   }, [content, save]);
-
-  const extensions = useMemo(() => [boundaryExtension], []);
 
   if (!notes) return <div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>;
 
@@ -181,32 +168,31 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
           <NoteEditor
             value={content}
             onChange={onChange}
-            noteId={journalDate} 
+            noteId={journalDate}
             theme={theme}
             showLineNumbers={false}
             onBlocksChange={setBlocks}
             onCompleteWorkout={handleCompleteWorkout}
             onViewCreated={onViewCreated}
-            extensions={extensions}
             extendedResults={allResults}
           />
         )}
       </div>
-        {isTimerOpen && timerBlock && (
-          <FullscreenTimer
-            block={timerBlock}
-            onClose={() => setIsTimerOpen(false)}
-            onCompleteWorkout={handleCompleteWorkout}
-            autoStart
-          />
-        )}
-        {isReviewOpen && reviewSegments.length > 0 && (
-          <FullscreenReview
-            segments={reviewSegments}
-            onClose={handleCloseReview}
-            title="Workout Review"
-          />
-        )}
+      {isTimerOpen && timerBlock && (
+        <FullscreenTimer
+          block={timerBlock}
+          onClose={() => setIsTimerOpen(false)}
+          onCompleteWorkout={handleCompleteWorkout}
+          autoStart
+        />
+      )}
+      {isReviewOpen && reviewSegments.length > 0 && (
+        <FullscreenReview
+          segments={reviewSegments}
+          onClose={handleCloseReview}
+          title="Workout Review"
+        />
+      )}
     </WorkbenchSessionProvider>
   );
 }
