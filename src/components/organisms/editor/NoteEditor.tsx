@@ -695,6 +695,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             themeCompartment.of(editorTheme(isDark)),
             languageCompartment.of(languages),
             modeCompartment.of(modeExtensions),
+            ...(extraExtensions ?? []),
           ]),
         ],
       });
