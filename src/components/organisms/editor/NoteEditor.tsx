@@ -14,7 +14,7 @@
  */
 
 import React, { useEffect, useRef, useMemo, useState, useCallback } from "react";
-import { EditorState, EditorSelection, type Extension } from "@codemirror/state";
+import { EditorState, StateEffect, type Extension } from "@codemirror/state";
 import {
   EditorView,
   keymap,
@@ -207,6 +207,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   hideDefaultCommands = false,
   enableInlineRuntime = true,
   forceFullscreenReview = false,
+  extensions: extraExtensions,
   widgetComponents,
   onButtonAction,
   scrollToSectionId,
@@ -605,6 +606,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       notePersistence,
       onButtonAction,
       forceFullscreenReview,
+      extraExtensions,
     ]
   );
 
@@ -620,7 +622,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         themeCompartment.of(editorTheme(isDark)),
         languageCompartment.of(languages),
         modeCompartment.of([]),
-        ...(props.extensions ?? []),
+        ...(extraExtensions ?? []),
       ],
     });
 
