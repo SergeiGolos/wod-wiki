@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import type { EditorView } from '@codemirror/view';
-import { Decoration, MatchDecorator, WidgetType, ViewPlugin } from '@codemirror/view';
-import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
+import { EditorView, Decoration, WidgetType, type DecorationSet } from '@codemirror/view';
+import { EditorState, StateField, Range } from '@codemirror/state';
 import type { ScriptBlock } from '@/components/Editor/types';
-import { playgroundRecorder } from '../services/resultRecorder';
 import type { HistoryEntry } from '@/types/history';
 import { journalNotes } from '../services/journalNotes';
+import { playgroundRecorder } from '../services/resultRecorder';
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer';
 import { FullscreenReview } from '@/components/organisms/review/FullscreenReview';
 import { useSearchParams } from 'react-router-dom';
@@ -17,6 +16,7 @@ import { notePersistence } from '@/services/persistence';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { WorkoutResult } from '@/types/storage';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
+import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 
 const journalContentProvider = new IndexedDBContentProvider();
 
@@ -26,7 +26,6 @@ interface JournalDatePageProps {
   onViewCreated?: (view: EditorView) => void;
 }
 
-const MARKER_REGEX = /^<!-- uuid:([0-9a-fA-F-]+) -->\n?/gm;
 
 class BoundaryWidget extends WidgetType {
   toDOM() {
@@ -36,29 +35,35 @@ class BoundaryWidget extends WidgetType {
   }
 }
 
-const boundaryDecorator = new MatchDecorator({
-  regexp: MARKER_REGEX,
-  decoration: Decoration.replace({
-    widget: new BoundaryWidget(),
-    block: true,
-    inclusive: false,
-  }),
+const boundaryExtension = StateField.define<DecorationSet>({
+  create(state) {
+    return buildBoundaryDecorations(state);
+  },
+  update(value, tr) {
+    if (tr.docChanged) return buildBoundaryDecorations(tr.state);
+    return value;
+  },
+  provide: f => EditorView.decorations.from(f),
 });
 
-const boundaryExtension = ViewPlugin.fromClass(
-  class {
-    decorations;
-    constructor(view: EditorView) {
-      this.decorations = boundaryDecorator.createDeco(view);
-    }
-    update(update: import('@codemirror/view').ViewUpdate) {
-      if (update.docChanged || update.viewportChanged) {
-        this.decorations = boundaryDecorator.updateDeco(update, this.decorations);
-      }
-    }
-  },
-  { decorations: v => v.decorations }
-);
+function buildBoundaryDecorations(state: EditorState): DecorationSet {
+  const builder: Range<Decoration>[] = [];
+  const doc = state.doc.toString();
+  let match;
+  const re = /^<!-- uuid:([0-9a-fA-F-]+) -->\n?/gm;
+  while ((match = re.exec(doc)) !== null) {
+    const from = match.index;
+    const to = from + match[0].length;
+    builder.push(
+      Decoration.replace({
+        widget: new BoundaryWidget(),
+        block: true,
+        inclusive: false,
+      }).range(from, to)
+    );
+  }
+  return Decoration.set(builder, true);
+}
 
 export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDatePageProps) {
   const [notes, setNotes] = useState<HistoryEntry[] | null>(null);
