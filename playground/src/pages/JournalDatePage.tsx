@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { EditorView, Decoration, WidgetType, type DecorationSet } from '@codemirror/view';
+import { EditorView, Decoration, type DecorationSet } from '@codemirror/view';
 import { EditorState, StateField, Range } from '@codemirror/state';
 import type { ScriptBlock } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
@@ -27,13 +27,6 @@ interface JournalDatePageProps {
 }
 
 
-class BoundaryWidget extends WidgetType {
-  toDOM() {
-    const hr = document.createElement('hr');
-    hr.className = 'my-8 border-t-2 border-dashed border-border/50';
-    return hr;
-  }
-}
 
 const boundaryExtension = StateField.define<DecorationSet>({
   create(state) {
@@ -54,13 +47,11 @@ function buildBoundaryDecorations(state: EditorState): DecorationSet {
   while ((match = re.exec(doc)) !== null) {
     const from = match.index;
     const to = from + match[0].length;
-    builder.push(
-      Decoration.replace({
-        widget: new BoundaryWidget(),
-        block: true,
-        inclusive: false,
-      }).range(from, to)
-    );
+    builder.push(Decoration.replace({ inclusive: false }).range(from, to));
+    if (from > 0) {
+      const line = state.doc.lineAt(from);
+      builder.push(Decoration.line({ class: 'wodwiki-note-boundary-line' }).range(line.from));
+    }
   }
   return Decoration.set(builder, true);
 }
