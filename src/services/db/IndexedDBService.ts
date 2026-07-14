@@ -115,12 +115,12 @@ export class IndexedDBService {
                     const store = db.createObjectStore('notes', { keyPath: 'id' });
                     store.createIndex('by-updated', 'updatedAt');
                     store.createIndex('by-target-date', 'targetDate');
-                    store.createIndex('by-slug', 'slug');
+                    store.createIndex('by-slug', 'slug', { unique: true });
                 } else {
                     // V8 — add by-slug (idempotent)
                     const notesStore = tx.objectStore('notes');
                     if (!notesStore.indexNames.contains('by-slug')) {
-                        notesStore.createIndex('by-slug', 'slug');
+                        notesStore.createIndex('by-slug', 'slug', { unique: true });
                     }
                 }
 

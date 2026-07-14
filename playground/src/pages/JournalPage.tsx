@@ -255,10 +255,10 @@ function JournalPageInner({
       const dateKey = `${y}-${m}-${d}`
       try {
         await createJournalNoteFromWorkout({
-          workoutName: noteId,
+          workoutName: currentEntry?.title || 'Workout',
           category: 'journal',
-          sourceNoteLabel: noteId,
-          sourceNotePath: `/journal/${noteId}`,
+          sourceNoteLabel: currentEntry?.title || 'Workout',
+          sourceNotePath: journalNotePath(journalDate, noteId),
           wodContent: block.content,
           date: date,
         })
@@ -275,7 +275,7 @@ function JournalPageInner({
         toast({ title: 'Error', description: 'Could not schedule workout', variant: 'destructive' })
       }
     },
-    [noteId, navigate],
+    [noteId, navigate, currentEntry?.title, journalDate],
   )
 
   const commands = useScriptBlockCommands(mode, {

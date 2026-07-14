@@ -14,7 +14,7 @@
  */
 
 import React, { useEffect, useRef, useMemo, useState, useCallback } from "react";
-import { EditorState, Extension, StateEffect } from "@codemirror/state";
+import { EditorState, EditorSelection, type Extension } from "@codemirror/state";
 import {
   EditorView,
   keymap,
@@ -163,6 +163,8 @@ export interface NoteEditorProps {
    * Keys are widget names (e.g. "hero"), values are React components.
    * Each registered widget replaces the fenced block with a full-width React component.
    */
+  /** Extra extensions to append to the editor */
+  extensions?: Extension[];
   widgetComponents?: WidgetRegistry;
   /**
    * Called when an inline button `[Label]{.button ...}` is activated.
@@ -601,7 +603,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       enableOverlay,
       noteId,
       notePersistence,
-      widgetComponents,
       onButtonAction,
       forceFullscreenReview,
     ]
@@ -613,11 +614,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
     const state = EditorState.create({
       doc: value,
+
       extensions: [
         ...baseExtensions,
         themeCompartment.of(editorTheme(isDark)),
         languageCompartment.of(languages),
         modeCompartment.of([]),
+        ...(props.extensions ?? []),
       ],
     });
 
