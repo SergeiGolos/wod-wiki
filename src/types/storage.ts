@@ -21,23 +21,35 @@ export type SegmentDataType = 'script' | 'youtube' | 'markdown' | 'header' | 'fr
  * Note: A collection of versioned segments and metadata.
  * Think of this as the "Folder" or "File" container.
  */
+export type NoteKind = 'note' | 'template' | 'playground' | 'journal';
+
+export type NoteCreationKind = 'blank' | 'collection' | 'feed' | 'zip' | 'playground';
+
+export interface NoteCreationSource {
+    kind: NoteCreationKind;
+    ref?: string;
+}
+
 export interface Note {
     id: string;           // UUID — canonical storage identity (V8)
     title: string;        // Display name
     rawContent: string;   // Current/Draft content (for search/preview)
 
-    // V8 — routing sugar; routes resolve slug -> UUID on load. Never a storage or join key.
+    // Routing sugar; routes resolve slug -> UUID. Never a storage or join key.
     slug?: string;
+    // Logical local date used by journal grouping (YYYY-MM-DD).
+    journalDate?: string;
+    createdFrom?: NoteCreationSource;
 
     // Metadata
     tags: string[];
     createdAt: number;
     updatedAt: number;    // Last edit time
-    targetDate: number;   // Primary date for view/sorting
+    targetDate: number;   // Legacy primary date; retained for compatibility/sorting
     segmentIds: string[]; // Ordered list of segment UUIDs
 
     // Note Management
-    type?: 'note' | 'template' | 'playground';
+    type?: NoteKind;
     templateId?: string;
     clonedIds?: string[];              // IDs of notes cloned FROM this note
 }

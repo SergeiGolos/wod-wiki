@@ -21,9 +21,9 @@ import type { ScriptBlock } from '@/components/Editor/types';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
 import { getScriptFeedItem, getScriptFeed } from '@/repositories/script-feeds';
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent';
-import { appendWorkoutToJournal } from '../services/journalWorkout';
+import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { pendingRuntimes } from '../runtimeStore';
-import { runPath } from '../lib/routes';
+import { journalNotePath, runPath } from '../lib/routes';
 import { useNotePageNav } from './shared/useNotePageNav';
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground';
@@ -71,16 +71,15 @@ export function FeedItemPage({
     async (block: ScriptBlock) => {
       try {
         const runtimeId = uuidv4();
-        const journalNoteId = await appendWorkoutToJournal({
+        const journalNote = await createJournalNoteFromWorkout({
           workoutName: item?.name ?? feedItem,
           category: feedSlug,
           sourceNoteLabel: feed?.name,
           sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}`,
           wodContent: block.content,
         });
-        pendingRuntimes.set(runtimeId, { block, noteId: journalNoteId });
-        const dateKey = journalNoteId.replace('journal/', '');
-        navigate(`/journal/${dateKey}?autoStart=${runtimeId}`);
+        pendingRuntimes.set(runtimeId, { block, noteId: journalNote.id });
+        navigate(`${journalNotePath(journalNote.journalDate ?? '', journalNote.id)}?autoStart=${runtimeId}`);
       } catch {
         const runtimeId = uuidv4();
         pendingRuntimes.set(runtimeId, { block, noteId });
@@ -92,20 +91,19 @@ export function FeedItemPage({
 
   const handleAddToToday = useCallback(async (block: ScriptBlock) => {
     try {
-      const journalNoteId = await appendWorkoutToJournal({
+      const journalNote = await createJournalNoteFromWorkout({
         workoutName: item?.name ?? feedItem,
         category: feedSlug,
         sourceNoteLabel: feed?.name,
         sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}`,
         wodContent: block.content,
       });
-      const dateKey = journalNoteId.replace('journal/', '');
       const today = localDateKey(new Date());
       toast({
         title: 'Added to journal',
-        description: dateKey === today ? `Added to today's journal` : `Added to ${dateKey}`,
+        description: journalNote.journalDate === today ? `Added to today's journal` : `Added to ${journalNote.journalDate}`,
         action: (
-          <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
+          <ToastAction altText="Open journal" onClick={() => navigate(journalNotePath(journalNote.journalDate ?? '', journalNote.id))}>
             Open
           </ToastAction>
         ),
@@ -123,7 +121,7 @@ export function FeedItemPage({
     const d = String(date.getDate()).padStart(2, '0');
     const dateKey = `${y}-${m}-${d}`;
     try {
-      await appendWorkoutToJournal({
+      await createJournalNoteFromWorkout({
         workoutName: item?.name ?? feedItem,
         category: feedSlug,
         sourceNoteLabel: feed?.name,

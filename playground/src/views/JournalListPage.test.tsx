@@ -65,12 +65,14 @@ mock.module('@/services/db/IndexedDBService', () => ({
   },
 }));
 
-mock.module('../services/playgroundContent', () => ({
-  playgroundContent: {
-    getPagesByCategory: async () => [
+mock.module('@/services/persistence', () => ({
+  notePersistence: {
+    listNotes: async () => [
       {
-        id: `journal/${TODAY}`,
-        content: '# Today workout',
+        id: '00000000-0000-4000-8000-000000000001',
+        journalDate: TODAY,
+        title: 'Today workout',
+        rawContent: '# Today workout',
         updatedAt: Date.now(),
       },
     ],

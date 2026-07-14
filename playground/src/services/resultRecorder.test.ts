@@ -1,7 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { createResultRecorder } from './resultRecorder';
 import type { ScriptBlock } from '@/components/Editor/types';
-import type { NoteRef } from '../lib/noteIdentity';
 import type { ResultWriter, ResultMutation } from './resultRecorder';
 
 function makeBlock(overrides: Partial<ScriptBlock> = {}): ScriptBlock {
@@ -20,11 +19,26 @@ function makeBlock(overrides: Partial<ScriptBlock> = {}): ScriptBlock {
   };
 }
 
+const EMPTY_ENTRY = {
+  id: 'note',
+  title: 'Note',
+  rawContent: '',
+  tags: [],
+  createdAt: 0,
+  updatedAt: 0,
+  targetDate: 0,
+  schemaVersion: 1,
+  extendedResults: [],
+};
+
 /** Stub writer that captures every workoutResult the Recorder hands it. */
 function makeWriter(): ResultWriter & { captured: ResultMutation[] } {
   const captured: ResultMutation[] = [];
   return {
     captured,
+    async getNote() {
+      return EMPTY_ENTRY;
+    },
     async mutateNote(_locator, mutation) {
       captured.push(mutation);
     },
@@ -39,14 +53,14 @@ describe('createResultRecorder', () => {
     const result = await recorder.record({
       runBlock: makeBlock(),
       blockId: makeBlock().id,
-      destination: { kind: 'journal', id: '2026-06-20', raw: 'journal/2026-06-20' } satisfies NoteRef,
+      noteId: '00000000-0000-4000-8000-000000000001',
       resultId: 'run-1',
       data: { startTime: 0, endTime: 60000, duration: 60000, completed: true } as never,
       completedAt: 60000,
     });
 
     expect(writer.captured).toHaveLength(1);
-    expect(result.noteId).toBe('journal/2026-06-20');
+    expect(result.noteId).toBe('00000000-0000-4000-8000-000000000001');
     expect(result.blockContentId).toBe('bc-aaaaaaaa');
     expect(writer.captured[0]?.workoutResult?.blockContentId).toBe('bc-aaaaaaaa');
   });
@@ -58,7 +72,7 @@ describe('createResultRecorder', () => {
     await recorder.record({
       runBlock: makeBlock({ contentId: 'content-hash-xyz' }),
       blockId: 'wod-5-deadbeef',
-      destination: { kind: 'workout', category: 'collection', id: 'fran', raw: 'collection/fran' } satisfies NoteRef,
+      noteId: '00000000-0000-4000-8000-000000000002',
       resultId: 'run-2',
       data: { startTime: 0, endTime: 1, duration: 1, completed: true } as never,
       completedAt: 1,
@@ -68,14 +82,14 @@ describe('createResultRecorder', () => {
   });
 
   it('writes exactly once through the writer', async () => {
+    const getNote = mock(async () => EMPTY_ENTRY);
     const mutateNote = mock(async (_locator: { id: string }, _m: ResultMutation) => undefined);
-    const writer: ResultWriter = { mutateNote };
+    const writer: ResultWriter = { getNote, mutateNote };
     const recorder = createResultRecorder(writer);
-
     await recorder.record({
       runBlock: makeBlock(),
       blockId: 'wod-5-deadbeef',
-      destination: { kind: 'journal', id: 'd', raw: 'journal/d' } satisfies NoteRef,
+      noteId: '00000000-0000-4000-8000-000000000003',
       resultId: 'run-3',
       data: { startTime: 0, endTime: 1, duration: 1, completed: true } as never,
       completedAt: 1,
@@ -91,7 +105,7 @@ describe('createResultRecorder', () => {
     await recorder.record({
       runBlock: makeBlock(),
       blockId: 'wod-5-deadbeef',
-      destination: { kind: 'journal', id: 'd', raw: 'journal/d' } satisfies NoteRef,
+      noteId: '00000000-0000-4000-8000-000000000004',
       resultId: 'run-4',
       data: { startTime: 0, endTime: 1, duration: 1, completed: true } as never,
       completedAt: 1,

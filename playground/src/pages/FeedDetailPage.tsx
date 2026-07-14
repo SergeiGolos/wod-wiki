@@ -11,7 +11,8 @@ import { getScriptFeed } from '@/repositories/script-feeds';
 import { playgroundContent } from '../services/playgroundContent';
 import { localDateKey } from '../views/queriable-list/JournalDateScroll';
 import type { JournalEntrySummary } from '../views/queriable-list/JournalDateScroll';
-import { appendWorkoutToJournal } from '../services/journalWorkout';
+import { createJournalNoteFromWorkout } from '../services/journalWorkout';
+import { journalNotePath } from '../lib/routes';
 import { useFeedsQueryState } from '../hooks/useFeedsQueryState';
 import { FeedFeed, type FeedItem } from '../views/FeedFeed';
 import { toast } from '@/hooks/use-toast';
@@ -91,7 +92,7 @@ export function FeedDetailPage({ feedSlug }: FeedDetailPageProps) {
 
   const handleAddToToday = useCallback(async (item: FeedItem) => {
     try {
-      const journalNoteId = await appendWorkoutToJournal({
+      const journalNote = await createJournalNoteFromWorkout({
         workoutName: item.name,
         category: item.feedId,
         sourceNoteLabel: item.feedName,
@@ -99,13 +100,12 @@ export function FeedDetailPage({ feedSlug }: FeedDetailPageProps) {
         wodContent: item.content,
         wrapInWod: false,
       });
-      const dateKey = journalNoteId.replace('journal/', '');
       const today = localDateKey(new Date());
       toast({
         title: 'Added to journal',
-        description: dateKey === today ? `Added to today's journal` : `Added to ${dateKey}`,
+        description: journalNote.journalDate === today ? `Added to today's journal` : `Added to ${journalNote.journalDate}`,
         action: (
-          <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
+          <ToastAction altText="Open journal" onClick={() => navigate(journalNotePath(journalNote.journalDate ?? '', journalNote.id))}>
             Open
           </ToastAction>
         ),

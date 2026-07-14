@@ -7,7 +7,6 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
-import { toShortId } from '../../lib/idUtils';
 import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { indexedDBService } from '@/services/db/IndexedDBService';
@@ -78,6 +77,8 @@ export class IndexedDBContentProvider implements IContentProvider {
                 createdAt: note.createdAt,
                 updatedAt: note.updatedAt,
                 targetDate: note.targetDate || note.createdAt,
+                journalDate: note.journalDate,
+                createdFrom: note.createdFrom,
                 rawContent,
                 tags: note.tags,
                 type: note.type || 'note',
@@ -118,11 +119,8 @@ export class IndexedDBContentProvider implements IContentProvider {
 
     async getEntry(id: string): Promise<HistoryEntry | null> {
         let note = await indexedDBService.getNote(id);
-
         if (!note) {
-            const allNotes = await indexedDBService.getAllNotes();
-            const resolved = allNotes.find((n: Note) => n.slug === id || toShortId(n.id) === id || n.title.toLowerCase() === id.toLowerCase());
-            note = resolved || undefined;
+            note = await indexedDBService.getNoteBySlug(id);
         }
 
         if (!note) return null;
@@ -186,6 +184,8 @@ export class IndexedDBContentProvider implements IContentProvider {
             createdAt: note.createdAt,
             updatedAt: note.updatedAt,
             targetDate: note.targetDate || note.createdAt,
+            journalDate: note.journalDate,
+            createdFrom: note.createdFrom,
             rawContent,
             sections,
             results: latestResult?.data,
@@ -265,6 +265,8 @@ export class IndexedDBContentProvider implements IContentProvider {
         const note: Note = {
             id: noteId,
             slug: entry.slug,
+            journalDate: entry.journalDate,
+            createdFrom: entry.createdFrom,
             title: entry.title,
             rawContent: entry.rawContent,
             tags: entry.tags,
@@ -287,15 +289,14 @@ export class IndexedDBContentProvider implements IContentProvider {
             targetDate: entry.targetDate || now,
             schemaVersion: 1
         };
+
     }
 
-    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate'>> & { sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number }): Promise<HistoryEntry> {
+    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate' | 'journalDate' | 'createdFrom' | 'slug' | 'type'>> & { sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number }): Promise<HistoryEntry> {
         let note = await indexedDBService.getNote(id);
 
         if (!note) {
-            const allNotes = await indexedDBService.getAllNotes();
-            const resolved = allNotes.find((n: Note) => n.slug === id || toShortId(n.id) === id || n.title.toLowerCase() === id.toLowerCase());
-            note = resolved || undefined;
+            note = await indexedDBService.getNoteBySlug(id);
         }
 
         if (!note) throw new Error(`Note not found: ${id}`);
@@ -307,6 +308,9 @@ export class IndexedDBContentProvider implements IContentProvider {
         if (patch.tags) note.tags = patch.tags;
         if (patch.type) note.type = patch.type;
         if (patch.clonedIds) note.clonedIds = patch.clonedIds;
+        if (patch.journalDate !== undefined) note.journalDate = patch.journalDate;
+        if (patch.createdFrom !== undefined) note.createdFrom = patch.createdFrom;
+        if (patch.slug !== undefined) note.slug = patch.slug;
         if (patch.targetDate !== undefined) note.targetDate = patch.targetDate;
 
         let finalRawContent = note.rawContent;
@@ -397,9 +401,12 @@ export class IndexedDBContentProvider implements IContentProvider {
             createdAt: note.createdAt,
             updatedAt: note.updatedAt,
             targetDate: note.targetDate || note.createdAt,
+            journalDate: note.journalDate,
+            createdFrom: note.createdFrom,
+            slug: note.slug,
             rawContent: finalRawContent,
             tags: note.tags,
-            type: (note.type as any) || 'note',
+            type: note.type ?? 'note',
             schemaVersion: 1
         };
     }

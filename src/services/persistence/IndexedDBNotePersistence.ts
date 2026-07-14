@@ -12,6 +12,7 @@ import type { INotePersistence } from './INotePersistence';
 import {
   NotePersistenceError,
   type AnalyticsSegmentInput,
+  type CreateNoteInput,
   type GetNoteOptions,
   type NoteLocator,
   type NoteMutation,
@@ -186,6 +187,24 @@ export class IndexedDBNotePersistence implements INotePersistence {
     private readonly contentProvider = new IndexedDBContentProvider(),
   ) {}
 
+  async createNote(input: CreateNoteInput): Promise<HistoryEntry> {
+    const existing = await this.storage.getNote(input.id);
+    if (existing) {
+      throw new Error(`Note already exists: ${input.id}`);
+    }
+    return this.contentProvider.saveEntry({
+      id: input.id,
+      title: input.title,
+      rawContent: input.rawContent,
+      tags: input.tags ?? [],
+      targetDate: input.targetDate,
+      journalDate: input.journalDate,
+      type: input.type ?? 'note',
+      slug: input.slug,
+      createdFrom: input.createdFrom,
+    });
+  }
+
   async getNote(locator: NoteLocator, options: GetNoteOptions = {}): Promise<HistoryEntry> {
     const note = await this.resolveNote(locator);
     if (!note) {
@@ -232,6 +251,12 @@ export class IndexedDBNotePersistence implements INotePersistence {
     }
 
     let entries = await this.contentProvider.getEntries(query);
+    if (query.journalDate) {
+      entries = entries.filter(entry => entry.journalDate === query.journalDate);
+    }
+    if (query.kind) {
+      entries = entries.filter(entry => entry.type === query.kind);
+    }
     if (query.search) {
       const search = query.search.toLowerCase();
       entries = entries.filter(entry =>
@@ -345,6 +370,9 @@ export class IndexedDBNotePersistence implements INotePersistence {
     if (locator.id) {
       return this.resolveByAnyId(locator.id);
     }
+    if (locator.slug) {
+      return this.resolveByAnyId(locator.slug);
+    }
     const notes = await this.storage.getAllNotes();
     if (locator.shortId) {
       return notes.find(note => toShortId(note.id) === locator.shortId);
@@ -359,19 +387,21 @@ export class IndexedDBNotePersistence implements INotePersistence {
   private async resolveByAnyId(id: string): Promise<Note | undefined> {
     const direct = await this.storage.getNote(id);
     if (direct) return direct;
+    const bySlug = await this.storage.getNoteBySlug?.(id);
+    if (bySlug) return bySlug;
     const notes = await this.storage.getAllNotes();
-    return notes.find(note => toShortId(note.id) === id || note.slug === id || note.title.toLowerCase() === id.toLowerCase());
+    return notes.find(note => note.slug === id || toShortId(note.id) === id || note.title.toLowerCase() === id.toLowerCase());
   }
 
   private describeLocator(locator: NoteLocator): string {
     return typeof locator === 'string'
       ? locator
-      : locator.id ?? locator.shortId ?? locator.title ?? '<empty locator>';
+      : locator.id ?? locator.slug ?? locator.shortId ?? locator.title ?? '<empty locator>';
   }
 
   private locatorToId(locator: NoteLocator): string {
     if (typeof locator === 'string') return locator;
-    return locator.id ?? locator.shortId ?? locator.title ?? '';
+    return locator.id ?? locator.slug ?? locator.shortId ?? locator.title ?? '';
   }
 
   private async getAnalyticsSegmentVersions(segments: AnalyticsSegmentInput[]): Promise<Record<string, number | undefined>> {

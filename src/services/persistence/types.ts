@@ -2,12 +2,13 @@ import type { IMetric } from '@/core/models/Metric';
 import { MetricContainer } from '@/core/models/MetricContainer';
 import type { WorkoutResults } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
-import type { Attachment, AnalyticsDataPoint, Note, NoteSegment, WorkoutResult } from '@/types/storage';
+import type { Attachment, AnalyticsDataPoint, Note, NoteCreationSource, NoteKind, NoteSegment, WorkoutResult } from '@/types/storage';
 
 export type NoteLocator =
   | string
   | {
       id?: string;
+      slug?: string;
       shortId?: string;
       title?: string;
     };
@@ -41,6 +42,18 @@ export type ResultSelection =
       limit?: number;
     };
 
+export interface CreateNoteInput {
+  id: string;
+  title: string;
+  rawContent: string;
+  targetDate: number;
+  journalDate?: string;
+  tags?: string[];
+  type?: NoteKind;
+  slug?: string;
+  createdFrom?: NoteCreationSource;
+}
+
 export interface NoteQuery {
   ids?: string[];
   dateRange?: { start: number; end: number };
@@ -50,6 +63,8 @@ export interface NoteQuery {
   limit?: number;
   offset?: number;
   projection?: 'summary' | 'history-detail';
+  journalDate?: string;
+  kind?: NoteKind;
 }
 
 export interface AnalyticsSegmentInput {
@@ -85,10 +100,13 @@ export interface NoteMutation {
     title: string;
     tags: string[];
     targetDate: number;
+    journalDate: string;
     notes: string;
-    type: 'note' | 'template' | 'playground';
+    type: NoteKind;
     templateId: string;
     clonedIds: string[];
+    slug: string;
+    createdFrom: NoteCreationSource;
   }>;
   workoutResult?: {
     id?: string;
@@ -126,6 +144,7 @@ export class NotePersistenceError extends Error {
 }
 
 export interface NotePersistenceStorage {
+  getNoteBySlug?(slug: string): Promise<Note | undefined>;
   getNote(id: string): Promise<Note | undefined>;
   saveNote(note: Note): Promise<string>;
   getAllNotes(): Promise<Note[]>;

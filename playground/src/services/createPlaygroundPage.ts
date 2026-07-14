@@ -1,6 +1,6 @@
 import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay'
 
-import { playgroundContent, pageId as makePageId } from './playgroundContent'
+import { journalNotes } from './journalNotes'
 
 const MAX_TIMESTAMP_ID_RETRIES = 10
 
@@ -16,23 +16,12 @@ const MAX_TIMESTAMP_ID_RETRIES = 10
  */
 export async function createPlaygroundPage(content: string): Promise<string> {
   const baseName = formatPlaygroundTimestampId(Date.now())
-  const now = Date.now()
-  for (let attempt = 0; attempt <= MAX_TIMESTAMP_ID_RETRIES; attempt++) {
-    const name = attempt === 0 ? baseName : `${baseName}-${attempt}`
-    const pageId = makePageId('playground', name)
-    try {
-      await playgroundContent.addPage({
-        id: pageId,
-        category: 'playground',
-        name,
-        content,
-        updatedAt: now,
-      })
-      return name
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'ConstraintError') continue
-      throw err
-    }
-  }
-  throw new Error('Unable to allocate unique playground timestamp ID')
+  const note = await journalNotes.create({
+    journalDate: '',
+    title: baseName,
+    rawContent: content,
+    type: 'playground',
+    slug: `playground/${baseName}`,
+  })
+  return note.id
 }

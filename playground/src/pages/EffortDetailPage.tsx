@@ -36,7 +36,7 @@ import { effortsPath } from '../lib/routes';
 import { toast } from '@/hooks/use-toast';
 import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 import { shareBlock } from '../services/openInPlayground';
-import { appendWorkoutToJournal } from '../services/journalWorkout';
+import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
 
 /* ── Resolved view (inline widget) ─────────────────────────────────────────── */
@@ -131,7 +131,7 @@ export function EffortDetailPage() {
     const d = String(date.getDate()).padStart(2, '0');
     const dateKey = `${y}-${m}-${d}`;
     try {
-      await appendWorkoutToJournal({
+      await createJournalNoteFromWorkout({
         workoutName: effort.label,
         category: 'effort',
         sourceNoteLabel: effort.label,

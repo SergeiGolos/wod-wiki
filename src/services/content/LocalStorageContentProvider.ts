@@ -101,6 +101,7 @@ export class LocalStorageContentProvider implements IContentProvider {
       // This supports friendly URLs like /note/annie/plan or short UUIDs
       const allEntries = await this.getEntries();
       const match = allEntries.find(e =>
+        e.slug === id ||
         matchesId(e.id, id) ||
         e.title.toLowerCase() === id.toLowerCase() ||
         e.title.toLowerCase().replace(/\s+/g, '-') === id.toLowerCase()

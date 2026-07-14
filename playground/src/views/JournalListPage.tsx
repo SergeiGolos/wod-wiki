@@ -32,7 +32,7 @@ import { useJournalQueryState, type JournalViewMode } from '../hooks/useJournalQ
 import { useShowPlaygrounds } from '../hooks/useShowPlaygrounds'
 import { useCreateJournalEntry } from '../hooks/useCreateJournalEntry'
 import { indexedDBService } from '@/services/db/IndexedDBService'
-import { playgroundContent } from '../services/playgroundContent'
+import { notePersistence } from '@/services/persistence'
 import { localDateKey, type JournalEntrySummary } from './queriable-list/JournalDateScroll'
 import type { FilteredListItem } from './queriable-list/types'
 import { JournalFeed } from './JournalFeed'
@@ -173,24 +173,28 @@ export function JournalListPage({
     async function load() {
       setIsLoading(true)
       try {
-        const [rawResults, lowerPages, upperPages] = await Promise.all([
+        const [rawResults, entries] = await Promise.all([
           indexedDBService.getRecentResults(100),
-          playgroundContent.getPagesByCategory('journal'),
-          playgroundContent.getPagesByCategory('Journal'),
+          notePersistence.listNotes({ projection: 'summary' }),
         ])
         if (cancelled) return
 
+        const grouped = new Map<string, typeof entries>()
+        for (const entry of entries) {
+          const dateKey = entry.journalDate ?? entry.slug?.replace(/^journal\//, '') ?? entry.id.replace(/^journal\//, '')
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) continue
+          const dayEntries = grouped.get(dateKey) ?? []
+          dayEntries.push(entry)
+          grouped.set(dateKey, dayEntries)
+        }
         const entryMap = new Map<string, JournalEntrySummary>()
-        ;[...lowerPages, ...upperPages].forEach(page => {
-          const dateKey = (page.slug ?? page.id).replace(/^journal\//, '')
-          if (/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
-            const headingMatch = page.content.match(/^#\s+(.+)$/m)
-            entryMap.set(dateKey, {
-              title: headingMatch ? headingMatch[1].trim() : dateKey,
-              updatedAt: page.updatedAt,
-            })
-          }
-        })
+        for (const [dateKey, dayEntries] of grouped) {
+          const titles = dayEntries.map(entry => entry.title).filter(Boolean)
+          entryMap.set(dateKey, {
+            title: titles.length === 1 ? titles[0] : `${titles.length} notes`,
+            updatedAt: Math.max(...dayEntries.map(entry => entry.updatedAt)),
+          })
+        }
 
         setResults(rawResults)
         setJournalEntries(entryMap)

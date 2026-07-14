@@ -280,10 +280,21 @@ export class IndexedDBService {
     private async migrateNoteToUuid(oldNote: Note): Promise<string> {
         const oldId = oldNote.id;
         const newId = uuidV4();
-        const migrated: Note = { ...oldNote, id: newId, slug: oldId };
+        const journalDate = oldId.match(/^journal\/(\d{4}-\d{2}-\d{2})$/)?.[1];
+        const migrated: Note = {
+            ...oldNote,
+            id: newId,
+            slug: oldId,
+            ...(journalDate && { journalDate, type: 'journal' as const, targetDate: new Date(`${journalDate}T00:00:00`).getTime() }),
+        };
 
         const db = await this.dbPromise;
         const tx = db.transaction(['notes', 'segments', 'results', 'attachments', 'analytics'], 'readwrite');
+        const migratedExisting = await tx.objectStore('notes').index('by-slug').get(oldId);
+        if (migratedExisting) {
+            await tx.done;
+            return migratedExisting.id;
+        }
 
         await tx.objectStore('notes').put(migrated);
 

@@ -7,13 +7,12 @@
  * persistence adapters so a single identity policy feeds both IndexedDB-full
  * (with analytics + attachments) and provider-delegated (demo) backends.
  */
-import { indexedDBService } from '@/services/db/IndexedDBService';
 import { notePersistence } from '@/services/persistence';
 import { computeVersion } from '@/utils/computeVersion';
+import type { HistoryEntry } from '@/types/history';
 import type { WorkoutResult } from '@/types/storage';
 import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
 import type { Segment } from '@/core/models/AnalyticsModels';
-import type { NoteRef } from '../lib/noteIdentity';
 
 /** Re-export so callers (e.g. Canvas Runtime) can compute in tests / fallback paths. */
 export { computeVersion } from '@/utils/computeVersion';
@@ -38,6 +37,7 @@ export interface ResultMutation {
 }
 
 export interface ResultWriter {
+  getNote?(locator: { id: string }, options: { resultSelection: { mode: 'all-for-note' } }): Promise<HistoryEntry>;
   mutateNote(locator: { id: string }, mutation: ResultMutation): Promise<unknown>;
 }
 
@@ -46,8 +46,8 @@ export interface RecordResultInput {
   runBlock: ScriptBlock;
   /** Section position identity — which block in the note. */
   blockId: string;
-  /** Destination note ref; `.raw` becomes the result's `noteId`. */
-  destination: NoteRef;
+  /** Canonical UUID of the owning Note. */
+  noteId: string;
   /** Stable id for this result (the runtimeId). */
   resultId: string;
   /** The outcome data. */
@@ -68,10 +68,10 @@ export interface ResultRecorder {
  */
 export function createResultRecorder(writer: ResultWriter): ResultRecorder {
   return {
-    async record({ runBlock, blockId, destination, resultId, data, completedAt, analyticsSegments }) {
-      const noteId = destination.raw;
-      // Identity in one place: never let callers pre-compute it.
-      const existing = await indexedDBService.getResultsForNote(noteId);
+    async record({ runBlock, blockId, noteId, resultId, data, completedAt, analyticsSegments }) {
+      // Identity in one place: Note UUID + note-scoped block + content + version.
+      const entry = await writer.getNote?.({ id: noteId }, { resultSelection: { mode: 'all-for-note' } });
+      const existing = entry?.extendedResults ?? [];
       const version = computeVersion(blockId, runBlock.contentId, existing);
 
       // Delegate the write through the chosen writer (INotePersistence.mutateNote).

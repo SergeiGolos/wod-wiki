@@ -19,8 +19,8 @@ import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pageId } from '../services/playgroundContent'
 import { pendingRuntimes } from '../runtimeStore'
-import { runPath } from '../lib/routes'
-import { appendWorkoutToJournal } from '../services/journalWorkout'
+import { journalNotePath, runPath } from '../lib/routes'
+import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
@@ -91,16 +91,15 @@ export function WorkoutEditorPage({
       }
       // Append the wod block to today's journal note and navigate there.
       try {
-        const journalNoteId = await appendWorkoutToJournal({
+        const journalNote = await createJournalNoteFromWorkout({
           workoutName: name,
           category,
           sourceNoteLabel: sourceNote?.label,
           sourceNotePath: sourceNote?.path,
           wodContent: block.content,
         })
-        pendingRuntimes.set(runtimeId, { block, noteId: journalNoteId })
-        const dateKey = journalNoteId.replace('journal/', '')
-        navigate(`/journal/${dateKey}?autoStart=${runtimeId}`)
+        pendingRuntimes.set(runtimeId, { block, noteId: journalNote.id })
+        navigate(`${journalNotePath(journalNote.journalDate ?? '', journalNote.id)}?autoStart=${runtimeId}`)
       } catch {
         // IndexedDB unavailable — fall back to the fullscreen tracker route
         pendingRuntimes.set(runtimeId, { block, noteId })
@@ -117,9 +116,10 @@ export function WorkoutEditorPage({
         month: 'long',
         day: 'numeric',
       })
-      let noteId: string
+      let journalNoteId: string
+      let journalDate: string
       try {
-        noteId = await appendWorkoutToJournal({
+        const journalNote = await createJournalNoteFromWorkout({
           workoutName: name,
           category,
           sourceNoteLabel: sourceNote?.label,
@@ -128,6 +128,8 @@ export function WorkoutEditorPage({
           date,
           wrapInWod: true,
         })
+        journalNoteId = journalNote.id
+        journalDate = journalNote.journalDate ?? ''
       } catch {
         toast({
           variant: 'destructive',
@@ -136,7 +138,7 @@ export function WorkoutEditorPage({
         })
         return
       }
-      const journalRoute = `/${noteId}`
+      const journalRoute = journalNotePath(journalDate, journalNoteId)
       toast({
         title: `Added to ${dateLabel}`,
         description: `"${name}" was added to your journal.`,

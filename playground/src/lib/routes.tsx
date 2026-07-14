@@ -21,7 +21,8 @@ export const ROUTE_PATTERNS = {
   notePlaygroundAlias: '/note/playground/:name',
   note: '/note/:category/:name',
   journal: '/journal',
-  journalEntry: '/journal/:id',
+  journalEntry: '/journal/:identity',
+  journalNote: '/journal/:date/:uuid',
   plan: '/plan',
   guideGettingStarted: '/guide/getting-started',
   guideSyntax: '/guide/syntax',
@@ -57,9 +58,19 @@ export function notePath(category: string, name: string): string {
   return `/note/${encodeURIComponent(category)}/${encodeURIComponent(name)}`;
 }
 
-/** /journal/:id */
-export function journalEntryPath(id: string): string {
-  return `/journal/${encodeURIComponent(id)}`;
+/** /journal/:date/ */
+export function journalDatePath(date: string): string {
+  return `/journal/${encodeURIComponent(date)}/`;
+}
+
+/** /journal/:date/:uuid */
+export function journalNotePath(date: string, uuid: string): string {
+  return `/journal/${encodeURIComponent(date)}/${encodeURIComponent(uuid)}`;
+}
+
+/** Legacy single-segment journal route (date, UUID alias, or slug alias). */
+export function journalEntryPath(identity: string): string {
+  return `/journal/${encodeURIComponent(identity)}`;
 }
 
 /** /journal/:id?autoStart=<runtimeId> */

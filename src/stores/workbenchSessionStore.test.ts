@@ -12,7 +12,7 @@ import { createWorkbenchSessionStore } from './workbenchSessionStore';
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 import type { INowProvider } from '@/runtime/INowProvider';
 import type { INotePersistence } from '@/services/persistence';
-import type { NoteMutation, NoteLocator, GetNoteOptions } from '@/services/persistence';
+import type { CreateNoteInput, NoteMutation, NoteLocator, GetNoteOptions } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';
 import type { WorkoutResults, StoredOutputStatement } from '@/components/Editor/types';
 import type { Attachment } from '@/types/storage';
@@ -28,6 +28,16 @@ import type {
 class FakeNotePersistence implements INotePersistence {
   public readonly mutated: Array<{ locator: NoteLocator; mutation: NoteMutation }> = [];
   private readonly notes = new Map<string, HistoryEntry>();
+
+  async createNote(input: CreateNoteInput): Promise<HistoryEntry> {
+    const entry = makeEntry({
+      ...input,
+      tags: input.tags ?? [],
+      schemaVersion: 1,
+    });
+    this.notes.set(entry.id, entry);
+    return entry;
+  }
 
   async getNote(locator: NoteLocator, _options?: GetNoteOptions): Promise<HistoryEntry> {
     const id = typeof locator === 'string' ? locator : locator.id;

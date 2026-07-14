@@ -61,7 +61,7 @@ export interface IContentProvider {
    */
   saveEntry(entry: NoteSaveInput): Promise<HistoryEntry>;
   cloneEntry(sourceId: string, targetDate?: number): Promise<HistoryEntry>;
-  updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate'>> & { sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number }): Promise<HistoryEntry>;
+  updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate' | 'journalDate' | 'createdFrom' | 'slug' | 'type'>> & { sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number }): Promise<HistoryEntry>;
   deleteEntry(id: string): Promise<void>;
 
   // Attachments

@@ -8,6 +8,7 @@ import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
 import {
   NotePersistenceError,
+  type CreateNoteInput,
   type GetNoteOptions,
   type NoteLocator,
   type NoteMutation,
@@ -17,7 +18,7 @@ import {
 
 function locatorToId(locator: NoteLocator): string {
   if (typeof locator === 'string') return locator;
-  return locator.id ?? locator.shortId ?? locator.title ?? '';
+  return locator.id ?? locator.slug ?? locator.shortId ?? locator.title ?? '';
 }
 
 function sortNewest(results: WorkoutResult[]): WorkoutResult[] {
@@ -57,6 +58,20 @@ function selectResults(entry: HistoryEntry, selection?: ResultSelection): Partia
 export class ContentProviderNotePersistence implements INotePersistence {
   constructor(private readonly provider: IContentProvider) {}
 
+  async createNote(input: CreateNoteInput): Promise<HistoryEntry> {
+    return this.provider.saveEntry({
+      id: input.id,
+      title: input.title,
+      rawContent: input.rawContent,
+      tags: input.tags ?? [],
+      targetDate: input.targetDate,
+      journalDate: input.journalDate,
+      type: input.type ?? 'note',
+      slug: input.slug,
+      createdFrom: input.createdFrom,
+    });
+  }
+
   async getNote(locator: NoteLocator, options: GetNoteOptions = {}): Promise<HistoryEntry> {
     const entry = await this.provider.getEntry(locatorToId(locator));
     if (!entry) {
@@ -86,6 +101,12 @@ export class ContentProviderNotePersistence implements INotePersistence {
       : await this.provider.getEntries(query);
 
     let filtered = entries;
+    if (query.journalDate) {
+      filtered = filtered.filter(entry => entry.journalDate === query.journalDate);
+    }
+    if (query.kind) {
+      filtered = filtered.filter(entry => entry.type === query.kind);
+    }
     if (query.search) {
       const search = query.search.toLowerCase();
       filtered = filtered.filter(entry =>

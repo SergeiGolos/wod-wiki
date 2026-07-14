@@ -32,7 +32,7 @@ export function WallClockPage() {
       playgroundRecorder.record({
         runBlock: pending.block,
         blockId: pending.block.id,
-        destination: parseNoteId(pending.noteId),
+        noteId: pending.noteId,
         resultId: runtimeId,
         data: results,
         completedAt: results.endTime || Date.now(),

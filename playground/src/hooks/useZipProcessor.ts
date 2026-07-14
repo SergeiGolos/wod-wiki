@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryState } from 'nuqs';
 import { playgroundPath, ROUTE_PATTERNS } from '../lib/routes';
 import { decodeZip } from '../services/decodeZip';
-import { playgroundContent, pageId as makePageId } from '../services/playgroundContent';
 import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay';
+import { journalNotes } from '../services/journalNotes';
 
 export function useZipProcessor() {
   const navigate = useNavigate();
@@ -22,17 +22,17 @@ export function useZipProcessor() {
         if (cancelled) return;
         const now = Date.now();
         const id = formatPlaygroundTimestampId(now);
-        const pageId = makePageId('playground', id)
-        await playgroundContent.savePage({
-          id: pageId,
-          category: 'playground',
-          name: id,
-          content,
-          updatedAt: now,
+        const note = await journalNotes.create({
+          journalDate: '',
+          title: id,
+          rawContent: content,
+          type: 'playground',
+          slug: `playground/${id}`,
+          createdFrom: { kind: 'zip' },
         });
         
         if (!cancelled) {
-          navigate(playgroundPath(id), { replace: true });
+          navigate(playgroundPath(note.id), { replace: true });
         }
       } catch (err) {
         console.error('Failed to decode zip:', err);

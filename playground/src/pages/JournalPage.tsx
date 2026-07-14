@@ -13,7 +13,7 @@
  * result-identity (Recorder-above-adapters, cross-note-result-aggregation ADR).
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import { v4 as uuidv4 } from 'uuid'
@@ -23,7 +23,6 @@ import { FullscreenReview } from '@/components/organisms/review/FullscreenReview
 import { JournalPageShell } from '@/panels/page-shells'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
-import { indexedDBService } from '@/services/db/IndexedDBService'
 import { notePersistence } from '@/services/persistence'
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
@@ -34,9 +33,8 @@ import { useNotePageNav } from './shared/useNotePageNav'
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
 import { derivePageMode } from '@/types/content-type'
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground'
-import { appendWorkoutToJournal } from '../services/journalWorkout'
+import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { playgroundRecorder } from '../services/resultRecorder'
-import { parseNoteId } from '../lib/noteIdentity'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { toast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/atoms/primitives/toast'
@@ -46,6 +44,9 @@ import {
   WorkbenchSessionProvider,
   useWorkbenchSession,
 } from '@/stores/workbenchSessionStore'
+import { resolveJournalRoute, journalNotePath } from '../lib/journalRoute'
+import { journalNotes } from '../services/journalNotes'
+import { JournalDatePage } from './JournalDatePage'
 
 const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
 
@@ -69,16 +70,21 @@ const journalContentProvider = new IndexedDBContentProvider()
  * Inner page — runs inside the session provider. Reads/writes through the
  * WorkbenchSessionStore; mounts the editor + overlays.
  */
+interface JournalPageInnerProps extends JournalPageProps {
+  noteId: string
+  journalDate: string
+}
+
 function JournalPageInner({
+  noteId,
+  journalDate,
   theme,
   onViewCreated,
   onScrollToSection,
   onSearch,
-}: JournalPageProps) {
-  const { id } = useParams<{ id: string }>()
-  const noteId = id ?? ''
+}: JournalPageInnerProps) {
   const navigate = useNavigate()
-  const mode = derivePageMode('journal', id)
+  const mode = derivePageMode('journal', journalDate)
   const [searchParams, setSearchParams] = useSearchParams()
   const [isTimerOpen, setIsTimerOpen] = useState(false)
   const [isReviewOpen, setIsReviewOpen] = useState(false)
@@ -107,36 +113,19 @@ function JournalPageInner({
   // list (a different concept); the per-note extended results live on the entry.
   const extendedResults = currentEntry?.extendedResults ?? EMPTY_RESULTS
 
-  // The journal route id is `journal/<date>`. Pass it through findOrMigrate
-  // so legacy route-id-keyed notes get re-keyed to UUID + slug atomically on
-  // first read; once migrated, subsequent loads hit the UUID row.
-  const fullNoteId = id ? `journal/${id}` : ''
+  const fullNoteId = noteId
 
-  // Defense-in-depth: if mounted without an :id param (trailing-slash edge
-  // case, stale route match), redirect to the journal index instead of
-  // constructing a bogus "journal/undefined" route id.
+  // Load the canonical UUID Note.
   useEffect(() => {
-    if (!id) navigate('/journal', { replace: true })
-  }, [id, navigate])
-
-  // Load (and migrate) the note on mount + whenever the route id changes.
-  useEffect(() => {
-    if (!fullNoteId) return
     let cancelled = false
     const load = async () => {
       try {
-        // V8 — resolve slug -> UUID; migrates legacy notes on first read.
-        const migrated = await indexedDBService.findOrMigrate(fullNoteId)
-        if (cancelled) return
-        const routeId = migrated?.id ?? fullNoteId
         await sessionLoadEntry({
-          routeId,
+          routeId: fullNoteId,
           routeView: 'plan',
           propInitialContent: PLAYGROUND_TEMPLATE.content,
         })
       } catch (err) {
-        // IndexedDB unavailable (e.g. Storybook) — keep the page responsive
-        // by leaving the session empty; the editor still shows the template.
         if (!cancelled) console.warn('[JournalPage] loadEntry failed', err)
       }
     }
@@ -217,11 +206,11 @@ function JournalPageInner({
       // The Recorder resolves identity and delegates to notePersistence.mutateNote
       // (placement A, cross-note-result-aggregation ADR), so the workbench-style
       // atomic write path is used for journal results too.
-      if (activeRuntimeId && timerBlock) {
+      if (activeRuntimeId && timerBlock && currentEntry) {
         playgroundRecorder.record({
           runBlock: timerBlock,
           blockId: timerBlock.id,
-          destination: parseNoteId(fullNoteId),
+          noteId: currentEntry.id,
           resultId: activeRuntimeId,
           data: workoutResults,
           completedAt: workoutResults?.endTime ?? Date.now(),
@@ -237,7 +226,7 @@ function JournalPageInner({
         setIsReviewOpen(true)
       }
     },
-    [activeRuntimeId, fullNoteId, refreshResults, timerBlock],
+    [activeRuntimeId, currentEntry, refreshResults, timerBlock],
   )
 
   const handleCloseReview = useCallback(() => {
@@ -265,7 +254,7 @@ function JournalPageInner({
       const d = String(date.getDate()).padStart(2, '0')
       const dateKey = `${y}-${m}-${d}`
       try {
-        await appendWorkoutToJournal({
+        await createJournalNoteFromWorkout({
           workoutName: noteId,
           category: 'journal',
           sourceNoteLabel: noteId,
@@ -387,16 +376,48 @@ function JournalPageInner({
   )
 }
 
+function JournalAliasRedirect({ identity }: { identity: string }) {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    let cancelled = false
+    journalNotes.resolve(identity).then((note) => {
+      if (!cancelled && note.journalDate) {
+        navigate(journalNotePath(note.journalDate, note.id), { replace: true })
+      }
+    }).catch(() => {
+      if (!cancelled) navigate('/journal', { replace: true })
+    })
+    return () => { cancelled = true }
+  }, [identity, navigate])
+
+  return <div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>
+}
+
 /**
- * JournalPage — outer wrapper. Mounts a page-local WorkbenchSessionProvider
- * with the default IndexedDBNotePersistence so the session's loadEntry /
- * setContent / getNote seams work without further wiring. Unmounting the page
- * tears the session down via the provider.
+ * Resolves the journal route grammar before mounting either a date projection
+ * or a canonical UUID-backed Note editor.
  */
 export function JournalPage(props: JournalPageProps) {
+  const pathname = window.location.pathname
+  const route = resolveJournalRoute(pathname)
+
+  if (route.kind === 'date') {
+    return <JournalDatePage journalDate={route.journalDate} theme={props.theme} onViewCreated={props.onViewCreated} />
+  }
+  if (route.kind === 'uuid-alias') {
+    return <JournalAliasRedirect identity={route.noteId} />
+  }
+  if (route.kind === 'slug-alias') {
+    return <JournalAliasRedirect identity={route.slug} />
+  }
+  if (route.kind !== 'note') {
+    return <div className="flex-1 flex items-center justify-center text-zinc-400">Journal route not found.</div>
+  }
+
   return (
     <WorkbenchSessionProvider notePersistence={notePersistence} provider={journalContentProvider}>
-      <JournalPageInner {...props} />
+      <JournalPageInner {...props} noteId={route.noteId} journalDate={route.journalDate} />
     </WorkbenchSessionProvider>
   )
 }

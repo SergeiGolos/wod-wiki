@@ -17,10 +17,10 @@ import type { ParsedCanvasPage } from '../canvas/parseCanvasMarkdown'
 import { getSectionProse } from '../canvas/parseCanvasMarkdown'
 import {
   isPlaygroundNotePath,
-  isJournalEntryPath,
   matchFeedItem,
   matchFeedDetail,
 } from './routes'
+import { resolveJournalRoute } from './journalRoute'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 
 // ─── Docs-page nav constants (moved from App.tsx) ──────────────────────────
@@ -147,9 +147,15 @@ function detectFlags(pathname: string, params: RouteViewParams): RouteFlags {
   const isPlaygroundRoute = isPlaygroundNotePath(pathname)
   const effectivePlaygroundId =
     playgroundId || (pathname.startsWith('/note/playground/') ? urlName : undefined)
-  const isJournalEntryRoute = isJournalEntryPath(pathname)
-  const rawJournalId = urlName ?? playgroundId
-  const journalEntryId = isJournalEntryRoute && rawJournalId ? decodeURIComponent(rawJournalId) : undefined
+  const journalRoute = resolveJournalRoute(pathname)
+  const isJournalEntryRoute = !['index', 'invalid'].includes(journalRoute.kind)
+  const journalEntryId = journalRoute.kind === 'date'
+    ? journalRoute.journalDate
+    : journalRoute.kind === 'note' || journalRoute.kind === 'uuid-alias'
+      ? journalRoute.noteId
+      : journalRoute.kind === 'slug-alias'
+        ? journalRoute.slug
+        : undefined
   const feedItemMatch = matchFeedItem(pathname)
   const feedDetailMatch = feedItemMatch ? null : matchFeedDetail(pathname)
   return { isPlaygroundRoute, effectivePlaygroundId, isJournalEntryRoute, journalEntryId, feedItemMatch, feedDetailMatch }
