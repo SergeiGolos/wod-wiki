@@ -33,8 +33,9 @@ const boundaryExtension = StateField.define<DecorationSet>({
     return buildBoundaryDecorations(state);
   },
   update(value, tr) {
-    if (tr.docChanged) return buildBoundaryDecorations(tr.state);
-    return value;
+    // Markers are static metadata inserted at load time. Map through edits
+    // (O(changes)) instead of rebuilding from scratch (O(document)).
+    return tr.docChanged ? value.map(tr.changes) : value;
   },
   provide: f => EditorView.decorations.from(f),
 });
