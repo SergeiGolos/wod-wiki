@@ -23,7 +23,7 @@ import { getScriptFeedItem, getScriptFeed } from '@/repositories/script-feeds';
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent';
 import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { pendingRuntimes } from '../runtimeStore';
-import { journalNotePath, runPath } from '../lib/routes';
+import { journalDatePath, runPath } from '../lib/routes';
 import { useNotePageNav } from './shared/useNotePageNav';
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground';
@@ -79,7 +79,7 @@ export function FeedItemPage({
           wodContent: block.content,
         });
         pendingRuntimes.set(runtimeId, { block, noteId: journalNote.id });
-        navigate(`${journalNotePath(journalNote.journalDate ?? '', journalNote.id)}?autoStart=${runtimeId}`);
+        navigate(`${journalDatePath(journalNote.journalDate ?? '')}?autoStart=${runtimeId}`);
       } catch {
         const runtimeId = uuidv4();
         pendingRuntimes.set(runtimeId, { block, noteId });

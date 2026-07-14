@@ -19,7 +19,7 @@ import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pageId } from '../services/playgroundContent'
 import { pendingRuntimes } from '../runtimeStore'
-import { journalNotePath, runPath } from '../lib/routes'
+import { journalDatePath, runPath } from '../lib/routes'
 import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
@@ -99,7 +99,7 @@ export function WorkoutEditorPage({
           wodContent: block.content,
         })
         pendingRuntimes.set(runtimeId, { block, noteId: journalNote.id })
-        navigate(`${journalNotePath(journalNote.journalDate ?? '', journalNote.id)}?autoStart=${runtimeId}`)
+        navigate(`${journalDatePath(journalNote.journalDate ?? '')}?autoStart=${runtimeId}`)
       } catch {
         // IndexedDB unavailable — fall back to the fullscreen tracker route
         pendingRuntimes.set(runtimeId, { block, noteId })

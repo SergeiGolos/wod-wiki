@@ -6,8 +6,16 @@ import type { ScriptBlock } from '@/components/Editor/types';
 import { playgroundRecorder } from '../services/resultRecorder';
 import type { HistoryEntry } from '@/types/history';
 import { journalNotes } from '../services/journalNotes';
+import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer';
+import { FullscreenReview } from '@/components/organisms/review/FullscreenReview';
+import { useSearchParams } from 'react-router-dom';
+import { pendingRuntimes } from '../runtimeStore';
+import type { Segment } from '@/core/models/AnalyticsModels';
+import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer';
 import { WorkbenchSessionProvider } from '@/stores/workbenchSessionStore';
 import { notePersistence } from '@/services/persistence';
+import { indexedDBService } from '@/services/db/IndexedDBService';
+import type { WorkoutResult } from '@/types/storage';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 
 const journalContentProvider = new IndexedDBContentProvider();
@@ -55,6 +63,32 @@ const boundaryExtension = ViewPlugin.fromClass(
 export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDatePageProps) {
   const [notes, setNotes] = useState<HistoryEntry[] | null>(null);
   const [content, setContent] = useState<string>('');
+  const [allResults, setAllResults] = useState<WorkoutResult[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [isTimerOpen, setIsTimerOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [timerBlock, setTimerBlock] = useState<ScriptBlock | null>(null);
+  const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null);
+  const [reviewSegments, setReviewSegments] = useState<Segment[]>([]);
+
+  useEffect(() => {
+    const autoStartId = searchParams.get('autoStart');
+    if (!autoStartId) return;
+    const pending = pendingRuntimes.get(autoStartId);
+    if (pending) {
+      pendingRuntimes.delete(autoStartId);
+      setTimerBlock(pending.block);
+      setActiveRuntimeId(autoStartId);
+      setIsTimerOpen(true);
+    }
+    setSearchParams((prev) => {
+      prev.delete('autoStart');
+      return prev;
+    }, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const handleCloseReview = useCallback(() => setIsReviewOpen(false), []);
+
   const [blocks, setBlocks] = useState<ScriptBlock[]>([]);
   const timeoutRef = useRef<number | undefined>(undefined);
   const initialLoadRef = useRef(false);
@@ -80,19 +114,29 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       runBlock,
       blockId,
       noteId: uuid,
-      resultId: crypto.randomUUID(),
+      resultId: activeRuntimeId || crypto.randomUUID(),
       data: results!,
       completedAt: results?.endTime || Date.now(),
+    }).then(() => {
+      if (results?.logs) {
+        const segments = getAnalyticsFromLogs(results.logs).segments;
+        setReviewSegments(segments);
+        setIsTimerOpen(false);
+        setIsReviewOpen(true);
+      }
     }).catch(() => {});
-  }, [content, blocks, journalDate]);
+    setActiveRuntimeId(null);
+  }, [content, blocks, journalDate, activeRuntimeId]);
 
   useEffect(() => {
     let cancelled = false;
-    journalNotes.listByDate(journalDate).then((entries) => {
+    journalNotes.listByDate(journalDate).then(async (entries) => {
       if (cancelled) return;
       setNotes(entries);
       const stitched = entries.map(n => `<!-- uuid:${n.id} -->\n${n.rawContent.trim()}`).join('\n\n');
       setContent(stitched);
+      const resultsArrays = await Promise.all(entries.map(n => indexedDBService.getResultsForNote(n.id)));
+      if (!cancelled) setAllResults(resultsArrays.flat());
       initialLoadRef.current = true;
     }).catch(() => {
       if (!cancelled) setNotes([]);
@@ -147,9 +191,25 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
             onCompleteWorkout={handleCompleteWorkout}
             onViewCreated={onViewCreated}
             extensions={extensions}
+            extendedResults={allResults}
           />
         )}
       </div>
+        {isTimerOpen && timerBlock && (
+          <FullscreenTimer
+            block={timerBlock}
+            onClose={() => setIsTimerOpen(false)}
+            onCompleteWorkout={handleCompleteWorkout}
+            autoStart
+          />
+        )}
+        {isReviewOpen && reviewSegments.length > 0 && (
+          <FullscreenReview
+            segments={reviewSegments}
+            onClose={handleCloseReview}
+            title="Workout Review"
+          />
+        )}
     </WorkbenchSessionProvider>
   );
 }
