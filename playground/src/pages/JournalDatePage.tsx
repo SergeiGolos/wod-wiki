@@ -4,6 +4,11 @@ import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import type { HistoryEntry } from '@/types/history';
 import { journalNotePath } from '../lib/journalRoute';
 import { journalNotes } from '../services/journalNotes';
+import { WorkbenchSessionProvider } from '@/stores/workbenchSessionStore';
+import { notePersistence } from '@/services/persistence';
+import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
+
+const journalContentProvider = new IndexedDBContentProvider();
 
 interface JournalDatePageProps {
   journalDate: string;
@@ -31,23 +36,25 @@ function JournalDateNote({ note, theme, onViewCreated }: { note: HistoryEntry; t
   }, [content, save]);
 
   return (
-    <section data-note-id={note.id} className="border-t border-border pt-6 first:border-t-0 first:pt-0">
-      <header className="mb-3 flex items-center justify-between gap-3">
-        <a className="text-sm font-semibold text-foreground hover:underline" href={journalNotePath(note.journalDate ?? '', note.id)}>
-          {note.title}
-        </a>
-        <span className="font-mono text-xs text-muted-foreground">{note.id}</span>
-      </header>
-      <NoteEditor
-        value={content}
-        onChange={onChange}
-        noteId={note.id}
-        theme={theme}
-        showLineNumbers={false}
-        enableInlineRuntime={false}
-        onViewCreated={onViewCreated}
-      />
-    </section>
+    <WorkbenchSessionProvider notePersistence={notePersistence} provider={journalContentProvider}>
+      <section data-note-id={note.id} className="border-t border-border pt-6 first:border-t-0 first:pt-0">
+        <header className="mb-3 flex items-center justify-between gap-3">
+          <a className="text-sm font-semibold text-foreground hover:underline" href={journalNotePath(note.journalDate ?? '', note.id)}>
+            {note.title}
+          </a>
+          <span className="font-mono text-xs text-muted-foreground">{note.id}</span>
+        </header>
+        <NoteEditor
+          value={content}
+          onChange={onChange}
+          noteId={note.id}
+          theme={theme}
+          showLineNumbers={false}
+          enableInlineRuntime={false}
+          onViewCreated={onViewCreated}
+        />
+      </section>
+    </WorkbenchSessionProvider>
   );
 }
 

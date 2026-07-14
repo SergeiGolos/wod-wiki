@@ -43,15 +43,15 @@ export function createJournalNotes({
 }: JournalNotesDependencies): JournalNotes {
   return {
     async create(input) {
-      const targetDate = dateTimestamp(input.journalDate);
+      const targetDate = input.journalDate ? dateTimestamp(input.journalDate) : Date.now();
       return persistence.createNote({
         id: uuid(),
         title: input.title,
         rawContent: input.rawContent,
         tags: input.tags ?? [],
         targetDate,
-        journalDate: input.journalDate,
-        type: 'journal',
+        journalDate: input.journalDate || undefined,
+        type: input.type ?? 'journal',
         slug: input.slug,
         createdFrom: input.createdFrom,
       });

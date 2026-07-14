@@ -286,7 +286,11 @@ export class IndexedDBContentProvider implements IContentProvider {
             id: noteId,
             createdAt,
             updatedAt,
-            targetDate: entry.targetDate || now,
+            targetDate: note.targetDate,
+            type: note.type,
+            slug: note.slug,
+            journalDate: note.journalDate,
+            createdFrom: note.createdFrom,
             schemaVersion: 1
         };
 

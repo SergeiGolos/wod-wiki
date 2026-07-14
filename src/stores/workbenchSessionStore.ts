@@ -693,7 +693,7 @@ export function createWorkbenchSessionStore(
               await createResultRecorder(notePersistence).record({
                 runBlock: selectedBlock!,
                 blockId: selectedBlockId ?? '',
-                destination: parseNoteId(targetId),
+                noteId: targetId,
                 resultId: payload.resultId,
                 data: payload.results,
                 completedAt: payload.results.endTime,
