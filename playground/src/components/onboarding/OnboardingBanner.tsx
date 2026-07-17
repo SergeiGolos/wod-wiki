@@ -1,9 +1,9 @@
 /**
- * OnboardingBanner — integrated sticky header onboarding progress (Concept 1).
+ * OnboardingBanner — integrated header onboarding progress.
  *
- * It is rendered in the `headerActions` slot of `CanvasEditorPanel` on the
- * home canvas route (`/`). Renders a compact progress badge on mobile and
- * details on desktop, featuring a hover overlay for step navigation.
+ * It is rendered in the page title accessory / nav header on the home
+ * canvas route (`/`). Renders a compact progress badge on mobile and
+ * details on desktop, featuring a click/hover overlay for step navigation.
  *
  * It uses the localStorage-backed onboarding progress state to display a
  * read-only roadmap checklist of onboarding tasks, plus a "Chapters"
@@ -11,8 +11,8 @@
  * `useChapterProgress`.
  */
 
-import { useEffect, useState } from 'react';
-import { Activity, Blocks, Check, Dumbbell, FileText, Play, Puzzle, Timer, Trophy } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Check, Dumbbell, Play, Timer, Trophy } from 'lucide-react';
 import {
   StructureBlocksBadge,
   ProtocolsTimerBadge,
@@ -88,6 +88,11 @@ export function OnboardingBanner({ className, chapters = [] }: OnboardingBannerP
   const { progress, stepsComplete, totalSteps, isComplete, mark } = useOnboardingProgress();
   const { chapters: chapterProgress } = useChapterProgress(chapters);
 
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeTimeoutRef = useRef<number | null>(null);
+
   useEffect(() => {
     mark('visitedLanding');
   }, [mark]);
@@ -107,13 +112,98 @@ export function OnboardingBanner({ className, chapters = [] }: OnboardingBannerP
     return () => clearTimeout(t);
   }, [isComplete]);
 
+  // Clear any pending close timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        window.clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  // Close on Escape, focusout, and click-outside
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+
+    const handleFocusOut = (e: FocusEvent) => {
+      const next = e.relatedTarget as Node | null;
+      const container = buttonRef.current?.parentElement;
+      if (container && next && !container.contains(next)) {
+        setOpen(false);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const container = buttonRef.current?.parentElement;
+      if (container && !container.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    panelRef.current?.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      panelRef.current?.removeEventListener('focusout', handleFocusOut);
+    };
+  }, [open]);
+
+  const cancelClose = () => {
+    if (closeTimeoutRef.current) {
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimeoutRef.current = window.setTimeout(() => setOpen(false), 150);
+  };
+
+  const handlePointerEnter = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') {
+      cancelClose();
+      setOpen(true);
+    }
+  };
+
+  const handlePointerLeave = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') {
+      scheduleClose();
+    }
+  };
+
   const completionCelebrated = getProfile().completionCelebrated;
   const isCelebrative = isComplete && showingCompletion && !completionCelebrated;
 
   return (
-    <div className={cn('relative group py-1 shrink-0', className)}>
+    <div
+      className={cn('relative py-1 shrink-0', className)}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+    >
       {/* Header Actions Badge */}
-      <button className="flex items-center gap-2 cursor-pointer focus:outline-none select-none text-left">
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex items-center gap-2 cursor-pointer focus:outline-none select-none text-left"
+      >
         {isComplete ? (
           <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
             <Check className="size-3.5" />
@@ -136,19 +226,25 @@ export function OnboardingBanner({ className, chapters = [] }: OnboardingBannerP
         )}
       </button>
 
-      {/* Hover popover details & navigation overlay */}
-      <div className="absolute right-0 top-full mt-1.5 w-64 rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-3.5 z-50 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto scale-95 group-hover:scale-100 transition-all duration-150 origin-top-right before:content-[''] before:absolute before:-top-1.5 before:left-0 before:right-0 before:h-1.5">
-        <div className="mb-2.5 pb-2 border-b border-border/60">
-          <h5 className="text-[10px] font-black uppercase tracking-widest text-foreground">
-            Onboarding Roadmap
-          </h5>
-          <p className="text-[9px] text-muted-foreground mt-0.5">
-            Click steps to toggle progress or jump back & forth.
-          </p>
-        </div>
+      {/* Click/hover popover details & navigation overlay */}
+      {open && (
+        <div
+          ref={panelRef}
+          role="menu"
+          aria-orientation="vertical"
+          className="absolute left-0 top-full mt-1.5 w-64 rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-3.5 z-50 origin-top-left before:content-[''] before:absolute before:-top-1.5 before:left-0 before:right-0 before:h-1.5 before:bg-transparent"
+        >
+          <div className="mb-2.5 pb-2 border-b border-border/60">
+            <h5 className="text-[10px] font-black uppercase tracking-widest text-foreground">
+              Onboarding Roadmap
+            </h5>
+            <p className="text-[9px] text-muted-foreground mt-0.5">
+              Click steps to toggle progress or jump back & forth.
+            </p>
+          </div>
 
-        <div className="flex flex-col gap-1">
-          {ONBOARDING_STEPS_META.map((step) => {
+          <div className="flex flex-col gap-1">
+            {ONBOARDING_STEPS_META.map((step) => {
             const isStepDone = progress[step.key];
             const isStepActive = !isStepDone && (
               step.id === 1 ||
@@ -262,6 +358,7 @@ export function OnboardingBanner({ className, chapters = [] }: OnboardingBannerP
           </>
         )}
       </div>
+      )}
     </div>
   );
 }

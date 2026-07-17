@@ -41,6 +41,7 @@ import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
+import { OnboardingBanner } from './components/onboarding/OnboardingBanner'
 import { getChallengeSectionMap } from './canvas/parseCanvasMarkdown'
 // ── Extracted page components ────────────────────────────────────────────────
 import { WallClockPage } from './pages/WallClockPage'
@@ -197,14 +198,21 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   }
 
   const canvasTitleAccessory =
-    view.page === 'canvas' && view.canvasPage && view.canvasPage.quests.length > 0
+    view.page === 'canvas' && view.canvasPage
       ? (
-        <ChallengeHeaderBadge
-          pageRoute={view.canvasPage.route}
-          quests={view.canvasPage.quests}
-          challengeSectionMap={getChallengeSectionMap(view.canvasPage)}
-          onScrollToSection={scrollToSection}
-        />
+        <>
+          {view.canvasPage.quests.length > 0 && (
+            <ChallengeHeaderBadge
+              pageRoute={view.canvasPage.route}
+              quests={view.canvasPage.quests}
+              challengeSectionMap={getChallengeSectionMap(view.canvasPage)}
+              onScrollToSection={scrollToSection}
+            />
+          )}
+          {view.canvasPage.route === '/' && view.canvasPage.chapters.length > 0 && (
+            <OnboardingBanner chapters={view.canvasPage.chapters} />
+          )}
+        </>
       )
       : undefined
 
