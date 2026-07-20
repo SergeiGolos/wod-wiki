@@ -41,11 +41,11 @@ export function useCanvasRuntime({
       blockId,
       blockContentId: block.contentId,
       data: results,
-      completedAt: results.endTime || Date.now(),
+      createdAt: results.endTime || Date.now(),
     }
     setPersistedResults((previous) => {
       const deduped = previous.filter((result) => result.id !== optimisticNextResult.id)
-      return [optimisticNextResult, ...deduped].sort((a, b) => b.completedAt - a.completedAt)
+      return [optimisticNextResult, ...deduped].sort((a, b) => b.createdAt - a.createdAt)
     })
     playgroundRecorder.record({
       runBlock: block,
@@ -53,7 +53,10 @@ export function useCanvasRuntime({
       noteId: canvasNoteId,
       resultId: runtimeId,
       data: results,
-      completedAt: results.endTime || Date.now(),
+      createdAt: results.endTime || Date.now(),
+      // Canvas noteIds ('canvas:<route>') parse as 'workout' — override so
+      // canvas runs are excluded from default journal filters.
+      origin: 'playground',
     }).catch(() => {})
   }, [canvasNoteId])
 

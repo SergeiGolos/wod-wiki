@@ -4,14 +4,19 @@ import { toShortId } from '@/lib/idUtils';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { HistoryEntry } from '@/types/history';
-import type { AnalyticsDataPoint, Attachment, Note, WorkoutResult } from '@/types/storage';
-import { MetricContainer } from '@/core/models/MetricContainer';
+import type { AnalyticsDataPoint, Attachment, Note, ResultOrigin, WorkoutResult } from '@/types/storage';
+import { MetricType } from '@/core/models/Metric';
 
 import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
 import {
+  replayResultAnalytics,
+  resolveCanonicalMetricKey,
+} from '@/services/analytics/workoutDerivation';
+import { createParser } from '@/parser/parserInstance';
+import type { ScriptBlock } from '@/components/Editor/types';
+import {
   NotePersistenceError,
-  type AnalyticsSegmentInput,
   type CreateNoteInput,
   type GetNoteOptions,
   type NoteLocator,
@@ -22,7 +27,7 @@ import {
 } from './types';
 
 function sortNewest(results: WorkoutResult[]): WorkoutResult[] {
-  return [...results].sort((a, b) => b.completedAt - a.completedAt);
+  return [...results].sort((a, b) => b.createdAt - a.createdAt);
 }
 
 function limitResults(results: WorkoutResult[], limit?: number): WorkoutResult[] {
@@ -30,155 +35,76 @@ function limitResults(results: WorkoutResult[], limit?: number): WorkoutResult[]
 }
 
 
-interface PersistableMetricSource {
-  readonly type: string;
-  readonly value?: unknown;
-  readonly key?: string;
-  readonly unit?: string;
-  readonly image?: string;
-  readonly metadata?: { label?: string; unit?: string; target?: string };
-}
-
-function humanizeMetricKey(key: string): string {
-  return key
-    .replace(/[_-]+/g, ' ')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/([A-Za-z])(\d)/g, '$1 $2')
-    .replace(/(\d)([A-Za-z])/g, '$1 $2')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/^./, first => first.toUpperCase());
-}
-
-function extractMetricValue(metric: PersistableMetricSource): number | undefined {
-  if (typeof metric.value === 'number' && Number.isFinite(metric.value)) {
-    return metric.value;
-  }
-
-  if (metric.value && typeof metric.value === 'object') {
-    const amount = (metric.value as { amount?: unknown }).amount;
-    if (typeof amount === 'number' && Number.isFinite(amount)) {
-      return amount;
-    }
-  }
-
-  return undefined;
-}
-
-function resolveMetricKey(metric: PersistableMetricSource): string {
-  const rawKey = metric.key ?? metric.metadata?.target ?? metric.type;
-  return String(rawKey);
-}
-
-function resolveMetricLabel(metric: PersistableMetricSource, metricKey: string): string {
-  const explicit = metric.metadata?.label;
-  return explicit && explicit.trim().length > 0 ? explicit : humanizeMetricKey(metricKey);
-}
-
-function resolveMetricUnit(metric: PersistableMetricSource): string {
-  return metric.unit ?? metric.metadata?.unit ?? '';
-}
-
-function appendMetricPoints(
-  points: AnalyticsDataPoint[],
-  segment: AnalyticsSegmentInput,
-  noteId: string,
-  resultId: string,
-  segmentId: string,
-  segmentVersion: number,
-  now: number,
-  source: PersistableMetricSource,
-  blockContentId: string | undefined,
-): void {
-  const value = extractMetricValue(source);
-  if (value === undefined) return;
-
-  const metricKey = resolveMetricKey(source);
-  const metricLabel = resolveMetricLabel(source, metricKey);
-  const metricUnit = resolveMetricUnit(source);
-  const segmentLabel = segment.name ?? 'Segment';
-  const label = `${segmentLabel} – ${metricLabel}`;
-
-  points.push({
-    id: `${segmentId}-${metricKey}-${now}`,
-    noteId,
-    blockContentId,
-    segmentId,
-    segmentVersion,
-    resultId,
-    type: metricKey,
-    value,
-    unit: metricUnit,
-    label,
-    metricKey,
-    metricLabel,
-    metricUnit,
-    timestamp: segment.absoluteStartTime ?? now,
-    createdAt: now,
-  });
+/**
+ * Identity of the block a result belongs to, stamped on every fact row.
+ */
+export interface SummaryFactIdentity {
+  noteId: string;
+  resultId: string;
+  /** FK to NoteSegment.id (positional section id of the block run). */
+  segmentId?: string;
+  /** NoteSegment.version at record time. */
+  segmentVersion?: number;
+  /** Content-stable cross-note join key. */
+  blockContentId?: string;
+  /** Which surface produced the result; trend queries exclude 'playground' by default. */
+  origin?: ResultOrigin;
+  /** FK to the `page` store (copied from the parent note). */
+  pageId?: string;
 }
 
 /**
- * Convert runtime analytics segment snapshots into persisted analytics rows.
+ * Convert Tier-2 summary outputs (outputType 'analytics') in a result's logs
+ * into persisted fact rows — one row per result × Canonical Metric Key.
  *
- * NOTE: This is a derived denormalization of WorkoutResult.data.logs.
- * The canonical data for a single workout is WorkoutResult.data.logs;
- * getAnalyticsFromLogs() is the authoritative derivation path for display.
+ * The analytics store holds SUMMARY FACTS ONLY (CONTEXT.md, 2026-07-20):
+ * per-segment data (Tier 0 + Tier 1) is not denormalized here — it stays in
+ * WorkoutResult.data.logs, the authoritative source for a single workout.
  *
- * These rows exist to support future cross-workout trend queries
- * (e.g. "average reps over the last 30 sessions"). They are not required
- * for any current feature. If this write fails or is skipped, the workout
- * result remains fully functional. Do not add features that depend on reading
- * from the analytics store without first implementing a read path.
+ * These rows exist for cross-workout queries ("compare total volume across my
+ * last 30 Fran runs"). If this write fails or is skipped, the workout result
+ * remains fully functional.
  */
-export function normalizeAnalyticsSegments(
-  segments: AnalyticsSegmentInput[],
-  noteId: string,
-  resultId?: string,
-  segmentVersions: Record<string, number | undefined> = {},
-  blockContentId?: string,
+export function normalizeSummaryFacts(
+  logs: readonly { outputType: string; metrics: readonly { type: string; value?: unknown; image?: string; unit?: string }[]; timeSpan: { started: number; ended?: number } }[],
+  identity: SummaryFactIdentity,
 ): AnalyticsDataPoint[] {
   const now = Date.now();
-  const resolvedResultId = resultId ?? '';
-  const points: AnalyticsDataPoint[] = [];
+  const rows: AnalyticsDataPoint[] = [];
 
-  for (const segment of segments) {
-    const segmentId = String(segment.id);
-    const segmentVersion = segmentVersions[segmentId] ?? 0;
-    if (segment.elapsed != null && segment.elapsed > 0) {
-      points.push({
-        id: `${segmentId}-elapsed-${now}`,
-        noteId,
-        blockContentId,
-        segmentId,
-        segmentVersion,
-        resultId: resolvedResultId,
-        type: 'elapsed',
-        value: segment.elapsed,
-        unit: 's',
-        label: `${segment.name ?? 'Segment'} – Elapsed`,
-        metricKey: 'elapsed',
-        metricLabel: 'Elapsed',
-        metricUnit: 's',
-        timestamp: segment.absoluteStartTime ?? now,
-        createdAt: now,
-      });
-    }
+  for (const output of logs) {
+    if (output.outputType !== 'analytics') continue;
+    const label = output.metrics.find(m => m.type === MetricType.Label);
+    const value = output.metrics.find(m => m.type !== MetricType.Label && typeof m.value === 'number');
+    if (!label || !value) continue;
 
-    const metricSources = segment.metrics
-      ? MetricContainer.from(segment.metrics, segmentId).toArray()
-      : Object.entries(segment.metric ?? {}).map(([key, value]) => ({
-          type: key,
-          key,
-          value,
-        }));
+    const projectionName = String(label.value ?? label.image ?? '');
+    if (!projectionName) continue;
+    const metricKey = resolveCanonicalMetricKey(projectionName);
 
-    for (const source of metricSources as PersistableMetricSource[]) {
-      appendMetricPoints(points, segment, noteId, resolvedResultId, segmentId, segmentVersion, now, source, blockContentId);
-    }
+    rows.push({
+      id: `${identity.resultId}-${metricKey}-${now}`,
+      noteId: identity.noteId,
+      blockContentId: identity.blockContentId,
+      origin: identity.origin,
+      pageId: identity.pageId,
+      grain: 'summary',
+      segmentId: identity.segmentId ?? '',
+      segmentVersion: identity.segmentVersion ?? 0,
+      resultId: identity.resultId,
+      type: metricKey,
+      value: value.value as number,
+      unit: value.unit,
+      label: projectionName,
+      metricKey,
+      metricLabel: projectionName,
+      metricUnit: value.unit,
+      timestamp: output.timeSpan.started ?? now,
+      createdAt: now,
+    });
   }
 
-  return points;
+  return rows;
 }
 
 export class IndexedDBNotePersistence implements INotePersistence {
@@ -201,7 +127,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
       journalDate: input.journalDate,
       type: input.type ?? 'note',
       slug: input.slug,
-      createdFrom: input.createdFrom,
+      sourceId: input.sourceId,
     });
   }
 
@@ -291,7 +217,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
       if (mutation.workoutResult) {
         const id = this.locatorToId(locator);
         const now = Date.now();
-        note = { id, title: id, rawContent: '', tags: [], createdAt: now, updatedAt: now, targetDate: now, segmentIds: [] };
+        note = { id, title: id, createdAt: now, type: mutation.noteType ?? mutation.metadata?.type };
         await this.storage.saveNote(note);
       } else {
         throw new NotePersistenceError('NOTE_NOT_FOUND', `Note not found: ${this.describeLocator(locator)}`);
@@ -303,10 +229,11 @@ export class IndexedDBNotePersistence implements INotePersistence {
       ...mutation.metadata,
       rawContent: mutation.rawContent,
       results: mutation.workoutResult?.data,
-      segmentId: mutation.workoutResult?.segmentId,  // NoteSegment FK (for analytics)
+      segmentId: mutation.workoutResult?.segmentId,  // NoteSegment FK (positional section id)
       blockId: mutation.workoutResult?.blockId,  // line-based position key
       blockContentId: mutation.workoutResult?.blockContentId,  // content-stable join key
-      version: mutation.workoutResult?.version,  // content generation
+      version: mutation.workoutResult?.version,  // LEGACY — retired computeVersion path
+      origin: mutation.workoutResult?.origin,  // which surface produced the result
       resultId,
     };
 
@@ -314,20 +241,29 @@ export class IndexedDBNotePersistence implements INotePersistence {
       await this.contentProvider.updateEntry(note.id, patch);
     }
 
-    const analyticsSegments = mutation.analytics?.segments ?? mutation.workoutResult?.analyticsSegments;
-    if (analyticsSegments && analyticsSegments.length > 0) {
-      const segmentVersions = await this.getAnalyticsSegmentVersions(analyticsSegments);
-      const points = normalizeAnalyticsSegments(
-        analyticsSegments,
-        note.id,
-        mutation.analytics?.resultId ?? resultId,
-        segmentVersions,
-        mutation.workoutResult?.blockContentId,
-      );
-      // Persist derived analytics rows for future cross-workout trend queries.
-      // Non-load-bearing: WorkoutResult.data.logs is the authoritative source.
-      // If this write fails, the workout result remains fully functional.
-      await this.storage.saveAnalyticsPoints(points);
+    // Summary facts: extracted from Tier-2 ('analytics') outputs already in
+    // the result's logs — no separate analytics channel (CONTEXT.md 2026-07-20).
+    const resultLogs = mutation.workoutResult?.data.logs;
+    if (resultId && resultLogs?.length) {
+      // Resolve AFTER updateEntry so a same-mutation content edit is reflected
+      // in the segment version stamped on fact rows.
+      const segmentId = mutation.workoutResult?.segmentId;
+      const segmentVersion = segmentId
+        ? (await this.storage.getLatestSegmentVersion(segmentId))?.version
+        : undefined;
+      const points = normalizeSummaryFacts(resultLogs, {
+        noteId: note.id,
+        resultId,
+        segmentId,
+        segmentVersion,
+        blockContentId: mutation.workoutResult?.blockContentId,
+        origin: mutation.workoutResult?.origin,
+        pageId: note.pageId,
+      });
+      if (points.length > 0) {
+        // Non-load-bearing: WorkoutResult.data.logs is the authoritative source.
+        await this.storage.saveAnalyticsPoints(points);
+      }
     }
 
     if (mutation.attachments?.add) {
@@ -336,6 +272,8 @@ export class IndexedDBNotePersistence implements INotePersistence {
         await this.storage.saveAttachment({
           id: attachment.id ?? uuidv4(),
           noteId: note.id,
+          pageId: note.pageId,
+          resultId,
           label: attachment.label,
           mimeType: attachment.mimeType,
           data: attachment.data,
@@ -361,6 +299,73 @@ export class IndexedDBNotePersistence implements INotePersistence {
       throw new NotePersistenceError('NOTE_NOT_FOUND', `Note not found: ${this.describeLocator(locator)}`);
     }
     await this.contentProvider.deleteEntry(note.id);
+  }
+
+  /**
+   * Re-derivation cascade (Candidate 5 / spec §7) — the replay seam consumer.
+   *
+   * Loads the exact NoteSegment incarnation the result was recorded against
+   * (for engine context), replays data.logs through the headless
+   * AnalyticsEngine (strip Tier-1 'analyzed' annotations → re-run realtime
+   * processors → re-run summary processors), writes back data.logs with
+   * regenerated Tier-2 outputs, then purges and re-normalizes the summary
+   * fact rows.
+   *
+   * Lives on the concrete class (not INotePersistence): the provider-delegated
+   * adapter has no direct store access to drive the cascade.
+   */
+  async rederiveResultAnalytics(resultId: string): Promise<WorkoutResult> {
+    const result = await this.storage.getResultById(resultId);
+    if (!result) {
+      throw new NotePersistenceError('RESULT_NOT_FOUND', `Result not found: ${resultId}`);
+    }
+
+    // Engine context comes from the stored segment (replay deep-dive Gap A):
+    // pinned incarnation first, latest as fallback for rows recorded before
+    // segmentVersion was stamped.
+    const segment = result.segmentId
+      ? (result.segmentVersion != null && this.storage.getSegment
+          ? await this.storage.getSegment(result.segmentId, result.segmentVersion)
+          : undefined) ?? await this.storage.getLatestSegmentVersion(result.segmentId)
+      : undefined;
+    const scriptBlock = segment?.data as ScriptBlock | null | undefined;
+    if (!scriptBlock) {
+      throw new NotePersistenceError(
+        'SEGMENT_NOT_FOUND',
+        `Cannot re-derive result ${resultId}: no NoteSegment with a scriptBlock for segmentId '${result.segmentId ?? '<none>'}'`,
+      );
+    }
+
+    const block = scriptBlock.statements?.length
+      ? scriptBlock
+      : { ...scriptBlock, statements: createParser().read(scriptBlock.content).statements };
+
+    const derivedLogs = replayResultAnalytics(result, block);
+    const updated: WorkoutResult = {
+      ...result,
+      data: { ...result.data, logs: derivedLogs },
+    };
+    await this.storage.saveResult(updated);
+
+    // Re-normalize summary facts from the canonical derived logs (single
+    // derivation policy — the fact table must agree with data.logs).
+    if (this.storage.deleteAnalyticsPointsForResult) {
+      await this.storage.deleteAnalyticsPointsForResult(result.id);
+    }
+    const points = normalizeSummaryFacts(derivedLogs, {
+      noteId: updated.noteId,
+      resultId: result.id,
+      segmentId: updated.segmentId,
+      segmentVersion: updated.segmentVersion,
+      blockContentId: updated.blockContentId,
+      origin: updated.origin,
+      pageId: updated.pageId,
+    });
+    if (points.length > 0) {
+      await this.storage.saveAnalyticsPoints(points);
+    }
+
+    return updated;
   }
 
   private async resolveNote(locator: NoteLocator): Promise<Note | undefined> {
@@ -404,14 +409,27 @@ export class IndexedDBNotePersistence implements INotePersistence {
     return locator.id ?? locator.slug ?? locator.shortId ?? locator.title ?? '';
   }
 
-  private async getAnalyticsSegmentVersions(segments: AnalyticsSegmentInput[]): Promise<Record<string, number | undefined>> {
-    const segmentIds = Array.from(new Set(segments.map(segment => String(segment.id))));
-    const latestSegments = await this.storage.getLatestSegments(segmentIds);
-    return Object.fromEntries(latestSegments.map(segment => [segment.id, segment.version]));
+  /**
+   * Cross-note "similar workouts" read path (Candidate 1 / cross-note-result-
+   * aggregation ADR): every result recorded against the same blockContentId,
+   * across all notes. Playground-origin rows are excluded by default — pass
+   * includePlayground to reveal them. Sorted newest-first.
+   */
+  async getSimilarWorkoutResults(
+    blockContentId: string,
+    options: { excludeNoteId?: string; includePlayground?: boolean; limit?: number } = {},
+  ): Promise<WorkoutResult[]> {
+    let results = await this.storage.getResultsByContentId(blockContentId);
+    if (options.excludeNoteId) {
+      results = results.filter(r => r.noteId !== options.excludeNoteId);
+    }
+    if (!options.includePlayground) {
+      results = results.filter(r => r.origin !== 'playground');
+    }
+    return limitResults(sortNewest(results), options.limit);
   }
 
-  private async selectResults(note: Note, selection: ResultSelection = { mode: 'latest' }): Promise<Partial<HistoryEntry>> {
-    if (selection.mode === 'by-result-id') {
+  private async selectResults(note: Note, selection: ResultSelection = { mode: 'latest' }): Promise<Partial<HistoryEntry>> {    if (selection.mode === 'by-result-id') {
       const result = await this.storage.getResultById(selection.resultId);
       if (!result) {
         throw new NotePersistenceError('RESULT_NOT_FOUND', `Result not found: ${selection.resultId}`);

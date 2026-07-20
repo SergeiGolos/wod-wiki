@@ -59,6 +59,6 @@ describe('TimerBlock', () => {
     expect(harness.stackDepth).toBe(0);
 
     // Block should have completion timing set
-    expect(block.executionTiming.completedAt).toBeDefined();
+    expect(block.executionTiming.createdAt).toBeDefined();
   });
 });

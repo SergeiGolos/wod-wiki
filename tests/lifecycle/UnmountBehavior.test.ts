@@ -32,6 +32,6 @@ describe('Unmount Lifecycle', () => {
         expect(harness.stackDepth).toBe(0);
 
         // Expect block timing completed
-        expect(block.executionTiming.completedAt).toBeDefined();
+        expect(block.executionTiming.createdAt).toBeDefined();
     });
 });

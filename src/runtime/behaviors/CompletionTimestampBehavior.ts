@@ -33,7 +33,7 @@ export class CompletionTimestampBehavior implements IRuntimeBehavior {
                 image: this.completionTime.toISOString(),
                 origin: 'runtime',
                 value: {
-                    completedAt: this.completionTime.getTime(),
+                    createdAt: this.completionTime.getTime(),
                     timestamp: this.completionTime
                 },
                 sourceBlockKey: ctx.block.key.toString(),

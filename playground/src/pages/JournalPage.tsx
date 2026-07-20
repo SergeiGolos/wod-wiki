@@ -213,14 +213,14 @@ function JournalPageInner({
           noteId: currentEntry.id,
           resultId: activeRuntimeId,
           data: workoutResults,
-          completedAt: workoutResults?.endTime ?? Date.now(),
+          createdAt: workoutResults?.endTime ?? Date.now(),
         }).then(() => {
           refreshResults()
         }).catch(() => {})
         setActiveRuntimeId(null)
       }
       // WorkoutResults has .logs and .startTime directly (not nested under .data)
-      if (workoutResults?.logs) {
+      if (workoutResults?.logs?.length) {
         const { segments } = getAnalyticsFromLogs(workoutResults.logs, workoutResults.startTime)
         setReviewSegments(segments)
         setIsReviewOpen(true)

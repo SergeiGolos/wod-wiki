@@ -125,21 +125,8 @@ export const AddScriptToNoteDropdown: React.FC<AddScriptToNoteDropdownProps> = (
                 targetDate: targetDate.getTime(),
                 tags: [],
                 notes: '',
-                templateId: sourceNoteId,
+                sourceId: sourceNoteId,
             });
-
-            // Update source note's clonedIds to create bidirectional link
-            if (sourceNoteId) {
-                try {
-                    const source = await provider.getEntry(sourceNoteId);
-                    if (source) {
-                        const updatedClonedIds = [...(source.clonedIds || []), newEntry.id];
-                        await provider.updateEntry(sourceNoteId, { clonedIds: updatedClonedIds });
-                    }
-                } catch (err) {
-                    console.error('Failed to update source note links:', err);
-                }
-            }
 
             onAddSuccess?.(newEntry.id);
             setOpen(false);

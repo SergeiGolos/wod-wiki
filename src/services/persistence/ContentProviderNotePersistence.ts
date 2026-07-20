@@ -22,7 +22,7 @@ function locatorToId(locator: NoteLocator): string {
 }
 
 function sortNewest(results: WorkoutResult[]): WorkoutResult[] {
-  return [...results].sort((a, b) => b.completedAt - a.completedAt);
+  return [...results].sort((a, b) => b.createdAt - a.createdAt);
 }
 
 function selectResults(entry: HistoryEntry, selection?: ResultSelection): Partial<HistoryEntry> {
@@ -68,7 +68,7 @@ export class ContentProviderNotePersistence implements INotePersistence {
       journalDate: input.journalDate,
       type: input.type ?? 'note',
       slug: input.slug,
-      createdFrom: input.createdFrom,
+      sourceId: input.sourceId,
     });
   }
 
@@ -130,6 +130,7 @@ export class ContentProviderNotePersistence implements INotePersistence {
       blockContentId: mutation.workoutResult?.blockContentId,
       version: mutation.workoutResult?.version,
       segmentId: mutation.workoutResult?.segmentId,
+      origin: mutation.workoutResult?.origin,
       resultId: mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv4() : undefined),
     };
 

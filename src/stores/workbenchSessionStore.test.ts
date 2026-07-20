@@ -314,7 +314,6 @@ describe('workbenchSessionStore', () => {
     // `WorkoutResults.startTime`/etc.); the session's `completeWorkout`
     // mints it and passes it through.
     expect(call.mutation.workoutResult?.id).toBe(resultId);
-    expect(call.mutation.workoutResult?.analyticsSegments?.length).toBe(1);
 
     expect(intents.length).toBe(1);
     const intent = intents[0] as { type: string };

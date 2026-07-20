@@ -14,12 +14,8 @@ export function noteToMarkdown(entry: HistoryEntry, clock?: INowProvider): strin
         `- **Tags**: ${entry.tags.join(', ') || 'None'}`,
     ];
 
-    if (entry.templateId) {
-        metadata.push(`- **Cloned From**: ${entry.templateId}`);
-    }
-
-    if (entry.clonedIds && entry.clonedIds.length > 0) {
-        metadata.push(`- **Cloned To**: ${entry.clonedIds.join(', ')}`);
+    if (entry.sourceId) {
+        metadata.push(`- **Cloned From**: ${entry.sourceId}`);
     }
 
     metadata.push('', '## Content', '', entry.rawContent);

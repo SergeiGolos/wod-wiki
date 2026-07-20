@@ -7,7 +7,7 @@
  */
 
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from './history';
-import type { Attachment } from './storage';
+import type { Attachment, ResultOrigin } from './storage';
 
 export type AttachmentCreateInput = Omit<Attachment, 'id' | 'noteId' | 'createdAt'> & { id?: string };
 
@@ -61,7 +61,7 @@ export interface IContentProvider {
    */
   saveEntry(entry: NoteSaveInput): Promise<HistoryEntry>;
   cloneEntry(sourceId: string, targetDate?: number): Promise<HistoryEntry>;
-  updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate' | 'journalDate' | 'createdFrom' | 'slug' | 'type'>> & { sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number }): Promise<HistoryEntry>;
+  updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'journalDate' | 'slug' | 'type' | 'sourceId'>> & { sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number; segmentId?: string; origin?: ResultOrigin }): Promise<HistoryEntry>;
   deleteEntry(id: string): Promise<void>;
 
   // Attachments

@@ -48,7 +48,6 @@ export function useCreateJournalEntry(_opts: UseCreateJournalEntryOptions = {}) 
             journalDate: dateKey,
             title: dateKey,
             rawContent: content,
-            createdFrom: { kind: 'blank' },
           })
           navigate(journalNotePath(dateKey, note.id))
         },

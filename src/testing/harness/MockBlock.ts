@@ -508,7 +508,7 @@ export class MockBlock implements IRuntimeBlock {
 
   unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     const clock = options?.clock ?? runtime.clock;
-    this.executionTiming.completedAt = options?.completedAt ?? clock.currentDate;
+    this.executionTiming.createdAt = options?.createdAt ?? clock.currentDate;
 
     if (this._forcedUnmountActions.length > 0) {
       return [...this._forcedUnmountActions];

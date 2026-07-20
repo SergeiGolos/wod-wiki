@@ -41,7 +41,7 @@ function resolveAnalyticsMetricKey(metric: IMetric): string {
 
   switch (metric.type) {
     case 'rep':
-      return 'repetitions';
+      return 'reps'; // Canonical Metric Key — same in fact rows and display (CONTEXT.md)
     case 'distance':
       return 'distance';
     case 'resistance':
@@ -197,7 +197,7 @@ export class AnalyticsTransformer {
       'cadence': { id: 'cadence', label: 'Cadence', unit: 'rpm', color: '#3b82f6', dataKey: 'cadence', icon: 'Wind' },
       'speed': { id: 'speed', label: 'Speed', unit: 'km/h', color: '#10b981', dataKey: 'speed', icon: 'Gauge' },
       'resistance': { id: 'resistance', label: 'Resistance', unit: 'kg', color: '#f59e0b', dataKey: 'resistance', icon: 'Dumbbell' },
-      'repetitions': { id: 'repetitions', label: 'Reps', unit: 'reps', color: '#6366f1', dataKey: 'repetitions', icon: 'Hash' },
+      'reps': { id: 'reps', label: 'Reps', unit: 'reps', color: '#6366f1', dataKey: 'reps', icon: 'Hash' },
       'calories': { id: 'calories', label: 'Calories', unit: 'cal', color: '#f97316', dataKey: 'calories', icon: 'Flame' },
       'duration': { id: 'duration', label: 'Duration', unit: 's', color: '#0ea5e9', dataKey: 'duration', icon: 'Timer' },
       'elapsed': { id: 'elapsed', label: 'Elapsed', unit: 's', color: '#14b8a6', dataKey: 'elapsed', icon: 'Clock' },
@@ -311,11 +311,11 @@ export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): Analyti
  * review grids, or trend summaries.
  *
  * Relationship to the analytics IDB store:
- *   The `analytics` IndexedDB store holds AnalyticsDataPoint[] rows written
- *   by normalizeAnalyticsSegments(). Those rows are a derived denormalization
- *   intended for future cross-workout trend queries. They are NOT required for
- *   any current feature. If they disagree with logs, logs win. Use this
- *   function — not the analytics store — to obtain segment data for display.
+ *   The `analytics` IndexedDB store holds AnalyticsDataPoint[] summary fact
+ *   rows written by normalizeSummaryFacts() from Tier-2 outputs in data.logs.
+ *   They are NOT required for any current display feature. If they disagree
+ *   with logs, logs win. Use this function — not the analytics store — to
+ *   obtain segment data for display.
  *
  * @param outputs - StoredOutputStatement[] from WorkoutResult.data.logs
  * @param workoutStartTime - Optional workout start timestamp (ms). Used to
@@ -344,3 +344,4 @@ export function getAnalyticsFromLogs(outputs: StoredOutputStatement[], workoutSt
 
   return { segments, groups };
 }
+

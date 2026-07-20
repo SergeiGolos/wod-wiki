@@ -52,13 +52,13 @@ mock.module('@/services/db/IndexedDBService', () => ({
       {
         id: 'r1',
         noteId: `journal/${PAST_DATE}`,
-        completedAt: new Date(PAST_DATE + 'T10:00:00').getTime(),
+        createdAt: new Date(PAST_DATE + 'T10:00:00').getTime(),
         data: { completed: true },
       },
       {
         id: 'r2',
         noteId: 'playground/abc-123',
-        completedAt: new Date(PLAYGROUND_DATE + 'T10:00:00').getTime(),
+        createdAt: new Date(PLAYGROUND_DATE + 'T10:00:00').getTime(),
         data: { completed: true },
       },
     ],

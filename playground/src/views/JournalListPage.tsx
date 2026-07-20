@@ -37,8 +37,6 @@ import { localDateKey, type JournalEntrySummary } from './queriable-list/Journal
 import type { FilteredListItem } from './queriable-list/types'
 import { JournalFeed } from './JournalFeed'
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
 function addDays(date: Date, n: number): Date {
   const d = new Date(date)
   d.setDate(d.getDate() + n)
@@ -218,9 +216,13 @@ export function JournalListPage({
 
   // ── Map results → list items ──────────────────────────────────────────────
   const listItems = useMemo<FilteredListItem[]>(() => {
-    const allItems = (results as Array<{ id: string; noteId?: string; completedAt: number; data?: { completed?: boolean } }>).map(r => {
+    const allItems = (results as Array<{ id: string; noteId?: string; createdAt: number; origin?: 'journal' | 'playground'; data?: { completed?: boolean } }>).map(r => {
       const safeNoteId = r.noteId || ''
-      const isPlayground = safeNoteId.startsWith('playground/') || UUID_RE.test(safeNoteId)
+      // Explicit origin field wins (stamped by the recorder). Legacy rows have
+      // no origin — fall back to the playground/ noteId prefix only. UUID notes
+      // are canonical journal notes (note-identity-uuid-canonical ADR), so a
+      // bare UUID must NOT classify as playground.
+      const isPlayground = r.origin ? r.origin === 'playground' : safeNoteId.startsWith('playground/')
       const parts = safeNoteId.split('/')
       const lastSegment = parts[parts.length - 1] || safeNoteId
       const isDateSegment = /^\d{4}-\d{2}-\d{2}$/.test(lastSegment)
@@ -234,7 +236,7 @@ export function JournalListPage({
         type: 'result' as const,
         title,
         subtitle: r.data?.completed ? 'Completed' : 'Partial',
-        date: r.completedAt,
+        date: r.createdAt,
         group: isPlayground ? 'playground' : undefined,
         payload: r,
       }

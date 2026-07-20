@@ -145,7 +145,7 @@ export function MarkdownCanvasPage({
     notePersistence.listNotes({ ids: [canvasNoteId], projection: 'history-detail' }).then((entries) => {
       const results = entries[0]?.extendedResults ?? []
       if (cancelled) return
-      runtime.setPersistedResults(results.sort((a, b) => b.completedAt - a.completedAt))
+      runtime.setPersistedResults(results.sort((a, b) => b.createdAt - a.createdAt))
     }).catch(() => {
       if (!cancelled) runtime.setPersistedResults([])
     })

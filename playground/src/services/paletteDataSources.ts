@@ -24,7 +24,8 @@ export type WorkoutItem = IndexWorkoutItem;
  */
 export function globalSearchSource(
   items: WorkoutItem[],
-  canvasRoutes?: CanvasRoute[]
+  canvasRoutes?: CanvasRoute[],
+  showPlaygrounds = false,
 ): PaletteDataSource {
   return {
     id: 'global-search',
@@ -79,12 +80,16 @@ export function globalSearchSource(
         const recent = await indexedDBService.getRecentResults(50);
         recent
           .filter(r => {
+            const isPlayground = r.origin
+              ? r.origin === 'playground'
+              : r.noteId.startsWith('playground/');
+            if (isPlayground && !showPlaygrounds) return false;
             const name = r.noteId.split('/').pop()?.toLowerCase() ?? '';
             return !low || name.includes(low) || r.id.toLowerCase().includes(low);
           })
           .slice(0, 5)
           .forEach(r => {
-            const date = new Date(r.completedAt).toLocaleDateString();
+            const date = new Date(r.createdAt).toLocaleDateString();
             const name = r.noteId.split('/').pop() ?? r.noteId;
             results.push({
               id: r.id,

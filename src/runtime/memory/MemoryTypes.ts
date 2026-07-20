@@ -98,7 +98,7 @@ export interface CompletionState {
     readonly reason?: 'timer-expired' | 'rounds-complete' | 'user-advance' | 'manual' | string;
 
     /** Timestamp of completion (epoch ms) */
-    readonly completedAt?: number;
+    readonly createdAt?: number;
 }
 
 /**

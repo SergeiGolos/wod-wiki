@@ -385,7 +385,7 @@ export class ScriptRuntime implements IScriptRuntime {
      * Handles the full lifecycle: unmount, pop, dispose, and parent notification.
      * Also handles hooks, tracking, wrapping cleanup, and logging if configured.
      * 
-     * @param lifecycle Optional lifecycle options (completedAt, etc.)
+     * @param lifecycle Optional lifecycle options (createdAt, etc.)
      */
     public popBlock(lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
         const currentBlock = this.stack.current;

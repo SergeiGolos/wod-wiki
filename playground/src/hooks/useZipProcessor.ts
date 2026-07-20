@@ -28,7 +28,6 @@ export function useZipProcessor() {
           rawContent: content,
           type: 'playground',
           slug: `playground/${id}`,
-          createdFrom: { kind: 'zip' },
         });
         
         if (!cancelled) {

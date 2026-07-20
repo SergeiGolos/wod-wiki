@@ -379,7 +379,7 @@ export class RuntimeBlock implements IRuntimeBlock {
     unmount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         // Use provided clock or fall back to runtime clock
         const clock = options?.clock ?? runtime.clock;
-        this.executionTiming.endTime = options?.completedAt ?? clock.currentDate;
+        this.executionTiming.endTime = options?.createdAt ?? clock.currentDate;
 
         const actions: IRuntimeAction[] = [];
 

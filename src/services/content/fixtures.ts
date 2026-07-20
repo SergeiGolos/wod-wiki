@@ -10,6 +10,5 @@ export const createMockEntry = (overrides: Partial<HistoryEntry> = {}): HistoryE
     tags: ['mock'],
     results: undefined,
     schemaVersion: 1,
-    clonedIds: [],
     ...overrides
 });

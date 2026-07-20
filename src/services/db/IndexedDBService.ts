@@ -17,10 +17,13 @@
  * V8 — slug field + by-slug index on notes; lazy per-note UUID migration
  *      for legacy route-id-keyed journal notes (note-identity-uuid-canonical ADR).
  */
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { openDB, DBSchema, IDBPDatabase, IDBPTransaction, IndexNames, StoreNames } from 'idb';
 import {
     Note,
     NoteSegment,
+    NoteTag,
+    Page,
+    Tag,
     WorkoutResult,
     Attachment,
     AnalyticsDataPoint,
@@ -48,40 +51,62 @@ export interface WodWikiDB extends DBSchema {
         key: string;
         value: Note;
         indexes: {
-            'by-updated': number;
-            'by-target-date': number;
             'by-slug': string; // V8 — slug (route) -> UUID; unique
+            'by-page': string; // V10 — pageId; page-scoped note queries
         };
+    };
+    page: {
+        key: string;
+        value: Page;
+        indexes: { 'by-date': string; 'by-slug': string }; // V10 — both unique-when-present
+    };
+    tags: {
+        key: string;
+        value: Tag;
+        indexes: { 'by-label': string; 'by-type': string };
+    };
+    note_tags: {
+        key: string;
+        value: NoteTag;
+        indexes: { 'by-note': string; 'by-tag': string };
     };
     segments: {
         key: [string, number]; // [id, version]
         value: NoteSegment;
-        indexes: { 'by-note': string; 'by-type': SegmentDataType };
+        indexes: { 'by-note': string; 'by-type': SegmentDataType; 'by-page': string; 'by-history': number };
     };
     results: {
         key: string;
         value: WorkoutResult;
         indexes: {
-            'by-segment': string; // legacy: indexes a nonexistent field; left to preserve schema shape
+            'by-segment': string; // segmentId — per-block journal queries (live since identity fix)
             'by-note': string;
             'by-completed': number;
             'by-content': string; // V6 — blockContentId; cross-note collection aggregation
             'by-block': string;   // V6 — blockId; efficient per-clone journal queries
+            'by-page': string;    // V10 — pageId
+            'by-origin': string;  // V10 — origin; default exclusion of playground rows
         };
     };
     attachments: {
         key: string;
         value: Attachment;
-        indexes: { 'by-note': string; 'by-time': number };
+        indexes: { 'by-note': string; 'by-time': number; 'by-page': string; 'by-result': string };
     };
     analytics: {
         key: string;
         value: AnalyticsDataPoint;
         indexes: {
-            'by-type': string; // legacy: field is `type`, not `metricType`; left as-is
+            'by-type': string; // the row's metric key (field is `type`)
             'by-segment': string;
             'by-result': string;
-            'by-content': string; // V6 — blockContentId; cross-workout trend queries
+            'by-content': string;    // V6 — blockContentId; cross-workout trend queries
+            'by-page': string;       // V10 — pageId
+            'by-origin': string;     // V10 — origin
+            'by-metric': string;     // V10 — metricKey; canonical cross-workout metric join
+            'by-effort': string;     // V10 — effortSlug
+            'by-grain': string;      // V10 — grain ('segment' | 'summary')
+            'by-discipline': string; // V10 — discipline
         };
     };
     efforts: {
@@ -92,14 +117,210 @@ export interface WodWikiDB extends DBSchema {
 }
 
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 9; // V9 — re-fire upgrade to (re)create by-slug + V6 indexes; upgrade mutations now use the upgrade transaction (db.transaction() inside upgrade was unreliable)
+const DB_VERSION = 11; // V11 — destructive: results.completedAt→createdAt (+ index rebuild), segments drop level/scriptBlock + gain position, Note slim-down (journalDate/rawContent/segmentIds/clonedIds/createdFrom/updatedAt/targetDate removed, templateId→sourceId), tags[]→note_tags
+
+type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
+
+/**
+ * V10 backfill — runs inside the upgrade transaction when oldVersion < 10.
+ *
+ *  1. One calendar `page` per distinct notes.journalDate; notes.pageId set.
+ *  2. pageId propagated to results / segments / attachments via parent note.
+ *  3. results.segmentId backfilled from blockId (same positional value — the
+ *     R-02 rename); results.origin backfilled from the playground/ + canvas:
+ *     noteId prefixes (legacy rows otherwise stay undefined = 'journal').
+ *  4. segments.updatedAt defaults to createdAt; isHistory computed per id
+ *     (latest version = false, superseded = true).
+ *  5. The legacy `analytics` store is PURGED: pre-V10 rows carry garbage
+ *     segmentId/segmentVersion (runtime statement ids, always 0) and no
+ *     feature reads them. The replay seam (workoutDerivation) regenerates
+ *     fact rows from canonical data.logs on demand.
+ */
+async function backfillV10(tx: V10Tx): Promise<void> {
+    const now = Date.now();
+    const notesStore = tx.objectStore('notes');
+    const pageStore = tx.objectStore('page');
+
+    // Rows predate the V11 slim Note — journalDate exists only on legacy rows.
+    const notes = await notesStore.getAll() as Array<Note & { journalDate?: string }>;
+    const notesById = new Map(notes.map(n => [n.id, n]));
+
+    // 1. Calendar pages from journalDate.
+    const pageIdByDate = new Map<string, string>();
+    for (const note of notes) {
+        if (!note.journalDate || note.pageId) continue;
+        let pageId = pageIdByDate.get(note.journalDate);
+        if (!pageId) {
+            const existing = await pageStore.index('by-date').get(note.journalDate);
+            pageId = existing?.id ?? uuidV4();
+            if (!existing) {
+                await pageStore.put({ id: pageId, date: note.journalDate, title: note.journalDate, createdAt: now });
+            }
+            pageIdByDate.set(note.journalDate, pageId);
+        }
+        note.pageId = pageId;
+        await notesStore.put(note);
+    }
+
+    // 2 + 3. Results: pageId from parent note, segmentId from blockId, origin from prefix.
+    const resultsStore = tx.objectStore('results');
+    for await (const cursor of resultsStore) {
+        const result = cursor.value;
+        const note = notesById.get(result.noteId);
+        let dirty = false;
+        if (!result.pageId && note?.pageId) { result.pageId = note.pageId; dirty = true; }
+        if (!result.segmentId && result.blockId) { result.segmentId = result.blockId; dirty = true; }
+        if (!result.origin && (result.noteId.startsWith('playground/') || result.noteId.startsWith('canvas:'))) {
+            result.origin = 'playground';
+            dirty = true;
+        }
+        if (dirty) await cursor.update(result);
+    }
+
+    // 4. Segments: pageId, updatedAt, isHistory.
+    const segmentsStore = tx.objectStore('segments');
+    const allSegments = await segmentsStore.getAll();
+    const maxVersionById = new Map<string, number>();
+    for (const segment of allSegments) {
+        maxVersionById.set(segment.id, Math.max(maxVersionById.get(segment.id) ?? 0, segment.version));
+    }
+    for (const segment of allSegments) {
+        const note = notesById.get(segment.noteId);
+        if (!segment.pageId && note?.pageId) segment.pageId = note.pageId;
+        segment.updatedAt ??= segment.createdAt;
+        segment.isHistory = segment.version !== maxVersionById.get(segment.id);
+        await segmentsStore.put(segment);
+    }
+
+    // Attachments: pageId from parent note.
+    const attachmentsStore = tx.objectStore('attachments');
+    for await (const cursor of attachmentsStore) {
+        const attachment = cursor.value;
+        const note = notesById.get(attachment.noteId);
+        if (!attachment.pageId && note?.pageId) {
+            attachment.pageId = note.pageId;
+            await cursor.update(attachment);
+        }
+    }
+
+    // 5. Purge legacy analytics rows (garbage identity; replay regenerates).
+    await tx.objectStore('analytics').clear();
+}
+
+/**
+ * V11 backfill — destructive field migrations inside the upgrade transaction.
+ *  1. R-06 — results: createdAt <?= completedAt (field renamed in code).
+ *  2. Segments — position from the parent note's segmentIds order (before
+ *     N-04 removes it); dataType 'title' → h1 (h<level> when level present);
+ *     drop the level/scriptBlock fields (the block lives in `data`).
+ *  3. Notes — templateId→sourceId (createdFrom.ref as fallback); drop
+ *     journalDate (page linkage since V10), rawContent, segmentIds,
+ *     clonedIds, createdFrom, updatedAt, targetDate.
+ *  4. N-06 — notes.tags[] → shared tags + note_tags rows.
+ */
+async function backfillV11(tx: V10Tx): Promise<void> {
+    const now = Date.now();
+
+    // 1. Results: createdAt rename.
+    const resultsStore = tx.objectStore('results');
+    for await (const cursor of resultsStore) {
+        const row = cursor.value as WorkoutResult & { completedAt?: number };
+        if (row.completedAt != null && row.createdAt == null) {
+            row.createdAt = row.completedAt;
+        }
+        delete row.completedAt;
+        await cursor.update(row);
+    }
+
+    // 2. Segments: position + h1–h6 dataType + field drops.
+    const notesStore = tx.objectStore('notes');
+    const legacyNotes = await notesStore.getAll() as Array<Note & {
+        segmentIds?: string[];
+        journalDate?: string;
+        rawContent?: string;
+        clonedIds?: string[];
+        createdFrom?: { ref?: string };
+        updatedAt?: number;
+        targetDate?: number;
+        templateId?: string;
+        tags?: string[];
+    }>;
+    const orderByNote = new Map<string, string[]>();
+    for (const note of legacyNotes) {
+        if (note.segmentIds) orderByNote.set(note.id, note.segmentIds);
+    }
+
+    const segmentsStore = tx.objectStore('segments');
+    const allSegments = await segmentsStore.getAll();
+    for (const segment of allSegments) {
+        const row = segment as NoteSegment & { level?: number; scriptBlock?: unknown };
+        const order = orderByNote.get(segment.noteId);
+        if (row.position == null && order) {
+            const index = order.indexOf(segment.id);
+            if (index >= 0) row.position = index;
+        }
+        if (segment.dataType === 'title' || segment.dataType === 'header') {
+            const level = Math.min(6, Math.max(1, row.level ?? 1));
+            row.dataType = `h${level}` as SegmentDataType;
+        }
+        delete row.level;
+        delete row.scriptBlock;
+        await segmentsStore.put(row);
+    }
+
+    // 3 + 4. Notes: sourceId rename, field drops, tags migration.
+    const tagsStore = tx.objectStore('tags');
+    const noteTagsStore = tx.objectStore('note_tags');
+    const pageStore = tx.objectStore('page');
+    const tagIdByLabel = new Map<string, string>();
+    for (const note of legacyNotes) {
+        // Page linkage for any journal-dated note that missed V10.
+        if (note.journalDate && !note.pageId) {
+            const existing = await pageStore.index('by-date').get(note.journalDate);
+            const pageId = existing?.id ?? uuidV4();
+            if (!existing) {
+                await pageStore.put({ id: pageId, date: note.journalDate, title: note.journalDate, createdAt: now });
+            }
+            note.pageId = pageId;
+        }
+
+        if (note.templateId && !note.sourceId) note.sourceId = note.templateId;
+        if (note.createdFrom?.ref && !note.sourceId) note.sourceId = note.createdFrom.ref;
+
+        if (note.tags && note.tags.length > 0) {
+            for (const label of note.tags) {
+                let tagId = tagIdByLabel.get(label);
+                if (!tagId) {
+                    const existing = await tagsStore.index('by-label').get(label);
+                    tagId = existing?.id ?? uuidV4();
+                    if (!existing) {
+                        await tagsStore.put({ id: tagId, label, createdAt: now });
+                    }
+                    tagIdByLabel.set(label, tagId);
+                }
+                await noteTagsStore.put({ id: uuidV4(), noteId: note.id, tagId });
+            }
+        }
+
+        delete note.journalDate;
+        delete note.rawContent;
+        delete note.segmentIds;
+        delete note.clonedIds;
+        delete note.createdFrom;
+        delete note.updatedAt;
+        delete note.targetDate;
+        delete note.templateId;
+        delete note.tags;
+        await notesStore.put(note);
+    }
+}
 
 export class IndexedDBService {
     private dbPromise: Promise<IDBPDatabase<WodWikiDB>>;
 
     constructor() {
         this.dbPromise = openDB<WodWikiDB>(DB_NAME, DB_VERSION, {
-            upgrade(db, oldVersion, _newVersion, tx) {
+            async upgrade(db, oldVersion, _newVersion, tx) {
                 // -------------------------------------------------------
                 // Fresh-start strategy: drop everything below V4
                 // -------------------------------------------------------
@@ -113,8 +334,6 @@ export class IndexedDBService {
                 // ---- Notes ----
                 if (!db.objectStoreNames.contains('notes')) {
                     const store = db.createObjectStore('notes', { keyPath: 'id' });
-                    store.createIndex('by-updated', 'updatedAt');
-                    store.createIndex('by-target-date', 'targetDate');
                     store.createIndex('by-slug', 'slug', { unique: true });
                 } else {
                     // V8 — add by-slug (idempotent)
@@ -136,9 +355,12 @@ export class IndexedDBService {
                     const store = db.createObjectStore('results', { keyPath: 'id' });
                     store.createIndex('by-segment', 'segmentId');
                     store.createIndex('by-note', 'noteId');
-                    store.createIndex('by-completed', 'completedAt');
-                } else {
-                    // V6 — add by-content + by-block (idempotent)
+                    store.createIndex('by-completed', 'createdAt');
+                }
+                {
+                    // V6 — by-content + by-block, idempotent for BOTH fresh
+                    // creation and upgrades (the create branch above must not
+                    // skip these, or fresh installs never get them).
                     const results = tx.objectStore('results');
                     if (!results.indexNames.contains('by-content')) {
                         results.createIndex('by-content', 'blockContentId');
@@ -161,8 +383,9 @@ export class IndexedDBService {
                     store.createIndex('by-type', 'metricType');
                     store.createIndex('by-segment', 'segmentId');
                     store.createIndex('by-result', 'resultId');
-                } else {
-                    // V6 — add by-content (idempotent)
+                }
+                {
+                    // V6 — by-content, idempotent for fresh creation AND upgrades.
                     const analytics = tx.objectStore('analytics');
                     if (!analytics.indexNames.contains('by-content')) {
                         analytics.createIndex('by-content', 'blockContentId');
@@ -175,12 +398,126 @@ export class IndexedDBService {
                     store.createIndex('by-discipline', 'baseAttributes.discipline');
                     store.createIndex('by-source', 'registrySource');
                 }
+
+                // ---- Page / Tags / NoteTags (V10 — additive) ----
+                if (!db.objectStoreNames.contains('page')) {
+                    const store = db.createObjectStore('page', { keyPath: 'id' });
+                    store.createIndex('by-date', 'date', { unique: true });
+                    store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!db.objectStoreNames.contains('tags')) {
+                    const store = db.createObjectStore('tags', { keyPath: 'id' });
+                    store.createIndex('by-label', 'label', { unique: true });
+                    store.createIndex('by-type', 'type');
+                }
+                if (!db.objectStoreNames.contains('note_tags')) {
+                    const store = db.createObjectStore('note_tags', { keyPath: 'id' });
+                    store.createIndex('by-note', 'noteId');
+                    store.createIndex('by-tag', 'tagId');
+                }
+
+                // ---- V10 indexes on existing stores (idempotent) ----
+                const ensureIndex = <S extends 'notes' | 'segments' | 'results' | 'attachments' | 'analytics'>(
+                    storeName: S,
+                    indexName: IndexNames<WodWikiDB, S>,
+                    keyPath: string,
+                ) => {
+                    const store = tx.objectStore(storeName);
+                    if (!store.indexNames.contains(indexName)) {
+                        store.createIndex(indexName, keyPath);
+                    }
+                };
+                ensureIndex('notes', 'by-page', 'pageId');
+                ensureIndex('segments', 'by-page', 'pageId');
+                ensureIndex('segments', 'by-history', 'isHistory');
+                ensureIndex('results', 'by-page', 'pageId');
+                ensureIndex('results', 'by-origin', 'origin');
+                ensureIndex('attachments', 'by-page', 'pageId');
+                ensureIndex('attachments', 'by-result', 'resultId');
+                ensureIndex('analytics', 'by-page', 'pageId');
+                ensureIndex('analytics', 'by-origin', 'origin');
+                ensureIndex('analytics', 'by-metric', 'metricKey');
+                ensureIndex('analytics', 'by-effort', 'effortSlug');
+                ensureIndex('analytics', 'by-grain', 'grain');
+                ensureIndex('analytics', 'by-discipline', 'discipline');
+
+                // ---- V10 backfills (upgrade from < 10 only) ----
+                if (oldVersion < 10) {
+                    await backfillV10(tx);
+                }
+
+                // ---- V11 (destructive) ----
+                if (oldVersion < 11) {
+                    // R-07 — rebuild by-completed on the renamed field.
+                    const resultsStore = tx.objectStore('results');
+                    if (resultsStore.indexNames.contains('by-completed')) {
+                        resultsStore.deleteIndex('by-completed');
+                    }
+                    resultsStore.createIndex('by-completed', 'createdAt');
+                    // N-08/N-09 — drop the retired note indexes. Loosened
+                    // store type: the legacy names are intentionally absent
+                    // from the V11 schema union.
+                    const legacyNotesStore = tx.objectStore('notes') as unknown as {
+                        indexNames: DOMStringList;
+                        deleteIndex(name: string): void;
+                    };
+                    if (legacyNotesStore.indexNames.contains('by-updated')) {
+                        legacyNotesStore.deleteIndex('by-updated');
+                    }
+                    if (legacyNotesStore.indexNames.contains('by-target-date')) {
+                        legacyNotesStore.deleteIndex('by-target-date');
+                    }
+                    await backfillV11(tx);
+                }
             },
         });
     }
 
     async getDB() {
         return this.dbPromise;
+    }
+
+    /**
+     * Close the underlying connection. Must run before {@link wipe}: an open
+     * connection blocks `indexedDB.deleteDatabase` (it fires `blocked` and
+     * never completes until every connection closes). Safe to call when the
+     * connection never opened (openDB rejected) — the await is guarded.
+     */
+    async close(): Promise<void> {
+        try {
+            const db = await this.dbPromise;
+            db.close();
+        } catch {
+            // openDB rejected (e.g. blocked upgrade) — no live connection.
+        }
+    }
+
+    /**
+     * Delete the entire `wodwiki-db` database so the next open recreates it
+     * with a fresh schema. Closes this singleton's connection first so the
+     * delete request is not blocked, then issues `deleteDatabase`.
+     *
+     * Used by the "Reset & Clear Cache" action to wipe every object store
+     * (notes, segments, results, attachments, analytics, efforts, page, tags,
+     * note_tags) in one shot rather than clearing stores piecemeal.
+     *
+     * After this resolves the singleton's cached connection is closed and the
+     * database no longer exists — a full page load (which re-runs the
+     * constructor's `openDB` and the `upgrade` callback from version 0) is the
+     * expected recovery path.
+     *
+     * Rejects on `onerror`/`onblocked`; with a single connection that we just
+     * closed, neither should fire, so a rejection is a real signal the caller
+     * should surface rather than swallow silently.
+     */
+    async wipe(): Promise<void> {
+        await this.close();
+        const { promise, resolve, reject } = Promise.withResolvers<void>();
+        const req = indexedDB.deleteDatabase(DB_NAME);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error ?? new Error(`Failed to delete database ${DB_NAME}`));
+        req.onblocked = () => reject(new Error(`deleteDatabase(${DB_NAME}) blocked — an open connection remains`));
+        await promise;
     }
 
     // =======================================================================
@@ -192,21 +529,139 @@ export class IndexedDBService {
     }
 
     async getAllNotes(): Promise<Note[]> {
-        return (await this.dbPromise).getAllFromIndex('notes', 'by-target-date');
+        // V11 — by-target-date index dropped; callers sort client-side.
+        return (await this.dbPromise).getAll('notes');
     }
 
     async saveNote(note: Note): Promise<string> {
         return (await this.dbPromise).put('notes', note);
     }
 
+    // ======================================================================
+    // Page (V10)
+    // ======================================================================
+
+    async getPage(id: string): Promise<Page | undefined> {
+        return (await this.dbPromise).get('page', id);
+    }
+
+    async getPageBySlug(slug: string): Promise<Page | undefined> {
+        return (await this.dbPromise).getFromIndex('page', 'by-slug', slug);
+    }
+
+    async getPageByDate(date: string): Promise<Page | undefined> {
+        return (await this.dbPromise).getFromIndex('page', 'by-date', date);
+    }
+
+    async savePage(page: Page): Promise<string> {
+        return (await this.dbPromise).put('page', page);
+    }
+
+    /** Resolve the calendar page for a journal date, creating it on first use. */
+    async getOrCreatePageForDate(date: string): Promise<Page> {
+        const existing = await this.getPageByDate(date);
+        if (existing) return existing;
+        const page: Page = { id: uuidV4(), date, title: date, createdAt: Date.now() };
+        try {
+            await this.savePage(page);
+            return page;
+        } catch (err) {
+            // Concurrent creation for the same date — the other writer won the
+            // race against the unique by-date index; use their row.
+            if (err instanceof DOMException && err.name === 'ConstraintError') {
+                const winner = await this.getPageByDate(date);
+                if (winner) return winner;
+            }
+            throw err;
+        }
+    }
+
+    async getNotesForPage(pageId: string): Promise<Note[]> {
+        return (await this.dbPromise).getAllFromIndex('notes', 'by-page', pageId);
+    }
+
+    async getResultsForPage(pageId: string): Promise<WorkoutResult[]> {
+        return (await this.dbPromise).getAllFromIndex('results', 'by-page', pageId);
+    }
+
+    async getAnalyticsForPage(pageId: string): Promise<AnalyticsDataPoint[]> {
+        return (await this.dbPromise).getAllFromIndex('analytics', 'by-page', pageId);
+    }
+
+    // ======================================================================
+    // Tags (V11 — note.tags[] replaced by tags + note_tags)
+    // ======================================================================
+
+    async getTag(id: string): Promise<Tag | undefined> {
+        return (await this.dbPromise).get('tags', id);
+    }
+
+    async getTagByLabel(label: string): Promise<Tag | undefined> {
+        return (await this.dbPromise).getFromIndex('tags', 'by-label', label);
+    }
+
+    /** Resolve a tag by label, creating it on first use (race-tolerant). */
+    async getOrCreateTag(label: string, type?: Tag['type']): Promise<Tag> {
+        const existing = await this.getTagByLabel(label);
+        if (existing) return existing;
+        const tag: Tag = { id: uuidV4(), label, type, createdAt: Date.now() };
+        try {
+            await (await this.dbPromise).put('tags', tag);
+            return tag;
+        } catch (err) {
+            if (err instanceof DOMException && err.name === 'ConstraintError') {
+                const winner = await this.getTagByLabel(label);
+                if (winner) return winner;
+            }
+            throw err;
+        }
+    }
+
+    async getTagsForNote(noteId: string): Promise<Tag[]> {
+        const db = await this.dbPromise;
+        const links = await db.getAllFromIndex('note_tags', 'by-note', noteId);
+        const tags = await Promise.all(links.map(link => db.get('tags', link.tagId)));
+        return tags.filter((tag): tag is Tag => tag !== undefined);
+    }
+
+    /** Replace a note's tag set (labels are shared, deduped by by-label). */
+    async setNoteTags(noteId: string, labels: string[]): Promise<void> {
+        const db = await this.dbPromise;
+        const tx = db.transaction(['note_tags', 'tags'], 'readwrite');
+        const tagsStore = tx.objectStore('tags');
+        const linksStore = tx.objectStore('note_tags');
+        const byNote = linksStore.index('by-note');
+        for await (const cursor of byNote.iterate(noteId)) {
+            await cursor.delete();
+        }
+        const now = Date.now();
+        for (const label of Array.from(new Set(labels))) {
+            let tag = await tagsStore.index('by-label').get(label);
+            if (!tag) {
+                tag = { id: uuidV4(), label, createdAt: now };
+                await tagsStore.put(tag);
+            }
+            await linksStore.put({ id: uuidV4(), noteId, tagId: tag.id });
+        }
+        await tx.done;
+    }
+
     async deleteNote(id: string): Promise<void> {
         const db = await this.dbPromise;
         const tx = db.transaction(
-            ['notes', 'segments', 'results', 'attachments', 'analytics'],
+            ['notes', 'segments', 'results', 'attachments', 'analytics', 'note_tags'],
             'readwrite',
         );
 
         await tx.objectStore('notes').delete(id);
+
+        // V11 — drop the note's tag links (shared tags themselves stay).
+        const linkIdx = tx.objectStore('note_tags').index('by-note');
+        let linkCursor = await linkIdx.openCursor(IDBKeyRange.only(id));
+        while (linkCursor) {
+            await linkCursor.delete();
+            linkCursor = await linkCursor.continue();
+        }
 
         const segIdx = tx.objectStore('segments').index('by-note');
         let segCursor = await segIdx.openCursor(IDBKeyRange.only(id));
@@ -336,31 +791,40 @@ export class IndexedDBService {
         return (await this.dbPromise).put('segments', segment);
     }
 
+    /** Compound-key read: the exact segment incarnation recorded for a result. */
+    async getSegment(segmentId: string, version: number): Promise<NoteSegment | undefined> {
+        return (await this.dbPromise).get('segments', [segmentId, version]);
+    }
+
     async getLatestSegmentVersion(segmentId: string): Promise<NoteSegment | undefined> {
         const db = await this.dbPromise;
         const tx = db.transaction('segments', 'readonly');
-        const store = tx.objectStore('segments');
-        const range = IDBKeyRange.bound([segmentId, 0], [segmentId, Number.MAX_SAFE_INTEGER]);
+        const store = tx.objectStore('segments');        const range = IDBKeyRange.bound([segmentId, 0], [segmentId, Number.MAX_SAFE_INTEGER]);
         const cursor = await store.openCursor(range, 'prev');
         return cursor?.value;
     }
 
-    async getLatestSegments(segmentIds: string[]): Promise<NoteSegment[]> {
-        const db = await this.dbPromise;
-        const tx = db.transaction('segments', 'readonly');
-        const store = tx.objectStore('segments');
-        const result: NoteSegment[] = [];
-        for (const id of segmentIds) {
-            const range = IDBKeyRange.bound([id, 0], [id, Number.MAX_SAFE_INTEGER]);
-            const cursor = await store.openCursor(range, 'prev');
-            if (cursor) result.push(cursor.value);
-        }
-        return result;
+    /** Full segments scan — batched list-view reconstruction (V11). */
+    async getAllSegments(): Promise<NoteSegment[]> {
+        return (await this.dbPromise).getAll('segments');
     }
 
-    // =======================================================================
+    /** Latest version of every segment of a note, in document order (V11). */
+    async getLatestSegmentsForNote(noteId: string): Promise<NoteSegment[]> {
+        const rows = await (await this.dbPromise).getAllFromIndex('segments', 'by-note', noteId);
+        const latest = new Map<string, NoteSegment>();
+        for (const segment of rows) {
+            const current = latest.get(segment.id);
+            if (!current || segment.version > current.version) latest.set(segment.id, segment);
+        }
+        return [...latest.values()].sort(
+            (a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt),
+        );
+    }
+
+    // ======================================================================
     // Results
-    // =======================================================================
+    // ======================================================================
 
     async saveResult(result: WorkoutResult): Promise<string> {
         return (await this.dbPromise).put('results', result);
@@ -435,6 +899,17 @@ export class IndexedDBService {
     /** V6 — cross-workout trend queries. */
     async getAnalyticsByContentId(blockContentId: string): Promise<AnalyticsDataPoint[]> {
         return (await this.dbPromise).getAllFromIndex('analytics', 'by-content', blockContentId);
+    }
+
+    /** Delete all fact rows for one result (replay/re-derivation cascade). */
+    async deleteAnalyticsPointsForResult(resultId: string): Promise<void> {
+        const db = await this.dbPromise;
+        const tx = db.transaction('analytics', 'readwrite');
+        const index = tx.store.index('by-result');
+        for await (const cursor of index.iterate(resultId)) {
+            await cursor.delete();
+        }
+        await tx.done;
     }
 
     // =======================================================================

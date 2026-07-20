@@ -35,7 +35,7 @@ export function WallClockPage() {
         noteId: pending.noteId,
         resultId: runtimeId,
         data: results,
-        completedAt: results.endTime || Date.now(),
+        createdAt: results.endTime || Date.now(),
       }).then(() => {
         if (results.completed) {
           navigate(reviewPath(runtimeId), { replace: true })

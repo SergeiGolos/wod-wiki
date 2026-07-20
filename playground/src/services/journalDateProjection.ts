@@ -25,7 +25,7 @@ export function projectJournalDate(journalDate: string, notes: HistoryEntry[], r
     journalDate,
     notes: journalNotes.map(note => ({
       note,
-      results: (resultByNote.get(note.id) ?? []).sort((a, b) => b.completedAt - a.completedAt),
+      results: (resultByNote.get(note.id) ?? []).sort((a, b) => b.createdAt - a.createdAt),
     })),
   };
 }

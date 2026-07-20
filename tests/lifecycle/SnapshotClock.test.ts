@@ -143,21 +143,21 @@ describe('SnapshotClock', () => {
 
             // Timer "expires" at this moment
             mockClock.advance(180000); // 3 minutes
-            const completedAt = mockClock.now();
+            const createdAt = mockClock.now();
 
             // Create snapshot at completion time
-            const snapshot = SnapshotClock.at(mockClock, completedAt);
+            const snapshot = SnapshotClock.at(mockClock, createdAt);
 
             // Simulate time passing during pop/next/push processing
             mockClock.advance(5); // 5ms of processing time
 
             // All operations in the chain should see the same time
-            expect(snapshot.now()).toEqual(completedAt);
-            expect(snapshot.now().getTime()).toBe(completedAt.getTime());
+            expect(snapshot.now()).toEqual(createdAt);
+            expect(snapshot.now().getTime()).toBe(createdAt.getTime());
 
             // Even after more processing time
             mockClock.advance(10);
-            expect(snapshot.now()).toEqual(completedAt);
+            expect(snapshot.now()).toEqual(createdAt);
         });
 
         it('should allow multiple snapshots at different times', () => {

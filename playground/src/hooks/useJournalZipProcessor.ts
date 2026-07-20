@@ -160,7 +160,6 @@ export function useJournalZipProcessor(): JournalZipProcessorState {
           journalDate: dateKey,
           title: dateKey,
           rawContent: content,
-          createdFrom: { kind: 'zip' },
         });
 
         if (!cancelled) {

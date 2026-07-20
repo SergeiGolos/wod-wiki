@@ -19,7 +19,7 @@ class MemoryNotePersistence implements INotePersistence {
       journalDate: input.journalDate,
       type: input.type,
       slug: input.slug,
-      createdFrom: input.createdFrom,
+      sourceId: input.sourceId,
       schemaVersion: 1,
     };
     this.notes.set(entry.id, entry);
@@ -47,7 +47,6 @@ class MemoryNotePersistence implements INotePersistence {
       rawContent: mutation.rawContent ?? current.rawContent,
       title: mutation.metadata?.title ?? current.title,
       journalDate: mutation.metadata?.journalDate ?? current.journalDate,
-      targetDate: mutation.metadata?.targetDate ?? current.targetDate,
     };
     this.notes.set(next.id, next);
     return next;
@@ -72,19 +71,16 @@ describe('Journal Notes', () => {
       journalDate: '2026-07-13',
       title: 'Fran',
       rawContent: '# Fran',
-      createdFrom: { kind: 'collection', ref: 'crossfit-girls/fran' },
     });
     const second = await journalNotes.create({
       journalDate: '2026-07-13',
       title: 'Fran',
       rawContent: '# Fran',
-      createdFrom: { kind: 'collection', ref: 'crossfit-girls/fran' },
     });
 
     expect(first.id).not.toBe(second.id);
     expect(first.journalDate).toBe('2026-07-13');
     expect(first.type).toBe('journal');
-    expect(first.createdFrom).toEqual({ kind: 'collection', ref: 'crossfit-girls/fran' });
     expect(persistence.notes).toHaveLength(2);
   });
 

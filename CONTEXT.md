@@ -19,8 +19,14 @@ _Avoid_: node, line, fragment.
 
 **Origin**:
 The stage that produced a Metric: `parser`, `dialect`, `compiler`, `runtime`, `user`,
-`analyzed`. Drives precedence (which Metric wins for display).
-_Avoid_: source, producer (ambiguous).
+`analyzed`, `prediction`. Drives precedence (which Metric wins for display).
+- `prediction` (code today: `analyzed-estimated`): a derived value computed with
+  fallback/assumed inputs — unresolved effort, unknown VO2max, etc. An estimate, not a
+  confirmed derivation. **Read-only in replay**: preserved as recorded, never re-derived
+  (a recorded workout's predictions are frozen at recording time).
+_Avoid_: source, producer (ambiguous). estimate, guess (use **prediction**).
+> Note: the code emits several origins not yet listed here (`execution`, `user-plan`,
+> `collected`, `hinted`); the glossary lags the code and should be reconciled separately.
 
 **Ownership Layer**:
 The five-tier resolution key the metric ownership ledger uses to decide visibility:
@@ -116,6 +122,16 @@ Storage layer satisfies. Persistence adapters compose raw **Storage**
 calls into domain operations (latest-version lookup, cascade delete,
 analytics write) — they do not embed engine specifics.
 _Avoid_: data layer, store (overloaded).
+### Analytics
+**Canonical Metric Key**:
+The join dimension for cross-workout analysis — the one key two workouts must share for a metric to be compared across them. A defined family/aggregate vocabulary (`reps`, `distance`, `resistance`, `elapsed`, `power`, `pace`, `totalVolume`, `totalDistance`, `tis`, `<effortSlug>.<family>`, `calc.<target>`), allocated in `docs/analytics-data-shapes-and-composition.md` §5. One resolver maps each metric to its canonical key; display derives a human label from it. **Not** the raw `MetricType` and **not** a display string — `repetitions` is retired as a key.
+_Avoid_: metric type (the parser/runtime enum), display label, metric name.
+**Annotation**:
+A runtime-derived per-segment metric produced by a realtime processor (`origin: 'analyzed'` — power, pace). Distinct from **Prediction** (compile-time, `origin: 'prediction'`/`compiler`) and from summary aggregates. Re-derived on replay; predictions and Tier-0 metrics are preserved.
+_Avoid_: enrichment, derived metric (too vague — say annotation or prediction).
+**Analytics Store**:
+The cross-workout query table (the `analytics` store). Holds **summary facts only** — Tier 2 workout-level aggregates (`totalVolume`, `tis`, `sessionLoad`, …), one row per result × **Canonical Metric Key**. Per-segment data (Tier 0 + Tier 1) is **not** denormalized here — it stays in `WorkoutResult.data.logs`. Fed by **extracting `outputType: 'analytics'` statements from `data.logs`** — there is no separate `data.analytics` property on `WorkoutResults` (the `outputType` filter already discriminates Tier 2; the shapes-doc §2 split was rejected). This inverts today's write path (`normalizeAnalyticsSegments` writes per-segment rows) — the store is repurposed to summary facts.
+_Avoid_: analytics table, metrics store, denormalized logs.
 ### Dialect & runtime
 **Block Dialect**:
 The fence tag that declares a block's domain (` ```wod `, ` ```climb `) — the one

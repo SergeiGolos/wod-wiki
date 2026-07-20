@@ -9,6 +9,9 @@ mock.module('../../db/IndexedDBService', () => ({
   indexedDBService: {
     getNote: async (id: string) => notes.find(note => note.id === id),
     getAllNotes: async () => notes,
+    getTagsForNote: async (_noteId: string) => [],
+    getPage: async (_id: string) => undefined,
+    getAllSegments: async () => [],
     saveNote: async (note: Note) => {
       savedNotes.push(note);
       return note.id;
@@ -53,12 +56,7 @@ describe('IndexedDBContentProvider', () => {
     notes.push({
       id: '2026-04-27-14-30-22-481',
       title: '',
-      rawContent: '',
-      tags: [],
       createdAt: Date.UTC(2026, 3, 27, 14, 30, 22, 481),
-      updatedAt: Date.UTC(2026, 3, 27, 14, 30, 22, 481),
-      targetDate: Date.UTC(2026, 3, 27, 14, 30, 22, 481),
-      segmentIds: [],
       type: 'playground',
     });
     const { IndexedDBContentProvider } = await providerModule;
@@ -74,12 +72,7 @@ describe('IndexedDBContentProvider', () => {
     notes.push({
       id: '2026-04-27-14-30-22-481',
       title: 'Existing playground',
-      rawContent: '',
-      tags: [],
       createdAt: Date.now(),
-      updatedAt: Date.now(),
-      targetDate: Date.now(),
-      segmentIds: [],
       type: 'playground',
     });
     const { IndexedDBContentProvider } = await providerModule;

@@ -125,11 +125,11 @@ describe('RootBlock Lifecycle', () => {
         harness.advanceClock(300000); // 5 minutes
 
         const completionTime = harness.clock.currentDate;
-        rootBlock.unmount(harness.runtime, { completedAt: completionTime });
+        rootBlock.unmount(harness.runtime, { createdAt: completionTime });
 
         // Expectations: Timing captured
         expect(rootBlock.executionTiming.startTime).toEqual(startTime);
-        // Note: completedAt may be set by unmount options or behavior
+        // Note: createdAt may be set by unmount options or behavior
     });
 
     it('should emit history record on unmount', () => {

@@ -68,7 +68,7 @@ export interface RuntimeTimerPanelProps {
 interface RuntimeTimerBodyProps {
   execution: UseRuntimeExecutionReturn;
   outputCount: number;
-  completedAt: Date | null;
+  createdAt: Date | null;
   handleStart: () => void;
   handleStop: () => void;
   handleNext: () => void;
@@ -77,7 +77,7 @@ interface RuntimeTimerBodyProps {
 const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
   execution,
   outputCount,
-  completedAt,
+  createdAt,
   handleStart,
   handleStop,
   handleNext,
@@ -123,9 +123,9 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
           <span>
             {outputCount} result{outputCount !== 1 ? "s" : ""} logged
           </span>
-          {completedAt && (
+          {createdAt && (
             <span className="ml-auto font-medium text-primary">
-              ✓ {completedAt.toLocaleTimeString()}
+              ✓ {createdAt.toLocaleTimeString()}
             </span>
           )}
         </div>
@@ -151,7 +151,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   const [runtime, setRuntime] = useState<IScriptRuntime | null>(null);
   const [ready, setReady] = useState(false);
   const [outputCount, setOutputCount] = useState(0);
-  const [completedAt, setCompletedAt] = useState<Date | null>(null);
+  const [createdAt, setCompletedAt] = useState<Date | null>(null);
   const [wizardDone, setWizardDone] = useState(false);
   const [pendingStart, setPendingStart] = useState(false);
 
@@ -254,7 +254,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   // Also send review mode to Chromecast BEFORE the panel unmounts (which would
   // otherwise lose the cast subscription).
   useEffect(() => {
-    if (execution.status === "completed" && !completedAt) {
+    if (execution.status === "completed" && !createdAt) {
       setCompletedAt(new Date());
       handleComplete(true);
 
@@ -271,7 +271,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
         try { castTransport.send(reviewMessage); } catch { /* ignore */ }
       }
     }
-  }, [execution.status, completedAt, handleComplete, castTransport]);
+  }, [execution.status, createdAt, handleComplete, castTransport]);
 
   const handleStop = () => {
     execution.stop();
@@ -346,7 +346,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
         <RuntimeTimerBody
           execution={execution}
           outputCount={outputCount}
-          completedAt={completedAt}
+          createdAt={createdAt}
           handleStart={handleStart}
           handleStop={handleStop}
           handleNext={handleNext}

@@ -44,8 +44,8 @@ describe('Lifecycle timestamps', () => {
   const script = new WhiteboardScript('test', []);
   const compiler = {} as JitCompiler;
 
-  it('passes completedAt from pop to parent.next', () => {
-    const completedAt = new Date('2024-01-01T00:00:01Z');
+  it('passes createdAt from pop to parent.next', () => {
+    const createdAt = new Date('2024-01-01T00:00:01Z');
     const dependencies = {
       memory: new RuntimeMemory(),
       stack: new RuntimeStack(),
@@ -63,9 +63,9 @@ describe('Lifecycle timestamps', () => {
     runtime.pushBlock(parent);
     runtime.pushBlock(child);
 
-    runtime.popBlock({ completedAt });
+    runtime.popBlock({ createdAt });
 
-    expect(receivedOptions?.completedAt).toEqual(completedAt);
+    expect(receivedOptions?.createdAt).toEqual(createdAt);
   });
 
   it('uses provided startTime when pushing children and calls mount with it', () => {

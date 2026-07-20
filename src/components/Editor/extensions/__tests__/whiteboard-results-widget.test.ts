@@ -33,7 +33,7 @@ describe("whiteboard-results-widget", () => {
     const mockResult: WorkoutResult = {
       id: "test-id",
       noteId: "test-note",
-      completedAt: Date.now(),
+      createdAt: Date.now(),
       data: { startTime: 0, endTime: 60000, duration: 60000, completed: true },
     };
 
@@ -58,7 +58,7 @@ describe("whiteboard-results-widget", () => {
     const mockResult: WorkoutResult = {
       id: "test-id",
       noteId: "test-note",
-      completedAt: Date.now(),
+      createdAt: Date.now(),
       data: { startTime: 0, endTime: 60000, duration: 60000, completed: true },
     };
 

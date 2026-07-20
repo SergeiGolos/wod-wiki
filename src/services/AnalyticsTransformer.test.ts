@@ -254,7 +254,7 @@ describe('AnalyticsTransformer', () => {
             total: 60,
             parentId: null,
             depth: 0,
-            metric: { repetitions: 10, resistance: 50 },
+            metric: { reps: 10, resistance: 50 },
             lane: 0
           }
         ];
@@ -263,7 +263,7 @@ describe('AnalyticsTransformer', () => {
 
         expect(groups).toHaveLength(1);
         expect(groups[0].id).toBe('performance');
-        expect(groups[0].graphs.some(g => g.id === 'repetitions')).toBe(true);
+        expect(groups[0].graphs.some(g => g.id === 'reps')).toBe(true);
         expect(groups[0].graphs.some(g => g.id === 'resistance')).toBe(true);
       });
     });

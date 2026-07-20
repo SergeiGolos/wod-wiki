@@ -35,7 +35,7 @@ function createMockBlock(options: {
         isComplete: false,
         executionTiming: {
             startTime: new Date(),
-            completedAt: undefined,
+            createdAt: undefined,
         },
 
         mount: vi.fn().mockReturnValue([]),
@@ -43,7 +43,7 @@ function createMockBlock(options: {
         // Simulate behavior-driven output: emit completion on unmount
         unmount: vi.fn().mockImplementation(function (this: IRuntimeBlock, runtime: any) {
             const startTime = this.executionTiming?.startTime?.getTime() ?? Date.now();
-            const endTime = this.executionTiming?.completedAt?.getTime() ?? Date.now();
+            const endTime = this.executionTiming?.createdAt?.getTime() ?? Date.now();
             const timeSpan = new TimeSpan(startTime, endTime);
             // Access metrics through memory (new API)
             const metricLocs = this.getMemoryByTag?.('metric:display') ?? [];

@@ -79,8 +79,8 @@ describe('Analytics data contract — equivalence invariant', () => {
 
   it('getAnalyticsFromLogs extracts rep count from a segment', () => {
     const { segments } = getAnalyticsFromLogs(LOGS, T0);
-    // AnalyticsTransformer maps 'rep' → 'repetitions'
-    expect(segments[0].metric['repetitions']).toBe(21);
+    // Canonical Metric Key: 'rep' → 'reps' (same in fact rows and display)
+    expect(segments[0].metric['reps']).toBe(21);
   });
 
   it('getAnalyticsFromLogs extracts resistance from a segment', () => {
@@ -97,9 +97,9 @@ describe('Analytics data contract — equivalence invariant', () => {
     const numeric = extractNumericMetrics(segments[0].metric);
 
     // Both rep and resistance should survive as numbers
-    expect(typeof numeric['repetitions']).toBe('number');
+    expect(typeof numeric['reps']).toBe('number');
     expect(typeof numeric['resistance']).toBe('number');
-    expect(numeric['repetitions']).toBe(21);
+    expect(numeric['reps']).toBe(21);
     expect(numeric['resistance']).toBe(60);
   });
 

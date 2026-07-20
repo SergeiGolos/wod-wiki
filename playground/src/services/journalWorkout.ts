@@ -50,6 +50,6 @@ export async function createJournalNoteFromWorkout({
     journalDate,
     title: workoutName,
     rawContent: lines.join('\n'),
-    createdFrom: { kind: category === 'feed' ? 'feed' : 'collection', ref: resolvedSourcePath },
+    sourceId: resolvedSourcePath,
   });
 }

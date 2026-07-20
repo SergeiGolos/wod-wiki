@@ -1,5 +1,7 @@
 # Versioned Block Identity
 
+> **Status update (2026-07-20):** This ADR's `computeVersion`-based `results.version` lineage is **RETIRED**. Version lineage now lives on `NoteSegment.version` and is exposed as `results.segmentVersion`; `blockId` is renamed `segmentId` (same positional value). `WorkoutResult.version` is legacy-read only, and `groupResultsByVersion` dual-reads `segmentVersion ?? version ?? 1`. See [`data-storage-deepening-opportunities.md`](./data-storage-deepening-opportunities.md) Candidate 2/3 for the current design.
+
 A three-part identity model for linking workout results to the blocks they were recorded against, with versioning for content changes.
 
 ## The Three Keys

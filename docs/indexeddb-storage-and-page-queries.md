@@ -2,8 +2,8 @@
 
 This document maps the browser-side `wodwiki-db` IndexedDB schema. Sections 1 and 2 describe the **proposed target schema**; Sections 3–5 describe the **current** production code paths; Section 6 is the migration change log for ticket planning.
 
-- Generated: 2026-07-15
-- Database: `wodwiki-db`, version 9
+- Generated: 2026-07-20
+- Database: `wodwiki-db`, version 11
 - Source of truth (current): `src/types/storage.ts`, `src/services/db/IndexedDBService.ts`
 
 ---
@@ -54,6 +54,7 @@ classDiagram
         +SegmentDataType dataType
         +String rawContent
         +Any data
+        +Number position
         +Number createdAt
         +Number updatedAt
     }
@@ -64,6 +65,8 @@ classDiagram
         +String noteId
         +String segmentId
         +Number segmentVersion
+        +String blockContentId
+        +String origin
         +WorkoutResults data
         +Number createdAt
     }
@@ -87,6 +90,8 @@ classDiagram
         +String segmentId
         +Number segmentVersion
         +String resultId
+        +String blockContentId
+        +String origin
         +String type
         +Number|Any value
         +String unit
@@ -152,9 +157,9 @@ classDiagram
 | `tags` | `id` | `by-label` (label, unique), `by-type` (type) | Normalized tag definitions |
 | `note_tags` | `id` | `by-note` (noteId), `by-tag` (tagId) | Note ↔ Tag many-to-many join |
 | `segments` | `[id, version]` | `by-note` (noteId), `by-page` (pageId), `by-type` (dataType), `by-history` (isHistory) | Versioned content chunks; payload flattened into `data` |
-| `results` | `id` | `by-note` (noteId), `by-page` (pageId), `by-segment` (segmentId), `by-completed` (createdAt) | `completedAt` renamed to `createdAt` |
+| `results` | `id` | `by-note` (noteId), `by-page` (pageId), `by-segment` (segmentId), `by-content` (blockContentId), `by-origin` (origin), `by-completed` (createdAt) | `completedAt` renamed to `createdAt` (v11 shipped) |
 | `attachments` | `id` | `by-note` (noteId), `by-page` (pageId), `by-result` (resultId), `by-time` (createdAt) | Binary blobs; can belong to a result |
-| `analytics` | `id` | `by-result` (resultId), `by-page` (pageId), `by-segment` (segmentId), `by-type` (type) | Denormalized metrics |
+| `analytics` | `id` | `by-result` (resultId), `by-page` (pageId), `by-content` (blockContentId), `by-metric` (metricKey), `by-discipline` (discipline), `by-origin` (origin), `by-type` (type) | Denormalized summary metrics only |
 | `efforts` | `slug` | `by-discipline` (baseAttributes.discipline), `by-source` (registrySource) | Effort catalog |
 
 ---
@@ -210,14 +215,15 @@ Use these tables as a scratch space when modifying the IndexedDB structure. Each
 
 | Field | Type | Required | Indexed | Description | Connects to |
 |---|---|---|---|---|---|
-| `id` | `string` (UUID) | Yes | Compound key `[id, version]` | Stable segment UUID across versions | — |
+| `id` | `string` (section id) | Yes | Compound key `[id, version]` | `NoteSegment.id` from `generateSectionId`; embeds a hash of the first 64 content chars, identifying the content incarnation. The `version` number is the lineage. | — |
 | `version` | `number` | Yes | Compound key `[id, version]` | Monotonic version (1, 2, 3…) | — |
 | `noteId` | `string` (UUID) | Yes | `by-note` | Parent note UUID | → `notes.id` |
 | `pageId` | `string` (UUID) | No | `by-page` | Page for easy page-scoped queries | → `page.id` |
 | `isHistory` | `boolean` | Yes | `by-history` | Identifies this row as a history snapshot of a later-updated segment | — |
 | `dataType` | `SegmentDataType` | Yes | `by-type` | `script` / `youtube` / `markdown` / `frontmatter` / `wod` / `title` / `h1`–`h6` | — |
 | `rawContent` | `string` | Yes | No | Original markdown / source text | — |
-| `data` | `any` | Yes | No | Structured JSON payload (includes scriptBlock and heading level when needed) | — |
+| `data` | `any` | Yes | No | Structured JSON payload (includes scriptBlock) | — |
+| `position` | `number` | Yes | No | Document-order position; backfilled from removed `note.segmentIds` | — |
 | `createdAt` | `number` | Yes | No | Unix ms | — |
 | `updatedAt` | `number` | Yes | No | Unix ms | — |
 
@@ -228,10 +234,14 @@ Use these tables as a scratch space when modifying the IndexedDB structure. Each
 | `id` | `string` (UUID) | Yes | Primary key | UUID | — |
 | `pageId` | `string` (UUID) | No | `by-page` | Direct link to the page for aggregation | → `page.id` |
 | `noteId` | `string` (UUID) | Yes | `by-note` | Parent note UUID | → `notes.id` |
-| `segmentId` | `string` (UUID) | No | `by-segment` | Segment that was executed | → `segments.id` |
+| `segmentId` | `string` (section id) | No | `by-segment` | `NoteSegment.id` that was executed (`generateSectionId`); embeds a hash of the first 64 content chars, identifying the content incarnation; **not a UUID**. `segmentVersion` is the lineage. | → `segments.id` |
 | `segmentVersion` | `number` | No | No | Version of the segment at recording time | → `segments.version` |
+| `blockContentId` | `string` | Yes | `by-content` | Content-stable cross-note key (RETAINED) | — |
 | `data` | `WorkoutResults` | Yes | No | Full runtime output | — |
-| `createdAt` | `number` | Yes | `by-completed` | Unix ms (renamed from `completedAt`) | — |
+| `createdAt` | `number` | Yes | `by-completed` | Unix ms (renamed from `completedAt` in v11) | — |
+| `origin` | `'journal' \| 'playground'` | Yes | No | Result provenance; default journal/progress filters exclude `playground`; legacy rows fall back to `playground/` noteId prefix | — |
+
+> **New field (2026-07-20):** `origin: 'journal' | 'playground'` on results and analytics. Default journal/progress views exclude `playground`; `by-origin` index is optional in v10.
 
 ### `attachments`
 
@@ -250,23 +260,29 @@ Use these tables as a scratch space when modifying the IndexedDB structure. Each
 
 ### `analytics`
 
-| Field | Type | Required | Indexed | Description | Connects to |
-|---|---|---|---|---|---|
-| `id` | `string` (UUID) | Yes | Primary key | UUID | — |
-| `noteId` | `string` (UUID) | Yes | No | Parent note UUID | → `notes.id` |
-| `pageId` | `string` (UUID) | No | `by-page` | Direct link to page | → `page.id` |
-| `segmentId` | `string` (UUID) | Yes | `by-segment` | Segment UUID | → `segments.id` |
-| `segmentVersion` | `number` | Yes | No | Segment version at recording | → `segments.version` |
-| `resultId` | `string` (UUID) | Yes | `by-result` | Source workout result | → `results.id` |
-| `type` | `string` | Yes | `by-type` | Metric key / family | — |
-| `value` | `number \| any` | Yes | No | Metric value | — |
-| `unit` | `string` | No | No | Unit of measure | — |
-| `label` | `string` | Yes | No | Human-readable label | — |
-| `metricKey` | `string` | No | No | Original metric key | — |
-| `metricLabel` | `string` | No | No | Original metric label | — |
-| `metricUnit` | `string` | No | No | Original metric unit | — |
-| `timestamp` | `number` | Yes | No | Effective workout date | — |
-| `createdAt` | `number` | Yes | No | Generation date | — |
+| Field            | Type            | Required | Indexed      | Description                  | Connects to          |
+| ---------------- | --------------- | -------- | ------------ | ---------------------------- | -------------------- |
+| `id`             | `string` (UUID) | Yes      | Primary key  | UUID                         | —                    |
+| `noteId`         | `string` (UUID) | Yes      | No           | Parent note UUID             | → `notes.id`         |
+| `pageId`         | `string` (UUID) | No       | `by-page`    | Direct link to page          | → `page.id`          |
+| `segmentId`      | `string` (section id) | Yes      | `by-segment` | `NoteSegment.id` that produced this fact (`generateSectionId`); embeds a hash of the first 64 content chars, identifying the content incarnation; **not a UUID**. `segmentVersion` is the lineage. | → `segments.id`      |
+| `segmentVersion` | `number`        | Yes      | No           | Segment version at recording | → `segments.version` |
+| `resultId`       | `string` (UUID) | Yes      | `by-result`  | Source workout result        | → `results.id`       |
+| `blockContentId` | `string`        | Yes      | `by-content` | Content-stable cross-note key (RETAINED) | —                    |
+| `grain`          | `'summary'`     | Yes      | No           | Always `'summary'` in v10; per-segment facts are not stored | —                    |
+| `discipline`     | `string`        | No       | `by-discipline` | Workout-level discipline (e.g. 'strength', 'rowing') | — |
+| `type`           | `string`        | Yes      | `by-type`    | Metric key / family          | —                    |
+| `value`          | `number \| any` | Yes      | No           | Metric value                 | —                    |
+| `unit`           | `string`        | No       | No           | Unit of measure              | —                    |
+| `label`          | `string`        | Yes      | No           | Human-readable label         | —                    |
+| `metricKey`      | `string`        | No       | No           | Original metric key          | —                    |
+| `metricLabel`    | `string`        | No       | No           | Original metric label        | —                    |
+| `metricUnit`     | `string`        | No       | No           | Original metric unit         | —                    |
+| `timestamp`      | `number`        | Yes      | No           | Effective workout date       | —                    |
+| `createdAt`      | `number`        | Yes      | No           | Generation date              | —                    |
+| `origin`         | `'journal' \| 'playground'` | Yes | No | Row provenance; default trend queries exclude `playground`; legacy rows fall back to `playground/` noteId prefix | — |
+
+> **New field (2026-07-20):** `origin: 'journal' | 'playground'` on results and analytics. Default journal/progress views exclude `playground`; `by-origin` index is optional in v10.
 
 ### `efforts`
 
@@ -471,7 +487,7 @@ All page-level reads eventually hit one of these seams:
 - **`getAllNotes()` is the universal list entry point.** Most filtering (tags, dates, search, kind, notebook) happens client-side after this single IndexedDB call.
 - **`getResultsForSection` uses `by-note` + JS filter** rather than the purpose-built `by-content` index; `getResultsByContentId` exists on the service but is not used here.
 - **Cascade deletes are transactional.** `IndexedDBService.deleteNote` opens one read-write transaction over `notes`, `segments`, `results`, `attachments`, and `analytics`.
-- **Analytics are write-only denormalization.** No page currently reads from the `analytics` store; review data is derived from `WorkoutResult.data.logs`.
+- **Analytics are now read by cross-workout features.** `IndexedDBNotePersistence.getSimilarWorkoutResults` reads the `analytics` store by `blockContentId`, and the `InlineResultPanel` 'Across notes' section surfaces similar workouts. Review data is still derived from `WorkoutResult.data.logs`.
 - **Effort registry is a two-tier cache.** Bundled efforts are static imports; user efforts are loaded once from the `efforts` store into memory.
 
 ---
@@ -480,11 +496,13 @@ All page-level reads eventually hit one of these seams:
 
 This change log tracks every difference between the **current** production schema (the code paths described in Sections 3–5) and the **proposed** target schema (Sections 1–2). Each row is sized to become a ticket or a sub-task.
 
+> **v10 additive ship (2026-07-20):** The following changes were implemented in IndexedDB schema version 10: P-01 through P-17, N-01, T-01 through T-03, S-01 through S-03, R-01 through R-05, R-08/R-09 (origin), A-01 through A-02, AN-01 through AN-02, AN-03/AN-06/AN-07/AN-10/AN-11 (grain, discipline, by-metric, by-discipline, by-origin), plus V10-01. The v10 upgrade runs `backfillV10` (calendar pages from `journalDate`, `pageId` propagation, `segmentId` from `blockId`, `origin` from `playground/`/`canvas:` prefixes, `isHistory` computation, and an analytics purge). `getOrCreatePageForDate` is race-tolerant (handles `ConstraintError` on the unique `by-date` index by re-fetching). Items originally marked **deferred to v11+** were shipped in v11: N-02 through N-10, S-04 through S-07, R-06 through R-07, the `tags[]` → `note_tags` data migration, and slug-based pages.
+
 | ID | Store | Change | Item | Original | Proposed | Rationale / Notes |
 |---|---|---|---|---|---|---|
 | P-01 | — | **Rename store** | `calendar` → `page` | `calendar` store | `page` store | Generalizes the calendar-date concept into a page container |
-| P-02 | `page` | **Add field** | `slug` | — | `string` (optional, indexed `by-slug`, unique) | Allows a page to be looked up by slug instead of by date |
-| P-03 | `page` | **Modify field** | `date` | Required | Optional | A page can now exist without a calendar date (e.g., a custom slug-based page) |
+| P-02 | `page` | **Add field** | `slug` | — | `string` (optional, indexed `by-slug`, unique) | Allows a page to be looked up by slug instead of by date. **v10 schema support shipped; slug-based routes deferred.** |
+| P-03 | `page` | **Modify field** | `date` | Required | Optional | A page can now exist without a calendar date (e.g., a custom slug-based page). **v10 schema support shipped; non-calendar slug pages deferred.** |
 | P-04 | `page` | **Set key type** | `id` | N/A | UUID | Page identity is a UUID; human-readable identifiers are `date` and `slug` |
 | P-05 | `page` | **Remove field** | `updatedAt` | Was planned in scratch sheet | Removed | Not needed for an immutable page header record |
 | P-06 | `notes` | **Rename field** | `calendarId` → `pageId` | `calendarId: string` | `pageId: string` | Notes now belong to a `page`, not specifically a calendar date |
@@ -493,42 +511,55 @@ This change log tracks every difference between the **current** production schem
 | P-09 | `attachments` | **Rename field** | `calendarId` → `pageId` | `calendarId: string` | `pageId: string` | Attachments now belong to a `page` |
 | P-10 | `analytics` | **Rename field** | `calendarId` → `pageId` | `calendarId: string` | `pageId: string` | Analytics rows now belong to a `page` |
 | P-11 | `page` | **Modify index** | `by-date` | On required `date` | On optional `date` (unique) | Still supports calendar-date lookups; nulls allowed for non-calendar pages |
-| P-12 | `page` | **Add index** | `by-slug` | — | On `slug` (unique) | Supports slug-based page lookups |
+| P-12 | `page` | **Add index** | `by-slug` | — | On `slug` (unique) | Supports slug-based page lookups. **v10 schema support shipped; slug-based page feature deferred.** |
 | P-13 | `notes` | **Modify index** | `by-calendar` → `by-page` | On `calendarId` | On `pageId` | Renamed to match new store name |
 | P-14 | `segments` | **Modify index** | `by-calendar` → `by-page` | On `calendarId` | On `pageId` | Renamed to match new store name |
 | P-15 | `results` | **Modify index** | `by-calendar` → `by-page` | On `calendarId` | On `pageId` | Renamed to match new store name |
 | P-16 | `attachments` | **Modify index** | `by-calendar` → `by-page` | On `calendarId` | On `pageId` | Renamed to match new store name |
 | P-17 | `analytics` | **Modify index** | `by-calendar` → `by-page` | On `calendarId` | On `pageId` | Renamed to match new store name |
 | N-01 | `notes` | **Add field** | `calendarId`/`pageId` | — | `string` (UUID, optional, indexed `by-page`) | Links a note to its page |
-| N-02 | `notes` | **Remove field** | `journalDate` | `string` | Removed | Replaced by `pageId` |
-| N-03 | `notes` | **Remove field** | `rawContent` | `string` | Removed | Cached content moves to segments; `notes` becomes a header/relationship table |
-| N-04 | `notes` | **Remove field** | `segmentIds` | `string[]` | Removed | Segments link back via `segments.noteId`; ordering from segment query |
-| N-05 | `notes` | **Remove field** | `clonedIds` | `string[]` | Removed | Clone lineage no longer tracked on the note row |
-| N-06 | `notes` | **Remove field** | `tags` | `string[]` | Removed | Tags extracted to normalized `tags` + `note_tags` design |
-| N-07 | `notes` | **Remove field** | `createdFrom` | `NoteCreationSource` | Removed | Provenance handled by `sourceId` |
-| N-08 | `notes` | **Remove field** | `updatedAt` | `number` | Removed | Version/content timestamps handle this |
-| N-09 | `notes` | **Remove field** | `targetDate` | `number` | Removed | Sort date derived from `page.date` |
-| N-10 | `notes` | **Rename field** | `templateId` → `sourceId` | `templateId: string` | `sourceId: string` | Generalizes the concept to any source note, not just templates |
+| N-02 | `notes` | **Remove field** | `journalDate` | `string` | Removed | Replaced by `pageId`. **v11 shipped** 2026-07-20. |
+| N-03 | `notes` | **Remove field** | `rawContent` | `string` | Removed | Cached content moves to segments; `notes` becomes a header/relationship table. **v11 shipped** 2026-07-20. |
+| N-04 | `notes` | **Remove field** | `segmentIds` | `string[]` | Removed | Document order now comes from `segments.position`. **v11 shipped** 2026-07-20. |
+| N-05 | `notes` | **Remove field** | `clonedIds` | `string[]` | Removed | Clone lineage derived by querying `sourceId === entry.id`. **v11 shipped** 2026-07-20. |
+| N-06 | `notes` | **Remove field** | `tags` | `string[]` | Removed | Tags extracted to normalized `tags` + `note_tags` design. **v11 shipped** 2026-07-20 (data migration). |
+| N-07 | `notes` | **Remove field** | `createdFrom` | `NoteCreationSource` | Removed | Provenance handled by `sourceId`. **v11 shipped** 2026-07-20. |
+| N-08 | `notes` | **Remove field** | `updatedAt` | `number` | Removed | Version/content timestamps handle this; `by-updated`/`by-target-date` dropped. **v11 shipped** 2026-07-20. |
+| N-09 | `notes` | **Remove field** | `targetDate` | `number` | Removed | Sort date derived from `page.date`; client-side sort at callers. **v11 shipped** 2026-07-20. |
+| N-10 | `notes` | **Rename field** | `templateId` → `sourceId` | `templateId: string` | `sourceId: string` | Generalizes the concept to any source note, not just templates. **v11 shipped** 2026-07-20. |
 | T-01 | — | **Add store** | `tags` | Does not exist | New store with `id` (UUID), `label`, `type`, `createdAt` | Normalized tag definitions |
 | T-02 | `tags` | **Add field** | `type` | — | `string` (indexed `by-type`) | Distinguishes tag categories: template, playground, qualification, etc. |
 | T-03 | — | **Add store** | `note_tags` | Does not exist | Join store with `id` (UUID), `noteId`, `tagId` | Many-to-many mapping between notes and tags |
 | S-01 | `segments` | **Add field** | `pageId` | — | `string` (UUID, optional, indexed `by-page`) | Lets segments be queried directly by page |
 | S-02 | `segments` | **Add field** | `updatedAt` | — | `number` | Needed to distinguish latest segment and support history snapshots |
 | S-03 | `segments` | **Add field** | `isHistory` | — | `boolean` (indexed `by-history`) | Flags a segment row as a historical snapshot of a later update |
-| S-04 | `segments` | **Remove field** | `level` | `number` | Removed | Heading level rolled into `dataType` as `h1`–`h6` values |
-| S-05 | `segments` | **Remove field** | `scriptBlock` | `ScriptBlock` | Removed | Rolled into the `data` payload; consumers cast based on `dataType` |
-| S-06 | `segments` | **Modify field** | `dataType` | `script` / `youtube` / `markdown` / `header` / `frontmatter` / `wod` / `title` | Add `h1`–`h6` in place of `header` | Heading level becomes part of the type enumeration |
+| S-04 | `segments` | **Remove field** | `level` | `number` | Removed | Heading level rolled into `dataType` as `h1`–`h6` values. **v11 shipped** 2026-07-20. |
+| S-05 | `segments` | **Remove field** | `scriptBlock` | `ScriptBlock` | Removed | Rolled into the `data` payload; consumers cast based on `dataType`. **v11 shipped** 2026-07-20. |
+| S-06 | `segments` | **Modify field** | `dataType` | `script` / `youtube` / `markdown` / `header` / `frontmatter` / `wod` / `title` | Add `h1`–`h6` in place of `header` | Heading level becomes part of the type enumeration. **v11 shipped** 2026-07-20. |
+| S-07 | `segments` | **Add field** | `position` | — | `number` | Document-order position; backfilled from removed `note.segmentIds`. **v11 shipped** 2026-07-20. |
 | R-01 | `results` | **Add field** | `pageId` | — | `string` (UUID, optional, indexed `by-page`) | Direct page link for aggregation without joining through notes |
-| R-02 | `results` | **Remove field** | `blockId` | `string` | Removed | Replaced by `segmentId` |
-| R-03 | `results` | **Remove field** | `blockContentId` | `string` | Removed | Replaced by `segmentId` + `segmentVersion` |
-| R-04 | `results` | **Remove field** | `version` | `number` | Removed | Replaced by `segmentVersion` |
-| R-05 | `results` | **Add field** | `segmentId` | — | `string` (UUID, optional, indexed `by-segment`) | Identifies which segment was executed |
-| R-06 | `results` | **Rename field** | `completedAt` → `createdAt` | `completedAt: number` | `createdAt: number` | Renamed for consistency |
-| R-07 | `results` | **Modify index** | `by-completed` | On `completedAt` | On `createdAt` (renamed field) | Index keyPath rename |
+| R-02 | `results` | **Rename field** | `blockId` → `segmentId` | `string` | `string` (same positional value as `blockId`) | **REVERSED as written** (2026-07-20): `blockId` is renamed to `segmentId`, not removed. The positional value is preserved. |
+| R-03 | `results` | **Retain field** | `blockContentId` | `string` | `string` (content-stable key) | **REVERSED** (2026-07-20): `blockContentId` is retained. The `cross-note-result-aggregation` ADR stands; it is the cross-note "find similar workouts" join. |
+| R-04 | `results` | **Rename field** | `version` → `segmentVersion` | `number` | `number` (NoteSegment.version) | **SUPERSEDED** (2026-07-20): `version` (`computeVersion` lineage) is retired in favor of `segmentVersion`. Legacy rows keep `version`; drop in v11+ data migration. `computeVersion` is deleted. |
+| R-05 | `results` | **Add field** | `segmentId` | — | `string` (content-incarnation section id, optional, indexed `by-segment`) | Identifies which segment was executed. **Not a UUID** — it is the content-incarnation `NoteSegment.id` (`generateSectionId`), embedding a hash of the first 64 content chars. `segmentVersion` is the lineage. Write path implemented 2026-07-20. |
+| R-06 | `results` | **Rename field** | `completedAt` → `createdAt` | `completedAt: number` | `createdAt: number` | Renamed for consistency. **v11 shipped** 2026-07-20. |
+| R-07 | `results` | **Modify index** | `by-completed` | On `completedAt` | On `createdAt` (renamed field) | Index keyPath rename. **v11 shipped** 2026-07-20. |
 | A-01 | `attachments` | **Add field** | `pageId` | — | `string` (UUID, optional, indexed `by-page`) | Direct page link |
 | A-02 | `attachments` | **Add field** | `resultId` | — | `string` (UUID, optional, indexed `by-result`) | Attachments can be assigned to a specific workout result |
 | AN-01 | `analytics` | **Add field** | `pageId` | — | `string` (UUID, optional, indexed `by-page`) | Direct page link |
-| AN-02 | `analytics` | **Remove field** | `blockContentId` | `string` | Removed | No longer needed; use `segmentId` + `segmentVersion` |
+| AN-02 | `analytics` | **Retain field** | `blockContentId` | `string` | `string` (content-stable key) | **REVERSED** (2026-07-20): analytics retains `blockContentId` + the `by-content` index. Cross-note aggregation and "find similar workouts" depend on it. |
+| AN-03 | `analytics` | **Add field** | `grain` | — | `'summary'` | Always `'summary'` in the v10 design; per-segment facts are not stored. **v10 shipped** 2026-07-20. |
+| AN-04 | `analytics` | **Add field** | `origin` | — | `'journal' \| 'playground'` | Row provenance. **v10 shipped** 2026-07-20. |
+| AN-05 | `analytics` | **Remove field** | `effortSlug` | Was proposed | — | Removed from the final design; the store is summary-only and no longer carries per-effort facts. |
+| AN-06 | `analytics` | **Add field** | `discipline` | — | `string` | Workout-level discipline. **v10 shipped** 2026-07-20. |
+| AN-07 | `analytics` | **Add index** | `by-metric` | — | On `metricKey` | Cross-workout metric queries. **v10 shipped** 2026-07-20. |
+| AN-08 | `analytics` | **Remove index** | `by-effort` | Was proposed | — | Removed from the final design; no `effortSlug` field on summary facts. |
+| AN-09 | `analytics` | **Remove index** | `by-grain` | Was proposed | — | Removed from the final design; all rows are `grain: 'summary'`, so the index filters nothing. |
+| AN-10 | `analytics` | **Add index** | `by-discipline` | — | On `discipline` | Cross-workout discipline queries. **v10 shipped** 2026-07-20. |
+| AN-11 | `analytics` | **Add index** | `by-origin` | — | On `origin` | Journal vs playground filtering. **v10 shipped** 2026-07-20. |
+| R-08 | `results` | **Add field** | `origin` | — | `'journal' \| 'playground'` | Result provenance. **v10 shipped** 2026-07-20. |
+| R-09 | `results` | **Add index** | `by-origin` | — | On `origin` | Journal vs playground filtering. **v10 shipped** 2026-07-20. |
+| V10-01 | `analytics` | **Purge + backfill** | `backfillV10` | N/A | N/A | v10 upgrade purges analytics and re-derives facts with `grain`, `pageId`, `origin`, and new segment-centric keys. **v10 shipped** 2026-07-20. |
 | REL-01 | `page` | **Relationship change** | 1:N `notes` | — | `page.id` = `notes.pageId` | Page owns many notes |
 | REL-02 | `page` | **Relationship change** | 1:N `segments` | — | `page.id` = `segments.pageId` | Page owns many segments |
 | REL-03 | `page` | **Relationship change** | 1:N `results` | — | `page.id` = `results.pageId` | Page owns many results |
@@ -558,33 +589,60 @@ Each ID prefix above maps to a natural work area:
 
 ### High-level migration plan
 
+#### v10 — shipped additively (2026-07-20)
+
 1. **IndexedDB upgrade handler** (`src/services/db/IndexedDBService.ts`)
-   - Rename `calendar` store to `page` (or create `page` and migrate `calendar` rows).
-   - Create new stores: `tags`, `note_tags`.
-   - Add new indexes: `by-page`, `by-history`, `by-label`, `by-type`, `by-tag`, `by-result` on `attachments`, `by-slug` on `page`.
-   - Remove indexes that no longer apply: `by-updated` on `notes`, `by-target-date` on `notes`, `by-content` on `results`/`analytics`, `by-block` on `results`, legacy `by-segment` on `results`, and any `by-calendar` indexes.
-   - Rename `results` index `by-completed` keyPath from `completedAt` to `createdAt`.
+   - Create `page`, `tags`, `note_tags` stores.
+   - Rename `calendar` store to `page`; migrate `calendar` rows → `page` rows.
+   - Add `pageId` FK on `notes`, `segments`, `results`, `attachments`, `analytics` and `by-page` indexes on each.
+   - Add `segments.updatedAt` and `segments.isHistory` (+ `by-history` index).
+   - Add `attachments.resultId` (+ `by-result` index).
+   - Add `origin` field and `by-origin` index on `results` and `analytics`.
+   - Add `analytics.grain` and indexes `by-metric`, `by-discipline` on `analytics`.
+   - Rename `by-calendar` → `by-page` on all stores.
+   - Retain `by-content` on `results` and `analytics`.
+   - Leave `completedAt` → `createdAt` rename and `notes`/`segments` field slim-down for v11.
 
-2. **Data migration** (one-shot, destructive)
-   - For every unique `notes.journalDate`, create a `page` row with a UUID, set `date` to the original `YYYY-MM-DD`, and optionally derive a `slug` from existing route patterns.
-   - Populate `notes.pageId`, `segments.pageId`, and `results.pageId` by joining through their parent note.
-   - Split `notes.tags` into `tags` rows and `note_tags` mappings.
-   - Remove `notes.rawContent`, `notes.segmentIds`, `notes.clonedIds`, `notes.createdFrom`, `notes.updatedAt`, `notes.targetDate`, `notes.templateId`.
-   - Rename `notes.templateId` values to `notes.sourceId`.
-   - Move `segments.level` into `dataType` (header → h1–h6) and `segments.scriptBlock` into `data`.
-   - Populate `results.segmentId` + `results.segmentVersion` from `results.blockId` / `blockContentId` / `version` mapping logic.
-   - Rename `results.completedAt` to `results.createdAt`.
-   - Move `analytics.blockContentId` references to `analytics.segmentId` + `analytics.segmentVersion`.
-   - Link attachments to results where applicable.
+2. **Data migration** (`backfillV10`)
+   - For every unique `notes.journalDate`, create a `page` row with a UUID and `date` set to `YYYY-MM-DD`.
+   - Populate `notes.pageId`, `segments.pageId`, and `results.pageId` by joining through the parent note.
+   - Populate `results.segmentId` from `results.blockId` and `results.segmentVersion` from `results.version`.
+   - Populate `results.origin` and `analytics.origin` from `noteId` prefix (`playground/` or `canvas:` → `'playground'`, otherwise `'journal'`).
+   - Compute `segments.isHistory` based on `updatedAt` ordering.
+   - Purge `analytics` and re-derive fact rows with `grain`, `pageId`, `origin`, and new segment-centric keys.
 
-3. **Type and code surface updates**
-   - Update `src/types/storage.ts` interfaces.
-   - Rewrite `IndexedDBContentProvider` and `IndexedDBNotePersistence` to assemble/disassemble note content from segments instead of `rawContent` / `segmentIds`.
-   - Update `resultRecorder.ts` to write `segmentId` + `segmentVersion` instead of `blockId` / `blockContentId` / `version`.
-   - Update analytics normalization to use the new segment-centric keys and optionally write `pageId`.
-   - Update tag read/write paths in `NotebooksPage` and `Workbench` to use the `note_tags` join table.
-   - Update `PageService` (formerly `CalendarService`) / `journalNotes` to look up/create `page` rows by `date` or `slug` and link notes.
-   - Update journal and playground routes to resolve pages by either `date` or `slug`.
+3. **Type and code surface updates** (v10)
+   - Update `src/types/storage.ts` interfaces for `page`, `tags`, `note_tags`, and new fields/indexes.
+   - Update `resultRecorder.ts` to write `segmentId` + `segmentVersion` (and retain `blockContentId`).
+   - Update analytics normalization to write `grain` (always `'summary'`), `pageId`, `origin`, and workout-level `discipline`.
+   - `getOrCreatePageForDate` is race-tolerant (handles `ConstraintError` on the unique `by-date` index by re-fetching the existing page).
+   - Update `PageService` / `journalNotes` to look up/create `page` rows by `date` and link notes.
+   - Fix `updateEntry` to actually save the mutated Note when metadata/content changes or page linkage occurs.
 
-4. **Rollback / compatibility**
-   - This is a destructive schema change (fields removed). Plan for a one-way migration or implement a full export/import backup before the upgrade runs.
+#### v11 — shipped destructively (2026-07-20)
+
+1. **IndexedDB upgrade handler** (`src/services/db/IndexedDBService.ts`)
+   - Rename `results.completedAt` → `createdAt` and rebuild the `by-completed` index on `createdAt`.
+   - `notes` table slim-down: drop `journalDate`, `rawContent`, `segmentIds`, `clonedIds`, `tags`, `createdFrom`, `updatedAt`, `targetDate`; rename `templateId` → `sourceId`; drop `by-updated` and `by-target-date` indexes.
+   - `segments` table changes: add `position`; drop `level` and `scriptBlock`; expand `dataType` to include `h1`–`h6` in place of `header`.
+   - `tags` / `note_tags` stores already exist from v10; v11 migrates `note.tags[]` → `note_tags` and adds cascade delete of `note_tags` in `deleteNote`.
+
+2. **Data migration** (`backfillV11`)
+   - Rename `results.completedAt` values to `results.createdAt`.
+   - Backfill `segments.position` from the removed `note.segmentIds` ordering.
+   - Convert `segments.level` → `dataType` (`header` → `h1`–`h6`) and move `segments.scriptBlock` into `segments.data`.
+   - For each note, migrate `note.tags[]` into `tags` + `note_tags` rows; drop the `tags` array.
+   - Rename `notes.templateId` values to `notes.sourceId` and remove the deprecated fields.
+   - Late page linkage: ensure any notes without `pageId` are linked to a page.
+
+3. **Type and code surface updates** (v11)
+   - Update `src/types/storage.ts` interfaces to the slimmed `Note` and flattened `NoteSegment` shapes.
+   - `HistoryEntry` (app projection) keeps derived fields (`journalDate`, `tags`, `rawContent`, `updatedAt`, `targetDate`) as deliberate containment so playground consumers didn't rewrite; `templateId` → `sourceId` renamed there too; `clonedIds`/`createdFrom` removed.
+   - `getAllNotes()` no longer uses `by-target-date`; callers sort client-side.
+   - Content reconstruction reads `segments` ordered by `position`.
+   - Reverse clone links derive by querying `sourceId === entry.id`.
+   - Update `deleteNote` cascade to clean `note_tags`.
+
+#### Rollback / compatibility
+
+- v10 was a one-way additive upgrade. v11 is a destructive migration that removes the deferred fields. A full export/import backup is required before the v11 upgrade runs; rollback is only possible from that backup.

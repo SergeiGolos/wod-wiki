@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import type { INotePersistence } from '@/services/persistence';
 import { notePersistence } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';
-import type { NoteCreationSource } from '@/types/storage';
 
 import { parseJournalDate } from './parseJournalDate';
 
@@ -13,7 +12,7 @@ export interface CreateJournalNoteInput {
   rawContent: string;
   tags?: string[];
   slug?: string;
-  createdFrom?: NoteCreationSource;
+  sourceId?: string;
   type?: 'note' | 'playground' | 'journal';
 }
 
@@ -53,7 +52,7 @@ export function createJournalNotes({
         journalDate: input.journalDate || undefined,
         type: input.type ?? 'journal',
         slug: input.slug,
-        createdFrom: input.createdFrom,
+        sourceId: input.sourceId,
       });
     },
 
@@ -97,7 +96,6 @@ export function createJournalNotes({
       return persistence.mutateNote({ id: noteId }, {
         metadata: {
           journalDate,
-          targetDate: dateTimestamp(journalDate),
         },
       });
     },

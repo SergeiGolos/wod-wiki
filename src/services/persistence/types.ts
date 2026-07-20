@@ -1,8 +1,6 @@
-import type { IMetric } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
 import type { WorkoutResults } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
-import type { Attachment, AnalyticsDataPoint, Note, NoteCreationSource, NoteKind, NoteSegment, WorkoutResult } from '@/types/storage';
+import type { Attachment, AnalyticsDataPoint, Note, NoteKind, NoteSegment, ResultOrigin, WorkoutResult } from '@/types/storage';
 
 export type NoteLocator =
   | string
@@ -51,7 +49,8 @@ export interface CreateNoteInput {
   tags?: string[];
   type?: NoteKind;
   slug?: string;
-  createdFrom?: NoteCreationSource;
+  /** N-10 — the note this one was created from (template/collection source). */
+  sourceId?: string;
 }
 
 export interface NoteQuery {
@@ -65,15 +64,6 @@ export interface NoteQuery {
   projection?: 'summary' | 'history-detail';
   journalDate?: string;
   kind?: NoteKind;
-}
-
-export interface AnalyticsSegmentInput {
-  id: string | number;
-  elapsed?: number;
-  metric: Record<string, unknown>;
-  metrics?: MetricContainer | IMetric[];
-  name?: string;
-  absoluteStartTime?: number;
 }
 
 export interface AttachmentFileInput {
@@ -99,29 +89,25 @@ export interface NoteMutation {
   metadata?: Partial<{
     title: string;
     tags: string[];
-    targetDate: number;
     journalDate: string;
     notes: string;
     type: NoteKind;
-    templateId: string;
-    clonedIds: string[];
+    sourceId: string;
     slug: string;
-    createdFrom: NoteCreationSource;
   }>;
   workoutResult?: {
     id?: string;
     blockId?: string;       // Section position identity
     blockContentId?: string;  // Content-stable join key
-    version?: number;        // Content generation at this position
-    segmentId?: string;     // NoteSegment FK (for analytics segmentVersion lookup)
+    version?: number;        // LEGACY — content generation from the retired computeVersion path
+    segmentId?: string;     // NoteSegment FK (positional section id)
+    origin?: ResultOrigin;  // Which surface produced the result; default filters exclude 'playground'
     data: WorkoutResults;
-    completedAt?: number;
-    analyticsSegments?: AnalyticsSegmentInput[];
+    createdAt?: number;
   };
-  analytics?: {
-    segments: AnalyticsSegmentInput[];
-    resultId?: string;
-  };
+  /** Note kind applied ONLY when the mutation lazily creates a missing note;
+   *  never overwrites an existing note's type. */
+  noteType?: NoteKind;
   attachments?: {
     add?: Array<File | AttachmentInput>;
     remove?: string[];
@@ -131,7 +117,8 @@ export interface NoteMutation {
 export type NotePersistenceErrorCode =
   | 'NOTE_NOT_FOUND'
   | 'RESULT_NOT_FOUND'
-  | 'RESULT_NOTE_MISMATCH';
+  | 'RESULT_NOTE_MISMATCH'
+  | 'SEGMENT_NOT_FOUND';
 
 export class NotePersistenceError extends Error {
   constructor(
@@ -148,15 +135,21 @@ export interface NotePersistenceStorage {
   getNote(id: string): Promise<Note | undefined>;
   saveNote(note: Note): Promise<string>;
   getAllNotes(): Promise<Note[]>;
-  getLatestSegments(segmentIds: string[]): Promise<NoteSegment[]>;
   getLatestSegmentVersion(segmentId: string): Promise<NoteSegment | undefined>;
+  /** Compound-key read: the exact segment incarnation recorded for a result. */
+  getSegment?(segmentId: string, version: number): Promise<NoteSegment | undefined>;
   getResultsForNote(noteId: string): Promise<WorkoutResult[]>;
+  saveResult(result: WorkoutResult): Promise<string>;
+  /** V6 — cross-note collection aggregation: every result for one blockContentId, across all notes. */
+  getResultsByContentId(blockContentId: string): Promise<WorkoutResult[]>;
   getResultsForSection(noteId: string, sectionId: string): Promise<WorkoutResult[]>;
   getResultById(resultId: string): Promise<WorkoutResult | undefined>;
   getAttachmentsForNote(noteId: string): Promise<Attachment[]>;
   saveAttachment(attachment: Attachment): Promise<string>;
   deleteAttachment(id: string): Promise<void>;
   saveAnalyticsPoints(points: AnalyticsDataPoint[]): Promise<void>;
+  /** Delete all fact rows for one result (replay/re-derivation cascade). */
+  deleteAnalyticsPointsForResult?(resultId: string): Promise<void>;
 }
 
 export type { HistoryEntry, Attachment, AnalyticsDataPoint, WorkoutResult };

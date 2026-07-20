@@ -68,6 +68,7 @@ import {
   updateSectionResults,
   WOD_RESULT_CLICK_EVENT,
   compactResultsMode,
+  noteIdFacet,
   type WodResultClickDetail,
 } from "@/components/Editor/extensions/whiteboard-results-widget";
 import { OverlayTrack } from "@/components/organisms/editor/OverlayTrack";
@@ -282,7 +283,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           noteId: noteId ?? "",
           blockContentId: section?.contentId,
           data: results,
-          completedAt: now,
+          createdAt: now,
         };
 
         // Read existing results for this section and prepend the new one
@@ -346,7 +347,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         .then((entry) => {
           const view = viewRef.current;
           if (!view || !view.dom.isConnected) return;
-          const sorted = (entry.extendedResults ?? []).sort((a, b) => b.completedAt - a.completedAt);
+          const sorted = (entry.extendedResults ?? []).sort((a, b) => b.createdAt - a.createdAt);
           view.dispatch({
             effects: [
               updateSectionResults.of({ sectionId: section.id, results: sorted }),
@@ -548,6 +549,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
       // Results bar widgets — shown after each WOD block's closing fence
       ...wodResultsWidget,
+
+      // Note identity for the results widget (cross-note lookup exclusion)
+      noteIdFacet.of(noteId),
 
       // Compact results mode: result rows open fullscreen review on click
       // instead of expanding inline (canvas pages with small editor panels)

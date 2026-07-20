@@ -56,7 +56,7 @@ describe('createResultRecorder', () => {
       noteId: '00000000-0000-4000-8000-000000000001',
       resultId: 'run-1',
       data: { startTime: 0, endTime: 60000, duration: 60000, completed: true } as never,
-      completedAt: 60000,
+      createdAt: 60000,
     });
 
     expect(writer.captured).toHaveLength(1);
@@ -75,7 +75,7 @@ describe('createResultRecorder', () => {
       noteId: '00000000-0000-4000-8000-000000000002',
       resultId: 'run-2',
       data: { startTime: 0, endTime: 1, duration: 1, completed: true } as never,
-      completedAt: 1,
+      createdAt: 1,
     });
 
     expect(writer.captured[0]?.workoutResult?.blockContentId).toBe('content-hash-xyz');
@@ -92,28 +92,41 @@ describe('createResultRecorder', () => {
       noteId: '00000000-0000-4000-8000-000000000003',
       resultId: 'run-3',
       data: { startTime: 0, endTime: 1, duration: 1, completed: true } as never,
-      completedAt: 1,
+      createdAt: 1,
     });
 
     expect(mutateNote).toHaveBeenCalledTimes(1);
   });
 
-  it('forwards analyticsSegments atomically to the writer', async () => {
+  it('derives playground origin from playground/ noteIds, journal otherwise', async () => {
+    const writer = makeWriter();
+    const recorder = createResultRecorder(writer);
+    const data = { startTime: 0, endTime: 1, duration: 1, completed: true } as never;
+
+    await recorder.record({ runBlock: makeBlock(), blockId: 'b', noteId: 'playground/scratch', resultId: 'r-pg', data, createdAt: 1 });
+    await recorder.record({ runBlock: makeBlock(), blockId: 'b', noteId: '00000000-0000-4000-8000-000000000005', resultId: 'r-j', data, createdAt: 1 });
+
+    expect(writer.captured[0]?.workoutResult?.origin).toBe('playground');
+    expect(writer.captured[0]?.noteType).toBe('playground');
+    expect(writer.captured[1]?.workoutResult?.origin).toBe('journal');
+    expect(writer.captured[1]?.noteType).toBe('journal');
+  });
+
+  it('explicit origin overrides the noteId-derived default', async () => {
     const writer = makeWriter();
     const recorder = createResultRecorder(writer);
 
-    await recorder.record({
+    const result = await recorder.record({
       runBlock: makeBlock(),
-      blockId: 'wod-5-deadbeef',
-      noteId: '00000000-0000-4000-8000-000000000004',
-      resultId: 'run-4',
+      blockId: 'b',
+      noteId: 'canvas:home',
+      resultId: 'r-c',
       data: { startTime: 0, endTime: 1, duration: 1, completed: true } as never,
-      completedAt: 1,
-      analyticsSegments: [{ id: 1, name: 'Run', type: 'timer', startTime: 0, endTime: 1, elapsed: 5, total: 5, parentId: null, depth: 0, metric: {}, lane: 0 }],
+      createdAt: 1,
+      origin: 'playground',
     });
 
-    expect(writer.captured[0]?.workoutResult?.analyticsSegments).toEqual([
-      { id: 1, name: 'Run', type: 'timer', startTime: 0, endTime: 1, elapsed: 5, total: 5, parentId: null, depth: 0, metric: {}, lane: 0 },
-    ]);
+    expect(writer.captured[0]?.workoutResult?.origin).toBe('playground');
+    expect(result.origin).toBe('playground');
   });
 });

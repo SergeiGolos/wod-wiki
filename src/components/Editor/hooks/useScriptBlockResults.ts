@@ -61,7 +61,7 @@ export function useScriptBlockResults(
 
         if (inMemoryMatches.length > 0) {
           if (!cancelled) {
-            setResults(inMemoryMatches.sort((a, b) => b.completedAt - a.completedAt));
+            setResults(inMemoryMatches.sort((a, b) => b.createdAt - a.createdAt));
             setLoading(false);
             return;
           }
@@ -88,8 +88,8 @@ export function useScriptBlockResults(
           },
         });
         if (!cancelled) {
-          // Sort by completedAt descending (most recent first)
-          setResults((entry?.extendedResults ?? []).sort((a, b) => b.completedAt - a.completedAt));
+          // Sort by createdAt descending (most recent first)
+          setResults((entry?.extendedResults ?? []).sort((a, b) => b.createdAt - a.createdAt));
         }
       } catch (err) {
         console.error('[useScriptBlockResults] Failed to fetch results:', err);

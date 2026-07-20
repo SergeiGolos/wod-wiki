@@ -10,7 +10,8 @@
  * A "Full Review" button in the expanded view opens the FullscreenReview dialog.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+
 import { ReviewGrid } from '@/components/organisms/review/ReviewGrid';
 import { AnalyticsScorecard, getMetricStyle } from '@/components/organisms/review/AnalyticsScorecard';
 import { CollectionWizard } from '@/components/organisms/review/CollectionWizard';
@@ -21,7 +22,9 @@ import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type { WorkoutResult } from '@/types/storage';
 import { groupResultsByVersion } from '@/utils/groupResultsByVersion';
+import { notePersistence } from '@/services/persistence';
 import { MetricType } from '@/core/models/Metric';
+
 import type { ProjectionResult } from '@/core/analytics/ProjectionResult';
 import { ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -37,11 +40,13 @@ export interface InlineResultPanelProps {
   /** Open the full-screen review dialog */
   onOpenReview?: (result: WorkoutResult) => void;
   /**
-   * When true, clicking a result row opens the fullscreen review directly
+  /** When true, clicking a result row opens the fullscreen review directly
    * instead of expanding inline. Used by canvas pages where the editor panel
    * is too small for the inline ReviewGrid.
    */
   compactMode?: boolean;
+  /** Note ID of the current document; used to exclude own results from cross-note lookups. */
+  noteId?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────
@@ -105,10 +110,74 @@ export const InlineResultPanel: React.FC<InlineResultPanelProps> = ({
   currentContentId,
   onOpenReview,
   compactMode = false,
+  noteId,
 }) => {
   // Track which result is expanded (null = all collapsed)
   const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [showAcrossNotes, setShowAcrossNotes] = useState(false);
+  const [acrossNotesResults, setAcrossNotesResults] = useState<WorkoutResult[]>([]);
+  const [noteTitleMap, setNoteTitleMap] = useState<Map<string, string>>(new Map());
+
+  // Fetch results for this same workout recorded in other notes.
+  // Guard: skip when the backend adapter doesn't implement the query, and
+  // ignore stale responses if the block or note changes while fetching.
+  useEffect(() => {
+    if (
+      compactMode ||
+      !currentContentId ||
+      !noteId ||
+      typeof notePersistence.getSimilarWorkoutResults !== 'function'
+    ) {
+      setAcrossNotesResults([]);
+      setNoteTitleMap(new Map());
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchAcrossNotes() {
+      try {
+        const results = await notePersistence.getSimilarWorkoutResults!(currentContentId!, {
+          excludeNoteId: noteId,
+          limit: 10,
+        });
+
+        if (cancelled) return;
+        setAcrossNotesResults(results);
+
+        const uniqueNoteIds = Array.from(new Set(results.map((r) => r.noteId)));
+        const titleMap = new Map<string, string>();
+
+        await Promise.all(
+          uniqueNoteIds.map(async (id) => {
+            try {
+              const entry = await notePersistence.getNote(id, { projection: 'summary' });
+              if (entry?.title) {
+                titleMap.set(id, entry.title);
+              }
+            } catch {
+              // Fallback to the raw noteId below.
+            }
+          }),
+        );
+
+        if (!cancelled) {
+          setNoteTitleMap(titleMap);
+        }
+      } catch {
+        if (!cancelled) {
+          setAcrossNotesResults([]);
+        }
+      }
+    }
+
+    fetchAcrossNotes();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [compactMode, currentContentId, noteId]);
 
   const toggleResult = useCallback(
     (resultId: string) => {
@@ -194,7 +263,119 @@ export const InlineResultPanel: React.FC<InlineResultPanelProps> = ({
           ))}
         </div>
       )}
+
+      {/* Across notes — results for the same workout in other notes.
+          Hidden in compact mode because the inline panel density trade-off
+          there prioritizes direct review; this supplementary section is not
+          worth the extra vertical space when space is constrained. */}
+      {!compactMode && acrossNotesResults.length > 0 && (
+        <div className="border-t border-border/30 px-4 py-2">
+          <button
+            type="button"
+            onClick={() => setShowAcrossNotes((v) => !v)}
+            className="flex items-center gap-2 w-full text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span className="font-semibold uppercase tracking-wider">Across notes</span>
+            <span className="text-muted-foreground/70">({acrossNotesResults.length})</span>
+            <span className="ml-auto">{showAcrossNotes ? '▴ Hide' : '▾ Show'}</span>
+          </button>
+
+          {showAcrossNotes && (
+            <div className="mt-2 space-y-1">
+              {acrossNotesResults.map((result) => (
+                <AcrossNoteRow
+                  key={result.id}
+                  result={result}
+                  noteTitle={noteTitleMap.get(result.noteId)}
+                  onOpenReview={onOpenReview}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
+  );
+};
+
+// ─── AcrossNoteRow (single cross-note result entry) ─────────────────
+
+interface AcrossNoteRowProps {
+  result: WorkoutResult;
+  noteTitle?: string;
+  onOpenReview?: (result: WorkoutResult) => void;
+}
+
+const AcrossNoteRow: React.FC<AcrossNoteRowProps> = ({
+  result,
+  noteTitle,
+  onOpenReview,
+}) => {
+  const dateLabel = formatDateShort(result.createdAt);
+  const statusLabel = result.data?.completed ? 'Completed' : 'Partial';
+  const completed = !!result.data?.completed;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenReview?.(result)}
+      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors text-left group w-full rounded-md border border-border/40 bg-muted/30"
+    >
+      <span
+        className={cn(
+          'flex-shrink-0 size-7 rounded-lg flex items-center justify-center transition-colors',
+          completed
+            ? 'bg-emerald-500/10 text-emerald-500'
+            : 'bg-amber-500/10 text-amber-500'
+        )}
+      >
+        {completed ? (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21.801 10A10 10 0 1 1 17 3.335" />
+            <path d="m9 11 3 3L22 4" />
+          </svg>
+        ) : (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" />
+          </svg>
+        )}
+      </span>
+
+      <div className="flex-1 min-w-0">
+        <h3 className="text-sm font-semibold text-foreground truncate">
+          {noteTitle || result.noteId}
+        </h3>
+        <p className="text-[11px] text-muted-foreground truncate">
+          {dateLabel} · {statusLabel}
+        </p>
+      </div>
+
+      <span className="flex-shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors">
+        <Maximize2 className="h-3.5 w-3.5" />
+      </span>
+    </button>
   );
 };
 
@@ -225,8 +406,8 @@ const ResultRow: React.FC<ResultRowProps> = ({
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<number>>(new Set());
 
   const duration = formatDuration(result.data?.duration ?? 0);
-  const timeLabel = formatTime(result.completedAt);
-  const dateLabel = formatDateShort(result.completedAt);
+  const timeLabel = formatTime(result.createdAt);
+  const dateLabel = formatDateShort(result.createdAt);
 
   const handleSelectSegment = useCallback(
     (id: number, modifiers?: { ctrlKey: boolean; shiftKey: boolean }, visibleIds?: number[]) => {

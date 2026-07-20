@@ -279,10 +279,15 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
   // 3. Journal list page — top-10 distinct session dates
   if (pathname === '/journal') {
     const dates = new Set<string>()
-    recentResults.forEach(r => { dates.add(new Date(r.completedAt).toISOString().split('T')[0]) })
+    recentResults.forEach(r => {
+      // Tolerate rows from partially-migrated dev databases — a bad date must
+      // not take down the whole nav derivation.
+      const time = new Date(r.createdAt).getTime()
+      if (Number.isFinite(time)) dates.add(new Date(time).toISOString().split('T')[0])
+    })
     workoutItems.forEach(item => {
       const d = readItemDate(item)
-      if (d) dates.add(new Date(d).toISOString().split('T')[0])
+      if (d && Number.isFinite(new Date(d).getTime())) dates.add(new Date(d).toISOString().split('T')[0])
     })
     return Array.from(dates).sort().reverse().slice(0, 10).map(d => ({
       id: d,

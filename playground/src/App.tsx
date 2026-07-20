@@ -14,6 +14,7 @@ import { usePaletteStore } from '@/components/organisms/command-palette/palette-
 import { PaletteShell } from '@/components/organisms/command-palette/PaletteShell'
 import { globalSearchSource } from './services/paletteDataSources'
 import { useCreateJournalEntry } from './hooks/useCreateJournalEntry'
+import { useShowPlaygrounds } from './hooks/useShowPlaygrounds'
 import { usePageScrollSync } from './hooks/usePageScrollSync'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
 import { AudioProvider } from '@/contexts/AudioContext'
@@ -84,13 +85,15 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const handleSelectWorkout = useSelectWorkout()
   const { workout: currentWorkout, nav: currentNavLinks } = view
 
+  const [showPlaygrounds] = useShowPlaygrounds()
+
   const handleCreateJournalEntry = useCreateJournalEntry({ workoutItems })
 
   // Open the palette for global search (Ctrl+/ or search button)
   const openSearchPalette = useCallback(() => {
     usePaletteStore.getState().open({
       placeholder: 'Search workouts, results, pages…',
-      sources: [globalSearchSource(workoutItems, canvasRoutes)],
+      sources: [globalSearchSource(workoutItems, canvasRoutes, showPlaygrounds)],
     }).then(result => {
       if (result.dismissed) return
       const item = result.item
@@ -102,7 +105,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         navigate(reviewPath(item.id))
       }
     })
-  }, [workoutItems, handleSelectWorkout, navigate])
+  }, [workoutItems, handleSelectWorkout, navigate, showPlaygrounds])
 
   // Keep the parent's searchHandlerRef up-to-date so the nav tree CallAction always
   // fires the latest callback (workoutItems may change after initial mount).

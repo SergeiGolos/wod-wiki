@@ -324,7 +324,7 @@ describe('MarkdownCanvasPage result persistence', () => {
       noteId: 'canvas:home',
       blockContentId: 'block-1',
       data: sampleWorkoutResults as any,
-      completedAt: sampleWorkoutResults.endTime,
+      createdAt: sampleWorkoutResults.endTime,
     })
 
     const { MarkdownCanvasPage } = await markdownCanvasPageModule

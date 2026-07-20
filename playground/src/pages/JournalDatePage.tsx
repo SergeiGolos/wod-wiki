@@ -87,9 +87,9 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       noteId: uuid,
       resultId: activeRuntimeId || crypto.randomUUID(),
       data: results!,
-      completedAt: results?.endTime || Date.now(),
+      createdAt: results?.endTime || Date.now(),
     }).then(() => {
-      if (results?.logs) {
+      if (results?.logs?.length) {
         const segments = getAnalyticsFromLogs(results.logs).segments;
         setReviewSegments(segments);
         setIsTimerOpen(false);
