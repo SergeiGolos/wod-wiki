@@ -10,20 +10,14 @@
  *      with noteId = 'journal/YYYY-MM-DD' (the full key, NOT just the date)
  *   5. After closing the review, the result badge appears on the note page
  *
- * The critical regression this covers:
- *   BEFORE the fix, JournalPage called `notePersistence.mutateNote(noteId, ...)`
- *   where noteId = '2024-01-15' (params only).  The note only exists in
- *   wodwiki-playground under 'journal/2024-01-15', not in wodwiki-db, so
- *   NOTE_NOT_FOUND was thrown and no result was persisted.
- *
  * Test isolation: uses today's date so the content IS realistic, but clears
- * both the playground entry and the results store before each run.
+ * the journal note and its results from wodwiki-db before each run.
  */
 
 import { test, expect, type Page } from '@playwright/test';
+import { deleteNoteByRouteId, getNoteContentByRouteId } from '../helpers/wodwikiDb';
 
 const WOD_DB = 'wodwiki-db';
-const PLAYGROUND_DB = 'wodwiki-playground';
 
 // ── The collection workout used for dogfooding ─────────────────────────────
 // Any collection with a "Now" button will do. Crossfit Girls / Fran is the
@@ -35,23 +29,6 @@ const COLLECTION_WORKOUT_URL = '/workout/crossfit-girls/fran';
 function todayKey(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-async function clearPlaygroundEntry(page: Page, noteId: string) {
-  await page.evaluate(async ({ db, key }) => {
-    await new Promise<void>((resolve, reject) => {
-      const req = indexedDB.open(db);
-      req.onsuccess = () => {
-        const idb = req.result;
-        if (!idb.objectStoreNames.contains('pages')) { idb.close(); resolve(); return; }
-        const tx = idb.transaction('pages', 'readwrite');
-        tx.objectStore('pages').delete(key);
-        tx.oncomplete = () => { idb.close(); resolve(); };
-        tx.onerror = () => { idb.close(); reject(tx.error); };
-      };
-      req.onerror = () => reject(req.error);
-    });
-  }, { db: PLAYGROUND_DB, key: noteId });
 }
 
 async function clearWodDbResultsForNote(page: Page, noteId: string) {
@@ -99,23 +76,6 @@ async function getResultsForNote(page: Page, noteId: string): Promise<unknown[]>
   }, { db: WOD_DB, noteId });
 }
 
-async function getPlaygroundPage(page: Page, noteId: string): Promise<string | null> {
-  return page.evaluate(async ({ db, key }) => {
-    return new Promise<string | null>((resolve, reject) => {
-      const req = indexedDB.open(db);
-      req.onsuccess = () => {
-        const idb = req.result;
-        if (!idb.objectStoreNames.contains('pages')) { idb.close(); resolve(null); return; }
-        const tx = idb.transaction('pages', 'readonly');
-        const get = tx.objectStore('pages').get(key);
-        get.onsuccess = () => { idb.close(); resolve(get.result?.content ?? null); };
-        get.onerror = () => { idb.close(); reject(get.error); };
-      };
-      req.onerror = () => reject(req.error);
-    });
-  }, { db: PLAYGROUND_DB, key: noteId });
-}
-
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 test.describe('Collection → New Journal Note → Result Persistence', () => {
@@ -154,7 +114,7 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
     const playgroundKey = `journal/${dateKey}`;
 
     // Clear any existing state so we start clean
-    await clearPlaygroundEntry(page, playgroundKey);
+    await deleteNoteByRouteId(page, playgroundKey);
     await clearWodDbResultsForNote(page, playgroundKey);
 
     // Navigate to the collection workout
@@ -177,10 +137,10 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
 
     await page.screenshot({ path: 'e2e/screenshots/collection-02-journal-with-timer.png' });
 
-    // The journal note must have been created in wodwiki-playground
+    // The journal note must have been created in wodwiki-db
     await page.waitForTimeout(500);
-    const content = await getPlaygroundPage(page, playgroundKey);
-    expect(content, 'Journal note should be created in wodwiki-playground').not.toBeNull();
+    const content = await getNoteContentByRouteId(page, playgroundKey);
+    expect(content, 'Journal note should be created in wodwiki-db').not.toBeNull();
     expect(content, 'Journal note should contain the workout name').toContain('fran');
 
     // FullscreenTimer should be visible (autoStart consumed from pendingRuntimes)
@@ -217,9 +177,9 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
           tx.objectStore('results').put({
             id: 'e2e-collection-test-001',
             noteId: fullNoteId,     // ← the critical field: must use 'journal/DATE' not just 'DATE'
-            sectionId: 'wod-fran',
+            segmentId: 'wod-fran',
             data: { startTime: Date.now() - 300_000, endTime: Date.now(), completed: true, logs: [], metrics: [] },
-            completedAt: Date.now(),
+            createdAt: Date.now(),
           });
           tx.oncomplete = () => { idb.close(); resolve(); };
           tx.onerror = () => { idb.close(); reject(tx.error); };
@@ -274,7 +234,7 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
     const playgroundKey = `journal/${dateKey}`;
 
     errors.length = 0;
-    await clearPlaygroundEntry(page, playgroundKey);
+    await deleteNoteByRouteId(page, playgroundKey);
     await clearWodDbResultsForNote(page, playgroundKey);
 
     // Step 1: Go to collection page
@@ -314,9 +274,9 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
     const closeButton = page.getByRole('button', { name: /close/i }).first();
     await expect(closeButton).toBeVisible({ timeout: 5_000 });
 
-    // Step 6: Verify journal note was created in wodwiki-playground
-    const content = await getPlaygroundPage(page, playgroundKey);
-    expect(content, 'Journal note should be created in wodwiki-playground').not.toBeNull();
+    // Step 6: Verify journal note was created in wodwiki-db
+    const content = await getNoteContentByRouteId(page, playgroundKey);
+    expect(content, 'Journal note should be created in wodwiki-db').not.toBeNull();
 
     // Step 7: Close the timer (no result to check — timer was not completed)
     await closeButton.click();

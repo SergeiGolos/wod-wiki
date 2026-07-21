@@ -16,28 +16,9 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
+import { clearAllNotes } from '../helpers/wodwikiDb';
 
-const PLAYGROUND_DB = 'wodwiki-playground';
-const PLAYGROUND_DB_VERSION = 2;
 const TEST_PAGE_NAME = 'e2e-full-integration';
-
-// ── IndexedDB helpers ───────────────────────────────────────────────────────
-
-async function clearAllPlaygroundPages(page: Page) {
-  await page.evaluate(async ({ dbName, version }) => {
-    await new Promise<void>((resolve, reject) => {
-      const req = indexedDB.open(dbName, version);
-      req.onsuccess = () => {
-        const db = req.result;
-        const tx = db.transaction('pages', 'readwrite');
-        tx.objectStore('pages').clear();
-        tx.oncomplete = () => { db.close(); resolve(); };
-        tx.onerror = () => { db.close(); reject(tx.error); };
-      };
-      req.onerror = () => reject(req.error);
-    });
-  }, { dbName: PLAYGROUND_DB, version: PLAYGROUND_DB_VERSION });
-}
 
 function monitorErrors(page: Page): { consoleErrors: string[]; pageErrors: string[] } {
   const consoleErrors: string[] = [];
@@ -88,7 +69,7 @@ test.describe('Playground Full Page Integration — /playground/:id', () => {
     // Navigate to a stable route to seed IndexedDB access, then clear ALL
     // playground pages so the default playground template loads on the next visit.
     await page.goto('/syntax', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await clearAllPlaygroundPages(page);
+    await clearAllNotes(page);
   });
 
   // ── 1. Widget rendering ─────────────────────────────────────────────────

@@ -1,48 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-
-const PLAYGROUND_DB = 'wodwiki-playground';
-
-async function seedPlaygroundPage(page: Page, id: string, content: string) {
-  await page.evaluate(
-    async ({ dbName, id, content }) => {
-      await new Promise<void>((resolve, reject) => {
-        const req = indexedDB.open(dbName, 2);
-
-        req.onupgradeneeded = () => {
-          const db = req.result;
-          if (!db.objectStoreNames.contains('pages')) {
-            const store = db.createObjectStore('pages', { keyPath: 'id' });
-            store.createIndex('by-updated', 'updatedAt');
-            store.createIndex('by-category', 'category');
-          }
-        };
-
-        req.onsuccess = () => {
-          const db = req.result;
-          const tx = db.transaction(['pages'], 'readwrite');
-          tx.objectStore('pages').put({
-            id: `playground/${id}`,
-            category: 'playground',
-            name: id,
-            content,
-            updatedAt: Date.now(),
-          });
-          tx.oncomplete = () => {
-            db.close();
-            resolve();
-          };
-          tx.onerror = () => {
-            db.close();
-            reject(tx.error);
-          };
-        };
-
-        req.onerror = () => reject(req.error);
-      });
-    },
-    { dbName: PLAYGROUND_DB, id, content },
-  );
-}
+import { expect, test } from '@playwright/test';
+import { seedNote } from '../helpers/wodwikiDb';
 
 test('CodeMirror accepts typing and Enter inside wod code fences', async ({ page }) => {
   const id = 'codemirror-wod-editing-regression';
@@ -59,7 +16,7 @@ test('CodeMirror accepts typing and Enter inside wod code fences', async ({ page
   });
 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await seedPlaygroundPage(page, id, content);
+  await seedNote(page, `playground/${id}`, content, { type: 'playground', title: id });
 
   await page.goto(`/playground/${id}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.cm-content[contenteditable="true"]', { timeout: 15_000 });

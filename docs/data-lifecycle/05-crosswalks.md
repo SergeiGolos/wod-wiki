@@ -6,16 +6,16 @@ Lookup tables tying pages, stores, and keys together. Schema detail:
 
 ## Store → writers / readers
 
-| Store | Written by | Read by |
-|---|---|---|
-| `notes` | createNote, mutateNote (lazy create), savePage seed | every page via provider/persistence |
-| `segments` | updateEntry (new version rows), saveEntry | getEntry/getEntries, getLatestSegmentsForNote |
-| `results` | mutateNote → saveResult (single seam: playgroundRecorder) | ReviewPage, JournalDatePage, InlineResultPanel, EffortsNavPanel (`getRecentResults`), routeView |
-| `analytics` | mutateNote (summary rows from `outputType='analytics'` logs) | trend queries via `by-content` / `by-metric` / `by-effort` |
-| `attachments` | mutateNote / saveAttachment | note projection (`includeAttachments`) |
-| `efforts` | useEffortContent save (upsert + auto-clone) | EffortDetailPage, CompositeEffortRegistry.loadBundled |
-| `page` | getOrCreatePageForDate, createNote (journal date) | journalDate grouping, listByDate |
-| `tags` / `note_tags` | setNoteTags | getTagsForNote |
+| Store                | Written by                                                   | Read by                                                                                         |
+| -------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `notes`              | createNote, mutateNote (lazy create), savePage seed          | every page via provider/persistence                                                             |
+| `segments`           | updateEntry (new version rows), saveEntry                    | getEntry/getEntries, getLatestSegmentsForNote                                                   |
+| `results`            | mutateNote → saveResult (single seam: playgroundRecorder)    | ReviewPage, JournalDatePage, InlineResultPanel, EffortsNavPanel (`getRecentResults`), routeView |
+| `analytics`          | mutateNote (summary rows from `outputType='analytics'` logs) | trend queries via `by-content` / `by-metric` / `by-effort`                                      |
+| `attachments`        | mutateNote / saveAttachment                                  | note projection (`includeAttachments`)                                                          |
+| `efforts`            | useEffortContent save (upsert + auto-clone)                  | EffortDetailPage, CompositeEffortRegistry.loadBundled                                           |
+| `page`               | getOrCreatePageForDate, createNote (journal date)            | journalDate grouping, listByDate                                                                |
+| `tags` / `note_tags` | setNoteTags                                                  | getTagsForNote                                                                                  |
 
 ## Persistence seam map
 
@@ -57,6 +57,5 @@ Lookup tables tying pages, stores, and keys together. Schema detail:
 ## Reset semantics
 
 `resetUserData` wipes everything: `indexedDBService.wipe()` (deletes
-`wodwiki-db`), best-effort drop of legacy `wodwiki-playground`,
-`localStorage.clear()`, `sessionStorage.clear()`. Build-time markdown is
-unaffected — pages re-seed from it on next visit.
+`wodwiki-db`), `localStorage.clear()`, `sessionStorage.clear()`. Build-time
+markdown is unaffected — pages re-seed from it on next visit.

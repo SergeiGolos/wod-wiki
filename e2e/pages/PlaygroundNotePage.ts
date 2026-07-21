@@ -1,5 +1,6 @@
 import { Page } from '@playwright/test';
 import { BaseNotePage } from './BaseNotePage';
+import { deleteNoteByRouteId } from '../helpers/wodwikiDb';
 
 /**
  * PlaygroundNotePage — Page Object for /playground/:id
@@ -35,20 +36,8 @@ export class PlaygroundNotePage extends BaseNotePage {
 
   // ── IndexedDB helpers ────────────────────────────────────────────────────
 
-  /** Delete a playground note from IndexedDB. */
+  /** Delete a playground note from wodwiki-db. */
   async clearStoredNote(id: string) {
-    await this.page.evaluate(async ({ pageId }) => {
-      await new Promise<void>((resolve, reject) => {
-        const req = indexedDB.open('wodwiki-playground');
-        req.onsuccess = () => {
-          const db = req.result;
-          const tx = db.transaction(['pages'], 'readwrite');
-          tx.objectStore('pages').delete(pageId);
-          tx.oncomplete = () => { db.close(); resolve(); };
-          tx.onerror = () => { db.close(); reject(tx.error); };
-        };
-        req.onerror = () => reject(req.error);
-      });
-    }, { pageId: `playground/${id}` });
+    await deleteNoteByRouteId(this.page, `playground/${id}`);
   }
 }

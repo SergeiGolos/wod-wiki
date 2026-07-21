@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { EditorView } from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
+import { EditorSelection } from '@codemirror/state';
 import type { ScriptBlock } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
 import { journalNotes } from '../services/journalNotes';
@@ -44,6 +45,28 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   const boundariesRef = useRef<NoteBoundary[]>([]);
   const [blocks, setBlocks] = useState<ScriptBlock[]>([]);
   const timeoutRef = useRef<number | undefined>(undefined);
+  const [editorView, setEditorView] = useState<EditorView | null>(null);
+
+  const handleViewCreated = useCallback((view: EditorView) => {
+    setEditorView(view);
+    onViewCreated?.(view);
+  }, [onViewCreated]);
+
+  // ?note=<uuid> — UI-level sub-selection within the date page. Scrolls the
+  // editor to the selected note's first line once both the notes and the
+  // editor view are ready (whichever arrives last retriggers the effect).
+  const selectedNoteId = searchParams.get('note');
+  useEffect(() => {
+    if (!selectedNoteId || !notes || !editorView) return;
+    const boundary = boundariesRef.current.find(b => b.uuid === selectedNoteId);
+    if (!boundary) return;
+    const line = Math.min(boundary.startLine + 1, editorView.state.doc.lines);
+    const pos = editorView.state.doc.line(line).from;
+    editorView.dispatch({
+      selection: EditorSelection.cursor(pos),
+      effects: EditorView.scrollIntoView(pos, { y: 'start', yMargin: 96 }),
+    });
+  }, [selectedNoteId, notes, editorView]);
 
   useEffect(() => {
     const autoStartId = searchParams.get('autoStart');
@@ -173,7 +196,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
             showLineNumbers={false}
             onBlocksChange={setBlocks}
             onCompleteWorkout={handleCompleteWorkout}
-            onViewCreated={onViewCreated}
+            onViewCreated={handleViewCreated}
             extendedResults={allResults}
           />
         )}

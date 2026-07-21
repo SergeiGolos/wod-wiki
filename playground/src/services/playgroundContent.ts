@@ -2,11 +2,10 @@
  * playgroundContent — the single source for playground note content, backed by
  * the `wodwiki-db` notes/segments stores (via IndexedDBContentProvider).
  *
- * This replaces the separate `wodwiki-playground` database (`playgroundDB`),
- * consolidating note content and results into ONE database. It intentionally
- * mirrors `playgroundDB`'s old API surface (pageId / getPage / savePage /
- * addPage / getAllPages / getPagesByCategory / deletePage / clearAll) so the
- * call sites swap over mechanically.
+ * Content and results are consolidated into this one database. The API
+ * surface (pageId / getPage / savePage / addPage / getAllPages /
+ * getPagesByCategory / deletePage / clearAll) mirrors a page-oriented model
+ * so call sites read like simple CRUD.
  *
  * Identity: a page's id is the composite `category/name` (unchanged), which is
  * also the `Note.id` and the `WorkoutResult.noteId` — so content and results

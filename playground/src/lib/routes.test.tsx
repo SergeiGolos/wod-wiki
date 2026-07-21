@@ -27,6 +27,7 @@ import {
   playgroundPath,
   notePath,
   journalEntryPath,
+  journalNotePath,
   journalEntryAutoStartPath,
   workoutPath,
   runPath,
@@ -191,6 +192,10 @@ describe('path builders', () => {
 
   it('journalEntryPath encodes the id', () => {
     expect(journalEntryPath('2026-05-19')).toBe('/journal/2026-05-19')
+  })
+
+  it('journalNotePath targets the date page with a ?note= selection', () => {
+    expect(journalNotePath('2026-05-19', 'abc-123')).toBe('/journal/2026-05-19?note=abc-123')
   })
 
   it('journalEntryAutoStartPath appends query param', () => {

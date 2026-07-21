@@ -39,12 +39,12 @@ flowchart TB
 
 ## Tier summary
 
-| Tier | Technology | Role | Survives reload? | Source of truth? |
-|---|---|---|---|---|
-| Build-time markdown | `import.meta.glob` of `markdown/**` | Seed & fallback content | n/a (compiled in) | No — only until first IDB write |
-| IndexedDB | `wodwiki-db` v11, 9 stores | All user content | Yes | **Yes** |
-| localStorage | ~19 keys | Flags, profile, caches, legacy migration source | Yes | No — disposable |
-| In-memory | Maps / Zustand / refs | Route handoff, session state, canvas edits | No | No |
+| Tier                | Technology                          | Role                                            | Survives reload?  | Source of truth?                |
+| ------------------- | ----------------------------------- | ----------------------------------------------- | ----------------- | ------------------------------- |
+| Build-time markdown | `import.meta.glob` of `markdown/**` | Seed & fallback content                         | n/a (compiled in) | No — only until first IDB write |
+| IndexedDB           | `wodwiki-db` v11, 9 stores          | All user content                                | Yes               | **Yes**                         |
+| localStorage        | ~19 keys                            | Flags, profile, caches, legacy migration source | Yes               | No — disposable                 |
+| In-memory           | Maps / Zustand / refs               | Route handoff, session state, canvas edits      | No                | No                              |
 
 ## Notes per tier
 
@@ -54,8 +54,7 @@ compile-time globs into in-memory arrays. No runtime file I/O, no writes.
 Pages use them only when IDB has no row yet (seed) or as read-only listings.
 
 **IndexedDB** (`src/services/db/IndexedDBService.ts`) — the only live
-database. The legacy `wodwiki-playground` DB is referenced solely by
-`resetUserData` for best-effort deletion; nothing opens it anymore.
+database (`wodwiki-db`). Nothing else opens or references a database.
 
 **localStorage** — holds no user content. Wiping it loses no workouts, only
 onboarding/profile/theme state. Full key inventory in

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 
 /**
- * resetUserData is a thin orchestrator over four stores: the primary DB
- * (via indexedDBService.wipe), the legacy DB, localStorage, and sessionStorage.
+ * resetUserData is a thin orchestrator over three stores: the primary DB
+ * (via indexedDBService.wipe), localStorage, and sessionStorage.
  *
  * We mock @/services/db/IndexedDBService (registered BEFORE the resetUserData
  * import, which pulls it in at load time) so the test never touches the real

@@ -99,7 +99,7 @@ describe('useJournalZipProcessor', () => {
     });
 
     expect(result.current.dateKey).toBe('2026-05-26');
-    expect(mockNavigate.mock.calls[0]?.[0]).toMatch(/^\/journal\/2026-05-26\/[0-9a-f-]+$/);
+    expect(mockNavigate.mock.calls[0]?.[0]).toMatch(/^\/journal\/2026-05-26\?note=[0-9a-f-]+$/);
     expect(mockNavigate.mock.calls[0]?.[1]).toEqual({ replace: true });
   });
 
@@ -125,7 +125,7 @@ describe('useJournalZipProcessor', () => {
     });
 
     expect(result.current.dateKey).toBe('2026-06-01');
-    expect(mockNavigate.mock.calls[0]?.[0]).toMatch(/^\/journal\/2026-06-01\/[0-9a-f-]+$/);
+    expect(mockNavigate.mock.calls[0]?.[0]).toMatch(/^\/journal\/2026-06-01\?note=[0-9a-f-]+$/);
     expect(mockNavigate.mock.calls[0]?.[1]).toEqual({ replace: true });
   });
 

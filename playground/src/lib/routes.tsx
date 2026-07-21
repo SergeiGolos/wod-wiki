@@ -63,9 +63,14 @@ export function journalDatePath(date: string): string {
   return `/journal/${encodeURIComponent(date)}/`;
 }
 
-/** /journal/:date/:uuid */
+/**
+ * Sub-selection of a single note within a date page.
+ * Notes are stored by UUID, but the user only ever sees the whole date page —
+ * note selection is UI-level state carried in the ?note= query param.
+ * /journal/:date?note=<uuid>
+ */
 export function journalNotePath(date: string, uuid: string): string {
-  return `/journal/${encodeURIComponent(date)}/${encodeURIComponent(uuid)}`;
+  return `/journal/${encodeURIComponent(date)}?note=${encodeURIComponent(uuid)}`;
 }
 
 /** Legacy single-segment journal route (date, UUID alias, or slug alias). */

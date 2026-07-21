@@ -1,7 +1,6 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { BaseNotePage } from './BaseNotePage';
-
-const DB_NAME = 'wodwiki-playground';
+import { deleteNoteByRouteId, getNoteContentByRouteId } from '../helpers/wodwikiDb';
 
 /**
  * JournalEntryPage — Page Object for /journal/:date
@@ -53,37 +52,13 @@ export class JournalEntryPage extends BaseNotePage {
 
   // ── IndexedDB helpers ─────────────────────────────────────────────────────
 
-  /** Delete a journal entry from IndexedDB (resets to template on next load). */
+  /** Delete a journal entry from wodwiki-db (resets to template on next load). */
   async clearStoredEntry(date: string) {
-    await this.page.evaluate(async ({ dbName, pageId }) => {
-      await new Promise<void>((resolve, reject) => {
-        const req = indexedDB.open(dbName);
-        req.onsuccess = () => {
-          const db = req.result;
-          const tx = db.transaction(['pages'], 'readwrite');
-          tx.objectStore('pages').delete(pageId);
-          tx.oncomplete = () => { db.close(); resolve(); };
-          tx.onerror = () => { db.close(); reject(tx.error); };
-        };
-        req.onerror = () => reject(req.error);
-      });
-    }, { dbName: DB_NAME, pageId: `journal/${date}` });
+    await deleteNoteByRouteId(this.page, `journal/${date}`);
   }
 
-  /** Read raw content from IndexedDB (bypasses React — confirms the actual persisted value). */
+  /** Read raw content from wodwiki-db (bypasses React — confirms the actual persisted value). */
   async storedContent(date: string): Promise<string | null> {
-    return this.page.evaluate(async ({ dbName, pageId }) => {
-      return new Promise<string | null>((resolve, reject) => {
-        const req = indexedDB.open(dbName);
-        req.onsuccess = () => {
-          const db = req.result;
-          const tx = db.transaction(['pages'], 'readonly');
-          const getReq = tx.objectStore('pages').get(pageId);
-          getReq.onsuccess = () => { db.close(); resolve(getReq.result?.content ?? null); };
-          getReq.onerror = () => { db.close(); reject(getReq.error); };
-        };
-        req.onerror = () => reject(req.error);
-      });
-    }, { dbName: DB_NAME, pageId: `journal/${date}` });
+    return getNoteContentByRouteId(this.page, `journal/${date}`);
   }
 }

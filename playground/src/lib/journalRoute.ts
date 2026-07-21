@@ -54,11 +54,3 @@ export function resolveJournalRoute(pathname: string): JournalRoute {
 
   return { kind: 'invalid' };
 }
-
-export function journalDatePath(journalDate: string): string {
-  return `/journal/${encodeURIComponent(journalDate)}/`;
-}
-
-export function journalNotePath(journalDate: string, noteId: string): string {
-  return `/journal/${encodeURIComponent(journalDate)}/${encodeURIComponent(noteId)}`;
-}
