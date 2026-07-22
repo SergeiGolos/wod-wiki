@@ -45,6 +45,7 @@ export default defineConfig({
   webServer: {
     command: 'bun run dev:app',
     url: appBaseURL,
+    ignoreHTTPSErrors: !!httpsHost, // self-signed / Tailscale certs locally
     reuseExistingServer: true,
     timeout: 60 * 1000,
   },

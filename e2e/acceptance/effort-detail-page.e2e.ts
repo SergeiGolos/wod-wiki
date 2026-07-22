@@ -3,14 +3,13 @@
  *
  * Archetype: ACCEPTANCE — targets stories/catalog/pages/EffortDetailPage
  *
- * Validates:
+ * Validates the note-based EffortDetailPage rendered by JournalPageShell:
  *  - Storybook stories load without console errors
- *  - JournalPageShell layout: sticky header, title, actions, index sidebar
- *  - Bundled effort renders label, slug, MET, discipline, aliases, origin badge
- *  - High-intensity effort renders correctly
- *  - With modifiers story shows resolved tab with effective values
- *  - Clone action enters edit mode with NoteEditor visible
- *  - Mobile viewport renders without sticky header or sidebar
+ *  - Sticky header shows title, origin badge, and actions
+ *  - NoteEditor displays the YAML effort document
+ *  - Bundled effort is read-only until cloned
+ *  - Show Resolved toggle reveals the inline effective-resolution widget
+ *  - Mobile viewport hides the sticky header and index sidebar
  */
 
 import { test, expect, Page } from '@playwright/test';
@@ -65,39 +64,35 @@ test.describe('EffortDetailPage — JournalPageShell Layout', () => {
     await expect(detail.editButton()).not.toBeVisible();
   });
 
-  test('index sidebar renders on 3xl viewport', async ({ page }) => {
+  test('index sidebar is not rendered when effort has no headings', async ({ page }) => {
     await page.setViewportSize({ width: 2048, height: 1080 });
     const detail = new EffortDetailPage(page);
     await detail.gotoStory(STORIES.bundled);
 
-    await expect(detail.indexSidebar()).toBeVisible();
-    await expect(detail.indexLink('Attributes')).toBeVisible();
-    await expect(detail.indexLink('Aliases')).toBeVisible();
-    await expect(detail.indexLink('Analytics')).toBeVisible();
+    await expect(detail.indexSidebar()).toHaveCount(0);
   });
 
-  test('index sidebar links scroll to sections', async ({ page }) => {
+  test('main editor renders the bundled effort content', async ({ page }) => {
     await page.setViewportSize({ width: 2048, height: 1080 });
     const detail = new EffortDetailPage(page);
     await detail.gotoStory(STORIES.bundled);
 
-    await detail.indexLink('Analytics').click();
-    await page.waitForTimeout(400);
-
-    const analytics = detail.analyticsCard();
-    await expect(analytics).toBeVisible();
-    const rect = await analytics.evaluate((el) => el.getBoundingClientRect());
-    expect(rect.top).toBeGreaterThanOrEqual(0);
-    expect(rect.top).toBeLessThan(page.viewportSize()?.height ?? 1080);
+    await expect(detail.editorContent()).toBeVisible();
+    await expect(detail.editorContent()).toContainText('label: Rowing');
+    await expect(detail.editorContent()).toContainText('slug: rowing');
+    await expect(detail.editorContent()).toContainText('met: 7');
   });
 
-  test('with modifiers index includes resolved sections', async ({ page }) => {
+  test('with modifiers story shows the resolved toggle and widget', async ({ page }) => {
     await page.setViewportSize({ width: 2048, height: 1080 });
     const detail = new EffortDetailPage(page);
     await detail.gotoStory(STORIES.withModifiers);
 
-    await expect(detail.indexLink('Effective Resolution')).toBeVisible();
-    await expect(detail.indexLink('Applied Modifiers')).toBeVisible();
+    await expect(detail.showResolvedButton()).toBeVisible();
+    await detail.clickShowResolved();
+    await expect(detail.resolvedWidget()).toBeVisible();
+    await expect(detail.resolvedWidget()).toContainText('Effective MET');
+    await expect(detail.resolvedWidget()).toContainText('Discipline Factor');
   });
 });
 
@@ -112,7 +107,7 @@ test.describe('EffortDetailPage — Bundled Effort', () => {
   test('displays effort label and slug', async ({ page }) => {
     const detail = new EffortDetailPage(page);
     await expect(detail.titleHeading()).toContainText('Rowing');
-    await expect(page.getByText('rowing', { exact: true }).first()).toBeVisible();
+    await expect(detail.editorContent()).toContainText('slug: rowing');
   });
 
   test('shows bundled origin badge', async ({ page }) => {
@@ -120,23 +115,17 @@ test.describe('EffortDetailPage — Bundled Effort', () => {
     await expect(detail.originBadge()).toContainText('Bundled');
   });
 
-  test('shows MET and discipline in attributes card', async ({ page }) => {
+  test('shows MET and discipline in YAML document', async ({ page }) => {
     const detail = new EffortDetailPage(page);
-    await expect(detail.attributesCard().getByText('MET', { exact: true })).toBeVisible();
-    await expect(detail.attributesCard().getByText('7.0', { exact: true })).toBeVisible();
+    await expect(detail.editorContent()).toContainText('met: 7');
+    await expect(detail.editorContent()).toContainText('discipline: rowing');
   });
 
-  test('renders aliases card', async ({ page }) => {
+  test('renders aliases in YAML document', async ({ page }) => {
     const detail = new EffortDetailPage(page);
-    await expect(detail.aliasesCard()).toBeVisible();
-    await expect(page.getByText('row', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('rower', { exact: true }).first()).toBeVisible();
-  });
-
-  test('shows analytics placeholder', async ({ page }) => {
-    const detail = new EffortDetailPage(page);
-    await expect(detail.analyticsCard()).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible();
+    await expect(detail.editorContent()).toContainText('aliases:');
+    await expect(detail.editorContent()).toContainText('row');
+    await expect(detail.editorContent()).toContainText('rower');
   });
 
   test('clone button is visible for bundled efforts', async ({ page }) => {
@@ -163,14 +152,14 @@ test.describe('EffortDetailPage — High Intensity', () => {
     await expect(detail.titleHeading()).toContainText('Kettlebell Snatch');
   });
 
-  test('shows high intensity badge', async ({ page }) => {
-    await expect(page.getByText('High')).toBeVisible();
+  test('shows high intensity tier in YAML document', async ({ page }) => {
+    const detail = new EffortDetailPage(page);
+    await expect(detail.editorContent()).toContainText('intensityTier: high');
   });
 
-  test('shows elevated MET in attributes card', async ({ page }) => {
+  test('shows elevated MET in YAML document', async ({ page }) => {
     const detail = new EffortDetailPage(page);
-    await expect(detail.attributesCard().getByText('MET', { exact: true })).toBeVisible();
-    await expect(detail.attributesCard().getByText('12.0', { exact: true })).toBeVisible();
+    await expect(detail.editorContent()).toContainText('met: 12');
   });
 });
 
@@ -182,39 +171,39 @@ test.describe('EffortDetailPage — With Modifiers', () => {
     await detail.gotoStory(STORIES.withModifiers);
   });
 
-  test('shows resolved and definition tabs', async ({ page }) => {
+  test('shows resolved toggle', async ({ page }) => {
     const detail = new EffortDetailPage(page);
-    await expect(detail.resolvedTab()).toBeVisible();
-    await expect(detail.definitionTab()).toBeVisible();
+    await expect(detail.showResolvedButton()).toBeVisible();
   });
 
-  test('shows effective resolution card', async ({ page }) => {
+  test('shows effective resolution widget', async ({ page }) => {
     const detail = new EffortDetailPage(page);
-    await expect(detail.effectiveResolutionCard()).toBeVisible();
+    await detail.clickShowResolved();
+    await expect(detail.resolvedWidget()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Effective Resolution' })).toBeVisible();
   });
 
-  test('shows applied modifiers card', async ({ page }) => {
+  test('displays effective MET', async ({ page }) => {
     const detail = new EffortDetailPage(page);
-    await expect(detail.appliedModifiersCard()).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Applied Modifiers' })).toBeVisible();
-  });
-
-  test('displays effective MET when modified', async ({ page }) => {
-    const detail = new EffortDetailPage(page);
-    await expect(detail.effectiveResolutionCard().getByText('Effective MET', { exact: true })).toBeVisible();
-    await expect(detail.effectiveResolutionCard().getByText('7.0', { exact: true })).toBeVisible();
+    await detail.clickShowResolved();
+    await expect(detail.resolvedWidget().getByText('Effective MET', { exact: true })).toBeVisible();
+    await expect(detail.resolvedWidget().getByText('7.0', { exact: true })).toBeVisible();
   });
 
   test('displays discipline factor', async ({ page }) => {
-    await expect(page.getByText('Discipline Factor')).toBeVisible();
+    const detail = new EffortDetailPage(page);
+    await detail.clickShowResolved();
+    await expect(detail.resolvedWidget().getByText('Discipline Factor')).toBeVisible();
   });
 
-  test('switching to definition tab shows attributes card', async ({ page }) => {
+  test('hiding resolved widget restores the editor view', async ({ page }) => {
     const detail = new EffortDetailPage(page);
-    await detail.clickDefinitionTab();
-    await expect(detail.attributesCard()).toBeVisible();
-    await expect(detail.attributesCard().getByText('7.0', { exact: true })).toBeVisible();
+    await detail.clickShowResolved();
+    await expect(detail.resolvedWidget()).toBeVisible();
+
+    await detail.clickHideResolved();
+    await expect(detail.resolvedWidget()).not.toBeVisible();
+    await expect(detail.editorContent()).toContainText('met: 7');
   });
 });
 
@@ -231,30 +220,6 @@ test.describe('EffortDetailPage — NoteEditor', () => {
     await expect(detail.editorContent()).toContainText('Rowing (Custom)');
     await expect(detail.editorContent()).toContainText('rowing-custom');
   });
-
-  test('NoteEditor shows Save and Cancel buttons in edit mode', async ({ page }) => {
-    const detail = new EffortDetailPage(page);
-    await detail.gotoStory(STORIES.bundled);
-    await detail.clickClone();
-    await detail.waitForNoteEditor();
-
-    await expect(detail.saveButton()).toBeVisible();
-    await expect(detail.cancelButton()).toBeVisible();
-  });
-
-  test('cancel returns to read-only view', async ({ page }) => {
-    const detail = new EffortDetailPage(page);
-    await detail.gotoStory(STORIES.bundled);
-    await detail.clickClone();
-    await detail.waitForNoteEditor();
-
-    await detail.cancelButton().click();
-    await page.waitForTimeout(300);
-
-    await expect(detail.noteEditor()).not.toBeVisible();
-    await expect(detail.attributesCard()).toBeVisible();
-    await expect(detail.titleHeading()).toContainText('Rowing');
-  });
 });
 
 // ─ Mobile viewport ───────────────────────────────────────────────────────────
@@ -267,10 +232,10 @@ test.describe('EffortDetailPage — Mobile', () => {
     await detail.gotoStory(STORIES.mobile);
   });
 
-  test('content cards are visible on mobile', async ({ page }) => {
+  test('editor content is visible on mobile', async ({ page }) => {
     const detail = new EffortDetailPage(page);
-    await expect(detail.attributesCard()).toBeVisible();
-    await expect(detail.aliasesCard()).toBeVisible();
+    await expect(detail.editorContent()).toBeVisible();
+    await expect(detail.editorContent()).toContainText('met: 7');
   });
 
   test('sticky header is hidden on mobile', async ({ page }) => {
@@ -281,7 +246,7 @@ test.describe('EffortDetailPage — Mobile', () => {
 
   test('index sidebar is hidden on mobile', async ({ page }) => {
     const detail = new EffortDetailPage(page);
-    await expect(detail.indexSidebar()).not.toBeVisible();
+    await expect(detail.indexSidebar()).toHaveCount(0);
   });
 
   test('clone button is not visible on mobile', async ({ page }) => {

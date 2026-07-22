@@ -1,11 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 import { config as loadDotenv } from 'dotenv';
 import { resolve } from 'path';
+import { storybookBaseURL } from './e2e/utils/url-helpers';
 
 loadDotenv({ path: resolve(__dirname, '.env.local'), override: true });
 
-const storybookProtocol = process.env.HTTPS_CERT ? 'https' : 'http';
-const storybookBaseURL = `${storybookProtocol}://localhost:6006`;
+// Local dev Storybook by default; deployed Storybook in CI; E2E_STORYBOOK_URL
+// overrides both (see e2e/utils/url-helpers.ts).
+const storybookBase = storybookBaseURL();
 
 /**
  * Playwright configuration for E2E testing of Storybook components
@@ -16,13 +18,10 @@ export default defineConfig({
   // live-app tests target the running playground app, not Storybook.
   // They are executed separately via playwright.journal.config.ts or
   // playwright.repro.config.ts with the correct baseURL.
-  //
-  // history-panel-navigation: requires a 'notebook--default' Storybook story
-  // that does not exist yet. Excluded until the story is created.
-  // TODO: remove this exclusion once stories/catalog/pages/Notebook.stories.tsx is added.
   testIgnore: [
     '**/live-app/**',
-    '**/acceptance/history-panel-navigation.e2e.ts',
+    // Smoke specs run via playwright.smoke.config.ts against their own targets.
+    '**/smoke/**',
   ],
 
   /* Maximum time one test can run for */
@@ -48,10 +47,10 @@ export default defineConfig({
   /* Shared settings for all the projects below */
   use: {
     /* Base URL for Storybook */
-    baseURL: storybookBaseURL,
+    baseURL: storybookBase,
 
-    /* Storybook HTTPS cert is self-signed/Tailscale — only needed when HTTPS is active */
-    ignoreHTTPSErrors: !!process.env.HTTPS_CERT,
+    /* Local Storybook uses self-signed/Tailscale certs; deployed targets have valid ones */
+    ignoreHTTPSErrors: true,
 
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
@@ -71,12 +70,15 @@ export default defineConfig({
     },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'bun run storybook',
-    url: storybookBaseURL,
-    ignoreHTTPSErrors: true,
-    reuseExistingServer: true,
-    timeout: 120 * 1000,
-  },
+  /* Run local Storybook before the tests — skipped in CI or when
+     E2E_STORYBOOK_URL points at an external Storybook */
+  webServer: (process.env.CI || process.env.E2E_STORYBOOK_URL)
+    ? undefined
+    : {
+        command: 'bun run storybook',
+        url: storybookBase,
+        ignoreHTTPSErrors: true,
+        reuseExistingServer: true,
+        timeout: 120 * 1000,
+      },
 });

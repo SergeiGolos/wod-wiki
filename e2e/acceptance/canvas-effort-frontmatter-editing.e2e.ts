@@ -11,12 +11,20 @@ test.describe('Canvas effort frontmatter editing flow', () => {
   ]) {
     test(`renders effort companion overlay on ${name}`, async ({ page }) => {
       const errors: string[] = [];
-      page.on('pageerror', (e) => errors.push(e.message));
+      page.on('pageerror', (e) => {
+        // The NoteEditor Storybook harness mounts without a workbench persistence
+        // port; the script-block-results hook logs this expected seam miss but
+        // does not affect the companion overlay under test.
+        if (e.message.includes('without a notePersistence port')) return;
+        errors.push(e.message);
+      });
       page.on('console', (msg) => {
         if (msg.type() !== 'error') return;
         const text = msg.text();
         // Ignore common Storybook / asset 404s unrelated to component functionality
         if (text.includes('404')) return;
+        // Same harness seam miss as above can also surface as a console error.
+        if (text.includes('without a notePersistence port')) return;
         errors.push(text);
       });
 

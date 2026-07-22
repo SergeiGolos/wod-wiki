@@ -24,8 +24,9 @@ test.describe('FullscreenWallClock — Close button (Ready to Start)', () => {
     await expect(launchButton).toBeVisible();
     await launchButton.click();
 
-    // Overlay should be visible with the Ready-to-Start label.
-    await expect(page.getByText('Ready to Start')).toBeVisible();
+    // Overlay should be visible with the Ready-to-Start heading.
+    const readyHeading = page.getByRole('heading', { name: 'Ready to Start' });
+    await expect(readyHeading).toBeVisible();
 
     // The Close (X) button is the floating button at the top-right of the
     // FocusedDialog. Identify it by its `title="Close"` attribute.
@@ -38,7 +39,7 @@ test.describe('FullscreenWallClock — Close button (Ready to Start)', () => {
     // A previous bug made the dismiss feel unresponsive by deferring the
     // close via a 100ms setTimeout. Use a short timeout to guard against
     // reintroduction of any long synthetic delay between click and unmount.
-    await expect(page.getByText('Ready to Start')).toBeHidden({ timeout: 250 });
+    await expect(readyHeading).toBeHidden({ timeout: 250 });
     await expect(launchButton).toBeVisible();
   });
 });

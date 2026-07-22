@@ -21,18 +21,20 @@ test.describe('Cursor focus metric panel', () => {
       await page.locator('.cm-content').click();
       await page.getByText('Thrusters', { exact: true }).click();
 
-      const bottomPanel = page.locator('.cm-panels-bottom .cm-wod-metric-panel');
-      await expect(bottomPanel).toBeVisible();
-      await expect(bottomPanel).toContainText('Exercise');
-      await expect(bottomPanel).toContainText('Weight');
-      await expect(bottomPanel).toContainText('Ctrl+. · edit');
+      const panelAnchor = page.locator('.cm-wod-metric-panel-anchor');
+      await expect(panelAnchor).toBeVisible();
+      await expect(panelAnchor).toContainText('Exercise');
+      await expect(panelAnchor).toContainText('Weight');
+      await expect(panelAnchor).toContainText('Ctrl+. · edit');
 
-      await expect(page.locator('.cm-content .cm-wod-metric-panel')).toHaveCount(0);
+      // The panel should be rendered only as the block widget anchor,
+      // never duplicated inline inside the editable prose.
+      await expect(page.locator('.cm-wod-metric-panel')).toHaveCount(1);
+      await expect(page.locator('.cm-wod-metric-panel-anchor .cm-wod-metric-panel')).toHaveCount(1);
 
       await page.getByText('Fran', { exact: true }).click();
 
-      const panelHost = page.locator('.cm-wod-metric-panel-host');
-      await expect(panelHost).toBeHidden();
+      await expect(panelAnchor).toBeHidden();
     });
   }
 });

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { appBaseURL } from '../utils/url-helpers';
 
-test.describe('Production Smoketests — https://wod.wiki', () => {
+test.describe(`App Smoketests — ${appBaseURL()}`, () => {
   test('homepage loads and renders title', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
