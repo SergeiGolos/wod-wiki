@@ -17,6 +17,7 @@ import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { WorkoutResult } from '@/types/storage';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
+import { useEditorSave } from '../hooks/useEditorSave';
 
 const journalContentProvider = new IndexedDBContentProvider();
 
@@ -40,11 +41,11 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [timerBlock, setTimerBlock] = useState<ScriptBlock | null>(null);
   const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([]);
 
   const boundariesRef = useRef<NoteBoundary[]>([]);
   const [blocks, setBlocks] = useState<ScriptBlock[]>([]);
-  const timeoutRef = useRef<number | undefined>(undefined);
   const [editorView, setEditorView] = useState<EditorView | null>(null);
 
   const handleViewCreated = useCallback((view: EditorView) => {
@@ -76,6 +77,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       pendingRuntimes.delete(autoStartId);
       setTimerBlock(pending.block);
       setActiveRuntimeId(autoStartId);
+      setActiveNoteId(pending.noteId);
       setIsTimerOpen(true);
     }
     setSearchParams((prev) => {
@@ -97,12 +99,25 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   }, [journalDate]);
 
   const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"]) => {
-    const match = blockId.match(/^wod-(\d+)-/);
-    if (!match) return;
-    const startLine = parseInt(match[1], 10);
-    const uuid = resolveNoteUuid(startLine);
-    const runBlock = blocks.find(b => b.id === blockId);
+    // AutoStart runs carry their identities from pendingRuntimes: the block
+    // id embeds the SOURCE page's doc line, so line-based resolution against
+    // this page's doc misses and no result is recorded. Match the journal
+    // page's own block by content id (content-stable) and fall back to the
+    // pending block itself.
+    const isActiveRun = activeNoteId !== null && timerBlock?.id === blockId;
+    const runBlock =
+      blocks.find(b => b.id === blockId) ??
+      (isActiveRun
+        ? blocks.find(b => b.contentId && b.contentId === timerBlock!.contentId) ?? timerBlock!
+        : undefined);
     if (!runBlock) return;
+
+    const uuid = activeNoteId ?? (() => {
+      const match = blockId.match(/^wod-(\d+)-/);
+      if (!match) return null;
+      return resolveNoteUuid(parseInt(match[1], 10));
+    })();
+    if (!uuid) return;
 
     playgroundRecorder.record({
       runBlock,
@@ -111,7 +126,9 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       resultId: activeRuntimeId || crypto.randomUUID(),
       data: results!,
       createdAt: results?.endTime || Date.now(),
-    }).then(() => {
+    }).then((result) => {
+      // Surface the new result inline without waiting for a reload.
+      setAllResults(prev => [...prev, result]);
       if (results?.logs?.length) {
         const segments = getAnalyticsFromLogs(results.logs).segments;
         setReviewSegments(segments);
@@ -120,7 +137,8 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       }
     }).catch(() => {});
     setActiveRuntimeId(null);
-  }, [resolveNoteUuid, blocks, activeRuntimeId]);
+    setActiveNoteId(null);
+  }, [resolveNoteUuid, blocks, activeRuntimeId, activeNoteId, timerBlock]);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,16 +183,15 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     }
   }, []);
 
+  const { onChange: editorSaveOnChange, onLineChange, onBlur } = useEditorSave({
+    onSave: save,
+    lineIdleMs: 500,
+  });
+
   const onChange = useCallback((value: string) => {
     setContent(value);
-    clearTimeout(timeoutRef.current);
-    timeoutRef.current = window.setTimeout(() => save(value), 500);
-  }, [save]);
-
-  useEffect(() => () => {
-    clearTimeout(timeoutRef.current);
-    save(content);
-  }, [content, save]);
+    editorSaveOnChange(value);
+  }, [editorSaveOnChange]);
 
   if (!notes) return <div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>;
 
@@ -191,6 +208,8 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
           <NoteEditor
             value={content}
             onChange={onChange}
+            onCursorPositionChange={onLineChange}
+            onBlur={onBlur}
             noteId={journalDate}
             theme={theme}
             showLineNumbers={false}
@@ -204,7 +223,11 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       {isTimerOpen && timerBlock && (
         <FullscreenTimer
           block={timerBlock}
-          onClose={() => setIsTimerOpen(false)}
+          onClose={() => {
+            setIsTimerOpen(false);
+            setActiveRuntimeId(null);
+            setActiveNoteId(null);
+          }}
           onCompleteWorkout={handleCompleteWorkout}
           autoStart
         />

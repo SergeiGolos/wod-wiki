@@ -73,9 +73,6 @@ test.describe('Journal Entry — /journal/:date', () => {
   // ── 2. Content saved after normal debounce (≥500ms) ──────────────────────
 
   test('saves content after waiting for debounce then navigating away', async () => {
-    // Quarantined: journal save corrupts stored content (segment pile-up on
-    // repeated saves — per-keystroke flush + updateEntry reconciliation) — #705.
-    test.fixme(true, 'Quarantined: journal save segment pile-up — see issue #705');
     const uniqueText = `E2E-SAVE-NORMAL-${Date.now()}`;
     await journal.clearStoredEntry(DATE_SAVE_NORMAL);
     await seedJournalNote(journal.page, DATE_SAVE_NORMAL, 'Note\n');
@@ -103,8 +100,6 @@ test.describe('Journal Entry — /journal/:date', () => {
   // ── 3. Content saved on quick navigation (unmount flush) ──────────────────
 
   test('saves content when navigating away before 500ms debounce fires', async () => {
-    // Quarantined: journal save corrupts stored content (segment pile-up) — #705.
-    test.fixme(true, 'Quarantined: journal save segment pile-up — see issue #705');
     const uniqueText = `E2E-SAVE-QUICK-${Date.now()}`;
     await journal.clearStoredEntry(DATE_SAVE_QUICK);
     await seedJournalNote(journal.page, DATE_SAVE_QUICK, 'Note\n');
@@ -133,8 +128,6 @@ test.describe('Journal Entry — /journal/:date', () => {
   // ── 4. Content survives a full page reload ────────────────────────────────
 
   test('content persists across a hard page reload', async () => {
-    // Quarantined: journal save corrupts stored content (segment pile-up) — #705.
-    test.fixme(true, 'Quarantined: journal save segment pile-up — see issue #705');
     const uniqueText = `E2E-RELOAD-${Date.now()}`;
     await journal.clearStoredEntry(DATE_RELOAD);
     await seedJournalNote(journal.page, DATE_RELOAD, 'Note\n');

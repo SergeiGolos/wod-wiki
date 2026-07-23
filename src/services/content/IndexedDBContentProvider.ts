@@ -357,17 +357,33 @@ export class IndexedDBContentProvider implements IContentProvider {
 
             // Fetch current segments to compare versions
             const currentSegments = await this.db.getLatestSegmentsForNote(note.id);
+            const consumed = new Set<NoteSegment>();
+            const retired = new Set<NoteSegment>();
+
+            // The position+type fallback supersedes at most one row per
+            // section, so supersession is completed by the sweep below.
+            const retire = async (segment: NoteSegment) => {
+                if (segment.isHistory || retired.has(segment)) return;
+                retired.add(segment);
+                await this.db.saveSegment({ ...segment, isHistory: true, updatedAt: now });
+            };
 
             for (const section of sections) {
                 // Match by exact id first, then by position + type (stable
-                // across content changes at the same ordinal).
+                // across content changes at the same ordinal). The fallback
+                // only considers live, unconsumed rows — content-addressed
+                // ids change with content, so a retired row must never be
+                // re-matched (that re-minted every save at version+1 and
+                // left the other live rows to pile up, #705).
                 const existingSegment =
-                    currentSegments.find(s => s.id === section.id) ||
+                    currentSegments.find(s => !consumed.has(s) && s.id === section.id) ||
                     currentSegments.find(s => {
+                        if (consumed.has(s) || s.isHistory) return false;
                         const samePosition = s.position === position;
                         const sameType = s.dataType === toSegmentDataType(section) || migrateSectionType(s.dataType) === section.type;
                         return samePosition && sameType;
                     });
+                if (existingSegment) consumed.add(existingSegment);
 
                 // Content changed or new segment
                 if (!existingSegment || existingSegment.rawContent !== section.displayContent) {
@@ -388,7 +404,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                     await this.db.saveSegment(segment);
                     if (existingSegment) {
                         // The bumped incarnation supersedes the previous latest.
-                        await this.db.saveSegment({ ...existingSegment, isHistory: true, updatedAt: now });
+                        await retire(existingSegment);
                     }
                 } else if (existingSegment.id !== section.id) {
                     // Same content, different ID — carry forward under the new ID
@@ -403,11 +419,23 @@ export class IndexedDBContentProvider implements IContentProvider {
                         rawContent: existingSegment.rawContent,
                         createdAt: existingSegment.createdAt,
                         updatedAt: now,
-                        isHistory: existingSegment.isHistory ?? false,
+                        isHistory: false,
                     };
                     await this.db.saveSegment(segment);
+                    // The old-id row is superseded — retired by the sweep below.
+                } else if (existingSegment.isHistory) {
+                    // Identical content returned after being retired — resurrect.
+                    await this.db.saveSegment({ ...existingSegment, isHistory: false, updatedAt: now });
                 }
                 position++;
+            }
+
+            // Retire every live row not carried into the new document. Without
+            // this sweep, stale live rows accumulate across saves and
+            // reconstruction joins them into duplicated content (#705).
+            const keptIds = new Set(sections.map(s => s.id));
+            for (const segment of currentSegments) {
+                if (!keptIds.has(segment.id)) await retire(segment);
             }
         }
 
