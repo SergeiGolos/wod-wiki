@@ -40,6 +40,28 @@ Shared setup: none; each test navigates directly to a route.
 - **Actions:** goto `/wod` → wait 1s → locate `main`, `[role="main"]`, or `#root` → screenshot `e2e/screenshots/smoke-wod-index.png`
 - **Asserts:** main content is visible
 
+#### `/efforts loads without critical page errors`
+- **Location:** `e2e/smoke/production.smoke.e2e.ts:95`
+- **Target:** `/efforts`
+- **Actions:** attach `pageerror` listener → goto `/efforts` → wait 2s → filter extension/adblock/third-party noise → screenshot `e2e/screenshots/smoke-efforts.png`
+- **Asserts:** main content visible; no critical page errors
+
+#### `/collections loads without critical page errors`
+- **Location:** `e2e/smoke/production.smoke.e2e.ts:100`
+- **Target:** `/collections`
+- **Asserts:** main content visible; no critical page errors
+
+#### `/syntax/basics redirects and renders without critical page errors`
+- **Location:** `e2e/smoke/production.smoke.e2e.ts:105`
+- **Target:** `/syntax/basics` → `/guide/syntax/basics`
+- **Asserts:** main content visible (post-redirect); no critical page errors
+
+#### `Fran collection workout starts and mounts the timer overlay`
+- **Location:** `e2e/smoke/production.smoke.e2e.ts:112`
+- **Target:** `/workout/crossfit-girls/fran` → `/collections/crossfit-girls/fran` → `/run/:runtimeId`
+- **Actions:** suppress First-Note Wizard; goto the Fran workout (via `WorkoutEditorPage`); assert prose contains `Fran`; DOM-click the `Play` control; wait for the timer overlay.
+- **Asserts:** `button[title="Close"]` visible (FocusedDialog mounted); workout session started
+
 ## `e2e/smoke/receiver-workflow.smoke.e2e.ts`
 
 WOD-647 — E2E Smoke: Receiver Workflow. Verifies the Chromecast receiver entry point loads without crashing, then exercises waiting, preview, active, and review states through Storybook Chromecast stories.

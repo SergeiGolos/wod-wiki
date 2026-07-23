@@ -9,7 +9,7 @@ Per-test outlines of every Playwright spec in `e2e/`, grouped by logical testing
 | [acceptance.md](acceptance.md) | Storybook acceptance | 6 | 49 | `playwright.config.ts` | Storybook stories (iframe) |
 | [receiver.md](receiver.md) | Chromecast/TV receiver | 2 | 23 | `playwright.config.ts` | Storybook stories (iframe) |
 | [smoke.md](smoke.md) | Smoketests | 2 | 17 | `playwright.smoke.config.ts` | App + Storybook + receiver entry |
-| [live-app.md](live-app.md) | Live app / journal | 17 | 72 | `playwright.journal.config.ts` | Vite dev app routes |
+| [live-app.md](live-app.md) | Live app / journal | 21 | 90 | `playwright.journal.config.ts` | Vite dev app routes |
 
 ## How to run
 
@@ -17,7 +17,7 @@ Per-test outlines of every Playwright spec in `e2e/`, grouped by logical testing
 # Main suite (acceptance + receiver) — 72 tests
 bun run test:e2e                                    # = bun x playwright test
 
-# Live app (journal, widgets, efforts) — 72 tests
+# Live app (journal, widgets, efforts) — 90 tests
 bun run test:e2e:journal                            # = bun x playwright test --config playwright.journal.config.ts
 
 # Smoketests — 17 tests
@@ -43,18 +43,17 @@ Base URLs resolve via `e2e/utils/url-helpers.ts`:
 
 | Workflow | Trigger | Playwright e2e | Target |
 |---|---|---|---|
-| `pull-request.yml` → `_verify.yml` | PR opened/synchronize/reopened | None — unit, story (vitest), coverage, build only | — |
+| `pull-request.yml` → `_verify.yml` | PR opened/synchronize/reopened | **Live-app** — `playwright.journal.config.ts` (Vite dev app, `workers: 1`); plus unit, story (vitest), coverage, build | local playground app :5173 (CI starts the dev server) |
 | `main.yml` → `_release.yml` | push to `main` (after GitHub Pages deploy) | **Smoke** — `playwright.smoke.config.ts` (`CI: true`) | `https://wod.wiki` + `https://storybook.wod.wiki` |
 | `preview-deploy.yml` → `preview-e2e.yml` | PR opened/synchronize (after S3 + CloudFront deploy) | **Preview** — `playwright.preview.config.ts` (widget-block-preview spec only, 3 browsers) | `https://<branch-slug>.preview.wod.wiki`; HTML report published to `s3://<bucket>/<slug>/e2e-report/` and linked in the PR comment |
 | — (local dev) | `bun run test:e2e` | **Main** — acceptance + receiver (72 tests) | local Storybook :6006 |
-| — (local dev) | `bun run test:e2e:journal` | **Live-app** (72 tests) | local playground app :5173 |
+| — (local dev) | `bun run test:e2e:journal` | **Live-app** (90 tests) | local playground app :5173 |
 
-> The main and journal configs are currently not wired into any GitHub workflow — they run locally/pre-merge. Setting `CI` or the `E2E_*_URL` vars retargets them at the deployed surfaces without code changes. `preview-e2e.yml` can also still be run manually via `workflow_dispatch` against an arbitrary `preview-url`.
+> The journal config runs in PR CI (`_verify.yml` → `e2e` job) and locally/pre-merge; the main Storybook config remains local-only. Setting `CI` or the `E2E_*_URL` vars retargets them at the deployed surfaces without code changes. `preview-e2e.yml` can also still be run manually via `workflow_dispatch` against an arbitrary `preview-url`.
 >
 > All configs capture a screenshot for **every** test (`screenshot: 'on'`), embedded in the HTML report (`bun x playwright show-report` after a run).
 
 ## Notes
 
-- `e2e/live-app/efforts/efforts-list.e2e.ts` and `e2e/live-app/efforts/effort-detail.e2e.ts` are one-line stubs with no tests (superseded; coverage lives in `efforts-ui.e2e.ts`, `efforts-catalog.e2e.ts`, `effort-detail.e2e.ts`).
-- Page objects: `e2e/pages/` (e.g. `EffortDetailPage.ts`); helpers: `e2e/utils/`, `e2e/helpers/`.
+- Page objects: `e2e/pages/` (e.g. `EffortDetailPage.ts`, `ReviewPage.ts`, `WorkoutEditorPage.ts`); helpers: `e2e/utils/`, `e2e/helpers/`.
 - Visual baselines live beside their specs (`*.e2e.ts-snapshots/`); regenerate with `--update-snapshots` only after confirming a diff is intended.

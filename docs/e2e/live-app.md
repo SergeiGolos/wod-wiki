@@ -6,7 +6,7 @@ Specs that exercise the real playground app routes (journal, playground, widgets
 
 - **Config:** `playwright.journal.config.ts` — `bun run test:e2e:journal` (collects `e2e/live-app/**/*.e2e.ts`; serial, one worker, 45s timeout).
 - **Runs against:** the **playground app** — the Vite dev server (`bun run dev:app`) at `http://localhost:5173`, or `https://<HTTPS_HOST>:5173` when `.env.local` sets `HTTPS_HOST` (self-signed certs tolerated via `ignoreHTTPSErrors`). The config auto-starts the dev server, reusing a running instance.
-- **CI/CD:** not wired into PR verification — local only for the group as a whole. Exception: `playground-widget-block-preview.e2e.ts` also runs in CI via `playwright.preview.config.ts`, invoked by the `Preview Deploy` workflow (`.github/workflows/preview-deploy.yml`) after each PR preview deploy, against `https://<branch-slug>.preview.wod.wiki`; the HTML report (with per-test screenshots) is published to the same S3 prefix at `/e2e-report/index.html` and linked from the PR comment. `preview-e2e.yml` also remains manually dispatchable against any URL.
+- **CI/CD:** runs in PR CI via `_verify.yml` → `e2e` job (`bun x playwright test --config playwright.journal.config.ts`, `workers: 1`). Exception: `playground-widget-block-preview.e2e.ts` also runs in CI via `playwright.preview.config.ts`, invoked by the `Preview Deploy` workflow (`.github/workflows/preview-deploy.yml`) after each PR preview deploy, against `https://<branch-slug>.preview.wod.wiki`; the HTML report (with per-test screenshots) is published to the same S3 prefix at `/e2e-report/index.html` and linked from the PR comment. `preview-e2e.yml` also remains manually dispatchable against any URL.
 
 # Vite dev app (:5173) — Journal & persistence
 
@@ -464,13 +464,6 @@ Validates the efforts navigation panel: origin/discipline filters on the catalog
 - **Actions:** Goto `/effort/burpee`; clear recent results; seed a recent workout; reload; open navigation panel; click first recent workout item.
 - **Asserts:** Recent workout list has one item; navigation lands on `/journal/2026-05-20`; no errors.
 
-## `e2e/live-app/efforts/efforts-list.e2e.ts`
-
-Superseded by `../efforts-catalog.e2e.ts` during WOD-564; contains no `test(...)` blocks.
-
-## `e2e/live-app/efforts/effort-detail.e2e.ts`
-
-Superseded by `../effort-detail.e2e.ts` during WOD-564; contains no `test(...)` blocks.
 
 # Preview deploys — Playground widget landing
 
@@ -485,3 +478,75 @@ Validates the default `/playground` landing experience when run against preview 
 - **Target:** `/playground` (desktop 1440×900 and mobile 375×812)
 - **Actions:** Set viewport; goto `/playground`; verify hero heading, CTA buttons, code-example widget, and syntax cards; click `Jump to workout`; sample 60 animation frames.
 - **Asserts:** Hero heading, `Jump to workout`, and `Open search` buttons are visible; code-example heading and `Run this example` button are visible; three syntax cards are present; workout widget surface is in viewport; average FPS ≥ 60; no horizontal overflow; no console/page errors.
+
+# Vite dev app (:5173) — Wayfinder e2e expansion (#690)
+
+Behavioral coverage added by the 2026-07 wayfinder stages: review surface (#692), error-path resilience (#693), cast sender↔receiver round-trip (#695). Production smoke deepening (#694) lives in `e2e/smoke/` (see `smoke.md`).
+
+## `e2e/live-app/review-surface.e2e.ts`
+
+Adopts the `e2e/pages/ReviewPage.ts` page object. Asserts `/review/:runtimeId` renders the result a real workout completion produced (movements + note label from the recorded `WorkoutResult`, not fixtures), plus the defensive states for absent / empty / malformed result records.
+
+### `completed workout → review matches the executed script`
+- **Location:** `e2e/live-app/review-surface.e2e.ts:122`
+- **Target:** `/playground/:id` → `/run/:runtimeId` → `/review/:runtimeId`
+- **Actions:** Seed a 2-round wod note; Play; advance through completion to `/review`; read via `ReviewPage`.
+- **Asserts:** Review overlay mounts; Workout Log + grid visible; executed movements (Burpees, Squats) render; no pageerror.
+
+### `absent result id → defensive "Result not found." state`
+- **Location:** `e2e/live-app/review-surface.e2e.ts:139`
+- **Target:** `/review/<random-uuid>`
+- **Asserts:** "Result not found." renders; no review grid; no pageerror.
+
+### `result with empty logs → review mounts an empty grid, no crash`
+- **Location:** `e2e/live-app/review-surface.e2e.ts:149`
+- **Target:** `/review/<seeded-id>`
+- **Actions:** Put a result row with `data.logs: []` into the `results` store; open its review.
+- **Asserts:** Overlay + Workout Log mount; no crash; no pageerror.
+
+### `result with malformed logs → defensive state, no unhandled error`
+- **Location:** `e2e/live-app/review-surface.e2e.ts:163`
+- **Target:** `/review/<seeded-id>`
+- **Actions:** Put a result row with `data.logs: "not-an-array"`; open its review.
+- **Asserts:** Either "Failed to load result." or a mounted overlay (both defensive branches); no pageerror.
+
+## `e2e/live-app/error-states.e2e.ts`
+
+Resolves which graceful degradations already exist vs which are defects. Documents: bad timer values are tolerated-and-dropped (post-#691), not surfaced as errors; `/journal/not-a-date` redirects to `/journal`.
+
+### `unclosed wod fence does not crash the editor`
+- **Location:** `e2e/live-app/error-states.e2e.ts:58`
+- **Asserts:** Editor stays mounted; no pageerror.
+
+### `syntactically broken wod block surfaces a lint marker or disables Play`
+- **Location:** `e2e/live-app/error-states.e2e.ts:66`
+- **Actions:** Seed `\`\`\`wod (2 ...` (unclosed round directive).
+- **Asserts:** wod-linter marker OR no Play button; no pageerror.
+
+### `bad timer value is tolerated (dropped), not surfaced as an error`
+- **Location:** `e2e/live-app/error-states.e2e.ts:77`
+- **Actions:** Seed `Timer: banana`.
+- **Asserts:** Play still present (block valid); no pageerror.
+
+### `IndexedDB rejection degrades without an unhandled pageerror` *(quarantined — #703)*
+- **Location:** `e2e/live-app/error-states.e2e.ts:88`
+- **Actions:** `addInitScript` sets `window.indexedDB = undefined`; goto `/`.
+- **Asserts (desired):** `#root` not empty; no pageerror. **Quarantined:** app white-screens with `Cannot read properties of undefined (reading 'open')` — defect #703.
+
+### `/journal/not-a-date redirects to a handled state`
+- **Location:** `e2e/live-app/error-states.e2e.ts:118`
+- **Asserts:** URL resolves to `/journal`; `#root` not empty; no pageerror.
+
+## `e2e/live-app/cast-roundtrip.e2e.ts`
+
+The only behavioral coverage of `src/components/organisms/cast`. Harness: LocalTabBackend dual-tab (dev default) — the real Cast button opens `/receiver-rpc.html?local=<id>`; the popup is captured via the context `page` event.
+
+### `cast handshake connects the receiver popup to the sender session`
+- **Location:** `e2e/live-app/cast-roundtrip.e2e.ts:66`
+- **Target:** `/playground/:id` → `/run/:runtimeId`; popup `/receiver-rpc.html?local=<id>`
+- **Actions:** Start a workout; click the timer-overlay `Cast to TV` control; capture the popup.
+- **Asserts:** Popup URL matches `/receiver-rpc.html?local=`; receiver leaves the waiting screen and renders the active track panel (UP NEXT); no pageerror on either side.
+
+### `sender block transitions mirror to the connected receiver` *(quarantined — #704)*
+- **Location:** `e2e/live-app/cast-roundtrip.e2e.ts:95`
+- **Asserts (desired):** after the sender advances into `Timer: 1:00`, the receiver mirrors `1:00`. **Quarantined:** the receiver connects and mirrors the initial session but does not propagate the sender's live block/timer transitions — defect #704.
