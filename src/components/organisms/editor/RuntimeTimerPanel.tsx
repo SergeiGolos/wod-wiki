@@ -26,6 +26,7 @@ import { PanelSizeProvider, usePanelSize } from "@/panels/panel-system/PanelSize
 import { useScreenMode } from "@/panels/panel-system/useScreenMode";
 import { ScriptRuntimeProvider, useRuntimeExecution, type UseRuntimeExecutionReturn, NextEvent, ScriptRuntime } from "@/hooks/useRuntimeTimer";
 import type { IScriptRuntime, StackSnapshot } from "@/hooks/useRuntimeTimer";
+import { getActiveWorkbenchSessionStore } from "@/stores/workbenchSessionStore";
 import { useCastTransport } from "@/contexts/CastTransportContext";
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
 import type { IOutputStatement } from "@/core/models/OutputStatement";
@@ -217,6 +218,16 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   }, [wizardDone, collectionItems.length]);
 
   const execution = useRuntimeExecution(runtime as ScriptRuntime | null);
+
+  // Sync the inline runtime's execution status into the active Workbench
+  // Session store. Store-driven panels (StackIntegratedTimer reads
+  // `execution.status` for its Play/Pause/Continue control) have no
+  // useWorkbenchSessionLifecycle on this surface to do it — /run creates its
+  // runtime locally here, so the label would otherwise never reflect pause.
+  // (#701)
+  useEffect(() => {
+    getActiveWorkbenchSessionStore().getState().setExecution(execution);
+  }, [execution.status, execution.elapsedTime, execution.stepCount, execution.startTime]);
 
   // Auto-start only after the runtime exists; if collection is required, the
   // wizard's Start button sets pendingStart after resolving the choices.

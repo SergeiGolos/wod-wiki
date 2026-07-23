@@ -196,9 +196,6 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
   });
 
   test('pause freezes the countdown and resume restarts it', async ({ page }) => {
-    // Quarantined: on /run the pause control label never flips to
-    // Start/Continue (workbench session store not synced) — see #701.
-    test.fixme(true, 'Quarantined: /run pause label does not reflect paused state — see issue #701');
     await startWorkoutFromPlayground(page, 'runtime-e2e-pause', '```wod\nTimer: 1:00\n10 Burpees\n```');
 
     await pauseIconButton(page).click();
