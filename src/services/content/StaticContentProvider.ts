@@ -74,7 +74,7 @@ export class StaticContentProvider implements IContentProvider {
 
   async updateEntry(
     _id: string,
-    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'targetDate' | 'clonedIds'>> & { blockContentId?: string; resultId?: string }
+    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'journalDate' | 'slug' | 'type' | 'sourceId'>> & { blockContentId?: string; resultId?: string }
   ): Promise<HistoryEntry> {
     const now = Date.now();
     
@@ -96,7 +96,7 @@ export class StaticContentProvider implements IContentProvider {
             noteId: this.entry.id,
             blockContentId: patch.blockContentId,
             data: patch.results,
-            completedAt: patch.results.endTime || now
+            createdAt: patch.results.endTime || now
         };
         
         nextEntry.results = patch.results; // Keep latest for compat

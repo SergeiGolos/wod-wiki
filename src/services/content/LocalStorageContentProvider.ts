@@ -101,6 +101,7 @@ export class LocalStorageContentProvider implements IContentProvider {
       // This supports friendly URLs like /note/annie/plan or short UUIDs
       const allEntries = await this.getEntries();
       const match = allEntries.find(e =>
+        e.slug === id ||
         matchesId(e.id, id) ||
         e.title.toLowerCase() === id.toLowerCase() ||
         e.title.toLowerCase().replace(/\s+/g, '-') === id.toLowerCase()
@@ -139,19 +140,15 @@ export class LocalStorageContentProvider implements IContentProvider {
       tags: source.tags,
       sections: source.sections || [],
       type: 'note',
-      templateId: source.id,
+      sourceId: source.id,
       targetDate: targetDate || Date.now(),
     });
-
-    // Update source entry's clonedIds to track this clone
-    const updatedClonedIds = [...(source.clonedIds || []), cloned.id];
-    await this.updateEntry(sourceId, { clonedIds: updatedClonedIds });
 
     return cloned;
   }
   async updateEntry(
     id: string,
-    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate'>> & { blockContentId?: string; resultId?: string }
+    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'journalDate' | 'slug' | 'type' | 'sourceId'>> & { blockContentId?: string; resultId?: string }
   ): Promise<HistoryEntry> {
     const existing = await this.getEntry(id);
     if (!existing) {

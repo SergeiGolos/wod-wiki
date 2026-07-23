@@ -16,28 +16,9 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
+import { clearAllNotes, seedNote } from '../helpers/wodwikiDb';
 
-const PLAYGROUND_DB = 'wodwiki-playground';
-const PLAYGROUND_DB_VERSION = 2;
 const TEST_PAGE_NAME = 'e2e-full-integration';
-
-// ── IndexedDB helpers ───────────────────────────────────────────────────────
-
-async function clearAllPlaygroundPages(page: Page) {
-  await page.evaluate(async ({ dbName, version }) => {
-    await new Promise<void>((resolve, reject) => {
-      const req = indexedDB.open(dbName, version);
-      req.onsuccess = () => {
-        const db = req.result;
-        const tx = db.transaction('pages', 'readwrite');
-        tx.objectStore('pages').clear();
-        tx.oncomplete = () => { db.close(); resolve(); };
-        tx.onerror = () => { db.close(); reject(tx.error); };
-      };
-      req.onerror = () => reject(req.error);
-    });
-  }, { dbName: PLAYGROUND_DB, version: PLAYGROUND_DB_VERSION });
-}
 
 function monitorErrors(page: Page): { consoleErrors: string[]; pageErrors: string[] } {
   const consoleErrors: string[] = [];
@@ -47,6 +28,9 @@ function monitorErrors(page: Page): { consoleErrors: string[]; pageErrors: strin
     if (message.type() !== 'error') return;
     const text = message.text();
     if (text.includes('ERR_CONNECTION_REFUSED')) return;
+    // Vite HMR websocket noise on TLS dev setups — not app errors
+    if (text.includes('ERR_SSL_PROTOCOL_ERROR')) return;
+    if (text.includes('[vite] failed to connect to websocket')) return;
     consoleErrors.push(text);
   });
 
@@ -88,7 +72,7 @@ test.describe('Playground Full Page Integration — /playground/:id', () => {
     // Navigate to a stable route to seed IndexedDB access, then clear ALL
     // playground pages so the default playground template loads on the next visit.
     await page.goto('/syntax', { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await clearAllPlaygroundPages(page);
+    await clearAllNotes(page);
   });
 
   // ── 1. Widget rendering ─────────────────────────────────────────────────
@@ -181,7 +165,22 @@ test.describe('Playground Full Page Integration — /playground/:id', () => {
   // ── 4. Workout runtime from wod block ───────────────────────────────────
 
   test('starts a workout from the wod block', async ({ page }) => {
+    // Suppress the First-Note Wizard (ADR-0010): its backdrop intercepts
+    // pointer events on fresh browser profiles (see runtime-execution.e2e.ts).
+    await page.addInitScript(() => {
+      window.localStorage.setItem('wodwiki.profileInitialized.v1', 'true');
+    });
     const { consoleErrors, pageErrors } = monitorErrors(page);
+
+    // Fresh playground notes start as an EMPTY wod fence (the wizard fills
+    // them; suppressed here) — seed a real workout to exercise the run flow.
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 10_000 });
+    await seedNote(
+      page,
+      `playground/${TEST_PAGE_NAME}`,
+      '# My Workout\n\n```wod\nTimer 1:00\n  - 10 Pushups\n  - 10 Situps\n```\n',
+      { type: 'playground', title: TEST_PAGE_NAME },
+    );
 
     await page.goto(`/playground/${TEST_PAGE_NAME}`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 15_000 });
@@ -196,21 +195,20 @@ test.describe('Playground Full Page Integration — /playground/:id', () => {
     await expect(playButton).toBeVisible();
     await playButton.click();
 
-    // Should navigate to /tracker/:runtimeId
-    await page.waitForURL(/\/tracker\//, { timeout: 10_000 });
+    // Should navigate to the run route (/tracker/:id is a legacy redirect
+    // alias that resolves to /run/:id immediately)
+    await page.waitForURL(/\/(tracker|run)\//, { timeout: 10_000 });
 
     // Tracker page should show the workout timer
-    await expect(page.getByText('Ready to Start')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('heading', { name: 'Ready to Start' })).toBeVisible({ timeout: 8_000 });
 
-    // Start the workout
-    const startButton = page.locator('.title-play').last();
-    if (await startButton.count()) {
-      await startButton.click();
-    }
+    // autoStart opens the session at the SessionRoot gate; Next advances
+    // into the first block (see runtime-execution.e2e.ts)
+    await page.locator('button[title="Next Block"]').first().click();
 
-    // Verify pause button is visible (workout is running)
-    const pauseButton = page.locator('.title-pause');
-    await expect(pauseButton).toBeVisible({ timeout: 5_000 });
+    // Verify pause control is visible (workout is running)
+    const pauseButton = page.locator('button[title="Pause"]:visible').first();
+    await expect(pauseButton).toBeVisible({ timeout: 8_000 });
 
     expect(consoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);

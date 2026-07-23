@@ -11,12 +11,12 @@ import { TimeSpan } from './models/TimeSpan';
  * @example
  * ```typescript
  * // Freeze time at completion moment
- * const completedAt = new Date();
- * const snapshot = SnapshotClock.at(runtime.clock, completedAt);
+ * const createdAt = new Date();
+ * const snapshot = SnapshotClock.at(runtime.clock, createdAt);
  *
  * // All operations see the same frozen time
  * parent.next(runtime, { clock: snapshot });
- * // child pushed with startTime = snapshot.currentDate = completedAt
+ * // child pushed with startTime = snapshot.currentDate = createdAt
  * ```
  */
 export class SnapshotClock implements IRuntimeClock {

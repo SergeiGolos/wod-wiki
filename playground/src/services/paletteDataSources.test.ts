@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
+import type { WorkoutResult } from '@/types/storage';
 
 /**
  * Unit tests for paletteDataSources.ts
@@ -40,9 +41,10 @@ global.indexedDB = {
   })),
 } as any;
 
+const mockGetRecentResults = mock((): Promise<WorkoutResult[]> => Promise.resolve([]));
 mock.module('@/services/db/IndexedDBService', () => ({
   indexedDBService: {
-    getRecentResults: mock(() => Promise.resolve([])),
+    getRecentResults: mockGetRecentResults,
   },
 }));
 
@@ -59,6 +61,7 @@ const {
   scriptBlockSource,
   collectionSource,
   collectionItemsSource,
+  globalSearchSource,
 } = await import('./paletteDataSources');
 
 type ExtractedScriptBlock = import('./paletteDataSources').ExtractedScriptBlock;
@@ -433,5 +436,84 @@ describe('collectionItemsSource', () => {
     const source = collectionItemsSource(mockCollection);
 
     expect(source.label).toBe('CrossFit Girls');
+  });
+});
+
+describe('globalSearchSource', () => {
+  const createResult = (overrides: Partial<WorkoutResult> & { id: string; noteId: string }): WorkoutResult => ({
+    createdAt: Date.now(),
+    data: { startTime: 0, endTime: 60_000, duration: 60_000, completed: true, logs: [] },
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    mockGetRecentResults.mockResolvedValue([]);
+  });
+
+  it('excludes playground results by default', async () => {
+    mockGetRecentResults.mockResolvedValue([
+      createResult({
+        id: 'r-journal',
+        noteId: 'journal/2024-01-15',
+        createdAt: new Date('2024-01-15T10:30:00').getTime(),
+      }),
+      createResult({
+        id: 'r-playground',
+        noteId: 'playground/abc-123',
+        createdAt: new Date('2024-01-14T10:30:00').getTime(),
+      }),
+    ]);
+
+    const source = globalSearchSource([]);
+    const results = await source.search('');
+
+    expect(results.some(r => r.id === 'r-journal')).toBe(true);
+    expect(results.some(r => r.id === 'r-playground')).toBe(false);
+  });
+
+  it('includes playground results when showPlaygrounds is true', async () => {
+    mockGetRecentResults.mockResolvedValue([
+      createResult({
+        id: 'r-playground',
+        noteId: 'playground/abc-123',
+        createdAt: new Date('2024-01-14T10:30:00').getTime(),
+      }),
+    ]);
+
+    const source = globalSearchSource([], undefined, true);
+    const results = await source.search('');
+
+    expect(results.some(r => r.id === 'r-playground')).toBe(true);
+  });
+
+  it('treats legacy bare UUID noteIds as journal, not playground', async () => {
+    mockGetRecentResults.mockResolvedValue([
+      createResult({
+        id: 'r-legacy',
+        noteId: '00000000-0000-4000-8000-000000000001',
+        createdAt: new Date('2024-01-15T10:30:00').getTime(),
+      }),
+    ]);
+
+    const source = globalSearchSource([]);
+    const results = await source.search('');
+
+    expect(results.some(r => r.id === 'r-legacy')).toBe(true);
+  });
+
+  it('respects the explicit origin field over noteId prefix', async () => {
+    mockGetRecentResults.mockResolvedValue([
+      createResult({
+        id: 'r-journal-origin',
+        noteId: 'playground/abc-123',
+        origin: 'journal',
+        createdAt: new Date('2024-01-15T10:30:00').getTime(),
+      }),
+    ]);
+
+    const source = globalSearchSource([]);
+    const results = await source.search('');
+
+    expect(results.some(r => r.id === 'r-journal-origin')).toBe(true);
   });
 });

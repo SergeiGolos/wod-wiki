@@ -26,7 +26,10 @@ import { PanelSizeProvider, usePanelSize } from "@/panels/panel-system/PanelSize
 import { useScreenMode } from "@/panels/panel-system/useScreenMode";
 import { ScriptRuntimeProvider, useRuntimeExecution, type UseRuntimeExecutionReturn, NextEvent, ScriptRuntime } from "@/hooks/useRuntimeTimer";
 import type { IScriptRuntime, StackSnapshot } from "@/hooks/useRuntimeTimer";
-import { useCastTransport } from "@/contexts/CastTransportContext";
+import { getActiveWorkbenchSessionStore } from "@/stores/workbenchSessionStore";
+import { getActiveCastTransport, onCastTransportChange } from "@/services/cast/castTransportRegistry";
+import type { IRpcTransport } from "@/services/cast/rpc/IRpcTransport";
+import { ChromecastRuntimeSubscription } from "@/services/cast/rpc/ChromecastRuntimeSubscription";
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from '@/components/Editor/extensions/gutter-unified';
@@ -68,7 +71,7 @@ export interface RuntimeTimerPanelProps {
 interface RuntimeTimerBodyProps {
   execution: UseRuntimeExecutionReturn;
   outputCount: number;
-  completedAt: Date | null;
+  createdAt: Date | null;
   handleStart: () => void;
   handleStop: () => void;
   handleNext: () => void;
@@ -77,7 +80,7 @@ interface RuntimeTimerBodyProps {
 const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
   execution,
   outputCount,
-  completedAt,
+  createdAt,
   handleStart,
   handleStop,
   handleNext,
@@ -123,9 +126,9 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
           <span>
             {outputCount} result{outputCount !== 1 ? "s" : ""} logged
           </span>
-          {completedAt && (
+          {createdAt && (
             <span className="ml-auto font-medium text-primary">
-              ✓ {completedAt.toLocaleTimeString()}
+              ✓ {createdAt.toLocaleTimeString()}
             </span>
           )}
         </div>
@@ -151,9 +154,13 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   const [runtime, setRuntime] = useState<IScriptRuntime | null>(null);
   const [ready, setReady] = useState(false);
   const [outputCount, setOutputCount] = useState(0);
-  const [completedAt, setCompletedAt] = useState<Date | null>(null);
+  const [createdAt, setCompletedAt] = useState<Date | null>(null);
   const [wizardDone, setWizardDone] = useState(false);
   const [pendingStart, setPendingStart] = useState(false);
+  // True once the factory declined to build a runtime (empty / uncompilable
+  // block) — drives the "Nothing to run" empty state instead of hanging on
+  // "Initializing…". (#702)
+  const [nothingToRun, setNothingToRun] = useState(false);
 
   // Gutter base: 0-indexed block.startLine → 1-based fence line
   // statement sourceId = 1-based line within content
@@ -171,6 +178,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     const rt = createRuntimeForBlock(runtimeBlock);
     if (!rt) {
       // Block has no compilable statements — nothing to run
+      setNothingToRun(true);
       return;
     }
     setRuntime(rt);
@@ -218,6 +226,16 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
 
   const execution = useRuntimeExecution(runtime as ScriptRuntime | null);
 
+  // Sync the inline runtime's execution status into the active Workbench
+  // Session store. Store-driven panels (StackIntegratedTimer reads
+  // `execution.status` for its Play/Pause/Continue control) have no
+  // useWorkbenchSessionLifecycle on this surface to do it — /run creates its
+  // runtime locally here, so the label would otherwise never reflect pause.
+  // (#701)
+  useEffect(() => {
+    getActiveWorkbenchSessionStore().getState().setExecution(execution);
+  }, [execution.status, execution.elapsedTime, execution.stepCount, execution.startTime]);
+
   // Auto-start only after the runtime exists; if collection is required, the
   // wizard's Start button sets pendingStart after resolving the choices.
   useEffect(() => {
@@ -244,17 +262,36 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     onComplete?.(block.id, results);
   }, [block.id, execution.elapsedTime, execution.startTime, onComplete, runtime]);
 
-  // Cast bridge — read the active transport from context (provided by
-  // `CastButtonRpc`). The inline runtime has no inline subscription
-  // (the workbench runtime's subscription handles the cast stream).
-  const castTransport = useCastTransport();
+  // The active cast transport comes from the process-wide registry, not
+  // CastTransportContext — that provider wraps only the cast button, so it
+  // cannot reach this panel (a sibling in the dialog). The registry updates on
+  // cast connect/disconnect, re-running the mirror bridge below. (#704)
+  const [castTransport, setCastTransport] = useState<IRpcTransport | null>(() => getActiveCastTransport());
+  useEffect(() => onCastTransportChange(setCastTransport), []);
+
+  // Mirror this runtime's stack + output to a connected cast receiver. This
+  // runtime is created locally (on /run and in the editor fullscreen timer) —
+  // it is NOT the workbench runtime that CastSessionManager's subscription
+  // wraps — so without this bridge a connected receiver never sees block
+  // transitions or the countdown. (#704)
+  useEffect(() => {
+    if (!runtime || !castTransport) return;
+    const castSubscription = new ChromecastRuntimeSubscription(castTransport);
+    const unsubStack = runtime.subscribeToStack((snapshot) => castSubscription.onStackSnapshot(snapshot));
+    const unsubOutput = runtime.subscribeToOutput((output) => castSubscription.onOutput(output));
+    return () => {
+      unsubStack();
+      unsubOutput();
+      castSubscription.dispose();
+    };
+  }, [runtime, castTransport]);
 
   // Track completion: notify parent immediately so it can switch to results view.
   // The parent (FullscreenTimer) will unmount this panel when it transitions.
   // Also send review mode to Chromecast BEFORE the panel unmounts (which would
   // otherwise lose the cast subscription).
   useEffect(() => {
-    if (execution.status === "completed" && !completedAt) {
+    if (execution.status === "completed" && !createdAt) {
       setCompletedAt(new Date());
       handleComplete(true);
 
@@ -271,7 +308,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
         try { castTransport.send(reviewMessage); } catch { /* ignore */ }
       }
     }
-  }, [execution.status, completedAt, handleComplete, castTransport]);
+  }, [execution.status, createdAt, handleComplete, castTransport]);
 
   const handleStop = () => {
     execution.stop();
@@ -332,6 +369,30 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     );
   }
 
+  // Empty / uncompilable block: the factory declined to build a runtime, so
+  // `ready` never flips. Surface a clear empty state instead of hanging on
+  // "Initializing…" forever. Keyed on the factory's decision (not statement
+  // count) so it catches every entry path (editor Run, date-page Play, /run
+  // route) and every un-runnable shape. (#702)
+  if (nothingToRun) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+        <p className="text-sm font-medium text-foreground">Nothing to run</p>
+        <p className="max-w-xs text-xs text-muted-foreground">
+          This block has no workout statements yet. Add a timer or some
+          movements, then run it again.
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          Close
+        </button>
+      </div>
+    );
+  }
+
   if (!ready || !runtime) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -346,7 +407,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
         <RuntimeTimerBody
           execution={execution}
           outputCount={outputCount}
-          completedAt={completedAt}
+          createdAt={createdAt}
           handleStart={handleStart}
           handleStop={handleStop}
           handleNext={handleNext}

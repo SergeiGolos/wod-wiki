@@ -38,7 +38,7 @@ export class AbortSessionAction implements IRuntimeAction {
             // (elapsed/spans/round) that the later stack.pop() reads to build the 'segment'
             // output. Filter out 'emit-event' actions to prevent cascading timer:complete /
             // timer:stop events from triggering further block transitions during the abort drain.
-            const unmountActions = current.unmount(runtime, { completedAt: runtime.clock.currentDate }) ?? [];
+            const unmountActions = current.unmount(runtime, { createdAt: runtime.clock.currentDate }) ?? [];
             const safeActions = unmountActions.filter(a => a.type !== 'emit-event');
             collectedActions.push(...safeActions);
 

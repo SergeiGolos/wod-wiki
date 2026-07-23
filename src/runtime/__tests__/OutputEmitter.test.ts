@@ -561,4 +561,34 @@ describe('OutputEmitter — emitLoad', () => {
         expect(all[0].stackLevel).toBe(0); // root statement, depth 0
         expect(all[1].stackLevel).toBe(1); // child statement, depth 1
     });
+
+    it('terminates on self-parenting statements (cycle guard, #699)', () => {
+        // Degenerate structure from the #699 double-parse: two statements
+        // sharing one line-number id, the second its own parent through the
+        // last-wins id map. The depth walk must terminate via its visited
+        // set, not loop forever.
+        const emitter = new OutputEmitter();
+        const script = makeScript([
+            {
+                id: 1,
+                parent: undefined,
+                meta: { startOffset: 0, endOffset: 5 },
+                metrics: MetricContainer.empty('1'),
+                children: [],
+                metricMeta: new Map(),
+            },
+            {
+                id: 1,
+                parent: 1,
+                meta: { startOffset: 6, endOffset: 11 },
+                metrics: MetricContainer.empty('1b'),
+                children: [],
+                metricMeta: new Map(),
+            },
+        ]);
+
+        attachEmitter(emitter, { script });
+        emitter.emitLoad(); // must return, not hang
+        expect(emitter.getAll()).toHaveLength(2);
+    });
 });

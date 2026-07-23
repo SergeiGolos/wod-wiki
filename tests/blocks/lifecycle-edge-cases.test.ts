@@ -144,8 +144,8 @@ describe('Block lifecycle edge cases', () => {
     expect(updatedMemory).toBeDefined();
   });
 
-  // 8. Mount → immediate unmount (no advance) — block should have startTime and completedAt
-  it('should have startTime and completedAt after immediate mount→unmount', () => {
+  // 8. Mount → immediate unmount (no advance) — block should have startTime and createdAt
+  it('should have startTime and createdAt after immediate mount→unmount', () => {
     const timer = new CountupTimerBehavior({ label: 'Immediate' });
     const block = new MockBlock('immediate-unmount', [timer]);
 
@@ -159,8 +159,8 @@ describe('Block lifecycle edge cases', () => {
     // Unmount immediately — no clock advance
     harness.unmount();
 
-    expect(block.executionTiming.completedAt).toBeDefined();
-    expect(block.executionTiming.completedAt!.getTime()).toBe(
+    expect(block.executionTiming.createdAt).toBeDefined();
+    expect(block.executionTiming.createdAt!.getTime()).toBe(
       new Date('2024-01-01T12:00:00Z').getTime()
     );
   });

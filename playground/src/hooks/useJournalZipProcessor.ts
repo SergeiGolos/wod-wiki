@@ -19,8 +19,8 @@ import { useQueryState } from 'nuqs';
 import { decodeZip } from '../services/decodeZip';
 import { parseJournalDate } from '../services/parseJournalDate';
 import { getTodayDateKey, isDateInPast } from '../services/dateUtils';
-import { journalEntryPath, ROUTE_PATTERNS } from '../lib/routes';
-import { playgroundContent } from '../services/playgroundContent';
+import { journalNotePath, ROUTE_PATTERNS } from '../lib/routes';
+import { journalNotes } from '../services/journalNotes';
 import { toast } from '@/hooks/use-toast';
 
 export interface JournalZipProcessorState {
@@ -156,18 +156,15 @@ export function useJournalZipProcessor(): JournalZipProcessorState {
       if (cancelled) return;
       try {
         setState({ state: 'creating' });
-        const id = `journal/${dateKey}`;
-        await playgroundContent.savePage({
-          id,
-          name: dateKey,
-          category: 'journal',
-          content,
-          updatedAt: Date.now(),
+        const note = await journalNotes.create({
+          journalDate: dateKey,
+          title: dateKey,
+          rawContent: content,
         });
 
         if (!cancelled) {
           setState({ state: 'success', content, dateKey });
-          navigate(journalEntryPath(dateKey), { replace: true });
+          navigate(journalNotePath(dateKey, note.id), { replace: true });
         }
       } catch (err) {
         console.error('Failed to create journal entry:', err);

@@ -30,7 +30,7 @@ export default defineConfig({
   use: {
     baseURL: appBaseURL,
     trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
+    screenshot: 'on',
     video: 'retain-on-failure',
     ignoreHTTPSErrors: !!httpsHost, // trust self-signed / Tailscale certs locally
   },
@@ -45,6 +45,7 @@ export default defineConfig({
   webServer: {
     command: 'bun run dev:app',
     url: appBaseURL,
+    ignoreHTTPSErrors: !!httpsHost, // self-signed / Tailscale certs locally
     reuseExistingServer: true,
     timeout: 60 * 1000,
   },

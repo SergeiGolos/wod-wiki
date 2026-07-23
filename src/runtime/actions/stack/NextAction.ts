@@ -8,7 +8,7 @@ export class NextAction implements IRuntimeAction {
 
   /**
    * @param options Optional lifecycle options to pass to the block's next() method.
-   *   When provided (e.g., from PopBlockAction carrying completedAt), these options
+   *   When provided (e.g., from PopBlockAction carrying createdAt), these options
    *   are merged with a snapshot clock. When omitted (e.g., user-triggered next),
    *   a fresh snapshot clock is created.
    */

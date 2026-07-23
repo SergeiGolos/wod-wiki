@@ -4,7 +4,6 @@ import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResult } from '@/types/storage'
 import { playgroundRecorder } from '../services/resultRecorder'
-import { parseNoteId } from '../lib/noteIdentity'
 import type { RunButtonState } from '../components/molecules/SectionButtons'
 
 export type FullscreenState =
@@ -42,19 +41,22 @@ export function useCanvasRuntime({
       blockId,
       blockContentId: block.contentId,
       data: results,
-      completedAt: results.endTime || Date.now(),
+      createdAt: results.endTime || Date.now(),
     }
     setPersistedResults((previous) => {
       const deduped = previous.filter((result) => result.id !== optimisticNextResult.id)
-      return [optimisticNextResult, ...deduped].sort((a, b) => b.completedAt - a.completedAt)
+      return [optimisticNextResult, ...deduped].sort((a, b) => b.createdAt - a.createdAt)
     })
     playgroundRecorder.record({
       runBlock: block,
       blockId,
-      destination: parseNoteId(canvasNoteId),
+      noteId: canvasNoteId,
       resultId: runtimeId,
       data: results,
-      completedAt: results.endTime || Date.now(),
+      createdAt: results.endTime || Date.now(),
+      // Canvas noteIds ('canvas:<route>') parse as 'workout' — override so
+      // canvas runs are excluded from default journal filters.
+      origin: 'playground',
     }).catch(() => {})
   }, [canvasNoteId])
 

@@ -14,9 +14,9 @@ import {
   type RouteViewParams,
 } from './routeView'
 
-/** Minimal result fixture — only `completedAt` matters to the nav derivation. */
-function makeResult(completedAt: number, id = `r-${completedAt}`): WorkoutResult {
-  return { id, noteId: 'note-1', data: {} as WorkoutResults, completedAt }
+/** Minimal result fixture — only `createdAt` matters to the nav derivation. */
+function makeResult(createdAt: number, id = `r-${createdAt}`): WorkoutResult {
+  return { id, noteId: 'note-1', data: {} as WorkoutResults, createdAt }
 }
 
 function makeDeps(overrides: Partial<RouteViewDeps> = {}): RouteViewDeps {
@@ -42,6 +42,18 @@ describe('resolveRouteView — journal nav', () => {
     })
     const view = resolveRouteView('/journal', NO_PARAMS, deps)
     expect(view.nav.map(l => l.id)).toEqual(['2026-06-28', '2026-06-01'])
+  })
+
+  it('skips results with invalid dates instead of crashing the nav', () => {
+    const deps = makeDeps({
+      recentResults: [
+        makeResult(NaN),                              // partially-migrated row
+        makeResult(undefined as unknown as number),   // legacy row missing the field
+        makeResult(Date.parse('2026-06-28T10:00:00Z')),
+      ],
+    })
+    const view = resolveRouteView('/journal', NO_PARAMS, deps)
+    expect(view.nav.map(l => l.id)).toEqual(['2026-06-28'])
   })
 
   it('classifies /journal as the journal list, not an entry', () => {

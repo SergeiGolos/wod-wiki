@@ -134,7 +134,7 @@ const LineExecutionSummaryCard: React.FC<{ summary: LineExecutionSummary }> = ({
       <div className="flex flex-wrap gap-1.5">
         {recent.map((entry) => (
           <div
-            key={entry.completedAt}
+            key={entry.createdAt}
             className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-background/60 border border-border/40 text-[10px]"
           >
             <span className="font-mono font-medium text-foreground">{formatDuration(entry.elapsedMs)}</span>
@@ -142,7 +142,7 @@ const LineExecutionSummaryCard: React.FC<{ summary: LineExecutionSummary }> = ({
               <span className="text-muted-foreground">×{entry.hitCount}</span>
             )}
             <span className="text-muted-foreground/60">
-              {new Date(entry.completedAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+              {new Date(entry.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
             </span>
           </div>
         ))}

@@ -18,7 +18,7 @@ import { MetricType } from '@/core/models/Metric';
 /** Summary of one result set's contribution for a specific line. */
 export interface LineResultEntry {
   /** When the workout was completed (unix ms). */
-  completedAt: number;
+  createdAt: number;
   /** How many output logs matched this line in this result. */
   hitCount: number;
   /** Total elapsed ms across all matching logs in this result. */
@@ -72,7 +72,7 @@ export function buildLineExecutionSummary(
     const elapsedMs = matching.reduce((sum, m) => sum + extractElapsed(m), 0);
     totalHits += matching.length;
     entries.push({
-      completedAt: result.completedAt,
+      createdAt: result.createdAt,
       hitCount: matching.length,
       elapsedMs,
     });

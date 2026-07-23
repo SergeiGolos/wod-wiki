@@ -103,6 +103,11 @@ export interface WorkoutResults {
    * Plain-data runtime output log — safe for IndexedDB storage and JSON
    * round-trips. Populated by serialising live IOutputStatement values via
    * `toStoredOutputStatement()` at workout completion.
+   *
+   * Single stream holding ALL tiers: Tier 0 (raw tracking) + Tier 1 (inline
+   * annotations) + Tier 2 (summary outputs, outputType 'analytics'). The
+   * outputType filter discriminates Tier 2 — there is deliberately no
+   * separate analytics property (CONTEXT.md, 2026-07-20).
    */
   logs?: StoredOutputStatement[];
 

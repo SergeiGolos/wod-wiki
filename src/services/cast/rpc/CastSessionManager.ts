@@ -39,6 +39,7 @@ import { ChromecastEventProvider } from './ChromecastEventProvider';
 import { ChromecastRuntimeSubscription } from './ChromecastRuntimeSubscription';
 import { ClockSyncService } from './ClockSync';
 import type { IRpcTransport, RpcUnsubscribe } from './IRpcTransport';
+import type { RpcMessage } from './RpcMessages';
 /**
  * Minimal contract the workbench `SubscriptionManager` exposes — narrowed
  * to the surface the cast session needs. Avoids a cyclic import on
@@ -67,6 +68,12 @@ export interface CastSessionHandle {
     readonly transport: IRpcTransport;
     readonly eventProvider: IRuntimeEventProvider;
     readonly subscription: ICastSubscription;
+    /**
+     * Send the initial workbench-mode message resolved at connect time.
+     * Disconnect-tolerant: a failed send (peer already gone) must not tear
+     * down the session.
+     */
+    pushInitialWorkbench(message: RpcMessage): void;
     dispose(): void;
 }
 
@@ -171,6 +178,16 @@ export class CastSessionManager {
             transport,
             eventProvider,
             subscription,
+            pushInitialWorkbench: (message: RpcMessage) => {
+                // Disconnect-tolerant: the peer may have gone away between
+                // connect and the first push. A failed send must not tear
+                // down the session (and must not reject connect()).
+                try {
+                    transport.send(message);
+                } catch {
+                    /* peer gone */
+                }
+            },
             dispose: () => this.dispose(),
         };
         this.activeMeta = {

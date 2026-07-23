@@ -13,6 +13,7 @@ import { SyntaxGroupWidget, type SyntaxGroupWidgetConfig } from '../components/m
 import { syntaxGuideReference } from '@/content/syntaxGuideReference'
 import { playgroundPath, reviewPath, workoutPath } from '../lib/routes'
 import { useWorkoutItems } from '../lib/workoutIndex'
+import { useShowPlaygrounds } from '../hooks/useShowPlaygrounds'
 import { LandingTemplate } from '../templates/LandingTemplate'
 
 const ATTENTION_CONFIG: AttentionWidgetConfig = {
@@ -100,6 +101,8 @@ export function PlaygroundLandingPage() {
 
   const workoutItems = useWorkoutItems()
 
+  const [showPlaygrounds] = useShowPlaygrounds()
+
   const handleSelectWorkout = useCallback(
     (item: { name: string; category?: string }) => {
       const category = item.category || 'General'
@@ -111,7 +114,7 @@ export function PlaygroundLandingPage() {
   const openSearch = useCallback(async () => {
     const result = await usePaletteStore.getState().open({
       placeholder: 'Search workouts, results, pages…',
-      sources: [globalSearchSource(workoutItems, canvasRoutes)],
+      sources: [globalSearchSource(workoutItems, canvasRoutes, showPlaygrounds)],
     })
 
     if (result.dismissed) return
@@ -130,7 +133,7 @@ export function PlaygroundLandingPage() {
     if (item.type === 'journal-entry') {
       navigate(reviewPath(item.id))
     }
-  }, [handleSelectWorkout, navigate, workoutItems])
+  }, [handleSelectWorkout, navigate, workoutItems, showPlaygrounds])
 
   const handleAttentionAction = useCallback(
     (action: AttentionActionType) => {

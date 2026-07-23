@@ -41,8 +41,8 @@ export function ReviewPage() {
         ? safeNoteId.split('/').pop()!
         : safeNoteId || 'Workout Review'
       setTitle(noteLabel)
-      if (result.data?.logs && result.data.logs.length > 0) {
-        const { segments: s } = getAnalyticsFromLogs(result.data.logs as any, result.data.startTime)
+      if (result.data?.logs?.length) {
+        const { segments: s } = getAnalyticsFromLogs(result.data.logs, result.data.startTime)
         setSegments(s)
       } else {
         setSegments([])

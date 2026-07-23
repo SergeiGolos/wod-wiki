@@ -12,7 +12,7 @@ export interface BlockLifecycleOptions {
     /** Start timestamp when the block was pushed onto the stack. */
     startTime?: Date;
     /** Completion timestamp when the block was popped from the stack. */
-    completedAt?: Date;
+    createdAt?: Date;
     /** Current timestamp for the operation (onNext, etc). */
     now?: Date;
 

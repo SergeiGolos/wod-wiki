@@ -238,7 +238,7 @@ export class BehaviorTestHarness {
     if (!block) throw new Error('No block on stack to unmount');
 
     const resolvedOptions: BlockLifecycleOptions = {
-      completedAt: this._clock.currentDate,
+      createdAt: this._clock.currentDate,
       ...options
     };
 

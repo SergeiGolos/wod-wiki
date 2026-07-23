@@ -13,8 +13,8 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createJournalEntryFlow } from '../services/journalEntryFlow'
-import { playgroundContent } from '../services/playgroundContent'
-import { journalEntryPath } from '../lib/routes'
+import { journalNotePath } from '../lib/routes'
+import { journalNotes } from '../services/journalNotes'
 
 export type CreateEntryInput = Date | string
 
@@ -44,14 +44,12 @@ export function useCreateJournalEntry(_opts: UseCreateJournalEntryOptions = {}) 
       await createJournalEntryFlow({
         dateKey,
         onCreated: async (content) => {
-          await playgroundContent.savePage({
-            id: `journal/${dateKey}`,
-            name: dateKey,
-            category: 'journal',
-            content,
-            updatedAt: Date.now(),
+          const note = await journalNotes.create({
+            journalDate: dateKey,
+            title: dateKey,
+            rawContent: content,
           })
-          navigate(journalEntryPath(dateKey))
+          navigate(journalNotePath(dateKey, note.id))
         },
       })
     },

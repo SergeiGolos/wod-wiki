@@ -52,6 +52,16 @@ export const updateSectionResults = StateEffect.define<{
   results: WorkoutResult[];
 }>();
 
+// ── Facet: current note id ──────────────────────────────────────────
+
+/**
+ * The note ID of the document being edited. Used by the inline results panel
+ * to exclude the current note from cross-note result lookups.
+ */
+export const noteIdFacet = Facet.define<string | undefined, string | undefined>({
+  combine: (values) => values[values.length - 1],
+});
+
 // ── Facet: compact results mode ──────────────────────────────────────
 
 /**
@@ -90,6 +100,7 @@ class ReactResultsWidget extends WidgetType {
     readonly allResults: WorkoutResult[],
     readonly currentContentId: string | undefined,
     readonly compact: boolean,
+    readonly noteId: string | undefined,
   ) {
     super();
   }
@@ -97,9 +108,10 @@ class ReactResultsWidget extends WidgetType {
     if (other.sectionId !== this.sectionId) return false;
     if (other.currentContentId !== this.currentContentId) return false;
     if (other.compact !== this.compact) return false;
+    if (other.noteId !== this.noteId) return false;
     if (other.allResults.length !== this.allResults.length) return false;
     for (let i = 0; i < Math.min(2, this.allResults.length); i++) {
-      if (this.allResults[i].completedAt !== other.allResults[i].completedAt) return false;
+      if (this.allResults[i].createdAt !== other.allResults[i].createdAt) return false;
     }
     return true;
   }
@@ -115,6 +127,7 @@ class ReactResultsWidget extends WidgetType {
         sectionId: this.sectionId,
         allResults: this.allResults,
         currentContentId: this.currentContentId,
+        noteId: this.noteId,
         compactMode: this.compact,
         onOpenReview: (result: WorkoutResult) => {
           const detail: WodResultClickDetail = { sectionId: this.sectionId, result };
@@ -163,6 +176,7 @@ function _buildResultsDecorations(state: EditorState): DecorationSet {
   const { sections } = state.field(sectionField);
   const resultsMap: Map<string, WorkoutResult[]> = state.field(wodResultsField);
   const compact = state.facet(compactResultsMode);
+  const noteId = state.facet(noteIdFacet);
   const decos: Range<Decoration>[] = [];
 
   for (const section of sections) {
@@ -177,7 +191,7 @@ function _buildResultsDecorations(state: EditorState): DecorationSet {
 
     decos.push(
       Decoration.widget({
-        widget: new ReactResultsWidget(section.id, allResults, section.contentId, compact),
+        widget: new ReactResultsWidget(section.id, allResults, section.contentId, compact, noteId),
         block: true,
         side: 1,
       }).range(anchorPos),

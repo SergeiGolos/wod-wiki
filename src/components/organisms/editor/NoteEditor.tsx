@@ -14,7 +14,7 @@
  */
 
 import React, { useEffect, useRef, useMemo, useState, useCallback } from "react";
-import { EditorState, Extension, StateEffect } from "@codemirror/state";
+import { EditorState, StateEffect, type Extension } from "@codemirror/state";
 import {
   EditorView,
   keymap,
@@ -68,6 +68,7 @@ import {
   updateSectionResults,
   WOD_RESULT_CLICK_EVENT,
   compactResultsMode,
+  noteIdFacet,
   type WodResultClickDetail,
 } from "@/components/Editor/extensions/whiteboard-results-widget";
 import { OverlayTrack } from "@/components/organisms/editor/OverlayTrack";
@@ -163,6 +164,8 @@ export interface NoteEditorProps {
    * Keys are widget names (e.g. "hero"), values are React components.
    * Each registered widget replaces the fenced block with a full-width React component.
    */
+  /** Extra extensions to append to the editor */
+  extensions?: Extension[];
   widgetComponents?: WidgetRegistry;
   /**
    * Called when an inline button `[Label]{.button ...}` is activated.
@@ -205,6 +208,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   hideDefaultCommands = false,
   enableInlineRuntime = true,
   forceFullscreenReview = false,
+  extensions: extraExtensions,
   widgetComponents,
   onButtonAction,
   scrollToSectionId,
@@ -279,7 +283,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           noteId: noteId ?? "",
           blockContentId: section?.contentId,
           data: results,
-          completedAt: now,
+          createdAt: now,
         };
 
         // Read existing results for this section and prepend the new one
@@ -320,7 +324,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     for (const section of wodSections) {
       // 1. Priority: In-memory results from props (Static/Lesson Mode)
       if (Array.isArray(extendedResults) && extendedResults.length > 0) {
-        const blockResults = extendedResults.filter(r => r.blockId === section.id)
+        const blockResults = extendedResults.filter(r =>
+          r.blockContentId === section.contentId || r.blockId === section.id
+        )
         if (blockResults.length > 0) {
           viewRef.current.dispatch({
             effects: [updateSectionResults.of({ sectionId: section.id, results: blockResults })],
@@ -341,7 +347,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         .then((entry) => {
           const view = viewRef.current;
           if (!view || !view.dom.isConnected) return;
-          const sorted = (entry.extendedResults ?? []).sort((a, b) => b.completedAt - a.completedAt);
+          const sorted = (entry.extendedResults ?? []).sort((a, b) => b.createdAt - a.createdAt);
           view.dispatch({
             effects: [
               updateSectionResults.of({ sectionId: section.id, results: sorted }),
@@ -544,6 +550,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Results bar widgets — shown after each WOD block's closing fence
       ...wodResultsWidget,
 
+      // Note identity for the results widget (cross-note lookup exclusion)
+      noteIdFacet.of(noteId),
+
       // Compact results mode: result rows open fullscreen review on click
       // instead of expanding inline (canvas pages with small editor panels)
       ...(forceFullscreenReview ? [compactResultsMode.of(true)] : []),
@@ -601,9 +610,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       enableOverlay,
       noteId,
       notePersistence,
-      widgetComponents,
       onButtonAction,
       forceFullscreenReview,
+      extraExtensions,
     ]
   );
 
@@ -613,11 +622,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
     const state = EditorState.create({
       doc: value,
+
       extensions: [
         ...baseExtensions,
         themeCompartment.of(editorTheme(isDark)),
         languageCompartment.of(languages),
         modeCompartment.of([]),
+        ...(extraExtensions ?? []),
       ],
     });
 
@@ -690,6 +701,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             themeCompartment.of(editorTheme(isDark)),
             languageCompartment.of(languages),
             modeCompartment.of(modeExtensions),
+            ...(extraExtensions ?? []),
           ]),
         ],
       });

@@ -27,6 +27,7 @@ import {
   playgroundPath,
   notePath,
   journalEntryPath,
+  journalNotePath,
   journalEntryAutoStartPath,
   workoutPath,
   runPath,
@@ -191,6 +192,10 @@ describe('path builders', () => {
 
   it('journalEntryPath encodes the id', () => {
     expect(journalEntryPath('2026-05-19')).toBe('/journal/2026-05-19')
+  })
+
+  it('journalNotePath targets the date page with a ?note= selection', () => {
+    expect(journalNotePath('2026-05-19', 'abc-123')).toBe('/journal/2026-05-19?note=abc-123')
   })
 
   it('journalEntryAutoStartPath appends query param', () => {
@@ -420,7 +425,8 @@ describe('ROUTE_PATTERNS', () => {
     expect(ROUTE_PATTERNS.notePlaygroundAlias).toBe('/note/playground/:name')
     expect(ROUTE_PATTERNS.note).toBe('/note/:category/:name')
     expect(ROUTE_PATTERNS.journal).toBe('/journal')
-    expect(ROUTE_PATTERNS.journalEntry).toBe('/journal/:id')
+    expect(ROUTE_PATTERNS.journalEntry).toBe('/journal/:identity')
+    expect(ROUTE_PATTERNS.journalNote).toBe('/journal/:date/:uuid')
     expect(ROUTE_PATTERNS.plan).toBe('/plan')
     expect(ROUTE_PATTERNS.guideGettingStarted).toBe('/guide/getting-started')
     expect(ROUTE_PATTERNS.guideSyntax).toBe('/guide/syntax')

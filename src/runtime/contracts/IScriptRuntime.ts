@@ -85,7 +85,7 @@ export interface IScriptRuntime extends IRuntimeActionable {
      * This is a convenience method that wraps PopBlockAction.
      * Handles the full lifecycle: unmount, pop, dispose, and parent notification.
      * 
-     * @param lifecycle Optional lifecycle options (completedAt, etc.)
+     * @param lifecycle Optional lifecycle options (createdAt, etc.)
      */
     popBlock(lifecycle?: BlockLifecycleOptions): void;
 

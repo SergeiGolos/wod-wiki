@@ -75,18 +75,10 @@ export class MockContentProvider implements IContentProvider {
             targetDate: targetDate || now,
             results: undefined, // Don't clone results
             title: `${source.title} (Copy)`,
-            clonedIds: [],
-            templateId: source.id
+            sourceId: source.id
         };
 
         this.entries.set(id, newEntry);
-
-        // Update source clonedIds
-        const updatedSource = {
-            ...source,
-            clonedIds: [...(source.clonedIds || []), id]
-        }
-        this.entries.set(sourceId, updatedSource);
 
         return newEntry;
     }

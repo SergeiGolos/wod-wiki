@@ -13,6 +13,7 @@ import { mock, vi, describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { NavPanelProps, NavState } from '../../navTypes';
+import type { WorkoutResult } from '@/types/storage';
 
 // IndexedDBService instantiates an IndexedDB connection at module load time.
 // Provide a minimal global mock so the module can load in Node/Bun test env.
@@ -42,6 +43,10 @@ global.indexedDB = {
 
 // Mock IndexedDBService methods used by the component
 const mockGetRecentResults = vi.fn();
+let showPlaygroundsValue = false;
+mock.module('../../../hooks/useShowPlaygrounds', () => ({
+  useShowPlaygrounds: () => [showPlaygroundsValue, (_v: boolean) => {}],
+}));
 mock.module('@/services/db/IndexedDBService', () => ({
   indexedDBService: {
     getRecentResults: mockGetRecentResults,
@@ -98,6 +103,12 @@ mock.module('../../../contexts/EffortRegistryContext', () => ({
 // Dynamic import of the component under test so mocks are registered first
 const { EffortsNavPanel } = await import('../EffortsNavPanel');
 
+const createWorkoutResult = (overrides: Partial<WorkoutResult> & { id: string; noteId: string }): WorkoutResult => ({
+  createdAt: Date.now(),
+  data: { startTime: 0, endTime: 60_000, duration: 60_000, completed: true, logs: [] },
+  ...overrides,
+});
+
 describe('EffortsNavPanel', () => {
   const mockItem = {
     id: 'efforts',
@@ -127,6 +138,7 @@ describe('EffortsNavPanel', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    showPlaygroundsValue = false;
     mockGetRecentResults.mockResolvedValue([]);
   });
 
@@ -192,16 +204,13 @@ describe('EffortsNavPanel', () => {
         {
           id: 'result-1',
           noteId: 'journal/2024-01-15',
-          completedAt: new Date('2024-01-15T10:30:00').getTime(),
+          createdAt: new Date('2024-01-15T10:30:00').getTime(),
           data: {
             logs: [
               {
                 id: 1,
                 outputType: 'segment',
                 timeSpan: { started: 0 },
-                spans: [],
-                elapsed: 30000,
-                total: 35000,
                 metrics: [
                   { type: 'effort', value: 'Push-up', image: 'Push-up', origin: 'parser' },
                 ],
@@ -273,6 +282,155 @@ describe('EffortsNavPanel', () => {
       expect(pulse).toBeTruthy();
     });
 
+    it('should exclude playground results by default', async () => {
+      const navState = createNavState();
+      const props = createProps(navState);
+
+      mockGetRecentResults.mockResolvedValue([
+        createWorkoutResult({
+          id: 'result-journal',
+          noteId: 'journal/2024-01-15',
+          createdAt: new Date('2024-01-15T10:30:00').getTime(),
+          data: {
+            startTime: 0,
+            endTime: 60_000,
+            duration: 60_000,
+            completed: true,
+            logs: [
+              {
+                id: 1,
+                outputType: 'segment',
+                timeSpan: { started: 0 },
+                metrics: [
+                  { type: 'effort', value: 'Push-up', image: 'Push-up', origin: 'parser' },
+                ],
+                sourceBlockKey: 'block-1',
+                stackLevel: 0,
+              },
+            ],
+          },
+        }),
+        createWorkoutResult({
+          id: 'result-playground',
+          noteId: 'playground/abc-123',
+          createdAt: new Date('2024-01-14T10:30:00').getTime(),
+          data: {
+            startTime: 0,
+            endTime: 60_000,
+            duration: 60_000,
+            completed: true,
+            logs: [
+              {
+                id: 1,
+                outputType: 'segment',
+                timeSpan: { started: 0 },
+                metrics: [
+                  { type: 'effort', value: 'Push-up', image: 'Push-up', origin: 'parser' },
+                ],
+                sourceBlockKey: 'block-1',
+                stackLevel: 0,
+              },
+            ],
+          },
+        }),
+      ]);
+
+      render(
+        <MemoryRouter initialEntries={['/effort/push-up']}>
+          <EffortsNavPanel {...props} />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Jan 15, 2024')).toBeTruthy();
+      });
+
+      expect(screen.queryByText('Jan 14, 2024')).toBeNull();
+    });
+
+    it('should include playground results when the toggle is on', async () => {
+      showPlaygroundsValue = true;
+      const navState = createNavState();
+      const props = createProps(navState);
+
+      mockGetRecentResults.mockResolvedValue([
+        createWorkoutResult({
+          id: 'result-playground',
+          noteId: 'playground/abc-123',
+          createdAt: new Date('2024-01-14T10:30:00').getTime(),
+          data: {
+            startTime: 0,
+            endTime: 60_000,
+            duration: 60_000,
+            completed: true,
+            logs: [
+              {
+                id: 1,
+                outputType: 'segment',
+                timeSpan: { started: 0 },
+                metrics: [
+                  { type: 'effort', value: 'Push-up', image: 'Push-up', origin: 'parser' },
+                ],
+                sourceBlockKey: 'block-1',
+                stackLevel: 0,
+              },
+            ],
+          },
+        }),
+      ]);
+
+      render(
+        <MemoryRouter initialEntries={['/effort/push-up']}>
+          <EffortsNavPanel {...props} />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Jan 14, 2024')).toBeTruthy();
+      });
+    });
+
+    it('should classify legacy bare UUID noteIds as journal, not playground', async () => {
+      const navState = createNavState();
+      const props = createProps(navState);
+
+      mockGetRecentResults.mockResolvedValue([
+        createWorkoutResult({
+          id: 'result-legacy-uuid',
+          noteId: '00000000-0000-4000-8000-000000000001',
+          createdAt: new Date('2024-01-15T10:30:00').getTime(),
+          data: {
+            startTime: 0,
+            endTime: 60_000,
+            duration: 60_000,
+            completed: true,
+            logs: [
+              {
+                id: 1,
+                outputType: 'segment',
+                timeSpan: { started: 0 },
+                metrics: [
+                  { type: 'effort', value: 'Push-up', image: 'Push-up', origin: 'parser' },
+                ],
+                sourceBlockKey: 'block-1',
+                stackLevel: 0,
+              },
+            ],
+          },
+        }),
+      ]);
+
+      render(
+        <MemoryRouter initialEntries={['/effort/push-up']}>
+          <EffortsNavPanel {...props} />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Jan 15, 2024')).toBeTruthy();
+      });
+    });
+
     it('should render workout result items with date and time', async () => {
       const navState = createNavState();
       const props = createProps(navState);
@@ -281,7 +439,7 @@ describe('EffortsNavPanel', () => {
         {
           id: 'result-1',
           noteId: 'journal/2024-01-15',
-          completedAt: new Date('2024-01-15T10:30:00').getTime(),
+          createdAt: new Date('2024-01-15T10:30:00').getTime(),
           data: {
             startTime: new Date('2024-01-15T10:00:00').getTime(),
             endTime: new Date('2024-01-15T10:30:00').getTime(),
@@ -292,9 +450,6 @@ describe('EffortsNavPanel', () => {
                 id: 1,
                 outputType: 'segment',
                 timeSpan: { started: 0 },
-                spans: [],
-                elapsed: 30000,
-                total: 35000,
                 metrics: [
                   { type: 'effort', value: 'Push-up', image: 'Push-up', origin: 'parser' },
                 ],

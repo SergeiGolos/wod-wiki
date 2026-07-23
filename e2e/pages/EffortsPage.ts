@@ -300,7 +300,7 @@ export class EffortsPage {
                 },
               ],
             },
-            completedAt: Date.now(),
+            createdAt: Date.now(),
           });
           tx.oncomplete = () => {
             db.close();

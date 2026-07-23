@@ -48,7 +48,7 @@ function createBlock(): IRuntimeBlock {
         behaviors: [],
         executionTiming: {
             startTime: new Date(1000),
-            completedAt: undefined,
+            createdAt: undefined,
         },
         isComplete: true,
         completionReason: undefined,

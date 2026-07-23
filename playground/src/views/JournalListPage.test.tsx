@@ -52,25 +52,27 @@ mock.module('@/services/db/IndexedDBService', () => ({
       {
         id: 'r1',
         noteId: `journal/${PAST_DATE}`,
-        completedAt: new Date(PAST_DATE + 'T10:00:00').getTime(),
+        createdAt: new Date(PAST_DATE + 'T10:00:00').getTime(),
         data: { completed: true },
       },
       {
         id: 'r2',
         noteId: 'playground/abc-123',
-        completedAt: new Date(PLAYGROUND_DATE + 'T10:00:00').getTime(),
+        createdAt: new Date(PLAYGROUND_DATE + 'T10:00:00').getTime(),
         data: { completed: true },
       },
     ],
   },
 }));
 
-mock.module('../services/playgroundContent', () => ({
-  playgroundContent: {
-    getPagesByCategory: async () => [
+mock.module('@/services/persistence', () => ({
+  notePersistence: {
+    listNotes: async () => [
       {
-        id: `journal/${TODAY}`,
-        content: '# Today workout',
+        id: '00000000-0000-4000-8000-000000000001',
+        journalDate: TODAY,
+        title: 'Today workout',
+        rawContent: '# Today workout',
         updatedAt: Date.now(),
       },
     ],

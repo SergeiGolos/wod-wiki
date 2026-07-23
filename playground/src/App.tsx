@@ -14,6 +14,7 @@ import { usePaletteStore } from '@/components/organisms/command-palette/palette-
 import { PaletteShell } from '@/components/organisms/command-palette/PaletteShell'
 import { globalSearchSource } from './services/paletteDataSources'
 import { useCreateJournalEntry } from './hooks/useCreateJournalEntry'
+import { useShowPlaygrounds } from './hooks/useShowPlaygrounds'
 import { usePageScrollSync } from './hooks/usePageScrollSync'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
 import { AudioProvider } from '@/contexts/AudioContext'
@@ -41,6 +42,7 @@ import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
+import { OnboardingBanner } from './components/onboarding/OnboardingBanner'
 import { getChallengeSectionMap } from './canvas/parseCanvasMarkdown'
 // ── Extracted page components ────────────────────────────────────────────────
 import { WallClockPage } from './pages/WallClockPage'
@@ -83,13 +85,15 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const handleSelectWorkout = useSelectWorkout()
   const { workout: currentWorkout, nav: currentNavLinks } = view
 
+  const [showPlaygrounds] = useShowPlaygrounds()
+
   const handleCreateJournalEntry = useCreateJournalEntry({ workoutItems })
 
   // Open the palette for global search (Ctrl+/ or search button)
   const openSearchPalette = useCallback(() => {
     usePaletteStore.getState().open({
       placeholder: 'Search workouts, results, pages…',
-      sources: [globalSearchSource(workoutItems, canvasRoutes)],
+      sources: [globalSearchSource(workoutItems, canvasRoutes, showPlaygrounds)],
     }).then(result => {
       if (result.dismissed) return
       const item = result.item
@@ -101,7 +105,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         navigate(reviewPath(item.id))
       }
     })
-  }, [workoutItems, handleSelectWorkout, navigate])
+  }, [workoutItems, handleSelectWorkout, navigate, showPlaygrounds])
 
   // Keep the parent's searchHandlerRef up-to-date so the nav tree CallAction always
   // fires the latest callback (workoutItems may change after initial mount).
@@ -197,14 +201,21 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   }
 
   const canvasTitleAccessory =
-    view.page === 'canvas' && view.canvasPage && view.canvasPage.quests.length > 0
+    view.page === 'canvas' && view.canvasPage
       ? (
-        <ChallengeHeaderBadge
-          pageRoute={view.canvasPage.route}
-          quests={view.canvasPage.quests}
-          challengeSectionMap={getChallengeSectionMap(view.canvasPage)}
-          onScrollToSection={scrollToSection}
-        />
+        <>
+          {view.canvasPage.quests.length > 0 && (
+            <ChallengeHeaderBadge
+              pageRoute={view.canvasPage.route}
+              quests={view.canvasPage.quests}
+              challengeSectionMap={getChallengeSectionMap(view.canvasPage)}
+              onScrollToSection={scrollToSection}
+            />
+          )}
+          {view.canvasPage.route === '/' && view.canvasPage.chapters.length > 0 && (
+            <OnboardingBanner chapters={view.canvasPage.chapters} />
+          )}
+        </>
       )
       : undefined
 
@@ -331,6 +342,7 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.playground} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.notePlaygroundAlias} element={<NotePlaygroundRedirect />} />
                   <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.journalNote} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />

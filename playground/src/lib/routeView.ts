@@ -17,10 +17,10 @@ import type { ParsedCanvasPage } from '../canvas/parseCanvasMarkdown'
 import { getSectionProse } from '../canvas/parseCanvasMarkdown'
 import {
   isPlaygroundNotePath,
-  isJournalEntryPath,
   matchFeedItem,
   matchFeedDetail,
 } from './routes'
+import { resolveJournalRoute } from './journalRoute'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 
 // ─── Docs-page nav constants (moved from App.tsx) ──────────────────────────
@@ -147,9 +147,15 @@ function detectFlags(pathname: string, params: RouteViewParams): RouteFlags {
   const isPlaygroundRoute = isPlaygroundNotePath(pathname)
   const effectivePlaygroundId =
     playgroundId || (pathname.startsWith('/note/playground/') ? urlName : undefined)
-  const isJournalEntryRoute = isJournalEntryPath(pathname)
-  const rawJournalId = urlName ?? playgroundId
-  const journalEntryId = isJournalEntryRoute && rawJournalId ? decodeURIComponent(rawJournalId) : undefined
+  const journalRoute = resolveJournalRoute(pathname)
+  const isJournalEntryRoute = !['index', 'invalid'].includes(journalRoute.kind)
+  const journalEntryId = journalRoute.kind === 'date'
+    ? journalRoute.journalDate
+    : journalRoute.kind === 'note' || journalRoute.kind === 'uuid-alias'
+      ? journalRoute.noteId
+      : journalRoute.kind === 'slug-alias'
+        ? journalRoute.slug
+        : undefined
   const feedItemMatch = matchFeedItem(pathname)
   const feedDetailMatch = feedItemMatch ? null : matchFeedDetail(pathname)
   return { isPlaygroundRoute, effectivePlaygroundId, isJournalEntryRoute, journalEntryId, feedItemMatch, feedDetailMatch }
@@ -273,10 +279,15 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
   // 3. Journal list page — top-10 distinct session dates
   if (pathname === '/journal') {
     const dates = new Set<string>()
-    recentResults.forEach(r => { dates.add(new Date(r.completedAt).toISOString().split('T')[0]) })
+    recentResults.forEach(r => {
+      // Tolerate rows from partially-migrated dev databases — a bad date must
+      // not take down the whole nav derivation.
+      const time = new Date(r.createdAt).getTime()
+      if (Number.isFinite(time)) dates.add(new Date(time).toISOString().split('T')[0])
+    })
     workoutItems.forEach(item => {
       const d = readItemDate(item)
-      if (d) dates.add(new Date(d).toISOString().split('T')[0])
+      if (d && Number.isFinite(new Date(d).getTime())) dates.add(new Date(d).toISOString().split('T')[0])
     })
     return Array.from(dates).sort().reverse().slice(0, 10).map(d => ({
       id: d,

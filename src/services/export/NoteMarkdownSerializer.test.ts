@@ -34,16 +34,16 @@ describe('noteToMarkdown', () => {
         expect(md).toContain('Some workout content.');
     });
 
-    it('includes Cloned From line when templateId is present', () => {
-        const entry = baseEntry({ templateId: 'template-abc' });
+    it('includes Cloned From line when sourceId is present', () => {
+        const entry = baseEntry({ sourceId: 'template-abc' });
         const md = noteToMarkdown(entry, clock);
         expect(md).toContain('- **Cloned From**: template-abc');
     });
 
-    it('includes Cloned To line when clonedIds are present', () => {
-        const entry = baseEntry({ clonedIds: ['clone-1', 'clone-2'] });
+    it('omits Cloned To metadata', () => {
+        const entry = baseEntry({ sourceId: 'orig-456' });
         const md = noteToMarkdown(entry, clock);
-        expect(md).toContain('- **Cloned To**: clone-1, clone-2');
+        expect(md).not.toContain('- **Cloned To**');
     });
 
     it('shows None when entry has no tags', () => {
@@ -56,15 +56,13 @@ describe('noteToMarkdown', () => {
         const entry = baseEntry({
             title: 'Round Trip Test',
             id: 'rt-123',
-            templateId: 'orig-456',
-            clonedIds: ['c1', 'c2'],
+            sourceId: 'orig-456',
             rawContent: 'Original content here.',
         });
         const md = noteToMarkdown(entry, clock);
         expect(md).toContain('# Round Trip Test');
         expect(md).toContain('- **ID**: rt-123');
         expect(md).toContain('- **Cloned From**: orig-456');
-        expect(md).toContain('- **Cloned To**: c1, c2');
         expect(md).toContain('Original content here.');
     });
 });

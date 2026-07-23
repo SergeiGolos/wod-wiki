@@ -13,7 +13,7 @@
 
 
 import type { WorkoutResults, Section } from '../components/Editor/types';
-import type { Attachment, WorkoutResult } from './storage';
+import type { Attachment, NoteKind, WorkoutResult } from './storage';
 
 export type { WorkoutResults, Section };
 
@@ -26,6 +26,7 @@ export interface HistoryEntry {
   createdAt: number;                   // Unix ms — immutable
   updatedAt: number;                   // Unix ms — bumped on edit
   targetDate: number;                  // Unix ms — primary date for view/sorting
+  journalDate?: string;                // Logical local day for journal grouping (YYYY-MM-DD) — derived from the page store (V11)
 
   // Source
   rawContent: string;                  // Original markdown
@@ -46,9 +47,8 @@ export interface HistoryEntry {
   schemaVersion: number;               // For future migration
 
   // Note Management
-  type?: 'note' | 'template' | 'playground'; // Default to 'note' if undefined
-  templateId?: string;                 // ID of the template/note this was cloned from
-  clonedIds?: string[];                // IDs of notes cloned FROM this entry (reverse links)
+  type?: NoteKind;                     // Default to 'note' if undefined
+  sourceId?: string;                   // N-10 — the entry this one was created from (template/collection source; renamed from templateId)
   slug?: string;                        // V8 — route slug (e.g. 'journal/2026-07-13'); UUID-keyed notes carry their original route id here
 }
 

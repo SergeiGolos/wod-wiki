@@ -116,7 +116,7 @@ describe('RootBlock Integration: Complete Workout', () => {
 
         // Expectations: Start time should be tracked
         expect(rootBlock.executionTiming.startTime).toBeDefined();
-        // Note: Duration calculation requires completedAt to be set properly
+        // Note: Duration calculation requires createdAt to be set properly
     });
 
     it('should handle workout with many sections', () => {
@@ -316,8 +316,8 @@ describe('RootBlock Integration: Complete Workout', () => {
         rootBlock.unmount(harness.runtime);
 
         // Post-unmount state
-        // TODO: completedAt may not be set - verify if this is expected behavior
-        // expect(rootBlock.executionTiming.completedAt).toBeDefined();
+        // TODO: createdAt may not be set - verify if this is expected behavior
+        // expect(rootBlock.executionTiming.createdAt).toBeDefined();
         
         harness.dispose();
     });

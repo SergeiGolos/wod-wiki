@@ -7,39 +7,79 @@
  */
 
 import { WorkoutResults } from '../components/Editor/types';
-import { ScriptBlock } from '../components/Editor/types/section';
 
 // ---------------------------------------------------------------------------
 // Segment data types — superset of old SectionType + new external sources
 // ---------------------------------------------------------------------------
-export type SegmentDataType = 'script' | 'youtube' | 'markdown' | 'header' | 'frontmatter' | 'wod' | 'title';
+export type SegmentDataType =
+    | 'script' | 'youtube' | 'markdown' | 'header' | 'frontmatter' | 'wod' | 'title' // legacy (V4–V10)
+    | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'; // V11 — heading levels replace `level` (S-06)
 
 // ---------------------------------------------------------------------------
 // Note — root container (unchanged structurally from V3)
 // ---------------------------------------------------------------------------
 /**
- * Note: A collection of versioned segments and metadata.
- * Think of this as the "Folder" or "File" container.
+ * Note: the slim V11 container. Identity + routing + grouping only.
+ * Content lives in `segments` (ordered by position, reconstructed at read);
+ * journal grouping lives on the `page` store via pageId; tags live in
+ * `tags`/`note_tags`. Legacy fields (rawContent, segmentIds, journalDate,
+ * clonedIds, createdFrom, updatedAt, targetDate, templateId) were removed in
+ * V11 — see indexeddb-storage-and-page-queries.md.
  */
+export type NoteKind = 'note' | 'template' | 'playground' | 'journal';
+
 export interface Note {
     id: string;           // UUID — canonical storage identity (V8)
     title: string;        // Display name
-    rawContent: string;   // Current/Draft content (for search/preview)
 
-    // V8 — routing sugar; routes resolve slug -> UUID on load. Never a storage or join key.
+    // Routing sugar; routes resolve slug -> UUID. Never a storage or join key.
     slug?: string;
+    /** V10 — FK to the `page` store (journal-date pages today; the page's
+     *  `date` is the journal grouping key — N-02). */
+    pageId?: string;
 
     // Metadata
-    tags: string[];
     createdAt: number;
-    updatedAt: number;    // Last edit time
-    targetDate: number;   // Primary date for view/sorting
-    segmentIds: string[]; // Ordered list of segment UUIDs
 
     // Note Management
-    type?: 'note' | 'template' | 'playground';
-    templateId?: string;
-    clonedIds?: string[];              // IDs of notes cloned FROM this note
+    type?: NoteKind;
+    /** N-10 — the note this one was created from (template/collection source).
+     *  Renamed from templateId. */
+    sourceId?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Page — named/slug-addressable grouped collection of notes (V10)
+// ---------------------------------------------------------------------------
+/**
+ * Page: a grouped collection of notes. Two flavors:
+ *   - calendar page: `date` set (YYYY-MM-DD) — one per journal date.
+ *   - custom page: `slug` set — name/slug lookup for grouped collections.
+ */
+export interface Page {
+    id: string;           // UUID
+    date?: string;        // YYYY-MM-DD — calendar page (unique when present)
+    slug?: string;        // custom page slug (unique when present)
+    title?: string;
+    createdAt: number;
+}
+
+// ---------------------------------------------------------------------------
+// Tag / NoteTag — normalized note tagging (V10)
+// ---------------------------------------------------------------------------
+export type TagType = 'template' | 'playground' | 'qualification' | 'notebook' | 'general';
+
+export interface Tag {
+    id: string;           // UUID
+    label: string;        // unique
+    type?: TagType;
+    createdAt: number;
+}
+
+export interface NoteTag {
+    id: string;           // UUID
+    noteId: string;
+    tagId: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -50,26 +90,43 @@ export interface Note {
  * The compound key is [id, version] so every edit creates a new row.
  */
 export interface NoteSegment {
-    id: string;           // Stable UUID across versions
-    version: number;      // 1, 2, 3…
+    id: string;           // Positional section id (line-based); stable while the block stays at its position
+    version: number;      // 1, 2, 3… bumps when the section content changes
     noteId: string;       // Parent Note UUID
+    /** V11 — ordinal within the parent note (document order). Backfilled from
+     *  the removed note.segmentIds array. */
+    position?: number;
+    /** V10 — FK to the `page` store (copied from the parent note). */
+    pageId?: string;
     dataType: SegmentDataType;
-    data: any;            // Structured JSON payload (e.g. ScriptBlock)
+    data: any;            // Structured JSON payload (the ScriptBlock for WOD sections)
     rawContent: string;   // Original markdown / source text
-    level?: number;       // For headings
-    scriptBlock?: ScriptBlock;  // For WOD sections (carried from legacy)
     createdAt: number;    // When this version was saved
+    /** V10 — last time this incarnation was touched (defaults to createdAt). */
+    updatedAt?: number;
+    /** V10 — true for superseded versions; false for the latest per id. */
+    isHistory?: boolean;
 }
 
 // ---------------------------------------------------------------------------
 // WorkoutResult — execution log (mostly unchanged)
 // ---------------------------------------------------------------------------
 /**
+ * ResultOrigin: which app surface produced a WorkoutResult / AnalyticsDataPoint.
+ * 'playground' rows are recorded and viewable but excluded from default
+ * journal/progress list filters. Absent on legacy rows — treated as 'journal'.
+ */
+export type ResultOrigin = 'journal' | 'playground';
+
+/**
  * WorkoutResult: The outcome of running a specific segment version.
  */
 export interface WorkoutResult {
     id: string;           // UUID
 
+    /** Positional identity — FK to NoteSegment.id (the section id of the block run). */
+    segmentId?: string;
+    /** Version of the NoteSegment at record time. Undefined on legacy rows. */
     segmentVersion?: number;
     noteId: string;       // Link to parent Note (for easier querying)
 
@@ -77,12 +134,19 @@ export interface WorkoutResult {
     blockId?: string;
     /** Content-stable identity — hash of the fenced content at recording time. */
     blockContentId?: string;
-    /** Content generation at this position. Assigned at record time via computeVersion(). */
+    /** LEGACY — content generation from the retired computeVersion() path.
+     *  New rows carry segmentVersion instead; retained for pre-existing rows. */
     version?: number;
+
+    /** Which surface produced this result; default filters exclude 'playground'. */
+    origin?: ResultOrigin;
+
+    /** V10 — FK to the `page` store (copied from the parent note). */
+    pageId?: string;
 
     data: WorkoutResults; // The actual results data
 
-    completedAt: number;  // When the workout was finished
+    createdAt: number;  // When the workout was finished
 }
 // Attachment — external temporal data blobs (GPS / HR)
 // ---------------------------------------------------------------------------
@@ -92,6 +156,10 @@ export interface WorkoutResult {
 export interface Attachment {
     id: string;           // UUID
     noteId: string;       // Parent Note
+    /** V10 — FK to the `page` store (copied from the parent note). */
+    pageId?: string;
+    /** V10 — the WorkoutResult this blob belongs to, when known. */
+    resultId?: string;
     mimeType: string;     // e.g. 'application/gpx+xml', 'application/json'
     label: string;        // Human-readable label (e.g. "Garmin HR stream")
     data: ArrayBuffer | string; // Raw blob or JSON string
@@ -113,7 +181,17 @@ export interface AnalyticsDataPoint {
     noteId: string;
     /** V6 — content-stable join key; drives the `analytics.by-content` index for cross-workout trend queries. */
     blockContentId?: string;
-    segmentId: string;
+    /** Which surface produced the parent result; trend queries exclude 'playground' by default. */
+    origin?: ResultOrigin;
+    /** V10 — FK to the `page` store (copied from the parent note). */
+    pageId?: string;
+    /** V10 — fact grain: per-segment rows vs whole-result summary rows. */
+    grain?: 'segment' | 'summary';
+    /** V10 — effort catalog slug when the row derives from a known effort. */
+    effortSlug?: string;
+    /** V10 — effort discipline (e.g. 'weightlifting', 'monostructural'). */
+    discipline?: string;
+    segmentId: string;    // FK to NoteSegment.id (positional section id)
     segmentVersion: number;
     resultId: string;     // Link to raw WorkoutResult
 
@@ -165,46 +243,3 @@ export interface Effort {
 export type SectionHistory = NoteSegment;
 
 /** @deprecated Scripts store removed in V4. */
-export interface Script {
-    id: string;
-    noteId: string;
-    content: string;
-    versionHash: string;
-    createdAt: number;
-}
-
-// ---------------------------------------------------------------------------
-// Database Schema Interface — V4
-// ---------------------------------------------------------------------------
-export interface WodWikiSchema {
-    notes: {
-        key: string;
-        value: Note;
-        indexes: { 'by-updated': number; 'by-target-date': number };
-    };
-    segments: {
-        key: [string, number]; // [id, version]
-        value: NoteSegment;
-        indexes: { 'by-note': string; 'by-type': SegmentDataType };
-    };
-    results: {
-        key: string;
-        value: WorkoutResult;
-        indexes: { 'by-segment': string; 'by-note': string; 'by-completed': number };
-    };
-    attachments: {
-        key: string;
-        value: Attachment;
-        indexes: { 'by-note': string; 'by-time': number };
-    };
-    analytics: {
-        key: string;
-        value: AnalyticsDataPoint;
-        indexes: { 'by-type': string; 'by-segment': string; 'by-result': string };
-    };
-    efforts: {
-        key: string;
-        value: Effort;
-        indexes: { 'by-discipline': string; 'by-source': 'bundled' | 'user' | 'synthetic-unresolved' };
-    };
-}

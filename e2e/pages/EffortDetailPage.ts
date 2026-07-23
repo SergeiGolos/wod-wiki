@@ -5,9 +5,9 @@ import { Page, Locator, expect } from '@playwright/test';
  *
  * Mirrors the JournalPageShell layout used by EffortDetailPage:
  * - Sticky header with title + actions
- * - Index sidebar (3xl)
- * - Content cards with section IDs for TOC scroll targets
- * - NoteEditor in edit/clone mode
+ * - NoteEditor for the YAML/markdown effort document
+ * - "Show Resolved" toggle for the inline effective-resolution widget
+ * - No index sidebar for bare frontmatter-only efforts (no headings)
  */
 export class EffortDetailPage {
   readonly page: Page;
@@ -41,7 +41,7 @@ export class EffortDetailPage {
     return this.page.locator('.lg\\:sticky.lg\\:top-0 h1').first();
   }
 
-  /** Actions bar inside the sticky header (back, clone, edit, origin badge) */
+  /** Actions bar inside the sticky header (back, clone, origin badge, resolved toggle) */
   actionsBar(): Locator {
     // The actions are rendered inside the header's right-side flex container
     return this.page.locator('.lg\\:sticky.lg\\:top-0 .flex.items-center.gap-2.md\\:gap-4.shrink-0').first();
@@ -60,12 +60,37 @@ export class EffortDetailPage {
   }
 
   originBadge(): Locator {
-    return this.page.locator('div', { hasText: /Bundled|Custom|Estimated/ }).first();
+    return this.header().locator('div', { hasText: /Bundled|Custom/ }).first();
+  }
+
+  // ── Effective Resolution widget ────────────────────────────────────────────
+
+  showResolvedButton(): Locator {
+    return this.page.getByRole('button', { name: /Show Resolved/i });
+  }
+
+  hideResolvedButton(): Locator {
+    return this.page.getByRole('button', { name: /Hide Resolved/i });
+  }
+
+  async clickShowResolved() {
+    await this.showResolvedButton().click();
+    await this.page.waitForTimeout(200);
+  }
+
+  async clickHideResolved() {
+    await this.hideResolvedButton().click();
+    await this.page.waitForTimeout(200);
+  }
+
+  /** The inline resolved widget (visible after clicking Show Resolved) */
+  resolvedWidget(): Locator {
+    return this.page.getByRole('heading', { name: 'Effective Resolution' }).first().locator('xpath=..');
   }
 
   // ── JournalPageShell — Index Sidebar ─────────────────────────────────────
 
-  /** The aside sidebar rendered on 3xl viewports */
+  /** The aside sidebar rendered on 3xl viewports (only when document has headings) */
   indexSidebar(): Locator {
     return this.page.locator('aside').first();
   }
@@ -74,68 +99,14 @@ export class EffortDetailPage {
     return this.indexSidebar().getByRole('button', { name: label });
   }
 
-  // ── Content Cards ────────────────────────────────────────────────────────
-
-  attributesCard(): Locator {
-    return this.page.locator('#attributes');
-  }
-
-  aliasesCard(): Locator {
-    return this.page.locator('#aliases');
-  }
-
-  notesCard(): Locator {
-    return this.page.locator('#notes');
-  }
-
-  derivationCard(): Locator {
-    return this.page.locator('#derivation');
-  }
-
-  analyticsCard(): Locator {
-    return this.page.locator('#analytics');
-  }
-
-  effectiveResolutionCard(): Locator {
-    return this.page.locator('#effective-resolution');
-  }
-
-  appliedModifiersCard(): Locator {
-    return this.page.locator('#applied-modifiers');
-  }
-
-  parentChainCard(): Locator {
-    return this.page.locator('#parent-chain');
-  }
-
-  // ── Tabs ─────────────────────────────────────────────────────────────────
-
-  resolvedTab(): Locator {
-    return this.page.getByRole('button', { name: /Resolved/i });
-  }
-
-  definitionTab(): Locator {
-    return this.page.getByRole('button', { name: /Definition/i });
-  }
-
-  async clickResolvedTab() {
-    await this.resolvedTab().click();
-    await this.page.waitForTimeout(200);
-  }
-
-  async clickDefinitionTab() {
-    await this.definitionTab().click();
-    await this.page.waitForTimeout(200);
-  }
-
-  // ── NoteEditor (edit/clone mode) ─────────────────────────────────────────
+  // ── NoteEditor (read/edit mode) ────────────────────────────────────────────
 
   noteEditor(): Locator {
     return this.page.locator('.cm-note-editor');
   }
 
   editorContent(): Locator {
-    return this.page.locator('.cm-content[contenteditable="true"]');
+    return this.page.locator('.cm-content');
   }
 
   async waitForNoteEditor() {
@@ -146,14 +117,6 @@ export class EffortDetailPage {
   async clickClone() {
     await this.cloneButton().click();
     await this.page.waitForTimeout(400);
-  }
-
-  saveButton(): Locator {
-    return this.page.getByRole('button', { name: /Save/i }).first();
-  }
-
-  cancelButton(): Locator {
-    return this.page.getByRole('button', { name: /Cancel/i }).first();
   }
 
   // ── Toast ────────────────────────────────────────────────────────────────

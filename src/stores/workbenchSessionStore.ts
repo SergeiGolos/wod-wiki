@@ -659,7 +659,7 @@ export function createWorkbenchSessionStore(
         const { v4: uuidv4 } = await import('uuid');
         const resultId = uuidv4();
         const state = get();
-        const { content, selectedBlock, selectedBlockId, analyticsSegments, currentEntry } = state;
+        const { content, selectedBlock, selectedBlockId, currentEntry } = state;
 
         const provider = deps.provider;
         const notePersistence = deps.notePersistence;
@@ -693,11 +693,10 @@ export function createWorkbenchSessionStore(
               await createResultRecorder(notePersistence).record({
                 runBlock: selectedBlock!,
                 blockId: selectedBlockId ?? '',
-                destination: parseNoteId(targetId),
+                noteId: targetId,
                 resultId: payload.resultId,
                 data: payload.results,
-                completedAt: payload.results.endTime,
-                analyticsSegments: analyticsSegments.length > 0 ? analyticsSegments : undefined,
+                createdAt: payload.results.endTime,
               });
               const refreshed = await notePersistence.getNote(targetId, {
                 projection: 'workbench',

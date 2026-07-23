@@ -28,20 +28,16 @@ export const LinkedNotesSection: React.FC<LinkedNotesSectionProps> = ({
       return;
     }
 
-    if (entry.templateId) {
-      provider.getEntry(entry.templateId).then((e) => setSourceEntry(e ?? null)).catch(() => setSourceEntry(null));
+    if (entry.sourceId) {
+      provider.getEntry(entry.sourceId).then((e) => setSourceEntry(e ?? null)).catch(() => setSourceEntry(null));
     } else {
       setSourceEntry(null);
     }
 
-    if (entry.clonedIds && entry.clonedIds.length > 0) {
-      Promise.all(entry.clonedIds.map((id) => provider.getEntry(id)))
-        .then((entries) => setClonedEntries(entries.filter((e): e is HistoryEntry => e !== null)))
-        .catch(() => setClonedEntries([]));
-    } else {
-      setClonedEntries([]);
-    }
-  }, [entry?.id, entry?.templateId, entry?.clonedIds?.length, provider]);
+    provider.getEntries()
+      .then((entries) => setClonedEntries(entries.filter((e) => e.sourceId === entry.id)))
+      .catch(() => setClonedEntries([]));
+  }, [entry?.id, entry?.sourceId, provider]);
 
   return (
     <div className="space-y-3">
@@ -64,13 +60,13 @@ export const LinkedNotesSection: React.FC<LinkedNotesSectionProps> = ({
         )}
       </div>
 
-      {entry.templateId && (
+      {entry.sourceId && (
         <div className="bg-muted/30 rounded-md p-2.5 border border-border/50">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">
             Cloned From
           </div>
           <button
-            onClick={() => navigate(`/note/${toShortId(entry.templateId!)}/plan`)}
+            onClick={() => navigate(`/note/${toShortId(entry.sourceId!)}/plan`)}
             className="flex items-center gap-2 text-sm text-blue-500 hover:text-blue-400 hover:underline w-full text-left group"
           >
             <LinkIcon className="w-3.5 h-3.5 shrink-0" />
@@ -116,7 +112,7 @@ export const LinkedNotesSection: React.FC<LinkedNotesSectionProps> = ({
         </div>
       )}
 
-      {!entry.templateId && (!entry.clonedIds || entry.clonedIds.length === 0) && (
+      {!entry.sourceId && clonedEntries.length === 0 && (
         <div className="text-xs text-muted-foreground italic">No linked notes</div>
       )}
     </div>

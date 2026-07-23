@@ -6,7 +6,7 @@ import { IndexedDBNotePersistence } from './IndexedDBNotePersistence';
 
 export type { INotePersistence } from './INotePersistence';
 export { ContentProviderNotePersistence } from './ContentProviderNotePersistence';
-export { IndexedDBNotePersistence, normalizeAnalyticsSegments } from './IndexedDBNotePersistence';
+export { IndexedDBNotePersistence, normalizeSummaryFacts } from './IndexedDBNotePersistence';
 export * from './types';
 
 export function createNotePersistence(provider: IContentProvider): INotePersistence {

@@ -15,7 +15,8 @@ import type { HistoryEntry } from '@/types/history';
  *   - targetDate (the primary sort key)
  *   - id (so re-imported notes deduplicate rather than create duplicates)
  *   - createdAt / updatedAt (the immutable creation timestamp + last-edit)
- *   - templateId / clonedIds (the clone links)
+ *   - sourceId (the note this one was created from)
+ *   - clonedIds are no longer persisted; reverse links are derived from sourceId
  *
  * The deserializer's return type is currently `Omit<HistoryEntry, 'id' |
  * 'createdAt' | 'updatedAt' | 'schemaVersion'>` — it drops ID, Created, and
@@ -60,17 +61,15 @@ describe('notePortability round-trip', () => {
         expect(recovered!.targetDate).toBe(entry.targetDate);
     });
 
-    it('round-trips templateId and clonedIds', () => {
+    it('round-trips sourceId', () => {
         const entry = baseEntry({
-            templateId: 'template-orig',
-            clonedIds: ['clone-a', 'clone-b'],
+            sourceId: 'template-orig',
         });
         const md = noteToMarkdown(entry, clock);
         const recovered = parseMarkdownToEntry(md, clock);
 
         expect(recovered).not.toBeNull();
-        expect(recovered!.templateId).toBe('template-orig');
-        expect(recovered!.clonedIds).toEqual(['clone-a', 'clone-b']);
+        expect(recovered!.sourceId).toBe('template-orig');
     });
 
     // ── FAILING until S7c fixes the deserializer ──────────────────────────

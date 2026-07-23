@@ -25,12 +25,12 @@ import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pageId } from '../services/playgroundContent'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { pendingRuntimes } from '../runtimeStore'
-import { runPath } from '../lib/routes'
+import { journalNotePath, runPath } from '../lib/routes'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
 import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
 import { shareBlock } from '../services/openInPlayground'
-import { appendWorkoutToJournal } from '../services/journalWorkout'
+import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { toast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/atoms/primitives/toast'
@@ -135,20 +135,19 @@ export function PlaygroundNotePage({
     async (block: ScriptBlock) => {
       try {
         onLogEffort()
-        const journalNoteId = await appendWorkoutToJournal({
+        const journalNote = await createJournalNoteFromWorkout({
           workoutName: pageTitle,
           category: 'playground',
           sourceNoteLabel: pageTitle,
           sourceNotePath: `/playground/${pageName}`,
           wodContent: block.content,
         })
-        const dateKey = journalNoteId.replace('journal/', '')
         const today = localDateKey(new Date())
         toast({
           title: 'Added to journal',
-          description: dateKey === today ? "Added to today's journal" : `Added to ${dateKey}`,
+          description: journalNote.journalDate === today ? "Added to today's journal" : `Added to ${journalNote.journalDate}`,
           action: (
-            <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
+            <ToastAction altText="Open journal" onClick={() => navigate(journalNotePath(journalNote.journalDate ?? '', journalNote.id))}>
               Open
             </ToastAction>
           ),
@@ -169,7 +168,7 @@ export function PlaygroundNotePage({
       const d = String(date.getDate()).padStart(2, '0')
       const dateKey = `${y}-${m}-${d}`
       try {
-        await appendWorkoutToJournal({
+        await createJournalNoteFromWorkout({
           workoutName: pageTitle,
           category: 'playground',
           sourceNoteLabel: pageTitle,

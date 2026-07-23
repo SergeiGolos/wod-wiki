@@ -23,13 +23,13 @@ export class PopBlockAction implements IRuntimeAction {
             return [];
         }
 
-        // Set completedAt time if not provided
-        const completedAt = this.options.completedAt ?? runtime.clock.currentDate;
-        const lifecycleOptions: BlockLifecycleOptions = { ...this.options, completedAt };
+        // Set createdAt time if not provided
+        const createdAt = this.options.createdAt ?? runtime.clock.currentDate;
+        const lifecycleOptions: BlockLifecycleOptions = { ...this.options, createdAt };
 
         // Update block's execution timing
         if (current.executionTiming) {
-            current.executionTiming.completedAt = completedAt;
+            current.executionTiming.createdAt = createdAt;
         }
 
         // Forced-pop: if block was NOT marked complete before pop, mark it now.

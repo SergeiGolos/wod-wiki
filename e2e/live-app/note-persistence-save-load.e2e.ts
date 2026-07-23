@@ -200,9 +200,8 @@ test.describe('Note Persistence — save / load / workout flow', () => {
           tx.objectStore('results').put({
             id: 'seeded-result-001',
             noteId,
-            sectionId: 'wod-test',
             segmentId: 'wod-test',
-            completedAt: Date.now(),
+            createdAt: Date.now(),
             data: { startTime: 0, endTime: 430, duration: 430, metrics: [], logs: [], completed: true },
           });
           tx.oncomplete = () => { db.close(); resolve(); };
@@ -256,10 +255,10 @@ test.describe('Note Persistence — save / load / workout flow', () => {
           if (!stores.includes('results')) { db.close(); resolve(); return; }
           const tx = db.transaction('results', 'readwrite');
           const store = tx.objectStore('results');
-          const base = { noteId, sectionId: 'wod-a', segmentId: 'wod-a',
+          const base = { noteId, segmentId: 'wod-a',
             data: { startTime: 0, endTime: 100, duration: 100, metrics: [], logs: [], completed: true } };
-          store.put({ ...base, id: 'test-result-1', completedAt: 1000 });
-          store.put({ ...base, id: 'test-result-2', completedAt: 2000 });
+          store.put({ ...base, id: 'test-result-1', createdAt: 1000 });
+          store.put({ ...base, id: 'test-result-2', createdAt: 2000 });
           tx.oncomplete = () => { db.close(); resolve(); };
           tx.onerror = () => { db.close(); reject(tx.error); };
         };

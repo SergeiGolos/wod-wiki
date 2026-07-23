@@ -1,13 +1,17 @@
 import { test, expect } from '@playwright/test';
+import { storybookBaseURL } from '../utils/url-helpers';
 
 /**
  * WOD-647 — E2E Smoke: Receiver Workflow
  *
- * Browser-level verification of the Chromecast receiver workflow on production.
+ * Browser-level verification of the Chromecast receiver workflow.
  * The receiver entry point (receiver-rpc.html) requires the Cast Receiver SDK,
  * which is not available in a standard desktop browser. We verify it loads
- * gracefully and then exercise each receiver state via the production Storybook
+ * gracefully and then exercise each receiver state via Storybook
  * Chromecast stories, which render the real receiver panels with fixture data.
+ *
+ * Target resolves via storybookBaseURL(): local dev Storybook by default,
+ * deployed Storybook in CI, E2E_STORYBOOK_URL overrides both.
  *
  * Workflow states covered:
  *  1. Waiting / Idle  — no cast session, pulsing splash
@@ -20,7 +24,7 @@ import { test, expect } from '@playwright/test';
  *  - Visual screenshots for regression detection
  */
 
-const STORYBOOK_BASE = 'https://storybook.wod.wiki';
+const STORYBOOK_BASE = storybookBaseURL();
 
 function storyUrl(storyId: string) {
   return `${STORYBOOK_BASE}/iframe.html?id=${storyId}&viewMode=story`;

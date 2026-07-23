@@ -277,7 +277,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                     {/* Very Large Timer Number (no circle) */}
                     <div className="relative flex items-center justify-center w-full">
                         <button
-                            onClick={isRunning ? handlePause : handleStart}
+                            onClick={isPaused ? handleStart : isRunning ? handlePause : handleStart}
                             {...(getFocusProps ? getFocusProps('timer-main') : {})}
                             className={`tv-focusable relative z-10 flex flex-col items-center justify-center focus:outline-none focus-visible:outline-2 focus-visible:outline-ring group min-h-[48px] min-w-[48px] ${compact ? 'py-2' : 'py-8'}`}
                             title={primaryControlLabel}
@@ -339,12 +339,14 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                 {/* Pause/Resume Button */}
                 <div className={`flex flex-col items-center ${compact ? 'gap-1' : 'gap-2'}`}>
                     <button
-                        onClick={isRunning ? handlePause : handleStart}
+                        onClick={isPaused ? handleStart : isRunning ? handlePause : handleStart}
                         {...(getFocusProps ? getFocusProps('btn-pause') : {})}
                         className={`tv-focusable group flex items-center justify-center rounded-full transition-all active:scale-95 ${compact ? 'w-14 h-14 bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'w-20 h-20 bg-surface-container-low border border-outline-variant hover:bg-surface-variant shadow-sm'}`}
                         title={primaryControlLabel}
                     >
-                        {isRunning
+                        {isPaused
+                            ? <Play className={`${compact ? 'w-6 h-6 text-white ml-0.5' : 'w-8 h-8 text-on-surface-variant ml-1'}`} />
+                            : isRunning
                             ? <Pause className={`${compact ? 'w-6 h-6 text-white' : 'w-8 h-8 text-on-surface-variant'}`} />
                             : <Play className={`${compact ? 'w-6 h-6 text-white ml-0.5' : 'w-8 h-8 text-on-surface-variant ml-1'}`} />
                         }

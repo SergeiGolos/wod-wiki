@@ -52,24 +52,25 @@ Body`;
     expect(result!.tags).toEqual([]);
   });
 
-  it('sets templateId when Cloned From is present', () => {
+  it('sets sourceId when Cloned From is present', () => {
     const markdown = `# Title
 ## Metadata
 - **Cloned From**: tpl-123
 ## Content
 Body`;
     const result = parseMarkdownToEntry(markdown);
-    expect(result!.templateId).toBe('tpl-123');
+    expect(result!.sourceId).toBe('tpl-123');
   });
 
-  it('sets clonedIds when Cloned To is present', () => {
+  it('ignores Cloned To metadata', () => {
     const markdown = `# Title
 ## Metadata
 - **Cloned To**: clone-1, clone-2
 ## Content
 Body`;
     const result = parseMarkdownToEntry(markdown);
-    expect(result!.clonedIds).toEqual(['clone-1', 'clone-2']);
+    expect(result).not.toBeNull();
+    expect(result!.sourceId).toBeUndefined();
   });
 });
 

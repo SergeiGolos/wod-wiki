@@ -88,11 +88,7 @@ export function parseMarkdownToEntry(
     }
 
     if (metadata['Cloned From']) {
-      result.templateId = metadata['Cloned From'];
-    }
-
-    if (metadata['Cloned To']) {
-      result.clonedIds = metadata['Cloned To'].split(',').map((id) => id.trim());
+      result.sourceId = metadata['Cloned From'];
     }
 
     return result;

@@ -34,6 +34,7 @@ import { CastTransportProvider } from '@/contexts/CastTransportContext';
 import { ProjectionSyncProvider } from '@/contexts/ProjectionSyncContext';
 import { workbenchModeResolver } from '@/app/cast/workbenchModeResolver';
 import { getCastBackend } from '@/services/cast/getCastBackend';
+import { setActiveCastTransport } from '@/services/cast/castTransportRegistry';
 import { routeRuntimeEvent } from '@/services/cast/rpc/eventRouter';
 import type { ICastBackend, ICastBackendState } from '@/services/cast/ICastBackend';
 import type { IRpcTransport } from '@/services/cast/rpc/IRpcTransport';
@@ -60,6 +61,7 @@ export const CastButtonRpc: React.FC = () => {
         if (handle) {
             sessionManager.dispose(notifyRemote);
         }
+        setActiveCastTransport(null);
         setSessionHandle(null);
         setSessionSubscription(null);
         setIsCasting(false);
@@ -77,6 +79,10 @@ export const CastButtonRpc: React.FC = () => {
             setSessionHandle(handle);
             setSessionSubscription(handle.subscription);
             setIsCasting(true);
+            // Publish the transport so runtimes created outside the workbench
+            // session (the /run inline timer) can mirror to the receiver — the
+            // context provider below only wraps this button. (#704)
+            setActiveCastTransport(handle.transport);
 
             // D-Pad events from the TV reach the local runtime through
             // the handle's event provider. The router is shared with the

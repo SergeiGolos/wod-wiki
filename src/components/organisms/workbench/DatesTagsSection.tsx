@@ -70,8 +70,6 @@ export const DatesTagsSection: React.FC<DatesTagsSectionProps> = ({
     new Date(ms).toLocaleDateString(undefined, { dateStyle: 'medium' });
 
   const handleDateSelect = async (date: Date) => {
-    const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0).getTime();
-    await persistUpdate({ targetDate });
     setIsCalendarOpen(false);
   };
 

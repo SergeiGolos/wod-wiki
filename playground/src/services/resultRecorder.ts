@@ -7,16 +7,11 @@
  * persistence adapters so a single identity policy feeds both IndexedDB-full
  * (with analytics + attachments) and provider-delegated (demo) backends.
  */
-import { indexedDBService } from '@/services/db/IndexedDBService';
 import { notePersistence } from '@/services/persistence';
-import { computeVersion } from '@/utils/computeVersion';
-import type { WorkoutResult } from '@/types/storage';
+import type { HistoryEntry } from '@/types/history';
+import type { ResultOrigin, WorkoutResult } from '@/types/storage';
 import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
-import type { Segment } from '@/core/models/AnalyticsModels';
-import type { NoteRef } from '../lib/noteIdentity';
-
-/** Re-export so callers (e.g. Canvas Runtime) can compute in tests / fallback paths. */
-export { computeVersion } from '@/utils/computeVersion';
+import { parseNoteId } from '../lib/noteIdentity';
 
 /**
  * Writer port the Recorder needs.
@@ -29,15 +24,17 @@ export interface ResultMutation {
     id?: string;
     blockId?: string;
     blockContentId?: string;
-    version?: number;
     segmentId?: string;
+    origin?: ResultOrigin;
     data: WorkoutResults;
-    completedAt?: number;
-    analyticsSegments?: Segment[];
+    createdAt?: number;
   };
+  /** Note kind applied only when the note is lazily created by this write. */
+  noteType?: 'journal' | 'playground';
 }
 
 export interface ResultWriter {
+  getNote?(locator: { id: string }, options: { resultSelection: { mode: 'all-for-note' } }): Promise<HistoryEntry>;
   mutateNote(locator: { id: string }, mutation: ResultMutation): Promise<unknown>;
 }
 
@@ -46,16 +43,20 @@ export interface RecordResultInput {
   runBlock: ScriptBlock;
   /** Section position identity — which block in the note. */
   blockId: string;
-  /** Destination note ref; `.raw` becomes the result's `noteId`. */
-  destination: NoteRef;
+  /** Canonical UUID of the owning Note. */
+  noteId: string;
   /** Stable id for this result (the runtimeId). */
   resultId: string;
   /** The outcome data. */
   data: WorkoutResults;
   /** Completion timestamp (Unix ms). */
-  completedAt: number;
-  /** Optional analytics segments to persist atomically with this result. */
-  analyticsSegments?: Segment[];
+  createdAt: number;
+  /**
+   * Which surface produced the result. Default: derived from the noteId
+   * (`playground/<name>` → 'playground', everything else → 'journal').
+   * Pass explicitly when the noteId doesn't tell the truth (e.g. canvas notes).
+   */
+  origin?: ResultOrigin;
 }
 
 export interface ResultRecorder {
@@ -68,11 +69,11 @@ export interface ResultRecorder {
  */
 export function createResultRecorder(writer: ResultWriter): ResultRecorder {
   return {
-    async record({ runBlock, blockId, destination, resultId, data, completedAt, analyticsSegments }) {
-      const noteId = destination.raw;
-      // Identity in one place: never let callers pre-compute it.
-      const existing = await indexedDBService.getResultsForNote(noteId);
-      const version = computeVersion(blockId, runBlock.contentId, existing);
+    async record({ runBlock, blockId, noteId, resultId, data, createdAt, origin }) {
+      // Identity in one place: Note UUID + note-scoped block + content + segment version.
+      // The NoteSegment version is resolved at write time by the persistence
+      // adapter (which owns content versioning) — no result pre-fetch needed.
+      const resolvedOrigin = origin ?? (parseNoteId(noteId).kind === 'playground' ? 'playground' : 'journal');
 
       // Delegate the write through the chosen writer (INotePersistence.mutateNote).
       // The writer routes through the adapter that backs it — IndexedDB-full for
@@ -84,23 +85,24 @@ export function createResultRecorder(writer: ResultWriter): ResultRecorder {
             id: resultId,
             blockId,
             blockContentId: runBlock.contentId,
-            version,
             segmentId: runBlock.id,
+            origin: resolvedOrigin,
             data,
-            completedAt,
-            analyticsSegments,
+            createdAt,
           },
+          noteType: resolvedOrigin,
         },
       );
 
       const result: WorkoutResult = {
         id: resultId,
         noteId,
+        segmentId: runBlock.id,
         blockId,
         blockContentId: runBlock.contentId,
-        version,
+        origin: resolvedOrigin,
         data,
-        completedAt,
+        createdAt,
       };
       return result;
     },

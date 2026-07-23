@@ -104,7 +104,8 @@ export function aggregatedName(metricType: string, fallback: string): string {
     switch (metricType) {
         case 'volume': return 'Total Volume';
         case 'rep':
-        case 'repetitions': return 'Total Reps';
+        case 'reps':
+        case 'repetitions': return 'Total Reps'; // 'repetitions' kept for legacy rows
         case 'distance': return 'Total Distance';
         case 'work': return 'Total Energy';
         case 'load': return 'Total Load';

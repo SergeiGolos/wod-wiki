@@ -99,9 +99,8 @@ describe('useJournalZipProcessor', () => {
     });
 
     expect(result.current.dateKey).toBe('2026-05-26');
-    expect(mockNavigate).toHaveBeenCalledWith('/journal/2026-05-26', {
-      replace: true,
-    });
+    expect(mockNavigate.mock.calls[0]?.[0]).toMatch(/^\/journal\/2026-05-26\?note=[0-9a-f-]+$/);
+    expect(mockNavigate.mock.calls[0]?.[1]).toEqual({ replace: true });
   });
 
   it('sets pending-confirmation state for past dates', async () => {
@@ -126,9 +125,8 @@ describe('useJournalZipProcessor', () => {
     });
 
     expect(result.current.dateKey).toBe('2026-06-01');
-    expect(mockNavigate).toHaveBeenCalledWith('/journal/2026-06-01', {
-      replace: true,
-    });
+    expect(mockNavigate.mock.calls[0]?.[0]).toMatch(/^\/journal\/2026-06-01\?note=[0-9a-f-]+$/);
+    expect(mockNavigate.mock.calls[0]?.[1]).toEqual({ replace: true });
   });
 
   it('sets error state and redirects on invalid date format', async () => {

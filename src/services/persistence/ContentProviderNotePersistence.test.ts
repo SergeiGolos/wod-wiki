@@ -30,7 +30,7 @@ const WORKOUT_RESULT: WorkoutResult = {
   noteId: BASE_ENTRY.id,
   blockContentId: 'wod-a',
   data: { startTime: 1000, endTime: 1430, duration: 430, logs: [], completed: true },
-  completedAt: 1430,
+  createdAt: 1430,
 };
 
 const OLDER_RESULT: WorkoutResult = {
@@ -38,7 +38,7 @@ const OLDER_RESULT: WorkoutResult = {
   noteId: BASE_ENTRY.id,
   blockContentId: 'wod-a',
   data: { startTime: 500, endTime: 1000, duration: 500, logs: [], completed: true },
-  completedAt: 1000,
+  createdAt: 1000,
 };
 // ── Mock provider builder ─────────────────────────────────────────────────────
 
@@ -144,7 +144,7 @@ describe('ContentProviderNotePersistence > getNote', () => {
       resultSelection: { mode: 'latest' },
     });
 
-    // WORKOUT_RESULT.completedAt=1430 > OLDER_RESULT.completedAt=1000 → latest wins
+    // WORKOUT_RESULT.createdAt=1430 > OLDER_RESULT.createdAt=1000 → latest wins
     expect(entry.results?.duration).toBe(430);
   });
 
