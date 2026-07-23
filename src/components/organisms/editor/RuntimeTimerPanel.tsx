@@ -155,6 +155,10 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   const [createdAt, setCompletedAt] = useState<Date | null>(null);
   const [wizardDone, setWizardDone] = useState(false);
   const [pendingStart, setPendingStart] = useState(false);
+  // True once the factory declined to build a runtime (empty / uncompilable
+  // block) — drives the "Nothing to run" empty state instead of hanging on
+  // "Initializing…". (#702)
+  const [nothingToRun, setNothingToRun] = useState(false);
 
   // Gutter base: 0-indexed block.startLine → 1-based fence line
   // statement sourceId = 1-based line within content
@@ -172,6 +176,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     const rt = createRuntimeForBlock(runtimeBlock);
     if (!rt) {
       // Block has no compilable statements — nothing to run
+      setNothingToRun(true);
       return;
     }
     setRuntime(rt);
@@ -340,6 +345,30 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
           mode="pre-run"
         />
       </PanelSizeProvider>
+    );
+  }
+
+  // Empty / uncompilable block: the factory declined to build a runtime, so
+  // `ready` never flips. Surface a clear empty state instead of hanging on
+  // "Initializing…" forever. Keyed on the factory's decision (not statement
+  // count) so it catches every entry path (editor Run, date-page Play, /run
+  // route) and every un-runnable shape. (#702)
+  if (nothingToRun) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+        <p className="text-sm font-medium text-foreground">Nothing to run</p>
+        <p className="max-w-xs text-xs text-muted-foreground">
+          This block has no workout statements yet. Add a timer or some
+          movements, then run it again.
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          Close
+        </button>
+      </div>
     );
   }
 

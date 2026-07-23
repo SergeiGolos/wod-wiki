@@ -60,4 +60,22 @@ test.describe('WOD Index Play Button — /journal/:date', () => {
     expect(errors).toHaveLength(0);
     await page.screenshot({ path: 'e2e/screenshots/wod-runtime-started.png' });
   });
+
+  test('empty block shows a nothing-to-run state instead of hanging (#702)', async ({ page }) => {
+    // Seed an empty wod block (no statements). Clicking Run used to open the
+    // timer and hang on "Initializing…" forever (createRuntime returns null for
+    // zero statements and `ready` never flips); RuntimeTimerPanel now shows an
+    // empty state instead.
+    await journal.clearStoredEntry(DATE_TEST);
+    await seedJournalNote(page, DATE_TEST, '# Empty\n\n```wod\n```\n');
+    await journal.goto(DATE_TEST);
+    await page.waitForTimeout(3000);
+
+    const play = page.locator('[data-testid="editor-start-workout"]').first();
+    await expect(play).toBeVisible({ timeout: 10_000 });
+    await play.evaluate((el) => (el as HTMLElement).click());
+
+    await expect(page.getByText('Nothing to run')).toBeVisible({ timeout: 15_000 });
+    expect(errors).toHaveLength(0);
+  });
 });
