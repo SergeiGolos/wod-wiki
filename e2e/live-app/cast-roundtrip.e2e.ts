@@ -92,13 +92,7 @@ test.describe('Cast Sender↔Receiver Round-Trip (LocalTabBackend)', () => {
     expect(receiverErrors).toEqual([]);
   });
 
-  // DEFECT #704: the cast transport connects and mirrors the sender's INITIAL
-  // session state, but the sender's runtime block transitions / active-countdown
-  // are not propagated to an already-connected receiver (sender advances to
-  // Timer: 1:00 / 00:55 while the receiver stays frozen at the session gate).
-  // Quarantined until the workbench-sync bridge emits/consumes live block + timer
-  // events, or the owner rules one-shot-preview as intended.
-  test.fixme('sender block transitions mirror to the connected receiver', async ({ page, context }) => {
+  test('sender block transitions mirror to the connected receiver', async ({ page, context }) => {
     await startWorkoutWithTimer(page, 'cast-e2e-mirror', '```wod\nTimer: 1:00\n5 Burpees\n```');
 
     const castButton = page.getByRole('button', { name: 'Cast to TV' }).first();

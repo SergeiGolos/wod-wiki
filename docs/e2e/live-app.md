@@ -550,6 +550,6 @@ The only behavioral coverage of `src/components/organisms/cast`. Harness: LocalT
 - **Actions:** Start a workout; click the timer-overlay `Cast to TV` control; capture the popup.
 - **Asserts:** Popup URL matches `/receiver-rpc.html?local=`; receiver leaves the waiting screen and renders the active track panel (UP NEXT); no pageerror on either side.
 
-### `sender block transitions mirror to the connected receiver` *(quarantined — #704)*
+### `sender block transitions mirror to the connected receiver`
 - **Location:** `e2e/live-app/cast-roundtrip.e2e.ts:95`
-- **Asserts (desired):** after the sender advances into `Timer: 1:00`, the receiver mirrors `1:00`. **Quarantined:** the receiver connects and mirrors the initial session but does not propagate the sender's live block/timer transitions — defect #704.
+- **Asserts:** after the sender advances into `Timer: 1:00`, the receiver mirrors `1:00`. Fixed in #704: (1) restored the orphaned `CastSessionHandle.pushInitialWorkbench` (its absence made `connectSession` throw → `cleanupCast` tore the session down every cast); (2) the `/run` inline runtime now mirrors its stack/output to the receiver via a `ChromecastRuntimeSubscription` fed from the process-wide `castTransportRegistry` (the `CastTransportContext` provider only wraps the cast button, so it can't reach the panel); (3) the receiver's output stub gained `getMetric`/`getAllMetricsByType` so it can render history without crashing.

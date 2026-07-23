@@ -7,6 +7,7 @@ import { IEventBus, EventCallback, EventHandlerOptions } from '@/runtime/contrac
 import { IEvent } from '@/runtime/contracts/events/IEvent';
 import { IEventHandler } from '@/runtime/contracts/events/IEventHandler';
 import { IOutputStatement } from '@/core/models/OutputStatement';
+import { MetricType } from '@/core/models/Metric';
 import { RuntimeStackOptions } from '@/runtime/contracts/IRuntimeOptions';
 import { TimeSpan } from '@/runtime/models/TimeSpan';
 import { BlockKey } from '@/core/models/BlockKey';
@@ -491,7 +492,8 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             type: 'output',
             sourceIds: [],
             children: [],
-            getAllMetricsByType: () => [],
+            getMetric: (type: MetricType) => message.metrics.find((m) => m.type === type),
+            getAllMetricsByType: (type: MetricType) => message.metrics.filter((m) => m.type === type),
             getFragment: () => undefined,
             getDisplayMetrics: () => message.metrics,
             getFragmentsByOrigin: () => message.metrics,

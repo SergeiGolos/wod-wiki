@@ -27,7 +27,9 @@ import { useScreenMode } from "@/panels/panel-system/useScreenMode";
 import { ScriptRuntimeProvider, useRuntimeExecution, type UseRuntimeExecutionReturn, NextEvent, ScriptRuntime } from "@/hooks/useRuntimeTimer";
 import type { IScriptRuntime, StackSnapshot } from "@/hooks/useRuntimeTimer";
 import { getActiveWorkbenchSessionStore } from "@/stores/workbenchSessionStore";
-import { useCastTransport } from "@/contexts/CastTransportContext";
+import { getActiveCastTransport, onCastTransportChange } from "@/services/cast/castTransportRegistry";
+import type { IRpcTransport } from "@/services/cast/rpc/IRpcTransport";
+import { ChromecastRuntimeSubscription } from "@/services/cast/rpc/ChromecastRuntimeSubscription";
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from '@/components/Editor/extensions/gutter-unified';
@@ -260,10 +262,29 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     onComplete?.(block.id, results);
   }, [block.id, execution.elapsedTime, execution.startTime, onComplete, runtime]);
 
-  // Cast bridge — read the active transport from context (provided by
-  // `CastButtonRpc`). The inline runtime has no inline subscription
-  // (the workbench runtime's subscription handles the cast stream).
-  const castTransport = useCastTransport();
+  // The active cast transport comes from the process-wide registry, not
+  // CastTransportContext — that provider wraps only the cast button, so it
+  // cannot reach this panel (a sibling in the dialog). The registry updates on
+  // cast connect/disconnect, re-running the mirror bridge below. (#704)
+  const [castTransport, setCastTransport] = useState<IRpcTransport | null>(() => getActiveCastTransport());
+  useEffect(() => onCastTransportChange(setCastTransport), []);
+
+  // Mirror this runtime's stack + output to a connected cast receiver. This
+  // runtime is created locally (on /run and in the editor fullscreen timer) —
+  // it is NOT the workbench runtime that CastSessionManager's subscription
+  // wraps — so without this bridge a connected receiver never sees block
+  // transitions or the countdown. (#704)
+  useEffect(() => {
+    if (!runtime || !castTransport) return;
+    const castSubscription = new ChromecastRuntimeSubscription(castTransport);
+    const unsubStack = runtime.subscribeToStack((snapshot) => castSubscription.onStackSnapshot(snapshot));
+    const unsubOutput = runtime.subscribeToOutput((output) => castSubscription.onOutput(output));
+    return () => {
+      unsubStack();
+      unsubOutput();
+      castSubscription.dispose();
+    };
+  }, [runtime, castTransport]);
 
   // Track completion: notify parent immediately so it can switch to results view.
   // The parent (FullscreenTimer) will unmount this panel when it transitions.
