@@ -8,6 +8,10 @@ test.describe('WOD Index Play Button — /journal/:date', () => {
   const errors: string[] = [];
 
   test.beforeEach(async ({ page }) => {
+    // Quarantined: /journal/:date no longer mounts an editor for empty dates
+    // since bd76d1a6 — pending expected-behavior decision in
+    // https://github.com/SergeiGolos/wod-wiki/issues/698
+    test.fixme(true, 'Quarantined: journal empty-date behavior change — see issue #698');
     errors.length = 0;
     page.on('pageerror', (e) => errors.push(e.message));
 

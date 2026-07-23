@@ -215,10 +215,14 @@ export class OutputEmitter {
                 timestamp: now,
             });
 
-            // Logical depth: count ancestors
+            // Logical depth: count ancestors. The visited-set is a cycle
+            // guard: degenerate parses (duplicate line-number ids making a
+            // statement its own ancestor) must never hang emission.
             let logicalDepth = 0;
             let parentId = stmt.parent;
-            while (parentId !== undefined) {
+            const seen = new Set<number>();
+            while (parentId !== undefined && !seen.has(parentId)) {
+                seen.add(parentId);
                 const parent = script.getId(parentId);
                 if (parent) { logicalDepth++; parentId = parent.parent; }
                 else break;

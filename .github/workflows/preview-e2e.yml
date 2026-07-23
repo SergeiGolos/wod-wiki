@@ -8,12 +8,30 @@ on:
         required: false
         type: string
         default: https://preview.wod.wiki
+      branch-slug:
+        description: Branch slug; when set, the HTML report is published to s3://<bucket>/<slug>/e2e-report/
+        required: false
+        type: string
+        default: ''
+    outputs:
+      outcome:
+        value: ${{ jobs.preview-e2e.outputs.outcome }}
+      tests:
+        value: ${{ jobs.preview-e2e.outputs.tests }}
+      failures:
+        value: ${{ jobs.preview-e2e.outputs.failures }}
+      skipped:
+        value: ${{ jobs.preview-e2e.outputs.skipped }}
   workflow_dispatch:
     inputs:
       preview-url:
         description: Preview base URL to test
         required: false
         default: https://preview.wod.wiki
+      branch-slug:
+        description: Branch slug for S3 report publishing (optional)
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -24,6 +42,11 @@ env:
 jobs:
   preview-e2e:
     runs-on: ubuntu-22.04
+    outputs:
+      outcome: ${{ steps.preview_e2e.outcome }}
+      tests: ${{ steps.preview_stats.outputs.tests }}
+      failures: ${{ steps.preview_stats.outputs.failures }}
+      skipped: ${{ steps.preview_stats.outputs.skipped }}
     steps:
       - uses: actions/checkout@v6
 
@@ -35,8 +58,27 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # The preview config runs chromium, firefox, and webkit projects.
       - name: Install Playwright browsers
-        run: bun x playwright install --with-deps chromium
+        run: bun x playwright install --with-deps chromium firefox webkit
+
+      # S3 sync is immediate but CloudFront may serve the previous build for
+      # up to 5 minutes (max-age=300). Wait for the preview to respond before
+      # running tests against it.
+      - name: Wait for preview to be reachable
+        run: |
+          set -euo pipefail
+          url="${{ inputs.preview-url || 'https://preview.wod.wiki' }}"
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null "$url"; then
+              echo "preview reachable: $url"
+              exit 0
+            fi
+            echo "waiting for $url ($i/30)"
+            sleep 10
+          done
+          echo "::error::preview not reachable at $url after 5 minutes"
+          exit 1
 
       - name: Run preview E2E
         id: preview_e2e
@@ -68,6 +110,23 @@ jobs:
           echo "tests=${tests:-n/a}" >> "$GITHUB_OUTPUT"
           echo "failures=${failures:-n/a}" >> "$GITHUB_OUTPUT"
           echo "skipped=${skipped:-n/a}" >> "$GITHUB_OUTPUT"
+
+      # Publishes next to the deployed preview build (<slug>/dist/), so the
+      # report is browsable at <preview-url>/e2e-report/index.html.
+      - name: Publish HTML report to preview S3 folder
+        if: always() && inputs.branch-slug != ''
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+          S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
+        run: |
+          set -euo pipefail
+          PREFIX="${{ inputs.branch-slug }}/e2e-report/"
+          echo "Publishing playwright-report/ to s3://$S3_BUCKET/$PREFIX"
+          aws s3 sync playwright-report/ "s3://$S3_BUCKET/$PREFIX" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate"
 
       - name: Upload Playwright HTML report
         uses: actions/upload-artifact@v7

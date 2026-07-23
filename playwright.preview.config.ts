@@ -18,7 +18,8 @@ export default defineConfig({
   use: {
     baseURL: previewBaseURL,
     trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
+    // Every test's screenshot is embedded in the published HTML report.
+    screenshot: 'on',
     video: 'retain-on-failure',
   },
   projects: [

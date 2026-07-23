@@ -53,7 +53,8 @@ export default defineConfig({
   use: {
     baseURL: appURL,
     trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
+    // Every test's screenshot is embedded in the published HTML report.
+    screenshot: 'on',
     video: 'retain-on-failure',
     // Production has valid HTTPS; local dev uses self-signed certs
     ignoreHTTPSErrors: !isCI,

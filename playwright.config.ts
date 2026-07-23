@@ -55,8 +55,8 @@ export default defineConfig({
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
 
-    /* Screenshot on failure */
-    screenshot: 'only-on-failure',
+    /* Screenshot on every test — embedded in the HTML report */
+    screenshot: 'on',
 
     /* Video on failure */
     video: 'retain-on-failure',

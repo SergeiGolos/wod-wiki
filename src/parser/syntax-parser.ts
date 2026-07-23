@@ -23,8 +23,27 @@ export function extractSyntaxFacts(state: EditorState): SyntaxFacts {
   const source = state.doc.toString();
   const statements: SyntaxStatement[] = [];
 
+  // A Property whose value doesn't fit the property grammar is marked failed
+  // by the parser itself: a zero-width error node (⚠) follows it, and the
+  // value reparses as its own Block (e.g. `Timer: 1:00` → Property + ⚠ +
+  // Block(duration)). Emitting both gives two statements on one line — which
+  // share a line-number id, forming a self-referential parent/children
+  // structure that hangs id-walking consumers (emitLoad's depth walk). Honor
+  // the grammar: drop a Property when the error node immediately follows it.
+  // (`SyntaxNode.nextSibling` skips zero-width error nodes, so this is
+  // tracked across the iterate pass instead of checked inline.)
+  let lastProperty: { to: number; index: number } | null = null;
+
   tree.iterate({
     enter(node) {
+      if (node.name === '⚠') {
+        if (lastProperty && lastProperty.to === node.from) {
+          statements.splice(lastProperty.index, 1);
+        }
+        lastProperty = null;
+        return;
+      }
+
       if (node.name === 'Property') {
         const primitive = createPropertyPrimitive(state, source, node.from, node.to);
         if (primitive) {
@@ -37,11 +56,13 @@ export function extractSyntaxFacts(state: EditorState): SyntaxFacts {
             children: [],
             isLeaf: true,
           });
+          lastProperty = { to: node.to, index: statements.length - 1 };
         }
         return;
       }
 
       if (node.name !== 'Block') return;
+      lastProperty = null;
 
       const statementMeta = createMeta(state, node.from, node.to, source.slice(node.from, node.to));
       const statement: SyntaxStatement = {
