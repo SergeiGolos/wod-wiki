@@ -85,7 +85,7 @@ test.describe('Error-Path Resilience', () => {
   // DEFECT #703: with no IndexedDB the app white-screens with an unhandled
   // `Cannot read properties of undefined (reading 'open')`. Quarantined until
   // the boot DB-open rejection is caught (error boundary + empty shell).
-  test.fixme('IndexedDB rejection degrades without an unhandled pageerror', async ({ page }) => {
+  test('IndexedDB rejection degrades without an unhandled pageerror', async ({ page }) => {
     await page.addInitScript(() => {
       // Simulate an environment with no IndexedDB (locked-down webview /
       // disabled storage) — the realistic "unavailable" failure mode.

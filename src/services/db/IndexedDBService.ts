@@ -319,6 +319,22 @@ export class IndexedDBService {
     private dbPromise: Promise<IDBPDatabase<WodWikiDB>>;
 
     constructor() {
+        // Guard: `openDB` reads `indexedDB.open` synchronously, so when IndexedDB
+        // is unavailable (locked-down webview / disabled storage) the constructor
+        // would throw at module scope (`export const indexedDBService = new
+        // IndexedDBService()`), taking down the whole bundle and white-screening
+        // the app before React mounts. Defer the failure to first use instead —
+        // callers awaiting dbPromise get a rejected promise they can handle. (#703)
+        if (typeof indexedDB === 'undefined') {
+            this.dbPromise = Promise.reject(
+                new Error('IndexedDB is unavailable in this environment'),
+            );
+            // Mark the stored rejection handled so it isn't flagged as an
+            // unhandled rejection at boot; each `await this.dbPromise` still
+            // rejects for the caller.
+            this.dbPromise.catch(() => {});
+            return;
+        }
         this.dbPromise = openDB<WodWikiDB>(DB_NAME, DB_VERSION, {
             async upgrade(db, oldVersion, _newVersion, tx) {
                 // -------------------------------------------------------

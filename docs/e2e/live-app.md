@@ -531,10 +531,10 @@ Resolves which graceful degradations already exist vs which are defects. Documen
 - **Actions:** Seed `Timer: banana`.
 - **Asserts:** Play still present (block valid); no pageerror.
 
-### `IndexedDB rejection degrades without an unhandled pageerror` *(quarantined — #703)*
+### `IndexedDB rejection degrades without an unhandled pageerror`
 - **Location:** `e2e/live-app/error-states.e2e.ts:88`
 - **Actions:** `addInitScript` sets `window.indexedDB = undefined`; goto `/`.
-- **Asserts (desired):** `#root` not empty; no pageerror. **Quarantined:** app white-screens with `Cannot read properties of undefined (reading 'open')` — defect #703.
+- **Asserts:** `#root` not empty (React mounts, no white-screen); no pageerror. Fixed in #703: the `IndexedDBService` constructor now guards `typeof indexedDB === 'undefined'` and defers a handled rejection to first use instead of throwing synchronously at module scope (which took down the whole bundle).
 
 ### `/journal/not-a-date redirects to a handled state`
 - **Location:** `e2e/live-app/error-states.e2e.ts:118`
