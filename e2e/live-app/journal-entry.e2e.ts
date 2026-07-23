@@ -1,8 +1,11 @@
 /**
  * Journal Entry E2E Tests
  *
- * Validates the /journal/:date route:
- * 1. New entries load with the default template
+ * Validates the /journal/:date route against the intended empty-date UX
+ * (issue #698): an unseeded date shows an empty state — NO auto-seeded
+ * template and NO editor. Tests seed a journal note first
+ * (`seedJournalNote`), then drive the editor:
+ * 1. A seeded date loads its note content
  * 2. Edited content is saved when navigating away normally (≥500ms debounce)
  * 3. Edited content is saved when navigating away before the 500ms debounce fires
  *    (validates the flush-on-unmount fix in usePlaygroundContent)
@@ -17,6 +20,7 @@
 
 import { test, expect } from '@playwright/test';
 import { JournalEntryPage } from '../pages/JournalEntryPage';
+import { seedJournalNote } from '../helpers/wodwikiDb';
 
 // Stable test dates — far future so they never conflict with real entries
 const DATE_LOAD = '2099-06-01';
@@ -29,13 +33,15 @@ test.describe('Journal Entry — /journal/:date', () => {
   const errors: string[] = [];
 
   test.beforeEach(async ({ page }) => {
-    // Quarantined: /journal/:date no longer mounts an editor for empty dates
-    // since bd76d1a6 — pending expected-behavior decision in
-    // https://github.com/SergeiGolos/wod-wiki/issues/698
-    test.fixme(true, 'Quarantined: journal empty-date behavior change — see issue #698');
     errors.length = 0;
     page.on('pageerror', (e) => errors.push(e.message));
     journal = new JournalEntryPage(page);
+
+    // Suppress the First-Note Wizard — its backdrop intercepts every click on
+    // fresh browser profiles (see runtime-execution.e2e.ts).
+    await page.addInitScript(() => {
+      window.localStorage.setItem('wodwiki.profileInitialized.v1', 'true');
+    });
 
     // Navigate once to seed IndexedDB access before clearing
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20_000 });
@@ -47,14 +53,16 @@ test.describe('Journal Entry — /journal/:date', () => {
     }
   });
 
-  // ── 1. New entry loads default template ──────────────────────────────────
+  // ── 1. Seeded date loads its note content ────────────────────────────────
 
-  test('loads default template for a new (unsaved) date', async () => {
+  test('loads the note content for a seeded date', async () => {
+    const seeded = `# E2E-LOAD-${Date.now()}\n\n` + '```wod\nTimer: 0:01\n1 Burpee\n```\n';
     await journal.clearStoredEntry(DATE_LOAD);
+    await seedJournalNote(journal.page, DATE_LOAD, seeded);
     await journal.goto(DATE_LOAD);
 
-    // Template always contains "# My Workout" as the heading
-    await journal.expectEditorContains('My Workout');
+    // The seeded note's content renders (no auto-template — see #698).
+    await journal.expectEditorContains('E2E-LOAD');
 
     // No page errors
     expect(errors).toHaveLength(0);
@@ -65,8 +73,12 @@ test.describe('Journal Entry — /journal/:date', () => {
   // ── 2. Content saved after normal debounce (≥500ms) ──────────────────────
 
   test('saves content after waiting for debounce then navigating away', async () => {
+    // Quarantined: journal save corrupts stored content (segment pile-up on
+    // repeated saves — per-keystroke flush + updateEntry reconciliation) — #705.
+    test.fixme(true, 'Quarantined: journal save segment pile-up — see issue #705');
     const uniqueText = `E2E-SAVE-NORMAL-${Date.now()}`;
     await journal.clearStoredEntry(DATE_SAVE_NORMAL);
+    await seedJournalNote(journal.page, DATE_SAVE_NORMAL, 'Note\n');
     await journal.goto(DATE_SAVE_NORMAL);
 
     await journal.typeInEditor(uniqueText);
@@ -91,8 +103,11 @@ test.describe('Journal Entry — /journal/:date', () => {
   // ── 3. Content saved on quick navigation (unmount flush) ──────────────────
 
   test('saves content when navigating away before 500ms debounce fires', async () => {
+    // Quarantined: journal save corrupts stored content (segment pile-up) — #705.
+    test.fixme(true, 'Quarantined: journal save segment pile-up — see issue #705');
     const uniqueText = `E2E-SAVE-QUICK-${Date.now()}`;
     await journal.clearStoredEntry(DATE_SAVE_QUICK);
+    await seedJournalNote(journal.page, DATE_SAVE_QUICK, 'Note\n');
     await journal.goto(DATE_SAVE_QUICK);
 
     await journal.typeInEditor(uniqueText);
@@ -118,8 +133,11 @@ test.describe('Journal Entry — /journal/:date', () => {
   // ── 4. Content survives a full page reload ────────────────────────────────
 
   test('content persists across a hard page reload', async () => {
+    // Quarantined: journal save corrupts stored content (segment pile-up) — #705.
+    test.fixme(true, 'Quarantined: journal save segment pile-up — see issue #705');
     const uniqueText = `E2E-RELOAD-${Date.now()}`;
     await journal.clearStoredEntry(DATE_RELOAD);
+    await seedJournalNote(journal.page, DATE_RELOAD, 'Note\n');
     await journal.goto(DATE_RELOAD);
 
     await journal.typeInEditor(uniqueText);
@@ -140,6 +158,7 @@ test.describe('Journal Entry — /journal/:date', () => {
 
   test('page title reflects the journal date', async () => {
     await journal.clearStoredEntry(DATE_LOAD);
+    await seedJournalNote(journal.page, DATE_LOAD, 'Note\n');
     await journal.goto(DATE_LOAD);
 
     // The date appears somewhere in the page title / heading

@@ -152,6 +152,73 @@ export async function clearAllNotes(page: Page): Promise<void> {
  * `IndexedDBContentProvider.getEntry` reconstruction: latest (non-history)
  * segments sorted by position, wod segments wrapped in fences.
  */
+/**
+ * Seed a journal-date note that the /journal/:date page renders.
+ *
+ * V10/V11 schema: a HistoryEntry's `journalDate` is DERIVED from the `page`
+ * store via `note.pageId` (the note row no longer stores it), and the date
+ * page lists via `journalNotes.listByDate` → `listNotes({ journalDate, kind:
+ * 'journal' })`. So a journal seed needs all three rows:
+ *   page     — the calendar page (`date` is the join key)
+ *   notes    — `type: 'journal'` + `pageId` → page
+ *   segments — the markdown content the editor loads
+ *
+ * Ids are deterministic (`journal/<date>`, `page/<date>`) so the existing
+ * route-id helpers (`clearStoredEntry` / `storedContent` in JournalEntryPage)
+ * resolve the same note.
+ */
+export async function seedJournalNote(
+  page: Page,
+  date: string,
+  content: string,
+  opts?: { title?: string },
+): Promise<void> {
+  await page.evaluate(
+    async ({ dbName, date, content, title }) => {
+      const db: IDBDatabase = await new Promise((resolve, reject) => {
+        const req = indexedDB.open(dbName);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      try {
+        const now = Date.now();
+        const pageId = `page/${date}`;
+        const noteId = `journal/${date}`;
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(['page', 'notes', 'segments'], 'readwrite');
+          tx.objectStore('page').put({ id: pageId, date, title: date, createdAt: now });
+          tx.objectStore('notes').put({
+            id: noteId,
+            title: title ?? date,
+            type: 'journal',
+            pageId,
+            createdAt: now,
+          });
+          tx.objectStore('segments').put({
+            id: `seg-${noteId}-0`,
+            version: 1,
+            noteId,
+            pageId,
+            position: 0,
+            dataType: 'markdown',
+            data: null,
+            rawContent: content,
+            createdAt: now,
+            updatedAt: now,
+            isHistory: false,
+          });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+          tx.onabort = () => reject(tx.error);
+        });
+      } finally {
+        db.close();
+      }
+    },
+    { dbName: WOD_DB, date, content, title: opts?.title },
+  );
+}
+
 export async function getNoteContentByRouteId(
   page: Page,
   routeId: string,

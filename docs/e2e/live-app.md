@@ -76,47 +76,50 @@ Exercises the note persistence seam end-to-end through IndexedDB: content round-
 
 ## `e2e/live-app/journal-entry.e2e.ts`
 
-Validates the `/journal/:date` route: default template loading, debounced save, unmount flush, reload persistence, and page title.
+Validates the `/journal/:date` route against the intended empty-date UX (#698): an unseeded date shows an empty state — NO auto-seeded template, NO editor. Tests seed a journal note first (`seedJournalNote` in `e2e/helpers/wodwikiDb.ts`, which writes the V10/V11 `page` → `notes.pageId` → `segments` rows a date-page query needs), then drive the editor.
 
-### `loads default template for a new (unsaved) date`
-- **Location:** `e2e/live-app/journal-entry.e2e.ts:48`
+### `loads the note content for a seeded date`
+- **Location:** `e2e/live-app/journal-entry.e2e.ts:58`
 - **Target:** `/journal/2099-06-01`
-- **Actions:** Clear stored entry; goto journal date.
-- **Asserts:** Editor contains `My Workout`; no page errors.
+- **Actions:** Clear stored entry; seed a journal note; goto journal date.
+- **Asserts:** Editor contains the seeded content; no page errors.
 
-### `saves content after waiting for debounce then navigating away`
-- **Location:** `e2e/live-app/journal-entry.e2e.ts:63`
+### `saves content after waiting for debounce then navigating away` *(quarantined — #705)*
+- **Location:** `e2e/live-app/journal-entry.e2e.ts:75`
 - **Target:** `/journal/2099-06-02`
-- **Actions:** Clear stored entry; goto journal date; type unique text; wait 700ms; navigate to journal list.
+- **Actions:** Seed note; type unique text; wait 700ms; navigate to journal list.
 - **Asserts:** Stored content contains the unique text; returning to the date shows the saved text.
+- **Quarantined:** journal save corrupts stored content (segment pile-up on repeated saves) — defect #705.
 
-### `saves content when navigating away before 500ms debounce fires`
-- **Location:** `e2e/live-app/journal-entry.e2e.ts:89`
+### `saves content when navigating away before 500ms debounce fires` *(quarantined — #705)*
+- **Location:** `e2e/live-app/journal-entry.e2e.ts:104`
 - **Target:** `/journal/2099-06-03`
-- **Actions:** Clear stored entry; goto journal date; type unique text; immediately navigate to journal list.
-- **Asserts:** Stored content contains the unique text despite the quick navigation; returning shows the saved text.
+- **Actions:** Seed note; type unique text; immediately navigate to journal list.
+- **Asserts:** Stored content contains the unique text despite the quick navigation.
+- **Quarantined:** #705.
 
-### `content persists across a hard page reload`
-- **Location:** `e2e/live-app/journal-entry.e2e.ts:116`
+### `content persists across a hard page reload` *(quarantined — #705)*
+- **Location:** `e2e/live-app/journal-entry.e2e.ts:130`
 - **Target:** `/journal/2099-06-04`
-- **Actions:** Clear stored entry; goto journal date; type unique text; wait 700ms; hard reload.
+- **Actions:** Seed note; type unique text; wait 700ms; hard reload.
 - **Asserts:** Editor still contains the unique text after reload.
+- **Quarantined:** #705.
 
 ### `page title reflects the journal date`
-- **Location:** `e2e/live-app/journal-entry.e2e.ts:137`
+- **Location:** `e2e/live-app/journal-entry.e2e.ts:152`
 - **Target:** `/journal/2099-06-01`
-- **Actions:** Clear stored entry; goto journal date; read title element.
+- **Actions:** Seed note; goto journal date; read title element.
 - **Asserts:** Title text includes the year `2099`.
 
 ## `e2e/live-app/wod-index-play-button.e2e.ts`
 
-Validates the WOD play button in the journal Actions menu and the resulting runtime session.
+Validates that a seeded WOD block on the journal date page starts a runtime session via the block's start-workout control.
 
 ### `shows play button in Actions menu and starts runtime session`
-- **Location:** `e2e/live-app/wod-index-play-button.e2e.ts:25`
+- **Location:** `e2e/live-app/wod-index-play-button.e2e.ts:32`
 - **Target:** `/journal/2099-12-31`
-- **Actions:** Clear stored entry; goto journal date; replace editor with a WOD block; wait for React parsing; open Actions menu; click play button; start timer if in ready state.
-- **Asserts:** Fullscreen timer appears; pause button is visible; timer text (e.g., `10:00`, `09:59`, `09:58`) is visible.
+- **Actions:** Seed a journal note containing a WOD block; goto journal date; DOM-click the block's `[data-testid="editor-start-workout"]` ("Run") control; wait for the timer overlay.
+- **Asserts:** Timer overlay (`button[title="Close"]`) mounts; the seeded `Timer: 10:00` shows ~`10:0x`; no page errors.
 
 ## `e2e/live-app/results-widget-inlay.e2e.ts`
 
