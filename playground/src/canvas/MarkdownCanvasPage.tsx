@@ -11,6 +11,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Play } from 'lucide-react'
 import { useQueryState } from 'nuqs'
+import type { EditorView } from '@codemirror/view'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import { FullscreenReview } from '@/components/organisms/review/FullscreenReview'
@@ -19,6 +20,10 @@ import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCanvasEditorSource } from '../hooks/useCanvasEditorSource'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
 import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
+import { useProtoVariant } from '../proto/ProtoVariantSwitch'
+import { editFeedbackExtension } from '../proto/editFeedback'
+import { useProtoEditFeedback } from '../proto/useProtoEditFeedback'
+import { ProtoFirstWins } from '../proto/ProtoFirstWins'
 import { CanvasPanelContent } from './CanvasPanelContent'
 import { CanvasSection as CanvasSectionCard } from '../components/molecules/CanvasSection'
 import { CanvasProsePanel } from '../components/organisms/canvas/CanvasProsePanel'
@@ -132,12 +137,35 @@ export function MarkdownCanvasPage({
     swapSource, handleEditorChange, resetActiveSource,
     setEditorView, getSource,
   } = useCanvasEditorSource({ initialSource, initialSourceKey, contentOverride })
+
+  const { proto } = useProtoVariant()
+  const editorViewRef = useRef<EditorView | null>(null)
+  const handleViewCreated = useCallback((view: EditorView | null) => {
+    editorViewRef.current = view
+    setEditorView(view)
+  }, [setEditorView])
+  const protoExtensions = useMemo(() => (proto ? [editFeedbackExtension()] : []), [proto])
+
   const wodFilesRef = useRef(wodFiles)
   wodFilesRef.current = wodFiles
 
   // Runtime hook
   const getBlock = useCallback(() => scriptBlocksRef.current[0] ?? null, [])
   const runtime = useCanvasRuntime({ canvasNoteId, getBlock })
+
+  const [hasRunTimer, setHasRunTimer] = useState(false)
+  // First Run signal: the moment the user opens the full-screen timer we
+  // flip the tile on and remember it for the session. We do not wait for a
+  // persisted result because that is the separate "First Log" milestone.
+  useEffect(() => {
+    if (runtime.fullscreen?.kind === 'timer') setHasRunTimer(true)
+  }, [runtime.fullscreen?.kind])
+  useProtoEditFeedback({
+    route: page.route,
+    editorSource,
+    activeOriginalSource,
+    viewRef: editorViewRef,
+  })
 
   // Persisted results loading
   useEffect(() => {
@@ -456,8 +484,9 @@ export function MarkdownCanvasPage({
       commands={canvasCommands}
       activeSectionId={activeSectionId}
       onBlocksChange={handleBlocksChange}
-      onViewCreated={setEditorView}
+      onViewCreated={handleViewCreated}
       persistedResults={runtime.persistedResults}
+      {...(proto ? { extensions: protoExtensions } : {})}
     />
   )
 
@@ -465,21 +494,31 @@ export function MarkdownCanvasPage({
   // Goal Gradient (ADR-0010): the home page gets an onboarding credit/progress
   // strip above the markdown hero. Other canvas routes are unaffected.
   const heroContent = heroSlotProp ?? (heroHasContent && heroSection ? (
-    <CanvasSectionCard
-      section={heroSection}
-      idx={-1}
-      prose={undefined}
-      blockId={heroSection.id}
-      keySuffix="hero"
-      showEyebrow={false}
-      isActive={false}
-      hasViewDef={!!viewDef}
-      deps={deps}
-      onExampleSelect={handleExampleSelect}
-      selectedExampleIndex={0}
-      onScrollToSection={onScrollToSection}
-      challengeQuests={challenge.quests}
-    />
+    <div className="flex flex-col gap-4">
+      {proto && page.route === '/' && (
+        <ProtoFirstWins
+          hasEdited={editorSource !== activeOriginalSource}
+          hasRun={hasRunTimer}
+          hasLogged={runtime.persistedResults.length > 0}
+          hasCompletedQuest={challenge.quests.some((q) => q.isCompleted)}
+        />
+      )}
+      <CanvasSectionCard
+        section={heroSection}
+        idx={-1}
+        prose={undefined}
+        blockId={heroSection.id}
+        keySuffix="hero"
+        showEyebrow={false}
+        isActive={false}
+        hasViewDef={!!viewDef}
+        deps={deps}
+        onExampleSelect={handleExampleSelect}
+        selectedExampleIndex={0}
+        onScrollToSection={onScrollToSection}
+        challengeQuests={challenge.quests}
+      />
+    </div>
   ) : null)
   const heroSlot = heroContent
 

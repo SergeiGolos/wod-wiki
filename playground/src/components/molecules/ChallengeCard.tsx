@@ -3,10 +3,12 @@
  * the header dropdown. Presentational: state is supplied by the caller.
  */
 
+import { useState, useEffect } from 'react';
 import { CheckCircle2, Circle, Check } from 'lucide-react';
 import type { Quest } from '../../canvas/parseCanvasMarkdown';
 import type { ValidationResult } from '../../services/syntaxChallengeValidator';
 import { cn } from '@/lib/utils';
+import { useProtoVariant } from '../../proto/ProtoVariantSwitch';
 import {
   BasicsMovementIcon,
   BasicsRepsIcon,
@@ -61,6 +63,12 @@ export interface ChallengeCardProps {
 
 export function ChallengeCard({ quest, onClick, className, compact = false, disabled = false }: ChallengeCardProps) {
   const Icon = getQuestIcon(quest.id);
+  const { proto } = useProtoVariant();
+  const [revealed, setRevealed] = useState(0);
+
+  useEffect(() => {
+    setRevealed(0);
+  }, [quest.id]);
 
   const hint = quest.isCompleted
     ? 'Challenge complete.'
@@ -69,6 +77,11 @@ export function ChallengeCard({ quest, onClick, className, compact = false, disa
         ? `Ready — ${quest.result.detail ?? 'looks good'}`
         : quest.result.reason ?? 'Open the editor to begin.'
       : 'Open the editor to begin.';
+
+  // PROTOTYPE — throwaway: hints show in compact cards too; compact cards are
+  // the primary quest surface (home banner), gating them out hides the feature.
+  const showHints = proto && !quest.isCompleted && quest.hints && quest.hints.length > 0;
+  const hints = quest.hints ?? [];
 
   return (
     <button
@@ -140,6 +153,39 @@ export function ChallengeCard({ quest, onClick, className, compact = false, disa
         >
           {hint}
         </p>
+        {showHints && (
+          <div className="mt-2 space-y-1">
+            {hints.slice(0, revealed).map((h, i) => (
+              <p key={i} className="text-xs text-muted-foreground">
+                {h}
+              </p>
+            ))}
+            {revealed < hints.length && (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setRevealed((r) => r + 1);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setRevealed((r) => r + 1);
+                  }
+                }}
+                className={cn(
+                  'inline-flex cursor-pointer items-center gap-1 rounded-md border border-dashed border-border/60 px-2 py-1',
+                  'text-xs font-medium text-muted-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring',
+                )}
+              >
+                💡 Hint ({revealed + 1}/{hints.length})
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </button>
   );

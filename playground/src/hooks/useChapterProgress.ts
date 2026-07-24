@@ -2,7 +2,7 @@
  * useChapterProgress — cross-route quest aggregation for chapter badges.
  *
  * Chapter quests can live on any page (e.g. /guide/syntax/basics, /challenge),
- * but the chapter badge lives in the OnboardingBanner on the global header —
+ * but the chapter badge lives in the QuestMenu on the global header —
  * which is mounted on every page, including pages that don't ship the quest
  * list. This hook reads the full localStorage ledger once and computes, for
  * each chapter, how many of its quest ids are complete across ALL pages.

@@ -4,6 +4,7 @@
  * Renders the markdown note editor for editing the current canvas section.
  * Owns no state; everything it shows is decided by its props.
  */
+import type { Extension } from '@codemirror/state'
 import type { EditorView } from '@codemirror/view'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
@@ -25,6 +26,7 @@ export interface CanvasPanelContentProps {
   activeSectionId: string | null
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onViewCreated: (view: EditorView | null) => void
+  extensions?: Extension[]
 
   // Editor persistence
   persistedResults: WorkoutResult[]
@@ -43,6 +45,7 @@ export function CanvasPanelContent({
   activeSectionId,
   onBlocksChange,
   onViewCreated,
+  extensions,
   persistedResults,
 }: CanvasPanelContentProps) {
   const isEditorDirty = editorSource !== activeOriginalSource
@@ -78,6 +81,7 @@ export function CanvasPanelContent({
           commands={commands}
           hideDefaultCommands={false}
           className="h-full"
+          extensions={extensions}
         />
       </div>
     </div>

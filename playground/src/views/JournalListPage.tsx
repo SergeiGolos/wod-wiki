@@ -36,6 +36,8 @@ import { notePersistence } from '@/services/persistence'
 import { localDateKey, type JournalEntrySummary } from './queriable-list/JournalDateScroll'
 import type { FilteredListItem } from './queriable-list/types'
 import { JournalFeed } from './JournalFeed'
+import { useProtoVariant } from '../proto/ProtoVariantSwitch'
+import { computePrBadges } from '../proto/prBadges'
 
 function addDays(date: Date, n: number): Date {
   const d = new Date(date)
@@ -247,6 +249,10 @@ export function JournalListPage({
     return allItems
   }, [results, showPlaygrounds])
 
+  // ── Proto-gated PR badges ─────────────────────────────────────────────────
+  const { proto } = useProtoVariant()
+  const protoBadges = useMemo(() => (proto ? computePrBadges(listItems) : undefined), [proto, listItems])
+
   // ── Date keys to display ──────────────────────────────────────────────────
   const todayKey = useMemo(() => localDateKey(new Date()), [])
   const now = useMemo(() => new Date(), [])
@@ -347,6 +353,7 @@ export function JournalListPage({
       selectedDateKeys={selectedDateKeys}
       onDateHeaderClick={handleDateHeaderClick}
       showEmptyDates
+      protoBadges={protoBadges}
     />
   )
 }

@@ -18,6 +18,10 @@ id: protocols-timer
 label: Add a rest or time cap
 validation:
   type: has-timer
+hints:
+  - Add a time duration to a movement.
+  - Try writing `1:00 Plank Hold` on a line.
+  - Solution: add a line with a time like `1:00 Plank Hold`.
 ```
 
 ```quest
@@ -26,6 +30,10 @@ label: Add a 3-round cap
 validation:
   type: min-rounds
   count: 3
+hints:
+  - Wrap movements in at least 3 rounds.
+  - Try writing `3 rounds:` followed by your movements.
+  - Solution: add a rounds block with `3 rounds:` and indented movements.
 ```
 
 ```quest
@@ -34,6 +42,10 @@ label: Add a workout tag
 validation:
   type: contains-token
   value: AMRAP
+hints:
+  - Add a workout tag to the script.
+  - Try writing `AMRAP 10:00` on a line.
+  - Solution: add a line that contains `AMRAP`.
 ```
 
 # Timers & Protocols {sticky dark full-bleed}

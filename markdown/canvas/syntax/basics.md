@@ -18,6 +18,10 @@ id: basics-movement
 label: Add a movement
 validation:
   type: has-movement
+hints:
+  - Add a movement name to the script.
+  - Try writing `Air Squat` on its own line.
+  - Solution: add a line that says `Air Squat`.
 ```
 
 ```quest
@@ -25,6 +29,10 @@ id: basics-reps
 label: Add a rep count
 validation:
   type: has-reps
+hints:
+  - Add a number before a movement to count reps.
+  - Try writing `10 Pushups` on a line.
+  - Solution: add a line that says `10 Pushups`.
 ```
 
 ```quest
@@ -33,6 +41,10 @@ label: Add a load or distance
 validation:
   type: contains-token
   value: lb
+hints:
+  - Add a weight to a movement using `lb`.
+  - Try writing `135 lb Back Squat` on a line.
+  - Solution: add a line that contains `lb`.
 ```
 
 # Core Concepts {sticky dark full-bleed}

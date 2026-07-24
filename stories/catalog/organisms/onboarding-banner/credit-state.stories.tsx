@@ -30,7 +30,7 @@
 
 import type { Meta, StoryObj } from '@storybook/react'
 import { Check } from 'lucide-react'
-import { OnboardingBanner } from '../../../../playground/src/components/onboarding/OnboardingBanner'
+import { QuestMenu } from '../../../../playground/src/components/onboarding/QuestMenu'
 
 // ── Mock component (private to this stories file) ──────────────────────
 
@@ -100,7 +100,7 @@ export const BaselineCurrentComponent: Story = {
   name: '0. Baseline (live component)',
   render: () => (
     <StickyContext>
-      <OnboardingBanner hint="Start by editing the example" />
+      <QuestMenu pageRoute="/" quests={[]} includeRoadmap />
     </StickyContext>
   ),
   parameters: {

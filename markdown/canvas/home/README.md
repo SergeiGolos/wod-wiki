@@ -63,6 +63,10 @@ desc: You landed on the playground dashboard.
 id: qs-edit
 label: Change the workout
 desc: Make any edit to the demo script.
+hints:
+  - Change any number or movement name.
+  - Try changing `10 Pushups` to `12 Pushups`.
+  - Solution: edit line 2 so it reads `12 Pushups`.
 ```
 
 ```quest
@@ -71,6 +75,10 @@ label: Run it to the finish
 desc: Press Run and let the workout complete.
 validation:
   type: workout-complete
+hints:
+  - Press the Run button in the top right of the editor.
+  - Make sure the workout completes without errors.
+  - Solution: click the Run ▶ button and wait for the green check.
 ```
 
 # WOD Wiki {sticky dark full-bleed}

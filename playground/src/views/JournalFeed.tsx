@@ -12,6 +12,7 @@ import { ResultListItem } from '@/components/molecules/ResultListItem';
 import type { FilteredListItem } from './queriable-list/types';
 import type { JournalEntrySummary } from './queriable-list/JournalDateScroll';
 import { localDateKey } from './queriable-list/JournalDateScroll';
+import { formatMs, type ProtoPrBadge } from '../proto/prBadges';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -58,6 +59,7 @@ export interface JournalFeedProps {
   onDateHeaderClick?: (key: string, isMultiSelect: boolean) => void;
   /** When true, show a "No activity" placeholder for dates with no content. */
   showEmptyDates?: boolean;
+  protoBadges?: Map<string, ProtoPrBadge>;
   className?: string;
 }
 
@@ -75,6 +77,7 @@ export function JournalFeed({
   selectedDateKeys,
   onDateHeaderClick,
   showEmptyDates = false,
+  protoBadges,
   className,
 }: JournalFeedProps) {
   const todayKey = localDateKey(new Date());
@@ -217,19 +220,36 @@ export function JournalFeed({
                       </span>
                       <div className="h-px flex-1 bg-border/40" />
                     </div>
-                    {results.map(item => (
-                      <ResultListItem
-                        key={`result-${item.id}`}
-                        timeLabel={
-                          item.date
-                            ? new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            : '—'
-                        }
-                        title={item.title}
-                        subtitle={item.subtitle}
-                        onClick={() => onSelect(item)}
-                      />
-                    ))}
+                    {results.map(item => {
+                      const badge = protoBadges?.get(item.id);
+                      return (
+                        <div key={`result-${item.id}`} className="grid grid-cols-[1fr_auto] items-center">
+                          <ResultListItem
+                            timeLabel={
+                              item.date
+                                ? new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                : '—'
+                            }
+                            title={item.title}
+                            subtitle={item.subtitle}
+                            onClick={() => onSelect(item)}
+                          />
+                          {badge && (
+                            <div className="pr-6">
+                              {badge.kind === 'new-pr' ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                                  ★ NEW PR · {formatMs(badge.durationMs)} (−{formatMs(badge.deltaMs ?? 0)})
+                                </span>
+                              ) : badge.kind === 'prev-best' ? (
+                                <span className="text-[10px] font-medium text-muted-foreground">previous best</span>
+                              ) : (
+                                <span className="text-[10px] font-medium text-muted-foreground">first attempt</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : null,
               )}

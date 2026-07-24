@@ -146,7 +146,7 @@ export interface ParsedCanvasPage {
   quests: Quest[]
   /**
    * Page-level chapters, extracted from ```chapter fenced blocks.
-   * Chapters are a visual grouping layer that the OnboardingBanner
+   * Chapters are a visual grouping layer that the QuestMenu
    * reads to show progressive-completion badges. Their `questIds` may
    * reference quests on OTHER pages (cross-route completion is read
    * directly from the localStorage ledger).
@@ -176,6 +176,7 @@ export interface Quest {
   label: string
   desc?: string
   validation?: { type: string; [key: string]: unknown }
+  hints?: string[]
 }
 
 /** A chapter groups one or more home-page sections and references the
@@ -323,18 +324,30 @@ function parseExampleBlock(content: string): ExampleBlock {
 function parseQuestBlock(content: string): Quest | null {
   const meta: Record<string, string> = {};
   const validation: Record<string, string> = {};
+  const hints: string[] = [];
   let inValidation = false;
+  let inHints = false;
   for (const raw of content.split('\n')) {
     // Strip leading whitespace so indented sub-fields (e.g. inside
-    // `validation:`) match the field regex.
+    // `validation:` or `hints:`) match the field regex.
     const line = raw.trim();
     if (line === '') continue;
+    if (line.startsWith('- ')) {
+      if (inHints) hints.push(line.slice(2).trim());
+      continue;
+    }
     const m = line.match(/^(\w[\w-]*):\s*(.*)$/);
     if (!m) continue;
     const key = m[1];
     const value = m[2].trim().replace(/^["']|["']$/g, '');
     if (key === 'validation') {
       inValidation = true;
+      inHints = false;
+      continue;
+    }
+    if (key === 'hints') {
+      inHints = true;
+      inValidation = false;
       continue;
     }
     if (inValidation) validation[key] = value;
@@ -353,6 +366,7 @@ function parseQuestBlock(content: string): Quest | null {
     }
     q.validation = v as Quest['validation'];
   }
+  if (hints.length > 0) q.hints = hints;
   return q;
 }
 

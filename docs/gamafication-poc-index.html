@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wod.wiki — Gamified Onboarding: Before / After Prototypes</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/index.css">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<style>
+  :root{
+    --paper:#f6f7f9;
+    --ink:#1e293b;
+    --ink-soft:#475569;
+    --ink-faint:#94a3b8;
+    --line:#dde3ea;
+    --blue:#3b6ea5;
+    --blue-soft:#eaf1f8;
+    --teal:#2f9e8f;
+    --teal-soft:#e7f4f2;
+    --amber:#d98e32;
+    --amber-soft:#fbf1e2;
+    --red:#c2543f;
+    --red-soft:#faeae6;
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+    font-size:15px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  code,.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(246,247,249,.92);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:18px;
+    padding:10px 28px;
+  }
+  .topbar .brand{font-weight:800;letter-spacing:-.02em;font-size:15px;white-space:nowrap}
+  .topbar .brand span{color:var(--blue)}
+  .topbar nav{display:flex;gap:2px;overflow-x:auto;flex:1}
+  .topbar nav a{
+    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);
+    text-decoration:none;padding:4px 9px;border-radius:6px;white-space:nowrap;
+  }
+  .topbar nav a:hover{background:var(--blue-soft);color:var(--blue)}
+  .legend{display:flex;gap:14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;white-space:nowrap}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:0}
+  .legend .t i{background:var(--red)}
+  .legend .p i{background:var(--teal)}
+
+  /* ---------- hero ---------- */
+  .hero{max-width:1160px;margin:0 auto;padding:72px 28px 40px}
+  .hero .kicker{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--blue);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+  .hero h1{font-size:clamp(30px,4.6vw,52px);line-height:1.08;letter-spacing:-.03em;font-weight:800;max-width:20ch}
+  .hero h1 em{font-style:normal;color:var(--blue)}
+  .hero p.lede{margin-top:20px;max-width:64ch;color:var(--ink-soft);font-size:17px}
+  .hero .howto{
+    margin-top:34px;display:flex;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);max-width:760px;
+  }
+  .howto>div{flex:1;padding:16px 20px;font-size:13.5px}
+  .howto>div:first-child{border-right:1px solid var(--line)}
+  .howto b{display:flex;align-items:center;gap:8px;font-size:12px;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+  .howto .tb b{color:var(--red)}
+  .howto .pb b{color:var(--teal)}
+  .howto .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+  .howto .tb .dot{background:var(--red)}
+  .howto .pb .dot{background:var(--teal)}
+
+  /* ---------- section ---------- */
+  section.point{max-width:1160px;margin:0 auto;padding:56px 28px 8px}
+  .p-head{display:flex;align-items:baseline;gap:18px;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:8px;flex-wrap:wrap}
+  .p-num{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--blue);font-weight:700}
+  .p-head h2{font-size:clamp(21px,2.6vw,30px);letter-spacing:-.02em;font-weight:800}
+  .p-stat{
+    margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11.5px;
+    background:var(--amber-soft);color:#8a5a17;border:1px solid #ecd9b8;
+    padding:5px 12px;border-radius:999px;white-space:nowrap;
+  }
+  .p-why{color:var(--ink-soft);max-width:78ch;margin:12px 0 26px;font-size:14.5px}
+  .p-why b{color:var(--ink)}
+
+  /* ---------- split ---------- */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:stretch}
+  @media (max-width:880px){.split{grid-template-columns:1fr}}
+  .panel{display:flex;flex-direction:column;min-width:0}
+  .panel-tag{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;margin-bottom:10px;font-weight:700;
+  }
+  .panel-tag .dot{width:10px;height:10px;border-radius:3px}
+  .panel.today .panel-tag{color:var(--red)} .panel.today .dot{background:var(--red)}
+  .panel.proposed .panel-tag{color:var(--teal)} .panel.proposed .dot{background:var(--teal)}
+  .panel-tag small{font-weight:400;color:var(--ink-faint);letter-spacing:0;text-transform:none;margin-left:auto}
+  .mock{
+    flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:22px;position:relative;overflow:hidden;
+  }
+  .panel.today .mock{background:repeating-linear-gradient(-45deg,#fff,#fff 14px,#fcfcfd 14px,#fcfcfd 28px)}
+  .panel.proposed .mock{box-shadow:0 1px 0 #e3e9f0,0 12px 32px -18px rgba(59,110,165,.25)}
+
+  /* annotation footnotes under mocks */
+  .notes{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:12px}
+  @media (max-width:880px){.notes{grid-template-columns:1fr}}
+  .notes ul{list-style:none;font-size:12.5px;color:var(--ink-soft)}
+  .notes li{padding:5px 0 5px 20px;position:relative;border-bottom:1px dashed var(--line)}
+  .notes li:last-child{border-bottom:none}
+  .notes li::before{content:'✕';position:absolute;left:2px;color:var(--red);font-weight:700;font-size:11px}
+  .notes ul.pro li::before{content:'✓';color:var(--teal)}
+
+  /* ---------- wod.wiki-style mock primitives ---------- */
+  .w-sidebar-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:8px}
+  .w-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .w-card + .w-card{margin-top:10px}
+  .w-card.dim{opacity:.62}
+  .w-card h4{font-size:13.5px;display:flex;align-items:center;gap:8px}
+  .w-card p{font-size:11.5px;color:var(--ink-faint);margin-top:2px}
+  .w-btn{
+    display:inline-block;background:var(--blue);color:#fff;font-size:12px;font-weight:700;
+    padding:8px 16px;border-radius:8px;letter-spacing:.02em;border:none;
+  }
+  .w-btn.ghost{background:#fff;color:var(--blue);border:1px solid var(--line)}
+  .w-btn.teal{background:var(--teal)}
+  .w-btn.sm{padding:5px 12px;font-size:11px}
+  .w-pill{font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft);background:#fff}
+  .w-pill.done{background:var(--teal-soft);border-color:#bfe3de;color:#1d6e64}
+  .w-pill.todo{background:#f2f5f8;color:var(--ink-faint)}
+
+  .codeblock{
+    background:#fbfcfe;border:1px solid var(--line);border-radius:10px;
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.75;
+    padding:14px 16px;position:relative;
+  }
+  .codeblock .cb-tag{position:absolute;top:-9px;left:12px;background:#fff;border:1px solid var(--line);border-radius:6px;font-size:9.5px;padding:1px 7px;color:var(--ink-faint)}
+  .codeblock .cl{display:block;white-space:pre}
+  .codeblock .c-round{color:var(--blue);font-weight:700}
+  .codeblock .c-rep{color:var(--amber);font-weight:700}
+  .codeblock .c-move{color:var(--ink)}
+  .codeblock .c-rest{color:var(--teal)}
+  .codeblock .c-hl{background:linear-gradient(transparent 55%, #ffe9b8 55%);border-radius:2px}
+  .codeblock .c-err{background:linear-gradient(transparent 55%, #f6c9bf 55%)}
+  .codeblock .c-add{background:var(--teal-soft);border-radius:3px;box-shadow:inset 3px 0 0 var(--teal);padding-left:6px;margin-left:-6px}
+  .caret{display:inline-block;width:7px;height:14px;background:var(--blue);vertical-align:-2px;animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .verdict{
+    display:flex;gap:9px;align-items:flex-start;border-radius:10px;padding:10px 13px;font-size:12.5px;margin-top:12px;
+  }
+  .verdict.ok{background:var(--teal-soft);border:1px solid #bfe3de;color:#175d54}
+  .verdict.bad{background:var(--red-soft);border:1px solid #eccfc8;color:#8c3a2a}
+  .verdict .v-ic{font-weight:800}
+
+  /* quest / checklist */
+  .quest{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .quest:last-child{border-bottom:none}
+  .quest .q-check{
+    width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;border:2px solid var(--line);color:transparent;background:#fff;
+  }
+  .quest.done .q-check{background:var(--teal);border-color:var(--teal);color:#fff}
+  .quest.now .q-check{border-color:var(--blue);color:var(--blue)}
+  .quest .q-t{font-size:13.5px;font-weight:600}
+  .quest .q-s{font-size:11.5px;color:var(--ink-faint)}
+  .quest.done .q-t{color:var(--ink-faint);text-decoration:line-through;text-decoration-color:#c3cdd8}
+  .quest .q-badge{margin-left:auto}
+
+  /* progress ring */
+  .ring{position:relative;width:64px;height:64px;flex:none}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .r-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--blue)}
+
+  /* toast */
+  .toast{
+    position:absolute;top:14px;right:14px;background:var(--ink);color:#fff;border-radius:10px;
+    padding:9px 14px;font-size:12px;display:flex;align-items:center;gap:9px;
+    box-shadow:0 10px 28px -10px rgba(15,23,42,.45);animation:pop .5s cubic-bezier(.2,1.6,.4,1) both .4s;
+  }
+  @keyframes pop{from{transform:translateY(-8px) scale(.92);opacity:0}}
+  .toast .t-ic{width:22px;height:22px;border-radius:6px;background:var(--amber);display:flex;align-items:center;justify-content:center;font-size:12px}
+
+  /* achievements */
+  .shelf{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  @media (max-width:520px){.shelf{grid-template-columns:repeat(3,1fr)}}
+  .ach{border:1px solid var(--line);border-radius:10px;padding:12px 8px;text-align:center;background:#fff}
+  .ach .a-ic{
+    width:38px;height:38px;margin:0 auto 8px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-family:'JetBrains Mono',monospace;font-weight:800;font-size:13px;
+  }
+  .ach.unlocked .a-ic{background:var(--amber-soft);color:#8a5a17;border:1px solid #ecd9b8}
+  .ach.locked{opacity:.5}
+  .ach.locked .a-ic{background:#f2f5f8;color:var(--ink-faint);border:1px dashed var(--line)}
+  .ach .a-t{font-size:11px;font-weight:700}
+  .ach .a-s{font-size:9.5px;color:var(--ink-faint);font-family:'JetBrains Mono',monospace;margin-top:2px}
+
+  /* streak */
+  .streak-head{display:flex;align-items:center;gap:14px}
+  .flame{
+    width:46px;height:46px;border-radius:12px;background:var(--amber-soft);border:1px solid #ecd9b8;
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+  }
+  .weekdots{display:flex;gap:7px;margin-top:14px}
+  .wd{flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-faint)}
+  .wd .d{height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;margin-bottom:4px}
+  .wd.hit .d{background:var(--teal-soft);border-color:#bfe3de;color:#175d54}
+  .wd.today .d{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-soft)}
+  .freeze-chip{
+    display:inline-flex;align-items:center;gap:7px;background:var(--blue-soft);border:1px solid #c9dcee;
+    color:var(--blue);border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:600;margin-top:14px;
+  }
+
+  /* journal entries */
+  .j-entry{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .j-entry:last-child{border-bottom:none}
+  .j-entry .j-date{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-faint);width:64px;flex:none}
+  .j-entry .j-name{font-weight:600}
+  .j-entry .j-meta{color:var(--ink-faint);font-size:11.5px}
+  .pr-badge{
+    margin-left:auto;flex:none;background:var(--amber-soft);border:1px solid #ecd9b8;color:#8a5a17;
+    font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:999px;letter-spacing:.04em;
+    animation:pop .5s cubic-bezier(.2,1.6,.4,1) both .3s;
+  }
+
+  /* benchmark ladder */
+  .ladder{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .l-row{display:flex;align-items:center;gap:12px;padding:9px 14px;font-size:12.5px;border-bottom:1px solid var(--line)}
+  .l-row:last-child{border-bottom:none}
+  .l-row .l-rank{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-faint);width:24px}
+  .l-row .l-time{margin-left:auto;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px}
+  .l-row.me{background:var(--blue-soft);font-weight:700}
+  .l-row.me .l-rank{color:var(--blue)}
+  .l-bar{height:5px;border-radius:99px;background:#eef2f6;flex:1;max-width:130px;overflow:hidden}
+  .l-bar i{display:block;height:100%;background:var(--blue);border-radius:99px}
+  .l-row.me .l-bar i{background:var(--teal)}
+
+  /* share card */
+  .share-card{
+    background:linear-gradient(135deg,#22466b,#3b6ea5);color:#fff;border-radius:14px;padding:18px 20px;
+    font-family:'JetBrains Mono',monospace;box-shadow:0 14px 34px -16px rgba(34,70,107,.55);
+  }
+  .share-card .s-top{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.14em;opacity:.8;text-transform:uppercase}
+  .share-card .s-name{font-family:'Inter',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.02em;margin:12px 0 2px}
+  .share-card .s-time{font-size:30px;font-weight:700;color:#ffd98e}
+  .share-card .s-row{display:flex;gap:16px;font-size:10.5px;opacity:.85;margin-top:10px}
+  .share-card .s-badge{display:inline-block;background:rgba(255,217,142,.18);border:1px solid rgba(255,217,142,.45);color:#ffd98e;border-radius:999px;padding:3px 10px;font-size:10px;margin-top:12px}
+
+  /* quiz */
+  .quiz-q{margin-bottom:16px}
+  .quiz-q .qq{font-size:13px;font-weight:700;margin-bottom:8px;display:flex;gap:8px}
+  .quiz-q .qq .qn{font-family:'JetBrains Mono',monospace;color:var(--blue);font-size:11px;margin-top:2px}
+  .qopts{display:flex;gap:8px;flex-wrap:wrap}
+  .qopt{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 13px;font-size:12px;color:var(--ink-soft)}
+  .qopt.sel{background:var(--blue-soft);border-color:var(--blue);color:var(--blue);font-weight:700}
+  .quiz-path{margin-top:6px;border-top:1px dashed var(--line);padding-top:14px}
+  .pathline{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;flex-wrap:wrap}
+  .pathline .pn{background:#fff;border:1px solid var(--line);border-radius:7px;padding:4px 10px;color:var(--ink-soft)}
+  .pathline .pn.hot{background:var(--teal-soft);border-color:#bfe3de;color:#175d54;font-weight:700}
+  .pathline .arr{color:var(--ink-faint)}
+
+  .divider-note{max-width:1160px;margin:64px auto 0;padding:0 28px}
+  footer{max-width:1160px;margin:56px auto 40px;padding:26px 28px 0;border-top:1px solid var(--line);color:var(--ink-faint);font-size:12px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  footer .mono{font-size:11px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">wod.wiki <span>/ onboarding prototypes</span></div>
+  <nav>
+    <a href="#p1">01 first-run</a>
+    <a href="#p2">02 quests</a>
+    <a href="#p3">03 progress</a>
+    <a href="#p4">04 intake</a>
+    <a href="#p5">05 achievements</a>
+    <a href="#p6">06 streak</a>
+    <a href="#p7">07 pr-badges</a>
+    <a href="#p8">08 benchmarks</a>
+  </nav>
+  <div class="legend"><span class="t"><i></i>today</span><span class="p"><i></i>proposed</span></div>
+</div>
+
+<header class="hero">
+  <div class="kicker">Design review · July 2026 · 8 prototype comparisons</div>
+  <h1>The workout is already the game. <em>The onboarding just has to say so.</em></h1>
+  <p class="lede">Each section below puts the live wod.wiki onboarding (left, recreated from the site as of July 2026) next to a working-style mockup of the proposed gamified replacement (right), with the evidence behind each change noted underneath.</p>
+  <div class="howto">
+    <div class="tb"><b><span class="dot"></span>Left — today</b>Recreated from the live site. Quoted copy is verbatim where marked.</div>
+    <div class="pb"><b><span class="dot"></span>Right — proposed</b>Same screen, redesigned. Interactive states shown frozen mid-moment.</div>
+  </div>
+</header>
+
+<!-- ============ 01 FIRST RUN ============ -->
+<section class="point" id="p1">
+  <div class="p-head">
+    <span class="p-num">01</span>
+    <h2>The First Run — a scripted magic moment</h2>
+    <span class="p-stat">Duolingo: value-before-signup → +20% next-day retention</span>
+  </div>
+  <p class="p-why"><b>Today</b> the playground is open and editable — a real asset — but nothing directs the first five minutes: the visitor is told to “try editing any line,” with no checked outcome, no celebration, and no chain into running the timer. <b>Proposal:</b> turn the existing Zero-to-Hero roadmap into a live micro-quest — one instruction, one validated action, one celebration at a time, ending with a logged workout in under five minutes.</p>
+
+  <div class="split">
+    <div class="panel today">
+      <div class="panel-tag"><span class="dot"></span>Today <small>home page, “Learn the Syntax”</small></div>
+      <div class="mock">
+        <div class="w-sidebar-label">Learn the Syntax</div>
+        <p style="font-size:13px;color:var(--ink-soft);max-width:34ch">Or keep scrolling to try the live demo and pick up the syntax as you go.</p>
+        <div class="codeblock" style="margin-top:16px">
+          <span class="cb-tag"># 👋 Edit Me</span>
+          <span class="cl"><span class="c-round">(3 Rounds)</span></span>
+          <span class="cl"><span class="c-rep">10</span> <span class="c-move">Pushups</span></span>
+          <span class="cl"><span class="c-rep">15</span> <span class="c-move">Air Squats</span></span>
+          <span class="cl"><span class="c-rest">*:30</span> <span class="c-rest">Rest</span></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+          <span style="font-size:11.5px;color:var(--ink-faint)">Press Run ↑ to start the WallClock.</span>
+          <button class="w-btn sm">▶ Run</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel proposed">
+      <div class="panel-tag"><span class="dot"></span>Proposed <small>guided first run, step 2 of 5</small></div>
+      <div class="mock">
+        <div class="toast"><span class="t-ic">✎</span><span><b>Step 1 complete</b> — First Edit ✦</span></div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div class="ring">
+            <svg width="64" height="64"><circle cx="32" cy="32" r="27" fill="none" stroke="#e6ecf2" stroke-width="6"/><circle cx="32" cy="32" r="27" fill="none" stroke="#3b6ea5" stroke-width="6" stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="101.8"/></svg>
+            <span class="r-txt">2/5</span>
+          </div>
+          <div>
+            <div class="w-sidebar-label" style="margin-bottom:2px;padding-right:150px">Quest · Your First Workout</div>
+            <div style="font-size:15px;font-weight:800;letter-spacing:-.01em">Now press <span class="mono" style="color:var(--blue)">Run</span> and watch it become a timer.</div>
+          </div>
+        </div>
+        <div class="codeblock" style="margin-top:16px">
+          <span class="cb-tag">your workout</span>
+          <span class="cl"><span class="c-round">(3 Rounds)</span></span>
+          <span class="cl"><span class="c-rep c-hl">12</span> <span class="c-move">Pushups</span> <span style="color:var(--ink-faint)">← you changed this ✓</span></span>
+          <span class="cl"><span class="c-rep">15</span> <span class="c-move">Air Squats</span></span>
+          <span class="cl"><span class="c-rest">*:30</span> <span class="c-rest">Rest</span><span class="caret"></span></span>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px">
+          <button class="w-btn teal">▶ Run — step 3</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <ul>
+      <li>Open-ended prompt (“try editing any line”) — no defined success, most visitors do nothing</li>
+      <li>No feedback loop: edit → nothing happens → Run → nothing celebrates</li>
+      <li>Roadmap exists on the page but isn’t wired to the demo it sits next to</li>
+    </ul>
+    <ul class="pro">
+      <li>One instruction per step; compiler verifies the edit actually happened</li>
+      <li>Endowed progress: step 0 (“You’re here”) arrives pre-completed</li>
+      <li>Persistent 2/5 ring creates Zeigarnik pull toward “Log your result”</li>
+      <li>Still account-free — sign-up offered only after the first logged workout</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 02 VALIDATED QUESTS ============ -->
+<section class="point" id="p2">
+  <div class="p-head">
+    <span class="p-num">02</span>
+    <h2>Chapter quests that actually check the work</h2>
+    <span class="p-stat">Compiler-as-judge: runtime-validated, un-speed-clickable</span>
+  </div>
+  <p class="p-why"><b>Today</b> quest cards show developer-facing copy — literally <i>“Quest has no validation schema”</i> — so chapters gate on clicks, not learning. <b>Proposal:</b> rewrite each of the 14 quests as a fix-the-workout puzzle (the Flexbox Froggy pattern): show a broken workout, escalate hints, and let the parser and timer runtime act as the judge.</p>
+
+  <div class="split">
+    <div class="panel today">
+      <div class="panel-tag"><span class="dot"></span>Today <small>quest cards, verbatim copy</small></div>
+      <div class="mock">
+        <div class="w-card">
+          <h4><span class="w-pill todo">○</span> Change the workout</h4>
+          <p class="mono">Quest has no validation schema.</p>
+        </div>
+        <div class="w-card">
+          <h4><span class="w-pill todo">○</span> Run it to the finish</h4>
+          <p class="mono">Validated at runtime.</p>
+        </div>
+        <div class="w-card dim" style="margin-top:14px">
+          <h4>Basics <span class="w-pill" style="margin-left:auto">0 / 3</span></h4>
+          <p>3 quests remaining.</p>
+        </div>
+      </div>
+    </div>
+    <div class="panel proposed">
+      <div class="panel-tag"><span class="dot"></span>Proposed <small>Protocols, quest 2 of 3</small></div>
+      <div class="mock">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <div style="font-size:15px;font-weight:800">The timer won’t start. Why?</div>
+          <span class="w-pill">Protocols · 2/3</span>
+        </div>
+        <p style="font-size:12.5px;color:var(--ink-soft);margin-top:4px">This AMRAP is missing its time cap. Add one — any format the compiler accepts.</p>
+        <div class="codeblock" style="margin-top:14px">
+          <span class="cb-tag">broken.wod</span>
+          <span class="cl"><span class="c-round c-err">AMRAP</span><span class="c-add c-round"> 12:00</span></span>
+          <span class="cl"><span class="c-rep">12</span> <span class="c-move">Wall Balls 9kg</span></span>
+          <span class="cl"><span class="c-rep">9</span> <span class="c-move">Box Jumps</span></span>
+        </div>
+        <div class="verdict ok"><span class="v-ic">✓</span><span><b>Compiled — workout runs.</b> AMRAP 12:00 accepted. <b>Quest complete</b> · Protocols 2/3 → EMOM unlocked next.</span></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="w-btn ghost sm">Hint 1 · what does AMRAP stand for?</button>
+          <button class="w-btn ghost sm">Hint 2 · show the line</button>
+          <button class="w-btn sm" style="margin-left:auto">Next quest →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <ul>
+      <li>Internal schema language (“no validation schema”) ships to end users</li>
+      <li>Quests complete on interaction, not outcome — rewards feel arbitrary</li>
+      <li>Chapter gating exists (“unlock by completing its quest”) but gates nothing real</li>
+    </ul>
+    <ul class="pro">
+      <li>Success = the workout compiles and runs, not pattern-matched text</li>
+      <li>Escalating hints (nudge → highlight → solution) instead of doc walls</li>
+      <li>Every quest teaches exactly one syntax primitive, Froggy-style</li>
+      <li>Chapter unlock grants a real artifact: a benchmark workout in Collections</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 03 HONEST PROGRESS ============ -->
+<section class="point" id="p3">
+  <div class="p-head">
+    <span class="p-num">03</span>
+    <h2>Progress that only moves when the user does</h2>
+    <span class="p-stat">LinkedIn progress bar → +55% completion · endowed progress 34% vs 19%</span>
+  </div>
+  <p class="p-why"><b>Today</b> challenge cards announce “Challenge complete.” for things the visitor never did — landing on the page “completes” a challenge — which trains users to ignore the whole reward system. <b>Proposal:</b> one honest roadmap: step 1 pre-ticked as an endowed head start, everything else checked only when the behavior is detected, summarized in a header ring that follows the user across pages.</p>
+
+  <div class="split">
+    <div class="panel today">
+      <div class="panel-tag"><span class="dot"></span>Today <small>challenge cards on first landing</small></div>
+      <div class="mock">
+        <div class="w-card">
+          <h4><span class="w-pill done">✓</span> Welcome to WOD Wiki</h4>
+          <p class="mono">Challenge complete.</p>
+        </div>
+        <div class="w-card">
+          <h4><span class="w-pill done">✓</span> Add a movement</h4>
+          <p class="mono">Challenge complete.</p>
+        </div>
+        <p style="font-size:11.5px;color:var(--red);margin-top:14px;display:flex;gap:7px"><b>⚠</b> Both fired on arrival. The visitor has done nothing yet — “complete” now means nothing.</p>
+      </div>
+    </div>
+    <div class="panel proposed">
+      <div class="panel-tag"><span class="dot"></span>Proposed <small>behavior-coupled roadmap</small></div>
+      <div class="mock">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">
+          <div class="ring">
+            <svg width="64" height="64"><circle cx="32" cy="32" r="27" fill="none" stroke="#e6ecf2" stroke-width="6"/><circle cx="32" cy="32" r="27" fill="none" stroke="#3b6ea5" stroke-width="6" stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="135.7"/></svg>
+            <span class="r-txt">1/5</span>
+          </div>
+          <div>
+            <div style="font-weight:800;font-size:15px">Zero to Hero</div>
+            <div style="font-size:12px;color:var(--ink-soft)">Step 1 was free. The rest is you.</div>
+          </div>
+        </div>
+        <div class="quest done"><span class="q-check">✓</span><div><div class="q-t">Landed on WOD Wiki</div><div class="q-s">endowed progress — given, not earned</div></div></div>
+        <div class="quest now"><span class="q-check">2</span><div><div class="q-t">Edit the example workout</div><div class="q-s">compiler watches for your change</div></div></div>
+        <div class="quest"><span class="q-check">3</span><div><div class="q-t">Run the workout timer</div><div class="q-s">fires when WallClock starts</div></div></div>
+        <div class="quest"><span class="q-check">4</span><div><div class="q-t">Log your results</div><div class="q-s">fires when journal entry saves</div></div></div>
+        <div class="quest"><span class="q-check">5</span><div><div class="q-t">Review your progress</div><div class="q-s">opens your analytics</div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <ul>
+      <li>Unearned “Challenge complete” devalues every future reward</li>
+      <li>Progress state is scattered across cards, no single visible meter</li>
+      <li>Nothing persists across navigation — no pull to come back and finish</li>
+    </ul>
+    <ul class="pro">
+      <li>Honest endowed progress: one free tick, everything else earned</li>
+      <li>Each step bound to a real event (edit / timer start / journal save)</li>
+      <li>Header ring travels with the user — unfinished tension on every page</li>
+      <li>Celebrations reserved for behavior, so they keep their meaning</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 04 INTAKE QUIZ ============ -->
+<section class="point" id="p4">
+  <div class="p-head">
+    <span class="p-num">04</span>
+    <h2>A 3-question intake that branches the path</h2>
+    <span class="p-stat">Fitbod adaptive users: +32% workouts/month, 70%+ active at 3 months</span>
+  </div>
+  <p class="p-why"><b>Today</b> every visitor gets the same three doors — Open Journal, Browse Collections, New Workout Note — whether they’re a first-time CrossFitter or a coach programming for a class. <b>Proposal:</b> a 30-second intake (experience, equipment, goal) that reorders the quest map around the user’s actual intent — coaches hit Dialects early, home-gym beginners start with Basics and Protocols.</p>
+
+  <div class="split">
+    <div class="panel today">
+      <div class="panel-tag"><span class="dot"></span>Today <small>“Jump Right In”, identical for everyone</small></div>
+      <div class="mock">
+        <div class="w-sidebar-label">Jump Right In</div>
+        <p style="font-size:13px;color:var(--ink-soft)">Skip the tour and start using the app now.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;max-width:280px">
+          <button class="w-btn sm">📓 Open Journal</button>
+          <button class="w-btn ghost sm">🗂️ Browse Collections</button>
+          <button class="w-btn ghost sm">✍️ New Workout Note</button>
+        </div>
+        <p style="font-size:11.5px;color:var(--ink-faint);margin-top:16px">No questions asked — and no path tailored.</p>
+      </div>
+    </div>
+    <div class="panel proposed">
+      <div class="panel-tag"><span class="dot"></span>Proposed <small>30-second intake → branched quest order</small></div>
+      <div class="mock">
+        <div class="quiz-q">
+          <div class="qq"><span class="qn">1/3</span>How long have you been doing functional fitness?</div>
+          <div class="qopts"><span class="qopt">Just starting</span><span class="qopt sel">1–3 years</span><span class="qopt">I coach / program</span></div>
+        </div>
+        <div class="quiz-q">
+          <div class="qq"><span class="qn">2/3</span>What do you train with?</div>
+          <div class="qopts"><span class="qopt sel">Full gym</span><span class="qopt">Dumbbells only</span><span class="qopt">Bodyweight</span></div>
+        </div>
+        <div class="quiz-q">
+          <div class="qq"><span class="qn">3/3</span>What brings you here?</div>
+          <div class="qopts"><span class="qopt">Run my workouts</span><span class="qopt sel">Program for others</span><span class="qopt">Just exploring</span></div>
+        </div>
+        <div class="quiz-path">
+          <div class="w-sidebar-label">Your quest order</div>
+          <div class="pathline">
+            <span class="pn hot">Basics</span><span class="arr">→</span>
+            <span class="pn hot">Dialects</span><span class="arr">→</span>
+            <span class="pn hot">Complex Workouts</span><span class="arr">→</span>
+            <span class="pn">Protocols</span><span class="arr">→</span>
+            <span class="pn">Structure</span><span class="arr">→</span>
+            <span class="pn">Metrics</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <ul>
+      <li>One generic entry for a coach, a beginner, and a lurker alike</li>
+      <li>“Skip the tour” is the only personalization offered</li>
+      <li>The doc sidebar order decides the learning order, not the user</li>
+    </ul>
+    <ul class="pro">
+      <li>Three taps, no typing; skippable but rewarding</li>
+      <li>Quest map re-sequences around stated intent</li>
+      <li>Equipment answer filters example workouts to what they can run today</li>
+      <li>Answers feed later syntax-coverage nudges (“you’ve never run an EMOM”)</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 05 ACHIEVEMENT SHELF ============ -->
+<section class="point" id="p5">
+  <div class="p-head">
+    <span class="p-num">05</span>
+    <h2>Day-one achievements — the retention shelf</h2>
+    <span class="p-stat">Day-1 achievement unlocked: 33.4% vs 20.4% day-14 retention</span>
+  </div>
+  <p class="p-why"><b>Today</b> there is no achievement system — the only wins are the self-firing challenge cards from section 03. <b>Proposal:</b> a shelf of five session-one achievements, each mapped to a real first-run event, designed so a brand-new visitor can unlock three in their first five minutes. Cross-app data puts day-one unlocks among the strongest retention levers that exist.</p>
+
+  <div class="split">
+    <div class="panel today">
+      <div class="panel-tag"><span class="dot"></span>Today <small>no achievement surface exists</small></div>
+      <div class="mock" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:280px;text-align:center">
+        <div style="width:52px;height:52px;border-radius:12px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:20px;margin-bottom:14px">✦</div>
+        <div style="font-weight:700;font-size:14px;color:var(--ink-soft)">Nothing to earn on day one</div>
+        <p style="font-size:12px;color:var(--ink-faint);max-width:30ch;margin-top:6px">A first session ends the way it began — no record, no win, no reason stored to return tomorrow.</p>
+      </div>
+    </div>
+    <div class="panel proposed">
+      <div class="panel-tag"><span class="dot"></span>Proposed <small>first session, ~5 minutes in</small></div>
+      <div class="mock">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+          <div style="font-weight:800;font-size:15px">First Wins</div>
+          <span class="w-pill done">3 / 5 unlocked · today</span>
+        </div>
+        <div class="shelf">
+          <div class="ach unlocked"><div class="a-ic">✎</div><div class="a-t">First Edit</div><div class="a-s">2 min ago</div></div>
+          <div class="ach unlocked"><div class="a-ic">▶</div><div class="a-t">First Run</div><div class="a-s">1 min ago</div></div>
+          <div class="ach unlocked"><div class="a-ic">✓</div><div class="a-t">First Log</div><div class="a-s">just now</div></div>
+          <div class="ach locked"><div class="a-ic">?</div><div class="a-t">First Quest</div><div class="a-s">finish Basics 1/3</div></div>
+          <div class="ach locked"><div class="a-ic">?</div><div class="a-t">First Collection</div><div class="a-s">save a workout</div></div>
+        </div>
+        <div class="verdict ok" style="margin-top:16px"><span class="v-ic">✦</span><span><b>3 wins in 5 minutes.</b> Each one was a real action — the compiler, timer, and journal all saw it happen.</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <ul>
+      <li>Zero early wins — the highest-leverage retention cohort never forms</li>
+      <li>First session produces no artifacts worth returning to</li>
+      <li>The “reward” surface that does exist fires without behavior</li>
+    </ul>
+    <ul class="pro">
+      <li>Five deliberately easy wins, all unlockable in session one</li>
+      <li>Locked tiles show exactly how to earn them (“finish Basics 1/3”)</li>
+      <li>Duplicates the Duolingo “Personal Records” newcomer tier</li>
+      <li>Each badge doubles as a guided next step, not just a trophy</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 06 WEEKLY STREAK ============ -->
+<section class="point" id="p6">
+  <div class="p-head">
+    <span class="p-num">06</span>
+    <h2>A weekly streak, not a daily one</h2>
+    <span class="p-stat">Strava: weekly cadence fits training · freezes → +48% streak length</span>
+  </div>
+  <p class="p-why"><b>Today</b> there is no cadence mechanic at all — nothing distinguishes a user who trained this week from one who vanished in May. <b>Proposal:</b> copy Strava’s deliberate choice for physical activity: the streak unit is a <b>week with at least one logged workout</b> (rest days are physiology, not failure), protected by earnable Streak Freezes. A separate, gentler daily quest streak serves the syntax-learning week.</p>
+
+  <div class="split">
+    <div class="panel today">
+      <div class="panel-tag"><span class="dot"></span>Today <small>journal header — no cadence state</small></div>
+      <div class="mock">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:800;font-size:16px">Journal</div>
+          <span class="w-pill">12 notes</span>
+        </div>
+        <div class="j-entry"><span class="j-date">JUL 22</span><div><div class="j-name">Morning Strength</div><div class="j-meta">3 rounds · kettlebell</div></div></div>
+        <div class="j-entry"><span class="j-date">JUL 18</span><div><div class="j-name">Fran</div><div class="j-meta">21-15-9 · 9:42</div></div></div>
+        <div class="j-entry"><span class="j-date">JUL 09</span><div><div class="j-name">Cindy</div><div class="j-meta">AMRAP 20:00 · 14 rounds</div></div></div>
+        <p style="font-size:11.5px;color:var(--ink-faint);margin-top:14px">Gaps are invisible. The app neither notices nor cares that nine days passed.</p>
+      </div>
+    </div>
+    <div class="panel proposed">
+      <div class="panel-tag"><span class="dot"></span>Proposed <small>weekly streak + freeze economy</small></div>
+      <div class="mock">
+        <div class="streak-head">
+          <div class="flame">🔥</div>
+          <div>
+            <div style="font-weight:800;font-size:16px">Week 3 — streak alive</div>
+            <div style="font-size:12px;color:var(--ink-soft)">1 logged workout this week keeps it burning</div>
+          </div>
+          <span class="w-pill done" style="margin-left:auto">this week ✓</span>
+        </div>
+        <div class="weekdots">
+          <div class="wd hit"><div class="d">✓</div>MON</div>
+          <div class="wd"><div class="d">·</div>TUE</div>
+          <div class="wd hit"><div class="d">✓</div>WED</div>
+          <div class="wd"><div class="d">·</div>THU</div>
+          <div class="wd today"><div class="d">○</div>FRI</div>
+          <div class="wd"><div class="d">·</div>SAT</div>
+          <div class="wd"><div class="d">·</div>SUN</div>
+        </div>
+        <span class="freeze-chip">🧊 1 Freeze banked — auto-saves a missed week · earn another by finishing a chapter</span>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <ul>
+      <li>No streak, no goal, no comeback mechanic — lapses are silent</li>
+      <li>The journal has the data for cadence; nothing reads it</li>
+      <li>Returning after a gap feels like starting from zero</li>
+    </ul>
+    <ul class="pro">
+      <li>Weekly unit respects rest days — humane pressure, Strava-style</li>
+      <li>Freezes earned through learning bind quests to training in one economy</li>
+      <li>“This week ✓” state makes progress visible at a glance</li>
+      <li>A missed week triggers a comeback challenge, not a funeral</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 07 PR BADGES ============ -->
+<section class="point" id="p7">
+  <div class="p-head">
+    <span class="p-num">07</span>
+    <h2>The journal mints its own trophies</h2>
+    <span class="p-stat">Self-competition ladder: motivation with zero other users required</span>
+  </div>
+  <p class="p-why"><b>Today</b> logged results sit in the journal as plain text — a 38-second personal best looks identical to a mediocre day. <b>Proposal:</b> every logged result is checked against history; personal records fire celebrations and mint badges (first Murph, sub-10 Fran, 100 rounds logged). This is Strava’s KOM insight pointed inward: the most durable competitor is your past self.</p>
+
+  <div class="split">
+    <div class="panel today">
+      <div class="panel-tag"><span class="dot"></span>Today <small>journal — results as flat text</small></div>
+      <div class="mock">
+        <div class="j-entry"><span class="j-date">JUL 22</span><div><div class="j-name">Fran</div><div class="j-meta">21-15-9 thrusters &amp; pull-ups</div></div><span class="j-meta" style="margin-left:auto">9:42</span></div>
+        <div class="j-entry"><span class="j-date">JUN 30</span><div><div class="j-name">Fran</div><div class="j-meta">21-15-9 thrusters &amp; pull-ups</div></div><span class="j-meta" style="margin-left:auto">10:20</span></div>
+        <div class="j-entry"><span class="j-date">MAY 14</span><div><div class="j-name">Fran</div><div class="j-meta">21-15-9 thrusters &amp; pull-ups</div></div><span class="j-meta" style="margin-left:auto">11:05</span></div>
+        <p style="font-size:11.5px;color:var(--ink-faint);margin-top:14px">Three Frans, one clear improvement trend — and the app says nothing about it.</p>
+      </div>
+    </div>
+    <div class="panel proposed">
+      <div class="panel-tag"><span class="dot"></span>Proposed <small>same journal, PR engine on</small></div>
+      <div class="mock">
+        <div class="j-entry" style="background:var(--amber-soft);border-radius:10px;padding:11px 12px;border-bottom:none">
+          <span class="j-date">JUL 22</span>
+          <div><div class="j-name">Fran</div><div class="j-meta">21-15-9 thrusters &amp; pull-ups</div></div>
+          <span class="pr-badge">★ NEW PR · 9:42 (−0:38)</span>
+        </div>
+        <div class="j-entry"><span class="j-date">JUN 30</span><div><div class="j-name">Fran</div><div class="j-meta">previous best</div></div><span class="j-meta" style="margin-left:auto">10:20</span></div>
+        <div class="j-entry"><span class="j-date">MAY 14</span><div><div class="j-name">Fran</div><div class="j-meta">first attempt</div></div><span class="j-meta" style="margin-left:auto">11:05</span></div>
+        <div class="verdict ok" style="margin-top:14px"><span class="v-ic">★</span><span><b>Sub-10 Fran unlocked.</b> Third straight improvement — your trend badge “Climbing” is 1 PR away.</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <ul>
+      <li>Improvement is present in the data but invisible in the UI</li>
+      <li>No reason to re-log a benchmark — logging feels like archiving</li>
+      <li>The analytics promise (“Own the Analytics”) stops at storage</li>
+    </ul>
+    <ul class="pro">
+      <li>PRs detected automatically at log time — zero extra user work</li>
+      <li>Badge tiers: first completion → PR → trend (“Climbing”, “Consistency”)</li>
+      <li>Feeds the benchmark ladder in section 08 with verified scores</li>
+      <li>Informational rewards certify competence — safe from overjustification</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 08 BENCHMARKS ============ -->
+<section class="point" id="p8">
+  <div class="p-head">
+    <span class="p-num">08</span>
+    <h2>Benchmark ladders &amp; the shareable card</h2>
+    <span class="p-stat">Strava segments: competition scoped to be winnable · leagues +25% completions</span>
+  </div>
+  <p class="p-why"><b>Today</b> there is no competition and no way to show a result to anyone — the social loop is absent end to end. <b>Proposal:</b> canonical workouts (Fran, Cindy, Murph) become Strava-style segments: a ladder that defaults to <i>you vs. your history</i> and only widens to a matched cohort when enough comparable users exist. Every logged workout renders a shareable card whose link drops a friend straight into the playground with that workout pre-loaded.</p>
+
+  <div class="split">
+    <div class="panel today">
+      <div class="panel-tag"><span class="dot"></span>Today <small>no comparison, no sharing</small></div>
+      <div class="mock" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:280px;text-align:center">
+        <div style="width:52px;height:52px;border-radius:12px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:20px;margin-bottom:14px">⚑</div>
+        <div style="font-weight:700;font-size:14px;color:var(--ink-soft)">Your 9:42 exists only for you</div>
+        <p style="font-size:12px;color:var(--ink-faint);max-width:34ch;margin-top:6px">No benchmark context, no history view, no card to hand a training partner — and no inbound loop bringing their friends to the site.</p>
+      </div>
+    </div>
+    <div class="panel proposed">
+      <div class="panel-tag"><span class="dot"></span>Proposed <small>self-ladder first, cohort when it exists</small></div>
+      <div class="mock">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+          <div style="font-weight:800;font-size:15px">FRAN — your ladder</div>
+          <span class="w-pill">scope: me ▾</span>
+        </div>
+        <div class="ladder">
+          <div class="l-row me"><span class="l-rank">1</span><span>JUL 22</span><span class="l-bar"><i style="width:96%"></i></span><span class="l-time">9:42 ★</span></div>
+          <div class="l-row"><span class="l-rank">2</span><span>JUN 30</span><span class="l-bar"><i style="width:80%"></i></span><span class="l-time">10:20</span></div>
+          <div class="l-row"><span class="l-rank">3</span><span>MAY 14</span><span class="l-bar"><i style="width:66%"></i></span><span class="l-time">11:05</span></div>
+        </div>
+        <div class="share-card" style="margin-top:16px">
+          <div class="s-top"><span>wod.wiki / workout card</span><span>JUL 22 2026</span></div>
+          <div class="s-name">FRAN</div>
+          <div class="s-time">9:42</div>
+          <div class="s-row"><span>21-15-9</span><span>Thrusters 43kg</span><span>Pull-ups</span></div>
+          <span class="s-badge">★ NEW PR · −0:38 · sub-10 club</span>
+        </div>
+        <p style="font-size:11.5px;color:var(--ink-faint);margin-top:12px">Card link opens the playground with Fran pre-loaded → the friend’s first session starts at section 01.</p>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <ul>
+      <li>No benchmark context despite canonical, comparable workouts</li>
+      <li>No share artifact — zero organic top-of-funnel</li>
+      <li>Competition absent entirely (acceptable now — but unplanned)</li>
+    </ul>
+    <ul class="pro">
+      <li>Self-ladder works with a user base of one — no empty room problem</li>
+      <li>Cohort scope unlocks only when matched users actually exist</li>
+      <li>Share card turns every PR into a referral into the First Run</li>
+      <li>Competition stays opt-in and private-by-default</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div>
+    <b style="color:var(--ink)">Guardrails across all eight:</b> skippable everywhere · weekly cadence for physical streaks · rewards informational, not bribes · competition opt-in · every experiment gated on <span class="mono">Time Spent Training Well</span>.
+  </div>
+  <div class="mono">wod.wiki onboarding redesign · prototypes · 2026-07</div>
+</footer>
+
+</body>
+</html>
