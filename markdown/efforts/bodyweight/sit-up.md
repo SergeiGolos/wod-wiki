@@ -7,7 +7,8 @@ aliases:
   - sit ups
   - abmat sit-up
   - ghd sit-up
-met: 3.5
-discipline: bodyweight
-intensityTier: low
+baseAttributes:
+  met: 3.5
+  discipline: bodyweight
+  intensityTier: low
 ---

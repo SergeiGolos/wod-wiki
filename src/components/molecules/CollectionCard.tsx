@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronRight, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { parseFrontmatter, extractLinkWidgets } from '@/lib/frontmatter';
+import { parseFrontmatter, extractLinkWidgets, getScalar } from '@/lib/frontmatter';
 import type { ScriptCollectionItem } from '@/repositories/script-collections';
 import { LinkChip } from '@/components/molecules/LinkChip'
 
@@ -49,9 +49,9 @@ export const CollectionCard: React.FC<CollectionCardProps> = ({
   onClick,
   className,
 }) => {
-  const meta = parseFrontmatter(item.content);
+  const meta = parseFrontmatter(item.content).meta;
   const description = extractDescription(item.content);
-  const difficulty = meta['Difficulty']?.toLowerCase() ?? meta['difficulty']?.toLowerCase() ?? '';
+  const difficulty = String(getScalar(meta, 'Difficulty') ?? getScalar(meta, 'difficulty') ?? '').toLowerCase();
   const difficultyColor = DIFFICULTY_COLOR[difficulty] ?? 'bg-muted text-muted-foreground';
   const linkWidgets = extractLinkWidgets(meta);
 
@@ -81,21 +81,21 @@ export const CollectionCard: React.FC<CollectionCardProps> = ({
       </div>
 
       {/* Metadata badges */}
-      {(meta['Category'] ?? meta['category'] ?? meta['Type'] ?? meta['type'] ?? meta['Difficulty'] ?? meta['difficulty']) && (
+      {(getScalar(meta, 'Category') ?? getScalar(meta, 'category') ?? getScalar(meta, 'Type') ?? getScalar(meta, 'type') ?? getScalar(meta, 'Difficulty') ?? getScalar(meta, 'difficulty')) && (
         <div className="flex flex-wrap gap-1.5">
-          {(meta['Category'] ?? meta['category']) && (
+          {(getScalar(meta, 'Category') ?? getScalar(meta, 'category')) && (
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-              {meta['Category'] ?? meta['category']}
+              {getScalar(meta, 'Category') ?? getScalar(meta, 'category')}
             </span>
           )}
-          {(meta['Type'] ?? meta['type']) && (
+          {(getScalar(meta, 'Type') ?? getScalar(meta, 'type')) && (
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
-              {meta['Type'] ?? meta['type']}
+              {getScalar(meta, 'Type') ?? getScalar(meta, 'type')}
             </span>
           )}
-          {(meta['Difficulty'] ?? meta['difficulty']) && (
+          {(getScalar(meta, 'Difficulty') ?? getScalar(meta, 'difficulty')) && (
             <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium', difficultyColor)}>
-              {meta['Difficulty'] ?? meta['difficulty']}
+              {getScalar(meta, 'Difficulty') ?? getScalar(meta, 'difficulty')}
             </span>
           )}
         </div>

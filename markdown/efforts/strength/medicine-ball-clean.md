@@ -6,7 +6,8 @@ aliases:
   - mb clean
   - medball clean
   - ball clean
-met: 6.0
-discipline: strength
-intensityTier: moderate
+baseAttributes:
+  met: 6.0
+  discipline: strength
+  intensityTier: moderate
 ---

@@ -7,7 +7,8 @@ aliases:
   - ring dip
   - bar dip
   - parallel bar dip
-met: 4.0
-discipline: gymnastics
-intensityTier: moderate
+baseAttributes:
+  met: 4.0
+  discipline: gymnastics
+  intensityTier: moderate
 ---

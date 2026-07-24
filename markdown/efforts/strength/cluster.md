@@ -5,7 +5,8 @@ label: Cluster
 aliases:
   - clusters
   - squat clean thruster
-met: 10.0
-discipline: strength
-intensityTier: high
+baseAttributes:
+  met: 10.0
+  discipline: strength
+  intensityTier: high
 ---

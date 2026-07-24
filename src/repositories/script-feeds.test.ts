@@ -1,69 +1,23 @@
 import { describe, expect, it } from 'bun:test';
 
 /**
- * Unit tests for script-feeds.ts helper functions
+ * Unit tests for the grouping-loader helpers and the script-feeds adapter.
  *
  * Tests cover:
- * - Frontmatter parsing with various formats
+ * - Frontmatter category parsing with various formats
  * - Display name conversion from slugs
  * - Filename to display name conversion
  * - Date key extraction and sorting
  * - Edge cases (empty inputs, malformed data, etc.)
  *
  * Note: getScriptFeeds(), getScriptFeed(), and getScriptFeedItem() depend on
- * import.meta.glob which requires Vite build context. The helper functions
- * below are replicated here for unit testing since they contain important
- * business logic.
+ * import.meta.glob which requires Vite build context, so only the pure
+ * helpers are exercised here — imported from their real modules.
  */
 
-// Helper functions replicated from script-feeds.ts for unit testing
-function parseFrontmatterCategories(raw: string): string[] {
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!match) return [];
-
-  const lines = match[1].split('\n');
-  let inCategory = false;
-  const categories: string[] = [];
-
-  for (const line of lines) {
-    if (/^category\s*:/.test(line)) {
-      inCategory = true;
-      continue;
-    }
-    if (inCategory) {
-      const item = line.match(/^\s+-\s+(.+)$/);
-      if (item) {
-        categories.push(item[1].trim().toLowerCase());
-      } else if (/^\S/.test(line)) {
-        break;
-      }
-    }
-  }
-
-  return categories;
-}
-
-function toDisplayName(slug: string): string {
-  return slug
-    .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-function fileToDisplayName(filename: string): string {
-  const base = filename.replace(/\.md$/, '');
-  if (base.toUpperCase() === 'README') return 'Overview';
-  const cleaned = base.replace(/^day-\d+-/, '');
-  return cleaned
-    .split(/[-_]/)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-function getFeedDateKeys(feed: { items: { feedDate: string }[] }): string[] {
-  return Array.from(new Set(feed.items.map(i => i.feedDate))).sort().reverse();
-}
+import { parseFrontmatterCategories } from '@/lib/frontmatter';
+import { toDisplayName, fileToDisplayName } from './script-groupings';
+import { getFeedDateKeys, type ScriptFeed } from './script-feeds';
 
 describe('parseFrontmatterCategories', () => {
   it('should parse categories from YAML front matter with list format', () => {
@@ -245,7 +199,7 @@ describe('fileToDisplayName', () => {
 describe('getFeedDateKeys', () => {
   it('should return empty array for feed with no items', () => {
     const feed = { items: [] };
-    const dates = getFeedDateKeys(feed);
+    const dates = getFeedDateKeys(feed as unknown as ScriptFeed);
     expect(dates).toEqual([]);
   });
 
@@ -253,7 +207,7 @@ describe('getFeedDateKeys', () => {
     const feed = {
       items: [{ feedDate: '2024-01-15' }],
     };
-    const dates = getFeedDateKeys(feed);
+    const dates = getFeedDateKeys(feed as unknown as ScriptFeed);
     expect(dates).toEqual(['2024-01-15']);
   });
 
@@ -265,7 +219,7 @@ describe('getFeedDateKeys', () => {
         { feedDate: '2024-01-15' },
       ],
     };
-    const dates = getFeedDateKeys(feed);
+    const dates = getFeedDateKeys(feed as unknown as ScriptFeed);
     expect(dates).toEqual(['2024-01-15']);
   });
 
@@ -277,7 +231,7 @@ describe('getFeedDateKeys', () => {
         { feedDate: '2024-01-15' },
       ],
     };
-    const dates = getFeedDateKeys(feed);
+    const dates = getFeedDateKeys(feed as unknown as ScriptFeed);
     expect(dates).toEqual(['2024-01-20', '2024-01-15', '2024-01-10']);
   });
 
@@ -289,7 +243,7 @@ describe('getFeedDateKeys', () => {
         { feedDate: '2024-01-20' },
       ],
     };
-    const dates = getFeedDateKeys(feed);
+    const dates = getFeedDateKeys(feed as unknown as ScriptFeed);
     expect(dates).toHaveLength(3);
     expect(dates).toContain('2024-01-10');
     expect(dates).toContain('2024-01-15');
@@ -304,7 +258,7 @@ describe('getFeedDateKeys', () => {
         { feedDate: '2024-12-31' },
       ],
     };
-    const dates = getFeedDateKeys(feed);
+    const dates = getFeedDateKeys(feed as unknown as ScriptFeed);
     expect(dates).toEqual(['2024-12-31', '2024-01-01', '2023-12-31']);
   });
 
@@ -312,7 +266,7 @@ describe('getFeedDateKeys', () => {
     const feed = {
       items: [{ feedDate: '2024-01-01' }],
     };
-    const dates = getFeedDateKeys(feed);
+    const dates = getFeedDateKeys(feed as unknown as ScriptFeed);
     expect(dates[0]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });

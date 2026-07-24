@@ -6,7 +6,8 @@ aliases:
   - air squat
   - bodyweight squat
   - squats
-met: 5.5
-discipline: bodyweight
-intensityTier: moderate
+baseAttributes:
+  met: 5.5
+  discipline: bodyweight
+  intensityTier: moderate
 ---

@@ -10,6 +10,7 @@
  * `workoutItems` as a prop (their injected-data tests rely on it).
  */
 import { useMemo } from 'react'
+import { getScalar, parseFrontmatter } from '@/lib/frontmatter'
 
 /**
  * Eager glob of every markdown file under the repo-root `markdown/` directory,
@@ -61,10 +62,7 @@ function deriveCategory(parts: string[]): string {
 }
 
 function deriveSearchHidden(raw: string): boolean {
-  const fmMatch = raw.match(/^---[\r\n]([\s\S]*?)[\r\n]---/)
-  if (!fmMatch) return false
-  const searchLine = fmMatch[1]!.match(/^search:\s*(\S+)/m)
-  return !!(searchLine && searchLine[1]!.toLowerCase() === 'hidden')
+  return String(getScalar(parseFrontmatter(raw).meta, 'search') ?? '').toLowerCase() === 'hidden'
 }
 
 /**

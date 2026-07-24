@@ -6,7 +6,8 @@ aliases:
   - sprint row
   - rowing sprint
   - fast rowing
-met: 12.0
-discipline: rowing
-intensityTier: high
+baseAttributes:
+  met: 12.0
+  discipline: rowing
+  intensityTier: high
 ---

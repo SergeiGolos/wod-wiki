@@ -23,7 +23,7 @@ export const CollectionPreview: React.FC<CollectionPreviewProps> = ({
     onStartWorkout,
 }) => {
     const { isCompact: mobile } = usePanelSize();
-    const meta = parseFrontmatter(item.content);
+    const meta = parseFrontmatter(item.content).meta;
     const linkWidgets = extractLinkWidgets(meta);
 
     return (

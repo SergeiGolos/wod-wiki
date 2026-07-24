@@ -5,12 +5,12 @@
  *   2. Fall back to markdown file (bundled efforts)
  *   3. Debounced save → registry.upsert() + IDB
  *
- * The document format is YAML frontmatter + body (effortYaml.ts).
+ * The document format is YAML frontmatter + body (effort-markdown.ts).
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditorSave } from './useEditorSave';
-import { effortToDocument, documentToEffort } from '../lib/effortYaml';
+import { effortToDocument, documentToEffort } from '@/repositories/effort-markdown';
 import { useEffortRegistry } from '../contexts/EffortRegistryContext';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { getEffortMarkdown } from '@/repositories/effort-markdown';

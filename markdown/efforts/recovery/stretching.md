@@ -6,7 +6,8 @@ aliases:
   - stretch
   - flexibility
   - mobility
-met: 2.3
-discipline: recovery
-intensityTier: low
+baseAttributes:
+  met: 2.3
+  discipline: recovery
+  intensityTier: low
 ---

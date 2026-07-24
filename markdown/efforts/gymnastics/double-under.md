@@ -7,7 +7,8 @@ aliases:
   - double under
   - double unders
   - jump rope du
-met: 12.0
-discipline: gymnastics
-intensityTier: high
+baseAttributes:
+  met: 12.0
+  discipline: gymnastics
+  intensityTier: high
 ---

@@ -6,7 +6,8 @@ aliases:
   - kb snatch
   - kettlebell snatches
   - kb
-met: 12.0
-discipline: kettlebell
-intensityTier: high
+baseAttributes:
+  met: 12.0
+  discipline: kettlebell
+  intensityTier: high
 ---

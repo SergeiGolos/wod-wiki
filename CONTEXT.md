@@ -237,6 +237,16 @@ _Avoid_: content hash (implementation detail), stable id (ambiguous).
 Bundled, read-only workout seed-data a user loads into their own notes. A block cloned from a Collection shares its **Block Content Id** with the source (identical content → identical hash), so the same workout run across different notes and days is one identity, not many. Distinct from a **Note**, which the user owns and edits.
 _Avoid_: bundle, library, pack.
 
+**Grouping**:
+A bundled markdown directory of workout items under one slug
+(`markdown/collections/{slug}/` or `markdown/feeds/{slug}/`), loaded by
+`src/repositories/script-groupings.ts`. A **Collection** is a Grouping of named
+items; a feed is a Grouping whose items carry dates (`YYYY-MM-DD` parent
+directories). The public adapters (`script-collections.ts`, `script-feeds.ts`)
+own item shape and sort order; the Grouping module owns file discovery and
+display-name derivation.
+_Avoid_: loader, bundle directory.
+
 **Result Recorder**:
 The single playground seam for persisting a **WorkoutResult**. Owns identity resolution (noteId from a **Note Identity**, blockContentId from the run block, sectionId resolved against the destination note's blocks) and the write — replacing the per-page ad-hoc `saveResult` / `mutateNote` calls that each re-derived identity from scratch. Built by `createResultRecorder(sink)` (testable with an in-memory sink); `playgroundRecorder` is the production instance over the **Storage** `results` store.
 _Avoid_: result service, result saver (too generic).

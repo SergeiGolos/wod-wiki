@@ -5,7 +5,8 @@ label: Front Squat
 aliases:
   - fs
   - front squat
-met: 6.0
-discipline: strength
-intensityTier: moderate
+baseAttributes:
+  met: 6.0
+  discipline: strength
+  intensityTier: moderate
 ---

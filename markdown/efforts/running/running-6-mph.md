@@ -8,7 +8,8 @@ aliases:
   - treadmill
   - easy run
   - jog
-met: 9.8
-discipline: running
-intensityTier: moderate
+baseAttributes:
+  met: 9.8
+  discipline: running
+  intensityTier: moderate
 ---

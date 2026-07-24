@@ -51,16 +51,6 @@ const NESTED_EFFORT_CONTENT = [
   'registrySource: bundled',
 ].join('\n');
 
-const FLAT_EFFORT_CONTENT = [
-  'id: effort-2',
-  'slug: flat-rowing',
-  'label: Flat Rowing',
-  'aliases: []',
-  'met: 6.5',
-  'discipline: rowing',
-  'intensityTier: moderate',
-].join('\n');
-
 const MINIMAL_EFFORT_CONTENT = [
   'slug: minimal-effort',
   'label: Minimal',
@@ -400,57 +390,6 @@ describe('FrontmatterCompanion — compact mode', () => {
     expect(hasMetBadge).toBe(true);
     expect(screen.getByText('rowing')).toBeTruthy();
     expect(screen.getByText('high')).toBeTruthy();
-  });
-});
-
-// ── Legacy flat format tests ──────────────────────────────────────────────
-
-describe('FrontmatterCompanion — legacy flat effort format', () => {
-  it('detects and renders flat effort frontmatter (met at root)', () => {
-    const view = createView(FLAT_EFFORT_CONTENT);
-
-    render(
-      <FrontmatterCompanion
-        sectionId="frontmatter-effort-1"
-        section={createEffortSection()}
-        view={view}
-        isActive
-        widthPercent={35}
-        docVersion={1}
-      />,
-    );
-
-    expect(screen.getByText('Effort', { selector: 'span' })).toBeTruthy();
-    expect((screen.getByLabelText('Slug') as HTMLInputElement).value).toBe('flat-rowing');
-    expect((screen.getByLabelText('Label') as HTMLInputElement).value).toBe('Flat Rowing');
-    expect((screen.getByLabelText('MET') as HTMLInputElement).value).toBe('6.5');
-    expect((screen.getByLabelText('Discipline') as HTMLInputElement).value).toBe('rowing');
-
-    const intensitySelect = screen.getByLabelText('Intensity tier') as HTMLSelectElement;
-    expect(intensitySelect.value).toBe('moderate');
-  });
-
-  it('writes flat effort edits back in nested format (normalization)', () => {
-    const view = createView(FLAT_EFFORT_CONTENT);
-
-    render(
-      <FrontmatterCompanion
-        sectionId="frontmatter-effort-1"
-        section={createEffortSection()}
-        view={view}
-        isActive
-        widthPercent={35}
-        docVersion={1}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText('MET'), { target: { value: '9.0' } });
-
-    expect(view.dispatch).toHaveBeenCalledTimes(1);
-    const dispatchArg = vi.mocked(view.dispatch).mock.calls[0][0] as { changes: { insert: string } };
-    // The serialization always uses nested baseAttributes format
-    expect(dispatchArg.changes.insert).toContain('baseAttributes:');
-    expect(dispatchArg.changes.insert).toContain('  met: 9.0');
   });
 });
 

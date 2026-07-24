@@ -1,4 +1,4 @@
-import { parseFrontmatter } from '@/utils/frontmatter'
+import { parseFrontmatter } from '@/lib/frontmatter'
 
 /**
  * Canvas Markdown Parser

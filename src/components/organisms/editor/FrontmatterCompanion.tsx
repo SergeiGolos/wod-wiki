@@ -78,15 +78,12 @@ function detectSubtype(props: Record<string, string>): FrontmatterSubtype {
   if (/amazon\.com|amzn\.to/i.test(url)) return "amazon";
   if (/strava\.com/i.test(url)) return "strava";
 
-  // Effort frontmatter uses a predictable metadata envelope. We support both
-  // canonical nested docs (baseAttributes / registrySource) and the legacy flat
-  // effort files (met / discipline / intensityTier at root).
+  // Effort frontmatter uses a predictable metadata envelope. Only the
+  // canonical nested doc (baseAttributes / registrySource) is detected —
+  // bundled files and user docs all use the nested shape.
   if (
     props.registrySource !== undefined ||
-    props.baseAttributes !== undefined ||
-    props.met !== undefined ||
-    props.discipline !== undefined ||
-    props.intensityTier !== undefined
+    props.baseAttributes !== undefined
   ) {
     return "effort";
   }
@@ -145,15 +142,6 @@ function parseEffortFrontmatter(innerContent: string): EffortFrontmatterData {
           break;
         case "aliases":
           if (value === "[]") data.aliases = [];
-          break;
-        case "met":
-          data.met = value;
-          break;
-        case "discipline":
-          data.discipline = value;
-          break;
-        case "intensityTier":
-          data.intensityTier = value;
           break;
         case "registrySource":
           data.registrySource = value;

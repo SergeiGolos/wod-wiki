@@ -8,7 +8,8 @@ aliases:
   - stationary bike
   - spin
   - biking
-met: 8.0
-discipline: cycling
-intensityTier: moderate
+baseAttributes:
+  met: 8.0
+  discipline: cycling
+  intensityTier: moderate
 ---

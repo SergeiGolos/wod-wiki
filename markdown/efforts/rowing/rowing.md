@@ -9,7 +9,8 @@ aliases:
   - erg
   - ergometer
   - concept2 row
-met: 7.0
-discipline: rowing
-intensityTier: high
+baseAttributes:
+  met: 7.0
+  discipline: rowing
+  intensityTier: high
 ---

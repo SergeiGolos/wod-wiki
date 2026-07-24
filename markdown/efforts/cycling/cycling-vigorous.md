@@ -6,7 +6,8 @@ aliases:
   - vigorous cycling
   - fast bike
   - hard cycling
-met: 10.0
-discipline: cycling
-intensityTier: high
+baseAttributes:
+  met: 10.0
+  discipline: cycling
+  intensityTier: high
 ---

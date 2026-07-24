@@ -7,7 +7,8 @@ aliases:
   - toes to bar
   - knees to elbows
   - kte
-met: 5.0
-discipline: gymnastics
-intensityTier: moderate
+baseAttributes:
+  met: 5.0
+  discipline: gymnastics
+  intensityTier: moderate
 ---

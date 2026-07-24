@@ -6,7 +6,8 @@ aliases:
   - swim
   - pool swim
   - freestyle
-met: 8.0
-discipline: swimming
-intensityTier: moderate
+baseAttributes:
+  met: 8.0
+  discipline: swimming
+  intensityTier: moderate
 ---

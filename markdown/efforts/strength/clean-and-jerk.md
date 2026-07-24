@@ -6,7 +6,8 @@ aliases:
   - c&j
   - clean jerk
   - clean & jerk
-met: 8.0
-discipline: strength
-intensityTier: high
+baseAttributes:
+  met: 8.0
+  discipline: strength
+  intensityTier: high
 ---

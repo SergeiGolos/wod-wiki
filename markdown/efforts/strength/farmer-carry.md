@@ -6,7 +6,8 @@ aliases:
   - farmers carry
   - farmer walk
   - loaded carry
-met: 5.0
-discipline: strength
-intensityTier: moderate
+baseAttributes:
+  met: 5.0
+  discipline: strength
+  intensityTier: moderate
 ---

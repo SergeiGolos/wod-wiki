@@ -7,7 +7,8 @@ aliases:
   - pull ups
   - strict pull-up
   - kipping pull-up
-met: 5.0
-discipline: gymnastics
-intensityTier: moderate
+baseAttributes:
+  met: 5.0
+  discipline: gymnastics
+  intensityTier: moderate
 ---

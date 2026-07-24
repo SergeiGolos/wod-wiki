@@ -5,7 +5,8 @@ label: Thruster
 aliases:
   - thrusters
   - barbell thruster
-met: 8.0
-discipline: strength
-intensityTier: high
+baseAttributes:
+  met: 8.0
+  discipline: strength
+  intensityTier: high
 ---
