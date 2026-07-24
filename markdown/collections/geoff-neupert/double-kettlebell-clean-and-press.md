@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 1: Double Kettlebell Clean and Press
 
 **Category**: Geoff Neupert Strength  

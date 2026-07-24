@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # Diane
 
 **Category**: CrossFit Benchmark  

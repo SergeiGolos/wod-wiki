@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Mid-Distance Championship Preparation
 
 **Type**: Race-Specific  

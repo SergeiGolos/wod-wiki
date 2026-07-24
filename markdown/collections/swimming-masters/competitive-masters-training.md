@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Competitive Masters Training
 
 **Type**: Competition Preparation  

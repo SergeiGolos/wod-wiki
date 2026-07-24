@@ -1,3 +1,10 @@
+---
+tags:
+  - swimming
+  - endurance
+  - competition
+---
+
 # Distance Freestyle Olympic Preparation
 
 **Type**: Elite Distance  

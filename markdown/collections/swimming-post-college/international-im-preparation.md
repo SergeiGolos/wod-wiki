@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # International IM Preparation
 
 **Type**: Elite Multi-Stroke  

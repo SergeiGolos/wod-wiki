@@ -1,3 +1,8 @@
+---
+tags:
+  - unconventional
+---
+
 # Macebell 10-to-2 Swing
 
 **Category**: Steel Mace / Macebell  

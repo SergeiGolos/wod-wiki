@@ -1,3 +1,10 @@
+---
+tags:
+  - swimming
+  - endurance
+  - triathlon
+---
+
 # Half Ironman (70.3) Building
 
 **Type**: Long Distance  

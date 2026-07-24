@@ -1,3 +1,9 @@
+---
+tags:
+  - barbell
+  - strength
+---
+
 # Day 4 — Bench Press
 
 Session 4 of 40. Flat bench or floor press.

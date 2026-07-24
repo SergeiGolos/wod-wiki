@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2021 CrossFit Games - Event 11 - "Event 11"
 
 **Location: Alliant Energy Center, Madison, Wisconsin  

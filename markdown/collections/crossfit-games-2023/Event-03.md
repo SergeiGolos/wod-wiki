@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2023 CrossFit Games - Event 3 "Helena"
 
 **Category:** Competition

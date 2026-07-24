@@ -3,7 +3,7 @@ template: canvas
 collection: true
 category:
   - kettlebell
-  - cardio
+  - endurance
 ---
 # Keith Weber Kettlebell Workouts
 

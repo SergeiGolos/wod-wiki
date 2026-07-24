@@ -1,3 +1,9 @@
+---
+tags:
+  - barbell
+  - strength
+---
+
 # Day 3 — Deadlift
 
 Session 3 of 40. Hip hinge pattern. Keep back flat, push the floor away.

@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2024 CrossFit Games - Event 9 "Severed"
 
 **Category:** Competition

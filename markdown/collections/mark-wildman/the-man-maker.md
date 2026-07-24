@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - clubs
+  - strength
+---
+
 ## Workout 1: The Man Maker (Full Body)
 
 **Category**: Mark Wildman Signature  

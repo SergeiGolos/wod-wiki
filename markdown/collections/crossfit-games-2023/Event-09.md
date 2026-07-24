@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2023 CrossFit Games - Event 9 "Barbell Cyclist"
 
 **Category:** Competition

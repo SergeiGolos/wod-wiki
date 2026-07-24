@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - sport
+---
+
 ## Workout 2: Outerlimits Protocol
 
 **Category**: Joe Daniels Strength  

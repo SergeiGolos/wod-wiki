@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2021 CrossFit Games - Event 15
 
 **Category:** Competition

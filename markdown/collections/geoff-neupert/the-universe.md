@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 3: The Universe (Light Day)
 
 **Category**: Geoff Neupert Fat Loss  

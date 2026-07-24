@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 3: The Way of the Kettlebell (Mindvalley Program)
 
 **Category**: Steve Cotter Educational  

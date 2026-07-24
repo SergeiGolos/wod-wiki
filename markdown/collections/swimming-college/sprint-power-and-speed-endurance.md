@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Sprint Power and Speed Endurance
 
 **Type**: Anaerobic Power  

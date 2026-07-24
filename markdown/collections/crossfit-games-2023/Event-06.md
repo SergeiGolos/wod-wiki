@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2023 CrossFit Games - Event 6 - "Muscle-up Clean Ladder"
 
 **Location: Alliant Energy Center, Madison, Wisconsin  

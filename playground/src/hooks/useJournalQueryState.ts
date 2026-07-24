@@ -112,7 +112,7 @@ export function useJournalQueryState() {
 
   // ── View-mode parameter ────────────────────────────────────────────────
   // Drives the unified JournalListPage's visible window.
-  // 'all' (default) — history + today + plan; 'history' — past only;
+  // 'all' (default) — today + history; 'history' — past only;
   // 'today' — today only; 'plan' — today + future planning window.
   const [mode, setMode] = useQueryState(
     'mode',

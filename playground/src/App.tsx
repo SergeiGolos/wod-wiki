@@ -204,7 +204,12 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     view.page === 'canvas' && view.canvasPage
       ? (
         <>
-          {view.canvasPage.quests.length > 0 && (
+          {/* On `/` the OnboardingBanner is the single quest badge — the
+              home page's quick-start quests (qs-arrive/qs-edit/qs-run)
+              duplicate the first-run roadmap steps, so rendering the
+              ChallengeHeaderBadge here would show two parallel progress
+              trackers fighting in the header. */}
+          {view.canvasPage.quests.length > 0 && view.canvasPage.route !== '/' && (
             <ChallengeHeaderBadge
               pageRoute={view.canvasPage.route}
               quests={view.canvasPage.quests}

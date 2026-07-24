@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - sport
+  - competition
+---
+
 ## Workout 2: Long Cycle (Clean & Jerk)
 
 **Category**: Girevoy Sport Competition  

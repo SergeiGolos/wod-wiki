@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 4: Kettlebell Sport Preparation
 
 **Category**: Steve Cotter Sport Training  

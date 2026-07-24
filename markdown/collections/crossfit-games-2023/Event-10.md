@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2023 CrossFit Games - Event 10 "Final"
 
 **Category:** Competition

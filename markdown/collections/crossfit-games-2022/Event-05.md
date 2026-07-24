@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2022 CrossFit Games - Event 5 "Alpaca"
 
 **Category:** Competition

@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2024 CrossFit Games - Event 5 "Amanda .45"
 
 **Category:** Competition

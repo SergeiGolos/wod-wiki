@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - cardio
+---
+
 ## Workout 6: Double Kettlebell Extreme
 
 **Category**: Keith Weber Advanced  

@@ -1,3 +1,10 @@
+---
+tags:
+  - swimming
+  - endurance
+  - competition
+---
+
 # Olympic IM Championship
 
 **Type**: Elite Individual Medley  

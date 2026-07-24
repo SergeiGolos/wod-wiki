@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # Grace
 
 **Category**: CrossFit Benchmark  

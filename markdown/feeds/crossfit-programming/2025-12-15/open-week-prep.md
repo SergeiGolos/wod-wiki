@@ -1,3 +1,10 @@
+---
+tags:
+  - crossfit
+  - conditioning
+  - strength
+---
+
 # Open Week — 15.5
 
 Practice the 2015 Open workout 15.5. Scale as needed.

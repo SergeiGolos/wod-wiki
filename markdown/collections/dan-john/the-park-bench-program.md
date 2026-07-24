@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 6: The Park Bench Program
 
 **Category**: Dan John General Fitness  

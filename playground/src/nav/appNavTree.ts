@@ -7,9 +7,9 @@
  * Structure:
  *   L1: Home, Journal, Feeds, Collections, Efforts
  *   L2 of Home:        Zero to Hero + Syntax/* (canvas pages)
- *   L2 of Journal:     <JournalNavPanel>   — calendar + mode toggle + tag chips;
- *                                          view-mode (history/today/plan/all)
- *                                          drives the unified JournalListPage
+ *   L2 of Journal:     <JournalNavPanel>   — calendar + tag chips; the
+ *                                          ?mode= view-mode param drives the
+ *                                          unified JournalListPage
  *   L2 of Feeds:       <FeedsNavPanel>     — feed selector
  *   L2 of Collections: <CollectionsNavPanel> — category toggles
  *   L2 of Efforts:     <EffortsNavPanel>   — origin/discipline filters + recent workouts

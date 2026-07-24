@@ -1,3 +1,10 @@
+---
+tags:
+  - unconventional
+  - strength
+  - minimalist
+---
+
 # Kettlebell Clean & Press / Snatch
 
 **Category**: The Golos Method  

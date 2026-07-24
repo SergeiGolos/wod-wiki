@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - sport
+  - competition
+---
+
 ## Workout 4: Jerk Technique and Endurance
 
 **Category**: Girevoy Sport Training  

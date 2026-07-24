@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # National Qualifier Distance Freestyle
 
 **Type**: Elite Endurance  

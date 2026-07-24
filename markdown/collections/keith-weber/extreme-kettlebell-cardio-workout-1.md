@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - cardio
+---
+
 ## Workout 1: Extreme Kettlebell Cardio Workout 1 (Full Body)
 
 **Category**: Keith Weber Signature  

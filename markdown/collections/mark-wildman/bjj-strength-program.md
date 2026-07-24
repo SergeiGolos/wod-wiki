@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - clubs
+  - strength
+---
+
 ## Workout 4: BJJ Strength Program
 
 **Category**: Mark Wildman Sport-Specific  
