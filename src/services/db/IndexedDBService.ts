@@ -526,6 +526,10 @@ export class IndexedDBService {
                 if (this._dbPromise === opening) this._dbPromise = null;
             },
         });
+        opening.then(
+          () => console.info(`[IndexedDBService] ${DB_NAME} v${DB_VERSION} open`),
+          (err) => console.warn(`[IndexedDBService] ${DB_NAME} open failed`, err),
+        );
         return opening;
     }
 

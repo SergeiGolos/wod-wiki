@@ -96,7 +96,8 @@ export function usePlaygroundContent({
       if (cancelled) return;
       cancelled = true;
       console.warn(
-        `[usePlaygroundContent] load of ${pageId} timed out after ${LOAD_TIMEOUT_MS}ms — falling back to bundled content`,
+        `[usePlaygroundContent] load of ${pageId} timed out after ${LOAD_TIMEOUT_MS}ms — falling back to bundled content. ` +
+        'If this repeats, close other tabs of this app: a stale tab may be holding the IndexedDB connection.',
       );
       setContent(mdContent);
       setIsModified(false);
@@ -105,8 +106,13 @@ export function usePlaygroundContent({
 
     async function load() {
       setLoading(true);
+      const t0 = performance.now();
+      const elapsed = () => Math.round(performance.now() - t0);
       try {
         const page = await playgroundContent.getPage(pageId);
+        // Diagnostic: fires even after the timeout fallback — distinguishes a
+        // slow read from a never-settling one, and pinpoints the stuck step.
+        console.info(`[usePlaygroundContent] getPage(${pageId}) settled at ${elapsed()}ms`);
         if (cancelled) return;
 
         if (page) {
@@ -123,6 +129,7 @@ export function usePlaygroundContent({
             content: mdContent,
             updatedAt: Date.now(),
           });
+          console.info(`[usePlaygroundContent] seed savePage(${pageId}) settled at ${elapsed()}ms`);
           if (cancelled) return;
         }
       } catch {
