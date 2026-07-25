@@ -32,9 +32,12 @@ export interface LinkWidget {
 /** Leading `---` … `---` block; body is everything after the closing delimiter. */
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
-/** Strip matched wrapping quotes: `"x"` / `'x'` → `x`; mismatched quotes are kept. */
+/** Strip matched wrapping quotes: `"x"` / `'x'` → `x`; mismatched quotes are kept.
+ *  Double-quoted values also collapse the serializer's escapes (`\\"`, `\\\\`). */
 function unquote(value: string): string {
-  return value.replace(/^(['"])(.*)\1$/, '$2');
+  return value.replace(/^(['"])(.*)\1$/, (_match, quote: string, inner: string) =>
+    quote === '"' ? inner.replace(/\\(["\\])/g, '$1') : inner,
+  );
 }
 
 /**
@@ -107,7 +110,7 @@ function quoteYamlScalar(value: string): string {
   const looksNumeric = !isNaN(Number(value));
   const looksKeyword = /^(true|false|null|yes|no|on|off)$/i.test(value);
   if (/[":'\n#{}\[\],&*?|<>=%!@`]/.test(value) || value !== value.trim() || value.startsWith('-') || looksNumeric || looksKeyword) {
-    return `"${value.replace(/"/g, '\\"')}"`;
+    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
   }
   return value;
 }
@@ -242,10 +245,24 @@ function detectWidgetSubtype(props: ParsedFrontmatter['meta']): LinkWidget['kind
   if (typeValue === 'strava') return 'strava';
 
   const url = asString(props.url || props.link);
-  if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
-  if (/amazon\.com|amzn\.to/i.test(url)) return 'amazon';
-  if (/strava\.com/i.test(url)) return 'strava';
+  return detectUrlSubtype(url);
+}
 
+/** URL-classifiable link subtypes. */
+export type LinkUrlSubtype = 'youtube' | 'amazon' | 'strava';
+
+/**
+ * Classify a URL-ish value by its host. Compares the exact host (and its
+ * subdomains) against known providers, so lookalike domains such as
+ * `youtube.com.evil.com` or `notyoutube.com` are rejected.
+ */
+export function detectUrlSubtype(url: string): LinkUrlSubtype | null {
+  if (!url) return null;
+  const withoutScheme = url.trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+  const host = withoutScheme.split(/[/?#:]/, 1)[0].toLowerCase();
+  if (host === 'youtube.com' || host === 'youtu.be' || host.endsWith('.youtube.com') || host.endsWith('.youtu.be')) return 'youtube';
+  if (host === 'amazon.com' || host === 'amzn.to' || host.endsWith('.amazon.com') || host.endsWith('.amzn.to')) return 'amazon';
+  if (host === 'strava.com' || host.endsWith('.strava.com')) return 'strava';
   return null;
 }
 

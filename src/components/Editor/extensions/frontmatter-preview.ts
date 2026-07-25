@@ -25,7 +25,7 @@ import {
 } from "@codemirror/view";
 import { EditorState, Range, StateField, Extension, Prec } from "@codemirror/state";
 import { sectionField, EditorSection } from "./section-state";
-import { parseFrontmatterProps as parseFrontmatterPropsFromLib } from "@/lib/frontmatter";
+import { parseFrontmatterProps as parseFrontmatterPropsFromLib, detectUrlSubtype } from "@/lib/frontmatter";
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -62,9 +62,8 @@ function detectSubtype(props: Record<string, string>): FrontmatterSubtype {
   if (typeValue === "strava") return "strava";
 
   const url = props["url"] || props["link"] || "";
-  if (/youtube\.com|youtu\.be/i.test(url)) return "youtube";
-  if (/amazon\.com|amzn\.to/i.test(url)) return "amazon";
-  if (/strava\.com/i.test(url)) return "strava";
+  const urlSubtype = detectUrlSubtype(url);
+  if (urlSubtype) return urlSubtype;
 
   if (props["source_url"] || props["website"]) return "link";
 

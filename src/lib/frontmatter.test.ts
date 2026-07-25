@@ -11,6 +11,7 @@ import {
   parseFrontmatterProps,
   extractYouTubeVideoId,
   extractLinkWidgets,
+  detectUrlSubtype,
 } from './frontmatter';
 
 describe('parseFrontmatter', () => {
@@ -385,5 +386,47 @@ describe('extractLinkWidgets', () => {
     expect(extractLinkWidgets(props)).toEqual([
       { kind: 'youtube', url: 'https://youtu.be/abc123', label: '', videoId: 'abc123' },
     ]);
+  });
+});
+
+describe('quote/escape round-trip', () => {
+  it.each([
+    'plain',
+    'with "quotes"',
+    'with \\ backslash',
+    'backslash and quote \\" together',
+    'trailing backslash \\',
+    'C:\\Users\\wod',
+  ])('round-trips %j through serialize → parse', (value) => {
+    const serialized = serializeFrontmatter({ key: value });
+    const reparsed = parseFrontmatterBody(serialized);
+    expect(reparsed.key).toBe(value);
+  });
+});
+
+describe('detectUrlSubtype', () => {
+  it.each([
+    ['https://www.youtube.com/watch?v=abc12345678', 'youtube'],
+    ['https://youtu.be/abc12345678', 'youtube'],
+    ['youtube.com/watch?v=abc12345678', 'youtube'],
+    ['https://www.amazon.com/dp/B000000000', 'amazon'],
+    ['https://amzn.to/abc', 'amazon'],
+    ['https://www.strava.com/activities/123', 'strava'],
+  ])('classifies %s as %s', (url, expected) => {
+    expect(detectUrlSubtype(url)).toBe(expected);
+  });
+
+  it.each([
+    'https://youtube.com.evil.com/phish',
+    'https://notyoutube.com/',
+    'https://evil-amazon.com/',
+    'https://strava.com.attacker.io/',
+    'https://example.com/?redirect=youtube.com',
+  ])('rejects lookalike domain %s', (url) => {
+    expect(detectUrlSubtype(url)).toBeNull();
+  });
+
+  it('returns null for empty input', () => {
+    expect(detectUrlSubtype('')).toBeNull();
   });
 });

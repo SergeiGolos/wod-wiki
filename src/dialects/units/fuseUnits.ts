@@ -1,7 +1,6 @@
 import { IMetric, MetricType } from "../../core/models/Metric";
 import { ICodeStatement } from "../../core/models/CodeStatement";
-import { UnitSet, Dimension } from "../../core/metrics/units";
-import { ResistanceMetric } from "../../runtime/compiler/metrics/ResistanceMetric";
+import { UnitSet } from "../../core/metrics/units";
 import { EffortMetric } from "../../runtime/compiler/metrics/EffortMetric";
 import { metricForDimension, EMPTY_UNIT } from "../../runtime/compiler/metrics/dimensionFactory";
 

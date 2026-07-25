@@ -260,24 +260,88 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
     if (el) scrollRunwayTo(el, 0.11)
   }, [])
 
-  // ── Canvas scaling (desktop: fit width; mobile: zoom 1.5× + pan) ──
+  // ── Canvas scaling (fit width; mobile additionally pans to follow the ring) ──
   const scaleRef = useRef(1)
+  // Current pan translate (read back out of measurements so the next frame's
+  // math is transform-independent — measuring a panned target without this
+  // creates a feedback loop that oscillates every scroll frame).
+  const panRef = useRef({ x: 0, y: 0 })
+  const latestSliceRef = useRef<TourStageSlice | null>(null)
+
+  /**
+   * Mobile: pan the zoomed canvas so the ring target stays in view.
+   * inner has `origin-top-left`, so a target's canvas-space position is
+   * (viewportRect − innerRect) / renderedScale — the current translate
+   * cancels out and the computed pan is a stable fixed point.
+   */
+  const applyMobilePan = useCallback(
+    (s: TourStageSlice | null) => {
+      const canvas = canvasRef.current
+      const inner = canvasInnerRef.current
+      if (!canvas || !inner) return
+      const innerRect = inner.getBoundingClientRect()
+      const renderedScale = innerRect.width / TOUR_CANVAS_WIDTH || 1
+      const scale = scaleRef.current
+      // Untransformed origin of inner in viewport coords.
+      const ox = innerRect.left - panRef.current.x
+      const oy = innerRect.top - panRef.current.y
+
+      let fx = TOUR_CANVAS_WIDTH / 2
+      let fy = TOUR_CANVAS_HEIGHT / 2
+      const target = s?.ring ? registry.current[s.ring.key] : null
+      if (target) {
+        const r = target.getBoundingClientRect()
+        fx = (r.left + r.width / 2 - innerRect.left) / renderedScale
+        fy = (r.top + r.height / 2 - innerRect.top) / renderedScale
+      }
+
+      const cr = canvas.getBoundingClientRect()
+      const cw = canvas.clientWidth
+      const ch = canvas.clientHeight
+      const w = TOUR_CANVAS_WIDTH * scale
+      const h = TOUR_CANVAS_HEIGHT * scale
+
+      let tx = cr.left + cw / 2 - fx * scale - ox
+      let ty = cr.top + ch / 2 - fy * scale - oy
+      // Clamp so the canvas always covers the viewport (center if it fits).
+      tx =
+        w <= cw
+          ? cr.left + (cw - w) / 2 - ox
+          : Math.min(cr.left - ox, Math.max(cr.left + cw - w - ox, tx))
+      ty =
+        h <= ch
+          ? cr.top + (ch - h) / 2 - oy
+          : Math.min(cr.top - oy, Math.max(cr.top + ch - h - oy, ty))
+
+      panRef.current = { x: tx, y: ty }
+      inner.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`
+    },
+    [registry],
+  )
+
   useEffect(() => {
     const canvas = canvasRef.current
     const inner = canvasInnerRef.current
     if (!canvas || !inner) return
     const fit = () => {
       if (window.matchMedia(`(max-width: ${TOUR_MOBILE_BREAKPOINT}px)`).matches) {
-        scaleRef.current = (window.innerWidth / TOUR_CANVAS_WIDTH) * 1.5
+        // Fit the canvas width exactly — no zoom. At 1.5× zoom the window is
+        // wider than the viewport, and when the ring targets the whole window
+        // the pan centers it, showing an empty middle slice with both sides
+        // cut off. Fitting keeps the whole window + ring visible; the pan
+        // clamp then just centers it.
+        scaleRef.current = window.innerWidth / TOUR_CANVAS_WIDTH
+        applyMobilePan(latestSliceRef.current)
       } else {
         scaleRef.current = canvas.clientWidth / TOUR_CANVAS_WIDTH
+        panRef.current = { x: 0, y: 0 }
         inner.style.transform = `scale(${scaleRef.current})`
       }
     }
     fit()
     window.addEventListener('resize', fit)
     return () => window.removeEventListener('resize', fit)
-  }, [isMobile])
+  }, [isMobile, applyMobilePan])
 
   // Mobile: each caption panel matches the caption viewport height exactly
   // (strip translate math assumes uniform panel heights — see the POC).
@@ -302,6 +366,7 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
 
   useEffect(() => {
     return subscribe((s: TourStageSlice) => {
+      latestSliceRef.current = s
       const st = s.stage
 
       // TV card parallax (timer stage, second beat)
@@ -332,30 +397,7 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
 
       // Mobile: pan the zoomed canvas to follow the ring; slide captions
       if (isMobileRef.current) {
-        const canvas = canvasRef.current
-        const inner = canvasInnerRef.current
-        if (canvas && inner) {
-          const scale = scaleRef.current
-          let fx = TOUR_CANVAS_WIDTH / 2
-          let fy = TOUR_CANVAS_HEIGHT / 2
-          const target = s.ring ? registry.current[s.ring.key] : null
-          if (target) {
-            const r = target.getBoundingClientRect()
-            const cr = canvas.getBoundingClientRect()
-            fx = (r.left + r.width / 2 - cr.left) / scale
-            fy = (r.top + r.height / 2 - cr.top) / scale
-          }
-          const cw = canvas.clientWidth
-          const ch = canvas.clientHeight
-          let tx = cw / 2 - fx * scale
-          let ty = ch / 2 - fy * scale
-          tx = Math.min(0, Math.max(cw - TOUR_CANVAS_WIDTH * scale, tx))
-          ty =
-            TOUR_CANVAS_HEIGHT * scale <= ch
-              ? (ch - TOUR_CANVAS_HEIGHT * scale) / 2
-              : Math.min(0, Math.max(ch - TOUR_CANVAS_HEIGHT * scale, ty))
-          inner.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`
-        }
+        applyMobilePan(s)
 
         const strip = captionsStripRef.current
         const viewport = captionsViewportRef.current
@@ -366,7 +408,7 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
         }
       }
     })
-  }, [subscribe, registry])
+  }, [subscribe, registry, applyMobilePan])
 
   // ── Stage bar segments ──
   const stageSegs = TOUR_STAGES.slice(1)

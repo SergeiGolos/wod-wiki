@@ -38,14 +38,14 @@ import type {
 function quoteYaml(val: string): string {
   if (!val) return '""';
   if (/[:"'\n#{}[\],&*?|\-<>=%!@`]/.test(val) || val !== val.trim()) {
-    return `"${val.replace(/"/g, '\\"')}"`;
+    return `"${val.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
   }
   return val;
 }
 
 function unquoteYaml(val: string): string {
   if (val.startsWith('"') && val.endsWith('"')) {
-    return val.slice(1, -1).replace(/\\"/g, '"');
+    return val.slice(1, -1).replace(/\\(["\\])/g, '$1');
   }
   if (val.startsWith("'") && val.endsWith("'")) {
     return val.slice(1, -1).replace(/\\'/g, "'");

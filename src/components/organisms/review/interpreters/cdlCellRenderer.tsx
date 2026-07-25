@@ -229,10 +229,6 @@ function renderNumber(value: unknown, format: NumberFormat): React.ReactNode {
 // ─── Badge Format ──────────────────────────────────────────────
 
 function renderBadge(value: unknown, format: BadgeFormat): React.ReactNode {
-  if (value === undefined || value === null) {
-    return <span className="text-muted-foreground">—</span>;
-  }
-
   const style = format.styleResolver(value);
   const text = format.textResolver(value);
 
@@ -253,10 +249,6 @@ function renderBadge(value: unknown, format: BadgeFormat): React.ReactNode {
 // ─── Pill Format ───────────────────────────────────────────────
 
 function renderPill(value: unknown, format: PillFormat): React.ReactNode {
-  if (value === undefined || value === null) {
-    return <span className="text-muted-foreground">—</span>;
-  }
-
   const text = format.transform ? format.transform(value) : extractDisplayText(value);
   const bg = format.backgroundColor ?? 'bg-muted';
   const radius = format.borderRadius ?? 'rounded';
@@ -360,15 +352,6 @@ function renderCustom(value: unknown, format: CustomFormat, row?: GridRow): Reac
 // ─── Fallback / Empty ──────────────────────────────────────────
 
 function renderFallback(value: unknown, indent: number): React.ReactNode {
-  if (value === undefined || value === null) {
-    return (
-      <span className="inline-flex items-center gap-1">
-        {renderIndent(indent)}
-        <span className="text-muted-foreground opacity-40">—</span>
-      </span>
-    );
-  }
-
   // If it's a GridCell-like object with metrics, render as pills
   const cell = value as any;
   if (cell?.metrics) {

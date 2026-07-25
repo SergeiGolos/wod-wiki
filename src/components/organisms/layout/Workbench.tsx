@@ -225,7 +225,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     runtime,
     execution,
     activeSegmentIds,
-    activeStatementIds,
     hoveredBlockKey,
     setHoveredBlockKey,
     selectedBlock,

@@ -8,8 +8,7 @@ export class ResistanceMetric implements IMetric {
   constructor(value: number | undefined, public unit: string) {
     this.value = { amount: value, unit: unit };
     this.image = value !== undefined ? `${value} ${unit}` : `? ${unit}`;
-    // If value is undefined, this is a collectible metrics from user input
-    this.origin = value === undefined ? 'user' : 'parser';
+    // If value is undefined, this is a collectible metric hinted from user input
     this.origin = value === undefined ? 'hinted' : 'parser';
   }
   readonly type = MetricType.Resistance;

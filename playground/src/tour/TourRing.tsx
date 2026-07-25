@@ -112,11 +112,14 @@ export function TourRing({ target, accent, canvasRef }: TourRingProps) {
       const elRect = el.getBoundingClientRect()
       const canvasRect = canvas.getBoundingClientRect()
       const scale = canvasRect.width / TOUR_CANVAS_WIDTH || 1
+      // Round to whole canvas px: during a resize drag the subpixel noise
+      // would otherwise restart the 500ms position transition every event
+      // and the ring would smear/shimmer instead of staying glued.
       setBox({
-        x: (elRect.left - canvasRect.left) / scale,
-        y: (elRect.top - canvasRect.top) / scale,
-        w: elRect.width / scale,
-        h: elRect.height / scale,
+        x: Math.round((elRect.left - canvasRect.left) / scale),
+        y: Math.round((elRect.top - canvasRect.top) / scale),
+        w: Math.round(elRect.width / scale),
+        h: Math.round(elRect.height / scale),
       })
     }
     measure()

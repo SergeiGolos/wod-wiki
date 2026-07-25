@@ -51,7 +51,7 @@ export function formatPlaygroundPageTitle(name: string): string {
   try {
     decodedName = decodeURIComponent(name);
   } catch {
-    decodedName = name;
+    // Keep the raw name when URI decoding fails (e.g. a lone `%`).
   }
   const timestampMatch = decodedName.match(TIMESTAMP_ID_REGEX) ?? decodedName.match(LEGACY_TIMESTAMP_ID_REGEX);
   if (timestampMatch) return formatPlaygroundTimestampLabel(timestampFromMatch(timestampMatch));

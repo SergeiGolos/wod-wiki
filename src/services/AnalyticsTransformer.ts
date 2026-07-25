@@ -64,7 +64,7 @@ function extractMetricsFromGroups(metricsGroups: IMetric[][]): Record<string, nu
       let val = f.value;
       // Convert time-based metrics (except elapsed/total which are handled separately)
       // from milliseconds to seconds for consistency in the analytics data points.
-      if (f.type === 'duration' || f.type === 'duration') {
+      if (f.type === 'duration') {
         // Duration (intent) is now handled as a top-level segment property,
         // we don't want it in the dynamic metrics map to avoid double-counting
         // or unit confusion in the performance graphs.
