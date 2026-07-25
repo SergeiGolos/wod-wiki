@@ -42,8 +42,26 @@ describe('useChapterProgress', () => {
     });
     expect(result.current.isHydrated).toBe(true);
     expect(result.current.chapters).toEqual([
-      { chapter: CHAPTERS[0], completedCount: 0, totalCount: 2, isComplete: false },
-      { chapter: CHAPTERS[1], completedCount: 0, totalCount: 2, isComplete: false },
+      {
+        chapter: CHAPTERS[0],
+        completedCount: 0,
+        totalCount: 2,
+        isComplete: false,
+        quests: [
+          { id: 'basics-movement', isComplete: false },
+          { id: 'basics-reps', isComplete: false },
+        ],
+      },
+      {
+        chapter: CHAPTERS[1],
+        completedCount: 0,
+        totalCount: 2,
+        isComplete: false,
+        quests: [
+          { id: 'sequences-timer', isComplete: false },
+          { id: 'sequences-rounds', isComplete: false },
+        ],
+      },
     ]);
   });
 
@@ -58,8 +76,26 @@ describe('useChapterProgress', () => {
 
     const { result } = renderHook(() => useChapterProgress(CHAPTERS));
     expect(result.current.chapters).toEqual([
-      { chapter: CHAPTERS[0], completedCount: 1, totalCount: 2, isComplete: false },
-      { chapter: CHAPTERS[1], completedCount: 2, totalCount: 2, isComplete: true },
+      {
+        chapter: CHAPTERS[0],
+        completedCount: 1,
+        totalCount: 2,
+        isComplete: false,
+        quests: [
+          { id: 'basics-movement', isComplete: true },
+          { id: 'basics-reps', isComplete: false },
+        ],
+      },
+      {
+        chapter: CHAPTERS[1],
+        completedCount: 2,
+        totalCount: 2,
+        isComplete: true,
+        quests: [
+          { id: 'sequences-timer', isComplete: true },
+          { id: 'sequences-rounds', isComplete: true },
+        ],
+      },
     ]);
   });
 

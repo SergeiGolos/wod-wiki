@@ -2,9 +2,13 @@
  * TourStaticCards.tsx — the reduced-motion fallback.
  *
  * When `prefers-reduced-motion: reduce` is active, the scroll-jacked runway
- * is replaced by a plain card list telling the same four-part story.
+ * is replaced by a plain card list telling the same four-part story. Cards
+ * carry stable ids (`tour-card-<stage>`) so the quest list can scroll to
+ * them, and an IntersectionObserver reports cards scrolling into view so
+ * the tour's scroll quests fire here too.
  */
 
+import { useEffect, useRef } from 'react'
 import { TOUR_CAPTIONS, CaptionBody } from './TourCaptions'
 
 const SWATCHES: Record<string, string> = {
@@ -14,13 +18,41 @@ const SWATCHES: Record<string, string> = {
   library: 'Crossfit Girls · Dan John · daily programmed feeds',
 }
 
-export function TourStaticCards() {
+export interface TourStaticCardsProps {
+  /** Fired once per card when it scrolls into view (stage id). */
+  onCardVisible?: (stageId: string) => void
+}
+
+export function TourStaticCards({ onCardVisible }: TourStaticCardsProps) {
+  const listRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!onCardVisible || typeof IntersectionObserver === 'undefined') return
+    const list = listRef.current
+    if (!list) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          const stageId = (entry.target as HTMLElement).dataset.cardId
+          if (stageId) onCardVisible(stageId)
+          observer.unobserve(entry.target)
+        }
+      },
+      { threshold: 0.4 },
+    )
+    list.querySelectorAll('[data-card-id]').forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
+  }, [onCardVisible])
+
   return (
     <section className="px-6 pt-4 pb-24" data-testid="tour-static-cards">
-      <div className="mx-auto max-w-2xl">
+      <div ref={listRef} className="mx-auto max-w-2xl">
         {TOUR_CAPTIONS.filter((c) => c.id !== 'overview').map((cap) => (
           <article
             key={cap.id}
+            id={`tour-card-${cap.id}`}
+            data-card-id={cap.id}
             className="mb-6 rounded-2xl border border-border bg-card p-7"
           >
             <CaptionBody cap={cap} />

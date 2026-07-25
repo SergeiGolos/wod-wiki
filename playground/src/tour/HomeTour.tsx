@@ -26,8 +26,10 @@ import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { Quest } from '../hooks/usePageQuests'
+import type { Chapter } from '../canvas/parseCanvasMarkdown'
 import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
+import { useTourScrollQuests } from '../hooks/useTourScrollQuests'
 import type { FullscreenState } from '../hooks/useCanvasRuntime'
 import {
   RingTargetsProvider,
@@ -44,6 +46,7 @@ import {
   TOUR_RUNWAY_HEIGHT,
   TOUR_STAGES,
   type TourScreen,
+  type TourStageId,
   type TourStageSlice,
 } from './tourStages'
 import { TourHero } from './TourHero'
@@ -74,6 +77,18 @@ const SCREEN_TITLES: Record<TourScreen, string> = {
 
 const HOME_DEMO_SOURCE = 'wods/examples/home/welcome-1.md'
 
+/** Home quest id → the tour stage that demonstrates it. Used by the quest
+ *  list to scroll the runway back to the relevant section. */
+const HOME_QUEST_STAGE: Record<string, TourStageId> = {
+  'qs-arrive': 'overview',
+  'qs-tour-editor': 'editor',
+  'qs-tour-timer': 'timer',
+  'qs-tour-analytics': 'analytics',
+  'qs-tour-library': 'library',
+  'qs-edit': 'editor',
+  'qs-run': 'editor',
+}
+
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia(query).matches : false,
@@ -93,13 +108,18 @@ function useMediaQuery(query: string): boolean {
 export interface HomeTourProps {
   wodFiles: Record<string, string>
   theme: string
-  /** Quick-start quests from the home canvas markdown (qs-arrive/qs-edit/qs-run). */
+  /** Quick-start + scroll quests from the home canvas markdown
+   *  (qs-arrive / qs-tour-* / qs-edit / qs-run). */
   quests: Quest[]
+  /** Page-level chapters from the home canvas markdown (home-tour first). */
+  chapters: Chapter[]
+  /** Cross-page quest id → label, collected from every canvas route. */
+  questLabels?: Record<string, string>
 }
 
 // ── Inner (needs RingTargetsContext) ────────────────────────────────────────
 
-function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
+function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeTourProps) {
   const isMobile = useMediaQuery(`(max-width: ${TOUR_MOBILE_BREAKPOINT}px)`)
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
@@ -193,6 +213,30 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
   const questFullscreen: FullscreenState =
     session != null ? { kind: 'review', segments: session.segments, results: session.results } : null
   useCompletionChallenge({ pageRoute: '/', quests, fullscreen: questFullscreen })
+
+  // ── Scroll quests: each tour stage fires its qs-tour-* quest as the
+  //    visitor scrolls it into view (scroll mode only, not playground). ──
+  const markStageViewed = useTourScrollQuests('/', quests)
+  useEffect(() => {
+    if (interactive === null) markStageViewed(slice.stage.id)
+  }, [interactive, slice.stage.id, markStageViewed])
+
+  /** Quest list click → scroll the runway back to the matching stage.
+   *  Reduced-motion fallback scrolls the static card into view instead. */
+  const handleHomeQuestClick = useCallback((questId: string) => {
+    const stageId = HOME_QUEST_STAGE[questId]
+    if (!stageId) return
+    const el = runwayRef.current
+    if (el) {
+      const stage = TOUR_STAGES.find((s) => s.id === stageId)
+      if (stage) scrollRunwayTo(el, Math.min(stage.start + 0.02, stage.end - 0.005))
+      return
+    }
+    const cardId = stageId === 'overview' ? 'editor' : stageId
+    document
+      .getElementById(`tour-card-${cardId}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [])
 
   // ── Playground mode transitions ──
   const startRun = useCallback(() => {
@@ -417,8 +461,14 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
     return (
       <div data-testid="home-tour">
         <TourHero />
-        <TourStaticCards />
-        <TourOutro onNewNote={handleNewNote} />
+        <TourStaticCards onCardVisible={markStageViewed} />
+        <TourOutro
+          onNewNote={handleNewNote}
+          quests={quests}
+          chapters={chapters}
+          questLabels={questLabels}
+          onHomeQuestClick={handleHomeQuestClick}
+        />
       </div>
     )
   }
@@ -577,7 +627,13 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
         </div>
       </section>
 
-      <TourOutro onNewNote={handleNewNote} />
+      <TourOutro
+        onNewNote={handleNewNote}
+        quests={quests}
+        chapters={chapters}
+        questLabels={questLabels}
+        onHomeQuestClick={handleHomeQuestClick}
+      />
     </div>
   )
 }

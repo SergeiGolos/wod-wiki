@@ -13,14 +13,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Check, Dumbbell, Play, Timer, Trophy } from 'lucide-react';
-import {
-  StructureBlocksBadge,
-  ProtocolsTimerBadge,
-  ComplexPuzzleBadge,
-  BasicsMovementIcon,
-  MetricsCustomIcon,
-  DialectsLogIcon,
-} from '../ChallengeBadges';
+import { chapterIcon } from '../ChallengeBadges';
 import { cn } from '@/lib/utils';
 import { useOnboardingProgress } from '../../hooks/useOnboardingProgress';
 import { useChapterProgress } from '../../hooks/useChapterProgress';
@@ -90,31 +83,6 @@ function getHintText(stepsComplete: number): string {
       return 'Result logged ✅ · Open review to finish';
     default:
       return '';
-  }
-}
-
-/** Resolve a Lucide icon component from the chapter's `badge` string.
- *  Defaults to Trophy when the named icon isn't supported. */
-function chapterIcon(badge: string): React.ComponentType<React.SVGProps<SVGSVGElement>> {
-  switch (badge) {
-    case 'trophy':
-      return BasicsMovementIcon;
-    case 'dumbbell':
-      return Dumbbell;
-    case 'timer':
-      return ProtocolsTimerBadge;
-    case 'play':
-      return Play;
-    case 'blocks':
-      return StructureBlocksBadge;
-    case 'puzzle':
-      return ComplexPuzzleBadge;
-    case 'activity':
-      return MetricsCustomIcon;
-    case 'file-text':
-      return DialectsLogIcon;
-    default:
-      return Trophy;
   }
 }
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Dumbbell, Play, Trophy } from 'lucide-react';
 
 // ─── Chapter Badges (from stitch mastery files) ──────────────────────
 
@@ -169,7 +170,32 @@ export const DialectsLogIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) 
         <stop offset="100%" style={{ stopColor: '#00E676', stopOpacity: 1 }} />
       </linearGradient>
     </defs>
-    <path d="M50 5 L90 27.5 L90 72.5 L50 95 L10 72.5 L10 27.5 Z" fill="none" stroke="url(#dialect-grad)" strokeWidth="4" />
+    <path d="M50 5 L90 27.5 L90 72.5 L50 95 L10 72.5 L10 27.5 Z" fill="none" stroke="url(#dialect-grad)" strokeWidth="4" strokeLinecap="round" />
     <path d="M35 30 H65 M35 45 H65 M35 60 H55 M35 75 H65" fill="none" stroke="url(#dialect-grad)" strokeWidth="4" strokeLinecap="round" />
   </svg>
 );
+
+/** Resolve an icon component from a chapter's `badge` string.
+ *  Defaults to Trophy when the named badge isn't supported. */
+export function chapterIcon(badge: string): React.ComponentType<React.SVGProps<SVGSVGElement>> {
+  switch (badge) {
+    case 'trophy':
+      return BasicsMovementIcon;
+    case 'dumbbell':
+      return Dumbbell;
+    case 'timer':
+      return ProtocolsTimerBadge;
+    case 'play':
+      return Play;
+    case 'blocks':
+      return StructureBlocksBadge;
+    case 'puzzle':
+      return ComplexPuzzleBadge;
+    case 'activity':
+      return MetricsCustomIcon;
+    case 'file-text':
+      return DialectsLogIcon;
+    default:
+      return Trophy;
+  }
+}

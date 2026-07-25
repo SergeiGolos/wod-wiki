@@ -6,6 +6,14 @@ type: home
 ---
 
 ```chapter
+id: home-tour
+title: Take the Tour
+badge: play
+quests: qs-arrive, qs-tour-editor, qs-tour-timer, qs-tour-analytics, qs-tour-library, qs-edit, qs-run
+sections: []
+```
+
+```chapter
 id: basics
 title: Basics
 badge: trophy
@@ -57,6 +65,30 @@ sections: []
 id: qs-arrive
 label: Welcome to WOD Wiki
 desc: You landed on the playground dashboard.
+```
+
+```quest
+id: qs-tour-editor
+label: Watch a workout write itself
+desc: Scroll through the editor stage of the home tour.
+```
+
+```quest
+id: qs-tour-timer
+label: See the timer run it
+desc: Scroll through the WallClock stage of the home tour.
+```
+
+```quest
+id: qs-tour-analytics
+label: Review the session
+desc: Scroll through the analytics stage of the home tour.
+```
+
+```quest
+id: qs-tour-library
+label: Tour the library
+desc: Scroll through the collections & feeds stage of the home tour.
 ```
 
 ```quest

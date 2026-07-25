@@ -43,7 +43,6 @@ import { HomeView } from './views/HomeView'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
-import { OnboardingBanner } from './components/onboarding/OnboardingBanner'
 import { getChallengeSectionMap } from './canvas/parseCanvasMarkdown'
 // ── Extracted page components ────────────────────────────────────────────────
 import { WallClockPage } from './pages/WallClockPage'
@@ -211,21 +210,17 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     view.page === 'canvas' && view.canvasPage
       ? (
         <>
-          {/* On `/` the OnboardingBanner is the single quest badge — the
-              home page's quick-start quests (qs-arrive/qs-edit/qs-run)
-              duplicate the first-run roadmap steps, so rendering the
-              ChallengeHeaderBadge here would show two parallel progress
-              trackers fighting in the header. */}
-          {view.canvasPage.quests.length > 0 && view.canvasPage.route !== '/' && (
+          {/* On `/` this badge is the single header control — it tracks
+              only the home page's own quests (qs-arrive / qs-tour-* /
+              qs-edit / qs-run). The cross-page chapter list lives in the
+              tour outro's quest section instead of the header. */}
+          {view.canvasPage.quests.length > 0 && (
             <ChallengeHeaderBadge
               pageRoute={view.canvasPage.route}
               quests={view.canvasPage.quests}
               challengeSectionMap={getChallengeSectionMap(view.canvasPage)}
               onScrollToSection={scrollToSection}
             />
-          )}
-          {view.canvasPage.route === '/' && view.canvasPage.chapters.length > 0 && (
-            <OnboardingBanner chapters={view.canvasPage.chapters} />
           )}
         </>
       )
