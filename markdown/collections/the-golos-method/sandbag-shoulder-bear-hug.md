@@ -1,3 +1,10 @@
+---
+tags:
+  - unconventional
+  - strength
+  - minimalist
+---
+
 # Sandbag Over-the-Shoulder & Bear-Hug Carries
 
 **Category**: The Golos Method  

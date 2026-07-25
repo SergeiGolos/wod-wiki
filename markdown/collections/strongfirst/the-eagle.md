@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 4: The Eagle
 
 **Category**: StrongFirst Strength Endurance  

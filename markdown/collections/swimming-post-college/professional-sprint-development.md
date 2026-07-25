@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Professional Sprint Development
 
 **Type**: Maximum Power  

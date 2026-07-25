@@ -6,7 +6,8 @@ aliases:
   - planks
   - forearm plank
   - high plank
-met: 3.5
-discipline: bodyweight
-intensityTier: low
+baseAttributes:
+  met: 3.5
+  discipline: bodyweight
+  intensityTier: low
 ---

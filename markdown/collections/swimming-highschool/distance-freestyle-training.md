@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Distance Freestyle Training
 
 **Type**: Endurance  

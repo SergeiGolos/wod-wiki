@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 4: Secret Service Snatch Test
 
 **Category**: Geoff Neupert / StrongFirst Standard  

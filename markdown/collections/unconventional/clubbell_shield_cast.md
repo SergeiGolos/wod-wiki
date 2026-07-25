@@ -1,3 +1,8 @@
+---
+tags:
+  - unconventional
+---
+
 # Clubbell Shield Cast
 
 **Category**: Steel Club / Heavy Club / Clubbell  

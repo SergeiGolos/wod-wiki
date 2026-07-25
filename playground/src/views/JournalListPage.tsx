@@ -8,7 +8,9 @@
  *   today    — just today
  *   plan     — today + the forward planning window (today+14, +7 for any future
  *              entry beyond that, capped at today+90)
- *   all      — history + today + plan in a single feed (default)
+ *   all      — today first, then history (newest → oldest). The future
+ *              planning window lives in plan mode only, so scrolling down
+ *              from today walks back through the past. (default)
  *
  * `?s=<date>` continues to drive the focused-date filter; `?sel=` seeds the
  * multi-select state from a ctrl-click off an entry page. Behaviour preserved
@@ -65,7 +67,8 @@ interface SelectWorkoutItemLike {
  *   today    — focused date (single) | today only
  *   plan     — focused date (single) | today..horizon (where horizon = today+14,
  *              extended +7 beyond any future entry date, capped at today+90)
- *   all      — focused date (single) | union of history and plan windows
+ *   all      — focused date (single) | today first, then history (newest →
+ *              oldest); the future window is plan-mode only
  */
 function computeDateKeys(
   mode: JournalViewMode,
@@ -114,13 +117,14 @@ function computeDateKeys(
 
   if (mode === 'plan') return future // today first, ascending future
 
-  // all — history past first (newest → oldest), then today + future ascending
-  const todayAndFutureAsc = future
+  // all — today first, then history (newest → oldest). The future plan
+  // window is excluded here so scrolling down from today walks through the
+  // past; forward planning lives in plan mode.
   const pastSortedDesc = Array.from(past)
-    .filter(key => !todayAndFutureAsc.includes(key))
+    .filter(key => key !== todayKey)
     .sort()
     .reverse()
-  return [...pastSortedDesc, ...todayAndFutureAsc]
+  return [todayKey, ...pastSortedDesc]
 }
 
 export function JournalListPage({

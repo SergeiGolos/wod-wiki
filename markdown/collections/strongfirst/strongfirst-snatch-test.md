@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 5: StrongFirst Snatch Test
 
 **Category**: StrongFirst Certification Standard  

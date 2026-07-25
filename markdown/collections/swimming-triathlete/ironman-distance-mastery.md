@@ -1,3 +1,10 @@
+---
+tags:
+  - swimming
+  - endurance
+  - triathlon
+---
+
 # Ironman Distance Mastery
 
 **Type**: Ultra-Endurance  

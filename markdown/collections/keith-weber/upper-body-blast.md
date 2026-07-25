@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - cardio
+---
+
 ## Workout 4: Upper Body Blast
 
 **Category**: Keith Weber Upper Body  

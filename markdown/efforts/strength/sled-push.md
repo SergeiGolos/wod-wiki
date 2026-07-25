@@ -7,7 +7,8 @@ aliases:
   - prowler push
   - sled drag
   - prowler
-met: 8.0
-discipline: strength
-intensityTier: high
+baseAttributes:
+  met: 8.0
+  discipline: strength
+  intensityTier: high
 ---

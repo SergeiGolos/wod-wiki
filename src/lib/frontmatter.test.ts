@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'bun:test';
 import {
   parseFrontmatter,
+  parseFrontmatterBody,
+  serializeFrontmatter,
+  stripFrontmatter,
+  getScalar,
+  getList,
   parseFrontmatterCategories,
   parseFlatProperties,
   parseFrontmatterProps,
@@ -12,48 +17,196 @@ describe('parseFrontmatter', () => {
   it('extracts scalar key-value pairs from frontmatter', () => {
     const raw = '---\nDifficulty: beginner\nCategory: Cardio\n---\nContent';
     expect(parseFrontmatter(raw)).toEqual({
-      Difficulty: 'beginner',
-      Category: 'Cardio',
+      meta: { Difficulty: 'beginner', Category: 'Cardio' },
+      body: 'Content',
     });
   });
 
-  it('strips surrounding quotes from values', () => {
+  it('strips matched wrapping quotes from values', () => {
     const raw = '---\ntitle: "WOD 761"\nlabel: \'Quoted\'\n---\nContent';
-    expect(parseFrontmatter(raw)).toEqual({
+    expect(parseFrontmatter(raw).meta).toEqual({
       title: 'WOD 761',
       label: 'Quoted',
     });
   });
 
+  it('only removes matching wrapping quotes from metadata values', () => {
+    const { meta } = parseFrontmatter(`---\ntitle: "Matched"\nsubtitle: "Mismatched'\n---\nBody\n`);
+    expect(meta.title).toBe('Matched');
+    expect(meta.subtitle).toBe(`"Mismatched'`);
+  });
+
   it('handles flat nested keys', () => {
     const raw = '---\nbook.title: "Kettlebell Simple \u0026 Sinister"\n---\nContent';
-    expect(parseFrontmatter(raw)).toEqual({
+    expect(parseFrontmatter(raw).meta).toEqual({
       'book.title': 'Kettlebell Simple \u0026 Sinister',
     });
   });
 
-  it('skips empty values', () => {
+  it('keeps empty values as empty strings', () => {
     const raw = '---\nkey: value\nempty:\n---\nContent';
-    expect(parseFrontmatter(raw)).toEqual({
+    expect(parseFrontmatter(raw).meta).toEqual({
       key: 'value',
+      empty: '',
     });
   });
 
-  it('returns empty object when no frontmatter', () => {
-    const raw = 'Just plain content';
-    expect(parseFrontmatter(raw)).toEqual({});
+  it('parses numeric strings as numbers', () => {
+    const raw = '---\norder: 1\ntitle: WOD\n---\nContent';
+    expect(parseFrontmatter(raw).meta).toEqual({ order: 1, title: 'WOD' });
   });
 
-  it('handles empty frontmatter block', () => {
-    const raw = '---\n---\nContent';
-    expect(parseFrontmatter(raw)).toEqual({});
-  });
-
-  it('ignores array lines', () => {
-    const raw = '---\ncategory:\n  - kettlebell\n  - strength\ntitle: WOD\n---\nContent';
-    expect(parseFrontmatter(raw)).toEqual({
+  it('parses block lists as string arrays with case preserved', () => {
+    const raw = '---\ncategory:\n  - Kettlebell\n  - strength\ntitle: WOD\n---\nContent';
+    expect(parseFrontmatter(raw).meta).toEqual({
+      category: ['Kettlebell', 'strength'],
       title: 'WOD',
     });
+  });
+
+  it('keeps inline [a, b] lists as plain scalar strings', () => {
+    const raw = '---\ntags: [a, b]\n---\nContent';
+    expect(parseFrontmatter(raw).meta).toEqual({ tags: '[a, b]' });
+  });
+
+  it('ignores indented nested-map lines', () => {
+    const raw = '---\nbaseAttributes:\n  met: 4\nlabel: Squat\n---\nContent';
+    expect(parseFrontmatter(raw).meta).toEqual({
+      baseAttributes: '',
+      label: 'Squat',
+    });
+  });
+
+  it('returns empty meta and the raw body when no frontmatter', () => {
+    const raw = 'Just plain content';
+    expect(parseFrontmatter(raw)).toEqual({ meta: {}, body: raw });
+  });
+
+  it('handles CRLF line endings while preserving the body', () => {
+    const raw = [
+      '---',
+      'title: "Quoted Title"',
+      "subtitle: 'Quoted subtitle'",
+      'order: 1',
+      'empty:',
+      '---',
+      'Body',
+      '',
+    ].join('\r\n');
+    const { meta, body } = parseFrontmatter(raw);
+
+    expect(meta).toEqual({
+      title: 'Quoted Title',
+      subtitle: 'Quoted subtitle',
+      order: 1,
+      empty: '',
+    });
+    expect(body).toBe('Body\r\n');
+  });
+});
+
+describe('parseFrontmatterBody', () => {
+  it('parses body lines without delimiters using parseFrontmatter semantics', () => {
+    const inner = 'title: "WOD 761"\norder: 2\ncategory:\n  - kettlebell\n  - strength\nempty:';
+    expect(parseFrontmatterBody(inner)).toEqual({
+      title: 'WOD 761',
+      order: 2,
+      category: ['kettlebell', 'strength'],
+      empty: '',
+    });
+  });
+
+  it('matches parseFrontmatter meta for the same content', () => {
+    const inner = 'title: WOD\norder: 1\ncategory:\n  - a\n  - b';
+    expect(parseFrontmatterBody(inner)).toEqual(
+      parseFrontmatter(`---\n${inner}\n---\nBody`).meta,
+    );
+  });
+});
+
+describe('serializeFrontmatter', () => {
+  it('emits scalars bare and block-style lists, preserving key order', () => {
+    expect(
+      serializeFrontmatter({ title: 'WOD 761', order: 2, category: ['kettlebell', 'strength'] }),
+    ).toBe('title: WOD 761\norder: 2\ncategory:\n  - kettlebell\n  - strength');
+  });
+
+  it('quotes values containing YAML-special characters', () => {
+    expect(serializeFrontmatter({ notes: 'rest: 2:00', title: 'He said "hi"' })).toBe(
+      'notes: "rest: 2:00"\ntitle: "He said \\"hi\\""',
+    );
+  });
+
+  it('quotes numeric-looking and keyword-looking strings so they stay strings', () => {
+    const serialized = serializeFrontmatter({ version: '1.0', mode: 'true', name: 'on' });
+    expect(serialized).toBe('version: "1.0"\nmode: "true"\nname: "on"');
+  });
+
+  it('serializes empty strings as quoted empty values', () => {
+    expect(serializeFrontmatter({ empty: '' })).toBe('empty: ""');
+  });
+
+  it('round-trips through parseFrontmatterBody without losing values or types', () => {
+    const meta = {
+      title: 'WOD 761',
+      order: 2,
+      category: ['Kettlebell', 'strength'],
+      version: '1.0',
+      empty: '',
+      notes: 'rest: 2:00 between sets',
+    };
+    expect(parseFrontmatterBody(serializeFrontmatter(meta))).toEqual(meta);
+  });
+});
+
+describe('stripFrontmatter', () => {
+  it('strips leading YAML frontmatter from editor source content', () => {
+    const raw = `---
+search: hidden
+title: Just a Movement
+section: statement
+order: 1
+---
+\`\`\`wod
+Pushups
+\`\`\`
+`;
+
+    expect(stripFrontmatter(raw)).toBe(`\`\`\`wod
+Pushups
+\`\`\`
+`);
+  });
+
+  it('leaves content without leading frontmatter unchanged', () => {
+    const raw = `\`\`\`wod
+---
+Pushups
+---
+\`\`\`
+`;
+
+    expect(stripFrontmatter(raw)).toBe(raw);
+  });
+});
+
+describe('getScalar / getList', () => {
+  const meta = parseFrontmatter('---\ntitle: WOD\norder: 2\ncategory:\n  - a\n  - b\n---\nBody').meta;
+
+  it('getScalar returns string and number values', () => {
+    expect(getScalar(meta, 'title')).toBe('WOD');
+    expect(getScalar(meta, 'order')).toBe(2);
+  });
+
+  it('getScalar returns undefined for lists and absent keys', () => {
+    expect(getScalar(meta, 'category')).toBeUndefined();
+    expect(getScalar(meta, 'missing')).toBeUndefined();
+  });
+
+  it('getList returns lists and [] otherwise', () => {
+    expect(getList(meta, 'category')).toEqual(['a', 'b']);
+    expect(getList(meta, 'title')).toEqual([]);
+    expect(getList(meta, 'missing')).toEqual([]);
   });
 });
 

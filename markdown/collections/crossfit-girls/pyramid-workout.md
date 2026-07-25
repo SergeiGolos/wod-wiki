@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # Bodyweight Pyramid Workout
 
 **Category**: Bodyweight Training  

@@ -6,7 +6,8 @@ aliases:
   - box jumps
   - jump to box
   - box
-met: 8.0
-discipline: bodyweight
-intensityTier: high
+baseAttributes:
+  met: 8.0
+  discipline: bodyweight
+  intensityTier: high
 ---

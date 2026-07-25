@@ -16,10 +16,14 @@ import 'fake-indexeddb/auto';
 // error when these modules are loaded transitively via component imports.
 // Individual tests can override these stubs with their own vi.mock() calls.
 
+// The real adapter is import-safe (glob calls are deferred), so spread it to
+// keep pure helpers (getFeedDateKeys, getScriptFeedItem) exercising real code
+// while the glob-backed readers stay stubbed.
+const realScriptFeeds = await import('@/repositories/script-feeds');
 mock.module('@/repositories/script-feeds', () => ({
+  ...realScriptFeeds,
   getScriptFeeds: () => [],
   getScriptFeed: (_slug: string) => null,
-  getFeedDateKeys: (_feed: any) => [],
 }));
 
 mock.module('@/repositories/script-collections', () => ({
@@ -37,7 +41,13 @@ mock.module('@/repositories/page-examples', () => ({
   getHomeExample: (_name: string) => '',
 }));
 
+// The real module is import-safe (glob calls are deferred), so spread it to
+// keep the pure document-format functions (effortToDocument, documentToEffort,
+// parseEffortFile) exercising real code while the glob-backed readers stay
+// stubbed.
+const realEffortMarkdown = await import('@/repositories/effort-markdown');
 mock.module('@/repositories/effort-markdown', () => ({
+  ...realEffortMarkdown,
   getBundledEfforts: () => [
     {
       id: 'effort-bundled-rowing',
@@ -65,6 +75,7 @@ mock.module('@/repositories/effort-markdown', () => ({
     },
   ],
   getBundledEffortCount: () => 3,
+  getEffortMarkdown: (_slug: string) => null,
 }));
 
 // Some src/ tests import browser-only libraries (e.g. monaco-editor, react-dom)

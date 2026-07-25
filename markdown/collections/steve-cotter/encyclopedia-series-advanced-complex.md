@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 5: Encyclopedia Series - Advanced Complex
 
 **Category**: Steve Cotter Advanced  

@@ -1,3 +1,10 @@
+---
+tags:
+  - unconventional
+  - strength
+  - minimalist
+---
+
 # Grease the Groove — Pull-Ups
 
 **Category**: The Golos Method  

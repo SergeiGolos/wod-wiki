@@ -7,7 +7,8 @@ aliases:
   - skipping
   - skip rope
   - rope skip
-met: 10.0
-discipline: gymnastics
-intensityTier: high
+baseAttributes:
+  met: 10.0
+  discipline: gymnastics
+  intensityTier: high
 ---

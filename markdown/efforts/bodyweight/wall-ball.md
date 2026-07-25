@@ -6,7 +6,8 @@ aliases:
   - wb
   - wallball
   - wall balls
-met: 8.0
-discipline: bodyweight
-intensityTier: high
+baseAttributes:
+  met: 8.0
+  discipline: bodyweight
+  intensityTier: high
 ---

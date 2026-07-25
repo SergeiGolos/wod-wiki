@@ -16,6 +16,7 @@ function createView(innerContent: string): EditorView {
       doc: {
         sliceString: vi.fn(() => innerContent),
       },
+      facet: vi.fn(() => false),
     },
     dispatch: vi.fn(),
   } as unknown as EditorView;
@@ -49,16 +50,6 @@ const NESTED_EFFORT_CONTENT = [
   '  discipline: rowing',
   '  intensityTier: high',
   'registrySource: bundled',
-].join('\n');
-
-const FLAT_EFFORT_CONTENT = [
-  'id: effort-2',
-  'slug: flat-rowing',
-  'label: Flat Rowing',
-  'aliases: []',
-  'met: 6.5',
-  'discipline: rowing',
-  'intensityTier: moderate',
 ].join('\n');
 
 const MINIMAL_EFFORT_CONTENT = [
@@ -403,57 +394,6 @@ describe('FrontmatterCompanion — compact mode', () => {
   });
 });
 
-// ── Legacy flat format tests ──────────────────────────────────────────────
-
-describe('FrontmatterCompanion — legacy flat effort format', () => {
-  it('detects and renders flat effort frontmatter (met at root)', () => {
-    const view = createView(FLAT_EFFORT_CONTENT);
-
-    render(
-      <FrontmatterCompanion
-        sectionId="frontmatter-effort-1"
-        section={createEffortSection()}
-        view={view}
-        isActive
-        widthPercent={35}
-        docVersion={1}
-      />,
-    );
-
-    expect(screen.getByText('Effort', { selector: 'span' })).toBeTruthy();
-    expect((screen.getByLabelText('Slug') as HTMLInputElement).value).toBe('flat-rowing');
-    expect((screen.getByLabelText('Label') as HTMLInputElement).value).toBe('Flat Rowing');
-    expect((screen.getByLabelText('MET') as HTMLInputElement).value).toBe('6.5');
-    expect((screen.getByLabelText('Discipline') as HTMLInputElement).value).toBe('rowing');
-
-    const intensitySelect = screen.getByLabelText('Intensity tier') as HTMLSelectElement;
-    expect(intensitySelect.value).toBe('moderate');
-  });
-
-  it('writes flat effort edits back in nested format (normalization)', () => {
-    const view = createView(FLAT_EFFORT_CONTENT);
-
-    render(
-      <FrontmatterCompanion
-        sectionId="frontmatter-effort-1"
-        section={createEffortSection()}
-        view={view}
-        isActive
-        widthPercent={35}
-        docVersion={1}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText('MET'), { target: { value: '9.0' } });
-
-    expect(view.dispatch).toHaveBeenCalledTimes(1);
-    const dispatchArg = vi.mocked(view.dispatch).mock.calls[0][0] as { changes: { insert: string } };
-    // The serialization always uses nested baseAttributes format
-    expect(dispatchArg.changes.insert).toContain('baseAttributes:');
-    expect(dispatchArg.changes.insert).toContain('  met: 9.0');
-  });
-});
-
 // ── Empty / minimal frontmatter tests ─────────────────────────────────────
 
 describe('FrontmatterCompanion — minimal effort frontmatter', () => {
@@ -634,5 +574,196 @@ describe('FrontmatterCompanion — serialization round-trip', () => {
     expect(output).toContain('  parentSlug: "parent-rowing"');
     expect(output).toContain('  coefficients:');
     expect(output).toContain('    met: 1.14');
+  });
+});
+
+// ── Generic property form (default subtype) ─────────────────────────────────
+
+const GENERIC_CONTENT = [
+  'title: "WOD 761"',
+  'order: 2',
+  'category:',
+  '  - kettlebell',
+  '  - strength',
+].join('\n');
+
+function createGenericSection(props: Partial<EditorSection> = {}): EditorSection {
+  return {
+    id: 'frontmatter-generic-1',
+    type: 'frontmatter',
+    from: 0,
+    to: 0,
+    startLine: 1,
+    endLine: 6,
+    contentFrom: 0,
+    contentTo: 0,
+    ...props,
+  } as EditorSection;
+}
+
+function renderGeneric(view: EditorView, overrides: Partial<Parameters<typeof FrontmatterCompanion>[0]> = {}) {
+  return render(
+    <FrontmatterCompanion
+      sectionId="frontmatter-generic-1"
+      section={createGenericSection()}
+      view={view}
+      isActive
+      widthPercent={35}
+      docVersion={1}
+      {...overrides}
+    />,
+  );
+}
+
+function lastInsert(view: EditorView): string {
+  const calls = vi.mocked(view.dispatch).mock.calls;
+  return (calls[calls.length - 1][0] as { changes: { insert: string } }).changes.insert;
+}
+
+describe('FrontmatterCompanion — generic property form', () => {
+  it('renders one row per property with type-appropriate controls', () => {
+    const view = createView(GENERIC_CONTENT);
+    renderGeneric(view);
+
+    expect(screen.getByText('Properties', { selector: 'span' })).toBeTruthy();
+    expect(screen.getByText('3 fields')).toBeTruthy();
+
+    expect((screen.getByLabelText('title') as HTMLInputElement).value).toBe('WOD 761');
+    const orderInput = screen.getByLabelText('order') as HTMLInputElement;
+    expect(orderInput.value).toBe('2');
+    expect(orderInput.type).toBe('number');
+    expect(screen.getByText('kettlebell')).toBeTruthy();
+    expect(screen.getByText('strength')).toBeTruthy();
+
+    expect((screen.getByLabelText('Type for title') as HTMLSelectElement).value).toBe('text');
+    expect((screen.getByLabelText('Type for order') as HTMLSelectElement).value).toBe('number');
+    expect((screen.getByLabelText('Type for category') as HTMLSelectElement).value).toBe('list');
+  });
+
+  it('commits an edited text value as serialized YAML', () => {
+    const view = createView(GENERIC_CONTENT);
+    renderGeneric(view);
+
+    fireEvent.change(screen.getByLabelText('title'), { target: { value: 'WOD 762' } });
+
+    expect(view.dispatch).toHaveBeenCalledTimes(1);
+    expect(lastInsert(view)).toBe('title: WOD 762\norder: 2\ncategory:\n  - kettlebell\n  - strength');
+  });
+
+  it('commits an edited number value', () => {
+    const view = createView(GENERIC_CONTENT);
+    renderGeneric(view);
+
+    fireEvent.change(screen.getByLabelText('order'), { target: { value: '5' } });
+
+    expect(view.dispatch).toHaveBeenCalledTimes(1);
+    expect(lastInsert(view)).toContain('order: 5');
+  });
+
+  it('commits a renamed key while preserving row order and value', () => {
+    const view = createView(GENERIC_CONTENT);
+    renderGeneric(view);
+
+    fireEvent.change(screen.getAllByLabelText('Property name')[0], { target: { value: 'name' } });
+
+    expect(view.dispatch).toHaveBeenCalledTimes(1);
+    expect(lastInsert(view)).toBe('name: WOD 761\norder: 2\ncategory:\n  - kettlebell\n  - strength');
+  });
+
+  it('holds invalid key drafts locally without dispatching', () => {
+    const view = createView(GENERIC_CONTENT);
+    renderGeneric(view);
+
+    const keyInput = screen.getAllByLabelText('Property name')[0];
+    fireEvent.change(keyInput, { target: { value: '1bad' } });
+
+    expect(view.dispatch).not.toHaveBeenCalled();
+    expect((keyInput as HTMLInputElement).value).toBe('1bad');
+  });
+
+  it('rejects renaming a key to an already-taken name', () => {
+    const view = createView(GENERIC_CONTENT);
+    renderGeneric(view);
+
+    fireEvent.change(screen.getAllByLabelText('Property name')[0], { target: { value: 'order' } });
+
+    expect(view.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('removes a property via its remove button', () => {
+    const view = createView(GENERIC_CONTENT);
+    renderGeneric(view);
+
+    fireEvent.click(screen.getByLabelText('Remove order'));
+
+    expect(view.dispatch).toHaveBeenCalledTimes(1);
+    expect(lastInsert(view)).toBe('title: WOD 761\ncategory:\n  - kettlebell\n  - strength');
+  });
+
+  it('adds a new property through the add-property flow', () => {
+    const view = createView(GENERIC_CONTENT);
+    renderGeneric(view);
+
+    fireEvent.click(screen.getByRole('button', { name: /add property/i }));
+    fireEvent.change(screen.getByLabelText('New property name'), { target: { value: 'difficulty' } });
+    fireEvent.change(screen.getByLabelText('New property value'), { target: { value: 'hard' } });
+    fireEvent.keyDown(screen.getByLabelText('New property name'), { key: 'Enter' });
+
+    expect(view.dispatch).toHaveBeenCalledTimes(1);
+    expect(lastInsert(view)).toBe(
+      'title: WOD 761\norder: 2\ncategory:\n  - kettlebell\n  - strength\ndifficulty: hard',
+    );
+  });
+
+  it('adds a list item on Enter and removes one via its chip button', () => {
+    const view = createView(GENERIC_CONTENT);
+    renderGeneric(view);
+
+    fireEvent.change(screen.getByLabelText('Add to category'), { target: { value: 'row' } });
+    fireEvent.keyDown(screen.getByLabelText('Add to category'), { key: 'Enter' });
+
+    expect(view.dispatch).toHaveBeenCalledTimes(1);
+    expect(lastInsert(view)).toContain('category:\n  - kettlebell\n  - strength\n  - row');
+
+    fireEvent.click(screen.getByLabelText('Remove kettlebell'));
+
+    expect(view.dispatch).toHaveBeenCalledTimes(2);
+    expect(lastInsert(view)).toContain('category:\n  - strength');
+  });
+
+  it('renders a read-only summary in compact mode', () => {
+    const view = createView(GENERIC_CONTENT);
+    renderGeneric(view, { isActive: false });
+
+    expect(screen.getByText('Focus the block to edit properties.')).toBeTruthy();
+    expect(screen.getByText('WOD 761')).toBeTruthy();
+    expect(screen.queryByLabelText('title')).toBeNull();
+  });
+});
+
+describe('FrontmatterCompanion — add-property focus flow', () => {
+  it('does not commit when focus moves from key input to value input within the add row', async () => {
+    const view = createView(GENERIC_CONTENT);
+    renderGeneric(view);
+
+    fireEvent.click(screen.getByRole('button', { name: /add property/i }));
+    const nameInput = screen.getByLabelText('New property name');
+    const valueInput = screen.getByLabelText('New property value');
+
+    fireEvent.change(nameInput, { target: { value: 'equipment' } });
+    // Moving to the value input: focus lands there before the deferred
+    // blur-commit check runs, so no commit may fire.
+    valueInput.focus();
+    fireEvent.blur(nameInput);
+    const { promise: settled, resolve: markSettled } = Promise.withResolvers<void>();
+    setTimeout(markSettled, 10);
+    await settled;
+    expect(view.dispatch).not.toHaveBeenCalled();
+
+    fireEvent.change(valueInput, { target: { value: 'kettlebell' } });
+    fireEvent.keyDown(valueInput, { key: 'Enter' });
+
+    expect(view.dispatch).toHaveBeenCalledTimes(1);
+    expect(lastInsert(view)).toContain('equipment: kettlebell');
   });
 });

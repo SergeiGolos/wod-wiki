@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Collegiate IM Championship
 
 **Type**: Individual Medley  

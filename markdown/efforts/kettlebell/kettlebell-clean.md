@@ -5,7 +5,8 @@ label: Kettlebell Clean
 aliases:
   - kb clean
   - kettlebell cleans
-met: 8.0
-discipline: kettlebell
-intensityTier: high
+baseAttributes:
+  met: 8.0
+  discipline: kettlebell
+  intensityTier: high
 ---

@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Distance Freestyle Ultra-Endurance
 
 **Type**: Aerobic Endurance  

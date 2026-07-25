@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 1: Simple & Sinister
 
 **Category**: StrongFirst Benchmark  

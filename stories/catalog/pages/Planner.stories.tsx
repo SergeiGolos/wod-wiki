@@ -175,3 +175,26 @@ export const NoteEditorEffortFrontmatter: StoryObj = {
   name: 'NoteEditor — Effort Frontmatter',
   render: () => <NoteEditorWithOverlayShell initialContent={EFFORT_FRONTMATTER_WORKOUT} />,
 };
+
+const GENERIC_FRONTMATTER_WORKOUT = `---
+title: "WOD 761"
+order: 2
+difficulty: intermediate
+category:
+  - kettlebell
+  - strength
+---
+
+# WOD 761
+
+\`\`\`wod
+(3)
+  10 Kettlebell Swings @53lb
+  10 Goblet Squats @53lb
+\`\`\`
+`;
+
+export const NoteEditorGenericFrontmatter: StoryObj = {
+  name: 'NoteEditor — Generic Frontmatter',
+  render: () => <NoteEditorWithOverlayShell initialContent={GENERIC_FRONTMATTER_WORKOUT} />,
+};

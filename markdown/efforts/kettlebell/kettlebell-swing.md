@@ -7,9 +7,10 @@ aliases:
   - kettlebell swings
   - swing
   - russian swing
-met: 9.8
-discipline: kettlebell
-intensityTier: high
+baseAttributes:
+  met: 9.8
+  discipline: kettlebell
+  intensityTier: high
 ---
 Kettlebell swings train hip extension and cyclical power production.
 

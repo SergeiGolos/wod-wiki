@@ -22,6 +22,9 @@ interface UsePlaygroundContentOptions {
   mdContent: string;
 }
 
+/** Cap on the initial IndexedDB read before falling back to bundled content. */
+export const LOAD_TIMEOUT_MS = 8000;
+
 interface UsePlaygroundContentResult {
   /** The current content (from IndexedDB or MD fallback) */
   content: string;
@@ -85,10 +88,31 @@ export function usePlaygroundContent({
   useEffect(() => {
     let cancelled = false;
 
+    // A blocked IndexedDB open (e.g. a stale tab holding the DB during a
+    // schema upgrade) never settles — without this cap the page would spin
+    // "Loading…" forever. Fall back to the bundled content; the late load is
+    // cancelled so it can't clobber the fallback.
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      cancelled = true;
+      console.warn(
+        `[usePlaygroundContent] load of ${pageId} timed out after ${LOAD_TIMEOUT_MS}ms — falling back to bundled content. ` +
+        'If this repeats, close other tabs of this app: a stale tab may be holding the IndexedDB connection.',
+      );
+      setContent(mdContent);
+      setIsModified(false);
+      setLoading(false);
+    }, LOAD_TIMEOUT_MS);
+
     async function load() {
       setLoading(true);
+      const t0 = performance.now();
+      const elapsed = () => Math.round(performance.now() - t0);
       try {
         const page = await playgroundContent.getPage(pageId);
+        // Diagnostic: fires even after the timeout fallback — distinguishes a
+        // slow read from a never-settling one, and pinpoints the stuck step.
+        console.info(`[usePlaygroundContent] getPage(${pageId}) settled at ${elapsed()}ms`);
         if (cancelled) return;
 
         if (page) {
@@ -105,6 +129,7 @@ export function usePlaygroundContent({
             content: mdContent,
             updatedAt: Date.now(),
           });
+          console.info(`[usePlaygroundContent] seed savePage(${pageId}) settled at ${elapsed()}ms`);
           if (cancelled) return;
         }
       } catch {
@@ -113,12 +138,13 @@ export function usePlaygroundContent({
           setIsModified(false);
         }
       } finally {
+        clearTimeout(timer);
         if (!cancelled) setLoading(false);
       }
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [pageId, mdContent, category, name]);
 
   const onChange = useCallback(

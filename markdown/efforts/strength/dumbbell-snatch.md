@@ -6,7 +6,8 @@ aliases:
   - db snatch
   - dumbbell snatches
   - single-arm snatch
-met: 8.0
-discipline: strength
-intensityTier: high
+baseAttributes:
+  met: 8.0
+  discipline: strength
+  intensityTier: high
 ---

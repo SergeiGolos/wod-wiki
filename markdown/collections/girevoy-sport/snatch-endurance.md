@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - sport
+  - competition
+---
+
 ## Workout 3: Snatch Endurance
 
 **Category**: Girevoy Sport Training  

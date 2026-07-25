@@ -15,6 +15,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
 import { cn } from '@/lib/utils'
+import { parseFrontmatter, type ParsedFrontmatter } from '@/lib/frontmatter'
 
 // ── File-type helpers ─────────────────────────────────────────────────────────
 
@@ -37,22 +38,10 @@ function isExternalLink(href: string): boolean {
 
 // ── YAML frontmatter renderer ─────────────────────────────────────────────────
 
-/** Matches a leading --- ... --- block at the start of prose. */
-const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(\r?\n|$)/
-
-function parseYamlFields(raw: string): Record<string, string> {
-  const result: Record<string, string> = {}
-  for (const line of raw.split('\n')) {
-    const m = line.match(/^([a-zA-Z][\w-]*):\s*(.+)$/)
-    if (m) result[m[1]] = m[2].trim()
-  }
-  return result
-}
-
-function splitFrontmatter(prose: string): { fields: Record<string, string> | null; body: string } {
-  const m = prose.match(FRONTMATTER_RE)
-  if (!m) return { fields: null, body: prose }
-  return { fields: parseYamlFields(m[1]), body: prose.slice(m[0].length).trim() }
+function splitFrontmatter(prose: string): { fields: ParsedFrontmatter['meta'] | null; body: string } {
+  const { meta, body } = parseFrontmatter(prose)
+  if (Object.keys(meta).length === 0 && body === prose) return { fields: null, body: prose }
+  return { fields: meta, body: body.trim() }
 }
 
 // ── Custom component map ──────────────────────────────────────────────────────
@@ -307,7 +296,7 @@ const remarkPlugins = [remarkGfm]
 
 // ── FrontmatterCard — styled metadata block ───────────────────────────────────
 
-function FrontmatterCard({ fields }: { fields: Record<string, string> }) {
+function FrontmatterCard({ fields }: { fields: ParsedFrontmatter['meta'] }) {
   const entries = Object.entries(fields)
   if (entries.length === 0) return null
   return (
@@ -323,7 +312,7 @@ function FrontmatterCard({ fields }: { fields: Record<string, string> }) {
             <dt className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide min-w-[100px] shrink-0">
               {key}
             </dt>
-            <dd className="text-sm text-foreground break-words">{val}</dd>
+            <dd className="text-sm text-foreground break-words">{Array.isArray(val) ? val.join(', ') : String(val)}</dd>
           </div>
         ))}
       </dl>

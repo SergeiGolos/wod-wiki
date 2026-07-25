@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 6: Mobility and Flexibility Session
 
 **Category**: Steve Cotter Recovery  

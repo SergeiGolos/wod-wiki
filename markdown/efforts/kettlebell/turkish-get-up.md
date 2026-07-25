@@ -6,7 +6,8 @@ aliases:
   - tgu
   - turkish getup
   - get up
-met: 5.0
-discipline: kettlebell
-intensityTier: moderate
+baseAttributes:
+  met: 5.0
+  discipline: kettlebell
+  intensityTier: moderate
 ---

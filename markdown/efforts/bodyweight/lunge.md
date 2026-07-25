@@ -7,7 +7,8 @@ aliases:
   - walking lunge
   - reverse lunge
   - forward lunge
-met: 4.0
-discipline: bodyweight
-intensityTier: moderate
+baseAttributes:
+  met: 4.0
+  discipline: bodyweight
+  intensityTier: moderate
 ---

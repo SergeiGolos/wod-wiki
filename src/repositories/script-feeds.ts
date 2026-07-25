@@ -1,21 +1,13 @@
 /**
- * WOD Feeds — Reads the markdown/feeds/ directory structure to build
- * date-organised feed content at build time.
+ * WOD Feeds — public adapter over the script-groupings loader.
  *
- * Directory layout:
- *   markdown/feeds/{feed-slug}/README.md          → feed header + front matter
- *   markdown/feeds/{feed-slug}/YYYY-MM-DD/{file}.md → feed items (dated)
- *
- * Each feed has a name, readme, categories, and a flat list of items sorted
- * by date (most recent first). Each item carries the date it belongs to so
- * callers can group by date for calendar display.
+ * A feed is a Grouping whose items carry dates, from
+ * markdown/feeds/{feed-slug}/YYYY-MM-DD/{file}.md. Items are sorted by date
+ * descending (most recent first); feeds are sorted by name ascending.
+ * Results are memoised after first call (build-time data).
  */
 
-// Glob all markdown files inside markdown/feeds/
-const feedModules = import.meta.glob(
-  ['../../markdown/feeds/**/*.md'],
-  { query: '?raw', eager: true, import: 'default' },
-) as Record<string, string>;
+import { getGroupings } from './script-groupings';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -45,64 +37,10 @@ export interface ScriptFeed {
   items: ScriptFeedItem[];
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-/**
- * Parse YAML-style front matter categories (scalar or block array).
- *   category:
- *     - crossfit
- *     - conditioning
- */
-export function parseFrontmatterCategories(raw: string): string[] {
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!match) return [];
-
-  const lines = match[1].split('\n');
-  let inCategory = false;
-  const categories: string[] = [];
-
-  for (const line of lines) {
-    if (/^category\s*:/.test(line)) {
-      inCategory = true;
-      continue;
-    }
-    if (inCategory) {
-      const item = line.match(/^\s+-\s+(.+)$/);
-      if (item) {
-        categories.push(item[1].trim().toLowerCase());
-      } else if (/^\S/.test(line)) {
-        break;
-      }
-    }
-  }
-
-  return categories;
-}
-
-export function toDisplayName(slug: string): string {
-  return slug
-    .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-export function fileToDisplayName(filename: string): string {
-  const base = filename.replace(/\.md$/, '');
-  if (base.toUpperCase() === 'README') return 'Overview';
-  // Strip leading "day-01-" prefixes if present, then humanise
-  const cleaned = base.replace(/^day-\d+-/, '');
-  return cleaned
-    .split(/[-_]/)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-// ── Cache ──────────────────────────────────────────────────────────────────
-
-let _feeds: ScriptFeed[] | null = null;
-
 // ── Public API ─────────────────────────────────────────────────────────────
+
+/** Cached result */
+let _feeds: ScriptFeed[] | null = null;
 
 /**
  * Get all WOD feeds derived from markdown/feeds/ subdirectories.
@@ -111,57 +49,22 @@ let _feeds: ScriptFeed[] | null = null;
 export function getScriptFeeds(): ScriptFeed[] {
   if (_feeds) return _feeds;
 
-  const feedMap = new Map<string, {
-    name: string;
-    readme?: string;
-    categories: string[];
-    items: ScriptFeedItem[];
-  }>();
-
-  const ensureFeed = (id: string) => {
-    if (!feedMap.has(id)) {
-      feedMap.set(id, { name: toDisplayName(id), categories: [], items: [] });
-    }
-    return feedMap.get(id)!;
-  };
-
-  for (const [path, content] of Object.entries(feedModules)) {
-    // README at feed root: …/feeds/{slug}/README.md
-    const readmeMatch = path.match(/\/markdown\/feeds\/([^/]+)\/README\.md$/i);
-    if (readmeMatch) {
-      const [, slug] = readmeMatch;
-      const feed = ensureFeed(slug);
-      feed.readme = content;
-      feed.categories = parseFrontmatterCategories(content);
-      continue;
-    }
-
-    // Dated item: …/feeds/{slug}/YYYY-MM-DD/{file}.md
-    const itemMatch = path.match(/\/markdown\/feeds\/([^/]+)\/(\d{4}-\d{2}-\d{2})\/([^/]+\.md)$/);
-    if (itemMatch) {
-      const [, slug, dateKey, fileName] = itemMatch;
-      const feed = ensureFeed(slug);
-      feed.items.push({
-        id: fileName.replace(/\.md$/, ''),
-        name: fileToDisplayName(fileName),
-        content,
-        feedDate: dateKey,
-        path,
-      });
-      continue;
-    }
-    // Other files (nested without date, etc.) are intentionally ignored.
-  }
-
-  _feeds = Array.from(feedMap.entries())
-    .filter(([, { items, readme }]) => items.length > 0 || readme)
-    .map(([id, { name, readme, categories, items }]) => ({
-      id,
-      name,
-      readme,
-      categories,
-      // Most recent dates first
-      items: items.sort((a, b) => b.feedDate.localeCompare(a.feedDate)),
+  _feeds = getGroupings('feeds')
+    .map(grouping => ({
+      id: grouping.id,
+      name: grouping.name,
+      readme: grouping.readme,
+      categories: grouping.categories,
+      items: grouping.items
+        .map(({ id, name, content, path, date }) => ({
+          id,
+          name,
+          content,
+          feedDate: date ?? '',
+          path,
+        }))
+        // Most recent dates first
+        .sort((a, b) => b.feedDate.localeCompare(a.feedDate)),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 

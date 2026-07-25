@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - cardio
+---
+
 ## Workout 3: The Kettlebell Fitness Test
 
 **Category**: Keith Weber Assessment  

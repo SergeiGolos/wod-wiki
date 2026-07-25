@@ -1,3 +1,10 @@
+---
+tags:
+  - crossfit
+  - conditioning
+  - strength
+---
+
 # Wednesday Conditioning
 
 AMRAP with a twist — score is rounds + reps.

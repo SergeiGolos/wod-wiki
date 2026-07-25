@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - sport
+---
+
 ## Workout 5: Fundamentals Program
 
 **Category**: Joe Daniels Beginner  

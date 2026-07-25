@@ -6,7 +6,8 @@ aliases:
   - sprint
   - all-out run
   - max speed run
-met: 14.5
-discipline: running
-intensityTier: high
+baseAttributes:
+  met: 14.5
+  discipline: running
+  intensityTier: high
 ---

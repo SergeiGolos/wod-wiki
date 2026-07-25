@@ -6,7 +6,8 @@ aliases:
   - squat
   - barbell squat
   - bs
-met: 6.0
-discipline: strength
-intensityTier: moderate
+baseAttributes:
+  met: 6.0
+  discipline: strength
+  intensityTier: moderate
 ---

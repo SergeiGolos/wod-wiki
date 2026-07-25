@@ -7,10 +7,12 @@
  * controls that write back to the underlying YAML/frontmatter source.
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import type { EditorView } from "@codemirror/view";
+import { EditorState } from "@codemirror/state";
+import { Plus, X } from "lucide-react";
 import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
-import { parseFlatProperties, extractYouTubeVideoId } from "@/lib/frontmatter";
+import { parseFlatProperties, parseFrontmatterBody, serializeFrontmatter, extractYouTubeVideoId, type ParsedFrontmatter } from "@/lib/frontmatter";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/atoms/primitives/label";
 
@@ -78,15 +80,12 @@ function detectSubtype(props: Record<string, string>): FrontmatterSubtype {
   if (/amazon\.com|amzn\.to/i.test(url)) return "amazon";
   if (/strava\.com/i.test(url)) return "strava";
 
-  // Effort frontmatter uses a predictable metadata envelope. We support both
-  // canonical nested docs (baseAttributes / registrySource) and the legacy flat
-  // effort files (met / discipline / intensityTier at root).
+  // Effort frontmatter uses a predictable metadata envelope. Only the
+  // canonical nested doc (baseAttributes / registrySource) is detected —
+  // bundled files and user docs all use the nested shape.
   if (
     props.registrySource !== undefined ||
-    props.baseAttributes !== undefined ||
-    props.met !== undefined ||
-    props.discipline !== undefined ||
-    props.intensityTier !== undefined
+    props.baseAttributes !== undefined
   ) {
     return "effort";
   }
@@ -145,15 +144,6 @@ function parseEffortFrontmatter(innerContent: string): EffortFrontmatterData {
           break;
         case "aliases":
           if (value === "[]") data.aliases = [];
-          break;
-        case "met":
-          data.met = value;
-          break;
-        case "discipline":
-          data.discipline = value;
-          break;
-        case "intensityTier":
-          data.intensityTier = value;
           break;
         case "registrySource":
           data.registrySource = value;
@@ -478,6 +468,358 @@ const Field: React.FC<{
   </label>
 );
 
+// ── Generic property form (default subtype) ──────────────────────────
+
+type PropertyValue = string | number | string[];
+type PropertyType = "text" | "number" | "list";
+
+/** Top-level YAML keys the parser recognizes — same shape as `parseFrontmatter`. */
+const PROPERTY_KEY_RE = /^[A-Za-z][\w.-]*$/;
+
+function propertyTypeOf(value: PropertyValue): PropertyType {
+  return Array.isArray(value) ? "list" : typeof value === "number" ? "number" : "text";
+}
+
+/** Convert a value between editor types; null = refused (would destroy data). */
+function convertProperty(value: PropertyValue, next: PropertyType): PropertyValue | null {
+  if (propertyTypeOf(value) === next) return null;
+  if (next === "list") {
+    const scalar = Array.isArray(value) ? value.join(", ") : String(value).trim();
+    return scalar === "" ? [] : [scalar];
+  }
+  const scalar = Array.isArray(value) ? value[0] ?? "" : String(value);
+  if (next === "number") {
+    const num = Number(scalar);
+    return scalar.trim() !== "" && !isNaN(num) ? num : null;
+  }
+  return Array.isArray(value) ? value.join(", ") : String(value);
+}
+
+const propertyInputClass =
+  "h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary";
+
+const DefaultFrontmatterForm: React.FC<{
+  section: EditorSection;
+  view: EditorView;
+  isActive: boolean;
+  widthPercent: number;
+  rawContent: string;
+}> = ({ section, view, isActive, widthPercent, rawContent }) => {
+  const entries = useMemo<Array<[string, PropertyValue]>>(
+    () => Object.entries(parseFrontmatterBody(rawContent)),
+    [rawContent],
+  );
+  const readOnly = view.state.facet(EditorState.readOnly);
+  const compact = !isActive || widthPercent < 24;
+
+  // In-progress edits that are not yet committable (invalid key, partial
+  // number, chip text). Keyed by row index; cleared on blur or on commit.
+  const [keyDrafts, setKeyDrafts] = useState<Record<number, string>>({});
+  const [numDrafts, setNumDrafts] = useState<Record<number, string>>({});
+  const [chipDrafts, setChipDrafts] = useState<Record<number, string>>({});
+  const [adding, setAdding] = useState<{ key: string; value: string; type: PropertyType } | null>(null);
+  // Live mirror of `adding` — deferred blur commits and Enter may race, and
+  // a stale closure must never re-commit after the row has been consumed.
+  const addingRef = useRef<{ key: string; value: string; type: PropertyType } | null>(null);
+  const updateAdding = useCallback((next: { key: string; value: string; type: PropertyType } | null) => {
+    addingRef.current = next;
+    setAdding(next);
+  }, []);
+
+  const commit = useCallback(
+    (nextEntries: Array<[string, PropertyValue]>) => {
+      const next: ParsedFrontmatter["meta"] = {};
+      for (const [k, v] of nextEntries) next[k] = v;
+      replaceFrontmatterContent(view, section, serializeFrontmatter(next));
+    },
+    [view, section],
+  );
+
+  const patchEntry = useCallback(
+    (index: number, key: string, value: PropertyValue) => {
+      commit(entries.map(([k, v], i) => (i === index ? [key, value] : [k, v])));
+    },
+    [commit, entries],
+  );
+
+  const dropDraft = useCallback(
+    (setter: React.Dispatch<React.SetStateAction<Record<number, string>>>, index: number) => {
+      setter((drafts) => {
+        if (!(index in drafts)) return drafts;
+        const next = { ...drafts };
+        delete next[index];
+        return next;
+      });
+    },
+    [],
+  );
+
+  const keyIsTaken = useCallback(
+    (candidate: string, index: number) => entries.some(([k], i) => i !== index && k === candidate),
+    [entries],
+  );
+
+  const commitNewProperty = useCallback(() => {
+    const draft = addingRef.current;
+    if (!draft) return;
+    updateAdding(null); // consume first — any racing deferred commit no-ops
+    const key = draft.key.trim();
+    if (PROPERTY_KEY_RE.test(key) && !keyIsTaken(key, -1)) {
+      const trimmed = draft.value.trim();
+      let value: PropertyValue = draft.value;
+      if (draft.type === "number") {
+        value = trimmed !== "" && !isNaN(Number(trimmed)) ? Number(trimmed) : "";
+      } else if (draft.type === "list") {
+        value = trimmed === "" ? [] : [trimmed];
+      }
+      commit([...entries, [key, value]]);
+    }
+  }, [updateAdding, commit, entries, keyIsTaken]);
+
+  return (
+    <div className={cn("h-full w-full overflow-auto rounded-l-md border-l border-border bg-popover/95 text-foreground shadow-sm", compact ? "p-2" : "p-3")}>
+      <div className="sticky top-0 z-10 -mx-2 -mt-2 mb-3 border-b border-border bg-popover/95 px-2 py-2 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+            Properties
+          </span>
+          <span className="truncate text-sm font-medium">
+            {entries.length === 0 ? "No fields" : `${entries.length} ${entries.length === 1 ? "field" : "fields"}`}
+          </span>
+        </div>
+      </div>
+
+      {compact || readOnly ? (
+        <div className="space-y-2 text-xs">
+          <div className="space-y-1 rounded-md border border-border/70 bg-background/70 p-2">
+            {entries.slice(0, 3).map(([key, value]) => (
+              <div key={key} className="flex gap-2">
+                <span className="shrink-0 font-medium text-foreground">{key}:</span>
+                <span className="truncate text-muted-foreground">
+                  {Array.isArray(value) ? value.join(", ") : String(value)}
+                </span>
+              </div>
+            ))}
+            {entries.length > 3 && (
+              <div className="text-muted-foreground">+{entries.length - 3} more</div>
+            )}
+            {entries.length === 0 && (
+              <div className="text-muted-foreground">No properties yet.</div>
+            )}
+          </div>
+          {!readOnly && (
+            <div className="rounded-md border border-border/70 bg-background/70 p-2 text-[11px] text-muted-foreground">
+              Focus the block to edit properties.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {entries.map(([key, value], index) => {
+            const type = propertyTypeOf(value);
+            const keyDraft = keyDrafts[index];
+            const keyInvalid = keyDraft !== undefined && (!PROPERTY_KEY_RE.test(keyDraft) || keyIsTaken(keyDraft, index));
+            return (
+              <div key={index} className="flex items-start gap-1.5">
+                <input
+                  aria-label="Property name"
+                  className={cn(
+                    "h-9 w-[110px] shrink-0 rounded-md border bg-background px-2 font-mono text-xs outline-none ring-0 transition",
+                    keyInvalid ? "border-destructive" : "border-input focus:border-primary",
+                  )}
+                  value={keyDraft ?? key}
+                  spellCheck={false}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (PROPERTY_KEY_RE.test(next) && !keyIsTaken(next, index)) {
+                      dropDraft(setKeyDrafts, index);
+                      patchEntry(index, next, value);
+                    } else {
+                      setKeyDrafts((drafts) => ({ ...drafts, [index]: next }));
+                    }
+                  }}
+                  onBlur={() => dropDraft(setKeyDrafts, index)}
+                />
+
+                <div className="min-w-0 flex-1">
+                  {type === "list" ? (
+                    <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-2 py-1.5 transition focus-within:border-primary">
+                      {(value as string[]).map((item, itemIndex) => (
+                        <span key={itemIndex} className="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs">
+                          {item}
+                          <button
+                            type="button"
+                            aria-label={`Remove ${item}`}
+                            className="text-muted-foreground/70 transition hover:text-foreground"
+                            onClick={() => {
+                              const next = (value as string[]).filter((_, j) => j !== itemIndex);
+                              patchEntry(index, key, next.length > 0 ? next : "");
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                      <input
+                        aria-label={`Add to ${key}`}
+                        className="min-w-[72px] flex-1 bg-transparent text-xs outline-none"
+                        placeholder="Add item…"
+                        value={chipDrafts[index] ?? ""}
+                        onChange={(e) => setChipDrafts((drafts) => ({ ...drafts, [index]: e.target.value }))}
+                        onKeyDown={(e) => {
+                          const draft = (chipDrafts[index] ?? "").trim();
+                          if ((e.key === "Enter" || e.key === ",") && draft) {
+                            e.preventDefault();
+                            dropDraft(setChipDrafts, index);
+                            patchEntry(index, key, [...(value as string[]), draft]);
+                          } else if (e.key === "Backspace" && !draft && (value as string[]).length > 0) {
+                            const list = value as string[];
+                            patchEntry(index, key, list.length > 1 ? list.slice(0, -1) : "");
+                          }
+                        }}
+                        onBlur={() => {
+                          const draft = (chipDrafts[index] ?? "").trim();
+                          dropDraft(setChipDrafts, index);
+                          if (draft) patchEntry(index, key, [...(value as string[]), draft]);
+                        }}
+                      />
+                    </div>
+                  ) : type === "number" ? (
+                    <input
+                      aria-label={key}
+                      type="number"
+                      inputMode="decimal"
+                      className={propertyInputClass}
+                      value={numDrafts[index] ?? String(value)}
+                      onChange={(e) => {
+                        const draft = e.target.value;
+                        setNumDrafts((drafts) => ({ ...drafts, [index]: draft }));
+                        const trimmed = draft.trim();
+                        if (trimmed !== "" && !isNaN(Number(trimmed))) {
+                          patchEntry(index, key, Number(trimmed));
+                        }
+                      }}
+                      onBlur={(e) => {
+                        dropDraft(setNumDrafts, index);
+                        if (e.target.value.trim() === "") patchEntry(index, key, "");
+                      }}
+                    />
+                  ) : (
+                    <input
+                      aria-label={key}
+                      className={propertyInputClass}
+                      value={String(value)}
+                      spellCheck={false}
+                      onChange={(e) => patchEntry(index, key, e.target.value)}
+                    />
+                  )}
+                </div>
+
+                <select
+                  aria-label={`Type for ${key}`}
+                  className="h-9 w-[78px] shrink-0 rounded-md border border-input bg-background px-1.5 text-[11px] text-muted-foreground outline-none ring-0 transition focus:border-primary"
+                  value={type}
+                  onChange={(e) => {
+                    const converted = convertProperty(value, e.target.value as PropertyType);
+                    if (converted !== null) patchEntry(index, key, converted);
+                  }}
+                >
+                  <option value="text">Text</option>
+                  <option value="number">Number</option>
+                  <option value="list">List</option>
+                </select>
+
+                <button
+                  type="button"
+                  aria-label={`Remove ${key}`}
+                  className="mt-2 shrink-0 rounded p-1 text-muted-foreground/60 transition hover:bg-muted hover:text-foreground"
+                  onClick={() => commit(entries.filter((_, i) => i !== index))}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            );
+          })}
+
+          {adding ? (
+            <div
+              className="flex items-start gap-1.5"
+              onBlur={(e) => {
+                // Commit only when focus leaves the whole row. relatedTarget
+                // is unreliable (null for mouse-driven focus moves in some
+                // browsers), so defer and check where focus actually landed.
+                const row = e.currentTarget;
+                setTimeout(() => {
+                  if (!row.isConnected) return;
+                  if (!row.contains(document.activeElement)) commitNewProperty();
+                }, 0);
+              }}
+            >
+              <input
+                aria-label="New property name"
+                autoFocus
+                className={cn(
+                  "h-9 w-[110px] shrink-0 rounded-md border bg-background px-2 font-mono text-xs outline-none ring-0 transition",
+                  adding.key && (!PROPERTY_KEY_RE.test(adding.key.trim()) || keyIsTaken(adding.key.trim(), -1))
+                    ? "border-destructive"
+                    : "border-input focus:border-primary",
+                )}
+                placeholder="key"
+                value={adding.key}
+                spellCheck={false}
+                onChange={(e) => updateAdding({ ...adding, key: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitNewProperty();
+                  if (e.key === "Escape") updateAdding(null);
+                }}
+              />
+              <input
+                aria-label="New property value"
+                className={cn(propertyInputClass, "min-w-0 flex-1")}
+                placeholder="value"
+                value={adding.value}
+                spellCheck={false}
+                onChange={(e) => updateAdding({ ...adding, value: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitNewProperty();
+                  if (e.key === "Escape") updateAdding(null);
+                }}
+              />
+              <select
+                aria-label="New property type"
+                className="h-9 w-[78px] shrink-0 rounded-md border border-input bg-background px-1.5 text-[11px] text-muted-foreground outline-none ring-0 transition focus:border-primary"
+                value={adding.type}
+                onChange={(e) => updateAdding({ ...adding, type: e.target.value as PropertyType })}
+              >
+                <option value="text">Text</option>
+                <option value="number">Number</option>
+                <option value="list">List</option>
+              </select>
+              <button
+                type="button"
+                aria-label="Cancel new property"
+                className="mt-2 shrink-0 rounded p-1 text-muted-foreground/60 transition hover:bg-muted hover:text-foreground"
+                onClick={() => updateAdding(null)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border/70 text-[11px] font-medium text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
+              onClick={() => updateAdding({ key: "", value: "", type: "text" })}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add property
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Link sub-component ───────────────────────────────────────────────
 
 const LinkFrontmatterCompanion: React.FC<{
@@ -599,19 +941,15 @@ export const FrontmatterCompanion: React.FC<FrontmatterCompanionProps> = ({
     }
   }
 
-  // Default: show a simple properties summary
+  // Default: structured property editor for generic frontmatter
   return (
-    <div className="h-full w-full flex flex-col bg-popover/90 backdrop-blur-sm border-l border-border p-3 overflow-auto">
-      <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-        Frontmatter
-      </div>
-      {Object.entries(props).map(([key, val]) => (
-        <div key={key} className="text-xs mb-1">
-          <span className="font-medium text-foreground">{key}:</span>{" "}
-          <span className="text-muted-foreground">{val}</span>
-        </div>
-      ))}
-    </div>
+    <DefaultFrontmatterForm
+      section={section}
+      view={view}
+      isActive={isActive}
+      widthPercent={widthPercent}
+      rawContent={rawContent}
+    />
   );
 };
 

@@ -1,4 +1,4 @@
-import { stripFrontmatter } from '@/utils/frontmatter'
+import { stripFrontmatter } from '@/lib/frontmatter'
 import type { CanvasSection } from './parseCanvasMarkdown'
 
 export const STICKY_NAV_HEIGHT = 104

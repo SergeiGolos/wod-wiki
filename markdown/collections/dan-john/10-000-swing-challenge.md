@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 1: 10,000 Swing Challenge
 
 **Category**: Dan John Signature Program  

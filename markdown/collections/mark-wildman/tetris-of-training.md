@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - clubs
+  - strength
+---
+
 ## Workout 6: Tetris of Training (Program Design)
 
 **Category**: Mark Wildman Programming  

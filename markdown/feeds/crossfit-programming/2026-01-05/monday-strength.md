@@ -1,3 +1,10 @@
+---
+tags:
+  - crossfit
+  - conditioning
+  - strength
+---
+
 # Monday Strength
 
 Back squat cycle — week 5. Deload week: lower volume, maintain intensity.

@@ -135,19 +135,23 @@ describe('JournalListPage — view-mode windowing', () => {
     document.body.innerHTML = ''
   })
 
-  it("mode='all': window spans past + today + future planning window (default)", async () => {
+  it("mode='all': today first, then history descending (no future plan window)", async () => {
     const { JournalListPage } = await pageModule
     render(<JournalListPage onSelect={() => {}} />)
 
     await waitFor(() => expect(capturedFeedProps).toBeTruthy())
 
-    // Past (history) dates appear
-    expect(capturedFeedProps!.dateKeys).toContain(TODAY)
-    expect(capturedFeedProps!.dateKeys).toContain(PAST_DATE)
+    // Today leads the feed — landing on /journal shows today first,
+    // then history (newest → oldest)
+    expect(capturedFeedProps!.dateKeys[0]).toBe(TODAY)
 
-    // Future dates appear (default 14-day horizon)
+    // Past (history) dates appear after today
+    expect(capturedFeedProps!.dateKeys).toContain(PAST_DATE)
+    expect(capturedFeedProps!.dateKeys.indexOf(PAST_DATE)).toBeGreaterThan(0)
+
+    // Future plan dates are NOT part of the default view — they live in plan mode
     const futureDay = dayOffset(7)
-    expect(capturedFeedProps!.dateKeys).toContain(futureDay)
+    expect(capturedFeedProps!.dateKeys).not.toContain(futureDay)
 
     // Past-results overlay still rendered in 'all' mode
     expect(capturedFeedProps!.visibleItemsCount).toBeGreaterThan(0)

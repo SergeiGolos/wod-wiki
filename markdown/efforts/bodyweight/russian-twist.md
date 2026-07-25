@@ -5,7 +5,8 @@ label: Russian Twist
 aliases:
   - twist
   - russian twists
-met: 3.5
-discipline: bodyweight
-intensityTier: low
+baseAttributes:
+  met: 3.5
+  discipline: bodyweight
+  intensityTier: low
 ---

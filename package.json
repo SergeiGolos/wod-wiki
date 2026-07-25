@@ -48,8 +48,8 @@
     "build:lib": "vite build",
     "build:app": "bun x vite build --config playground/vite.config.ts",
     "build-playground": "bun x vite build --config playground/vite.config.ts",
-    "preview:app": "bun x vite preview --config playground/vite.config.ts",
-    "playground": "bun --bun x vite --config playground/vite.config.ts",
+    "preview:app": "node node_modules/vite/bin/vite.js preview --config playground/vite.config.ts",
+    "playground": "node node_modules/vite/bin/vite.js --config playground/vite.config.ts",
     "build": "bun run build-storybook",
     "storybook": "node scripts/storybook-start.mjs",
     "storybook:debug": "set NODE_OPTIONS=--inspect=9229 && bun x storybook dev -p 6006",
@@ -68,7 +68,7 @@
     "dev": "bun scripts/dev-start.cjs",
     "dev:web": "bun scripts/dev-start.cjs --web-only --no-emulator",
     "dev:all": "bun scripts/dev-start.cjs",
-    "dev:app": "bun x vite --config playground/vite.config.ts"
+    "dev:app": "node node_modules/vite/bin/vite.js --config playground/vite.config.ts"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",

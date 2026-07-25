@@ -7,7 +7,8 @@ aliases:
   - stroll
   - easy walk
   - brisk walk
-met: 2.8
-discipline: walking
-intensityTier: low
+baseAttributes:
+  met: 2.8
+  discipline: walking
+  intensityTier: low
 ---

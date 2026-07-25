@@ -26,8 +26,6 @@ vi.mock('../../../hooks/useJournalQueryState', () => ({
     setSelectedDate: vi.fn(),
     dateParam: null,
     selectedTags: [],
-    mode: 'all',
-    setMode: vi.fn(),
     toggleTag: vi.fn(),
   })),
 }));
@@ -125,8 +123,6 @@ describe('JournalNavPanel', () => {
         setSelectedDate: vi.fn(),
         dateParam: null,
         selectedTags: ['strength', 'cardio'],
-        mode: 'all',
-        setMode: vi.fn(),
         toggleTag: vi.fn(),
       });
 
@@ -154,8 +150,6 @@ describe('JournalNavPanel', () => {
         setSelectedDate: vi.fn(),
         dateParam: '2026-05-12',
         selectedTags: [],
-        mode: 'all',
-        setMode: vi.fn(),
         toggleTag: vi.fn(),
       });
 
@@ -209,8 +203,6 @@ describe('JournalNavPanel', () => {
         setSelectedDate: vi.fn(),
         dateParam: '2026-05-12',
         selectedTags: [],
-        mode: 'all',
-        setMode: vi.fn(),
         toggleTag: vi.fn(),
       });
 
@@ -238,8 +230,6 @@ describe('JournalNavPanel', () => {
         setSelectedDate: mockSetSelectedDate,
         dateParam: '2026-05-12',
         selectedTags: [],
-        mode: 'all',
-        setMode: vi.fn(),
         toggleTag: vi.fn(),
       });
 
@@ -334,8 +324,6 @@ describe('JournalNavPanel', () => {
         setSelectedDate: mockSetSelectedDate,
         dateParam: '2026-05-12',
         selectedTags: [],
-        mode: 'all',
-        setMode: vi.fn(),
         toggleTag: vi.fn(),
       });
 
@@ -364,8 +352,6 @@ describe('JournalNavPanel', () => {
         setSelectedDate: mockSetSelectedDate,
         dateParam: '2026-05-12',
         selectedTags: [],
-        mode: 'all',
-        setMode: vi.fn(),
         toggleTag: vi.fn(),
       });
 
@@ -437,8 +423,6 @@ describe('JournalNavPanel', () => {
         setSelectedDate: vi.fn(),
         dateParam: null,
         selectedTags: ['strength'],
-        mode: 'all',
-        setMode: vi.fn(),
         toggleTag: vi.fn(),
       });
 
@@ -527,8 +511,6 @@ describe('JournalNavPanel', () => {
         setSelectedDate: vi.fn(),
         dateParam: null,
         selectedTags: [],
-        mode: 'all',
-        setMode: vi.fn(),
         toggleTag: vi.fn(),
       });
 

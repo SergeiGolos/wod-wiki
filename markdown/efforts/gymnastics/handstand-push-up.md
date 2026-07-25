@@ -6,7 +6,8 @@ aliases:
   - hspu
   - handstand pushup
   - wall walk hspu
-met: 6.0
-discipline: gymnastics
-intensityTier: high
+baseAttributes:
+  met: 6.0
+  discipline: gymnastics
+  intensityTier: high
 ---

@@ -7,7 +7,8 @@ aliases:
   - muscle up
   - ring muscle-up
   - bar muscle-up
-met: 8.0
-discipline: gymnastics
-intensityTier: high
+baseAttributes:
+  met: 8.0
+  discipline: gymnastics
+  intensityTier: high
 ---

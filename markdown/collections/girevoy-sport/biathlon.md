@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - sport
+  - competition
+---
+
 ## Workout 1: Biathlon (Jerk + Snatch)
 
 **Category**: Girevoy Sport Competition  

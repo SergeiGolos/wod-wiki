@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 2: Intermediate Strength Program
 
 **Category**: Steve Cotter Intermediate  

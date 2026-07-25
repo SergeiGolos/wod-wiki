@@ -3,6 +3,7 @@ import { useQueryState } from 'nuqs';
 import { ChevronRightIcon, DumbbellIcon } from 'lucide-react';
 import type { WorkoutItem } from '../../App';
 import { cn } from '@/lib/utils';
+import { stripFrontmatter } from '@/lib/frontmatter';
 import {
   TextFilterStrip,
   TEXT_FILTER_NAVIGATION_EVENT,
@@ -29,8 +30,7 @@ interface CollectionWorkoutsListProps {
 function getWorkoutPreview(content?: string): string | null {
   if (!content) return null;
 
-  const stripped = content
-    .replace(/^---[\s\S]*?---\s*/m, '')
+  const stripped = stripFrontmatter(content)
     .split('\n')
     .map(line => line.trim())
     .filter(line => line.length > 0 && !line.startsWith('#') && !line.startsWith('```'));

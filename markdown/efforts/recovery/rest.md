@@ -6,7 +6,8 @@ aliases:
   - recovery
   - break
   - pause
-met: 1.0
-discipline: recovery
-intensityTier: low
+baseAttributes:
+  met: 1.0
+  discipline: recovery
+  intensityTier: low
 ---

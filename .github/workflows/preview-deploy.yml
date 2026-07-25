@@ -55,6 +55,19 @@ jobs:
           VITE_BASE_PATH="/${{ steps.slug.outputs.slug }}/dist/" \
             bun x vite build --config vite.receiver.config.ts
 
+      # Storybook build for {slug}.story.wod.wiki — default basePath=/ works
+      # because the CF host-header function injects the /<slug>/storybook/ S3
+      # prefix under the hood, so no base path config is needed at build time.
+      - name: Build Storybook
+        run: bun run build-storybook
+
+      - name: Persist Storybook artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-storybook-${{ github.event.pull_request.number }}
+          path: storybook-static/
+          retention-days: 1
+
       - name: Persist build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -88,6 +101,13 @@ jobs:
         with:
           name: preview-build-${{ github.event.pull_request.number }}
           path: ./dist/
+      - name: Download Storybook artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: preview-storybook-${{ github.event.pull_request.number }}
+          path: ./storybook-static/
+          if-no-files-found: error
+
 
       - name: Deploy to S3
         run: |
@@ -102,6 +122,19 @@ jobs:
             --exclude "*.map" \
             2>&1
           echo "s3_prefix=$PREFIX" >> $GITHUB_OUTPUT
+      - name: Deploy Storybook to S3
+        run: |
+          set -euo pipefail
+          # Sync to s3://<bucket>/<slug>/storybook/ — the CF host-header
+          # function routes {slug}.story.wod.wiki/* to this prefix.
+          PREFIX="${{ needs.build.outputs.branch-slug }}/storybook/"
+          echo "Uploading Storybook to s3://$S3_BUCKET/$PREFIX"
+          aws s3 sync ./storybook-static/ "s3://$S3_BUCKET/$PREFIX" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate" \
+            --exclude "*.map" \
+            2>&1
+
 
       - name: Create CloudFront cache invalidation (best-effort)
         # CloudFront invalidation is non-critical: S3 sync already deployed the new
@@ -159,9 +192,11 @@ jobs:
           script: |
             const slug = process.env.BRANCH_SLUG;
             const pr = process.env.PR_NUMBER;
-            // Preview is at: https://{branch-slug}.preview.wod.wiki
+            // Subdomains: {slug}.preview.wod.wiki (playground),
+            // {slug}.story.wod.wiki (storybook), {slug}.e2e.wod.wiki (E2E report).
             const previewUrl = `https://${slug}.preview.wod.wiki`;
-            const reportUrl = `${previewUrl}/e2e-report/index.html`;
+            const storybookUrl = `https://${slug}.story.wod.wiki`;
+            const e2eUrl = `https://${slug}.e2e.wod.wiki`;
             const e2eOutcome = process.env.E2E_OUTCOME || 'unknown';
             const e2eIcon = e2eOutcome === 'success' ? '✅' : '❌';
             const e2eTests = process.env.E2E_TESTS || 'n/a';
@@ -173,8 +208,9 @@ jobs:
               `| --- | --- |\n` +
               `| PR | #${pr} |\n` +
               `| Branch | \`${slug}\` |\n` +
-              `| Preview URL | [${previewUrl}](${previewUrl}) |\n` +
-              `| E2E | ${e2eIcon} ${e2eTests} tests, ${e2eFailures} failures — [report](${reportUrl}) |\n\n` +
+              `| Preview | [${previewUrl}](${previewUrl}) |\n` +
+              `| Storybook | [${storybookUrl}](${storybookUrl}) |\n` +
+              `| E2E | ${e2eIcon} ${e2eTests} tests, ${e2eFailures} failures — [report](${e2eUrl}) |\n\n` +
               `> Build and deploy powered by AWS S3 + CloudFront. ` +
               `Destroyed automatically when this PR is closed or merged.`;
 

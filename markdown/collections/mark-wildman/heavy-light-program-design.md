@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - clubs
+  - strength
+---
+
 ## Workout 2: Heavy/Light Program Design
 
 **Category**: Mark Wildman Programming System  

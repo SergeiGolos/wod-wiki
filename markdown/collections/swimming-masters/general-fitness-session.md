@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # General Fitness Session
 
 **Type**: Balanced Fitness  

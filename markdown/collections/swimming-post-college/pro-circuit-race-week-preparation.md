@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Pro Circuit Race Week Preparation
 
 **Type**: Competition Sharpening  

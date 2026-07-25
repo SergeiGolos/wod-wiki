@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 1: Kettlebell Training - Beginner Program
 
 **Category**: Steve Cotter Beginner  

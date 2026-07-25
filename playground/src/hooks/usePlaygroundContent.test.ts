@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock } from 'bun:test';
+import { afterEach, describe, expect, it, mock, vi } from 'bun:test';
 import { act, renderHook, waitFor } from '@testing-library/react';
 
 interface SavedPage {
@@ -11,11 +11,13 @@ interface SavedPage {
 
 const savedPages: SavedPage[] = [];
 const existingPages = new Map<string, SavedPage>();
+let getPageOverride: (() => Promise<SavedPage | undefined>) | null = null;
 
 mock.module('../services/playgroundContent', () => ({
   pageId: (category: string, name: string) => `${category}/${name}`,
   playgroundContent: {
-    getPage: async (id: string) => existingPages.get(id),
+    getPage: async (id: string) =>
+      getPageOverride ? getPageOverride() : existingPages.get(id),
     savePage: async (page: SavedPage) => {
       savedPages.push(page);
       return page.id;
@@ -28,6 +30,8 @@ const originalDateNow = Date.now;
 
 afterEach(() => {
   Date.now = originalDateNow;
+  vi.useRealTimers();
+  getPageOverride = null;
   savedPages.length = 0;
   existingPages.clear();
 });
@@ -71,5 +75,32 @@ describe('usePlaygroundContent', () => {
       content: 'edited immediately before navigation',
       updatedAt: 1_714_476_000_000,
     });
+  });
+
+  it('falls back to bundled content when the IndexedDB load never settles', async () => {
+    // Simulates a permanently blocked IndexedDB open (e.g. a stale tab holding
+    // the DB during a schema upgrade): the promise never resolves, and the
+    // page must not spin "Loading…" forever.
+    getPageOverride = () => new Promise<SavedPage | undefined>(() => {});
+    const { usePlaygroundContent, LOAD_TIMEOUT_MS } = await hookModule;
+
+    vi.useFakeTimers();
+    const { result } = renderHook(() =>
+      usePlaygroundContent({
+        category: 'girls',
+        name: 'ghost',
+        mdContent: 'bundled md',
+      }),
+    );
+    expect(result.current.loading).toBe(true);
+
+    act(() => {
+      vi.advanceTimersByTime(LOAD_TIMEOUT_MS);
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.content).toBe('bundled md');
+    // No seed write — the cancelled load must not persist the fallback.
+    expect(savedPages).toHaveLength(0);
   });
 });

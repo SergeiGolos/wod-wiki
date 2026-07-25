@@ -1,158 +1,426 @@
 /**
- * Effort Markdown Repository — Reads the markdown/efforts/ directory structure
- * to build bundled effort definitions from markdown files.
+ * Effort Markdown Repository — the single home of the effort-document format.
  *
- * Each markdown file contains YAML front matter with effort metadata:
- *   id, slug, label, aliases[], met, discipline, intensityTier
+ * An effort document is YAML frontmatter + a markdown body. The canonical
+ * shape is the nested form:
  *
- * Uses Vite's import.meta.glob feature to discover files at build time.
+ *   ---
+ *   id: effort-bundled-air-squat
+ *   slug: air-squat
+ *   label: Air Squat
+ *   aliases:
+ *     - air squat
+ *   baseAttributes:
+ *     met: 5.5
+ *     discipline: bodyweight
+ *     intensityTier: moderate
+ *   ---
+ *
+ * This module owns both directions:
+ *   - `effortToDocument` / `documentToEffort` — serialize/parse user and
+ *     bundled effort documents (round-trip safe).
+ *   - `getBundledEfforts` / `getBundledEffortCount` / `getEffortMarkdown` —
+ *     the bundled markdown/efforts/ repository (Vite import.meta.glob).
  */
 
-import type { IEffort, IntensityTier } from '@/effort-registry/types';
+import { v4 as uuidv4 } from 'uuid';
+import { parseFrontmatter, getScalar, getList } from '@/lib/frontmatter';
+import type {
+  IEffort,
+  EffortBaseAttributes,
+  EffortDerivation,
+  EffortRegistrySource,
+  IntensityTier,
+} from '@/effort-registry/types';
 
-// Glob all markdown files inside markdown/efforts/ subdirectories
-// NOTE: import.meta.glob must be called directly (not conditionally) for Vite's
-// static transform to work. Unit tests mock this module in tests/unit-setup.ts.
-const effortModules = import.meta.glob('../../markdown/efforts/**/*.md', {
-  query: '?raw',
-  eager: true,
-  import: 'default',
-});
+/* ── YAML helpers ─────────────────────────────────────────────────── */
 
-/** Extract front matter block from raw markdown */
-function extractFrontmatter(raw: string): string {
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  return match ? match[1] : '';
+function quoteYaml(val: string): string {
+  if (!val) return '""';
+  if (/[:"'\n#{}[\],&*?|\-<>=%!@`]/.test(val) || val !== val.trim()) {
+    return `"${val.replace(/"/g, '\\"')}"`;
+  }
+  return val;
 }
 
-/** Extract body content after front matter */
-function extractBody(raw: string): string {
-  const match = raw.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?([\s\S]*)$/);
-  return match ? match[1].trim() : '';
+function unquoteYaml(val: string): string {
+  if (val.startsWith('"') && val.endsWith('"')) {
+    return val.slice(1, -1).replace(/\\"/g, '"');
+  }
+  if (val.startsWith("'") && val.endsWith("'")) {
+    return val.slice(1, -1).replace(/\\'/g, "'");
+  }
+  return val;
 }
 
-/** Parse scalar value from front matter line */
-function parseScalar(lines: string[], key: string): string | undefined {
-  const line = lines.find((l) => l.trim().startsWith(`${key}:`));
-  if (!line) return undefined;
-  const value = line.slice(line.indexOf(':') + 1).trim();
-  return value || undefined;
+function parseYamlScalar(val: string): unknown {
+  if (val === 'true') return true;
+  if (val === 'false') return false;
+  if (val === 'null' || val === '~') return null;
+  if (/^-?\d+$/.test(val)) return parseInt(val, 10);
+  if (/^-?\d+\.\d+$/.test(val)) return parseFloat(val);
+  try {
+    return JSON.parse(val);
+  } catch {
+    return unquoteYaml(val);
+  }
 }
 
-/** Parse string array from front matter (YAML list syntax) */
-function parseStringArray(lines: string[], key: string): string[] {
-  const result: string[] = [];
-  let inArray = false;
+/* ── Serialize ────────────────────────────────────────────────────── */
 
-  for (const line of lines) {
-    const trimmed = line.trimStart();
-    if (trimmed.startsWith(`${key}:`)) {
-      inArray = true;
-      continue;
+/**
+ * Convert an IEffort into a YAML-frontmatter markdown document.
+ */
+export function effortToDocument(effort: IEffort): string {
+  const lines: string[] = ['---'];
+
+  lines.push(`id: ${effort.id}`);
+  lines.push(`slug: ${effort.slug}`);
+  lines.push(`label: ${quoteYaml(effort.label)}`);
+
+  if (effort.aliases.length > 0) {
+    lines.push('aliases:');
+    for (const alias of effort.aliases) {
+      lines.push(`  - ${quoteYaml(alias)}`);
     }
-    if (inArray) {
-      const item = trimmed.match(/^-\s+(.+)$/);
-      if (item) {
-        result.push(item[1].trim());
-      } else if (/^\S/.test(trimmed)) {
-        // New top-level key — end of array block
-        break;
+  } else {
+    lines.push('aliases: []');
+  }
+
+  lines.push('baseAttributes:');
+  lines.push(`  met: ${effort.baseAttributes.met}`);
+  if (effort.baseAttributes.discipline) {
+    lines.push(`  discipline: ${effort.baseAttributes.discipline}`);
+  }
+  if (effort.baseAttributes.intensityTier) {
+    lines.push(`  intensityTier: ${effort.baseAttributes.intensityTier}`);
+  }
+
+  lines.push(`registrySource: ${effort.registrySource}`);
+
+  if (effort.derivation) {
+    lines.push('derivation:');
+    if (effort.derivation.parentSlug) {
+      lines.push(`  parentSlug: ${effort.derivation.parentSlug}`);
+    }
+    if (effort.derivation.coefficients && Object.keys(effort.derivation.coefficients).length > 0) {
+      lines.push('  coefficients:');
+      for (const [k, v] of Object.entries(effort.derivation.coefficients)) {
+        lines.push(`    ${k}: ${v}`);
+      }
+    }
+    if (effort.derivation.hardOverrides && Object.keys(effort.derivation.hardOverrides).length > 0) {
+      lines.push('  hardOverrides:');
+      for (const [k, v] of Object.entries(effort.derivation.hardOverrides)) {
+        lines.push(`    ${k}: ${JSON.stringify(v)}`);
       }
     }
   }
 
-  return result;
+  if (effort.createdAt) {
+    lines.push(`createdAt: ${effort.createdAt}`);
+  }
+  if (effort.updatedAt) {
+    lines.push(`updatedAt: ${effort.updatedAt}`);
+  }
+
+  lines.push('---');
+
+  if (effort.body) {
+    lines.push('');
+    lines.push(effort.body);
+  }
+
+  return lines.join('\n');
 }
-/** Parse a flat string→string map from a single `{ k: v, k: v }` line OR
- *  a multi-line `k: v` block. Booleans/numbers are coerced; everything
- *  else is a string. Returns undefined when no entries are found. */
-function parseKeyValues(lines: string[], key: string): Record<string, unknown> | undefined {
-  const result: Record<string, unknown> = {};
-  let inBlock = false;
+
+/* ── Parse ────────────────────────────────────────────────────────── */
+
+export interface ParseResult {
+  effort: IEffort;
+  errors: string[];
+}
+
+/**
+ * Parse a YAML-frontmatter markdown document back into an IEffort.
+ * Falls back to the provided `baseEffort` for missing fields.
+ */
+export function documentToEffort(doc: string, baseEffort?: IEffort): ParseResult {
+  const errors: string[] = [];
+  const fmMatch = doc.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!fmMatch) {
+    errors.push('Missing YAML frontmatter delimiters (---)');
+    return {
+      effort: baseEffort ?? createDefaultEffort(),
+      errors,
+    };
+  }
+
+  // Extract body: everything after the closing --- delimiter
+  const bodyStart = fmMatch.index! + fmMatch[0].length;
+  const body = doc.slice(bodyStart).replace(/^\r?\n+/, '');
+
+  const lines = fmMatch[1].split('\n');
+  const result: Partial<IEffort> = {};
+  const baseAttributes: Partial<EffortBaseAttributes> = {};
+  const derivation: Partial<EffortDerivation> = {};
+  let coefficients: Record<string, number> | undefined;
+  let hardOverrides: Record<string, unknown> | undefined;
+
+  type Context = 'root' | 'baseAttributes' | 'derivation' | 'coefficients' | 'hardOverrides';
+  let context: Context = 'root';
+
   for (const line of lines) {
-    const trimmed = line.trimStart();
-    if (inBlock) {
-      if (trimmed.startsWith('}')) {
-        inBlock = false;
+    const trimmed = line.trim();
+    if (trimmed === '' || trimmed.startsWith('#')) continue;
+
+    const indent = line.length - line.trimStart().length;
+
+    if (indent === 0) {
+      context = 'root';
+      if (trimmed === 'baseAttributes:') {
+        context = 'baseAttributes';
         continue;
       }
-      // A non-indented line marks the next top-level frontmatter key — end
-      // the block here rather than absorbing it (checked against the
-      // original `line`, not `trimmed`, since trimStart() always leaves a
-      // non-whitespace character regardless of the source indentation).
-      if (/^\S/.test(line)) {
-        inBlock = false;
+      if (trimmed === 'derivation:') {
+        context = 'derivation';
         continue;
       }
-      const m = trimmed.match(/^([\w.\-]+):\s*(.*)$/);
-      if (m) {
-        const [, k, raw] = m;
-        if (raw === 'true') result[k] = true;
-        else if (raw === 'false') result[k] = false;
-        else if (raw !== '' && !Number.isNaN(Number(raw))) result[k] = Number(raw);
-        else result[k] = raw;
+
+      const match = trimmed.match(/^([^:]+):\s*(.*)$/);
+      if (match) {
+        const key = match[1].trim();
+        const val = match[2].trim();
+        switch (key) {
+          case 'id':
+            result.id = val;
+            break;
+          case 'slug':
+            result.slug = val;
+            break;
+          case 'label':
+            result.label = unquoteYaml(val);
+            break;
+          case 'aliases':
+            if (val === '[]') result.aliases = [];
+            break;
+          case 'registrySource':
+            result.registrySource = val as EffortRegistrySource;
+            break;
+          case 'createdAt':
+            result.createdAt = val;
+            break;
+          case 'updatedAt':
+            result.updatedAt = val;
+            break;
+        }
       }
-    } else if (trimmed.startsWith(`${key}:`) && trimmed.includes('{')) {
-      const start = trimmed.indexOf('{');
-      const end = trimmed.lastIndexOf('}');
-      if (end > start) {
-        const inner = trimmed.slice(start + 1, end);
-        for (const pair of inner.split(',')) {
-          const m = pair.match(/^\s*([\w.\-]+)\s*:\s*(.*?)\s*$/);
-          if (m) {
-            const [, k, raw] = m;
-            if (raw === 'true') result[k] = true;
-            else if (raw === 'false') result[k] = false;
-            else if (raw !== '' && !Number.isNaN(Number(raw))) result[k] = Number(raw);
-            else result[k] = raw;
+    } else if (indent === 2) {
+      if (trimmed.startsWith('- ')) {
+        const val = trimmed.slice(2).trim();
+        if (!result.aliases) result.aliases = [];
+        result.aliases.push(unquoteYaml(val));
+      } else if (trimmed === 'coefficients:') {
+        context = 'coefficients';
+        coefficients = {};
+        derivation.coefficients = coefficients;
+      } else if (trimmed === 'hardOverrides:') {
+        context = 'hardOverrides';
+        hardOverrides = {};
+        derivation.hardOverrides = hardOverrides;
+      } else {
+        const match = trimmed.match(/^([^:]+):\s*(.*)$/);
+        if (match) {
+          const key = match[1].trim();
+          const val = match[2].trim();
+          if (context === 'baseAttributes') {
+            switch (key) {
+              case 'met':
+                baseAttributes.met = parseFloat(val) || 0;
+                break;
+              case 'discipline':
+                baseAttributes.discipline = val || undefined;
+                break;
+              case 'intensityTier':
+                baseAttributes.intensityTier = val as IntensityTier;
+                break;
+            }
+          } else if (context === 'derivation') {
+            switch (key) {
+              case 'parentSlug':
+                derivation.parentSlug = val || undefined;
+                break;
+            }
           }
         }
-        inBlock = false;
-        return Object.keys(result).length > 0 ? result : undefined;
       }
-    } else if (trimmed.startsWith(`${key}:`) && !trimmed.includes('{')) {
-      inBlock = true;
+    } else if (indent === 4) {
+      const match = trimmed.match(/^([^:]+):\s*(.*)$/);
+      if (match) {
+        const key = match[1].trim();
+        const val = match[2].trim();
+        if (context === 'coefficients' && coefficients) {
+          coefficients[key] = parseFloat(val) || 0;
+        } else if (context === 'hardOverrides' && hardOverrides) {
+          hardOverrides[key] = parseYamlScalar(val);
+        }
+      }
     }
   }
+
+  if (!result.aliases) result.aliases = [];
+  result.baseAttributes = {
+    met: baseEffort?.baseAttributes.met ?? 0,
+    ...baseAttributes,
+  };
+  if (Object.keys(derivation).length > 0 || coefficients || hardOverrides) {
+    result.derivation = derivation;
+  }
+
+  result.body = body || undefined;
+
+  // Validation
+  const slug = result.slug?.trim() ?? '';
+  if (!slug) {
+    errors.push('Missing required field: slug');
+  } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    errors.push('Invalid slug: must be lowercase letters, numbers, and hyphens only');
+  }
+
+  if (!result.label?.trim()) errors.push('Missing required field: label');
+
+  const met = result.baseAttributes?.met;
+  if (met === undefined || met === null) {
+    errors.push('Missing required field: met');
+  } else if (typeof met !== 'number' || Number.isNaN(met) || met <= 0) {
+    errors.push('Invalid met: must be a positive number');
+  }
+
+  if (!result.id) result.id = baseEffort?.id || `effort-user-${uuidv4()}`;
+  if (!result.registrySource) result.registrySource = baseEffort?.registrySource || 'user';
+
+  const effort = result as IEffort;
+  return { effort, errors };
+}
+
+function createDefaultEffort(): IEffort {
+  return {
+    id: `effort-user-${uuidv4()}`,
+    slug: '',
+    label: '',
+    aliases: [],
+    baseAttributes: { met: 5.0 },
+    registrySource: 'user',
+  };
+}
+
+/* ── Bundled repository ───────────────────────────────────────────── */
+
+/**
+ * Coerce a scalar from a nested block: booleans/numbers are coerced;
+ * everything else stays a string.
+ */
+function coerceNestedScalar(raw: string): unknown {
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  if (raw !== '' && !Number.isNaN(Number(raw))) return Number(raw);
+  return raw;
+}
+
+/**
+ * Read a nested (`key:` followed by indented entries) section from frontmatter
+ * lines. Two levels are supported (`derivation.coefficients.*`).
+ *
+ * Boundary rule: a nested block ends at the next non-indented (top-level)
+ * line, checked against the original un-trimmed line.
+ */
+function readNestedSection(lines: string[], key: string): Record<string, unknown> | undefined {
+  const start = lines.findIndex(l => new RegExp(`^${key}:\\s*$`).test(l));
+  if (start === -1) return undefined;
+
+  const result: Record<string, unknown> = {};
+  let subKey: string | null = null;
+
+  for (let i = start + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^\S/.test(line)) break; // next top-level key ends the block
+
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const indent = line.length - line.trimStart().length;
+    const m = trimmed.match(/^([\w.\-]+):\s*(.*)$/);
+    if (!m) continue;
+    const [, k, rawVal] = m;
+
+    if (indent === 2) {
+      if (rawVal === '') {
+        subKey = k;
+        result[k] = {};
+      } else {
+        subKey = null;
+        result[k] = coerceNestedScalar(rawVal);
+      }
+    } else if (indent >= 4 && subKey !== null) {
+      (result[subKey] as Record<string, unknown>)[k] = coerceNestedScalar(rawVal);
+    }
+  }
+
   return Object.keys(result).length > 0 ? result : undefined;
 }
 
+/**
+ * Raw glob, deferred into a function so importing this module has no side
+ * effects (unit tests run under bun, which lacks Vite's glob transform);
+ * Vite still resolves the literal pattern at build time.
+ */
+function globEffortModules(): Record<string, string> {
+  return import.meta.glob('../../markdown/efforts/**/*.md', {
+    query: '?raw',
+    eager: true,
+    import: 'default',
+  }) as Record<string, string>;
+}
 
 /** Parse a single markdown file into an IEffort */
 export function parseEffortFile(raw: string): IEffort | null {
-  const fm = extractFrontmatter(raw);
-  if (!fm) return null;
+  const blockMatch = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!blockMatch) return null;
 
-  const lines = fm.split('\n');
-  const id = parseScalar(lines, 'id');
-  const slug = parseScalar(lines, 'slug');
-  const label = parseScalar(lines, 'label');
-  const metStr = parseScalar(lines, 'met');
-  const discipline = parseScalar(lines, 'discipline');
-  const intensityTier = parseScalar(lines, 'intensityTier') as IntensityTier | undefined;
-  const aliases = parseStringArray(lines, 'aliases');
-  const hints = parseKeyValues(lines, 'hints');
+  const { meta, body } = parseFrontmatter(raw);
+  const innerLines = blockMatch[1].split(/\r?\n/);
 
-  if (!id || !slug || !label || !metStr) return null;
+  const id = getScalar(meta, 'id');
+  const slug = getScalar(meta, 'slug');
+  const label = getScalar(meta, 'label');
+  const aliases = getList(meta, 'aliases');
 
-  const met = parseFloat(metStr);
-  if (Number.isNaN(met)) return null;
+  const baseAttrs = readNestedSection(innerLines, 'baseAttributes');
+  const hints = readNestedSection(innerLines, 'hints');
+  const derivation = readNestedSection(innerLines, 'derivation');
 
-  const body = extractBody(raw);
+  const metRaw = baseAttrs?.met;
+  const met = typeof metRaw === 'number' ? metRaw : Number(metRaw);
+  if (!id || !slug || !label || metRaw === undefined || Number.isNaN(met)) return null;
+
+  const discipline = baseAttrs?.discipline;
+  const intensityTier = baseAttrs?.intensityTier;
+  const trimmedBody = body.trim();
 
   return {
-    id,
-    slug,
-    label,
+    id: String(id),
+    slug: String(slug),
+    label: String(label),
     aliases,
     baseAttributes: {
       met,
-      ...(discipline ? { discipline } : {}),
-      ...(intensityTier ? { intensityTier } : {}),
+      ...(discipline ? { discipline: String(discipline) } : {}),
+      ...(intensityTier ? { intensityTier: intensityTier as IntensityTier } : {}),
     },
     registrySource: 'bundled',
-    ...(body ? { body } : {}),
-    ...(hints && Object.keys(hints).length > 0 ? { hints } : {}),
+    ...(trimmedBody ? { body: trimmedBody } : {}),
+    ...(hints ? { hints } : {}),
+    ...(derivation ? { derivation: derivation as IEffort['derivation'] } : {}),
   };
 }
 
@@ -168,8 +436,8 @@ export function getBundledEfforts(): readonly IEffort[] {
 
   const efforts: IEffort[] = [];
 
-  for (const [path, content] of Object.entries(effortModules)) {
-    const effort = parseEffortFile(content as string);
+  for (const [path, content] of Object.entries(globEffortModules())) {
+    const effort = parseEffortFile(content);
     if (effort) {
       efforts.push(effort);
     } else {
@@ -193,20 +461,5 @@ export function getBundledEffortCount(): number {
 export function getEffortMarkdown(slug: string): string | null {
   const effort = getBundledEfforts().find(e => e.slug === slug);
   if (!effort) return null;
-  // Reconstruct full document from parsed effort + body
-  const lines = [
-    '---',
-    `id: ${effort.id}`,
-    `slug: ${effort.slug}`,
-    `label: ${effort.label}`,
-    ...(effort.aliases?.length ? [`aliases:`, ...effort.aliases.map(a => `  - ${a}`)] : []),
-    `met: ${effort.baseAttributes.met}`,
-    ...(effort.baseAttributes.discipline ? [`discipline: ${effort.baseAttributes.discipline}`] : []),
-    ...(effort.baseAttributes.intensityTier ? [`intensityTier: ${effort.baseAttributes.intensityTier}`] : []),
-    '---',
-  ];
-  if (effort.body) {
-    lines.push('', effort.body);
-  }
-  return lines.join('\n');
+  return effortToDocument(effort);
 }

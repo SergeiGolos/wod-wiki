@@ -1,3 +1,8 @@
+---
+tags:
+  - unconventional
+---
+
 # Macebell Barbarian Squat
 
 **Category**: Steel Mace / Macebell  

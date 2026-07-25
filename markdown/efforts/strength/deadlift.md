@@ -6,7 +6,8 @@ aliases:
   - dl
   - dead lift
   - conventional deadlift
-met: 6.0
-discipline: strength
-intensityTier: high
+baseAttributes:
+  met: 6.0
+  discipline: strength
+  intensityTier: high
 ---

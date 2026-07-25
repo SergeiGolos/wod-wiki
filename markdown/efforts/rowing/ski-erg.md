@@ -7,7 +7,8 @@ aliases:
   - skiing
   - ski machine
   - concept2 ski
-met: 8.0
-discipline: rowing
-intensityTier: high
+baseAttributes:
+  met: 8.0
+  discipline: rowing
+  intensityTier: high
 ---

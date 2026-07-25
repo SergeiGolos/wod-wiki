@@ -6,7 +6,8 @@ aliases:
   - running fast
   - fast run
   - speed run
-met: 11.8
-discipline: running
-intensityTier: high
+baseAttributes:
+  met: 11.8
+  discipline: running
+  intensityTier: high
 ---

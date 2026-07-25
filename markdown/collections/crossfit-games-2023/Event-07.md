@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2023 CrossFit Games - Event 7 - "Sprint"
 
 **Location: Alliant Energy Center, Madison, Wisconsin  

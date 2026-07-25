@@ -1,3 +1,10 @@
+---
+tags:
+  - unconventional
+  - strength
+  - minimalist
+---
+
 # EMOM Weighted Push-Ups
 
 **Category**: The Golos Method  

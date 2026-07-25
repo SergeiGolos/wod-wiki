@@ -6,7 +6,8 @@ aliases:
   - vigorous swim
   - fast swimming
   - butterfly
-met: 10.0
-discipline: swimming
-intensityTier: high
+baseAttributes:
+  met: 10.0
+  discipline: swimming
+  intensityTier: high
 ---

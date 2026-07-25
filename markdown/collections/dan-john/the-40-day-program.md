@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 4: The 40-Day Program
 
 **Category**: Dan John Strength Program  

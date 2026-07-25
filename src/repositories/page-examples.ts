@@ -14,7 +14,7 @@
  * Uses Vite's import.meta.glob — resolved at build time.
  */
 
-import { parseFrontmatter } from '@/utils/frontmatter';
+import { parseFrontmatter } from '@/lib/frontmatter';
 
 const exampleModules = import.meta.glob('../../markdown/canvas/**/*.md', {
     query: '?raw',

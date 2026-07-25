@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'bun:test';
-import { effortToDocument, documentToEffort } from './effortYaml';
+import { effortToDocument, documentToEffort } from './effort-markdown';
 import type { IEffort } from '@/effort-registry';
 
-describe('effortYaml', () => {
+describe('effort-markdown document format', () => {
   const fullEffort: IEffort = {
     id: 'effort-user-test',
     slug: 'running',

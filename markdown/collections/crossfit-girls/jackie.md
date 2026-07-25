@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # Jackie
 
 **Category**: CrossFit Benchmark  

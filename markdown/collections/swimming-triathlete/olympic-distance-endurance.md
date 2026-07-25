@@ -1,3 +1,10 @@
+---
+tags:
+  - swimming
+  - endurance
+  - triathlon
+---
+
 # Olympic Distance Endurance
 
 **Type**: Aerobic Endurance  

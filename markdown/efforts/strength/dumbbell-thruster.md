@@ -5,7 +5,8 @@ label: Dumbbell Thruster
 aliases:
   - db thruster
   - dumbbell thrusters
-met: 8.0
-discipline: strength
-intensityTier: high
+baseAttributes:
+  met: 8.0
+  discipline: strength
+  intensityTier: high
 ---

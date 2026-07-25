@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Race Simulation Day
 
 **Type**: Race Preparation  

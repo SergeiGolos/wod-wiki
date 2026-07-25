@@ -1,3 +1,10 @@
+---
+tags:
+  - unconventional
+  - strength
+  - minimalist
+---
+
 # Macebell Swing Combos
 
 **Category**: The Golos Method  

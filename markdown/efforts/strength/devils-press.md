@@ -6,7 +6,8 @@ aliases:
   - devils press
   - devil press
   - db devils press
-met: 10.0
-discipline: strength
-intensityTier: high
+baseAttributes:
+  met: 10.0
+  discipline: strength
+  intensityTier: high
 ---

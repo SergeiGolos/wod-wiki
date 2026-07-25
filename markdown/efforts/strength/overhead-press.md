@@ -7,7 +7,8 @@ aliases:
   - press
   - shoulder press
   - military press
-met: 5.0
-discipline: strength
-intensityTier: moderate
+baseAttributes:
+  met: 5.0
+  discipline: strength
+  intensityTier: moderate
 ---

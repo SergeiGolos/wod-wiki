@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # Karen
 
 **Category**: CrossFit Benchmark  

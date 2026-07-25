@@ -1,3 +1,9 @@
+---
+tags:
+  - barbell
+  - strength
+---
+
 # Day 2 — Press
 
 Session 2 of 40. Strict press — no leg drive.

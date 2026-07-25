@@ -44,6 +44,40 @@ export interface OnboardingBannerProps {
   chapters?: Chapter[];
 }
 
+/** SVG progress ring — POC "honest progress" meter. Fills clockwise as
+ *  `fraction` goes 0 → 1, with the `done/total` label centered. */
+function ProgressRing({ done, total, size = 36, stroke = 3.5 }: {
+  done: number;
+  total: number;
+  size?: number;
+  stroke?: number;
+}) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const fraction = total > 0 ? Math.min(1, done / total) : 0;
+  return (
+    <span className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} className="stroke-muted/40" />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - fraction)}
+          className="stroke-brand transition-[stroke-dashoffset] duration-500"
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black tabular-nums text-foreground">
+        {done}/{total}
+      </span>
+    </span>
+  );
+}
+
 function getHintText(stepsComplete: number): string {
   switch (stepsComplete) {
     case 1:
@@ -189,6 +223,13 @@ export function OnboardingBanner({ className, chapters = [] }: OnboardingBannerP
   const completionCelebrated = getProfile().completionCelebrated;
   const isCelebrative = isComplete && showingCompletion && !completionCelebrated;
 
+  // One honest meter: first-run steps + chapter quests in a single count,
+  // so the ring only moves when the user actually does something.
+  const questsTotal = chapterProgress.reduce((n, cp) => n + cp.totalCount, 0);
+  const questsDone = chapterProgress.reduce((n, cp) => n + cp.completedCount, 0);
+  const overallDone = stepsComplete + questsDone;
+  const overallTotal = totalSteps + questsTotal;
+
   return (
     <div
       className={cn('relative py-1 shrink-0', className)}
@@ -216,9 +257,7 @@ export function OnboardingBanner({ className, chapters = [] }: OnboardingBannerP
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-brand px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-background shrink-0">
-              Step {stepsComplete}/{totalSteps}
-            </span>
+            <ProgressRing done={overallDone} total={overallTotal} size={18} stroke={2.5} />
             <span className="text-[9px] text-muted-foreground select-none hidden lg:inline">
               {getHintText(stepsComplete)}
             </span>
@@ -234,17 +273,96 @@ export function OnboardingBanner({ className, chapters = [] }: OnboardingBannerP
           aria-orientation="vertical"
           className="absolute left-0 top-full mt-1.5 w-64 rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-3.5 z-50 origin-top-left before:content-[''] before:absolute before:-top-1.5 before:left-0 before:right-0 before:h-1.5 before:bg-transparent"
         >
-          <div className="mb-2.5 pb-2 border-b border-border/60">
-            <h5 className="text-[10px] font-black uppercase tracking-widest text-foreground">
-              Onboarding Roadmap
-            </h5>
-            <p className="text-[9px] text-muted-foreground mt-0.5">
-              Click steps to toggle progress or jump back & forth.
-            </p>
+          <div className="mb-2.5 pb-2 border-b border-border/60 flex items-center gap-2.5">
+            <ProgressRing done={overallDone} total={overallTotal} size={34} />
+            <div className="min-w-0">
+              <h5 className="text-[10px] font-black uppercase tracking-widest text-foreground">
+                Onboarding Roadmap
+              </h5>
+              <p className="text-[9px] text-muted-foreground mt-0.5">
+                Step 1 was free. The rest is you.
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1">
-            {ONBOARDING_STEPS_META.map((step) => {
+        {chapterProgress.length > 0 && (
+          <div className="flex flex-col gap-1" data-testid="onboarding-chapters">
+            {chapterProgress.map((cp) => {
+              const Icon = chapterIcon(cp.chapter.badge);
+              const pct = cp.totalCount > 0 ? (cp.completedCount / cp.totalCount) * 100 : 0;
+              return (
+                <div
+                  key={cp.chapter.id}
+                  data-testid={`chapter-row-${cp.chapter.id}`}
+                  data-completed={cp.isComplete ? 'true' : 'false'}
+                  className={cn(
+                    'w-full text-left p-1.5 flex items-start gap-2.5 rounded-md',
+                    cp.isComplete && 'bg-emerald-500/5',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'flex size-4 shrink-0 items-center justify-center rounded-full mt-0.5',
+                      cp.isComplete
+                        ? 'bg-emerald-500 text-white'
+                        : cp.completedCount > 0
+                          ? 'border border-brand text-brand bg-brand/10'
+                          : 'border border-muted-foreground/40 text-muted-foreground/70',
+                    )}
+                  >
+                    {cp.isComplete ? (
+                      <Check className="size-2.5" />
+                    ) : (
+                      <Icon className="size-2.5" />
+                    )}
+                  </span>
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={cn(
+                        'text-[10px] font-bold leading-none',
+                        cp.isComplete
+                          ? 'text-muted-foreground line-through decoration-emerald-500/60'
+                          : 'text-foreground',
+                      )}>
+                        {cp.chapter.title}
+                      </span>
+                      <span className="text-[8px] text-muted-foreground tabular-nums">
+                        {cp.completedCount}/{cp.totalCount}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1 rounded-full bg-muted/40 overflow-hidden">
+                      <div
+                        className={cn(
+                          'h-full rounded-full transition-all duration-500',
+                          cp.isComplete ? 'bg-emerald-500' : 'bg-brand',
+                        )}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-[8px] text-muted-foreground leading-normal mt-0.5 truncate">
+                      {cp.totalCount === 0
+                        ? 'No quests linked yet.'
+                        : cp.isComplete
+                          ? 'Chapter complete.'
+                          : `${cp.totalCount - cp.completedCount} quest${cp.totalCount - cp.completedCount === 1 ? '' : 's'} remaining.`}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="mt-3 pt-2.5 border-t border-border/60">
+          <h5 className="text-[10px] font-black uppercase tracking-widest text-foreground">
+            First Run
+          </h5>
+          <p className="text-[9px] text-muted-foreground mt-0.5">
+            Progress only moves when you do.
+          </p>
+        </div>
+        <div className="flex flex-col gap-1 mt-1.5">
+          {ONBOARDING_STEPS_META.map((step) => {
             const isStepDone = progress[step.key];
             const isStepActive = !isStepDone && (
               step.id === 1 ||
@@ -266,8 +384,8 @@ export function OnboardingBanner({ className, chapters = [] }: OnboardingBannerP
                       <Check className="size-2.5" />
                     </span>
                   ) : isStepActive ? (
-                    <span className="flex size-4 items-center justify-center rounded-full border border-brand bg-brand/10">
-                      <span className="size-1.5 rounded-full bg-brand" />
+                    <span className="flex size-4 items-center justify-center rounded-full border border-brand bg-brand/10 text-[8px] font-bold text-brand">
+                      {step.id}
                     </span>
                   ) : (
                     <span className="flex size-4 items-center justify-center rounded-full border border-muted-foreground/30 text-[8px] font-bold text-muted-foreground/60">
@@ -279,84 +397,24 @@ export function OnboardingBanner({ className, chapters = [] }: OnboardingBannerP
                 <div className="flex flex-col">
                   <span className={cn(
                     'text-[10px] font-bold leading-none',
-                    isStepFuture ? 'text-muted-foreground/70' : 'text-foreground',
+                    isStepDone
+                      ? 'text-muted-foreground line-through decoration-emerald-500/60'
+                      : isStepFuture
+                        ? 'text-muted-foreground/70'
+                        : 'text-foreground',
                   )}>
                     {step.label}
                   </span>
                   <span className="text-[8px] text-muted-foreground leading-normal mt-0.5">
-                    {step.desc}
+                    {isStepDone && step.id === 1
+                      ? 'Endowed progress — given, not earned.'
+                      : step.desc}
                   </span>
                 </div>
               </div>
             );
           })}
         </div>
-
-        {chapterProgress.length > 0 && (
-          <>
-            <div className="mt-3 pt-2.5 border-t border-border/60">
-              <h5 className="text-[10px] font-black uppercase tracking-widest text-foreground">
-                Chapters
-              </h5>
-              <p className="text-[9px] text-muted-foreground mt-0.5">
-                Unlock each chapter by completing its quest on the chapter page.
-              </p>
-            </div>
-            <div className="flex flex-col gap-1 mt-1.5" data-testid="onboarding-chapters">
-              {chapterProgress.map((cp) => {
-                const Icon = chapterIcon(cp.chapter.badge);
-                return (
-                  <div
-                    key={cp.chapter.id}
-                    data-testid={`chapter-row-${cp.chapter.id}`}
-                    data-completed={cp.isComplete ? 'true' : 'false'}
-                    className={cn(
-                      'w-full text-left p-1.5 flex items-start gap-2.5 rounded-md',
-                      cp.isComplete && 'bg-emerald-500/5',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'flex size-4 shrink-0 items-center justify-center rounded-full mt-0.5',
-                        cp.isComplete
-                          ? 'bg-emerald-500 text-white'
-                          : 'border border-muted-foreground/40 text-muted-foreground/70',
-                      )}
-                    >
-                      {cp.isComplete ? (
-                        <Check className="size-2.5" />
-                      ) : (
-                        <Icon className="size-2.5" />
-                      )}
-                    </span>
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={cn(
-                          'text-[10px] font-bold leading-none',
-                          cp.isComplete
-                            ? 'text-foreground line-through decoration-emerald-500/60'
-                            : 'text-foreground',
-                        )}>
-                          {cp.chapter.title}
-                        </span>
-                        <span className="text-[8px] text-muted-foreground tabular-nums">
-                          {cp.completedCount}/{cp.totalCount}
-                        </span>
-                      </div>
-                      <span className="text-[8px] text-muted-foreground leading-normal mt-0.5 truncate">
-                        {cp.totalCount === 0
-                          ? 'No quests linked yet.'
-                          : cp.isComplete
-                            ? 'Chapter complete.'
-                            : `${cp.totalCount - cp.completedCount} quest${cp.totalCount - cp.completedCount === 1 ? '' : 's'} remaining.`}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
       </div>
       )}
     </div>

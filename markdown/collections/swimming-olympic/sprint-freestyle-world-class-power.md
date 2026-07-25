@@ -1,3 +1,10 @@
+---
+tags:
+  - swimming
+  - endurance
+  - competition
+---
+
 # Sprint Freestyle World-Class Power
 
 **Type**: Maximum Velocity  

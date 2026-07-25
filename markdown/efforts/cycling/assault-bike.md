@@ -8,7 +8,8 @@ aliases:
   - fan bike
   - echo bike
   - assaultbike
-met: 10.0
-discipline: cycling
-intensityTier: high
+baseAttributes:
+  met: 10.0
+  discipline: cycling
+  intensityTier: high
 ---

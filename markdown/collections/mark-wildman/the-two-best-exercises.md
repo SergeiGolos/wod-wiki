@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - clubs
+  - strength
+---
+
 ## Workout 3: The Two Best Exercises
 
 **Category**: Mark Wildman Minimalist  
