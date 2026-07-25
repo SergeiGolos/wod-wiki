@@ -26,8 +26,10 @@ import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { Quest } from '../hooks/usePageQuests'
+import type { Chapter } from '../canvas/parseCanvasMarkdown'
 import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
+import { useTourScrollQuests } from '../hooks/useTourScrollQuests'
 import type { FullscreenState } from '../hooks/useCanvasRuntime'
 import {
   RingTargetsProvider,
@@ -44,6 +46,7 @@ import {
   TOUR_RUNWAY_HEIGHT,
   TOUR_STAGES,
   type TourScreen,
+  type TourStageId,
   type TourStageSlice,
 } from './tourStages'
 import { TourHero } from './TourHero'
@@ -74,6 +77,18 @@ const SCREEN_TITLES: Record<TourScreen, string> = {
 
 const HOME_DEMO_SOURCE = 'wods/examples/home/welcome-1.md'
 
+/** Home quest id → the tour stage that demonstrates it. Used by the quest
+ *  list to scroll the runway back to the relevant section. */
+const HOME_QUEST_STAGE: Record<string, TourStageId> = {
+  'qs-arrive': 'overview',
+  'qs-tour-editor': 'editor',
+  'qs-tour-timer': 'timer',
+  'qs-tour-analytics': 'analytics',
+  'qs-tour-library': 'library',
+  'qs-edit': 'editor',
+  'qs-run': 'editor',
+}
+
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia(query).matches : false,
@@ -93,13 +108,18 @@ function useMediaQuery(query: string): boolean {
 export interface HomeTourProps {
   wodFiles: Record<string, string>
   theme: string
-  /** Quick-start quests from the home canvas markdown (qs-arrive/qs-edit/qs-run). */
+  /** Quick-start + scroll quests from the home canvas markdown
+   *  (qs-arrive / qs-tour-* / qs-edit / qs-run). */
   quests: Quest[]
+  /** Page-level chapters from the home canvas markdown (home-tour first). */
+  chapters: Chapter[]
+  /** Cross-page quest id → label, collected from every canvas route. */
+  questLabels?: Record<string, string>
 }
 
 // ── Inner (needs RingTargetsContext) ────────────────────────────────────────
 
-function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
+function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeTourProps) {
   const isMobile = useMediaQuery(`(max-width: ${TOUR_MOBILE_BREAKPOINT}px)`)
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 
@@ -194,6 +214,30 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
     session != null ? { kind: 'review', segments: session.segments, results: session.results } : null
   useCompletionChallenge({ pageRoute: '/', quests, fullscreen: questFullscreen })
 
+  // ── Scroll quests: each tour stage fires its qs-tour-* quest as the
+  //    visitor scrolls it into view (scroll mode only, not playground). ──
+  const markStageViewed = useTourScrollQuests('/', quests)
+  useEffect(() => {
+    if (interactive === null) markStageViewed(slice.stage.id)
+  }, [interactive, slice.stage.id, markStageViewed])
+
+  /** Quest list click → scroll the runway back to the matching stage.
+   *  Reduced-motion fallback scrolls the static card into view instead. */
+  const handleHomeQuestClick = useCallback((questId: string) => {
+    const stageId = HOME_QUEST_STAGE[questId]
+    if (!stageId) return
+    const el = runwayRef.current
+    if (el) {
+      const stage = TOUR_STAGES.find((s) => s.id === stageId)
+      if (stage) scrollRunwayTo(el, Math.min(stage.start + 0.02, stage.end - 0.005))
+      return
+    }
+    const cardId = stageId === 'overview' ? 'editor' : stageId
+    document
+      .getElementById(`tour-card-${cardId}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [])
+
   // ── Playground mode transitions ──
   const startRun = useCallback(() => {
     if (!blocksRef.current[0]) return
@@ -260,24 +304,88 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
     if (el) scrollRunwayTo(el, 0.11)
   }, [])
 
-  // ── Canvas scaling (desktop: fit width; mobile: zoom 1.5× + pan) ──
+  // ── Canvas scaling (fit width; mobile additionally pans to follow the ring) ──
   const scaleRef = useRef(1)
+  // Current pan translate (read back out of measurements so the next frame's
+  // math is transform-independent — measuring a panned target without this
+  // creates a feedback loop that oscillates every scroll frame).
+  const panRef = useRef({ x: 0, y: 0 })
+  const latestSliceRef = useRef<TourStageSlice | null>(null)
+
+  /**
+   * Mobile: pan the zoomed canvas so the ring target stays in view.
+   * inner has `origin-top-left`, so a target's canvas-space position is
+   * (viewportRect − innerRect) / renderedScale — the current translate
+   * cancels out and the computed pan is a stable fixed point.
+   */
+  const applyMobilePan = useCallback(
+    (s: TourStageSlice | null) => {
+      const canvas = canvasRef.current
+      const inner = canvasInnerRef.current
+      if (!canvas || !inner) return
+      const innerRect = inner.getBoundingClientRect()
+      const renderedScale = innerRect.width / TOUR_CANVAS_WIDTH || 1
+      const scale = scaleRef.current
+      // Untransformed origin of inner in viewport coords.
+      const ox = innerRect.left - panRef.current.x
+      const oy = innerRect.top - panRef.current.y
+
+      let fx = TOUR_CANVAS_WIDTH / 2
+      let fy = TOUR_CANVAS_HEIGHT / 2
+      const target = s?.ring ? registry.current[s.ring.key] : null
+      if (target) {
+        const r = target.getBoundingClientRect()
+        fx = (r.left + r.width / 2 - innerRect.left) / renderedScale
+        fy = (r.top + r.height / 2 - innerRect.top) / renderedScale
+      }
+
+      const cr = canvas.getBoundingClientRect()
+      const cw = canvas.clientWidth
+      const ch = canvas.clientHeight
+      const w = TOUR_CANVAS_WIDTH * scale
+      const h = TOUR_CANVAS_HEIGHT * scale
+
+      let tx = cr.left + cw / 2 - fx * scale - ox
+      let ty = cr.top + ch / 2 - fy * scale - oy
+      // Clamp so the canvas always covers the viewport (center if it fits).
+      tx =
+        w <= cw
+          ? cr.left + (cw - w) / 2 - ox
+          : Math.min(cr.left - ox, Math.max(cr.left + cw - w - ox, tx))
+      ty =
+        h <= ch
+          ? cr.top + (ch - h) / 2 - oy
+          : Math.min(cr.top - oy, Math.max(cr.top + ch - h - oy, ty))
+
+      panRef.current = { x: tx, y: ty }
+      inner.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`
+    },
+    [registry],
+  )
+
   useEffect(() => {
     const canvas = canvasRef.current
     const inner = canvasInnerRef.current
     if (!canvas || !inner) return
     const fit = () => {
       if (window.matchMedia(`(max-width: ${TOUR_MOBILE_BREAKPOINT}px)`).matches) {
-        scaleRef.current = (window.innerWidth / TOUR_CANVAS_WIDTH) * 1.5
+        // Fit the canvas width exactly — no zoom. At 1.5× zoom the window is
+        // wider than the viewport, and when the ring targets the whole window
+        // the pan centers it, showing an empty middle slice with both sides
+        // cut off. Fitting keeps the whole window + ring visible; the pan
+        // clamp then just centers it.
+        scaleRef.current = window.innerWidth / TOUR_CANVAS_WIDTH
+        applyMobilePan(latestSliceRef.current)
       } else {
         scaleRef.current = canvas.clientWidth / TOUR_CANVAS_WIDTH
+        panRef.current = { x: 0, y: 0 }
         inner.style.transform = `scale(${scaleRef.current})`
       }
     }
     fit()
     window.addEventListener('resize', fit)
     return () => window.removeEventListener('resize', fit)
-  }, [isMobile])
+  }, [isMobile, applyMobilePan])
 
   // Mobile: each caption panel matches the caption viewport height exactly
   // (strip translate math assumes uniform panel heights — see the POC).
@@ -302,6 +410,7 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
 
   useEffect(() => {
     return subscribe((s: TourStageSlice) => {
+      latestSliceRef.current = s
       const st = s.stage
 
       // TV card parallax (timer stage, second beat)
@@ -332,30 +441,7 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
 
       // Mobile: pan the zoomed canvas to follow the ring; slide captions
       if (isMobileRef.current) {
-        const canvas = canvasRef.current
-        const inner = canvasInnerRef.current
-        if (canvas && inner) {
-          const scale = scaleRef.current
-          let fx = TOUR_CANVAS_WIDTH / 2
-          let fy = TOUR_CANVAS_HEIGHT / 2
-          const target = s.ring ? registry.current[s.ring.key] : null
-          if (target) {
-            const r = target.getBoundingClientRect()
-            const cr = canvas.getBoundingClientRect()
-            fx = (r.left + r.width / 2 - cr.left) / scale
-            fy = (r.top + r.height / 2 - cr.top) / scale
-          }
-          const cw = canvas.clientWidth
-          const ch = canvas.clientHeight
-          let tx = cw / 2 - fx * scale
-          let ty = ch / 2 - fy * scale
-          tx = Math.min(0, Math.max(cw - TOUR_CANVAS_WIDTH * scale, tx))
-          ty =
-            TOUR_CANVAS_HEIGHT * scale <= ch
-              ? (ch - TOUR_CANVAS_HEIGHT * scale) / 2
-              : Math.min(0, Math.max(ch - TOUR_CANVAS_HEIGHT * scale, ty))
-          inner.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`
-        }
+        applyMobilePan(s)
 
         const strip = captionsStripRef.current
         const viewport = captionsViewportRef.current
@@ -366,7 +452,7 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
         }
       }
     })
-  }, [subscribe, registry])
+  }, [subscribe, registry, applyMobilePan])
 
   // ── Stage bar segments ──
   const stageSegs = TOUR_STAGES.slice(1)
@@ -375,8 +461,14 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
     return (
       <div data-testid="home-tour">
         <TourHero />
-        <TourStaticCards />
-        <TourOutro onNewNote={handleNewNote} />
+        <TourStaticCards onCardVisible={markStageViewed} />
+        <TourOutro
+          onNewNote={handleNewNote}
+          quests={quests}
+          chapters={chapters}
+          questLabels={questLabels}
+          onHomeQuestClick={handleHomeQuestClick}
+        />
       </div>
     )
   }
@@ -535,7 +627,13 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
         </div>
       </section>
 
-      <TourOutro onNewNote={handleNewNote} />
+      <TourOutro
+        onNewNote={handleNewNote}
+        quests={quests}
+        chapters={chapters}
+        questLabels={questLabels}
+        onHomeQuestClick={handleHomeQuestClick}
+      />
     </div>
   )
 }

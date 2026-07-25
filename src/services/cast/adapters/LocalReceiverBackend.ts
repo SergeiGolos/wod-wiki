@@ -71,7 +71,7 @@ export async function acquireLocalReceiverSession(
         },
         postToOpener = (message) => {
             if (window.opener) {
-                window.opener.postMessage(message, '*');
+                window.opener.postMessage(message, window.location.origin);
             }
         },
         setTimeoutFn = (handler, ms) => setTimeout(handler, ms),

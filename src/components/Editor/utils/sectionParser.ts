@@ -1,6 +1,7 @@
 import type { Section, SectionType, FenceDialect, FrontMatterSubtype } from '../types/section';
 import type { ScriptBlock } from '../types';
 import { detectScriptBlocks } from './blockDetection';
+import { detectUrlSubtype } from '@/lib/frontmatter';
 
 /** Metadata regex: <!-- section-metadata id:UUID version:N created:TS --> */
 const METADATA_REGEX = /<!--\s*section-metadata\s+id:(\S+)\s+version:(\d+)\s+created:(\d+)\s*-->/i;
@@ -152,9 +153,8 @@ export function resolveFrontMatterSubtype(props: Record<string, string>): FrontM
 
   // Auto-detect from url patterns
   const url = props['url'] || props['link'] || '';
-  if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
-  if (/strava\.com/i.test(url)) return 'strava';
-  if (/amazon\.com|amzn\.to/i.test(url)) return 'amazon';
+  const urlSubtype = detectUrlSubtype(url);
+  if (urlSubtype) return urlSubtype;
 
   // Effort pages expose either a nested baseAttributes block or flat effort
   // metadata at the root. The flat parser captures nested keys as empty-string
@@ -229,13 +229,8 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
     let currentGroup: string[] = [];
     let groupStartLine = startLine;
 
-    for (let i = 0; i <= mdLines.length; i++) {
-      const isEnd = i === mdLines.length;
-      const line = !isEnd ? mdLines[i] : null;
-      const isBlank = line !== null && line.trim().length === 0;
-
-      if (isEnd || isBlank) {
-        // Flush current group
+    /** Flush the accumulated non-blank group into a section. */
+    const flushGroup = () => {
         if (currentGroup.length > 0) {
           const raw = currentGroup.join('\n');
           const { metadata, cleanText } = extractMetadata(raw);
@@ -285,27 +280,36 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
           }
         }
 
-        // Blank line itself (if not at end)
-        if (isBlank) {
-          sections.push({
-            id: generateSectionId('markdown', startLine + i, ''),
-            type: 'markdown',
-            rawContent: '',
-            displayContent: '',
-            startLine: startLine + i,
-            endLine: startLine + i,
-            lineCount: 1,
-            version: 1,
-            createdAt: now,
-          });
-        }
-
         currentGroup = [];
+    };
+
+    // Iterate real lines only; a final flush after the loop handles the
+    // trailing group (avoids indexing mdLines past its end).
+    for (let i = 0; i < mdLines.length; i++) {
+      const line = mdLines[i];
+
+      if (line.trim().length === 0) {
+        flushGroup();
+        // Blank line itself becomes its own empty section
+        sections.push({
+          id: generateSectionId('markdown', startLine + i, ''),
+          type: 'markdown',
+          rawContent: '',
+          displayContent: '',
+          startLine: startLine + i,
+          endLine: startLine + i,
+          lineCount: 1,
+          version: 1,
+          createdAt: now,
+        });
         groupStartLine = startLine + i + 1;
       } else {
-        currentGroup.push(line!);
+        currentGroup.push(line);
       }
     }
+
+    // Flush a trailing group not terminated by a blank line
+    flushGroup();
   }
 
   // Accumulate markdown (non-wod) lines between wod blocks

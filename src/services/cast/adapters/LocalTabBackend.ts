@@ -48,9 +48,9 @@ interface LocalTabBackendDeps {
     /** Override `window.removeEventListener`. */
     removeEventListener?: (handler: (event: MessageEvent) => void) => void;
     /**
-     * Post a message to the popup. Defaults to `popup.postMessage`.
-     * The `targetOrigin` is `*` because the popup is same-origin by
-     * construction (built from `getOrigin()` + the receiver HTML).
+     * Post a message to the popup. Defaults to `popup.postMessage` scoped to
+     * the current origin — the popup is same-origin by construction (built
+     * from `getOrigin()` + the receiver HTML).
      */
     postToPopup?: (popup: Window, message: unknown) => void;
     generateId?: () => string;
@@ -91,9 +91,18 @@ export class LocalTabBackend implements ICastBackend {
                 window.removeEventListener('message', handler);
             }),
             postToPopup: deps.postToPopup ?? ((popup: Window, message: unknown) => {
-                popup.postMessage(message, '*');
+                popup.postMessage(message, window.location.origin);
             }),
-            generateId: deps.generateId ?? (() => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2))),
+            generateId: deps.generateId ?? (() => {
+                // Session IDs gate the cast pairing, so they must come from a
+                // CSPRNG — never Math.random().
+                const c: Crypto | undefined = typeof crypto !== 'undefined' ? crypto : undefined;
+                if (typeof c?.randomUUID === 'function') return c.randomUUID();
+                if (!c) throw new Error('LocalTabBackend: crypto API unavailable');
+                const bytes = new Uint8Array(16);
+                c.getRandomValues(bytes);
+                return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+            }),
             buildReceiverUrl: deps.buildReceiverUrl ?? ((origin: string, sessionId: string) => {
                 const baseUrl = LOCAL_RECEIVER_URL || `${origin}${LOCAL_RECEIVER_HTML}`;
                 return `${baseUrl}?local=${sessionId}`;
@@ -185,7 +194,7 @@ export class LocalTabBackend implements ICastBackend {
                     return;
                 }
                 try {
-                    popup.postMessage({ kind: 'data-port', sessionId }, '*', [theirPort]);
+                    popup.postMessage({ kind: 'data-port', sessionId }, this.deps.getOrigin(), [theirPort]);
                     console.log('[LocalTabBackend] transferred data port', { sessionId });
                 } catch (err) {
                     failHandshake(err instanceof Error ? err.message : String(err));

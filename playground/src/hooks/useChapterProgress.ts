@@ -21,6 +21,8 @@ export interface ChapterProgress {
   completedCount: number;
   totalCount: number;
   isComplete: boolean;
+  /** Per-quest completion in declared order (OR across all page routes). */
+  quests: Array<{ id: string; isComplete: boolean }>;
 }
 
 export interface UseChapterProgressResult {
@@ -62,13 +64,14 @@ export function useChapterProgress(
   };
 
   const result: ChapterProgress[] = chapters.map((chapter) => {
-    const total = chapter.questIds.length;
-    const completed = chapter.questIds.filter(isDone).length;
+    const quests = chapter.questIds.map((id) => ({ id, isComplete: isDone(id) }));
+    const completed = quests.filter((q) => q.isComplete).length;
     return {
       chapter,
       completedCount: completed,
-      totalCount: total,
-      isComplete: total > 0 && completed === total,
+      totalCount: quests.length,
+      isComplete: quests.length > 0 && completed === quests.length,
+      quests,
     };
   });
 

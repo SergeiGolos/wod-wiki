@@ -12,7 +12,7 @@ import type { EditorView } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { Plus, X } from "lucide-react";
 import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
-import { parseFlatProperties, parseFrontmatterBody, serializeFrontmatter, extractYouTubeVideoId, type ParsedFrontmatter } from "@/lib/frontmatter";
+import { parseFlatProperties, parseFrontmatterBody, serializeFrontmatter, extractYouTubeVideoId, detectUrlSubtype, type ParsedFrontmatter } from "@/lib/frontmatter";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/atoms/primitives/label";
 
@@ -52,8 +52,11 @@ function getSectionInnerContent(view: EditorView, section: EditorSection): strin
 
 function parseYamlScalar(val: string): string {
   const trimmed = val.trim();
-  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-    return trimmed.slice(1, -1).replace(/\\"/g, '"').replace(/\\'/g, "'");
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed.slice(1, -1).replace(/\\(["\\])/g, '$1');
+  }
+  if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
+    return trimmed.slice(1, -1).replace(/\\'/g, "'");
   }
   return trimmed;
 }
@@ -61,7 +64,7 @@ function parseYamlScalar(val: string): string {
 function quoteYaml(val: string): string {
   if (!val) return '""';
   if (/[":'\n#{}\[\],&*?\|\-<>=%!@`]/.test(val) || val !== val.trim()) {
-    return `"${val.replace(/"/g, '\\"')}"`;
+    return `"${val.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
   }
   return val;
 }
@@ -76,9 +79,8 @@ function detectSubtype(props: Record<string, string>): FrontmatterSubtype {
   if (props.source_url || props.website) return "link";
 
   const url = props.url || props.link || "";
-  if (/youtube\.com|youtu\.be/i.test(url)) return "youtube";
-  if (/amazon\.com|amzn\.to/i.test(url)) return "amazon";
-  if (/strava\.com/i.test(url)) return "strava";
+  const urlSubtype = detectUrlSubtype(url);
+  if (urlSubtype) return urlSubtype;
 
   // Effort frontmatter uses a predictable metadata envelope. Only the
   // canonical nested doc (baseAttributes / registrySource) is detected —

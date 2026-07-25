@@ -26,8 +26,6 @@ import {
 import { Extension, StateField, Range, EditorState, Prec, StateEffect } from "@codemirror/state";
 import type { Line } from "@codemirror/state";
 import { createRoot } from "react-dom/client";
-// @ts-expect-error — react-dom flushSync subpath types don't resolve under moduleResolution:bundler (baseline issue)
-import { flushSync } from "react-dom";
 type Root = { render: (c: React.ReactNode) => void; unmount: () => void };
 import React from "react";
 

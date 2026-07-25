@@ -17,8 +17,7 @@ export class RepMetric implements IMetric {
     }
     this.value = reps;
     this.image = reps !== undefined ? reps.toString() : '?';
-    // If reps is undefined, this is a collectible metrics from user input
-    this.origin = reps === undefined ? 'user' : 'parser';
+    // If reps is undefined, this is a collectible metric hinted from user input
     this.origin = reps === undefined ? 'hinted' : 'parser';
   }
   readonly type = MetricType.Rep;
