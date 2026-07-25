@@ -48,9 +48,9 @@ interface LocalTabBackendDeps {
     /** Override `window.removeEventListener`. */
     removeEventListener?: (handler: (event: MessageEvent) => void) => void;
     /**
-     * Post a message to the popup. Defaults to `popup.postMessage`.
-     * The `targetOrigin` is `*` because the popup is same-origin by
-     * construction (built from `getOrigin()` + the receiver HTML).
+     * Post a message to the popup. Defaults to `popup.postMessage` scoped to
+     * the current origin — the popup is same-origin by construction (built
+     * from `getOrigin()` + the receiver HTML).
      */
     postToPopup?: (popup: Window, message: unknown) => void;
     generateId?: () => string;
@@ -194,7 +194,7 @@ export class LocalTabBackend implements ICastBackend {
                     return;
                 }
                 try {
-                    popup.postMessage({ kind: 'data-port', sessionId }, '*', [theirPort]);
+                    popup.postMessage({ kind: 'data-port', sessionId }, this.deps.getOrigin(), [theirPort]);
                     console.log('[LocalTabBackend] transferred data port', { sessionId });
                 } catch (err) {
                     failHandshake(err instanceof Error ? err.message : String(err));
