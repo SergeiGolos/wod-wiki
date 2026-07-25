@@ -43,8 +43,8 @@ function unquote(value: string): string {
  * Semantics:
  *   - No block → `{ meta: {}, body: raw }`.
  *   - Scalar `key: value` (key `/^[A-Za-z][\w.-]*$/`, dots allow flat nested
- *     keys like `book.title`): matched wrapping quotes stripped; numeric
- *     strings become `number`.
+ *     keys like `book.title`): matched wrapping quotes stripped; bare numeric
+ *     strings become `number`, quoted scalars always stay strings.
  *   - `key:` with empty value followed by indented `- item` lines → `string[]`;
  *     the list ends at the next top-level key; case is preserved.
  *   - `key:` with empty value and no list items → `''`.
@@ -55,8 +55,12 @@ export function parseFrontmatter(raw: string): ParsedFrontmatter {
   const match = raw.match(FRONTMATTER_RE);
   if (!match) return { meta: {}, body: raw };
 
+  return { meta: parseMetaLines(match[1].split(/\r?\n/)), body: raw.slice(match[0].length) };
+}
+
+/** Shared scalar/list line parser behind `parseFrontmatter` and `parseFrontmatterBody`. */
+function parseMetaLines(lines: string[]): ParsedFrontmatter['meta'] {
   const meta: ParsedFrontmatter['meta'] = {};
-  const lines = match[1].split(/\r?\n/);
 
   for (let i = 0; i < lines.length; i++) {
     const keyMatch = lines[i].match(/^([A-Za-z][\w.-]*)\s*:(.*)$/);
@@ -76,13 +80,63 @@ export function parseFrontmatter(raw: string): ParsedFrontmatter {
       }
       meta[key] = items.length > 0 ? items : '';
     } else {
+      // Quoted scalars stay strings (YAML semantics); only bare numeric
+      // strings coerce to numbers.
+      const wasQuoted = /^(['"])(.*)\1$/.test(rawVal);
       const value = unquote(rawVal);
       const num = Number(value);
-      meta[key] = value !== '' && !isNaN(num) ? num : value;
+      meta[key] = !wasQuoted && value !== '' && !isNaN(num) ? num : value;
     }
   }
 
-  return { meta, body: raw.slice(match[0].length) };
+  return meta;
+}
+
+/**
+ * Parse frontmatter body content (the lines between the `---` delimiters)
+ * with the same semantics as `parseFrontmatter`. Used by editor overlays
+ * that hold the section's inner content rather than the full document.
+ */
+export function parseFrontmatterBody(innerContent: string): ParsedFrontmatter['meta'] {
+  return parseMetaLines(innerContent.split(/\r?\n/));
+}
+
+/** Quote a scalar when it would not round-trip through `parseFrontmatter` unchanged. */
+function quoteYamlScalar(value: string): string {
+  if (value === '') return '""';
+  const looksNumeric = !isNaN(Number(value));
+  const looksKeyword = /^(true|false|null|yes|no|on|off)$/i.test(value);
+  if (/[":'\n#{}\[\],&*?|<>=%!@`]/.test(value) || value !== value.trim() || value.startsWith('-') || looksNumeric || looksKeyword) {
+    return `"${value.replace(/"/g, '\\"')}"`;
+  }
+  return value;
+}
+
+/**
+ * Serialize frontmatter metadata back to YAML body lines (no `---`
+ * delimiters). Inverse of `parseFrontmatterBody`: scalars are quoted only
+ * when needed to round-trip, numbers emit bare, lists emit block style
+ * (`key:` + indented `- item`), preserving key order.
+ */
+export function serializeFrontmatter(meta: ParsedFrontmatter['meta']): string {
+  const lines: string[] = [];
+  for (const [key, value] of Object.entries(meta)) {
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        lines.push(`${key}: ""`);
+        continue;
+      }
+      lines.push(`${key}:`);
+      for (const item of value) {
+        lines.push(`  - ${quoteYamlScalar(item)}`);
+      }
+    } else if (typeof value === 'number') {
+      lines.push(`${key}: ${value}`);
+    } else {
+      lines.push(`${key}: ${quoteYamlScalar(value)}`);
+    }
+  }
+  return lines.join('\n');
 }
 
 /** Body of `raw` with the leading frontmatter block removed. */

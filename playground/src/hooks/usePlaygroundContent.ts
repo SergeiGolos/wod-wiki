@@ -22,6 +22,9 @@ interface UsePlaygroundContentOptions {
   mdContent: string;
 }
 
+/** Cap on the initial IndexedDB read before falling back to bundled content. */
+export const LOAD_TIMEOUT_MS = 8000;
+
 interface UsePlaygroundContentResult {
   /** The current content (from IndexedDB or MD fallback) */
   content: string;
@@ -85,6 +88,21 @@ export function usePlaygroundContent({
   useEffect(() => {
     let cancelled = false;
 
+    // A blocked IndexedDB open (e.g. a stale tab holding the DB during a
+    // schema upgrade) never settles — without this cap the page would spin
+    // "Loading…" forever. Fall back to the bundled content; the late load is
+    // cancelled so it can't clobber the fallback.
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      cancelled = true;
+      console.warn(
+        `[usePlaygroundContent] load of ${pageId} timed out after ${LOAD_TIMEOUT_MS}ms — falling back to bundled content`,
+      );
+      setContent(mdContent);
+      setIsModified(false);
+      setLoading(false);
+    }, LOAD_TIMEOUT_MS);
+
     async function load() {
       setLoading(true);
       try {
@@ -113,12 +131,13 @@ export function usePlaygroundContent({
           setIsModified(false);
         }
       } finally {
+        clearTimeout(timer);
         if (!cancelled) setLoading(false);
       }
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [pageId, mdContent, category, name]);
 
   const onChange = useCallback(

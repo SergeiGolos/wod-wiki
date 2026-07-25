@@ -39,6 +39,7 @@ import { FeedDetailPage } from './pages/FeedDetailPage'
 import { FeedItemPage } from './pages/FeedItemPage'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
+import { HomeView } from './views/HomeView'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
@@ -170,16 +171,22 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     collections: () => <CollectionsPage />,
     effortsCatalog: () => <EffortsCatalogPage />,
     effortDetail: () => <EffortDetailPage />,
-    canvas: () => (
-      <MarkdownCanvasPage
-        page={view.canvasPage!}
-        wodFiles={workoutFiles as Record<string, string>}
-        theme={actualTheme}
-        workoutItems={workoutItems}
-        onSelect={handleSelectWorkout}
-        onScrollToSection={scrollToSection}
-      />
-    ),
+    canvas: () =>
+      view.canvasPage!.route === '/' ? (
+        <HomeView
+          wodFiles={workoutFiles as Record<string, string>}
+          theme={actualTheme}
+        />
+      ) : (
+        <MarkdownCanvasPage
+          page={view.canvasPage!}
+          wodFiles={workoutFiles as Record<string, string>}
+          theme={actualTheme}
+          workoutItems={workoutItems}
+          onSelect={handleSelectWorkout}
+          onScrollToSection={scrollToSection}
+        />
+      ),
     playground: () => (
       <PlaygroundNotePage key={view.effectivePlaygroundId} theme={actualTheme} onViewCreated={handleViewCreated} onScrollToSection={scrollToSection} onSearch={openSearchPalette} />
     ),

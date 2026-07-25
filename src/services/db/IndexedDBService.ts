@@ -316,26 +316,39 @@ async function backfillV11(tx: V10Tx): Promise<void> {
 }
 
 export class IndexedDBService {
-    private dbPromise: Promise<IDBPDatabase<WodWikiDB>>;
+    private _dbPromise: Promise<IDBPDatabase<WodWikiDB>> | null = null;
 
-    constructor() {
-        // Guard: `openDB` reads `indexedDB.open` synchronously, so when IndexedDB
-        // is unavailable (locked-down webview / disabled storage) the constructor
-        // would throw at module scope (`export const indexedDBService = new
-        // IndexedDBService()`), taking down the whole bundle and white-screening
-        // the app before React mounts. Defer the failure to first use instead —
-        // callers awaiting dbPromise get a rejected promise they can handle. (#703)
+    /**
+     * Lazily-opened connection. Deferred to first use so a hostile environment
+     * (locked-down webview / disabled storage) can never throw at module scope
+     * when the singleton is constructed, white-screening the app before React
+     * mounts — callers awaiting a method get a rejected promise they can
+     * handle instead. (#703)
+     *
+     * Self-healing: a rejected or force-closed open is uncached so the next
+     * access retries. This is what keeps a cross-tab schema upgrade from
+     * becoming a permanent hang — see `blocking` in {@link open}.
+     */
+    private get dbPromise(): Promise<IDBPDatabase<WodWikiDB>> {
+        if (!this._dbPromise) {
+            const opening = this.open();
+            this._dbPromise = opening;
+            // On failure, uncache so the next access retries the open rather
+            // than replaying a dead rejection forever.
+            opening.catch(() => {
+                if (this._dbPromise === opening) this._dbPromise = null;
+            });
+        }
+        return this._dbPromise;
+    }
+
+    private open(): Promise<IDBPDatabase<WodWikiDB>> {
         if (typeof indexedDB === 'undefined') {
-            this.dbPromise = Promise.reject(
+            return Promise.reject(
                 new Error('IndexedDB is unavailable in this environment'),
             );
-            // Mark the stored rejection handled so it isn't flagged as an
-            // unhandled rejection at boot; each `await this.dbPromise` still
-            // rejects for the caller.
-            this.dbPromise.catch(() => {});
-            return;
         }
-        this.dbPromise = openDB<WodWikiDB>(DB_NAME, DB_VERSION, {
+        const opening = openDB<WodWikiDB>(DB_NAME, DB_VERSION, {
             async upgrade(db, oldVersion, _newVersion, tx) {
                 // -------------------------------------------------------
                 // Fresh-start strategy: drop everything below V4
@@ -486,7 +499,34 @@ export class IndexedDBService {
                     await backfillV11(tx);
                 }
             },
+            // Another tab is waiting on a schema upgrade this connection
+            // blocks. Surface it — without a `blocked` handler this is
+            // indistinguishable from a slow open and pages spin "Loading…"
+            // forever.
+            blocked: (currentVersion, blockedVersion) => {
+                console.warn(
+                    `[IndexedDBService] open of ${DB_NAME} v${blockedVersion ?? DB_VERSION} blocked by a v${currentVersion} connection in another tab`,
+                );
+            },
+            // Another tab requested a NEWER schema. Yield: close this
+            // connection so the upgrade is not deadlocked behind us, then
+            // uncache so the next access reopens against the migrated DB.
+            blocking: (currentVersion, blockedVersion) => {
+                console.warn(
+                    `[IndexedDBService] yielding ${DB_NAME} v${currentVersion} connection to a v${blockedVersion} upgrade from another tab`,
+                );
+                opening.then((db) => db.close()).catch(() => {});
+                if (this._dbPromise === opening) this._dbPromise = null;
+            },
+            // The browser force-closed the connection (e.g. another tab wiped
+            // the DB). Uncache so the next access reopens instead of throwing
+            // InvalidStateError on a dead handle forever.
+            terminated: () => {
+                console.warn(`[IndexedDBService] ${DB_NAME} connection terminated`);
+                if (this._dbPromise === opening) this._dbPromise = null;
+            },
         });
+        return opening;
     }
 
     async getDB() {
@@ -505,6 +545,10 @@ export class IndexedDBService {
             db.close();
         } catch {
             // openDB rejected (e.g. blocked upgrade) — no live connection.
+        } finally {
+            // Uncache so the next access reopens instead of throwing
+            // InvalidStateError on the closed handle.
+            this._dbPromise = null;
         }
     }
 

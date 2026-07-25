@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'bun:test';
 import {
   parseFrontmatter,
+  parseFrontmatterBody,
+  serializeFrontmatter,
   stripFrontmatter,
   getScalar,
   getList,
@@ -100,6 +102,60 @@ describe('parseFrontmatter', () => {
       empty: '',
     });
     expect(body).toBe('Body\r\n');
+  });
+});
+
+describe('parseFrontmatterBody', () => {
+  it('parses body lines without delimiters using parseFrontmatter semantics', () => {
+    const inner = 'title: "WOD 761"\norder: 2\ncategory:\n  - kettlebell\n  - strength\nempty:';
+    expect(parseFrontmatterBody(inner)).toEqual({
+      title: 'WOD 761',
+      order: 2,
+      category: ['kettlebell', 'strength'],
+      empty: '',
+    });
+  });
+
+  it('matches parseFrontmatter meta for the same content', () => {
+    const inner = 'title: WOD\norder: 1\ncategory:\n  - a\n  - b';
+    expect(parseFrontmatterBody(inner)).toEqual(
+      parseFrontmatter(`---\n${inner}\n---\nBody`).meta,
+    );
+  });
+});
+
+describe('serializeFrontmatter', () => {
+  it('emits scalars bare and block-style lists, preserving key order', () => {
+    expect(
+      serializeFrontmatter({ title: 'WOD 761', order: 2, category: ['kettlebell', 'strength'] }),
+    ).toBe('title: WOD 761\norder: 2\ncategory:\n  - kettlebell\n  - strength');
+  });
+
+  it('quotes values containing YAML-special characters', () => {
+    expect(serializeFrontmatter({ notes: 'rest: 2:00', title: 'He said "hi"' })).toBe(
+      'notes: "rest: 2:00"\ntitle: "He said \\"hi\\""',
+    );
+  });
+
+  it('quotes numeric-looking and keyword-looking strings so they stay strings', () => {
+    const serialized = serializeFrontmatter({ version: '1.0', mode: 'true', name: 'on' });
+    expect(serialized).toBe('version: "1.0"\nmode: "true"\nname: "on"');
+  });
+
+  it('serializes empty strings as quoted empty values', () => {
+    expect(serializeFrontmatter({ empty: '' })).toBe('empty: ""');
+  });
+
+  it('round-trips through parseFrontmatterBody without losing values or types', () => {
+    const meta = {
+      title: 'WOD 761',
+      order: 2,
+      category: ['Kettlebell', 'strength'],
+      version: '1.0',
+      empty: '',
+      notes: 'rest: 2:00 between sets',
+    };
+    expect(parseFrontmatterBody(serializeFrontmatter(meta))).toEqual(meta);
   });
 });
 
