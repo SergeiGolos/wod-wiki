@@ -55,6 +55,19 @@ jobs:
           VITE_BASE_PATH="/${{ steps.slug.outputs.slug }}/dist/" \
             bun x vite build --config vite.receiver.config.ts
 
+      # Storybook build for {slug}.story.wod.wiki — default basePath=/ works
+      # because the CF host-header function injects the /<slug>/storybook/ S3
+      # prefix under the hood, so no base path config is needed at build time.
+      - name: Build Storybook
+        run: bun run build-storybook
+
+      - name: Persist Storybook artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-storybook-${{ github.event.pull_request.number }}
+          path: storybook-static/
+          retention-days: 1
+
       - name: Persist build artifact
         uses: actions/upload-artifact@v4
         with:

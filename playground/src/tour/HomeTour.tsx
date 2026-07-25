@@ -118,6 +118,9 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
   const [doc, setDoc] = useState('')
   const blocksRef = useRef<ScriptBlock[]>([])
   const runtimeRef = useRef<IScriptRuntime | null>(null)
+  // State mirror of runtimeRef so the TV card re-renders when the timer
+  // stage's runtime is created (the ref alone wouldn't trigger a render).
+  const [tourRuntime, setTourRuntime] = useState<IScriptRuntime | null>(null)
 
   // ── Playground mode ──
   const [interactive, setInteractive] = useState<'timer' | 'analytics' | null>(null)
@@ -231,6 +234,7 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
 
   const handleRuntimeReady = useCallback((runtime: IScriptRuntime) => {
     runtimeRef.current = runtime
+    setTourRuntime(runtime)
   }, [])
 
   const handleBlocksChange = useCallback((blocks: ScriptBlock[]) => {
@@ -485,9 +489,7 @@ function HomeTourInner({ wodFiles, theme, quests }: HomeTourProps) {
 
                 <TourTvCard
                   ref={tvCardRef}
-                  elapsed={tvElapsed}
-                  roundLabel="Session live"
-                  subtitle="welcome-1 · WallClock"
+                  runtime={tourRuntime}
                 />
 
                 <TourRing
