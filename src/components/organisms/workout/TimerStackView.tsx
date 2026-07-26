@@ -5,6 +5,7 @@ import { formatTimeMMSS } from '@/lib/formatTime';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
 import { useAudio } from '@/contexts/AudioContext';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
+import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 
 export interface TimerStackViewProps {
     elapsedMs: number;
@@ -330,6 +331,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         {...(getFocusProps ? getFocusProps('btn-stop') : {})}
                         className={`tv-focusable group flex items-center justify-center rounded-full border transition-all active:scale-95 ${compact ? 'w-12 h-12 bg-muted border-border' : 'w-16 h-16 bg-surface-container-low border-outline-variant hover:bg-surface-variant shadow-sm'}`}
                         title="Stop Session"
+                        data-testid={TEST_IDS.TIMER_STOP_SESSION}
                     >
                         <Square className={`${compact ? 'w-5 h-5' : 'w-7 h-7'} text-muted-foreground group-hover:text-destructive transition-colors`} />
                     </button>
@@ -343,6 +345,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         {...(getFocusProps ? getFocusProps('btn-pause') : {})}
                         className={`tv-focusable group flex items-center justify-center rounded-full transition-all active:scale-95 ${compact ? 'w-14 h-14 bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'w-20 h-20 bg-surface-container-low border border-outline-variant hover:bg-surface-variant shadow-sm'}`}
                         title={primaryControlLabel}
+                        data-testid={TEST_IDS.TIMER_PLAY_PAUSE}
                     >
                         {isPaused
                             ? <Play className={`${compact ? 'w-6 h-6 text-white ml-0.5' : 'w-8 h-8 text-on-surface-variant ml-1'}`} />
@@ -364,6 +367,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         {...(getFocusProps ? getFocusProps('btn-next') : {})}
                         className={`tv-focusable flex-1 h-14 rounded-2xl flex items-center justify-center gap-2 transition-transform shadow-lg ${isNextDisabled ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60' : 'bg-primary text-primary-foreground shadow-primary/20 active:scale-[0.98]'}`}
                         title="Next Block"
+                        data-testid={TEST_IDS.TIMER_NEXT_BLOCK}
                     >
                         <span className="text-base font-bold tracking-widest uppercase">Next</span>
                         <SkipForward className="w-5 h-5" />
@@ -378,6 +382,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             {...(getFocusProps ? getFocusProps('btn-next') : {})}
                             className={`tv-focusable flex items-center justify-center rounded-full transition-all shadow-xl w-24 h-24 ${isNextDisabled ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60' : 'bg-primary-container text-on-primary-container hover:bg-primary hover:text-white active:scale-90'}`}
                             title="Next Block"
+                        data-testid={TEST_IDS.TIMER_NEXT_BLOCK}
                         >
                             <SkipForward className="font-bold w-10 h-10" />
                         </button>

@@ -1,9 +1,14 @@
 name: Release – Main
 
+# The single main-branch pipeline. One job graph per push:
+#   verify (unit/story/coverage — no e2e, no smoke build)
+#     → release (Pages deploy + release tag + smoke e2e)
+#     → site (S3 build → deploy → deployed-artifact e2e)
 # Every push to main attempts a release using the version from package.json.
 # If the tag already exists at this commit SHA, the release is updated in-place (idempotent).
 # If the tag exists at a different SHA, the release job fails — bump package.json before
 # merging another change to main to avoid overwriting an existing release.
+
 on:
   push:
     branches: ["main"]
@@ -21,9 +26,116 @@ jobs:
   verify:
     uses: ./.github/workflows/_verify.yml
     secrets: inherit
+    with:
+      # No journal e2e and no smoke build on main — the site job's
+      # deployed-artifact e2e is the single merge-time e2e, and the release
+      # and site jobs build the playground for real.
+      run-e2e: false
 
   release:
     needs: [verify]
     if: needs.verify.result == 'success'
     uses: ./.github/workflows/_release.yml
     secrets: inherit
+
+  # Deployed-artifact check: build the S3-shaped playground + receiver +
+  # storybook once, sync to S3, then run the deployed-preview e2e against
+  # exactly this build (build-hash freshness gate in preview-e2e.yml).
+  site:
+    name: Deploy main site
+    runs-on: ubuntu-22.04
+    needs: [verify]
+    outputs:
+      bundle-hash: ${{ steps.fingerprint.outputs.hash }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
+      CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up environment (Bun + caches, no browsers)
+        uses: ./.github/actions/setup-env
+        with:
+          browsers: ''
+
+      - name: Build playground
+        env:
+          VITE_BASE_PATH: /main/dist/
+        run: |
+          bun run build:app
+          VITE_BASE_PATH="/main/dist/" \
+            bun x vite build --config vite.receiver.config.ts
+
+      - name: Build Storybook
+        run: bun run build-storybook
+
+      - name: Compute build fingerprint
+        id: fingerprint
+        run: |
+          HASH=$(ls playground/dist/assets/main-*.js | head -n1 | sed -E 's/.*main-([^.]+)\.js/\1/')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy playground (main.preview.wod.wiki)
+        run: |
+          set -euo pipefail
+          echo "Uploading playground to s3://$S3_BUCKET/main/dist/"
+          aws s3 sync playground/dist/ "s3://$S3_BUCKET/main/dist/" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate" \
+            --exclude "*.map"
+
+      - name: Deploy Storybook (story.wod.wiki)
+        run: |
+          set -euo pipefail
+          echo "Uploading Storybook to s3://$S3_BUCKET/main/storybook/"
+          aws s3 sync ./storybook-static/ "s3://$S3_BUCKET/main/storybook/" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate" \
+            --exclude "*.map"
+
+      - name: Invalidate CloudFront cache (best-effort)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          if aws cloudfront create-invalidation \
+               --distribution-id "$CF_DISTRIBUTION_ID" \
+               --paths "/main/*"; then
+            echo "CloudFront invalidation submitted for /main/*"
+          else
+            echo "::warning::CloudFront invalidation failed; S3 sync succeeded and cache will refresh within 5 minutes via max-age."
+          fi
+
+  e2e:
+    name: Deployed-artifact E2E
+    needs: [site]
+    uses: ./.github/workflows/preview-e2e.yml
+    secrets: inherit
+    with:
+      preview-url: https://main.preview.wod.wiki
+      branch-slug: main
+      build-hash: ${{ needs.site.outputs.bundle-hash }}
+
+  summary:
+    name: Deploy summary
+    runs-on: ubuntu-22.04
+    if: always()
+    needs: [verify, release, site, e2e]
+    steps:
+      - name: Write summary
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## Main pipeline
+
+          | Target | URL | Status |
+          | --- | --- | --- |
+          | Verify | — | ${{ needs.verify.result }} |
+          | Release (Pages) | https://wod.wiki | ${{ needs.release.result }} |
+          | Playground | https://main.preview.wod.wiki | ${{ needs.site.result }} |
+          | Storybook | https://story.wod.wiki | ${{ needs.site.result }} |
+          | E2E report | https://e2e.wod.wiki | ${{ needs.e2e.outputs.outcome }} |
+
+          > E2E: ${{ needs.e2e.outputs.tests }} tests, ${{ needs.e2e.outputs.failures }} failures.
+          EOF

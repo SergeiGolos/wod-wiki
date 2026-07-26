@@ -95,6 +95,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             const byId = latestByNote.get(noteId);
             if (!byId) return '';
             return [...byId.values()]
+                .filter((s) => !s.isHistory)
                 .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt))
                 .map(s => migrateSectionType(s.dataType) === 'wod'
                     ? `\`\`\`${(s.data as ScriptBlock | null)?.dialect ?? 'wod'}\n${s.rawContent}\n\`\`\``
@@ -355,8 +356,10 @@ export class IndexedDBContentProvider implements IContentProvider {
             const sections = parseDocumentSections(patch.rawContent);
             let position = 0;
 
-            // Fetch current segments to compare versions
-            const currentSegments = await this.db.getLatestSegmentsForNote(note.id);
+            // Fetch current segments to compare versions — the full lineage
+            // (retired rows included) so resurrect / retire-sweep semantics
+            // see every live AND historical incarnation.
+            const currentSegments = await this.db.getLatestSegmentsForNote(note.id, { includeHistory: true });
             const consumed = new Set<NoteSegment>();
             const retired = new Set<NoteSegment>();
 

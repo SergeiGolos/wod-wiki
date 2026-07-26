@@ -23,7 +23,8 @@ async function openNote(page: Page, id: string, content: string): Promise<void> 
   await seedNote(page, `playground/${id}`, content, { type: 'playground', title: id });
   await page.goto(`/playground/${id}`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
   await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 10_000 });
-  // Linter debounce is 500ms; give the parse + lint a beat.
+  // Deliberate timing window: the linter has no ready signal — its 500ms
+  // debounce must elapse before error-state assertions can observe squiggles.
   await page.waitForTimeout(2_000);
 }
 

@@ -16,6 +16,83 @@ import type { Page } from '@playwright/test';
 
 export const WOD_DB = 'wodwiki-db';
 
+export interface ResultRow {
+  noteId?: string;
+  data?: { completed?: boolean; logs?: unknown[]; duration?: number };
+  createdAt?: number;
+}
+
+/**
+ * Clear rows from the `results` store — every row, or only one note's when
+ * `noteId` is given. Single home for the inline copies that used to live in
+ * runtime-execution / collection-* / note-persistence / review-surface.
+ */
+export async function clearResults(page: Page, noteId?: string): Promise<void> {
+  await page.evaluate(
+    async ({ dbName, noteId }) => {
+      const db: IDBDatabase = await new Promise((resolve, reject) => {
+        const req = indexedDB.open(dbName);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          if (!db.objectStoreNames.contains('results')) return resolve();
+          const tx = db.transaction('results', 'readwrite');
+          const store = tx.objectStore('results');
+          if (noteId === undefined) {
+            store.clear();
+          } else {
+            const cursorReq = store.index('by-note').openCursor(IDBKeyRange.only(noteId));
+            cursorReq.onsuccess = (e) => {
+              const cursor = (e.target as IDBRequest).result;
+              if (cursor) {
+                cursor.delete();
+                cursor.continue();
+              }
+            };
+          }
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } finally {
+        db.close();
+      }
+    },
+    { dbName: WOD_DB, noteId },
+  );
+}
+
+/** Read rows from the `results` store — every row, or only one note's. */
+export async function getResults(page: Page, noteId?: string): Promise<ResultRow[]> {
+  return page.evaluate(
+    async ({ dbName, noteId }) => {
+      const db: IDBDatabase = await new Promise((resolve, reject) => {
+        const req = indexedDB.open(dbName);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      try {
+        return await new Promise<ResultRow[]>((resolve, reject) => {
+          if (!db.objectStoreNames.contains('results')) return resolve([]);
+          const tx = db.transaction('results', 'readonly');
+          const store = tx.objectStore('results');
+          const req =
+            noteId === undefined
+              ? store.getAll()
+              : store.index('by-note').getAll(IDBKeyRange.only(noteId));
+          req.onsuccess = () => resolve(req.result as ResultRow[]);
+          req.onerror = () => reject(req.error);
+          tx.onerror = () => reject(tx.error);
+        });
+      } finally {
+        db.close();
+      }
+    },
+    { dbName: WOD_DB, noteId },
+  );
+}
+
 /** Seed a Note + single markdown segment so the app loads `content` verbatim. */
 export async function seedNote(
   page: Page,
@@ -132,6 +209,10 @@ export async function clearAllNotes(page: Page): Promise<void> {
       req.onerror = () => reject(req.error);
     });
     try {
+      // The page may not have opened wodwiki-db yet — a bare open() would
+      // create an empty v1 database with no stores; nothing to clear then.
+      const required = ['notes', 'segments', 'note_tags'];
+      if (required.some((s) => !db.objectStoreNames.contains(s))) return;
       await new Promise<void>((resolve, reject) => {
         const tx = db.transaction(['notes', 'segments', 'note_tags'], 'readwrite');
         tx.objectStore('notes').clear();

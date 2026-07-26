@@ -1,4 +1,6 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { seedNote } from '../helpers/wodwikiDb';
+import { TEST_IDS } from '../contracts/TestIdContract';
 
 /**
  * WallClockPage — Page Object for /tracker/:runtimeId
@@ -23,8 +25,7 @@ export class WallClockPage {
 
   async waitForLoad() {
     // Wait for the timer overlay to appear
-    await this.page.waitForSelector('button[title="Close"]', { timeout: 15_000 });
-    await this.page.waitForTimeout(400);
+    await this.page.waitForSelector(`[data-testid="${TEST_IDS.FOCUSED_DIALOG_CLOSE}"]`, { timeout: 15_000 });
   }
 
   // ── Overlay chrome ───────────────────────────────────────────────────────
@@ -34,12 +35,11 @@ export class WallClockPage {
   }
 
   closeButton(): Locator {
-    return this.page.locator('button[title="Close"]').first();
+    return this.page.getByTestId(TEST_IDS.FOCUSED_DIALOG_CLOSE).first();
   }
 
   async clickClose() {
     await this.closeButton().click();
-    await this.page.waitForTimeout(200);
   }
 
   // ── Timer controls ───────────────────────────────────────────────────────
@@ -58,31 +58,27 @@ export class WallClockPage {
   }
 
   stopButton(): Locator {
-    return this.page.locator('button[title="Stop Session"]').first();
+    return this.page.getByTestId(TEST_IDS.TIMER_STOP_SESSION).first();
   }
 
   nextButton(): Locator {
-    return this.page.locator('button[title="Next Block"]').first();
+    return this.page.getByTestId(TEST_IDS.TIMER_NEXT_BLOCK).first();
   }
 
   async clickStart() {
     await this.timerCircle().click();
-    await this.page.waitForTimeout(200);
   }
 
   async clickPause() {
     await this.timerCircle().click();
-    await this.page.waitForTimeout(200);
   }
 
   async clickStop() {
     await this.stopButton().click();
-    await this.page.waitForTimeout(200);
   }
 
   async clickNext() {
     await this.nextButton().click();
-    await this.page.waitForTimeout(200);
   }
 
   // ── Timer display ────────────────────────────────────────────────────────
@@ -112,4 +108,88 @@ export class WallClockPage {
   async expectTimerPaused() {
     await expect(this.startButton()).toBeVisible({ timeout: 5_000 });
   }
+}
+
+// ── Runtime-flow helpers (single home — the per-spec copies were #691) ────
+
+/** Main timer display, parsed to seconds. Throws on unparseable text. */
+export async function timerSeconds(page: Page): Promise<number> {
+  const text = await page
+    .locator('.font-mono.tracking-tighter')
+    .first()
+    .innerText();
+  const m = text.match(/(\d{1,3}):(\d{2})/);
+  if (!m) throw new Error(`Unparseable timer text: "${text}"`);
+  return parseInt(m[1]!, 10) * 60 + parseInt(m[2]!, 10);
+}
+
+export const playIconButton = (page: Page): Locator =>
+  page.locator(`[data-testid="${TEST_IDS.TIMER_PLAY_PAUSE}"][title="Start"]:visible, [data-testid="${TEST_IDS.TIMER_PLAY_PAUSE}"][title="Continue"]:visible`).first();
+export const pauseIconButton = (page: Page): Locator =>
+  page.locator(`[data-testid="${TEST_IDS.TIMER_PLAY_PAUSE}"][title="Pause"]:visible`).first();
+
+/**
+ * Seed a playground note with one wod block, open it, and press Play.
+ * Returns once the app is on the /run/:runtimeId route with the timer
+ * overlay mounted. Does NOT wait for runtime initialization — see #699.
+ */
+export async function navigateToRunPage(page: Page, id: string, wodScript: string): Promise<void> {
+  await seedNote(page, `playground/${id}`, `# ${id}\n\n${wodScript}`, {
+    type: 'playground',
+    title: id,
+  });
+  await page.goto(`/playground/${id}`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+  await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 10_000 });
+
+  // Blocks-parsed signal: the Play overlay button itself (bounded auto-wait,
+  // replaces the fixed 2s "let blocks parse" sleep).
+  const play = page.getByRole('button', { name: 'Play' }).first();
+  await expect(play).toBeVisible({ timeout: 10_000 });
+  // DOM click, not pointer click: the block overlay's decoration layers
+  // intermittently cover the button's center point, so pointer events land
+  // on the overlay instead of the button (force-click included). el.click()
+  // bypasses hit-testing and still fires the React handler.
+  await play.evaluate((el) => (el as HTMLElement).click());
+
+  // PlaygroundNotePage uses enableInlineRuntime={false} → tracker route.
+  await page.waitForURL(/\/(tracker|run)\//, { timeout: 10_000 });
+  // The FocusedDialog close button is present whether the runtime is
+  // initializing, ready, or running — the stable "overlay mounted" signal.
+  await expect(page.getByTestId(TEST_IDS.FOCUSED_DIALOG_CLOSE).first()).toBeVisible({ timeout: 8_000 });
+}
+
+/**
+ * navigateToRunPage + reach a RUNNING session: wait for Ready-to-Start,
+ * advance past the SessionRoot gate, wait for the pause icon.
+ */
+export async function startWorkoutFromPlayground(page: Page, id: string, wodScript: string): Promise<void> {
+  await navigateToRunPage(page, id, wodScript);
+  await expect(page.getByRole('heading', { name: 'Ready to Start' })).toBeVisible({ timeout: 8_000 });
+
+  // The run route passes autoStart, which starts the *session* clock but
+  // leaves the workout at the SessionRoot gate ("Ready to Start", elapsed
+  // counting up). Next advances into the first real block — the countdown
+  // timer mounts and runs from there.
+  await page.getByTestId(TEST_IDS.TIMER_NEXT_BLOCK).first().click();
+  await expect(pauseIconButton(page)).toBeVisible({ timeout: 8_000 });
+}
+
+/** Click Next until the app lands on /review/ (or fail after maxClicks). */
+export async function advanceUntilReview(page: Page, maxClicks = 8): Promise<void> {
+  for (let i = 0; i < maxClicks; i++) {
+    if (/\/review\//.test(page.url())) return;
+    const next = page.locator(`[data-testid="${TEST_IDS.TIMER_NEXT_BLOCK}"]:visible`).first();
+    if ((await next.count()) === 0) break;
+    await next.click().catch(() => {});
+    await page.waitForURL(/\/review\//, { timeout: 8_000 }).catch(() => {});
+    if (/\/review\//.test(page.url())) return;
+    // Bounded wait for the advanced block's Next control to mount — replaces
+    // the fixed 1.5s settle between clicks.
+    await page
+      .locator(`[data-testid="${TEST_IDS.TIMER_NEXT_BLOCK}"]:visible`)
+      .first()
+      .waitFor({ state: 'visible', timeout: 5_000 })
+      .catch(() => {});
+  }
+  await page.waitForURL(/\/review\//, { timeout: 5_000 });
 }

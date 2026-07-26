@@ -24,131 +24,21 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
-import { seedNote } from '../helpers/wodwikiDb';
+import { clearResults, getResults } from '../helpers/wodwikiDb';
+import { installFastClock } from '../utils/fastClock';
+import {
+  startWorkoutFromPlayground,
+  advanceUntilReview,
+  timerSeconds,
+  playIconButton,
+  pauseIconButton,
+} from '../pages/WallClockPage';
+import { TEST_IDS } from '../contracts/TestIdContract';
 
-const WOD_DB = 'wodwiki-db';
-
-// ── IndexedDB helpers ───────────────────────────────────────────────────────
-
-interface ResultRow {
-  noteId?: string;
-  data?: { completed?: boolean; logs?: unknown[] };
-  createdAt?: number;
-}
-
-async function clearAllResults(page: Page): Promise<void> {
-  await page.evaluate(async (db) => {
-    await new Promise<void>((resolve, reject) => {
-      const req = indexedDB.open(db);
-      req.onsuccess = () => {
-        const idb = req.result;
-        if (!idb.objectStoreNames.contains('results')) { idb.close(); resolve(); return; }
-        const tx = idb.transaction('results', 'readwrite');
-        tx.objectStore('results').clear();
-        tx.oncomplete = () => { idb.close(); resolve(); };
-        tx.onerror = () => { idb.close(); reject(tx.error); };
-      };
-      req.onerror = () => reject(req.error);
-    });
-  }, WOD_DB);
-}
-
-async function getAllResults(page: Page): Promise<ResultRow[]> {
-  return page.evaluate(async (db) => {
-    return new Promise<ResultRow[]>((resolve, reject) => {
-      const req = indexedDB.open(db);
-      req.onsuccess = () => {
-        const idb = req.result;
-        if (!idb.objectStoreNames.contains('results')) { idb.close(); resolve([]); return; }
-        const tx = idb.transaction('results', 'readonly');
-        const getAll = tx.objectStore('results').getAll();
-        getAll.onsuccess = () => resolve(getAll.result as ResultRow[]);
-        tx.oncomplete = () => idb.close();
-        tx.onerror = () => { idb.close(); reject(tx.error); };
-      };
-      req.onerror = () => reject(req.error);
-    });
-  }, WOD_DB);
-}
-
-// ── Timer / overlay helpers ─────────────────────────────────────────────────
-
-/** Main timer display, parsed to seconds. Throws on unparseable text. */
-async function timerSeconds(page: Page): Promise<number> {
-  const text = await page
-    .locator('.font-mono.tracking-tighter')
-    .first()
-    .innerText();
-  const m = text.match(/(\d{1,3}):(\d{2})/);
-  if (!m) throw new Error(`Unparseable timer text: "${text}"`);
-  return parseInt(m[1]!, 10) * 60 + parseInt(m[2]!, 10);
-}
-
-const playIconButton = (page: Page) =>
-  page.locator('button[title="Start"]:visible, button[title="Continue"]:visible').first();
-const pauseIconButton = (page: Page) => page.locator('button[title="Pause"]:visible').first();
-
-/**
- * Seed a playground note with one wod block, open it, and press Play.
- * Returns once the app is on the /run/:runtimeId route with the timer
- * overlay mounted. Does NOT wait for runtime initialization — see #699.
- */
-async function navigateToRunPage(page: Page, id: string, wodScript: string): Promise<void> {
-  await seedNote(page, `playground/${id}`, `# Runtime E2E\n\n${wodScript}`, {
-    type: 'playground',
-    title: id,
-  });
-  await clearAllResults(page);
-
-  await page.goto(`/playground/${id}`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-  await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 10_000 });
-  // React + CodeMirror need time to parse blocks and render the Play overlay.
-  await page.waitForTimeout(2_000);
-
-  const play = page.getByRole('button', { name: 'Play' }).first();
-  await expect(play).toBeVisible({ timeout: 10_000 });
-  // DOM click, not pointer click: the block overlay's decoration layers
-  // intermittently cover the button's center point, so pointer events land
-  // on the overlay instead of the button (force-click included). el.click()
-  // bypasses hit-testing and still fires the React handler.
-  await play.evaluate((el) => (el as HTMLElement).click());
-
-  // PlaygroundNotePage uses enableInlineRuntime={false} → tracker route.
-  await page.waitForURL(/\/(tracker|run)\//, { timeout: 10_000 });
-  // The FocusedDialog close button is present whether the runtime is
-  // initializing, ready, or running — the stable "overlay mounted" signal.
-  await expect(page.locator('button[title="Close"]').first()).toBeVisible({ timeout: 8_000 });
-}
-
-/**
- * navigateToRunPage + reach a RUNNING session: wait for Ready-to-Start,
- * click play, wait for the pause icon. Currently unreachable — see #699.
- */
-async function startWorkoutFromPlayground(page: Page, id: string, wodScript: string): Promise<void> {
-  await navigateToRunPage(page, id, wodScript);
-  await expect(page.getByRole('heading', { name: 'Ready to Start' })).toBeVisible({ timeout: 8_000 });
-
-  // The run route passes autoStart, which starts the *session* clock but
-  // leaves the workout at the SessionRoot gate ("Ready to Start", elapsed
-  // counting up). Next advances into the first real block — the countdown
-  // timer mounts and runs from there.
-  await page.locator('button[title="Next Block"]').first().click();
-  await expect(pauseIconButton(page)).toBeVisible({ timeout: 8_000 });
-}
-
-// ── Tests ───────────────────────────────────────────────────────────────────
-
-/** Click Next until the app lands on /review/ (or fail after maxClicks). */
-async function advanceUntilReview(page: Page, maxClicks = 8): Promise<void> {
-  for (let i = 0; i < maxClicks; i++) {
-    if (/\/review\//.test(page.url())) return;
-    const next = page.locator('button[title="Next Block"]:visible').first();
-    if ((await next.count()) === 0) break;
-    await next.click().catch(() => {});
-    await page.waitForURL(/\/review\//, { timeout: 8_000 }).catch(() => {});
-    await page.waitForTimeout(1_500);
-  }
-  await page.waitForURL(/\/review\//, { timeout: 5_000 });
+/** Clear the results store, then start the workout (per-test isolation). */
+async function startCleanWorkout(page: Page, id: string, wodScript: string): Promise<void> {
+  await clearResults(page);
+  await startWorkoutFromPlayground(page, id, wodScript);
 }
 
 test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () => {
@@ -181,7 +71,7 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
   });
 
   test('countdown progresses and tracks wall clock', async ({ page }) => {
-    await startWorkoutFromPlayground(page, 'runtime-e2e-countdown', '```wod\nTimer: 1:00\n10 Burpees\n```');
+    await startCleanWorkout(page, 'runtime-e2e-countdown', '```wod\nTimer: 1:00\n10 Burpees\n```');
 
     const v0 = await timerSeconds(page);
     expect(v0).toBeGreaterThan(0);
@@ -196,7 +86,7 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
   });
 
   test('pause freezes the countdown and resume restarts it', async ({ page }) => {
-    await startWorkoutFromPlayground(page, 'runtime-e2e-pause', '```wod\nTimer: 1:00\n10 Burpees\n```');
+    await startCleanWorkout(page, 'runtime-e2e-pause', '```wod\nTimer: 1:00\n10 Burpees\n```');
 
     await pauseIconButton(page).click();
     await expect(playIconButton(page)).toBeVisible({ timeout: 5_000 });
@@ -212,10 +102,10 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
   });
 
   test('next block advances to the next segment', async ({ page }) => {
-    await startWorkoutFromPlayground(page, 'runtime-e2e-next', '```wod\n(2)\n  5 Burpees\n  10 Squats\n```');
+    await startCleanWorkout(page, 'runtime-e2e-next', '```wod\n(2)\n  5 Burpees\n  10 Squats\n```');
 
     // First child is current; advancing surfaces the next movement.
-    const nextButton = page.locator('button[title="Next Block"]').first();
+    const nextButton = page.getByTestId(TEST_IDS.TIMER_NEXT_BLOCK).first();
     await expect(nextButton).toBeVisible({ timeout: 5_000 });
     await nextButton.click();
 
@@ -224,40 +114,52 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
   });
 
   test('stop session records no completed result', async ({ page }) => {
-    await startWorkoutFromPlayground(page, 'runtime-e2e-stop', '```wod\nTimer: 1:00\n10 Burpees\n```');
+    await startCleanWorkout(page, 'runtime-e2e-stop', '```wod\nTimer: 1:00\n10 Burpees\n```');
 
-    await page.waitForTimeout(1000); // let the session produce some output
-    await page.locator('button[title="Stop Session"]').first().click();
+    // Session-output signal: the countdown has started ticking (replaces the
+    // fixed 1s "let the session produce some output" sleep).
+    await expect.poll(() => timerSeconds(page), { timeout: 5_000 }).toBeLessThan(60);
+    await page.getByTestId(TEST_IDS.TIMER_STOP_SESSION).first().click();
 
     // No active timer UI remains.
     await expect(pauseIconButton(page)).toBeHidden({ timeout: 5_000 });
 
     // Partials may be recorded by design — but never marked completed.
-    const results = await getAllResults(page);
+    const results = await getResults(page);
     for (const r of results) {
       expect(r.data?.completed).not.toBe(true);
     }
   });
 
   test('natural completion navigates to review and records a completed result', async ({ page }) => {
-    await startWorkoutFromPlayground(page, 'runtime-e2e-complete', '```wod\nTimer: 0:06\n5 Burpees\n```');
+    // Fast clock (20×): the 6s countdown completes in ~0.3s wall time. Not
+    // applied file-wide — 'countdown progresses' verifies wall-clock tracking.
+    await installFastClock(page);
+    const wallStart = Date.now();
+    await startCleanWorkout(page, 'runtime-e2e-complete', '```wod\nTimer: 0:06\n5 Burpees\n```');
 
     // Blocks are advanced manually (Next) — the 6s countdown expires, then
     // keep advancing through the effort block until the session completes
     // and WallClockPage navigates to /review/:runtimeId (replace).
     await advanceUntilReview(page);
 
-    const results = await getAllResults(page);
+    const results = await getResults(page);
     expect(results.some((r) => r.data?.completed === true)).toBe(true);
+    // The accelerated run completes in single-digit seconds of wall time…
+    expect(Date.now() - wallStart).toBeLessThan(15_000);
+    // …but the persisted duration reflects the accelerated 6s span, not wall time.
+    const completed = results.find((r) => r.data?.completed === true);
+    expect(completed?.data?.duration).toBeGreaterThanOrEqual(5_000);
     expect(errors).toEqual([]);
   });
 
   test('completion result feeds the results inlay on the source note', async ({ page }) => {
+    await installFastClock(page);
     const id = 'runtime-e2e-inlay';
-    await startWorkoutFromPlayground(page, id, '```wod\nTimer: 0:06\n5 Burpees\n```');
+    await startCleanWorkout(page, id, '```wod\nTimer: 0:06\n5 Burpees\n```');
 
     await advanceUntilReview(page);
-    expect((await getAllResults(page)).some((r) => r.data?.completed === true)).toBe(true);
+    expect((await getResults(page)).some((r) => r.data?.completed === true)).toBe(true);
 
     // Back on the source note, the recorded result renders as a widget inlay.
     await page.goto(`/playground/${id}`, { waitUntil: 'domcontentloaded', timeout: 20_000 });

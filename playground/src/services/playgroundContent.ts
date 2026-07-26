@@ -72,6 +72,19 @@ export const playgroundContent = {
 
   /** Upsert a page by id (creates the Note + segments if absent, updates if present). */
   async savePage(page: PlaygroundPage): Promise<string> {
+    // True upsert: updates MUST go through updateEntry — its retire sweep
+    // marks superseded segment incarnations as history. The saveEntry
+    // (create) path has no sweep, so routing edits through it piles up live
+    // segment rows and reconstruction duplicates the document (#705).
+    const existing = await provider.getEntry(page.id);
+    if (existing) {
+      await provider.updateEntry(existing.id, {
+        rawContent: page.content,
+        title: page.name,
+        slug: page.slug,
+      });
+      return existing.id;
+    }
     const saved = await provider.saveEntry({
       id: page.id,
       slug: page.slug,

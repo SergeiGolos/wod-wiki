@@ -20,9 +20,9 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
-import { seedNote } from '../helpers/wodwikiDb';
-
-const WOD_DB = 'wodwiki-db';
+import { seedNote, getResults, WOD_DB } from '../helpers/wodwikiDb';
+import { installFastClock } from '../utils/fastClock';
+import { TEST_IDS } from '../contracts/TestIdContract';
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
 const STOP_NOTE_ID = 'ZombieFit-org-2010-Jan/wod-011010';
@@ -65,27 +65,6 @@ async function findNoteIdByTitle(page: Page, title: string): Promise<string | nu
   }, { dbName: WOD_DB, title });
 }
 
-async function getResultsForNote(page: Page, noteId: string): Promise<Array<{ data?: { completed?: boolean } }>> {
-  return page.evaluate(async ({ dbName, noteId }) => {
-    return new Promise<Array<{ data?: { completed?: boolean } }>>((resolve, reject) => {
-      const req = indexedDB.open(dbName);
-      req.onsuccess = () => {
-        const db = req.result;
-        if (!db.objectStoreNames.contains('results')) { db.close(); resolve([]); return; }
-        const tx = db.transaction('results', 'readonly');
-        const items: Array<{ data?: { completed?: boolean } }> = [];
-        const cursorReq = tx.objectStore('results').index('by-note').openCursor(IDBKeyRange.only(noteId));
-        cursorReq.onsuccess = (e) => {
-          const cursor = (e.target as IDBRequest).result;
-          if (cursor) { items.push(cursor.value); cursor.continue(); }
-        };
-        tx.oncomplete = () => { db.close(); resolve(items); };
-        tx.onerror = () => { db.close(); reject(tx.error); };
-      };
-      req.onerror = () => reject(req.error);
-    });
-  }, { dbName: WOD_DB, noteId });
-}
 
 async function deleteNoteAndResults(page: Page, noteId: string | null): Promise<void> {
   if (!noteId) return;
@@ -127,7 +106,13 @@ async function clickPlayOnBlock(page: Page, blockText: string) {
 // ── Tests ───────────────────────────────────────────────────────────────────
 
 test.describe('Collection Workout — run and record', () => {
-  test('creates a journal record on start; stopping early saves and displays results', async ({ page }) => {
+  // Fast clock (20×): the 0:03 AMRAP completes in ~150ms wall time; the
+  // 10:00 AMRAP stop-early flow is unaffected (it never runs to completion).
+  test.beforeEach(async ({ page }) => {
+    await installFastClock(page);
+  });
+
+  test('creates a journal record on start; stopping early saves and displays results', async ({ page }, testInfo) => {
     const today = todayKey();
 
     await page.goto('/journal', { waitUntil: 'domcontentloaded' });
@@ -148,23 +133,26 @@ test.describe('Collection Workout — run and record', () => {
     // Timer auto-starts the session clock; the workout waits at the
     // Ready-to-Start gate. Step through it (Next) to mount the first block —
     // the designed start gesture (see runtime-execution.e2e.ts).
-    await expect(page.locator('button[title="Stop Session"]')).toBeVisible({ timeout: 15_000 });
-    await page.locator('button[title="Next Block"]').first().click();
-    await page.waitForTimeout(2000); // let the runtime accumulate logs
+    await expect(page.getByTestId(TEST_IDS.TIMER_STOP_SESSION)).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId(TEST_IDS.TIMER_NEXT_BLOCK).first().click();
+    // Deliberate accumulation window: let the runtime produce some log
+    // output before the early stop. At the 20× fast clock this 500ms of
+    // wall time is ~10s of runtime.
+    await page.waitForTimeout(500);
 
     // 2. Stop early → result persists against the created note.
-    await page.locator('button[title="Stop Session"]').click();
+    await page.getByTestId(TEST_IDS.TIMER_STOP_SESSION).click();
 
     await expect
-      .poll(async () => (await getResultsForNote(page, noteUuid!)).length, { timeout: 10_000 })
+      .poll(async () => (await getResults(page, noteUuid!)).length, { timeout: 10_000 })
       .toBe(1);
-    const results = await getResultsForNote(page, noteUuid!);
+    const results = await getResults(page, noteUuid!);
     expect(results[0]?.data?.completed, 'manual stop records an incomplete result').toBe(false);
 
     // Results are displayed on the note page: the inline result panel renders
     // under the WOD block (a review overlay may also open when the run has
     // logs — close it so the note page is visible).
-    const closeReview = page.locator('button[title="Close"]').first();
+    const closeReview = page.getByTestId(TEST_IDS.FOCUSED_DIALOG_CLOSE).first();
     if (await closeReview.isVisible().catch(() => false)) {
       await closeReview.click();
     }
@@ -172,7 +160,7 @@ test.describe('Collection Workout — run and record', () => {
       page.locator('.cm-wod-results-inlay').first(),
       'result renders inline on the WOD block after stopping',
     ).toBeVisible({ timeout: 15_000 });
-    await page.screenshot({ path: 'e2e/screenshots/collection-run-stop-review.png' });
+    await page.screenshot({ path: testInfo.outputPath('collection-run-stop-review.png') });
 
     // 3. The inline result survives a hard reload (persisted record).
     await page.reload({ waitUntil: 'domcontentloaded' });
@@ -181,12 +169,12 @@ test.describe('Collection Workout — run and record', () => {
       page.locator('.cm-wod-results-inlay').first(),
       'persisted result renders inline on the WOD block',
     ).toBeVisible({ timeout: 15_000 });
-    await page.screenshot({ path: 'e2e/screenshots/collection-run-stop-inline.png' });
+    await page.screenshot({ path: testInfo.outputPath('collection-run-stop-inline.png') });
 
     await deleteNoteAndResults(page, noteUuid);
   });
 
-  test('completing a short workout saves a completed result and shows the results view', async ({ page }) => {
+  test('completing a short workout saves a completed result and shows the results view', async ({ page }, testInfo) => {
     const today = todayKey();
 
     await page.goto('/journal', { waitUntil: 'domcontentloaded' });
@@ -204,15 +192,15 @@ test.describe('Collection Workout — run and record', () => {
     // Step through the Ready-to-Start gate; the 3s AMRAP then completes
     // naturally → a results view opens (the timer's own completion view
     // and/or the page's review overlay).
-    await expect(page.locator('button[title="Stop Session"]')).toBeVisible({ timeout: 15_000 });
-    await page.locator('button[title="Next Block"]').first().click();
+    await expect(page.getByTestId(TEST_IDS.TIMER_STOP_SESSION)).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId(TEST_IDS.TIMER_NEXT_BLOCK).first().click();
     await expect(page.getByText(/Workout (Complete|Review)/).first()).toBeVisible({ timeout: 30_000 });
-    await page.screenshot({ path: 'e2e/screenshots/collection-run-complete.png' });
+    await page.screenshot({ path: testInfo.outputPath('collection-run-complete.png') });
 
     await expect
-      .poll(async () => (await getResultsForNote(page, noteUuid!)).length, { timeout: 10_000 })
+      .poll(async () => (await getResults(page, noteUuid!)).length, { timeout: 10_000 })
       .toBe(1);
-    const results = await getResultsForNote(page, noteUuid!);
+    const results = await getResults(page, noteUuid!);
     expect(results[0]?.data?.completed, 'natural finish records a completed result').toBe(true);
 
     await deleteNoteAndResults(page, noteUuid);

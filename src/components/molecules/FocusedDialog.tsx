@@ -9,6 +9,7 @@
 import React, { useEffect } from "react";
 import * as ReactDOM from "react-dom";
 import { X } from "lucide-react";
+import { TEST_IDS } from "@/testing/contracts/TestIdContract";
 
 export interface FocusedDialogProps {
   /** Title shown in the header bar. If omitted, no header is rendered. */
@@ -54,6 +55,7 @@ export const FocusedDialog: React.FC<FocusedDialogProps> = ({
         `p-2 rounded-pill ${isMinimal ? 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground' : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'} transition-colors shadow-[rgba(0,0,0,0.06)_0px_1px_2px]`
       }
       title="Close"
+      data-testid={TEST_IDS.FOCUSED_DIALOG_CLOSE}
     >
       <X className="h-5 w-5" />
     </button>
