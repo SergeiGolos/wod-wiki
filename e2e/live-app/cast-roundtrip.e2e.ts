@@ -22,25 +22,13 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
-import { seedNote } from '../helpers/wodwikiDb';
+import { navigateToRunPage } from '../pages/WallClockPage';
+import { TEST_IDS } from '../contracts/TestIdContract';
 
-// ── Runtime helpers (copied from runtime-execution.e2e.ts, #691) ────────────
+// ── Runtime helpers (single home: e2e/pages/WallClockPage.ts, #691) ─────────
 
 async function startWorkoutWithTimer(page: Page, id: string, wodScript: string): Promise<void> {
-  await seedNote(page, `playground/${id}`, `# ${id}\n\n${wodScript}`, {
-    type: 'playground',
-    title: id,
-  });
-  await page.goto(`/playground/${id}`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-  await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 10_000 });
-  await page.waitForTimeout(2_000);
-
-  const play = page.getByRole('button', { name: 'Play' }).first();
-  await expect(play).toBeVisible({ timeout: 10_000 });
-  await play.evaluate((el) => (el as HTMLElement).click());
-
-  await page.waitForURL(/\/(tracker|run)\//, { timeout: 10_000 });
-  await expect(page.locator('button[title="Close"]').first()).toBeVisible({ timeout: 8_000 });
+  await navigateToRunPage(page, id, wodScript);
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────
@@ -87,6 +75,8 @@ test.describe('Cast Sender↔Receiver Round-Trip (LocalTabBackend)', () => {
     // No unhandled errors on either side of the cast link.
     const receiverErrors: string[] = [];
     popup.on('pageerror', (e) => receiverErrors.push(e.message));
+    // Deliberate grace window: give async pageerrors on either side of the
+    // cast link a beat to surface before asserting clean consoles.
     await popup.waitForTimeout(1_000);
     expect(senderErrors).toEqual([]);
     expect(receiverErrors).toEqual([]);
@@ -104,7 +94,7 @@ test.describe('Cast Sender↔Receiver Round-Trip (LocalTabBackend)', () => {
 
     // Advancing the sender into its `Timer: 1:00` block must update the
     // receiver's mirrored timer — the receiver's state follows the sender.
-    const next = page.locator('button[title="Next Block"]:visible').first();
+    const next = page.locator(`[data-testid="${TEST_IDS.TIMER_NEXT_BLOCK}"]:visible`).first();
     await expect(next).toBeVisible({ timeout: 10_000 });
     await next.click();
     await expect(popup.locator('body')).toContainText('1:00', { timeout: 20_000 });

@@ -873,17 +873,25 @@ export class IndexedDBService {
         return (await this.dbPromise).getAll('segments');
     }
 
-    /** Latest version of every segment of a note, in document order (V11). */
-    async getLatestSegmentsForNote(noteId: string): Promise<NoteSegment[]> {
+    /**
+     * Latest version of every segment of a note, in document order (V11).
+     * Live rows only by default — retired (`isHistory`) incarnations are
+     * excluded so reconstruction never joins superseded content into the
+     * document. `updateEntry` passes `includeHistory` to see the full
+     * lineage (resurrect / retire-sweep semantics).
+     */
+    async getLatestSegmentsForNote(noteId: string, opts?: { includeHistory?: boolean }): Promise<NoteSegment[]> {
         const rows = await (await this.dbPromise).getAllFromIndex('segments', 'by-note', noteId);
         const latest = new Map<string, NoteSegment>();
         for (const segment of rows) {
             const current = latest.get(segment.id);
             if (!current || segment.version > current.version) latest.set(segment.id, segment);
         }
-        return [...latest.values()].sort(
-            (a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt),
-        );
+        return [...latest.values()]
+            .filter((segment) => opts?.includeHistory || !segment.isHistory)
+            .sort(
+                (a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt),
+            );
     }
 
     // ======================================================================

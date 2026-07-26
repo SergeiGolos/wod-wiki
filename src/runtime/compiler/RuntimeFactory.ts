@@ -27,6 +27,8 @@ import { WhiteboardScript } from '../../parser/WhiteboardScript';
 import type { ScriptBlock } from '../../components/Editor/types';
 import { RuntimeStackOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { INowProvider } from '../INowProvider';
+import { wallClockNow } from '../INowProvider';
 import { StartSessionAction } from '../actions/stack/StartSessionAction';
 import { createAnalyticsEngineForBlock } from '../../core/analytics/createAnalyticsEngineForBlock';
 import { collapseUnresolvedChoices } from './metrics/ChoiceResolution';
@@ -55,7 +57,10 @@ export interface IRuntimeFactory {
  * Default implementation of IRuntimeFactory
  */
 export class RuntimeFactory implements IRuntimeFactory {
-  constructor(private readonly compiler: JitCompiler) { }
+  constructor(
+    private readonly compiler: JitCompiler,
+    private readonly nowProvider: INowProvider = wallClockNow,
+  ) { }
 
   /**
    * Creates a new ScriptRuntime from a ScriptBlock
@@ -98,7 +103,7 @@ export class RuntimeFactory implements IRuntimeFactory {
     };
 
     // Create runtime with JIT compiler and optional debug options
-    const runtime = new ScriptRuntime(script, this.compiler, dependencies, options);
+    const runtime = new ScriptRuntime(script, this.compiler, dependencies, options, this.nowProvider);
 
     // Wire analytics engine automatically for all runtimes
     const { engine, analyticsContext } = createAnalyticsEngineForBlock(block, options?.analyticsOptions);

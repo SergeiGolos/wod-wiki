@@ -17,7 +17,7 @@ function localDateKey(date: Date): string {
 
 test.describe('Live App Click Handler Navigation', () => {
   for (const viewport of viewports) {
-    test(`collection workout cards navigate to the workout editor on ${viewport.name}`, async ({ page }) => {
+    test(`collection workout cards navigate to the workout editor on ${viewport.name}`, async ({ page }, testInfo) => {
       await page.setViewportSize(viewport.size);
       await page.goto('/collections?categories=crossfit', { waitUntil: 'domcontentloaded' });
 
@@ -31,7 +31,7 @@ test.describe('Live App Click Handler Navigation', () => {
       await expect(page).toHaveURL(/\/collections\/crossfit-girls$/);
 
       await page.locator('#collection-workouts').getByRole('button', { name: /^annie\b/i }).click();
-      await expect(page).toHaveURL(/\/workout\/crossfit-girls\/annie$/);
+      await expect(page).toHaveURL(/\/collections\/crossfit-girls\/annie$/);
 
       await openSidebarIfNeeded(page, viewport.name);
       await expect(page.getByRole('button', { name: /crossfit girls/i }).last()).toBeVisible();
@@ -40,33 +40,40 @@ test.describe('Live App Click Handler Navigation', () => {
       await expect(page.getByRole('button', { name: /^fran$/i }).last()).toBeVisible();
 
       await page.getByRole('button', { name: /^fran$/i }).last().click();
-      await expect(page).toHaveURL(/\/workout\/crossfit-girls\/fran$/);
+      await expect(page).toHaveURL(/\/collections\/crossfit-girls\/fran$/);
 
       await openSidebarIfNeeded(page, viewport.name);
       await page.getByRole('button', { name: /crossfit girls/i }).last().click();
       await expect(page).toHaveURL(/\/collections\/crossfit-girls$/);
 
       await page.screenshot({
-        path: `e2e/screenshots/dead-click-collections-workout-${viewport.name}.png`,
+        path: testInfo.outputPath(`dead-click-collections-workout-${viewport.name}.png`),
         fullPage: true,
       });
     });
 
-    test(`journal plan-a-workout slots open the selected date editor on ${viewport.name}`, async ({ page }) => {
+    test(`journal plan-a-workout slots open the selected date editor on ${viewport.name}`, async ({ page }, testInfo) => {
       await page.setViewportSize(viewport.size);
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const targetDate = localDateKey(tomorrow);
 
-      await page.goto('/journal', { waitUntil: 'domcontentloaded' });
+      // Future plan slots only render in plan mode (ADR unified-journal-with-plan-mode).
+      await page.goto('/journal?mode=plan', { waitUntil: 'domcontentloaded' });
 
-      await page.getByTestId('journal-plan-workout').and(page.locator(`[data-date="${targetDate}"]`)).click();
+      // Plan mode renders a "Create journal entry" card per future date;
+      // today carries "Start today's journal entry", so tomorrow is the
+      // first "Create journal entry" card. The card opens the source palette
+      // (Blank · Collection · History · Feed) — Blank creates immediately.
+      await page.getByText('Create journal entry').first().click();
+      await page.getByText('Blank', { exact: true }).first().click();
 
       await expect(page).toHaveURL(new RegExp(`/journal/${targetDate}(?:$|\\?)`));
-      await expect(page.getByText(/my workout/i).first()).toBeVisible();
+      // The blank template (`# Journal Entry` + empty wod fence) is in the editor.
+      await expect(page.locator('.cm-content[contenteditable="true"]').first()).toContainText('Journal Entry', { timeout: 10_000 });
 
       await page.screenshot({
-        path: `e2e/screenshots/dead-click-journal-plan-slot-${viewport.name}.png`,
+        path: testInfo.outputPath(`dead-click-journal-plan-slot-${viewport.name}.png`),
         fullPage: true,
       });
     });

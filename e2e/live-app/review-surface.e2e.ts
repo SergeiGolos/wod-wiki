@@ -20,10 +20,9 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
-import { seedNote } from '../helpers/wodwikiDb';
+import { WOD_DB } from '../helpers/wodwikiDb';
 import { ReviewPage } from '../pages/ReviewPage';
-
-const WOD_DB = 'wodwiki-db';
+import { startWorkoutFromPlayground, advanceUntilReview } from '../pages/WallClockPage';
 
 // ── IndexedDB helpers (results store) ───────────────────────────────────────
 
@@ -52,48 +51,7 @@ async function putResult(page: Page, row: Record<string, unknown>): Promise<void
   );
 }
 
-// ── Runtime helpers (copied from runtime-execution.e2e.ts, #691) ────────────
-
-const playIconButton = (page: Page) =>
-  page.locator('button[title="Start"]:visible, button[title="Continue"]:visible').first();
-
-async function navigateToRunPage(page: Page, id: string, wodScript: string): Promise<void> {
-  await seedNote(page, `playground/${id}`, `# ${id}\n\n${wodScript}`, {
-    type: 'playground',
-    title: id,
-  });
-  await page.goto(`/playground/${id}`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-  await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 10_000 });
-  await page.waitForTimeout(2_000);
-
-  const play = page.getByRole('button', { name: 'Play' }).first();
-  await expect(play).toBeVisible({ timeout: 10_000 });
-  // DOM click: block overlay decorations intercept pointer events.
-  await play.evaluate((el) => (el as HTMLElement).click());
-
-  await page.waitForURL(/\/(tracker|run)\//, { timeout: 10_000 });
-  await expect(page.locator('button[title="Close"]').first()).toBeVisible({ timeout: 8_000 });
-}
-
-async function startWorkoutFromPlayground(page: Page, id: string, wodScript: string): Promise<void> {
-  await navigateToRunPage(page, id, wodScript);
-  await expect(page.getByRole('heading', { name: 'Ready to Start' })).toBeVisible({ timeout: 8_000 });
-  await page.locator('button[title="Next Block"]').first().click();
-  await expect(page.locator('button[title="Pause"]:visible').first()).toBeVisible({ timeout: 8_000 });
-}
-
-/** Click Next until the app lands on /review/ (or fail after maxClicks). */
-async function advanceUntilReview(page: Page, maxClicks = 8): Promise<void> {
-  for (let i = 0; i < maxClicks; i++) {
-    if (/\/review\//.test(page.url())) return;
-    const next = page.locator('button[title="Next Block"]:visible').first();
-    if ((await next.count()) === 0) break;
-    await next.click().catch(() => {});
-    await page.waitForURL(/\/review\//, { timeout: 8_000 }).catch(() => {});
-    await page.waitForTimeout(1_500);
-  }
-  await page.waitForURL(/\/review\//, { timeout: 5_000 });
-}
+// ── Runtime helpers come from e2e/pages/WallClockPage.ts (#691) ───────────
 
 // ── Tests ───────────────────────────────────────────────────────────────────
 

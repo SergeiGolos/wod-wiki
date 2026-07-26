@@ -207,11 +207,14 @@ export function EffortDetailPage() {
       <Button variant="ghost" size="icon" onClick={() => navigate(effortsPath())} title="Back to catalog">
         <ArrowLeftIcon className="size-4" />
       </Button>
-      <Badge variant={effort.registrySource === 'bundled' ? 'secondary' : 'default'}>
+      <Badge
+        data-testid={TEST_IDS.EFFORT_DETAIL_SOURCE}
+        variant={effort.registrySource === 'bundled' ? 'secondary' : 'default'}
+      >
         {effort.registrySource === 'bundled' ? 'Bundled' : 'Custom'}
       </Badge>
       {!isEditable && (
-        <Button variant="outline" size="sm" onClick={handleClone}>
+        <Button variant="outline" size="sm" onClick={handleClone} data-testid={TEST_IDS.EFFORT_DETAIL_CLONE_BTN}>
           <DocumentDuplicateIcon className="size-4 mr-1.5" />
           Clone
         </Button>
@@ -232,13 +235,14 @@ export function EffortDetailPage() {
   const noteId = `effort/${effort.slug}`;
 
   return (
-    <>
+    <div data-testid={TEST_IDS.EFFORT_DETAIL_ROOT} className="contents">
       <JournalPageShell
         title={effort.label}
+        titleTestId={TEST_IDS.EFFORT_DETAIL_LABEL}
         actions={pageActions}
         index={index}
         editor={
-          <div className="relative">
+          <div className="relative" data-testid={TEST_IDS.EFFORT_DETAIL_NOTEBOOK_EDITOR}>
             {/* Resolved view inline widget */}
             {showResolved && resolved && (
               <div className="px-6 lg:px-10 pt-4">
@@ -284,6 +288,6 @@ export function EffortDetailPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

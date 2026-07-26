@@ -116,10 +116,12 @@ jobs:
         run: |
           echo "Required verification failed, but failures are temporarily non-blocking."
 
-  # Live-app e2e (playwright.journal.config.ts). Runs serially (workers: 1):
-  # per-worker IndexedDB namespacing is unimplemented, so parallelization is
-  # deferred (open note in map #690). The config's webServer auto-starts the
-  # Vite dev app; CI has no .env.local so it targets http://localhost:5173.
+  # Live-app e2e (playwright.journal.config.ts). CI runs 4 workers; tests
+  # within a file stay serial (fullyParallel: false).
+  # NOTE: serving the production preview build in CI (E2E_TARGET=preview) is
+  # deferred — 3 spec files break against the prod bundle (dev-only CM view
+  # hook, widget decorations, cast popup). See the preview-parity follow-up
+  # issue; the config keeps E2E_TARGET support for local runs.
   e2e:
     runs-on: ubuntu-22.04
     outputs:
@@ -141,7 +143,6 @@ jobs:
       - name: Run live-app e2e
         id: e2e
         run: bun x playwright test --config playwright.journal.config.ts
-        continue-on-error: true
 
       - name: Upload e2e report
         uses: actions/upload-artifact@v7

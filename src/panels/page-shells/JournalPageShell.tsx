@@ -34,6 +34,9 @@ export interface JournalPageShellProps {
   /** Title shown in the sticky header */
   title?: string;
 
+  /** Optional data-testid for the sticky-header title element (e2e/TestIdContract) */
+  titleTestId?: string;
+
   /** Right-side actions (e.g. New Entry, Cast, etc.) */
   actions?: ReactNode;
 
@@ -73,6 +76,7 @@ export function JournalPageShell({
   activeSectionId,
   onScrollToSection,
   title,
+  titleTestId,
   actions,
   timerOverlay,
   reviewOverlay,
@@ -125,7 +129,10 @@ export function JournalPageShell({
           <div className="flex items-center justify-between px-6 lg:px-10">
             <div className="flex items-center gap-4 truncate">
               <div className="h-10 w-2 shrink-0 rounded-full bg-primary" />
-              <h1 className="text-2xl md:text-4xl font-black tracking-tight text-foreground leading-none truncate">
+              <h1
+                data-testid={titleTestId}
+                className="text-2xl md:text-4xl font-black tracking-tight text-foreground leading-none truncate"
+              >
                 {title}
               </h1>
             </div>

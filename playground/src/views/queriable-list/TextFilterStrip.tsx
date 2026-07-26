@@ -21,6 +21,8 @@ interface TextFilterStripProps {
   className?: string;
   /** Scope id used to route keyboard navigation commands to a matching list */
   navigationScope?: string;
+  /** Optional data-testid applied to the rendered <input> (e2e/TestIdContract) */
+  inputTestId?: string;
 }
 
 /**
@@ -38,6 +40,7 @@ export const TextFilterStrip: React.FC<TextFilterStripProps> = ({
   autoFocus = false,
   className,
   navigationScope,
+  inputTestId,
 }) => {
   const [value, setValue] = useQueryState(paramName, { defaultValue: '' });
   const scopeId = navigationScope ?? paramName;
@@ -82,6 +85,7 @@ export const TextFilterStrip: React.FC<TextFilterStripProps> = ({
       <input
         ref={inputRef}
         type="text"
+        data-testid={inputTestId}
         value={value}
         onChange={e => setValue(e.target.value)}
         onKeyDown={handleKeyDown}

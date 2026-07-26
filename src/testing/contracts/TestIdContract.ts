@@ -30,6 +30,11 @@ export const TEST_IDS = {
   // ── Timer display ──────────────────────────────────────────────────────────
   TIMER_DISPLAY: 'timer-display',
   TIMER_VALUE: 'timer-value',
+  /** TimerStackView session controls (FocusedDialog overlay + tracker). */
+  TIMER_NEXT_BLOCK: 'timer-next-block',
+  TIMER_STOP_SESSION: 'timer-stop-session',
+  TIMER_PLAY_PAUSE: 'timer-play-pause',
+  FOCUSED_DIALOG_CLOSE: 'focused-dialog-close',
 
   // ── Review panel ───────────────────────────────────────────────────────────
   REVIEW_PANEL: 'review-panel',

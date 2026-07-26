@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { TEST_IDS } from '../contracts/TestIdContract'
 
 function monitorPageErrors(page: Page) {
   const pageErrors: string[] = []
@@ -14,7 +15,7 @@ test.describe('Concept 3 landing page', () => {
   test('renders the grounded storytelling hero, pillars, and runtime toggle', async ({ page }) => {
     const { pageErrors } = monitorPageErrors(page)
 
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20_000 })
+    await page.goto('/concept3', { waitUntil: 'domcontentloaded', timeout: 20_000 })
 
     await expect(page.getByRole('heading', { name: 'Stop tap-dancing with fitness apps. Just type.' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Open Sandbox Editor' })).toBeVisible()
@@ -31,7 +32,7 @@ test.describe('Concept 3 landing page', () => {
     await runButton.click()
 
     await expect(page.getByRole('button', { name: /Return to editor/i })).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByRole('button', { name: /Pause/i })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByTestId(TEST_IDS.TIMER_PLAY_PAUSE)).toBeVisible({ timeout: 15_000 })
 
     await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }))
     await page.waitForTimeout(250)
@@ -48,7 +49,7 @@ test.describe('Concept 3 landing page', () => {
     const { pageErrors } = monitorPageErrors(page)
 
     await page.setViewportSize({ width: 375, height: 812 })
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20_000 })
+    await page.goto('/concept3', { waitUntil: 'domcontentloaded', timeout: 20_000 })
 
     await expect(page.getByRole('heading', { name: 'Stop tap-dancing with fitness apps. Just type.' })).toBeVisible()
     await expect(page.getByTestId('concept3-mobile-editor-cta')).toBeVisible()

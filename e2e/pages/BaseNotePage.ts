@@ -1,4 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { getNoteContentByRouteId } from '../helpers/wodwikiDb';
 
 /**
  * BaseNotePage — shared Page Object for all Note Workspace routes.
@@ -24,10 +25,51 @@ export abstract class BaseNotePage {
 
   /** Wait until the editor surface is present and React has settled. */
   async waitForLoad() {
-    await this.page.waitForSelector('.cm-content[contenteditable="true"]', {
-      timeout: 15_000,
-    });
-    await this.page.waitForTimeout(400);
+    await this.awaitEditorReady();
+  }
+
+  // ── Readiness signals (replaces fixed waitForTimeout settle-waits) ──────
+
+  /** Editor surface attached; bounded fail-fast, no fixed settle sleep. */
+  async awaitEditorReady(): Promise<void> {
+    await this.editor().waitFor({ state: 'attached', timeout: 10_000 });
+  }
+
+  /**
+   * Wait until at least one compiled block marker renders — a wod block's
+   * run control or a widget section. Replaces "let blocks parse" sleeps.
+   */
+  async awaitBlocksParsed(): Promise<void> {
+    await this.page
+      .locator('[data-testid="editor-start-workout"], [data-widget-section-id]')
+      .first()
+      .waitFor({ state: 'visible', timeout: 10_000 });
+  }
+
+  /**
+   * Poll IndexedDB until the note's reconstructed content is readable and
+   * (when `expected` is given) contains it. Replaces "let React + IDB load"
+   * sleeps after edits.
+   */
+  async awaitNotePersisted(routeId: string, expected?: string): Promise<void> {
+    await expect
+      .poll(
+        async () => {
+          const content = await getNoteContentByRouteId(this.page, routeId);
+          if (content === null) return null;
+          return expected === undefined || content.includes(expected) ? content : null;
+        },
+        { timeout: 10_000 },
+      )
+      .not.toBeNull();
+  }
+
+  /**
+   * Wait until a runtime flow reaches its terminal review route — the
+   * signal version of "let the runtime accumulate logs".
+   */
+  async awaitRuntimeIdle(): Promise<void> {
+    await this.page.waitForURL(/\/review\//, { timeout: 10_000 });
   }
 
   // ── Editor ───────────────────────────────────────────────────────────────

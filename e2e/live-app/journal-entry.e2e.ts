@@ -55,7 +55,7 @@ test.describe('Journal Entry — /journal/:date', () => {
 
   // ── 1. Seeded date loads its note content ────────────────────────────────
 
-  test('loads the note content for a seeded date', async () => {
+  test('loads the note content for a seeded date', async ({}, testInfo) => {
     const seeded = `# E2E-LOAD-${Date.now()}\n\n` + '```wod\nTimer: 0:01\n1 Burpee\n```\n';
     await journal.clearStoredEntry(DATE_LOAD);
     await seedJournalNote(journal.page, DATE_LOAD, seeded);
@@ -67,12 +67,12 @@ test.describe('Journal Entry — /journal/:date', () => {
     // No page errors
     expect(errors).toHaveLength(0);
 
-    await journal.page.screenshot({ path: 'e2e/screenshots/journal-entry-01-template.png' });
+    await journal.page.screenshot({ path: testInfo.outputPath('journal-entry-01-template.png') });
   });
 
   // ── 2. Content saved after normal debounce (≥500ms) ──────────────────────
 
-  test('saves content after waiting for debounce then navigating away', async () => {
+  test('saves content after waiting for debounce then navigating away', async ({}, testInfo) => {
     const uniqueText = `E2E-SAVE-NORMAL-${Date.now()}`;
     await journal.clearStoredEntry(DATE_SAVE_NORMAL);
     await seedJournalNote(journal.page, DATE_SAVE_NORMAL, 'Note\n');
@@ -80,8 +80,8 @@ test.describe('Journal Entry — /journal/:date', () => {
 
     await journal.typeInEditor(uniqueText);
 
-    // Wait longer than the 500ms debounce so the save fires normally
-    await journal.page.waitForTimeout(700);
+    // Poll IDB until the debounced save lands (replaces the fixed 700ms wait).
+    await journal.awaitNotePersisted(`journal/${DATE_SAVE_NORMAL}`, uniqueText);
 
     // Navigate away
     await journal.gotoJournalList();
@@ -94,12 +94,12 @@ test.describe('Journal Entry — /journal/:date', () => {
     await journal.goto(DATE_SAVE_NORMAL);
     await journal.expectEditorContains(uniqueText);
 
-    await journal.page.screenshot({ path: 'e2e/screenshots/journal-entry-02-save-normal.png' });
+    await journal.page.screenshot({ path: testInfo.outputPath('journal-entry-02-save-normal.png') });
   });
 
   // ── 3. Content saved on quick navigation (unmount flush) ──────────────────
 
-  test('saves content when navigating away before 500ms debounce fires', async () => {
+  test('saves content when navigating away before 500ms debounce fires', async ({}, testInfo) => {
     const uniqueText = `E2E-SAVE-QUICK-${Date.now()}`;
     await journal.clearStoredEntry(DATE_SAVE_QUICK);
     await seedJournalNote(journal.page, DATE_SAVE_QUICK, 'Note\n');
@@ -111,8 +111,8 @@ test.describe('Journal Entry — /journal/:date', () => {
     // usePlaygroundContent.flush() must fire on component unmount so this content is not lost.
     await journal.gotoJournalList();
 
-    // Short pause to let any async IDB write complete
-    await journal.page.waitForTimeout(300);
+    // Poll IDB until the unmount-flush write lands (replaces the fixed 300ms wait).
+    await journal.awaitNotePersisted(`journal/${DATE_SAVE_QUICK}`, uniqueText);
 
     // Verify IndexedDB was written despite quick navigation
     const stored = await journal.storedContent(DATE_SAVE_QUICK);
@@ -122,12 +122,12 @@ test.describe('Journal Entry — /journal/:date', () => {
     await journal.goto(DATE_SAVE_QUICK);
     await journal.expectEditorContains(uniqueText);
 
-    await journal.page.screenshot({ path: 'e2e/screenshots/journal-entry-03-save-quick.png' });
+    await journal.page.screenshot({ path: testInfo.outputPath('journal-entry-03-save-quick.png') });
   });
 
   // ── 4. Content survives a full page reload ────────────────────────────────
 
-  test('content persists across a hard page reload', async () => {
+  test('content persists across a hard page reload', async ({}, testInfo) => {
     const uniqueText = `E2E-RELOAD-${Date.now()}`;
     await journal.clearStoredEntry(DATE_RELOAD);
     await seedJournalNote(journal.page, DATE_RELOAD, 'Note\n');
@@ -135,8 +135,8 @@ test.describe('Journal Entry — /journal/:date', () => {
 
     await journal.typeInEditor(uniqueText);
 
-    // Wait for debounce to fire
-    await journal.page.waitForTimeout(700);
+    // Poll IDB until the debounced save lands (replaces the fixed 700ms wait).
+    await journal.awaitNotePersisted(`journal/${DATE_RELOAD}`, uniqueText);
 
     // Hard reload
     await journal.page.reload({ waitUntil: 'domcontentloaded', timeout: 20_000 });
@@ -144,12 +144,12 @@ test.describe('Journal Entry — /journal/:date', () => {
 
     await journal.expectEditorContains(uniqueText);
 
-    await journal.page.screenshot({ path: 'e2e/screenshots/journal-entry-04-reload.png' });
+    await journal.page.screenshot({ path: testInfo.outputPath('journal-entry-04-reload.png') });
   });
 
   // ── 5. Title shows the date ───────────────────────────────────────────────
 
-  test('page title reflects the journal date', async () => {
+  test('page title reflects the journal date', async ({}, testInfo) => {
     await journal.clearStoredEntry(DATE_LOAD);
     await seedJournalNote(journal.page, DATE_LOAD, 'Note\n');
     await journal.goto(DATE_LOAD);
@@ -160,6 +160,6 @@ test.describe('Journal Entry — /journal/:date', () => {
     // Accepts any format that includes the year
     expect(titleText).toMatch(/2099/);
 
-    await journal.page.screenshot({ path: 'e2e/screenshots/journal-entry-05-title.png' });
+    await journal.page.screenshot({ path: testInfo.outputPath('journal-entry-05-title.png') });
   });
 });

@@ -1,4 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { TEST_IDS } from '../contracts/TestIdContract';
 
 /**
  * ReviewPage — Page Object for /review/:runtimeId
@@ -38,7 +39,7 @@ export class ReviewPage {
   }
 
   closeButton(): Locator {
-    return this.page.locator('button[title="Close"]').first();
+    return this.page.getByTestId(TEST_IDS.FOCUSED_DIALOG_CLOSE).first();
   }
 
   async clickClose() {
