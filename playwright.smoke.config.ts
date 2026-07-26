@@ -6,7 +6,7 @@ import { appBaseURL, storybookBaseURL } from './e2e/utils/url-helpers';
  *
  * Targets:
  *  - CI:  the deployed app (https://wod.wiki) and deployed Storybook
- *         (https://storybook.wod.wiki). No local servers are started.
+ *         (https://story.wod.wiki). No local servers are started.
  *  - Local: the Vite dev app and dev Storybook, started automatically
  *         (existing instances are reused).
  *  - E2E_APP_URL / E2E_STORYBOOK_URL override either target explicitly.

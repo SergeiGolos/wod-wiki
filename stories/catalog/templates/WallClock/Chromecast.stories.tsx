@@ -21,6 +21,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from 'storybook/test';
+import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
 
 // Runtime
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
@@ -371,6 +372,13 @@ const TrackerChromecastHarness: React.FC<TrackerChromecastHarnessProps> = ({
   const [now, setNow] = useState(Date.now());
   const logger = useActionLogger('cast');
 
+  // Mirror the production receiver's spatial navigation (receiver-rpc.tsx):
+  // preview blocks carry data-nav-id / data-nav-focused for D-Pad control.
+  const { getFocusProps } = useSpatialNavigation({
+    enabled: initialState === 'preview',
+    initialFocusId: initialState === 'preview' ? 'preview-block-0' : 'btn-next',
+  });
+
   // Local animation-frame clock
   useEffect(() => {
     let frameId: number;
@@ -456,6 +464,7 @@ const TrackerChromecastHarness: React.FC<TrackerChromecastHarnessProps> = ({
           {script.split('\n').filter(Boolean).slice(0, 4).map((line, i) => (
             <div
               key={i}
+              {...getFocusProps(`preview-block-${i}`)}
               className="flex items-center justify-between rounded-lg border border-border/60 bg-card/50 px-4 py-3 text-sm"
             >
               <div className="flex items-center gap-2">

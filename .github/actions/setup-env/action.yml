@@ -43,8 +43,7 @@ runs:
         key: ${{ runner.os }}-playwright-${{ inputs.browsers }}-${{ hashFiles('bun.lock') }}
         restore-keys: ${{ runner.os }}-playwright-${{ inputs.browsers }}-
 
-    # System deps (apt) only when the browser cache missed; the plain install
-    # is a no-op check when the binaries are already restored.
+    # Full install (binaries + apt deps) when the browser cache missed.
     - name: Install Playwright browsers (full, on cache miss)
       if: inputs.browsers != '' && steps.pw-cache.outputs.cache-hit != 'true'
       run: |
@@ -55,12 +54,20 @@ runs:
         fi
       shell: bash
 
-    - name: Verify Playwright browsers present
+    # Binaries are cached, but their apt system libraries are NOT — always
+    # install deps, even on a cache hit. WebKit's WPE MiniBrowser needs
+    # libwoff2dec & co., which are absent from the stock runner image; skip
+    # this and webkit fails to launch with "error while loading shared
+    # libraries". The plain install remains a no-op when binaries are
+    # already restored.
+    - name: Install Playwright system deps + verify browsers (on cache hit)
       if: inputs.browsers != '' && steps.pw-cache.outputs.cache-hit == 'true'
       run: |
         if [ "${{ inputs.browsers }}" = "all" ]; then
+          bun x playwright install-deps chromium firefox webkit
           bun x playwright install chromium firefox webkit
         else
+          bun x playwright install-deps ${{ inputs.browsers }}
           bun x playwright install ${{ inputs.browsers }}
         fi
       shell: bash
