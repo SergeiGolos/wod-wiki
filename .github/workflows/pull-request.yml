@@ -28,13 +28,42 @@ jobs:
     if: github.event.action != 'closed'
     outputs:
       slug: ${{ steps.slug.outputs.slug }}
+      preview-version: ${{ steps.version.outputs.version }}
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Derive branch slug
         id: slug
         run: |
           BRANCH="${{ github.head_ref || github.ref_name }}"
           SLUG=$(echo "$BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+
+      # PR previews may only increment {build}: major/minor come from the
+      # latest release tag (read-only — never bumped here), build is the run
+      # number, and the -pr.N prerelease suffix marks it as a preview.
+      - name: Compute preview version
+        id: version
+        run: |
+          LATEST_TAG=$(git for-each-ref refs/tags \
+            --sort=-v:refname \
+            --format '%(refname:short)' \
+            | grep -E '^v?[0-9]+\.[0-9]+(\.[0-9]+)?$' \
+            | head -1)
+
+          if [ -n "$LATEST_TAG" ]; then
+            BASE="${LATEST_TAG#v}"
+          else
+            BASE=$(node -p "require('./package.json').version")
+          fi
+
+          MAJOR=$(echo "$BASE" | cut -d. -f1)
+          MINOR=$(echo "$BASE" | cut -d. -f2)
+          VERSION="${MAJOR}.${MINOR}.${{ github.run_number }}-pr.${{ github.event.pull_request.number || 'manual' }}"
+          echo "Preview version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   verify:
     if: github.event.action != 'closed'
@@ -44,6 +73,7 @@ jobs:
     with:
       run-e2e: true
       preview-base-path: /${{ needs.slug.outputs.slug }}/dist/
+      app-version: ${{ needs.slug.outputs.preview-version }}
 
   # Preview deploy — downloads the deploy-shaped playground bundle the verify
   # job already built (no second playground build), adds receiver + storybook,
@@ -64,6 +94,7 @@ jobs:
       CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
       BRANCH_SLUG: ${{ needs.slug.outputs.slug }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
+      PREVIEW_VERSION: ${{ needs.slug.outputs.preview-version }}
     steps:
       - uses: actions/checkout@v6
 
@@ -135,6 +166,7 @@ jobs:
           script: |
             const slug = process.env.BRANCH_SLUG;
             const pr = process.env.PR_NUMBER;
+            const version = process.env.PREVIEW_VERSION;
             const previewUrl = `https://${slug}.preview.wod.wiki`;
             const storybookUrl = `https://${slug}.story.wod.wiki`;
             const e2eUrl = `https://${slug}.e2e.wod.wiki`;
@@ -145,6 +177,7 @@ jobs:
               `| --- | --- |\n` +
               `| PR | #${pr} |\n` +
               `| Branch | \`${slug}\` |\n` +
+              `| Version | \`${version}\` |\n` +
               `| Preview | [${previewUrl}](${previewUrl}) |\n` +
               `| Storybook | [${storybookUrl}](${storybookUrl}) |\n` +
               `| E2E report | [${e2eUrl}](${e2eUrl}) (after the Preview E2E job runs) |\n\n` +
