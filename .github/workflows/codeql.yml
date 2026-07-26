@@ -30,17 +30,14 @@ jobs:
           languages: javascript-typescript
           config-file: ./.github/codeql/codeql-config.yml
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v1
+      - name: Set up environment (Bun + caches, no browsers)
+        uses: ./.github/actions/setup-env
         with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+          browsers: ''
 
       # Build the library for better analysis accuracy
       - name: Build (for better analysis)
-        run: bun run build:lib
+        run: bun run build-library
         continue-on-error: true
 
       - name: Perform CodeQL Analysis

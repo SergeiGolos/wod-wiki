@@ -276,3 +276,26 @@ _Avoid_: result service, result saver (too generic).
 - A **Storage Adapter** satisfies **Storage** for one engine; **Persistence**
   composes **Storage** calls into domain operations; domain code depends on
   **Persistence**, not on a concrete adapter.
+
+## CI/CD
+
+- **Environment seam** — the composite action `.github/actions/setup-env`.
+  The single module behind "a ready CI runner": Bun version, dependency
+  cache (keyed on `bun.lock`), and the Playwright browser cache. Every job
+  declares `browsers:` ('chromium' | 'all' | ''); no job installs anything
+  directly.
+- **PR pipeline** — `pull-request.yml`. The one graph per MR update:
+  `slug → verify (unit/story/coverage + deploy-shaped build gate + journal
+  e2e) → preview (downloads verify's `playground-dist` artifact, adds
+  receiver + storybook, syncs S3) → destroy (on close)`. Exactly one e2e
+  run (the journal suite in `_verify.yml`).
+- **Main pipeline** — `main.yml`. The one graph per merge:
+  `verify (no e2e, no smoke build) → release (Pages + tag + smoke e2e)` and
+  `verify → site (S3 deploy) → e2e (deployed-artifact e2e in
+  `preview-e2e.yml`, gated on the site's **build fingerprint**)`. Exactly
+  one e2e run (deployed-artifact).
+- **Build fingerprint** — the hashed entry-bundle name (`main-<hash>.js`)
+  emitted by a build job. The deployed-artifact e2e waits until the live
+  `index.html` references it, so tests never race a stale CloudFront cache.
+- npm publication is gated behind the `NPM_PUBLISH_ENABLED` repo var
+  (WOD-436); the library build and its artifact exist only when it is set.
