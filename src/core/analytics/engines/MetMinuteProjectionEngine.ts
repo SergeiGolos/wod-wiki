@@ -62,6 +62,8 @@ export class MetMinuteProjectionEngine implements ISummaryProcessor {
         usedResolvedEffort: lastEffortData !== null,
         effortOrigin: lastEffortData?.origin,
         effortSlug: lastEffortData?.resolved.slug,
+        effortDiscipline: lastEffortData?.resolved.discipline,
+        effortIntensityTier: lastEffortData?.resolved.intensityTier,
       },
     }];
   }

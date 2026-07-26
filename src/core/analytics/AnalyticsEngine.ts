@@ -2,7 +2,7 @@ import { IAnalyticsEngine } from '../contracts/IAnalyticsEngine';
 import type { IRealtimeProcessor } from './IRealtimeProcessor';
 import type { ISummaryProcessor } from './ISummaryProcessor';
 import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
-import { IMetric, MetricType } from '../models/Metric';
+import { MetricType } from '../models/Metric';
 import { MetricContainer } from '../models/MetricContainer';
 import { ProjectionResult } from './ProjectionResult';
 
@@ -69,8 +69,8 @@ export class AnalyticsEngine implements IAnalyticsEngine {
           origin: p.origin ?? 'analyzed',
           timestamp: new Date(now),
         },
-        // Projection value metric — constructed from a ProjectionResult, whose
-        // shape the compiler can't verify against IMetric, hence the boundary cast.
+        // Projection value metric — carries the processor's derivation
+        // metadata (effortSlug/discipline/…) through to stored logs.
         {
           type: (p.metricType as MetricType) || MetricType.Metric,
           image: `${p.value} ${p.unit}`,
@@ -79,7 +79,7 @@ export class AnalyticsEngine implements IAnalyticsEngine {
           origin: p.origin ?? 'analyzed',
           timestamp: new Date(now),
           ...(p.metadata ? { metadata: p.metadata } : {}),
-        } as unknown as IMetric
+        }
       );
       return new OutputStatement({
         outputType: 'analytics',

@@ -30,6 +30,13 @@ import {
     SegmentDataType,
 } from '../../types/storage';
 import type { IEffort } from '@/effort-registry/types';
+import type { ScriptBlock } from '@/components/Editor/types';
+import { extractFrontmatterTags } from '@/lib/frontmatter';
+import { createParser } from '@/parser/parserInstance';
+import {
+    normalizeSummaryFacts,
+    replayResultAnalytics,
+} from '@/services/analytics/workoutDerivation';
 
 // ---------------------------------------------------------------------------
 // UUID helpers (V8 lazy migration) — inline to avoid a dependency edge.
@@ -107,6 +114,7 @@ export interface WodWikiDB extends DBSchema {
             'by-effort': string;     // V10 — effortSlug
             'by-grain': string;      // V10 — grain ('segment' | 'summary')
             'by-discipline': string; // V10 — discipline
+            'by-timestamp': number;  // V12 — canonical workout time; IDBKeyRange time scans
         };
     };
     efforts: {
@@ -117,7 +125,7 @@ export interface WodWikiDB extends DBSchema {
 }
 
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 11; // V11 — destructive: results.completedAt→createdAt (+ index rebuild), segments drop level/scriptBlock + gain position, Note slim-down (journalDate/rawContent/segmentIds/clonedIds/createdFrom/updatedAt/targetDate removed, templateId→sourceId), tags[]→note_tags
+const DB_VERSION = 12; // V12 — analytics: by-timestamp index; facts re-derived (effortSlug/discipline/intensityTier populated, timestamp = WorkoutResult.createdAt) via the replay seam over every result with logs; frontmatter tags swept into note_tags
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
 
@@ -315,6 +323,138 @@ async function backfillV11(tx: V10Tx): Promise<void> {
     }
 }
 
+/**
+ * V12 backfill — runs inside the upgrade transaction when 0 < oldVersion < 12.
+ *
+ *  1. Analytics purge + re-derive (V10 doctrine: fact rows are disposable;
+ *     data.logs wins). Every result with logs is replayed through the
+ *     headless engine via the replay seam, so regenerated Tier-2 outputs
+ *     carry the summary processors' effort metadata; rows whose segment
+ *     context is unrecoverable fall back to re-normalizing their stored logs
+ *     (still fixes the timestamp and any metadata already present). Results
+ *     that reached execution but never got facts (the pre-V12 partial-save
+ *     path) gain them here.
+ *  2. Fact rows are written with the canonical workout time
+ *     (WorkoutResult.createdAt) as `timestamp` — the new by-timestamp index
+ *     makes time-range queries IDBKeyRange scans.
+ *  3. Frontmatter `tags:` sweep: every note's latest frontmatter segments
+ *     contribute their tags to note_tags (additive — existing links kept).
+ *
+ * Exported for integration tests; production callers should only ever be the
+ * upgrade callback below.
+ */
+export async function backfillV12(tx: V10Tx): Promise<void> {
+    const now = Date.now();
+    const resultsStore = tx.objectStore('results');
+    const segmentsStore = tx.objectStore('segments');
+    const analyticsStore = tx.objectStore('analytics');
+
+    const results = await resultsStore.getAll();
+    const allSegments = await segmentsStore.getAll();
+
+    // Segment lookup mirrors rederiveResultAnalytics: pinned incarnation
+    // first, latest version as fallback for rows recorded before
+    // segmentVersion was stamped.
+    const segmentByKey = new Map<string, NoteSegment>();
+    const latestSegmentById = new Map<string, NoteSegment>();
+    for (const segment of allSegments) {
+        segmentByKey.set(`${segment.id}:${segment.version}`, segment);
+        const current = latestSegmentById.get(segment.id);
+        if (!current || segment.version > current.version) latestSegmentById.set(segment.id, segment);
+    }
+
+    // 1 + 2. Purge, then re-derive facts for every result with logs.
+    await analyticsStore.clear();
+    let replayed = 0;
+    let renormalized = 0;
+    let withoutLogs = 0;
+    let factRows = 0;
+    for (const result of results) {
+        const logs = result.data?.logs ?? [];
+        if (logs.length === 0) {
+            withoutLogs++;
+            continue;
+        }
+        const identity = {
+            noteId: result.noteId,
+            resultId: result.id,
+            segmentId: result.segmentId,
+            segmentVersion: result.segmentVersion,
+            blockContentId: result.blockContentId,
+            origin: result.origin,
+            pageId: result.pageId,
+            workoutTimestamp: result.createdAt,
+        };
+
+        let points;
+        try {
+            const segment = result.segmentId
+                ? (result.segmentVersion != null
+                    ? segmentByKey.get(`${result.segmentId}:${result.segmentVersion}`)
+                    : undefined) ?? latestSegmentById.get(result.segmentId)
+                : undefined;
+            const scriptBlock = segment?.data as ScriptBlock | null | undefined;
+            if (!scriptBlock) throw new Error('no recoverable segment context');
+            const block = scriptBlock.statements?.length
+                ? scriptBlock
+                : { ...scriptBlock, statements: createParser().read(scriptBlock.content).statements };
+
+            const derivedLogs = replayResultAnalytics(result, block);
+            await resultsStore.put({ ...result, data: { ...result.data, logs: derivedLogs } });
+            points = normalizeSummaryFacts(derivedLogs, identity);
+            replayed++;
+        } catch (err) {
+            // Fallback: keep the stored logs, re-normalize facts from them.
+            console.warn(`[IndexedDBService] V12 replay failed for result ${result.id}; re-normalizing stored logs`, err);
+            points = normalizeSummaryFacts(logs, identity);
+            renormalized++;
+        }
+        for (const point of points) {
+            await analyticsStore.put(point);
+        }
+        factRows += points.length;
+    }
+
+    // 3. Frontmatter tags sweep — additive into note_tags.
+    const frontmatterTagsByNote = new Map<string, Set<string>>();
+    for (const segment of latestSegmentById.values()) {
+        if (segment.dataType !== 'frontmatter' || segment.isHistory) continue;
+        const tags = extractFrontmatterTags(segment.rawContent);
+        if (tags.length === 0) continue;
+        let bucket = frontmatterTagsByNote.get(segment.noteId);
+        if (!bucket) {
+            bucket = new Set<string>();
+            frontmatterTagsByNote.set(segment.noteId, bucket);
+        }
+        for (const tag of tags) bucket.add(tag);
+    }
+    let tagLinks = 0;
+    if (frontmatterTagsByNote.size > 0) {
+        const tagsStore = tx.objectStore('tags');
+        const noteTagsStore = tx.objectStore('note_tags');
+        const tagIdByLabel = new Map((await tagsStore.getAll()).map(tag => [tag.label, tag.id]));
+        const linked = new Set((await noteTagsStore.getAll()).map(link => `${link.noteId}:${link.tagId}`));
+        for (const [noteId, labels] of frontmatterTagsByNote) {
+            for (const label of labels) {
+                let tagId = tagIdByLabel.get(label);
+                if (!tagId) {
+                    tagId = uuidV4();
+                    await tagsStore.put({ id: tagId, label, createdAt: now });
+                    tagIdByLabel.set(label, tagId);
+                }
+                if (linked.has(`${noteId}:${tagId}`)) continue;
+                await noteTagsStore.put({ id: uuidV4(), noteId, tagId });
+                tagLinks++;
+            }
+        }
+    }
+
+    console.info(
+        `[IndexedDBService] V12 backfill: ${replayed} results replayed, ${renormalized} re-normalized from stored logs, ` +
+        `${withoutLogs} without logs, ${factRows} fact rows written, ${tagLinks} frontmatter tag links added`,
+    );
+}
+
 export class IndexedDBService {
     private _dbPromise: Promise<IDBPDatabase<WodWikiDB>> | null = null;
 
@@ -469,6 +609,8 @@ export class IndexedDBService {
                 ensureIndex('analytics', 'by-effort', 'effortSlug');
                 ensureIndex('analytics', 'by-grain', 'grain');
                 ensureIndex('analytics', 'by-discipline', 'discipline');
+                // V12 — canonical workout time range scans.
+                ensureIndex('analytics', 'by-timestamp', 'timestamp');
 
                 // ---- V10 backfills (upgrade from < 10 only) ----
                 if (oldVersion < 10) {
@@ -497,6 +639,12 @@ export class IndexedDBService {
                         legacyNotesStore.deleteIndex('by-target-date');
                     }
                     await backfillV11(tx);
+                }
+
+                // ---- V12: re-derive facts + sweep frontmatter tags ----
+                // Fresh installs (oldVersion 0) have nothing to migrate.
+                if (oldVersion > 0 && oldVersion < 12) {
+                    await backfillV12(tx);
                 }
             },
             // Another tab is waiting on a schema upgrade this connection

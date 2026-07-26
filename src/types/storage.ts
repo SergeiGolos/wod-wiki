@@ -193,6 +193,8 @@ export interface AnalyticsDataPoint {
      *  (bodyweight, cycling, gymnastics, kettlebell, recovery, rowing,
      *  running, strength, swimming, walking — see effort-registry/disciplines). */
     discipline?: string;
+    /** V12 — qualitative intensity bucket of the resolved effort, when known. */
+    intensityTier?: string;
     segmentId: string;    // FK to NoteSegment.id (positional section id)
     segmentVersion: number;
     resultId: string;     // Link to raw WorkoutResult
