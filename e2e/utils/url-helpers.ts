@@ -10,12 +10,13 @@ const isCI = !!process.env.CI;
 /**
  * Base URL for the Storybook under test.
  *  1. E2E_STORYBOOK_URL — explicit override (any environment)
- *  2. CI — deployed Storybook
+ *  2. CI — deployed Storybook (story.wod.wiki — not storybook.wod.wiki;
+ *     the latter doesn't resolve and NXDOMAIN'd the release smoke suite).
  *  3. local — dev Storybook on :6006, HTTPS when .env.local provides certs
  */
 export function storybookBaseURL(): string {
   if (process.env.E2E_STORYBOOK_URL) return process.env.E2E_STORYBOOK_URL;
-  if (isCI) return 'https://storybook.wod.wiki';
+  if (isCI) return 'https://story.wod.wiki';
   const protocol = process.env.HTTPS_CERT ? 'https' : 'http';
   return `${protocol}://localhost:6006`;
 }

@@ -42,7 +42,7 @@ test.describe('Receiver — Entry Point', () => {
     await expect(app).toBeVisible({ timeout: 5000 });
 
     // Wod.Wiki branding should always appear
-    await expect(page.locator('text=/Wod.Wiki/i')).toBeVisible();
+    await expect(page.locator('text=/Wod.Wiki/i').first()).toBeVisible();
 
     await page.screenshot({ path: 'e2e/screenshots/smoke-receiver-entry.png', fullPage: false });
   });
@@ -126,7 +126,7 @@ test.describe('Receiver — Active Screen', () => {
     await page.waitForLoadState('networkidle');
 
     // Stack panel should show workout blocks
-    await expect(page.locator('text=/Thruster/i')).toBeVisible();
+    await expect(page.locator('text=/Thruster/i').first()).toBeVisible();
 
     // Timer panel should be present
     const timerPanel = page.locator('[class*="TimerStackView"], [class*="timer"]').first();
@@ -147,7 +147,7 @@ test.describe('Receiver — Active Screen', () => {
     await page.goto(storyUrl('catalog-templates-tracker-chromecast--active-amrap'));
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('text=/Cindy/i')).toBeVisible();
+    await expect(page.locator('text=/Cindy/i').first()).toBeVisible();
 
     await page.screenshot({ path: 'e2e/screenshots/smoke-receiver-active-amrap.png', fullPage: false });
   });
@@ -156,7 +156,7 @@ test.describe('Receiver — Active Screen', () => {
     await page.goto(storyUrl('catalog-templates-tracker-chromecast--active-emom'));
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('text=/EMOM 10/i')).toBeVisible();
+    await expect(page.locator('text=/EMOM 10/i').first()).toBeVisible();
 
     await page.screenshot({ path: 'e2e/screenshots/smoke-receiver-active-emom.png', fullPage: false });
   });
