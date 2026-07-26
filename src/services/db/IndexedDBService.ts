@@ -800,6 +800,16 @@ export class IndexedDBService {
         return (await this.dbPromise).getAllFromIndex('analytics', 'by-page', pageId);
     }
 
+    /** V12 — Query Service SELECT leg: every fact row for one Canonical Metric Key. */
+    async getFactsByMetric(metricKey: string): Promise<AnalyticsDataPoint[]> {
+        return (await this.dbPromise).getAllFromIndex('analytics', 'by-metric', metricKey);
+    }
+
+    /** V12 — Query Service SELECT leg: fact rows in a canonical-time window. */
+    async getFactsByTimeRange(start: number, end: number): Promise<AnalyticsDataPoint[]> {
+        return (await this.dbPromise).getAllFromIndex('analytics', 'by-timestamp', IDBKeyRange.bound(start, end));
+    }
+
     // ======================================================================
     // Tags (V11 — note.tags[] replaced by tags + note_tags)
     // ======================================================================
