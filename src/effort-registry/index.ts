@@ -15,6 +15,10 @@
  * ```
  */
 
+// Disciplines
+export { EFFORT_DISCIPLINES, DISCIPLINE_FACTORS, disciplineFactorFor, isEffortDiscipline } from './disciplines';
+export type { EffortDiscipline } from './disciplines';
+
 // Types
 export type {
   IEffort,

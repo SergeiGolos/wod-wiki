@@ -13,6 +13,7 @@ import { EditorState } from "@codemirror/state";
 import { Plus, X } from "lucide-react";
 import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
 import { parseFlatProperties, parseFrontmatterBody, serializeFrontmatter, extractYouTubeVideoId, detectUrlSubtype, type ParsedFrontmatter } from "@/lib/frontmatter";
+import { EFFORT_DISCIPLINES } from "@/effort-registry/disciplines";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/atoms/primitives/label";
 
@@ -409,11 +410,16 @@ const EffortFrontmatterCompanion: React.FC<{
               </select>
             </Field>
             <Field label="Discipline" className="xl:col-span-2">
-              <input
+              <select
                 className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none ring-0 transition focus:border-primary"
                 value={effort.discipline || ""}
-                onChange={(e) => commitEffort({ discipline: e.target.value })}
-              />
+                onChange={(e) => commitEffort({ discipline: e.target.value || undefined })}
+              >
+                <option value="">Unset</option>
+                {EFFORT_DISCIPLINES.map((discipline) => (
+                  <option key={discipline} value={discipline}>{discipline}</option>
+                ))}
+              </select>
             </Field>
             <Field label="Aliases" className="xl:col-span-2">
               <input

@@ -21,8 +21,6 @@ interface DBService {
  *
  * Lookup order: user wins over bundled.
  * All lookups are O(1) in-memory after initialization.
- *
- * @see ADR-0008 Decision 2
  */
 export class CompositeEffortRegistry implements IEffortRegistry {
   private userEfforts = new Map<string, IEffort>();

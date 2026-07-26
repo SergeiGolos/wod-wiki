@@ -25,6 +25,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { parseFrontmatter, getScalar, getList } from '@/lib/frontmatter';
+import { isEffortDiscipline } from '@/effort-registry/disciplines';
 import type {
   IEffort,
   EffortBaseAttributes,
@@ -34,6 +35,20 @@ import type {
 } from '@/effort-registry/types';
 
 /* ── YAML helpers ─────────────────────────────────────────────────── */
+
+/**
+ * Validate a parsed discipline against the canonical vocabulary. Unknown
+ * values are dropped (undefined) with a warning — the resolver would silently
+ * score them at the 1.0 default anyway, and a typo must not mint a new
+ * vocabulary member.
+ */
+function parseDiscipline(val: string | undefined): EffortBaseAttributes['discipline'] {
+  if (!val) return undefined;
+  const normalized = unquoteYaml(val.trim()).toLowerCase();
+  if (isEffortDiscipline(normalized)) return normalized;
+  console.warn(`[effort-markdown] unknown discipline '${val}' — expected one of the canonical values; treating as unset`);
+  return undefined;
+}
 
 function quoteYaml(val: string): string {
   if (!val) return '""';
@@ -239,7 +254,7 @@ export function documentToEffort(doc: string, baseEffort?: IEffort): ParseResult
                 baseAttributes.met = parseFloat(val) || 0;
                 break;
               case 'discipline':
-                baseAttributes.discipline = val || undefined;
+                baseAttributes.discipline = parseDiscipline(val);
                 break;
               case 'intensityTier':
                 baseAttributes.intensityTier = val as IntensityTier;
@@ -403,7 +418,9 @@ export function parseEffortFile(raw: string): IEffort | null {
   const met = typeof metRaw === 'number' ? metRaw : Number(metRaw);
   if (!id || !slug || !label || metRaw === undefined || Number.isNaN(met)) return null;
 
-  const discipline = baseAttrs?.discipline;
+  const discipline = parseDiscipline(
+    typeof baseAttrs?.discipline === 'string' ? baseAttrs.discipline : undefined,
+  );
   const intensityTier = baseAttrs?.intensityTier;
   const trimmedBody = body.trim();
 
@@ -414,7 +431,7 @@ export function parseEffortFile(raw: string): IEffort | null {
     aliases,
     baseAttributes: {
       met,
-      ...(discipline ? { discipline: String(discipline) } : {}),
+      ...(discipline ? { discipline } : {}),
       ...(intensityTier ? { intensityTier: intensityTier as IntensityTier } : {}),
     },
     registrySource: 'bundled',

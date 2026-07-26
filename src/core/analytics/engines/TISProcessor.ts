@@ -29,10 +29,8 @@ import type { ResolvedEffortData } from '../effortResolution';
  *
  * Duration-Score = (Duration minutes ÷ 60) × MET-Score
  *
- * Discipline-Factor:
- *   strength / resistance → 1.2
- *   yoga                  → 0.9
- *   cardio / HIIT         → 1.0
+ * Discipline-Factor: canonical table in `effort-registry/disciplines`
+ *   (loaded modalities 1.2, recovery 0.9, everything else / absent 1.0).
  */
 export class TISProcessor implements ISummaryProcessor {
   public readonly id = 'tis-projection';
@@ -70,7 +68,6 @@ export class TISProcessor implements ISummaryProcessor {
     let totalMetMinutes = 0;
     let lastEffortData: ResolvedEffortData | null = null;
     let maxRpe = 0;
-    let hasResistance = false;
     const origins: import('../../../../core/models/Metric').MetricOrigin[] = [];
 
     for (const m of metrics) {
@@ -91,9 +88,6 @@ export class TISProcessor implements ISummaryProcessor {
         const effortVal = typeof m.value === 'string' ? m.value.toLowerCase() : null;
         const rpe = effortVal ? (this.effortToRpe[effortVal] ?? 0) : (typeof m.value === 'number' ? m.value : 0);
         if (rpe > maxRpe) maxRpe = rpe;
-      }
-      if (m.type === MetricType.Resistance) {
-        hasResistance = true;
       }
       if (m.type === MetricType.SessionRPE && typeof m.value === 'number') {
         maxRpe = m.value;
@@ -122,8 +116,9 @@ export class TISProcessor implements ISummaryProcessor {
     const durationMinutes = totalElapsedMs / 60000;
     const durationScore = (durationMinutes / 60) * metScore;
 
-    // Discipline-Factor: owned by resolved effort data; unresolved/no data uses conservative fallback.
-    const disciplineFactor = lastEffortData?.resolved.disciplineFactor ?? (hasResistance ? 1.2 : 1.0);
+    // Discipline-Factor: owned by resolved effort data; absent/unknown effort
+    // scores the canonical 1.0 default (see DISCIPLINE_FACTORS).
+    const disciplineFactor = lastEffortData?.resolved.disciplineFactor ?? 1.0;
 
     // Composite TIS
     const tis =
@@ -157,6 +152,7 @@ export class TISProcessor implements ISummaryProcessor {
           effortOrigin: lastEffortData?.origin,
           effortSlug: lastEffortData?.resolved.slug,
           effortDiscipline: lastEffortData?.resolved.discipline,
+          effortIntensityTier: lastEffortData?.resolved.intensityTier,
         },
       },
     ];

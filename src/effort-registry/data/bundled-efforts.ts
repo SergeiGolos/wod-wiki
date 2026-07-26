@@ -3,8 +3,6 @@
  *
  * Shipped with the app as the default effort catalog.
  * Effort definitions are now sourced from markdown/efforts/ markdown files.
- *
- * @see PRD-EFFORT-REGISTRY Appendix: Sample Bundled Effort Set
  */
 
 import { getBundledEfforts, getBundledEffortCount } from '@/repositories/effort-markdown';

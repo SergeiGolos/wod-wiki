@@ -189,7 +189,9 @@ export interface AnalyticsDataPoint {
     grain?: 'segment' | 'summary';
     /** V10 — effort catalog slug when the row derives from a known effort. */
     effortSlug?: string;
-    /** V10 — effort discipline (e.g. 'weightlifting', 'monostructural'). */
+    /** V10/V12 — effort discipline from the canonical vocabulary
+     *  (bodyweight, cycling, gymnastics, kettlebell, recovery, rowing,
+     *  running, strength, swimming, walking — see effort-registry/disciplines). */
     discipline?: string;
     segmentId: string;    // FK to NoteSegment.id (positional section id)
     segmentVersion: number;
@@ -208,32 +210,9 @@ export interface AnalyticsDataPoint {
 }
 
 // ---------------------------------------------------------------------------
-// Effort — user-defined or bundled exercise definition
+// Effort — the canonical effort entity is IEffort in effort-registry/types;
+// the efforts store is typed with it directly (no storage-local duplicate).
 // ---------------------------------------------------------------------------
-
-export interface EffortBaseAttributes {
-    met: number;
-    discipline?: string;
-    intensityTier?: 'low' | 'moderate' | 'high';
-}
-
-export interface EffortDerivation {
-    parentSlug?: string;
-    coefficients?: Record<string, number>;
-    hardOverrides?: Record<string, unknown>;
-}
-
-export interface Effort {
-    id: string;                    // UUID
-    slug: string;                  // Canonical identifier (keyPath)
-    label: string;                 // Human-readable name
-    aliases: string[];             // Alternative names for fuzzy matching
-    baseAttributes: EffortBaseAttributes;
-    registrySource: 'bundled' | 'user' | 'synthetic-unresolved';
-    derivation?: EffortDerivation;
-    createdAt?: string;            // ISO timestamp
-    updatedAt?: string;            // ISO timestamp
-}
 
 // ---------------------------------------------------------------------------
 // Legacy aliases — keep downstream consumers compiling during transition

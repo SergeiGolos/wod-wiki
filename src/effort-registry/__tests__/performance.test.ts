@@ -6,7 +6,7 @@ import { bundledEfforts } from '../data/bundled-efforts';
 /**
  * Effort Registry Performance Tests
  *
- * Targets from PRD-EFFORT-REGISTRY NFRs:
+ * Performance targets:
  * - Effort lookup: O(1) indexed by slug
  * - Fuzzy match: < 100ms for 500+ efforts
  * - No I/O during analytics pass (efforts pre-loaded)

@@ -6,7 +6,7 @@ import type { IEffortResolver } from '@/effort-registry/types';
  * Provides processors with domain-level resolution capabilities without
  * direct coupling to registry implementations.
  *
- * @see ADR-0008 Decision 7
+ * @see docs/adr/effort-resolution-compile-time.md
  */
 export interface AnalyticsContext {
   /** Effort resolver for canonical slug and fuzzy alias matching. */

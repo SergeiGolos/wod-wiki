@@ -28,8 +28,8 @@ import {
     Attachment,
     AnalyticsDataPoint,
     SegmentDataType,
-    Effort,
 } from '../../types/storage';
+import type { IEffort } from '@/effort-registry/types';
 
 // ---------------------------------------------------------------------------
 // UUID helpers (V8 lazy migration) — inline to avoid a dependency edge.
@@ -111,8 +111,8 @@ export interface WodWikiDB extends DBSchema {
     };
     efforts: {
         key: string;
-        value: Effort;
-        indexes: { 'by-discipline': string; 'by-source': Effort['registrySource'] };
+        value: IEffort;
+        indexes: { 'by-discipline': string; 'by-source': IEffort['registrySource'] };
     };
 }
 
@@ -988,15 +988,15 @@ export class IndexedDBService {
     // Efforts
     // =======================================================================
 
-    async getEffort(slug: string): Promise<Effort | undefined> {
+    async getEffort(slug: string): Promise<IEffort | undefined> {
         return (await this.dbPromise).get('efforts', slug);
     }
 
-    async getAllEfforts(): Promise<Effort[]> {
+    async getAllEfforts(): Promise<IEffort[]> {
         return (await this.dbPromise).getAll('efforts');
     }
 
-    async saveEffort(effort: Effort): Promise<string> {
+    async saveEffort(effort: IEffort): Promise<string> {
         return (await this.dbPromise).put('efforts', effort);
     }
 

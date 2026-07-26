@@ -4,8 +4,6 @@
  * Deterministic mock effort sets for unit and integration tests.
  * Covers common test scenarios: running, strength, low MET, high MET,
  * user-derived efforts, and synthetic unresolved.
- *
- * @see PRD-EFFORT-REGISTRY Developer Story
  */
 
 import type { IEffort } from './types';

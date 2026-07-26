@@ -55,7 +55,7 @@ describe('TISProcessor', () => {
       expect(tis.metadata?.vo2max).toBe(vo2max);
     });
 
-    test('should apply strength discipline factor when Resistance is present', () => {
+    test('should apply the canonical 1.0 default when no effort data is present (Resistance does not imply a factor)', () => {
       const engine = new TISProcessor();
       const metrics: IMetric[] = [
         { type: MetricType.Action, value: 'squat', origin: 'parser' },
@@ -65,10 +65,10 @@ describe('TISProcessor', () => {
 
       const results = engine.calculateFromWorkout(metrics);
       expect(results).toHaveLength(1);
-      expect(results[0].metadata?.disciplineFactor).toBe(1.2);
+      expect(results[0].metadata?.disciplineFactor).toBe(1.0);
     });
 
-    test('should apply cardio discipline factor when no Resistance is present', () => {
+    test('should apply the canonical 1.0 default when no Resistance is present', () => {
       const engine = new TISProcessor();
       const metrics: IMetric[] = [
         { type: MetricType.Action, value: 'run', origin: 'parser' },
