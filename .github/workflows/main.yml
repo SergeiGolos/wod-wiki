@@ -1,13 +1,15 @@
-name: Release – Main
+name: CI – Main
 
 # The single main-branch pipeline. One job graph per push:
 #   verify (unit/story/coverage — no e2e, no smoke build)
-#     → release (Pages deploy + release tag + smoke e2e)
+#     → version (Conventional Commits bump → tag X.Y.Z; the release marker
+#       the protected prod branch later publishes from)
 #     → site (S3 build → deploy → deployed-artifact e2e)
-# Every push to main attempts a release using the version from package.json.
-# If the tag already exists at this commit SHA, the release is updated in-place (idempotent).
-# If the tag exists at a different SHA, the release job fails — bump package.json before
-# merging another change to main to avoid overwriting an existing release.
+# Publishing (GitHub Pages + npm + GitHub release) does NOT happen here —
+# it runs on push to the protected `prod` branch (prod.yml), which deploys
+# exactly the version tagged by this pipeline.
+# If the computed tag already exists at this commit SHA the tag step is a
+# no-op (idempotent). If it exists at a different SHA the tag job fails.
 
 on:
   push:
@@ -28,15 +30,58 @@ jobs:
     secrets: inherit
     with:
       # No journal e2e and no smoke build on main — the site job's
-      # deployed-artifact e2e is the single merge-time e2e, and the release
-      # and site jobs build the playground for real.
+      # deployed-artifact e2e is the single merge-time e2e, and the site
+      # job builds the playground for real.
       run-e2e: false
 
-  release:
+  # Compute the next {major}.{minor}.{build} version from Conventional
+  # Commits and tag it. The tag is the single source of truth the prod
+  # branch publishes (Pages + npm + GitHub release) on merge.
+  version:
     needs: [verify]
     if: needs.verify.result == 'success'
-    uses: ./.github/workflows/_release.yml
-    secrets: inherit
+    uses: ./.github/workflows/_version.yml
+
+  tag:
+    name: Tag version
+    runs-on: ubuntu-22.04
+    needs: [version]
+    steps:
+      - name: Create version tag
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const tag = process.env.VERSION;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = context.sha;
+
+            try {
+              const ref = await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+              if (ref.data.object.sha === sha) {
+                core.info(`Tag ${tag} already exists at this SHA; nothing to do.`);
+                return;
+              }
+              core.setFailed(
+                `Tag ${tag} already exists at ${ref.data.object.sha}, expected ${sha}. ` +
+                `Refusing to move an existing release marker.`
+              );
+              return;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            await github.rest.git.createRef({
+              owner,
+              repo,
+              ref: `refs/tags/${tag}`,
+              sha,
+            });
+            core.info(`Created tag ${tag} at ${sha}.`);
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
 
   # Deployed-artifact check: build the S3-shaped playground + receiver +
   # storybook once, sync to S3, then run the deployed-preview e2e against
@@ -44,7 +89,7 @@ jobs:
   site:
     name: Deploy main site
     runs-on: ubuntu-22.04
-    needs: [verify]
+    needs: [verify, version]
     outputs:
       bundle-hash: ${{ steps.fingerprint.outputs.hash }}
     env:
@@ -64,6 +109,7 @@ jobs:
       - name: Build playground
         env:
           VITE_BASE_PATH: /main/dist/
+          VITE_APP_VERSION: ${{ needs.version.outputs.version }}
         run: |
           bun run build:app
           VITE_BASE_PATH="/main/dist/" \
@@ -122,7 +168,7 @@ jobs:
     name: Deploy summary
     runs-on: ubuntu-22.04
     if: always()
-    needs: [verify, release, site, e2e]
+    needs: [verify, version, tag, site, e2e]
     steps:
       - name: Write summary
         run: |
@@ -132,7 +178,7 @@ jobs:
           | Target | URL | Status |
           | --- | --- | --- |
           | Verify | — | ${{ needs.verify.result }} |
-          | Release (Pages) | https://wod.wiki | ${{ needs.release.result }} |
+          | Version tag | ${{ needs.version.outputs.version }} | ${{ needs.tag.result }} |
           | Playground | https://main.preview.wod.wiki | ${{ needs.site.result }} |
           | Storybook | https://story.wod.wiki | ${{ needs.site.result }} |
           | E2E report | https://e2e.wod.wiki | ${{ needs.e2e.outputs.outcome }} |

@@ -1,0 +1,85 @@
+name: Version
+
+# Reusable version computation. Finds the highest semver tag across all refs,
+# applies the Conventional Commits bump from commits since that tag, and
+# outputs the next {major}.{minor}.{build} version:
+#   breaking: / breaking( / feat! / fix! / <type>!: / BREAKING CHANGE: → major
+#   feature: / feature( / feat: / feat( → minor
+#   fix: or anything else → build only
+# {build} is always the calling workflow's run number for uniqueness.
+
+on:
+  workflow_call:
+    outputs:
+      version:
+        description: Next version, {major}.{minor}.{run_number}
+        value: ${{ jobs.compute.outputs.version }}
+      bump:
+        description: Detected bump level — major | minor | patch
+        value: ${{ jobs.compute.outputs.bump }}
+
+permissions:
+  contents: read
+
+jobs:
+  compute:
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      bump: ${{ steps.version.outputs.bump }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: version
+        run: |
+          # Find the highest semver tag across all refs (not just HEAD-reachable)
+          LATEST_TAG=$(git for-each-ref refs/tags \
+            --sort=-v:refname \
+            --format '%(refname:short)' \
+            | grep -E '^v?[0-9]+\.[0-9]+(\.[0-9]+)?$' \
+            | head -1)
+
+          if [ -n "$LATEST_TAG" ]; then
+            VERSION="${LATEST_TAG#v}"
+            MAJOR=$(echo "$VERSION" | cut -d. -f1)
+            MINOR=$(echo "$VERSION" | cut -d. -f2)
+            echo "Latest semver tag: $LATEST_TAG  →  MAJOR=$MAJOR  MINOR=$MINOR"
+            # Include both subject (%s) and body (%b) to catch BREAKING CHANGE footers
+            COMMITS=$(git log "${LATEST_TAG}..HEAD" --format="%s%n%b")
+          else
+            PKG_VERSION=$(node -p "require('./package.json').version")
+            MAJOR=$(echo "$PKG_VERSION" | cut -d. -f1)
+            MINOR=$(echo "$PKG_VERSION" | cut -d. -f2)
+            echo "No semver tags found; seeding from package.json $PKG_VERSION  →  MAJOR=$MAJOR  MINOR=$MINOR"
+            COMMITS=$(git log --format="%s%n%b")
+          fi
+
+          # Determine version bump using Conventional Commits conventions:
+          #   breaking: / breaking( / feat! / fix! / <type>!: / BREAKING CHANGE: → major
+          #   feature: / feature( / feat: / feat( → minor
+          #   fix: or anything else → patch only
+          BUMP="patch"
+          if echo "$COMMITS" | grep -qE "^(breaking[:(]|BREAKING CHANGE:)" || \
+             echo "$COMMITS" | grep -qiE "^[a-z]+(\([^)]*\))?!:"; then
+            BUMP="major"
+          elif echo "$COMMITS" | grep -qiE "^(feature[:(]|feat[:(])"; then
+            BUMP="minor"
+          fi
+          echo "Detected bump: $BUMP"
+
+          # Apply bump; BUILD is always the GitHub Actions run number for uniqueness
+          if [ "$BUMP" = "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+          elif [ "$BUMP" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+          fi
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${{ github.run_number }}"
+          echo "New version: $NEW_VERSION"
+
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
