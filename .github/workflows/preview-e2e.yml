@@ -159,7 +159,17 @@ jobs:
 
       - name: Write preview summary
         if: always()
+        env:
+          BRANCH_SLUG: ${{ inputs.branch-slug }}
         run: |
+          report_url=""
+          if [ -n "$BRANCH_SLUG" ]; then
+            if [ "$BRANCH_SLUG" = "main" ]; then
+              report_url="https://e2e.wod.wiki"
+            else
+              report_url="https://$BRANCH_SLUG.e2e.wod.wiki"
+            fi
+          fi
           cat <<EOF >> "$GITHUB_STEP_SUMMARY"
           ## Preview E2E summary
 
@@ -169,3 +179,6 @@ jobs:
           - Failures: ${{ steps.preview_stats.outputs.failures }}
           - Skipped: ${{ steps.preview_stats.outputs.skipped }}
           EOF
+          if [ -n "$report_url" ]; then
+            echo "- HTML report: [$report_url]($report_url)" >> "$GITHUB_STEP_SUMMARY"
+          fi

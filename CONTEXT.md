@@ -287,8 +287,12 @@ _Avoid_: result service, result saver (too generic).
 - **PR pipeline** — `pull-request.yml`. The one graph per MR update:
   `slug → verify (unit/story/coverage + deploy-shaped build gate + journal
   e2e) → preview (downloads verify's `playground-dist` artifact, adds
-  receiver + storybook, syncs S3) → destroy (on close)`. Exactly one e2e
-  run (the journal suite in `_verify.yml`).
+  receiver + storybook, syncs S3) → e2e (deployed-artifact e2e in
+  `preview-e2e.yml`, gated on the preview **build fingerprint**) → destroy
+  (on close)`. The deployed-artifact e2e publishes its Playwright HTML
+  report to `s3://<bucket>/<slug>/e2e-report/` — browsable at
+  `https://<slug>.e2e.wod.wiki` and linked from the job's step summary and
+  the PR preview comment.
 - **Main pipeline** — `main.yml`. The one graph per merge:
   `verify (no e2e, no smoke build) → release (Pages + tag + smoke e2e)` and
   `verify → site (S3 deploy) → e2e (deployed-artifact e2e in
