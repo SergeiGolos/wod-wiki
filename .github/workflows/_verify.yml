@@ -2,6 +2,12 @@ name: Verify
 
 on:
   workflow_call:
+    inputs:
+      run-e2e:
+        description: Whether to run the live-app e2e job (false on main — the deployed-artifact e2e in main-site-deploy.yml is the single merge-time e2e)
+        required: false
+        type: boolean
+        default: true
     outputs:
       unit-status:
         description: Unit test outcome
@@ -118,11 +124,10 @@ jobs:
 
   # Live-app e2e (playwright.journal.config.ts). CI runs 4 workers; tests
   # within a file stay serial (fullyParallel: false).
-  # NOTE: serving the production preview build in CI (E2E_TARGET=preview) is
-  # deferred — 3 spec files break against the prod bundle (dev-only CM view
-  # hook, widget decorations, cast popup). See the preview-parity follow-up
-  # issue; the config keeps E2E_TARGET support for local runs.
+  # Runs on PRs only — on main, main-site-deploy.yml's deployed-preview e2e
+  # is the single e2e run (inputs.run-e2e=false from main.yml).
   e2e:
+    if: inputs.run-e2e
     runs-on: ubuntu-22.04
     outputs:
       e2e-status: ${{ steps.e2e.outcome }}

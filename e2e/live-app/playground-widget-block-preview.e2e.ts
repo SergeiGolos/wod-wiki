@@ -1,9 +1,26 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const viewports = [
   { name: 'desktop', size: { width: 1440, height: 900 } },
   { name: 'mobile', size: { width: 375, height: 812 } },
 ];
+
+/**
+ * Navigate to an SPA route without a server round-trip for the route itself.
+ * The S3+CloudFront preview has no SPA-fallback on viewer-request, so deep
+ * links (e.g. /legacy) answer S3 NoSuchKey; the app instead boots at / and
+ * restores the route client-side via the `spa-redirect` sessionStorage
+ * handoff in playground/index.html (the same mechanism 404.html uses).
+ * Works identically against the Vite dev server.
+ */
+async function gotoSpaRoute(page: Page, path: string): Promise<void> {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.evaluate((p) => {
+    sessionStorage.setItem('spa-redirect', location.origin + p);
+  }, path);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.waitForURL(`**${path}`, { timeout: 10_000 });
+}
 
 test.describe('Playground widget landing experience', () => {
   for (const viewport of viewports) {
@@ -23,7 +40,7 @@ test.describe('Playground widget landing experience', () => {
       });
 
       await page.setViewportSize(viewport.size);
-      await page.goto('/legacy', { waitUntil: 'domcontentloaded' });
+      await gotoSpaRoute(page, '/legacy');
 
       await expect(
         page.getByRole('heading', { name: 'Build and preview widget-driven workout pages.' }),

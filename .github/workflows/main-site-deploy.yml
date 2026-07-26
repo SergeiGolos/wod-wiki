@@ -31,6 +31,8 @@ jobs:
   build:
     name: Build main artifacts
     runs-on: ubuntu-22.04
+    outputs:
+      bundle-hash: ${{ steps.fingerprint.outputs.hash }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,6 +59,15 @@ jobs:
       # /main/storybook/ under the hood for story.wod.wiki requests.
       - name: Build Storybook
         run: bun run build-storybook
+
+      # Fingerprint of this build's hashed entry bundle. The e2e job polls
+      # the deployed index.html until it references THIS hash — proof the
+      # current build (not a stale CloudFront cache) is being tested.
+      - name: Compute build fingerprint
+        id: fingerprint
+        run: |
+          HASH=$(ls playground/dist/assets/main-*.js | head -n1 | sed -E 's/.*main-([^.]+)\.js/\1/')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
 
       - name: Persist playground artifact
         uses: actions/upload-artifact@v4
@@ -138,6 +149,7 @@ jobs:
     with:
       preview-url: https://main.preview.wod.wiki
       branch-slug: main
+      build-hash: ${{ needs.build.outputs.bundle-hash }}
 
   # ── Summary ────────────────────────────────────────────────────────────────
   summary:

@@ -21,6 +21,11 @@ jobs:
   verify:
     uses: ./.github/workflows/_verify.yml
     secrets: inherit
+    with:
+      # On main, the deployed-artifact e2e (main-site-deploy.yml →
+      # preview-e2e.yml) is the single e2e run — the journal e2e already
+      # gated the PR.
+      run-e2e: false
 
   release:
     needs: [verify]

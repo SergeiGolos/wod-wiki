@@ -157,23 +157,15 @@ jobs:
             echo "::warning::CloudFront invalidation failed; S3 deploy succeeded and content will refresh within 5 minutes via cache-control max-age."
           fi
 
-  # ── E2E against the deployed preview ──────────────────────────────────────
-  e2e:
-    name: Preview E2E
-    needs: [build, deploy]
-    if: github.event.action != 'closed'
-    uses: ./.github/workflows/preview-e2e.yml
-    secrets: inherit
-    with:
-      preview-url: https://${{ needs.build.outputs.branch-slug }}.preview.wod.wiki
-      branch-slug: ${{ needs.build.outputs.branch-slug }}
-
   # ── Post PR comment ─────────────────────────────────────────────────────────
+  # NOTE: no e2e job here by design — the MR-time e2e is the journal suite in
+  # pull-request.yml → _verify.yml. The deployed-artifact e2e runs once, on
+  # merge, via main-site-deploy.yml.
   comment:
     name: Post Preview Link
     runs-on: ubuntu-22.04
-    needs: [build, deploy, e2e]
-    # Post even when the e2e job fails — a red run must not hide the preview link.
+    needs: [build, deploy]
+    # Post even when the deploy job has issues — a red run must not hide the preview link.
     if: always() && github.event.action != 'closed' && needs.deploy.result == 'success'
     permissions:
       contents: read
@@ -181,9 +173,6 @@ jobs:
     env:
       BRANCH_SLUG: ${{ needs.build.outputs.branch-slug }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-      E2E_OUTCOME: ${{ needs.e2e.outputs.outcome }}
-      E2E_TESTS: ${{ needs.e2e.outputs.tests }}
-      E2E_FAILURES: ${{ needs.e2e.outputs.failures }}
     steps:
       - name: Post PR comment
         uses: actions/github-script@v9
@@ -193,14 +182,9 @@ jobs:
             const slug = process.env.BRANCH_SLUG;
             const pr = process.env.PR_NUMBER;
             // Subdomains: {slug}.preview.wod.wiki (playground),
-            // {slug}.story.wod.wiki (storybook), {slug}.e2e.wod.wiki (E2E report).
+            // {slug}.story.wod.wiki (storybook).
             const previewUrl = `https://${slug}.preview.wod.wiki`;
             const storybookUrl = `https://${slug}.story.wod.wiki`;
-            const e2eUrl = `https://${slug}.e2e.wod.wiki`;
-            const e2eOutcome = process.env.E2E_OUTCOME || 'unknown';
-            const e2eIcon = e2eOutcome === 'success' ? '✅' : '❌';
-            const e2eTests = process.env.E2E_TESTS || 'n/a';
-            const e2eFailures = process.env.E2E_FAILURES || 'n/a';
             const marker = `<!-- wod-wiki-preview-${pr} -->`;
             const body = `${marker}\n` +
               `## 🚀 Preview deployed\n\n` +
@@ -209,8 +193,7 @@ jobs:
               `| PR | #${pr} |\n` +
               `| Branch | \`${slug}\` |\n` +
               `| Preview | [${previewUrl}](${previewUrl}) |\n` +
-              `| Storybook | [${storybookUrl}](${storybookUrl}) |\n` +
-              `| E2E | ${e2eIcon} ${e2eTests} tests, ${e2eFailures} failures — [report](${e2eUrl}) |\n\n` +
+              `| Storybook | [${storybookUrl}](${storybookUrl}) |\n\n` +
               `> Build and deploy powered by AWS S3 + CloudFront. ` +
               `Destroyed automatically when this PR is closed or merged.`;
 

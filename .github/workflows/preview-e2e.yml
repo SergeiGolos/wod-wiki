@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: ''
+      build-hash:
+        description: Hashed entry-bundle fingerprint (main-<hash>.js) of the build under test; when set, the wait step polls the deployed index.html until it references this hash
+        required: false
+        type: string
+        default: ''
     outputs:
       outcome:
         value: ${{ jobs.preview-e2e.outputs.outcome }}
@@ -28,6 +33,10 @@ on:
         description: Preview base URL to test
         required: false
         default: https://preview.wod.wiki
+      build-hash:
+        description: Optional build fingerprint for deploy-freshness gating
+        required: false
+        default: ''
       branch-slug:
         description: Branch slug for S3 report publishing (optional)
         required: false
@@ -63,21 +72,30 @@ jobs:
         run: bun x playwright install --with-deps chromium firefox webkit
 
       # S3 sync is immediate but CloudFront may serve the previous build for
-      # up to 5 minutes (max-age=300). Wait for the preview to respond before
-      # running tests against it.
-      - name: Wait for preview to be reachable
+      # up to 5 minutes (max-age=300), and invalidation is best-effort. Wait
+      # for the CURRENT build: when build-hash is provided, the deployed
+      # index.html must reference main-<hash>.js before any test runs —
+      # otherwise tests race the deploy and hit a stale or partial site.
+      - name: Wait for the current build to be live
+        env:
+          BUILD_HASH: ${{ inputs.build-hash }}
         run: |
           set -euo pipefail
           url="${{ inputs.preview-url || 'https://preview.wod.wiki' }}"
-          for i in $(seq 1 30); do
-            if curl -fsS -o /dev/null "$url"; then
-              echo "preview reachable: $url"
-              exit 0
+          for i in $(seq 1 45); do
+            html=$(curl -fsS "$url" 2>/dev/null || true)
+            if [ -n "$html" ]; then
+              if [ -z "$BUILD_HASH" ] || grep -q "main-$BUILD_HASH.js" <<<"$html"; then
+                echo "preview live with current build: $url"
+                exit 0
+              fi
+              echo "preview reachable but stale (want main-$BUILD_HASH.js) ($i/45)"
+            else
+              echo "waiting for $url ($i/45)"
             fi
-            echo "waiting for $url ($i/30)"
             sleep 10
           done
-          echo "::error::preview not reachable at $url after 5 minutes"
+          echo "::error::preview at $url did not serve build main-$BUILD_HASH.js after 7.5 minutes"
           exit 1
 
       - name: Run preview E2E
