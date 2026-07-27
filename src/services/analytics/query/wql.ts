@@ -21,11 +21,15 @@ import * as terms from '@/grammar/wql.parser.terms';
 
 export type Aggregator = 'sum' | 'avg' | 'min' | 'max' | 'count' | 'last' | 'delta';
 
+export interface TagValue {
+  value: string;
+  wildcard: boolean;
+}
+
 export interface TagFilter {
   key: string;
-  value: string;
   negate: boolean;
-  wildcard: boolean;
+  values: TagValue[];
 }
 
 export interface ParsedQuery {
@@ -84,19 +88,25 @@ export function parseQuery(raw: string): ParsedQuery {
   base.agg = aggText as Aggregator;
   base.metric = raw.slice(metricNode.from, metricNode.to);
 
-  // Filters — {key:value, !key:value, key:prefix*}
+  // Filters — {key:a|b*, !key:c} where alternatives within a key are OR-ed.
   const filters = query.getChild(terms.Filters);
   if (filters) {
     for (const filter of filters.getChildren(terms.Filter)) {
       const keyNode = filter.getChild(terms.TagKey);
       const valueNode = filter.getChild(terms.TagValue);
-      const wordNode = valueNode?.getChild(terms.Word);
-      if (!keyNode || !valueNode || !wordNode) continue;
+      if (!keyNode || !valueNode) continue;
+      const values: { value: string; wildcard: boolean }[] = [];
+      for (const wordNode of valueNode.getChildren(terms.Word)) {
+        values.push({
+          value: raw.slice(wordNode.from, wordNode.to),
+          wildcard: wordNode.nextSibling?.name === 'Star',
+        });
+      }
+      if (values.length === 0) continue;
       base.filters.push({
         key: raw.slice(keyNode.from, keyNode.to),
-        value: raw.slice(wordNode.from, wordNode.to),
         negate: filter.getChild(terms.Negate) !== null,
-        wildcard: valueNode.getChild(terms.Star) !== null,
+        values,
       });
     }
   }

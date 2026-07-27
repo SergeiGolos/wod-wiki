@@ -12,8 +12,8 @@ describe('parseQuery', () => {
     expect(parsed.agg).toBe('sum');
     expect(parsed.metric).toBe('totalVolume');
     expect(parsed.filters).toEqual([
-      { key: 'discipline', value: 'strength', negate: false, wildcard: false },
-      { key: 'effort', value: 'burpee', negate: true, wildcard: false },
+      { key: 'discipline', negate: false, values: [{ value: 'strength', wildcard: false }] },
+      { key: 'effort', negate: true, values: [{ value: 'burpee', wildcard: false }] },
     ]);
     expect(parsed.groupBy).toEqual(['week', 'effort']);
     expect(parsed.rollup).toEqual({ size: 1, unit: 'w' });
@@ -21,9 +21,43 @@ describe('parseQuery', () => {
 
   it('parses wildcard tag values', () => {
     const parsed = parseQuery('max:tis{effort:back*}');
-    expect(parsed.filters).toEqual([{ key: 'effort', value: 'back', negate: false, wildcard: true }]);
+    expect(parsed.filters).toEqual([{ key: 'effort', negate: false, values: [{ value: 'back', wildcard: true }] }]);
   });
 
+  it('parses multi-value tag filters (OR within a key)', () => {
+    const parsed = parseQuery('sum:totalVolume{note:a|b|c}');
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.filters).toEqual([
+      { key: 'note', negate: false, values: [
+        { value: 'a', wildcard: false },
+        { value: 'b', wildcard: false },
+        { value: 'c', wildcard: false },
+      ] },
+    ]);
+  });
+
+  it('parses multi-value tag filters with per-value wildcards and negation', () => {
+    const parsed = parseQuery('sum:totalVolume{!effort:back*|squat*}');
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.filters).toEqual([
+      { key: 'effort', negate: true, values: [
+        { value: 'back', wildcard: true },
+        { value: 'squat', wildcard: true },
+      ] },
+    ]);
+  });
+
+  it('parses mixed single- and multi-value filters in the same query', () => {
+    const parsed = parseQuery('sum:totalVolume{discipline:strength,effort:thruster|burpee} by {week}');
+    expect(parsed.filters).toEqual([
+      { key: 'discipline', negate: false, values: [{ value: 'strength', wildcard: false }] },
+      { key: 'effort', negate: false, values: [
+        { value: 'thruster', wildcard: false },
+        { value: 'burpee', wildcard: false },
+      ] },
+    ]);
+    expect(parsed.groupBy).toEqual(['week']);
+  });
   it('parses day rollups and bare heads', () => {
     expect(parseQuery('avg:tis{}.rollup(7d)').rollup).toEqual({ size: 7, unit: 'd' });
     const bare = parseQuery('count:totalReps');

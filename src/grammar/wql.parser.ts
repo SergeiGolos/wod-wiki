@@ -2,16 +2,15 @@
 import {LRParser} from "@lezer/lr"
 export const parser = LRParser.deserialize({
   version: 14,
-  states: "'bOVQPOOOOQO'#C_'#C_O[QPO'#C^QaQQOOOlQPO,58xOqQPO'#CbO|QPO'#ChO!RQPO'#CkQOQPOOQ!WQPOOQ!]QQOOO!eQQO'#CaOOQO1G.d1G.dOOQO'#Ce'#CeO!vQPO'#CcO!{QPO'#CcOOQO,58|,58|O#QQPO,58|O#YQPO,59SO#bQQO,59VO#gQPO'#CnO#lQQO,58{O#}QPO,58}O$SQPO,58}O$XQPO'#CoO$aQPO1G.hOOQO1G.h1G.hOOQO'#Cj'#CjOOQO1G.n1G.nO$iQPO1G.nO$qQPO1G.qOOQO,59Y,59YOOQO-E6l-E6lO$vQPO'#CfOOQO1G.i1G.iO#}QPO1G.iOOQO,59Z,59ZOOQO-E6m-E6mOOQO7+$S7+$SO%RQPO'#CpO%WQPO7+$YOOQO7+$Y7+$YO%`QPO7+$]OOQO,59Q,59QOOQO7+$T7+$TOOQO,59[,59[OOQO-E6n-E6nOOQO<<Gt<<GtOOQO<<Gw<<Gw",
-  stateData: "%e~OgOS~OSPO~OhSO~O]UO`VOjTO~OSZO~OS]OW_Ol`O~OjbO~OmcO~O`VO~O]UO`VO~OidO]TX`TXeTXjTX~OhfO~OS]O~OkhOljO~OSkOllO~OanO~OSoO~OidO]Ta`TaeTajTa~OSqO~OhsO~OS]OW_O~OkhOlvO~OkwOlyO~OSzO~OZ{OkYXlYX~OSkO~OkwOl!PO~On!QO~O",
-  goto: "!xePPfiPlorPx!PP!VP!Z!aPP!f!l!rRRORQOR[SRYRQaTRthS^ThRg_QrfR|sTXRYQmbR}wVWRXYQeZRpeQiaRuiQxmR!Ox",
+  states: "(WOVQPOOOOQO'#C_'#C_O[QPO'#C^QaQQOOOlQPO,58xOqQPO'#CbO|QPO'#ChO!RQPO'#CkQOQPOOQ!WQPOOQ!]QQOOO!eQQO'#CaOOQO1G.d1G.dOOQO'#Ce'#CeO!vQPO'#CcO!{QPO'#CcOOQO,58|,58|O#QQPO,58|O#YQPO,59SO#bQQO,59VO#gQPO'#CnO#lQQO,58{O#}QPO,58}O$SQPO,58}O$XQPO'#CpO$aQPO1G.hOOQO1G.h1G.hOOQO'#Cj'#CjOOQO1G.n1G.nO$iQPO1G.nO$qQPO1G.qOOQO,59Y,59YOOQO-E6l-E6lO$vQPO'#CfOOQO1G.i1G.iO#}QPO1G.iOOQO,59[,59[OOQO-E6n-E6nOOQO7+$S7+$SO%UQPO'#CqO%ZQPO7+$YOOQO7+$Y7+$YO%cQPO7+$]O%hQPO'#CoO%mQPO,59QO%mQPO,59QOOQO7+$T7+$TOOQO,59],59]OOQO-E6o-E6oOOQO<<Gt<<GtOOQO<<Gw<<GwO%xQPO,59ZOOQO-E6m-E6mO&WQPO1G.lOOQO1G.u1G.u",
+  stateData: "&c~OhOS~OSPO~OiSO~O]UO`VOkTO~OSZO~OS]OW_On`O~OkbO~OocO~O`VO~O]UO`VO~OjdO]TX`TXfTXkTX~OifO~OS]O~OmhOnjO~OSkOnlO~OanO~OSoO~OjdO]Ta`TafTakTa~OSqO~OisO~OS]OW_O~OmhOnvO~OmwOnyO~OSzO~OZ}Ol{OmYXnYX~OSkO~OmwOn!RO~Op!SO~OS!TO~Ol{OmYanYa~OZ!WOlcamcanca~Ol{OmYinYi~O",
+  goto: "#TfPPgjPmpsPy!QP!WP![!bPP!g!m!w!}RRORQOR[SRYRQaTRthS^ThRg_QrfR!OsTXRYQmbR!PwVWRXYQeZRpeQ|qS!U|!VR!V}QiaRuiQxmR!Qx",
   nodeNames: "⚠ Query Head Aggregator Word Metric Filters Filter Negate TagKey TagValue Star GroupBy By Dimension Rollup RollupDot Int",
-  maxTerm: 30,
+  maxTerm: 32,
   skippedNodes: [0],
-  repeatNodeCount: 3,
-  tokenData: "&g~RdXY!aYZ!a]^!apq!aqr!rxy!wyz!|z{#R|}#W}!O#]!O!P#q!Q![$n![!]%U!c!}#]#R#S#]#T#U#]#U#V%Z#V#o#]#o#p&]#q#r&b~!fSg~XY!aYZ!a]^!apq!a~!wOW~~!|Om~~#ROn~~#WOZ~~#]Ok~P#bTSP}!O#]!Q![#]!c!}#]#R#S#]#T#o#]~#vPi~#f#g#y~#|P#c#d$P~$SP#`#a$V~$YP#`#a$]~$`P#i#j$c~$fP#d#e$i~$nO`~R$uTaQSP}!O#]!Q![$n!c!}#]#R#S#]#T#o#]~%ZOh~R%`VSP}!O#]!Q![#]!c!}#]#R#S#]#T#m#]#m#n%u#n#o#]R%|T]QSP}!O#]!Q![#]!c!}#]#R#S#]#T#o#]~&bOj~~&gOl~",
+  repeatNodeCount: 4,
+  tokenData: "&o~ReXY!dYZ!d]^!dpq!dqr!uxy!zyz#Pz{#U|}#Z}!O#`!O!P#t!Q![$q![!]%X!c!}#`#R#S#`#T#U#`#U#V%^#V#o#`#o#p&`#p#q&e#q#r&j~!iSh~XY!dYZ!d]^!dpq!d~!zOW~~#POo~~#UOp~~#ZOZ~~#`Om~P#eTSP}!O#`!Q![#`!c!}#`#R#S#`#T#o#`~#yPj~#f#g#|~$PP#c#d$S~$VP#`#a$Y~$]P#`#a$`~$cP#i#j$f~$iP#d#e$l~$qO`~R$xTaQSP}!O#`!Q![$q!c!}#`#R#S#`#T#o#`~%^Oi~R%cVSP}!O#`!Q![#`!c!}#`#R#S#`#T#m#`#m#n%x#n#o#`R&PT]QSP}!O#`!Q![#`!c!}#`#R#S#`#T#o#`~&eOk~~&jOl~~&oOn~",
   tokenizers: [0, 1],
   topRules: {"Query":[0,1]},
-  tokenPrec: 0,
-  termNames: {"0":"⚠","1":"@top","2":"Head","3":"Aggregator","4":"Word","5":"Metric","6":"Filters","7":"Filter","8":"Negate","9":"TagKey","10":"TagValue","11":"Star","12":"GroupBy","13":"By","14":"Dimension","15":"Rollup","16":"RollupDot","17":"Int","18":"(dot Word)+","19":"(comma Filter)+","20":"(comma Dimension)+","21":"␄","22":"%mainskip","23":"whitespace","24":"colon","25":"dot","26":"braceOpen","27":"comma","28":"braceClose","29":"parenOpen","30":"parenClose"}
+  tokenPrec: 0
 })

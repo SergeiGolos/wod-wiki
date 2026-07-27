@@ -72,6 +72,7 @@ export const wqlLanguage = LRLanguage.define({
         parenClose: t.bracket,
         colon: t.punctuation,
         comma: t.punctuation,
+        pipe: t.punctuation,
         dot: t.punctuation,
       })
     ]

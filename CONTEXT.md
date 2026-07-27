@@ -142,6 +142,8 @@ _Avoid_: query string, analytics SQL.
 A `key:value` dimension carried on an **Analytics Store** fact row (`effort`,
 `discipline`, `note`, …) that **WQL** filters and groups by. Tags are query-time
 dimensions riding on fact rows — they never enter the `IMetric` stream.
+A WQL filter key takes multiple values (`{note:a|b}` or repeated `note:a, note:b`)
+— values OR within a key, keys AND across, `!` negates the whole list.
 Distinct from markdown `tags:` frontmatter, which feeds the note_tags store.
 _Avoid_: label, facet, frontmatter tag.
 **Query Service**:

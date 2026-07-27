@@ -42,6 +42,10 @@ describe('wql.grammar', () => {
       'sum:wod.session_load{} by {intensity}.rollup(1w)',
       // Whitespace-tolerant authoring style.
       'sum:totalVolume{discipline:strength, !effort:burpee} by {week, effort} .rollup(1w)',
+      // Multi-value tag filters.
+      'sum:totalVolume{note:a|b|c}',
+      'max:tis{effort:back*|squat*}',
+      'avg:tis{effort:thruster|burpee,note:monday} by {week}',
     ];
 
     for (const source of valid) {
@@ -59,6 +63,18 @@ describe('wql.grammar', () => {
           'GroupBy(By,Dimension(Word),Dimension(Word)),' +
           'Rollup(RollupDot,Int,Word)' +
         ')',
+      );
+    });
+
+    it('exposes repeated TagValue words for multi-value filters', () => {
+      expect(parse('sum:totalVolume{note:a|b|c}').toString()).toBe(
+        'Query(Head(Aggregator(Word),Metric(Word)),Filters(Filter(TagKey(Word),TagValue(Word,Word,Word))))',
+      );
+      expect(parse('max:tis{effort:back*|squat*}').toString()).toBe(
+        'Query(Head(Aggregator(Word),Metric(Word)),Filters(Filter(TagKey(Word),TagValue(Word,Star,Word,Star))))',
+      );
+      expect(parse('sum:totalVolume{!effort:thruster|burpee}').toString()).toBe(
+        'Query(Head(Aggregator(Word),Metric(Word)),Filters(Filter(Negate,TagKey(Word),TagValue(Word,Word))))',
       );
     });
   });

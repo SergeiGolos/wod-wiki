@@ -85,4 +85,44 @@ describe('QueryService over the real V12 fact store', () => {
     expect(weekly.series[0].points.map(p => p.value)).toEqual([3000, 3000]);
     expect(weekly.stages).toEqual({ selected: 3, buckets: 2, aggregated: 2, groups: 1 });
   });
+
+  it('executes multi-value tag filters end-to-end through the real store', async () => {
+    const runId = `wql-multi-${crypto.randomUUID()}`;
+    const noteA = `${runId}-a`;
+    const noteB = `${runId}-b`;
+
+    await service.setNoteTags(noteA, ['tag-a']);
+    await service.setNoteTags(noteB, ['tag-b']);
+    await service.saveAnalyticsPoints([
+      fact('a1', 'totalVolume', 1000, day0 + 3_600_000, { id: `${runId}-a1`, resultId: `${runId}-a1`, noteId: noteA, discipline: 'strength', effortSlug: 'back-squat' }),
+      fact('b1', 'totalVolume', 2000, day0 + 3_600_000, { id: `${runId}-b1`, resultId: `${runId}-b1`, noteId: noteB, discipline: 'rowing', effortSlug: 'rowing' }),
+    ]);
+
+    const store: FactQueryStore = {
+      getFactsByMetric: (metricKey) => service.getFactsByMetric(metricKey),
+      getFactsByTimeRange: (start, end) => service.getFactsByTimeRange(start, end),
+      getNoteTagLabels: async (id) => (await service.getTagsForNote(id)).map(tag => tag.label),
+    };
+    const query = new QueryService(store);
+    const ours = (result: { matched: AnalyticsDataPoint[] }) =>
+      result.matched.filter(row => row.id.startsWith(runId));
+
+    // OR within a key.
+    const orNotes = await query.runQuery(`sum:totalVolume{note:${noteA}|${noteB}}`);
+    expect(ours(orNotes)).toHaveLength(2);
+    expect(orNotes.scalar).toBe(3000);
+
+    // AND across keys.
+    const andAcross = await query.runQuery(`sum:totalVolume{note:${noteA},discipline:rowing}`);
+    expect(ours(andAcross)).toHaveLength(0);
+
+    // Negation spans the whole value list.
+    const negated = await query.runQuery(`sum:totalVolume{!note:${noteA}|${noteB}}`);
+    expect(ours(negated)).toHaveLength(0);
+
+    // Multi-value tag label sets from note_tags.
+    const tagged = await query.runQuery('sum:totalVolume{tags:tag-a|tag-b}');
+    expect(ours(tagged)).toHaveLength(2);
+    expect(tagged.scalar).toBe(3000);
+  });
 });

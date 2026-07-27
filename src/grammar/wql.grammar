@@ -37,9 +37,9 @@ Filter { Negate? TagKey colon TagValue }
 
 TagKey { Word }
 
-// The trailing wildcard star is a separate token; the AST mapper folds it
-// into TagFilter.wildcard.
-TagValue { Word Star? }
+// Multi-value tag values: alternatives are OR-ed within the key; each
+// alternative carries its own trailing wildcard star.
+TagValue { Word Star? (pipe Word Star?)* }
 
 GroupBy { By braceOpen (Dimension (comma Dimension)*)? braceClose }
 
@@ -59,6 +59,7 @@ Rollup { RollupDot parenOpen Int Word parenClose }
   Star { "*" }
   Negate { "!" }
   colon { ":" }
+  pipe { "|" }
   comma { "," }
   dot { "." }
   braceOpen { "{" }

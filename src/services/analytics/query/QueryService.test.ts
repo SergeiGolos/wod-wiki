@@ -129,6 +129,53 @@ describe('QueryService', () => {
     expect((await service.runQuery('sum:totalVolume{!coach:greg}')).stages.selected).toBe(4);
   });
 
+  it('filters multi-value tags with OR within a key and AND across keys', async () => {
+    const service = new QueryService(makeStore().store);
+
+    // OR within a single key: matches rows with either value.
+    expect((await service.runQuery('sum:totalVolume{note:note-fran|note-row}')).scalar).toBe(6500);
+    expect((await service.runQuery('sum:totalVolume{effort:back-squat|rowing}')).scalar).toBe(6500);
+
+    // AND across different keys: both conditions must hold.
+    const andAcross = await service.runQuery('sum:totalVolume{note:note-row,discipline:strength}');
+    expect(andAcross.stages.selected).toBe(0);
+
+    // Mixing OR and AND in one query.
+    const mixed = await service.runQuery('sum:totalVolume{note:note-fran|note-row,discipline:strength}');
+    expect(mixed.scalar).toBe(6000);
+  });
+
+  it('negates multi-value filters across the whole value list', async () => {
+    const service = new QueryService(makeStore().store);
+
+    // Exclude rows matching ANY value in the list.
+    expect((await service.runQuery('sum:totalVolume{!note:note-fran|note-row}')).stages.selected).toBe(0);
+    expect((await service.runQuery('sum:totalVolume{!effort:rowing}')).scalar).toBe(6000);
+  });
+
+  it('supports per-value wildcards in multi-value filters', async () => {
+    const service = new QueryService(makeStore().store);
+
+    expect((await service.runQuery('sum:totalVolume{effort:back*|rowing}')).scalar).toBe(6500);
+  });
+
+  it('treats repeated keys as OR within the key (same as a|b)', async () => {
+    const service = new QueryService(makeStore().store);
+
+    const multiValue = await service.runQuery('sum:totalVolume{note:note-fran|note-row}');
+    const repeatedKey = await service.runQuery('sum:totalVolume{note:note-fran,note:note-row}');
+    expect(repeatedKey.scalar).toBe(multiValue.scalar);
+    expect(repeatedKey.stages.selected).toBe(multiValue.stages.selected);
+  });
+
+  it('resolves multi-value tags against the note_tags set', async () => {
+    const service = new QueryService(makeStore().store);
+
+    const result = await service.runQuery('sum:totalVolume{tags:crossfit|rowing}');
+    expect(result.scalar).toBe(6500);
+    expect(result.stages.selected).toBe(4);
+  });
+
   it("resolves the 'tags' dimension through note_tags, loaded once per note", async () => {
     const { store, calls } = makeStore();
     const service = new QueryService(store);

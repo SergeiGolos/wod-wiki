@@ -72,11 +72,26 @@ function factTagValue(row: AnalyticsDataPoint, key: string, noteTags: ReadonlyMa
 }
 
 function matchesFilters(row: AnalyticsDataPoint, filters: TagFilter[], noteTags: ReadonlyMap<string, readonly string[]>): boolean {
-  return filters.every((f) => {
-    const raw = factTagValue(row, f.key, noteTags);
-    const values = Array.isArray(raw) ? raw : raw !== undefined ? [raw] : [];
-    const hit = values.some(v => f.wildcard ? v.startsWith(f.value) : v === f.value);
-    return f.negate ? !hit : hit;
+  // OR within a key (and sign); AND across keys/signs. Negation spans the
+  // whole value list for that key/sign.
+  const groups = new Map<string, TagFilter[]>();
+  for (const f of filters) {
+    const groupKey = `${f.negate ? '!' : ''}${f.key}`;
+    const bucket = groups.get(groupKey);
+    if (bucket) bucket.push(f);
+    else groups.set(groupKey, [f]);
+  }
+  return [...groups.values()].every((group) => {
+    const key = group[0].key;
+    const negate = group[0].negate;
+    const raw = factTagValue(row, key, noteTags);
+    const rowValues = Array.isArray(raw) ? raw : raw !== undefined ? [raw] : [];
+    const hit = group.some((f) =>
+      f.values.some((a) =>
+        rowValues.some((v) => (a.wildcard ? v.startsWith(a.value) : v === a.value)),
+      ),
+    );
+    return negate ? !hit : hit;
   });
 }
 
@@ -90,8 +105,9 @@ function dimValue(row: AnalyticsDataPoint, dim: string, noteTags: ReadonlyMap<st
   }
   if (dim === 'session') return row.resultId;
   const raw = factTagValue(row, dim, noteTags);
-  if (Array.isArray(raw)) return raw.length ? raw.join(',') : '(none)';
-  return raw ?? '(none)';
+  if (raw === undefined) return '(none)';
+  if (typeof raw === 'string') return raw;
+  return raw.length ? raw.join(',') : '(none)';
 }
 
 function aggregate(values: number[], agg: Aggregator, points: AnalyticsDataPoint[]): number {
