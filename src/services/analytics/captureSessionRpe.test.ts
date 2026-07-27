@@ -27,9 +27,8 @@ const SEGMENT: NoteSegment = {
   id: 'wod-2-test',
   version: 1,
   noteId: 'note-1',
-  content: BLOCK_CONTENT,
-  dialect: 'wod',
-  createdAt: T0,
+  dataType: 'wod',
+  rawContent: BLOCK_CONTENT,
   data: {
     id: 'wod-2-test',
     contentId: 'bc-test',
@@ -42,6 +41,7 @@ const SEGMENT: NoteSegment = {
     createdAt: 0,
     widgetIds: {},
   },
+  createdAt: T0,
 };
 
 function baseSegmentLog(): StoredOutputStatement {
@@ -96,6 +96,7 @@ function createHarness(result: WorkoutResult, segment: NoteSegment | undefined =
     getResultsByContentId: async () => [],
     getResultsForSection: async () => [],
     getResultById: async (id) => (id === currentResult.id ? currentResult : undefined),
+    getAttachmentsForNote: async () => [],
     saveAttachment: async () => 'att-1',
     deleteAttachment: async () => {},
     saveAnalyticsPoints: async (points) => {

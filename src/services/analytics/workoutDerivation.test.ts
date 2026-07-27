@@ -131,6 +131,50 @@ describe('replayResultAnalytics', () => {
     expect(derived.some(o => o.id === 99)).toBe(false);
     expect(derived.filter(o => o.outputType === 'analytics').length).toBeGreaterThan(0);
   });
+
+  it('preserves user-origin SessionRPE and re-derives SessionLoad from it', () => {
+    const rpeStatement: StoredOutputStatement = {
+      id: 2,
+      outputType: 'segment',
+      timeSpan: { started: T0 + 60_000, ended: T0 + 60_000 },
+      metrics: [{ type: MetricType.SessionRPE, value: 9, origin: 'user', image: 'rpe: 9' }],
+      sourceBlockKey: 'block-1',
+      stackLevel: 0,
+    };
+    const result: WorkoutResult = {
+      id: 'r1',
+      noteId: 'n1',
+      segmentId: 'wod-2-test',
+      segmentVersion: 1,
+      blockContentId: 'bc-test',
+      origin: 'journal',
+      data: {
+        startTime: T0,
+        endTime: T0 + 60_000,
+        duration: 60_000,
+        completed: true,
+        logs: [segmentLog(), rpeStatement],
+      },
+      createdAt: T0 + 60_000,
+    };
+
+    const derived = replayResultAnalytics(result, BLOCK);
+
+    // User-origin SessionRPE survives the replay strip (only 'analyzed' is removed).
+    const userRpe = derived
+      .flatMap((o) => o.metrics)
+      .find((m) => m.type === MetricType.SessionRPE && m.origin === 'user');
+    expect(userRpe).toBeDefined();
+    expect(userRpe!.value).toBe(9);
+
+    // SessionLoad uses the user RPE (9) × 1 minute = 9 AU.
+    const sessionLoad = derived
+      .filter((o) => o.outputType === 'analytics')
+      .flatMap((o) => o.metrics)
+      .find((m) => m.type === MetricType.Load);
+    expect(sessionLoad).toBeDefined();
+    expect(sessionLoad!.value).toBe(9);
+  });
 });
 
 describe('resolveCanonicalMetricKey', () => {

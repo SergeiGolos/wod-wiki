@@ -54,6 +54,7 @@ const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0
 import { PlanPanel } from '@/panels/plan-panel';
 import { TimerScreen } from '@/panels/track-panel';
 import { ResultsView } from '@/components/organisms/review/review-grid-index';
+import { PostWorkoutRpePrompt } from '@/components/organisms/review/PostWorkoutRpePrompt';
 import type { Segment } from '@/core/models/AnalyticsModels';
 
 export interface WorkbenchProps extends Omit<NoteEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange' | 'mode'> {
@@ -99,7 +100,11 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     startWorkout: useWorkbenchSession((s) => s.handles.handleStartWorkoutAction),
   });
   const navigate = useNavigate();
-  const { noteId: routeId } = useParams<{ noteId: string }>();
+  const { noteId: routeId, sectionId: routeSectionId, resultId: routeResultId } = useParams<{
+    noteId: string;
+    sectionId: string;
+    resultId: string;
+  }>();
   const { theme, setTheme } = useTheme();
   const { isDebugMode } = useDebugMode();
 
@@ -192,6 +197,8 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   // store; tag bookkeeping for the notebook toggle stays local because it
   // only matters for the UI header button.
   const currentEntry = contextEntry;
+  const loadEntry = useWorkbenchSession((s) => s.loadEntry);
+  const feedLogOutputs = useWorkbenchSession((s) => s.feedLogOutputs);
   const [currentEntryTags, setCurrentEntryTags] = useState<string[]>([]);
   useEffect(() => {
     if (currentEntry) {
@@ -300,6 +307,19 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     void blockId;
   }, [completeWorkout]);
 
+  const handleRpeCaptured = useCallback(async () => {
+    if (!routeId || !routeResultId) return;
+    const entry = await loadEntry({
+      routeId,
+      routeView: 'review',
+      routeSectionId,
+      routeResultId,
+    });
+    if (entry?.results?.logs) {
+      feedLogOutputs(entry.results.logs, entry.results.startTime);
+    }
+  }, [routeId, routeSectionId, routeResultId, loadEntry, feedLogOutputs]);
+
   const planPanel = (
     <PlanPanel
       sourceNoteId={contextEntry?.id}
@@ -335,17 +355,27 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   );
 
   const reviewGridPanel = (
-    <div id="tutorial-review-grid" className="h-full">
-      <ResultsView
-        runtime={runtime}
-        segments={analyticsSegments}
-        selectedSegmentIds={selectedAnalyticsIds}
-        onSelectSegment={toggleAnalyticsSegment}
-        groups={analyticsGroups}
-        projections={extractProjections(analyticsSegments)}
-        hoveredBlockKey={hoveredBlockKey}
-        onHoverBlockKey={setHoveredBlockKey}
-      />
+    <div id="tutorial-review-grid" className="h-full flex flex-col">
+      {routeResultId && (
+        <PostWorkoutRpePrompt
+          resultId={routeResultId}
+          logs={currentEntry?.results?.logs ?? []}
+          onCaptured={handleRpeCaptured}
+          className="m-3 mb-0 shrink-0"
+        />
+      )}
+      <div className="flex-1 min-h-0">
+        <ResultsView
+          runtime={runtime}
+          segments={analyticsSegments}
+          selectedSegmentIds={selectedAnalyticsIds}
+          onSelectSegment={toggleAnalyticsSegment}
+          groups={analyticsGroups}
+          projections={extractProjections(analyticsSegments)}
+          hoveredBlockKey={hoveredBlockKey}
+          onHoverBlockKey={setHoveredBlockKey}
+        />
+      </div>
     </div>
   );
 

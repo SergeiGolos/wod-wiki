@@ -23,8 +23,8 @@ export async function captureSessionRpe(
   rpe: number,
   deps: CaptureSessionRpeDeps = {},
 ): Promise<CaptureSessionRpeOutcome> {
-  const persistence = deps.persistence ?? new IndexedDBNotePersistence(deps.storage);
-  const storage = deps.storage ?? (persistence as any).storage ?? indexedDBService;
+  const storage = deps.storage ?? indexedDBService;
+  const persistence = deps.persistence ?? new IndexedDBNotePersistence(storage);
 
   const result = await storage.getResultById(resultId);
   if (!result) {

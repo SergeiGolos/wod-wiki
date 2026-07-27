@@ -6,8 +6,8 @@
  *   2. Dismiss and Skip hide the banner without writing anything.
  *   3. Selecting a value calls captureSessionRpe, fires onCaptured, and hides.
  */
-import { afterEach, describe, expect, it, mock, vi } from 'bun:test';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, mock } from 'bun:test';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 import { PostWorkoutRpePrompt } from './PostWorkoutRpePrompt';
@@ -102,8 +102,7 @@ describe('PostWorkoutRpePrompt', () => {
     const button5 = screen.getByRole('button', { name: /5|moderate/i });
     fireEvent.click(button5);
 
-    expect(captureSessionRpe).toHaveBeenCalledWith('result-1', 5);
-    expect(onCaptured).toHaveBeenCalledWith(5);
+    await waitFor(() => expect(onCaptured).toHaveBeenCalledWith(5));
     expect(screen.queryByText(/How hard was that/i)).toBeNull();
   });
 
@@ -113,6 +112,6 @@ describe('PostWorkoutRpePrompt', () => {
     const button10 = screen.getByRole('button', { name: /10/i });
     fireEvent.click(button10);
 
-    expect(captureSessionRpe).toHaveBeenCalledWith('result-1', 10);
+    await waitFor(() => expect(captureSessionRpe).toHaveBeenCalledWith('result-1', 10));
   });
 });
