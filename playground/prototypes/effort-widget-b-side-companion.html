@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Effort Widget — Variant B: Side-Panel Companion | WOD-694</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design Tokens ─────────────────────────────────────────────── */
+    :root {
+      --bg: #f5f2ed;
+      --bg2: #faf8f4;
+      --fg: #2a221a;
+      --fg2: #6a5f52;
+      --card: #fff;
+      --border: #cdc5b8;
+      --border2: #e8e2d8;
+      --primary: #5980a8;
+      --muted: #ede9e2;
+      --effort-color: #508860;
+      --effort-bg: rgba(80,136,96,0.10);
+      --effort-border: rgba(80,136,96,0.28);
+      --time-color: #5980a8;
+      --rep-color: #a87040;
+      --rep-bg: rgba(168,112,64,0.10);
+      --gutter-fg: #aaa09a;
+      --popover: #f8f5f0;
+      --accent: #8c7040;
+      --radius: 10px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.09);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+      --companion-bg: #faf8f4;
+    }
+    .dark {
+      --bg: #2e3440;
+      --bg2: #353c4a;
+      --fg: #d8dee9;
+      --fg2: #9099ab;
+      --card: #3b4252;
+      --border: #3f4859;
+      --border2: #353d4e;
+      --primary: #81a1c1;
+      --muted: #262c38;
+      --effort-color: #a3be8c;
+      --effort-bg: rgba(163,190,140,0.12);
+      --effort-border: rgba(163,190,140,0.28);
+      --time-color: #81a1c1;
+      --rep-color: #d08770;
+      --rep-bg: rgba(208,135,112,0.12);
+      --gutter-fg: #5a6478;
+      --popover: #3d4560;
+      --accent: #ebcb8b;
+      --shadow: 0 2px 20px rgba(0,0,0,0.35);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
+      --companion-bg: #32394a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Topbar ─────────────────────────────────────────────────────── */
+    .topbar {
+      height: 44px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .topbar-logo { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 13px; color: var(--primary); }
+    .topbar-sep { width: 1px; height: 20px; background: var(--border); }
+    .topbar-title { font-size: 13px; font-weight: 500; color: var(--fg); opacity: 0.7; }
+    .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .icon-btn {
+      width: 28px; height: 28px; border-radius: 6px;
+      border: 1px solid var(--border); background: transparent;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--fg2); font-size: 14px; transition: background 0.12s;
+    }
+    .icon-btn:hover { background: var(--muted); }
+
+    .layout { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ─────────────────────────────────────────────────── */
+    .sidebar {
+      width: 200px; background: var(--card);
+      border-right: 1px solid var(--border);
+      padding: 12px 0; flex-shrink: 0; overflow-y: auto;
+    }
+    .sidebar-section { padding: 4px 12px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg2); margin-top: 12px; }
+    .sidebar-item { display: flex; align-items: center; gap: 8px; padding: 5px 12px; font-size: 12.5px; color: var(--fg2); cursor: pointer; }
+    .sidebar-item:hover { background: var(--muted); }
+    .sidebar-item.active { background: var(--effort-bg); color: var(--effort-color); font-weight: 500; }
+    .sidebar-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+    .sidebar-item.active .sidebar-dot { background: var(--effort-color); }
+
+    /* ── Main content (editor + companion) ───────────────────────── */
+    .main-content {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Editor ───────────────────────────────────────────────────── */
+    .editor-wrap {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 0;
+    }
+    .editor-content {
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+    .cm-editor { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; line-height: 22px; }
+    .cm-line { display: flex; align-items: baseline; position: relative; }
+    .cm-gutter { width: 32px; flex-shrink: 0; text-align: right; padding-right: 8px; font-size: 11px; color: var(--gutter-fg); opacity: 0.6; user-select: none; }
+    .cm-text { flex: 1; white-space: pre; }
+    .cm-active-line { background: rgba(129,161,193,0.07); }
+    .cm-cursor { display: inline-block; width: 2px; height: 14px; background: var(--primary); vertical-align: middle; margin-left: 1px; animation: blink 1.1s step-end infinite; border-radius: 1px; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* Syntax colors */
+    .cm-fm-fence { color: var(--fg2); }
+    .cm-yaml-key { color: var(--primary); }
+    .cm-yaml-val { color: var(--fg); }
+    .cm-yaml-str { color: var(--effort-color); }
+    .cm-yaml-num { color: var(--rep-color); }
+    .cm-yaml-list { color: var(--fg2); }
+    .cm-h1 { font-size: 17px; font-weight: 700; }
+    .cm-h2 { font-size: 15px; font-weight: 600; }
+    .cm-wod-fence { color: var(--accent); }
+    .cm-wod-effort { color: var(--effort-color); font-weight: 500; }
+    .cm-wod-num { color: var(--rep-color); }
+    .cm-wod-unit { color: var(--fg2); }
+
+    /* Active field highlight in editor */
+    .field-highlight {
+      outline: none;
+      text-decoration: underline;
+      text-decoration-color: var(--effort-color);
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+    }
+
+    /* ── Side Companion Panel ─────────────────────────────────────
+     *
+     * DESIGN CONCEPT:
+     * This extends the existing FrontmatterCompanion (right-side overlay)
+     * pattern. When the cursor is anywhere inside a frontmatter block,
+     * a contextual edit panel opens on the right — showing ALL fields
+     * of the effort as a form, not just the active line.
+     *
+     * TRIGGER: Cursor enters the frontmatter block (---) boundary.
+     * UX: Shows all fields with their edit controls side-by-side.
+     *     Active field is highlighted. Changes write back to YAML.
+     * DISMISS: Cursor moves out of frontmatter block.
+     * ──────────────────────────────────────────────────────────── */
+    .companion {
+      width: 310px;
+      flex-shrink: 0;
+      background: var(--companion-bg);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slide-in 0.2s cubic-bezier(0.2,0,0,1);
+    }
+    @keyframes slide-in {
+      from { width: 0; opacity: 0; }
+      to { width: 310px; opacity: 1; }
+    }
+
+    .companion-header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .companion-icon {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      background: var(--effort-bg);
+      border: 1px solid var(--effort-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .companion-title-wrap {
+      flex: 1;
+    }
+    .companion-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+    .companion-subtitle {
+      font-size: 11px;
+      color: var(--fg2);
+      margin-top: 1px;
+    }
+    .companion-close {
+      width: 22px; height: 22px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      color: var(--fg2);
+      transition: background 0.1s;
+    }
+    .companion-close:hover { background: var(--muted); }
+
+    .companion-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Field groups */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .field-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--fg2);
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .field-label .field-type-hint {
+      font-family: 'Inter', sans-serif;
+      font-size: 9.5px;
+      font-weight: 500;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: var(--muted);
+      color: var(--fg2);
+      letter-spacing: 0.02em;
+    }
+    .field-label.active { color: var(--effort-color); }
+
+    /* Text input */
+    .field-input {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      padding: 6px 10px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--fg);
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+    .field-input:focus, .field-input.active {
+      border-color: var(--effort-color);
+      box-shadow: 0 0 0 2px var(--effort-bg);
+    }
+
+    /* Numeric stepper */
+    .met-stepper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .met-stepper input {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      width: 64px;
+      text-align: center;
+      padding: 5px 8px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--rep-color);
+      outline: none;
+    }
+    .met-stepper input:focus { border-color: var(--rep-color); box-shadow: 0 0 0 2px var(--rep-bg); }
+    .stepper-btn {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--fg2);
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.1s;
+    }
+    .stepper-btn:hover { background: var(--muted); color: var(--fg); }
+    .met-label {
+      font-size: 11px;
+      color: var(--fg2);
+      margin-left: 4px;
+    }
+    .met-bar-wrap {
+      flex: 1;
+      height: 4px;
+      background: var(--muted);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .met-bar {
+      height: 100%;
+      background: var(--rep-color);
+      border-radius: 2px;
+      transition: width 0.2s;
+    }
+
+    /* Radio chip group */
+    .chip-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .chip-radio {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.12s;
+      font-weight: 500;
+    }
+    .chip-radio:hover { background: var(--muted); }
+    .chip-radio.selected-high { background: rgba(191,97,106,0.12); border-color: rgba(191,97,106,0.3); color: #bf616a; }
+    .dark .chip-radio.selected-high { color: #bf616a; }
+    .chip-radio.selected-moderate { background: rgba(235,203,139,0.12); border-color: rgba(235,203,139,0.3); color: #a07a20; }
+    .dark .chip-radio.selected-moderate { color: #ebcb8b; }
+    .chip-radio.selected-low { background: var(--effort-bg); border-color: var(--effort-border); color: var(--effort-color); }
+
+    /* Discipline select */
+    .disc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+    .disc-chip {
+      padding: 6px 4px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      font-size: 11px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.12s;
+      color: var(--fg2);
+    }
+    .disc-chip:hover { background: var(--muted); color: var(--fg); }
+    .disc-chip.selected { background: var(--effort-bg); border-color: var(--effort-border); color: var(--effort-color); font-weight: 500; }
+
+    /* Alias tags */
+    .alias-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .alias-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--muted);
+      color: var(--fg2);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .alias-tag .alias-remove {
+      cursor: pointer;
+      color: var(--fg2);
+      font-size: 10px;
+      opacity: 0.5;
+    }
+    .alias-tag .alias-remove:hover { opacity: 1; }
+    .alias-add {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--primary);
+      border: 1px dashed var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .alias-add:hover { background: var(--muted); }
+
+    /* Save footer */
+    .companion-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .save-btn {
+      flex: 1;
+      padding: 7px 14px;
+      border-radius: 7px;
+      background: var(--effort-color);
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .dark .save-btn { color: #2e3440; }
+    .save-btn:hover { opacity: 0.85; }
+    .cancel-btn {
+      padding: 7px 14px;
+      border-radius: 7px;
+      background: var(--bg2);
+      color: var(--fg2);
+      font-size: 12.5px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .cancel-btn:hover { background: var(--muted); }
+    .save-hint {
+      font-size: 10px;
+      color: var(--fg2);
+    }
+
+    /* Dividers */
+    .field-divider {
+      height: 1px;
+      background: var(--border2);
+      margin: 2px 0;
+    }
+
+    /* Theme toggle */
+    .theme-toggle { position: fixed; top: 52px; right: 12px; z-index: 999; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 11px; cursor: pointer; color: var(--fg2); font-family: inherit; }
+    .theme-toggle:hover { background: var(--muted); }
+
+    /* Annotation */
+    .annotation { position: fixed; bottom: 24px; left: 24px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; max-width: 260px; box-shadow: var(--shadow); }
+    .annotation-title { font-size: 11px; font-weight: 700; color: var(--primary); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+    .annotation-body { font-size: 11.5px; color: var(--fg2); line-height: 1.5; }
+    .annotation-body strong { color: var(--fg); }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="document.documentElement.classList.toggle('dark')">☀/☾ theme</button>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <span class="topbar-logo">wod-wiki</span>
+    <div class="topbar-sep"></div>
+    <span class="topbar-title">efforts / bodyweight / box-jump.md</span>
+    <div class="topbar-actions">
+      <button class="icon-btn">💾</button>
+      <button class="icon-btn">🕐</button>
+      <button class="icon-btn" onclick="toggleCompanion()">⊞</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-section">Efforts</div>
+      <div class="sidebar-item"><div class="sidebar-dot"></div>bodyweight</div>
+      <div class="sidebar-item active"><div class="sidebar-dot"></div>box-jump.md</div>
+      <div class="sidebar-item"><div class="sidebar-dot"></div>sit-up.md</div>
+      <div class="sidebar-item"><div class="sidebar-dot"></div>lunge.md</div>
+      <div class="sidebar-section" style="margin-top:16px">Categories</div>
+      <div class="sidebar-item"><div class="sidebar-dot"></div>cycling</div>
+      <div class="sidebar-item"><div class="sidebar-dot"></div>kettlebell</div>
+      <div class="sidebar-item"><div class="sidebar-dot"></div>running</div>
+    </div>
+
+    <!-- Main content -->
+    <div class="main-content">
+      <!-- Editor -->
+      <div class="editor-wrap" id="editor-wrap">
+        <div class="editor-content">
+          <div class="cm-editor">
+
+            <!-- Frontmatter block (highlighted when companion open) -->
+            <div class="cm-line" onclick="focusField('slug')" style="cursor:pointer">
+              <div class="cm-gutter">1</div>
+              <div class="cm-text cm-fm-fence">---</div>
+            </div>
+            <div class="cm-line cm-active-line" onclick="focusField('id')" style="cursor:pointer">
+              <div class="cm-gutter">2</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">id</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str">effort-bundled-box-jump</span>
+              </div>
+            </div>
+            <div class="cm-line" onclick="focusField('slug')" style="cursor:pointer" id="line-slug">
+              <div class="cm-gutter">3</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">slug</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str field-highlight" id="editor-slug">box-jump<span class="cm-cursor"></span></span>
+              </div>
+            </div>
+            <div class="cm-line" onclick="focusField('label')" style="cursor:pointer">
+              <div class="cm-gutter">4</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">label</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str" id="editor-label">Box Jump</span>
+              </div>
+            </div>
+            <div class="cm-line" onclick="focusField('aliases')" style="cursor:pointer">
+              <div class="cm-gutter">5</div>
+              <div class="cm-text"><span class="cm-yaml-key">aliases</span><span class="cm-yaml-val">:</span></div>
+            </div>
+            <div class="cm-line" onclick="focusField('aliases')" style="cursor:pointer">
+              <div class="cm-gutter">6</div>
+              <div class="cm-text"><span class="cm-yaml-list">  - </span><span class="cm-yaml-str">box jumps</span></div>
+            </div>
+            <div class="cm-line" onclick="focusField('aliases')" style="cursor:pointer">
+              <div class="cm-gutter">7</div>
+              <div class="cm-text"><span class="cm-yaml-list">  - </span><span class="cm-yaml-str">jump to box</span></div>
+            </div>
+            <div class="cm-line" onclick="focusField('aliases')" style="cursor:pointer">
+              <div class="cm-gutter">8</div>
+              <div class="cm-text"><span class="cm-yaml-list">  - </span><span class="cm-yaml-str">box</span></div>
+            </div>
+            <div class="cm-line" onclick="focusField('met')" style="cursor:pointer">
+              <div class="cm-gutter">9</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">met</span><span class="cm-yaml-val">: </span><span class="cm-yaml-num" id="editor-met">8.0</span>
+              </div>
+            </div>
+            <div class="cm-line" onclick="focusField('discipline')" style="cursor:pointer">
+              <div class="cm-gutter">10</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">discipline</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str" id="editor-discipline">bodyweight</span>
+              </div>
+            </div>
+            <div class="cm-line" onclick="focusField('intensityTier')" style="cursor:pointer">
+              <div class="cm-gutter">11</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">intensityTier</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str" id="editor-tier">high</span>
+              </div>
+            </div>
+            <div class="cm-line">
+              <div class="cm-gutter">12</div>
+              <div class="cm-text cm-fm-fence">---</div>
+            </div>
+
+            <div class="cm-line"><div class="cm-gutter">13</div><div class="cm-text">&nbsp;</div></div>
+            <div class="cm-line"><div class="cm-gutter">14</div><div class="cm-text cm-h1"># Box Jump</div></div>
+            <div class="cm-line"><div class="cm-gutter">15</div><div class="cm-text">&nbsp;</div></div>
+            <div class="cm-line"><div class="cm-gutter">16</div><div class="cm-text">An explosive plyometric movement.</div></div>
+            <div class="cm-line"><div class="cm-gutter">17</div><div class="cm-text">&nbsp;</div></div>
+            <div class="cm-line"><div class="cm-gutter">18</div><div class="cm-text cm-h2">## Example workout</div></div>
+            <div class="cm-line"><div class="cm-gutter">19</div><div class="cm-text">&nbsp;</div></div>
+            <div class="cm-line"><div class="cm-gutter">20</div><div class="cm-text cm-wod-fence">```wod</div></div>
+            <div class="cm-line"><div class="cm-gutter">21</div><div class="cm-text"><span class="cm-wod-num">3</span><span class="cm-wod-unit">x</span><span class="cm-wod-num">10</span> <span class="cm-wod-effort">box-jump</span></div></div>
+            <div class="cm-line"><div class="cm-gutter">22</div><div class="cm-text cm-wod-fence">```</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SIDE COMPANION PANEL ─────────────────────────────────── -->
+      <div class="companion" id="companion">
+        <div class="companion-header">
+          <div class="companion-icon">🏋</div>
+          <div class="companion-title-wrap">
+            <div class="companion-title">Effort Metadata</div>
+            <div class="companion-subtitle">bodyweight · box-jump.md</div>
+          </div>
+          <button class="companion-close" onclick="toggleCompanion()">✕</button>
+        </div>
+
+        <div class="companion-body">
+
+          <!-- slug -->
+          <div class="field-group" id="field-slug">
+            <div class="field-label active">
+              slug
+              <span class="field-type-hint">string · unique identifier</span>
+            </div>
+            <input class="field-input active" value="box-jump" id="input-slug"
+              oninput="document.getElementById('editor-slug').childNodes[0].textContent=this.value" />
+          </div>
+
+          <!-- label -->
+          <div class="field-group" id="field-label">
+            <div class="field-label">
+              label
+              <span class="field-type-hint">string · display name</span>
+            </div>
+            <input class="field-input" value="Box Jump" id="input-label"
+              oninput="document.getElementById('editor-label').textContent=this.value" />
+          </div>
+
+          <div class="field-divider"></div>
+
+          <!-- aliases -->
+          <div class="field-group" id="field-aliases">
+            <div class="field-label">
+              aliases
+              <span class="field-type-hint">string[] · fuzzy match terms</span>
+            </div>
+            <div class="alias-tags" id="alias-tags">
+              <span class="alias-tag">box jumps <span class="alias-remove" onclick="removeAlias(this)">✕</span></span>
+              <span class="alias-tag">jump to box <span class="alias-remove" onclick="removeAlias(this)">✕</span></span>
+              <span class="alias-tag">box <span class="alias-remove" onclick="removeAlias(this)">✕</span></span>
+              <button class="alias-add" onclick="addAlias()">+ add</button>
+            </div>
+          </div>
+
+          <div class="field-divider"></div>
+
+          <!-- met -->
+          <div class="field-group" id="field-met">
+            <div class="field-label">
+              met
+              <span class="field-type-hint">number · metabolic equivalent</span>
+            </div>
+            <div class="met-stepper">
+              <button class="stepper-btn" onclick="adjustMet(-0.5)">−</button>
+              <input id="input-met" value="8.0" type="number" step="0.5" min="1" max="20"
+                oninput="syncMet()" />
+              <button class="stepper-btn" onclick="adjustMet(0.5)">+</button>
+              <span class="met-label">MET</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+              <div style="font-size:10px;color:var(--fg2);width:24px">low</div>
+              <div class="met-bar-wrap"><div class="met-bar" id="met-bar" style="width:60%"></div></div>
+              <div style="font-size:10px;color:var(--fg2);width:24px;text-align:right">max</div>
+            </div>
+          </div>
+
+          <div class="field-divider"></div>
+
+          <!-- discipline -->
+          <div class="field-group" id="field-discipline">
+            <div class="field-label">
+              discipline
+              <span class="field-type-hint">enum · training category</span>
+            </div>
+            <div class="disc-grid">
+              <div class="disc-chip selected" onclick="selectDiscipline(this)">bodyweight</div>
+              <div class="disc-chip" onclick="selectDiscipline(this)">kettlebell</div>
+              <div class="disc-chip" onclick="selectDiscipline(this)">running</div>
+              <div class="disc-chip" onclick="selectDiscipline(this)">cycling</div>
+              <div class="disc-chip" onclick="selectDiscipline(this)">rowing</div>
+              <div class="disc-chip" onclick="selectDiscipline(this)">strength</div>
+              <div class="disc-chip" onclick="selectDiscipline(this)">swimming</div>
+              <div class="disc-chip" onclick="selectDiscipline(this)">gymnastics</div>
+              <div class="disc-chip" onclick="selectDiscipline(this)">recovery</div>
+            </div>
+          </div>
+
+          <div class="field-divider"></div>
+
+          <!-- intensityTier -->
+          <div class="field-group" id="field-intensityTier">
+            <div class="field-label">
+              intensityTier
+              <span class="field-type-hint">enum · low / moderate / high</span>
+            </div>
+            <div class="chip-group">
+              <div class="chip-radio" onclick="selectTier(this,'low')">🌱 low</div>
+              <div class="chip-radio" onclick="selectTier(this,'moderate')">⚡ moderate</div>
+              <div class="chip-radio selected-high" onclick="selectTier(this,'high')">🔥 high</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="companion-footer">
+          <button class="save-btn" onclick="saveChanges()">Save changes</button>
+          <button class="cancel-btn">Discard</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Annotation -->
+  <div class="annotation">
+    <div class="annotation-title">Variant B — Side Companion</div>
+    <div class="annotation-body">
+      <strong>Trigger:</strong> cursor enters frontmatter block.<br><br>
+      <strong>Pattern:</strong> right-side companion panel with structured form. Click any line to focus that field. Changes write through to the editor in real-time.<br><br>
+      <strong>Saves:</strong> explicit save button writes YAML back.
+    </div>
+  </div>
+
+  <script>
+    let companionVisible = true;
+
+    function toggleCompanion() {
+      const c = document.getElementById('companion');
+      companionVisible = !companionVisible;
+      c.style.display = companionVisible ? '' : 'none';
+    }
+
+    function focusField(fieldId) {
+      // highlight active line
+      document.querySelectorAll('.cm-line').forEach(l => l.classList.remove('cm-active-line'));
+      // find lines with this field
+      document.querySelectorAll('.cm-line').forEach(l => {
+        if (l.getAttribute('onclick') === `focusField('${fieldId}')`) l.classList.add('cm-active-line');
+      });
+      // focus field in companion
+      document.querySelectorAll('.field-label').forEach(l => l.classList.remove('active'));
+      document.querySelectorAll('.field-input').forEach(i => i.classList.remove('active'));
+      const fg = document.getElementById('field-' + fieldId);
+      if (fg) {
+        const lbl = fg.querySelector('.field-label');
+        if (lbl) lbl.classList.add('active');
+        const inp = fg.querySelector('.field-input');
+        if (inp) { inp.classList.add('active'); inp.focus(); }
+        fg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function adjustMet(delta) {
+      const inp = document.getElementById('input-met');
+      let val = parseFloat(inp.value) + delta;
+      val = Math.max(1, Math.min(20, Math.round(val * 2) / 2));
+      inp.value = val.toFixed(1);
+      syncMet();
+    }
+
+    function syncMet() {
+      const val = parseFloat(document.getElementById('input-met').value);
+      const pct = Math.round((val / 20) * 100);
+      document.getElementById('met-bar').style.width = pct + '%';
+      document.getElementById('editor-met').textContent = val.toFixed(1);
+    }
+
+    function selectDiscipline(el) {
+      document.querySelectorAll('.disc-chip').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('editor-discipline').textContent = el.textContent.trim();
+    }
+
+    function selectTier(el, tier) {
+      document.querySelectorAll('.chip-radio').forEach(c => c.classList.remove('selected-high','selected-moderate','selected-low'));
+      el.classList.add('selected-' + tier);
+      document.getElementById('editor-tier').textContent = tier;
+    }
+
+    function removeAlias(btn) {
+      btn.parentElement.remove();
+    }
+
+    function addAlias() {
+      const val = prompt('New alias:');
+      if (val && val.trim()) {
+        const tags = document.getElementById('alias-tags');
+        const addBtn = tags.querySelector('.alias-add');
+        const tag = document.createElement('span');
+        tag.className = 'alias-tag';
+        tag.innerHTML = val.trim() + ' <span class="alias-remove" onclick="removeAlias(this)">✕</span>';
+        tags.insertBefore(tag, addBtn);
+      }
+    }
+
+    function saveChanges() {
+      alert('Changes saved to YAML frontmatter ✓');
+    }
+  </script>
+</body>
+</html>

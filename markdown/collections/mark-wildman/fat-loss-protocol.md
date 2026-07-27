@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - clubs
+  - strength
+---
+
 ## Workout 5: Fat Loss Protocol (Beginner to Advanced)
 
 **Category**: Mark Wildman Fat Loss  

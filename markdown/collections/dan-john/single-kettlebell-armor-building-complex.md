@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 3: Single Kettlebell Armor Building Complex
 
 **Category**: Dan John Complex  

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { CrossFitDialect } from './CrossFitDialect';
 import { MdTimerRuntime } from '../parser/md-timer';
 import { ICodeStatement } from '../core/models/CodeStatement';
+import { getHints } from '../core/metrics/hints';
 
 describe('CrossFitDialect', () => {
   const dialect = new CrossFitDialect();
@@ -22,16 +23,16 @@ describe('CrossFitDialect', () => {
       const statement = parseStatement('AMRAP 20 mins');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('behavior.time_bound');
-      expect(analysis.hints).toContain('workout.amrap');
+      expect(getHints(analysis.metrics)).toContain('behavior.time_bound');
+      expect(getHints(analysis.metrics)).toContain('workout.amrap');
     });
 
     it('should detect AMRAP in mixed case', () => {
       const statement = parseStatement('amrap workout');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('behavior.time_bound');
-      expect(analysis.hints).toContain('workout.amrap');
+      expect(getHints(analysis.metrics)).toContain('behavior.time_bound');
+      expect(getHints(analysis.metrics)).toContain('workout.amrap');
     });
 
     it('should detect AMRAP in Effort metrics', () => {
@@ -40,8 +41,8 @@ describe('CrossFitDialect', () => {
       const statement = parseStatement('20 min AMRAP');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('behavior.time_bound');
-      expect(analysis.hints).toContain('workout.amrap');
+      expect(getHints(analysis.metrics)).toContain('behavior.time_bound');
+      expect(getHints(analysis.metrics)).toContain('workout.amrap');
     });
   });
 
@@ -50,16 +51,16 @@ describe('CrossFitDialect', () => {
       const statement = parseStatement('EMOM 10 mins');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('behavior.repeating_interval');
-      expect(analysis.hints).toContain('workout.emom');
+      expect(getHints(analysis.metrics)).toContain('behavior.repeating_interval');
+      expect(getHints(analysis.metrics)).toContain('workout.emom');
     });
 
     it('should detect EMOM in mixed case', () => {
       const statement = parseStatement('emom for 10 mins');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('behavior.repeating_interval');
-      expect(analysis.hints).toContain('workout.emom');
+      expect(getHints(analysis.metrics)).toContain('behavior.repeating_interval');
+      expect(getHints(analysis.metrics)).toContain('workout.emom');
     });
 
     it('should detect implicit EMOM pattern (Rounds + Timer + Children)', () => {
@@ -71,9 +72,9 @@ describe('CrossFitDialect', () => {
       const analysis = dialect.analyze(statement);
 
       // Should detect as implicit EMOM
-      expect(analysis.hints).toContain('behavior.repeating_interval');
-      expect(analysis.hints).toContain('workout.emom');
-      expect(analysis.hints).toContain('workout.implicit_emom');
+      expect(getHints(analysis.metrics)).toContain('behavior.repeating_interval');
+      expect(getHints(analysis.metrics)).toContain('workout.emom');
+      expect(getHints(analysis.metrics)).toContain('workout.implicit_emom');
     });
 
     it('should not detect implicit EMOM for Rounds + Timer without Children', () => {
@@ -82,8 +83,8 @@ describe('CrossFitDialect', () => {
       const analysis = dialect.analyze(statement);
 
       // Should NOT detect as EMOM (no children)
-      expect(analysis.hints).not.toContain('behavior.repeating_interval');
-      expect(analysis.hints).not.toContain('workout.emom');
+      expect(getHints(analysis.metrics)).not.toContain('behavior.repeating_interval');
+      expect(getHints(analysis.metrics)).not.toContain('workout.emom');
     });
   });
 
@@ -92,8 +93,8 @@ describe('CrossFitDialect', () => {
       const statement = parseStatement('For Time');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('behavior.time_bound');
-      expect(analysis.hints).toContain('workout.for_time');
+      expect(getHints(analysis.metrics)).toContain('behavior.time_bound');
+      expect(getHints(analysis.metrics)).toContain('workout.for_time');
     });
   });
 
@@ -102,8 +103,8 @@ describe('CrossFitDialect', () => {
       const statement = parseStatement('Tabata Squats');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('behavior.repeating_interval');
-      expect(analysis.hints).toContain('workout.tabata');
+      expect(getHints(analysis.metrics)).toContain('behavior.repeating_interval');
+      expect(getHints(analysis.metrics)).toContain('workout.tabata');
     });
   });
 
@@ -112,14 +113,14 @@ describe('CrossFitDialect', () => {
       const statement = parseStatement('10 Pullups');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toHaveLength(0);
+      expect(getHints(analysis.metrics)).toHaveLength(0);
     });
 
     it('should return empty hints for timer-only statement', () => {
       const statement = parseStatement('1 min'); // Just a timer
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toHaveLength(0);
+      expect(getHints(analysis.metrics)).toHaveLength(0);
     });
 
     // We can't easily parse an "empty" statement from text as the parser might skip it, 
@@ -134,7 +135,7 @@ describe('CrossFitDialect', () => {
       // rather than the parser's output.
       const statement = { id: 1 } as any;
       const analysis = dialect.analyze(statement);
-      expect(analysis.hints).toHaveLength(0);
+      expect(getHints(analysis.metrics)).toHaveLength(0);
     });
   });
 

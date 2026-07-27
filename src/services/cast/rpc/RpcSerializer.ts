@@ -3,14 +3,12 @@ import { IOutputStatement } from '@/core/models/OutputStatement';
 import { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
 import { IMetric } from '@/core/models/Metric';
 import { MemoryTag } from '@/runtime/memory/MemoryLocation';
-import { TrackerUpdate } from '@/runtime/contracts/IRuntimeOptions';
 import {
     SerializedBlock,
     SerializedTimer,
     SerializedBehavior,
     RpcStackUpdate,
     RpcOutputStatement,
-    RpcTrackerUpdate,
     RpcAnalyticsSummary,
 } from './RpcMessages';
 
@@ -163,32 +161,6 @@ export function serializeOutput(output: IOutputStatement): RpcOutputStatement {
         elapsed,
     };
 }
-
-/**
- * Serialize a TrackerUpdate into an RpcTrackerUpdate message.
- */
-export function serializeTrackerUpdate(update: TrackerUpdate): RpcTrackerUpdate {
-    if (update.type === 'snapshot') {
-        return {
-            type: 'rpc-tracker-update',
-            update: {
-                type: 'snapshot',
-                blockId: 'root', // Required by type but unused for snapshot
-                snapshot: update.snapshot,
-                timestamp: update.timestamp,
-            } as any,
-        };
-    }
-
-    return {
-        type: 'rpc-tracker-update',
-        update: {
-            ...update,
-            timestamp: update.timestamp,
-        },
-    };
-}
-
 /**
  * Serialize analytics summary with projection results.
  * Extracts projection results from runtime's analytics engine and

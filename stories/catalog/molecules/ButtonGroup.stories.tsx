@@ -1,13 +1,18 @@
 /**
- * Catalog / Atoms / ButtonGroup
+ * Catalog / Molecules / ButtonGroup
  *
- * Two-sided pill button — primary action (label + icon) left,
- * secondary action (icon only) right. Driven by INavActivation.
+ * Renders: {@link import('../../../src/components/molecules/ButtonGroup').ButtonGroup}
+ *
+ * Stories:
+ *  1. Default — basic two-sided pill button with primary and secondary actions
+ *  2. Sizes — small, medium, and large button variants
+ *  3. Variants — demonstrates different icon combinations and layouts
+ *  4. RunButton — primary action button with run icon
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
 import { ExternalLink, Copy, Play, Bookmark, Share2, Download, Maximize2 } from 'lucide-react';
-import { ButtonGroup } from '@/components/ui/ButtonGroup';
+import { ButtonGroup } from '@/components/molecules/ButtonGroup';
 import type { INavActivation } from '@/nav/navTypes';
 
 const meta: Meta<typeof ButtonGroup> = {
@@ -115,7 +120,7 @@ export const PlaygroundVariant: Story = {
   render: () => (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground font-mono">
-        replaces WodPlaygroundButton — actions wired at molecule level
+        replaces WhiteboardPlaygroundButton — actions wired at molecule level
       </p>
       <ButtonGroup
         primary={{

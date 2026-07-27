@@ -99,6 +99,15 @@ export class WebRtcRpcTransport implements IRpcTransport {
         return this.dc?.readyState === 'open';
     }
 
+    /**
+     * Real-network transport — the chromecast's wall clock drifts relative
+     * to the browser. Clock sync measures the offset and feeds it to
+     * `ChromecastProxyRuntime` so elapsed-time display matches the sender.
+     */
+    get needsClockSync(): boolean {
+        return true;
+    }
+
     send(message: RpcMessage): void {
         if (!this.dc || this.dc.readyState !== 'open') {
             console.warn('[WebRtcRpcTransport] DataChannel not open — dropping message');
@@ -160,6 +169,10 @@ export class WebRtcRpcTransport implements IRpcTransport {
      */
     connect(timeoutMs = 15_000): Promise<void> {
         console.log(`[WebRtcRpcTransport:${this.role}] connect() starting, timeout=${timeoutMs}ms`);
+        if (this.connected) {
+            console.log(`[WebRtcRpcTransport:${this.role}] Already connected — short-circuiting`);
+            return Promise.resolve();
+        }
         return new Promise((resolve, reject) => {
             const t0 = Date.now();
             const timer = setTimeout(() => {

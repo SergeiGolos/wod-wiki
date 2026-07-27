@@ -17,7 +17,6 @@ export type MemoryLocation = {
 export class RuntimeMemory implements IRuntimeMemory {
     // Linear storage for memory locations
     private _references: MemoryLocation[] = [];
-    private _globalSubscribers: Set<(ref: IMemoryReference, value: unknown, oldValue: unknown) => void> = new Set();
 
     // Allocates a new memory location and returns a reference to it.
     allocate<T>(type: string, ownerId: string, initialValue?: T, visibility: 'public' | 'private' | 'inherited' = 'private'): TypedMemoryReference<T> {
@@ -47,18 +46,6 @@ export class RuntimeMemory implements IRuntimeMemory {
         if (reference.hasSubscribers()) {
             reference.notifySubscribers(value, oldValue);
         }
-
-        // Notify global subscribers (deprecated)
-        this._globalSubscribers.forEach(callback => callback(reference, value, oldValue));
-    }
-
-    // Subscribe to all memory changes
-    // @deprecated Use EventBus handlers instead
-    subscribe(callback: (ref: IMemoryReference, value: unknown, oldValue: unknown) => void): () => void {
-        this._globalSubscribers.add(callback);
-        return () => {
-            this._globalSubscribers.delete(callback);
-        };
     }
 
     // Searches for references matching any non-null fields in the criteria object.

@@ -10,11 +10,13 @@
  * Uses useWorkbenchRuntime for workout lifecycle + analytics.
  */
 
-import React, { useState, useEffect, useRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
 import { PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid';
+import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
+import { useActiveScrollSection } from '@/hooks/useActiveScrollSection';
 
 export interface JournalPageShellProps {
   /** Editor panel content — typically a PlanPanel with stored note */
@@ -31,6 +33,9 @@ export interface JournalPageShellProps {
 
   /** Title shown in the sticky header */
   title?: string;
+
+  /** Optional data-testid for the sticky-header title element (e2e/TestIdContract) */
+  titleTestId?: string;
 
   /** Right-side actions (e.g. New Entry, Cast, etc.) */
   actions?: ReactNode;
@@ -71,6 +76,7 @@ export function JournalPageShell({
   activeSectionId,
   onScrollToSection,
   title,
+  titleTestId,
   actions,
   timerOverlay,
   reviewOverlay,
@@ -88,26 +94,15 @@ export function JournalPageShell({
     history: 'replace',
   });
 
-  // Internal scroll tracking if not controlled
-  useEffect(() => {
-    if (index.length === 0) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible.length > 0) {
-          setActiveId(visible[0].target.id);
-        }
-      },
-      { rootMargin: '-10% 0px -40% 0px', threshold: [0, 0.3, 1.0] }
-    );
-    index.forEach(link => {
-      const el = document.getElementById(link.id);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
-  }, [index, setActiveId]);
+  useActiveScrollSection({
+    ids: index.map((link) => link.id),
+    enabled: index.length > 0,
+    rootMargin: '-10% 0px -40% 0px',
+    threshold: [0, 0.3, 1.0],
+    onChange: (id) => {
+      setActiveId(id);
+    },
+  });
 
   const scrollToSection = (id: string) => {
     onScrollToSection?.(id);
@@ -134,7 +129,10 @@ export function JournalPageShell({
           <div className="flex items-center justify-between px-6 lg:px-10">
             <div className="flex items-center gap-4 truncate">
               <div className="h-10 w-2 shrink-0 rounded-full bg-primary" />
-              <h1 className="text-2xl md:text-4xl font-black tracking-tight text-foreground leading-none truncate">
+              <h1
+                data-testid={titleTestId}
+                className="text-2xl md:text-4xl font-black tracking-tight text-foreground leading-none truncate"
+              >
                 {title}
               </h1>
             </div>
@@ -253,4 +251,3 @@ export function JournalPageShell({
   );
 }
 
-export default JournalPageShell;

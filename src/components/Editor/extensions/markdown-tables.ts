@@ -424,7 +424,7 @@ const tablePreviewTheme = EditorView.baseTheme({
     padding: "1px 4px",
     borderRadius: "4px",
     backgroundColor: "rgba(128,128,128,0.12)",
-    fontFamily: "var(--font-mono, monospace)",
+    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace",
     fontSize: "0.92em",
   },
 

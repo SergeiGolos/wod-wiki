@@ -50,7 +50,7 @@ describe('MockJitCompiler', () => {
     mockRuntime = {
       stack: { current: undefined, count: 0, keys: [], blocks: [], push: () => {}, pop: () => undefined },
       eventBus: { register: () => () => {}, on: () => () => {}, unregisterById: () => {}, unregisterByOwner: () => {}, dispatch: () => [], emit: () => {} },
-      clock: { now: new Date(), start: () => {}, stop: () => {}, pause: () => {}, resume: () => {}, isPaused: false, isRunning: false },
+      clock: { now: new Date(), currentDate: new Date(), start: () => {}, stop: () => {}, pause: () => {}, resume: () => {}, isPaused: false, isRunning: false },
       jit: mockJit,
       script: { statements: [] } as any,
       errors: [],

@@ -80,7 +80,7 @@ function buildWodDecorations(state: EditorState): DecorationSet {
 
 // ── StateField (line decos are safe from either field or plugin) ────
 
-const wodBlockDecoField = StateField.define<DecorationSet>({
+const scriptBlockDecoField = StateField.define<DecorationSet>({
   create(state) {
     return buildWodDecorations(state);
   },
@@ -107,13 +107,13 @@ const wodBlockDecoField = StateField.define<DecorationSet>({
 // applied on the open/close lines and the continuous background on the
 // inner lines creates one cohesive "card" feel.
 
-const wodBlockBaseTheme = EditorView.baseTheme({
+const scriptBlockBaseTheme = EditorView.baseTheme({
   // ── Fence lines (faded chrome) ──────────────────────────────────
   ".cm-wod-fence-open, .cm-wod-fence-close": {
     fontSize: "10px",
     lineHeight: "22px",
     opacity: "0.35",
-    fontFamily: "var(--font-mono, monospace)",
+    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace",
     color: "inherit",
     // Indent to align with inner content
     paddingLeft: "24px",
@@ -137,7 +137,7 @@ const wodBlockBaseTheme = EditorView.baseTheme({
 
   // ── Inner WOD lines (the card body) ─────────────────────────────
   ".cm-wod-inner": {
-    fontFamily: "var(--font-mono, monospace)",
+    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace",
     // Left indent so content is visually inset from surrounding markdown
     paddingLeft: "24px",
     // Continuous card background — no side shadows (they were distracting)
@@ -158,6 +158,13 @@ const wodBlockBaseTheme = EditorView.baseTheme({
   "&dark .cm-wod-inner": {
     backgroundColor: "rgba(96, 165, 250, 0.06)",
   },
+
+  "@media (max-width: 639px)": {
+    ".cm-wod-fence-open": {
+      lineHeight: "30px",
+      paddingTop: "6px",
+    },
+  },
 });
 
 // ── Public export ────────────────────────────────────────────────────
@@ -166,6 +173,6 @@ const wodBlockBaseTheme = EditorView.baseTheme({
  * Combined extension: line decorations for WOD block styling.
  */
 export const previewDecorations: Extension = [
-  wodBlockDecoField,
-  wodBlockBaseTheme,
+  scriptBlockDecoField,
+  scriptBlockBaseTheme,
 ];

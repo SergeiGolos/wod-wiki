@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Sprint Freestyle Power
 
 **Type**: Speed/Power  

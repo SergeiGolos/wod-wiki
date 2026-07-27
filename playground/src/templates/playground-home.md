@@ -1,42 +1,69 @@
-Welcome to the **Wod.Wiki Playground** — an interactive scratchpad for [whiteboard-script](https://wod.wiki/syntax), a plain-text fitness scripting language. Edit the workout below, run it, and see your results — no account needed.
 
-```widget:playground-run-tip
-{}
+```widget:attention
+{
+  "headline": "WOD Wiki",
+  "subtitle": "The interactive wiki for workout programming.",
+  "pillars": [
+    {
+      "icon": "✍️",
+      "label": "Markdown",
+      "description": "Draft, format, and share workouts as fast as you can type — no forms, no friction."
+    },
+    {
+      "icon": "⏱️",
+      "label": "Execute",
+      "description": "Your scripted workout comes to life with an integrated JIT compiler and timer."
+    },
+    {
+      "icon": "🗂️",
+      "label": "Wiki",
+      "description": "Connect your sessions with bi-directional links and searchable collections."
+    }
+  ],
+  "actions": [
+    {
+      "label": "Try Example Below",
+      "action": "scroll-to-workout",
+      "variant": "primary"
+    },
+    {
+      "label": "Search Wiki",
+      "action": "open-search",
+      "variant": "secondary"
+    }
+  ]
+}
 ```
 
-# Morning Strength
+Welcome to your personalized training scratchpad. WOD Wiki combines the simplicity of **plain-text markdown** with the power of a **JIT workout compiler**.
+
+## 🏋️ Your First Workout
 
 ```wod
 (3)
   10 Kettlebell Swings 24kg
+  15 Goblet Squats 24kg
   *:30 Rest
 ```
 
-[▶ Run Workout]{.button action=start-workout} [New Note]{.button action=new-note variant=secondary}
+**How it works**:
+This `wod` block is live code. The `(3)` creates a 3-round circuit. The movements use a natural measurement syntax (reps · movement · load). You can edit the text above right now—try changing the weight or reps!
+
+[▶ Run Workout]{.button action=start-workout} [Documentation](/syntax)
 
 ---
 
-## How the syntax works
+## 🗺️ Explore the Knowledge Base
 
-The example above is a **3-round circuit**. Here's what each line does:
+WOD Wiki is organized into collections, guides, and your own personal logs.
 
-| Line | Concept | What it means |
-|------|---------|---------------|
-| `(3)` | **Rounds** | Repeat the indented block 3 times |
-| `10 Kettlebell Swings 24kg` | **Movement** | 10 reps · exercise name · load |
-| `*:30 Rest` | **Rest timer** | 30-second countdown between rounds |
+- 🎓 [**Getting Started**](/getting-started) — Master the basics of the syntax in 5 minutes.
+- 🗂️ [**Workout Collections**](/collections) — Explore benchmark libraries like *Dan John's Big 21*.
+- 📋 [**Syntax Reference**](/syntax) — A deep dive into protocols, metrics, and timers.
+- 📓 [**Training Journal**](/journal) — Your history of completed sessions and results.
 
-Try editing any line — change `(3)` to `(5)` for five rounds, swap `24kg` for `32kg`, or add a new movement on a new line. Then press [▶ Run]{.button action=start-workout} to start the timer.
+---
 
-### More syntax to explore
-
-| Concept | Example | What it does |
-|---------|---------|--------------|
-| **AMRAP** | `AMRAP 20:00` | As many rounds as possible in 20 minutes |
-| **Countdown** | `2:00 Row` | 2-minute timed effort |
-| **Rep schemes** | `21,15,9 Thrusters` | Three descending sets |
-| **Section labels** | `## Warm-up` | Named groups that appear in the index |
-
-Full reference → [whiteboard-script syntax docs](https://wod.wiki/syntax)
+*Start typing anywhere to begin your own protocol, or use the search bar to explore the wiki.*
 
 $CURSOR

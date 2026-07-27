@@ -1,21 +1,17 @@
 /**
  * Catalog / Templates / ReviewGrid
  *
- * ReviewGrid is the primary results-display layout used across multiple routes:
- *  - `/tracker/:runtimeId` — in-progress workout results tab
- *  - `/review/:runtimeId`  — post-workout full-page review (via FullscreenReview)
- *  - `/`                    — Home page workout history
+ * Renders: {@link import('../../../src/components/organisms/review/ReviewGrid').ReviewGrid}
  *
- * This story composes the lower-level `GridHeaderCell` and `MetricSourceRow`
- * sub-components into a full, working grid with real segment data.
- *
- * ## States illustrated
- *  1. EmptyState      — no segments (blank-slate, initial load)
- *  2. FranComplete    — 21-15-9 Thrusters & Pull-ups (6 effort segments)
- *  3. AmrapComplete   — 20-min AMRAP Cindy (multiple rounds)
- *  4. EmomComplete    — 10-min EMOM (10 rounds)
- *  5. RoundsComplete  — 5×10 Thrusters (5 rounds)
- *  6. MobileViewport  — portrait phone (375 × 812)
+ * Stories:
+ *  1. EmptyState — empty state with no segments yet
+ *  2. FranComplete — 21-15-9 Thrusters & Pull-ups (6 effort segments)
+ *  3. AmrapComplete — AMRAP 20 Cindy style (multiple rounds)
+ *  4. EmomComplete — EMOM 10 (10 rounds)
+ *  5. RoundsComplete — 5×10 Rounds (simple round-based workout)
+ *  6. StrengthPreset — strength preset with grouped descriptors
+ *  7. EndurancePreset — endurance preset with derived pace
+ *  8. MobileViewport — mobile viewport (375 × 812)
  */
 
 import React, { useEffect, useState } from 'react';
@@ -27,7 +23,7 @@ import { JitCompiler } from '@/runtime/compiler/JitCompiler';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock } from '@/runtime/RuntimeClock';
-import { sharedParser } from '@/parser/parserInstance';
+import { createParser } from '@/parser/parserInstance';
 import { WhiteboardScript } from '@/parser/WhiteboardScript';
 
 // Strategies
@@ -51,8 +47,8 @@ import { getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 
 // UI
-import { ReviewGrid } from '@/components/review-grid/ReviewGrid';
-import { DebugModeProvider } from '@/components/layout/DebugModeContext';
+import { ReviewGrid } from '@/components/organisms/review/ReviewGrid'
+import { DebugModeProvider } from '@/contexts/DebugModeContext'
 
 // ─── Runtime helpers ──────────────────────────────────────────────────────────
 
@@ -75,7 +71,7 @@ function runToCompletion(
   stepMs = 30_000,
   maxSteps = 50,
 ): { segments: Segment[]; groups: AnalyticsGroup[]; runtime: ScriptRuntime } {
-  const script = sharedParser.read(scriptText) as WhiteboardScript;
+  const script = createParser().read(scriptText) as WhiteboardScript;
   const compiler = buildCompiler();
   const clock = createMockClock(new Date('2024-06-15T09:00:00Z'));
   const stack = new RuntimeStack();
@@ -87,8 +83,8 @@ function runToCompletion(
   let steps = 0;
   while (runtime.stack.count > 0 && steps < maxSteps) {
     clock.advance(stepMs);
-    runtime.handle(new TickEvent());
-    runtime.do(new NextAction());
+    runtime.handle(new TickEvent(undefined, runtime.nowProvider));
+    runtime.do(new NextAction(undefined, runtime.nowProvider));
     steps++;
   }
 
@@ -105,12 +101,15 @@ export interface ReviewGridHarnessProps {
   stepMs?: number;
   /** CSS height of the story canvas. */
   height?: string;
+  /** Initial ReviewGrid preset to showcase in the story. */
+  gridViewPreset?: 'default' | 'debug' | 'strength' | 'endurance';
 }
 
 const ReviewGridHarness: React.FC<ReviewGridHarnessProps> = ({
   script,
   stepMs = 30_000,
   height = '600px',
+  gridViewPreset = 'default',
 }) => {
   const [segments, setSegments] = useState<Segment[]>([]);
   const [groups, setGroups] = useState<AnalyticsGroup[]>([]);
@@ -166,6 +165,7 @@ const ReviewGridHarness: React.FC<ReviewGridHarnessProps> = ({
           selectedSegmentIds={selectedIds}
           onSelectSegment={handleSelect}
           groups={groups}
+          gridViewPreset={gridViewPreset}
         />
       </div>
     </DebugModeProvider>
@@ -200,6 +200,11 @@ const meta: Meta<typeof ReviewGridHarness> = {
     height: {
       control: 'text',
       description: 'CSS height of the story canvas',
+    },
+    gridViewPreset: {
+      control: 'select',
+      options: ['default', 'debug', 'strength', 'endurance'],
+      description: 'Initial grid preset shown in the toolbar/grid',
     },
   },
 };
@@ -274,6 +279,42 @@ export const RoundsComplete: Story = {
     script: '5x\n10 Thrusters @95lb',
     stepMs: 45_000,
     height: '600px',
+  },
+};
+
+/**
+ * Strength preset — showcases grouped descriptors and load-focused fallback chains.
+ */
+export const StrengthPreset: Story = {
+  name: 'Preset — Strength',
+  args: {
+    script: [
+      '5 Back Squat @225lb',
+      '5 Back Squat @235lb',
+      '5 Back Squat @245lb',
+      '5 Back Squat @255lb',
+    ].join('\n'),
+    stepMs: 45_000,
+    height: '620px',
+    gridViewPreset: 'strength',
+  },
+};
+
+/**
+ * Endurance preset — showcases derived pace plus grouped exercise descriptors.
+ */
+export const EndurancePreset: Story = {
+  name: 'Preset — Endurance',
+  args: {
+    script: [
+      '400m Run',
+      '500m Row',
+      '800m Run',
+      '1000m Bike',
+    ].join('\n'),
+    stepMs: 120_000,
+    height: '620px',
+    gridViewPreset: 'endurance',
   },
 };
 

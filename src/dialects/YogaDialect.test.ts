@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { YogaDialect } from './YogaDialect';
 import { MdTimerRuntime } from '../parser/md-timer';
 import { ICodeStatement } from '../core/models/CodeStatement';
+import { getHints } from '../core/metrics/hints';
 import { MetricType } from '../core/models/Metric';
 
 describe('YogaDialect', () => {
@@ -21,8 +22,8 @@ describe('YogaDialect', () => {
       const statement = parseStatement('Warrior II');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.yoga');
-      expect(analysis.hints).toContain('workout.pose');
+      expect(getHints(analysis.metrics)).toContain('domain.yoga');
+      expect(getHints(analysis.metrics)).toContain('workout.pose');
     });
 
     it('should add behavior.hold when pose has a duration', () => {
@@ -31,33 +32,33 @@ describe('YogaDialect', () => {
       expect(statement.metrics.some(m => m.type === MetricType.Duration)).toBe(true);
 
       const analysis = dialect.analyze(statement);
-      expect(analysis.hints).toContain('workout.pose');
-      expect(analysis.hints).toContain('behavior.hold');
+      expect(getHints(analysis.metrics)).toContain('workout.pose');
+      expect(getHints(analysis.metrics)).toContain('behavior.hold');
     });
 
     it('should detect "Downward" (Downward Dog) as a pose', () => {
       const statement = parseStatement('Downward Dog :30');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.yoga');
-      expect(analysis.hints).toContain('workout.pose');
-      expect(analysis.hints).toContain('behavior.hold');
+      expect(getHints(analysis.metrics)).toContain('domain.yoga');
+      expect(getHints(analysis.metrics)).toContain('workout.pose');
+      expect(getHints(analysis.metrics)).toContain('behavior.hold');
     });
 
     it('should detect "Cobra" pose', () => {
       const statement = parseStatement('Cobra Pose :45');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('workout.pose');
+      expect(getHints(analysis.metrics)).toContain('workout.pose');
     });
 
     it('should detect "Savasana" (corpse pose)', () => {
       const statement = parseStatement('Savasana 5:00');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.yoga');
-      expect(analysis.hints).toContain('workout.pose');
-      expect(analysis.hints).toContain('behavior.hold');
+      expect(getHints(analysis.metrics)).toContain('domain.yoga');
+      expect(getHints(analysis.metrics)).toContain('workout.pose');
+      expect(getHints(analysis.metrics)).toContain('behavior.hold');
     });
   });
 
@@ -66,22 +67,22 @@ describe('YogaDialect', () => {
       const statement = parseStatement('Sun Salutation x5');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.yoga');
-      expect(analysis.hints).toContain('workout.flow');
+      expect(getHints(analysis.metrics)).toContain('domain.yoga');
+      expect(getHints(analysis.metrics)).toContain('workout.flow');
     });
 
     it('should detect "Vinyasa" flow', () => {
       const statement = parseStatement('Vinyasa Flow 30 mins');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('workout.flow');
+      expect(getHints(analysis.metrics)).toContain('workout.flow');
     });
 
     it('should detect generic "Flow" keyword', () => {
       const statement = parseStatement('Flow Sequence');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('workout.flow');
+      expect(getHints(analysis.metrics)).toContain('workout.flow');
     });
   });
 
@@ -90,24 +91,24 @@ describe('YogaDialect', () => {
       const statement = parseStatement('Breathing Exercises 5:00');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.yoga');
-      expect(analysis.hints).toContain('workout.breathing');
-      expect(analysis.hints).toContain('behavior.mindful');
+      expect(getHints(analysis.metrics)).toContain('domain.yoga');
+      expect(getHints(analysis.metrics)).toContain('workout.breathing');
+      expect(getHints(analysis.metrics)).toContain('behavior.mindful');
     });
 
     it('should detect "Pranayama"', () => {
       const statement = parseStatement('Pranayama 10:00');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('workout.breathing');
-      expect(analysis.hints).toContain('behavior.mindful');
+      expect(getHints(analysis.metrics)).toContain('workout.breathing');
+      expect(getHints(analysis.metrics)).toContain('behavior.mindful');
     });
 
     it('should detect "Box Breath"', () => {
       const statement = parseStatement('Box Breath');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('workout.breathing');
+      expect(getHints(analysis.metrics)).toContain('workout.breathing');
     });
   });
 
@@ -116,24 +117,24 @@ describe('YogaDialect', () => {
       const statement = parseStatement('Meditation 10:00');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.yoga');
-      expect(analysis.hints).toContain('workout.meditation');
-      expect(analysis.hints).toContain('behavior.mindful');
+      expect(getHints(analysis.metrics)).toContain('domain.yoga');
+      expect(getHints(analysis.metrics)).toContain('workout.meditation');
+      expect(getHints(analysis.metrics)).toContain('behavior.mindful');
     });
 
     it('should detect "Mindfulness"', () => {
       const statement = parseStatement('Mindfulness 5:00');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('workout.meditation');
-      expect(analysis.hints).toContain('behavior.mindful');
+      expect(getHints(analysis.metrics)).toContain('workout.meditation');
+      expect(getHints(analysis.metrics)).toContain('behavior.mindful');
     });
 
     it('should detect "Body Scan"', () => {
       const statement = parseStatement('Body Scan');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('workout.meditation');
+      expect(getHints(analysis.metrics)).toContain('workout.meditation');
     });
   });
 
@@ -142,20 +143,20 @@ describe('YogaDialect', () => {
       const statement = parseStatement('10 Pullups');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toHaveLength(0);
+      expect(getHints(analysis.metrics)).toHaveLength(0);
     });
 
     it('should return empty hints for a plain timer', () => {
       const statement = parseStatement('5:00');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toHaveLength(0);
+      expect(getHints(analysis.metrics)).toHaveLength(0);
     });
 
     it('should handle a statement with no metrics gracefully', () => {
       const analysis = dialect.analyze({ id: 1 } as any);
 
-      expect(analysis.hints).toHaveLength(0);
+      expect(getHints(analysis.metrics)).toHaveLength(0);
     });
   });
 

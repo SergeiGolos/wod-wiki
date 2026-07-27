@@ -1,5 +1,82 @@
 import { vi } from 'bun:test';
+import { mock } from 'bun:test';
 import { JSDOM } from 'jsdom';
+
+// ── IndexedDB polyfill ──────────────────────────────────────────────────────
+// jsdom does not implement IndexedDB. Several modules construct an IndexedDB
+// singleton at import time (e.g. `@/services/db/IndexedDBService` calls
+// `openDB(...)` in its constructor), which throws `ReferenceError: indexedDB is
+// not defined` and surfaces as an unhandled rejection between tests. Registering
+// fake-indexeddb's globals gives those modules a real in-memory backing store.
+import 'fake-indexeddb/auto';
+
+// ── Pre-mock Vite-specific modules ──────────────────────────────────────────
+// These modules use `import.meta.glob` which is only available in Vite builds.
+// Registering stubs here prevents the "import.meta.glob is not a function"
+// error when these modules are loaded transitively via component imports.
+// Individual tests can override these stubs with their own vi.mock() calls.
+
+// The real adapter is import-safe (glob calls are deferred), so spread it to
+// keep pure helpers (getFeedDateKeys, getScriptFeedItem) exercising real code
+// while the glob-backed readers stay stubbed.
+const realScriptFeeds = await import('@/repositories/script-feeds');
+mock.module('@/repositories/script-feeds', () => ({
+  ...realScriptFeeds,
+  getScriptFeeds: () => [],
+  getScriptFeed: (_slug: string) => null,
+}));
+
+mock.module('@/repositories/script-collections', () => ({
+  getScriptCollections: () => [],
+  getScriptCollection: (_slug: string) => null,
+}));
+
+mock.module('@/repositories/script-loader', () => ({
+  getScriptContent: (_id: string) => undefined,
+  getAllScriptIds: () => [],
+}));
+
+mock.module('@/repositories/page-examples', () => ({
+  getTabExamples: (_page: string, _section: string) => [],
+  getHomeExample: (_name: string) => '',
+}));
+
+// The real module is import-safe (glob calls are deferred), so spread it to
+// keep the pure document-format functions (effortToDocument, documentToEffort,
+// parseEffortFile) exercising real code while the glob-backed readers stay
+// stubbed.
+const realEffortMarkdown = await import('@/repositories/effort-markdown');
+mock.module('@/repositories/effort-markdown', () => ({
+  ...realEffortMarkdown,
+  getBundledEfforts: () => [
+    {
+      id: 'effort-bundled-rowing',
+      slug: 'rowing',
+      label: 'Rowing',
+      aliases: ['row', 'rower', 'erg'],
+      baseAttributes: { met: 7.0, discipline: 'rowing', intensityTier: 'high' },
+      registrySource: 'bundled',
+    },
+    {
+      id: 'effort-bundled-burpee',
+      slug: 'burpee',
+      label: 'Burpee',
+      aliases: ['burpees'],
+      baseAttributes: { met: 10.0, discipline: 'bodyweight', intensityTier: 'high' },
+      registrySource: 'bundled',
+    },
+    {
+      id: 'effort-bundled-running-6mph',
+      slug: 'running-6-mph',
+      label: 'Running (6 mph)',
+      aliases: ['run', 'jogging', 'treadmill'],
+      baseAttributes: { met: 9.8, discipline: 'running', intensityTier: 'moderate' },
+      registrySource: 'bundled',
+    },
+  ],
+  getBundledEffortCount: () => 3,
+  getEffortMarkdown: (_slug: string) => null,
+}));
 
 // Some src/ tests import browser-only libraries (e.g. monaco-editor, react-dom)
 // that assume `window` and `document` exist at module-evaluation time.
@@ -52,3 +129,22 @@ if (!(vi as any).mocked) {
     configurable: true,
   });
 }
+// ── Pre-mock workbenchSyncStore for components that use useUserOverrides ──────
+mock.module('@/stores/workbenchSyncStore', () => {
+  const overrides = new Map();
+  return {
+    useWorkbenchSyncStore: (selector: any) => {
+      const state = { 
+        userOutputOverrides: overrides,
+        viewMode: 'track',
+        execution: { status: 'idle' },
+      };
+      return selector ? selector(state) : state;
+    },
+    create: () => ({
+      getState: () => ({ userOutputOverrides: overrides }),
+      setState: () => {},
+      subscribe: () => () => {},
+    }),
+  };
+});

@@ -1,29 +1,31 @@
 /**
- * WorkoutEditorPage — /workout/:category/:name
+ * WorkoutEditorPage — /collections/:collection/:workout
  *
  * Wrapper that loads workout content via IndexedDB (or falls back to the
- * bundled MD file). Keeps WodBlock IDs stable across page loads so results
+ * bundled MD file). Keeps ScriptBlock IDs stable across page loads so results
  * stay linked.
  */
 
 import { useState, useMemo, useCallback } from 'react'
+import { formatDateHeader } from '@/lib/dateFormat'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
-import { ToastAction } from '@/components/ui/toast'
+import { ToastAction } from '@/components/atoms/primitives/toast'
 import { EditorView } from '@codemirror/view'
-import { v4 as uuidv4 } from 'uuid'
-import { CalendarDaysIcon, PlayIcon } from '@heroicons/react/20/solid'
-import { NoteEditor } from '@/components/Editor/NoteEditor'
+import { v7 as uuidv7 } from 'uuid'
+import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { JournalPageShell } from '@/panels/page-shells'
-import type { WodBlock } from '@/components/Editor/types'
-import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
-import { CalendarCard } from '@/components/ui/CalendarCard'
+import type { ScriptBlock } from '@/components/Editor/types'
+import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
-import { PlaygroundDBService } from '../services/playgroundDB'
+import { pageId } from '../services/playgroundContent'
 import { pendingRuntimes } from '../runtimeStore'
-import { appendWorkoutToJournal } from '../services/journalWorkout'
-import { NotePageActions } from './shared/NotePageActions'
+import { journalDatePath, runPath } from '../lib/routes'
+import { createJournalNoteFromWorkout } from '../services/journalWorkout'
+import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
+import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
+import { shareBlock, openBlockInPlayground } from '../services/openInPlayground'
 import {
   INLINE_RUNTIME_CATEGORIES,
   NON_COLLECTION_CATEGORIES,
@@ -34,8 +36,22 @@ export interface WorkoutEditorPageProps {
   name: string
   mdContent: string
   theme: string
+  /**
+   * Optional override for the run-button behavior.
+   * - 'inline' opens the wall-clock popup in-place (useful for Storybook scenarios).
+   * - 'journal' appends to the journal and navigates there (production default for collections).
+   * When omitted, behavior is derived from the category.
+   */
+  runMode?: 'inline' | 'journal'
+  /**
+   * Strip non-runtime commands (Today, Schedule) from the WOD block action bar.
+   * Useful in Storybook scenarios where journal persistence is out of scope.
+   * Does not affect the production Playground pages.
+   */
+  hidePlanningCommands?: boolean
   onViewCreated?: (view: EditorView) => void
   onScrollToSection?: (id: string) => void
+  onSearch?: () => void
 }
 
 export function WorkoutEditorPage({
@@ -43,12 +59,15 @@ export function WorkoutEditorPage({
   name,
   mdContent,
   theme,
+  runMode,
+  hidePlanningCommands,
   onViewCreated,
   onScrollToSection,
+  onSearch,
 }: WorkoutEditorPageProps) {
-  const usePopup = INLINE_RUNTIME_CATEGORIES.has(category)
+  const usePopup = runMode ? runMode === 'inline' : INLINE_RUNTIME_CATEGORIES.has(category)
   const isCollection = !NON_COLLECTION_CATEGORIES.has(category)
-  const noteId = PlaygroundDBService.pageId(category, name)
+  const noteId = pageId(category, name)
   const navigate = useNavigate()
   const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({ category, name, mdContent })
   const sourceNote = useMemo(() => {
@@ -56,52 +75,48 @@ export function WorkoutEditorPage({
 
     return {
       label: `${category}-${name}`,
-      path: `/workout/${encodeURIComponent(category)}/${encodeURIComponent(name)}`,
+      path: `/collections/${encodeURIComponent(category)}/${encodeURIComponent(name)}`,
     }
   }, [category, isCollection, name])
 
-  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<WodBlock | null>(null)
+  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
 
   const handleStartWorkout = useCallback(
-    async (block: WodBlock) => {
-      const runtimeId = uuidv4()
+    async (block: ScriptBlock) => {
+      const runtimeId = uuidv7()
       // For syntax/inline categories keep the original popup behaviour.
       if (usePopup) {
         pendingRuntimes.set(runtimeId, { block, noteId })
-        navigate(`/tracker/${runtimeId}`)
+        navigate(runPath(runtimeId))
         return
       }
       // Append the wod block to today's journal note and navigate there.
       try {
-        const journalNoteId = await appendWorkoutToJournal({
+        const journalNote = await createJournalNoteFromWorkout({
           workoutName: name,
           category,
           sourceNoteLabel: sourceNote?.label,
           sourceNotePath: sourceNote?.path,
           wodContent: block.content,
         })
-        pendingRuntimes.set(runtimeId, { block, noteId: journalNoteId })
-        const dateKey = journalNoteId.replace('journal/', '')
-        navigate(`/journal/${dateKey}?autoStart=${runtimeId}`)
+        pendingRuntimes.set(runtimeId, { block, noteId: journalNote.id })
+        navigate(`${journalDatePath(journalNote.journalDate ?? '')}?autoStart=${runtimeId}`)
       } catch {
         // IndexedDB unavailable — fall back to the fullscreen tracker route
         pendingRuntimes.set(runtimeId, { block, noteId })
-        navigate(`/tracker/${runtimeId}`)
+        navigate(runPath(runtimeId))
       }
     },
     [usePopup, noteId, name, category, sourceNote, navigate],
   )
 
   const handleScheduleBlock = useCallback(
-    async (block: WodBlock, date: Date) => {
-      const dateLabel = date.toLocaleDateString(undefined, {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-      })
-      let noteId: string
+    async (block: ScriptBlock, date: Date) => {
+      const dateLabel = formatDateHeader(date);
+      let journalNoteId: string
+      let journalDate: string
       try {
-        noteId = await appendWorkoutToJournal({
+        const journalNote = await createJournalNoteFromWorkout({
           workoutName: name,
           category,
           sourceNoteLabel: sourceNote?.label,
@@ -110,6 +125,8 @@ export function WorkoutEditorPage({
           date,
           wrapInWod: true,
         })
+        journalNoteId = journalNote.id
+        journalDate = journalNote.journalDate ?? ''
       } catch {
         toast({
           variant: 'destructive',
@@ -118,7 +135,8 @@ export function WorkoutEditorPage({
         })
         return
       }
-      const journalRoute = `/${noteId}`
+      navigate(`/journal?s=${journalDate}`)
+      const journalRoute = journalNotePath(journalDate, journalNoteId)
       toast({
         title: `Added to ${dateLabel}`,
         description: `"${name}" was added to your journal.`,
@@ -133,33 +151,16 @@ export function WorkoutEditorPage({
     [name, category, sourceNote, navigate],
   )
 
-  const collectionCommands = useMemo<WodCommand[]>(() => {
-    if (!isCollection) return []
-    return [
-      {
-        id: 'run',
-        label: 'Now',
-        icon: <PlayIcon className="h-3 w-3 fill-current" />,
-        primary: true,
-        onClick: handleStartWorkout,
-      },
-      {
-        id: 'today',
-        label: 'Today',
-        icon: <CalendarDaysIcon className="h-3 w-3" />,
-        onClick: (block) => handleScheduleBlock(block, new Date()),
-      },
-      {
-        id: 'plan',
-        label: 'Plan',
-        icon: <CalendarDaysIcon className="h-3 w-3" />,
-        onClick: (block) => setPendingScheduleBlock(block),
-      },
-    ]
-  }, [isCollection, handleStartWorkout, handleScheduleBlock])
+  const commands = useScriptBlockCommands('collection-readonly', {
+    onPlay: handleStartWorkout,
+    onShare: shareBlock,
+    onAddToToday: hidePlanningCommands ? undefined : (block) => handleScheduleBlock(block, new Date()),
+    onSchedule: hidePlanningCommands ? undefined : setPendingScheduleBlock,
+    onOpenInPlayground: (block) => openBlockInPlayground(block, navigate),
+  })
 
-  const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
-  const index = useNotePageNav({ content, wodBlocks, onStartWorkout: handleStartWorkout })
+  const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
+  const index = useNotePageNav({ content, scriptBlocks, onStartWorkout: handleStartWorkout })
 
   if (loading) {
     return (
@@ -175,7 +176,7 @@ export function WorkoutEditorPage({
         title={name}
         index={index}
         onScrollToSection={onScrollToSection}
-        actions={<NotePageActions currentWorkout={{ name: noteId, content }} index={index} />}
+        actions={<PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />}
         editor={
           <NoteEditor
             value={content}
@@ -183,13 +184,12 @@ export function WorkoutEditorPage({
             onCursorPositionChange={onLineChange}
             onBlur={onBlur}
             noteId={noteId}
-            onStartWorkout={isCollection || usePopup ? undefined : handleStartWorkout}
             enableInlineRuntime={usePopup}
-            commands={collectionCommands.length > 0 ? collectionCommands : undefined}
+            commands={commands}
             onViewCreated={onViewCreated}
             theme={theme}
             showLineNumbers={false}
-            onBlocksChange={setWodBlocks}
+            onBlocksChange={setScriptBlocks}
           />
         }
       />

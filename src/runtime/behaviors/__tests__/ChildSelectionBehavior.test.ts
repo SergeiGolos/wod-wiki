@@ -3,6 +3,8 @@ import { ChildSelectionBehavior } from '../ChildSelectionBehavior';
 import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
 import { TimerState } from '../../memory/MemoryTypes';
 import { TimeSpan } from '../../models/TimeSpan';
+import { CompileAndPushBlockAction } from '../../actions/stack/CompileAndPushBlockAction';
+import { PushRestBlockAction } from '../../actions/stack/PushRestBlockAction';
 import { MemoryLocation } from '../../memory/MemoryLocation';
 
 describe('ChildSelectionBehavior', () => {
@@ -29,9 +31,9 @@ describe('ChildSelectionBehavior', () => {
         // Mount directly to inspect returned actions without executing them
         const actions = block.mount(harness.runtime);
 
-        expect(actions.some(a => a.type === 'compile-child-block')).toBe(true);
-        const compileAction = actions.find(a => a.type === 'compile-child-block');
-        expect(compileAction!.payload).toEqual({ statementIds: [1] });
+        expect(actions.some(a => a.type === 'compile-and-push-block')).toBe(true);
+        const compileAction = actions.find(a => a.type === 'compile-and-push-block');
+        expect((compileAction as CompileAndPushBlockAction).statementIds).toEqual([1]);
 
         expect(block.recordings.pushMemory.some(p =>
             p.tag === 'children:status' &&
@@ -64,9 +66,9 @@ describe('ChildSelectionBehavior', () => {
         block.mount(harness.runtime);
         const actions = block.next(harness.runtime);
 
-        const compileAction = actions.find(a => a.type === 'compile-child-block');
+        const compileAction = actions.find(a => a.type === 'compile-and-push-block');
         expect(compileAction).toBeDefined();
-        expect(compileAction!.payload).toEqual({ statementIds: [2] });
+        expect((compileAction as CompileAndPushBlockAction).statementIds).toEqual([2]);
     });
 
     it('loops while countdown timer is active when configured', () => {
@@ -87,9 +89,9 @@ describe('ChildSelectionBehavior', () => {
         block.mount(harness.runtime);
         const actions = block.next(harness.runtime);
 
-        const compileAction = actions.find(a => a.type === 'compile-child-block');
+        const compileAction = actions.find(a => a.type === 'compile-and-push-block');
         expect(compileAction).toBeDefined();
-        expect(compileAction!.payload).toEqual({ statementIds: [1] });
+        expect((compileAction as CompileAndPushBlockAction).statementIds).toEqual([1]);
     });
 
     it('does not loop when countdown timer is expired', () => {
@@ -135,12 +137,13 @@ describe('ChildSelectionBehavior', () => {
         const actions = block.next(harness.runtime);
 
         expect(actions[0].type).toBe('push-rest-block');
-        expect(actions[0].payload).toEqual({ durationMs: 30000, label: 'Rest' });
+        expect((actions[0] as PushRestBlockAction).durationMs).toBe(30000);
+        expect((actions[0] as PushRestBlockAction).label).toBe('Rest');
 
         const afterRestActions = block.next(harness.runtime);
-        const compileAction = afterRestActions.find(a => a.type === 'compile-child-block');
+        const compileAction = afterRestActions.find(a => a.type === 'compile-and-push-block');
         expect(compileAction).toBeDefined();
-        expect(compileAction!.payload).toEqual({ statementIds: [1] });
+        expect((compileAction as CompileAndPushBlockAction).statementIds).toEqual([1]);
     });
 
     it('does not inject rest for count-up timers', () => {
@@ -160,7 +163,7 @@ describe('ChildSelectionBehavior', () => {
         block.mount(harness.runtime);
         const actions = block.next(harness.runtime);
 
-        const compileAction = actions.find(a => a.type === 'compile-child-block');
+        const compileAction = actions.find(a => a.type === 'compile-and-push-block');
         expect(compileAction).toBeDefined();
     });
 });

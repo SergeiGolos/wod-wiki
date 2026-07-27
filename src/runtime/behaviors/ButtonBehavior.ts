@@ -2,7 +2,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import type { ButtonConfig } from '../memory/MemoryTypes';
-import { IMetric, MetricType } from '../../core/models/Metric';
+import { MetricType } from '../../core/models/Metric';
 import { MetricContainer } from '../../core/models/MetricContainer';
 
 // Re-export types for consumers
@@ -62,7 +62,7 @@ export class ButtonBehavior implements IRuntimeBehavior {
                 eventName: button.eventName
             },
             sourceBlockKey: ctx.block.key.toString(),
-            timestamp: ctx.clock.now,
+            timestamp: ctx.clock.currentDate,
         })), ctx.block.key.toString());
 
         // Push action metrics to list-based memory

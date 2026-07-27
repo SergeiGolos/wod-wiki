@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # IM Training Session
 
 **Type**: Individual Medley  

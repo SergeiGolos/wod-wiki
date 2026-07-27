@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { TimerInitBehavior, TimerTickBehavior } from '@/runtime/behaviors';
+import { CountupTimerBehavior } from '@/runtime/behaviors';
 
 describe('Unmount Lifecycle', () => {
     let harness: BehaviorTestHarness;
@@ -15,9 +15,8 @@ describe('Unmount Lifecycle', () => {
     });
 
     it('should execute behavior onUnmount and remove from stack when unmounted', () => {
-        const timerInit = new TimerInitBehavior({ direction: 'up' });
-        const timerTick = new TimerTickBehavior();
-        const block = new MockBlock('unmount-test', [timerInit, timerTick]);
+        const timer = new CountupTimerBehavior({ label: 'Test' });
+        const block = new MockBlock('unmount-test', [timer]);
 
         harness.push(block);
         harness.mount();
@@ -33,6 +32,6 @@ describe('Unmount Lifecycle', () => {
         expect(harness.stackDepth).toBe(0);
 
         // Expect block timing completed
-        expect(block.executionTiming.completedAt).toBeDefined();
+        expect(block.executionTiming.createdAt).toBeDefined();
     });
 });

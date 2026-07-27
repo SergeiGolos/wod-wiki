@@ -7,7 +7,7 @@
  *
  *   IMemoryReference ↔ IRuntimeMemory
  */
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import type {
     IMemoryReference,
     IMemorySubscription,
@@ -16,7 +16,7 @@ import type {
 import type { IRuntimeMemory } from '../contracts/IRuntimeMemory';
 
 export class TypedMemoryReference<T> implements IMemoryReference {
-    public id: string = uuidv4();
+    public id: string = uuidv7();
     private _subscriptions: IMemorySubscription<T>[] = [];
 
     constructor(
@@ -60,7 +60,7 @@ export class TypedMemoryReference<T> implements IMemoryReference {
         callback: (newValue: T | undefined, oldValue: T | undefined) => void,
         options?: SubscriptionOptions,
     ): () => void {
-        const subscriptionId = uuidv4();
+        const subscriptionId = uuidv7();
         const subscription: IMemorySubscription<T> = {
             id: subscriptionId,
             callback,

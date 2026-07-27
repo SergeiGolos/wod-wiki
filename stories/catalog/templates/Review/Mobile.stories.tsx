@@ -1,16 +1,14 @@
 /**
- * Review-Mobile Stories
+ * Catalog / Templates / Review / Mobile
  *
- * Showcases the review panel (`ReviewGrid`) in a mobile (portrait) viewport.
- * Data is identical to ReviewWeb — a real ScriptRuntime is run to completion
- * using a mock clock so no real timers are needed.
+ * Renders: ReviewGrid at mobile dimensions (375px) — no dedicated mobile panel exists yet
  *
- * States illustrated:
- *  1. EmptyReview    — no segments yet (blank-slate)
- *  2. FranComplete   — 21-15-9 Thrusters & Pull-ups, all segments done
- *  3. AmrapComplete  — 20-min AMRAP, multiple rounds completed
- *  4. EmomComplete   — 10-min EMOM, 10 rounds completed
- *  5. RoundsComplete — 5×10 Thrusters, 5 rounds completed
+ * Stories:
+ *  1. EmptyReview — review panel with no segments yet
+ *  2. FranComplete — 21-15-9 Thrusters & Pull-ups (6 effort segments)
+ *  3. AmrapComplete — AMRAP 20 Cindy style
+ *  4. EmomComplete — EMOM 10
+ *  5. RoundsComplete — 5×10 Rounds
  */
 
 import React, { useEffect, useState } from 'react';
@@ -22,7 +20,7 @@ import { JitCompiler } from '@/runtime/compiler/JitCompiler';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock } from '@/runtime/RuntimeClock';
-import { sharedParser } from '@/parser/parserInstance';
+import { createParser } from '@/parser/parserInstance';
 import { WhiteboardScript } from '@/parser/WhiteboardScript';
 
 // Strategies
@@ -46,8 +44,8 @@ import { getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 
 // UI
-import { ReviewGrid } from '@/components/review-grid/ReviewGrid';
-import { DebugModeProvider } from '@/components/layout/DebugModeContext';
+import { ReviewGrid } from '@/components/organisms/review/ReviewGrid'
+import { DebugModeProvider } from '@/contexts/DebugModeContext'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -72,7 +70,7 @@ function runToCompletion(
   stepMs = 30_000,
   maxSteps = 50,
 ): { segments: Segment[]; groups: AnalyticsGroup[]; runtime: ScriptRuntime } {
-  const script = sharedParser.read(scriptText) as WhiteboardScript;
+  const script = createParser().read(scriptText) as WhiteboardScript;
   const compiler = buildCompiler();
   const clock = createMockClock(new Date('2024-06-15T09:00:00Z'));
   const stack = new RuntimeStack();
@@ -84,8 +82,8 @@ function runToCompletion(
   let steps = 0;
   while (runtime.stack.count > 0 && steps < maxSteps) {
     clock.advance(stepMs);
-    runtime.handle(new TickEvent());
-    runtime.do(new NextAction());
+    runtime.handle(new TickEvent(undefined, runtime.nowProvider));
+    runtime.do(new NextAction(undefined, runtime.nowProvider));
     steps++;
   }
 

@@ -1,4 +1,4 @@
-import { IScriptRuntime, OutputListener, TrackerListener } from '@/runtime/contracts/IScriptRuntime';
+import { IScriptRuntime, OutputListener } from '@/runtime/contracts/IScriptRuntime';
 import { IRuntimeStack, Unsubscribe, StackSnapshot, StackObserver, StackListener, StackEvent } from '@/runtime/contracts/IRuntimeStack';
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
 import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
@@ -7,16 +7,18 @@ import { IEventBus, EventCallback, EventHandlerOptions } from '@/runtime/contrac
 import { IEvent } from '@/runtime/contracts/events/IEvent';
 import { IEventHandler } from '@/runtime/contracts/events/IEventHandler';
 import { IOutputStatement } from '@/core/models/OutputStatement';
-import { RuntimeStackOptions, RuntimeStackTracker, TrackerUpdate, TrackerSnapshot } from '@/runtime/contracts/IRuntimeOptions';
+import { MetricType } from '@/core/models/Metric';
+import { RuntimeStackOptions } from '@/runtime/contracts/IRuntimeOptions';
 import { TimeSpan } from '@/runtime/models/TimeSpan';
 import { BlockKey } from '@/core/models/BlockKey';
 import { WhiteboardScript } from '@/parser/WhiteboardScript';
-import { JitCompiler } from '@/runtime/compiler/JitCompiler';
+import type { IJitCompiler } from '@/runtime/contracts/IJitCompiler';
+import { RuntimeObservers } from '@/runtime/RuntimeObservers';
 import { IAnalyticsEngine } from '@/core/contracts/IAnalyticsEngine';
+import { INowProvider, wallClockNow } from '@/runtime/INowProvider';
 import type { IRpcTransport } from './IRpcTransport';
-import type { RpcMessage, RpcStackUpdate, RpcOutputStatement, RpcWorkbenchUpdate, RpcTrackerUpdate, RpcClockSyncResponse } from './RpcMessages';
+import type { RpcMessage, RpcStackUpdate, RpcOutputStatement, RpcWorkbenchUpdate, RpcClockSyncResponse } from './RpcMessages';
 import { ProxyBlock } from './ProxyBlock';
-
 // ── Stub implementations ────────────────────────────────────────────────────
 
 /**
@@ -68,12 +70,15 @@ class ProxyStack implements IRuntimeStack {
  * from the serialized block state and interpolates elapsed locally.
  */
 class ProxyClock implements IRuntimeClock {
-    get now(): Date { return new Date(); }
+    constructor(private readonly _now: INowProvider = wallClockNow) {}
+    get currentDate(): Date { return this._now.now(); }
+    now(): Date { return this._now.now(); }
+    nowMs(): number { return this._now.nowMs(); }
     get elapsed(): number { return 0; }
     get isRunning(): boolean { return false; }
     get spans(): ReadonlyArray<TimeSpan> { return []; }
-    start(): Date { return new Date(); }
-    stop(): Date { return new Date(); }
+    start(): Date { return this._now.now(); }
+    stop(): Date { return this._now.now(); }
 }
 
 /**
@@ -159,22 +164,26 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     readonly script: WhiteboardScript = new WhiteboardScript('', []);
     readonly eventBus: IEventBus;
     readonly stack: IRuntimeStack;
-    readonly jit: JitCompiler = null as any; // Not available on proxy
+    // The proxy has no upstream JIT — it never compiles (the browser owns
+    // execution). Typed as the interface; the value is a stub that throws if
+    // anyone ever calls it on the proxy.
+    readonly jit: IJitCompiler = createProxyJitStub();
     readonly clock: IRuntimeClock;
-    readonly errors: never[] = [];
-    readonly tracker: RuntimeStackTracker;
+    readonly nowProvider: INowProvider;
 
+    // Output emission stays inline (OutputEmitter is the proven extraction
+    // for output, see Finding 03).
+    private outputListeners = new Set<OutputListener>();
+    private outputs: IOutputStatement[] = [];
+
+    // Shared observer collaborator — owns the stack subscriber Set and the
+    // post-mount snapshot contract (see Finding 03).
+    private readonly _observers = new RuntimeObservers();
+
+    private transportUnsub: (() => void) | null = null;
     private proxyStack: ProxyStack;
     private proxyEventBus: ProxyEventBus;
-    private stackObservers = new Set<StackObserver>();
-    private outputListeners = new Set<OutputListener>();
-    private trackerListeners = new Set<TrackerListener>();
-    private outputs: IOutputStatement[] = [];
-    private transportUnsub: (() => void) | null = null;
     private disposed = false;
-
-    // Track real-time tracker state on the proxy
-    private trackerState: TrackerSnapshot = { metrics: {}, rounds: {} };
 
     /**
      * Cache of active ProxyBlock instances keyed by block key string.
@@ -194,18 +203,16 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
      * Positive offset means receiver's clock is ahead of sender's.
      */
     private clockOffsetMs: number = 0;
-
-    constructor(private readonly transport: IRpcTransport) {
+    constructor(
+        private readonly transport: IRpcTransport,
+        private readonly _now: INowProvider = wallClockNow,
+    ) {
         this.proxyStack = new ProxyStack();
         this.proxyEventBus = new ProxyEventBus();
         this.stack = this.proxyStack;
         this.eventBus = this.proxyEventBus;
-        this.clock = new ProxyClock();
-
-        this.tracker = {
-            onUpdate: (callback: TrackerListener) => this.subscribeToTracker(callback),
-            getSnapshot: () => ({ ...this.trackerState })
-        };
+        this.nowProvider = this._now;
+        this.clock = new ProxyClock(this._now);
 
         // Listen for incoming RPC messages from the browser
         this.transportUnsub = this.transport.onMessage((message: RpcMessage) => {
@@ -216,15 +223,17 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     // ── Subscription API (fully functional) ─────────────────────────────────
 
     subscribeToStack(observer: StackObserver): Unsubscribe {
-        this.stackObservers.add(observer);
-        // Immediately send current state
+        const unsub = this._observers.subscribeToStack(observer);
+        // The proxy fires its initial snapshot synchronously (preserves
+        // the pre-extraction contract; see ChromecastProxyRuntime.test.ts:69-73).
+        // ScriptRuntime defers; the collaborator is timing-agnostic.
         observer({
             type: 'initial',
             blocks: this.proxyStack.blocks,
             depth: this.proxyStack.count,
-            clockTime: new Date(),
+            clockTime: this._now.now(),
         });
-        return () => this.stackObservers.delete(observer);
+        return unsub;
     }
 
     subscribeToOutput(listener: OutputListener): Unsubscribe {
@@ -233,19 +242,16 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     }
 
     /**
-     * Subscribe to real-time tracker updates.
-     */
-    subscribeToTracker(listener: TrackerListener): Unsubscribe {
-        this.trackerListeners.add(listener);
-        return () => this.trackerListeners.delete(listener);
-    }
-
-    /**
      * Set the analytics engine for the runtime.
      * No-op on proxy — analytics processing happens on the browser.
      */
     setAnalyticsEngine(_engine: IAnalyticsEngine): void {
         // No-op
+    }
+
+    finalizeAnalytics(): IOutputStatement[] {
+        // No-op on proxy — analytics finalization happens on the browser.
+        return [];
     }
 
     /**
@@ -268,7 +274,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
      * @returns The sender's clock time as a Date
      */
     getSenderClockTime(): Date {
-        return new Date(Date.now() - this.clockOffsetMs);
+        return new Date(this._now.nowMs() - this.clockOffsetMs);
     }
 
     /**
@@ -278,7 +284,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
      * @returns The sender's clock time in milliseconds since epoch
      */
     getSenderClockTimeMs(): number {
-        return Date.now() - this.clockOffsetMs;
+        return this._now.nowMs() - this.clockOffsetMs;
     }
 
     /**
@@ -346,9 +352,9 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         this.transportUnsub = null;
 
         this.proxyEventBus.dispose();
-        this.stackObservers.clear();
+        // Drop all stack subscribers in one call.
+        this._observers.dispose();
         this.outputListeners.clear();
-        this.trackerListeners.clear();
         this.workbenchListeners.clear();
         this.outputs = [];
         this.blockCache.clear();
@@ -369,9 +375,6 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
                 break;
             case 'rpc-output':
                 this.handleOutput(message);
-                break;
-            case 'rpc-tracker-update':
-                this.handleTrackerUpdate(message);
                 break;
             case 'rpc-workbench-update':
                 this.handleWorkbenchUpdate(message);
@@ -402,8 +405,6 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             }
             // Clear cached blocks — the stack is fully reset
             this.blockCache.clear();
-            // Also reset tracker state
-            this.trackerState = { metrics: {}, rounds: {} };
         }
 
         let blocks: ProxyBlock[];
@@ -459,17 +460,20 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             depth: message.depth,
             clockTime: new Date(message.clockTime),
         };
-        for (const observer of this.stackObservers) {
-            observer(snapshot);
-        }
+        // Notify stack observers via the shared collaborator
+        this._observers.emitStack(snapshot);
     }
 
     private handleOutput(message: RpcOutputStatement): void {
         // Create a minimal output statement that satisfies the interface
         // for display purposes on the receiver
+        // Wire format widens outputType to `string`; the local type is the
+        // `OutputStatementType` literal union. The sender's protocol is the
+        // trusted source — we validate at the boundary via a typed cast.
+        const outputType = message.outputType as IOutputStatement['outputType'];
         const output: IOutputStatement = {
             id: 0,
-            outputType: message.outputType as any,
+            outputType,
             sourceBlockKey: message.sourceBlockKey,
             stackLevel: message.stackLevel,
             metrics: message.metrics,
@@ -488,40 +492,14 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             type: 'output',
             sourceIds: [],
             children: [],
-            getAllMetricsByType: () => [],
+            getMetric: (type: MetricType) => message.metrics.find((m) => m.type === type),
+            getAllMetricsByType: (type: MetricType) => message.metrics.filter((m) => m.type === type),
             getFragment: () => undefined,
             getDisplayMetrics: () => message.metrics,
             getFragmentsByOrigin: () => message.metrics,
-        } as any;
+        } as unknown as IOutputStatement;
 
         this.addOutput(output);
-    }
-
-    private handleTrackerUpdate(message: RpcTrackerUpdate): void {
-        const update = message.update as TrackerUpdate;
-        
-        // Update local proxy state
-        if (update.type === 'metric') {
-            const blockId = update.blockId;
-            const key = update.key!;
-            const blockMetrics = this.trackerState.metrics[blockId] || {};
-            this.trackerState.metrics[blockId] = {
-                ...blockMetrics,
-                [key]: { value: update.value, unit: update.unit }
-            };
-        } else if (update.type === 'round') {
-            this.trackerState.rounds[update.blockId] = { 
-                current: update.current!, 
-                total: update.total 
-            };
-        } else if (update.type === 'snapshot') {
-            this.trackerState = { ...update.snapshot };
-        }
-
-        // Notify listeners
-        for (const listener of this.trackerListeners) {
-            listener(update);
-        }
     }
 
     private handleWorkbenchUpdate(message: RpcWorkbenchUpdate): void {
@@ -543,7 +521,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         const response: RpcClockSyncResponse = {
             type: 'rpc-clock-sync-response',
             requestTimestamp: message.timestamp,
-            receiverTimestamp: Date.now(),
+            receiverTimestamp: this._now.nowMs(),
         };
         this.transport.send(response);
     }
@@ -574,4 +552,22 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             listener(this._workbenchState);
         }
     }
+}
+
+/**
+ * Stub IJitCompiler for the proxy. The proxy never compiles — the browser
+ * owns execution and pushes serialized block state via RPC. If anything
+ * ever calls `compile` on the proxy, this throws so the call site fails
+ * loudly rather than silently mis-compiling.
+ */
+function createProxyJitStub(): IJitCompiler {
+    return {
+        compile() {
+            throw new Error(
+                '[ChromecastProxyRuntime] jit.compile() called on the proxy — ' +
+                'compilation happens on the sender (browser). Push a serialized ' +
+                'rpc-stack-update instead.',
+            );
+        },
+    };
 }

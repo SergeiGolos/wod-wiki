@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Stroke Introduction Session
 
 **Type**: Technique Focus  

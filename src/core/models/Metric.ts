@@ -4,6 +4,7 @@
  * Source origins:
  * - 'parser': Fragment created by the parser from source text (value fully specified)
  * - 'compiler': Fragment synthesized by a compiler strategy
+ * - 'dialect': Fragment synthesized by a dialect policy before runtime
  * - 'runtime': Fragment generated during execution (e.g., elapsed time)
  * - 'user': Fragment collected from user input (e.g., actual reps completed)
  * 
@@ -14,24 +15,28 @@
  * - 'analyzed': Value is derived from analysis
  */
 /**
- * Compiler instruction attached by dialect-origin metrics.
- * - 'set':      inject this metric; precedence tier handles display resolution
- * - 'suppress': hide all metrics of this type from display (sentinel pattern)
- * - 'inherit':  propagate this metric value down to child statements
- * Parser metrics never carry an action (undefined = passive).
+ * Visibility instruction attached to a metric.
+ * - 'suppress': hide all metrics of this type from display (sentinel pattern,
+ *   resolved by the metric ownership ledger).
+ * Most metrics carry no action (undefined = passive). `suppress` is the only
+ * live action: it is the metrics-native way to express "hide this type",
+ * replacing the former hint-channel suppression.
  */
-export type MetricAction = 'set' | 'suppress' | 'inherit';
+export type MetricAction = 'suppress';
 
 export type MetricOrigin =
   | 'parser'
   | 'compiler'
+  | 'dialect'
   | 'runtime'
   | 'user'
   | 'collected'
   | 'hinted'
   | 'tracked'
   | 'analyzed'
-  | 'execution';
+  | 'analyzed-estimated'
+  | 'execution'
+  | 'user-plan';
 
 export interface IMetric {
   readonly image?: string;
@@ -46,11 +51,9 @@ export interface IMetric {
   readonly unit?: string;
 
   /**
-   * Compiler instruction attached by dialect-origin metrics.
-   * - 'set':      inject this metric; precedence tier handles display resolution
-   * - 'suppress': hide all metrics of this type from display (sentinel pattern)
-   * - 'inherit':  propagate this metric value down to child statements
-   * Parser metrics never carry an action (undefined = passive).
+   * Visibility instruction. The only live value is `'suppress'`, which hides
+   * all metrics of this type from display (resolved by the ownership ledger).
+   * Most metrics carry no action (undefined = passive).
    */
   readonly action?: MetricAction;
 
@@ -65,6 +68,14 @@ export interface IMetric {
    * Present for runtime and user-collected metric.
    */
   readonly timestamp?: Date;
+
+  /**
+   * Processor-attached structured payload. Summary processors (e.g. TIS) hang
+   * derivation metadata (effortSlug, effortDiscipline, effortIntensityTier,
+   * component scores) on the projection value metric; fact normalization reads
+   * it back out. Pure data — survives the stored-logs round-trip.
+   */
+  readonly metadata?: Record<string, unknown>;
 
   // Pure data interface - no metric methods
 }
@@ -106,13 +117,13 @@ export enum MetricType {
    */
   SystemTime = 'system-time',
 
-  /** @deprecated Use Spans. This represented runtime timer state in block memory. */
+  /** Live timer state written into block memory by the count-up/count-down timer behaviors. */
   Time = 'time',
 
-  /** @deprecated Calculated from Spans when needed. Σ(end − start) of active segments. */
+  /** Active elapsed time — Σ(end − start) of active spans; derived during analytics. */
   Elapsed = 'elapsed',
 
-  /** @deprecated Calculated from Spans when needed. lastEnd − firstStart. */
+  /** Total wall-clock bracket (lastEnd − firstStart) for a block; derived during analytics. */
   Total = 'total',
 
   Rep = 'rep',
@@ -130,8 +141,51 @@ export enum MetricType {
   Label = 'label',
   Lap = 'lap',
   Metric = 'metric',
+
+  /**
+   * **Hint** (Core) — a semantic marker emitted by a dialect or the parser.
+   *
+   * Dot-namespaced string markers (e.g. `workout.amrap`, `behavior.required_timer`)
+   * that strategies and the label composer query to drive compilation decisions.
+   * Hints are metrics so they flow through the single ownership channel, but they
+   * are excluded from display resolution and from runtime block fragments.
+   */
+  Hint = 'hint',
+
+  /** Generic custom metric bucket for parser-owned property metrics. */
+  Custom = 'custom',
   Volume = 'volume',
   Intensity = 'intensity',
   Load = 'load',
   Work = 'work',
+
+  /** Per-set Reps in Reserve (real-time, strength) */
+  RIR = 'rir',
+
+  /** Post-session subjective effort rating (0–10) */
+  SessionRPE = 'session-rpe',
+
+  /** Session RPE × total minutes */
+  SessionLoad = 'session-load',
+
+  /** Normalized MET ((Activity METs ÷ METmax) × 100) */
+  METScore = 'met-score',
+
+  /** Training Intensity Score (composite) */
+  TIS = 'tis',
+
+  /** Runtime-layer calculated metric emitted from declarative formulas */
+  Calculated = 'calculated',
+
+  /**
+   * **Choice** (Parser) — a pipe-separated OR expression.
+   *
+   * Emitted by Fusion when a pipe separates two homogeneous alternatives
+   * (same MetricType on both sides). Carries `alternatives: IMetric[]`.
+   * Resolved in the Pre-Run Wizard before the JIT compiles: the chosen
+   * alternative is written at origin `user-plan` into the Statement's
+   * MetricContainer, shadowing this group via ownership-layer precedence.
+   * Never reaches compiled Blocks or display output once resolved.
+   */
+  Choice = 'choice',
 }

@@ -30,7 +30,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   rawData, 
   segments, 
   selectedSegmentIds,
-  onSelectSegment,
+
   groups = []
 }) => {
   const [viewMode, setViewMode] = useState<'timeline' | 'overlay'>('timeline');
@@ -78,13 +78,13 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     if (viewMode !== 'overlay') return [];
     let maxDuration = 0;
     const activeSegments = segments.filter(s => selectedSegmentIds.has(s.id));
-    activeSegments.forEach(s => { if (s.duration > maxDuration) maxDuration = s.duration; });
+    activeSegments.forEach(s => { if ((s.duration ?? 0) > maxDuration) maxDuration = s.duration ?? 0; });
 
     const points = [];
     for (let t = 0; t < maxDuration; t++) {
       const point: any = { time: t };
       activeSegments.forEach(seg => {
-        if (t < seg.duration) {
+        if (t < (seg.duration ?? 0)) {
           const absTime = seg.startTime + t;
           point[`seg_${seg.id}`] = rawData[absTime] ? rawData[absTime][activeGraphConfig.dataKey] : null;
         }
@@ -247,10 +247,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                 {seg.name}
                               </td>
                               <td className="p-3 text-muted-foreground font-mono">{formatTime(seg.startTime)}</td>
-                              <td className="p-3 text-muted-foreground font-mono">{formatDuration(seg.duration)}</td>
+                              <td className="p-3 text-muted-foreground font-mono">{formatDuration(seg.duration ?? 0)}</td>
                               {Object.values(allGraphs).map(g => (
                                 <td key={g.id} className="p-3 text-right font-mono" style={{ color: g.color }}>
-                                  {seg.metrics[g.dataKey] ? Math.round(seg.metrics[g.dataKey]) : '-'}{g.unit}
+                                  {(() => { const m = seg.metrics as Record<string, number> | undefined; return m?.[g.dataKey] ? Math.round(m[g.dataKey]) : '-'; })()}{g.unit}
                                 </td>
                               ))}
                               <td className="p-3 text-right">

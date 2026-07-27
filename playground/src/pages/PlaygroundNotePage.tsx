@@ -9,64 +9,239 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
-import { v4 as uuidv4 } from 'uuid'
-import { NoteEditor } from '@/components/Editor/NoteEditor'
+import { v7 as uuidv7 } from 'uuid'
+import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { JournalPageShell } from '@/panels/page-shells'
-import type { WidgetRegistry } from '@/components/Editor/overlays/WidgetCompanion'
-import { PlaygroundRunTipWidget } from '../components/widgets/PlaygroundRunTipWidget'
-import type { WodBlock } from '@/components/Editor/types'
+import type { WidgetRegistry } from '@/components/Editor/widgets/types'
+import { PlaygroundRunTipWidget } from '../components/molecules/PlaygroundRunTipWidget'
+import {
+  createAttentionWidgetWrapper,
+  createCodeExampleWidgetWrapper,
+  createSyntaxGroupWidgetWrapper,
+} from '../components/widgets/widgetWrappers'
+import type { ScriptBlock } from '@/components/Editor/types'
+import type { WorkoutResult } from '@/types/storage'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
-import { PlaygroundDBService } from '../services/playgroundDB'
+import { pageId } from '../services/playgroundContent'
+import { indexedDBService } from '@/services/db/IndexedDBService'
 import { pendingRuntimes } from '../runtimeStore'
-import { PlaygroundNoteActions } from './shared/PlaygroundNoteActions'
+import { journalNotePath, runPath } from '../lib/routes'
+import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
+import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands'
+import { shareBlock } from '../services/openInPlayground'
+import { createJournalNoteFromWorkout } from '../services/journalWorkout'
+import { CalendarCard } from '@/components/atoms/CalendarCard'
+import { toast } from '@/hooks/use-toast'
+import { ToastAction } from '@/components/atoms/primitives/toast'
 import { DEFAULT_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundContent'
 import { formatPlaygroundPageTitle } from '@/lib/playgroundDisplay'
+import { localDateKey } from '../views/queriable-list/JournalDateScroll'
+import { useOnboardingEvents } from '../hooks/useOnboardingEvents'
+import { useCursorInsert } from '../hooks/useCursorInsert'
+import { useFirstNoteWizardState } from '../hooks/useFirstNoteWizardState'
+import { FirstNoteWizard } from '../components/onboarding/FirstNoteWizard'
+import { Pin } from 'lucide-react'
 
 export interface PlaygroundNotePageProps {
   theme: string
   onViewCreated?: (view: EditorView) => void
   onScrollToSection?: (id: string) => void
+  onSearch?: () => void
 }
 
 export function PlaygroundNotePage({
   theme,
   onViewCreated,
   onScrollToSection,
+  onSearch,
 }: PlaygroundNotePageProps) {
   const { id } = useParams<{ id: string }>()
   const pageName = id ?? 'playground'
   // noteId is the full playground page identifier (for example, 'playground/<pageName>') so results can be grouped correctly in the journal
-  const noteId = PlaygroundDBService.pageId('playground', pageName)
+  const noteId = pageId('playground', pageName)
   const pageTitle = useMemo(() => (id ? formatPlaygroundPageTitle(id) : 'Playground'), [id])
   const navigate = useNavigate()
-  const { content, loading, onChange, onLineChange, onBlur, resetToOriginal } = usePlaygroundContent({
+  const { content, loading, onChange: persistOnChange, onLineChange, onBlur, resetToOriginal } = usePlaygroundContent({
     category: 'playground',
     name: pageName,
     mdContent: DEFAULT_PLAYGROUND_CONTENT.content,
   })
 
-  // Place cursor at the $CURSOR token position on first mount
+  // Onboarding (ADR-0010, Goal Gradient) — see useOnboardingEvents for the
+  // typed event API. The hook owns the step-string mapping; the page
+  // calls semantic handlers (onEditNote / onRunWorkout / onLogEffort)
+  // that wrap the corresponding mark(step) calls.
+  const { onEditNote, onRunWorkout, onLogEffort } = useOnboardingEvents()
+  const onChange = useCallback(
+    (value: string) => {
+      onEditNote()
+      persistOnChange(value)
+    },
+    [onEditNote, persistOnChange],
+  )
+
+  // First-Note Wizard (ADR-0010, IKEA Effect) — see useFirstNoteWizardState
+  // for the open/close contract. The hook owns the three gates (completion,
+  // profile-initialized, per-mount dismissal); the page just binds.
+  const { open: wizardOpen, handleClose: rawHandleClose } = useFirstNoteWizardState()
+
+  // Pinned effort (ADR-0010, IKEA payoff) — see useCursorInsert for the
+  // IKEA payoff surface contract. The hook owns the editor view
+  // registration, the profile reads/writes (firstNoteUsedAt + pinnedEffort),
+  // and the strong-treatment signal. The page just binds.
+  const { insert: insertPinnedEffort, hasInserted, pinnedEffort, refreshPinnedEffort, registerView } = useCursorInsert()
+  const handleWizardClose = useCallback((completed: boolean) => {
+    rawHandleClose(completed)
+    if (completed) refreshPinnedEffort()
+  }, [rawHandleClose, refreshPinnedEffort])
+
+  const [results, setResults] = useState<WorkoutResult[]>([])
+
+  const refreshResults = useCallback(() => {
+    indexedDBService.getResultsForNote(noteId)
+      .then(results => setResults(results))
+      .catch(() => {})
+  }, [noteId])
+
+  useEffect(() => {
+    refreshResults()
+  }, [refreshResults])
+
+  // Place cursor at the $CURSOR token position on first mount.
+  // Register the view with the cursor-insert hook so the IKEA payoff
+  // button can dispatch into it. The hook owns the editor-view coupling.
   const cursorPlaced = useRef(false)
   const handleInternalViewCreated = useCallback((view: EditorView) => {
+    registerView(view)
     onViewCreated?.(view)
     if (cursorPlaced.current) return
     cursorPlaced.current = true
     const offset = Math.min(DEFAULT_PLAYGROUND_CONTENT.cursorOffset, view.state.doc.length)
     view.dispatch({ selection: EditorSelection.cursor(offset) })
-  }, [onViewCreated])
+  }, [onViewCreated, registerView])
 
   const handleStartWorkout = useCallback(
-    (block: WodBlock) => {
-      const runtimeId = uuidv4()
+    (block: ScriptBlock) => {
+      onRunWorkout()
+      const runtimeId = uuidv7()
       pendingRuntimes.set(runtimeId, { block, noteId })
-      navigate(`/tracker/${runtimeId}`)
+      navigate(runPath(runtimeId))
     },
-    [noteId, navigate],
+    [noteId, navigate, onRunWorkout],
   )
 
-  const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
-  const index = useNotePageNav({ content, wodBlocks, onStartWorkout: handleStartWorkout })
+  const handleAddToToday = useCallback(
+    async (block: ScriptBlock) => {
+      try {
+        onLogEffort()
+        const journalNote = await createJournalNoteFromWorkout({
+          workoutName: pageTitle,
+          category: 'playground',
+          sourceNoteLabel: pageTitle,
+          sourceNotePath: `/playground/${pageName}`,
+          wodContent: block.content,
+        })
+        const today = localDateKey(new Date())
+        toast({
+          title: 'Added to journal',
+          description: journalNote.journalDate === today ? "Added to today's journal" : `Added to ${journalNote.journalDate}`,
+          action: (
+            <ToastAction altText="Open journal" onClick={() => navigate(journalNotePath(journalNote.journalDate ?? '', journalNote.id))}>
+              Open
+            </ToastAction>
+          ),
+        })
+      } catch {
+        toast({ title: 'Error', description: 'Could not add to journal', variant: 'destructive' })
+      }
+    },
+    [pageTitle, pageName, navigate, onLogEffort],
+  )
+
+  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
+
+  const handleScheduleBlock = useCallback(
+    async (block: ScriptBlock, date: Date) => {
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      const dateKey = `${y}-${m}-${d}`
+      try {
+        await createJournalNoteFromWorkout({
+          workoutName: pageTitle,
+          category: 'playground',
+          sourceNoteLabel: pageTitle,
+          sourceNotePath: `/playground/${pageName}`,
+          wodContent: block.content,
+          date: date,
+        })
+        navigate(`/journal?s=${dateKey}`)
+        toast({
+          title: 'Scheduled',
+          description: `Added to journal for ${dateKey}`,
+          action: (
+            <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
+              Open
+            </ToastAction>
+          ),
+        })
+      } catch {
+        toast({ title: 'Error', description: 'Could not schedule workout', variant: 'destructive' })
+      }
+    },
+    [pageTitle, pageName, navigate],
+  )
+
+  const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([])
+  const index = useNotePageNav({ content, scriptBlocks, onStartWorkout: handleStartWorkout, results })
+
+  const commands = useScriptBlockCommands('playground', {
+    onPlay: handleStartWorkout,
+    onShare: shareBlock,
+    onAddToToday: handleAddToToday,
+    onSchedule: setPendingScheduleBlock,
+  })
+
+  const handleAttentionAction = useCallback(
+    (action: 'scroll-to-workout' | 'open-search') => {
+      if (action === 'scroll-to-workout') {
+        const firstWod = index.find(item => item.type === 'wod')
+        if (firstWod) {
+          onScrollToSection?.(firstWod.id)
+        }
+      } else if (action === 'open-search') {
+        onSearch?.()
+      }
+    },
+    [onScrollToSection, onSearch],
+  )
+
+  const handleCodeExampleRun = useCallback(
+    (script: string) => {
+      // Parse the script as a WOD block and start workout
+      const exampleBlock: ScriptBlock = {
+        id: 'code-example-block',
+        line: 0,
+        endLine: script.split('\n').length,
+        content: script,
+      }
+      handleStartWorkout(exampleBlock)
+    },
+    [handleStartWorkout],
+  )
+
+  const handleOpenDocs = useCallback(
+    (docsPath: string) => {
+      // Navigate to docs page
+      if (docsPath.startsWith('/')) {
+        window.open(docsPath, '_blank')
+      } else {
+        navigate(docsPath)
+      }
+    },
+    [navigate],
+  )
 
   const handleButtonAction = useCallback(
     (action: string, params: Record<string, string>) => {
@@ -74,20 +249,23 @@ export function PlaygroundNotePage({
         navigate(params['route'])
       } else if (action === 'start-workout') {
         // Start the first available wod block
-        const firstBlock = wodBlocks[0]
+        const firstBlock = scriptBlocks[0]
         if (firstBlock) handleStartWorkout(firstBlock)
       } else if (action === 'new-note') {
         navigate('/playground')
       }
     },
-    [navigate, wodBlocks, handleStartWorkout],
+    [navigate, scriptBlocks, handleStartWorkout],
   )
 
   const widgetComponents: WidgetRegistry = useMemo(
     () => new Map([
       ['playground-run-tip', PlaygroundRunTipWidget],
+      ['attention', createAttentionWidgetWrapper(handleAttentionAction)],
+      ['code-example', createCodeExampleWidgetWrapper(theme === 'dark', handleCodeExampleRun)],
+      ['syntax-group', createSyntaxGroupWidgetWrapper(handleOpenDocs)],
     ]),
-    [],
+    [handleAttentionAction, handleCodeExampleRun, handleOpenDocs, theme],
   )
 
   useEffect(() => {
@@ -103,34 +281,85 @@ export function PlaygroundNotePage({
   }
 
   return (
-    <JournalPageShell
-      title={pageTitle}
-      index={index}
-      onScrollToSection={onScrollToSection}
-      actions={
-        <PlaygroundNoteActions
-          currentWorkout={{ name: pageTitle, content }}
-          index={index}
-          onReset={resetToOriginal}
-        />
-      }
-      editor={
-        <NoteEditor
-          value={content}
-          onChange={onChange}
-          onCursorPositionChange={onLineChange}
-          onBlur={onBlur}
-          noteId={noteId}
-          onStartWorkout={handleStartWorkout}
-          enableInlineRuntime={false}
-          onViewCreated={handleInternalViewCreated}
-          theme={theme}
-          showLineNumbers={false}
-          onBlocksChange={setWodBlocks}
-          onButtonAction={handleButtonAction}
-          widgetComponents={widgetComponents}
-        />
-      }
-    />
+    <>
+      <FirstNoteWizard open={wizardOpen} onClose={handleWizardClose} />
+      <JournalPageShell
+        title={pageTitle}
+        index={index}
+        onScrollToSection={onScrollToSection}
+        actions={
+          <div className="flex items-center gap-2">
+            {pinnedEffort && (
+              // IKEA strong treatment renders only on the first note the
+              // user inserts the pinned effort on. Subsequent notes step
+              // down to the regular quiet treatment.
+              <button
+                type="button"
+                onClick={insertPinnedEffort}
+                title={`Insert ${pinnedEffort} at the cursor`}
+                className={!hasInserted
+                  ? 'inline-flex items-center gap-1.5 rounded-pill border border-brand/60 border-l-2 border-l-brand bg-brand/10 pl-3 pr-3 py-1.5 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/15 dark:text-brand-light'
+                  : 'inline-flex items-center gap-1 rounded-pill border border-brand/40 bg-brand/5 px-2.5 py-1 text-xs font-semibold text-brand-deep transition-colors hover:bg-brand/10 dark:text-brand-light'}
+              >
+                <Pin
+                  className={!hasInserted
+                    ? 'size-4 text-brand-deep dark:text-brand-light'
+                    : 'size-3'}
+                  aria-hidden="true"
+                />
+                {pinnedEffort}
+              </button>
+            )}
+            <PageActions
+              mode="playground"
+              currentWorkout={{ name: pageTitle, content }}
+              index={index}
+              onSearch={onSearch ?? (() => {})}
+              onReset={resetToOriginal}
+            />
+          </div>
+        }
+        editor={
+          <NoteEditor
+            value={content}
+            onChange={onChange}
+            onCursorPositionChange={onLineChange}
+            onBlur={onBlur}
+            noteId={noteId}
+            commands={commands}
+            enableInlineRuntime={false}
+            onViewCreated={handleInternalViewCreated}
+            theme={theme}
+            showLineNumbers={false}
+            onBlocksChange={setScriptBlocks}
+            onButtonAction={handleButtonAction}
+            widgetComponents={widgetComponents}
+            extendedResults={results}
+          />
+        }
+      />
+      {pendingScheduleBlock && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setPendingScheduleBlock(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-xl p-5 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold mb-4 text-foreground">
+              Schedule for&hellip;
+            </p>
+            <CalendarCard
+              selectedDate={null}
+              onDateSelect={(date) => {
+                handleScheduleBlock(pendingScheduleBlock, date)
+                setPendingScheduleBlock(null)
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </>
   )
 }

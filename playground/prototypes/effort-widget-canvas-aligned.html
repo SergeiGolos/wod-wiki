@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Effort Frontmatter Widget — Canvas-Aligned | WOD-695</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ─────────────────────────────────────────────────────────────
+       Design Tokens — mirrors src/index.css mineral/arctic-frost
+    ───────────────────────────────────────────────────────────── */
+    :root {
+      --bg:          #f5f2ed;
+      --bg2:         #faf8f4;
+      --fg:          #2a221a;
+      --fg2:         #6a5f52;
+      --card:        #fff;
+      --border:      #cdc5b8;
+      --border2:     #e8e2d8;
+      --primary:     #5980a8;
+      --primary-fg:  #fff;
+      --muted:       #ede9e2;
+      --muted-fg:    #6a5f52;
+      --effort-c:    #508860;
+      --effort-bg:   rgba(80,136,96,0.10);
+      --effort-bdr:  rgba(80,136,96,0.28);
+      --gutter-fg:   #aaa09a;
+      --code-bg:     #f0ece5;
+      --radius:      12px;
+      --shadow:      0 2px 12px rgba(0,0,0,0.09);
+      --shadow-lg:   0 8px 32px rgba(0,0,0,0.12);
+      /* Canvas shell */
+      --shell-header-h: 72px;
+      --sidebar-w:      220px;
+      --editor-split:   60%;
+      --prose-split:    40%;
+      --surface:        #fff;
+    }
+    .dark {
+      --bg:          #2e3440;
+      --bg2:         #353c4a;
+      --fg:          #d8dee9;
+      --fg2:         #9099ab;
+      --card:        #3b4252;
+      --border:      #3f4859;
+      --border2:     #353d4e;
+      --primary:     #81a1c1;
+      --primary-fg:  #2e3440;
+      --muted:       #262c38;
+      --muted-fg:    #9099ab;
+      --effort-c:    #a3be8c;
+      --effort-bg:   rgba(163,190,140,0.12);
+      --effort-bdr:  rgba(163,190,140,0.28);
+      --gutter-fg:   #5a6478;
+      --code-bg:     #2a3040;
+      --shadow:      0 2px 20px rgba(0,0,0,0.35);
+      --shadow-lg:   0 8px 40px rgba(0,0,0,0.5);
+      --surface:     #3b4252;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       Top control bar (not part of the Canvas shell — just prototype UI)
+    ───────────────────────────────────────────────────────────── */
+    .proto-bar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      height: 40px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+    .proto-bar-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--primary);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .proto-sep { width: 1px; height: 18px; background: var(--border); }
+    .proto-chip {
+      font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
+      border: 1px solid var(--border); background: transparent; cursor: pointer;
+      color: var(--fg2); transition: all 0.12s; white-space: nowrap;
+    }
+    .proto-chip.active { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+    .proto-chip:hover:not(.active) { background: var(--muted); }
+    .proto-spacer { flex: 1; }
+    .proto-theme-btn {
+      font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px;
+      border: 1px solid var(--border); background: transparent; cursor: pointer; color: var(--fg2);
+    }
+    .proto-theme-btn:hover { background: var(--muted); }
+
+    /* ─────────────────────────────────────────────────────────────
+       SidebarLayout outer shell — wraps everything the browser shows
+       Mirrors: SidebarLayout in the real app
+    ───────────────────────────────────────────────────────────── */
+    .sidebar-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden; /* lg:overflow-clip in real app */
+    }
+
+    /* Left sidebar nav — always visible on desktop */
+    .app-sidebar {
+      width: var(--sidebar-w);
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+    .app-sidebar.hidden-mobile { /* shown on desktop, hidden on mobile view */
+      display: flex;
+    }
+
+    .sidebar-logo {
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--primary);
+      border-bottom: 1px solid var(--border2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-logo .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--primary);
+    }
+    .sidebar-nav { padding: 8px; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; border-radius: 8px; font-size: 12px; font-weight: 500;
+      color: var(--fg2); cursor: pointer; transition: all 0.1s;
+    }
+    .nav-item:hover { background: var(--muted); color: var(--fg); }
+    .nav-item.active { background: var(--effort-bg); color: var(--effort-c); font-weight: 600; }
+    .nav-item .nav-icon { font-size: 13px; width: 16px; text-align: center; }
+    .nav-section-label {
+      font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--gutter-fg); padding: 12px 10px 4px;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       Canvas page area — right of the sidebar
+    ───────────────────────────────────────────────────────────── */
+    .canvas-area {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Canvas sticky page header (title-bar mode, z-30) ──────── */
+    /* Mirrors: .data-page-sticky-boundary=true in CanvasPage.tsx */
+    .canvas-header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: rgba(var(--bg-rgb, 250,248,244), 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 28px 0;
+      flex-shrink: 0;
+    }
+    .dark .canvas-header {
+      background: rgba(46,52,64,0.85);
+    }
+    .canvas-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+    }
+    .canvas-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .canvas-title-accent {
+      width: 6px; height: 36px; border-radius: 3px;
+      background: var(--primary);
+      flex-shrink: 0;
+    }
+    .canvas-title {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: var(--fg);
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .canvas-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .hdr-btn {
+      height: 30px; padding: 0 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent;
+      font-size: 11px; font-weight: 600; color: var(--fg2); cursor: pointer;
+      display: flex; align-items: center; gap: 6px; transition: all 0.12s;
+    }
+    .hdr-btn:hover { background: var(--muted); color: var(--fg); }
+    .hdr-btn.primary { background: var(--primary); color: var(--primary-fg); border-color: transparent; }
+    .hdr-btn.primary:hover { opacity: 0.9; }
+    .hdr-divider {
+      margin-top: 0;
+      border: none;
+      border-top: 1px solid var(--border);
+      opacity: 0.5;
+    }
+
+    /* ── Canvas scroll body ────────────────────────────────────── */
+    .canvas-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       Two-column section: 40% prose + 60% sticky editor rail
+       Mirrors canvas-template two-column layout
+    ───────────────────────────────────────────────────────────── */
+    .canvas-section {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Prose rail — 40% */
+    .prose-rail {
+      width: var(--prose-split);
+      padding: 32px 24px 80px 28px;
+      border-right: 1px solid var(--border2);
+      min-width: 0;
+    }
+
+    .prose-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 20px; margin-bottom: 12px;
+      background: var(--effort-bg); color: var(--effort-c);
+      border: 1px solid var(--effort-bdr);
+    }
+    .prose-h2 {
+      font-size: 18px; font-weight: 800; letter-spacing: -0.03em;
+      color: var(--fg); margin-bottom: 8px; line-height: 1.2;
+    }
+    .prose-meta {
+      font-size: 11px; color: var(--fg2);
+      display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+    }
+    .prose-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--gutter-fg); }
+    .prose-p {
+      font-size: 13px; line-height: 1.7; color: var(--fg2); margin-bottom: 14px;
+    }
+    .prose-divider { border: none; border-top: 1px solid var(--border2); margin: 20px 0; }
+
+    .metric-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .metric-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 500;
+      border: 1px solid var(--border2); background: var(--card); color: var(--fg2);
+    }
+    .metric-chip .chip-val { font-weight: 700; color: var(--fg); }
+    .metric-chip .chip-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .chip-green { background: var(--effort-c); }
+    .chip-blue  { background: var(--primary); }
+
+    .prose-cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 600;
+      background: var(--effort-bg); color: var(--effort-c); border: 1px solid var(--effort-bdr);
+      cursor: pointer; transition: all 0.12s;
+    }
+    .prose-cta:hover { background: var(--effort-bdr); }
+
+    /* Editor rail — 60% sticky */
+    .editor-rail {
+      width: var(--editor-split);
+      position: sticky;
+      top: 0; /* sticks to top of canvas-body scrollport */
+      align-self: flex-start;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--card);
+      border-left: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       Note Editor inside the sticky rail
+    ───────────────────────────────────────────────────────────── */
+    .editor-chrome {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .editor-toolbar {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--border2);
+      flex-shrink: 0;
+      background: var(--bg2);
+    }
+    .editor-tab {
+      font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px;
+      border: 1px solid transparent; cursor: pointer; color: var(--fg2); transition: all 0.1s;
+    }
+    .editor-tab.active { background: var(--card); border-color: var(--border); color: var(--fg); }
+    .editor-tab:hover:not(.active) { color: var(--fg); }
+    .editor-tab-spacer { flex: 1; }
+    .editor-mode-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      padding: 2px 7px; border-radius: 4px; background: var(--effort-bg);
+      color: var(--effort-c); border: 1px solid var(--effort-bdr);
+    }
+    .editor-mode-badge.default { background: var(--muted); color: var(--fg2); border-color: var(--border); }
+    .icon-btn {
+      width: 26px; height: 26px; border-radius: 6px;
+      border: 1px solid var(--border2); background: transparent;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--fg2); font-size: 13px; transition: background 0.12s;
+    }
+    .icon-btn:hover { background: var(--muted); }
+
+    /* Editor + companion two-pane split */
+    .editor-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    .cm-pane {
+      flex: 1;
+      overflow-y: auto;
+      min-width: 0;
+    }
+
+    /* ─── CodeMirror-style YAML editor ─────────────────────────── */
+    .cm-editor {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.65;
+      padding: 14px 0;
+      color: var(--fg);
+    }
+    .cm-line {
+      display: flex;
+      align-items: baseline;
+      gap: 0;
+      padding: 0 12px 0 0;
+      position: relative;
+    }
+    .cm-line.cm-active-line {
+      background: rgba(var(--primary-rgb,89,128,168), 0.07);
+    }
+    .cm-gutter {
+      width: 36px;
+      text-align: right;
+      padding-right: 10px;
+      font-size: 10px;
+      color: var(--gutter-fg);
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .cm-content { flex: 1; }
+    .tok-fence  { color: var(--gutter-fg); }
+    .tok-key    { color: var(--primary); font-weight: 500; }
+    .tok-str    { color: var(--effort-c); }
+    .tok-num    { color: #d08770; }
+    .tok-comment { color: var(--gutter-fg); font-style: italic; }
+    .tok-brace  { color: var(--gutter-fg); }
+    .tok-cursor {
+      display: inline-block;
+      width: 2px; height: 13px;
+      background: var(--primary);
+      animation: blink 1.1s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 1px;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* Frontmatter range highlight */
+    .cm-fm-range { background: var(--effort-bg); }
+    .cm-fm-line-active { border-left: 2px solid var(--effort-c); }
+
+    /* ─── Companion panel ───────────────────────────────────────── */
+    .companion-pane {
+      width: 220px;
+      flex-shrink: 0;
+      border-left: 1px solid var(--border2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg2);
+      transition: width 0.22s cubic-bezier(.4,0,.2,1), opacity 0.18s;
+    }
+    .companion-pane.collapsed {
+      width: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .companion-pane.idle {
+      width: 220px;
+      opacity: 0.55;
+    }
+
+    .companion-header {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--border2);
+      flex-shrink: 0;
+    }
+    .companion-icon { font-size: 14px; }
+    .companion-title {
+      font-size: 11px; font-weight: 700; color: var(--fg); flex: 1;
+    }
+    .companion-close {
+      width: 20px; height: 20px; border-radius: 4px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--fg2); font-size: 12px; transition: background 0.1s;
+      border: none; background: transparent;
+    }
+    .companion-close:hover { background: var(--muted); }
+
+    .companion-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .field-group { margin-bottom: 12px; }
+    .field-label {
+      font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--gutter-fg); margin-bottom: 4px; display: block;
+    }
+    .field-input {
+      width: 100%; padding: 5px 8px; border-radius: 7px;
+      border: 1px solid var(--border); background: var(--card);
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--fg); outline: none; transition: border-color 0.12s;
+    }
+    .field-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(89,128,168,0.15); }
+    .field-input.fm-focused { border-color: var(--effort-c); box-shadow: 0 0 0 2px rgba(80,136,96,0.15); }
+
+    .met-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .met-stepper {
+      display: flex; align-items: center; gap: 0;
+      border: 1px solid var(--border); border-radius: 7px; overflow: hidden;
+    }
+    .met-btn {
+      width: 24px; height: 26px; border: none; background: var(--card);
+      cursor: pointer; color: var(--fg2); font-size: 14px; transition: background 0.1s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .met-btn:hover { background: var(--muted); }
+    .met-val {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600;
+      color: var(--fg); padding: 0 8px; min-width: 32px; text-align: center;
+      background: var(--card); height: 26px; display: flex; align-items: center; justify-content: center;
+      border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+    }
+    .met-bar {
+      flex: 1; height: 6px; border-radius: 3px; background: var(--border);
+      overflow: hidden;
+    }
+    .met-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--effort-c), var(--primary));
+      transition: width 0.2s;
+    }
+
+    .tier-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .tier-btn {
+      padding: 4px 0; border-radius: 6px; font-size: 10px; font-weight: 600;
+      text-align: center; cursor: pointer; border: 1px solid var(--border);
+      background: var(--card); color: var(--fg2); transition: all 0.1s;
+    }
+    .tier-btn.selected {
+      background: var(--effort-bg); border-color: var(--effort-bdr); color: var(--effort-c);
+    }
+    .tier-btn:hover:not(.selected) { background: var(--muted); }
+
+    .disc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .disc-btn {
+      padding: 5px 2px; border-radius: 6px; font-size: 11px; text-align: center;
+      cursor: pointer; border: 1px solid var(--border); background: var(--card);
+      color: var(--fg2); transition: all 0.1s; line-height: 1;
+    }
+    .disc-btn span { display: block; font-size: 8px; margin-top: 1px; }
+    .disc-btn.selected { background: var(--effort-bg); border-color: var(--effort-bdr); }
+    .disc-btn:hover:not(.selected) { background: var(--muted); }
+
+    .alias-list { display: flex; flex-direction: column; gap: 4px; }
+    .alias-tag {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 3px 8px; border-radius: 6px;
+      background: var(--muted); border: 1px solid var(--border2);
+      font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--fg);
+    }
+    .alias-rm { cursor: pointer; color: var(--gutter-fg); font-size: 12px; background: none; border: none; }
+    .alias-rm:hover { color: #bf616a; }
+    .alias-add-row {
+      display: flex; gap: 4px; margin-top: 4px;
+    }
+    .alias-add-input {
+      flex: 1; padding: 4px 7px; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--card);
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--fg); outline: none;
+    }
+    .alias-add-input:focus { border-color: var(--primary); }
+    .alias-add-btn {
+      padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+      border: 1px solid var(--border); background: var(--card);
+      cursor: pointer; color: var(--fg2); transition: background 0.1s;
+    }
+    .alias-add-btn:hover { background: var(--muted); }
+
+    .companion-footer {
+      padding: 8px 10px;
+      border-top: 1px solid var(--border2);
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .companion-save {
+      flex: 1; padding: 6px 0; border-radius: 8px; font-size: 11px; font-weight: 700;
+      border: none; background: var(--effort-c); color: #fff; cursor: pointer;
+      transition: opacity 0.12s;
+    }
+    .companion-save:hover { opacity: 0.88; }
+    .companion-discard {
+      padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;
+      border: 1px solid var(--border); background: transparent; cursor: pointer; color: var(--fg2);
+      transition: background 0.12s;
+    }
+    .companion-discard:hover { background: var(--muted); }
+
+    /* ─────────────────────────────────────────────────────────────
+       Trigger hint banner (shown when cursor near frontmatter but not yet editing)
+    ───────────────────────────────────────────────────────────── */
+    .trigger-hint {
+      position: absolute;
+      top: 50px; right: 14px;
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 10px;
+      background: var(--card); border: 1px solid var(--effort-bdr);
+      box-shadow: var(--shadow);
+      font-size: 11px; font-weight: 500; color: var(--effort-c);
+      z-index: 20;
+      animation: slide-in 0.2s cubic-bezier(.4,0,.2,1);
+      pointer-events: none;
+    }
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       Mobile overrides — single column layout
+    ───────────────────────────────────────────────────────────── */
+    .mobile-view .app-sidebar { display: none; }
+    .mobile-view .canvas-section { flex-direction: column; }
+    .mobile-view .prose-rail {
+      width: 100%;
+      border-right: none;
+      padding: 20px 16px 24px;
+    }
+    .mobile-view .editor-rail {
+      width: 100%;
+      position: relative;
+      top: auto;
+      height: auto;
+      min-height: 320px;
+      border-left: none;
+      border-top: 1px solid var(--border);
+    }
+    .mobile-view .companion-pane { width: 100%; border-left: none; border-top: 1px solid var(--border2); max-height: 280px; }
+    .mobile-view .companion-pane.collapsed { max-height: 0; overflow: hidden; }
+    .mobile-view .editor-body { flex-direction: column; }
+    .mobile-view .mobile-sticky-bar { display: flex; }
+    .mobile-view .canvas-header { padding-left: 14px; padding-right: 14px; }
+    .mobile-sticky-bar {
+      display: none;
+      position: sticky;
+      top: 64px; /* below SidebarLayout mobile navbar */
+      z-index: 10;
+      background: rgba(46,52,64,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 6px 14px;
+      align-items: center;
+      gap: 8px;
+    }
+    .light .mobile-sticky-bar { background: rgba(245,242,237,0.92); }
+
+    /* ─────────────────────────────────────────────────────────────
+       State annotations (design callouts, not in real UI)
+    ───────────────────────────────────────────────────────────── */
+    .state-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      padding: 2px 7px; border-radius: 4px; border: 1px dashed;
+    }
+    .state-trigger  { background: rgba(235,203,139,0.12); color: #ebcb8b; border-color: rgba(235,203,139,0.3); }
+    .state-focused  { background: var(--effort-bg);  color: var(--effort-c);  border-color: var(--effort-bdr); }
+    .state-default  { background: var(--muted); color: var(--fg2); border-color: var(--border); }
+    .state-dismissed{ background: rgba(191,97,106,0.08); color: #bf616a; border-color: rgba(191,97,106,0.2); }
+
+    .callout-overlay {
+      position: absolute;
+      pointer-events: none;
+      z-index: 50;
+    }
+    .callout-line {
+      position: absolute;
+      border: 1px dashed rgba(235,203,139,0.4);
+      border-radius: 4px;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       State tabs (Trigger / Focused / Dismissed)
+    ───────────────────────────────────────────────────────────── */
+    .state-nav {
+      display: flex;
+      gap: 4px;
+      padding: 0 8px;
+    }
+    .state-tab {
+      font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px;
+      border: 1px solid var(--border); background: transparent; cursor: pointer;
+      color: var(--fg2); transition: all 0.12s; white-space: nowrap;
+    }
+    .state-tab.active { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+    .state-tab:hover:not(.active) { background: var(--muted); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Utility */
+    .hidden { display: none !important; }
+    .flex-row { display: flex; align-items: center; }
+    .gap-6 { gap: 6px; }
+    .text-muted { color: var(--fg2); }
+    .text-xs { font-size: 11px; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+
+<!-- ── Prototype control bar ─────────────────────────────────── -->
+<div class="proto-bar">
+  <span class="proto-bar-label">WOD-695</span>
+  <div class="proto-sep"></div>
+  <span style="font-size:11px; color:var(--fg2)">Layout:</span>
+  <button class="proto-chip active" id="btn-desktop" onclick="setViewport('desktop')">Desktop</button>
+  <button class="proto-chip" id="btn-mobile" onclick="setViewport('mobile')">Mobile</button>
+  <div class="proto-sep"></div>
+  <span style="font-size:11px; color:var(--fg2)">State:</span>
+  <div class="state-nav">
+    <button class="state-tab active" id="tab-default"   onclick="setState('default')">Default</button>
+    <button class="state-tab"        id="tab-trigger"   onclick="setState('trigger')">Triggered</button>
+    <button class="state-tab"        id="tab-focused"   onclick="setState('focused')">Focused</button>
+    <button class="state-tab"        id="tab-dismissed" onclick="setState('dismissed')">Dismissed</button>
+  </div>
+  <div class="proto-spacer"></div>
+  <span class="state-badge state-default" id="current-state-badge">● Default</span>
+  <div class="proto-sep"></div>
+  <button class="proto-theme-btn" onclick="toggleTheme()">☀ / ☾ Theme</button>
+</div>
+
+<!-- ── SidebarLayout root ─────────────────────────────────────── -->
+<div class="sidebar-layout" id="app-shell">
+
+  <!-- Left nav sidebar -->
+  <nav class="app-sidebar app-sidebar-el" aria-label="App navigation">
+    <div class="sidebar-logo">
+      <div class="dot"></div>
+      wod.wiki
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section-label">Workouts</div>
+      <div class="nav-item"><span class="nav-icon">🏠</span> Home</div>
+      <div class="nav-item"><span class="nav-icon">📅</span> Journal</div>
+      <div class="nav-item active"><span class="nav-icon">⚡</span> Efforts</div>
+      <div class="nav-item"><span class="nav-icon">🗂️</span> Collections</div>
+      <div class="nav-section-label">Tools</div>
+      <div class="nav-item"><span class="nav-icon">🔧</span> Syntax</div>
+      <div class="nav-item"><span class="nav-icon">📊</span> Reports</div>
+    </div>
+  </nav>
+
+  <!-- ── Canvas page area ──────────────────────────────────────── -->
+  <div class="canvas-area" id="canvas-area">
+
+    <!-- Sticky Canvas header (title-bar mode, z-30) -->
+    <!-- data-page-sticky-boundary="true" — real CanvasPage.tsx attribute -->
+    <div class="canvas-header" data-page-sticky-boundary="true" id="canvas-header">
+      <div class="canvas-header-row">
+        <div class="canvas-title-group">
+          <div class="canvas-title-accent"></div>
+          <h1 class="canvas-title">Fran</h1>
+        </div>
+        <div class="canvas-header-actions">
+          <span class="state-badge state-default" id="header-state-badge" style="display:none">default</span>
+          <button class="hdr-btn">Share</button>
+          <button class="hdr-btn primary">▶ Run</button>
+        </div>
+      </div>
+      <hr class="hdr-divider" role="presentation">
+    </div>
+
+    <!-- Mobile sticky subheader — only visible in mobile view -->
+    <div class="mobile-sticky-bar" id="mobile-subheader">
+      <span style="font-size:11px; font-weight:600; color:var(--fg)">Fran</span>
+      <span class="state-badge state-default" style="margin-left:auto; font-size:9px">Effort Page</span>
+      <button class="hdr-btn" onclick="toggleCompanion()" style="height:26px; font-size:10px">Edit Metadata</button>
+    </div>
+
+    <!-- Canvas scroll body -->
+    <div class="canvas-body" id="canvas-body">
+
+      <!-- Two-column section: prose 40% + sticky editor 60% -->
+      <div class="canvas-section" id="canvas-section">
+
+        <!-- Prose rail (40%) -->
+        <div class="prose-rail">
+          <div class="prose-pill">⚡ Effort Page</div>
+          <h2 class="prose-h2">Fran</h2>
+          <div class="prose-meta">
+            <span>21-15-9</span>
+            <span class="dot"></span>
+            <span>Thrusters + Pull-ups</span>
+            <span class="dot"></span>
+            <span>Benchmark</span>
+          </div>
+
+          <div class="metric-chips">
+            <div class="metric-chip">
+              <div class="chip-dot chip-green"></div>
+              <span>MET</span>
+              <span class="chip-val">8.5</span>
+            </div>
+            <div class="metric-chip">
+              <div class="chip-dot chip-blue"></div>
+              <span>Tier</span>
+              <span class="chip-val">Moderate</span>
+            </div>
+            <div class="metric-chip">
+              <span>🏋️</span>
+              <span class="chip-val">Weightlifting</span>
+            </div>
+          </div>
+
+          <p class="prose-p">
+            Classic CrossFit benchmark combining barbell thrusters and pull-ups. Three descending rounds of 21-15-9 reps. Time your finish.
+          </p>
+          <hr class="prose-divider">
+
+          <p class="prose-p">
+            The MET value of 8.5 reflects sustained high-power output across both movements. Intensity tier is <strong>Moderate</strong> — accessible for most athletes at appropriate loading.
+          </p>
+
+          <p class="prose-p">
+            <strong>Programming note:</strong> Rest 2–3 minutes between rounds for athletes new to the benchmark. Experienced athletes aim for unbroken thrusters in round 1.
+          </p>
+          <hr class="prose-divider">
+
+          <p class="prose-p">
+            Aliases: <code class="font-mono" style="font-size:10px">fran-wod</code>, <code class="font-mono" style="font-size:10px">2107</code>
+          </p>
+
+          <div style="margin-top: 20px">
+            <button class="prose-cta" onclick="setState('focused')">✏ Edit metadata in companion →</button>
+          </div>
+        </div>
+
+        <!-- Editor rail (60%, position:sticky) -->
+        <div class="editor-rail" id="editor-rail">
+          <div class="editor-chrome">
+
+            <!-- Editor toolbar (NoteEditor chrome) -->
+            <div class="editor-toolbar">
+              <button class="editor-tab active">Frontmatter</button>
+              <button class="editor-tab">Body</button>
+              <div class="editor-tab-spacer"></div>
+              <span class="editor-mode-badge default" id="editor-mode-badge">Viewing</span>
+              <button class="icon-btn" title="Toggle companion" onclick="toggleCompanion()">⊞</button>
+            </div>
+
+            <!-- Editor + companion split -->
+            <div class="editor-body">
+              <!-- CodeMirror-style YAML editor -->
+              <div class="cm-pane" id="cm-pane">
+                <div class="cm-editor" id="cm-editor">
+                  <!-- Lines rendered by JS -->
+                </div>
+              </div>
+
+              <!-- Side Companion panel -->
+              <div class="companion-pane collapsed" id="companion-pane">
+                <div class="companion-header">
+                  <span class="companion-icon">⚡</span>
+                  <span class="companion-title">Effort Metadata</span>
+                  <button class="companion-close" onclick="setState('dismissed')" title="Close companion">✕</button>
+                </div>
+
+                <div class="companion-scroll">
+                  <!-- Slug -->
+                  <div class="field-group">
+                    <label class="field-label">Slug</label>
+                    <input class="field-input" id="f-slug" value="fran" placeholder="effort-slug"
+                           oninput="syncField('slug', this.value)" />
+                  </div>
+
+                  <!-- Label -->
+                  <div class="field-group">
+                    <label class="field-label">Label / Title</label>
+                    <input class="field-input" id="f-label" value="Fran" placeholder="Display name"
+                           oninput="syncField('label', this.value)" />
+                  </div>
+
+                  <!-- MET -->
+                  <div class="field-group">
+                    <label class="field-label">MET Value</label>
+                    <div class="met-row">
+                      <div class="met-stepper">
+                        <button class="met-btn" onclick="stepMet(-0.5)">−</button>
+                        <span class="met-val" id="met-display">8.5</span>
+                        <button class="met-btn" onclick="stepMet(0.5)">+</button>
+                      </div>
+                      <div class="met-bar">
+                        <div class="met-fill" id="met-fill" style="width:68%"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Intensity tier -->
+                  <div class="field-group">
+                    <label class="field-label">Intensity Tier</label>
+                    <div class="tier-grid">
+                      <button class="tier-btn" onclick="selectTier(this)">Light</button>
+                      <button class="tier-btn selected" onclick="selectTier(this)">Moderate</button>
+                      <button class="tier-btn" onclick="selectTier(this)">Hard</button>
+                      <button class="tier-btn" onclick="selectTier(this)">Max</button>
+                    </div>
+                  </div>
+
+                  <!-- Discipline -->
+                  <div class="field-group">
+                    <label class="field-label">Discipline</label>
+                    <div class="disc-grid">
+                      <button class="disc-btn selected" onclick="toggleDisc(this)">🏋️<span>Weight</span></button>
+                      <button class="disc-btn" onclick="toggleDisc(this)">🤸<span>Gymn</span></button>
+                      <button class="disc-btn" onclick="toggleDisc(this)">🏃<span>Cardio</span></button>
+                      <button class="disc-btn" onclick="toggleDisc(this)">🔗<span>Mixed</span></button>
+                    </div>
+                  </div>
+
+                  <!-- Aliases -->
+                  <div class="field-group">
+                    <label class="field-label">Aliases</label>
+                    <div class="alias-list" id="alias-list">
+                      <div class="alias-tag">
+                        fran-wod
+                        <button class="alias-rm" onclick="removeAlias(this)">✕</button>
+                      </div>
+                      <div class="alias-tag">
+                        2107
+                        <button class="alias-rm" onclick="removeAlias(this)">✕</button>
+                      </div>
+                    </div>
+                    <div class="alias-add-row">
+                      <input class="alias-add-input" id="alias-input" placeholder="add alias…"
+                             onkeydown="if(event.key==='Enter')addAlias()" />
+                      <button class="alias-add-btn" onclick="addAlias()">+</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="companion-footer">
+                  <button class="companion-save" onclick="saveChanges()">Apply changes</button>
+                  <button class="companion-discard" onclick="setState('dismissed')">Discard</button>
+                </div>
+              </div>
+              <!-- /companion-pane -->
+            </div>
+          </div>
+        </div>
+        <!-- /editor-rail -->
+
+      </div>
+      <!-- /canvas-section -->
+
+    </div>
+    <!-- /canvas-body -->
+  </div>
+  <!-- /canvas-area -->
+</div>
+<!-- /sidebar-layout -->
+
+<script>
+/* ──────────────────────────────────────────────────────────────
+   YAML frontmatter data model
+──────────────────────────────────────────────────────────────── */
+const fm = {
+  id: 'b7a2f0c3-1e4d-4a5b-8c9d-0f1e2a3b4c5d',
+  slug: 'fran',
+  label: 'Fran',
+  met: 8.5,
+  intensityTier: 'Moderate',
+  discipline: ['Weightlifting'],
+  aliases: ['fran-wod', '2107'],
+};
+
+let metVal = fm.met;
+
+/* ──────────────────────────────────────────────────────────────
+   Render the CodeMirror-style YAML editor
+──────────────────────────────────────────────────────────────── */
+function renderEditor(activeLine, highlightFrontmatter) {
+  const lines = [
+    { n:1,  tok: [['fence','---']] },
+    { n:2,  tok: [['key','id'],    ['brace',': '], ['str', fm.id.slice(0,18)+'…']] },
+    { n:3,  tok: [['key','slug'],  ['brace',': '], ['str', fm.slug]] },
+    { n:4,  tok: [['key','label'], ['brace',': '], ['str', fm.label]] },
+    { n:5,  tok: [['key','met'],   ['brace',': '], ['num', String(fm.met)]] },
+    { n:6,  tok: [['key','intensityTier'], ['brace',': '], ['str', fm.intensityTier]] },
+    { n:7,  tok: [['key','discipline'],    ['brace',': '], ['str', '['+fm.discipline.join(', ')+']']] },
+    { n:8,  tok: [['key','aliases'], ['brace',': '], ['str', '['+fm.aliases.join(', ')+']']] },
+    { n:9,  tok: [['fence','---']] },
+    { n:10, tok: [] },
+    { n:11, tok: [['comment','# Fran']] },
+    { n:12, tok: [] },
+    { n:13, tok: [['str','21-15-9 Thrusters (95/65 lb) and Pull-ups']] },
+    { n:14, tok: [] },
+    { n:15, tok: [['comment','## Notes']] },
+    { n:16, tok: [] },
+    { n:17, tok: [['str','Classic CrossFit benchmark.']] },
+  ];
+
+  const fmRange = [1, 9];
+
+  return lines.map(line => {
+    const isFm = line.n >= fmRange[0] && line.n <= fmRange[1];
+    const isActive = line.n === activeLine;
+    let cls = 'cm-line';
+    if (isActive) cls += ' cm-active-line';
+    if (isFm && highlightFrontmatter) cls += ' cm-fm-range';
+    if (isFm && isActive) cls += ' cm-fm-line-active';
+
+    const tokHtml = line.tok.map(([type, text]) => {
+      if (isActive && type === 'str') {
+        // place cursor after last char of active str token
+        return `<span class="tok-${type}">${escHtml(text)}<span class="tok-cursor"></span></span>`;
+      }
+      return `<span class="tok-${type}">${escHtml(text)}</span>`;
+    }).join('');
+
+    return `<div class="${cls}">
+      <span class="cm-gutter">${line.n}</span>
+      <span class="cm-content">${tokHtml}</span>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   State machine: default | trigger | focused | dismissed
+──────────────────────────────────────────────────────────────── */
+let currentState = 'default';
+let currentViewport = 'desktop';
+
+const stateConfig = {
+  default: {
+    activeLine: null,
+    highlightFm: false,
+    companionClass: 'collapsed',
+    modeBadgeText: 'Viewing',
+    modeBadgeClass: 'default',
+    stateBadgeClass: 'state-default',
+    stateBadgeText: '● Default',
+    headerBadge: null,
+    hintVisible: false,
+  },
+  trigger: {
+    activeLine: 3,
+    highlightFm: true,
+    companionClass: 'idle',
+    modeBadgeText: 'Cursor in FM',
+    modeBadgeClass: 'trigger',
+    stateBadgeClass: 'state-trigger',
+    stateBadgeText: '⚡ Triggered',
+    headerBadge: 'trigger',
+    hintVisible: true,
+  },
+  focused: {
+    activeLine: 3,
+    highlightFm: true,
+    companionClass: '',  // fully open, no extra class
+    modeBadgeText: 'Editing',
+    modeBadgeClass: 'effort',
+    stateBadgeClass: 'state-focused',
+    stateBadgeText: '✏ Focused',
+    headerBadge: 'editing',
+    hintVisible: false,
+  },
+  dismissed: {
+    activeLine: 13,
+    highlightFm: false,
+    companionClass: 'collapsed',
+    modeBadgeText: 'Viewing',
+    modeBadgeClass: 'default',
+    stateBadgeClass: 'state-dismissed',
+    stateBadgeText: '✕ Dismissed',
+    headerBadge: null,
+    hintVisible: false,
+  },
+};
+
+function setState(name) {
+  currentState = name;
+  const cfg = stateConfig[name];
+
+  // Update editor content
+  const el = document.getElementById('cm-editor');
+  if (el) el.innerHTML = renderEditor(cfg.activeLine, cfg.highlightFm);
+
+  // Update companion panel
+  const cp = document.getElementById('companion-pane');
+  if (cp) {
+    cp.className = 'companion-pane' + (cfg.companionClass ? ' ' + cfg.companionClass : '');
+  }
+
+  // Update editor mode badge
+  const badge = document.getElementById('editor-mode-badge');
+  if (badge) {
+    badge.textContent = cfg.modeBadgeText;
+    badge.className = 'editor-mode-badge';
+    if (cfg.modeBadgeClass === 'effort') {
+      badge.style.background = 'var(--effort-bg)';
+      badge.style.color = 'var(--effort-c)';
+      badge.style.borderColor = 'var(--effort-bdr)';
+    } else if (cfg.modeBadgeClass === 'trigger') {
+      badge.style.background = 'rgba(235,203,139,0.12)';
+      badge.style.color = '#ebcb8b';
+      badge.style.borderColor = 'rgba(235,203,139,0.3)';
+    } else {
+      badge.style.background = '';
+      badge.style.color = '';
+      badge.style.borderColor = '';
+    }
+  }
+
+  // Update proto control bar state badge
+  const sb = document.getElementById('current-state-badge');
+  if (sb) { sb.className = 'state-badge ' + cfg.stateBadgeClass; sb.textContent = cfg.stateBadgeText; }
+
+  // Update state tabs
+  ['default','trigger','focused','dismissed'].forEach(s => {
+    const t = document.getElementById('tab-' + s);
+    if (t) t.className = 'state-tab' + (s === name ? ' active' : '');
+  });
+
+  // Trigger hint
+  const hint = document.getElementById('trigger-hint');
+  if (hint) hint.style.display = cfg.hintVisible ? 'flex' : 'none';
+}
+
+function toggleCompanion() {
+  if (currentState === 'focused') {
+    setState('dismissed');
+  } else {
+    setState('focused');
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Viewport toggle (Desktop / Mobile)
+──────────────────────────────────────────────────────────────── */
+function setViewport(vp) {
+  currentViewport = vp;
+  const shell = document.getElementById('app-shell');
+  if (vp === 'mobile') {
+    shell.classList.add('mobile-view');
+  } else {
+    shell.classList.remove('mobile-view');
+  }
+  document.getElementById('btn-desktop').className = 'proto-chip' + (vp==='desktop' ? ' active' : '');
+  document.getElementById('btn-mobile').className  = 'proto-chip' + (vp==='mobile'  ? ' active' : '');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Theme toggle
+──────────────────────────────────────────────────────────────── */
+function toggleTheme() {
+  document.documentElement.classList.toggle('dark');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Companion interactions
+──────────────────────────────────────────────────────────────── */
+function stepMet(delta) {
+  metVal = Math.max(1, Math.min(13, metVal + delta));
+  fm.met = metVal;
+  document.getElementById('met-display').textContent = metVal.toFixed(1);
+  document.getElementById('met-fill').style.width = ((metVal / 13) * 100).toFixed(1) + '%';
+  syncField('met', metVal);
+}
+
+function selectTier(btn) {
+  document.querySelectorAll('.tier-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  fm.intensityTier = btn.textContent;
+  syncField('intensityTier', fm.intensityTier);
+}
+
+function toggleDisc(btn) {
+  btn.classList.toggle('selected');
+}
+
+function removeAlias(btn) {
+  btn.closest('.alias-tag').remove();
+}
+
+function addAlias() {
+  const inp = document.getElementById('alias-input');
+  const val = inp.value.trim();
+  if (!val) return;
+  const list = document.getElementById('alias-list');
+  const tag = document.createElement('div');
+  tag.className = 'alias-tag';
+  tag.innerHTML = `${escHtml(val)}<button class="alias-rm" onclick="removeAlias(this)">✕</button>`;
+  list.appendChild(tag);
+  inp.value = '';
+}
+
+function syncField(field, value) {
+  // Write-through: update the YAML editor in real time
+  if (field === 'slug')  fm.slug  = value;
+  if (field === 'label') fm.label = value;
+  if (field === 'met')   fm.met   = value;
+  if (field === 'intensityTier') fm.intensityTier = value;
+  const cfg = stateConfig[currentState];
+  const el = document.getElementById('cm-editor');
+  if (el) el.innerHTML = renderEditor(cfg.activeLine, cfg.highlightFm);
+}
+
+function saveChanges() {
+  // Simulate save + dismiss
+  setState('default');
+  // Flash the YAML to show write happened
+  const cm = document.getElementById('cm-editor');
+  if (cm) {
+    cm.style.transition = 'background 0.15s';
+    cm.style.background = 'rgba(80,136,96,0.08)';
+    setTimeout(() => { cm.style.background = ''; }, 400);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Init
+──────────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  setState('default');
+
+  // Add trigger hint element
+  const rail = document.getElementById('editor-rail');
+  const hint = document.createElement('div');
+  hint.id = 'trigger-hint';
+  hint.className = 'trigger-hint';
+  hint.innerHTML = '⚡ Click to open effort editor';
+  hint.style.display = 'none';
+  hint.onclick = () => setState('focused');
+  hint.style.pointerEvents = 'auto';
+  hint.style.cursor = 'pointer';
+  rail.style.position = 'relative';
+  rail.appendChild(hint);
+});
+</script>
+
+<!-- ── Annotation overlay (non-interactive, for prototype review) -->
+<!-- Shown below viewport as implementation notes -->
+<div style="display:none" id="impl-notes">
+<!--
+  IMPLEMENTATION NOTES — WOD-695
+  ================================
+
+  Canvas shell constraints honored by this prototype:
+  1. Sticky header: data-page-sticky-boundary="true", z-30, hidden on mobile, sticky on desktop.
+     → CanvasPage.tsx lines 185–201 (title-bar mode render, hidden lg:block lg:sticky lg:top-0 lg:z-30)
+
+  2. Two-column layout: prose rail 40% + sticky editor rail 60%.
+     → editor-rail uses position:sticky, top:0, align-self:flex-start, height:100vh
+     → SidebarLayout uses lg:overflow-clip (not overflow:hidden) to preserve sticky behavior
+
+  3. Mobile reorder: single-column, no 40/60 split, mobile-sticky-bar at top-[60px].
+     → .mobile-view class switches canvas-section to flex-direction:column
+     → prose-rail becomes full-width
+     → editor-rail becomes relative positioning (natural document flow)
+     → companion expands vertically below editor code pane (not side-by-side)
+
+  4. Companion panel triggers:
+     - DEFAULT:   cursor not in frontmatter → companion collapsed, no hint
+     - TRIGGERED: cursor enters frontmatter block → companion.idle (dimmed, visible), hint appears
+     - FOCUSED:   user clicks companion / activates field → companion fully open
+     - DISMISSED: user clicks prose, changes section, or presses Escape → companion collapsed
+
+  5. Companion write-through: editing slug/label/MET in companion updates YAML in real time.
+     → Real impl: CodeMirror transaction to update frontmatter range.
+     → Source of truth remains the YAML text; companion is a structured view over it.
+
+  6. Navigation invariants:
+     - ?h= section tracking is NOT broken by companion open/close state
+     - No new routing model introduced for metadata editing
+     - StickyNavPanel / IntersectionObserver continues to drive active section
+
+  7. Extend FrontmatterCompanion.tsx:
+     - Add `effortMode: boolean` prop (true when frontmatter matches effort-page schema)
+     - Add `EffortCompanionContent` sub-component (slug, label, MET, tier, discipline, aliases)
+     - Keep existing `section` + `view` props; effort mode is an additional rendering branch
+     - Width: 220px companion pane in desktop two-column; full-width below editor on mobile
+
+  8. NoteEditor chrome:
+     - "Editing" mode badge replaces "Viewing" when companion is focused
+     - Toggle icon button (⊞) at right of editor toolbar opens/closes companion
+     - Keyboard: Escape in companion field → blur + dismiss
+-->
+</div>
+
+</body>
+</html>

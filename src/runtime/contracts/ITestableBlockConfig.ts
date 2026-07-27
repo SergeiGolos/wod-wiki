@@ -1,6 +1,6 @@
 import type { IRuntimeAction } from './IRuntimeAction';
-import type { IScriptRuntime } from './IScriptRuntime';
-
+import type { CompletionDecision } from './IRuntimeBlock';
+import type { IRuntimeActionable } from './primitives/IRuntimeActionable';
 /**
  * Configuration for method interception behavior.
  * Defined here (in runtime/contracts) so that both production runtime
@@ -27,20 +27,24 @@ export interface TestableBlockConfig {
   /** Mode for mount() interception */
   mountMode?: InterceptMode;
   /** Custom mount implementation when mode is 'override' */
-  mountOverride?: (runtime: IScriptRuntime) => IRuntimeAction[];
+  mountOverride?: (runtime: IRuntimeActionable) => IRuntimeAction[];
 
   /** Mode for next() interception */
   nextMode?: InterceptMode;
   /** Custom next implementation when mode is 'override' */
-  nextOverride?: (runtime: IScriptRuntime) => IRuntimeAction[];
+  nextOverride?: (runtime: IRuntimeActionable) => IRuntimeAction[];
 
+  /** Mode for inspectNext() interception */
+  inspectNextMode?: InterceptMode;
+  /** Custom inspectNext implementation when mode is 'override' */
+  inspectNextOverride?: (runtime: IRuntimeActionable) => CompletionDecision;
   /** Mode for unmount() interception */
   unmountMode?: InterceptMode;
   /** Custom unmount implementation when mode is 'override' */
-  unmountOverride?: (runtime: IScriptRuntime) => IRuntimeAction[];
+  unmountOverride?: (runtime: IRuntimeActionable) => IRuntimeAction[];
 
   /** Mode for dispose() interception */
   disposeMode?: InterceptMode;
   /** Custom dispose implementation when mode is 'override' */
-  disposeOverride?: (runtime: IScriptRuntime) => void;
+  disposeOverride?: (runtime: IRuntimeActionable) => void;
 }

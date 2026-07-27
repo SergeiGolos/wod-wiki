@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
@@ -8,6 +8,7 @@ import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
 import {
   NotePersistenceError,
+  type CreateNoteInput,
   type GetNoteOptions,
   type NoteLocator,
   type NoteMutation,
@@ -17,11 +18,11 @@ import {
 
 function locatorToId(locator: NoteLocator): string {
   if (typeof locator === 'string') return locator;
-  return locator.id ?? locator.shortId ?? locator.title ?? '';
+  return locator.id ?? locator.slug ?? locator.shortId ?? locator.title ?? '';
 }
 
 function sortNewest(results: WorkoutResult[]): WorkoutResult[] {
-  return [...results].sort((a, b) => b.completedAt - a.completedAt);
+  return [...results].sort((a, b) => b.createdAt - a.createdAt);
 }
 
 function selectResults(entry: HistoryEntry, selection?: ResultSelection): Partial<HistoryEntry> {
@@ -38,7 +39,7 @@ function selectResults(entry: HistoryEntry, selection?: ResultSelection): Partia
   }
 
   if (mode === 'latest-for-section' || mode === 'all-for-section') {
-    const matches = all.filter(r => r.sectionId === resolvedSelection.sectionId || r.segmentId === resolvedSelection.sectionId);
+    const matches = all.filter(r => r.blockContentId === resolvedSelection.blockContentId);
     if (mode === 'all-for-section') {
       const limited = resolvedSelection.limit ? matches.slice(0, resolvedSelection.limit) : matches;
       return { results: limited[0]?.data, extendedResults: limited };
@@ -56,6 +57,20 @@ function selectResults(entry: HistoryEntry, selection?: ResultSelection): Partia
 
 export class ContentProviderNotePersistence implements INotePersistence {
   constructor(private readonly provider: IContentProvider) {}
+
+  async createNote(input: CreateNoteInput): Promise<HistoryEntry> {
+    return this.provider.saveEntry({
+      id: input.id,
+      title: input.title,
+      rawContent: input.rawContent,
+      tags: input.tags ?? [],
+      targetDate: input.targetDate,
+      journalDate: input.journalDate,
+      type: input.type ?? 'note',
+      slug: input.slug,
+      sourceId: input.sourceId,
+    });
+  }
 
   async getNote(locator: NoteLocator, options: GetNoteOptions = {}): Promise<HistoryEntry> {
     const entry = await this.provider.getEntry(locatorToId(locator));
@@ -86,6 +101,12 @@ export class ContentProviderNotePersistence implements INotePersistence {
       : await this.provider.getEntries(query);
 
     let filtered = entries;
+    if (query.journalDate) {
+      filtered = filtered.filter(entry => entry.journalDate === query.journalDate);
+    }
+    if (query.kind) {
+      filtered = filtered.filter(entry => entry.type === query.kind);
+    }
     if (query.search) {
       const search = query.search.toLowerCase();
       filtered = filtered.filter(entry =>
@@ -105,8 +126,12 @@ export class ContentProviderNotePersistence implements INotePersistence {
       ...mutation.metadata,
       rawContent: mutation.rawContent,
       results: mutation.workoutResult?.data,
-      sectionId: mutation.workoutResult?.sectionId,
-      resultId: mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv4() : undefined),
+      blockId: mutation.workoutResult?.blockId,
+      blockContentId: mutation.workoutResult?.blockContentId,
+      version: mutation.workoutResult?.version,
+      segmentId: mutation.workoutResult?.segmentId,
+      origin: mutation.workoutResult?.origin,
+      resultId: mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv7() : undefined),
     };
 
     let entry = Object.values(patch).some(value => value !== undefined)

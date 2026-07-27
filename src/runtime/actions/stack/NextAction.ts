@@ -1,20 +1,23 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { SnapshotClock } from '../../RuntimeClock';
-
+import { INowProvider, wallClockNow } from '../../INowProvider';
 export class NextAction implements IRuntimeAction {
   readonly type = 'next';
 
   /**
    * @param options Optional lifecycle options to pass to the block's next() method.
-   *   When provided (e.g., from PopBlockAction carrying completedAt), these options
+   *   When provided (e.g., from PopBlockAction carrying createdAt), these options
    *   are merged with a snapshot clock. When omitted (e.g., user-triggered next),
    *   a fresh snapshot clock is created.
    */
-  constructor(private readonly options?: BlockLifecycleOptions) {}
+  constructor(
+    private readonly options?: BlockLifecycleOptions,
+    private readonly now: INowProvider = wallClockNow,
+  ) {}
 
-  do(runtime: IScriptRuntime): IRuntimeAction[] {
+  do(runtime: IRuntimeContext): IRuntimeAction[] {
     // Validate runtime state
     if (!this.validateRuntimeState(runtime)) {
       return [];
@@ -44,7 +47,7 @@ export class NextAction implements IRuntimeAction {
         runtime.errors.push({
           error: error as Error,
           source: 'NextAction',
-          timestamp: new Date(),
+          timestamp: this.now.now(),
           blockKey: currentBlock.key.toString()
         });
       }
@@ -52,7 +55,7 @@ export class NextAction implements IRuntimeAction {
     }
   }
 
-  private validateRuntimeState(runtime: IScriptRuntime): boolean {
+  private validateRuntimeState(runtime: IRuntimeContext): boolean {
     // Check for undefined/null stack
     if (!runtime.stack) {
       return false;

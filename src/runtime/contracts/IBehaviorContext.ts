@@ -6,7 +6,6 @@ import { IMetric } from '../../core/models/Metric';
 import { MetricContainer } from '../../core/models/MetricContainer';
 import { OutputStatementType } from '../../core/models/OutputStatement';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
-import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 
 import { HandlerScope } from './events/IEventBus';
 
@@ -80,7 +79,7 @@ export interface OutputOptions {
  *   onMount(ctx: IBehaviorContext) {
  *     // Subscribe to tick events
  *     ctx.subscribe('tick', (event, ctx) => {
- *       const timer = ctx.getMemory('time');
+ *       const [timerLoc] = ctx.getMemoryByTag('time');
  *       if (timer?.elapsed >= timer?.duration) {
  *         ctx.markComplete('timer:complete');
  *       }
@@ -94,8 +93,12 @@ export interface OutputOptions {
  *   }
  *   
  *   onUnmount(ctx: IBehaviorContext) {
- *     // Emit completion output
- *     ctx.emitOutput('completion', [elapsedFragment], { label: 'Timer Complete' });
+ *     // Emit a milestone marking this behavior's own completion. The block's
+ *     // final 'segment' output (carrying completionReason) is emitted separately
+ *     // by the runtime when the block pops — behaviors should not emit their own
+ *     // 'segment'/'completion'-shaped output on unmount; see ReportOutputBehavior
+ *     // for the canonical pattern (write result memory, let the pop emit the segment).
+ *     ctx.emitOutput('milestone', [elapsedFragment], { label: 'Timer Complete' });
  *     return [];
  *   }
  * }
@@ -180,23 +183,25 @@ export interface IBehaviorContext {
      * Output can be emitted at any lifecycle point:
      * - onMount: 'segment' started
      * - onNext: 'segment' per iteration, 'milestone' events
-     * - onUnmount: 'completion' final results
-     * 
-     * @param type The type of output ('segment', 'milestone', 'completion', 'metric', 'label')
+     * - onUnmount: write final results to memory (see ReportOutputBehavior) rather
+     *   than emitting directly — the runtime emits exactly one 'segment' output per
+     *   block pop, carrying those results plus a `completionReason` field
+     *
+     * @param type The type of output ('segment', 'milestone', 'metric', 'label')
      * @param metrics The data metrics that make up this output
      * @param options Optional metadata (label)
-     * 
+     *
      * @example
      * ```typescript
      * // Emit a segment for round 3
      * ctx.emitOutput('segment', [
      *   { metricType: MetricType.Rounds, value: 3, origin: 'runtime' }
      * ], { label: 'Round 3 of 5' });
-     * 
-     * // Emit completion with elapsed time
-     * ctx.emitOutput('completion', [
+     *
+     * // Emit a milestone marking a notable event mid-execution
+     * ctx.emitOutput('milestone', [
      *   { metricType: MetricType.Duration, value: elapsed, origin: 'runtime' }
-     * ], { label: 'Completed' });
+     * ], { label: 'Halfway' });
      * ```
      */
     emitOutput(
@@ -259,32 +264,53 @@ export interface IBehaviorContext {
     updateMemory(tag: MemoryTag, metrics: MetricContainer | IMetric[]): void;
 
     // ============================================================================
+    // Capability Registry
+    // ============================================================================
+
+    /**
+     * Declare that this block (via one of its behaviors) provides the named
+     * capability. Other behaviors on the same block can then coordinate with
+     * the declarer via `hasCapability` instead of string-inspecting
+     * `behaviors[i].constructor.name`.
+     *
+     * Capabilities are block-scoped: they are declared during `onMount`
+     * and consulted at any lifecycle hook. Declaring an unknown capability
+     * is a no-op (capabilities are loose strings, not an enum).
+     *
+     * @param cap Capability identifier (e.g. `'childSelection'`)
+     */
+    declareCapability(cap: string): void;
+
+    /**
+     * Returns true if the named capability was declared on this block.
+     *
+     * Use this to coordinate between behaviors that share a block without
+     * importing each other or relying on `constructor.name`.
+     *
+     * @param cap Capability identifier (e.g. `'childSelection'`)
+     */
+    hasCapability(cap: string): boolean;
+
+    /**
+     * Returns the Set used to store declared capabilities.  Internal callers
+     * (e.g. `RuntimeBlock.inspectNext`) pass this back to a fresh
+     * `BehaviorContext` so that all contexts for the same block observe the
+     * same capabilities without coupling the inspection context to a
+     * specific owner.
+     */
+    getCapabilities(): Set<string>;
+
+    // ============================================================================
     // Block Control
     // ============================================================================
 
     /**
      * Mark the block as complete.
-     * 
+     *
      * When marked complete, the block will be popped from the stack
-     * during the next completion sweep.
-     * 
+     *
      * @param reason Optional reason for completion (for debugging/history)
      */
     markComplete(reason?: string): void;
 
-    // ============================================================================
-    // Backward-Compatible Memory API (shims over list-based memory)
-    // ============================================================================
-
-    /**
-     * @deprecated Use block.getMemoryByTag() and read metrics values instead.
-     * Returns the typed value from the first matching memory location's first metric.
-     */
-    getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined;
-
-    /**
-     * @deprecated Use pushMemory() or updateMemory() instead.
-     * Updates the first matching memory location's metrics value, or creates a new one.
-     */
-    setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
 }

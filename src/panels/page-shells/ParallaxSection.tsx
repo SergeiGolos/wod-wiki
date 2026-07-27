@@ -184,4 +184,3 @@ export function ParallaxSection({
   );
 }
 
-export default ParallaxSection;

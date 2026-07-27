@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2020 CrossFit Games - Event 4 - "CrossFit Total"
 
 **Location: CrossFit Ranch, Aromas, California (Finals)  

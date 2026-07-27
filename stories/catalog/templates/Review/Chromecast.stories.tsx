@@ -1,25 +1,30 @@
 /**
- * Review-Chromecast Stories
+ * Catalog / Templates / Review / Chromecast
  *
- * Showcases the Chromecast review panel that is rendered on the TV screen
- * after a workout completes.  The panel is driven by `WorkbenchDisplayState`
- * data from `ChromecastProxyRuntime`, so no runtime object is needed — stories
- * use pre-built JSON fixtures that match the exact wire format.
+ * Renders: {@link import('../../../src/panels/review-panel-chromecast').ReceiverReviewPanel}
  *
- * Now uses the real `ReceiverReviewPanel` from `@/panels/review-panel-chromecast`.
- *
- * States illustrated:
- *  1. SimpleRows      — reviewData only (no analyticsSummary / no projections)
- *  2. WithProjections — full analyticsSummary: 2-column metric cards + icons
- *  3. FranResults     — realistic Fran workout results
- *  4. AmrapResults    — AMRAP results with rounds + reps
- *  5. EmomResults     — EMOM results with avg timing
- *  6. FiveBySomething — 5-round workout with volume metrics
- *  7. EmptyReview     — reviewData present but zero rows / projections
+ * Stories:
+ *  1. SimpleRows — simple rows fallback with no analyticsSummary
+ *  2. WithProjections — full analytics summary with 4 projection metric cards
+ *  3. FranResults — realistic 21-15-9 benchmark results
+ *  4. AmrapResults — 20-min Cindy AMRAP results with filled projections
+ *  5. EmomResults — 10-min EMOM results with avg work/rest breakdown
+ *  6. RoundsResults — 5-round deadlift strength workout results
+ *  7. EmptyReview — empty/zero-data defensive state
+ *  8. LightBackground — light background variant
+ *  9. AggregatedStats — per-exercise volume projections merged
+ *  10. ManyProjections — 8 cards in 2-column grid
+ *  11. LongProjectionNames — long projection names testing text wrapping
+ *  12. LargeNumbers — 6-7 digit values testing formatting
+ *  13. ZeroDuration — workout completed instantly (edge case)
+ *  14. WithDismissButton — dismiss button unfocused (D-Pad affordance)
+ *  15. DismissButtonFocused — dismiss button focused via D-Pad
+ *  16. DismissButtonActivating — dismiss button mid activation-flash
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from 'storybook/test';
 import { cn } from '@/lib/utils';
 import { ReceiverReviewPanel } from '@/panels/review-panel-chromecast';
 
@@ -61,28 +66,65 @@ interface ReviewChromecastHarnessProps {
   analyticsSummary?: AnalyticsSummary;
   /** Simulate the dark TV background (CastApp applies bg-black globally) */
   darkBackground?: boolean;
+  /** If true, the dismiss button renders in its D-Pad focused state */
+  dismissFocused?: boolean;
+  /**
+   * If true, the dismiss button renders in its activation-flash state
+   * (`.tv-activating`). Shows the peak of the element-level confirmation
+   * pulse that fires when the user presses Select on the remote.
+   * AC: WOD-274 — D-Pad activation flash visible at TV distance.
+   */
+  dismissActivating?: boolean;
+  /** Called when the dismiss button is activated */
+  onDismiss?: () => void;
 }
 
 const ReviewChromecastHarness: React.FC<ReviewChromecastHarnessProps> = ({
   reviewData,
   analyticsSummary,
   darkBackground = true,
-}) => (
-  <div
-    className={cn(
-      'flex items-center justify-center w-full',
-      darkBackground ? 'bg-black' : 'bg-background',
-    )}
-    style={{ minHeight: '600px', aspectRatio: '16/9' }}
-  >
-    <div className="w-full h-full" style={{ minHeight: '600px' }}>
-      <ReceiverReviewPanel
-        reviewData={reviewData}
-        analyticsSummary={analyticsSummary}
-      />
+  dismissFocused = false,
+  dismissActivating = false,
+  onDismiss,
+}) => {
+  // Simulate spatial-nav props so we can show focused/unfocused/activating
+  // states without needing a real useSpatialNavigation instance in Storybook.
+  const mockGetFocusProps = (id: string) => ({
+    'data-nav-id': id,
+    'data-nav-focused': (dismissFocused || dismissActivating) && id === 'btn-dismiss',
+    tabIndex: 0,
+    ref: (el: HTMLElement | null) => {
+      // Attach / detach the activation class so Storybook can freeze the
+      // peak visual state of the D-Pad activation flash (WOD-274).
+      if (el && id === 'btn-dismiss') {
+        if (dismissActivating) {
+          el.classList.add('tv-activating');
+        } else {
+          el.classList.remove('tv-activating');
+        }
+      }
+    },
+  });
+
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-center w-full',
+        darkBackground ? 'bg-black' : 'bg-background',
+      )}
+      style={{ minHeight: '600px', aspectRatio: '16/9' }}
+    >
+      <div className="w-full h-full" style={{ minHeight: '600px' }}>
+        <ReceiverReviewPanel
+          reviewData={reviewData}
+          analyticsSummary={analyticsSummary}
+          onDismiss={onDismiss}
+          getFocusProps={mockGetFocusProps}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Meta
@@ -109,6 +151,14 @@ const meta: Meta<typeof ReviewChromecastHarness> = {
     darkBackground: {
       control: 'boolean',
       description: 'Show the dark TV background',
+    },
+    dismissFocused: {
+      control: 'boolean',
+      description: 'Show the dismiss button in its D-Pad focused state',
+    },
+    dismissActivating: {
+      control: 'boolean',
+      description: 'Show the dismiss button mid activation-flash (WOD-274)',
     },
   },
 };
@@ -260,11 +310,91 @@ const ROUNDS_ANALYTICS: AnalyticsSummary = {
   ],
 };
 
+/** Multi-exercise workout with per-exercise volume projections — triggers aggregation */
+const AGGREGATED_REVIEW_DATA: ReviewData = {
+  totalDurationMs: 22 * 60_000 + 15_000,
+  completedSegments: 8,
+  rows: [
+    { label: 'Total Time', value: '22:15' },
+    { label: 'Deadlifts', value: '30 reps @ 225 lb' },
+    { label: 'Bench Press', value: '30 reps @ 185 lb' },
+    { label: 'Squats', value: '30 reps @ 205 lb' },
+  ],
+};
+
+const AGGREGATED_ANALYTICS: AnalyticsSummary = {
+  totalDurationMs: 22 * 60_000 + 15_000,
+  completedSegments: 8,
+  projections: [
+    // Per-exercise volume cards — ReceiverReviewPanel aggregates these by metricType
+    { name: 'Deadlift Volume', value: 6750, unit: 'lb', metricType: 'volume', color: '#f59e0b' },
+    { name: 'Bench Volume', value: 5550, unit: 'lb', metricType: 'volume', color: '#f59e0b' },
+    { name: 'Squat Volume', value: 6150, unit: 'lb', metricType: 'volume', color: '#f59e0b' },
+    { name: 'Total Reps', value: 90, unit: 'reps', metricType: 'repetitions', color: '#6366f1' },
+    { name: 'Work Time', value: 1335, unit: 's', metricType: 'elapsed', color: '#3b82f6' },
+  ],
+};
+
 /** Zero rows / projections — defensive empty state */
 const EMPTY_REVIEW_DATA: ReviewData = {
   totalDurationMs: 0,
   completedSegments: 0,
   rows: [],
+};
+
+/** Many projections — forces the 2-column grid to wrap */
+const MANY_PROJECTIONS_DATA: AnalyticsSummary = {
+  totalDurationMs: 45 * 60_000,
+  completedSegments: 24,
+  projections: [
+    { name: 'Total Reps', value: 1240, unit: 'reps', metricType: 'repetitions', color: '#6366f1' },
+    { name: 'Total Volume', value: 28500, unit: 'lb', metricType: 'volume', color: '#f59e0b' },
+    { name: 'Distance', value: 3200, unit: 'm', metricType: 'distance', color: '#10b981' },
+    { name: 'Work Time', value: 2340, unit: 's', metricType: 'elapsed', color: '#3b82f6' },
+    { name: 'Rest Time', value: 360, unit: 's', metricType: 'elapsed', color: '#8b5cf6' },
+    { name: 'Avg Power', value: 185, unit: 'W', metricType: 'work', color: '#ef4444' },
+    { name: 'Rounds', value: 8, unit: 'rounds', metricType: 'rounds', color: '#ec4899' },
+    { name: 'Load', value: 225, unit: 'lb', metricType: 'resistance', color: '#14b8a6' },
+  ],
+};
+
+/** Long projection names — tests text wrapping and layout stability */
+const LONG_NAMES_DATA: AnalyticsSummary = {
+  totalDurationMs: 15 * 60_000,
+  completedSegments: 6,
+  projections: [
+    { name: 'Overhead Squat Volume (Snatch Balance)', value: 6750, unit: 'lb', metricType: 'volume', color: '#f59e0b' },
+    { name: 'Average Time Per Round Including Rest', value: 225, unit: 's', metricType: 'elapsed', color: '#3b82f6' },
+  ],
+};
+
+/** Large numbers — tests formatting and overflow */
+const LARGE_NUMBERS_DATA: AnalyticsSummary = {
+  totalDurationMs: 120 * 60_000,
+  completedSegments: 50,
+  projections: [
+    { name: 'Total Reps', value: 999999, unit: 'reps', metricType: 'repetitions', color: '#6366f1' },
+    { name: 'Total Volume', value: 1500000, unit: 'lb', metricType: 'volume', color: '#f59e0b' },
+    { name: 'Distance', value: 42195, unit: 'm', metricType: 'distance', color: '#10b981' },
+  ],
+};
+
+/** Zero duration but some segments — edge case for duration formatting */
+const ZERO_DURATION_DATA: ReviewData = {
+  totalDurationMs: 0,
+  completedSegments: 3,
+  rows: [
+    { label: 'Total Time', value: '0:00' },
+    { label: 'Segments', value: '3' },
+  ],
+};
+
+const ZERO_DURATION_ANALYTICS: AnalyticsSummary = {
+  totalDurationMs: 0,
+  completedSegments: 3,
+  projections: [
+    { name: 'Total Reps', value: 0, unit: 'reps', metricType: 'repetitions', color: '#6366f1' },
+  ],
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -367,3 +497,130 @@ export const LightBackground: Story = {
     darkBackground: false,
   },
 };
+
+/**
+ * Aggregated stats — per-exercise volume projections are merged into a
+ * single session-level card by metricType.  This keeps the TV grid compact
+ * (≤6 cards) when multiple exercises emit projections of the same type.
+ * AC: WOD-656 — stats aggregation in ReceiverReviewPanel.
+ */
+export const AggregatedStats: Story = {
+  name: 'Aggregated Stats (WOD-656)',
+  args: {
+    reviewData: AGGREGATED_REVIEW_DATA,
+    analyticsSummary: AGGREGATED_ANALYTICS,
+    darkBackground: true,
+  },
+};
+
+/**
+ * Many projections — 8 cards in a 2-column grid to verify wrapping.
+ * AC: Grid stays readable when projections exceed typical count.
+ */
+export const ManyProjections: Story = {
+  name: 'Edge: Many Projections (8 Cards)',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: MANY_PROJECTIONS_DATA,
+    darkBackground: true,
+  },
+};
+
+/**
+ * Long projection names — exercises text wrapping and truncation.
+ */
+export const LongProjectionNames: Story = {
+  name: 'Edge: Long Projection Names',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: LONG_NAMES_DATA,
+    darkBackground: true,
+  },
+};
+
+/**
+ * Large numbers — 6-7 digit values to verify formatting and overflow.
+ */
+export const LargeNumbers: Story = {
+  name: 'Edge: Large Numbers',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: LARGE_NUMBERS_DATA,
+    darkBackground: true,
+  },
+};
+
+/**
+ * Zero duration — workout completed instantly (edge case).
+ * Verifies duration formatter handles 0 ms gracefully.
+ */
+export const ZeroDuration: Story = {
+  name: 'Edge: Zero Duration',
+  args: {
+    reviewData: ZERO_DURATION_DATA,
+    analyticsSummary: ZERO_DURATION_ANALYTICS,
+    darkBackground: true,
+  },
+};
+
+/**
+ * Dismiss button unfocused — the D-Pad dismiss affordance at rest.
+ * Verifies the button is present, correctly labelled, and spatially
+ * registered for navigation (data-nav-id="btn-dismiss").
+ * AC: Storybook shows focusable dismiss button (WOD-263).
+ */
+export const WithDismissButton: Story = {
+  name: 'Dismiss Button (Unfocused)',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: FRAN_ANALYTICS,
+    darkBackground: true,
+    dismissFocused: false,
+    onDismiss: fn().mockName('onDismiss'),
+  },
+};
+
+/**
+ * Dismiss button focused — the D-Pad dismiss affordance when selected via
+ * remote.  Tests the `data-[nav-focused=true]` Tailwind variant.
+ * This is the visual state the user sees immediately before pressing Select.
+ * AC: Storybook shows focusable dismiss button in focused state (WOD-263).
+ */
+export const DismissButtonFocused: Story = {
+  name: 'Dismiss Button (D-Pad Focused)',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: FRAN_ANALYTICS,
+    darkBackground: true,
+    dismissFocused: true,
+    onDismiss: fn().mockName('onDismiss'),
+  },
+};
+
+/**
+ * Dismiss button mid activation-flash (WOD-274).
+ *
+ * Demonstrates the element-level `.tv-activating` pulse that fires when the
+ * user presses Select on the TV remote. This replaces the old full-screen
+ * `bg-primary/10` overlay which was imperceptible at TV (10-foot) distance.
+ *
+ * The `.tv-activating` keyframe scales the element up ~14% and boosts
+ * brightness, creating a sharp localised burst right where the user's
+ * attention is. The animation lasts 250 ms and resolves back to the
+ * normal `tv-focusable` ring.
+ *
+ * AC: Storybook shows D-Pad activation with visible feedback at TV distance
+ * (WOD-274).
+ */
+export const DismissButtonActivating: Story = {
+  name: 'Dismiss Button (D-Pad Activating — WOD-274)',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: FRAN_ANALYTICS,
+    darkBackground: true,
+    dismissFocused: true,
+    dismissActivating: true,
+    onDismiss: fn().mockName('onDismiss'),
+  },
+};
+

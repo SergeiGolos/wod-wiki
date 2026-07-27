@@ -35,9 +35,6 @@ const createMockBlock = (
         pushMemory: vi.fn(),
         getMemoryByTag: vi.fn().mockReturnValue([]),
         getAllMemory: vi.fn().mockReturnValue([]),
-        hasMemory: vi.fn(),
-        getMemory: vi.fn(),
-        setMemoryValue: vi.fn(),
         markComplete: vi.fn(),
     };
 };

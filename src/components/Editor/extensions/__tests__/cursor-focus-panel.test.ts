@@ -1,10 +1,13 @@
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { MetricType } from "@/core/models/Metric";
 import type { ICodeStatement } from "@/core/models/CodeStatement";
 import { cursorFocusExtension, getCursorFocusState, renderPanelContent } from "../cursor-focus-panel";
 import { sectionField } from "../section-state";
+import * as parserModule from "@/parser/parserInstance";
+import { ChoiceGroupMetric } from "@/runtime/compiler/metrics/ChoiceGroupMetric";
+import { ResistanceMetric } from "@/runtime/compiler/metrics/ResistanceMetric";
 
 function createView(doc: string, selectionLine: number): EditorView {
   if (!window.requestAnimationFrame) {
@@ -31,6 +34,10 @@ function createView(doc: string, selectionLine: number): EditorView {
 }
 
 describe("cursorFocusExtension", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("renders feedback as a widget anchored to the focused WOD closing fence", () => {
     const view = createView("Intro\n```wod\n10 Pushups\n```", 3);
     const panel = view.contentDOM.querySelector(".cm-wod-metric-panel-anchor .cm-wod-metric-panel");
@@ -55,6 +62,28 @@ describe("cursorFocusExtension", () => {
     view.destroy();
   });
 
+  it("does not crash when parser returns invalid metric offsets", () => {
+    const metric = { type: MetricType.Rep } as any;
+    const statement = {
+      metrics: [metric],
+      metricMeta: new Map([[metric, { startOffset: Number.NaN, endOffset: Number.NaN }]]),
+      meta: { line: 1 },
+    } as unknown as ICodeStatement;
+
+    vi.spyOn(parserModule, "createParser").mockReturnValue({
+      read: vi.fn().mockReturnValue({
+        statements: [statement],
+      }),
+    } as any);
+
+    const create = () => createView("Intro\n```wod\n10 Pushups\n```", 3);
+    expect(create).not.toThrow();
+
+    const view = create();
+    expect(getCursorFocusState(view.state)).not.toBeNull();
+    view.destroy();
+  });
+
   it("renders the same focused metric hint content", () => {
     const statement = {
       metrics: [
@@ -67,5 +96,17 @@ describe("cursorFocusExtension", () => {
 
     expect(panel.querySelector(".cm-wod-metric-panel__label-item--focused")?.textContent).toBe("Timer");
     expect(panel.querySelector(".cm-wod-metric-panel__hint")?.textContent).toBe("Ctrl+↑↓ · adjust");
+  });
+
+  it("renders choice metric using its underlying type label and colour", () => {
+    const statement = {
+      metrics: [
+        new ChoiceGroupMetric([new ResistanceMetric(135, 'lb'), new ResistanceMetric(185, 'lb')]),
+      ],
+    } as unknown as ICodeStatement;
+
+    const panel = renderPanelContent(statement, null);
+
+    expect(panel.querySelector(".cm-wod-metric-panel__label-item")?.textContent).toBe("Weight");
   });
 });

@@ -1,3 +1,10 @@
+---
+tags:
+  - swimming
+  - endurance
+  - competition
+---
+
 # Olympic Games Race Week
 
 **Type**: Competition Peak  

@@ -15,7 +15,7 @@ export interface IRuntimeBehavior {
   /**
    * Called when the owning block is mounted.
    * Use ctx.subscribe() to listen for events and ctx.emitOutput() for initial reports.
-   * Use ctx.setMemory() to initialize block state.
+   * Use ctx.pushMemory() to initialize block state.
    */
   onMount(ctx: IBehaviorContext): IRuntimeAction[];
 
@@ -39,4 +39,16 @@ export interface IRuntimeBehavior {
    * Final cleanup hook.
    */
   onDispose(ctx: IBehaviorContext): void;
+
+  /**
+   * Legacy API: called when a block is pushed onto the stack.
+   * Superseded by onMount. Retained for backward-compatible mock behaviors.
+   */
+  onPush?(block: any, clock: any): IRuntimeAction[];
+
+  /**
+   * Legacy API: called when a block is popped from the stack.
+   * Superseded by onUnmount. Retained for backward-compatible mock behaviors.
+   */
+  onPop?(block: any, clock: any): IRuntimeAction[];
 }

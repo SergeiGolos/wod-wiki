@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2020 CrossFit Games - Event 8 "Handstand Push-up"
 
 **Category:** Competition

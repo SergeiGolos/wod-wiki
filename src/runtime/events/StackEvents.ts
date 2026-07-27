@@ -1,6 +1,6 @@
 import { IEvent } from '../contracts/events/IEvent';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
-
+import { INowProvider, wallClockNow } from '../INowProvider';
 /**
  * Base class for stack events containing the current stack state.
  */
@@ -9,8 +9,8 @@ abstract class BaseStackEvent implements IEvent {
   readonly timestamp: Date;
   readonly data: { blocks: readonly IRuntimeBlock[] };
 
-  constructor(blocks: readonly IRuntimeBlock[]) {
-    this.timestamp = new Date();
+  constructor(blocks: readonly IRuntimeBlock[], now: INowProvider = wallClockNow) {
+    this.timestamp = now.now();
     this.data = { blocks };
   }
 }
@@ -21,8 +21,8 @@ abstract class BaseStackEvent implements IEvent {
 export class StackPushEvent extends BaseStackEvent {
   readonly name = 'stack:push';
 
-  constructor(blocks: readonly IRuntimeBlock[]) {
-    super(blocks);
+  constructor(blocks: readonly IRuntimeBlock[], now: INowProvider = wallClockNow) {
+    super(blocks, now);
   }
 }
 
@@ -32,8 +32,8 @@ export class StackPushEvent extends BaseStackEvent {
 export class StackPopEvent extends BaseStackEvent {
   readonly name = 'stack:pop';
 
-  constructor(blocks: readonly IRuntimeBlock[]) {
-    super(blocks);
+  constructor(blocks: readonly IRuntimeBlock[], now: INowProvider = wallClockNow) {
+    super(blocks, now);
   }
 }
 
@@ -43,7 +43,7 @@ export class StackPopEvent extends BaseStackEvent {
 export class StackClearEvent extends BaseStackEvent {
   readonly name = 'stack:clear';
 
-  constructor(blocks: readonly IRuntimeBlock[]) {
-    super(blocks);
+  constructor(blocks: readonly IRuntimeBlock[], now: INowProvider = wallClockNow) {
+    super(blocks, now);
   }
 }

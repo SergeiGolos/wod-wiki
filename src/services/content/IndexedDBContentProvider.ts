@@ -5,40 +5,55 @@
  * Manages the Note -> NoteSegment (versioned) hierarchy.
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
-import { toShortId } from '../../lib/idUtils';
-import type { AttachmentCreateInput, IContentProvider, ContentProviderMode } from '../../types/content-provider';
+import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
-import { indexedDBService } from '@/services/db/IndexedDBService';
-import { Note, NoteSegment, WorkoutResult, SegmentDataType, Attachment } from '../../types/storage';
+import { indexedDBService, type IndexedDBService } from '@/services/db/IndexedDBService';
+import { Note, NoteSegment, WorkoutResult, SegmentDataType, Attachment, ResultOrigin } from '../../types/storage';
 import { parseDocumentSections } from '../../components/Editor/utils/sectionParser';
-import { Section, SectionType } from '../../components/Editor/types/section';
+import { Section, SectionType, ScriptBlock } from '../../components/Editor/types/section';
+import { extractFrontmatterTags } from '../../lib/frontmatter';
 
 const MAX_TIMESTAMP_ID_SUFFIX_ATTEMPTS = 100;
 
 /**
- * Map legacy SectionType values stored in older DBs to current types.
- * 'heading' → 'title', 'paragraph' | 'empty' → 'markdown', others pass through.
+ * Map stored SegmentDataType values to section types: h1–h6 → 'title'
+ * (heading level is encoded in the type, S-06); everything else passes through.
  */
 function migrateSectionType(storedType: string): SectionType {
-    switch (storedType) {
-        case 'heading': return 'title';
-        case 'paragraph':
-        case 'empty':
-            return 'markdown';
-        default:
-            return storedType as SectionType;
-    }
+    if (levelFromDataType(storedType) !== undefined) return 'title';
+    return storedType as SectionType;
+}
+
+/** Heading level back out of an h1–h6 dataType; undefined for non-headings. */
+function levelFromDataType(dataType: string): number | undefined {
+    const match = /^h([1-6])$/.exec(dataType);
+    return match ? Number(match[1]) : undefined;
 }
 
 /**
- * Convert a SectionType to a V4 SegmentDataType.
+ * Tags declared in the frontmatter sections of a document (T4 bridge).
+ * Accepts parser Sections (`type`) and stored NoteSegments (`dataType`).
  */
-function toSegmentDataType(sectionType: SectionType): SegmentDataType {
-    switch (sectionType) {
+function frontmatterTagsOf(parts: readonly { type: string; rawContent: string }[]): string[] {
+    const tags = parts
+        .filter(part => part.type === 'frontmatter')
+        .flatMap(part => extractFrontmatterTags(part.rawContent));
+    return Array.from(new Set(tags));
+}
+
+/**
+ * Convert a Section to a V11 SegmentDataType. Heading level is encoded in the
+ * type itself (h1–h6) — the separate `level` field is gone (S-04/S-06).
+ */
+function toSegmentDataType(section: Pick<Section, 'type' | 'level'>): SegmentDataType {
+    switch (section.type) {
         case 'wod': return 'wod';
-        case 'title': return 'title';
+        case 'title': {
+            const level = Math.min(6, Math.max(1, section.level ?? 1));
+            return `h${level}` as SegmentDataType;
+        }
         case 'frontmatter': return 'frontmatter';
         case 'markdown':
         default:
@@ -47,8 +62,16 @@ function toSegmentDataType(sectionType: SectionType): SegmentDataType {
 }
 
 export class IndexedDBContentProvider implements IContentProvider {
+    /**
+     * @param db storage backing — injectable so tests can supply a real
+     * service instance when the module-level singleton is registry-mocked.
+     */
+    constructor(private readonly db: IndexedDBService = indexedDBService) {}
+
     readonly mode: ContentProviderMode = 'history';
+    readonly persistenceBackend = 'indexed-db' as const;
     readonly capabilities: ProviderCapabilities = {
+
         canWrite: true,
         canDelete: true,
         canFilter: true,
@@ -57,35 +80,55 @@ export class IndexedDBContentProvider implements IContentProvider {
     };
 
     async getEntries(query?: EntryQuery): Promise<HistoryEntry[]> {
-        const notes = await indexedDBService.getAllNotes();
-        // const entries: HistoryEntry[] = []; // Removed unused variable
+        const notes = await this.db.getAllNotes();
 
-        // Convert Notes to HistoryEntries
-        // Note: This is N+1 if we fetch scripts for every note. 
-        // Optimization: For the list view, we might only need Note metadata + maybe a snippet.
-        // For now, to match the interface, we'll try to get the latest script for each.
+        // Batch the derived-field lookups (V11): journalDate comes from the
+        // page, tags from note_tags + tags, content from segments (one
+        // getAll, grouped client-side — listNotes search reads rawContent).
+        const pageIds = Array.from(new Set(notes.map(n => n.pageId).filter((id): id is string => !!id)));
+        const pages = new Map<string, string | undefined>();
+        await Promise.all(pageIds.map(async id => {
+            pages.set(id, (await this.db.getPage(id))?.date);
+        }));
+        const tagsByNote = new Map<string, string[]>();
+        await Promise.all(notes.map(async note => {
+            tagsByNote.set(note.id, (await this.db.getTagsForNote(note.id)).map(t => t.label));
+        }));
 
-        // We can do this in parallel
-        const entryPromises = notes.map(async (note) => {
-            // Prefer rawContent cached on the note (segment-based model).
-            const rawContent = note.rawContent || '';
+        const allSegments = await (this.db as IndexedDBService).getAllSegments();
+        const latestByNote = new Map<string, Map<string, NoteSegment>>();
+        for (const segment of allSegments) {
+            let byId = latestByNote.get(segment.noteId);
+            if (!byId) { byId = new Map(); latestByNote.set(segment.noteId, byId); }
+            const current = byId.get(segment.id);
+            if (!current || segment.version > current.version) byId.set(segment.id, segment);
+        }
+        const rawContentFor = (noteId: string): string => {
+            const byId = latestByNote.get(noteId);
+            if (!byId) return '';
+            return [...byId.values()]
+                .filter((s) => !s.isHistory)
+                .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt))
+                .map(s => migrateSectionType(s.dataType) === 'wod'
+                    ? `\`\`\`${(s.data as ScriptBlock | null)?.dialect ?? 'wod'}\n${s.rawContent}\n\`\`\``
+                    : s.rawContent)
+                .join('\n');
+        };
 
-            return {
-                id: note.id,
-                title: note.title,
-                createdAt: note.createdAt,
-                updatedAt: note.updatedAt,
-                targetDate: note.targetDate || note.createdAt,
-                rawContent,
-                tags: note.tags,
-                type: note.type || 'note',
-                templateId: note.templateId,
-                clonedIds: note.clonedIds,
-                schemaVersion: 1,
-            } as HistoryEntry;
-        });
-
-        const resolved = (await Promise.all(entryPromises)).filter((e): e is HistoryEntry => e !== null);
+        const resolved = notes.map(note => ({
+            id: note.id,
+            title: note.title,
+            slug: note.slug,
+            createdAt: note.createdAt,
+            updatedAt: note.createdAt,
+            targetDate: note.createdAt,
+            journalDate: note.pageId ? pages.get(note.pageId) : undefined,
+            rawContent: rawContentFor(note.id),
+            tags: tagsByNote.get(note.id) ?? [],
+            type: note.type || 'note',
+            sourceId: note.sourceId,
+            schemaVersion: 1,
+        } as HistoryEntry));
 
         // Client-side filtering (IndexedDB indexes are used for getAll, but complex filtering is here)
         let filtered = resolved;
@@ -115,49 +158,42 @@ export class IndexedDBContentProvider implements IContentProvider {
     }
 
     async getEntry(id: string): Promise<HistoryEntry | null> {
-        let note = await indexedDBService.getNote(id);
-
+        let note = await this.db.getNote(id);
         if (!note) {
-            const allNotes = await indexedDBService.getAllNotes();
-            const resolved = allNotes.find((n: Note) => toShortId(n.id) === id || n.title.toLowerCase() === id.toLowerCase());
-            note = resolved || undefined;
+            note = await this.db.getNoteBySlug(id);
         }
 
         if (!note) return null;
 
-        let rawContent = '';
-        let segments: NoteSegment[] = [];
-        if (note.segmentIds && note.segmentIds.length > 0) {
-            // Reconstruct from segments
-            const fetchedSegments = await indexedDBService.getLatestSegments(note.segmentIds);
-            // Sort segments according to segmentIds order
-            segments = note.segmentIds.map(sid => fetchedSegments.find(s => s.id === sid)).filter((s): s is NoteSegment => !!s);
+        // V11 — content always reconstructs from segments (note.rawContent is gone).
+        const segments = await this.db.getLatestSegmentsForNote(note.id);
+        const rawContent = segments.map(s => {
+            const resolvedType = migrateSectionType(s.dataType);
+            if (resolvedType === 'wod') {
+                const dialect = (s.data as ScriptBlock | null)?.dialect ?? 'wod';
+                return `\`\`\`${dialect}\n${s.rawContent}\n\`\`\``;
+            }
+            // Title and markdown sections: content already includes heading prefix (e.g. "# Hello")
+            return s.rawContent;
+        }).join('\n');
 
-            // Rebuild rawContent
-            rawContent = segments.map(s => {
-                const resolvedType = migrateSectionType(s.dataType);
-                if (resolvedType === 'wod') {
-                    const dialect = s.wodBlock?.dialect ?? 'wod';
-                    return `\`\`\`${dialect}\n${s.rawContent}\n\`\`\``;
-                }
-                // Title and markdown sections: content already includes heading prefix (e.g. "# Hello")
-                return s.rawContent;
-            }).join('\n');
-        } else {
-            // Legacy Note (no segmentIds) — fallback to rawContent on note
-            rawContent = note.rawContent || '';
-        }
+        // Derived projection fields (removed from the Note row in V11).
+        const [page, tags] = await Promise.all([
+            note.pageId ? this.db.getPage(note.pageId) : undefined,
+            this.db.getTagsForNote(note.id),
+        ]);
 
         // Fetch latest result for this note
-        const latestResults = await indexedDBService.getResultsForNote(note.id);
+        const latestResults = await this.db.getResultsForNote(note.id);
         const latestResult = latestResults.length > 0
-            ? latestResults.sort((a, b) => b.completedAt - a.completedAt)[0]
+            ? latestResults.sort((a, b) => b.createdAt - a.createdAt)[0]
             : undefined;
 
         // Map NoteSegment to Section types for the editor
         const sections: Section[] = segments.map(s => {
             const resolvedType = migrateSectionType(s.dataType);
-            const dialect = s.wodBlock?.dialect ?? 'wod';
+            const block = s.data as ScriptBlock | null;
+            const dialect = block?.dialect ?? 'wod';
             return {
                 id: s.id,
                 type: resolvedType,
@@ -166,8 +202,8 @@ export class IndexedDBContentProvider implements IContentProvider {
                     : s.rawContent,
                 displayContent: s.rawContent,
                 dialect: resolvedType === 'wod' ? dialect : undefined,
-                level: s.level,
-                wodBlock: s.wodBlock,
+                level: levelFromDataType(s.dataType),
+                scriptBlock: block ?? undefined,
                 version: s.version,
                 createdAt: s.createdAt,
                 // lines will be recomputed by the hook
@@ -180,16 +216,17 @@ export class IndexedDBContentProvider implements IContentProvider {
         return {
             id: note.id,
             title: note.title,
+            slug: note.slug,
             createdAt: note.createdAt,
-            updatedAt: note.updatedAt,
-            targetDate: note.targetDate || note.createdAt,
+            updatedAt: note.createdAt, // V11 — note.updatedAt removed; derive
+            targetDate: note.createdAt, // V11 — note.targetDate removed; derive
+            journalDate: page?.date,
             rawContent,
             sections,
             results: latestResult?.data,
-            tags: note.tags,
-            type: (note.type as any) || 'note',
-            templateId: note.templateId,
-            clonedIds: note.clonedIds,
+            tags: tags.map(t => t.label),
+            type: note.type ?? 'note',
+            sourceId: note.sourceId,
             schemaVersion: 1,
         };
     }
@@ -204,23 +241,25 @@ export class IndexedDBContentProvider implements IContentProvider {
             tags: source.tags,
             targetDate: targetDate || Date.now(),
             type: 'note',
-            templateId: source.id,  // Track which entry this was cloned from
+            sourceId: source.id,  // Track which entry this was cloned from
         });
-
-        // Update source entry's clonedIds to track this clone
-        const updatedClonedIds = [...(source.clonedIds || []), cloned.id];
-        await this.updateEntry(sourceId, { clonedIds: updatedClonedIds });
 
         return cloned;
     }
 
-    async saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry> {
+    async saveEntry(entry: NoteSaveInput): Promise<HistoryEntry> {
         const now = Date.now();
-        let noteId = entry.type === 'playground' ? formatPlaygroundTimestampId(now) : uuidv4();
-        if (entry.type === 'playground') {
+        // Preserve a recovered id (export → import round-trip) so a re-imported
+        // note overwrites its original instead of duplicating. Absent on the
+        // normal create path → mint a fresh id (playground uses timestamp ids).
+        let noteId = entry.id;
+        if (!noteId) {
+            noteId = entry.type === 'playground' ? formatPlaygroundTimestampId(now) : uuidv7();
+        }
+        if (entry.type === 'playground' && !entry.id) {
             const baseNoteId = noteId;
             let attempt = 0;
-            while (await indexedDBService.getNote(noteId)) {
+            while (await this.db.getNote(noteId)) {
                 attempt += 1;
                 if (attempt > MAX_TIMESTAMP_ID_SUFFIX_ATTEMPTS) {
                     throw new Error('Unable to allocate unique playground timestamp ID');
@@ -229,73 +268,98 @@ export class IndexedDBContentProvider implements IContentProvider {
             }
         }
 
-        // TRANSITION TO SEGMENTS
-        const sections = parseDocumentSections(entry.rawContent);
-        const segmentIds: string[] = [];
+        // Preserve recovered timestamps; mint fresh when absent.
+        const createdAt = entry.createdAt ?? now;
 
+        // Journal-dated notes join their calendar page (N-02).
+        const pageId = entry.journalDate
+            ? (await this.db.getOrCreatePageForDate(entry.journalDate)).id
+            : undefined;
+
+        // TRANSITION TO SEGMENTS — content lives only here (N-03/N-04).
+        const sections = parseDocumentSections(entry.rawContent);
+
+        let position = 0;
         for (const section of sections) {
             const segment: NoteSegment = {
                 id: section.id,
                 version: 1,
                 noteId: noteId,
-                dataType: toSegmentDataType(section.type),
-                data: section.wodBlock || null,
+                position: position++,
+                pageId,
+                dataType: toSegmentDataType(section),
+                data: section.scriptBlock || null,
                 rawContent: section.displayContent,
-                level: section.level,
-                wodBlock: section.wodBlock,
-                createdAt: now,
+                createdAt,
+                updatedAt: createdAt,
+                isHistory: false,
             };
-            await indexedDBService.saveSegment(segment);
-            segmentIds.push(section.id);
+            await this.db.saveSegment(segment);
         }
 
         const note: Note = {
             id: noteId,
+            slug: entry.slug,
+            pageId,
             title: entry.title,
-            rawContent: entry.rawContent,
-            tags: entry.tags,
             type: entry.type || 'note',
-            templateId: entry.templateId,
-            clonedIds: entry.clonedIds,
-            createdAt: now,
-            updatedAt: now,
-            targetDate: entry.targetDate || now,
-            segmentIds
+            sourceId: entry.sourceId,
+            createdAt,
         };
 
-        await indexedDBService.saveNote(note);
+        await this.db.saveNote(note);
+        // T4 bridge: frontmatter `tags:` are additive into the note's tag set.
+        const mergedTags = Array.from(new Set([...entry.tags, ...frontmatterTagsOf(sections)]));
+        if (mergedTags.length > 0) {
+            await this.db.setNoteTags(noteId, mergedTags);
+        }
 
         return {
             ...entry,
             id: noteId,
-            createdAt: now,
-            updatedAt: now,
-            targetDate: entry.targetDate || now,
+            createdAt,
+            updatedAt: createdAt,
+            targetDate: createdAt,
+            type: note.type,
+            slug: note.slug,
+            journalDate: entry.journalDate,
             schemaVersion: 1
         };
+
     }
 
-    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'type' | 'clonedIds' | 'targetDate'>> & { sectionId?: string; resultId?: string }): Promise<HistoryEntry> {
-        let note = await indexedDBService.getNote(id);
+    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'journalDate' | 'slug' | 'type' | 'sourceId'>> & { sectionId?: string; resultId?: string; blockId?: string; blockContentId?: string; version?: number; segmentId?: string; origin?: ResultOrigin }): Promise<HistoryEntry> {
+        let note = await this.db.getNote(id);
 
         if (!note) {
-            const allNotes = await indexedDBService.getAllNotes();
-            const resolved = allNotes.find((n: Note) => toShortId(n.id) === id || n.title.toLowerCase() === id.toLowerCase());
-            note = resolved || undefined;
+            note = await this.db.getNoteBySlug(id);
         }
 
         if (!note) throw new Error(`Note not found: ${id}`);
 
         const now = Date.now();
 
-        // Update Metadata
+        // Update Metadata — the slim V11 note row. journalDate patches map to
+        // page linkage (N-02); tags go to note_tags (N-06).
         if (patch.title) note.title = patch.title;
-        if (patch.tags) note.tags = patch.tags;
         if (patch.type) note.type = patch.type;
-        if (patch.clonedIds) note.clonedIds = patch.clonedIds;
-        if (patch.targetDate !== undefined) note.targetDate = patch.targetDate;
+        if (patch.slug !== undefined) note.slug = patch.slug;
+        if (patch.sourceId !== undefined) note.sourceId = patch.sourceId;
+        if (patch.journalDate !== undefined) {
+            note.pageId = patch.journalDate
+                ? (await this.db.getOrCreatePageForDate(patch.journalDate)).id
+                : undefined;
+        }
 
-        let finalRawContent = note.rawContent;
+        const metadataChanged = Boolean(
+            patch.title || patch.type || patch.slug !== undefined
+            || patch.sourceId !== undefined || patch.journalDate !== undefined
+            || patch.tags || patch.rawContent !== undefined,
+        );
+
+        let finalRawContent = '';
+        // Tags parsed out of the new content's frontmatter sections (T4).
+        let frontmatterTags: string[] | undefined;
 
         if (patch.rawContent !== undefined) {
             finalRawContent = patch.rawContent;
@@ -303,23 +367,40 @@ export class IndexedDBContentProvider implements IContentProvider {
             // TRANSITION TO SEGMENTS
             // Parse into sections to identify units
             const sections = parseDocumentSections(patch.rawContent);
-            const newSegmentIds: string[] = [];
+            frontmatterTags = frontmatterTagsOf(sections);
+            let position = 0;
 
-            // Fetch current segments to compare versions
-            const currentSegments = note.segmentIds && note.segmentIds.length > 0
-                ? await indexedDBService.getLatestSegments(note.segmentIds)
-                : [];
+            // Fetch current segments to compare versions — the full lineage
+            // (retired rows included) so resurrect / retire-sweep semantics
+            // see every live AND historical incarnation.
+            const currentSegments = await this.db.getLatestSegmentsForNote(note.id, { includeHistory: true });
+            const consumed = new Set<NoteSegment>();
+            const retired = new Set<NoteSegment>();
+
+            // The position+type fallback supersedes at most one row per
+            // section, so supersession is completed by the sweep below.
+            const retire = async (segment: NoteSegment) => {
+                if (segment.isHistory || retired.has(segment)) return;
+                retired.add(segment);
+                await this.db.saveSegment({ ...segment, isHistory: true, updatedAt: now });
+            };
 
             for (const section of sections) {
-                // Match by position + type first (stable across content changes),
-                // then fall back to exact sectionId match.
+                // Match by exact id first, then by position + type (stable
+                // across content changes at the same ordinal). The fallback
+                // only considers live, unconsumed rows — content-addressed
+                // ids change with content, so a retired row must never be
+                // re-matched (that re-minted every save at version+1 and
+                // left the other live rows to pile up, #705).
                 const existingSegment =
-                    currentSegments.find(s => s.id === section.id) ||
-                    currentSegments.find((s, idx) => {
-                        const samePosition = idx === newSegmentIds.length; // same ordinal
-                        const sameType = s.dataType === toSegmentDataType(section.type) || migrateSectionType(s.dataType) === section.type;
+                    currentSegments.find(s => !consumed.has(s) && s.id === section.id) ||
+                    currentSegments.find(s => {
+                        if (consumed.has(s) || s.isHistory) return false;
+                        const samePosition = s.position === position;
+                        const sameType = s.dataType === toSegmentDataType(section) || migrateSectionType(s.dataType) === section.type;
                         return samePosition && sameType;
                     });
+                if (existingSegment) consumed.add(existingSegment);
 
                 // Content changed or new segment
                 if (!existingSegment || existingSegment.rawContent !== section.displayContent) {
@@ -328,82 +409,135 @@ export class IndexedDBContentProvider implements IContentProvider {
                         id: section.id,
                         version: newVersion,
                         noteId: note.id,
-                        dataType: toSegmentDataType(section.type),
-                        data: section.wodBlock || null,
+                        position,
+                        pageId: note.pageId,
+                        dataType: toSegmentDataType(section),
+                        data: section.scriptBlock || null,
                         rawContent: section.displayContent,
-                        level: section.level,
-                        wodBlock: section.wodBlock,
                         createdAt: now,
+                        updatedAt: now,
+                        isHistory: false,
                     };
-                    await indexedDBService.saveSegment(segment);
+                    await this.db.saveSegment(segment);
+                    if (existingSegment) {
+                        // The bumped incarnation supersedes the previous latest.
+                        await retire(existingSegment);
+                    }
                 } else if (existingSegment.id !== section.id) {
                     // Same content, different ID — carry forward under the new ID
                     const segment: NoteSegment = {
                         id: section.id,
                         version: existingSegment.version,
                         noteId: note.id,
-                        dataType: toSegmentDataType(section.type),
-                        data: section.wodBlock || null,
+                        position,
+                        pageId: note.pageId,
+                        dataType: toSegmentDataType(section),
+                        data: section.scriptBlock || null,
                         rawContent: existingSegment.rawContent,
-                        level: section.level,
-                        wodBlock: section.wodBlock,
                         createdAt: existingSegment.createdAt,
+                        updatedAt: now,
+                        isHistory: false,
                     };
-                    await indexedDBService.saveSegment(segment);
+                    await this.db.saveSegment(segment);
+                    // The old-id row is superseded — retired by the sweep below.
+                } else if (existingSegment.isHistory) {
+                    // Identical content returned after being retired — resurrect.
+                    await this.db.saveSegment({ ...existingSegment, isHistory: false, updatedAt: now });
                 }
-                newSegmentIds.push(section.id);
+                position++;
             }
 
-            note.segmentIds = newSegmentIds;
-            note.rawContent = patch.rawContent; // Keep cache updated
+            // Retire every live row not carried into the new document. Without
+            // this sweep, stale live rows accumulate across saves and
+            // reconstruction joins them into duplicated content (#705).
+            const keptIds = new Set(sections.map(s => s.id));
+            for (const segment of currentSegments) {
+                if (!keptIds.has(segment.id)) await retire(segment);
+            }
+        }
+
+        // T4 bridge — frontmatter `tags:` union into note_tags. Frontmatter is
+        // ADDITIVE ONLY: a label present in content is (re-)added on every
+        // save; removing it from frontmatter never deletes the note_tag
+        // (note_tags carry no provenance, so destructive sync could delete
+        // manual tags sharing the label). Manual editors still replace the
+        // manual portion via patch.tags.
+        if (patch.tags || patch.rawContent !== undefined) {
+            const fmTags = frontmatterTags
+                ?? frontmatterTagsOf(
+                    (await this.db.getLatestSegmentsForNote(note.id))
+                        .map(segment => ({ type: segment.dataType, rawContent: segment.rawContent })),
+                );
+            if (patch.tags || fmTags.length > 0) {
+                const base = patch.tags ?? (await this.db.getTagsForNote(note.id)).map(tag => tag.label);
+                await this.db.setNoteTags(note.id, Array.from(new Set([...base, ...fmTags])));
+            }
         }
 
         // Handle Results (linked to latest version state of note)
         if (patch.results) {
             const resultData = patch.results;
-            const latestSegment = patch.sectionId
-                ? await indexedDBService.getLatestSegmentVersion(patch.sectionId)
+            // Key the segment lookup by segmentId (positional section id) —
+            // previously looked up by blockContentId (a content hash), which
+            // never matched and left every result's segmentVersion undefined.
+            const latestSegment = patch.segmentId
+                ? await this.db.getLatestSegmentVersion(patch.segmentId)
                 : undefined;
             const newResult: WorkoutResult = {
-                id: patch.resultId || uuidv4(),
-                segmentId: patch.sectionId, // Link to the NoteSegment that was executed
+                id: patch.resultId || uuidv7(),
+                segmentId: patch.segmentId,
                 segmentVersion: latestSegment?.version,
                 noteId: note.id,   // Use resolved UUID (not raw route param)
-                sectionId: patch.sectionId, // Legacy compat
+                pageId: note.pageId,
+                blockId: patch.blockId,
+                blockContentId: patch.blockContentId,
+                version: patch.version,
+                origin: patch.origin,
                 data: resultData,
-                completedAt: resultData.endTime || now
+                createdAt: resultData.endTime || now
             };
-            await indexedDBService.saveResult(newResult);
+            await this.db.saveResult(newResult);
         }
 
-        note.updatedAt = now;
-        await indexedDBService.saveNote(note);
+        // Persist the mutated note when metadata/content changed (updateEntry
+        // previously never saved it). Pure result writes skip the save so
+        // recording a workout doesn't churn the note row.
+        if (metadataChanged) await this.db.saveNote(note);
+
+        // Derived projection fields for the returned entry.
+        const [page, tags] = await Promise.all([
+            note.pageId ? this.db.getPage(note.pageId) : undefined,
+            this.db.getTagsForNote(note.id),
+        ]);
 
         return {
             id: note.id,
             title: note.title,
             createdAt: note.createdAt,
-            updatedAt: note.updatedAt,
-            targetDate: note.targetDate || note.createdAt,
+            updatedAt: note.createdAt,
+            targetDate: note.createdAt,
+            journalDate: page?.date,
+            slug: note.slug,
             rawContent: finalRawContent,
-            tags: note.tags,
-            type: (note.type as any) || 'note',
+            tags: tags.map(t => t.label),
+            type: note.type ?? 'note',
+            sourceId: note.sourceId,
             schemaVersion: 1
         };
     }
 
     async deleteEntry(id: string): Promise<void> {
-        await indexedDBService.deleteNote(id);
+        await this.db.deleteNote(id);
     }
 
     // --- Attachments ---
 
     async getAttachments(noteId: string): Promise<Attachment[]> {
-        return indexedDBService.getAttachmentsForNote(noteId);
+        return this.db.getAttachmentsForNote(noteId);
     }
 
     async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
-        const id = attachment.id ?? uuidv4();
+        const id = attachment.id ?? uuidv7();
         const now = Date.now();
         const fullAttachment: Attachment = {
             ...attachment,
@@ -411,11 +545,11 @@ export class IndexedDBContentProvider implements IContentProvider {
             noteId,
             createdAt: now,
         } as Attachment;
-        await indexedDBService.saveAttachment(fullAttachment);
+        await this.db.saveAttachment(fullAttachment);
         return fullAttachment;
     }
 
     async deleteAttachment(id: string): Promise<void> {
-        await indexedDBService.deleteAttachment(id);
+        await this.db.deleteAttachment(id);
     }
 }

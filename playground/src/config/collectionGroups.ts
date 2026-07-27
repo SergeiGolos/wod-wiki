@@ -8,7 +8,7 @@
  *   - MarkdownCanvasPage — to show a clickable category chip on collection detail pages
  */
 
-import { getWodCollections } from '@/repositories/wod-collections'
+import { getScriptCollections } from '@/repositories/script-collections'
 
 /**
  * Build a map of category slug → collection IDs from front matter data.
@@ -16,7 +16,7 @@ import { getWodCollections } from '@/repositories/wod-collections'
  */
 export function getCategoryGroups(): Record<string, string[]> {
   const map: Record<string, string[]> = {}
-  for (const collection of getWodCollections()) {
+  for (const collection of getScriptCollections()) {
     for (const cat of collection.categories) {
       if (!map[cat]) map[cat] = []
       map[cat].push(collection.id)

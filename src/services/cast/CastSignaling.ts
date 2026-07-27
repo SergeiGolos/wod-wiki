@@ -15,7 +15,7 @@
 
 import { CAST_NAMESPACE } from '@/types/cast/messages';
 import type { WebRTCSignalMessage } from '@/types/cast/messages';
-import type { ISignaling } from './WebRTCTransport';
+import type { ISignaling } from './rpc/WebRtcRpcTransport';
 
 // ── Sender-side signaling (runs in the web app) ────────────────────────────
 

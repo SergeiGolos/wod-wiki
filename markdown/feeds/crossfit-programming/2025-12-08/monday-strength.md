@@ -1,3 +1,10 @@
+---
+tags:
+  - crossfit
+  - conditioning
+  - strength
+---
+
 # Monday Strength
 
 Back squat cycle — week 2. Increase load by 2.5–5 kg from last week.

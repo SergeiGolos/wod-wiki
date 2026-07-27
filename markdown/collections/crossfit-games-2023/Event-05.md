@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2023 CrossFit Games - Event 5 "Heavy Helen"
 
 **Category:** Competition

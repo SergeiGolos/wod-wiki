@@ -43,7 +43,7 @@ describe('MetricVisibility', () => {
         });
 
         it('should return undefined for non-metric tags', () => {
-            expect(getMetricVisibility('timer')).toBeUndefined();
+            expect(getMetricVisibility('time' as MemoryTag)).toBeUndefined();
             expect(getMetricVisibility('round')).toBeUndefined();
             expect(getMetricVisibility('completion')).toBeUndefined();
             expect(getMetricVisibility('display')).toBeUndefined();
@@ -57,11 +57,11 @@ describe('MetricVisibility', () => {
             expect(isFragmentTag('metric:label')).toBe(true);
             expect(isFragmentTag('metric:tracked')).toBe(true);
             expect(isFragmentTag('metric:rep-target')).toBe(true);
-            expect(isFragmentTag(  'metric')).toBe(true);
+            expect(isFragmentTag('metrics')).toBe(true);
         });
 
         it('should return false for non-metric tags', () => {
-            expect(isFragmentTag('timer')).toBe(false);
+            expect(isFragmentTag('time' as MemoryTag)).toBe(false);
             expect(isFragmentTag('round')).toBe(false);
             expect(isFragmentTag('completion')).toBe(false);
         });
@@ -69,8 +69,8 @@ describe('MetricVisibility', () => {
 
     describe('filterTagsByVisibility', () => {
         const allTags: MemoryTag[] = [
-            'timer', 'round', 'completion', 'display', 'controls',
-              'metric', 'metric:display', 'metric:promote',
+            'time', 'round', 'completion', 'display', 'controls',
+            'metrics', 'metric:display', 'metric:promote',
             'metric:rep-target', 'metric:tracked', 'metric:label',
         ];
 
@@ -121,7 +121,7 @@ describe('RuntimeBlock.getMetricMemoryByVisibility', () => {
     }
 
     it('should return display-tier locations only', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = new RuntimeBlock({ runtime });
         block.pushMemory(new MemoryLocation('metric:display', [createFragment('action', 'Squats')]));
         block.pushMemory(new MemoryLocation('metric:label', [createFragment('label', 'My Block')]));
         block.pushMemory(new MemoryLocation('time', [createFragment('timer', { direction: 'up' })]));
@@ -132,7 +132,7 @@ describe('RuntimeBlock.getMetricMemoryByVisibility', () => {
     });
 
     it('should return promote-tier locations only', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = new RuntimeBlock({ runtime });
         block.pushMemory(new MemoryLocation('metric:display', [createFragment('action', 'Squats')]));
         block.pushMemory(new MemoryLocation('metric:rep-target', [createFragment('rep', 21)]));
         block.pushMemory(new MemoryLocation('metric:promote', [createFragment('effort', 'Heavy')]));
@@ -143,7 +143,7 @@ describe('RuntimeBlock.getMetricMemoryByVisibility', () => {
     });
 
     it('should return private-tier locations only', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = new RuntimeBlock({ runtime });
         block.pushMemory(new MemoryLocation('metric:display', [createFragment('action', 'Squats')]));
         block.pushMemory(new MemoryLocation('metric:tracked', [createFragment('duration', 5000)]));
         block.pushMemory(new MemoryLocation('metric:label', [createFragment('label', 'Timer')]));
@@ -154,7 +154,7 @@ describe('RuntimeBlock.getMetricMemoryByVisibility', () => {
     });
 
     it('should return empty array when no matching tier exists', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = new RuntimeBlock({ runtime });
         block.pushMemory(new MemoryLocation('time', [createFragment('timer', { direction: 'up' })]));
         block.pushMemory(new MemoryLocation('round', [createFragment('round', { current: 1 })]));
 
@@ -164,7 +164,7 @@ describe('RuntimeBlock.getMetricMemoryByVisibility', () => {
     });
 
     it('should handle blocks with all three tiers', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = new RuntimeBlock({ runtime });
         block.pushMemory(new MemoryLocation('metric:display', [createFragment('action', 'Run')]));
         block.pushMemory(new MemoryLocation('metric:display', [createFragment('rep', '21')]));
         block.pushMemory(new MemoryLocation('metric:rep-target', [createFragment('rep', 15)]));

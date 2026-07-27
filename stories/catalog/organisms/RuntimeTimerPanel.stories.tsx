@@ -1,6 +1,18 @@
+/**
+ * Catalog / Organisms / RuntimeTimerPanel
+ *
+ * Renders: {@link import('../../../src/components/organisms/editor/RuntimeTimerPanel').RuntimeTimerPanel}
+ *
+ * Stories:
+ *  1. SimpleTimer — single countdown timer "10:00 Run"
+ *  2. Amrap — 20-min AMRAP
+ *  3. Emom — 10-round EMOM
+ *  4. RoundsForTime — 5-round Fran rep scheme
+ *  5. Expanded — expanded view with more details
+ */
 import type { Meta, StoryObj } from '@storybook/react'
-import { RuntimeTimerPanel } from '../../../src/components/Editor/overlays/RuntimeTimerPanel'
-import type { WodBlock } from '../../../src/components/Editor/types'
+import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
+import type { ScriptBlock } from '../../../src/components/Editor/types'
 
 const meta = {
   title: 'catalog/organisms/RuntimeTimerPanel',
@@ -29,7 +41,7 @@ const baseBlock = {
   createdAt: Date.now(),
 }
 
-const simpleTimerBlock: WodBlock = {
+const simpleTimerBlock: ScriptBlock = {
   ...baseBlock,
   id: 'story-timer-block',
   startLine: 0,
@@ -37,7 +49,7 @@ const simpleTimerBlock: WodBlock = {
   content: '10:00 Run',
 }
 
-const amrapBlock: WodBlock = {
+const amrapBlock: ScriptBlock = {
   ...baseBlock,
   id: 'story-amrap-block',
   startLine: 0,
@@ -48,7 +60,7 @@ const amrapBlock: WodBlock = {
   15 Air Squats`,
 }
 
-const emomBlock: WodBlock = {
+const emomBlock: ScriptBlock = {
   ...baseBlock,
   id: 'story-emom-block',
   startLine: 0,
@@ -58,7 +70,7 @@ const emomBlock: WodBlock = {
   10 Box Jumps`,
 }
 
-const roundsBlock: WodBlock = {
+const roundsBlock: ScriptBlock = {
   ...baseBlock,
   id: 'story-rounds-block',
   startLine: 0,

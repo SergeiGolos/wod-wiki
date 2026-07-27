@@ -1,38 +1,30 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, vi } from 'bun:test';
 import { SubscriptionManager } from '../SubscriptionManager';
 import { LocalRuntimeSubscription } from '../LocalRuntimeSubscription';
 import { IRuntimeSubscription } from '../../contracts/IRuntimeSubscription';
 import { StackSnapshot } from '../../contracts/IRuntimeStack';
 import { IOutputStatement } from '../../../core/models/OutputStatement';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
-import { TrackerUpdate } from '../../contracts/IRuntimeOptions';
 
 // ── Minimal mock runtime for SubscriptionManager ────────────────────────────
 
 function createMockRuntime(): IScriptRuntime & {
     _stackObservers: Set<(s: StackSnapshot) => void>;
     _outputListeners: Set<(o: IOutputStatement) => void>;
-    _trackerListeners: Set<(u: TrackerUpdate) => void>;
     _emitStack: (s: StackSnapshot) => void;
     _emitOutput: (o: IOutputStatement) => void;
-    _emitTracker: (u: TrackerUpdate) => void;
 } {
     const stackObservers = new Set<(s: StackSnapshot) => void>();
     const outputListeners = new Set<(o: IOutputStatement) => void>();
-    const trackerListeners = new Set<(u: TrackerUpdate) => void>();
 
     return {
         _stackObservers: stackObservers,
         _outputListeners: outputListeners,
-        _trackerListeners: trackerListeners,
         _emitStack(snapshot: StackSnapshot) {
             for (const obs of stackObservers) obs(snapshot);
         },
         _emitOutput(output: IOutputStatement) {
             for (const listener of outputListeners) listener(output);
-        },
-        _emitTracker(update: TrackerUpdate) {
-            for (const listener of trackerListeners) listener(update);
         },
         subscribeToStack(observer: (s: StackSnapshot) => void) {
             stackObservers.add(observer);
@@ -42,23 +34,13 @@ function createMockRuntime(): IScriptRuntime & {
             outputListeners.add(listener);
             return () => outputListeners.delete(listener);
         },
-        subscribeToTracker(listener: (u: TrackerUpdate) => void) {
-            trackerListeners.add(listener);
-            return () => trackerListeners.delete(listener);
-        },
-        tracker: {
-            onUpdate: (callback: (u: TrackerUpdate) => void) => {
-                trackerListeners.add(callback);
-                return () => trackerListeners.delete(callback);
-            }
-        },
         // Stubs for the rest of IScriptRuntime
         options: {},
         script: { source: '', statements: [], errors: [], getIds: () => [], getId: () => undefined, getAt: () => undefined } as any,
         eventBus: { register: () => () => {}, on: () => () => {}, unregisterById: () => {}, unregisterByOwner: () => {}, dispatch: () => [], emit: () => {}, dispose: () => {} } as any,
         stack: { blocks: [], count: 0, current: undefined, keys: [], push: () => {}, pop: () => undefined, clear: () => {}, subscribe: () => () => {} } as any,
         jit: null as any,
-        clock: { now: new Date(), elapsed: 0, isRunning: false, spans: [], start: () => new Date(), stop: () => new Date() } as any,
+        clock: { now: new Date(), currentDate: new Date(), elapsed: 0, isRunning: false, spans: [], start: () => new Date(), stop: () => new Date() } as any,
         errors: [],
         do: () => {},
         doAll: () => {},
@@ -89,22 +71,8 @@ function createMockOutput(): IOutputStatement {
         metrics: [],
         metricMeta: new Map(),
         timeSpan: { started: Date.now(), ended: Date.now() + 1000 },
-        spans: [],
-        elapsed: 1000,
-        total: 1000,
     } as any;
 }
-
-function createMockTrackerUpdate(): TrackerUpdate {
-    return {
-        type: 'metric',
-        blockId: 'test-block',
-        key: 'reps',
-        value: 10,
-        timestamp: Date.now(),
-    };
-}
-
 // ── SubscriptionManager tests ───────────────────────────────────────────────
 
 describe('SubscriptionManager', () => {
@@ -133,7 +101,6 @@ describe('SubscriptionManager', () => {
             id: 'test',
             onStackSnapshot: (s) => received.push(s),
             onOutput: () => {},
-            onTrackerUpdate: () => {},
             dispose: () => {},
         };
         manager.add(sub);
@@ -153,7 +120,6 @@ describe('SubscriptionManager', () => {
             id: 'test',
             onStackSnapshot: () => {},
             onOutput: (o) => received.push(o),
-            onTrackerUpdate: () => {},
             dispose: () => {},
         };
         manager.add(sub);
@@ -164,25 +130,6 @@ describe('SubscriptionManager', () => {
         // Still 1 because createMockRuntime returns empty getOutputStatements()
         expect(received).toHaveLength(1);
     });
-
-    it('should fan out tracker updates to all subscriptions', () => {
-        const received: TrackerUpdate[] = [];
-        const sub: IRuntimeSubscription = {
-            id: 'test',
-            onStackSnapshot: () => {},
-            onOutput: () => {},
-            onTrackerUpdate: (u) => received.push(u),
-            dispose: () => {},
-        };
-        manager.add(sub);
-
-        const update = createMockTrackerUpdate();
-        runtime._emitTracker(update);
-
-        expect(received).toHaveLength(1);
-        expect(received[0]).toEqual(update);
-    });
-
     it('should fan out to multiple subscriptions', () => {
         const receivedA: StackSnapshot[] = [];
         const receivedB: StackSnapshot[] = [];
@@ -191,14 +138,12 @@ describe('SubscriptionManager', () => {
             id: 'a',
             onStackSnapshot: (s) => receivedA.push(s),
             onOutput: () => {},
-            onTrackerUpdate: () => {},
             dispose: () => {},
         });
         manager.add({
             id: 'b',
             onStackSnapshot: (s) => receivedB.push(s),
             onOutput: () => {},
-            onTrackerUpdate: () => {},
             dispose: () => {},
         });
 
@@ -214,7 +159,6 @@ describe('SubscriptionManager', () => {
             id: 'removable',
             onStackSnapshot: () => {},
             onOutput: () => {},
-            onTrackerUpdate: () => {},
             dispose: () => { disposed = true; },
         });
 
@@ -236,7 +180,6 @@ describe('SubscriptionManager', () => {
             id: 'dupe',
             onStackSnapshot: () => {},
             onOutput: () => {},
-            onTrackerUpdate: () => {},
             dispose: () => { disposedFirst = true; },
         });
 
@@ -245,7 +188,6 @@ describe('SubscriptionManager', () => {
             id: 'dupe',
             onStackSnapshot: (s) => received.push(s),
             onOutput: () => {},
-            onTrackerUpdate: () => {},
             dispose: () => {},
         });
 
@@ -264,14 +206,12 @@ describe('SubscriptionManager', () => {
             id: 'a',
             onStackSnapshot: () => {},
             onOutput: () => {},
-            onTrackerUpdate: () => {},
             dispose: () => { disposedA = true; },
         });
         manager.add({
             id: 'b',
             onStackSnapshot: () => {},
             onOutput: () => {},
-            onTrackerUpdate: () => {},
             dispose: () => { disposedB = true; },
         });
 
@@ -288,7 +228,6 @@ describe('SubscriptionManager', () => {
             id: 'test',
             onStackSnapshot: (s) => received.push(s),
             onOutput: () => {},
-            onTrackerUpdate: () => {},
             dispose: () => {},
         });
 
@@ -300,26 +239,33 @@ describe('SubscriptionManager', () => {
     });
 
     it('should handle errors in subscription callbacks gracefully', () => {
-        const received: StackSnapshot[] = [];
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const received: StackSnapshot[] = [];
 
-        manager.add({
-            id: 'broken',
-            onStackSnapshot: () => { throw new Error('boom'); },
-            onOutput: () => {},
-            onTrackerUpdate: () => {},
-            dispose: () => {},
-        });
-        manager.add({
-            id: 'healthy',
-            onStackSnapshot: (s) => received.push(s),
-            onOutput: () => {},
-            onTrackerUpdate: () => {},
-            dispose: () => {},
-        });
+            manager.add({
+                id: 'broken',
+                onStackSnapshot: () => { throw new Error('boom'); },
+                onOutput: () => {},
+                    dispose: () => {},
+            });
+            manager.add({
+                id: 'healthy',
+                onStackSnapshot: (s) => received.push(s),
+                onOutput: () => {},
+                    dispose: () => {},
+            });
 
-        // Should not throw — error is caught internally
-        runtime._emitStack(createMockSnapshot());
-        expect(received).toHaveLength(2);
+            // Should not throw — error is caught internally
+            runtime._emitStack(createMockSnapshot());
+            expect(received).toHaveLength(2);
+            // add() catches the catch-up error; _emitStack catches the fan-out error.
+            const messages = consoleError.mock.calls.map(args => String(args[0] ?? ''));
+            expect(messages.some(m => m.startsWith("[SubscriptionManager] Error catching up subscription 'broken':"))).toBe(true);
+            expect(messages.some(m => m.startsWith("[SubscriptionManager] Error in subscription 'broken' onStackSnapshot:"))).toBe(true);
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 });
 
@@ -356,23 +302,10 @@ describe('LocalRuntimeSubscription', () => {
         expect(received).toHaveLength(1);
     });
 
-    it('should call tracker update callback', () => {
-        const received: TrackerUpdate[] = [];
-        const sub = new LocalRuntimeSubscription({
-            onTrackerUpdate: (u) => received.push(u),
-        });
-
-        const update = createMockTrackerUpdate();
-        sub.onTrackerUpdate(update);
-        expect(received).toHaveLength(1);
-        expect(received[0]).toEqual(update);
-    });
-
     it('should not throw without callbacks', () => {
         const sub = new LocalRuntimeSubscription();
         expect(() => sub.onStackSnapshot(createMockSnapshot())).not.toThrow();
         expect(() => sub.onOutput(createMockOutput())).not.toThrow();
-        expect(() => sub.onTrackerUpdate(createMockTrackerUpdate())).not.toThrow();
     });
 
     it('should clear callbacks on dispose', () => {

@@ -1,9 +1,11 @@
 /**
- * ReviewPage Stories
+ * Catalog / Pages / ReviewPage
  *
- * The ReviewPage loads a stored workout result from IndexedDB.
- * In stories there is no IndexedDB, so we exercise the loading
- * and error states that are visible before real data arrives.
+ * Renders: {@link import('../../../playground/src/pages/ReviewPage').ReviewPage}
+ *
+ * Stories:
+ *  1. Loading — loading state (IndexedDB lookup in-flight)
+ *  2. NotFound — error state when no result is found
  */
 
 import React from 'react';

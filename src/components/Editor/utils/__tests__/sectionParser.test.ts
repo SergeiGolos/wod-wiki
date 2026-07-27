@@ -64,7 +64,7 @@ describe('parseDocumentSections', () => {
       const wodSection = sections.find(s => s.type === 'wod');
       expect(wodSection).toBeDefined();
       expect(wodSection!.displayContent).toBeDefined();
-      expect(wodSection!.wodBlock).toBeDefined();
+      expect(wodSection!.scriptBlock).toBeDefined();
     });
 
     it('separates title from wod block', () => {
@@ -218,6 +218,13 @@ describe('parseDocumentSections — frontmatter', () => {
     const sections = parseDocumentSections(content);
     const fm = sections.find(s => s.type === 'frontmatter');
     expect(fm!.frontmatterType).toBe('amazon');
+  });
+
+  it('detects effort frontmatterType from effort metadata', () => {
+    const content = '---\nid: effort-1\nslug: rowing-intervals\nlabel: Rowing Intervals\nbaseAttributes:\n  met: 7.0\n  discipline: rowing\nregistrySource: bundled\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm!.frontmatterType).toBe('effort');
   });
 
   it('auto-detects amazon from url pattern', () => {

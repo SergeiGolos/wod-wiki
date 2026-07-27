@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { TimerInitBehavior, TimerTickBehavior, DisplayInitBehavior, PopOnNextBehavior } from '@/runtime/behaviors';
+import { CountupTimerBehavior, ExitBehavior, LabelingBehavior } from '@/runtime/behaviors';
 
 describe('EffortBlock (simulated with MockBlock)', () => {
   let harness: BehaviorTestHarness;
@@ -17,11 +17,11 @@ describe('EffortBlock (simulated with MockBlock)', () => {
 
   // Effort blocks typically have a CountUp timer and complete on user advance
   it('should initialize timer state on mount', () => {
-    const timerInit = new TimerInitBehavior({ direction: 'up', label: 'Effort' });
-    const timerTick = new TimerTickBehavior();
-    const displayInit = new DisplayInitBehavior({ mode: 'clock', label: 'Effort' });
-    const popOnNext = new PopOnNextBehavior();
-    const block = new MockBlock('effort-test', [timerInit, timerTick, displayInit, popOnNext], { blockType: 'Effort' });
+    const timer = new CountupTimerBehavior({ label: 'Effort' });
+    const labeling = new LabelingBehavior({ mode: 'timer', label: 'Effort' });
+    const exit = new ExitBehavior({ mode: 'immediate', onNext: true });
+
+    const block = new MockBlock('effort-test', [timer, labeling, exit], { blockType: 'Effort' });
 
     harness.push(block);
     harness.mount();
@@ -30,20 +30,21 @@ describe('EffortBlock (simulated with MockBlock)', () => {
     const timerMemory = harness.getMemory('time');
     expect(timerMemory).toBeDefined();
     expect(timerMemory.direction).toBe('up');
+    expect(timerMemory.durationMs).toBeUndefined();
   });
 
-  it('should mark complete on next via PopOnNextBehavior', () => {
-    const timerInit = new TimerInitBehavior({ direction: 'up', label: 'Effort' });
-    const timerTick = new TimerTickBehavior();
-    const popOnNext = new PopOnNextBehavior();
-    const block = new MockBlock('effort-test', [timerInit, timerTick, popOnNext], { blockType: 'Effort' });
+  it('should mark complete on next via ExitBehavior', () => {
+    const timer = new CountupTimerBehavior({ label: 'Effort' });
+    const exit = new ExitBehavior({ mode: 'immediate', onNext: true });
+
+    const block = new MockBlock('effort-test', [timer, exit], { blockType: 'Effort' });
 
     harness.push(block);
     harness.mount();
 
     harness.advanceClock(10000);
 
-    // next() should trigger PopOnNextBehavior to mark block complete
+    // next() should trigger ExitBehavior to mark block complete and pop
     harness.next();
 
     expect(block.isComplete).toBe(true);

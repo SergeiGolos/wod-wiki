@@ -1,6 +1,6 @@
 import type { IRuntimeAction } from "@/runtime/contracts/IRuntimeAction";
 import type { IRuntimeBlock } from "@/runtime/contracts/IRuntimeBlock";
-import type { IScriptRuntime } from "@/runtime/contracts/IScriptRuntime";
+import type { IRuntimeContext } from "@/runtime/contracts/IRuntimeContext";
 import type { BlockLifecycleOptions } from "@/runtime/contracts";
 import { RuntimeLogger } from "../../RuntimeLogger";
 
@@ -21,7 +21,7 @@ export class PushBlockAction implements IRuntimeAction {
         throw new Error('Cannot modify readonly property type');
     }
 
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
         if (!runtime.stack) {
             return [];
         }
@@ -38,7 +38,7 @@ export class PushBlockAction implements IRuntimeAction {
             if (!startTime && clock?.isRunning) {
                 // Clock running → create startTime automatically
                 // Uses frozen clock if provided for timing consistency
-                startTime = clock.now;
+                startTime = clock.currentDate;
             }
 
             const lifecycle: BlockLifecycleOptions = startTime
@@ -66,7 +66,7 @@ export class PushBlockAction implements IRuntimeAction {
 
         } catch (error) {
             // Check if runtime has optional setError method
-            const runtimeWithSetError = runtime as IScriptRuntime & { setError?: (error: unknown) => void };
+            const runtimeWithSetError = runtime as IRuntimeContext & { setError?: (error: unknown) => void };
             if (typeof runtimeWithSetError.setError === 'function') {
                 runtimeWithSetError.setError(error);
             }

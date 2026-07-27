@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - sport
+  - competition
+---
+
 ## Workout 5: 4-Week Beginner Girevoy Sport Program
 
 **Category**: Girevoy Sport Beginner  

@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2022 CrossFit Games - Event 10 "Bond"
 
 **Category:** Competition

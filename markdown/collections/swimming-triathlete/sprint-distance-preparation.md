@@ -1,3 +1,10 @@
+---
+tags:
+  - swimming
+  - endurance
+  - triathlon
+---
+
 # Sprint Distance Preparation
 
 **Type**: Race-Specific  

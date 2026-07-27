@@ -20,6 +20,7 @@ class MockTransport implements IRpcTransport {
     onMessage(): RpcUnsubscribe { return () => {}; }
     onConnected(): RpcUnsubscribe { return () => {}; }
     onDisconnected(): RpcUnsubscribe { return () => {}; }
+    get needsClockSync(): boolean { return false; }
     dispose(): void {}
 }
 
@@ -45,9 +46,6 @@ function createMockBlock(key: string, label: string, opts?: { isComplete?: boole
         dispose: () => {},
         markComplete: () => {},
         getBehavior: () => undefined,
-        getMemory: () => undefined,
-        hasMemory: () => false,
-        setMemoryValue: () => {},
     } as any;
 }
 

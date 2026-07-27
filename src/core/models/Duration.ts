@@ -28,9 +28,10 @@ export class Duration{
 export class SpanDuration extends Duration {
   constructor(spans: TimeSpan[]) {
     const total = spans.reduce((total, span) => {
-      // Use span.duration which handles open spans automatically
-      return total + span.duration;
-    }, 0)
+      // Compute span length from started/ended (TimeSpan interface has no .duration getter)
+      const end = span.ended ?? Date.now();
+      return total + Math.max(0, end - span.started);
+    }, 0);
     super(total);
   }
 }

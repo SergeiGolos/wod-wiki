@@ -99,7 +99,7 @@ export class LabelingBehavior implements IRuntimeBehavior {
             origin: 'runtime',
             value: { text, role },
             sourceBlockKey: ctx.block.key.toString(),
-            timestamp: ctx.clock.now,
+            timestamp: ctx.clock.currentDate,
         };
     }
 

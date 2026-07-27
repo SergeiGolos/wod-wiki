@@ -2,6 +2,7 @@ import { IDialect, DialectAnalysis } from "../core/models/Dialect";
 import { ICodeStatement } from "../core/models/CodeStatement";
 import { MetricType } from "../core/models/Metric";
 import { MetricContainer } from "../core/models/MetricContainer";
+import { hintsToContainer } from "../core/metrics/hints";
 
 /**
  * Cardio dialect for recognizing endurance/aerobic workout patterns.
@@ -101,6 +102,6 @@ export class CardioDialect implements IDialect {
       hints.push('behavior.pace_based');
     }
 
-    return { hints };
+    return { metrics: hintsToContainer(hints) };
   }
 }

@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # Elizabeth
 
 **Category**: CrossFit Benchmark  

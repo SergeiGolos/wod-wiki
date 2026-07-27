@@ -1,3 +1,5 @@
+// Hint vocabulary (Tier 3 §3.2)
+export { CONSUMED_HINTS, CONSUMED_HINT_KEYS, hintMetric, hasHint, getHints, hintsToContainer } from './core/metrics/hints';
 /**
  * Core Entry Point for WOD Wiki
  * 
@@ -20,7 +22,7 @@ export type { IOutputStatement } from './core/models/OutputStatement';
 export type { CodeMetadata } from './core/models/CodeMetadata';
 
 // Parser
-export { sharedParser } from './parser/parserInstance';
+export { createParser } from './parser/parserInstance';
 
 // Runtime engine
 export { ScriptRuntime } from './runtime/ScriptRuntime';
@@ -37,7 +39,7 @@ export type { IRuntimeAction } from './runtime/contracts/IRuntimeAction';
 export type { IRuntimeMemory } from './runtime/contracts/IRuntimeMemory';
 export type { IRuntimeBlockStrategy } from './runtime/contracts/IRuntimeBlockStrategy';
 export type { IMemoryReference } from './runtime/contracts/IMemoryReference';
-export type { TypedMemoryReference } from './runtime/impl/TypedMemoryReference';
+export { TypedMemoryReference } from './runtime/impl/TypedMemoryReference';
 export type { IEvent } from './runtime/contracts/events/IEvent';
 export type { IEventHandler } from './runtime/contracts/events/IEventHandler';
 
@@ -45,7 +47,8 @@ export type { IBlockContext } from './runtime/contracts/IBlockContext';
 
 // Runtime actions
 export * from './runtime/actions/stack/PushBlockAction';
-export * from './runtime/actions/ErrorAction';
+export { ErrorAction } from './runtime/actions/ErrorAction';
+export type { RuntimeError } from './runtime/actions/ErrorAction';
 
 // Runtime behaviors - export new aspect-based behaviors
 export * from './runtime/behaviors';
@@ -56,11 +59,24 @@ export * from './runtime/blocks/SessionRootBlock';
 export * from './runtime/blocks/WaitingToStartBlock';
 export * from './runtime/blocks/RestBlock';
 
-// Strategies
-export * from './runtime/compiler/strategies';
+// Extension registries (Tier 3 §3.4)
+export { dialectRegistry } from './dialects/DialectStack';
+export type { IDialect, DialectAnalysis } from './core/models/Dialect';
+export { strategyRegistry } from './runtime/services/runtimeServices';
+export { realtimeProcessorRegistry, summaryProcessorRegistry } from './core/analytics/StandardAnalyticsProfile';
+export type { IRealtimeProcessor } from './core/analytics/IRealtimeProcessor';
+export type { ISummaryProcessor } from './core/analytics/ISummaryProcessor';
+export type { IAnalyticsProcessorDescriptor } from './core/analytics/IAnalyticsProcessorDescriptor';
 
+// Effort registry (Tier 3 §3.4)
+export { CompositeEffortRegistry, InMemoryEffortRegistry, IndexedDBEffortRegistry } from './effort-registry';
+export { EffortResolver } from './effort-registry';
+export { bundledEfforts, BUNDLED_EFFORT_COUNT } from './effort-registry/data/bundled-efforts';
+export type { IEffort, IEffortRegistry, IEffortResolver, ResolvedEffort } from './effort-registry';
+
+// Registries
+export { Registry } from './core/Registry';
 // Fragments
-export * from './runtime/compiler/metrics/TimerMetric';
 export * from './runtime/compiler/metrics/RoundsMetric';
 export * from './runtime/compiler/metrics/RepMetric';
 export * from './runtime/compiler/metrics/EffortMetric';
@@ -77,4 +93,20 @@ export type { IMetric } from './core/models/Metric';
 
 // Fragment contracts & utilities
 export type { IMetricSource, MetricFilter } from './core/contracts/IMetricSource';
-export { resolveMetricPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from './core/utils/metricPrecedence';
+export type {
+  MetricOwnershipLayer,
+  MetricOwnershipLedger,
+  MetricOwnershipPromotionCandidate,
+  MetricOwnershipQuery,
+  MetricOwnershipResolvedContribution,
+  MetricOwnershipTypeExplanation,
+} from './core/metrics/ownership';
+export {
+  METRIC_OWNERSHIP_LAYER_CHAIN,
+  LEGACY_ORIGIN_TO_OWNERSHIP_LAYER,
+  createMetricOwnershipLedger,
+  getMetricOwnershipLayer,
+  OwnershipResolver,
+  ownershipRank,
+} from './core/metrics/ownership';
+export type { IMetricOwnershipResolver } from './core/contracts/IMetricOwnershipResolver';

@@ -1,28 +1,21 @@
 // Fragment visual styling utilities for visualization
 // Contains both color mapping and icon mapping for metrics types
 
-export type MetricType = 
-  | 'time' 
-  | 'rep' 
-  | 'effort' 
-  | 'distance' 
-  | 'rounds' 
-  | 'action' 
-  | 'increment' 
-  | 'lap' 
-  | 'text' 
-  | 'resistance'
-  | 'duration'
-  | 'spans'
-  | 'elapsed'
-  | 'total'
-  | 'system-time'
-  | 'metric'
-  | 'rest';
+import { MetricType } from '@/core/models/Metric';
 
-export type FragmentColorMap = {
-  readonly [key in MetricType]: string;
-};
+// Re-export the canonical enum so callers can import MetricType from either location.
+export type { MetricType };
+
+/**
+ * Colour map covering the common metric types rendered in badges.
+ * Keyed by MetricType enum values (from core/models/Metric) plus the
+ * synthetic 'rest' pseudo-type used for rest-interval styling.
+ *
+ * Using Partial allows new MetricType members to be added to the enum
+ * without requiring an immediate colour entry here — they fall back to
+ * the grey default in getMetricColorClasses().
+ */
+export type FragmentColorMap = Partial<Record<MetricType | 'rest', string>>;
 
 /**
  * Color classes for each metrics type.
@@ -47,8 +40,29 @@ export const metricColorMap: FragmentColorMap = {
   total:       'bg-muted border-border text-foreground',
   'system-time': 'bg-muted/60 border-border/60 text-muted-foreground',
   metric:      'bg-metric-effort/10 border-metric-effort/30 text-metric-effort',
+  custom:      'bg-muted/70 border-muted-foreground/30 text-muted-foreground',
+  calculated:  'bg-metric-effort/12 border-metric-effort/35 text-metric-effort',
   // Rest blocks use a muted treatment to distinguish them from active work sets (UX-04)
   rest:        'bg-muted/70 border-muted-foreground/30 text-muted-foreground',
+  // Volume & load map to rep/resistance families (work output)
+  volume:      'bg-metric-rep/12 border-metric-rep/35 text-metric-rep',
+  load:        'bg-metric-resistance/12 border-metric-resistance/35 text-metric-resistance',
+  'session-load': 'bg-metric-resistance/12 border-metric-resistance/35 text-metric-resistance',
+  // Intensity & effort-derived metrics map to effort family
+  intensity:   'bg-metric-effort/12 border-metric-effort/35 text-metric-effort',
+  work:        'bg-metric-effort/12 border-metric-effort/35 text-metric-effort',
+  rir:         'bg-metric-effort/12 border-metric-effort/35 text-metric-effort',
+  'session-rpe': 'bg-metric-effort/12 border-metric-effort/35 text-metric-effort',
+  // Cardio/endurance scores map to distance family
+  'met-score': 'bg-metric-distance/12 border-metric-distance/35 text-metric-distance',
+  // Composite scores map to action family
+  tis:         'bg-metric-action/12 border-metric-action/35 text-metric-action',
+  // Structural / meta types
+  'current-round': 'bg-metric-rounds/10 border-metric-rounds/30 text-metric-rounds',
+  label:       'bg-muted border-border text-muted-foreground',
+  system:      'bg-muted/60 border-border/60 text-muted-foreground',
+  sound:       'bg-muted/50 border-border/50 text-muted-foreground',
+  group:       'bg-muted/50 border-border/50 text-muted-foreground',
 };
 
 /**
@@ -71,14 +85,15 @@ function isRestMetric(type: string, value?: string): boolean {
  * @returns Tailwind CSS color classes for the type
  */
 export function getMetricColorClasses(type: string, value?: string): string {
+  const fallback = 'bg-gray-200 border-gray-300 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100';
   if (isRestMetric(type, value)) {
-    return metricColorMap.rest;
+    return metricColorMap.rest ?? fallback;
   }
 
   const normalizedType = type.toLowerCase() as MetricType;
 
   // Return mapped color or fallback for unknown types
-  return metricColorMap[normalizedType] || 'bg-gray-200 border-gray-300 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100';
+  return metricColorMap[normalizedType] ?? fallback;
 }
 
 /**
@@ -101,6 +116,23 @@ const metricIconMap: Record<string, string> = {
   'total': '🕐',
   'system-time': '🖥️',
   'metric': '📈',
+  'volume': '🏋️',
+  'intensity': '⚡',
+  'load': '⚖️',
+  'work': '🔥',
+  'rir': '🔋',
+  'session-rpe': '😓',
+  'session-load': '📊',
+  'met-score': '🫀',
+  'tis': '📈',
+  calculated: '🧮',
+  custom: '✳️',
+  'current-round': '🔄',
+  'label': '🏷️',
+  'system': '⚙️',
+  'sound': '🔊',
+  'group': '🔀',
+  'lap': '🏁',
 };
 
 /**

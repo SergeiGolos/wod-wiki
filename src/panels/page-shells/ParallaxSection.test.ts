@@ -14,9 +14,10 @@ describe('ParallaxSection', () => {
     expect(typeof ParallaxSection).toBe('function');
   });
 
-  it('should be a named export matching the default export', async () => {
+  it('should be a named export', async () => {
     const mod = await import('@/panels/page-shells/ParallaxSection');
-    expect(mod.ParallaxSection).toBe(mod.default);
+    expect(mod.ParallaxSection).toBeDefined();
+    expect(mod.ParallaxSection).toBe(ParallaxSection);
   });
 
   it('should accept the expected props shape', () => {

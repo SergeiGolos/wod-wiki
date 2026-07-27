@@ -1,3 +1,10 @@
+---
+tags:
+  - crossfit
+  - conditioning
+  - strength
+---
+
 # Monday Strength
 
 Back squat cycle — week 1.

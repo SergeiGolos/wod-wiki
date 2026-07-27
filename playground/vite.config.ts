@@ -15,6 +15,21 @@ const https = certFiles.length > 0 && keyFiles.length > 0
 
 const hmrHost = certFiles.length > 0 ? certFiles[0].replace('.crt', '') : undefined;
 
+const codemirrorSingletonDeps = [
+    '@codemirror/autocomplete',
+    '@codemirror/commands',
+    '@codemirror/lang-markdown',
+    '@codemirror/language',
+    '@codemirror/lint',
+    '@codemirror/search',
+    '@codemirror/state',
+    '@codemirror/view',
+    '@lezer/common',
+    '@lezer/highlight',
+    '@lezer/lr',
+    '@lezer/markdown',
+];
+
 // Dev plugin: intercept receiver URLs and serve the RPC version through Vite's
 // transform pipeline so that @vitejs/plugin-react injects its JSX preamble.
 const receiverRedirectPlugin: Plugin = {
@@ -47,17 +62,22 @@ const receiverRedirectPlugin: Plugin = {
 export default defineConfig({
     root: __dirname,
     envDir: projectRoot,
-    base: '/',
+    base: process.env.VITE_BASE_PATH || '/',
     define: {
-        __APP_VERSION__: JSON.stringify(pkg.version),
+        // CI pipelines stamp the deployed artifact's version via VITE_APP_VERSION
+        // (tagged version on main/prod, X.Y.Z-pr.N on PR previews); local dev
+        // and library builds fall back to package.json.
+        __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION || pkg.version),
     },
     plugins: [react(), receiverRedirectPlugin],
     resolve: {
+        dedupe: codemirrorSingletonDeps,
         alias: {
             '@': resolve(__dirname, '../src'),
         },
     },
-    server: { allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true, 
+    server: {
+        allowedHosts: true,
         host: '0.0.0.0',
         ...(https ? { https } : {}),
         hmr: hmrHost ? { host: hmrHost } : true,
@@ -71,9 +91,25 @@ export default defineConfig({
                 main: resolve(__dirname, 'index.html'),
                 'receiver-rpc': resolve(__dirname, 'receiver-rpc.html'),
             },
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return undefined;
+                    // CodeMirror + Lezer — large, stable, zero React deps; cache separately
+                    if (id.includes('@codemirror') || id.includes('@lezer') || id.includes('codemirror')) {
+                        return 'vendor-codemirror';
+                    }
+                    // Everything else (React, router, recharts, zustand…) in one
+                    // stable vendor chunk. Keeping them together avoids the circular
+                    // dependency Rollup emits when React's scheduler is split out.
+                    return 'vendor';
+                },
+            },
         },
     },
     css: {
         devSourcemap: true,
+    },
+    optimizeDeps: {
+        exclude: ['@lezer/common'],
     },
 });

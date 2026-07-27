@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { WodDialect } from './WodDialect';
 import { MdTimerRuntime } from '../parser/md-timer';
 import { ICodeStatement } from '../core/models/CodeStatement';
+import { getHints } from '../core/metrics/hints';
 import { MetricType } from '../core/models/Metric';
 
 describe('WodDialect', () => {
@@ -21,16 +22,16 @@ describe('WodDialect', () => {
       const statement = parseStatement('Strength Back Squat');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.wod');
-      expect(analysis.hints).toContain('workout.strength');
-      expect(analysis.hints).toContain('behavior.load_bearing');
+      expect(getHints(analysis.metrics)).toContain('domain.wod');
+      expect(getHints(analysis.metrics)).toContain('workout.strength');
+      expect(getHints(analysis.metrics)).toContain('behavior.load_bearing');
     });
 
     it('should detect "STRENGTH" in upper case', () => {
       const statement = parseStatement('STRENGTH');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('workout.strength');
+      expect(getHints(analysis.metrics)).toContain('workout.strength');
     });
   });
 
@@ -39,15 +40,15 @@ describe('WodDialect', () => {
       const statement = parseStatement('Metcon');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.wod');
-      expect(analysis.hints).toContain('workout.metcon');
+      expect(getHints(analysis.metrics)).toContain('domain.wod');
+      expect(getHints(analysis.metrics)).toContain('workout.metcon');
     });
 
     it('should detect mixed-case "MetCon"', () => {
       const statement = parseStatement('MetCon 20 mins');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('workout.metcon');
+      expect(getHints(analysis.metrics)).toContain('workout.metcon');
     });
 
     it('parser produces a Duration metric for "Metcon 20:00"', () => {
@@ -62,15 +63,15 @@ describe('WodDialect', () => {
       const statement = parseStatement('Skills Double Unders');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.wod');
-      expect(analysis.hints).toContain('workout.skills');
+      expect(getHints(analysis.metrics)).toContain('domain.wod');
+      expect(getHints(analysis.metrics)).toContain('workout.skills');
     });
 
     it('should detect "Technique" as a skills block', () => {
       const statement = parseStatement('Technique Muscle Ups');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('workout.skills');
+      expect(getHints(analysis.metrics)).toContain('workout.skills');
     });
   });
 
@@ -79,7 +80,7 @@ describe('WodDialect', () => {
       const statement = parseStatement('WOD');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.wod');
+      expect(getHints(analysis.metrics)).toContain('domain.wod');
     });
   });
 
@@ -88,8 +89,8 @@ describe('WodDialect', () => {
       const statement = parseStatement('Superset Bench Press Rows');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.wod');
-      expect(analysis.hints).toContain('workout.superset');
+      expect(getHints(analysis.metrics)).toContain('domain.wod');
+      expect(getHints(analysis.metrics)).toContain('workout.superset');
     });
   });
 
@@ -98,20 +99,20 @@ describe('WodDialect', () => {
       const statement = parseStatement('10 Pullups');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toHaveLength(0);
+      expect(getHints(analysis.metrics)).toHaveLength(0);
     });
 
     it('should return empty hints for a timer-only statement', () => {
       const statement = parseStatement('5:00');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toHaveLength(0);
+      expect(getHints(analysis.metrics)).toHaveLength(0);
     });
 
     it('should handle a statement with no metrics gracefully', () => {
       const analysis = dialect.analyze({ id: 1 } as any);
 
-      expect(analysis.hints).toHaveLength(0);
+      expect(getHints(analysis.metrics)).toHaveLength(0);
     });
   });
 

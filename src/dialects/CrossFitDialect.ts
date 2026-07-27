@@ -2,6 +2,7 @@ import { IDialect, DialectAnalysis } from "../core/models/Dialect";
 import { ICodeStatement } from "../core/models/CodeStatement";
 import { MetricType } from "../core/models/Metric";
 import { MetricContainer } from "../core/models/MetricContainer";
+import { hintsToContainer } from "../core/metrics/hints";
 
 /**
  * CrossFit dialect for recognizing CrossFit-specific workout patterns.
@@ -82,6 +83,6 @@ export class CrossFitDialect implements IDialect {
       hints.push('workout.tabata');
     }
 
-    return { hints };
+    return { metrics: hintsToContainer(hints) };
   }
 }

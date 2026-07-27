@@ -8,11 +8,29 @@ import dts from 'vite-plugin-dts';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+
+const isStorybook = process.argv.some(arg => arg.includes('storybook'));
+
 const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
+
+const codemirrorSingletonDeps = [
+  '@codemirror/autocomplete',
+  '@codemirror/commands',
+  '@codemirror/lang-markdown',
+  '@codemirror/language',
+  '@codemirror/lint',
+  '@codemirror/search',
+  '@codemirror/state',
+  '@codemirror/view',
+  '@lezer/common',
+  '@lezer/highlight',
+  '@lezer/lr',
+  '@lezer/markdown',
+];
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
-  plugins: [react(), dts({
+  plugins: [react(), ...(isStorybook ? [] : [dts({
     // Generate TypeScript declaration files
     rollupTypes: false,
     // Disable rollup to avoid api-extractor issues
@@ -22,8 +40,9 @@ export default defineConfig({
     exclude: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx', 'stories/**/*'],
     // Preserve module structure
     insertTypesEntry: true
-  })],
+  })])],
   resolve: {
+    dedupe: codemirrorSingletonDeps,
     alias: {
       '@': resolve(dirname, 'src')
     }
@@ -65,7 +84,8 @@ export default defineConfig({
   // Optimize dependencies for better debugging
   optimizeDeps: {
     // Include dependencies that should be pre-bundled
-    include: ['react', 'react-dom']
+    include: ['react', 'react-dom'],
+    exclude: ['@lezer/common']
   },
   test: {
     projects: [{

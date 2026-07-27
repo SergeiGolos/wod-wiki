@@ -1,4 +1,4 @@
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../contracts/IRuntimeContext';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
@@ -36,7 +36,7 @@ export interface RestBlockConfig {
  * 1. Mount: Emits 'segment' output with rest label and duration, starts countdown timer
  * 2. Timer counts down via CountdownTimerBehavior span tracking
  * 3. CountdownTimerBehavior marks complete when elapsed >= durationMs
- * 4. Unmount: Emits 'completion' output, plays rest-over sound cue
+ * 4. Pop: emits a 'segment' output carrying the completion reason, plays rest-over sound cue
  *
  * ## Behavior Chain
  *
@@ -47,7 +47,7 @@ export interface RestBlockConfig {
  */
 export class RestBlock extends RuntimeBlock {
     constructor(
-        runtime: IScriptRuntime,
+        runtime: IRuntimeContext,
         config: RestBlockConfig
     ) {
         if (config.durationMs < 0) {
@@ -59,15 +59,15 @@ export class RestBlock extends RuntimeBlock {
         const context = new BlockContext(runtime, blockKey.toString(), 'Rest');
         const behaviors = RestBlock.buildBehaviors(config);
 
-        super(
+        super({
             runtime,
-            [], // No source IDs for auto-generated block
+            sourceIds: [], // No source IDs for auto-generated block
             behaviors,
             context,
-            blockKey,
-            'Rest',
-            restLabel
-        );
+            key: blockKey,
+            blockType: 'Rest',
+            label: restLabel,
+        });
     }
 
     /**
@@ -131,15 +131,15 @@ export class RestBlock extends RuntimeBlock {
         return behaviors;
     }
 
-    mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    mount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         return super.mount(runtime, options);
     }
 
-    unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
+    unmount(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         return super.unmount(runtime, options);
     }
 
-    dispose(runtime: IScriptRuntime): void {
+    dispose(runtime: IRuntimeContext): void {
         super.dispose(runtime);
         if (this.context) {
             this.context.release();

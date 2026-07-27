@@ -1,14 +1,12 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricType } from "@/core/models/Metric";
 import { DurationMetric } from "../../metrics/DurationMetric";
-import { BlockContext } from "../../../BlockContext";
-import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
-import { MetricContainer } from "@/core/models/MetricContainer";
-import { LabelComposer } from "../../utils/LabelComposer";
+import { hasHint, CONSUMED_HINTS } from "@/core/metrics/hints";
+import { compose } from "../../BlockTemplateComposer";
+import type { BlockTemplate } from "../../BlockTemplate";
 
 // Specific behaviors not covered by aspect composers
 import {
@@ -26,8 +24,9 @@ import {
  */
 export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     priority = 50; // Mid priority
+    readonly id = 'generic-timer';
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
 
         // Match if duration metrics exists in ANY statement, ignoring runtime-generated ones
@@ -36,7 +35,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         ));
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IRuntimeContext): void {
         // Skip if a timer behavior was already added by a higher-priority strategy
         if (builder.hasTimerBehavior()) {
             return;
@@ -45,83 +44,53 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         const firstStatementWithTimer = statements.find(s => s.metrics.some(
             f => f.type === MetricType.Duration && f.origin !== 'runtime'
         )) || statements[0];
-        
+
         const timerFragment = firstStatementWithTimer.metrics.find(
             f => f.type === MetricType.Duration && f.origin !== 'runtime'
         ) as DurationMetric | undefined;
 
         const direction = timerFragment?.direction || 'up';
         const durationMs = timerFragment?.value || undefined;
-        
-        // Use LabelComposer for a standardized, descriptive label
-        const label = LabelComposer.build(statements, {
-            defaultLabel: direction === 'down' ? 'Countdown' : 'For Time'
-        });
+        const isRequired = statements.some(s => hasHint(s, CONSUMED_HINTS.REQUIRED_TIMER));
+        const injectRest = statements.some(s => hasHint(s, CONSUMED_HINTS.INJECT_REST));
+        const isCountdown = !!(durationMs && direction === 'down');
 
-        // Block metadata
-        const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), firstStatementWithTimer.exerciseId || '');
+        // Build the common chassis via the template composer; strategy-specific
+        // behaviors (ExitBehavior, SoundCue, Labeling) are added below.
+        const template: BlockTemplate = {
+            blockType: 'Timer',
+            defaultLabel: direction === 'down' ? 'Countdown' : 'For Time',
+            statements,
+            runtime,
+            timer: {
+                direction,
+                durationMs,
+                label: durationMs ? 'Countdown' : 'For Time',
+                role: 'primary',
+                mode: isCountdown ? 'complete-block' : 'complete-block',
+                injectRest,
+                required: isRequired,
+            },
+            pickStatement: (stmts) => stmts.find(s =>
+                s.metrics.some(f => f.type === MetricType.Duration && f.origin !== 'runtime')
+            ) || stmts[0],
+        };
 
-        builder
-            .setContext(context)
-            .setKey(blockKey)
-            .setBlockType("Timer")
-            .setLabel(label)
-            .setSourceIds(statements.map(s => s.id));
-
-        const metricGroups = statements.flatMap(s => 
-            distribute(MetricContainer.from(s.metrics), "Timer")
-        ).filter(group => group.length > 0);
-        
-        builder.setFragments(metricGroups);
+        const label = compose(builder, template);
 
         // =====================================================================
         // Specific Behaviors - Added BEFORE aspects to ensure correct execution order
         // (LeafExit before Timer ensures Pop comes before Rest Push onNext)
         // =====================================================================
 
-        // Check for required-timer hint (user cannot skip with * prefix)
-        const isRequired = statements.some(s => s.hints?.has('behavior.required_timer'));
-
         // Completion Aspect
         // For required timers, only exit when the timer:complete event fires (not on user next).
         // For normal timers, user can still advance manually (skip or acknowledge completion).
         // For parent blocks with children, ChildrenStrategy removes ExitBehavior since children manage advancement.
-        if (isRequired && durationMs && direction === 'down') {
+        if (isRequired && isCountdown) {
             builder.addBehavior(new ExitBehavior({ mode: 'immediate', onNext: false, onEvents: ['timer:complete'] }));
         } else {
             builder.addBehavior(new ExitBehavior({ mode: 'immediate', onNext: true }));
-        }
-
-        // =====================================================================
-        // ASPECT COMPOSERS - High-level composition
-        // =====================================================================
-
-        // Check for inject-rest hint
-        const injectRest = statements.some(s => s.hints?.has('behavior.inject_rest'));
-
-        // Timer Aspect - countdown or countup timer
-        if (durationMs && direction === 'down') {
-            // Countdown timer with completion
-            builder.asTimer({
-                direction,
-                durationMs,
-                label,
-                role: 'primary',
-                addCompletion: true,  // Timer completion marks block as complete
-                injectRest,
-                required: isRequired,
-            });
-        } else {
-            // Countup timer without completion
-            builder.asTimer({
-                direction,
-                durationMs,
-                label,
-                role: 'primary',
-                addCompletion: false,  // No timer completion - user must advance
-                injectRest
-            });
         }
 
         // =====================================================================
@@ -129,7 +98,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
 
         // Sound Cues
-        if (durationMs && direction === 'down') {
+        if (isCountdown) {
             builder.addBehavior(new SoundCueBehavior({
                 cues: [
                     { sound: 'countdown-beep', trigger: 'countdown', atSeconds: [3, 2, 1] },
@@ -146,8 +115,3 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     }
 }
 
-// Keep the logic-heavy metrics distribution local to the strategy
-function distribute(metrics: MetricContainer, type: string): MetricContainer[] {
-    const distributor = new PassthroughMetricDistributor();
-    return distributor.distribute(metrics, type);
-}

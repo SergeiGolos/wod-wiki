@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Sprint Introduction
 
 **Type**: Speed Development  

@@ -3,20 +3,21 @@
  */
 
 import { ICodeStatement } from '../../../core/models/CodeStatement';
-import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
+import type { IScriptRuntime as ScriptRuntime } from '@/hooks/useRuntimeTimer';
 import type { MdTimerRuntime } from '@/hooks/useRuntimeParser';
 import { IMetric } from '../../../core/models/Metric';
-import { IOutputStatement } from '../../../core/models/OutputStatement';
+import { IOutputStatement, OutputStatementType } from '../../../core/models/OutputStatement';
+import { getHints } from '../../../core/metrics/hints';
 import type { ParseError } from '@/core';
 export * from './section';
-export type { WodDialect } from './section';
-export { VALID_WOD_DIALECTS } from './section';
+export type { FenceDialect } from './section';
+export { VALID_FENCE_DIALECTS } from './section';
 export type { DocumentItem, DocumentItemType } from '../utils/documentStructure';
 
 /**
  * State of a WOD block
  */
-export type WodBlockState =
+export type ScriptBlockState =
   | 'idle'       // Not parsed yet
   | 'parsing'    // Parse in progress
   | 'parsed'     // Successfully parsed
@@ -33,26 +34,51 @@ export type WodBlockState =
 export type { ParseError } from '@/core';
 
 
-import { MetricOrigin } from '../../../core/models/Metric';
+/**
+ * Plain-data snapshot of a runtime OutputStatement safe for JSON / IndexedDB
+ * round-trips. Class methods and non-serialisable fields (Set, Map,
+ * MetricContainer instances) are intentionally excluded.
+ *
+ * Use `toStoredOutputStatement()` to create one from a live IOutputStatement.
+ */
+export interface StoredOutputStatement {
+  readonly id: number;
+  readonly outputType: OutputStatementType;
+  readonly timeSpan: { started: number; ended?: number };
+  /** Flat IMetric array — MetricContainer class not needed after serialisation. */
+  readonly metrics: IMetric[];
+  /** Plain string array — Set<string> does not survive JSON serialisation. */
+  readonly hints?: string[];
+  readonly sourceBlockKey: string;
+  readonly stackLevel: number;
+  readonly parent?: number;
+  readonly sourceStatementId?: number;
+  readonly completionReason?: string;
+}
 
 /**
- * Workout metrics metrics collected during execution.
- * Uses unified IMetric format with MetricOrigin for consistency.
- * 
- * Replaces legacy WorkoutMetric ad-hoc format in Phase 3.
+ * Convert a live IOutputStatement into a StoredOutputStatement.
+ *
+ * Normalises non-serialisable types (`Set` → `string[]`, `MetricContainer` → `IMetric[]`)
+ * so the result survives a JSON / IndexedDB round-trip without data loss.
  */
-export interface WorkoutMetricFragment {
-  /** The code metrics representing this metrics */
-  metric: IMetric;
-  /** Origin classification (Collected, Recorded, etc.) */
-  origin?: MetricOrigin;
-  /** Timestamp when collected */
-  timestamp?: number;
+export function toStoredOutputStatement(output: IOutputStatement): StoredOutputStatement {
+  return {
+    id: output.id,
+    outputType: output.outputType,
+    timeSpan: { started: output.timeSpan.started, ended: output.timeSpan.ended },
+    metrics: output.metrics.toArray(),
+    hints: (() => { const h = getHints(output); return h.length ? h : undefined; })(),
+    sourceBlockKey: output.sourceBlockKey,
+    stackLevel: output.stackLevel,
+    parent: output.parent,
+    sourceStatementId: output.sourceStatementId,
+    completionReason: output.completionReason,
+  };
 }
 
 /**
  * Results from a completed workout.
- * Uses metric-based metrics for unified representation.
  */
 export interface WorkoutResults {
   /** When workout started */
@@ -73,11 +99,17 @@ export interface WorkoutResults {
   /** Reps completed (for rep-based workouts) */
   repsCompleted?: number;
 
-  /** Metrics collected from runtime (metrics-based format) */
-  metrics: WorkoutMetricFragment[];
-
-  /** The detailed runtime logs (splits, reps) */
-  logs?: IOutputStatement[];
+  /**
+   * Plain-data runtime output log — safe for IndexedDB storage and JSON
+   * round-trips. Populated by serialising live IOutputStatement values via
+   * `toStoredOutputStatement()` at workout completion.
+   *
+   * Single stream holding ALL tiers: Tier 0 (raw tracking) + Tier 1 (inline
+   * annotations) + Tier 2 (summary outputs, outputType 'analytics'). The
+   * outputType filter discriminates Tier 2 — there is deliberately no
+   * separate analytics property (CONTEXT.md, 2026-07-20).
+   */
+  logs?: StoredOutputStatement[];
 
   /** Whether workout was completed or stopped early */
   completed: boolean;
@@ -86,12 +118,14 @@ export interface WorkoutResults {
 /**
  * Represents a single WOD block within the markdown document
  */
-export interface WodBlock {
+export interface ScriptBlock {
   /** Unique identifier for this block */
   id: string;
+  /** Content-stable identity — hash of fenced content, survives line moves (see `blockContentId`). */
+  contentId?: string;
 
   /** WOD dialect — determines which strategies are loaded */
-  dialect?: import('./section').WodDialect;
+  dialect?: import('./section').FenceDialect;
 
   /** Line number where ```wod/```log/```plan appears (0-indexed) */
   startLine: number;
@@ -115,7 +149,7 @@ export interface WodBlock {
   runtime?: ScriptRuntime;
 
   /** Execution state */
-  state: WodBlockState;
+  state: ScriptBlockState;
 
   /** Monaco widget/zone IDs for cleanup */
   widgetIds: {

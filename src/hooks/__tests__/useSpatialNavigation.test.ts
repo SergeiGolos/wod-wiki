@@ -8,7 +8,10 @@
  * on a minimal JSDOM.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import React, { useRef } from 'react';
+import { render, fireEvent, cleanup, renderHook, act } from '@testing-library/react';
+import { useSpatialNavigation } from '../useSpatialNavigation';
 
 // ── Geometry unit tests (extracted algorithm) ──────────────────────────
 
@@ -76,6 +79,98 @@ function makeRect(cx: number, cy: number, size = 50): Rect {
         cy,
     };
 }
+
+// ── Hook integration tests ───────────────────────────────────────────────
+
+describe('useSpatialNavigation', () => {
+    afterEach(() => {
+        cleanup();
+    });
+
+    it('should register elements and track focusedId', () => {
+        const { result } = renderHook(() => useSpatialNavigation({ initialFocusId: 'btn-a' }));
+
+        expect(result.current.focusedId).toBe('btn-a');
+
+        // Simulate element registration via ref callback
+        const elA = document.createElement('button');
+        act(() => {
+            result.current.getFocusProps('btn-a').ref(elA);
+        });
+
+        expect(elA.getAttribute('data-nav-focused')).toBe('true');
+        expect(elA.classList.contains('tv-focus')).toBe(true);
+    });
+
+    it('should reset the registry and focusedId', () => {
+        const { result } = renderHook(() => useSpatialNavigation({ initialFocusId: 'btn-a' }));
+
+        const elA = document.createElement('button');
+        act(() => {
+            result.current.getFocusProps('btn-a').ref(elA);
+        });
+        expect(elA.classList.contains('tv-focus')).toBe(true);
+
+        // Reset with new focus target
+        act(() => {
+            result.current.reset('btn-b');
+        });
+
+        expect(result.current.focusedId).toBe('btn-b');
+        // Old element should have focus class removed
+        expect(elA.classList.contains('tv-focus')).toBe(false);
+        expect(elA.getAttribute('data-nav-focused')).toBe('false');
+    });
+
+    it('should clear all elements on reset(null)', () => {
+        const { result } = renderHook(() => useSpatialNavigation({ initialFocusId: 'btn-a' }));
+
+        const elA = document.createElement('button');
+        const elB = document.createElement('button');
+        act(() => {
+            result.current.getFocusProps('btn-a').ref(elA);
+            result.current.getFocusProps('btn-b').ref(elB);
+        });
+
+        act(() => {
+            result.current.reset(null);
+        });
+
+        expect(result.current.focusedId).toBeNull();
+        expect(elA.classList.contains('tv-focus')).toBe(false);
+        expect(elB.classList.contains('tv-focus')).toBe(false);
+    });
+
+    it('should apply focus class when a newly-registered element matches focusedId', () => {
+        const { result } = renderHook(() => useSpatialNavigation({}));
+
+        // Set focus before element registers
+        act(() => {
+            result.current.setFocusedId('delayed-btn');
+        });
+
+        const el = document.createElement('button');
+        act(() => {
+            result.current.getFocusProps('delayed-btn').ref(el);
+        });
+
+        expect(el.classList.contains('tv-focus')).toBe(true);
+        expect(el.getAttribute('data-nav-focused')).toBe('true');
+    });
+
+    it('should call onFocusChanged when focus moves', () => {
+        const onFocusChanged = mock((_id: string | null, _el: HTMLElement | null) => {});
+        const { result } = renderHook(() => useSpatialNavigation({ onFocusChanged }));
+
+        act(() => {
+            result.current.setFocusedId('btn-x');
+        });
+
+        expect(onFocusChanged.mock.calls.length).toBeGreaterThanOrEqual(1);
+    });
+});
+
+// ── Geometry unit tests (extracted algorithm) ──────────────────────────
 
 describe('Spatial Navigation - findNearest', () => {
     const origin = makeRect(200, 200);

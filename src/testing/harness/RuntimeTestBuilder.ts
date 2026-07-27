@@ -1,9 +1,8 @@
 import { JitCompiler } from '@/runtime/compiler';
 import { IRuntimeBlockStrategy } from '@/runtime/contracts';
-import { IScriptRuntime } from '@/runtime/contracts';
+
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import { sharedParser } from '@/parser/parserInstance';
-import { RuntimeMemory } from '@/runtime/RuntimeMemory';
+import { createParser } from '@/parser/parserInstance';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock, type MockClock } from '@/runtime/RuntimeClock';
@@ -42,14 +41,13 @@ export class RuntimeTestHarness {
     clockTime: Date = new Date()
   ) {
     // 1. Parser (use shared singleton)
-    this.script = sharedParser.read(scriptText) as WhiteboardScript;
+    this.script = createParser().read(scriptText) as WhiteboardScript;
 
     // 2. JIT
     this.jit = new JitCompiler(strategies);
 
     // 3. Runtime dependencies
     this.clock = createMockClock(clockTime);
-    const memory = new RuntimeMemory();
     const stack = new RuntimeStack();
     const eventBus = new EventBus();
 
@@ -58,7 +56,6 @@ export class RuntimeTestHarness {
         this.script,
         this.jit,
         {
-            memory,
             stack,
             clock: this.clock,
             eventBus
@@ -77,7 +74,7 @@ export class RuntimeTestHarness {
     this.clock.advance(ms);
     this.runtime.handle({
       name: 'tick',
-      timestamp: this.clock.now,
+      timestamp: this.clock.currentDate,
       data: { source: 'test-harness' }
     });
     return this;

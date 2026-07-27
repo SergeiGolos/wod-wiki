@@ -15,17 +15,17 @@ class ClockCaptureBehavior implements IRuntimeBehavior {
     public unmountClock: Date | null = null;
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        this.mountClock = ctx.clock.now;
+        this.mountClock = ctx.clock.currentDate;
         return [];
     }
 
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
-        this.nextClocks.push(ctx.clock.now);
+        this.nextClocks.push(ctx.clock.currentDate);
         return [];
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        this.unmountClock = ctx.clock.now;
+        this.unmountClock = ctx.clock.currentDate;
         return [];
     }
 

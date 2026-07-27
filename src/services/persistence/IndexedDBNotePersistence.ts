@@ -1,16 +1,22 @@
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 import { toShortId } from '@/lib/idUtils';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { HistoryEntry } from '@/types/history';
-import type { AnalyticsDataPoint, Attachment, Note, WorkoutResult } from '@/types/storage';
+import type { Attachment, Note, WorkoutResult } from '@/types/storage';
 
 import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
 import {
+  normalizeSummaryFacts,
+  replayResultAnalytics,
+} from '@/services/analytics/workoutDerivation';
+import { createParser } from '@/parser/parserInstance';
+import type { ScriptBlock } from '@/components/Editor/types';
+import {
   NotePersistenceError,
-  type AnalyticsSegmentInput,
+  type CreateNoteInput,
   type GetNoteOptions,
   type NoteLocator,
   type NoteMutation,
@@ -20,68 +26,11 @@ import {
 } from './types';
 
 function sortNewest(results: WorkoutResult[]): WorkoutResult[] {
-  return [...results].sort((a, b) => b.completedAt - a.completedAt);
+  return [...results].sort((a, b) => b.createdAt - a.createdAt);
 }
 
 function limitResults(results: WorkoutResult[], limit?: number): WorkoutResult[] {
   return limit == null ? results : results.slice(0, limit);
-}
-
-function sameNote(resultNoteId: string, noteId: string): boolean {
-  return resultNoteId === noteId || resultNoteId.endsWith(`-${noteId}`) || noteId.endsWith(`-${resultNoteId}`);
-}
-
-/**
- * Convert runtime analytics segment snapshots into persisted analytics rows.
- */
-export function normalizeAnalyticsSegments(
-  segments: AnalyticsSegmentInput[],
-  noteId: string,
-  resultId?: string,
-  segmentVersions: Record<string, number | undefined> = {},
-): AnalyticsDataPoint[] {
-  const now = Date.now();
-  const resolvedResultId = resultId ?? '';
-  const points: AnalyticsDataPoint[] = [];
-
-  for (const segment of segments) {
-    const segmentId = String(segment.id);
-    const segmentVersion = segmentVersions[segmentId] ?? 0;
-    if (segment.elapsed != null && segment.elapsed > 0) {
-      points.push({
-        id: `${segmentId}-elapsed-${now}`,
-        noteId,
-        segmentId,
-        segmentVersion,
-        resultId: resolvedResultId,
-        type: 'elapsed',
-        value: segment.elapsed,
-        unit: 's',
-        label: `${segment.name ?? 'Segment'} – Elapsed`,
-        timestamp: segment.absoluteStartTime ?? now,
-        createdAt: now,
-      });
-    }
-
-    for (const [key, value] of Object.entries(segment.metric)) {
-      if (typeof value !== 'number') continue;
-      points.push({
-        id: `${segmentId}-${key}-${now}`,
-        noteId,
-        segmentId,
-        segmentVersion,
-        resultId: resolvedResultId,
-        type: key,
-        value,
-        unit: '',
-        label: `${segment.name ?? 'Segment'} – ${key}`,
-        timestamp: segment.absoluteStartTime ?? now,
-        createdAt: now,
-      });
-    }
-  }
-
-  return points;
 }
 
 export class IndexedDBNotePersistence implements INotePersistence {
@@ -89,6 +38,24 @@ export class IndexedDBNotePersistence implements INotePersistence {
     private readonly storage: NotePersistenceStorage = indexedDBService,
     private readonly contentProvider = new IndexedDBContentProvider(),
   ) {}
+
+  async createNote(input: CreateNoteInput): Promise<HistoryEntry> {
+    const existing = await this.storage.getNote(input.id);
+    if (existing) {
+      throw new Error(`Note already exists: ${input.id}`);
+    }
+    return this.contentProvider.saveEntry({
+      id: input.id,
+      title: input.title,
+      rawContent: input.rawContent,
+      tags: input.tags ?? [],
+      targetDate: input.targetDate,
+      journalDate: input.journalDate,
+      type: input.type ?? 'note',
+      slug: input.slug,
+      sourceId: input.sourceId,
+    });
+  }
 
   async getNote(locator: NoteLocator, options: GetNoteOptions = {}): Promise<HistoryEntry> {
     const note = await this.resolveNote(locator);
@@ -121,12 +88,27 @@ export class IndexedDBNotePersistence implements INotePersistence {
 
   async listNotes(query: NoteQuery = {}): Promise<HistoryEntry[]> {
     if (query.ids && query.ids.length > 0) {
+      const projection = query.projection ?? 'summary';
       return Promise.all(
-        query.ids.map(id => this.getNote(id, { projection: query.projection ?? 'summary' })),
+        query.ids.map(id => this.getNote(id, {
+          projection,
+          // Mirror the list branch: history-detail means "every result for the
+          // note", not the default 'latest' single-result projection. Without
+          // this, callers like the canvas that load via listNotes({ids}) get an
+          // entry with no extendedResults, so the inline results bar never
+          // hydrates on reload.
+          ...(projection === 'history-detail' && { resultSelection: { mode: 'all-for-note' as const } }),
+        })),
       );
     }
 
     let entries = await this.contentProvider.getEntries(query);
+    if (query.journalDate) {
+      entries = entries.filter(entry => entry.journalDate === query.journalDate);
+    }
+    if (query.kind) {
+      entries = entries.filter(entry => entry.type === query.kind);
+    }
     if (query.search) {
       const search = query.search.toLowerCase();
       entries = entries.filter(entry =>
@@ -149,17 +131,35 @@ export class IndexedDBNotePersistence implements INotePersistence {
   }
 
   async mutateNote(locator: NoteLocator, mutation: NoteMutation): Promise<HistoryEntry> {
-    const note = await this.resolveNote(locator);
+    let note = await this.resolveNote(locator);
     if (!note) {
-      throw new NotePersistenceError('NOTE_NOT_FOUND', `Note not found: ${this.describeLocator(locator)}`);
+      // Recording a result onto a note that has no row yet (e.g. a static
+      // canvas surface whose body is file-backed, never written to the store):
+      // lazily create a minimal note so the result has a home. Without this,
+      // mutateNote threw NOTE_NOT_FOUND and the recorder's .catch swallowed it,
+      // so the result was never persisted and nothing hydrated on reload.
+      // Scoped to result writes — content/attachment mutations still require an
+      // existing note.
+      if (mutation.workoutResult) {
+        const id = this.locatorToId(locator);
+        const now = Date.now();
+        note = { id, title: id, createdAt: now, type: mutation.noteType ?? mutation.metadata?.type };
+        await this.storage.saveNote(note);
+      } else {
+        throw new NotePersistenceError('NOTE_NOT_FOUND', `Note not found: ${this.describeLocator(locator)}`);
+      }
     }
 
-    const resultId = mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv4() : undefined);
+    const resultId = mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv7() : undefined);
     const patch = {
       ...mutation.metadata,
       rawContent: mutation.rawContent,
       results: mutation.workoutResult?.data,
-      sectionId: mutation.workoutResult?.sectionId,
+      segmentId: mutation.workoutResult?.segmentId,  // NoteSegment FK (positional section id)
+      blockId: mutation.workoutResult?.blockId,  // line-based position key
+      blockContentId: mutation.workoutResult?.blockContentId,  // content-stable join key
+      version: mutation.workoutResult?.version,  // LEGACY — retired computeVersion path
+      origin: mutation.workoutResult?.origin,  // which surface produced the result
       resultId,
     };
 
@@ -167,24 +167,42 @@ export class IndexedDBNotePersistence implements INotePersistence {
       await this.contentProvider.updateEntry(note.id, patch);
     }
 
-    const analyticsSegments = mutation.analytics?.segments ?? mutation.workoutResult?.analyticsSegments;
-    if (analyticsSegments && analyticsSegments.length > 0) {
-      const segmentVersions = await this.getAnalyticsSegmentVersions(analyticsSegments);
-      const points = normalizeAnalyticsSegments(
-        analyticsSegments,
-        note.id,
-        mutation.analytics?.resultId ?? resultId,
-        segmentVersions,
-      );
-      await this.storage.saveAnalyticsPoints(points);
+    // Summary facts: extracted from Tier-2 ('analytics') outputs already in
+    // the result's logs — no separate analytics channel (CONTEXT.md 2026-07-20).
+    const resultLogs = mutation.workoutResult?.data.logs;
+    if (resultId && resultLogs?.length) {
+      // Resolve AFTER updateEntry so a same-mutation content edit is reflected
+      // in the segment version stamped on fact rows.
+      const segmentId = mutation.workoutResult?.segmentId;
+      const segmentVersion = segmentId
+        ? (await this.storage.getLatestSegmentVersion(segmentId))?.version
+        : undefined;
+      const points = normalizeSummaryFacts(resultLogs, {
+        noteId: note.id,
+        resultId,
+        segmentId,
+        segmentVersion,
+        blockContentId: mutation.workoutResult?.blockContentId,
+        origin: mutation.workoutResult?.origin,
+        pageId: note.pageId,
+        // Canonical workout time — mirrors updateEntry's result createdAt
+        // (resultData.endTime || now), so fact rows and the result agree.
+        workoutTimestamp: mutation.workoutResult?.data.endTime ?? Date.now(),
+      });
+      if (points.length > 0) {
+        // Non-load-bearing: WorkoutResult.data.logs is the authoritative source.
+        await this.storage.saveAnalyticsPoints(points);
+      }
     }
 
     if (mutation.attachments?.add) {
       for (const input of mutation.attachments.add) {
         const attachment = await resolveAttachmentInput(input);
         await this.storage.saveAttachment({
-          id: attachment.id ?? uuidv4(),
+          id: attachment.id ?? uuidv7(),
           noteId: note.id,
+          pageId: note.pageId,
+          resultId,
           label: attachment.label,
           mimeType: attachment.mimeType,
           data: attachment.data,
@@ -211,6 +229,77 @@ export class IndexedDBNotePersistence implements INotePersistence {
     }
     await this.contentProvider.deleteEntry(note.id);
   }
+  async getResultById(resultId: string): Promise<WorkoutResult | undefined> {
+    return this.storage.getResultById(resultId);
+  }
+
+  /**
+   * Re-derivation cascade (Candidate 5 / spec §7) — the replay seam consumer.
+   *
+   * Loads the exact NoteSegment incarnation the result was recorded against
+   * (for engine context), replays data.logs through the headless
+   * AnalyticsEngine (strip Tier-1 'analyzed' annotations → re-run realtime
+   * processors → re-run summary processors), writes back data.logs with
+   * regenerated Tier-2 outputs, then purges and re-normalizes the summary
+   * fact rows.
+   *
+   * Lives on the concrete class (not INotePersistence): the provider-delegated
+   * adapter has no direct store access to drive the cascade.
+   */
+  async rederiveResultAnalytics(resultId: string): Promise<WorkoutResult> {
+    const result = await this.storage.getResultById(resultId);
+    if (!result) {
+      throw new NotePersistenceError('RESULT_NOT_FOUND', `Result not found: ${resultId}`);
+    }
+
+    // Engine context comes from the stored segment (replay deep-dive Gap A):
+    // pinned incarnation first, latest as fallback for rows recorded before
+    // segmentVersion was stamped.
+    const segment = result.segmentId
+      ? (result.segmentVersion != null && this.storage.getSegment
+          ? await this.storage.getSegment(result.segmentId, result.segmentVersion)
+          : undefined) ?? await this.storage.getLatestSegmentVersion(result.segmentId)
+      : undefined;
+    const scriptBlock = segment?.data as ScriptBlock | null | undefined;
+    if (!scriptBlock) {
+      throw new NotePersistenceError(
+        'SEGMENT_NOT_FOUND',
+        `Cannot re-derive result ${resultId}: no NoteSegment with a scriptBlock for segmentId '${result.segmentId ?? '<none>'}'`,
+      );
+    }
+
+    const block = scriptBlock.statements?.length
+      ? scriptBlock
+      : { ...scriptBlock, statements: createParser().read(scriptBlock.content).statements };
+
+    const derivedLogs = replayResultAnalytics(result, block);
+    const updated: WorkoutResult = {
+      ...result,
+      data: { ...result.data, logs: derivedLogs },
+    };
+    await this.storage.saveResult(updated);
+
+    // Re-normalize summary facts from the canonical derived logs (single
+    // derivation policy — the fact table must agree with data.logs).
+    if (this.storage.deleteAnalyticsPointsForResult) {
+      await this.storage.deleteAnalyticsPointsForResult(result.id);
+    }
+    const points = normalizeSummaryFacts(derivedLogs, {
+      noteId: updated.noteId,
+      resultId: result.id,
+      segmentId: updated.segmentId,
+      segmentVersion: updated.segmentVersion,
+      blockContentId: updated.blockContentId,
+      origin: updated.origin,
+      pageId: updated.pageId,
+      workoutTimestamp: updated.createdAt,
+    });
+    if (points.length > 0) {
+      await this.storage.saveAnalyticsPoints(points);
+    }
+
+    return updated;
+  }
 
   private async resolveNote(locator: NoteLocator): Promise<Note | undefined> {
     if (typeof locator === 'string') {
@@ -218,6 +307,9 @@ export class IndexedDBNotePersistence implements INotePersistence {
     }
     if (locator.id) {
       return this.resolveByAnyId(locator.id);
+    }
+    if (locator.slug) {
+      return this.resolveByAnyId(locator.slug);
     }
     const notes = await this.storage.getAllNotes();
     if (locator.shortId) {
@@ -233,29 +325,49 @@ export class IndexedDBNotePersistence implements INotePersistence {
   private async resolveByAnyId(id: string): Promise<Note | undefined> {
     const direct = await this.storage.getNote(id);
     if (direct) return direct;
+    const bySlug = await this.storage.getNoteBySlug?.(id);
+    if (bySlug) return bySlug;
     const notes = await this.storage.getAllNotes();
-    return notes.find(note => toShortId(note.id) === id || note.title.toLowerCase() === id.toLowerCase());
+    return notes.find(note => note.slug === id || toShortId(note.id) === id || note.title.toLowerCase() === id.toLowerCase());
   }
 
   private describeLocator(locator: NoteLocator): string {
     return typeof locator === 'string'
       ? locator
-      : locator.id ?? locator.shortId ?? locator.title ?? '<empty locator>';
+      : locator.id ?? locator.slug ?? locator.shortId ?? locator.title ?? '<empty locator>';
   }
 
-  private async getAnalyticsSegmentVersions(segments: AnalyticsSegmentInput[]): Promise<Record<string, number | undefined>> {
-    const segmentIds = Array.from(new Set(segments.map(segment => String(segment.id))));
-    const latestSegments = await this.storage.getLatestSegments(segmentIds);
-    return Object.fromEntries(latestSegments.map(segment => [segment.id, segment.version]));
+  private locatorToId(locator: NoteLocator): string {
+    if (typeof locator === 'string') return locator;
+    return locator.id ?? locator.slug ?? locator.shortId ?? locator.title ?? '';
   }
 
-  private async selectResults(note: Note, selection: ResultSelection = { mode: 'latest' }): Promise<Partial<HistoryEntry>> {
-    if (selection.mode === 'by-result-id') {
+  /**
+   * Cross-note "similar workouts" read path (Candidate 1 / cross-note-result-
+   * aggregation ADR): every result recorded against the same blockContentId,
+   * across all notes. Playground-origin rows are excluded by default — pass
+   * includePlayground to reveal them. Sorted newest-first.
+   */
+  async getSimilarWorkoutResults(
+    blockContentId: string,
+    options: { excludeNoteId?: string; includePlayground?: boolean; limit?: number } = {},
+  ): Promise<WorkoutResult[]> {
+    let results = await this.storage.getResultsByContentId(blockContentId);
+    if (options.excludeNoteId) {
+      results = results.filter(r => r.noteId !== options.excludeNoteId);
+    }
+    if (!options.includePlayground) {
+      results = results.filter(r => r.origin !== 'playground');
+    }
+    return limitResults(sortNewest(results), options.limit);
+  }
+
+  private async selectResults(note: Note, selection: ResultSelection = { mode: 'latest' }): Promise<Partial<HistoryEntry>> {    if (selection.mode === 'by-result-id') {
       const result = await this.storage.getResultById(selection.resultId);
       if (!result) {
         throw new NotePersistenceError('RESULT_NOT_FOUND', `Result not found: ${selection.resultId}`);
       }
-      if (!sameNote(result.noteId, note.id)) {
+      if (result.noteId !== note.id) {
         throw new NotePersistenceError(
           'RESULT_NOTE_MISMATCH',
           `Result ${selection.resultId} does not belong to note ${note.id}`,
@@ -265,7 +377,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
     }
 
     if (selection.mode === 'latest-for-section' || selection.mode === 'all-for-section') {
-      const results = sortNewest(await this.storage.getResultsForSection(note.id, selection.sectionId));
+      const results = sortNewest(await this.storage.getResultsForSection(note.id, selection.blockContentId));
       if (selection.mode === 'all-for-section') {
         const extendedResults = limitResults(results, selection.limit);
         return { results: extendedResults[0]?.data, extendedResults };

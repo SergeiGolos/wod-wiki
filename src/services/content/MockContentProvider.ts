@@ -1,5 +1,5 @@
-import type { AttachmentCreateInput, IContentProvider, ContentProviderMode } from '../../types/content-provider';
-import { v4 as uuidv4 } from 'uuid';
+import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
+import { v7 as uuidv7 } from 'uuid';
 import { HistoryEntry, ProviderCapabilities, EntryQuery } from '../../types/history';
 import { Attachment } from '../../types/storage';
 
@@ -44,15 +44,15 @@ export class MockContentProvider implements IContentProvider {
         return this.entries.get(id) || null;
     }
 
-    async saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry> {
-        const id = uuidv4();
+    async saveEntry(entry: NoteSaveInput): Promise<HistoryEntry> {
+        const id = entry.id ?? uuidv7();
         const now = Date.now();
 
         const newEntry: HistoryEntry = {
             ...entry,
             id,
-            createdAt: now,
-            updatedAt: now,
+            createdAt: entry.createdAt ?? now,
+            updatedAt: entry.updatedAt ?? now,
             schemaVersion: 1
         };
 
@@ -64,7 +64,7 @@ export class MockContentProvider implements IContentProvider {
         const source = this.entries.get(sourceId);
         if (!source) throw new Error(`Entry ${sourceId} not found`);
 
-        const id = uuidv4();
+        const id = uuidv7();
         const now = Date.now();
 
         const newEntry: HistoryEntry = {
@@ -75,18 +75,10 @@ export class MockContentProvider implements IContentProvider {
             targetDate: targetDate || now,
             results: undefined, // Don't clone results
             title: `${source.title} (Copy)`,
-            clonedIds: [],
-            templateId: source.id
+            sourceId: source.id
         };
 
         this.entries.set(id, newEntry);
-
-        // Update source clonedIds
-        const updatedSource = {
-            ...source,
-            clonedIds: [...(source.clonedIds || []), id]
-        }
-        this.entries.set(sourceId, updatedSource);
 
         return newEntry;
     }
@@ -116,7 +108,7 @@ export class MockContentProvider implements IContentProvider {
     }
 
     async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
-        const id = attachment.id ?? uuidv4();
+        const id = attachment.id ?? uuidv7();
         const now = Date.now();
         const fullAttachment: Attachment = {
             ...attachment,

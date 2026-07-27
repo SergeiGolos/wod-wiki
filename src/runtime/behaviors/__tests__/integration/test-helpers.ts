@@ -5,16 +5,16 @@
  * in realistic runtime scenarios.
  */
 
-import { vi, expect } from 'bun:test';
+import { expect } from 'bun:test';
 import { IRuntimeBehavior } from '../../../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../../../contracts/IBehaviorContext';
 import { IRuntimeBlock } from '../../../contracts/IRuntimeBlock';
-import { MemoryType, MemoryTypeMap, TimerState, RoundState, DisplayState } from '../../../memory/MemoryTypes';
+import { MemoryType, MemoryTypeMap, TimerState, RoundState } from '../../../memory/MemoryTypes';
 import { TimeSpan } from '../../../models/TimeSpan';
 import { IMemoryLocation, MemoryTag, MemoryLocation } from '../../../memory/MemoryLocation';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
 import { CurrentRoundMetric } from '../../../compiler/metrics/CurrentRoundMetric';
-import { RoundState } from '../../../memory/MemoryTypes';
+
 
 /**
  * Mock clock for deterministic time control in tests.
@@ -26,8 +26,16 @@ export class MockClock {
         this._now = startTime;
     }
 
-    get now(): Date {
+    get currentDate(): Date {
         return new Date(this._now);
+    }
+
+    now(): Date {
+        return new Date(this._now);
+    }
+
+    nowMs(): number {
+        return this._now;
     }
 
     get timestamp(): number {
@@ -134,7 +142,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         memoryLocations.push(new MemoryLocation('metric:label', [{
             type: MetricType.Label,
             image: labelText,
-            origin: 'config',
+            origin: 'parser',
             value: labelText
         } as IMetric]));
     }
@@ -152,6 +160,7 @@ export function createIntegrationContext(
     runtime: MockRuntime,
     block: MockBlock
 ): IBehaviorContext {
+    const declared: Set<string> = new Set();
     return {
         block: block as unknown as IRuntimeBlock,
         clock: runtime.clock,
@@ -176,60 +185,20 @@ export function createIntegrationContext(
             runtime.outputs.push({ type, metrics, metadata });
         },
 
+        declareCapability(cap: string) {
+            declared.add(cap);
+        },
+
+        hasCapability(cap: string) {
+            return declared.has(cap);
+        },
+
         markComplete(reason: string) {
             runtime.completionReason = reason;
         },
 
         getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
             return block.getMemoryByTag(tag);
-        },
-
-        getMemory<T extends MemoryType>(type: T): MemoryTypeMap[T] | undefined {
-            // Try list-based memory first
-            const locations = block.getMemoryByTag(type as unknown as MemoryTag);
-            if (locations.length > 0 && locations[0].metrics.length > 0) {
-                // Special case: 'round' memory uses CurrentRoundMetric which
-                // stores .current and .total as direct fields. Synthesize RoundState.
-                if (type === 'round') {
-                    const frag = locations[0].metrics[0] as unknown as { current?: number; total?: number };
-                    if (frag?.current !== undefined) {
-                        return { current: frag.current, total: frag.total } as MemoryTypeMap[T];
-                    }
-                    return undefined;
-                }
-                return locations[0].metrics[0].value as MemoryTypeMap[T];
-            }
-            // Fall back to Map
-            return block.memory.get(type) as MemoryTypeMap[T] | undefined;
-        },
-
-        setMemory<T extends MemoryType>(type: T, value: MemoryTypeMap[T]) {
-            // Write to Map for backward compat assertions
-            block.memory.set(type, value);
-            // Also write to list-based memory
-            const tag = type as unknown as MemoryTag;
-            const locations = block.getMemoryByTag(tag);
-            if (locations.length > 0) {
-                const metric: IMetric = {
-                    type: 0 as any,
-                    image: '',
-                    origin: 'runtime',
-                    value,
-                    sourceBlockKey: block.key.toString(),
-                    timestamp: new Date(),
-                } as any;
-                locations[0].update([metric]);
-            } else {
-                const metric: IMetric = {
-                    type: 0 as any,
-                    image: '',
-                    origin: 'runtime',
-                    value,
-                    sourceBlockKey: block.key.toString(),
-                    timestamp: new Date(),
-                } as any;
-                block.pushMemory(new MemoryLocation(tag, [metric]));
-            }
         },
 
         pushMemory(tag: string, metrics: IMetric[]) {
@@ -269,7 +238,7 @@ export function createIntegrationContext(
                 }
             }
         }
-    } as IBehaviorContext;
+    } as unknown as IBehaviorContext;
 }
 
 /**
@@ -300,7 +269,7 @@ export function dispatchEvent(
     // Create proper event object with name field as behaviors expect
     const event = {
         name: eventType,
-        timestamp: runtime.clock.now,
+        timestamp: runtime.clock.currentDate,
         data: eventData
     };
     for (const handler of handlers) {
@@ -480,7 +449,7 @@ export function simulateRoundAdvance(ctx: IBehaviorContext): void {
         round.current + 1,
         round.total,
         'test-block',
-        ctx.clock.now,
+        ctx.clock.currentDate,
     );
     ctx.updateMemory('round', [frag]);
 }

@@ -10,8 +10,9 @@ import React, {
 } from 'react';
 import { CalendarIcon, FileTextIcon, ChevronRightIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDateHeader } from '@/lib/dateFormat';
 import type { FilteredListItem } from './types';
-import { ResultListItem } from '@/components/results/ResultListItem';
+import { ResultListItem } from '@/components/molecules/ResultListItem';
 
 // ── Journal entry summary (note metadata for a given date) ─────────────────
 
@@ -31,15 +32,6 @@ function addDays(date: Date, days: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
   return d;
-}
-
-function formatDateHeader(date: Date): string {
-  return date.toLocaleDateString(undefined, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
 }
 
 function sameDay(left: Date, right: Date): boolean {

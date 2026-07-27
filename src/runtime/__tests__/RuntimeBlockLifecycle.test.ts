@@ -15,7 +15,7 @@ describe('RuntimeBlock Lifecycle', () => {
     let behavior: IRuntimeBehavior;
 
     beforeEach(() => {
-        clock = { now: new Date('2024-01-01T10:00:00Z') } as IRuntimeClock;
+        clock = { now: new Date('2024-01-01T10:00:00Z'), currentDate: new Date('2024-01-01T10:00:00Z') } as IRuntimeClock;
 
         eventBus = {
             register: vi.fn().mockReturnValue(vi.fn()),
@@ -39,7 +39,7 @@ describe('RuntimeBlock Lifecycle', () => {
             onDispose: vi.fn()
         };
 
-        block = new RuntimeBlock(runtime, [], [behavior]);
+        block = new RuntimeBlock({ runtime, behaviors: [behavior] });
     });
 
     describe('mount', () => {

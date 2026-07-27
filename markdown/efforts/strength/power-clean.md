@@ -1,0 +1,13 @@
+---
+id: effort-bundled-power-clean
+slug: power-clean
+label: Power Clean
+aliases:
+  - clean
+  - pc
+  - hang clean
+baseAttributes:
+  met: 8.0
+  discipline: strength
+  intensityTier: high
+---

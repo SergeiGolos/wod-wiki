@@ -11,10 +11,10 @@ An in-overlay timer UI that creates its own `ScriptRuntime` via `RuntimeFactory`
 
 | System / Token | Usage |
 |----------------|-------|
-| `RuntimeFactory` | Creates and wires a `ScriptRuntime` from a `WodBlock` |
+| `RuntimeFactory` | Creates and wires a `ScriptRuntime` from a `ScriptBlock` |
 | `ScriptRuntime` | Execution engine; created on mount, disposed on unmount |
 | `TimerStackView` | Timer and exercise card display |
-| `WodBlock` | Workout block providing the script |
+| `ScriptBlock` | Workout block providing the script |
 
 ## Notifies
 
@@ -29,7 +29,7 @@ An in-overlay timer UI that creates its own `ScriptRuntime` via `RuntimeFactory`
 
 ```typescript
 interface RuntimeTimerPanelProps {
-  block: WodBlock;
+  block: ScriptBlock;
   autoStart?: boolean;
   onComplete?: (runtime: ScriptRuntime) => void;
   onClose?: () => void;

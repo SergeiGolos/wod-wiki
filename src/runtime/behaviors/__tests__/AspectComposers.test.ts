@@ -12,7 +12,7 @@ import {
 
 // Mock runtime
 const mockRuntime: IScriptRuntime = {
-    clock: { now: new Date(1000) },
+    clock: { now: new Date(1000), currentDate: new Date(1000) },
     events: { subscribe: () => ({ unsubscribe: () => {} }) },
     compiler: {} as any,
     stack: { count: 0 } as any,

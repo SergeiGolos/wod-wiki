@@ -56,7 +56,7 @@ export function PanelShell({
       data-panel-expanded={isExpanded}
     >
       {/* Panel Content — wrapped in PanelSizeProvider for container-aware sizing */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden w-full">
         <PanelSizeProvider>
           {children}
         </PanelSizeProvider>

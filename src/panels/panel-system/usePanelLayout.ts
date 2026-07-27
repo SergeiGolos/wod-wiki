@@ -20,7 +20,7 @@ import type { PanelDescriptor, PanelLayoutState, PanelSpan } from './types';
  * const layout = usePanelLayout('track', trackPanels);
  *
  * // Expand a panel
- * layout.expandPanel('timer-panel');
+ * layout.expandPanel('wallclock-panel');
  *
  * // Collapse back to default layout
  * layout.collapsePanel();

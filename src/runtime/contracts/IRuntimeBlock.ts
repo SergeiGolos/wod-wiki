@@ -4,19 +4,9 @@ import { IBlockContext } from './IBlockContext';
 import { IRuntimeBehavior } from './IRuntimeBehavior';
 import type { IRuntimeActionable } from './primitives/IRuntimeActionable';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
-import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 import { MetricVisibility } from '../memory/MetricVisibility';
-import type { IBlockRef, IMemoryEntryShim as IMemoryEntryShimPrimitive } from './primitives/IBlockRef';
+import type { IBlockRef } from './primitives/IBlockRef';
 import type { BlockLifecycleOptions as BlockLifecycleOptionsPrimitive } from './primitives/IBlockLifecycle';
-
-/**
- * Backward-compatible memory entry shape.
- * Provides a shim over IMemoryLocation for callers still using the old API.
- *
- * Re-exported from the primitives layer (`primitives/IBlockRef.ts`) for
- * backward compatibility with existing import sites.
- */
-export type IMemoryEntryShim<V = unknown> = IMemoryEntryShimPrimitive<V>;
 
 /**
  * Re-export of the primitives `BlockLifecycleOptions` for backward
@@ -24,6 +14,21 @@ export type IMemoryEntryShim<V = unknown> = IMemoryEntryShimPrimitive<V>;
  * `IRuntimeBlock`.
  */
 export type BlockLifecycleOptions = BlockLifecycleOptionsPrimitive;
+
+/**
+ * The decision reached by an inspectNext() call.
+ *
+ * `complete` is true if the behavior chain marked the block complete.
+ * `reason` is the human-readable reason (mirrors CompletionReason).
+ * `actions` is the action list that a follow-up next() call would dispatch.
+ * The actions are exactly the ones the auto-pop in next() would queue.
+ */
+export interface CompletionDecision {
+    readonly complete: boolean;
+    readonly reason?: string;
+    readonly actions: readonly import('./IRuntimeAction').IRuntimeAction[];
+}
+
 
 /**
  * Represents a runtime block that can be executed within the WOD runtime stack.
@@ -116,6 +121,27 @@ export interface IRuntimeBlock extends IBlockRef {
     next(runtime: IRuntimeActionable, options?: BlockLifecycleOptions): IRuntimeAction[];
 
     /**
+     * Inspect what the next() call would do, WITHOUT dispatching.
+     *
+     * PURE READ. Does not mutate _isComplete, does not register any
+     * side effects on the runtime, does not emit any events. Runs the
+     * behavior onNext chain against a temporary BehaviorContext and
+     * returns the decision the chain reached.
+     *
+     * Use this to ask "what would happen if I called next() right now?"
+     * without paying for the side effects. The cast sender can pre-emptively
+     * dim the next block; analytics can explain "why did this block end?"
+     * from the decision trail; tests can assert on the decision without
+     * touching state.
+     *
+     * @param runtime The runtime context (typed as the IRuntimeActionable primitive
+     *                to break the cycle through IScriptRuntime)
+     * @param options Lifecycle timing data (completion timestamp if triggered by child pop)
+     * @returns The completion decision: { complete, reason?, actions }
+     */
+    inspectNext(runtime: IRuntimeActionable, options?: BlockLifecycleOptions): CompletionDecision;
+
+    /**
      * Called when this block is popped from the runtime stack.
      * Handles completion logic, cleanup, and resource disposal.
      * 
@@ -170,10 +196,27 @@ export interface IRuntimeBlock extends IBlockRef {
     /**
      * Push a new memory location onto the block's memory list.
      * Multiple locations with the same tag can coexist.
-     *
-     * @param location The memory location to add
      */
     pushMemory(location: IMemoryLocation): void;
+
+    /**
+     * Merge a set of compiler hints (e.g. from an effort markdown file) into
+     * the block. Hints are stored as `MetricType.Hint` metrics in a
+     * `metric:hint` memory location.
+     *
+     * IMPORTANT: unlike dialect-emitted hints (which are attached to the
+     * *statement* before `JitCompiler.compile()` runs, and so are visible to
+     * `hasHint`/`getHints` calls inside strategy `match()`/`apply()`), hints
+     * merged here land on the *block* — which only exists after compilation.
+     * They currently do NOT reach any strategy decision; `hasHint`/`getHints`
+     * never read from block memory. See
+     * docs/architectural-cleanup-tier-3-extensibility.md §3.3 verification
+     * notes for the full explanation. Use sparingly: any hint key not in
+     * `CONSUMED_HINTS` (see `core/metrics/hints.ts`) is analytics-only even
+     * when the read-path gap above is fixed. For effort-specific metrics,
+     * prefer a domain metric.
+     */
+    mergeHints(hints: Readonly<Record<string, unknown>>): void;
 
     /**
      * Get all memory locations matching the given tag.
@@ -247,26 +290,4 @@ export interface IRuntimeBlock extends IBlockRef {
      * @param reason Optional reason for completion (for debugging/history)
      */
     markComplete(reason?: string): void;
-
-    // ============================================================================
-    // Backward-Compatible Memory API (shims over list-based memory)
-    // ============================================================================
-
-    /**
-     * @deprecated Use getMemoryByTag() instead. Backward-compatible shim that
-     * reads from the list-based memory and returns a legacy-shaped entry.
-     */
-    getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined;
-
-    /**
-     * @deprecated Use getMemoryByTag().length > 0 instead. Backward-compatible shim.
-     */
-    hasMemory(type: MemoryType): boolean;
-
-    /**
-     * @deprecated Use pushMemory() or the BehaviorContext API instead.
-     * Backward-compatible shim that updates the first matching memory location's
-     * metrics value, or creates a new location if none exists.
-     */
-    setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
 }

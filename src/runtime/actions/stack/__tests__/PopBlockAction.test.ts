@@ -20,7 +20,7 @@ function createRuntimeWithBlock(block: IRuntimeBlock): IScriptRuntime {
 
     return {
         stack: stack as any,
-        clock: { now: new Date(2000), isRunning: true } as any,
+        clock: { now: new Date(2000), currentDate: new Date(2000), isRunning: true } as any,
         addOutput: vi.fn(),
         script: {} as any,
         eventBus: {} as any,
@@ -48,7 +48,7 @@ function createBlock(): IRuntimeBlock {
         behaviors: [],
         executionTiming: {
             startTime: new Date(1000),
-            completedAt: undefined,
+            createdAt: undefined,
         },
         isComplete: true,
         completionReason: undefined,

@@ -53,12 +53,5 @@ export interface IRuntimeMemory {
      * This is automatically called when stack items are removed.
      */
     release(reference: IMemoryReference): void;
-
-    /**
-     * Subscribe to all memory changes.
-     * @deprecated Use EventBus handlers instead. This will be removed in a future version.
-     * Returns a function to unsubscribe.
-     */
-    subscribe(callback: (ref: IMemoryReference, value: unknown, oldValue: unknown) => void): () => void;
 }
 

@@ -1,22 +1,8 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../contracts/IRuntimeContext';
+import type { RuntimeError } from '../contracts/IRuntimeError';
 
-/**
- * Runtime error information.
- * Captured errors are stored in the runtime's error list for centralized handling.
- */
-export interface RuntimeError {
-  /** The error that occurred */
-  error: Error;
-  /** Where the error occurred (block ID, handler ID, etc.) */
-  source: string;
-  /** When the error occurred */
-  timestamp: Date;
-  /** Additional context about the error */
-  context?: unknown;
-
-  blockKey?: string;
-}
+export type { RuntimeError };
 
 /**
  * Action for pushing errors to the runtime error list.
@@ -53,10 +39,10 @@ export class ErrorAction implements IRuntimeAction {
     public readonly context?: unknown
   ) { }
 
-  do(runtime: IScriptRuntime): void {
+  do(runtime: IRuntimeContext): void {
     // Initialize errors array if it doesn't exist
     // Use type assertion for runtime with mutable errors array
-    const runtimeWithErrors = runtime as IScriptRuntime & { errors: RuntimeError[] };
+    const runtimeWithErrors = runtime as IRuntimeContext & { errors: RuntimeError[] };
     if (!runtimeWithErrors.errors) {
       runtimeWithErrors.errors = [];
     }

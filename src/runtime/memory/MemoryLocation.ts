@@ -19,7 +19,6 @@ import { MetricContainer } from '../../core/models/MetricContainer';
  */
 export type MemoryTag =
     | 'time'
-    | 'timer'
     | 'round'
     | 'children:status'
     | 'completion'
@@ -36,6 +35,9 @@ export type MemoryTag =
     // metric:private — internal behavior state (not shown in normal UI)
     | 'metric:tracked'
     | 'metric:label'
+    // metric:hint — compiler hints (from dialects or effort markdown) consumed
+    // by strategies via the hints contract (see core/metrics/hints.ts).
+    | 'metric:hint'
     // metric:next — preview metric for the next child to be executed
     | 'metric:next';
 

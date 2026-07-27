@@ -37,7 +37,7 @@ describe('MockBlock', () => {
     };
 
     const block = new MockBlock('test', [mockBehavior]);
-    const mockRuntime = { clock: { now: new Date() } } as any;
+    const mockRuntime = { clock: { now: new Date(), currentDate: new Date() } } as any;
 
     block.mount(mockRuntime);
     expect(onPush).toHaveBeenCalled();

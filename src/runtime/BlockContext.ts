@@ -1,7 +1,7 @@
 import { IBlockContext } from './contracts/IBlockContext';
 import { IMemoryReference } from './contracts/IMemoryReference';
 import { TypedMemoryReference } from './impl/TypedMemoryReference';
-import { IScriptRuntime } from './contracts/IScriptRuntime';
+import type { IRuntimeContext } from './contracts/IRuntimeContext';
 import { IRuntimeMemory } from './contracts/IRuntimeMemory';
 import { RuntimeMemory } from './RuntimeMemory';
 import { MemoryTypeEnum } from './models/MemoryTypeEnum';
@@ -36,7 +36,7 @@ export class BlockContext implements IBlockContext {
     private _memory: IRuntimeMemory;
 
     constructor(
-        private readonly runtime: IScriptRuntime,
+        private readonly runtime: IRuntimeContext,
         public readonly ownerId: string,
         public readonly exerciseId: string = '',
         initialReferences: IMemoryReference[] = [],
@@ -75,7 +75,7 @@ export class BlockContext implements IBlockContext {
 
         // Dispatch memory:allocate event
         this.runtime.eventBus.dispatch(
-            new MemoryAllocateEvent(ref, initialValue),
+            new MemoryAllocateEvent(ref, initialValue, this.runtime.nowProvider),
             this.runtime
         );
 
@@ -107,7 +107,7 @@ export class BlockContext implements IBlockContext {
 
         // Dispatch memory:set event
         this.runtime.eventBus.dispatch(
-            new MemorySetEvent(reference, value, oldValue),
+            new MemorySetEvent(reference, value, oldValue, this.runtime.nowProvider),
             this.runtime
         );
     }
@@ -123,8 +123,8 @@ export class BlockContext implements IBlockContext {
 
             // Dispatch memory:release event
             this.runtime.eventBus.dispatch(
-                new MemoryReleaseEvent(ref, lastValue),
-                this.runtime
+                new MemoryReleaseEvent(ref, lastValue, this.runtime.nowProvider),
+            this.runtime
             );
         }
 

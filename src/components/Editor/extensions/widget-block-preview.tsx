@@ -23,16 +23,438 @@ import {
   WidgetType,
   keymap,
 } from "@codemirror/view";
-import { Extension, StateField, Range, EditorState, Prec } from "@codemirror/state";
+import { Extension, StateField, Range, EditorState, Prec, StateEffect } from "@codemirror/state";
 import type { Line } from "@codemirror/state";
-// @ts-expect-error — react-dom/client subpath types don't resolve under moduleResolution:bundler (baseline issue)
 import { createRoot } from "react-dom/client";
 type Root = { render: (c: React.ReactNode) => void; unmount: () => void };
 import React from "react";
 
+/** Effect to toggle edit mode for a specific widget block */
+export const toggleWidgetEdit = StateEffect.define<{ sectionId: string; editing: boolean }>();
+
+/** StateField to track which widgets are currently being edited as raw text */
+export const editingWidgetsField = StateField.define<Set<string>>({
+  create: () => new Set(),
+  update(value, tr) {
+    let next = value;
+    for (const effect of tr.effects) {
+      if (effect.is(toggleWidgetEdit)) {
+        next = new Set(next);
+        if (effect.value.editing) next.add(effect.value.sectionId);
+        else next.delete(effect.value.sectionId);
+      }
+    }
+    return next;
+  },
+});
+
+import { cn } from "@/lib/utils";
+
 import { sectionField } from "./section-state";
 import type { EditorSection } from "./section-state";
-import type { WidgetRegistry, WidgetProps } from "../overlays/WidgetCompanion";
+import type { WidgetConfig, WidgetRegistry, WidgetProps } from "../widgets/types";
+import { WidgetEditButton } from "@/components/atoms/WidgetEditButton";
+import { EditableMarkdown } from "@/components/atoms/EditableMarkdown";
+
+interface WidgetConfigParseFailure {
+  ok: false;
+  config: {};
+  message: string;
+}
+
+interface WidgetConfigParseSuccess {
+  ok: true;
+  config: WidgetConfig;
+}
+
+type WidgetConfigParseResult = WidgetConfigParseSuccess | WidgetConfigParseFailure;
+
+export interface WidgetEditState {
+  isEditing: boolean;
+  isDirty: boolean;
+  error: string | null;
+  originalMarkdown: string;
+  currentMarkdown: string;
+  hasFocus: boolean;
+}
+
+interface WidgetBlockPreviewWrapperProps {
+  widgetName: string;
+  rawContent: string;
+  sectionId: string;
+  registry: WidgetRegistry;
+  view: EditorView;
+}
+
+function stripEditorTrailingNewline(rawContent: string): string {
+  return rawContent.endsWith("\n") ? rawContent.slice(0, -1) : rawContent;
+}
+
+function normalizeWidgetMarkdown(markdown: string): string {
+  const content = markdown.replace(/\n+$/, "");
+  return `${content}\n`;
+}
+
+function parseWidgetConfig(rawContent: string): WidgetConfigParseResult {
+  const source = rawContent.trim();
+
+  if (source.length === 0) {
+    return { ok: true, config: {} };
+  }
+
+  try {
+    const parsed = JSON.parse(source);
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") {
+      return {
+        ok: false,
+        config: {},
+        message: "Widget config must be a JSON object.",
+      };
+    }
+
+    return { ok: true, config: parsed as WidgetConfig };
+  } catch (error) {
+    return {
+      ok: false,
+      config: {},
+      message: error instanceof Error ? error.message : "Invalid JSON.",
+    };
+  }
+}
+
+function findWidgetSection(view: EditorView, sectionId: string): EditorSection | null {
+  const { sections } = view.state.field(sectionField);
+  return sections.find((section) => section.type === "widget" && section.id === sectionId) ?? null;
+}
+
+function saveWidgetSource(view: EditorView, sectionId: string, markdown: string): WidgetConfigParseResult | null {
+  const parsed = parseWidgetConfig(markdown);
+  if (!parsed.ok) {
+    return parsed;
+  }
+
+  const section = findWidgetSection(view, sectionId);
+  if (!section || section.contentFrom == null || section.contentTo == null) {
+    return {
+      ok: false,
+      config: {},
+      message: "Unable to locate widget source in the editor.",
+    };
+  }
+
+  view.dispatch({
+    changes: {
+      from: section.contentFrom,
+      to: section.contentTo,
+      insert: normalizeWidgetMarkdown(markdown),
+    },
+  });
+
+  return parsed;
+}
+
+function renderMissingWidget(widgetName: string): React.ReactNode {
+  return (
+    <div className="rounded-xl border border-dashed border-border/70 bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
+      <span className="font-mono">widget:{widgetName}</span>
+      <span className="ml-2 opacity-70">is not registered</span>
+    </div>
+  );
+}
+
+function renderInvalidWidget(widgetName: string, message: string): React.ReactNode {
+  return (
+    <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-5 text-sm text-destructive shadow-sm">
+      <p className="font-medium">Widget config error</p>
+      <p className="mt-1 font-mono text-xs leading-5 text-destructive/90">widget:{widgetName}</p>
+      <p className="mt-2 font-mono text-xs leading-5 text-destructive/90">{message}</p>
+    </div>
+  );
+}
+
+function WidgetBlockPreviewWrapper({
+  widgetName,
+  rawContent,
+  sectionId,
+  registry,
+  view,
+}: WidgetBlockPreviewWrapperProps): React.ReactElement {
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const previewSurfaceRef = React.useRef<HTMLDivElement | null>(null);
+  const originalMarkdown = React.useMemo(() => stripEditorTrailingNewline(rawContent), [rawContent]);
+  const [state, setState] = React.useState<WidgetEditState>(() => ({
+    isEditing: false,
+    isDirty: false,
+    error: null,
+    originalMarkdown,
+    currentMarkdown: originalMarkdown,
+    hasFocus: false,
+  }));
+
+  const isEditingInMain = view.state.field(editingWidgetsField).has(sectionId);
+  void isEditingInMain; // retained for potential future use; edit mode is now React-local
+
+  React.useEffect(() => {
+    setState((prev) => ({
+      ...prev,
+      isEditing: false,
+      isDirty: false,
+      error: null,
+      originalMarkdown,
+      currentMarkdown: originalMarkdown,
+    }));
+  }, [originalMarkdown]);
+
+  React.useEffect(() => {
+    if (!state.isEditing) return;
+    const frame = window.requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      const length = textareaRef.current?.value.length ?? 0;
+      textareaRef.current?.setSelectionRange(length, length);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [state.isEditing]);
+
+  const previewComponent = registry.get(widgetName) as React.ComponentType<WidgetProps> | undefined;
+  const previewParse = React.useMemo(() => parseWidgetConfig(state.originalMarkdown), [state.originalMarkdown]);
+
+  const setFocus = React.useCallback((focused: boolean) => {
+    setState((prev) => (prev.hasFocus === focused ? prev : { ...prev, hasFocus: focused }));
+  }, []);
+
+  // Enter edit mode via React state — no CM6 dispatch needed.
+  const enterEditMode = React.useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      isEditing: true,
+      isDirty: false,
+      error: null,
+      currentMarkdown: prev.originalMarkdown,
+    }));
+  }, []);
+
+  // Perform a CM6 save and return success/failure.
+  const performSave = React.useCallback((markdown: string): boolean => {
+    const result = saveWidgetSource(view, sectionId, markdown);
+    if (!result?.ok) {
+      setState((prev) => ({ ...prev, error: result?.message ?? "Invalid JSON." }));
+      return false;
+    }
+    const saved = stripEditorTrailingNewline(normalizeWidgetMarkdown(markdown));
+    setState({ isEditing: false, isDirty: false, error: null,
+      originalMarkdown: saved, currentMarkdown: saved, hasFocus: false });
+    return true;
+  }, [view, sectionId]);
+
+  // Save button / Ctrl+Enter — read from DOM to avoid stale closure after onChange.
+  const onSave = React.useCallback(() => {
+    performSave(textareaRef.current?.value ?? state.currentMarkdown);
+  }, [performSave, state.currentMarkdown]);
+
+  // Undo button / Escape — discard changes and return to preview.
+  const onUndo = React.useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      isEditing: false,
+      isDirty: false,
+      error: null,
+      currentMarkdown: prev.originalMarkdown,
+    }));
+  }, []);
+
+  const handleMarkdownChange = React.useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const nextMarkdown = event.target.value;
+    setState((prev) => {
+      const nextValidation = prev.error ? parseWidgetConfig(nextMarkdown) : null;
+      return {
+        ...prev,
+        currentMarkdown: nextMarkdown,
+        isDirty: nextMarkdown !== prev.originalMarkdown,
+        error: nextValidation?.ok === false ? nextValidation.message : nextValidation?.ok ? null : prev.error,
+      };
+    });
+  }, []);
+
+  // Textarea blur: read value directly from DOM to avoid stale-closure issues
+  // when blur fires before React has flushed the preceding onChange state update.
+  const handleTextareaBlur = React.useCallback(() => {
+    setFocus(false);
+    const currentValue = textareaRef.current?.value;
+    if (currentValue === undefined) return; // textarea not mounted — not in edit mode
+    const result = saveWidgetSource(view, sectionId, currentValue);
+    if (!result?.ok) {
+      setState((prev) => ({
+        ...prev,
+        isDirty: currentValue !== prev.originalMarkdown,
+        error: result?.message ?? "Unable to save widget source.",
+      }));
+      return;
+    }
+    const saved = stripEditorTrailingNewline(normalizeWidgetMarkdown(currentValue));
+    setState({ isEditing: false, isDirty: false, error: null,
+      originalMarkdown: saved, currentMarkdown: saved, hasFocus: false });
+  }, [sectionId, view, setFocus]);
+
+  // Container blur: only manages focus state; actual saving is done by handleTextareaBlur.
+  const handleBlurCapture = React.useCallback((event: React.FocusEvent<HTMLDivElement>) => {
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget instanceof Node && containerRef.current?.contains(relatedTarget)) {
+      return;
+    }
+    setFocus(false);
+  }, [setFocus]);
+
+  const handlePreviewKeyDown = React.useCallback((event: KeyboardEvent | React.KeyboardEvent) => {
+    if (event.key === "Enter" && !state.isEditing) {
+      event.preventDefault();
+      enterEditMode();
+    }
+  }, [enterEditMode, state.isEditing]);
+
+  React.useEffect(() => {
+    const el = previewSurfaceRef.current;
+    if (!el) return;
+    el.addEventListener("keydown", handlePreviewKeyDown as EventListener);
+    return () => el.removeEventListener("keydown", handlePreviewKeyDown as EventListener);
+  }, [handlePreviewKeyDown]);
+
+  const handleTextareaKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onUndo();
+    } else if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      onSave();
+    }
+  }, [onSave, onUndo]);
+
+  const buttonMode = state.error ? "error" : state.isEditing ? "editing" : "view";
+  const iconVisible = state.hasFocus || state.isEditing || state.error !== null;
+
+  let previewNode: React.ReactNode;
+  if (!previewComponent) {
+    previewNode = renderMissingWidget(widgetName);
+  } else if (!previewParse.ok) {
+    previewNode = renderInvalidWidget(widgetName, previewParse.message);
+  } else {
+    previewNode = React.createElement(previewComponent, {
+      config: previewParse.config,
+      rawContent: state.originalMarkdown,
+      sectionId,
+    });
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      data-widget-section-id={sectionId}
+      data-widget-mode={buttonMode}
+      className={cn(
+        "group relative rounded-2xl border border-transparent bg-background/95 p-3 transition-colors duration-200 ease-out hover:border-border",
+        state.isEditing && state.error === null && "border-emerald-500/40 ring-1 ring-emerald-500/15",
+        state.error !== null && "border-destructive/40 ring-1 ring-destructive/15",
+      )}
+      onMouseDownCapture={(event) => {
+        if (!state.isEditing) {
+          event.preventDefault();
+        }
+      }}
+      onFocusCapture={() => setFocus(true)}
+      onBlurCapture={handleBlurCapture}
+      onKeyDownCapture={handlePreviewKeyDown as React.KeyboardEventHandler<HTMLDivElement>}
+    >
+      <WidgetEditButton
+        mode={buttonMode}
+        enterEditMode={enterEditMode}
+        onSave={onSave}
+        onUndo={onUndo}
+        className={cn(
+          "z-10 focus-visible:opacity-100 focus-visible:scale-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-focus-within:scale-100",
+          iconVisible
+            ? "pointer-events-auto opacity-100 scale-100"
+            : "pointer-events-none opacity-0 scale-95 group-hover:pointer-events-auto group-hover:opacity-100 group-hover:scale-100",
+        )}
+      />
+
+      {state.isEditing ? (
+        <div className="flex flex-col gap-2">
+          {state.error !== null && (
+            <div
+              data-testid="widget-error-inlay"
+              className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+            >
+              Invalid JSON: {state.error}
+            </div>
+          )}
+          <EditableMarkdown
+            ref={textareaRef}
+            data-testid="widget-markdown-editor"
+            value={state.currentMarkdown}
+            onChange={handleMarkdownChange}
+            onBlur={handleTextareaBlur}
+            onKeyDown={handleTextareaKeyDown}
+            hasError={state.error !== null}
+          />
+        </div>
+      ) : (
+        <div
+          ref={previewSurfaceRef}
+          data-testid="widget-preview-surface"
+          tabIndex={0}
+          onKeyDown={handlePreviewKeyDown as React.KeyboardEventHandler<HTMLDivElement>}
+        >
+          {previewNode}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Small widget that only renders the Save/Undo buttons while a widget is in raw edit mode */
+class FloatingEditControls extends WidgetType {
+  constructor(
+    readonly sectionId: string,
+  ) {
+    super();
+  }
+
+  eq(other: FloatingEditControls): boolean {
+    return this.sectionId === other.sectionId;
+  }
+
+  toDOM(view: EditorView): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.className = "relative h-0 w-full"; // Zero height, button absolute right
+
+    const root = createRoot(wrapper);
+    root.render(
+      <div className="absolute right-0 top-1 z-50">
+        <WidgetEditButton
+          mode="editing"
+          enterEditMode={() => {}}
+          onSave={() => {
+            view.dispatch({
+              effects: toggleWidgetEdit.of({ sectionId: this.sectionId, editing: false }),
+            });
+          }}
+          onUndo={() => {
+            view.dispatch({
+              effects: toggleWidgetEdit.of({ sectionId: this.sectionId, editing: false }),
+            });
+          }}
+        />
+      </div>
+    );
+
+    return wrapper;
+  }
+
+  ignoreEvent(): boolean {
+    return false;
+  }
+}
 
 // ── React widget DOM bridge ──────────────────────────────────────────
 
@@ -56,37 +478,20 @@ class ReactWidgetBlock extends WidgetType {
     );
   }
 
-  toDOM(): HTMLElement {
+  toDOM(view: EditorView): HTMLElement {
     const wrapper = document.createElement("div");
     wrapper.className = "cm-widget-block-preview";
     wrapper.style.cssText =
       "display:block; width:100%; min-height:1.5em; outline:none;";
 
-    const Component = this.registry.get(this.widgetName) as
-      | React.ComponentType<WidgetProps>
-      | undefined;
-
-    if (!Component) {
-      wrapper.style.cssText +=
-        "padding:8px 12px; color: var(--cm-muted, #888); font-size:12px; " +
-        "border-left:2px solid var(--cm-border, #555); opacity:0.6;";
-      wrapper.textContent = `[widget:${this.widgetName} not registered]`;
-      return wrapper;
-    }
-
-    let config: Record<string, unknown> = {};
-    try {
-      config = JSON.parse(this.rawContent || "{}");
-    } catch {
-      // Use empty config on parse error
-    }
-
     this.root = createRoot(wrapper) as Root;
     this.root.render(
-      React.createElement(Component, {
-        config,
+      React.createElement(WidgetBlockPreviewWrapper, {
+        widgetName: this.widgetName,
         rawContent: this.rawContent,
         sectionId: this.sectionId,
+        registry: this.registry,
+        view,
       }),
     );
 
@@ -97,8 +502,21 @@ class ReactWidgetBlock extends WidgetType {
     if (this.root) {
       const r = this.root;
       this.root = null;
-      // Defer unmount to avoid "Cannot update an unmounting root" warnings
-      setTimeout(() => r.unmount(), 0);
+      
+      const isTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+      if (isTestEnv) {
+        // Unmount synchronously in tests so pending unmounts don't bleed into subsequent
+        // tests (deferred approach causes race conditions in bun:test).
+        r.unmount();
+      } else {
+        queueMicrotask(() => {
+          try {
+            r.unmount();
+          } catch (e) {
+            // Ignore errors if already unmounted or cleaned up
+          }
+        });
+      }
     }
   }
 
@@ -123,6 +541,7 @@ function buildWidgetDecos(state: EditorState, registry: WidgetRegistry): Decorat
     return Decoration.none;
   }
   const { sections } = sectionState;
+  const editingIds = state.field(editingWidgetsField);
   const decos: Range<Decoration>[] = [];
   const cursorHead = state.selection.main.head;
 
@@ -132,13 +551,27 @@ function buildWidgetDecos(state: EditorState, registry: WidgetRegistry): Decorat
     const doc = state.doc;
     if (section.startLine > doc.lines || section.endLine > doc.lines) continue;
 
-    // Don't replace when cursor is inside the widget range (allows editing)
+    const isEditing = editingIds.has(section.id);
+
+    // If editing, don't replace the block — just add a floating save button
+    if (isEditing) {
+      decos.push(
+        Decoration.widget({
+          widget: new FloatingEditControls(section.id),
+          side: 1,
+          block: false,
+        }).range(section.from)
+      );
+      continue;
+    }
+
+    // Skip replace decoration when cursor is inside widget range (reveals source)
     if (cursorHead >= section.from && cursorHead <= section.to) continue;
 
     // Extract raw content between the fences
     const rawContent =
       section.contentFrom != null && section.contentTo != null
-        ? doc.sliceString(section.contentFrom, section.contentTo).trim()
+        ? doc.sliceString(section.contentFrom, section.contentTo)
         : "";
 
     decos.push(
@@ -172,10 +605,6 @@ function widgetSectionAtLine(
   ) ?? null;
 }
 
-function isCursorInsideSection(state: EditorState, section: EditorSection): boolean {
-  const { head } = state.selection.main;
-  return head >= section.from && head <= section.to;
-}
 
 function moveToLinePreservingColumn(view: EditorView, targetLine: Line): void {
   const { head } = view.state.selection.main;
@@ -190,43 +619,53 @@ function moveToLinePreservingColumn(view: EditorView, targetLine: Line): void {
   });
 }
 
-function enterWidgetDown(view: EditorView): boolean {
+function skipWidgetDown(view: EditorView): boolean {
   const { head } = view.state.selection.main;
-  const currentLineNumber = view.state.doc.lineAt(head).number;
-  const nextLineNumber = currentLineNumber + 1;
-  if (nextLineNumber > view.state.doc.lines) return false;
-
-  const nextLine = view.state.doc.line(nextLineNumber);
+  const currentLine = view.state.doc.lineAt(head);
   const { sections } = view.state.field(sectionField);
-  const widgetSection = widgetSectionAtLine(sections, nextLine);
+  const editingIds = view.state.field(editingWidgetsField);
 
-  if (!widgetSection) return false;
-  if (isCursorInsideSection(view.state, widgetSection)) return false;
+  // If cursor is already inside a non-editing widget, let normal movement handle it
+  const currentWidget = widgetSectionAtLine(sections, currentLine);
+  if (currentWidget && !editingIds.has(currentWidget.id)) return false;
 
-  moveToLinePreservingColumn(view, nextLine);
+  const nextLineNumber = currentLine.number + 1;
+  if (nextLineNumber > view.state.doc.lines) return false;
+  const nextLine = view.state.doc.line(nextLineNumber);
+
+  // If the next line is inside a non-editing widget, move onto its first line (reveals it)
+  const nextWidget = widgetSectionAtLine(sections, nextLine);
+  if (!nextWidget || editingIds.has(nextWidget.id)) return false;
+
+  moveToLinePreservingColumn(view, view.state.doc.line(nextWidget.startLine));
   return true;
 }
 
-function enterWidgetUp(view: EditorView): boolean {
+function skipWidgetUp(view: EditorView): boolean {
   const { head } = view.state.selection.main;
-  const currentLineNumber = view.state.doc.lineAt(head).number;
-  const previousLineNumber = currentLineNumber - 1;
-  if (previousLineNumber < 1) return false;
-
-  const previousLine = view.state.doc.line(previousLineNumber);
+  const currentLine = view.state.doc.lineAt(head);
   const { sections } = view.state.field(sectionField);
-  const widgetSection = widgetSectionAtLine(sections, previousLine);
+  const editingIds = view.state.field(editingWidgetsField);
 
-  if (!widgetSection) return false;
-  if (isCursorInsideSection(view.state, widgetSection)) return false;
+  // If cursor is already inside a non-editing widget, let normal movement handle it
+  const currentWidget = widgetSectionAtLine(sections, currentLine);
+  if (currentWidget && !editingIds.has(currentWidget.id)) return false;
 
-  moveToLinePreservingColumn(view, previousLine);
+  const prevLineNumber = currentLine.number - 1;
+  if (prevLineNumber < 1) return false;
+  const prevLine = view.state.doc.line(prevLineNumber);
+
+  // If the previous line is inside a non-editing widget, move onto its last line (reveals it)
+  const prevWidget = widgetSectionAtLine(sections, prevLine);
+  if (!prevWidget || editingIds.has(prevWidget.id)) return false;
+
+  moveToLinePreservingColumn(view, view.state.doc.line(prevWidget.endLine));
   return true;
 }
 
 const widgetNavKeymap = Prec.high(keymap.of([
-  { key: "ArrowDown", run: enterWidgetDown },
-  { key: "ArrowUp", run: enterWidgetUp },
+  { key: "ArrowDown", run: skipWidgetDown },
+  { key: "ArrowUp", run: skipWidgetUp },
 ]));
 
 // ── Factory ──────────────────────────────────────────────────────────
@@ -241,7 +680,14 @@ export function widgetBlockPreview(registry: WidgetRegistry): Extension {
       return buildWidgetDecos(state, registry);
     },
     update(value, tr) {
-      if (tr.docChanged || tr.selection) {
+      // Only rebuild decorations if:
+      // 1. The document changed (content/structure update)
+      // 2. An edit-toggle effect was dispatched
+      const hasToggle = tr.effects.some(e => e.is(toggleWidgetEdit));
+      // tr.selectionSet doesn't exist in this CM6 version; compare manually
+      const selectionChanged = !tr.startState.selection.eq(tr.newSelection);
+      
+      if (tr.docChanged || hasToggle || selectionChanged) {
         return buildWidgetDecos(tr.state, registry);
       }
       return value;
@@ -249,5 +695,5 @@ export function widgetBlockPreview(registry: WidgetRegistry): Extension {
     provide: (f) => EditorView.decorations.from(f),
   });
 
-  return [widgetPreviewField, widgetNavKeymap];
+  return [widgetPreviewField, editingWidgetsField, widgetNavKeymap];
 }

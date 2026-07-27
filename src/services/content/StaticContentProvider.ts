@@ -7,10 +7,10 @@
  * without persistent database side-effects.
  */
 
-import type { AttachmentCreateInput, IContentProvider, ContentProviderMode } from '../../types/content-provider';
+import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { Attachment } from '../../types/storage';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 const STATIC_ID = 'static';
 
@@ -52,16 +52,15 @@ export class StaticContentProvider implements IContentProvider {
     return this.entry;
   }
 
-  async saveEntry(
-    entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>
-  ): Promise<HistoryEntry> {
-    // In static mode, "saving" a new entry typically just updates the singleton
+  async saveEntry(entry: NoteSaveInput): Promise<HistoryEntry> {
+    // In static mode, "saving" a new entry typically just updates the singleton.
+    // Preserve recovered identity/timestamps (export → import round-trip).
     const now = Date.now();
     this.entry = {
       ...entry,
-      id: STATIC_ID,
-      createdAt: now,
-      updatedAt: now,
+      id: entry.id ?? STATIC_ID,
+      createdAt: entry.createdAt ?? now,
+      updatedAt: entry.updatedAt ?? now,
       schemaVersion: 1,
     };
     return this.entry;
@@ -75,7 +74,7 @@ export class StaticContentProvider implements IContentProvider {
 
   async updateEntry(
     _id: string,
-    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'targetDate' | 'clonedIds'>> & { sectionId?: string; resultId?: string }
+    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'journalDate' | 'slug' | 'type' | 'sourceId'>> & { blockContentId?: string; resultId?: string }
   ): Promise<HistoryEntry> {
     const now = Date.now();
     
@@ -88,18 +87,16 @@ export class StaticContentProvider implements IContentProvider {
 
     // Special handling for results: append to history instead of overwriting
     if (patch.results) {
-        const resultId = patch.resultId || uuidv4();
+        const resultId = patch.resultId || uuidv7();
         const currentResults = this.entry.extendedResults || [];
         console.log(`[StaticProvider] Appending result ${resultId} to extendedResults (prev count: ${currentResults.length})`);
         
-        // Wrap raw results into the WorkoutResult storage format
         const newResult = {
             id: resultId,
             noteId: this.entry.id,
-            sectionId: patch.sectionId,
-            segmentId: patch.sectionId,
+            blockContentId: patch.blockContentId,
             data: patch.results,
-            completedAt: patch.results.endTime || now
+            createdAt: patch.results.endTime || now
         };
         
         nextEntry.results = patch.results; // Keep latest for compat
@@ -122,7 +119,7 @@ export class StaticContentProvider implements IContentProvider {
   }
 
   async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
-    const id = attachment.id ?? uuidv4();
+    const id = attachment.id ?? uuidv7();
     const now = Date.now();
     const fullAttachment: Attachment = {
       ...attachment,

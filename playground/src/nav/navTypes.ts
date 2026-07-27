@@ -1,16 +1,11 @@
 /**
  * navTypes.ts — Playground navigation type contract
  *
- * Re-exports all core types from @/nav/navTypes (the library layer) and
- * adds playground-specific types: NavItem, NavItemL3, NavState, NavDispatch,
- * and filter state interfaces.
+ * Re-exports the shared nav contract from `src/nav/navTypes` so playground pages
+ * can import a single file.  Also houses playground-specific nav shapes
+ * (zones, filter state, etc.).
  *
- * INavActivation is the base interface for every activatable UI element:
- *   NavItem, NavItemL3, canvas ButtonBlock/CommandBlock, toolbar buttons,
- *   playground links, keyboard bindings.
- *
- * All surfaces dispatch through executeNavAction(action, deps) so no
- * individual component carries routing or panel-state logic.
+ * Kept in sync with `src/nav/navTypes.ts` — changes there must be reflected here.
  */
 
 import type React from 'react'
@@ -54,10 +49,8 @@ export type NavZone =
 // ─── Filter state slices ──────────────────────────────────────────────────────
 
 export interface JournalFilterState {
-  /** Selected date as ISO yyyy-mm-dd, or null for "all" */
-  selectedDate: string | null
-  /** Active tag slugs */
-  selectedTags: string[]
+  date: string | null
+  tags: string[]
 }
 
 export interface SearchFilterState {
@@ -67,15 +60,14 @@ export interface SearchFilterState {
 // ─── Global nav state ─────────────────────────────────────────────────────────
 
 export interface NavState {
-  activeL1Id: string | null
-  activeL2Id: string | null
-  /** Active L3 section id — driven by IntersectionObserver */
-  activeL3Id: string | null
+  activeL1: string | null
+  activeL2: string | null
+  activeL3: string | null
+  expanded: Set<string>
   leftDrawerOpen: boolean
   rightDrawerOpen: boolean
-  expandedIds: Set<string>
   journalFilter: JournalFilterState
-  searchFilter: SearchFilterState
+  searchScope: SearchFilterState['scope']
 }
 
 // ─── Dispatch ─────────────────────────────────────────────────────────────────
@@ -96,58 +88,78 @@ export type NavDispatch = React.Dispatch<NavStateAction>
 // ─── Custom component props ───────────────────────────────────────────────────
 
 export interface NavPanelProps {
-  /** The L1 NavItem owning this panel */
-  item: NavItem
-  navState: NavState
-  dispatch: NavDispatch
+  currentPath: string
+  location: Location
 }
 
 export interface NavItemRenderProps {
   item: NavItem
+  depth: number
   isActive: boolean
-  navState: NavState
-  dispatch: NavDispatch
+  isExpanded: boolean
+  onClick: () => void
 }
 
 // ─── NavItem — universal link/node interface ──────────────────────────────────
 
 export interface NavItem extends INavActivation {
-  /** Hierarchy level (1 = top, 2 = context panel, 3 = page index) */
-  level: 1 | 2 | 3
-
-  /** Count badge for accordions */
-  badge?: string | number
-
-  /**
-   * Override active/selected detection.
-   * By default: route items match pathname, scroll items match activeL3Id.
-   */
-  isActive?: (location: Location, navState: NavState) => boolean
-
-  /** Child items — used to build nested lists or accordion groups */
+  id: string
+  label: string
   children?: NavItem[]
-
-  /**
-   * Replace child list with a custom React component (calendar picker,
-   * tag chips, search scope, etc.). Mutually exclusive with `children`.
-   */
-  panel?: React.ComponentType<NavPanelProps>
-
-  /**
-   * Override how this item row itself is rendered in any surface.
-   * Receives the full item + state so split buttons and toggles can be built.
-   */
-  render?: React.ComponentType<NavItemRenderProps>
-
-  /** Restrict this item to specific zones. Omit to use level defaults. */
-  zones?: NavZone[]
+  icon?: string | React.ReactNode
+  badge?: string | number
+  href?: string
+  to?: string
+  disabled?: boolean
+  hidden?: boolean
+  meta?: Record<string, unknown>
 }
 
 // ─── L3 page-index item ───────────────────────────────────────────────────────
 
 export interface NavItemL3 extends NavItem {
-  level: 3
-  action: ScrollAction | RouteQueryAction | NoneAction
-  /** Secondary inline action — rendered as a small Play button */
-  secondaryAction?: INavActivation
+  /** Whether this L3 item is rendered as a section link (h2) or plain link */
+  isSection?: boolean
+}
+
+// ─── Canvas navigation helpers ────────────────────────────────────────────────
+
+import type { INavAction, PipelineStep, OpenMode } from '@/nav/navTypes'
+
+/** Convert a single stringly-typed PipelineStep to a typed INavAction. */
+export function pipelineStepToNavAction(step: PipelineStep, open: OpenMode = 'dialog'): INavAction {
+  if (step.action === 'set-source') return { type: 'view-source', source: step.value }
+  if (step.action === 'navigate') {
+    if (/^https?:\/\//.test(step.value)) {
+      return { type: 'external', href: step.value }
+    }
+    return { type: 'route', to: step.value }
+  }
+  if (step.action === 'set-state') {
+    if (step.value === 'note')   return { type: 'view-state', state: 'note' }
+    if (step.value === 'review') return { type: 'view-state', state: 'review' }
+    if (step.value === 'track')  return { type: 'view-state', state: 'track', open }
+  }
+  return { type: 'none' }
+}
+
+/** Build an INavActivation from a canvas ButtonBlock or ViewButton. */
+export function buttonToActivation(
+  btn: { label: string; pipeline: PipelineStep[]; open?: OpenMode },
+  idx: number
+): INavActivation {
+  const steps = btn.pipeline.map(s => pipelineStepToNavAction(s, btn.open))
+  return {
+    id: `btn-${idx}`,
+    label: btn.label,
+    action: steps.length === 1 ? steps[0] : { type: 'pipeline', steps },
+  }
+}
+
+/** True when an activation's action will launch the workout tracker. */
+export function isRunActivation(activation: INavActivation): boolean {
+  const { action } = activation
+  if (action.type === 'view-state') return action.state === 'track'
+  if (action.type === 'pipeline')   return action.steps.some(s => s.type === 'view-state' && (s as { state?: string }).state === 'track')
+  return false
 }

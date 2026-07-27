@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
 import { ExecutionContextTestHarness } from '../ExecutionContextTestHarness';
 import { MockBlock } from '../MockBlock';
 import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
@@ -28,7 +28,7 @@ describe('ExecutionContextTestHarness', () => {
     });
 
     it('should initialize clock to configured time', () => {
-      expect(harness.clock.now.getTime()).toBe(
+      expect(harness.clock.currentDate.getTime()).toBe(
         new Date('2024-01-01T12:00:00Z').getTime()
       );
     });
@@ -41,7 +41,7 @@ describe('ExecutionContextTestHarness', () => {
     it('should use default clock time if not configured', () => {
       const defaultHarness = new ExecutionContextTestHarness();
       const now = Date.now();
-      const clockTime = defaultHarness.clock.now.getTime();
+      const clockTime = defaultHarness.clock.currentDate.getTime();
       // Should be within 1 second of now
       expect(Math.abs(clockTime - now)).toBeLessThan(1000);
       defaultHarness.dispose();
@@ -84,11 +84,11 @@ describe('ExecutionContextTestHarness', () => {
       const action: IRuntimeAction = {
         type: 'outer',
         do: (runtime: IScriptRuntime) => {
-          timestamps.push(new Date(runtime.clock.now.getTime()));
+          timestamps.push(new Date(runtime.clock.currentDate.getTime()));
           runtime.do({
             type: 'inner',
             do: (rt: IScriptRuntime) => {
-              timestamps.push(new Date(rt.clock.now.getTime()));
+              timestamps.push(new Date(rt.clock.currentDate.getTime()));
             }
           });
         }
@@ -150,11 +150,11 @@ describe('ExecutionContextTestHarness', () => {
 
   describe('Clock Control', () => {
     it('should advance clock by milliseconds', () => {
-      const start = harness.clock.now.getTime();
+      const start = harness.clock.currentDate.getTime();
       
       harness.advanceClock(5000);
 
-      expect(harness.clock.now.getTime()).toBe(start + 5000);
+      expect(harness.clock.currentDate.getTime()).toBe(start + 5000);
     });
 
     it('should set clock to specific time', () => {
@@ -162,7 +162,7 @@ describe('ExecutionContextTestHarness', () => {
       
       harness.setClock(newTime);
 
-      expect(harness.clock.now.getTime()).toBe(newTime.getTime());
+      expect(harness.clock.currentDate.getTime()).toBe(newTime.getTime());
     });
 
     it('should reflect clock changes in action timestamps', () => {
@@ -244,26 +244,34 @@ describe('ExecutionContextTestHarness', () => {
 
   describe('ExecutionContext Behavior', () => {
     it('should enforce iteration limits', () => {
-      const harnessWithLowLimit = new ExecutionContextTestHarness({
-        maxDepth: 3
-      });
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const harnessWithLowLimit = new ExecutionContextTestHarness({
+          maxDepth: 3
+        });
 
-      let iterationCount = 0;
-      const recursiveAction: IRuntimeAction = {
-        type: 'recursive',
-        do: (runtime: IScriptRuntime) => {
-          iterationCount++;
-          if (iterationCount < 10) {
-            runtime.do(recursiveAction);
+        let iterationCount = 0;
+        const recursiveAction: IRuntimeAction = {
+          type: 'recursive',
+          do: (runtime: IScriptRuntime) => {
+            iterationCount++;
+            if (iterationCount < 10) {
+              runtime.do(recursiveAction);
+            }
           }
-        }
-      };
+        };
 
-      expect(() => {
-        harnessWithLowLimit.executeAction(recursiveAction);
-      }).toThrow(/Max iterations/);
+        expect(() => {
+          harnessWithLowLimit.executeAction(recursiveAction);
+        }).toThrow(/Max iterations/);
 
-      harnessWithLowLimit.dispose();
+        expect(consoleError).toHaveBeenCalledTimes(1);
+        expect(String(consoleError.mock.calls[0]?.[0])).toMatch(/\[ExecutionContext\] Max iterations reached \(3\)/);
+
+        harnessWithLowLimit.dispose();
+      } finally {
+        consoleError.mockRestore();
+      }
     });
 
     it('should freeze clock during execution turn', () => {
@@ -273,11 +281,11 @@ describe('ExecutionContextTestHarness', () => {
       const action: IRuntimeAction = {
         type: 'test',
         do: (runtime: IScriptRuntime) => {
-          firstTimestamp = runtime.clock.now;
+          firstTimestamp = runtime.clock.currentDate;
           runtime.do({
             type: 'nested',
             do: (rt: IScriptRuntime) => {
-              secondTimestamp = rt.clock.now;
+              secondTimestamp = rt.clock.currentDate;
             }
           });
         }

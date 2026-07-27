@@ -2,10 +2,19 @@
 
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/AnalyticsModels';
 
-import { IMetric } from '../core/models/Metric';
+import { IMetric, MetricType } from '../core/models/Metric';
 import { MetricContainer } from '../core/models/MetricContainer';
+import { getHints } from '../core/metrics/hints';
 import { IOutputStatement } from '../core/models/OutputStatement';
+import type { StoredOutputStatement } from '../components/Editor/types';
 import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
+import { INowProvider, wallClockNow } from '../runtime/INowProvider';
+
+/**
+ * Union accepted by the transformer — either a live OutputStatement (from a
+ * running runtime) or a plain StoredOutputStatement (loaded from IndexedDB).
+ */
+type OutputLike = IOutputStatement | StoredOutputStatement;
 
 /**
  * Format a metric key into a human-readable label.
@@ -13,6 +22,33 @@ import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
  */
 function formatMetricLabel(key: string): string {
   return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+}
+
+/**
+ * Extract a stable analytics key from a metric.
+ *
+ * Preference order:
+ *   1. Explicit metric key / calculated target
+ *   2. Canonical metric type mapping used by graph surfaces
+ *   3. Raw metric type as a safe fallback
+ */
+function resolveAnalyticsMetricKey(metric: IMetric): string {
+  const enrichedMetric = metric as IMetric & { key?: string; metadata?: { target?: string } };
+  const explicitKey = enrichedMetric.key ?? enrichedMetric.metadata?.target;
+  if (typeof explicitKey === 'string' && explicitKey.trim().length > 0) {
+    return explicitKey;
+  }
+
+  switch (metric.type) {
+    case 'rep':
+      return 'reps'; // Canonical Metric Key — same in fact rows and display (CONTEXT.md)
+    case 'distance':
+      return 'distance';
+    case 'resistance':
+      return 'resistance';
+    default:
+      return metric.type;
+  }
 }
 
 /**
@@ -24,15 +60,11 @@ function extractMetricsFromGroups(metricsGroups: IMetric[][]): Record<string, nu
 
   for (const f of flat) {
     if (f.value !== undefined && typeof f.value === 'number') {
-      let key = f.type;
-      if (f.type === 'rep') key = 'repetitions';
-      if (f.type === 'distance') key = 'distance';
-      if (f.type === 'resistance') key = 'resistance';
-
+      const key = resolveAnalyticsMetricKey(f);
       let val = f.value;
       // Convert time-based metrics (except elapsed/total which are handled separately)
       // from milliseconds to seconds for consistency in the analytics data points.
-      if (f.type === 'duration' || f.type === 'duration') {
+      if (f.type === 'duration') {
         // Duration (intent) is now handled as a top-level segment property,
         // we don't want it in the dynamic metrics map to avoid double-counting
         // or unit confusion in the performance graphs.
@@ -64,7 +96,7 @@ export class AnalyticsTransformer {
    * Transform OutputStatements into UI-ready Segments.
    * This is the primary API for the new runtime architecture.
    */
-  fromOutputStatements(outputs: IOutputStatement[], workoutStartTime?: number): SegmentWithMetadata[] {
+  fromOutputStatements(outputs: OutputLike[], workoutStartTime?: number, now: INowProvider = wallClockNow): SegmentWithMetadata[] {
     if (!outputs || outputs.length === 0) {
       return [];
     }
@@ -87,12 +119,15 @@ export class AnalyticsTransformer {
       const intentDuration = durationFrag?.value !== undefined ? (durationFrag.value as number) / 1000 : undefined;
 
       // Real Time: pause-aware elapsed time and wall-clock total
-      // These are stored as properties on OutputStatement class or plain objects
-      const elapsed = (output.elapsed || 0) / 1000;
-      const total = (output.total || 0) / 1000;
+      // These are stored as canonical metrics on OutputStatement.
+      const elapsedMetric = outputMetrics.find(m => m.type === MetricType.Elapsed);
+      const elapsed = (typeof elapsedMetric?.value === 'number' ? elapsedMetric.value : 0) / 1000;
+
+      const totalMetric = outputMetrics.find(m => m.type === MetricType.Total);
+      const total = (typeof totalMetric?.value === 'number' ? totalMetric.value : 0) / 1000;
 
       const startTimeMs = output.timeSpan?.started ?? startTime;
-      const endTimeMs = output.timeSpan?.ended ?? Date.now();
+      const endTimeMs = output.timeSpan?.ended ?? now.nowMs();
 
       const extractedMetrics = extractMetricsFromGroups([outputMetrics.toArray()]);
 
@@ -109,8 +144,10 @@ export class AnalyticsTransformer {
 
       // Spans are recorded using the runtime clock.
       // We convert them to session-relative seconds for visualization.
-      const rawSpans = (output.spans && output.spans.length > 0)
-        ? output.spans
+      const spansMetric = outputMetrics.find(m => m.type === MetricType.Spans);
+      const metricSpans = Array.isArray(spansMetric?.value) ? spansMetric.value : [];
+      const rawSpans = metricSpans.length > 0
+        ? metricSpans
         : (output.timeSpan ? [output.timeSpan] : []);
 
       const spans = rawSpans.map(s => ({
@@ -134,7 +171,7 @@ export class AnalyticsTransformer {
         lane: output.stackLevel,
         spans,
         metrics: outputMetrics,
-        tags: output.hints ? Array.from(output.hints) : undefined,
+        tags: (() => { const h = getHints(output); return h.length ? h : undefined; })(),
         context: {
           outputType: output.outputType,
           sourceStatementId: output.sourceStatementId,
@@ -160,7 +197,7 @@ export class AnalyticsTransformer {
       'cadence': { id: 'cadence', label: 'Cadence', unit: 'rpm', color: '#3b82f6', dataKey: 'cadence', icon: 'Wind' },
       'speed': { id: 'speed', label: 'Speed', unit: 'km/h', color: '#10b981', dataKey: 'speed', icon: 'Gauge' },
       'resistance': { id: 'resistance', label: 'Resistance', unit: 'kg', color: '#f59e0b', dataKey: 'resistance', icon: 'Dumbbell' },
-      'repetitions': { id: 'repetitions', label: 'Reps', unit: 'reps', color: '#6366f1', dataKey: 'repetitions', icon: 'Hash' },
+      'reps': { id: 'reps', label: 'Reps', unit: 'reps', color: '#6366f1', dataKey: 'reps', icon: 'Hash' },
       'calories': { id: 'calories', label: 'Calories', unit: 'cal', color: '#f97316', dataKey: 'calories', icon: 'Flame' },
       'duration': { id: 'duration', label: 'Duration', unit: 's', color: '#0ea5e9', dataKey: 'duration', icon: 'Timer' },
       'elapsed': { id: 'elapsed', label: 'Elapsed', unit: 's', color: '#14b8a6', dataKey: 'elapsed', icon: 'Clock' },
@@ -266,10 +303,26 @@ export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): Analyti
 }
 
 /**
- * Transform raw output statements into analytics-ready data.
- * Used for historical analysis where no runtime instance exists.
+ * Derive analytics segments from a stored workout log.
+ *
+ * This is the **canonical read path** for all analytics derived from a
+ * completed workout. WorkoutResult.data.logs (StoredOutputStatement[]) is
+ * the source of truth; call this function to obtain Segment[] for display,
+ * review grids, or trend summaries.
+ *
+ * Relationship to the analytics IDB store:
+ *   The `analytics` IndexedDB store holds AnalyticsDataPoint[] summary fact
+ *   rows written by normalizeSummaryFacts() from Tier-2 outputs in data.logs.
+ *   They are NOT required for any current display feature. If they disagree
+ *   with logs, logs win. Use this function — not the analytics store — to
+ *   obtain segment data for display.
+ *
+ * @param outputs - StoredOutputStatement[] from WorkoutResult.data.logs
+ * @param workoutStartTime - Optional workout start timestamp (ms). Used to
+ *   anchor relative timing in the segment timeline.
+ * @param now - Optional clock provider; defaults to wall-clock.
  */
-export function getAnalyticsFromLogs(outputs: IOutputStatement[], workoutStartTime?: number): AnalyticsResult {
+export function getAnalyticsFromLogs(outputs: StoredOutputStatement[], workoutStartTime?: number, now?: INowProvider): AnalyticsResult {
   if (!outputs || outputs.length === 0) return { segments: [], groups: [] };
 
   const transformer = new AnalyticsTransformer();
@@ -281,7 +334,7 @@ export function getAnalyticsFromLogs(outputs: IOutputStatement[], workoutStartTi
     o.outputType === 'milestone'
   );
   
-  const segments = transformer.fromOutputStatements(filteredOutputs, workoutStartTime);
+  const segments = transformer.fromOutputStatements(filteredOutputs, workoutStartTime, now);
 
   if (segments.length === 0) {
     return { segments: [], groups: [] };
@@ -291,3 +344,4 @@ export function getAnalyticsFromLogs(outputs: IOutputStatement[], workoutStartTi
 
   return { segments, groups };
 }
+

@@ -1,6 +1,6 @@
 ---
 name: runtime-debugger
-description: Debugs the WOD Wiki runtime engine by tracing output statements, stack levels, and lifecycle events for any workout script. Use when the runtime behavior is unexpected, outputs are missing, or stack transitions need verification.
+description: Debugs the WOD Wiki runtime engine (powered by the Whiteboard Language) by tracing output statements, stack levels, and lifecycle events for any workout script. Use when the runtime behavior is unexpected, outputs are missing, or stack transitions need verification.
 ---
 
 # Runtime Debugger

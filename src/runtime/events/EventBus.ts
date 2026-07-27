@@ -1,5 +1,5 @@
 import { IEvent } from '../contracts/events/IEvent';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IEventHandler } from '../contracts/events/IEventHandler';
 import { IEventBus, EventCallback, HandlerScope, EventHandlerOptions } from '../contracts/events/IEventBus';
@@ -58,7 +58,7 @@ export class EventBus implements IEventBus {
   }
 
   on(eventName: string, callback: EventCallback, ownerId: string): () => void {
-    const id = uuidv4();
+    const id = uuidv7();
     const list = this.callbacksByEvent.get(eventName) ?? [];
     list.push({ id, callback, ownerId });
     this.callbacksByEvent.set(eventName, list);
@@ -158,9 +158,6 @@ export class EventBus implements IEventBus {
         const result = entry.handler.handler(event, runtime);
         if (result && result.length > 0) {
           actions.push(...result);
-        }
-        if (runtime.errors && runtime.errors.length > 0) {
-          break;
         }
       } catch (error) {
         console.error(`EventBus handler error for ${event.name}:`, error);

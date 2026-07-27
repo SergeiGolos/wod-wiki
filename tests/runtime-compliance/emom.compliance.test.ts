@@ -8,110 +8,70 @@
  * Legend:
  *   🟢 Expected to pass — behaviour is fully implemented
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import {
-    createSessionContext,
-    startSession,
-    userNext,
-    advanceClock,
-    disposeSession,
-    type SessionTestContext,
-} from '../jit-compilation/helpers/session-test-utils';
-import { RoundState } from '@/runtime/memory/MemoryTypes';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Reads the current round state from the EMOM block on the stack.
- * Returns undefined when no EMOM block is present.
- */
-function getRoundState(ctx: SessionTestContext): RoundState | undefined {
-    const emomBlock = ctx.runtime.stack.blocks.find(b => b.blockType === 'EMOM');
-    if (!emomBlock) return undefined;
-    return emomBlock.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
-}
-
-/**
- * Returns the blockType of the currently-active (top-of-stack) block.
- */
-function currentBlockType(ctx: SessionTestContext): string | undefined {
-    return ctx.runtime.stack.current?.blockType;
-}
+import { it, expect } from 'bun:test';
+import { describeCompliance, assertions } from '@/testing/script';
+import { getRoundState, anyOutputHasMetric } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Basic EMOM — 3 Rounds
 // (3) :60 EMOM  5 Pullups
 // Spec: docs/finishline/compliance-scenarios/emom.md#-basic-emom--3-rounds
 // ===========================================================================
-describe('🟢 Basic EMOM — 3 Rounds', () => {
-    const SCRIPT = '(3) :60 EMOM\n  5 Pullups';
-    let ctx: SessionTestContext;
-
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('step 0: startSession → SessionRoot + WaitingToStart (depth = 2)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'BasicEMOM' });
-        expect(ctx.runtime.stack.count).toBe(2);
+describeCompliance('🟢 Basic EMOM — 3 Rounds', '(3) :60 EMOM\n  5 Pullups', (ctx) => {
+    it('step 0: startSession → SessionRoot + WaitingToStart (depth = 2)', async () => {
+        const script = await ctx.compile();
+        expect((await script.snapshot()).depth).toBe(2);
     });
 
-    it('step 1: userNext starts EMOM and pushes 1st exercise (R1)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'BasicEMOM' });
-        userNext(ctx);
+    it('step 1: userNext starts EMOM and pushes 1st exercise (R1)', async () => {
+        const script = await ctx.compile();
+        await script.next();
         // WaitingToStart popped; EMOM block + first exercise now on stack
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(3);
-        const emomBlock = ctx.runtime.stack.blocks.find(b => b.blockType === 'EMOM');
+        expect((await script.snapshot()).depth).toBeGreaterThanOrEqual(3);
+        const emomBlock = (await script.snapshot()).blocks.find(b => b.blockType === 'EMOM');
         expect(emomBlock).toBeDefined();
     });
 
-    it('step 1: round counter initialises at 1', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'BasicEMOM' });
-        userNext(ctx);
-        expect(getRoundState(ctx)?.current).toBe(1);
-        expect(getRoundState(ctx)?.total).toBe(3);
+    it('step 1: round counter initialises at 1', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        expect((await getRoundState(await script.snapshot(), 'EMOM'))?.current).toBe(1);
+        expect((await getRoundState(await script.snapshot(), 'EMOM'))?.total).toBe(3);
     });
 
-    it('step 2: advanceClock(60_000) → R1 timer expires, child auto-pops, R2 starts', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'BasicEMOM' });
-        userNext(ctx);
-        advanceClock(ctx, 60_000);
+    it('step 2: advanceClock(60_000) → R1 timer expires, child auto-pops, R2 starts', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000);
         // EMOM still on stack, round 2 in progress
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(2);
-        expect(getRoundState(ctx)?.current).toBe(2);
+        expect((await script.snapshot()).depth).toBeGreaterThanOrEqual(2);
+        expect((await getRoundState(await script.snapshot(), 'EMOM'))?.current).toBe(2);
     });
 
-    it('step 3: advanceClock(60_000) → R2 expires, R3 starts', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'BasicEMOM' });
-        userNext(ctx);
-        advanceClock(ctx, 60_000); // R1
-        advanceClock(ctx, 60_000); // R2
-        expect(getRoundState(ctx)?.current).toBe(3);
+    it('step 3: advanceClock(60_000) → R2 expires, R3 starts', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000); // R1
+        await script.tick(60_000); // R2
+        expect((await getRoundState(await script.snapshot(), 'EMOM'))?.current).toBe(3);
     });
 
-    it('step 4: advanceClock(60_000) → R3 expires → rounds exhausted → session ends', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'BasicEMOM' });
-        userNext(ctx);
-        advanceClock(ctx, 60_000); // R1
-        advanceClock(ctx, 60_000); // R2
-        advanceClock(ctx, 60_000); // R3
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 4: advanceClock(60_000) → R3 expires → rounds exhausted → session ends', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000); // R1
+        await script.tick(60_000); // R2
+        await script.tick(60_000); // R3
+        expect((await script.snapshot()).depth).toBe(0);
     });
 
-    it('all outputs are paired (segment + completion) through 3 timer-driven rounds', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'BasicEMOM' });
-        userNext(ctx);
-        advanceClock(ctx, 60_000);
-        advanceClock(ctx, 60_000);
-        advanceClock(ctx, 60_000);
-        const unpaired = ctx.tracer.assertPairedOutputs();
+    it('all outputs are paired (segment + completion) through 3 timer-driven rounds', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000);
+        await script.tick(60_000);
+        await script.tick(60_000);
+        const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
         expect(unpaired).toEqual([]);
     });
 });
@@ -122,90 +82,130 @@ describe('🟢 Basic EMOM — 3 Rounds', () => {
 // Timer is authoritative — auto-pops child if user has not called next.
 // Spec: docs/finishline/compliance-scenarios/emom.md#-emom--overrun-scenario-skip
 // ===========================================================================
-describe('🟢 EMOM — Overrun Scenario', () => {
-    const SCRIPT = '(3) :30 EMOM\n  10 Heavy Deadlifts';
-    let ctx: SessionTestContext;
-
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('timer auto-pops child when :30 expires without user calling next', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Overrun' });
-        userNext(ctx); // Start session — R1 child mounted
+describeCompliance('🟢 EMOM — Overrun Scenario', '(3) :30 EMOM\n  10 Heavy Deadlifts', (ctx) => {
+    it('timer auto-pops child when :30 expires without user calling next', async () => {
+        const script = await ctx.compile();
+        await script.next(); // Start session — R1 child mounted
 
         // Do NOT call userNext — simulate overrun: 30s elapses before user acts
-        advanceClock(ctx, 30_000); // R1 interval expires
+        await script.tick(30_000); // R1 interval expires
 
         // EMOM must still be alive and on round 2 (child was auto-popped)
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(2);
-        expect(getRoundState(ctx)?.current).toBe(2);
+        expect((await script.snapshot()).depth).toBeGreaterThanOrEqual(2);
+        expect((await getRoundState(await script.snapshot(), 'EMOM'))?.current).toBe(2);
     });
 
-    it('round advances even if exercise was not "completed" by user', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Overrun' });
-        userNext(ctx);
+    it('round advances even if exercise was not "completed" by user', async () => {
+        const script = await ctx.compile();
+        await script.next();
 
         // R1: user never calls next → timer forces advancement
-        advanceClock(ctx, 30_000);
+        await script.tick(30_000);
 
         // Round must have advanced to 2
-        expect(getRoundState(ctx)?.current).toBe(2);
+        expect((await getRoundState(await script.snapshot(), 'EMOM'))?.current).toBe(2);
     });
 
-    it('no stuck state — timer is authoritative through all 3 rounds', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Overrun' });
-        userNext(ctx);
+    it('no stuck state — timer is authoritative through all 3 rounds', async () => {
+        const script = await ctx.compile();
+        await script.next();
 
         // Never call userNext — let timers drive everything
-        advanceClock(ctx, 30_000); // R1 expires
-        advanceClock(ctx, 30_000); // R2 expires
-        advanceClock(ctx, 30_000); // R3 expires → EMOM done → session ends
+        await script.tick(30_000); // R1 expires
+        await script.tick(30_000); // R2 expires
+        await script.tick(30_000); // R3 expires → EMOM done → session ends
 
-        expect(ctx.runtime.stack.count).toBe(0);
+        expect((await script.snapshot()).depth).toBe(0);
     });
 
-    it('all outputs paired even when child is auto-popped via overrun', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Overrun' });
-        userNext(ctx);
+    it('all outputs paired even when child is auto-popped via overrun', async () => {
+        const script = await ctx.compile();
+        await script.next();
 
-        advanceClock(ctx, 30_000);
-        advanceClock(ctx, 30_000);
-        advanceClock(ctx, 30_000);
+        await script.tick(30_000);
+        await script.tick(30_000);
+        await script.tick(30_000);
 
-        const unpaired = ctx.tracer.assertPairedOutputs();
+        const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
         expect(unpaired).toEqual([]);
     });
 
-    it('force-popped child has completionReason "forced-pop"', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Overrun' });
-        userNext(ctx); // R1 child mounted
+    it('force-popped child has completionReason "forced-pop"', async () => {
+        const script = await ctx.compile();
+        await script.next(); // R1 child mounted
 
         // Capture the child block before the timer auto-pops it
-        const childBlock = ctx.runtime.stack.current!;
+        const childBlock = (await script.snapshot()).current!;
 
-        advanceClock(ctx, 30_000); // timer fires → child auto-popped
+        await script.tick(30_000); // timer fires → child auto-popped
 
         // The child should have been marked complete with the forced-pop reason
         expect(childBlock.isComplete).toBe(true);
-        expect((childBlock as any).completionReason).toBe('forced-pop');
+        expect((childBlock as unknown as { completionReason: string }).completionReason).toBe('forced-pop');
     });
 
-    it('EMOM continues to next round after overrun, new child is pushed for R2', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Overrun' });
-        userNext(ctx);
+    it('EMOM continues to next round after overrun, new child is pushed for R2', async () => {
+        const script = await ctx.compile();
+        await script.next();
 
-        advanceClock(ctx, 30_000); // R1 overrun → auto-advance → R2 child pushed
+        await script.tick(30_000); // R1 overrun → auto-advance → R2 child pushed
 
         // A new child block should now be on the stack
-        const topBlock = ctx.runtime.stack.current;
+        const topBlock = (await script.snapshot()).current;
         expect(topBlock).toBeDefined();
         // The EMOM block is still present below the child
-        const emomBlock = ctx.runtime.stack.blocks.find(b => b.blockType === 'EMOM');
+        const emomBlock = (await script.snapshot()).blocks.find(b => b.blockType === 'EMOM');
         expect(emomBlock).toBeDefined();
+    });
+});
+
+
+// ===========================================================================
+// 🟢 Sound Cues — EMOM Timer
+// Spec: timer.md#sound-cues
+// ===========================================================================
+describeCompliance('🟢 Sound Cues — EMOM Timer (3 rounds)', '(3) :60 EMOM\n  5 Pullups', (ctx) => {
+
+    it('EMOM completion emits a "timer-complete" sound output', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start EMOM → first child
+        await script.next(); // complete child
+        await script.tick(60_000); // R1 timer expires → R2
+        await script.next(); // complete child
+        await script.tick(60_000); // R2 expires → R3
+        await script.next(); // complete child
+        await script.tick(60_000); // R3 expires → session ends
+        const snap = await script.snapshot();
+        expect(anyOutputHasMetric(snap, 'sound')).toBe(true);
+        const soundOutputs = assertions(snap).outputs().all().filter(o =>
+            o.metrics.some(m => m.type === 'sound')
+        );
+        const completeSounds = soundOutputs.filter(o =>
+            o.metrics.some(m => m.value?.trigger === 'complete')
+        );
+        // At least one timer-complete sound should be emitted (for the final round at minimum)
+        expect(completeSounds.length).toBeGreaterThan(0);
+    });
+
+    it('EMOM countdown beeps fire during interval countdown', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start EMOM → first child
+        await script.next(); // complete child early
+        // Now waiting for interval timer. Advance to last 3 seconds.
+        await script.tick(57_000); // 3s remaining
+        await script.tick(1_000); // 2s remaining
+        await script.tick(1_000); // 1s remaining
+        await script.tick(1_000); // 0s → complete
+        const snap = await script.snapshot();
+        const countdownSounds = assertions(snap).outputs().all().filter(o =>
+            o.metrics.some(m => m.type === 'sound' && m.value?.trigger === 'countdown')
+        );
+        const countdownSeconds = countdownSounds.map(o => {
+            const m = o.metrics.find(m2 => m2.type === 'sound');
+            return m?.value?.atSecond;
+        }).sort();
+        expect(countdownSeconds).toContain(3);
+        expect(countdownSeconds).toContain(2);
+        expect(countdownSeconds).toContain(1);
     });
 });

@@ -122,7 +122,7 @@ describe('Harness Exports', () => {
         .build();
       
       expect(harness.runtime).toBeDefined();
-      expect(harness.clock.now.getTime()).toBe(new Date('2024-01-01T00:00:00Z').getTime());
+      expect(harness.clock.currentDate.getTime()).toBe(new Date('2024-01-01T00:00:00Z').getTime());
       
       harness.dispose();
     });

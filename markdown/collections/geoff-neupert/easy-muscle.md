@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 6: Easy Muscle
 
 **Category**: Geoff Neupert Hypertrophy  

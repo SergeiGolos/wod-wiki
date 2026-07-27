@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # Chelsea
 
 **Category**: CrossFit Benchmark  

@@ -1,0 +1,373 @@
+name: CI – Pull Request
+
+# The single PR pipeline. One job graph per PR update:
+#   verify (unit/story/coverage/build gate + journal e2e)
+#     → preview (deploy-shaped artifact → S3 + PR comment)
+#     → destroy (on close)
+# Concurrency: a new push cancels the previous run for the same PR.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  slug:
+    runs-on: ubuntu-22.04
+    if: github.event.action != 'closed'
+    outputs:
+      slug: ${{ steps.slug.outputs.slug }}
+      preview-version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Derive branch slug
+        id: slug
+        run: |
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          SLUG=$(echo "$BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+
+      # PR previews may only increment {build}: major/minor come from the
+      # latest release tag (read-only — never bumped here), build is the run
+      # number, and the -pr.N prerelease suffix marks it as a preview.
+      - name: Compute preview version
+        id: version
+        run: |
+          LATEST_TAG=$(git for-each-ref refs/tags \
+            --sort=-v:refname \
+            --format '%(refname:short)' \
+            | grep -E '^v?[0-9]+\.[0-9]+(\.[0-9]+)?$' \
+            | head -1)
+
+          if [ -n "$LATEST_TAG" ]; then
+            BASE="${LATEST_TAG#v}"
+          else
+            BASE=$(node -p "require('./package.json').version")
+          fi
+
+          MAJOR=$(echo "$BASE" | cut -d. -f1)
+          MINOR=$(echo "$BASE" | cut -d. -f2)
+          VERSION="${MAJOR}.${MINOR}.${{ github.run_number }}-pr.${{ github.event.pull_request.number || 'manual' }}"
+          echo "Preview version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  verify:
+    if: github.event.action != 'closed'
+    needs: [slug]
+    uses: ./.github/workflows/_verify.yml
+    secrets: inherit
+    with:
+      run-e2e: true
+      preview-base-path: /${{ needs.slug.outputs.slug }}/dist/
+      app-version: ${{ needs.slug.outputs.preview-version }}
+
+  # Preview deploy — downloads the deploy-shaped playground bundle the verify
+  # job already built (no second playground build), adds receiver + storybook,
+  # and syncs everything to S3 in one job.
+  preview:
+    name: Deploy preview
+    runs-on: ubuntu-22.04
+    if: github.event.action != 'closed'
+    needs: [slug, verify]
+    environment: preview
+    outputs:
+      bundle-hash: ${{ steps.fingerprint.outputs.hash }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
+      CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
+      BRANCH_SLUG: ${{ needs.slug.outputs.slug }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PREVIEW_VERSION: ${{ needs.slug.outputs.preview-version }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up environment (Bun + caches, no browsers)
+        uses: ./.github/actions/setup-env
+        with:
+          browsers: ''
+
+      - name: Download playground dist (built by verify)
+        uses: actions/download-artifact@v7
+        with:
+          name: playground-dist
+          path: ./dist/
+
+      # Fingerprint of the deployed entry bundle; the e2e job polls the live
+      # index.html until it references main-<hash>.js so tests never race a
+      # stale CloudFront cache.
+      - name: Compute build fingerprint
+        id: fingerprint
+        run: |
+          HASH=$(ls dist/assets/main-*.js | head -n1 | sed -E 's/.*main-([^.]+)\.js/\1/')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Build receiver
+        run: |
+          VITE_BASE_PATH="/${{ env.BRANCH_SLUG }}/dist/" \
+            bun x vite build --config vite.receiver.config.ts
+
+      - name: Build Storybook
+        run: bun run build-storybook
+
+      - name: Deploy playground to S3
+        run: |
+          set -euo pipefail
+          PREFIX="${{ env.BRANCH_SLUG }}/dist/"
+          echo "Uploading to s3://$S3_BUCKET/$PREFIX"
+          aws s3 sync ./dist/ "s3://$S3_BUCKET/$PREFIX" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate" \
+            --exclude "*.map"
+
+      - name: Deploy Storybook to S3
+        run: |
+          set -euo pipefail
+          PREFIX="${{ env.BRANCH_SLUG }}/storybook/"
+          echo "Uploading Storybook to s3://$S3_BUCKET/$PREFIX"
+          aws s3 sync ./storybook-static/ "s3://$S3_BUCKET/$PREFIX" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate" \
+            --exclude "*.map"
+
+      - name: Create CloudFront invalidation (best-effort)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          PREFIX="/${{ env.BRANCH_SLUG }}/*"
+          if aws cloudfront create-invalidation \
+               --distribution-id "$CF_DISTRIBUTION_ID" \
+               --paths "$PREFIX"; then
+            echo "CloudFront invalidation submitted for $PREFIX"
+          else
+            echo "::warning::CloudFront invalidation failed; content refreshes within 5 minutes via max-age."
+          fi
+
+      - name: Post preview link
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const slug = process.env.BRANCH_SLUG;
+            const pr = process.env.PR_NUMBER;
+            const version = process.env.PREVIEW_VERSION;
+            const previewUrl = `https://${slug}.preview.wod.wiki`;
+            const storybookUrl = `https://${slug}.story.wod.wiki`;
+            const e2eUrl = `https://${slug}.e2e.wod.wiki`;
+            const marker = `<!-- wod-wiki-preview-${pr} -->`;
+            const body = `${marker}\n` +
+              `## 🚀 Preview deployed\n\n` +
+              `| Item | Value |\n` +
+              `| --- | --- |\n` +
+              `| PR | #${pr} |\n` +
+              `| Branch | \`${slug}\` |\n` +
+              `| Version | \`${version}\` |\n` +
+              `| Preview | [${previewUrl}](${previewUrl}) |\n` +
+              `| Storybook | [${storybookUrl}](${storybookUrl}) |\n` +
+              `| E2E report | [${e2eUrl}](${e2eUrl}) (after the Preview E2E job runs) |\n\n` +
+              `> Build and deploy powered by AWS S3 + CloudFront. ` +
+              `Destroyed automatically when this PR is closed or merged.`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parseInt(pr),
+            });
+
+            const existing = comments.find((c) =>
+              c.user.type === 'Bot' && c.body.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt(pr),
+                body,
+              });
+            }
+
+  # Deployed-artifact e2e against the just-deployed preview. Publishes the
+  # Playwright HTML report to s3://<bucket>/<slug>/e2e-report/, browsable at
+  # https://<slug>.e2e.wod.wiki; gated on the preview build fingerprint so
+  # tests never race a stale CloudFront cache.
+  e2e:
+    name: Preview E2E
+    needs: [slug, preview]
+    if: github.event.action != 'closed'
+    uses: ./.github/workflows/preview-e2e.yml
+    secrets: inherit
+    with:
+      preview-url: https://${{ needs.slug.outputs.slug }}.preview.wod.wiki
+      branch-slug: ${{ needs.slug.outputs.slug }}
+      build-hash: ${{ needs.preview.outputs.bundle-hash }}
+
+  pr-summary:
+    runs-on: ubuntu-22.04
+    if: always() && github.event_name == 'pull_request' && github.event.action != 'closed'
+    needs: [verify]
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Post PR summary
+        uses: actions/github-script@v9
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          UNIT_STATUS: ${{ needs.verify.outputs.unit-status }}
+          STORY_STATUS: ${{ needs.verify.outputs.story-status }}
+          COVERAGE_STATUS: ${{ needs.verify.outputs.coverage-status }}
+          BUILD_STATUS: ${{ needs.verify.outputs.build-status }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const statusIcon = (result) => {
+              if (result === 'success') return '✅';
+              if (result === 'skipped') return '⏭️';
+              return '❌';
+            };
+
+            const statuses = {
+              overall: process.env.VERIFY_RESULT,
+              unit: process.env.UNIT_STATUS || 'skipped',
+              story: process.env.STORY_STATUS || 'skipped',
+              coverage: process.env.COVERAGE_STATUS || 'skipped',
+              build: process.env.BUILD_STATUS || 'skipped',
+            };
+
+            const headline = statuses.overall === 'success'
+              ? '## ✅ PR verification passed'
+              : '## ⚠️ PR verification needs attention';
+
+            const marker = '<!-- wod-wiki-pr-verification -->';
+            const body = `${marker}\n${headline}\n\n| Check | Status |\n| --- | --- |\n| Unit tests | ${statusIcon(statuses.unit)} ${statuses.unit} |\n| Story tests | ${statusIcon(statuses.story)} ${statuses.story} |\n| Coverage | ${statusIcon(statuses.coverage)} ${statuses.coverage} |\n| Playground build | ${statusIcon(statuses.build)} ${statuses.build} |\n\n- Actions run: [View run](${runUrl})\n- Coverage artifact: [Artifacts](${runUrl}#artifacts)`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find((comment) =>
+              comment.user.type === 'Bot' && comment.body.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  destroy:
+    name: Destroy Preview
+    runs-on: ubuntu-22.04
+    if: github.event.action == 'closed'
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
+      CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
+      PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+    steps:
+      - name: Derive branch slug
+        id: slug
+        run: |
+          SLUG=$(echo "$PR_BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+
+      - name: Delete S3 prefix objects
+        run: |
+          set -euo pipefail
+          PREFIX="${{ steps.slug.outputs.slug }}/"
+          echo "Deleting s3://$S3_BUCKET/$PREFIX"
+          aws s3 rm "s3://$S3_BUCKET/$PREFIX" --recursive 2>&1
+
+      - name: Create CloudFront invalidation for deleted path (best-effort)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          PREFIX="/${{ steps.slug.outputs.slug }}/*"
+          if aws cloudfront create-invalidation \
+               --distribution-id "$CF_DISTRIBUTION_ID" \
+               --paths "$PREFIX"; then
+            echo "CloudFront invalidation for cleanup submitted."
+          else
+            echo "::warning::CloudFront invalidation failed; S3 objects are deleted and the cache will self-expire within 5 minutes."
+          fi
+
+      - name: Post destroy comment
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const merged = context.payload.pull_request?.merged;
+            const action = merged ? 'merged' : 'closed';
+            const pr = context.payload.pull_request?.number;
+            const marker = `<!-- wod-wiki-preview-${pr} -->`;
+            const body = `${marker}\n` +
+              `## 🗑️ Preview destroyed\n\n` +
+              `PR #${pr} was **${action}** — preview resources have been removed.`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parseInt(pr),
+            });
+
+            const existing = comments.find((c) =>
+              c.user.type === 'Bot' && c.body.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt(pr),
+                body,
+              });
+            }

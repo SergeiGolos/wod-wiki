@@ -1,3 +1,8 @@
+---
+tags:
+  - unconventional
+---
+
 # Macebell 360 Swing
 
 **Category**: Steel Mace / Macebell  

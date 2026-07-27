@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 2: Kettlebell Muscle Complex 1
 
 **Category**: Geoff Neupert Hypertrophy  

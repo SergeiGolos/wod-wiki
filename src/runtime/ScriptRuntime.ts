@@ -1,4 +1,4 @@
-import type { IScriptRuntime, OutputListener, TrackerListener } from './contracts/IScriptRuntime';
+import type { IScriptRuntime, OutputListener } from './contracts/IScriptRuntime';
 import type { IJitCompiler } from './contracts/IJitCompiler';
 import type { IRuntimeStack, Unsubscribe, StackObserver, StackSnapshot } from './contracts/IRuntimeStack';
 import type { WhiteboardScript } from '../parser/WhiteboardScript';
@@ -6,23 +6,23 @@ import type { RuntimeError } from './actions/ErrorAction';
 import type { IEventBus } from './contracts/events/IEventBus';
 import {
     DEFAULT_RUNTIME_OPTIONS,
-    RuntimeStackOptions,
-    RuntimeStackTracker
+    RuntimeStackOptions
 } from './contracts/IRuntimeOptions';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
 import { AbortEventHandler } from './events/AbortEventHandler';
-import { IOutputStatement, OutputStatement } from '../core/models/OutputStatement';
-import { IRuntimeAction } from './contracts';
+import { IOutputStatement } from '../core/models/OutputStatement';
+import type { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IEvent } from './contracts/events/IEvent';
 import { ExecutionContext } from './ExecutionContext';
+import { OutputEmitter } from './OutputEmitter';
+import { RuntimeObservers } from './RuntimeObservers';
 import { PushBlockAction } from './actions/stack/PushBlockAction';
 import { PopBlockAction } from './actions/stack/PopBlockAction';
-import { IMetric, MetricType } from '../core/models/Metric';
-import { MetricContainer } from '../core/models/MetricContainer';
-import { TimeSpan } from './models/TimeSpan';
-import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IAnalyticsEngine } from '../core/contracts/IAnalyticsEngine';
+import type { AnalyticsContext } from '../core/analytics/AnalyticsContext';
+import type { INowProvider } from './INowProvider';
+import { wallClockNow } from './INowProvider';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -41,30 +41,33 @@ export class ScriptRuntime implements IScriptRuntime {
 
     public readonly errors: RuntimeError[] = [];
     public readonly options: RuntimeStackOptions;
+    public analyticsContext?: AnalyticsContext;
 
-    // Output statement tracking
-    private _outputStatements: IOutputStatement[] = [];
-    private _outputListeners: Set<OutputListener> = new Set();
+    // Single module owning the output buffer, subscriber notification,
+    // analytics enrichment, and all runtime emission helpers.
+    private readonly _output = new OutputEmitter();
 
-    // Tracker update tracking
-    private _trackerListeners: Set<TrackerListener> = new Set();
-    private _trackerSubscriptionUnsub: (() => void) | null = null;
-
-    // Stack observer tracking
-    private _stackObservers: Set<StackObserver> = new Set();
-    private _stackSubscriptionUnsub: (() => void) | null = null;
+    // Shared observer collaborator — owns the stack subscriber Set and the
+    // post-mount snapshot contract. See `RuntimeObservers` for the seam.
+    private readonly _observers = new RuntimeObservers();
 
     // The current execution context for the "turn"
     private _activeContext: ExecutionContext | null = null;
+    private readonly _now: INowProvider;
 
-    private _analyticsEngine: IAnalyticsEngine | null = null;
 
-    public get tracker(): RuntimeStackTracker | undefined {
-        return this.options.tracker;
-    }
+    // Unsubscribe function for the IRuntimeStack → stack snapshot bridge.
+    // The stack-snapshot fan-out itself is owned by _observers (see
+    // RuntimeObservers); this field only holds the unsubscribe for the
+    // upstream `this.stack.subscribe(...)` call in the constructor.
+    private _stackSubscriptionUnsub: (() => void) | null = null;
 
     // Unsubscribe function for the global NextEventHandler
     private _nextHandlerUnsub: (() => void) | null = null;
+
+    public get nowProvider(): INowProvider {
+        return this._now;
+    }
 
     // Unsubscribe function for the global AbortEventHandler
     private _abortHandlerUnsub: (() => void) | null = null;
@@ -73,7 +76,8 @@ export class ScriptRuntime implements IScriptRuntime {
         public readonly script: WhiteboardScript,
         compiler: IJitCompiler,
         dependencies: ScriptRuntimeDependencies,
-        options: RuntimeStackOptions = {}
+        options: RuntimeStackOptions = {},
+        now: INowProvider = wallClockNow
     ) {
         // Merge with defaults
         this.options = { ...DEFAULT_RUNTIME_OPTIONS, ...options };
@@ -81,6 +85,7 @@ export class ScriptRuntime implements IScriptRuntime {
         this.stack = dependencies.stack;
         this.clock = dependencies.clock;
         this.eventBus = dependencies.eventBus;
+        this._now = now;
 
         // Handle explicit next events to advance the current block once per request
         this._nextHandlerUnsub = this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime', { scope: 'global' });
@@ -90,42 +95,39 @@ export class ScriptRuntime implements IScriptRuntime {
 
         this.jit = compiler;
 
-        // Bridge stack events to StackSnapshot observers and emit system outputs
+        // Wire the OutputEmitter's runtime deps once — the emission helpers
+        // read clock/stack/script from here instead of taking them per call.
+        this._output.attach({ clock: this.clock, stack: this.stack, script: this.script });
+
+        // Bridge stack events to StackSnapshot observers and emit system outputs.
+        // The stack-snapshot fan-out is owned by RuntimeObservers; we just
+        // translate the IRuntimeStack event into a StackSnapshot and delegate.
         this._stackSubscriptionUnsub = this.stack.subscribe((event) => {
             if (event.type === 'pop') {
-                this.emitSegmentOutputFromResultMemory(event.block, event.depth);
+                this._output.emitSegmentFromResultMemory(event.block, event.depth);
             }
 
             // Emit system output for push/pop events
             if (event.type === 'push' || event.type === 'pop') {
-                this.emitSystemOutput(event);
+                this._output.emitStackEvent(event);
             }
 
-            // Notify stack observers
-            if (this._stackObservers.size === 0) return;
-
+            // Notify stack observers via the shared collaborator
             const snapshot: StackSnapshot = {
                 type: event.type === 'initial' ? 'initial' : event.type,
                 blocks: event.type === 'initial' ? event.blocks : event.blocks,
                 affectedBlock: event.type !== 'initial' ? event.block : undefined,
                 depth: event.type === 'initial' ? event.blocks.length : event.depth,
-                clockTime: this.clock.now,
+                clockTime: this.clock.currentDate,
             };
-
-            for (const observer of this._stackObservers) {
-                try {
-                    observer(snapshot);
-                } catch (err) {
-                    console.error('[RT] Stack observer error:', err);
-                }
-            }
+            this._observers.emitStack(snapshot);
         });
 
         // Start the clock
         this.clock.start();
 
         // Emit 'load' output with initial state
-        this.emitLoadOutput();
+        this._output.emitLoad();
     }
 
     /**
@@ -144,32 +146,42 @@ export class ScriptRuntime implements IScriptRuntime {
             this._activeContext.execute(action);
         } finally {
             this._activeContext = null;
-            // After the full execution turn settles (push + mount + child pushes all done),
-            // re-notify stack observers with the current state. This ensures blocks that
-            // set up timer memory during mount() are serialized with correct timer data.
-            // Without this, leaf blocks (no children pushed on mount) would have timer:null
-            // in the Chromecast snapshot because push fires before mount initializes memory.
+            // POST-MOUNT SNAPSHOT INVARIANT (see
+            // tests/runtime-compliance/post-mount-snapshot-invariant.compliance.test.ts):
+            // Snapshots reflect post-mount state. A block whose onMount has not
+            // completed must not appear in a snapshot. We re-notify stack observers
+            // here — AFTER the full execution turn (push + mount + child pushes) —
+            // so blocks that initialize timer memory during onMount are serialized
+            // with correct timer data. Without this, leaf blocks (no children pushed
+            // on mount) would have timer:null in the Chromecast snapshot because
+            // push fires before mount initializes memory.
             this._notifyStackSettled();
         }
     }
 
-    private _notifyStackSettled(): void {
-        if (this._stackObservers.size === 0) return;
+    /** Build the 'initial' snapshot of the current stack. Shared by settle-time
+     *  notification (sync, all observers) and subscribe-time catch-up (deferred,
+     *  new observer only). The two delivery timings differ deliberately — see
+     *  the call sites. */
+    private _buildInitialSnapshot(): StackSnapshot {
         const blocks = this.stack.blocks;
-        if (blocks.length === 0) return;
-        const snapshot: StackSnapshot = {
+        return {
             type: 'initial',
             blocks,
             depth: blocks.length,
-            clockTime: this.clock.now,
+            clockTime: this.clock.currentDate,
         };
-        for (const observer of this._stackObservers) {
-            try {
-                observer(snapshot);
-            } catch (err) {
-                console.error('[RT] Stack observer error (settled):', err);
-            }
-        }
+    }
+
+    private _notifyStackSettled(): void {
+        // Delegate the post-turn re-emit to the shared collaborator. The
+        // collaborator owns the post-mount snapshot contract — it skips
+        // fan-out when there are no subscribers or the stack is empty.
+        this._observers.emitSettled(
+            this.stack.blocks,
+            this.stack.count,
+            this.clock.currentDate,
+        );
     }
 
     /**
@@ -203,7 +215,7 @@ export class ScriptRuntime implements IScriptRuntime {
         // Only emit 'event' output if it's NOT a tick event OR if it produced actions
         // This prevents flooding the log with empty tick cycles
         if (event.name !== 'tick' || actions.length > 0) {
-            this.emitEventOutput(event);
+            this._output.emitRuntimeEvent(event);
         }
 
         if (actions.length === 0) return;
@@ -217,30 +229,14 @@ export class ScriptRuntime implements IScriptRuntime {
      * Subscribe to output statements generated during execution.
      */
     public subscribeToOutput(listener: OutputListener): Unsubscribe {
-        this._outputListeners.add(listener);
-
-        // Immediate notification of current state, deferred to next tick to avoid React render warnings
-        const currentOutputs = [...this._outputStatements];
-        if (currentOutputs.length > 0) {
-            setTimeout(() => {
-                if (this._outputListeners.has(listener)) {
-                    for (const output of currentOutputs) {
-                        listener(output);
-                    }
-                }
-            }, 0);
-        }
-
-        return () => {
-            this._outputListeners.delete(listener);
-        };
+        return this._output.subscribe(listener);
     }
 
     /**
      * Get all output statements generated so far.
      */
     public getOutputStatements(): IOutputStatement[] {
-        return [...this._outputStatements];
+        return this._output.getAll();
     }
 
     /**
@@ -248,82 +244,18 @@ export class ScriptRuntime implements IScriptRuntime {
      * Used by BehaviorContext to emit outputs at any lifecycle point.
      */
     public addOutput(output: IOutputStatement): void {
-        // System outputs (push/pop lifecycle trace, sound cues, event-action records)
-        // are diagnostic only — they carry no workout results. Skip object accumulation
-        // entirely when no subscriber is listening to prevent GC pressure during
-        // high-iteration workloads (e.g. 10 000-round performance tests).
-        if (output.outputType === 'system' && this._outputListeners.size === 0) {
-            return;
-        }
-
-        const processedOutput = this._analyticsEngine ? this._analyticsEngine.run(output) : output;
-        this._outputStatements.push(processedOutput);
-
-        for (const listener of this._outputListeners) {
-            try {
-                listener(processedOutput);
-            } catch (err) {
-                console.error('[RT] Output listener error:', err);
-            }
-        }
+        this._output.add(output);
     }
 
-    /**
-     * Subscribe to real-time tracker updates.
-     */
-    public subscribeToTracker(listener: TrackerListener): Unsubscribe {
-        this._trackerListeners.add(listener);
-
-        // If this is the first listener and we have a tracker, subscribe to it
-        if (this._trackerListeners.size === 1 && this.tracker?.onUpdate) {
-            this._trackerSubscriptionUnsub = this.tracker.onUpdate((update) => {
-                for (const l of this._trackerListeners) {
-                    try {
-                        l(update);
-                    } catch (err) {
-                        console.error('[RT] Tracker listener error:', err);
-                    }
-                }
-            });
-        }
-
-        return () => {
-            this._trackerListeners.delete(listener);
-            if (this._trackerListeners.size === 0 && this._trackerSubscriptionUnsub) {
-                this._trackerSubscriptionUnsub();
-                this._trackerSubscriptionUnsub = null;
-            }
-        };
-    }
-
-    /**
-     * Set the analytics engine for the runtime.
-     */
     public setAnalyticsEngine(engine: IAnalyticsEngine): void {
-        this._analyticsEngine = engine;
+        this._output.setAnalyticsEngine(engine);
     }
 
     /**
      * Finalize the analytics engine and return any summary output statements.
      */
     public finalizeAnalytics(): IOutputStatement[] {
-        if (!this._analyticsEngine) return [];
-
-        const summaryOutputs = this._analyticsEngine.finalize();
-        for (const output of summaryOutputs) {
-            // We bypass addOutput here to avoid running the enrichment chain on 
-            // summary statements that are already fully processed.
-            this._outputStatements.push(output);
-
-            for (const listener of this._outputListeners) {
-                try {
-                    listener(output);
-                } catch (err) {
-                    console.error('[RT] Finalize output listener error:', err);
-                }
-            }
-        }
-        return summaryOutputs;
+        return this._output.finalizeAnalytics();
     }
 
     // ========== Stack Observer API ==========
@@ -334,25 +266,28 @@ export class ScriptRuntime implements IScriptRuntime {
      * an 'initial' snapshot with the current stack state.
      */
     public subscribeToStack(observer: StackObserver): Unsubscribe {
-        this._stackObservers.add(observer);
+        const unsub = this._observers.subscribeToStack(observer);
 
-        // Immediate notification of current state, deferred to next tick to avoid React render warnings
-        const initialSnapshot: StackSnapshot = {
-            type: 'initial',
-            blocks: this.stack.blocks,
-            depth: this.stack.count,
-            clockTime: this.clock.now,
-        };
-
+        // Immediate notification of current state, deferred to next tick to
+        // avoid React render warnings. The collaborator is timing-agnostic;
+        // each adapter owns its own initial-snapshot policy (the proxy fires
+        // synchronously; ScriptRuntime defers). We call the observer
+        // directly — `emitStack` is a broadcast and would re-deliver to all
+        // existing subscribers, which is not the catch-up behavior either
+        // adapter had before this refactor.
+        const initialSnapshot = this._buildInitialSnapshot();
         setTimeout(() => {
-            if (this._stackObservers.has(observer)) {
+            // Re-check membership: the observer may have unsubscribed before
+            // the deferred callback fired.
+            if (!this._observers.hasStackObserver(observer)) return;
+            try {
                 observer(initialSnapshot);
+            } catch (err) {
+                console.error('[RT] Stack observer error (initial):', err);
             }
         }, 0);
 
-        return () => {
-            this._stackObservers.delete(observer);
-        };
+        return unsub;
     }
 
     /**
@@ -395,22 +330,17 @@ export class ScriptRuntime implements IScriptRuntime {
         }
 
         // Clear output state to release references
-        this._outputStatements = [];
-        this._outputListeners.clear();
+        this._output.dispose();
 
-        // Clear stack observers
-        this._stackObservers.clear();
+        // Unsubscribe the IRuntimeStack → stack snapshot bridge.
         if (this._stackSubscriptionUnsub) {
             this._stackSubscriptionUnsub();
             this._stackSubscriptionUnsub = null;
         }
 
-        // Clear tracker listeners
-        this._trackerListeners.clear();
-        if (this._trackerSubscriptionUnsub) {
-            this._trackerSubscriptionUnsub();
-            this._trackerSubscriptionUnsub = null;
-        }
+        // Drop all stack + tracker subscribers (and any upstream tracker
+        // subscription the collaborator holds) in one call.
+        this._observers.dispose();
 
         // Clear the event bus
         this.eventBus.dispose();
@@ -431,13 +361,7 @@ export class ScriptRuntime implements IScriptRuntime {
         this.options.hooks?.onBeforePush?.(block, parentBlock);
 
         // Emit 'compiler' output for the new block
-        this.emitCompilerOutput(block);
-
-        // Start tracking span
-        const parentSpanId = parentBlock
-            ? this.options.tracker?.getActiveSpanId?.(parentBlock.key.toString()) ?? null
-            : null;
-        this.options.tracker?.startSpan?.(block, parentSpanId);
+        this._output.emitCompilerBlock(block);
 
         // Wrap block if wrapper is configured
         const wrappedBlock = this.options.wrapper?.wrap?.(block, parentBlock) ?? block;
@@ -461,7 +385,7 @@ export class ScriptRuntime implements IScriptRuntime {
      * Handles the full lifecycle: unmount, pop, dispose, and parent notification.
      * Also handles hooks, tracking, wrapping cleanup, and logging if configured.
      * 
-     * @param lifecycle Optional lifecycle options (completedAt, etc.)
+     * @param lifecycle Optional lifecycle options (createdAt, etc.)
      */
     public popBlock(lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
         const currentBlock = this.stack.current;
@@ -475,272 +399,19 @@ export class ScriptRuntime implements IScriptRuntime {
         // Execute the pop action (which handles unmount, dispose, output statement, parent.next)
         this.do(new PopBlockAction(lifecycle));
 
-        // End tracking span
-        const ownerKey = currentBlock.key.toString();
-        this.options.tracker?.endSpan?.(ownerKey);
-
         // Cleanup wrapper
         this.options.wrapper?.cleanup?.(currentBlock);
 
         // Unregister hooks by owner
-        this.options.hooks?.unregisterByOwner?.(ownerKey);
+        this.options.hooks?.unregisterByOwner?.(currentBlock.key.toString());
 
         // Log the pop
         this.options.logger?.debug?.('runtime.popBlock', {
-            blockKey: ownerKey,
+            blockKey: currentBlock.key.toString(),
             stackDepth: this.stack.count,
         });
 
         // Call after hooks
         this.options.hooks?.onAfterPop?.(currentBlock);
-    }
-
-    /**
-     * Emit a system output for stack lifecycle events (push/pop).
-     * Called directly from the stack subscription handler to ensure accurate timing.
-     */
-    private emitSystemOutput(event: { type: 'push' | 'pop'; block: IRuntimeBlock; depth: number }): void {
-        // System outputs are diagnostic/tracing records only. Skip object creation
-        // entirely when nothing is listening — avoids significant GC pressure during
-        // high-iteration scenarios (e.g. 10 000-round performance tests).
-        if (this._outputListeners.size === 0) return;
-
-        const now = this.clock.now;
-        const block = event.block;
-
-        // Build structured data for the metrics value
-        interface SystemOutputValue {
-            event: 'push' | 'pop';
-            blockKey: string;
-            blockLabel?: string;
-            actionType?: string;
-            [key: string]: unknown;
-        }
-
-        const value: SystemOutputValue = {
-            event: event.type,
-            blockKey: block.key.toString(),
-            blockLabel: block.label,
-            // Include action type for debugging - helps trace lifecycle actions
-            actionType: event.type === 'push' ? 'push-block' : 'pop-block',
-        };
-
-        // Add extra data based on event type
-        if (event.type === 'push') {
-            // For push, include parent key if available
-            const parentBlock = this.stack.blocks.length > 1 ? this.stack.blocks[1] : undefined;
-            if (parentBlock) {
-                value.parentKey = parentBlock.key.toString();
-            }
-        } else if (event.type === 'pop') {
-            // For pop, include completion reason
-            const completionReason = (block as any).completionReason ?? 'normal';
-            value.completionReason = completionReason;
-        }
-
-        // Create the metrics
-        const metric: IMetric = {
-            type: MetricType.System,
-            image: event.type === 'push'
-                ? `push: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}]`
-                : `pop: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}] reason=${(block as any).completionReason ?? 'normal'}`,
-            value,
-            origin: 'runtime',
-            timestamp: now,
-        };
-
-        // Create and emit the output statement
-        const output = new OutputStatement({
-            outputType: 'system',
-            timeSpan: new TimeSpan(now.getTime(), now.getTime()),
-            sourceBlockKey: block.key.toString(),
-            stackLevel: event.depth,
-            metrics: MetricContainer.empty(block.key.toString()).add(metric),
-        });
-
-        this.addOutput(output);
-    }
-
-    private emitSegmentOutputFromResultMemory(block: IRuntimeBlock, stackDepth: number): void {
-        const resultLocs = block.getMemoryByTag('metric:result');
-        const displayLocs = block.getMemoryByTag('metric:display');
-
-        if (resultLocs.length === 0) {
-            return;
-        }
-
-        // If we have multiple result groups, emit one segment for each
-        for (let i = 0; i < resultLocs.length; i++) {
-            const resultFragments = resultLocs[i].metrics ?? MetricContainer.empty();
-            
-            // Match with corresponding display metrics if available
-            // (Assumes 1:1 pairing from ReportOutputBehavior)
-            const sourceFragments = displayLocs[i]?.metrics ?? MetricContainer.empty();
-
-            // 2. Merge: Runtime results override source definitions (for same type)
-            const resultTypes = new Set(resultFragments.map(f => f.type));
-            const effectiveSourceFragments = sourceFragments.filter(f => !resultTypes.has(f.type));
-
-            const metrics = MetricContainer.from(effectiveSourceFragments, block.key.toString()).merge(resultFragments);
-
-            if (metrics.length === 0) {
-                continue;
-            }
-
-            const fallbackEndMs = this.clock.now.getTime();
-            const fallbackStartMs = block.executionTiming?.startTime?.getTime() ?? fallbackEndMs;
-
-            // Use the actual execution timing for the main timeSpan (Push -> Pop)
-            const timeSpan = new TimeSpan(fallbackStartMs, fallbackEndMs);
-
-            // Extract internal timer spans if available
-            const spans = this.extractSpansFromResultFragments(metrics.toArray());
-
-            const output = new OutputStatement({
-                outputType: 'segment',
-                timeSpan,
-                spans: spans.length > 0 ? spans : undefined,
-                sourceBlockKey: block.key.toString(),
-                sourceStatementId: block.sourceIds?.[i] ?? block.sourceIds?.[0],
-                stackLevel: stackDepth,
-                metrics,
-            });
-
-            this.addOutput(output);
-        }
-    }
-
-    private extractSpansFromResultFragments(metrics: IMetric[]): TimeSpan[] {
-        const spansFragment = metrics.find(
-            metric => metric.type === MetricType.Spans || metric.type === 'spans'
-        ) as (IMetric & { spans?: unknown }) | undefined;
-
-        if (!spansFragment) {
-            return [];
-        }
-
-        const rawSpans = Array.isArray(spansFragment.value)
-            ? spansFragment.value
-            : Array.isArray(spansFragment.spans)
-                ? spansFragment.spans
-                : [];
-
-        return rawSpans
-            .map(raw => {
-                const rawObj = raw as { started?: unknown; ended?: unknown };
-                if (typeof rawObj.started !== 'number' || isNaN(rawObj.started)) {
-                    return undefined;
-                }
-
-                if (typeof rawObj.ended === 'number' && !isNaN(rawObj.ended)) {
-                    return new TimeSpan(rawObj.started, rawObj.ended);
-                }
-
-                return new TimeSpan(rawObj.started);
-            })
-            .filter((span): span is TimeSpan => span !== undefined);
-    }
-
-
-
-
-    private emitLoadOutput(): void {
-        const now = this.clock.now;
-
-        // Emit a load output each statement in the script
-        for (const stmt of this.script.statements) {
-            const rawText = this.script.source.substring(stmt.meta.startOffset, stmt.meta.endOffset + 1);
-
-            // Start with the parsed metrics from the statement
-            const metrics = MetricContainer.from(stmt.metrics as any, stmt.id);
-
-            // Add a Label metrics for the raw text if one doesn't exist? 
-            // Or just always add it as the "Source" representation?
-            // The existing code created a valid 'Label' metrics. Let's keep it but maybe ensuring it doesn't duplicate if 'Text' exists?
-            // For 'load', having the raw text as a Label is useful for the "Name" column.
-
-            metrics.add({
-                type: MetricType.Label,
-                image: rawText || 'Statement',
-                value: rawText,
-                origin: 'runtime',
-                timestamp: now
-            });
-
-            // Calculate logical depth by traversing parents
-            let logicalDepth = 0;
-            let currentParentId = stmt.parent;
-            while (currentParentId !== undefined) {
-                const parent = this.script.getId(currentParentId);
-                if (parent) {
-                    logicalDepth++;
-                    currentParentId = parent.parent;
-                } else {
-                    break;
-                }
-            }
-
-            const output = new OutputStatement({
-                outputType: 'load',
-                timeSpan: new TimeSpan(now.getTime(), now.getTime()),
-                sourceBlockKey: 'root',
-                sourceStatementId: stmt.id,
-                stackLevel: logicalDepth,
-                metrics
-            });
-
-            this.addOutput(output);
-        }
-    }
-
-    private emitEventOutput(event: IEvent): void {
-        const now = this.clock.now;
-        const currentBlock = this.stack.current;
-        const blockKey = currentBlock?.key.toString() ?? 'root';
-
-        const metrics = MetricContainer.empty(blockKey).add({
-                type: MetricType.System,
-                image: `event: ${event.name}`,
-                value: {
-                    name: event.name,
-                    data: event.data,
-                    // source removed as it's not on IEvent
-                    blockKey
-                },
-                origin: 'runtime',
-                timestamp: now
-            });
-
-        const output = new OutputStatement({
-            outputType: 'event',
-            timeSpan: new TimeSpan(now.getTime(), now.getTime()),
-            sourceBlockKey: blockKey,
-            stackLevel: this.stack.count,
-            metrics
-        });
-
-        this.addOutput(output);
-    }
-
-    private emitCompilerOutput(block: IRuntimeBlock): void {
-        // Emit behavior configuration/compiler info
-        const now = this.clock.now;
-        const metrics = MetricContainer.empty(block.key.toString()).add({
-                type: MetricType.Label,
-                image: `Behaviors: ${block.behaviors.map(b => b.constructor.name).join(', ')}`,
-                value: block.behaviors.map(b => b.constructor.name),
-                origin: 'runtime',
-                timestamp: now
-            });
-
-        const output = new OutputStatement({
-            outputType: 'compiler',
-            timeSpan: new TimeSpan(now.getTime(), now.getTime()),
-            sourceBlockKey: block.key.toString(),
-            stackLevel: this.stack.count, // technically it's about to be pushed, so maybe count + 1? or current count is fine as pre-push
-            metrics
-        });
-
-        this.addOutput(output);
     }
 }

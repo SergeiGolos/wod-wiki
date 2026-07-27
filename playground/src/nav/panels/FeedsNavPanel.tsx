@@ -13,10 +13,11 @@
  */
 
 import { useMatch, useNavigate } from 'react-router-dom';
-import { CalendarCard } from '@/components/ui/CalendarCard';
+import { CalendarCard } from '@/components/atoms/CalendarCard';
 import { cn } from '@/lib/utils';
+import { formatDateMedium, formatDateShort } from '@/lib/dateFormat';
 import { useFeedsQueryState } from '../../hooks/useFeedsQueryState';
-import { getWodFeeds, getWodFeed, getFeedDateKeys } from '@/repositories/wod-feeds';
+import { getScriptFeeds, getScriptFeed, getFeedDateKeys } from '@/repositories/script-feeds';
 import type { NavPanelProps } from '../navTypes';
 import { useMemo } from 'react';
 
@@ -32,12 +33,12 @@ export function FeedsNavPanel(_props: NavPanelProps) {
   const feedSlug = detailMatch?.params.feedSlug ?? itemMatch?.params.feedSlug ?? null;
   const feedDate = itemMatch?.params.feedDate ?? null;
   const feedItemId = itemMatch?.params.feedItem ?? null;
-  const feed = feedSlug ? getWodFeed(feedSlug) : null;
+  const feed = feedSlug ? getScriptFeed(feedSlug) : null;
 
   const { dateParam, selectedDate, setSelectedDate, selectedFeed, selectFeed, clearFeed } =
     useFeedsQueryState();
 
-  const allFeeds = useMemo(() => getWodFeeds(), []);
+  const allFeeds = useMemo(() => getScriptFeeds(), []);
 
   // Build the set of dates that have content (for CalendarCard dots)
   const entryDates = useMemo<Set<string>>(() => {
@@ -91,9 +92,7 @@ export function FeedsNavPanel(_props: NavPanelProps) {
         {/* Date label + siblings */}
         <div className="flex flex-col gap-1 px-2">
           <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">
-            {new Date(feedDate + 'T00:00:00').toLocaleDateString(undefined, {
-              month: 'short', day: 'numeric', year: 'numeric',
-            })}
+            {formatDateMedium(new Date(feedDate + 'T00:00:00'))}
           </div>
           {siblings.map(item => {
             const isActive = item.id === feedItemId;
@@ -137,7 +136,7 @@ export function FeedsNavPanel(_props: NavPanelProps) {
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >
-                {new Date(dk + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                {formatDateShort(new Date(dk + 'T00:00:00'))}
                 <span className="text-[10px] font-bold text-muted-foreground/50">
                   {feed.items.filter(i => i.feedDate === dk).length}
                 </span>
@@ -188,9 +187,7 @@ export function FeedsNavPanel(_props: NavPanelProps) {
                 >
                   <span className="flex items-center gap-2">
                     <span className="size-2 rounded-full shrink-0 bg-border" />
-                    {new Date(dk + 'T00:00:00').toLocaleDateString(undefined, {
-                      month: 'short', day: 'numeric', year: 'numeric',
-                    })}
+                    {formatDateMedium(new Date(dk + 'T00:00:00'))}
                   </span>
                   <span className="text-[10px] font-bold text-muted-foreground/50">{count}</span>
                 </button>

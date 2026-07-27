@@ -1,6 +1,7 @@
-import type { Section, SectionType, WodDialect, FrontMatterSubtype } from '../types/section';
-import type { WodBlock } from '../types';
-import { detectWodBlocks } from './blockDetection';
+import type { Section, SectionType, FenceDialect, FrontMatterSubtype } from '../types/section';
+import type { ScriptBlock } from '../types';
+import { detectScriptBlocks } from './blockDetection';
+import { detectUrlSubtype } from '@/lib/frontmatter';
 
 /** Metadata regex: <!-- section-metadata id:UUID version:N created:TS --> */
 const METADATA_REGEX = /<!--\s*section-metadata\s+id:(\S+)\s+version:(\d+)\s+created:(\d+)\s*-->/i;
@@ -51,9 +52,34 @@ function generateSectionId(type: SectionType, startLine: number, content: string
 }
 
 /**
- * Detect the dialect from a WodBlock (fallback to 'wod').
+ * Compute a content-stable identity for a wod block: a hash of its normalized
+ * (trimmed) fenced content, independent of where the block sits in the
+ * document. Unlike the line-embedded section id, this survives clone /
+ * reorder / edit-above, so results keyed by it stay linked to the right
+ * workout even when the block moves.
+ *
+ * Written as `blockContentId` on ScriptBlock / Section and (by the Result
+ * Recorder) on WorkoutResult, with the line-based `sectionId` retained as a
+ * legacy fallback. Two blocks with identical content share an id by design —
+ * identical content is treated as the same workout (history scoped per note).
  */
-function blockDialect(block: WodBlock): WodDialect {
+export function blockContentId(content: string): string {
+  const normalized = content.trim();
+  // FNV-1a 32-bit over the FULL content (generateSectionId hashes only the
+  // first 64 chars; identity must cover the whole block to avoid prefix
+  // collisions between distinct workouts).
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < normalized.length; i++) {
+    hash ^= normalized.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `bc-${(hash >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+/**
+ * Detect the dialect from a ScriptBlock (fallback to 'wod').
+ */
+function blockDialect(block: ScriptBlock): FenceDialect {
   return block.dialect ?? 'wod';
 }
 
@@ -66,22 +92,22 @@ interface FrontMatterRange {
   endLine: number;
 }
 
-function detectFrontMatterBlocks(lines: string[], wodBlocks: WodBlock[]): FrontMatterRange[] {
+function detectFrontMatterBlocks(lines: string[], scriptBlocks: ScriptBlock[]): FrontMatterRange[] {
   const ranges: FrontMatterRange[] = [];
   let i = 0;
 
   while (i < lines.length) {
     // Skip lines that are inside a WOD block
-    const inWod = wodBlocks.some(b => i >= b.startLine && i <= b.endLine);
-    if (inWod) { i++; continue; }
+    const inScript = scriptBlocks.some(b => i >= b.startLine && i <= b.endLine);
+    if (inScript) { i++; continue; }
 
     if (lines[i].trim() === '---') {
       const openLine = i;
       // Look for closing ---
       let j = i + 1;
       while (j < lines.length) {
-        const inWodInner = wodBlocks.some(b => j >= b.startLine && j <= b.endLine);
-        if (inWodInner) { j++; continue; }
+        const inScriptInner = scriptBlocks.some(b => j >= b.startLine && j <= b.endLine);
+        if (inScriptInner) { j++; continue; }
         if (lines[j].trim() === '---') {
           ranges.push({ startLine: openLine, endLine: j });
           i = j + 1;
@@ -123,12 +149,27 @@ export function resolveFrontMatterSubtype(props: Record<string, string>): FrontM
   if (typeValue === 'strava') return 'strava';
   if (typeValue === 'amazon') return 'amazon';
   if (typeValue === 'file') return 'file';
+  if (typeValue === 'effort') return 'effort';
 
   // Auto-detect from url patterns
   const url = props['url'] || props['link'] || '';
-  if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
-  if (/strava\.com/i.test(url)) return 'strava';
-  if (/amazon\.com|amzn\.to/i.test(url)) return 'amazon';
+  const urlSubtype = detectUrlSubtype(url);
+  if (urlSubtype) return urlSubtype;
+
+  // Effort pages expose either a nested baseAttributes block or flat effort
+  // metadata at the root. The flat parser captures nested keys as empty-string
+  // placeholders, so checking for the known root fields is enough here.
+  if (
+    props['baseAttributes'] !== undefined ||
+    props['registrySource'] !== undefined ||
+    props['met'] !== undefined ||
+    props['discipline'] !== undefined ||
+    props['intensityTier'] !== undefined ||
+    props['aliases'] !== undefined ||
+    props['derivation'] !== undefined
+  ) {
+    return 'effort';
+  }
 
   return 'default';
 }
@@ -165,13 +206,13 @@ function matchMarkdownEmbed(trimmed: string) {
  *  - embed:    Single-line markdown links/images ![label](url) or [label](url).
  * 
  * @param content - Full markdown content
- * @param wodBlocks - Pre-detected WOD blocks (optional; will be detected if omitted)
+ * @param scriptBlocks - Pre-detected WOD blocks (optional; will be detected if omitted)
  * @returns Ordered array of Section objects
  */
-export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): Section[] {
+export function parseDocumentSections(content: string, scriptBlocks?: ScriptBlock[]): Section[] {
   if (!content) return [];
 
-  const blocks = wodBlocks ?? detectWodBlocks(content);
+  const blocks = scriptBlocks ?? detectScriptBlocks(content);
   const lines = content.split('\n');
   const sections: Section[] = [];
   const fmRanges = detectFrontMatterBlocks(lines, blocks);
@@ -188,13 +229,8 @@ export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): 
     let currentGroup: string[] = [];
     let groupStartLine = startLine;
 
-    for (let i = 0; i <= mdLines.length; i++) {
-      const isEnd = i === mdLines.length;
-      const line = !isEnd ? mdLines[i] : null;
-      const isBlank = line !== null && line.trim().length === 0;
-
-      if (isEnd || isBlank) {
-        // Flush current group
+    /** Flush the accumulated non-blank group into a section. */
+    const flushGroup = () => {
         if (currentGroup.length > 0) {
           const raw = currentGroup.join('\n');
           const { metadata, cleanText } = extractMetadata(raw);
@@ -244,27 +280,36 @@ export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): 
           }
         }
 
-        // Blank line itself (if not at end)
-        if (isBlank) {
-          sections.push({
-            id: generateSectionId('markdown', startLine + i, ''),
-            type: 'markdown',
-            rawContent: '',
-            displayContent: '',
-            startLine: startLine + i,
-            endLine: startLine + i,
-            lineCount: 1,
-            version: 1,
-            createdAt: now,
-          });
-        }
-
         currentGroup = [];
+    };
+
+    // Iterate real lines only; a final flush after the loop handles the
+    // trailing group (avoids indexing mdLines past its end).
+    for (let i = 0; i < mdLines.length; i++) {
+      const line = mdLines[i];
+
+      if (line.trim().length === 0) {
+        flushGroup();
+        // Blank line itself becomes its own empty section
+        sections.push({
+          id: generateSectionId('markdown', startLine + i, ''),
+          type: 'markdown',
+          rawContent: '',
+          displayContent: '',
+          startLine: startLine + i,
+          endLine: startLine + i,
+          lineCount: 1,
+          version: 1,
+          createdAt: now,
+        });
         groupStartLine = startLine + i + 1;
       } else {
-        currentGroup.push(line!);
+        currentGroup.push(line);
       }
     }
+
+    // Flush a trailing group not terminated by a blank line
+    flushGroup();
   }
 
   // Accumulate markdown (non-wod) lines between wod blocks
@@ -273,34 +318,37 @@ export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): 
 
   while (currentLine < lines.length) {
     // Check if current line is start of a WOD block
-    const wodBlock = blocks.find(b => b.startLine === currentLine);
+    const scriptBlock = blocks.find(b => b.startLine === currentLine);
 
-    if (wodBlock) {
+    if (scriptBlock) {
       // Flush any accumulated markdown before this wod block
       flushMarkdownLines(mdBuffer, mdBufferStart);
       mdBuffer = [];
 
       // WOD section — includes fence lines
-      const dialect = blockDialect(wodBlock);
-      const { metadata, cleanText } = extractMetadata(wodBlock.content);
+      const dialect = blockDialect(scriptBlock);
+      const { metadata, cleanText } = extractMetadata(scriptBlock.content);
       const fenceTag = dialect;
       const cleanRawContent = `\`\`\`${fenceTag}\n${cleanText}\n\`\`\``;
       const cleanLineCount = cleanRawContent.split('\n').length;
 
-      const sectionId = metadata?.id || generateSectionId('wod', wodBlock.startLine, cleanText);
+      const sectionId = metadata?.id || generateSectionId('wod', scriptBlock.startLine, cleanText);
+      const contentId = blockContentId(cleanText);
 
       sections.push({
         id: sectionId,
+        contentId,
         type: 'wod',
         dialect,
         rawContent: cleanRawContent,
         displayContent: cleanText,
-        startLine: wodBlock.startLine,
-        endLine: wodBlock.startLine + cleanLineCount - 1,
+        startLine: scriptBlock.startLine,
+        endLine: scriptBlock.startLine + cleanLineCount - 1,
         lineCount: cleanLineCount,
-        wodBlock: {
-          ...wodBlock,
-          id: sectionId, // Ensure WodBlock ID matches Section ID
+        scriptBlock: {
+          ...scriptBlock,
+          id: sectionId, // Ensure ScriptBlock ID matches Section ID
+          contentId,
           content: cleanText,
           dialect,
           version: metadata?.version || 1,
@@ -310,7 +358,7 @@ export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): 
         createdAt: metadata?.createdAt || now,
       });
 
-      currentLine = wodBlock.endLine + 1;
+      currentLine = scriptBlock.endLine + 1;
       mdBufferStart = currentLine;
       continue;
     }
@@ -396,8 +444,8 @@ export function matchSectionIds(oldSections: Section[], newSections: Section[]):
     const { metadata } = extractMetadata(newSec.rawContent);
     if (metadata) {
       const updated = { ...newSec, id: metadata.id, version: metadata.version, createdAt: metadata.createdAt };
-      if (updated.wodBlock) {
-        updated.wodBlock = { ...updated.wodBlock, id: metadata.id };
+      if (updated.scriptBlock) {
+        updated.scriptBlock = { ...updated.scriptBlock, id: metadata.id };
       }
       return updated;
     }
@@ -408,8 +456,8 @@ export function matchSectionIds(oldSections: Section[], newSections: Section[]):
     );
     if (exactMatch) {
       const updated = { ...newSec, id: exactMatch.id, version: exactMatch.version, createdAt: exactMatch.createdAt };
-      if (updated.wodBlock) {
-        updated.wodBlock = { ...updated.wodBlock, id: exactMatch.id };
+      if (updated.scriptBlock) {
+        updated.scriptBlock = { ...updated.scriptBlock, id: exactMatch.id };
       }
       return updated;
     }
@@ -427,8 +475,8 @@ export function matchSectionIds(oldSections: Section[], newSections: Section[]):
         version: newVersion,
         createdAt: positionMatch.createdAt
       };
-      if (updated.wodBlock) {
-        updated.wodBlock = { ...updated.wodBlock, id: positionMatch.id, version: newVersion };
+      if (updated.scriptBlock) {
+        updated.scriptBlock = { ...updated.scriptBlock, id: positionMatch.id, version: newVersion };
       }
       return updated;
     }

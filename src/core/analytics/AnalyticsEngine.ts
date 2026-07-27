@@ -1,50 +1,52 @@
 import { IAnalyticsEngine } from '../contracts/IAnalyticsEngine';
-import { IAnalyticsStage } from './IAnalyticsStage';
+import type { IRealtimeProcessor } from './IRealtimeProcessor';
+import type { ISummaryProcessor } from './ISummaryProcessor';
 import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
 import { MetricType } from '../models/Metric';
 import { MetricContainer } from '../models/MetricContainer';
-import { IRuntimeStackTracker } from '../contracts/RuntimeStackTracker';
 import { ProjectionResult } from './ProjectionResult';
 
 export class AnalyticsEngine implements IAnalyticsEngine {
-  private stages: IAnalyticsStage[] = [];
+  private realtimeProcessors: IRealtimeProcessor[] = [];
+  private summaryProcessors: ISummaryProcessor[] = [];
   private outputHistory: IOutputStatement[] = [];
-  private tracker?: IRuntimeStackTracker;
+  /** Emits a live 'analytics' output per segment so the UI updates in real time. */
+  private _onLiveOutput?: (output: IOutputStatement) => void;
 
-  setTracker(tracker: IRuntimeStackTracker): void {
-    this.tracker = tracker;
+  /** Wire a sink for live analytics outputs (one per segment, as projections update). */
+  setLiveOutputEmitter(emit: (output: IOutputStatement) => void): void {
+    this._onLiveOutput = emit;
   }
 
-  addStage(stage: IAnalyticsStage): void {
-    if (!stage.enrich && !stage.project) {
-      console.warn(`[AnalyticsEngine] Stage '${stage.id}' implements neither enrich nor project — skipping.`);
-      return;
-    }
-    this.stages.push(stage);
+  addRealtimeProcessor(processor: IRealtimeProcessor): void {
+    this.realtimeProcessors.push(processor);
+  }
+
+  addSummaryProcessor(processor: ISummaryProcessor): void {
+    this.summaryProcessors.push(processor);
   }
 
   run(output: IOutputStatement): IOutputStatement {
-    // Phase 1: enrich — per-segment metric derivation
+    // Phase 1: realtime enrichment — per-segment metric derivation
     let current = output;
-    for (const stage of this.stages) {
-      if (stage.enrich) {
-        try {
-          current = stage.enrich(current);
-        } catch (err) {
-          console.error(`[AnalyticsEngine] enrich error in '${stage.id}':`, err);
-        }
+    for (const processor of this.realtimeProcessors) {
+      try {
+        current = processor.process(current);
+      } catch (err) {
+        console.error(`[AnalyticsEngine] realtime error in '${processor.id}':`, err);
       }
     }
 
-    // Accumulate segment outputs for projection
+    // Accumulate segment outputs for summary processors, and emit a live
+    // 'analytics' output so session-totals reach the UI over the output stream
+    // (no separate tracker channel). Bounded recursion: the emitted 'analytics'
+    // output is not a 'segment', so re-entering run() does not re-trigger this.
     if (current.outputType === 'segment') {
       this.outputHistory.push(current);
-
-      // Phase 2: live projection update — runs after every new segment
-      if (this.tracker?.recordMetric) {
-        const projections = this._runProjections();
-        for (const p of projections) {
-          this.tracker.recordMetric('session-totals', p.name, p.value, p.unit);
+      if (this._onLiveOutput) {
+        const now = Date.now();
+        for (const stmt of this._buildProjectionOutputs(this._runSummaries(), now)) {
+          this._onLiveOutput(stmt);
         }
       }
     }
@@ -53,25 +55,30 @@ export class AnalyticsEngine implements IAnalyticsEngine {
   }
 
   finalize(): IOutputStatement[] {
-    const projections = this._runProjections();
-    const now = Date.now();
+    return this._buildProjectionOutputs(this._runSummaries(), Date.now());
+  }
 
-    const results: IOutputStatement[] = projections.map(p => {
+  /** Build one 'analytics' OutputStatement per summary projection. */
+  private _buildProjectionOutputs(projections: ProjectionResult[], now: number): IOutputStatement[] {
+    return projections.map(p => {
       const metrics = MetricContainer.empty(`projection-${p.name}`).add(
         {
           type: MetricType.Label,
           image: p.name,
           value: p.name,
-          origin: 'analyzed',
+          origin: p.origin ?? 'analyzed',
           timestamp: new Date(now),
         },
+        // Projection value metric — carries the processor's derivation
+        // metadata (effortSlug/discipline/…) through to stored logs.
         {
           type: (p.metricType as MetricType) || MetricType.Metric,
           image: `${p.value} ${p.unit}`,
           value: p.value,
           unit: p.unit,
-          origin: 'analyzed',
+          origin: p.origin ?? 'analyzed',
           timestamp: new Date(now),
+          ...(p.metadata ? { metadata: p.metadata } : {}),
         }
       );
       return new OutputStatement({
@@ -82,20 +89,16 @@ export class AnalyticsEngine implements IAnalyticsEngine {
         metrics,
       });
     });
-
-    return results;
   }
 
-  /** Run all project() stages over current output history. */
-  private _runProjections(): ProjectionResult[] {
+  /** Run all summary processors over current output history. */
+  private _runSummaries(): ProjectionResult[] {
     const results: ProjectionResult[] = [];
-    for (const stage of this.stages) {
-      if (stage.project) {
-        try {
-          results.push(...stage.project(this.outputHistory));
-        } catch (err) {
-          console.error(`[AnalyticsEngine] project error in '${stage.id}':`, err);
-        }
+    for (const processor of this.summaryProcessors) {
+      try {
+        results.push(...processor.summarize(this.outputHistory));
+      } catch (err) {
+        console.error(`[AnalyticsEngine] summary error in '${processor.id}':`, err);
       }
     }
     return results;

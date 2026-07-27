@@ -3,17 +3,21 @@
  * Supports dialect fences: ```wod, ```log, ```plan
  */
 
-import { WodBlock } from '../types';
-import type { WodDialect } from '../types/section';
-import { VALID_WOD_DIALECTS } from '../types/section';
+import { ScriptBlock } from '../types';
+import type { FenceDialect } from '../types/section';
+import { VALID_FENCE_DIALECTS } from '../types/section';
 
 /**
  * Try to match a line against known dialect fence patterns.
  * Returns the dialect if the line opens a fenced block, or null otherwise.
  */
-function matchDialectFence(trimmedLine: string): WodDialect | null {
+function matchDialectFence(trimmedLine: string): FenceDialect | null {
   const lower = trimmedLine.toLowerCase();
-  for (const d of VALID_WOD_DIALECTS) {
+  // Fence alias: 'whiteboard' maps to the 'wod' dialect.
+  if (lower === '```whiteboard' || lower.startsWith('```whiteboard ') || lower.startsWith('```whiteboard\t')) {
+    return 'wod';
+  }
+  for (const d of VALID_FENCE_DIALECTS) {
     // Match ```wod, ```log, ```plan (with optional trailing text)
     if (lower === '```' + d || lower.startsWith('```' + d + ' ') || lower.startsWith('```' + d + '\t')) {
       return d;
@@ -29,11 +33,11 @@ function matchDialectFence(trimmedLine: string): WodDialect | null {
  * @param content - Markdown content to parse
  * @returns Array of detected WOD blocks (with dialect set)
  */
-export function detectWodBlocks(content: string): WodBlock[] {
+export function detectScriptBlocks(content: string): ScriptBlock[] {
   const lines = content.split('\n');
-  const blocks: WodBlock[] = [];
+  const blocks: ScriptBlock[] = [];
   let inBlock = false;
-  let currentBlock: Partial<WodBlock> = {};
+  let currentBlock: Partial<ScriptBlock> = {};
   let blockContent: string[] = [];
 
   lines.forEach((line, index) => {
@@ -64,7 +68,7 @@ export function detectWodBlocks(content: string): WodBlock[] {
       inBlock = false;
       currentBlock.endLine = index;
       currentBlock.content = blockContent.join('\n');
-      blocks.push(currentBlock as WodBlock);
+      blocks.push(currentBlock as ScriptBlock);
       currentBlock = {};
       blockContent = [];
     } else if (inBlock) {
@@ -77,7 +81,7 @@ export function detectWodBlocks(content: string): WodBlock[] {
   if (inBlock && currentBlock.startLine !== undefined) {
     currentBlock.endLine = lines.length - 1;
     currentBlock.content = blockContent.join('\n');
-    blocks.push(currentBlock as WodBlock);
+    blocks.push(currentBlock as ScriptBlock);
   }
 
   return blocks;
@@ -91,9 +95,9 @@ export function detectWodBlocks(content: string): WodBlock[] {
  * @returns The block containing the line, or null if not found
  */
 export function findBlockAtLine(
-  blocks: WodBlock[],
+  blocks: ScriptBlock[],
   lineNumber: number
-): WodBlock | null {
+): ScriptBlock | null {
   return blocks.find(block =>
     lineNumber >= block.startLine && lineNumber <= block.endLine
   ) || null;

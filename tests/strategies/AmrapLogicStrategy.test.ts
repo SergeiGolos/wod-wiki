@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
 import { AmrapLogicStrategy } from '@/runtime/compiler/strategies/logic/AmrapLogicStrategy';
-import { TimerBehavior, HistoryRecordBehavior } from '@/runtime/behaviors';
+import { CountdownTimerBehavior, LabelingBehavior, SoundCueBehavior } from '@/runtime/behaviors';
 
 describe('AmrapLogicStrategy', () => {
   it('should compile "10:00 AMRAP" to an AMRAP block', () => {
@@ -16,9 +16,9 @@ describe('AmrapLogicStrategy', () => {
     expect(block).toBeDefined();
     expect(block.blockType).toBe('AMRAP');
 
-    // Now uses aspect-based behaviors
-    expect(block.getBehavior(TimerBehavior)).toBeDefined();
-    // Round tracking is wired via ChildrenStrategy (ChildSelectionBehavior) which is not registered here
-    expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();
+    // Uses aspect-based behaviors
+    expect(block.getBehavior(CountdownTimerBehavior)).toBeDefined();
+    expect(block.getBehavior(LabelingBehavior)).toBeDefined();
+    expect(block.getBehavior(SoundCueBehavior)).toBeDefined();
   });
 });

@@ -42,6 +42,6 @@ export class NextEventHandler implements IEventHandler {
     }
 
     // Generate next action
-    return [new NextAction()];
+    return [new NextAction(undefined, runtime.nowProvider)];
   }
 }

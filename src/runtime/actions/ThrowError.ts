@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../contracts/IRuntimeContext';
 import { ErrorAction } from './ErrorAction';
 
 /**
@@ -13,14 +13,14 @@ export class ThrowErrorAction implements IRuntimeAction {
         private readonly source: string
     ) { }
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IRuntimeContext): void {
         // Register the error in the runtime
         new ErrorAction(this.error, this.source).do(runtime);
 
         // Emit error state via event bus so UI can react
         runtime.eventBus.dispatch({
             name: 'workout:error',
-            timestamp: runtime.clock.now,
+            timestamp: runtime.clock.currentDate,
             data: { error: this.error, source: this.source }
         }, runtime);
     }

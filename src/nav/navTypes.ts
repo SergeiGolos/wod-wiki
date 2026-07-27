@@ -56,6 +56,12 @@ export interface CallAction {
   label?: string
 }
 
+/** Open an external URL in a new tab. */
+export interface ExternalLinkAction {
+  type: 'external'
+  href: string
+}
+
 /** No-op — for group headers. */
 export interface NoneAction {
   type: 'none'
@@ -69,6 +75,7 @@ export type INavAction =
   | ViewStateAction
   | PipelineAction
   | CallAction
+  | ExternalLinkAction
   | NoneAction
 
 // ─── INavActivation — base interface for every activatable UI element ─────────
@@ -110,11 +117,27 @@ export function executeNavAction(action: INavAction, deps: NavActionDeps): void 
     case 'view-state':
       deps.setPanelState?.(action.state, action.open)
       break
-    case 'pipeline':
-      action.steps.forEach(step => executeNavAction(step, deps))
+    case 'pipeline': {
+      const scrollSteps = action.steps.filter(step => step.type === 'scroll')
+      const otherSteps = action.steps.filter(step => step.type !== 'scroll')
+      otherSteps.forEach(step => executeNavAction(step, deps))
+      if (scrollSteps.length > 0) {
+        if (otherSteps.length > 0) {
+          // Defer scroll to the next macro-task to allow DOM and state updates to settle
+          setTimeout(() => {
+            scrollSteps.forEach(step => executeNavAction(step, deps))
+          }, 0)
+        } else {
+          scrollSteps.forEach(step => executeNavAction(step, deps))
+        }
+      }
       break
+    }
     case 'call':
       action.handler()
+      break
+    case 'external':
+      window.open(action.href, '_blank', 'noopener,noreferrer')
       break
     case 'none':
       break

@@ -8,150 +8,114 @@
  * Legend:
  *   🟢 Expected to pass — behaviour is fully implemented
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import {
-    createSessionContext,
-    startSession,
-    userNext,
-    advanceClock,
-    disposeSession,
-    type SessionTestContext,
-} from '../jit-compilation/helpers/session-test-utils';
-import { RoundState } from '@/runtime/memory/MemoryTypes';
+import { it, expect } from 'bun:test';
+import { describeCompliance, assertions } from '@/testing/script';
+import type { TestScript } from '@/testing/script/TestScript';
+import type { ScriptState } from '@/testing/script';
+import { getRoundState, anyOutputHasMetric } from '../helpers/compliance-helpers';
 import { MetricType } from '@/core/models/Metric';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Reads the current round state from the AMRAP block on the stack.
- * Returns undefined when no AMRAP block is present.
- */
-function getRoundState(ctx: SessionTestContext): RoundState | undefined {
-    const amrapBlock = ctx.runtime.stack.blocks.find(b => b.blockType === 'AMRAP');
-    if (!amrapBlock) return undefined;
-    return amrapBlock.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
-}
-
-/**
- * Returns the blockType of the currently-active (top-of-stack) block.
- */
-function currentBlockType(ctx: SessionTestContext): string | undefined {
-    return ctx.runtime.stack.current?.blockType;
-}
 
 // ===========================================================================
 // 🟢 Classic AMRAP — "Cindy"
-// 20:00 AMRAP  5 Pullups / 10 Pushups / 15 Air Squats
-// Spec: docs/finishline/compliance-scenarios/amrap.md#-classic-amrap--cindy
 // ===========================================================================
-describe('🟢 Classic AMRAP — Cindy (20:00 / 3 children)', () => {
-    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 Classic AMRAP — Cindy (20:00 / 3 children)', '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    function oneRound() {
-        userNext(ctx); // Pullups done
-        userNext(ctx); // Pushups done
-        userNext(ctx); // Air Squats done  →  cycle complete, round advances
+    async function oneRound(s: TestScript) {
+        await s.next(); // Pullups done
+        await s.next(); // Pushups done
+        await s.next(); // Air Squats done  →  cycle complete, round advances
     }
 
-    it('step 0: startSession → SessionRoot + WaitingToStart (depth = 2)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cindy' });
-        expect(ctx.runtime.stack.count).toBe(2);
+    it('step 0: startSession → SessionRoot + WaitingToStart (depth = 2)', async () => {
+        const script = await ctx.compile();
+        const s = await script.snapshot();
+        expect(s.depth).toBe(2);
     });
 
-    it('step 1: first userNext starts AMRAP and pushes 1st exercise', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cindy' });
-        userNext(ctx);
-        // WaitingToStart popped; AMRAP block + first exercise now on stack
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(3);
+    it('step 1: first userNext starts AMRAP and pushes 1st exercise', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const s = await script.snapshot();
+        expect(s.depth).toBeGreaterThanOrEqual(3);
     });
 
-    it('step 1: AMRAP block is present on the stack after first userNext', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cindy' });
-        userNext(ctx);
-        const amrapBlock = ctx.runtime.stack.blocks.find(b => b.blockType === 'AMRAP');
+    it('step 1: AMRAP block is present on the stack after first userNext', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const s = await script.snapshot();
+        const amrapBlock = s.blocks.find((b) => b.blockType === 'AMRAP');
         expect(amrapBlock).toBeDefined();
     });
 
-    it('step 1: round counter initialises at 1', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cindy' });
-        userNext(ctx);
-        expect(getRoundState(ctx)?.current).toBe(1);
+    it('step 1: round counter initialises at 1', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
-    it('step 2: second userNext advances to 2nd exercise (Pushups)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cindy' });
-        userNext(ctx); // start
-        userNext(ctx); // Pullups → Pushups
-        // Round is still 1 (cycle incomplete)
-        expect(getRoundState(ctx)?.current).toBe(1);
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(3);
+    it('step 2: second userNext advances to 2nd exercise (Pushups)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
+        expect(s.depth).toBeGreaterThanOrEqual(3);
     });
 
-    it('step 3: third userNext advances to 3rd exercise (Air Squats)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cindy' });
-        userNext(ctx); // start
-        userNext(ctx); // Pullups
-        userNext(ctx); // Pushups → Air Squats
-        // Round is still 1 (cycle incomplete until 3rd child pops)
-        expect(getRoundState(ctx)?.current).toBe(1);
+    it('step 3: third userNext advances to 3rd exercise (Air Squats)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
-    it('step 4: 4th userNext starts round 2 (children cycle back to Pullups)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cindy' });
-        userNext(ctx); // start
-        advanceClock(ctx, 60_000);
-        oneRound(); // round 1 done → round 2
-        expect(getRoundState(ctx)?.current).toBe(2);
+    it('step 4: 4th userNext starts round 2 (children cycle back to Pullups)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000);
+        await oneRound(script);
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
-    it('round counter increments correctly across 3 complete rounds', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cindy' });
-        userNext(ctx); // start
+    it('round counter increments correctly across 3 complete rounds', async () => {
+        const script = await ctx.compile();
+        await script.next();
         for (let r = 1; r <= 3; r++) {
-            advanceClock(ctx, 60_000);
-            oneRound();
+            await script.tick(60_000);
+            await oneRound(script);
         }
-        expect(getRoundState(ctx)?.current).toBe(4);
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(4);
     });
 
-    it('total rounds is undefined (unbounded AMRAP)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cindy' });
-        userNext(ctx);
-        expect(getRoundState(ctx)?.total).toBeUndefined();
+    it('total rounds is undefined (unbounded AMRAP)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.total).toBeUndefined();
     });
 
-    it('step N: advanceClock(1_200_000) expires timer → session auto-terminates (no userNext needed)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cindy' });
-        userNext(ctx); // start
-        advanceClock(ctx, 60_000);
-        oneRound();
-        advanceClock(ctx, 1_140_000); // 20 min total
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step N: tick(1_200_000) expires timer → session auto-terminates', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000);
+        await oneRound(script);
+        await script.tick(1_140_000);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 
-    it('all outputs are paired (segment + completion for every block)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cindy' });
-        userNext(ctx);
-        advanceClock(ctx, 60_000);
-        oneRound();
-        advanceClock(ctx, 1_140_000);
-        const unpaired = ctx.tracer.assertPairedOutputs();
+    it('all outputs are paired (segment + completion for every block)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000);
+        await oneRound(script);
+        await script.tick(1_140_000);
+        const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
         expect(unpaired).toEqual([]);
     });
 });
@@ -159,447 +123,385 @@ describe('🟢 Classic AMRAP — Cindy (20:00 / 3 children)', () => {
 // ===========================================================================
 // 🟢 Short AMRAP — 2:00 / 5 Burpees
 // ===========================================================================
-describe('🟢 Short AMRAP (2:00 / 1 child)', () => {
-    const SCRIPT = '2:00 AMRAP\n  5 Burpees';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 Short AMRAP (2:00 / 1 child)', '2:00 AMRAP\n  5 Burpees', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('step 1: userNext starts AMRAP and pushes child', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Short' });
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(2);
+    it('step 1: userNext starts AMRAP and pushes child', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const s = await script.snapshot();
+        expect(s.depth).toBeGreaterThanOrEqual(2);
     });
 
-    it('step 2: second userNext completes round 1 and starts round 2', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Short' });
-        userNext(ctx); // start
-        userNext(ctx); // round 1 done → round 2
-        expect(getRoundState(ctx)?.current).toBe(2);
+    it('step 2: second userNext completes round 1 and starts round 2', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
-    it('at least 2 rounds complete before clock advance', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Short' });
-        userNext(ctx); // start, round 1
-        userNext(ctx); // round 2
-        // Still inside the AMRAP — timer has not fired yet
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(2);
+    it('at least 2 rounds complete before clock advance', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        const s = await script.snapshot();
+        expect(s.depth).toBeGreaterThanOrEqual(2);
     });
 
-    it('advanceClock(120_000) expires 2:00 timer → session auto-terminates', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Short' });
-        userNext(ctx);
-        advanceClock(ctx, 120_000);
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('tick(120_000) expires 2:00 timer → session auto-terminates', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(120_000);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 });
 
 // ===========================================================================
 // 🟢 Single-Exercise AMRAP
-// 10:00 AMRAP / 1 Snatch
 // ===========================================================================
-describe('🟢 Single-Exercise AMRAP (10:00 / 1 child)', () => {
-    const SCRIPT = '10:00 AMRAP\n  1 Snatch';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 Single-Exercise AMRAP (10:00 / 1 child)', '10:00 AMRAP\n  1 Snatch', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('single child loops on successive userNext calls', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Single' });
-        userNext(ctx); // start → round 1
-        userNext(ctx); // round 2
-        userNext(ctx); // round 3
-        // No crash or index-out-of-bounds; still running
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(2);
+    it('single child loops on successive userNext calls', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
+        const s = await script.snapshot();
+        expect(s.depth).toBeGreaterThanOrEqual(2);
     });
 
-    it('round increments on each userNext', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Single' });
-        userNext(ctx); // start
-        userNext(ctx); // round 2
-        userNext(ctx); // round 3
-        expect(getRoundState(ctx)?.current).toBe(3);
+    it('round increments on each userNext', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(3);
     });
 
-    it('total rounds is undefined (unbounded)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Single' });
-        userNext(ctx);
-        expect(getRoundState(ctx)?.total).toBeUndefined();
+    it('total rounds is undefined (unbounded)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.total).toBeUndefined();
     });
 
-    it('timer expiry at 10:00 terminates session', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Single' });
-        userNext(ctx);
-        userNext(ctx);
-        advanceClock(ctx, 600_000); // 10:00
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('timer expiry at 10:00 terminates session', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.tick(600_000);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 });
 
 // ===========================================================================
 // 🟢 AMRAP with `-` Sequential Grouping
-// Each `-` child is its own child group; 3 userNexts = 1 round.
-// Spec: amrap.md#-amrap-with---sequential-grouping
 // ===========================================================================
-describe('🟢 AMRAP with - Sequential Grouping (Cindy variant)', () => {
-    const SCRIPT = '20:00 AMRAP\n  - 5 Pullups\n  - 10 Pushups\n  - 15 Air Squats';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 AMRAP with - Sequential Grouping (Cindy variant)', '20:00 AMRAP\n  - 5 Pullups\n  - 10 Pushups\n  - 15 Air Squats', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    function oneRound() {
-        userNext(ctx); // child 1
-        userNext(ctx); // child 2
-        userNext(ctx); // child 3 → cycle complete
+    async function oneRound(s: TestScript) {
+        await s.next();
+        await s.next();
+        await s.next();
     }
 
-    it('step 1: AMRAP mounts and first child pushed', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SeqCindy' });
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(3);
-        expect(getRoundState(ctx)?.current).toBe(1);
+    it('step 1: AMRAP mounts and first child pushed', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const s = await script.snapshot();
+        expect(s.depth).toBeGreaterThanOrEqual(3);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
-    it('round stays 1 after 2 of 3 children complete (cycle incomplete)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SeqCindy' });
-        userNext(ctx); // start
-        userNext(ctx); // child 1 done
-        userNext(ctx); // child 2 done — still round 1
-        expect(getRoundState(ctx)?.current).toBe(1);
+    it('round stays 1 after 2 of 3 children complete (cycle incomplete)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
-    it('3 userNexts complete round 1 → round 2 begins', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SeqCindy' });
-        userNext(ctx); // start
-        advanceClock(ctx, 60_000);
-        oneRound();
-        expect(getRoundState(ctx)?.current).toBe(2);
+    it('3 userNexts complete round 1 → round 2 begins', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000);
+        await oneRound(script);
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
-    it('round counter matches Math.floor(nextCount / 3) + 1 pattern', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SeqCindy' });
-        userNext(ctx); // start
-
-        expect(getRoundState(ctx)?.current).toBe(1); // 0 full cycles
-
-        advanceClock(ctx, 60_000);
-        oneRound();
-        expect(getRoundState(ctx)?.current).toBe(2); // 1 full cycle
-
-        advanceClock(ctx, 60_000);
-        oneRound();
-        expect(getRoundState(ctx)?.current).toBe(3); // 2 full cycles
+    it('round counter matches Math.floor(nextCount / 3) + 1 pattern', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        let s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
+        await script.tick(60_000);
+        await oneRound(script);
+        s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
+        await script.tick(60_000);
+        await oneRound(script);
+        s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(3);
     });
 
-    it('timer expiry auto-terminates session', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SeqCindy' });
-        userNext(ctx);
-        oneRound();
-        advanceClock(ctx, 1_200_000); // 20 min
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('timer expiry auto-terminates session', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await oneRound(script);
+        await script.tick(1_200_000);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 });
 
 // ===========================================================================
 // 🟢 AMRAP with `+` Composed Grouping
-// All `+` lines merged into ONE child group; 1 userNext = 1 round.
-// Spec: amrap.md#-amrap-with--composed-grouping-complex--superset
 // ===========================================================================
-describe('🟢 AMRAP with + Composed Grouping (single child group)', () => {
-    const SCRIPT = '20:00 AMRAP\n  + 5 Pullups\n  + 10 Pushups\n  + 15 Air Squats';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 AMRAP with + Composed Grouping (single child group)', '20:00 AMRAP\n  + 5 Pullups\n  + 10 Pushups\n  + 15 Air Squats', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('exactly one child block on stack after first userNext (one composite group)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Comp' });
-        userNext(ctx); // start → composite block pushed
-        // Stack: SessionRoot + AMRAP + 1 composite child = 3
-        expect(ctx.runtime.stack.count).toBe(3);
+    it('exactly one child block on stack after first userNext (one composite group)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const s = await script.snapshot();
+        expect(s.depth).toBe(3);
     });
 
-    it('round 1 after first userNext starts the composite block', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Comp' });
-        userNext(ctx);
-        expect(getRoundState(ctx)?.current).toBe(1);
+    it('round 1 after first userNext starts the composite block', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
-    it('one userNext = one completed round', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Comp' });
-        userNext(ctx); // start → round 1
-        userNext(ctx); // composite done → round 2
-        expect(getRoundState(ctx)?.current).toBe(2);
+    it('one userNext = one completed round', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
-    it('round increments sequentially: 1 → 2 → 3 → 4 → 5', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Comp' });
-        userNext(ctx); // start
-
+    it('round increments sequentially: 1 → 2 → 3 → 4 → 5', async () => {
+        const script = await ctx.compile();
+        await script.next();
         for (let expected = 2; expected <= 5; expected++) {
-            userNext(ctx);
-            expect(getRoundState(ctx)?.current).toBe(expected);
+            await script.next();
+            const s = await script.snapshot();
+            expect(getRoundState(s, 'AMRAP')?.current).toBe(expected);
         }
     });
 
-    it('timer expiry at 20:00 terminates session', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Comp' });
-        userNext(ctx);
-        userNext(ctx);
-        advanceClock(ctx, 1_200_000); // 20 min
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('timer expiry at 20:00 terminates session', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.tick(1_200_000);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 });
 
 // ===========================================================================
 // 🟡 AMRAP with Skippable Rest Between Rounds
-// :30 Rest child — userNext dismisses early OR timer auto-completes.
-// Spec: amrap.md#-amrap-with-skippable-rest-between-rounds
 // ===========================================================================
-describe('🟢 AMRAP with Skippable Rest (:30 Rest)', () => {
-    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  :30 Rest';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 AMRAP with Skippable Rest (:30 Rest)', '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  :30 Rest', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('step 1: AMRAP starts, Pullups pushed', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SkipRest' });
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(3);
+    it('step 1: AMRAP starts, Pullups pushed', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const s = await script.snapshot();
+        expect(s.depth).toBeGreaterThanOrEqual(3);
     });
 
-    it('step 3: after 2 exercises, a rest/timer block is the current block', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SkipRest' });
-        userNext(ctx); // start → Pullups
-        userNext(ctx); // Pushups
-        userNext(ctx); // :30 Rest pushed
-        const current = ctx.runtime.stack.current;
-        // Block should be Rest or a timer type
-        expect(current?.blockType).toMatch(/Rest|Timer/i);
+    it('step 3: after 2 exercises, a rest/timer block is the current block', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
+        const s = await script.snapshot();
+        expect(s.current?.blockType).toMatch(/Rest|Timer/i);
     });
 
-    it('step 4a: userNext on :30 Rest skips it — round 2 begins immediately', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SkipRest' });
-        userNext(ctx); // start → Pullups
-        userNext(ctx); // Pushups
-        userNext(ctx); // :30 Rest mounted
-        // Rest is the current block before the skip
-        expect(ctx.runtime.stack.current?.blockType).toMatch(/Rest|Timer/i);
-        userNext(ctx); // skip rest early → rest pops, Pullups for round 2 pushed
-        // Round 2 should have started; current block is no longer the rest type
-        expect(ctx.runtime.stack.current?.blockType).not.toMatch(/Rest|Timer/i);
-        expect(getRoundState(ctx)?.current).toBe(2);
+    it('step 4a: userNext on :30 Rest skips it — round 2 begins immediately', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
+        let s = await script.snapshot();
+        expect(s.current?.blockType).toMatch(/Rest|Timer/i);
+        await script.next();
+        s = await script.snapshot();
+        expect(s.current?.blockType).not.toMatch(/Rest|Timer/i);
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
-    it('step 4b: advanceClock(30_000) auto-expires :30 Rest → round 2 begins', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SkipRest' });
-        userNext(ctx); // start
-        userNext(ctx); // Pullups
-        userNext(ctx); // :30 Rest mounted
-        advanceClock(ctx, 30_000); // rest auto-expires
-        expect(getRoundState(ctx)?.current).toBe(2);
+    it('step 4b: tick(30_000) auto-expires :30 Rest → round 2 begins', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
+        await script.tick(30_000);
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
-    it('AMRAP timer expiry at 20:00 terminates session', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'SkipRest' });
-        userNext(ctx);
-        advanceClock(ctx, 1_200_000); // 20 min
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('AMRAP timer expiry at 20:00 terminates session', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(1_200_000);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 });
 
 // ===========================================================================
 // 🟢 AMRAP with Forced Rest (Cannot Skip)
-// *:30 Rest — userNext MUST be a no-op while countdown is active.
-//
-// The `*` prefix on a timer marks it as required — the block is non-skippable
-// and only exits when the countdown timer expires. Any userNext attempt while
-// the forced rest is active is suppressed and produces no stack changes.
-//
-// Spec: amrap.md#-amrap-with-forced-rest-cannot-skip
 // ===========================================================================
-describe('🟢 AMRAP with Forced Rest (*:30 — Cannot Skip)', () => {
-    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  *:30 Rest';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 AMRAP with Forced Rest (*:30 — Cannot Skip)', '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  *:30 Rest', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    /** Helper: drive to the point where forced rest is the current block. */
-    function enterForcedRest() {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'ForcedRest' });
-        userNext(ctx); // start → Pullups
-        userNext(ctx); // Pushups
-        userNext(ctx); // *:30 forced Rest mounted
+    async function enterForcedRest(s: TestScript) {
+        await s.next();
+        await s.next();
+        await s.next();
     }
 
-    it('step 3: a rest/timer block is mounted after 2 exercises', () => {
-        enterForcedRest();
-        const current = ctx.runtime.stack.current;
-        expect(current?.blockType).toMatch(/Rest|Timer/i);
+    it('step 3: a rest/timer block is mounted after 2 exercises', async () => {
+        const script = await ctx.compile();
+        await enterForcedRest(script);
+        const s = await script.snapshot();
+        expect(s.current?.blockType).toMatch(/Rest|Timer/i);
     });
 
-    it('step 4: userNext during *:30 forced rest is a no-op — stack depth unchanged', () => {
-        enterForcedRest();
-        const depthAtRest = ctx.runtime.stack.count;
-        userNext(ctx); // attempt skip — MUST be suppressed
-        expect(ctx.runtime.stack.count).toBe(depthAtRest);
+    it('step 4: userNext during *:30 forced rest is a no-op — stack depth unchanged', async () => {
+        const script = await ctx.compile();
+        await enterForcedRest(script);
+        const depthAtRest = (await script.snapshot()).depth;
+        await script.next();
+        const s = await script.snapshot();
+        expect(s.depth).toBe(depthAtRest);
     });
 
-    it('multiple userNext calls during *:30 forced rest all produce zero stack changes', () => {
-        enterForcedRest();
-        const depthAtRest = ctx.runtime.stack.count;
-        userNext(ctx);
-        userNext(ctx);
-        userNext(ctx);
-        // All three skips suppressed; stack is unchanged
-        expect(ctx.runtime.stack.count).toBe(depthAtRest);
+    it('multiple userNext calls during *:30 forced rest all produce zero stack changes', async () => {
+        const script = await ctx.compile();
+        await enterForcedRest(script);
+        const depthAtRest = (await script.snapshot()).depth;
+        await script.next();
+        await script.next();
+        await script.next();
+        const s = await script.snapshot();
+        expect(s.depth).toBe(depthAtRest);
     });
 
-    it('round counter stays at 1 while rest is active (no premature increment)', () => {
-        enterForcedRest();
-        userNext(ctx); // no-op attempt
-        // We completed: Pullups → Pushups → Rest (no cycle complete yet)
-        expect(getRoundState(ctx)?.current).toBe(1);
+    it('round counter stays at 1 while rest is active (no premature increment)', async () => {
+        const script = await ctx.compile();
+        await enterForcedRest(script);
+        await script.next();
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(1);
     });
 
-    it('advanceClock(30_000) expires the forced rest → auto-pops → round 2 starts', () => {
-        enterForcedRest();
-        advanceClock(ctx, 30_000); // rest timer fires
-        // Forced rest auto-popped; ChildSelection loops → round 2
-        expect(getRoundState(ctx)?.current).toBe(2);
+    it('tick(30_000) expires the forced rest → auto-pops → round 2 starts', async () => {
+        const script = await ctx.compile();
+        await enterForcedRest(script);
+        await script.tick(30_000);
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 
-    it('AMRAP timer expiry ends session even while inside forced rest', () => {
-        enterForcedRest();
-        advanceClock(ctx, 1_200_000); // 20 min AMRAP expiry
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('AMRAP timer expiry ends session even while inside forced rest', async () => {
+        const script = await ctx.compile();
+        await enterForcedRest(script);
+        await script.tick(1_200_000);
+        const s = await script.snapshot();
+        expect(s.depth).toBe(0);
     });
 });
 
 // ===========================================================================
 // 🟢 AMRAP with `+` Composed Grouping — Proportional Output Splitting
-//
-// When a composite block (multiple `+` statements compiled as one child group)
-// completes, the runtime emits a SEPARATE completion output for each
-// constituent exercise, with elapsed time distributed proportionally by rep
-// count.  Rep ratio: 5 Pullups : 10 Pushups : 15 Air Squats = 1 : 2 : 3
-// → each exercise gets 1/6, 2/6, 3/6 of the total elapsed time.
-//
-// Spec: amrap.md#-amrap-with--composed-grouping-complex--superset
 // ===========================================================================
-describe('🟢 AMRAP with + Composed Grouping — proportional output splitting', () => {
-    const SCRIPT = '20:00 AMRAP\n  + 5 Pullups\n  + 10 Pushups\n  + 15 Air Squats';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 AMRAP with + Composed Grouping — proportional output splitting', '20:00 AMRAP\n  + 5 Pullups\n  + 10 Pushups\n  + 15 Air Squats', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+    it('completing one composite round emits ≥ 3 completion outputs (one per exercise)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000);
+        await script.next();
 
-    it('completing one composite round emits ≥ 3 completion outputs (one per exercise)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Comp' });
-        userNext(ctx);            // start → composite block pushed (round 1)
-        advanceClock(ctx, 60_000); // 60 s elapsed inside the round
-        userNext(ctx);             // composite block completes → split completions
-
-        // Completions from the composite block should be 3 (one per exercise).
-        // Filter out SessionRoot / AMRAP completions by requiring display metrics.
-        const exerciseCompletions = ctx.tracer.completions.filter(c =>
-            c.raw.metrics.some(m =>
+        const completions = assertions(await script.snapshot()).outputs().completions();
+        const exerciseCompletions = completions.filter(c =>
+            [...c.metrics].some(m =>
                 m.type === MetricType.Rep || m.type === MetricType.Effort
             )
         );
         expect(exerciseCompletions.length).toBeGreaterThanOrEqual(3);
     });
 
-    it('each split completion contains exercise-specific Rep or Effort metric', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Comp' });
-        userNext(ctx);
-        advanceClock(ctx, 60_000);
-        userNext(ctx);
+    it('each split completion contains exercise-specific Rep or Effort metric', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000);
+        await script.next();
 
-        const exerciseCompletions = ctx.tracer.completions.filter(c =>
-            c.raw.metrics.some(m =>
+        const completions = assertions(await script.snapshot()).outputs().completions();
+        const exerciseCompletions = completions.filter(c =>
+            [...c.metrics].some(m =>
                 m.type === MetricType.Rep || m.type === MetricType.Effort
             )
         );
 
-        // Must have at least 3 exercise completions to verify
         expect(exerciseCompletions.length).toBeGreaterThanOrEqual(3);
 
-        // Every exercise completion should carry at least one Rep metric
         for (const comp of exerciseCompletions) {
-            const hasRep = comp.raw.metrics.some(m => m.type === MetricType.Rep);
+            const hasRep = [...comp.metrics].some(m => m.type === MetricType.Rep);
             expect(hasRep).toBe(true);
         }
     });
 
-    it('elapsed time across split completions sums to total elapsed (within 1 % rounding)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Comp' });
-        userNext(ctx);
-        advanceClock(ctx, 60_000);
-        userNext(ctx);
+    it('elapsed time across split completions sums to total elapsed (within 1 % rounding)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000);
+        await script.next();
 
-        // Filter specifically for exercise-level completions (must have Rep metric)
-        const exerciseCompletions = ctx.tracer.completions.filter(c =>
-            c.raw.metrics.some(m => m.type === MetricType.Rep)
+        const completions = assertions(await script.snapshot()).outputs().completions();
+        const exerciseCompletions = completions.filter(c =>
+            [...c.metrics].some(m => m.type === MetricType.Rep)
         );
 
-        // Must have exactly 3 split completions (one per statement)
         expect(exerciseCompletions).toHaveLength(3);
 
         const totalSplitElapsed = exerciseCompletions.reduce((sum, c) => {
-            const elapsed = c.raw.metrics.find(m => m.type === MetricType.Elapsed);
+            const elapsed = [...c.metrics].find(m => m.type === MetricType.Elapsed);
             return sum + ((elapsed?.value as number) ?? 0);
         }, 0);
 
-        // 60 000 ms elapsed; sum of splits should be within 1 % (600 ms) for rounding
         expect(totalSplitElapsed).toBeGreaterThan(59_400);
         expect(totalSplitElapsed).toBeLessThanOrEqual(60_600);
     });
 
-    it('rep ratio 5:10:15 → split elapsed values are in ascending order', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Comp' });
-        userNext(ctx);
-        advanceClock(ctx, 30_000); // 30 s for clean numbers: Pullups≈5s, Pushups≈10s, Squats≈15s
-        userNext(ctx);
+    it('rep ratio 5:10:15 → split elapsed values are in ascending order', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(30_000);
+        await script.next();
 
-        const exerciseCompletions = ctx.tracer.completions.filter(c =>
-            c.raw.metrics.some(m => m.type === MetricType.Rep)
+        const completions = assertions(await script.snapshot()).outputs().completions();
+        const exerciseCompletions = completions.filter(c =>
+            [...c.metrics].some(m => m.type === MetricType.Rep)
         );
 
         const elapsedValues = exerciseCompletions
-            .map(c => (c.raw.metrics.find(m => m.type === MetricType.Elapsed)?.value as number) ?? 0)
+            .map(c => ([...c.metrics].find(m => m.type === MetricType.Elapsed)?.value as number) ?? 0)
             .filter(v => v > 0);
 
         expect(elapsedValues).toHaveLength(3);
         const sorted = [...elapsedValues].sort((a, b) => a - b);
-        // The smallest elapsed corresponds to 5 Pullups, largest to 15 Air Squats
-        // Values should differ meaningfully: sorted[0] < sorted[1] < sorted[2]
         expect(sorted[0]).toBeLessThan(sorted[1]);
         expect(sorted[1]).toBeLessThan(sorted[2]);
     });
@@ -607,146 +509,157 @@ describe('🟢 AMRAP with + Composed Grouping — proportional output splitting'
 
 // ===========================================================================
 // 🟢 AMRAP Skippable Rest — completionReason in system events
-//
-// When :30 Rest inside an AMRAP is dismissed early by userNext, the system
-// pop event for that block carries `completionReason = 'user-advance'`.
-// When it auto-expires via the clock, the reason is anything OTHER than
-// 'user-advance' (typically 'timer-expiry' or omitted).
-//
-// Spec: amrap.md#-amrap-with-skippable-rest-between-rounds
 // ===========================================================================
-describe('🟢 AMRAP Skippable Rest — completionReason in system events', () => {
-    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  :30 Rest';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 AMRAP Skippable Rest — completionReason in system events', '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  :30 Rest', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    /** Helper: advance through Pullups and Pushups so :30 Rest is the current block. */
-    function setupAndReachRest() {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'RestReason' });
-        userNext(ctx); // start → Pullups
-        userNext(ctx); // Pushups
-        userNext(ctx); // :30 Rest mounted
-    }
-
-    /** Extract system pop event values from the tracer. */
-    function systemPopValues(): Array<Record<string, unknown>> {
-        return ctx.tracer.outputs
-            .filter(o => o.outputType === 'system')
+    function systemPopValues(state: ScriptState): Array<Record<string, unknown>> {
+        return assertions(state).outputs()
+            .byType('system')
             .map(o => {
-                const m = o.raw.metrics.find(m => m.type === MetricType.System);
+                const m = [...o.metrics].find(mm => mm.type === MetricType.System);
                 return m?.value as Record<string, unknown> | undefined;
             })
             .filter((v): v is Record<string, unknown> => !!v && v['event'] === 'pop');
     }
 
-    it('skipping :30 Rest via userNext → completionReason = "user-advance" in system pop', () => {
-        setupAndReachRest();
-        userNext(ctx); // skip rest early
-
-        const pops = systemPopValues();
+    it('skipping :30 Rest via userNext → completionReason = "user-advance" in system pop', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
+        await script.next();
+        const pops = systemPopValues(await script.snapshot());
         const lastPop = pops.at(-1);
         expect(lastPop?.completionReason).toBe('user-advance');
     });
 
-    it('auto-expiring :30 Rest → completionReason is NOT "user-advance"', () => {
-        setupAndReachRest();
-        advanceClock(ctx, 30_000); // rest auto-expires
-
-        const pops = systemPopValues();
+    it('auto-expiring :30 Rest → completionReason is NOT "user-advance"', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
+        await script.tick(30_000);
+        const pops = systemPopValues(await script.snapshot());
         const lastPop = pops.at(-1);
         expect(lastPop?.completionReason).not.toBe('user-advance');
     });
 
-    it('round advances to 2 after rest is skipped, confirming the pop was the rest block', () => {
-        setupAndReachRest();
-        userNext(ctx); // skip rest → round 2
-        expect(getRoundState(ctx)?.current).toBe(2);
+    it('round advances to 2 after rest is skipped, confirming the pop was the rest block', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
+        await script.next();
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
     });
 });
 
 // ===========================================================================
 // 🟢 AMRAP Forced Rest — completionReason never 'user-advance'
-//
-// For *:30 Rest (forced, non-skippable), userNext attempts are suppressed.
-// The block can ONLY exit via timer expiry.  Therefore every system pop
-// event for the forced rest block has `completionReason` that is NOT
-// 'user-advance'.
-//
-// Spec: amrap.md#-amrap-with-forced-rest-cannot-skip
 // ===========================================================================
-describe('🟢 AMRAP Forced Rest — completionReason never "user-advance"', () => {
-    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  *:30 Rest';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 AMRAP Forced Rest — completionReason never "user-advance"', '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  *:30 Rest', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    /** Helper: drive to the point where forced rest is the current block. */
-    function enterForcedRest() {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'ForcedRestReason' });
-        userNext(ctx); // start → Pullups
-        userNext(ctx); // Pushups
-        userNext(ctx); // *:30 forced Rest mounted
+    async function enterForcedRest(s: TestScript) {
+        await s.next();
+        await s.next();
+        await s.next();
     }
 
-    /** Extract system pop event values from the tracer. */
-    function systemPopValues(): Array<Record<string, unknown>> {
-        return ctx.tracer.outputs
-            .filter(o => o.outputType === 'system')
+    function systemPopValues(state: ScriptState): Array<Record<string, unknown>> {
+        return assertions(state).outputs()
+            .byType('system')
             .map(o => {
-                const m = o.raw.metrics.find(m => m.type === MetricType.System);
+                const m = [...o.metrics].find(mm => mm.type === MetricType.System);
                 return m?.value as Record<string, unknown> | undefined;
             })
             .filter((v): v is Record<string, unknown> => !!v && v['event'] === 'pop');
     }
 
-    it('after forced rest expires via timer, last system pop is NOT "user-advance"', () => {
-        enterForcedRest();
-        advanceClock(ctx, 30_000); // forced rest timer fires → auto-pop
-
-        const pops = systemPopValues();
-        const lastPop = pops.at(-1);
-        // The last pop is the forced rest auto-completing; must not be user-advance
-        expect(lastPop?.completionReason).not.toBe('user-advance');
-    });
-
-    it('after userNext attempts + timer expiry, no forced-rest pop has "user-advance"', () => {
-        enterForcedRest();
-        userNext(ctx); // no-op (suppressed)
-        userNext(ctx); // no-op (suppressed)
-        advanceClock(ctx, 30_000); // timer fires → forced rest auto-pops
-
-        const pops = systemPopValues();
-
-        // Pullups pop is 'user-advance' (expected and correct).
-        // The forced rest pop must NOT be 'user-advance'.
-        // The most recent pop after clock advance is the forced rest block.
+    it('after forced rest expires via timer, last system pop is NOT "user-advance"', async () => {
+        const script = await ctx.compile();
+        await enterForcedRest(script);
+        await script.tick(30_000);
+        const pops = systemPopValues(await script.snapshot());
         const lastPop = pops.at(-1);
         expect(lastPop?.completionReason).not.toBe('user-advance');
     });
 
-    it('forced rest completion output has no completionReason = "user-advance"', () => {
-        enterForcedRest();
-        advanceClock(ctx, 30_000);
+    it('after userNext attempts + timer expiry, no forced-rest pop has "user-advance"', async () => {
+        const script = await ctx.compile();
+        await enterForcedRest(script);
+        await script.next();
+        await script.next();
+        await script.tick(30_000);
+        const pops = systemPopValues(await script.snapshot());
+        const lastPop = pops.at(-1);
+        expect(lastPop?.completionReason).not.toBe('user-advance');
+    });
 
-        // completionReason is also surfaced on the completion IOutputStatement itself
-        const forcedRestCompletion = ctx.tracer.completions
-            .filter(c => c.raw.completionReason !== undefined)
+    it('forced rest completion output has no completionReason = "user-advance"', async () => {
+        const script = await ctx.compile();
+        await enterForcedRest(script);
+        await script.tick(30_000);
+
+        const completions = assertions(await script.snapshot()).outputs().completions();
+        const forcedRestCompletion = completions
+            .filter(c => c.completionReason !== undefined)
             .at(-1);
 
         if (forcedRestCompletion) {
-            expect(forcedRestCompletion.raw.completionReason).not.toBe('user-advance');
+            expect(forcedRestCompletion.completionReason).not.toBe('user-advance');
         }
-        // If no completion has a completionReason set, the assertion trivially passes —
-        // that means the reason is never propagated to the completion output (a separate
-        // RED test would be needed to assert it IS propagated, but that is out of scope here).
     });
 
-    it('after forced rest timer fires, round 2 begins (confirming correct pop path)', () => {
-        enterForcedRest();
-        advanceClock(ctx, 30_000);
-        expect(getRoundState(ctx)?.current).toBe(2);
+    it('after forced rest timer fires, round 2 begins (confirming correct pop path)', async () => {
+        const script = await ctx.compile();
+        await enterForcedRest(script);
+        await script.tick(30_000);
+        const s = await script.snapshot();
+        expect(getRoundState(s, 'AMRAP')?.current).toBe(2);
+    });
+});
+
+// ===========================================================================
+// 🟢 Sound Cues — AMRAP Timer
+// Spec: timer.md#sound-cues
+// ===========================================================================
+describeCompliance('🟢 Sound Cues — AMRAP Timer (2:00)', '2:00 AMRAP\n  5 Burpees', (ctx) => {
+
+    it('AMRAP timer-expiry emits a "timer-complete" sound output', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start AMRAP
+        await script.tick(120_000); // expire AMRAP timer
+        const snap = await script.snapshot();
+        expect(anyOutputHasMetric(snap, 'sound')).toBe(true);
+        const soundOutputs = assertions(snap).outputs().all().filter(o =>
+            o.metrics.some(m => m.type === 'sound')
+        );
+        const completeSound = soundOutputs.find(o =>
+            o.metrics.some(m => m.value?.trigger === 'complete')
+        );
+        expect(completeSound).toBeDefined();
+    });
+
+    it('AMRAP countdown beeps fire at 3-2-1 seconds remaining', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start AMRAP
+        // Skip through effort quickly
+        await script.next();
+        await script.tick(117_000); // advance to 3s remaining
+        await script.tick(1_000); // 2s
+        await script.tick(1_000); // 1s
+        await script.tick(1_000); // 0s → complete
+        const snap = await script.snapshot();
+        const soundOutputs = assertions(snap).outputs().all().filter(o =>
+            o.metrics.some(m => m.type === 'sound' && m.value?.trigger === 'countdown')
+        );
+        const countdownSeconds = soundOutputs.map(o => {
+            const m = o.metrics.find(m2 => m2.type === 'sound');
+            return m?.value?.atSecond;
+        }).sort();
+        expect(countdownSeconds).toContain(3);
+        expect(countdownSeconds).toContain(2);
+        expect(countdownSeconds).toContain(1);
     });
 });

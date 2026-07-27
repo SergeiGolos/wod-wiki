@@ -14,6 +14,7 @@
  */
 
 import { StateField, StateEffect, EditorState, Transaction } from "@codemirror/state";
+import { blockContentId } from "../utils/sectionParser";
 
 /** WOD dialect identifiers */
 export type EditorDialect = "wod" | "log" | "plan";
@@ -40,6 +41,8 @@ export type EmbedType = "image" | "link" | "youtube";
 export interface EditorSection {
   /** Stable identifier (hash-based, survives structural-equivalent re-parses) */
   id: string;
+  /** Content-stable identity (wod only) — survives clone/reorder; results join on this (see `blockContentId`). */
+  contentId?: string;
   /** Section type */
   type: EditorSectionType;
   /** Markdown subtype (only for type === "markdown") */
@@ -249,53 +252,60 @@ function parseSections(state: EditorState): EditorSection[] {
 
     // Split accumulated markdown at blank-line boundaries
     let groupStart = 0;
-    for (let i = 0; i <= mdLines.length; i++) {
-      const isEnd = i === mdLines.length;
-      const isBlank = !isEnd && mdLines[i].text.trim().length === 0;
 
-      if (isBlank || isEnd) {
-        // Flush the non-blank group before this blank line (or at end)
-        if (i > groupStart) {
-          const group = mdLines.slice(groupStart, i);
-          // Check each line in the group for potential single-line embed
-          // If a group has only one line, check if it's an embed.
-          if (group.length === 1) {
-            const trimmed = group[0].text.trim();
-            const embed = matchMarkdownEmbed(trimmed);
-            if (embed) {
-              const line = doc.line(group[0].num);
-              sections.push({
-                id: generateSectionId("embed", group[0].num, trimmed),
-                type: "embed",
-                embed,
-                from: line.from,
-                to: line.to,
-                startLine: group[0].num,
-                endLine: group[0].num,
-              });
-              groupStart = i + 1;
-              continue;
-            }
-          }
-
-          const firstLine = doc.line(group[0].num);
-          const lastLine = doc.line(group[group.length - 1].num);
-          const content = doc.sliceString(firstLine.from, lastLine.to);
-          const subtype = detectMarkdownSubtype(group.map((g) => g.text));
-
+    /**
+     * Flush the group ending just before `endExclusive`. Returns true when
+     * the group was consumed as a single-line embed — the caller then skips
+     * the blank-line section (preserving the original `continue` behavior).
+     */
+    const flushGroup = (endExclusive: number): boolean => {
+      if (endExclusive <= groupStart) return false;
+      const group = mdLines.slice(groupStart, endExclusive);
+      // If a group has only one line, check if it's an embed.
+      if (group.length === 1) {
+        const trimmed = group[0].text.trim();
+        const embed = matchMarkdownEmbed(trimmed);
+        if (embed) {
+          const line = doc.line(group[0].num);
           sections.push({
-            id: generateSectionId("markdown", group[0].num, content),
-            type: "markdown",
-            subtype,
-            from: firstLine.from,
-            to: lastLine.to,
+            id: generateSectionId("embed", group[0].num, trimmed),
+            type: "embed",
+            embed,
+            from: line.from,
+            to: line.to,
             startLine: group[0].num,
-            endLine: group[group.length - 1].num,
+            endLine: group[0].num,
           });
+          return true;
         }
+      }
+
+      const firstLine = doc.line(group[0].num);
+      const lastLine = doc.line(group[group.length - 1].num);
+      const content = doc.sliceString(firstLine.from, lastLine.to);
+      const subtype = detectMarkdownSubtype(group.map((g) => g.text));
+
+      sections.push({
+        id: generateSectionId("markdown", group[0].num, content),
+        type: "markdown",
+        subtype,
+        from: firstLine.from,
+        to: lastLine.to,
+        startLine: group[0].num,
+        endLine: group[group.length - 1].num,
+      });
+      return false;
+    };
+
+    // Iterate real lines only; a final flush after the loop handles the
+    // trailing group (avoids indexing mdLines past its end).
+    for (let i = 0; i < mdLines.length; i++) {
+      if (mdLines[i].text.trim().length === 0) {
+        const consumedAsEmbed = flushGroup(i);
+        groupStart = i + 1;
 
         // Blank line itself becomes its own section (preserves blank-line identity)
-        if (isBlank) {
+        if (!consumedAsEmbed) {
           const blankLine = doc.line(mdLines[i].num);
           sections.push({
             id: generateSectionId("markdown", mdLines[i].num, ""),
@@ -307,11 +317,10 @@ function parseSections(state: EditorState): EditorSection[] {
             endLine: mdLines[i].num,
           });
         }
-
-        groupStart = i + 1;
       }
     }
 
+    flushGroup(mdLines.length);
     mdLines = [];
   }
 
@@ -345,8 +354,13 @@ function parseSections(state: EditorState): EditorSection[] {
       }
 
       const content = doc.sliceString(line.from, doc.line(closeLine).to);
+      // Content-stable id over the INNER fenced content (matches the
+      // sectionParser cleanText path) so a block keeps its identity across
+      // clone / reorder / line shifts.
+      const contentId = blockContentId(doc.sliceString(contentFrom, contentTo));
       sections.push({
         id: generateSectionId("wod", openLine, content),
+        contentId,
         type: "wod",
         from: line.from,
         to: doc.line(closeLine).to,

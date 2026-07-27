@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - sport
+---
+
 ## Workout 6: Sport Preparation Session
 
 **Category**: Joe Daniels Sport Training  

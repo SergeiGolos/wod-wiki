@@ -1,7 +1,7 @@
 ---
 search: hidden
 template: canvas
-route: /syntax
+route: /guide/syntax
 type: syntax
 ---
 
@@ -13,28 +13,45 @@ Every concept builds on the last — start at the top and work your way through.
 ```view
 name:    preview
 state:   note
-source:  wods/syntax/basics.md
+source:  wods/examples/syntax/core-rules.md
 runtime: in-memory
 launch:  host
 align:   right
-width:   48%
+width:   50%
 ```
 
 ## Core Concepts {sticky}
 
-Learn the foundational rules: creating a `wod` block, logging measurements, and tracking supplemental data like effort and cues.
+Learn the foundational rules: creating a `wod` block, writing one statement per line, and adding measurements, effort notes, actions, comments, and timer modifiers.
 
 ```command
 target: preview
 pipeline:
-  - set-source: wods/syntax/basics.md
+  - set-source: wods/examples/syntax/core-rules.md
 ```
 
 ```button
 label:  Open Core Concepts →
 target: preview
 pipeline:
-  - navigate: /syntax/basics
+  - navigate: /guide/syntax/basics
+```
+
+## Dialect Examples {sticky}
+
+Scroll through the main fence types: `wod` for workout definitions, `log` for completed sessions, `plan` for templates, and `climb` for climbing-specific logs.
+
+```command
+target: preview
+pipeline:
+  - set-source: wods/examples/syntax/dialect-climb-bouldering.md
+```
+
+```button
+label:  Open Dialect Examples →
+target: preview
+pipeline:
+  - navigate: /guide/syntax/dialects
 ```
 
 ## Structure & Rep Schemes {sticky}
@@ -51,7 +68,7 @@ pipeline:
 label:  Open Structure & Reps →
 target: preview
 pipeline:
-  - navigate: /syntax/structure
+  - navigate: /guide/syntax/structure
 ```
 
 ## Timers & Protocols {sticky}
@@ -61,14 +78,14 @@ Add time domains to your workouts. Learn how to structure classic protocols like
 ```command
 target: preview
 pipeline:
-  - set-source: wods/examples/syntax/timers-1.md
+  - set-source: wods/examples/syntax/timers-rest.md
 ```
 
 ```button
 label:  Open Timers & Protocols →
 target: preview
 pipeline:
-  - navigate: /syntax/protocols
+  - navigate: /guide/syntax/protocols
 ```
 
 ## Advanced
@@ -80,14 +97,31 @@ Put it all together. Nested groups, mixed protocols, and chained timers let you 
 ```command
 target: preview
 pipeline:
-  - set-source: wods/syntax/complex.md
+  - set-source: wods/examples/syntax/complex-nested-protocols.md
 ```
 
 ```button
 label:  Open Complex Examples →
 target: preview
 pipeline:
-  - navigate: /syntax/complex
+  - navigate: /guide/syntax/complex
+```
+
+## Custom Metrics & Calculations {sticky}
+
+Attach line-local properties to a workout and derive summary values with a document-level `calculate` block.
+
+```command
+target: preview
+pipeline:
+- set-source: wods/examples/syntax/custom-metrics-1.md
+```
+
+```button
+label:  Open Custom Metrics & Calculations →
+target: preview
+pipeline:
+  - navigate: /guide/syntax/custom-metrics
 ```
 
 ## Start Writing {sticky full-bleed dark}

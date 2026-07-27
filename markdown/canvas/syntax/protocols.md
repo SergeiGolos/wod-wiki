@@ -1,243 +1,128 @@
 ---
 search: hidden
 template: canvas
-route: /syntax/protocols
+route: /guide/syntax/protocols
 type: syntax
 ---
 
+```chapter
+id: protocols
+title: Protocols
+badge: timer
+quests: protocols-timer, protocols-rounds, protocols-tag
+sections: []
+```
+
+```quest
+id: protocols-timer
+label: Add a rest or time cap
+validation:
+  type: has-timer
+```
+
+```quest
+id: protocols-rounds
+label: Add a 3-round cap
+validation:
+  type: min-rounds
+  count: 3
+```
+
+```quest
+id: protocols-tag
+label: Add a workout tag
+validation:
+  type: contains-token
+  value: AMRAP
+```
+
+```scroll
+runway: 840vh
+screen: editor
+typewriter: true
+stages:
+  - id: timers-rest
+    range: [0, 0.08]
+    source: wods/examples/syntax/timers-rest.md
+    caption: "A bare duration (`5:00 Run`, `:30 Plank`) counts down from that time. Movements without a time prefix count up from zero. Use `*` to mark a timer as required — the rest behavior comes from the word `Rest`, not from `*` alone."
+    quest: protocols-timer
+    ring:
+      tag: "*:30 Rest"
+  - id: timer-modifiers
+    range: [0.08, 0.16]
+    source: wods/examples/syntax/timer-modifiers.md
+    caption: "Use `^` to force a timer to count up instead of down, `*` to mark it non-skippable, and `:?` when you want the runtime to record the actual time taken."
+  - id: longer-durations
+    range: [0.16, 0.23]
+    source: wods/examples/syntax/longer-duration.md
+    caption: "Use `H:MM:SS` format for anything over an hour. `1:30:00 Row` is a 90-minute row — the runtime preserves the longer countdown without changing syntax rules."
+  - id: mixed-timers
+    range: [0.23, 0.30]
+    source: wods/examples/syntax/mixed-timers.md
+    caption: Combine countdowns, untimed work, forced rest, and collectible timers in one note.
+  - id: classic-amrap
+    range: [0.30, 0.40]
+    source: wods/examples/syntax/classic-amrap.md
+    caption: "**As Many Rounds As Possible.** Set a time cap, mark the block `AMRAP`, and race the clock. `20:00 AMRAP` is the canonical guide form."
+    quest: protocols-rounds
+    toast: 20:00 AMRAP
+  - id: amrap-time-cap
+    range: [0.40, 0.47]
+    source: wods/examples/syntax/time-cap.md
+    caption: A bare time on a line without `AMRAP` creates a time cap for the work nested beneath it.
+    quest: protocols-tag
+  - id: multiple-amrap
+    range: [0.47, 0.54]
+    source: wods/examples/syntax/multiple-amrap-windows.md
+    caption: Chain several AMRAP blocks in one note. Each window gets its own countdown and round count — useful for interval-style conditioning.
+  - id: basic-emom
+    range: [0.54, 0.62]
+    source: wods/examples/syntax/basic-emom.md
+    caption: "**Every Minute on the Minute.** Combine a rounds count, an interval timer, and the `EMOM` label. `(10) :60 EMOM` is the canonical guide form."
+    toast: (10) :60 EMOM
+  - id: longer-intervals
+    range: [0.62, 0.68]
+    source: wods/examples/syntax/longer-intervals.md
+    caption: Use a larger interval when a heavier movement or transition needs built-in recovery. `(5) 2:00 EMOM` gives five two-minute windows.
+  - id: alternating-emom
+    range: [0.68, 0.74]
+    source: wods/examples/syntax/alternating-emom.md
+    caption: Separate branches inside the EMOM let the runtime rotate between different tasks across the interval windows.
+  - id: tabata
+    range: [0.74, 0.82]
+    source: wods/examples/syntax/protocols-4.md
+    caption: "Intervals combine a work period and a rest period, repeated for a set number of rounds. A standard Tabata is `(8 Rounds)` with `:20` work and `:10 Rest` inside."
+    ring:
+      tag: ":20 / :10"
+  - id: custom-intervals
+    range: [0.82, 0.88]
+    source: wods/examples/syntax/custom-intervals.md
+    caption: "Change the round count, work duration, or rest duration to any values. `:40` work / `*:20 Rest` over `(5 Rounds)` is a popular alternative."
+  - id: distance-intervals
+    range: [0.88, 0.93]
+    source: wods/examples/syntax/distance-intervals.md
+    caption: Pair a timed work interval with a distance target, then follow it with timed recovery.
+  - id: next
+    range: [0.93, 1.0]
+    caption: Timers, caps, AMRAPs, EMOMs, Tabatas — every protocol is the same few tokens. Continue below for complex workouts.
+```
+
 # Timers & Protocols {sticky dark full-bleed}
 
-Prefix any movement with a duration to turn it into a timed block. Timers combined with specific workout structures create powerful protocols like AMRAP and EMOM.
-
-```view
-name:    ex
-state:   note
-source:  wods/examples/syntax/timers-1.md
-runtime: in-memory
-launch:  host
-align:   right
-width:   48%
-```
-
-## Timers and Rest {sticky}
-
-A bare duration (`5:00 Run`, `:30 Plank`) counts down from that time.
-Movements without a time prefix count up from zero. 
-
-Rest is just another line. Put a duration on a line that says `Rest` and the timer counts it down the same as any other work period.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/examples/syntax/timers-1.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## Longer Durations {sticky}
-
-Use `H:MM:SS` format for anything over an hour. `1:30:00 Row` is a 90-minute row, and the runtime preserves the longer countdown without changing syntax rules.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/examples/syntax/timers-4.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## Mixed Timers {sticky}
-
-Combine timed and untimed work freely. A run with a time cap, followed by unlimited pushups, followed by a rest — all in one block.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/examples/syntax/timers-3.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## Classic AMRAP {sticky}
-
-**As Many Rounds As Possible.** Set a time cap, mark the block `(AMRAP)`, and race the clock. A time followed by `(AMRAP)` on the next indented level sets the time domain.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/examples/getting-started/protocols-1.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## AMRAP with a Time Cap {sticky}
-
-A bare time on a line without `(AMRAP)` creates a time cap — the runtime stops the workout when the clock runs out, even if you haven't finished.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/syntax/amrap.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## Multiple AMRAP Windows {sticky}
-
-Chain several AMRAP blocks in one note. Each window gets its own countdown and round count, which makes this format useful for partner pieces and interval-style conditioning.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/examples/syntax/protocols-1.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## Basic EMOM {sticky}
-
-**Every Minute on the Minute.** Total duration followed by `(EMOM)`. The runtime splits it into 1-minute intervals and restarts the countdown each minute.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/syntax/emom.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## Longer Intervals {sticky}
-
-`Every 2:00` creates two-minute windows instead of one-minute resets. Use longer intervals when a heavier movement or transition needs built-in recovery.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/examples/syntax/protocols-2.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## Alternating EMOM {sticky}
-
-Two movement groups inside an EMOM — the runtime alternates between them each minute: odd minutes for movement A, even minutes for movement B.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/examples/syntax/protocols-3.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## Standard Tabata {sticky}
-
-Intervals combine a work period and a rest period, repeated for a set number of rounds. A standard Tabata is `(8 Rounds)` with `:20 Work` and `:10 Rest` inside.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/syntax/tabata.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## Custom Intervals {sticky}
-
-Change the round count, work duration, or rest duration to any values. `:40` work / `:20` rest over `(5 Rounds)` is a popular alternative.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/examples/syntax/protocols-4.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
-
-## Intervals with Distance {sticky}
-
-Pair a timed rest with a distance-based work interval. `3:00 Run 800m` followed by `2:00 Rest` over several rounds is a common track-session pattern.
-
-```command
-target: ex
-pipeline:
-  - set-source: wods/examples/syntax/protocols-5.md
-```
-
-```button
-label:  Try It →
-target: ex
-pipeline:
-  - set-state: track
-```
+Prefix any movement with a duration to turn it into a timed block. Timers combined with specific workout structures create powerful protocols like AMRAP, EMOM, and Tabata.
 
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Structure & Rep Schemes
+label:  ← Structure & Reps
 target: ex
 pipeline:
-  - navigate: /syntax/structure
+  - navigate: /guide/syntax/structure
 ```
 
 ```button
 label:  Complex Workouts →
 target: ex
 pipeline:
-  - navigate: /syntax/complex
+  - navigate: /guide/syntax/complex
 ```

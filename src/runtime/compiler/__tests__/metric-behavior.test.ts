@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'bun:test';
-import { TimerMetric } from '@/runtime/compiler/metrics/TimerMetric';
 import { DurationMetric } from '@/runtime/compiler/metrics/DurationMetric';
 import { RepMetric } from '@/runtime/compiler/metrics/RepMetric';
 import { DistanceMetric } from '@/runtime/compiler/metrics/DistanceMetric';
@@ -13,18 +12,6 @@ import { CurrentRoundMetric } from '@/runtime/compiler/metrics/CurrentRoundMetri
 import { MetricType } from '@/core/models/Metric';
 
 describe('Fragment behavior & metadata', () => {
-  it('TimerMetric (defined) -> origin=parser and type=duration', () => {
-    const t = new TimerMetric('5:00');
-    expect(t.type).toBe('duration');
-    expect(t.origin).toBe('parser');
-  });
-
-  it('TimerMetric (collectible :?) -> origin=hinted', () => {
-    const t = new TimerMetric(':?');
-    expect(t.value).toBeUndefined();
-    expect(t.origin).toBe('hinted');
-  });
-
   it('DurationMetric sets origin=parser for parser durations', () => {
     const d = new DurationMetric('2:00');
     expect(d.origin).toBe('parser');

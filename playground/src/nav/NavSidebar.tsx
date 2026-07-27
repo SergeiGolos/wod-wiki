@@ -14,17 +14,11 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import { BookOpen, Dumbbell } from 'lucide-react'
 
-import {
-  Sidebar,
-  SidebarBody,
-  SidebarHeader,
-  SidebarItem,
-  SidebarLabel,
-  SidebarSection,
-} from '@/components/playground/sidebar'
-import { SidebarAccordion } from '@/components/playground/SidebarAccordion'
-import { ShortcutBadge } from '@/components/list/ShortcutBadge'
-import { ButtonLink } from '@/components/ui/ButtonLink'
+import { Sidebar, SidebarBody, SidebarHeader, SidebarItem, SidebarLabel, SidebarSection } from '@/components/organisms/layout/Sidebar'
+import { SidebarAccordion } from '@/components/organisms/layout/SidebarAccordion'
+import { ShortcutBadge } from '@/components/atoms/ShortcutBadge'
+import { AppVersion } from '@/components/atoms/AppVersion'
+import { ButtonLink } from '@/components/molecules/ButtonLink'
 
 import { useNav } from './NavContext'
 import { executeNavAction } from './navTypes'
@@ -170,9 +164,10 @@ export function NavSidebar() {
           <span className="ml-3 text-lg font-black tracking-tighter text-foreground uppercase">
             Wod Wiki
           </span>
-          <span className="ml-1.5 text-[9px] font-bold text-muted-foreground self-end mb-1 opacity-50 uppercase tracking-widest">
-            v{appVersion}
-          </span>
+          <AppVersion
+            version={appVersion}
+            className="ml-1.5 text-[9px] font-bold text-muted-foreground self-end mb-1 opacity-50 uppercase tracking-widest"
+          />
         </div>
 
         {/* ── L1 items ───────────────────────────────────────────────────── */}

@@ -100,4 +100,3 @@ export function useWorkoutEventBus(
   return { emit };
 }
 
-export default useWorkoutEvents;

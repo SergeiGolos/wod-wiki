@@ -7,7 +7,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { MemoryTag } from '../memory/MemoryLocation';
 import { RoundState } from '../memory/MemoryTypes';
 import { IMetricPromoter } from '../contracts/behaviors/IMetricPromoter';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../contracts/IRuntimeContext';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IBlockRef } from '../contracts/primitives/IBlockRef';
 
@@ -57,7 +57,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
      * compilation. This ensures inheritance works even when a round
      * advances and children are compiled in the same runtime tick.
      */
-    getPromotedFragments(runtime: IScriptRuntime, parentBlock: IRuntimeBlock): MetricContainer {
+    getPromotedFragments(runtime: IRuntimeContext, parentBlock: IRuntimeBlock): MetricContainer {
         const metrics = MetricContainer.empty(parentBlock.key.toString());
 
         // 1. Dynamic rep scheme promotion
@@ -73,7 +73,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
                     origin: 'compiler',
                     value: reps,
                     sourceBlockKey: parentBlock.key.toString(),
-                    timestamp: runtime.clock.now,
+                    timestamp: runtime.clock.currentDate,
                 });
             }
         }
@@ -149,7 +149,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
             origin: 'runtime',
             value: reps,
             sourceBlockKey: ctx.block.key.toString(),
-            timestamp: ctx.clock.now,
+            timestamp: ctx.clock.currentDate,
         };
 
         const existing = ctx.block.getMemoryByTag('metric:rep-target');

@@ -1,16 +1,14 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricType } from "@/core/models/Metric";
 import { MetricContainer } from "@/core/models/MetricContainer";
 import { DurationMetric } from "../../metrics/DurationMetric";
 import { RoundsMetric } from "../../metrics/RoundsMetric";
-import { BlockContext } from "../../../BlockContext";
-import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
-import { LabelComposer } from "../../utils/LabelComposer";
-
+import { hasHint, CONSUMED_HINTS } from "@/core/metrics/hints";
+import { compose } from "../../BlockTemplateComposer";
+import type { BlockTemplate } from "../../BlockTemplate";
 // Specific behaviors not covered by aspect composers
 import {
     LabelingBehavior,
@@ -31,13 +29,14 @@ import {
  */
 export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
     priority = 90; // High priority
+    readonly id = 'interval-logic';
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
         
         // Match if ANY statement has timer and (hint or EMOM keyword)
         const hasTimer = statements.some(s => s.metrics.some(f => f.type === MetricType.Duration));
-        const isInterval = statements.some(s => s.hints?.has('behavior.repeating_interval') ?? false);
+        const isInterval = statements.some(s => hasHint(s, CONSUMED_HINTS.REPEATING_INTERVAL));
 
         // EMOM can be parsed as 'Action' OR 'Effort' depending on parser version
         const hasEmomAction = statements.some(s => s.metrics.some(
@@ -48,7 +47,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         return hasTimer && (isInterval || hasEmomAction);
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IRuntimeContext): void {
         const firstStatementWithTimer = statements.find(s => s.metrics.some(
             f => f.type === MetricType.Duration
         )) || statements[0];
@@ -66,51 +65,33 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
             ? roundsFragment.value
             : 10; // Default 10 rounds if not specified
 
-        // Block metadata
-        const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), (firstStatementWithTimer as any).exerciseId || '');
-        
-        // Use LabelComposer for a standardized, descriptive label
-        const label = LabelComposer.build(statements, {
-            defaultLabel: `EMOM ${totalRounds}`
-        });
+        // Build the common chassis via the template composer.
+        const template: BlockTemplate = {
+            blockType: 'EMOM',
+            defaultLabel: `EMOM ${totalRounds}`,
+            statements,
+            runtime,
+            // EMOM uses countdown timer per interval. Timer expiry does NOT
+            // mark block complete — it's a per-round pacing signal.
+            timer: {
+                direction: 'down',
+                durationMs: intervalMs,
+                label: 'Interval',
+                role: 'primary',
+                mode: 'reset-interval', // Timer resets for next round
+                injectRest: true,
+            },
+            // EMOM has fixed rounds, block completes when exhausted.
+            repeater: {
+                totalRounds,
+                startRound: 1,
+                addCompletion: true,
+            },
+            pickStatement: (stmts) => stmts.find(s => s.hasMetric(MetricType.Duration)) || stmts[0],
+            metricDistributorType: 'EMOM',
+        };
 
-        builder
-            .setContext(context)
-            .setKey(blockKey)
-            .setBlockType("EMOM")
-            .setLabel(label)
-            .setSourceIds(statements.map(s => s.id));
-
-        const distributor = new PassthroughMetricDistributor();
-        const metricGroups = statements.flatMap(s => 
-            distributor.distribute(MetricContainer.from(s.metrics), "EMOM")
-        ).filter(group => group.length > 0);
-        
-        builder.setFragments(metricGroups);
-
-        // =====================================================================
-        // ASPECT COMPOSERS - High-level composition
-        // =====================================================================
-
-        // Timer Aspect - EMOM uses countdown timer per interval
-        // Timer expiry does NOT mark block complete - it's a per-round pacing signal
-        builder.asTimer({
-            direction: 'down',
-            durationMs: intervalMs,
-            label: 'Interval',
-            role: 'primary',
-            addCompletion: true,
-            completionConfig: { completesBlock: false },  // Timer resets for next round
-            injectRest: true
-        });
-
-        // Repeater Aspect - EMOM has fixed rounds, block completes when exhausted
-        builder.asRepeater({
-            totalRounds,
-            startRound: 1,
-            addCompletion: true  // RoundsEndBehavior marks block complete
-        });
+        const label = compose(builder, template);
 
         // =====================================================================
         // Display Aspect

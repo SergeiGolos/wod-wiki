@@ -3,13 +3,13 @@ import { IEventHandler } from './contracts/events/IEventHandler';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
-import { IScriptRuntime } from './contracts/IScriptRuntime';
+import type { IRuntimeContext } from './contracts/IRuntimeContext';
 import { IMetric } from '../core/models/Metric';
 import { MetricContainer } from '../core/models/MetricContainer';
 import { OutputStatement, OutputStatementType } from '../core/models/OutputStatement';
+import type { OutputStatementOptions } from '../core/models/OutputStatement';
 import { TimeSpan } from './models/TimeSpan';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
-import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 import {
     IBehaviorContext,
     BehaviorEventType,
@@ -40,24 +40,40 @@ import {
  */
 export class BehaviorContext implements IBehaviorContext {
     private subscriptions: Array<{ eventType: string; unsubscribe: () => void }> = [];
+    /**
+     * Capabilities registered on this context (or shared from the persistent
+     * per-block context if one was injected).
+     *
+     * Capability state is block-scoped, not call-scoped: the `inspectNext`
+     * path in `RuntimeBlock` constructs a fresh `BehaviorContext` per
+     * invocation so it can run the onNext chain without side effects, but
+     * capabilities declared during `onMount` must still be visible to
+     * peer behaviors in any subsequent call.  We therefore let an external
+     * owner (the persistent `_behaviorContext` on `RuntimeBlock`) inject
+     * the shared Set so all contexts for the same block observe the same
+     * capabilities.
+     */
+    private _capabilities: Set<string>;
 
     constructor(
         readonly block: IRuntimeBlock,
         readonly clock: IRuntimeClock,
         readonly stackLevel: number,
-        private runtime: IScriptRuntime
-    ) { }
-
+        private runtime: IRuntimeContext,
+        sharedCapabilities?: Set<string>
+    ) {
+        this._capabilities = sharedCapabilities ?? new Set<string>();
+    }
     // ============================================================================
     // Event Subscription
     // ============================================================================
 
     subscribe(eventType: BehaviorEventType, listener: BehaviorEventListener, options?: SubscribeOptions): Unsubscribe {
         const self = this;
-        const handler: IEventHandler = {
+        const handler = {
             id: `behavior-${this.block.key.toString()}-${eventType}-${Date.now()}`,
             name: `BehaviorHandler-${this.block.label}-${eventType}`,
-            handler: (event: IEvent, _runtime: IScriptRuntime): IRuntimeAction[] => {
+            handler: (event: IEvent, _runtime: IRuntimeContext): IRuntimeAction[] => {
                 // For event callbacks, use the dispatching runtime's live clock
                 // instead of the frozen mount-time SnapshotClock. This is critical
                 // for tick handlers that need to see current time (e.g., TimerEndingBehavior).
@@ -66,7 +82,7 @@ export class BehaviorContext implements IBehaviorContext {
                 });
                 return listener(event, callbackCtx);
             }
-        };
+        } as unknown as IEventHandler;
 
         // Register with event bus scoped to this block
         const unsub = this.runtime.eventBus.register(
@@ -97,7 +113,7 @@ export class BehaviorContext implements IBehaviorContext {
         metrics: MetricContainer | IMetric[],
         _options?: OutputOptions
     ): void {
-        const now = this.clock.now;
+        const now = this.clock.currentDate;
 
         // Extract raw spans from the block's timer memory.
         // These spans represent continuous periods of active (unpaused) execution.
@@ -152,7 +168,7 @@ export class BehaviorContext implements IBehaviorContext {
             stackLevel: this.stackLevel,
             metrics: taggedFragments,
             completionReason: _options?.completionReason,
-        });
+        } as OutputStatementOptions);
 
         // Add to runtime's output collection and notify subscribers
         this.addOutputToRuntime(output);
@@ -187,54 +203,26 @@ export class BehaviorContext implements IBehaviorContext {
     }
 
     // ============================================================================
-    // Backward-Compatible Memory API (shims over list-based memory)
+    // Capability Registry
     // ============================================================================
 
-    /**
-     * @deprecated Use block.getMemoryByTag() and read metrics values instead.
-     * Returns the typed value from the first matching memory location's first metrics.
-     */
-    getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined {
-        const tag = type as string as MemoryTag;
-        const locations = this.block.getMemoryByTag(tag);
-        if (locations.length === 0) return undefined;
-        const loc = locations[0];
-        if (loc.metrics.length === 0) return undefined;
-        // Special case: 'round' memory uses CurrentRoundMetric which stores
-        // .current and .total as direct fields (value is just the current number).
-        // Synthesize RoundState for backward compat with getMemory('round') callers.
-        if (type === 'round') {
-            const frag = loc.metrics[0] as unknown as { current?: number; total?: number };
-            if (frag?.current !== undefined) {
-                return { current: frag.current, total: frag.total } as unknown as MemoryValueOf<T>;
-            }
-            return undefined;
-        }
-        // For typed memory (timer, round, etc.), value is in the first metrics's .value
-        return loc.metrics[0]?.value as MemoryValueOf<T>;
+    declareCapability(cap: string): void {
+        this._capabilities.add(cap);
+    }
+
+    hasCapability(cap: string): boolean {
+        return this._capabilities.has(cap);
     }
 
     /**
-     * @deprecated Use pushMemory() or updateMemory() instead.
-     * Updates the first matching location's metrics value, or creates a new one.
+     * Returns the Set used to store declared capabilities.  Internal callers
+     * (e.g. `RuntimeBlock.inspectNext`) pass this back to a fresh
+     * `BehaviorContext` so that all contexts for the same block observe the
+     * same capabilities without coupling the inspection context to a
+     * specific owner.
      */
-    setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
-        const tag = type as string as MemoryTag;
-        const locations = this.block.getMemoryByTag(tag);
-        if (locations.length > 0) {
-            const loc = locations[0];
-            if (loc.metrics.length > 0) {
-                const updated = loc.metrics.map((f, i) =>
-                    i === 0 ? { ...f, value } : f
-                );
-                loc.update(updated);
-            } else {
-                loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
-            }
-        } else {
-            // Create a new location with the value
-            this.pushMemory(tag, [{ type: 0, image: '', origin: 'runtime', value } as any]);
-        }
+    getCapabilities(): Set<string> {
+        return this._capabilities;
     }
 
     // ============================================================================
@@ -244,7 +232,6 @@ export class BehaviorContext implements IBehaviorContext {
     markComplete(reason?: string): void {
         this.block.markComplete(reason);
     }
-
     // ============================================================================
     // Lifecycle
     // ============================================================================

@@ -96,12 +96,17 @@ describe('JournalDateScroll', () => {
     const topSentinel = getByTestId('top-sentinel');
     triggerIntersection(topSentinel, true);
 
+    // Before any user scroll the top sentinel is disarmed, so future dates are
+    // not prepended even while the sentinel is visible.
     expect(container.querySelectorAll('[id]').length).toBe(8);
 
-    window.dispatchEvent(new window.Event('scroll'));
-    triggerIntersection(topSentinel, true);
-
+    // A user scroll arms the top sentinel (the component listens for the
+    // `scroll` event and only arms once the mount scroll has settled, which
+    // happens on a requestAnimationFrame). Retry the scroll + intersection
+    // inside waitFor so the assertion does not race that rAF.
     await waitFor(() => {
+      window.dispatchEvent(new window.Event('scroll'));
+      triggerIntersection(topSentinel, true);
       expect(container.querySelectorAll('[id]').length).toBe(15);
     });
   });

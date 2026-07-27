@@ -61,7 +61,7 @@ describe('Note Management', () => {
 
         // 3. Verify Clone
         expect(cloned.id).not.toBe(template.id);
-        expect(cloned.templateId).toBe(template.id);
+        expect(cloned.sourceId).toBe(template.id);
         expect(cloned.type).toBe('note');
         expect(cloned.title).toBe('Benchmark WOD'); // Title preserved
         expect(cloned.rawContent).toBe('21-15-9');
@@ -86,7 +86,7 @@ describe('Note Management', () => {
         const cloned = await provider.cloneEntry(source.id);
 
         // 3. Verify Clone
-        expect(cloned.templateId).toBe(source.id);
+        expect(cloned.sourceId).toBe(source.id);
         expect(cloned.type).toBe('note');
         // Should be today
         expect(new Date(cloned.targetDate).toDateString()).toBe(new Date().toDateString());

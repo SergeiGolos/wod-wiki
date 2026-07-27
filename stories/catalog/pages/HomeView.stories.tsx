@@ -1,12 +1,17 @@
 /**
- * HomeView Stories
+ * Catalog / Pages / HomeView
  *
- * The HomeView renders the application home page with the HomeHero
- * banner and the home canvas page content.
+ * Renders: {@link import('../../../playground/src/views/HomeView').HomeView}
+ *
+ * Stories:
+ *  1. Default — basic home page view
+ *  2. WithCollections — home page with workout items
+ *  3. DarkTheme — home page with dark theme
+ *  4. Mobile — mobile viewport
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
-import { HomeView } from '../../../playground/src/pages/HomeView';
+import { HomeView } from '../../../playground/src/views/HomeView';
 import type { WorkoutItem } from '../../../playground/src/App';
 
 const markdownFilesByPath = import.meta.glob('../../../markdown/**/*.md', {

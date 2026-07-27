@@ -22,7 +22,7 @@ export function editorTheme(isDark: boolean): Extension {
       boxSizing: "border-box",
     },
     ".cm-content": {
-      fontFamily: "Monaco, Menlo, Ubuntu Mono, Consolas, monospace",
+      fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace",
       lineHeight: "22px",
       padding: "0",
       margin: "0 3px"

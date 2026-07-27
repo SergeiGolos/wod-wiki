@@ -1,21 +1,22 @@
 /**
  * FeedDetailPage — /feeds/:feedSlug
  *
- * Single-feed view. Same pattern as FeedsPage / JournalWeeklyPage:
+ * Single-feed view. Same pattern as FeedsPage / JournalListPage:
  * explicit dateKeys from feed data only, no infinite scroll, no empty rows.
  */
 
 import { useMemo, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getWodFeed } from '@/repositories/wod-feeds';
-import { playgroundDB } from '../services/playgroundDB';
+import { getScriptFeed } from '@/repositories/script-feeds';
+import { playgroundContent } from '../services/playgroundContent';
 import { localDateKey } from '../views/queriable-list/JournalDateScroll';
 import type { JournalEntrySummary } from '../views/queriable-list/JournalDateScroll';
-import { appendWorkoutToJournal } from '../services/journalWorkout';
+import { createJournalNoteFromWorkout } from '../services/journalWorkout';
+import { journalNotePath } from '../lib/routes';
 import { useFeedsQueryState } from '../hooks/useFeedsQueryState';
 import { FeedFeed, type FeedItem } from '../views/FeedFeed';
 import { toast } from '@/hooks/use-toast';
-import { ToastAction } from '@/components/ui/toast';
+import { ToastAction } from '@/components/atoms/primitives/toast';
 
 export interface FeedDetailPageProps {
   feedSlug: string;
@@ -26,7 +27,7 @@ export function FeedDetailPage({ feedSlug }: FeedDetailPageProps) {
   const { dateParam } = useFeedsQueryState();
   const focusedDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : null;
 
-  const feed = useMemo(() => getWodFeed(feedSlug), [feedSlug]);
+  const feed = useMemo(() => getScriptFeed(feedSlug), [feedSlug]);
 
   // ── Load journal entries for this feed's dates ────────────────────────────
 
@@ -43,7 +44,7 @@ export function FeedDetailPage({ feedSlug }: FeedDetailPageProps) {
         const dateKeys = Array.from(new Set(feed.items.map(i => i.feedDate)));
         const entries = await Promise.all(
           dateKeys.map(async key => {
-            const page = await playgroundDB.getPage(`journal/${key}`).catch(() => undefined);
+            const page = await playgroundContent.getPage(`journal/${key}`).catch(() => undefined);
             if (!page) return null;
             const headingMatch = page.content.match(/^#\s+(.+)$/m);
             return [key, { title: headingMatch?.[1]?.trim() ?? key, updatedAt: page.updatedAt }] as const;
@@ -91,7 +92,7 @@ export function FeedDetailPage({ feedSlug }: FeedDetailPageProps) {
 
   const handleAddToToday = useCallback(async (item: FeedItem) => {
     try {
-      const journalNoteId = await appendWorkoutToJournal({
+      const journalNote = await createJournalNoteFromWorkout({
         workoutName: item.name,
         category: item.feedId,
         sourceNoteLabel: item.feedName,
@@ -99,13 +100,12 @@ export function FeedDetailPage({ feedSlug }: FeedDetailPageProps) {
         wodContent: item.content,
         wrapInWod: false,
       });
-      const dateKey = journalNoteId.replace('journal/', '');
       const today = localDateKey(new Date());
       toast({
         title: 'Added to journal',
-        description: dateKey === today ? `Added to today's journal` : `Added to ${dateKey}`,
+        description: journalNote.journalDate === today ? `Added to today's journal` : `Added to ${journalNote.journalDate}`,
         action: (
-          <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
+          <ToastAction altText="Open journal" onClick={() => navigate(journalNotePath(journalNote.journalDate ?? '', journalNote.id))}>
             Open
           </ToastAction>
         ),

@@ -1,20 +1,17 @@
 /**
  * Catalog / Organisms / FullscreenReview
  *
- * FullscreenReview is the post-workout review overlay rendered after a
- * workout completes (either naturally from FullscreenTimer or via the
- * `/review/:runtimeId` route). It wraps `ReviewGrid` in a `FocusedDialog`
- * portal (minimal variant) and supports multi-select segments.
+ * Renders: {@link import('../../../src/components/molecules/FocusedDialog').FocusedDialog}
  *
- * ## States illustrated
- *  1. EmptyState      — no segments (overlay opened before any data)
- *  2. FranComplete    — 21-15-9 Thrusters & Pull-ups — 6 effort segments
- *  3. AmrapComplete   — 20-min AMRAP Cindy — multiple rounds
- *  4. EmomComplete    — 10-min EMOM — 10 rounds
- *  5. RoundsComplete  — 5×10 Thrusters
- *
- * **Note:** Each story renders a full-viewport overlay (FocusedDialog portals
- * to document.body). Click **Open Review** to launch, then ✕ to dismiss.
+ * Stories:
+ *  1. EmptyState — overlay opened before any workout data exists
+ *  2. FranComplete — 21-15-9 Thrusters & Pull-ups (6 effort segments)
+ *  3. AmrapComplete — AMRAP 20 Cindy (multiple rounds completed)
+ *  4. EmomComplete — EMOM 10 (10 rounds completed)
+ *  5. RoundsComplete — 5×10 Rounds (simple round-based workout)
+ *  6. LoadingState — shows loading state
+ *  7. ErrorState — shows error state
+ *  8. MobileFran — mobile viewport with Fran results
  */
 
 import React, { useEffect, useState } from 'react';
@@ -26,7 +23,7 @@ import { JitCompiler } from '@/runtime/compiler/JitCompiler';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock } from '@/runtime/RuntimeClock';
-import { sharedParser } from '@/parser/parserInstance';
+import { createParser } from '@/parser/parserInstance';
 import { WhiteboardScript } from '@/parser/WhiteboardScript';
 
 // Strategies
@@ -50,8 +47,8 @@ import { getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer';
 import type { Segment } from '@/core/models/AnalyticsModels';
 
 // UI
-import { FullscreenReview } from '@/components/Editor/overlays/FullscreenReview';
-import { FocusedDialog } from '@/components/Editor/overlays/FocusedDialog';
+import { FullscreenReview } from '@/components/organisms/review/FullscreenReview'
+import { FocusedDialog } from '@/components/molecules/FocusedDialog'
 
 // ─── Runtime helpers ──────────────────────────────────────────────────────────
 
@@ -74,7 +71,7 @@ function runToCompletion(
   stepMs = 30_000,
   maxSteps = 50,
 ): { segments: Segment[]; runtime: ScriptRuntime } {
-  const script = sharedParser.read(scriptText) as WhiteboardScript;
+  const script = createParser().read(scriptText) as WhiteboardScript;
   const compiler = buildCompiler();
   const clock = createMockClock(new Date('2024-06-15T09:00:00Z'));
   const stack = new RuntimeStack();
@@ -86,8 +83,8 @@ function runToCompletion(
   let steps = 0;
   while (runtime.stack.count > 0 && steps < maxSteps) {
     clock.advance(stepMs);
-    runtime.handle(new TickEvent());
-    runtime.do(new NextAction());
+    runtime.handle(new TickEvent(undefined, runtime.nowProvider));
+    runtime.do(new NextAction(undefined, runtime.nowProvider));
     steps++;
   }
 

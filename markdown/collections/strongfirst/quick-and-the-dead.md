@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 3: Quick and the Dead
 
 **Category**: StrongFirst Conditioning  

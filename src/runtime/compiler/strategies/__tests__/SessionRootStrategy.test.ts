@@ -204,11 +204,4 @@ describe('SessionRootStrategy', () => {
             expect(strategy.priority).toBe(100);
         });
     });
-
-    describe('default instance', () => {
-        it('should export a default instance', async () => {
-            const { sessionRootStrategy } = await import('../SessionRootStrategy');
-            expect(sessionRootStrategy).toBeInstanceOf(SessionRootStrategy);
-        });
-    });
 });

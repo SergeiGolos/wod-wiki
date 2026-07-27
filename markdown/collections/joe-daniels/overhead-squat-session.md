@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - sport
+---
+
 ## Workout 7: Overhead Squat Session
 
 **Category**: Joe Daniels Mobility & Strength  

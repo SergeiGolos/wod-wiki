@@ -165,3 +165,14 @@ wod/*.gpx
 wod/*.tcx
 docs/.obsidian/workspace.json
 e2e/screenshots/
+.env.development
+src/graphify-out/
+.playwright-cli/
+e2e/acceptance/visual-regression-edge-cases.e2e.ts
+e2e/**/*.png
+
+# repowise API keys (local)
+.repowise/.env
+.repowise/wiki.db
+.repowise/wiki.db-wal
+.repowise/wiki.db-shm

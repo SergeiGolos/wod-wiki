@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 2: Armor Building Complex (ABC)
 
 **Category**: Dan John Complex  

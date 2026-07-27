@@ -6,8 +6,8 @@
  * Coexists with the legacy `LocalStorageProvider` which uses `wodwiki:results:*`.
  */
 
-import type { AttachmentCreateInput, IContentProvider, ContentProviderMode } from '../../types/content-provider';
-import { v4 as uuidv4 } from 'uuid';
+import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
+import { v7 as uuidv7 } from 'uuid';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { Attachment } from '../../types/storage';
 import { matchesId } from '../../lib/idUtils';
@@ -18,7 +18,7 @@ const NOTE_ATT_PREFIX = 'wodwiki:note-attachments:';
 const SCHEMA_VERSION = 1;
 
 function generateId(): string {
-  return uuidv4();
+  return uuidv7();
 }
 
 export class LocalStorageContentProvider implements IContentProvider {
@@ -101,6 +101,7 @@ export class LocalStorageContentProvider implements IContentProvider {
       // This supports friendly URLs like /note/annie/plan or short UUIDs
       const allEntries = await this.getEntries();
       const match = allEntries.find(e =>
+        e.slug === id ||
         matchesId(e.id, id) ||
         e.title.toLowerCase() === id.toLowerCase() ||
         e.title.toLowerCase().replace(/\s+/g, '-') === id.toLowerCase()
@@ -113,14 +114,14 @@ export class LocalStorageContentProvider implements IContentProvider {
   }
 
   async saveEntry(
-    data: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> & { id?: string; targetDate?: number }
+    data: NoteSaveInput
   ): Promise<HistoryEntry> {
     const now = Date.now();
     const entry: HistoryEntry = {
       ...data,
       id: data.id || generateId(),
-      createdAt: now,
-      updatedAt: now,
+      createdAt: data.createdAt ?? now,
+      updatedAt: data.updatedAt ?? now,
       targetDate: data.targetDate || now,
       schemaVersion: SCHEMA_VERSION,
       type: data.type || 'note',
@@ -139,28 +140,22 @@ export class LocalStorageContentProvider implements IContentProvider {
       tags: source.tags,
       sections: source.sections || [],
       type: 'note',
-      templateId: source.id,
+      sourceId: source.id,
       targetDate: targetDate || Date.now(),
     });
 
-    // Update source entry's clonedIds to track this clone
-    const updatedClonedIds = [...(source.clonedIds || []), cloned.id];
-    await this.updateEntry(sourceId, { clonedIds: updatedClonedIds });
-
     return cloned;
   }
-
   async updateEntry(
     id: string,
-    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate'>> & { sectionId?: string; resultId?: string }
+    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'journalDate' | 'slug' | 'type' | 'sourceId'>> & { blockContentId?: string; resultId?: string }
   ): Promise<HistoryEntry> {
     const existing = await this.getEntry(id);
     if (!existing) {
       throw new Error(`Entry not found: ${id}`);
     }
 
-    // Extract resultId to prevent it from leaking into HistoryEntry if it's not defined there
-    const { resultId: _resultId, sectionId: _sectionId, ...cleanPatch } = patch;
+    const { resultId: _resultId, blockContentId: _, ...cleanPatch } = patch;
 
     const updated: HistoryEntry = {
       ...existing,
@@ -195,7 +190,7 @@ export class LocalStorageContentProvider implements IContentProvider {
   }
 
   async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
-    const id = attachment.id ?? uuidv4();
+    const id = attachment.id ?? uuidv7();
     const now = Date.now();
     const fullAttachment: Attachment = {
       ...attachment,

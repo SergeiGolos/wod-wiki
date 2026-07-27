@@ -11,10 +11,12 @@ import { MdTimerRuntime } from '../../parser/md-timer';
 import { ICodeStatement } from '../../core/models/CodeStatement';
 import { DialectRegistry } from '../../services/DialectRegistry';
 import { IMetric, MetricType } from '../../core/models/Metric';
+import { getHints, hasHint } from '../../core/metrics/hints';
 import { CrossFitDialect } from '../CrossFitDialect';
 import { CardioDialect } from '../CardioDialect';
 import { YogaDialect } from '../YogaDialect';
 import { HabitsDialect } from '../HabitsDialect';
+import { ClimbDialect } from '../ClimbDialect';
 
 // ──────────────────────────────────────────────────────────
 // Dialect factory
@@ -41,6 +43,11 @@ const DIALECT_MAP: Record<string, () => DialectRegistry> = {
     r.register(new HabitsDialect());
     return r;
   },
+  climb: () => {
+    const r = new DialectRegistry();
+    r.register(new ClimbDialect());
+    return r;
+  },
   none: () => new DialectRegistry(),
 };
 
@@ -61,7 +68,7 @@ export interface DialectFixtureResult {
  * Parse a wod block through the dialect pipeline.
  *
  * @param block   Raw wod block text (multiline OK)
- * @param dialect One of: 'crossfit' | 'cardio' | 'yoga' | 'habits' | 'none'
+ * @param dialect One of: 'crossfit' | 'cardio' | 'yoga' | 'habits' | 'climb' | 'none'
  */
 export function parseWithDialect(
   block: string,
@@ -91,6 +98,16 @@ export function parseWithDialect(
 /** Returns all raw metrics of a given type (includes suppressed). */
 export function rawMetricsOfType(stmt: ICodeStatement, type: MetricType): IMetric[] {
   return stmt.metrics.filter(m => m.type === type);
+}
+
+/** All hint marker strings on a statement. */
+export function hintsOf(stmt: ICodeStatement): string[] {
+  return getHints(stmt);
+}
+
+/** Whether a statement carries a given hint marker. */
+export function statementHasHint(stmt: ICodeStatement, hint: string): boolean {
+  return hasHint(stmt, hint);
 }
 
 /** Returns the display metrics of a given type (suppressed items hidden). */
@@ -163,6 +180,6 @@ export function snapshotMetrics(stmt: ICodeStatement): object {
       value: m.value,
       origin: m.origin,
     })),
-    hints: stmt.hints ? Array.from(stmt.hints) : [],
+    hints: getHints(stmt),
   };
 }

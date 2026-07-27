@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - sport
+---
+
 ## Workout 1: For Love of Training (8-Week Program)
 
 **Category**: Joe Daniels Signature Program  

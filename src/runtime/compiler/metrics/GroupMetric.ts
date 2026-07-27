@@ -1,5 +1,7 @@
 import { IMetric, MetricType, MetricOrigin } from "../../../core/models/Metric";
-import { GroupType } from "../../../parser/timer.visitor";
+
+
+export type GroupType = string;
 
 export class GroupMetric implements IMetric {
     readonly value: GroupType;

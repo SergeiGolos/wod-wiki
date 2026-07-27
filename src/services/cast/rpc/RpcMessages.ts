@@ -174,21 +174,6 @@ export interface RpcWorkbenchUpdate {
         rows: Array<{ label: string; value: string }>;
     };
 }
-
-export interface RpcTrackerUpdate {
-    type: 'rpc-tracker-update';
-    update: {
-        type: 'metric' | 'round';
-        blockId: string;
-        key?: string;
-        value?: any;
-        unit?: string;
-        current?: number;
-        total?: number;
-        timestamp: number;
-    };
-}
-
 /**
  * Clock synchronization request sent by browser on connection.
  * Used to calculate clock offset between sender and receiver.
@@ -274,7 +259,6 @@ export interface RpcAudio {
 export type RpcMessage =
     | RpcStackUpdate
     | RpcOutputStatement
-    | RpcTrackerUpdate
     | RpcEvent
     | RpcDispose
     | RpcWorkbenchUpdate

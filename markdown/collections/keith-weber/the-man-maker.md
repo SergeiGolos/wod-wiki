@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - cardio
+---
+
 ## Workout 2: The Man Maker (Leg Focus)
 
 **Category**: Keith Weber Lower Body  

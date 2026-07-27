@@ -27,7 +27,7 @@ import {
   StateField,
 } from "@codemirror/state";
 import { sectionField, type EditorSection } from "./section-state";
-import { sharedParser } from "@/hooks/useRuntimeParser";
+import { createParser } from "@/parser/parserInstance";
 import { MetricType } from "../../../core/models/Metric";
 import type { ICodeStatement } from "../../../core/models/CodeStatement";
 import type { IMetric } from "../../../core/models/Metric";
@@ -107,19 +107,20 @@ export function renderPanelContent(
 
   for (let i = 0; i < metrics.length; i++) {
     const metric = metrics[i];
-    const style = METRIC_STYLES[metric.type as string];
+    const effectiveType = metric.type === MetricType.Choice
+      ? ((metric as any).alternatives as IMetric[] | undefined)?.[0]?.type
+      : metric.type;
+    const style = METRIC_STYLES[effectiveType as string];
     const isFocused = metric.type === focusedMetricType;
-
     const span = document.createElement("span");
     span.className = "cm-wod-metric-panel__label-item" +
       (isFocused ? " cm-wod-metric-panel__label-item--focused" : "");
-    span.textContent = style?.label ?? String(metric.type);
+    span.textContent = style?.label ?? String(effectiveType ?? metric.type);
     if (style?.color) {
       // Full color when focused; 20% opacity hex suffix when dim
       span.style.color = isFocused ? style.color : `${style.color}${DIM_OPACITY_HEX}`;
     }
     labelsEl.appendChild(span);
-
     if (i < metrics.length - 1) {
       const sep = document.createElement("span");
       sep.className = "cm-wod-metric-panel__sep";
@@ -200,7 +201,7 @@ function parseStatements(
   const raw = state.doc.sliceString(section.contentFrom, section.contentTo);
   if (!raw.trim()) return null;
   try {
-    return sharedParser.read(raw).statements as ICodeStatement[];
+    return createParser().read(raw).statements as ICodeStatement[];
   } catch {
     return null;
   }
@@ -237,9 +238,11 @@ function buildDecorations(
       const stmtDocLine = section.startLine + (s.meta?.line ?? 0);
       const isActiveLine =
         cursorSection === section && stmtDocLine === cursorDocLine;
-
       for (const metric of s.metrics) {
-        const baseClass = METRIC_MARK_CLASS[metric.type as string];
+        const effectiveType = metric.type === MetricType.Choice
+          ? ((metric as any).alternatives as IMetric[] | undefined)?.[0]?.type
+          : metric.type;
+        const baseClass = METRIC_MARK_CLASS[effectiveType as string];
         if (!baseClass) continue;
 
         const meta = s.metricMeta?.get(metric);
@@ -249,6 +252,7 @@ function buildDecorations(
         // adding contentFrom converts them to absolute document offsets.
         const from = section.contentFrom + meta.startOffset;
         const to = section.contentFrom + meta.endOffset;
+        if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
         if (from >= to || from < 0 || to > state.doc.length) continue;
 
         const cssClass = isActiveLine ? baseClass : `${baseClass}-dim`;

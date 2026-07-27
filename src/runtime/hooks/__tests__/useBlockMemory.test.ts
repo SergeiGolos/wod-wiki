@@ -16,7 +16,7 @@ import {
     useRoundDisplay
 } from '../useBlockMemory';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
-import { IMemoryEntry } from '../../memory/IMemoryEntry';
+import { MemoryEntry } from '../../types/executionSnapshot';
 import { TimerState, RoundState, DisplayState } from '../../memory/MemoryTypes';
 import { TimeSpan } from '../../models/TimeSpan';
 

@@ -1,7 +1,8 @@
 import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeAction } from '../../runtime/contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../../runtime/contracts/IRuntimeBehavior';
-import { BlockLifecycleOptions, IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
+import { BlockLifecycleOptions, CompletionDecision, IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
+import type { IRuntimeActionable } from '../../runtime/contracts/primitives/IRuntimeActionable';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IBlockContext } from '../../runtime/contracts/IBlockContext';
 import type { InterceptMode, TestableBlockConfig } from '../../runtime/contracts/ITestableBlockConfig';
@@ -95,6 +96,8 @@ export class TestableBlock implements IRuntimeBlock {
       mountOverride: config.mountOverride ?? (() => []),
       nextMode: config.nextMode ?? 'spy',
       nextOverride: config.nextOverride ?? (() => []),
+      inspectNextMode: config.inspectNextMode ?? 'spy',
+      inspectNextOverride: config.inspectNextOverride ?? (() => ({ complete: false, actions: [] })),
       unmountMode: config.unmountMode ?? 'spy',
       unmountOverride: config.unmountOverride ?? (() => []),
       disposeMode: config.disposeMode ?? 'spy',
@@ -133,7 +136,7 @@ export class TestableBlock implements IRuntimeBlock {
     return this._wrapped.isComplete;
   }
 
-  get behaviors(): IRuntimeBehavior[] {
+  get behaviors(): readonly IRuntimeBehavior[] {
     return this._wrapped.behaviors;
   }
 
@@ -204,6 +207,15 @@ export class TestableBlock implements IRuntimeBlock {
     });
   }
 
+  inspectNext(runtime: IRuntimeActionable, options?: BlockLifecycleOptions): CompletionDecision {
+    return this._intercept('inspectNext', runtime as IScriptRuntime, this._config.inspectNextMode!, options, () => {
+      if (this._config.inspectNextMode === 'override') {
+        return this._config.inspectNextOverride!(runtime as IScriptRuntime);
+      }
+      return this._wrapped.inspectNext(runtime, options);
+    });
+  }
+
   unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     return this._intercept('unmount', runtime, this._config.unmountMode, options, () => {
       if (this._config.unmountMode === 'override') {
@@ -243,6 +255,15 @@ export class TestableBlock implements IRuntimeBlock {
     return this._wrapped.getAllMemory();
   }
 
+  getMetricMemoryByVisibility(visibility: import('../../runtime/memory/MetricVisibility').MetricVisibility): import('../../runtime/memory/MemoryLocation').IMemoryLocation[] {
+    return this._wrapped.getMetricMemoryByVisibility(visibility);
+  }
+
+  get completionReason(): string | undefined {
+    return this._wrapped.completionReason;
+  }
+
+
   // ========== Private Helpers ==========
 
   private _intercept<R>(
@@ -262,7 +283,13 @@ export class TestableBlock implements IRuntimeBlock {
 
     try {
       if (mode === 'ignore') {
-        call.returnValue = method === 'dispose' ? undefined : [];
+        if (method === 'dispose') {
+          call.returnValue = undefined;
+        } else if (method === 'inspectNext') {
+          call.returnValue = { complete: false, actions: [] };
+        } else {
+          call.returnValue = [];
+        }
         return call.returnValue as R;
       }
 
@@ -276,6 +303,12 @@ export class TestableBlock implements IRuntimeBlock {
       call.duration = performance.now() - startTime;
       this._calls.push(call);
     }
+  }
+
+  /** TestableBlock delegates everything to the wrapped block; effort hints
+   *  are merged onto the wrapped block by the compilation pipeline. */
+  mergeHints(hints: Readonly<Record<string, unknown>>): void {
+    this._wrapped.mergeHints(hints);
   }
 }
 

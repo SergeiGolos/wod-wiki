@@ -2,6 +2,7 @@ import { IDialect, DialectAnalysis } from "../core/models/Dialect";
 import { ICodeStatement } from "../core/models/CodeStatement";
 import { MetricType } from "../core/models/Metric";
 import { MetricContainer } from "../core/models/MetricContainer";
+import { hintsToContainer } from "../core/metrics/hints";
 
 /**
  * Habits dialect for tracking daily/recurring habit completions.
@@ -84,6 +85,6 @@ export class HabitsDialect implements IDialect {
       hints.push('behavior.recurring');
     }
 
-    return { hints };
+    return { metrics: hintsToContainer(hints) };
   }
 }

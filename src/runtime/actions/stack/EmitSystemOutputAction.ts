@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { IMetric, MetricType } from '../../../core/models/Metric';
 import { OutputStatement } from '../../../core/models/OutputStatement';
 import { TimeSpan } from '../../models/TimeSpan';
@@ -58,8 +58,8 @@ export class EmitSystemOutputAction implements IRuntimeAction {
     private readonly extra?: Record<string, unknown>
   ) {}
 
-  do(runtime: IScriptRuntime): IRuntimeAction[] {
-    const now = runtime.clock.now;
+  do(runtime: IRuntimeContext): IRuntimeAction[] {
+    const now = runtime.clock.currentDate;
 
     const value: SystemOutputValue = {
       event: this.event,

@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Open Water Preparation
 
 **Type**: Open Water Training  

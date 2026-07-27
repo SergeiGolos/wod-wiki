@@ -1,29 +1,35 @@
 /**
- * Collections Page Stories
+ * Catalog / Pages / CollectionsPage
  *
- * Full-page shell for the Collections workbench — browse workout templates
- * and open individual entries in a detail view.
+ * Renders: {@link import('../../../playground/src/views/CollectionsPage').CollectionsPage}
+ *
+ * Stories:
+ *  1. Default — default collections view
+ *  2. PlaygroundCollections — playground view with real routing
+ *  3. EmptyState — collections list with no data
+ *  4. ManyCollections — collections list with many items
+ *  5. FilterNoResults — filter state with no matching results
  */
 
 import React, { useCallback, useState, useMemo, type FC } from 'react';
 import { CollectionsPage } from '../../../playground/src/views/CollectionsPage';
 import type { Meta, StoryObj } from '@storybook/react';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
-import { CollectionBrowsePanel } from '@/components/collections/CollectionBrowsePanel';
-import { NoteEditor } from '@/components/Editor/NoteEditor';
-import { CommandProvider } from '@/components/command-palette/CommandContext';
-import { getWodCollections } from '@/repositories/wod-collections';
-import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
-import { EditorShellHeader } from '../../_shared/EditorShellHeader';
-import { useTheme } from '@/components/theme/ThemeProvider';
+import { CollectionBrowsePanel } from '@/components/organisms/collections/CollectionBrowsePanel'
+import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
+
+import { getScriptCollections } from '@/repositories/script-collections';
+import type { ScriptCollection, ScriptCollectionItem } from '@/repositories/script-collections';
+import { EditorShellHeader } from '../_shared/EditorShellHeader';
+import { useTheme } from '@/contexts/ThemeProvider'
 
 interface JournalState {
-  item: WodCollectionItem;
-  collection: WodCollection;
+  item: ScriptCollectionItem;
+  collection: ScriptCollection;
 }
 
 const CollectionsPageShell: React.FC = () => {
-  const collections = useMemo(() => getWodCollections(), []);
+  const collections = useMemo(() => getScriptCollections(), []);
   const [journalState, setJournalState] = useState<JournalState | null>(null);
   const [content, setContent] = useState('');
   const { theme } = useTheme();
@@ -31,7 +37,7 @@ const CollectionsPageShell: React.FC = () => {
 
   const showJournal = journalState !== null;
 
-  const handleSelectItem = (item: WodCollectionItem, collection: WodCollection) => {
+  const handleSelectItem = (item: ScriptCollectionItem, collection: ScriptCollection) => {
     setContent(item.content);
     setJournalState({ item, collection });
   };
@@ -86,15 +92,13 @@ const CollectionsPageShell: React.FC = () => {
             onDownload={handleDownload}
           />
           <div className="flex-1 min-h-0 overflow-y-scroll">
-            <CommandProvider>
-              <NoteEditor
-                value={content}
-                onChange={setContent}
-                onStartWorkout={() => {}}
-                className="h-full w-full"
-                theme={editorTheme}
-              />
-            </CommandProvider>
+            <NoteEditor
+              value={content}
+              onChange={setContent}
+              onStartWorkout={() => {}}
+              className="h-full w-full"
+              theme={editorTheme}
+            />
           </div>
         </div>
       </div>
@@ -134,9 +138,9 @@ export const PlaygroundCollections: StoryObj = {
   render: () => <PlaygroundCollectionsShell />,
 }
 
-const emptyCollections: WodCollection[] = [];
+const emptyCollections: ScriptCollection[] = [];
 
-const manyCollections: WodCollection[] = Array.from({ length: 12 }, (_, i) => ({
+const manyCollections: ScriptCollection[] = Array.from({ length: 12 }, (_, i) => ({
   id: `story-collection-${i + 1}`,
   name: `Collection ${i + 1}`,
   items: Array.from({ length: 6 }, (_, itemIndex) => ({

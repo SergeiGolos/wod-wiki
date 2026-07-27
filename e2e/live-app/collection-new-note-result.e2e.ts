@@ -10,20 +10,12 @@
  *      with noteId = 'journal/YYYY-MM-DD' (the full key, NOT just the date)
  *   5. After closing the review, the result badge appears on the note page
  *
- * The critical regression this covers:
- *   BEFORE the fix, JournalPage called `notePersistence.mutateNote(noteId, ...)`
- *   where noteId = '2024-01-15' (params only).  The note only exists in
- *   wodwiki-playground under 'journal/2024-01-15', not in wodwiki-db, so
- *   NOTE_NOT_FOUND was thrown and no result was persisted.
- *
  * Test isolation: uses today's date so the content IS realistic, but clears
- * both the playground entry and the results store before each run.
+ * the journal note and its results from wodwiki-db before each run.
  */
 
-import { test, expect, type Page } from '@playwright/test';
-
-const WOD_DB = 'wodwiki-db';
-const PLAYGROUND_DB = 'wodwiki-playground';
+import { test, expect } from '@playwright/test';
+import { deleteNoteByRouteId, getNoteContentByRouteId, clearResults, getResults, WOD_DB } from '../helpers/wodwikiDb';
 
 // ── The collection workout used for dogfooding ─────────────────────────────
 // Any collection with a "Now" button will do. Crossfit Girls / Fran is the
@@ -35,85 +27,6 @@ const COLLECTION_WORKOUT_URL = '/workout/crossfit-girls/fran';
 function todayKey(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-async function clearPlaygroundEntry(page: Page, noteId: string) {
-  await page.evaluate(async ({ db, key }) => {
-    await new Promise<void>((resolve, reject) => {
-      const req = indexedDB.open(db);
-      req.onsuccess = () => {
-        const idb = req.result;
-        if (!idb.objectStoreNames.contains('pages')) { idb.close(); resolve(); return; }
-        const tx = idb.transaction('pages', 'readwrite');
-        tx.objectStore('pages').delete(key);
-        tx.oncomplete = () => { idb.close(); resolve(); };
-        tx.onerror = () => { idb.close(); reject(tx.error); };
-      };
-      req.onerror = () => reject(req.error);
-    });
-  }, { db: PLAYGROUND_DB, key: noteId });
-}
-
-async function clearWodDbResultsForNote(page: Page, noteId: string) {
-  await page.evaluate(async ({ db, noteId }) => {
-    await new Promise<void>((resolve, reject) => {
-      const req = indexedDB.open(db);
-      req.onsuccess = () => {
-        const idb = req.result;
-        if (!idb.objectStoreNames.contains('results')) { idb.close(); resolve(); return; }
-        const tx = idb.transaction('results', 'readwrite');
-        const store = tx.objectStore('results');
-        const idx = store.index('by-note');
-        const cursor = idx.openCursor(IDBKeyRange.only(noteId));
-        cursor.onsuccess = (e) => {
-          const c = (e.target as IDBRequest).result;
-          if (c) { c.delete(); c.continue(); }
-        };
-        tx.oncomplete = () => { idb.close(); resolve(); };
-        tx.onerror = () => { idb.close(); reject(tx.error); };
-      };
-      req.onerror = () => reject(req.error);
-    });
-  }, { db: WOD_DB, noteId });
-}
-
-async function getResultsForNote(page: Page, noteId: string): Promise<unknown[]> {
-  return page.evaluate(async ({ db, noteId }) => {
-    return new Promise<unknown[]>((resolve, reject) => {
-      const req = indexedDB.open(db);
-      req.onsuccess = () => {
-        const idb = req.result;
-        if (!idb.objectStoreNames.contains('results')) { idb.close(); resolve([]); return; }
-        const tx = idb.transaction('results', 'readonly');
-        const items: unknown[] = [];
-        const cursor = tx.objectStore('results').index('by-note').openCursor(IDBKeyRange.only(noteId));
-        cursor.onsuccess = (e) => {
-          const c = (e.target as IDBRequest).result;
-          if (c) { items.push(c.value); c.continue(); }
-        };
-        tx.oncomplete = () => { idb.close(); resolve(items); };
-        tx.onerror = () => { idb.close(); reject(tx.error); };
-      };
-      req.onerror = () => reject(req.error);
-    });
-  }, { db: WOD_DB, noteId });
-}
-
-async function getPlaygroundPage(page: Page, noteId: string): Promise<string | null> {
-  return page.evaluate(async ({ db, key }) => {
-    return new Promise<string | null>((resolve, reject) => {
-      const req = indexedDB.open(db);
-      req.onsuccess = () => {
-        const idb = req.result;
-        if (!idb.objectStoreNames.contains('pages')) { idb.close(); resolve(null); return; }
-        const tx = idb.transaction('pages', 'readonly');
-        const get = tx.objectStore('pages').get(key);
-        get.onsuccess = () => { idb.close(); resolve(get.result?.content ?? null); };
-        get.onerror = () => { idb.close(); reject(get.error); };
-      };
-      req.onerror = () => reject(req.error);
-    });
-  }, { db: PLAYGROUND_DB, key: noteId });
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────────
@@ -149,38 +62,41 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
 
   // ── 1. Navigation: "Now" creates a journal entry and opens timer ──────────
 
-  test('clicking "Now" on a collection workout navigates to today\'s journal and opens the timer', async ({ page }) => {
+  test('clicking "Now" on a collection workout navigates to today\'s journal and opens the timer', async ({ page }, testInfo) => {
     const dateKey = todayKey();
     const playgroundKey = `journal/${dateKey}`;
 
     // Clear any existing state so we start clean
-    await clearPlaygroundEntry(page, playgroundKey);
-    await clearWodDbResultsForNote(page, playgroundKey);
+    await deleteNoteByRouteId(page, playgroundKey);
+    await clearResults(page, playgroundKey);
 
     // Navigate to the collection workout
     await page.goto(COLLECTION_WORKOUT_URL, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-    await page.waitForTimeout(1500); // Let blocks parse
 
-    await page.screenshot({ path: 'e2e/screenshots/collection-01-workout-page.png' });
-
-    // Click "Now" (primary run button on the first WOD block)
+    // Blocks-parsed signal: the "Now" run button mounts (bounded auto-wait).
     const nowButton = page.locator('button', { hasText: 'Now' }).first();
-    const exists = await nowButton.count();
+    const exists = await nowButton.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 1).catch(() => 0);
     if (exists === 0) {
       test.skip(true, '"Now" button not found — collection WOD may not have parsed');
       return;
     }
+
+    await page.screenshot({ path: testInfo.outputPath('collection-01-workout-page.png') });
+
+    // Click "Now" (primary run button on the first WOD block)
     await nowButton.click();
 
     // Should navigate to /journal/YYYY-MM-DD (with optional ?autoStart=...)
     await expect(page).toHaveURL(new RegExp(`/journal/${dateKey}`), { timeout: 8_000 });
 
-    await page.screenshot({ path: 'e2e/screenshots/collection-02-journal-with-timer.png' });
+    await page.screenshot({ path: testInfo.outputPath('collection-02-journal-with-timer.png') });
 
-    // The journal note must have been created in wodwiki-playground
-    await page.waitForTimeout(500);
-    const content = await getPlaygroundPage(page, playgroundKey);
-    expect(content, 'Journal note should be created in wodwiki-playground').not.toBeNull();
+    // The journal note must have been created in wodwiki-db — poll for the write.
+    await expect
+      .poll(() => getNoteContentByRouteId(page, playgroundKey), { timeout: 10_000 })
+      .not.toBeNull();
+    const content = await getNoteContentByRouteId(page, playgroundKey);
+    expect(content, 'Journal note should be created in wodwiki-db').not.toBeNull();
     expect(content, 'Journal note should contain the workout name').toContain('fran');
 
     // FullscreenTimer should be visible (autoStart consumed from pendingRuntimes)
@@ -195,16 +111,19 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
 
   // ── 2. Result saved with correct noteId after timer close ─────────────────
 
-  test('result is saved under journal/<date> key in wodwiki-db after workout complete', async ({ page }) => {
+  test('result is saved under journal/<date> key in wodwiki-db after workout complete', async ({ page }, testInfo) => {
     const dateKey = todayKey();
     const fullNoteId = `journal/${dateKey}`;
 
     // Seed a result as if JournalPage.handleTimerComplete fired correctly
     // (simulates the fixed code path: indexedDBService.saveResult with fullNoteId)
-    await clearWodDbResultsForNote(page, fullNoteId);
+    await clearResults(page, fullNoteId);
 
     await page.goto(`/journal/${dateKey}`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-    await page.waitForTimeout(600); // Let React + IDB load
+    // Page-loaded signal: the date page shell mounts its editor or empty state.
+    await expect(
+      page.locator('.cm-content[contenteditable="true"], h1').first(),
+    ).toBeAttached({ timeout: 10_000 });
 
     // Inject a result via the fixed path (indexedDBService.saveResult with full key)
     await page.evaluate(async ({ db, fullNoteId }) => {
@@ -217,9 +136,9 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
           tx.objectStore('results').put({
             id: 'e2e-collection-test-001',
             noteId: fullNoteId,     // ← the critical field: must use 'journal/DATE' not just 'DATE'
-            sectionId: 'wod-fran',
+            segmentId: 'wod-fran',
             data: { startTime: Date.now() - 300_000, endTime: Date.now(), completed: true, logs: [], metrics: [] },
-            completedAt: Date.now(),
+            createdAt: Date.now(),
           });
           tx.oncomplete = () => { idb.close(); resolve(); };
           tx.onerror = () => { idb.close(); reject(tx.error); };
@@ -228,23 +147,26 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
       });
     }, { db: WOD_DB, fullNoteId });
 
-    const results = await getResultsForNote(page, fullNoteId);
+    const results = await getResults(page, fullNoteId);
     expect(results, 'Result should be retrievable under journal/<date> key').toHaveLength(1);
 
     // Navigate away and back — result must survive
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 10_000 });
     await page.goto(`/journal/${dateKey}`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-    await page.waitForTimeout(600);
+    // Page-loaded signal: the date page shell mounts its editor or empty state.
+    await expect(
+      page.locator('.cm-content[contenteditable="true"], h1').first(),
+    ).toBeAttached({ timeout: 10_000 });
 
-    const afterReload = await getResultsForNote(page, fullNoteId);
+    const afterReload = await getResults(page, fullNoteId);
     expect(afterReload, 'Result must survive navigation (not be wiped on journal load)').toHaveLength(1);
 
-    await page.screenshot({ path: 'e2e/screenshots/collection-03-result-survives-reload.png' });
+    await page.screenshot({ path: testInfo.outputPath('collection-03-result-survives-reload.png') });
   });
 
   // ── 3. No NOTE_NOT_FOUND when completing via JournalPage ─────────────────
 
-  test('completing a workout on JournalPage does not throw NOTE_NOT_FOUND', async ({ page }) => {
+  test('completing a workout on JournalPage does not throw NOTE_NOT_FOUND', async ({ page }, testInfo) => {
     // This test verifies the regression fix:
     //   BEFORE: notePersistence.mutateNote('2024-01-15') → NOTE_NOT_FOUND
     //   AFTER:  indexedDBService.saveResult({ noteId: 'journal/2024-01-15' }) → OK
@@ -255,31 +177,33 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
     const fullNoteId = `journal/${dateKey}`;
 
     errors.length = 0;
-    await clearWodDbResultsForNote(page, fullNoteId);
+    await clearResults(page, fullNoteId);
 
     await page.goto(`/journal/${dateKey}`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+    // Deliberate grace window: allow any async NOTE_NOT_FOUND to surface
+    // before asserting a clean error log.
     await page.waitForTimeout(1000);
 
     // The page itself should load without errors
     const noteNotFoundErrors = errors.filter(e => e.includes('NOTE_NOT_FOUND'));
     expect(noteNotFoundErrors, 'Journal page load must not trigger NOTE_NOT_FOUND').toHaveLength(0);
 
-    await page.screenshot({ path: 'e2e/screenshots/collection-04-no-errors-on-journal-load.png' });
+    await page.screenshot({ path: testInfo.outputPath('collection-04-no-errors-on-journal-load.png') });
   });
 
   // ── 4. Full dogfood: collection → journal → timer start → result visible ──
 
-  test('full flow: collection workout → journal created → timer opens without errors', async ({ page }) => {
+  test('full flow: collection workout → journal created → timer opens without errors', async ({ page }, testInfo) => {
     const dateKey = todayKey();
     const playgroundKey = `journal/${dateKey}`;
 
     errors.length = 0;
-    await clearPlaygroundEntry(page, playgroundKey);
-    await clearWodDbResultsForNote(page, playgroundKey);
+    await deleteNoteByRouteId(page, playgroundKey);
+    await clearResults(page, playgroundKey);
 
     // Step 1: Go to collection page
     await page.goto('/collections', { waitUntil: 'domcontentloaded', timeout: 15_000 });
-    await page.screenshot({ path: 'e2e/screenshots/collection-05a-collections-page.png' });
+    await page.screenshot({ path: testInfo.outputPath('collection-05a-collections-page.png') });
 
     // Step 2: Find and click the CrossFit Girls collection
     const crossfitGirls = page.locator('text=crossfit-girls, text=CrossFit Girls').first();
@@ -294,38 +218,37 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
 
     // Step 3: Navigate to the Fran workout within the collection
     await page.goto(COLLECTION_WORKOUT_URL, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-    await page.waitForTimeout(2000); // Let blocks parse
-    await page.screenshot({ path: 'e2e/screenshots/collection-05b-fran-page.png' });
+    // Blocks-parsed signal: the "Now" run button mounts (bounded auto-wait).
+    const nowButton2 = page.locator('button', { hasText: 'Now' }).first();
+    const nowVisible = await nowButton2.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false);
+    await page.screenshot({ path: testInfo.outputPath('collection-05b-fran-page.png') });
 
     // Step 4: Click "Now"
-    const nowButton = page.locator('button', { hasText: 'Now' }).first();
-    if (await nowButton.count() === 0) {
+    if (!nowVisible) {
       test.skip(true, '"Now" button not found — collection WOD block may not have parsed');
       return;
     }
-    await nowButton.click();
+    await nowButton2.click();
 
     // Step 5: Expect journal page + timer
     await expect(page).toHaveURL(new RegExp(`/journal/${dateKey}`), { timeout: 8_000 });
-    await page.waitForTimeout(800);
-    await page.screenshot({ path: 'e2e/screenshots/collection-05c-journal-timer-open.png' });
-
-    // Timer (FocusedDialog) should be open
+    // Timer-open signal: the FocusedDialog close control mounts.
     const closeButton = page.getByRole('button', { name: /close/i }).first();
     await expect(closeButton).toBeVisible({ timeout: 5_000 });
+    await page.screenshot({ path: testInfo.outputPath('collection-05c-journal-timer-open.png') });
 
-    // Step 6: Verify journal note was created in wodwiki-playground
-    const content = await getPlaygroundPage(page, playgroundKey);
-    expect(content, 'Journal note should be created in wodwiki-playground').not.toBeNull();
+    // Step 6: Verify journal note was created in wodwiki-db
+    const content2 = await getNoteContentByRouteId(page, playgroundKey);
+    expect(content2, 'Journal note should be created in wodwiki-db').not.toBeNull();
 
     // Step 7: Close the timer (no result to check — timer was not completed)
     await closeButton.click();
-    await page.waitForTimeout(400);
+    await expect(closeButton).toBeHidden({ timeout: 5_000 });
 
     // Step 8: No NOTE_NOT_FOUND errors during the entire flow
     const noteNotFoundErrors = errors.filter(e => e.includes('NOTE_NOT_FOUND'));
     expect(noteNotFoundErrors, 'Full flow must not throw NOTE_NOT_FOUND').toHaveLength(0);
 
-    await page.screenshot({ path: 'e2e/screenshots/collection-05d-timer-closed.png' });
+    await page.screenshot({ path: testInfo.outputPath('collection-05d-timer-closed.png') });
   });
 });

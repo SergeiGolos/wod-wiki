@@ -10,6 +10,7 @@
  * - CardioDialect    — RUN, ROW, BIKE, SWIM, WALK and distance-based patterns
  * - YogaDialect      — poses, flows, breathing, meditation patterns
  * - HabitsDialect    — daily habits, streaks, check-offs, recurring items
+ * - ClimbDialect     — climbing grades, send types, attempts, route logs
  */
 
 export { CrossFitDialect } from './CrossFitDialect';
@@ -17,3 +18,4 @@ export { WodDialect } from './WodDialect';
 export { CardioDialect } from './CardioDialect';
 export { YogaDialect } from './YogaDialect';
 export { HabitsDialect } from './HabitsDialect';
+export { ClimbDialect, ClimbMetricType } from './ClimbDialect';

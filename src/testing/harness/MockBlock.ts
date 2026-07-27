@@ -1,14 +1,15 @@
 import { BlockKey } from '@/core/models/BlockKey';
+import { IRuntimeBehavior } from '@/runtime/contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '@/runtime/contracts';
-import { IRuntimeBehavior } from '@/runtime/contracts';
-import { BlockLifecycleOptions, IRuntimeBlock } from '@/runtime/contracts';
+import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
+import { BlockLifecycleOptions, CompletionDecision, IRuntimeBlock } from '@/runtime/contracts';
 import { IScriptRuntime } from '@/runtime/contracts';
+import type { IRuntimeActionable } from '@/runtime/contracts/primitives/IRuntimeActionable';
 import { IBlockContext } from '@/runtime/contracts';
 import { IMetric, MetricType } from '@/core/models/Metric';
 import { IMemoryReference, TypedMemoryReference } from '@/runtime/contracts';
 import { MemoryTypeEnum } from '@/runtime/models/MemoryTypeEnum';
 import { IAnchorValue } from '@/runtime/contracts/IAnchorValue';
-import { MemoryType, MemoryValueOf } from '@/runtime/memory/MemoryTypes';
 import { IBehaviorContext, BehaviorEventType, BehaviorEventListener, SubscribeOptions, Unsubscribe } from '@/runtime/contracts/IBehaviorContext';
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
 import { OutputStatementType, OutputStatement } from '@/core/models/OutputStatement';
@@ -101,6 +102,7 @@ class MockBehaviorContext implements IBehaviorContext {
   readonly stackLevel: number;
   private _mockBlock: MockBlock;
   private _unsubscribers: Array<() => void> = [];
+  private _capabilities: Set<string> = new Set();
 
   readonly recordings: BehaviorContextRecordings;
 
@@ -161,7 +163,7 @@ class MockBehaviorContext implements IBehaviorContext {
     const runtime = this._mockBlock.runtime;
     if (runtime?.addOutput) {
       // Wire to runtime — mirrors production BehaviorContext.emitOutput()
-      const now = this.clock.now;
+      const now = this.clock.currentDate;
       const timerLocations = this._mockBlock.getMemoryByTag('time');
       let startTime = now.getTime();
       const endTime = now.getTime();
@@ -184,10 +186,19 @@ class MockBehaviorContext implements IBehaviorContext {
         timestamp: f.timestamp ?? now
       }));
 
+      if (timerSpans.length > 0) {
+        taggedMetrics.unshift({
+          type: MetricType.Spans,
+          value: timerSpans,
+          origin: 'runtime',
+          timestamp: now,
+          sourceBlockKey: this._mockBlock.key.toString(),
+        });
+      }
+
       const output = new OutputStatement({
         outputType: type,
         timeSpan: new TimeSpan(startTime, endTime),
-        spans: timerSpans.length > 0 ? timerSpans : undefined,
         sourceBlockKey: this._mockBlock.key.toString(),
         sourceStatementId: this._mockBlock.sourceIds?.[0],
         stackLevel: this.stackLevel,
@@ -205,47 +216,6 @@ class MockBehaviorContext implements IBehaviorContext {
     const runtime = this._mockBlock.runtime;
     if (runtime?.handle) {
       runtime.handle(event as IEvent);
-    }
-  }
-
-  getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined {
-    // Check list-based memory on the MockBlock first
-    const tag = type as string as MemoryTag;
-    const locations = this._mockBlock.getMemoryByTag(tag);
-    if (locations.length > 0) {
-      const loc = locations[0];
-      if (loc.metrics.length > 0) {
-        return loc.metrics[0]?.value as MemoryValueOf<T>;
-      }
-      return undefined;
-    }
-    // Fall back to context-based lookup
-    const ref = this._mockBlock.context?.get<MemoryValueOf<T>>(type);
-    return ref?.get?.() ?? undefined;
-  }
-
-  setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
-    // Try list-based memory first
-    const tag = type as string as MemoryTag;
-    const locations = this._mockBlock.getMemoryByTag(tag);
-    if (locations.length > 0) {
-      const loc = locations[0];
-      if (loc.metrics.length > 0) {
-        const updated = loc.metrics.map((f, i) =>
-          i === 0 ? { ...f, value } : f
-        );
-        loc.update(updated);
-      } else {
-        loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
-      }
-      return;
-    }
-    // Fall back to context-based storage
-    const existing = this._mockBlock.context?.get<MemoryValueOf<T>>(type);
-    if (existing) {
-      existing.set(value);
-    } else {
-      this._mockBlock.context?.allocate(type, value, 'private');
     }
   }
 
@@ -271,6 +241,18 @@ class MockBehaviorContext implements IBehaviorContext {
   markComplete(reason?: string): void {
     this._mockBlock.markComplete(reason);
     this.recordings.markComplete.push({ reason });
+  }
+
+  declareCapability(cap: string): void {
+    this._capabilities.add(cap);
+  }
+
+  getCapabilities(): Set<string> {
+    return new Set(this._capabilities);
+  }
+
+  hasCapability(cap: string): boolean {
+    return this._capabilities.has(cap);
   }
 
   /**
@@ -398,7 +380,7 @@ export class MockBlock implements IRuntimeBlock {
       this._memory.push(new MemoryLocation('metric:label', [{
         type: MetricType.Label,
         image: labelText,
-        origin: 'config',
+        origin: 'parser',
         value: labelText
       } as IMetric]));
     }
@@ -446,7 +428,7 @@ export class MockBlock implements IRuntimeBlock {
 
   mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     const clock = options?.clock ?? runtime.clock;
-    this.executionTiming.startTime = options?.startTime ?? clock.now;
+    this.executionTiming.startTime = options?.startTime ?? clock.currentDate;
 
     if (this._forcedMountActions.length > 0) {
       return [...this._forcedMountActions];
@@ -489,9 +471,44 @@ export class MockBlock implements IRuntimeBlock {
     return actions;
   }
 
+  inspectNext(runtime: IRuntimeActionable, options?: BlockLifecycleOptions): CompletionDecision {
+    const clock = options?.clock ?? (runtime as IScriptRuntime).clock;
+    const ctx = this._behaviorContext ?? new MockBehaviorContext(this, clock, (runtime as IScriptRuntime).stack?.count ?? 0);
+
+    // Snapshot completion state so we can restore it after inspection.
+    const wasComplete = this._isComplete;
+    const wasReason = this._completionReason;
+
+    const actions: IRuntimeAction[] = [];
+    for (const behavior of this.behaviors) {
+      const usesNewApi = typeof behavior.onMount === 'function';
+      const result = usesNewApi
+        ? behavior.onNext?.(ctx)
+        : (behavior as unknown as { onNext?: (block: IRuntimeBlock, clock: IRuntimeClock) => IRuntimeAction[] }).onNext?.(this, clock);
+      if (result) actions.push(...result);
+    }
+
+    const decision: CompletionDecision = {
+      complete: this._isComplete,
+      reason: this._completionReason,
+      actions,
+    };
+
+    // Restore completion state — inspectNext must not mutate the block.
+    this._isComplete = wasComplete;
+    this._completionReason = wasReason;
+
+    // Auto-pop: mirror next()'s auto-pop logic.
+    if (decision.complete && !actions.some(a => a.type === 'pop-block')) {
+      actions.push(new PopBlockAction());
+    }
+
+    return decision;
+  }
+
   unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {
     const clock = options?.clock ?? runtime.clock;
-    this.executionTiming.completedAt = options?.completedAt ?? clock.now;
+    this.executionTiming.createdAt = options?.createdAt ?? clock.currentDate;
 
     if (this._forcedUnmountActions.length > 0) {
       return [...this._forcedUnmountActions];
@@ -515,7 +532,7 @@ export class MockBlock implements IRuntimeBlock {
 
   dispose(_runtime: IScriptRuntime): void {
     // Pass BehaviorContext to onDispose (matches production RuntimeBlock)
-    const ctx = this._behaviorContext ?? new MockBehaviorContext(this, _runtime?.clock ?? { now: new Date() } as IRuntimeClock, 0);
+    const ctx = this._behaviorContext ?? new MockBehaviorContext(this, _runtime?.clock ?? { currentDate: new Date(), now: () => new Date(), nowMs: () => Date.now(), elapsed: 0, isRunning: false, spans: [], start: () => new Date(), stop: () => new Date() } as IRuntimeClock, 0);
     for (const behavior of this.behaviors) {
       if (typeof (behavior as any).onDispose === 'function') {
         (behavior as any).onDispose(ctx);
@@ -537,7 +554,6 @@ export class MockBlock implements IRuntimeBlock {
   // ============================================================================
 
   private _memory: IMemoryLocation[] = [];
-  private _memoryEntries: Map<string, MockMemoryEntry<any, any>> = new Map();
 
   /**
    * Push a new memory location onto the block's memory list.
@@ -567,111 +583,10 @@ export class MockBlock implements IRuntimeBlock {
     return this._memory.filter(loc => getMetricVisibility(loc.tag) === visibility);
   }
 
-  // ============================================================================
-  // Backward-Compatible Memory API (shims over list-based memory)
-  // ============================================================================
-
-  /**
-   * Check if this block owns memory of the specified type.
-   * @deprecated Use getMemoryByTag().length > 0
-   */
-  hasMemory(type: MemoryType): boolean {
-    // Check list-based memory first, then fall back to legacy map
-    const tag = type as string as MemoryTag;
-    if (this._memory.some(loc => loc.tag === tag)) return true;
-    return this._memoryEntries.has(type);
+  /** MockBlock ignores effort-defined hints (the contract is honored by the
+   *  real RuntimeBlock; tests can inspect `this._memory` directly). */
+  mergeHints(_hints: Readonly<Record<string, unknown>>): void {
+    // no-op for tests
   }
 
-  /**
-   * Get memory entry of the specified type.
-   * @deprecated Use getMemoryByTag() instead.
-   */
-  getMemory<T extends MemoryType>(
-    type: T
-  ): any {
-    // Check list-based memory first
-    const tag = type as string as MemoryTag;
-    const locations = this._memory.filter(loc => loc.tag === tag);
-    if (locations.length > 0) {
-      const loc = locations[0];
-      return {
-        get value(): MemoryValueOf<T> {
-          if (loc.metrics.length === 0) return undefined as unknown as MemoryValueOf<T>;
-          return loc.metrics[0]?.value as MemoryValueOf<T>;
-        },
-        subscribe(listener: (nv: any, ov: any) => void): () => void {
-          return loc.subscribe((newFrags, oldFrags) => {
-            const newVal = newFrags.length > 0 ? newFrags[0]?.value : undefined;
-            const oldVal = oldFrags.length > 0 ? oldFrags[0]?.value : undefined;
-            listener(newVal, oldVal);
-          });
-        }
-      };
-    }
-    // Fall back to legacy map
-    return this._memoryEntries.get(type);
-  }
-
-  /**
-   * Set memory value directly. Creates or updates a memory entry.
-   * @deprecated Use pushMemory() or BehaviorContext APIs.
-   */
-  setMemoryValue<T extends MemoryType>(
-    type: T,
-    value: MemoryValueOf<T>
-  ): void {
-    // Try list-based first
-    const tag = type as string as MemoryTag;
-    const locations = this._memory.filter(loc => loc.tag === tag);
-    if (locations.length > 0) {
-      const loc = locations[0];
-      if (loc.metrics.length > 0) {
-        const updated = loc.metrics.map((f, i) =>
-          i === 0 ? { ...f, value } : f
-        );
-        loc.update(updated);
-      } else {
-        loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
-      }
-      return;
-    }
-    // Fall back to legacy map
-    if (this._memoryEntries.has(type)) {
-      const entry = this._memoryEntries.get(type)!;
-      entry.setValue(value);
-    } else {
-      this._memoryEntries.set(type, new MockMemoryEntry(type, value));
-    }
-  }
-}
-
-/**
- * Simple mock memory entry for testing (legacy fallback).
- */
-class MockMemoryEntry<T extends string, V> {
-  readonly type: T;
-  private _value: V;
-  private _subscribers: Set<(newValue: V | undefined, oldValue: V | undefined) => void> = new Set();
-
-  constructor(type: T, initialValue: V) {
-    this.type = type;
-    this._value = initialValue;
-  }
-
-  get value(): V {
-    return this._value;
-  }
-
-  setValue(newValue: V): void {
-    const oldValue = this._value;
-    this._value = newValue;
-    for (const subscriber of this._subscribers) {
-      subscriber(newValue, oldValue);
-    }
-  }
-
-  subscribe(listener: (newValue: V | undefined, oldValue: V | undefined) => void): () => void {
-    this._subscribers.add(listener);
-    return () => this._subscribers.delete(listener);
-  }
 }

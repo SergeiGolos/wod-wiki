@@ -10,7 +10,7 @@ function createMockRuntime(): IScriptRuntime {
         count: 2,
     };
     return {
-        clock: { now, isRunning: true },
+        clock: { now, currentDate: now, isRunning: true },
         stack: mockStack as IRuntimeStack,
         addOutput: vi.fn(),
         // Add other required IScriptRuntime fields as vi.fn() stubs

@@ -5,13 +5,26 @@
  * Legacy script records are converted to NoteSegments.
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { indexedDBService } from './IndexedDBService';
 import { Note, NoteSegment, WorkoutResult } from '../../types/storage';
 import { HistoryEntry } from '../../types/history';
 
 const KEY_PREFIX = 'wodwiki:history:';
 const MIGRATION_FLAG = 'wodwiki:migrated-to-idb-v4';
+
+function legacySourceId(entry: unknown): string | undefined {
+    if (!entry || typeof entry !== 'object') return undefined;
+    const e = entry as Record<string, unknown>;
+    if (typeof e.sourceId === 'string') return e.sourceId;
+    if (typeof e.templateId === 'string') return e.templateId;
+    const createdFrom = e.createdFrom;
+    if (createdFrom && typeof createdFrom === 'object') {
+        const ref = (createdFrom as Record<string, unknown>).ref;
+        if (typeof ref === 'string') return ref;
+    }
+    return undefined;
+}
 
 export const migrationService = {
     async runMigration() {
@@ -36,7 +49,7 @@ export const migrationService = {
                     if (!entry.id || !entry.rawContent) continue;
 
                     // 1. Create a single whole-document segment
-                    const segmentId = uuidv4();
+                    const segmentId = uuidv7();
                     const segment: NoteSegment = {
                         id: segmentId,
                         version: 1,
@@ -51,12 +64,8 @@ export const migrationService = {
                     const note: Note = {
                         id: entry.id, // Preserve ID
                         title: entry.title || 'Untitled',
-                        rawContent: entry.rawContent,
-                        tags: entry.tags || [],
                         createdAt: entry.createdAt || Date.now(),
-                        updatedAt: entry.updatedAt || Date.now(),
-                        targetDate: entry.targetDate || entry.createdAt || Date.now(),
-                        segmentIds: [segmentId],
+                        sourceId: legacySourceId(entry),
                     };
 
                     // 3. Migrate Result (if exists)
@@ -65,11 +74,11 @@ export const migrationService = {
                         const legacyResult = entry.results as any;
 
                         const result: WorkoutResult = {
-                            id: uuidv4(),
-                            segmentId: segmentId,
+                            id: uuidv7(),
+                            blockContentId: segmentId,
                             noteId: entry.id,
                             data: legacyResult,
-                            completedAt: legacyResult.completedAt || legacyResult.endTime || Date.now()
+                            createdAt: legacyResult.createdAt || legacyResult.endTime || Date.now()
                         };
                         await indexedDBService.saveResult(result);
                     }

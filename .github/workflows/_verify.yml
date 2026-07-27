@@ -1,0 +1,175 @@
+name: Verify
+
+on:
+  workflow_call:
+    inputs:
+      run-e2e:
+        description: Whether to run the live-app e2e job (false on main — the deployed-artifact e2e in main.yml's site job is the single merge-time e2e)
+        required: false
+        type: boolean
+        default: true
+      preview-base-path:
+        description: VITE_BASE_PATH for the deploy-shaped playground build gate (e.g. /<slug>/dist/ on PRs); empty = default '/'
+        required: false
+        type: string
+        default: ''
+      app-version:
+        description: VITE_APP_VERSION stamped into the playground bundle (e.g. X.Y.Z-pr.N on PR previews); empty = package.json version
+        required: false
+        type: string
+        default: ''
+    outputs:
+      unit-status:
+        description: Unit test outcome
+        value: ${{ jobs.verify.outputs.unit-status }}
+      story-status:
+        description: Story test outcome
+        value: ${{ jobs.verify.outputs.story-status }}
+      coverage-status:
+        description: Coverage outcome
+        value: ${{ jobs.verify.outputs.coverage-status }}
+      build-status:
+        description: Playground build outcome
+        value: ${{ jobs.verify.outputs.build-status }}
+      e2e-status:
+        description: Live-app e2e outcome
+        value: ${{ jobs.e2e.outputs.e2e-status }}
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    outputs:
+      unit-status: ${{ steps.unit.outcome }}
+      story-status: ${{ steps.story.outcome }}
+      coverage-status: ${{ steps.coverage.outcome }}
+      build-status: ${{ steps.build.outcome }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up environment (Bun + caches + chromium)
+        uses: ./.github/actions/setup-env
+
+      - name: Run unit tests
+        id: unit
+        run: bun run test
+        continue-on-error: true
+
+      - name: Run story tests
+        id: story
+        run: bun run test:storybook
+        continue-on-error: true
+        env:
+          CI: true
+
+      - name: Run coverage
+        id: coverage
+        run: bun run test:coverage
+        continue-on-error: true
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload coverage to Codecov
+        if: always() && env.CODECOV_TOKEN != '' && steps.coverage.outcome == 'success'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+      # Deploy-shaped build gate (PRs only — on main the release and site
+      # jobs build for real, so a third smoke build is pure duplication).
+      # No GA-tag replacement here: _release.yml does its own for Pages, and
+      # PR previews keep the G-PROD-ID placeholder (no prod analytics noise).
+      # VITE_BASE_PATH matches the PR preview deploy so the gate validates
+      # the exact artifact that ships; the preview job in pull-request.yml
+      # downloads this artifact instead of building again.
+      - name: Build playground
+        id: build
+        if: inputs.run-e2e
+        run: bun run build:app
+        env:
+          VITE_BASE_PATH: ${{ inputs.preview-base-path }}
+          VITE_APP_VERSION: ${{ inputs.app-version }}
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://wod.wiki/api' }}
+          VITE_CAST_APP_ID: ${{ vars.VITE_CAST_APP_ID }}
+
+      - name: Upload playground dist
+        if: inputs.run-e2e && steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: playground-dist
+          path: playground/dist/
+          retention-days: 1
+
+      - name: Write verification summary
+        if: always()
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## Verification summary
+
+          | Check | Outcome |
+          | --- | --- |
+          | Unit tests | ${{ steps.unit.outcome }} |
+          | Story tests | ${{ steps.story.outcome }} |
+          | Coverage | ${{ steps.coverage.outcome }} |
+          | Playground build | ${{ steps.build.outcome }} |
+          EOF
+
+      - name: Warn if required checks failed
+        if: steps.unit.outcome != 'success' || steps.story.outcome != 'success' || (steps.build.outcome != 'success' && steps.build.outcome != 'skipped')
+        run: |
+          echo "Required verification failed, but failures are temporarily non-blocking."
+
+  # Live-app e2e (playwright.journal.config.ts). CI runs 4 workers; tests
+  # within a file stay serial (fullyParallel: false).
+  # Runs on PRs only — on main, main.yml's site job runs the single
+  # deployed-preview e2e (inputs.run-e2e=false from main.yml).
+  e2e:
+    if: inputs.run-e2e
+    runs-on: ubuntu-22.04
+    outputs:
+      e2e-status: ${{ steps.e2e.outcome }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up environment (Bun + caches + chromium)
+        uses: ./.github/actions/setup-env
+
+      - name: Run live-app e2e
+        id: e2e
+        run: bun x playwright test --config playwright.journal.config.ts
+
+      - name: Upload e2e report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2e-live-playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Write e2e summary
+        if: always()
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## Live-app e2e
+
+          | Check | Outcome |
+          | --- | --- |
+          | Playwright (journal config) | ${{ steps.e2e.outcome }} |
+          EOF

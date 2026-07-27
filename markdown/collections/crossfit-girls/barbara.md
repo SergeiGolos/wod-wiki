@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # Barbara
 
 **Category**: CrossFit Benchmark  

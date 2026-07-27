@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # Annie
 
 **Category**: CrossFit Benchmark  

@@ -1,20 +1,16 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricType } from "@/core/models/Metric";
 import { RoundsMetric } from "../../metrics/RoundsMetric";
-import { BlockContext } from "../../../BlockContext";
-import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
-import { MetricContainer } from "@/core/models/MetricContainer";
-import { LabelComposer } from "../../utils/LabelComposer";
+import { compose } from "../../BlockTemplateComposer";
+import type { BlockTemplate } from "../../BlockTemplate";
 
 // Specific behaviors not covered by aspect composers
 import {
     MetricPromotionBehavior,
     LabelingBehavior,
-    ExitBehavior,
 } from "../../../behaviors";
 
 /**
@@ -26,13 +22,14 @@ import {
  */
 export class GenericLoopStrategy implements IRuntimeBlockStrategy {
     priority = 50;
+    readonly id = 'generic-loop';
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
         return statements.some(s => s.metrics.some(f => f.type === MetricType.Rounds));
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IRuntimeContext): void {
         // Skip if round behaviors already added by higher-priority strategy
         if (builder.hasRoundConfig()) {
             return;
@@ -59,7 +56,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         // Collect individual RepMetrics from ALL statements to build a rep scheme.
         // The parser creates separate RepMetric instances (e.g., 21-15-9 becomes
         // three RepMetrics with values 21, 15, 9) alongside a RoundsMetric.
-        const repFragments = statements.flatMap(s => 
+        const repFragments = statements.flatMap(s =>
             s.metrics.filter(f => f.type === MetricType.Rep && typeof f.value === 'number')
         ).map(f => f.value as number);
 
@@ -71,41 +68,24 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             }
         }
 
-        // Use LabelComposer for a standardized, descriptive label
-        const label = LabelComposer.build(statements, {
-            defaultLabel: repScheme ? repScheme.join('-') : `${totalRounds} Rounds`
-        });
+        // Build the common chassis via the template composer.
+        const template: BlockTemplate = {
+            blockType: 'Rounds',
+            defaultLabel: repScheme ? repScheme.join('-') : `${totalRounds} Rounds`,
+            statements,
+            runtime,
+            repeater: {
+                totalRounds,
+                startRound: 1,
+                addCompletion: true,
+            },
+            pickStatement: (stmts) => stmts.find(s => s.metrics.some(f => f.type === MetricType.Rounds)) || stmts[0],
+            // Legacy `GenericLoopStrategy` dropped `Rep` metrics from the
+            // distributed fragments — preserve that here.
+            filterMetrics: (m) => m.type !== MetricType.Rep,
+        };
 
-        // Block metadata
-        const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), firstStatementWithRounds.exerciseId || '');
-
-        builder
-            .setContext(context)
-            .setKey(blockKey)
-            .setBlockType("Rounds")
-            .setLabel(label)
-            .setSourceIds(statements.map(s => s.id));
-
-        const distributor = new PassthroughMetricDistributor();
-        const metricGroups = statements.flatMap(s => {
-            const metrics = MetricContainer.from(s.metrics);
-            const withoutReps = MetricContainer.from(metrics.filter(f => f.type !== MetricType.Rep));
-            return distributor.distribute(withoutReps, "Rounds");
-        }).filter(group => group.length > 0);
-        
-        builder.setFragments(metricGroups);
-
-        // =====================================================================
-        // ASPECT COMPOSERS - High-level composition
-        // =====================================================================
-
-        // Repeater Aspect - rounds with completion
-        builder.asRepeater({
-            totalRounds,
-            startRound: 1,
-            addCompletion: true  // Complete when all rounds done
-        });
+        const label = compose(builder, template);
 
         // =====================================================================
         // Display Aspect
@@ -128,10 +108,10 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             promotions
         }));
 
-        // Leaf Exit Aspect - for round blocks with no children (e.g., "(3) Pullups"),
-        // add an immediate exit so userNext completes the block.
-        // ChildrenStrategy will remove this if the block has children, replacing it
-        // with a deferred exit that fires after all child iterations complete.
-        builder.addBehavior(new ExitBehavior({ mode: 'immediate', onNext: true }));
+        // Leaf Exit Aspect — for round blocks with no children (e.g., "(3) Pullups"),
+        // declare an immediate exit so userNext completes the block. If the block
+        // turns out to have children, ChildrenStrategy declares 'deferred', which
+        // supersedes this. Resolved into one ExitBehavior in BlockBuilder.build().
+        builder.declareExit('immediate');
     }
 }

@@ -1,0 +1,54 @@
+name: Release – Prod
+
+# The production publish pipeline. Runs on push to the protected `prod`
+# branch (i.e. a main → prod merge). Publishes exactly the version tagged
+# by the main pipeline (see main.yml's version/tag jobs):
+#   verify (unit/story/coverage — no e2e; the release job smoke-tests the
+#     deployed Pages artifact)
+#     → release (GitHub Pages deploy to wod.wiki + GitHub release +
+#       npm publish + smoke e2e against https://wod.wiki)
+
+on:
+  push:
+    branches: ["prod"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  verify:
+    uses: ./.github/workflows/_verify.yml
+    secrets: inherit
+    with:
+      # No journal e2e and no smoke build — the release job builds the
+      # playground for real and smoke-tests the deployed Pages artifact.
+      run-e2e: false
+
+  release:
+    needs: [verify]
+    if: needs.verify.result == 'success'
+    uses: ./.github/workflows/_release.yml
+    secrets: inherit
+
+  summary:
+    name: Release summary
+    runs-on: ubuntu-22.04
+    if: always()
+    needs: [verify, release]
+    steps:
+      - name: Write summary
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## Prod pipeline
+
+          | Target | URL | Status |
+          | --- | --- | --- |
+          | Verify | — | ${{ needs.verify.result }} |
+          | Release (Pages) | https://wod.wiki | ${{ needs.release.result }} |
+          EOF

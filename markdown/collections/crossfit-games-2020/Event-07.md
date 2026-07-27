@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2020 CrossFit Games - Event 7 "Helen"
 
 **Category:** CrossFit Benchmark / Competition

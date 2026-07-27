@@ -11,13 +11,13 @@ export const whiteboardScriptLanguage = LRLanguage.define({
         Number: t.number,
         Timer: t.keyword,
         collectibleTimer: t.keyword,
-        distanceUnit: t.unit,
-        weightUnit: t.unit,
         textComment: t.lineComment,
+        heading: t.heading,
         minus: t.operator,
         plus: t.operator,
         trend: t.operator,
         atSign: t.operator,
+        "Slash/slash": t.operator,
         question: t.keyword,
         actionOpen: t.bracket,
         actionClose: t.bracket,
@@ -30,7 +30,8 @@ export const whiteboardScriptLanguage = LRLanguage.define({
     ]
   }),
   languageData: {
-    commentTokens: { line: "//" }
+    commentTokens: { line: "//" },
+    closeBrackets: { brackets: ["(", "[", "'", '"'] },
   }
 });
 

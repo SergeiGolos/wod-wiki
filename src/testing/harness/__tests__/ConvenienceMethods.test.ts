@@ -54,14 +54,14 @@ describe('ExecutionContextTestHarness Convenience Methods', () => {
     });
 
     it('should advance clock by specified duration', () => {
-      const startTime = harness.clock.now.getTime();
+      const startTime = harness.clock.currentDate.getTime();
       
       harness.executeAndAdvance(
         { type: 'test', do: () => {} },
         5000
       );
 
-      expect(harness.clock.now.getTime()).toBe(startTime + 5000);
+      expect(harness.clock.currentDate.getTime()).toBe(startTime + 5000);
     });
 
     it('should support method chaining', () => {

@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # EMOM Olympic Lifting Complex
 
 **Category**: Strength Training  

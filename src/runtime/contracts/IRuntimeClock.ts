@@ -1,17 +1,21 @@
 import { TimeSpan } from '../models/TimeSpan';
+import type { INowProvider } from '../INowProvider';
 
 /**
  * IRuntimeClock provides time tracking for the runtime.
- * 
+ *
  * It maintains a list of time spans created by start/stop calls,
  * and provides:
- * - `now`: Current wall-clock time as a Date
+ * - `currentDate`: Current wall-clock time as a Date
  * - `elapsed`: Total milliseconds of running time (sum of all spans)
  * - `start()`/`stop()`: Control methods that return timestamps for event creation
+ *
+ * Renamed from `now` → `currentDate` to free the `now()` method for the INowProvider seam.
+ * Callers should use `clock.now()` for the provider contract, `clock.currentDate` for the raw Date.
  */
-export interface IRuntimeClock {
+export interface IRuntimeClock extends INowProvider {
     /** Current wall-clock time as a Date */
-    readonly now: Date;
+    readonly currentDate: Date;
 
     /** Total elapsed milliseconds while running (sum of all completed spans + current running span) */
     readonly elapsed: number;

@@ -5,13 +5,15 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Journal, Plan, Feeds, Collections
+ *   L1: Home, Journal, Feeds, Collections, Efforts, Analytics
  *   L2 of Home:        Zero to Hero + Syntax/* (canvas pages)
- *   L2 of Journal:     <JournalNavPanel>   — calendar filter + tag chips
- *   L2 of Plan:        <JournalNavPanel>   — same calendar, forward-looking
+ *   L2 of Journal:     <JournalNavPanel>   — calendar + tag chips; the
+ *                                          ?mode= view-mode param drives the
+ *                                          unified JournalListPage
  *   L2 of Feeds:       <FeedsNavPanel>     — feed selector
  *   L2 of Collections: <CollectionsNavPanel> — category toggles
- *
+ *   L2 of Efforts:     <EffortsNavPanel>   — origin/discipline filters + recent workouts
+ *   L2 of Analytics:   Explorer + Dashboard (static children)
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  */
 
@@ -20,9 +22,8 @@ import {
   RectangleStackIcon,
   FolderIcon,
   CodeBracketIcon,
-  CalendarDaysIcon,
 } from '@heroicons/react/20/solid'
-import { RssIcon } from 'lucide-react'
+import { RssIcon, Dumbbell, ChartBarIcon } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
@@ -30,8 +31,10 @@ import type { Location } from 'react-router-dom'
 import { JournalNavPanel }     from './panels/JournalNavPanel'
 import { CollectionsNavPanel } from './panels/CollectionsNavPanel'
 import { FeedsNavPanel }       from './panels/FeedsNavPanel'
+import { EffortsNavPanel }     from './panels/EffortsNavPanel'
 import { canvasRoutes }        from '../canvas/canvasRoutes'
 import { NON_COLLECTION_CATEGORIES } from '../pages/shared/pageUtils'
+import { ROUTE_PATTERNS } from '../lib/routes'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -87,15 +90,17 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       label: 'Home',
       level: 1,
       icon: HomeIcon,
-      action: { type: 'route', to: '/playground' },
+      action: { type: 'route', to: ROUTE_PATTERNS.home },
       isActive: (loc) =>
         loc.pathname === '/' ||
         loc.pathname === '' ||
-        loc.pathname === '/getting-started' ||
-        loc.pathname.startsWith('/syntax') ||
+        loc.pathname === ROUTE_PATTERNS.guideGettingStarted ||
+        loc.pathname.startsWith('/guide/syntax') ||
         loc.pathname.startsWith('/canvas') ||
-        loc.pathname === '/playground' ||
-        loc.pathname.startsWith('/playground/'),
+        loc.pathname === ROUTE_PATTERNS.home ||
+        loc.pathname.startsWith('/playground/') ||
+        loc.pathname === ROUTE_PATTERNS.aiFirst ||
+        loc.pathname.startsWith('/ai-first/'),
       children: homeChildren,
     },
 
@@ -104,18 +109,8 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       label: 'Journal',
       level: 1,
       icon: RectangleStackIcon,
-      action: { type: 'route', to: '/journal' },
-      isActive: isRouteActive('/journal'),
-      panel: JournalNavPanel,
-    },
-
-    {
-      id: 'plan',
-      label: 'Plan',
-      level: 1,
-      icon: CalendarDaysIcon,
-      action: { type: 'route', to: '/plan' },
-      isActive: (loc: Location) => loc.pathname === '/plan',
+      action: { type: 'route', to: ROUTE_PATTERNS.journal },
+      isActive: isRouteActive(ROUTE_PATTERNS.journal),
       panel: JournalNavPanel,
     },
 
@@ -124,8 +119,8 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       label: 'Feeds',
       level: 1,
       icon: RssIcon,
-      action: { type: 'route', to: '/feeds' },
-      isActive: (loc: Location) => loc.pathname.startsWith('/feeds'),
+      action: { type: 'route', to: ROUTE_PATTERNS.feeds },
+      isActive: (loc: Location) => loc.pathname.startsWith(ROUTE_PATTERNS.feeds),
       panel: FeedsNavPanel,
     },
 
@@ -134,9 +129,46 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       label: 'Collections',
       level: 1,
       icon: FolderIcon,
-      action: { type: 'route', to: '/collections' },
-      isActive: (loc) => isRouteActive('/collections')(loc) || isCollectionWorkoutRoute(loc),
+      action: { type: 'route', to: ROUTE_PATTERNS.collections },
+      isActive: (loc) => isRouteActive(ROUTE_PATTERNS.collections)(loc) || isCollectionWorkoutRoute(loc),
       panel: CollectionsNavPanel,
+    },
+
+    {
+      id: 'efforts',
+      label: 'Efforts',
+      level: 1,
+      icon: Dumbbell,
+      action: { type: 'route', to: ROUTE_PATTERNS.efforts },
+      isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
+      panel: EffortsNavPanel,
+    },
+
+    {
+      id: 'analytics',
+      label: 'Analytics',
+      level: 1,
+      icon: ChartBarIcon,
+      action: { type: 'route', to: ROUTE_PATTERNS.analyticsExplorer },
+      isActive: (loc: Location) => loc.pathname.startsWith('/analytics'),
+      children: [
+        {
+          id: 'analytics-explorer',
+          label: 'Explorer',
+          level: 2,
+          icon: ChartBarIcon,
+          action: { type: 'route', to: ROUTE_PATTERNS.analyticsExplorer },
+          isActive: (loc: Location) => loc.pathname === '/analytics/explorer',
+        },
+        {
+          id: 'analytics-dashboard',
+          label: 'Dashboard',
+          level: 2,
+          icon: ChartBarIcon,
+          action: { type: 'route', to: ROUTE_PATTERNS.analyticsDashboard },
+          isActive: (loc: Location) => loc.pathname === '/analytics/dashboard',
+        },
+      ],
     },
   ]
 }

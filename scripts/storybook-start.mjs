@@ -15,7 +15,14 @@ loadDotenv({ path: resolve(root, '.env.local'), override: true });
 const args = ['x', 'storybook', 'dev', '-p', '6006', '--host', '0.0.0.0'];
 
 if (process.env.HTTPS_CERT && process.env.HTTPS_KEY) {
-  args.push('--https', '--ssl-cert', process.env.HTTPS_CERT, '--ssl-key', process.env.HTTPS_KEY);
+  // Storybook resolves --ssl-cert/--ssl-key against its own cwd, not the
+  // spawn cwd — pass absolute paths so repo-root-relative values in
+  // .env.local work.
+  args.push(
+    '--https',
+    '--ssl-cert', resolve(root, process.env.HTTPS_CERT),
+    '--ssl-key', resolve(root, process.env.HTTPS_KEY),
+  );
 }
 
 const child = spawn('bun', args, { stdio: 'inherit', cwd: root });

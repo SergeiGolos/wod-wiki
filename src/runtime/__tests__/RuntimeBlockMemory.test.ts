@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'bun:test';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { MemoryLocation, MemoryTag } from '../memory/MemoryLocation';
+import { MemoryLocation } from '../memory/MemoryLocation';
 import { IMetric, MetricType } from '../../core/models/Metric';
 import { CurrentRoundMetric } from '../compiler/metrics/CurrentRoundMetric';
 
 describe('RuntimeBlock Memory Methods', () => {
     const runtime = {} as IScriptRuntime;
 
-    const createBlock = () => new RuntimeBlock(runtime);
+    const createBlock = () => new RuntimeBlock({ runtime });
 
     function createFragment(tag: string, value: unknown): IMetric {
         return {
@@ -168,7 +168,7 @@ describe('RuntimeBlock Memory Methods', () => {
     describe('dispose', () => {
         it('should call onDispose on behaviors', () => {
             const behavior = { onDispose: vi.fn() };
-            const block = new RuntimeBlock(runtime, [], [behavior as any]);
+            const block = new RuntimeBlock({ runtime, behaviors: [behavior as any] });
             block.dispose(runtime);
             expect(behavior.onDispose).toHaveBeenCalled();
         });

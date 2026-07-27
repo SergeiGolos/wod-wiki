@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 5: The Mass Program
 
 **Category**: Dan John Hypertrophy  

@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # Mary
 
 **Category**: CrossFit Benchmark  

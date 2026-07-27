@@ -1,350 +1,114 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import type { MutableRefObject } from 'react'
-import { SidebarLayout } from '@/components/playground/sidebar-layout'
-import { Navbar, NavbarItem, NavbarSection, NavbarSpacer } from '@/components/playground/navbar'
+import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from 'react'
+import type { MutableRefObject, ReactNode } from 'react'
+import { SidebarLayout } from '@/templates/SidebarLayout'
+import { Navbar, NavbarSection, NavbarSpacer } from '@/components/organisms/layout/Navbar'
 import { NavProvider } from './nav/NavContext'
-import { useNav } from './nav/NavContext'
 import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
-import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
-import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
-import { CommandPalette } from '@/components/playground/CommandPalette'
-import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
-import { AudioProvider } from '@/components/audio/AudioContext'
-import { CommandProvider } from '@/components/command-palette/CommandContext'
-import { useCommandPalette } from '@/components/command-palette/CommandContext'
-import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
-import { HomeView as _HomeView } from './views/HomeView' // kept for potential re-use; not rendered on '/' anymore
-import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
+import { NavSearchInput } from '@/components/molecules/NavSearchInput'
+import { useRouteView } from './lib/useRouteView'
+import { useSelectWorkout } from './lib/useSelectWorkout'
+import type { PageKind, SelectWorkoutItem } from './lib/routeView'
+import { DebugModeProvider } from '@/contexts/DebugModeContext'
+import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
+import { PaletteShell } from '@/components/organisms/command-palette/PaletteShell'
+import { globalSearchSource } from './services/paletteDataSources'
+import { useCreateJournalEntry } from './hooks/useCreateJournalEntry'
+import { useShowPlaygrounds } from './hooks/useShowPlaygrounds'
+import { usePageScrollSync } from './hooks/usePageScrollSync'
+import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
+import { AudioProvider } from '@/contexts/AudioContext'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import {
+  ROUTE_PATTERNS,
+  reviewPath,
+  NotePlaygroundRedirect,
+  WorkoutRedirect,
+  GettingStartedRedirect,
+  SyntaxRedirect,
+  TrackerRedirect,
+  PlanRedirect,
+} from './lib/routes'
+import { Concept3LandingPage } from './pages/Concept3LandingPage'
+import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
+import { canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
-import { JournalWeeklyPage } from './views/ListViews'
-import { PlanPage } from './views/PlanPage'
+import { ScrollCanvasPage } from './canvas/ScrollCanvasPage'
+import { JournalListPage } from './views/JournalListPage'
 import { FeedsPage } from './views/FeedsPage'
 import { FeedDetailPage } from './pages/FeedDetailPage'
 import { FeedItemPage } from './pages/FeedItemPage'
-import { FeedsNavPanel } from './nav/panels/FeedsNavPanel'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
-import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
+import { HomeView } from './views/HomeView'
+import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
-import type { PageNavLink } from '@/components/playground/PageNavDropdown'
-import { indexedDBService } from '@/services/db/IndexedDBService'
-import { playgroundDB } from './services/playgroundDB'
-import type { WorkoutResult } from '@/types/storage'
-import { EditorView } from '@codemirror/view'
-import { 
-  createStatementBuilderStrategy,
-  createGlobalSearchStrategy,
-} from './services/commandStrategies'
+import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
+import { getChallengeSectionMap } from './canvas/parseCanvasMarkdown'
 // ── Extracted page components ────────────────────────────────────────────────
-import { TrackerPage } from './pages/TrackerPage'
+import { WallClockPage } from './pages/WallClockPage'
 import { ReviewPage } from './pages/ReviewPage'
 import { JournalPage } from './pages/JournalPage'
 import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
 import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
 import { LoadZipPage } from './pages/LoadZipPage'
-// ── Toast ────────────────────────────────────────────────────────────────────
-import { Toaster } from '@/components/ui/toaster'
-import { ShortcutBadge } from '@/components/list/ShortcutBadge'
-// ── Shared page utilities ────────────────────────────────────────────────────
+import { JournalZipLoadPage } from './pages/JournalZipLoadPage'
+import { NotFoundPage } from './pages/NotFoundPage'
+import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
+import { EffortDetailPage } from './pages/EffortDetailPage'
+import { AnalyticsExplorerPage } from './views/analytics/AnalyticsExplorerPage'
+import { AnalyticsDashboardPage } from './views/analytics/AnalyticsDashboardPage'
+import { Toaster } from '@/components/atoms/primitives/toaster'
+import { PageActions } from './pages/shared/PageActions'
 import { ActionsMenu } from './pages/shared/PageToolbar'
-import { NotePageActions } from './pages/shared/NotePageActions'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
-import { DEFAULT_PLAYGROUND_CONTENT } from './templates/defaultPlaygroundContent'
-import { createPlaygroundPage } from './services/createPlaygroundPage'
+import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
+import { EffortRegistryProvider } from './contexts/EffortRegistryContext'
 
-// ── Constants for Sidebar Navigation ────────────────────────────────
 
-const ZERO_TO_HERO_LINKS = [
-  { id: 'introduction', label: 'Introduction', type: 'heading' as const },
-  { id: 'statement',    label: 'Step 1: Movements', type: 'heading' as const },
-  { id: 'metrics',      label: 'Step 2: Metrics', type: 'heading' as const },
-  { id: 'timer',        label: 'Step 3: Timers', type: 'heading' as const },
-  { id: 'groups',       label: 'Step 4: Groups', type: 'heading' as const },
-  { id: 'protocols',    label: 'Step 5: Protocols', type: 'heading' as const },
-  { id: 'review',       label: 'Step 6: Review', type: 'heading' as const },
-]
-
-const SYNTAX_LINKS = [
-  { id: 'introduction', label: 'Introduction', type: 'heading' as const },
-  { id: 'anatomy', label: 'Statement Anatomy', type: 'heading' as const },
-  { id: 'timers', label: 'Timers & Direction', type: 'heading' as const },
-  { id: 'metrics', label: 'Measuring Effort', type: 'heading' as const },
-  { id: 'groups', label: 'Groups & Repeaters', type: 'heading' as const },
-  { id: 'protocols', label: 'Protocols', type: 'heading' as const },
-  { id: 'supplemental', label: 'Supplemental', type: 'heading' as const },
-  { id: 'document', label: 'Document', type: 'heading' as const },
-]
-
-// Load all markdown files from the markdown directory
-const workoutFiles = import.meta.glob('../../markdown/**/*.md', { eager: true, query: '?raw', import: 'default' })
-
-export interface WorkoutItem {
-  id: string
-  name: string
-  category: string
-  content: string
-  /** When true, this item is excluded from all search results (front matter: `search: hidden`) */
-  searchHidden?: boolean
-}
-/**
- * Navigate to the most-recently edited playground page, or create one if none
- * exist yet.  Used by both the / (home) and /playground routes.
- */
-function PlaygroundRedirect() {
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    ;(async () => {
-      const pages = await playgroundDB.getPagesByCategory('playground')
-      if (pages.length > 0) {
-        const latest = pages.sort((a, b) => b.updatedAt - a.updatedAt)[0]!
-        navigate(`/playground/${encodeURIComponent(latest.name)}`, { replace: true })
-      } else {
-        const id = await createPlaygroundPage(DEFAULT_PLAYGROUND_CONTENT.content)
-        navigate(`/playground/${encodeURIComponent(id)}`, { replace: true })
-      }
-    })()
-  }, [navigate])
-
-  return (
-    <div className="flex-1 flex items-center justify-center text-zinc-400">
-      Loading…
-    </div>
-  )
-}
+// `workoutFiles` (raw glob) and `WorkoutItem` (typed item) live in `lib/workoutIndex`.
+// `workoutFiles` is passed through to `MarkdownCanvasPage` as `wodFiles`; the typed
+// `workoutItems` array is passed to leaves that filter/search it. Both are kept as
+// props to leaf components — see `MarkdownCanvasPage.test.tsx` for the contract.
+import { workoutFiles, useWorkoutItems, type WorkoutItem } from './lib/workoutIndex'
+export type { WorkoutItem }
 
 function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<() => void> }) {
   const navigate = useNavigate()
-  const { category: urlCategory, name: urlName, id: playgroundId } = useParams<{ category: string; name: string; id: string }>()
-  const location = useLocation()
-  
-  const { isOpen: isCommandPaletteOpen, setIsOpen: setIsCommandPaletteOpen, setStrategy } = useCommandPalette()
+
   const { theme } = useTheme()
-  const [activeCategory, setActiveCategory] = useQueryState('cat')
-  const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
 
-  // Unified note route: /note/playground/:name behaves like /playground/:name
-  const isNotePlayground = location.pathname.startsWith('/note/playground/')
-  const isPlaygroundRoute = location.pathname.startsWith('/playground/') || isNotePlayground
-  // For /note/playground/:name, use urlName as the playground ID
-  const effectivePlaygroundId = playgroundId || (isNotePlayground ? urlName : undefined)
-  // Journal entry route: /journal/:id  — note: the route param is :id → playgroundId
-  const isJournalEntryRoute = location.pathname.startsWith('/journal/') && (!!urlName || !!playgroundId)
-  const journalEntryId = isJournalEntryRoute ? decodeURIComponent(urlName ?? playgroundId!) : undefined
+  const workoutItems = useWorkoutItems()
 
-  // Feed route detection — parsed from pathname since AppContent useParams only
-  // captures generic {category, name, id} and feed routes use different param names.
-  const feedItemMatch   = location.pathname.match(/^\/feeds\/([^/]+)\/([^/]+)\/([^/]+)$/)
-  const feedDetailMatch = !feedItemMatch && location.pathname.match(/^\/feeds\/([^/]+)$/)
+  // Route classification + view derivation live in the pure `routeView` module;
+  // `useRouteView` is its React adapter. `handleSelectWorkout` is the shared
+  // navigation callback for nav onRun closures and page onSelect handlers.
+  // See docs/adr/app-route-view.md.
+  const view = useRouteView()
+  const handleSelectWorkout = useSelectWorkout()
+  const { workout: currentWorkout, nav: currentNavLinks } = view
 
-  const workoutItems = useMemo(() => {
-    return Object.entries(workoutFiles).map(([path, fileContent]) => {
-      const parts = path.split('/')
-      const fileName = parts[parts.length - 1].replace('.md', '')
-      
-      // Path format: ../../markdown/{collections|canvas}/{category}/{file}.md
-      // or ../../markdown/{collections|canvas}/{file}.md
-      let category = 'General'
-      const markdownIdx = parts.indexOf('markdown')
-      if (markdownIdx !== -1 && parts.length > markdownIdx + 2) {
-        category = parts[markdownIdx + 2]
-      }
+  const [showPlaygrounds] = useShowPlaygrounds()
 
-      // Parse front matter to check for `search: hidden`
-      const raw = fileContent as string
-      let searchHidden = false
-      const fmMatch = raw.match(/^---[\r\n]([\s\S]*?)[\r\n]---/)
-      if (fmMatch) {
-        const searchLine = fmMatch[1].match(/^search:\s*(\S+)/m)
-        if (searchLine && searchLine[1].toLowerCase() === 'hidden') {
-          searchHidden = true
-        }
-      }
+  const handleCreateJournalEntry = useCreateJournalEntry({ workoutItems })
 
-      return {
-        id: path,
-        name: fileName,
-        category: category,
-        content: raw,
-        searchHidden,
+  // Open the palette for global search (Ctrl+/ or search button)
+  const openSearchPalette = useCallback(() => {
+    usePaletteStore.getState().open({
+      placeholder: 'Search workouts, results, pages…',
+      sources: [globalSearchSource(workoutItems, canvasRoutes, showPlaygrounds)],
+    }).then(result => {
+      if (result.dismissed) return
+      const item = result.item
+      if (item.type === 'route') {
+        navigate((item.payload as { route: string }).route)
+      } else if (item.type === 'workout') {
+        handleSelectWorkout(item.payload as SelectWorkoutItem)
+      } else if (item.type === 'journal-entry') {
+        navigate(reviewPath(item.id))
       }
     })
-  }, [workoutFiles])
-
-  // Canvas page for the current pathname (null if not a canvas route)
-  const canvasPage = findCanvasPage(location.pathname)
-
-  // Find current content based on URL
-  const currentWorkout = useMemo(() => {
-    if (isPlaygroundRoute) {
-      return { name: 'Playground', content: '', category: 'playground' }
-    }
-    if (isJournalEntryRoute && journalEntryId) {
-      return { name: journalEntryId, content: '', category: 'journal' }
-    }
-    if (canvasPage) {
-      return { name: canvasPage.sections[0]?.heading ?? 'Canvas', content: '', category: 'canvas' }
-    }
-    // Named routes without params
-    const named: Record<string, string> = {
-      '/': 'Home',
-      '/journal': 'Journal',
-      '/plan': 'Plan',
-      '/feeds': 'Feeds',
-      '/getting-started': 'Zero to Hero',
-      '/syntax': 'Syntax',
-      '/collections': 'Collections',
-    }
-    const namedMatch = named[location.pathname]
-    if (namedMatch) {
-      return { name: namedMatch, content: PLAYGROUND_CONTENT, category: 'General' }
-    }
-    if (!urlName) {
-      return { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
-    }
-    const name = decodeURIComponent(urlName)
-    const category = urlCategory ? decodeURIComponent(urlCategory) : 'General'
-    return workoutItems.find(item => item.name === name && item.category === category) || { name, content: PLAYGROUND_CONTENT, category: 'General' }
-  }, [urlCategory, urlName, workoutItems, location.pathname, isPlaygroundRoute, isJournalEntryRoute, journalEntryId])
-
-  // Load recent workout results from IndexedDB
-  const refreshResults = useCallback(() => {
-    indexedDBService.getRecentResults(20).then(results => {
-      setRecentResults(results)
-    }).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    refreshResults()
-  }, [location.pathname, refreshResults])
-
-  const handleSelectWorkout = useCallback((item: any) => {
-    const workout = item as { name: string; category?: string; content?: string }
-    if (workout.name === 'Home') {
-      navigate('/')
-    } else {
-      const category = workout.category || 'General'
-      navigate(`/workout/${encodeURIComponent(category)}/${encodeURIComponent(workout.name)}`)
-    }
-  }, [navigate])
-
-  // Nav links for the current page (used in the sticky header dropdown)
-  const currentNavLinks = useMemo((): PageNavLink[] => {
-    // 1. Canvas pages (including Home)
-    if (canvasPage) {
-      const isCollection = location.pathname.startsWith('/collections/')
-      const collectionSlug = isCollection ? location.pathname.split('/').pop() : null
-      
-      const links: PageNavLink[] = []
-      canvasPage.sections
-        .filter(s => s.level > 1)
-        .forEach(s => {
-          links.push({ id: s.id, label: s.heading, type: 'heading' as const })
-
-          // Extract standard WOD blocks from prose
-          const lines = s.prose.split('\n')
-          let wodCount = 0
-          lines.forEach((line, i) => {
-            if (/^```(wod|log|plan)\s*$/.test(line.trim())) {
-              wodCount++
-              // Standard canvas WOD blocks don't have a direct 'onRun' handler in the index
-              // yet, because MarkdownCanvasPage manages its own runtime state.
-              // However, we can identify them so the UI can at least show the icon
-              // or we can add a handler if we have access to the blocks.
-              links.push({ 
-                id: `${s.id}-wod-${i + 1}`, 
-                label: `Workout ${wodCount}`, 
-                type: 'wod' as const 
-              })
-            }
-          })
-          
-          if (isCollection && collectionSlug && s.prose.includes('{{workouts}}')) {
-             links.push({ id: 'collection-workouts', label: 'Explore', type: 'heading' as const })
-             const collectionItems = workoutItems.filter(item => 
-               item.category === collectionSlug && item.name.toLowerCase() !== 'readme'
-             )
-             collectionItems.forEach(item => {
-               links.push({
-                 id: `workout-${item.id}`,
-                 label: item.name,
-                 type: 'wod' as const,
-                 onRun: () => handleSelectWorkout(item),
-                 runIcon: 'link' as const
-               })
-             })
-          }
-        })
-        
-        // Fallback: if it's a collection but no section has the {{workouts}} tag,
-        // we might still want to list them if they are appended at the bottom.
-        const hasWorkoutsTag = canvasPage.sections.some(s => s.prose.includes('{{workouts}}'))
-        if (isCollection && collectionSlug && !hasWorkoutsTag) {
-          links.push({ id: 'collection-workouts', label: 'Explore', type: 'heading' as const })
-          const collectionItems = workoutItems.filter(item => 
-            item.category === collectionSlug && item.name.toLowerCase() !== 'readme'
-          )
-          collectionItems.forEach(item => {
-            links.push({
-              id: `workout-${item.id}`,
-              label: item.name,
-              type: 'wod' as const,
-              onRun: () => handleSelectWorkout(item),
-              runIcon: 'link' as const
-            })
-          })
-        }
-      return links
-    }
-
-    // 2. Docs pages
-    if (location.pathname === '/getting-started') return ZERO_TO_HERO_LINKS
-    if (location.pathname === '/syntax') return SYNTAX_LINKS
-    
-    // 3. Journal list page
-    if (location.pathname === '/journal') {
-      const dates = new Set<string>()
-      recentResults.forEach(r => {
-        const d = new Date(r.completedAt).toISOString().split('T')[0]
-        dates.add(d)
-      })
-      workoutItems.forEach(item => {
-        const d = (item as any).payload?.targetDate || (item as any).payload?.updatedAt
-        if (d) {
-          const ds = new Date(d).toISOString().split('T')[0]
-          dates.add(ds)
-        }
-      })
-      const sorted = Array.from(dates).sort().reverse()
-      return sorted.slice(0, 10).map(d => ({
-        id: d,
-        label: new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
-        type: 'heading' as const
-      }))
-    }
-
-    return []
-  }, [location.pathname, canvasPage, recentResults, workoutItems, handleSelectWorkout])
-
-  /**
-   * Navigate to a journal entry for the given date.
-   * If a page already exists for that date, opens it. If not, the JournalPageShell
-   * creates a new entry. No conflict dialog needed from the scroll view.
-   */
-  const handleCreateJournalEntry = useCallback((date: Date) => {
-    const y = date.getFullYear()
-    const m = String(date.getMonth() + 1).padStart(2, '0')
-    const d = String(date.getDate()).padStart(2, '0')
-    navigate(`/journal/${y}-${m}-${d}`)
-  }, [navigate])
-
-  // Open the command palette with the global search strategy
-  const openSearchPalette = useCallback(() => {
-    const strategy = createGlobalSearchStrategy(workoutItems, handleSelectWorkout, navigate, canvasRoutes)
-    setStrategy(strategy)
-    setIsCommandPaletteOpen(true)
-  }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
+  }, [workoutItems, handleSelectWorkout, navigate, showPlaygrounds])
 
   // Keep the parent's searchHandlerRef up-to-date so the nav tree CallAction always
   // fires the latest callback (workoutItems may change after initial mount).
@@ -352,153 +116,24 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     searchHandlerRef.current = openSearchPalette
   }, [openSearchPalette, searchHandlerRef])
 
-  // Reset strategy when palette closes
-  useEffect(() => {
-    if (!isCommandPaletteOpen) {
-      // Small delay to avoid visual jump during close animation
-      const t = setTimeout(() => setStrategy(null), 300)
-      return () => clearTimeout(t)
-    }
-  }, [isCommandPaletteOpen, setStrategy])
-
-  // Keyboard shortcut for command palette
+  // Keyboard shortcut: Ctrl/Cmd+/ (also Ctrl/Cmd+P) opens global search
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + /: Global Search
       if ((e.key === '/' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         e.stopPropagation()
         openSearchPalette()
       }
-      // Ctrl/Cmd + .: Statement Builder (Interactive Segments)
-      if (e.key === '.' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        e.stopPropagation()
-        
-        const line = "10 Kettlebell Swings 24kg"
-        const segments = ["10", "Kettlebell Swings", "24kg"]
-        
-        const strategy = createStatementBuilderStrategy({
-          line,
-          segments,
-          activeSegmentIndex: 0,
-          onModifyLine: (newLine) => console.log('Modify line to:', newLine),
-          updateStrategy: (newStrategy) => setStrategy(newStrategy)
-        })
-        
-        setStrategy(strategy)
-        setIsCommandPaletteOpen(true)
-      }
     }
     window.addEventListener('keydown', down, true)
     return () => window.removeEventListener('keydown', down, true)
-  }, [openSearchPalette, setStrategy, setIsCommandPaletteOpen])
+  }, [openSearchPalette])
 
   const [isSystemDark, setIsSystemDark] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
   )
 
-  // ── NavContext integration ────────────────────────────────────────────────
-  const { setL3Items, registerScrollFn, dispatch: navDispatch } = useNav()
-
-  const editorViewRef = useRef<EditorView | null>(null)
-  const handleViewCreated = useCallback((view: EditorView) => {
-    editorViewRef.current = view
-  }, [])
-
-  const scrollToSection = useCallback((id: string) => {
-    // 1. Try standard DOM element (Canvas/List pages)
-    //    Use scrollIntoView so the browser finds the correct scroll container
-    //    (works inside nested flex layouts like HomeView > CanvasPage).
-    const el = document.getElementById(id)
-    if (el) {
-      // Apply a temporary scroll-margin so the sticky header is not covered.
-      const prev = el.style.scrollMarginTop
-      el.style.scrollMarginTop = '96px'
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      // Restore after animation frame so the style doesn't persist.
-      requestAnimationFrame(() => { el.style.scrollMarginTop = prev })
-      return
-    }
-
-    // 2. Try CodeMirror line (Editor pages)
-    if (editorViewRef.current) {
-      const view = editorViewRef.current
-      const content = view.state.doc.toString()
-      const lines = content.split('\n')
-      
-      let lineIdx = -1
-
-      if (id.startsWith('wod-line-')) {
-        const lineNum = parseInt(id.replace('wod-line-', ''), 10)
-        lineIdx = lineNum - 1
-      } else {
-        lineIdx = lines.findIndex(line => {
-          const match = line.match(/^(#{1,6})\s+(.*)$/)
-          if (match) {
-            let label = match[2].trim()
-            const timeMatch = label.match(/(\d{1,2}:\d{2})/)
-            if (timeMatch) {
-              const timestamp = timeMatch[1]
-              label = label.replace(timestamp, '').replace(/\s+/g, ' ').trim()
-              if (!label) label = timestamp
-            }
-            const headerId = label.toLowerCase().replace(/[^\w]+/g, '-')
-            return headerId === id
-          }
-          return false
-        })
-      }
-
-      if (lineIdx >= 0 && lineIdx < lines.length) {
-        const pos = view.state.doc.line(lineIdx + 1).from
-        view.dispatch({
-          selection: { anchor: pos, head: pos },
-          effects: [EditorView.scrollIntoView(pos, { y: 'start', yMargin: 20 })]
-        })
-        // Also scroll the window to the editor's container if needed
-        const editorEl = view.dom.parentElement
-        if (editorEl) {
-          const y = editorEl.getBoundingClientRect().top + window.scrollY - 120
-          window.scrollTo({ top: y, behavior: 'smooth' })
-        }
-      }
-    }
-  }, [])
-
-  // Register the scroll function with NavContext so NavSidebar L3 clicks scroll correctly
-  useEffect(() => {
-    registerScrollFn(scrollToSection)
-  }, [scrollToSection, registerScrollFn])
-
-  // Track scroll position to keep NavContext activeL3Id in sync
-  useEffect(() => {
-    if (currentNavLinks.length === 0) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        let bestId: string | null = null
-        let bestRatio = -1
-        entries.forEach(e => {
-          if (e.isIntersecting && e.intersectionRatio > bestRatio) {
-            bestRatio = e.intersectionRatio
-            bestId = e.target.id
-          }
-        })
-        if (bestId) navDispatch({ type: 'SET_ACTIVE_L3', id: bestId })
-      },
-      { rootMargin: '-10% 0px -50% 0px', threshold: [0, 0.25, 0.5, 1] }
-    )
-    currentNavLinks.forEach(link => {
-      const el = document.getElementById(link.id)
-      if (el) observer.observe(el)
-    })
-    return () => observer.disconnect()
-  }, [currentNavLinks, navDispatch])
-
-  // Sync currentNavLinks → NavContext L3 items (feeds sidebar accordion + right panel)
-  useEffect(() => {
-    setL3Items(mapIndexToL3(currentNavLinks))
-  }, [currentNavLinks, setL3Items])
+  const { handleViewCreated, scrollToSection } = usePageScrollSync(currentNavLinks)
 
   useEffect(() => {
     if (theme !== 'system') return
@@ -514,6 +149,120 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     }
     return theme === 'dark' ? 'vs-dark' : 'vs'
   }, [theme, isSystemDark])
+  // Route → page dispatch (Phase 2). `renderInner` maps each PageKind to its exact
+  // page element (props + `key` preserved verbatim from the old ternary); `renderShell`
+  // wraps it in the CanvasPage shell when `view.shell` calls for it. Both close over
+  // AppContent state, so no callback plumbing is needed. See docs/adr/app-route-view.md.
+  const renderInner: Record<PageKind, () => ReactNode> = {
+    journal: () => (
+      <JournalListPage onSelect={handleSelectWorkout} onCreateEntry={handleCreateJournalEntry} workoutItems={workoutItems} />
+    ),
+    feeds: () => <FeedsPage />,
+    feedDetail: () => <FeedDetailPage feedSlug={decodeURIComponent(view.feedDetailMatch!)} />,
+    feedItem: () => (
+      <FeedItemPage
+        feedSlug={decodeURIComponent(view.feedItemMatch![0])}
+        feedDate={decodeURIComponent(view.feedItemMatch![1])}
+        feedItem={decodeURIComponent(view.feedItemMatch![2])}
+        theme={actualTheme}
+        onViewCreated={handleViewCreated}
+        onScrollToSection={scrollToSection}
+        onSearch={openSearchPalette}
+      />
+    ),
+    collections: () => <CollectionsPage />,
+    effortsCatalog: () => <EffortsCatalogPage />,
+    effortDetail: () => <EffortDetailPage />,
+    analyticsExplorer: () => <AnalyticsExplorerPage />,
+    analyticsDashboard: () => <AnalyticsDashboardPage />,
+    canvas: () =>
+      view.canvasPage!.route === '/' ? (
+        <HomeView
+          wodFiles={workoutFiles as Record<string, string>}
+          theme={actualTheme}
+        />
+      ) : view.canvasPage!.scroll ? (
+        <ScrollCanvasPage
+          page={view.canvasPage!}
+          wodFiles={workoutFiles as Record<string, string>}
+          theme={actualTheme}
+          workoutItems={workoutItems}
+          onSelect={handleSelectWorkout}
+          onScrollToSection={scrollToSection}
+        />
+      ) : (
+        <MarkdownCanvasPage
+          page={view.canvasPage!}
+          wodFiles={workoutFiles as Record<string, string>}
+          theme={actualTheme}
+          workoutItems={workoutItems}
+          onSelect={handleSelectWorkout}
+          onScrollToSection={scrollToSection}
+        />
+      ),
+    playground: () => (
+      <PlaygroundNotePage key={view.effectivePlaygroundId} theme={actualTheme} onViewCreated={handleViewCreated} onScrollToSection={scrollToSection} onSearch={openSearchPalette} />
+    ),
+    journalEntry: () => (
+      <JournalPage key={view.journalEntryId} theme={actualTheme} onViewCreated={handleViewCreated} onScrollToSection={scrollToSection} onSearch={openSearchPalette} />
+    ),
+    workout: () => (
+      <WorkoutEditorPage
+        key={`${view.workout.category}/${view.workout.name}`}
+        category={view.workout.category}
+        name={view.workout.name}
+        mdContent={view.workout.content}
+        theme={actualTheme}
+        onViewCreated={handleViewCreated}
+        onScrollToSection={scrollToSection}
+        onSearch={openSearchPalette}
+      />
+    ),
+  }
+
+  const canvasTitleAccessory =
+    view.page === 'canvas' && view.canvasPage
+      ? (
+        <>
+          {/* On `/` this badge is the single header control — it tracks
+              only the home page's own quests (qs-arrive / qs-tour-* /
+              qs-edit / qs-run). The cross-page chapter list lives in the
+              tour outro's quest section instead of the header. */}
+          {view.canvasPage.quests.length > 0 && (
+            <ChallengeHeaderBadge
+              pageRoute={view.canvasPage.route}
+              quests={view.canvasPage.quests}
+              challengeSectionMap={getChallengeSectionMap(view.canvasPage)}
+              onScrollToSection={scrollToSection}
+            />
+          )}
+        </>
+      )
+      : undefined
+
+  const renderShell = (inner: ReactNode): ReactNode => {
+    if (view.shell.wrap === 'bare') return inner
+    const subheader =
+      view.shell.subheader === 'filter-collections'
+        ? <TextFilterStrip placeholder="Filter collections… Press / to start filtering" />
+        : view.shell.subheader === 'filter-collection-workouts'
+          ? <TextFilterStrip placeholder="Filter collection workouts… Press / to start filtering" />
+          : undefined
+    return (
+      <CanvasPage
+        title={view.shell.title}
+        titleAccessory={canvasTitleAccessory}
+        subheader={subheader}
+        index={view.shell.withIndex ? currentNavLinks : undefined}
+        onScrollToSection={view.shell.withIndex ? scrollToSection : undefined}
+        actions={view.shell.actionsMode
+          ? <PageActions mode={view.shell.actionsMode} currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />
+          : undefined}
+      >
+        {inner}
+      </CanvasPage>
+    )
+  }
 
   return (
     <SidebarLayout
@@ -523,13 +272,11 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             <span className="text-sm font-semibold text-zinc-950 dark:text-white truncate">
               {currentWorkout.name}
             </span>
+            {canvasTitleAccessory}
           </div>
           <NavbarSpacer />
           <NavbarSection>
-            <NavbarItem onClick={openSearchPalette} aria-label="Search" className="flex items-center gap-3">
-              <MagnifyingGlassIcon data-slot="icon" />
-              <ShortcutBadge tokens={['meta', '/']} />
-            </NavbarItem>
+            <NavSearchInput onOpen={openSearchPalette} />
             <div className="flex items-center">
               <CastButtonRpc />
             </div>
@@ -541,83 +288,11 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
-          {location.pathname === '/journal' ? (
-            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
-              <JournalWeeklyPage 
-                onSelect={handleSelectWorkout}
-                onCreateEntry={handleCreateJournalEntry}
-                workoutItems={workoutItems}
-              />
-            </CanvasPage>
-          ) : location.pathname === '/plan' ? (
-            <CanvasPage title="Plan" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
-              <PlanPage workoutItems={workoutItems} />
-            </CanvasPage>
-          ) : location.pathname === '/feeds' ? (
-            <FeedsPage />
-          ) : feedDetailMatch ? (
-            <FeedDetailPage feedSlug={decodeURIComponent(feedDetailMatch[1]!)} />
-          ) : feedItemMatch ? (
-            <FeedItemPage
-              feedSlug={decodeURIComponent(feedItemMatch[1]!)}
-              feedDate={decodeURIComponent(feedItemMatch[2]!)}
-              feedItem={decodeURIComponent(feedItemMatch[3]!)}
-              theme={actualTheme}
-              onViewCreated={handleViewCreated}
-              onScrollToSection={scrollToSection}
-            />
-          ) : location.pathname === '/collections' ? (
-            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections… Press / to start filtering" />} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
-              <CollectionsPage />
-            </CanvasPage>
-          ) : canvasPage ? (
-            <CanvasPage
-              title={currentWorkout.name}
-              subheader={location.pathname.startsWith('/collections/') ? <TextFilterStrip placeholder="Filter collection workouts… Press / to start filtering" /> : undefined}
-              index={currentNavLinks}
-              onScrollToSection={scrollToSection}
-              actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}
-            >
-              <MarkdownCanvasPage
-                page={canvasPage}
-                wodFiles={workoutFiles as Record<string, string>}
-                theme={actualTheme}
-                workoutItems={workoutItems}
-                onSelect={handleSelectWorkout}
-              />
-            </CanvasPage>
-          ) : (
-            <>
-              {isPlaygroundRoute && effectivePlaygroundId ? (
-                <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} onViewCreated={handleViewCreated} onScrollToSection={scrollToSection} />
-              ) : isJournalEntryRoute && journalEntryId ? (
-                <JournalPage key={journalEntryId} theme={actualTheme} onViewCreated={handleViewCreated} onScrollToSection={scrollToSection} />
-              ) : (
-                <WorkoutEditorPage
-                  key={`${currentWorkout.category}/${currentWorkout.name}`}
-                  category={currentWorkout.category}
-                  name={currentWorkout.name}
-                  mdContent={currentWorkout.content}
-                  theme={actualTheme}
-                  onViewCreated={handleViewCreated}
-                  onScrollToSection={scrollToSection}
-                />
-              )}
-            </>
-          )}
+          {renderShell(renderInner[view.page]())}
         </div>
       </div>
 
-      <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={() => {
-          setIsCommandPaletteOpen(false)
-          setActiveCategory(null)
-        }}
-        items={workoutItems}
-        onSelect={handleSelectWorkout}
-        initialCategory={activeCategory}
-      />
+      <PaletteShell />
     </SidebarLayout>
   )
 }
@@ -637,11 +312,12 @@ function ScrollToTop() {
 }
 
 import { NuqsAdapter } from 'nuqs/adapters/react-router'
-import { useQueryState } from 'nuqs'
 import { useZipProcessor } from './hooks/useZipProcessor'
+import { useJournalZipProcessor } from './hooks/useJournalZipProcessor'
 
 function GlobalState() {
   useZipProcessor()
+  useJournalZipProcessor()
   return null
 }
 
@@ -653,40 +329,63 @@ export function App() {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
-      <AudioProvider>
-        <BrowserRouter>
-          <NuqsAdapter>
-            <GlobalState />
-            <ScrollToTop />
-            <Toaster />
-            <CommandProvider>
+      <DebugModeProvider>
+        <EffortRegistryProvider>
+          <AudioProvider>
+            <BrowserRouter>
+              <NuqsAdapter>
+              <GlobalState />
+              <ScrollToTop />
+              <Toaster />
               <NavProvider tree={navTree}>
-              <Routes>
-                <Route path="/" element={<PlaygroundRedirect />} />
-                <Route path="/getting-started" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/syntax" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/journal" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/plan" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/feeds" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/feeds/:feedSlug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/feeds/:feedSlug/:feedDate/:feedItem" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/collections" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/collections/:slug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/workout/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/load" element={<LoadZipPage />} />
-                <Route path="/playground" element={<PlaygroundRedirect />} />
-                <Route path="/playground/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/note/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/journal/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
-                <Route path="/review/:runtimeId" element={<ReviewPage />} />
-                <Route path="*" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-              </Routes>
+                <Routes>
+                  <Route path="/legacy" element={<PlaygroundLandingPage />} />
+                  <Route path="/concept3" element={<Concept3LandingPage />} />
+                  <Route path="/getting-started" element={<GettingStartedRedirect />} />
+                  <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
+                  <Route path="/chapters/basics" element={<Navigate to="/guide/syntax/basics" replace />} />
+                  <Route path="/chapters/sequences" element={<Navigate to="/guide/syntax" replace />} />
+                  <Route path="/chapters/protocols" element={<Navigate to="/guide/syntax/protocols" replace />} />
+                  <Route path="/challenge" element={<Navigate to="/" replace />} />
+                  <Route path="/syntax" element={<SyntaxRedirect />} />
+                  <Route path="/syntax/*" element={<SyntaxRedirect />} />
+                  <Route path={ROUTE_PATTERNS.plan} element={<PlanRedirect />} />
+                  <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.collectionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.collectionWorkout} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.load} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><LoadZipPage /></Suspense>} />
+                  <Route path={ROUTE_PATTERNS.loadJournal} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><JournalZipLoadPage /></Suspense>} />
+                  <Route path={ROUTE_PATTERNS.loadJournalDate} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><JournalZipLoadPage /></Suspense>} />
+                  <Route path={ROUTE_PATTERNS.playgroundRoot} element={<PlaygroundRedirect />} />
+                  <Route path={ROUTE_PATTERNS.playground} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.notePlaygroundAlias} element={<NotePlaygroundRedirect />} />
+                  <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.journalNote} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />
+                  <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
+                  <Route path={ROUTE_PATTERNS.review} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><ReviewPage /></Suspense>} />
+                  <Route path="/workout/:category/:name" element={<WorkoutRedirect />} />
+                  {canvasRoutes.map(({ route }) => (
+                    <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  ))}
+                  <Route path={ROUTE_PATTERNS.efforts} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.effort} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.analytics} element={<Navigate to={ROUTE_PATTERNS.analyticsExplorer} replace />} />
+                  <Route path={ROUTE_PATTERNS.analyticsExplorer} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.analyticsDashboard} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
               </NavProvider>
-            </CommandProvider>
-          </NuqsAdapter>
-        </BrowserRouter>
-      </AudioProvider>
+            </NuqsAdapter>
+          </BrowserRouter>
+        </AudioProvider>
+      </EffortRegistryProvider>
+      </DebugModeProvider>
     </ThemeProvider>
   )
 }

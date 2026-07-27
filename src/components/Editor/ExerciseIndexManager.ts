@@ -96,10 +96,13 @@ export class ExerciseIndexManager {
 
       // Load from provider
       const loadedIndex = await this.provider.loadIndex();
-      this.index = loadedIndex;
+      // TODO(reconcile-types): core/types/providers.ExercisePathIndex and
+      // tools/ExercisePathIndexer.ExercisePathIndex describe the same data at
+      // different stages (raw vs indexed). Reconcile into one canonical shape.
+      this.index = loadedIndex as unknown as ExercisePathIndex;
 
       // Save to cache
-      this.saveToCache(loadedIndex);
+      this.saveToCache(loadedIndex as unknown as ExercisePathIndex);
 
     } catch (error) {
       console.error('[ExerciseIndexManager] Failed to load exercise index:', error);

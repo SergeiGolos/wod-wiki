@@ -32,7 +32,7 @@ export interface TimerState {
     readonly label: string;
 
     /** Timer role for UI prioritization */
-    readonly role?: 'primary' | 'secondary' | 'auto';
+    readonly role?: 'primary' | 'secondary' | 'auto' | 'hidden';
 }
 
 /**
@@ -98,7 +98,7 @@ export interface CompletionState {
     readonly reason?: 'timer-expired' | 'rounds-complete' | 'user-advance' | 'manual' | string;
 
     /** Timestamp of completion (epoch ms) */
-    readonly completedAt?: number;
+    readonly createdAt?: number;
 }
 
 /**
@@ -175,17 +175,17 @@ export interface ButtonsState {
 /**
  * Union of all valid memory type keys.
  */
-export type MemoryType = 'timer' | 'round' | 'children:status' |   'metrics' | 'metric:display' | 'completion' | 'display' | 'controls';
+export type MemoryType = 'time' | 'round' | 'children:status' | 'metrics' | 'metric:display' | 'completion' | 'display' | 'controls';
 
 /**
  * Registry mapping memory types to their corresponding data shapes.
  * Enables compile-time type safety when accessing block memory.
  * 
  * @example
- * const timer = block.getMemory('time'); // Returns IMemoryEntry<'timer', TimerState>
+ * const timer = block.getMemoryByTag('time')[0]; // Returns IMemoryLocation with TimerState
  */
 export interface MemoryTypeMap {
-    timer: TimerState;
+    'time': TimerState;
     round: RoundState;
     'children:status': ChildrenStatusState;
     metrics: FragmentState;

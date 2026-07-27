@@ -1,11 +1,13 @@
 import { ScriptRuntime } from '../ScriptRuntime';
-import { RuntimeMemory } from '../RuntimeMemory';
+
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
 import type { WhiteboardScript } from '@/parser/WhiteboardScript';
 import { IRuntimeOptions, DEFAULT_RUNTIME_OPTIONS } from '../contracts/IRuntimeOptions';
+import type { INowProvider } from '../INowProvider';
+import { wallClockNow } from '../INowProvider';
 import type { TestableBlockConfig } from '../contracts/ITestableBlockConfig';
 
 /**
@@ -35,6 +37,7 @@ import type { TestableBlockConfig } from '../contracts/ITestableBlockConfig';
  */
 export class RuntimeBuilder {
     private options: IRuntimeOptions = { ...DEFAULT_RUNTIME_OPTIONS };
+    private nowProvider: INowProvider = wallClockNow;
 
     constructor(
         private readonly script: WhiteboardScript,
@@ -93,6 +96,15 @@ export class RuntimeBuilder {
     }
 
     /**
+     * Set a custom INowProvider (time seam — see docs/adr/time-seam.md).
+     * Defaults to wall-clock.
+     */
+    withNowProvider(provider: INowProvider): this {
+        this.nowProvider = provider;
+        return this;
+    }
+
+    /**
      * Get the current options (for inspection/debugging)
      */
     getOptions(): Readonly<IRuntimeOptions> {
@@ -109,7 +121,7 @@ export class RuntimeBuilder {
             clock: new RuntimeClock(),
             eventBus: new EventBus()
         };
-        return new ScriptRuntime(this.script, this.compiler, dependencies, this.options);
+        return new ScriptRuntime(this.script, this.compiler, dependencies, this.options, this.nowProvider);
     }
 
     /**

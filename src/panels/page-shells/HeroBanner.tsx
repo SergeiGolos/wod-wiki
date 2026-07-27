@@ -77,4 +77,3 @@ export function HeroBanner({
   );
 }
 
-export default HeroBanner;

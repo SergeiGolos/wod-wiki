@@ -3,16 +3,6 @@ import type { IEventDispatchContext } from "../primitives/IEventDispatchContext"
 import type { IRuntimeAction } from "../IRuntimeAction";
 
 /**
- * @deprecated Use IRuntimeAction[] directly instead
- * Legacy event handler response type for backward compatibility.
- */
-export type EventHandlerResponse = {
-  handled: boolean;
-  abort: boolean;
-  actions: IRuntimeAction[];
-};
-
-/**
  * Interface for handling runtime events and producing actions.
  * Each handler is responsible for a specific type of event processing.
  *

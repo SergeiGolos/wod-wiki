@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - sport
+---
+
 ## Workout 4: KBOMG (Kettlebell Only Muscle Gain) - Full Body
 
 **Category**: Joe Daniels Hypertrophy  

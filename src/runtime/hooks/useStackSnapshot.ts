@@ -41,7 +41,7 @@ export function useStackSnapshot(): StackSnapshot {
     type: 'initial',
     blocks: runtime.stack.blocks,
     depth: runtime.stack.count,
-    clockTime: runtime.clock.now,
+    clockTime: runtime.clock.currentDate,
   });
 
   useEffect(() => {

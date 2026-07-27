@@ -1,5 +1,5 @@
 import React from 'react';
-import { StorybookHost } from '../stories/_shared/StorybookHost';
+import { StorybookHost } from '../stories/catalog/_shared/StorybookHost';
 import '../src/index.css';
 
 /** @type { import('@storybook/react-vite').Preview } */
@@ -51,33 +51,53 @@ const preview = {
         order: [
           'catalog',
           [
-            'Primitives',
             'atoms',
             [
-              'display',   ['MetricPill', 'Progress', 'ShortcutBadge', 'VisibilityBadge'],
-              'layout',    ['Navbar'],
+              'primitives',
+              [
+                'Badge', 'Button', 'Card', 'Checkbox', 'Dialog', 'DropdownMenu',
+                'Input', 'Label', 'Progress', 'Select', 'Switch', 'Table',
+                'Textarea', 'Toast', 'Toaster',
+              ],
             ],
             'molecules',
             [
-              'actions',    ['AudioToggle', 'ButtonGroup', 'ButtonGroupDropdown', 'CastButtonRpc'],
-              'calendar',   ['CalendarButton', 'CalendarCard', 'CalendarSplitButton'],
-              'chrome',     ['MacOSChrome'],
-              'commands',   ['CommandInput', 'CommandItem', 'CommandPill'],
-              'content',    ['CanvasProse'],
-              'metrics',    ['MetricSourceRow', 'MetricTrackerCard', 'MetricVisualizer'],
-              'navigation', ['PageNavDropdown', 'SidebarAccordion', 'StickyNavPanel', 'TextFilterStrip'],
-              'overlays',   ['FocusedDialog'],
-              'workout',    ['CommitGraph', 'GridHeaderCell', 'ResultListItem', 'StatementDisplay', 'WorkoutActionButton'],
+              'ButtonGroup', 'ButtonLink', 'CalendarSplitButton',
+              'NavSearchInput', 'ResultListItem',
             ],
             'organisms',
-            ['CommandPalette', 'NavSidebar', 'RuntimeTimerPanel', 'FullscreenTimer', 'FullscreenReview', 'MarkdownCanvasPage', 'SidebarLayout'],
+            ['FullscreenReview', 'FullscreenTimer', 'RuntimeTimerPanel'],
             'templates',
-            ['HomeHero', 'JournalDateScroll', 'CollectionWorkoutsList', 'CanvasPage', 'ReviewGrid'],
+            [
+              'CanvasPage', 'CollectionWorkoutsList', 'JournalDateScroll',
+              'LandingTemplate', 'ReviewGrid',
+              'SidebarLayout',
+              'NoteEditor', ['Mobile', 'Web'],
+              'Review',   ['Chromecast', 'Mobile', 'Web'],
+              'WallClock',  ['Chromecast', 'Mobile', 'Web'],
+            ],
             'pages',
-            ['Planner', 'Calendar', 'Collections', 'JournalPageShell', 'Syntax'],
+            [
+              'Collections', 'EffortDetailPage', 'EffortsCatalogPage',
+              'HomeView', 'JournalPage', 'JournalWeeklyPage', 'Planner',
+              'PlaygroundNotePage', 'ReviewPage', 'WallClockPage',
+            ],
           ],
           'integration',
+          [
+            'Playground', ['Collections', 'Home', 'Journal', 'Review', 'WallClock'],
+            'SpatialNavigation', ['AudioFeedback'],
+          ],
           'acceptance',
+          ['RuntimeCrossFit'],
+          'testing',
+          [
+            'benchmarks',
+            'syntax',
+            'mobile',
+            'ClockSyncValidation',
+            'SpatialNavigationValidation',
+          ],
         ],
       },
     },

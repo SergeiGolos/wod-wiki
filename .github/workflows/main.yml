@@ -1,52 +1,187 @@
-# This is a basic workflow to help you get started with Actions
-name: CI
+name: CI – Main
 
-# Controls when the workflow will run
+# The single main-branch pipeline. One job graph per push:
+#   verify (unit/story/coverage — no e2e, no smoke build)
+#     → version (Conventional Commits bump → tag X.Y.Z; the release marker
+#       the protected prod branch later publishes from)
+#     → site (S3 build → deploy → deployed-artifact e2e)
+# Publishing (GitHub Pages + npm + GitHub release) does NOT happen here —
+# it runs on push to the protected `prod` branch (prod.yml), which deploys
+# exactly the version tagged by this pipeline.
+# If the computed tag already exists at this commit SHA the tag step is a
+# no-op (idempotent). If it exists at a different SHA the tag job fails.
+
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: ["main", "prod"]
-  pull_request:
-    branches: ["main", "prod"]
-
-  # Allows you to run this workflow manually from the Actions tab
+    branches: ["main"]
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
-  # This workflow contains a single job called "build"
-  calc-variables:    
-    uses: ./.github/workflows/_calc-variables.yml
-
-  # This workflow contains a single job called "build"
-  qodana:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='prod' || github.ref_name=='main' }}
-    uses: ./.github/workflows/_code_quality.yml
-    secrets: inherit
-
-  build:    
-    needs: [calc-variables]
-    uses: ./.github/workflows/_build-bun.yml
+  verify:
+    uses: ./.github/workflows/_verify.yml
     secrets: inherit
     with:
-      version: ${{ needs.calc-variables.outputs.package-version }}
+      # No journal e2e and no smoke build on main — the site job's
+      # deployed-artifact e2e is the single merge-time e2e, and the site
+      # job builds the playground for real.
+      run-e2e: false
 
-  test-report:
-    needs: [calc-variables]
-    if: github.event_name == 'pull_request'
-    uses: ./.github/workflows/_test-report.yml
+  # Compute the next {major}.{minor}.{build} version from Conventional
+  # Commits and tag it. The tag is the single source of truth the prod
+  # branch publishes (Pages + npm + GitHub release) on merge.
+  version:
+    needs: [verify]
+    if: needs.verify.result == 'success'
+    uses: ./.github/workflows/_version.yml
+
+  tag:
+    name: Tag version
+    runs-on: ubuntu-22.04
+    needs: [version]
+    steps:
+      - name: Create version tag
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const tag = process.env.VERSION;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = context.sha;
+
+            try {
+              const ref = await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+              if (ref.data.object.sha === sha) {
+                core.info(`Tag ${tag} already exists at this SHA; nothing to do.`);
+                return;
+              }
+              core.setFailed(
+                `Tag ${tag} already exists at ${ref.data.object.sha}, expected ${sha}. ` +
+                `Refusing to move an existing release marker.`
+              );
+              return;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            await github.rest.git.createRef({
+              owner,
+              repo,
+              ref: `refs/tags/${tag}`,
+              sha,
+            });
+            core.info(`Created tag ${tag} at ${sha}.`);
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+
+  # Deployed-artifact check: build the S3-shaped playground + receiver +
+  # storybook once, sync to S3, then run the deployed-preview e2e against
+  # exactly this build (build-hash freshness gate in preview-e2e.yml).
+  site:
+    name: Deploy main site
+    runs-on: ubuntu-22.04
+    needs: [verify, version]
+    outputs:
+      bundle-hash: ${{ steps.fingerprint.outputs.hash }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
+      CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up environment (Bun + caches, no browsers)
+        uses: ./.github/actions/setup-env
+        with:
+          browsers: ''
+
+      - name: Build playground
+        env:
+          VITE_BASE_PATH: /main/dist/
+          VITE_APP_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          bun run build:app
+          VITE_BASE_PATH="/main/dist/" \
+            bun x vite build --config vite.receiver.config.ts
+
+      - name: Build Storybook
+        run: bun run build-storybook
+
+      - name: Compute build fingerprint
+        id: fingerprint
+        run: |
+          HASH=$(ls playground/dist/assets/main-*.js | head -n1 | sed -E 's/.*main-([^.]+)\.js/\1/')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy playground (main.preview.wod.wiki)
+        run: |
+          set -euo pipefail
+          echo "Uploading playground to s3://$S3_BUCKET/main/dist/"
+          aws s3 sync playground/dist/ "s3://$S3_BUCKET/main/dist/" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate" \
+            --exclude "*.map"
+
+      - name: Deploy Storybook (story.wod.wiki)
+        run: |
+          set -euo pipefail
+          echo "Uploading Storybook to s3://$S3_BUCKET/main/storybook/"
+          aws s3 sync ./storybook-static/ "s3://$S3_BUCKET/main/storybook/" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate" \
+            --exclude "*.map"
+
+      - name: Invalidate CloudFront cache (best-effort)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          if aws cloudfront create-invalidation \
+               --distribution-id "$CF_DISTRIBUTION_ID" \
+               --paths "/main/*"; then
+            echo "CloudFront invalidation submitted for /main/*"
+          else
+            echo "::warning::CloudFront invalidation failed; S3 sync succeeded and cache will refresh within 5 minutes via max-age."
+          fi
+
+  e2e:
+    name: Deployed-artifact E2E
+    needs: [site]
+    uses: ./.github/workflows/preview-e2e.yml
     secrets: inherit
-
-  deploy:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='prod' }}
-    needs: [build]
-    uses: ./.github/workflows/_deploy.yml
-    secrets: inherit
-
-  create-release:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='prod' }}
-    needs: [calc-variables, qodana, build, deploy]
-    uses: ./.github/workflows/_create-release.yml
     with:
-      tag-name: ${{ github.tag_name || needs.calc-variables.outputs.version }}
-      version: ${{ needs.calc-variables.outputs.version }}
+      preview-url: https://main.preview.wod.wiki
+      branch-slug: main
+      build-hash: ${{ needs.site.outputs.bundle-hash }}
+
+  summary:
+    name: Deploy summary
+    runs-on: ubuntu-22.04
+    if: always()
+    needs: [verify, version, tag, site, e2e]
+    steps:
+      - name: Write summary
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## Main pipeline
+
+          | Target | URL | Status |
+          | --- | --- | --- |
+          | Verify | — | ${{ needs.verify.result }} |
+          | Version tag | ${{ needs.version.outputs.version }} | ${{ needs.tag.result }} |
+          | Playground | https://main.preview.wod.wiki | ${{ needs.site.result }} |
+          | Storybook | https://story.wod.wiki | ${{ needs.site.result }} |
+          | E2E report | https://e2e.wod.wiki | ${{ needs.e2e.outputs.outcome }} |
+
+          > E2E: ${{ needs.e2e.outputs.tests }} tests, ${{ needs.e2e.outputs.failures }} failures.
+          EOF

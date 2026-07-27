@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - sport
+  - competition
+---
+
 ## Workout 7: Relay Competition Format
 
 **Category**: Girevoy Sport Team Competition  

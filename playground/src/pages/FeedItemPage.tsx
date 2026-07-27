@@ -3,9 +3,8 @@
  *
  * Renders a single feed workout in the JournalPageShell.
  * Content is read-only at source (build-time), but local edits are
- * saved to playgroundDB under `feed/{slug}/{date}/{item}` so scratch
+ * saved to playgroundContent under `feed/{slug}/{date}/{item}` so scratch
  * edits are preserved across sessions.
- *
  * Action bar exposes:
  *   - Add to Today   → appends the wod block to today's journal
  *   - Plan for date  → appends to a specific date's journal (calendar picker)
@@ -14,20 +13,23 @@
 
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { EditorView } from '@codemirror/view';
-import { PlusIcon, PlayIcon } from 'lucide-react';
-import { NoteEditor } from '@/components/Editor/NoteEditor';
+import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { JournalPageShell } from '@/panels/page-shells';
-import type { WodBlock } from '@/components/Editor/types';
-import { getWodFeedItem, getWodFeed } from '@/repositories/wod-feeds';
+import type { ScriptBlock } from '@/components/Editor/types';
+import { CalendarCard } from '@/components/atoms/CalendarCard';
+import { getScriptFeedItem, getScriptFeed } from '@/repositories/script-feeds';
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent';
-import { appendWorkoutToJournal } from '../services/journalWorkout';
+import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { pendingRuntimes } from '../runtimeStore';
+import { journalDatePath, runPath } from '../lib/routes';
 import { useNotePageNav } from './shared/useNotePageNav';
-import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
+import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
+import { shareBlock, openBlockInPlayground } from '../services/openInPlayground';
+import { PageActions } from './shared/PageActions';
 import { toast } from '@/hooks/use-toast';
-import { ToastAction } from '@/components/ui/toast';
+import { ToastAction } from '@/components/atoms/primitives/toast';
 import { localDateKey } from '../views/queriable-list/JournalDateScroll';
 
 export interface FeedItemPageProps {
@@ -37,6 +39,7 @@ export interface FeedItemPageProps {
   theme: string;
   onViewCreated?: (view: EditorView) => void;
   onScrollToSection?: (id: string) => void;
+  onSearch?: () => void;
 }
 
 export function FeedItemPage({
@@ -46,66 +49,61 @@ export function FeedItemPage({
   theme,
   onViewCreated,
   onScrollToSection,
+  onSearch,
 }: FeedItemPageProps) {
   const navigate = useNavigate();
 
-  const item = getWodFeedItem(feedSlug, feedDate, feedItem);
-  const feed = getWodFeed(feedSlug);
-
-  // Store local edits under a deterministic key in playgroundDB.
-  // The feed item's canonical content is the mdContent fallback.
+  const item = getScriptFeedItem(feedSlug, feedDate, feedItem);
+  const feed = getScriptFeed(feedSlug);
   const playgroundCategory = `feed/${feedSlug}/${feedDate}`;
+  // Store local edits under a deterministic key in playgroundContent.
+  // The feed item's canonical content is the mdContent fallback.
   const { content, onChange, onLineChange, onBlur } = usePlaygroundContent({
     category: playgroundCategory,
     name: feedItem,
     mdContent: item?.content ?? `# ${feedItem}\n\n*Feed item not found.*\n`,
   });
 
-  const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([]);
+  const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([]);
   const noteId = `feed/${feedSlug}/${feedDate}/${feedItem}`;
 
   const handleStartWorkout = useCallback(
-    async (block: WodBlock) => {
+    async (block: ScriptBlock) => {
       try {
-        const runtimeId = uuidv4();
-        const journalNoteId = await appendWorkoutToJournal({
+        const runtimeId = uuidv7();
+        const journalNote = await createJournalNoteFromWorkout({
           workoutName: item?.name ?? feedItem,
           category: feedSlug,
           sourceNoteLabel: feed?.name,
           sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}`,
           wodContent: block.content,
         });
-        pendingRuntimes.set(runtimeId, { block, noteId: journalNoteId });
-        const dateKey = journalNoteId.replace('journal/', '');
-        navigate(`/journal/${dateKey}?autoStart=${runtimeId}`);
+        pendingRuntimes.set(runtimeId, { block, noteId: journalNote.id });
+        navigate(`${journalDatePath(journalNote.journalDate ?? '')}?autoStart=${runtimeId}`);
       } catch {
-        const runtimeId = uuidv4();
+        const runtimeId = uuidv7();
         pendingRuntimes.set(runtimeId, { block, noteId });
-        navigate(`/tracker/${runtimeId}`);
+        navigate(runPath(runtimeId));
       }
     },
     [feed, feedItem, feedSlug, item, navigate, noteId],
   );
 
-  const handleAddToToday = useCallback(async () => {
+  const handleAddToToday = useCallback(async (block: ScriptBlock) => {
     try {
-      const journalNoteId = await appendWorkoutToJournal({
+      const journalNote = await createJournalNoteFromWorkout({
         workoutName: item?.name ?? feedItem,
         category: feedSlug,
         sourceNoteLabel: feed?.name,
         sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}`,
-        wodContent: content,
-        wrapInWod: false,
+        wodContent: block.content,
       });
-      const dateKey = journalNoteId.replace('journal/', '');
       const today = localDateKey(new Date());
       toast({
         title: 'Added to journal',
-        description: dateKey === today
-          ? `Added to today's journal`
-          : `Added to ${dateKey}`,
+        description: journalNote.journalDate === today ? `Added to today's journal` : `Added to ${journalNote.journalDate}`,
         action: (
-          <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
+          <ToastAction altText="Open journal" onClick={() => navigate(journalNotePath(journalNote.journalDate ?? '', journalNote.id))}>
             Open
           </ToastAction>
         ),
@@ -113,57 +111,105 @@ export function FeedItemPage({
     } catch {
       toast({ title: 'Error', description: 'Could not add to journal', variant: 'destructive' });
     }
-  }, [content, feed, feedItem, feedSlug, item, navigate]);
+  }, [feed, feedItem, feedSlug, item, navigate]);
+
+  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null);
+
+  const handleScheduleBlock = useCallback(async (block: ScriptBlock, date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const dateKey = `${y}-${m}-${d}`;
+    try {
+      await createJournalNoteFromWorkout({
+        workoutName: item?.name ?? feedItem,
+        category: feedSlug,
+        sourceNoteLabel: feed?.name,
+        sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}`,
+        wodContent: block.content,
+        date: date,
+      });
+      navigate(`/journal?s=${dateKey}`);
+      toast({
+        title: 'Scheduled',
+        description: `Added to journal for ${dateKey}`,
+        action: (
+          <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
+            Open
+          </ToastAction>
+        ),
+      });
+    } catch {
+      toast({ title: 'Error', description: 'Could not schedule workout', variant: 'destructive' });
+    }
+  }, [feed, feedItem, feedSlug, item, navigate]);
 
   const index = useNotePageNav({
     content,
-    wodBlocks,
+    scriptBlocks,
     onStartWorkout: handleStartWorkout,
   });
 
-  const actions = (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={handleAddToToday}
-        className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors"
-      >
-        <PlusIcon className="size-3.5" />
-        Add to Today
-      </button>
-      {wodBlocks.length > 0 && (
-        <button
-          onClick={() => wodBlocks[0] && handleStartWorkout(wodBlocks[0])}
-          className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          <PlayIcon className="size-3.5" />
-          Run Now
-        </button>
-      )}
-      <CastButtonRpc />
-    </div>
-  );
+  const commands = useScriptBlockCommands('collection-readonly', {
+    onPlay: handleStartWorkout,
+    onShare: shareBlock,
+    onAddToToday: handleAddToToday,
+    onSchedule: setPendingScheduleBlock,
+    onOpenInPlayground: (block) => openBlockInPlayground(block, navigate),
+  });
 
   return (
-    <JournalPageShell
-      title={item?.name ?? feedItem}
-      index={index}
-      onScrollToSection={onScrollToSection}
-      actions={actions}
-      editor={
-        <NoteEditor
-          value={content}
-          onChange={onChange}
-          onCursorPositionChange={onLineChange}
-          onBlur={onBlur}
-          noteId={noteId}
-          onStartWorkout={handleStartWorkout}
-          enableInlineRuntime={false}
-          onViewCreated={onViewCreated}
-          theme={theme}
-          showLineNumbers={false}
-          onBlocksChange={setWodBlocks}
-        />
-      }
-    />
+    <>
+      <JournalPageShell
+        title={item?.name ?? feedItem}
+        index={index}
+        onScrollToSection={onScrollToSection}
+        actions={
+          <PageActions
+            mode="collection-readonly"
+            currentWorkout={{ name: item?.name ?? feedItem, content }}
+            index={index}
+            onSearch={onSearch ?? (() => {})}
+          />
+        }
+        editor={
+          <NoteEditor
+            value={content}
+            onChange={onChange}
+            onCursorPositionChange={onLineChange}
+            onBlur={onBlur}
+            noteId={noteId}
+            commands={commands}
+            enableInlineRuntime={false}
+            onViewCreated={onViewCreated}
+            theme={theme}
+            showLineNumbers={false}
+            onBlocksChange={setScriptBlocks}
+          />
+        }
+      />
+      {pendingScheduleBlock && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setPendingScheduleBlock(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-xl p-5 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold mb-4 text-foreground">
+              Schedule for&hellip;
+            </p>
+            <CalendarCard
+              selectedDate={null}
+              onDateSelect={(date) => {
+                handleScheduleBlock(pendingScheduleBlock, date)
+                setPendingScheduleBlock(null)
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

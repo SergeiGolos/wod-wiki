@@ -3,7 +3,7 @@ import { IBlockContext } from "../contracts/IBlockContext";
 import { BlockKey } from "../../core/models/BlockKey";
 import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import { RuntimeBlock } from "../RuntimeBlock";
-import { IScriptRuntime } from "../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../contracts/IRuntimeContext";
 import { IMetric, MetricType } from "../../core/models/Metric";
 import { MetricContainer } from "../../core/models/MetricContainer";
 import { MemoryLocation } from "../memory/MemoryLocation";
@@ -16,18 +16,11 @@ import {
     SpanTrackingBehavior,
     ChildSelectionBehavior,
     ChildSelectionConfig,
-    ChildSelectionLoopCondition
+    ChildSelectionLoopCondition,
+    ExitBehavior,
+    MetricPromotionBehavior
 } from "../behaviors";
 
-/** Round configuration stored by asRepeater() and forwarded by asContainer() */
-export interface RepeaterConfig {
-    totalRounds?: number;
-    startRound?: number;
-    addCompletion?: boolean;
-}
-
-/** @deprecated Use RepeaterConfig. Kept for external call-site backward compatibility */
-export type ReEntryConfig = RepeaterConfig;
 
 /** Legacy timer config shape — kept for call-site backward compatibility */
 export interface TimerConfig {
@@ -39,6 +32,13 @@ export interface TimerConfig {
 
 export interface TimerCompletionConfig {
     completesBlock?: boolean;
+}
+
+/** Round configuration stored by asRepeater() and forwarded by asContainer() */
+export interface RepeaterConfig {
+    totalRounds?: number;
+    startRound?: number;
+    addCompletion?: boolean;
 }
 
 /** @internal re-exported for backward compat */ 
@@ -54,14 +54,13 @@ export class BlockBuilder {
     private sourceIds: number[] = [];
     /** Pending round config stored by asRepeater(), consumed by asContainer() */
     private pendingRoundConfig: RepeaterConfig | undefined;
+    /** Declared exit intent — resolved into a single ExitBehavior in build(). */
+    private declaredExitMode: 'immediate' | 'deferred' | undefined;
 
-    constructor(private runtime: IScriptRuntime) { }
+    constructor(private runtime: IRuntimeContext) {}
 
     addBehavior(behavior: IRuntimeBehavior): BlockBuilder {
-        // Key by constructor to allow replacement by type
-        // However, we might want multiple behaviors of the same type?
-        // For now, let's assume one behavior per type is the rule for things like Timers/Loops.
-        // But ActionLayer, Sound, etc might be additive?
+
         // The user prompt implies "union".
         // But we also need "override".
         // Strategy: Key by constructor. High priority strategies run first and add behaviors.
@@ -99,17 +98,56 @@ export class BlockBuilder {
 
     /**
      * Remove a behavior by its constructor type.
-     * Used by enhancement strategies to remove conflicting behaviors
-    * added by earlier strategies (e.g., removing LeafExitBehavior
-    * when child-selection behavior takes over completion management).
+     *
+     * Private: this is a mechanic `build()` uses to resolve a declared exit
+     * intent (see `declareExit`) into exactly one `ExitBehavior`. Strategies
+     * declare intent instead of calling this directly — see §2.3 of
+     * docs/architectural-cleanup-tier-2-consolidations.md for why strategies
+     * used to mutate each other's contributions this way, and why that
+     * coupling was removed.
      */
-    removeBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
+    private removeBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
         this.behaviors.delete(type);
+        return this;
+    }
+
+    /**
+     * Move an already-added behavior to the LAST position in the behavior list.
+     *
+     * Behavior order = Map insertion order = RuntimeBlock.onNext execution order.
+     *
+     * Private: `build()` calls this once to canonicalize ordering (e.g.
+     * MetricPromotionBehavior must run after ChildSelectionBehavior so it sees
+     * the round ChildSelectionBehavior just advanced). No-op when the behavior
+     * is not present (or already last). Strategies no longer call this
+     * directly — see §2.3 of docs/architectural-cleanup-tier-2-consolidations.md.
+     */
+    private moveBehaviorLast<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
+        const behavior = this.behaviors.get(type);
+        if (!behavior) return this;
+        this.behaviors.delete(type);
+        this.behaviors.set(type, behavior);
         return this;
     }
 
     hasBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): boolean {
         return this.behaviors.has(type);
+    }
+    /**
+     * Declare the block's exit intent. Strategies call this instead of adding
+     * or removing ExitBehavior across each other. 'deferred' supersedes
+     * 'immediate' (a container strategy overrides a leaf strategy's
+     * immediate-exit guess). Resolved into a single ExitBehavior in build().
+     */
+    declareExit(mode: 'immediate' | 'deferred'): BlockBuilder {
+        if (mode === 'deferred' || this.declaredExitMode === undefined) {
+            this.declaredExitMode = mode;
+        }
+        return this;
+    }
+    /** The declared exit intent (resolved into a single ExitBehavior in build). */
+    get exitMode(): 'immediate' | 'deferred' | undefined {
+        return this.declaredExitMode;
     }
 
     getBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): T | undefined {
@@ -137,13 +175,37 @@ export class BlockBuilder {
     }
 
     setFragments(metrics: IMetric[][] | MetricContainer[]): BlockBuilder {
-        this.metrics = metrics.map(group => MetricContainer.from(group));
+        // Hint metrics are semantic markers, not display fragments — drop them
+        // so they never surface as block metrics.
+        this.metrics = metrics.map(group => {
+            const container = MetricContainer.from(group);
+            container.removeByType(MetricType.Hint);
+            return container;
+        });
         return this;
     }
 
     setSourceIds(ids: number[]): BlockBuilder {
         this.sourceIds = ids;
         return this;
+    }
+    getLabel(): string {
+        return this.label;
+    }
+    getBlockType(): string {
+        return this.blockType;
+    }
+    getFragments(): MetricContainer[] | undefined {
+        return this.metrics;
+    }
+    getSourceIds(): number[] {
+        return this.sourceIds;
+    }
+    getContext(): IBlockContext | undefined {
+        return this.context;
+    }
+    getKey(): BlockKey | undefined {
+        return this.key;
     }
 
     // ============================================================================
@@ -161,8 +223,8 @@ export class BlockBuilder {
      * @param config Timer configuration
      * @returns This builder for chaining
      */
-    asTimer(config: TimerConfig & { 
-        addCompletion?: boolean; 
+    asTimer(config: TimerConfig & {
+        addCompletion?: boolean;
         completionConfig?: TimerCompletionConfig;
         injectRest?: boolean;
         required?: boolean;
@@ -171,14 +233,17 @@ export class BlockBuilder {
             const mode: CountdownMode = config.completionConfig?.completesBlock === false
                 ? 'reset-interval'
                 : 'complete-block';
-            
+
+            // The `restBlockFactory` closure is a builder concern (it talks
+            // to runtime/push-action plumbing that is not a behavior concern),
+            // so it stays closed over here rather than moving into the behavior.
             this.addBehavior(new CountdownTimerBehavior({
                 durationMs: config.durationMs,
                 label: config.label,
                 role: config.role,
                 mode,
                 required: config.required,
-                restBlockFactory: config.injectRest ? (durationMs, label) => {
+                restBlockFactory: config.injectRest ? (durationMs: number, label?: string) => {
                     const restBlock = new RestBlock(this.runtime, { durationMs, label });
                     return [new PushBlockAction(restBlock)];
                 } : undefined
@@ -191,7 +256,6 @@ export class BlockBuilder {
         }
         return this;
     }
-
     /**
      * Returns true if round config was stored via asRepeater().
      * Use this guard in strategies that must skip their iteration logic when rounds are already set.
@@ -268,16 +332,33 @@ export class BlockBuilder {
         // Add Universal Invariants - automatically added to ALL blocks
         // These behaviors are added implicitly and don't require strategy opt-in
         this.addBehaviorIfMissing(new CompletionTimestampBehavior());
+        // Resolve declared exit intent into exactly one ExitBehavior. Strategies
+        // declare intent (declareExit) rather than add/remove ExitBehavior across
+        // each other; 'deferred' wins over 'immediate'. A declared intent supersedes
+        // any ExitBehavior a strategy added directly (e.g. a timer strategy's default
+        // exit is overridden by a container's 'deferred') — matching the former
+        // removeBehavior+re-add that ChildrenStrategy did inline.
+        if (this.declaredExitMode) {
+            this.removeBehavior(ExitBehavior);
+            this.addBehavior(new ExitBehavior(
+                this.declaredExitMode === 'immediate'
+                    ? { mode: 'immediate', onNext: true }
+                    : { mode: 'deferred' }
+            ));
+        }
+        // Canonical order: MetricPromotionBehavior runs after ChildSelectionBehavior
+        // so it observes the round ChildSelectionBehavior just advanced.
+        this.moveBehaviorLast(MetricPromotionBehavior);
 
-        const block = new RuntimeBlock(
-            this.runtime,
-            this.sourceIds,
-            Array.from(this.behaviors.values()),
-            this.context,
-            this.key,
-            this.blockType
+        const block = new RuntimeBlock({
+            runtime: this.runtime,
+            sourceIds: this.sourceIds,
+            behaviors: Array.from(this.behaviors.values()),
+            context: this.context,
+            key: this.key,
+            blockType: this.blockType,
             // label is NOT passed here — it's pushed as a Label metrics below
-        );
+        });
 
         // Push metrics memory preserving group structure from strategies
         if (this.metrics && this.metrics.length > 0) {

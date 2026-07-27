@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
 import { IRuntimeBlockStrategy } from '@/runtime/contracts';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { BlockBuilder } from '@/runtime/BlockBuilder';
+import { BlockBuilder } from '@/runtime/compiler/BlockBuilder';
 import { BlockContext } from '@/runtime/BlockContext';
 import { BlockKey } from '@/core/models/BlockKey';
 

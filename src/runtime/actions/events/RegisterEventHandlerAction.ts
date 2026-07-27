@@ -1,5 +1,5 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { IEventHandler } from '../../contracts/events/IEventHandler';
 import { HandlerScope } from '../../contracts/events/IEventBus';
 
@@ -31,7 +31,7 @@ export class RegisterEventHandlerAction implements IRuntimeAction {
     public readonly scope: HandlerScope = 'active'
   ) {}
 
-  do(runtime: IScriptRuntime): void {
+  do(runtime: IRuntimeContext): void {
     runtime.eventBus.register('*', this.handler, this.ownerId, { scope: this.scope });
   }
 }

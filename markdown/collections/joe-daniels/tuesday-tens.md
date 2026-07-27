@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - sport
+---
+
 ## Workout 3: Tuesday Tens
 
 **Category**: Joe Daniels Conditioning  

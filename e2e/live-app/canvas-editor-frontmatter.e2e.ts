@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Canvas editor source content', () => {
-  test('does not show YAML frontmatter on syntax pages', async ({ page }) => {
+  test('does not show YAML frontmatter on syntax pages', async ({ page }, testInfo) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
 
@@ -20,6 +20,6 @@ test.describe('Canvas editor source content', () => {
     expect(joinedEditorText).not.toContain('title: Just a Movement');
 
     expect(errors).toHaveLength(0);
-    await page.screenshot({ path: 'e2e/screenshots/canvas-editor-frontmatter.png', fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath('canvas-editor-frontmatter.png'), fullPage: true });
   });
 });

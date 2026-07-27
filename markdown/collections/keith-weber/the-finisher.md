@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - cardio
+---
+
 ## Workout 5: The Finisher (Metabolic Conditioning)
 
 **Category**: Keith Weber Metabolic  

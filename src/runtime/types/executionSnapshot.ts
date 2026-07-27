@@ -1,5 +1,6 @@
 // Runtime execution snapshot types
-// Extracted from runtime-test-bench/types/interfaces.ts for use in production code
+// Promoted out of the removed runtime-test-bench subsystem because these
+// contracts are still used by production runtime surfaces.
 
 import type { MetricContainer } from '../../core/models/MetricContainer';
 

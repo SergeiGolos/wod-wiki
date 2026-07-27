@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # IM Readiness Basics
 
 **Type**: Technique Focus  

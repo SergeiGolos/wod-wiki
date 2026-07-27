@@ -10,11 +10,11 @@
  * 
  * @example
  * ```typescript
- * const factory = new RuntimeFactory(globalCompiler);
- * const runtime = factory.createRuntime(wodBlock);
+ * const factory = new RuntimeFactory(createCompiler());
+ * const runtime = factory.createRuntime(scriptBlock);
  * 
  * // With debug mode
- * const debugRuntime = factory.createRuntime(wodBlock, { debugMode: true });
+ * const debugRuntime = factory.createRuntime(scriptBlock, { debugMode: true });
  * ```
  */
 
@@ -24,10 +24,14 @@ import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
 import { WhiteboardScript } from '../../parser/WhiteboardScript';
-import type { WodBlock } from '../../components/Editor/types';
+import type { ScriptBlock } from '../../components/Editor/types';
 import { RuntimeStackOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
+import type { INowProvider } from '../INowProvider';
+import { wallClockNow } from '../INowProvider';
 import { StartSessionAction } from '../actions/stack/StartSessionAction';
+import { createAnalyticsEngineForBlock } from '../../core/analytics/createAnalyticsEngineForBlock';
+import { collapseUnresolvedChoices } from './metrics/ChoiceResolution';
 
 /**
  * Interface for runtime factory implementations
@@ -35,12 +39,12 @@ import { StartSessionAction } from '../actions/stack/StartSessionAction';
  */
 export interface IRuntimeFactory {
   /**
-   * Creates a new ScriptRuntime from a WodBlock
+   * Creates a new ScriptRuntime from a ScriptBlock
    * @param block - The WOD block containing workout script and parsed statements
    * @param options - Optional runtime options (debug mode, logging, tracker, etc.)
    * @returns A fully initialized ScriptRuntime, or null if block has no statements
    */
-  createRuntime(block: WodBlock, options?: RuntimeStackOptions): IScriptRuntime | null;
+  createRuntime(block: ScriptBlock, options?: RuntimeStackOptions): IScriptRuntime | null;
 
   /**
    * Disposes of a runtime and cleans up resources
@@ -53,10 +57,13 @@ export interface IRuntimeFactory {
  * Default implementation of IRuntimeFactory
  */
 export class RuntimeFactory implements IRuntimeFactory {
-  constructor(private readonly compiler: JitCompiler) { }
+  constructor(
+    private readonly compiler: JitCompiler,
+    private readonly nowProvider: INowProvider = wallClockNow,
+  ) { }
 
   /**
-   * Creates a new ScriptRuntime from a WodBlock
+   * Creates a new ScriptRuntime from a ScriptBlock
    * 
    * Process:
    * 1. Validates block has statements
@@ -68,7 +75,7 @@ export class RuntimeFactory implements IRuntimeFactory {
    * @param options - Optional runtime options (debug mode, logging, tracker, etc.)
    * @returns Initialized ScriptRuntime or null if invalid block
    */
-  createRuntime(block: WodBlock, options?: RuntimeStackOptions): IScriptRuntime | null {
+  createRuntime(block: ScriptBlock, options?: RuntimeStackOptions): IScriptRuntime | null {
     if (!block.statements || block.statements.length === 0) {
       return null;
     }
@@ -76,8 +83,16 @@ export class RuntimeFactory implements IRuntimeFactory {
     // Create WhiteboardScript from block content and statements
     const script = new WhiteboardScript(block.content, block.statements);
 
+    // Collapse any unresolved Choice Groups BEFORE the runtime spins up its first
+    // block. The Pre-Run Wizard resolves Choices at origin 'user-plan'; this is the
+    // enforced safety net that defaults anything still unresolved to its first
+    // alternative, guaranteeing a MetricType.Choice never reaches a compiled Block
+    // — even on entry points that never surface the wizard.
+    collapseUnresolvedChoices(script.statements);
+
     // Instantiate dependencies
     const stack = new RuntimeStack();
+    // Clock is wall-clock; tests inject a mock via ScriptRuntime ctor.
     const clock = new RuntimeClock();
     const eventBus = new EventBus();
 
@@ -88,7 +103,12 @@ export class RuntimeFactory implements IRuntimeFactory {
     };
 
     // Create runtime with JIT compiler and optional debug options
-    const runtime = new ScriptRuntime(script, this.compiler, dependencies, options);
+    const runtime = new ScriptRuntime(script, this.compiler, dependencies, options, this.nowProvider);
+
+    // Wire analytics engine automatically for all runtimes
+    const { engine, analyticsContext } = createAnalyticsEngineForBlock(block, options?.analyticsOptions);
+    runtime.analyticsContext = analyticsContext;
+    runtime.setAnalyticsEngine(engine);
 
     // Start the workout by dispatching StartSessionAction
     // This wraps the script in a SessionRootBlock (with WaitingToStart gate)
@@ -107,17 +127,4 @@ export class RuntimeFactory implements IRuntimeFactory {
 
     runtime.dispose();
   }
-}
-
-/**
- * Creates a default RuntimeFactory with the global compiler
- * Useful for quick setup in components
- * 
- * @deprecated Use explicit RuntimeFactory construction with a JitCompiler instance
- * to avoid coupling to testbench services.
- */
-export async function createDefaultRuntimeFactory(): Promise<RuntimeFactory> {
-  // Dynamic import to avoid circular dependency and browser compatibility
-  const { globalCompiler } = await import('../../runtime/services/runtimeServices');
-  return new RuntimeFactory(globalCompiler);
 }

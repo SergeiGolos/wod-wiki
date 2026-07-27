@@ -5,12 +5,14 @@ import { MetricType } from '../../core/models/Metric';
 import { MetricContainer } from '../../core/models/MetricContainer';
 import { RoundState, TimerState } from '../memory/MemoryTypes';
 import { TimeSpan } from '../models/TimeSpan';
+import { readTimer } from '../time/TimerSpans';
 import { calculateElapsed } from '../time/calculateElapsed';
 import { CurrentRoundMetric } from '../compiler/metrics/CurrentRoundMetric';
 import { ElapsedMetric } from '../compiler/metrics/ElapsedMetric';
 import { TotalMetric } from '../compiler/metrics/TotalMetric';
 import { SpansMetric } from '../compiler/metrics/SpansMetric';
 import { SystemTimeMetric } from '../compiler/metrics/SystemTimeMetric';
+import { INowProvider, wallClockNow } from '../INowProvider';
 
 export interface ReportOutputConfig {
     label?: string;
@@ -22,7 +24,10 @@ export interface ReportOutputConfig {
 export class ReportOutputBehavior implements IRuntimeBehavior {
     private lastEmittedRound?: number;
 
-    constructor(private readonly config: ReportOutputConfig = {}) { }
+    constructor(
+        private readonly config: ReportOutputConfig = {},
+        private readonly _now: INowProvider = wallClockNow,
+    ) { }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         const shouldEmitSegment = this.config.emitSegmentOnMount ?? false;
@@ -77,7 +82,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const timer = ctx.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
+        const timer = readTimer(ctx);
         const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
         const shouldComputeTimeResults = this.config.computeTimeResults ?? true;
 
@@ -105,29 +110,18 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                     completionLabel
                 );
                 this.writeResultGroups(ctx, resultGroups);
-
-                for (const group of resultGroups) {
-                    ctx.emitOutput('completion', group.toArray(), {
-                        label: completionLabel,
-                    });
-                }
                 return [];
             }
         }
 
-        // Default single-output result
         const resultFragments = shouldComputeTimeResults
             ? this.computeTimeResults(ctx, timer, completionLabel)
             : MetricContainer.from(
-                [new SystemTimeMetric(new Date(), ctx.block.key.toString())],
+                [new SystemTimeMetric(this._now.now(), ctx.block.key.toString())],
                 ctx.block.key.toString()
             );
 
         this.writeResultMemory(ctx, resultFragments);
-
-        ctx.emitOutput('completion', resultFragments.toArray(), {
-            label: completionLabel,
-        });
 
         return [];
     }
@@ -165,18 +159,18 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                 round.current,
                 round.total,
                 ctx.block.key.toString(),
-                ctx.clock.now,
+                ctx.clock.currentDate,
             ),
         );
 
-        const timer = ctx.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
+        const timer = readTimer(ctx);
         if (timer) {
-            const nowMs = ctx.clock.now.getTime();
+            const nowMs = ctx.clock.currentDate.getTime();
             const elapsed = calculateElapsed(timer, nowMs);
-            metrics.add(new ElapsedMetric(elapsed, ctx.block.key.toString(), ctx.clock.now));
+            metrics.add(new ElapsedMetric(elapsed, ctx.block.key.toString(), ctx.clock.currentDate));
 
             if (timer.spans.length > 0) {
-                metrics.add(new SpansMetric([...timer.spans], ctx.block.key.toString(), ctx.clock.now));
+                metrics.add(new SpansMetric([...timer.spans], ctx.block.key.toString(), ctx.clock.currentDate));
             }
         }
 
@@ -188,7 +182,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         timer: TimerState | undefined,
         customRoundLabel?: string
     ): MetricContainer {
-        const now = ctx.clock.now;
+        const now = ctx.clock.currentDate;
         const nowMs = now.getTime();
         const blockKey = ctx.block.key.toString();
         const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
@@ -204,7 +198,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                 new ElapsedMetric(elapsed, blockKey, now),
                 new TotalMetric(total, blockKey, now),
                 new SpansMetric([...timer.spans], blockKey, now),
-                new SystemTimeMetric(new Date(), blockKey),
+                new SystemTimeMetric(this._now.now(), blockKey),
             );
             if (round) {
                 metrics.add(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
@@ -217,7 +211,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             new ElapsedMetric(0, blockKey, now),
             new TotalMetric(0, blockKey, now),
             new SpansMetric([degenerateSpan], blockKey, now),
-            new SystemTimeMetric(new Date(), blockKey),
+            new SystemTimeMetric(this._now.now(), blockKey),
         );
         if (round) {
             metrics.add(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
@@ -231,7 +225,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         groups: MetricContainer[],
         customRoundLabel?: string
     ): MetricContainer[] {
-        const now = ctx.clock.now;
+        const now = ctx.clock.currentDate;
         const nowMs = now.getTime();
         const blockKey = ctx.block.key.toString();
         const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
@@ -242,7 +236,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                     new ElapsedMetric(0, blockKey, now),
                     new TotalMetric(0, blockKey, now),
                     new SpansMetric([new TimeSpan(nowMs, nowMs)], blockKey, now),
-                    new SystemTimeMetric(new Date(), blockKey),
+                    new SystemTimeMetric(this._now.now(), blockKey),
                 );
                 if (round) {
                     groupFragments.add(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
@@ -282,7 +276,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                 new ElapsedMetric(groupElapsed, blockKey, now),
                 new TotalMetric(groupTotal, blockKey, now),
                 new SpansMetric([new TimeSpan(groupStart, groupEnd)], blockKey, now),
-                new SystemTimeMetric(new Date(), blockKey),
+                new SystemTimeMetric(this._now.now(), blockKey),
             );
             if (round) {
                 groupFragments.add(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));

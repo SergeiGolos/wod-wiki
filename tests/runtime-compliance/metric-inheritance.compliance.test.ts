@@ -15,87 +15,111 @@
  *
  * Spec: docs/finishline/compliance-scenarios/metric-inheritance.md
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import {
-    createSessionContext,
-    startSession,
-    userNext,
-    advanceClock,
-    disposeSession,
-    type SessionTestContext,
-} from '../jit-compilation/helpers/session-test-utils';
+import { it, expect } from 'bun:test';
+import { describeCompliance } from '@/testing/script';
+import type { TestScript, ScriptState } from '@/testing/script';
 import { MetricType } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /**
- * Returns all display metrics for the current top-of-stack block (flat array).
+ * Returns merged display metrics for the current top-of-stack block.
  */
-function currentDisplayMetrics(ctx: SessionTestContext) {
-    const block = ctx.runtime.stack.current;
-    if (!block) return [];
-    return block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics);
+async function currentDisplayMetricContainer(state: ScriptState, script: TestScript): Promise<MetricContainer> {
+    const block = state.current;
+    if (!block) return MetricContainer.empty('current-display');
+
+    const memoryMetrics = MetricContainer.empty(block.key.toString());
+    for (const loc of block.getMemoryByTag('metric:display')) {
+        memoryMetrics.merge(loc.metrics);
+    }
+
+    const statementMetrics = MetricContainer.empty(block.key.toString());
+    for (const statement of (script.runtime as any).script.getIds(block.sourceIds)) {
+        statementMetrics.merge(statement.getDisplayMetrics());
+    }
+
+    if (statementMetrics.isEmpty) {
+        return memoryMetrics;
+    }
+
+    const effectiveMetrics = memoryMetrics.clone(block.key.toString());
+    const overriddenTypes = new Set(statementMetrics.getDisplayMetrics().map(metric => metric.type));
+    for (const metricType of overriddenTypes) {
+        effectiveMetrics.remove(metric => metric.type === metricType);
+    }
+
+    effectiveMetrics.merge(statementMetrics);
+    return effectiveMetrics;
+}
+
+/**
+ * Returns all resolved display metrics for the current top-of-stack block.
+ */
+async function currentDisplayMetrics(state: ScriptState, script: TestScript) {
+    return (await currentDisplayMetricContainer(state, script)).getDisplayMetrics();
 }
 
 /**
  * Returns the Resistance metric value for the current block, or undefined if absent.
  */
-function currentResistance(ctx: SessionTestContext): { amount: number | undefined; unit: string } | undefined {
-    const metrics = currentDisplayMetrics(ctx);
+async function currentResistance(state: ScriptState, script: TestScript): Promise<{ amount: number | undefined; unit: string } | undefined> {
+    const metrics = await currentDisplayMetrics(state, script);
     // Combine split resistance metrics (amount and unit may be stored separately).
     const amountMetric = metrics.find(
-        m => m.type === MetricType.Resistance && (m.value as any)?.amount !== undefined,
+        m => m.type === MetricType.Resistance && (m.value as unknown)?.amount !== undefined,
     );
     const unitMetric = metrics.find(
-        m => m.type === MetricType.Resistance && (m.value as any)?.unit !== undefined && (m.value as any)?.amount === undefined,
+        m => m.type === MetricType.Resistance && (m.value as unknown)?.unit !== undefined && (m.value as unknown)?.amount === undefined,
     );
     if (!amountMetric && !unitMetric) return undefined;
-    const amount = (amountMetric?.value as any)?.amount as number | undefined;
-    const unit = ((amountMetric?.value as any)?.unit || (unitMetric?.value as any)?.unit || '') as string;
+    const amount = (amountMetric?.value as unknown)?.amount as number | undefined;
+    const unit = ((amountMetric?.value as unknown)?.unit || (unitMetric?.value as any)?.unit || '') as string;
     return { amount, unit };
 }
 
 /**
  * Returns the rep count for the current block, or undefined if absent.
  */
-function currentReps(ctx: SessionTestContext): number | undefined {
-    const metrics = currentDisplayMetrics(ctx);
-    const rep = metrics.find(m => m.type === MetricType.Rep);
+async function currentReps(state: ScriptState, script: TestScript): Promise<number | undefined> {
+    const rep = (await currentDisplayMetricContainer(state, script)).getMetric(MetricType.Rep);
     return rep?.value as number | undefined;
 }
 
 /**
  * Returns the Distance metric for the current block, or undefined if absent.
  */
-function currentDistance(ctx: SessionTestContext): { amount: number | undefined; unit: string } | undefined {
-    const metrics = currentDisplayMetrics(ctx);
+async function currentDistance(state: ScriptState, script: TestScript): Promise<{ amount: number | undefined; unit: string } | undefined> {
+    const metrics = await currentDisplayMetrics(state, script);
     const amountMetric = metrics.find(
-        m => m.type === MetricType.Distance && (m.value as any)?.amount !== undefined,
+        m => m.type === MetricType.Distance && (m.value as unknown)?.amount !== undefined,
     );
     const unitMetric = metrics.find(
-        m => m.type === MetricType.Distance && (m.value as any)?.unit !== undefined,
+        m => m.type === MetricType.Distance && (m.value as unknown)?.unit !== undefined,
     );
     if (!amountMetric && !unitMetric) return undefined;
-    const amount = (amountMetric?.value as any)?.amount as number | undefined;
-    const unit = ((amountMetric?.value as any)?.unit || (unitMetric?.value as any)?.unit || '') as string;
+    const amount = (amountMetric?.value as unknown)?.amount as number | undefined;
+    const unit = ((amountMetric?.value as unknown)?.unit || (unitMetric?.value as any)?.unit || '') as string;
     return { amount, unit };
 }
 
 /**
  * Returns true when the current block's display metrics include a Resistance entry.
  */
-function currentHasResistance(ctx: SessionTestContext): boolean {
-    return currentDisplayMetrics(ctx).some(m => m.type === MetricType.Resistance);
+async function currentHasResistance(state: ScriptState, script: TestScript): Promise<boolean> {
+    return (await currentDisplayMetricContainer(state, script)).hasMetric(MetricType.Resistance);
 }
 
 /**
  * Returns true when the current block's display metrics include a Distance entry.
  */
-function currentHasDistance(ctx: SessionTestContext): boolean {
-    return currentDisplayMetrics(ctx).some(m => m.type === MetricType.Distance);
+async function currentHasDistance(state: ScriptState, script: TestScript): Promise<boolean> {
+    return (await currentDisplayMetricContainer(state, script)).hasMetric(MetricType.Distance);
 }
+
 
 // ===========================================================================
 // 🟢 Weight Inside AMRAP — sibling isolation
@@ -105,99 +129,85 @@ function currentHasDistance(ctx: SessionTestContext): boolean {
 //
 // Spec: metric-inheritance.md#-weight-inside-amrap
 // ===========================================================================
-describe('🟢 Weight Inside AMRAP — sibling weight isolation', () => {
-    const SCRIPT = '10:00 AMRAP\n  5 Thrusters 95 lb\n  10 Pushups';
-    let ctx: SessionTestContext;
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+describeCompliance('🟢 Weight Inside AMRAP — sibling weight isolation', '10:00 AMRAP\n  5 Thrusters 95 lb\n  10 Pushups', (ctx) => {
 
-    it('step 1: Thrusters effort is mounted after first userNext', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AMRAPWeight' });
-        userNext(ctx);
-        expect(ctx.runtime.stack.current?.label).toMatch(/thrusters/i);
+    it('step 1: Thrusters effort is mounted after first userNext', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        expect((await script.snapshot()).current?.label).toMatch(/thrusters/i);
     });
 
-    it('Thrusters effort carries a Resistance metric (95 lb, explicitly set)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AMRAPWeight' });
-        userNext(ctx);
-        expect(currentHasResistance(ctx)).toBe(true);
+    it('Thrusters effort carries a Resistance metric (95 lb, explicitly set)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
     });
 
-    it('Thrusters resistance amount is 95', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AMRAPWeight' });
-        userNext(ctx);
-        const r = currentResistance(ctx);
+    it('Thrusters resistance amount is 95', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const r = await currentResistance(await script.snapshot(), script);
         expect(r?.amount).toBe(95);
     });
 
-    it('Thrusters resistance unit is lb', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AMRAPWeight' });
-        userNext(ctx);
-        const r = currentResistance(ctx);
+    it('Thrusters resistance unit is lb', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        const r = await currentResistance(await script.snapshot(), script);
         expect(r?.unit).toBe('lb');
     });
 
-    it('Thrusters rep count is 5', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AMRAPWeight' });
-        userNext(ctx);
-        expect(currentReps(ctx)).toBe(5);
+    it('Thrusters rep count is 5', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        expect(await currentReps(await script.snapshot(), script)).toBe(5);
     });
 
-    it('step 2: Pushups effort is mounted after second userNext', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AMRAPWeight' });
-        userNext(ctx);
-        userNext(ctx);
-        expect(ctx.runtime.stack.current?.label).toMatch(/pushups/i);
+    it('step 2: Pushups effort is mounted after second userNext', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        expect((await script.snapshot()).current?.label).toMatch(/pushups/i);
     });
 
-    it('Pushups effort carries NO Resistance metric (sibling weight must not bleed)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AMRAPWeight' });
-        userNext(ctx); // Thrusters
-        userNext(ctx); // Pushups
-        expect(currentHasResistance(ctx)).toBe(false);
+    it('Pushups effort carries NO Resistance metric (sibling weight must not bleed)', async () => {
+        const script = await ctx.compile();
+        await script.next(); // Thrusters
+        await script.next(); // Pushups
+        expect(await currentHasResistance(await script.snapshot(), script)).toBe(false);
     });
 
-    it('Pushups rep count is 10', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AMRAPWeight' });
-        userNext(ctx);
-        userNext(ctx);
-        expect(currentReps(ctx)).toBe(10);
+    it('Pushups rep count is 10', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        expect(await currentReps(await script.snapshot(), script)).toBe(10);
     });
 
-    it('round 2: Thrusters still has 95 lb (not lost after one cycle)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AMRAPWeight' });
-        userNext(ctx); // Thrusters R1
-        userNext(ctx); // Pushups R1
-        userNext(ctx); // Thrusters R2
-        expect(currentHasResistance(ctx)).toBe(true);
-        expect(currentResistance(ctx)?.amount).toBe(95);
+    it('round 2: Thrusters still has 95 lb (not lost after one cycle)', async () => {
+        const script = await ctx.compile();
+        await script.next(); // Thrusters R1
+        await script.next(); // Pushups R1
+        await script.next(); // Thrusters R2
+        expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
+        expect(await currentResistance(await script.snapshot(), script)?.amount).toBe(95);
     });
 
-    it('round 2: Pushups R2 still has NO resistance metric', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AMRAPWeight' });
-        userNext(ctx); // Thrusters R1
-        userNext(ctx); // Pushups R1
-        userNext(ctx); // Thrusters R2
-        userNext(ctx); // Pushups R2
-        expect(currentHasResistance(ctx)).toBe(false);
+    it('round 2: Pushups R2 still has NO resistance metric', async () => {
+        const script = await ctx.compile();
+        await script.next(); // Thrusters R1
+        await script.next(); // Pushups R1
+        await script.next(); // Thrusters R2
+        await script.next(); // Pushups R2
+        expect(await currentHasResistance(await script.snapshot(), script)).toBe(false);
     });
 
-    it('AMRAP timer fires at 10:00 — clean termination', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AMRAPWeight' });
-        userNext(ctx);
-        advanceClock(ctx, 600_000);
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('AMRAP timer fires at 10:00 — clean termination', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(600_000);
+        expect((await script.snapshot()).depth).toBe(0);
     });
 });
 
@@ -210,70 +220,59 @@ describe('🟢 Weight Inside AMRAP — sibling weight isolation', () => {
 //
 // Spec: metric-inheritance.md#-rep-scheme-promotion
 // ===========================================================================
-describe('🟢 Rep Scheme Promotion — (21-15-9) Thrusters + Pull-ups', () => {
-    const SCRIPT = '(21-15-9)\n  Thrusters\n  Pull-ups';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 Rep Scheme Promotion — (21-15-9) Thrusters + Pull-ups', '(21-15-9)\n  Thrusters\n  Pull-ups', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('Round 1 Thrusters — rep count is 21', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Fran' });
-        userNext(ctx); // start → Round 1 → Thrusters
-        expect(currentReps(ctx)).toBe(21);
+    it('Round 1 Thrusters — rep count is 21', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start → Round 1 → Thrusters
+        expect(await currentReps(await script.snapshot(), script)).toBe(21);
     });
 
-    it('Round 1 Pull-ups — rep count is 21 (same round, same count)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Fran' });
-        userNext(ctx); // Thrusters R1
-        userNext(ctx); // Pull-ups R1
-        expect(currentReps(ctx)).toBe(21);
+    it('Round 1 Pull-ups — rep count is 21 (same round, same count)', async () => {
+        const script = await ctx.compile();
+        await script.next(); // Thrusters R1
+        await script.next(); // Pull-ups R1
+        expect(await currentReps(await script.snapshot(), script)).toBe(21);
     });
 
-    it('Round 2 Thrusters — rep count decreases to 15', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Fran' });
-        userNext(ctx); // Thrusters R1
-        userNext(ctx); // Pull-ups R1
-        userNext(ctx); // Thrusters R2
-        expect(currentReps(ctx)).toBe(15);
+    it('Round 2 Thrusters — rep count decreases to 15', async () => {
+        const script = await ctx.compile();
+        await script.next(); // Thrusters R1
+        await script.next(); // Pull-ups R1
+        await script.next(); // Thrusters R2
+        expect(await currentReps(await script.snapshot(), script)).toBe(15);
     });
 
-    it('Round 2 Pull-ups — rep count is 15', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Fran' });
-        userNext(ctx);
-        userNext(ctx);
-        userNext(ctx); // Thrusters R2
-        userNext(ctx); // Pull-ups R2
-        expect(currentReps(ctx)).toBe(15);
+    it('Round 2 Pull-ups — rep count is 15', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next(); // Thrusters R2
+        await script.next(); // Pull-ups R2
+        expect(await currentReps(await script.snapshot(), script)).toBe(15);
     });
 
-    it('Round 3 Thrusters — rep count decreases to 9', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Fran' });
-        userNext(ctx);
-        userNext(ctx);
-        userNext(ctx);
-        userNext(ctx); // Pull-ups R2
-        userNext(ctx); // Thrusters R3
-        expect(currentReps(ctx)).toBe(9);
+    it('Round 3 Thrusters — rep count decreases to 9', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        await script.next();
+        await script.next(); // Pull-ups R2
+        await script.next(); // Thrusters R3
+        expect(await currentReps(await script.snapshot(), script)).toBe(9);
     });
 
-    it('Round 3 Pull-ups — rep count is 9', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Fran' });
-        for (let i = 0; i < 5; i++) userNext(ctx); // R1×2 + R2×2 + R3 Thrusters
-        userNext(ctx); // Pull-ups R3
-        expect(currentReps(ctx)).toBe(9);
+    it('Round 3 Pull-ups — rep count is 9', async () => {
+        const script = await ctx.compile();
+        for (let i = 0; i < 5; i++) await script.next(); // R1×2 + R2×2 + R3 Thrusters
+        await script.next(); // Pull-ups R3
+        expect(await currentReps(await script.snapshot(), script)).toBe(9);
     });
 
-    it('completing all 6 child advances terminates session', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Fran' });
-        for (let i = 0; i < 7; i++) userNext(ctx); // 3 rounds × 2 children + start
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('completing all 6 child advances terminates session', async () => {
+        const script = await ctx.compile();
+        for (let i = 0; i < 7; i++) await script.next(); // 3 rounds × 2 children + start
+        expect((await script.snapshot()).depth).toBe(0);
     });
 });
 
@@ -288,69 +287,59 @@ describe('🟢 Rep Scheme Promotion — (21-15-9) Thrusters + Pull-ups', () => {
 //
 // Spec: metric-inheritance.md#-weight-cascading--parent-to-children
 // ===========================================================================
-describe('🟢 Weight Cascading — 95 lb cascades to round children', () => {
-    // 95 lb at root level followed by (3) rounds with Clean & Jerk children.
-    const SCRIPT = '95 lb\n(3)\n  Clean & Jerk';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 Weight Cascading — 95 lb cascades to round children', '95 lb\n(3)\n  Clean & Jerk', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('after AMRAP/rounds block starts, Clean & Jerk effort has a Resistance metric', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cascade' });
+    it('after AMRAP/rounds block starts, Clean & Jerk effort has a Resistance metric', async () => {
+        const script = await ctx.compile();
         // Advance past the root-level weight declaration into the rounds/effort
-        userNext(ctx); // WaitingToStart → first block (could be 95 lb effort or rounds)
+        await script.next(); // WaitingToStart → first block (could be 95 lb effort or rounds)
         // If 95 lb parses as standalone, advance again to reach the rounds child
-        if (!ctx.runtime.stack.current?.label?.match(/clean/i)) {
-            userNext(ctx); // advance past standalone 95 lb block into rounds → effort
+        if (!(await script.snapshot()).current?.label?.match(/clean/i)) {
+            await script.next(); // advance past standalone 95 lb block into rounds → effort
         }
         // The current block should be a Clean & Jerk effort WITH resistance = 95 lb
-        expect(currentHasResistance(ctx)).toBe(true);
+        expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
     });
 
-    it('Clean & Jerk carries resistance amount 95', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cascade' });
-        userNext(ctx);
-        if (!ctx.runtime.stack.current?.label?.match(/clean/i)) {
-            userNext(ctx);
+    it('Clean & Jerk carries resistance amount 95', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        if (!(await script.snapshot()).current?.label?.match(/clean/i)) {
+            await script.next();
         }
-        expect(currentResistance(ctx)?.amount).toBe(95);
+        expect(await currentResistance(await script.snapshot(), script)?.amount).toBe(95);
     });
 
-    it('Clean & Jerk carries resistance unit lb', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cascade' });
-        userNext(ctx);
-        if (!ctx.runtime.stack.current?.label?.match(/clean/i)) {
-            userNext(ctx);
+    it('Clean & Jerk carries resistance unit lb', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        if (!(await script.snapshot()).current?.label?.match(/clean/i)) {
+            await script.next();
         }
-        expect(currentResistance(ctx)?.unit).toBe('lb');
+        expect(await currentResistance(await script.snapshot(), script)?.unit).toBe('lb');
     });
 
-    it('Round 2 Clean & Jerk still carries inherited 95 lb resistance', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cascade' });
-        userNext(ctx);
-        if (!ctx.runtime.stack.current?.label?.match(/clean/i)) {
-            userNext(ctx); // enter rounds → effort R1
+    it('Round 2 Clean & Jerk still carries inherited 95 lb resistance', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        if (!(await script.snapshot()).current?.label?.match(/clean/i)) {
+            await script.next(); // enter rounds → effort R1
         }
-        userNext(ctx); // R1 done → R2 effort
-        expect(currentHasResistance(ctx)).toBe(true);
-        expect(currentResistance(ctx)?.amount).toBe(95);
+        await script.next(); // R1 done → R2 effort
+        expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
+        expect(await currentResistance(await script.snapshot(), script)?.amount).toBe(95);
     });
 
-    it('Round 3 Clean & Jerk still carries inherited 95 lb resistance', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Cascade' });
-        userNext(ctx);
-        if (!ctx.runtime.stack.current?.label?.match(/clean/i)) {
-            userNext(ctx);
+    it('Round 3 Clean & Jerk still carries inherited 95 lb resistance', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        if (!(await script.snapshot()).current?.label?.match(/clean/i)) {
+            await script.next();
         }
-        userNext(ctx); // R2
-        userNext(ctx); // R3
-        expect(currentHasResistance(ctx)).toBe(true);
-        expect(currentResistance(ctx)?.amount).toBe(95);
+        await script.next(); // R2
+        await script.next(); // R3
+        expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
+        expect(await currentResistance(await script.snapshot(), script)?.amount).toBe(95);
     });
 });
 
@@ -363,71 +352,58 @@ describe('🟢 Weight Cascading — 95 lb cascades to round children', () => {
 //
 // Spec: metric-inheritance.md#-weight-override--child-overrides-parent
 // ===========================================================================
-describe('🟢 Weight Override — child overrides parent; sibling inherits parent', () => {
-    // Clean has its own 135 lb; Snatch inherits parent 95 lb.
-    const SCRIPT = '95 lb\n  Clean 135 lb\n  Snatch';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 Weight Override — child overrides parent; sibling inherits parent', '95 lb\n  Clean 135 lb\n  Snatch', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('Clean effort is the first child mounted after startSession + userNext', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Override' });
-        userNext(ctx);
-        expect(ctx.runtime.stack.current?.label).toMatch(/clean/i);
+    it('Clean effort is the first child mounted after startSession + userNext', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        expect((await script.snapshot()).current?.label).toMatch(/clean/i);
     });
 
-    it('Clean effort carries a Resistance metric (135 lb, child override)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Override' });
-        userNext(ctx);
-        expect(currentHasResistance(ctx)).toBe(true);
+    it('Clean effort carries a Resistance metric (135 lb, child override)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
     });
 
-    it('Clean resistance amount is 135 (child override wins over parent 95 lb)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Override' });
-        userNext(ctx);
-        expect(currentResistance(ctx)?.amount).toBe(135);
+    it('Clean resistance amount is 135 (child override wins over parent 95 lb)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        expect(await currentResistance(await script.snapshot(), script)?.amount).toBe(135);
     });
 
-    it('Clean resistance unit is lb', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Override' });
-        userNext(ctx);
-        expect(currentResistance(ctx)?.unit).toBe('lb');
+    it('Clean resistance unit is lb', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        expect(await currentResistance(await script.snapshot(), script)?.unit).toBe('lb');
     });
 
-    it('Snatch effort is mounted after second userNext (Clean completes)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Override' });
-        userNext(ctx); // Clean
-        userNext(ctx); // Snatch
-        expect(ctx.runtime.stack.current?.label).toMatch(/snatch/i);
+    it('Snatch effort is mounted after second userNext (Clean completes)', async () => {
+        const script = await ctx.compile();
+        await script.next(); // Clean
+        await script.next(); // Snatch
+        expect((await script.snapshot()).current?.label).toMatch(/snatch/i);
     });
 
-    it('Snatch effort carries a Resistance metric (inherited from parent 95 lb)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Override' });
-        userNext(ctx);
-        userNext(ctx);
-        expect(currentHasResistance(ctx)).toBe(true);
+    it('Snatch effort carries a Resistance metric (inherited from parent 95 lb)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
     });
 
-    it('Snatch resistance amount is 95 (parent default, no override)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Override' });
-        userNext(ctx);
-        userNext(ctx);
-        expect(currentResistance(ctx)?.amount).toBe(95);
+    it('Snatch resistance amount is 95 (parent default, no override)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        expect(await currentResistance(await script.snapshot(), script)?.amount).toBe(95);
     });
 
-    it('Snatch resistance unit is lb (inherited from parent)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Override' });
-        userNext(ctx);
-        userNext(ctx);
-        expect(currentResistance(ctx)?.unit).toBe('lb');
+    it('Snatch resistance unit is lb (inherited from parent)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        expect(await currentResistance(await script.snapshot(), script)?.unit).toBe('lb');
     });
 });
 
@@ -440,56 +416,48 @@ describe('🟢 Weight Override — child overrides parent; sibling inherits pare
 //
 // Spec: metric-inheritance.md#-distance-unit-inheritance
 // ===========================================================================
-describe('🟢 Distance Unit Inheritance — 400 m cascades to round children', () => {
-    const SCRIPT = '400 m\n(3)\n  Run';
-    let ctx: SessionTestContext;
+describeCompliance('🟢 Distance Unit Inheritance — 400 m cascades to round children', '400 m\n(3)\n  Run', (ctx) => {
 
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('RunN effort carries a Distance metric (400 m inherited from parent)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Dist' });
-        userNext(ctx); // WaitingToStart → first block
+    it('RunN effort carries a Distance metric (400 m inherited from parent)', async () => {
+        const script = await ctx.compile();
+        await script.next(); // WaitingToStart → first block
         // Advance past any non-Run block if needed
-        if (!ctx.runtime.stack.current?.label?.match(/run/i)) {
-            userNext(ctx);
+        if (!(await script.snapshot()).current?.label?.match(/run/i)) {
+            await script.next();
         }
-        expect(currentHasDistance(ctx)).toBe(true);
+        expect(await currentHasDistance(await script.snapshot(), script)).toBe(true);
     });
 
-    it('Run effort distance amount is 400', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Dist' });
-        userNext(ctx);
-        if (!ctx.runtime.stack.current?.label?.match(/run/i)) {
-            userNext(ctx);
+    it('Run effort distance amount is 400', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        if (!(await script.snapshot()).current?.label?.match(/run/i)) {
+            await script.next();
         }
-        expect(currentDistance(ctx)?.amount).toBe(400);
+        expect(await currentDistance(await script.snapshot(), script)?.amount).toBe(400);
     });
 
-    it('Run effort distance unit is m', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Dist' });
-        userNext(ctx);
-        if (!ctx.runtime.stack.current?.label?.match(/run/i)) {
-            userNext(ctx);
+    it('Run effort distance unit is m', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        if (!(await script.snapshot()).current?.label?.match(/run/i)) {
+            await script.next();
         }
-        expect(currentDistance(ctx)?.unit).toBe('m');
+        expect(await currentDistance(await script.snapshot(), script)?.unit).toBe('m');
     });
 
-    it('All 3 rounds have Run effort with inherited 400 m distance', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Dist' });
-        userNext(ctx);
-        if (!ctx.runtime.stack.current?.label?.match(/run/i)) {
-            userNext(ctx);
+    it('All 3 rounds have Run effort with inherited 400 m distance', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        if (!(await script.snapshot()).current?.label?.match(/run/i)) {
+            await script.next();
         }
         // R1 should have distance
-        expect(currentHasDistance(ctx)).toBe(true);
-        userNext(ctx); // R2
-        expect(currentHasDistance(ctx)).toBe(true);
-        userNext(ctx); // R3
-        expect(currentHasDistance(ctx)).toBe(true);
+        expect(await currentHasDistance(await script.snapshot(), script)).toBe(true);
+        await script.next(); // R2
+        expect(await currentHasDistance(await script.snapshot(), script)).toBe(true);
+        await script.next(); // R3
+        expect(await currentHasDistance(await script.snapshot(), script)).toBe(true);
     });
 });
 
@@ -502,68 +470,58 @@ describe('🟢 Distance Unit Inheritance — 400 m cascades to round children', 
 //
 // Spec: metric-inheritance.md#-three-level-promotion
 // ===========================================================================
-describe('🟢 Three-Level Promotion — 75 kg through EMOM → Rounds → Effort', () => {
-    // Structure: 75 kg / (5) 1:00 EMOM / nested (3) / Clean
-    const SCRIPT = '75 kg\n(5) 1:00 EMOM\n  (3)\n    Clean';
-    let ctx: SessionTestContext;
-
-    afterEach(() => { if (ctx) disposeSession(ctx); });
+describeCompliance('🟢 Three-Level Promotion — 75 kg through EMOM → Rounds → Effort', '75 kg\n(5) 1:00 EMOM\n  (3)\n    Clean', (ctx) => {
 
     /**
      * Helper: advance through the structure until we reach an effort labelled "Clean".
      * Returns false if we run out of stack (session ended) before finding Clean.
      */
-    function advanceToClean(maxSteps = 10): boolean {
+    async function advanceToClean(script: TestScript, maxSteps = 10): Promise<boolean> {
         for (let i = 0; i < maxSteps; i++) {
-            if (ctx.runtime.stack.current?.label?.match(/clean/i)) return true;
-            if (ctx.runtime.stack.count === 0) return false;
-            userNext(ctx);
+            if ((await script.snapshot()).current?.label?.match(/clean/i)) return true;
+            if ((await script.snapshot()).depth === 0) return false;
+            await script.next();
         }
-        return ctx.runtime.stack.current?.label?.match(/clean/i) !== null;
+        return (await script.snapshot()).current?.label?.match(/clean/i) !== null;
     }
 
-    it('Clean effort is reachable in the nested structure', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'ThreeLevel' });
-        userNext(ctx); // start
-        const found = advanceToClean();
+    it('Clean effort is reachable in the nested structure', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start
+        const found = await advanceToClean(script);
         expect(found).toBe(true);
     });
 
-    it('Clean effort carries a Resistance metric (75 kg from root weight context)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'ThreeLevel' });
-        userNext(ctx);
-        advanceToClean();
-        expect(currentHasResistance(ctx)).toBe(true);
+    it('Clean effort carries a Resistance metric (75 kg from root weight context)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await advanceToClean(script);
+        expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
     });
 
-    it('Clean effort resistance amount is 75', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'ThreeLevel' });
-        userNext(ctx);
-        advanceToClean();
-        expect(currentResistance(ctx)?.amount).toBe(75);
+    it('Clean effort resistance amount is 75', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await advanceToClean(script);
+        expect(await currentResistance(await script.snapshot(), script)?.amount).toBe(75);
     });
 
-    it('Clean effort resistance unit is kg', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'ThreeLevel' });
-        userNext(ctx);
-        advanceToClean();
-        expect(currentResistance(ctx)?.unit).toBe('kg');
+    it('Clean effort resistance unit is kg', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await advanceToClean(script);
+        expect(await currentResistance(await script.snapshot(), script)?.unit).toBe('kg');
     });
 
-    it('Second Clean iteration (different EMOM interval) still carries 75 kg', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'ThreeLevel' });
-        userNext(ctx);
-        advanceToClean(); // find first Clean
-        userNext(ctx);    // complete first Clean
+    it('Second Clean iteration (different EMOM interval) still carries 75 kg', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await advanceToClean(script); // find first Clean
+        await script.next();    // complete first Clean
         // Now advance to the second Clean (next round/interval)
-        advanceClock(ctx, 60_000); // EMOM interval ticks over
-        advanceToClean();
-        expect(currentHasResistance(ctx)).toBe(true);
-        expect(currentResistance(ctx)?.amount).toBe(75);
+        await script.tick(60_000); // EMOM interval ticks over
+        await advanceToClean(script);
+        expect(await currentHasResistance(await script.snapshot(), script)).toBe(true);
+        expect(await currentResistance(await script.snapshot(), script)?.amount).toBe(75);
     });
 });

@@ -1,6 +1,6 @@
 import React from 'react';
-import { TimerIndexPanel } from '@/components/layout/TimerIndexPanel';
-import { TimerDisplay } from '@/panels/timer-panel';
+import { TimerIndexPanel } from '@/components/organisms/layout/TimerIndexPanel';
+import { TimerDisplay } from '@/panels/wallclock-panel';
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { VisualStatePanel } from '@/panels/visual-state-panel';
 import { useParams } from 'react-router-dom';
@@ -8,9 +8,13 @@ import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 import { UseRuntimeExecutionReturn } from '@/runtime/hooks/useRuntimeExecution';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
-import { WorkoutPreviewPanel } from '@/components/workbench/WorkoutPreviewPanel';
+import { WorkoutPreviewPanel } from '@/components/organisms/workbench/WorkoutPreviewPanel';
+import { TrackViewShell } from '@/components/organisms/workout/TrackViewShell';
 import type { SectionType } from '@/components/Editor/types/section';
-import type { WodBlock } from '@/components/Editor/types';
+import type { ScriptBlock } from '@/components/Editor/types';
+import { useUserOverrides } from '@/components/organisms/review/useUserOverrides';
+import { useCollectionMetrics, type ChoiceCollectionItem, type ValueCollectionItem, resolveChoiceSelection } from '@/hooks/useCollectionMetrics';
+import { CollectionWizard } from '@/components/organisms/review/CollectionWizard';
 
 export interface TrackPanelProps {
   runtime: IScriptRuntime | null;
@@ -32,7 +36,7 @@ export interface TrackPanelProps {
   /** Raw markdown content for the preview panel */
   content?: string;
   /** Called when user clicks Run on a WOD block in the preview */
-  onStartWorkout?: (block: WodBlock) => void;
+  onStartWorkout?: (block: ScriptBlock) => void;
   /**
    * Optional section-type filter for the preview panel.
    * Defaults to `['wod']` to show only runnable blocks.
@@ -83,6 +87,29 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   const { isCompact } = usePanelSize();
   const { sectionId } = useParams<{ sectionId?: string }>();
   const isNotFound = sectionId === 'notfound';
+  const [wizardDismissed, setWizardDismissed] = React.useState(false);
+
+  const { overrides, setOverride } = useUserOverrides(true);
+  const { collectionItems } = useCollectionMetrics([], overrides, runtime?.script);
+  const showWizard = execution.status === 'idle' && collectionItems.length > 0 && !wizardDismissed;
+
+  /**
+   * Resolve a ChoiceCollectionItem by collapsing the chosen alternative into the
+   * Statement's MetricContainer (origin 'user-plan'). Delegates to the single
+   * ChoiceResolution owner; runs before the WOD blocks compile.
+   */
+  const resolveChoice = React.useCallback(
+    (item: ChoiceCollectionItem, selectedIndex: number) => {
+      resolveChoiceSelection(runtime?.script, item, selectedIndex);
+    },
+    [runtime]
+  );
+
+  React.useEffect(() => {
+    if (execution.status !== 'idle' || collectionItems.length === 0) {
+      setWizardDismissed(false);
+    }
+  }, [execution.status, collectionItems.length]);
 
   // Timer/Clock component
   const timerDisplay = (
@@ -101,32 +128,44 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
     />
   );
 
+  if (showWizard) {
+    return (
+      <CollectionWizard
+        items={collectionItems}
+        onSave={(item, val) => {
+          if (item.kind === 'choice') {
+            resolveChoice(item as ChoiceCollectionItem, val as number);
+          } else {
+            setOverride((item as ValueCollectionItem).blockKey, (item as ValueCollectionItem).metricType, val);
+          }
+        }}
+        onSkip={(item) => {
+          if (item.kind === 'value') {
+            setOverride((item as ValueCollectionItem).blockKey, (item as ValueCollectionItem).metricType, undefined);
+          }
+        }}
+        onStart={onStart}
+        onClose={() => setWizardDismissed(true)}
+        mode="pre-run"
+      />
+    );
+  }
+
   const screenContent = runtime ? (
     <ScriptRuntimeProvider runtime={runtime}>
-      <div className={cn("flex h-full overflow-hidden", isCompact ? "flex-col" : "flex-row")}>
-        {/* Top (mobile) / Left (desktop): Session / Visual State */}
-        <div
-          id="tutorial-track-visual"
-          className={cn(
-            "bg-secondary/10",
-            isCompact
-              ? "flex-1 min-h-0 border-b border-border overflow-hidden"
-              : "flex-1 min-w-0 border-r border-border"
-          )}
-        >
-          <VisualStatePanel />
-        </div>
-
-        {/* Bottom (mobile) / Right (desktop): Timer & Controls (Clock) */}
-        <div id="tutorial-track-clock" className={cn(
-          "flex flex-col bg-background transition-all duration-300",
-          isCompact ? "shrink-0" : "w-1/2"
-        )}>
+      <TrackViewShell
+        isCompact={isCompact}
+        leftPanelId="tutorial-track-visual"
+        rightPanelId="tutorial-track-clock"
+        leftPanelAriaLabel="Visual panel"
+        rightPanelAriaLabel="Clock panel"
+        leftPanel={<VisualStatePanel />}
+        rightPanel={(
           <div className="flex-1 flex flex-col justify-center">
             {timerDisplay}
           </div>
-        </div>
-      </div>
+        )}
+      />
     </ScriptRuntimeProvider>
   ) : (
     // No runtime — show layout for selection or error
@@ -134,7 +173,7 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
       {/* Left Column: Workout Preview (formerly Right) */}
       <div className={cn(
         "flex flex-col bg-background transition-all duration-300 overflow-hidden",
-        isCompact ? "w-full" : "w-1/2"
+        isCompact ? "w-full" : "w-2/3"
       )}>
         <WorkoutPreviewPanel
           content={content || ''}

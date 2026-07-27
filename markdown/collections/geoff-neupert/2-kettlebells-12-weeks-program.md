@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 5: 2 Kettlebells 12 Weeks Program
 
 **Category**: Geoff Neupert Progressive Program  

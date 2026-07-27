@@ -1,18 +1,14 @@
-export * from './ScriptRuntime';
-export * from './contracts/IRuntimeOptions';
-export * from './events/StackEvents';
-export * from './events/MemoryEvents';
-export { SoundCueBehavior } from './behaviors/SoundCueBehavior';
-
-// IRuntimeBehavior is the canonical behavior interface
-export type { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
-
-export { PlaySoundAction } from './actions/audio/PlaySoundAction';
-export type {
-  SoundBehaviorConfig,
-  SoundCue,
-  SoundState,
-  SoundCueState
-} from './models/SoundModels';
-export { PREDEFINED_SOUNDS } from './models/SoundModels';
-// Export other runtime components
+/**
+ * Runtime barrel — intentionally narrow.
+ *
+ * External consumers import directly from source modules:
+ *   - ScriptRuntime       → '@/runtime/ScriptRuntime'
+ *   - Contracts           → '@/runtime/contracts'
+ *   - Event types         → '@/runtime/events/{EventName}'
+ *   - Behaviors           → '@/runtime/behaviors'
+ *   - Compiler            → '@/runtime/compiler'
+ *   - Sound models        → '@/runtime/models/SoundModels'
+ *
+ * Nothing in the codebase imports from this file directly.
+ * Wildcard re-exports have been removed to avoid inflating the dead-symbol count.
+ */

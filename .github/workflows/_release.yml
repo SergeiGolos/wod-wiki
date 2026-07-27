@@ -1,0 +1,278 @@
+name: Release
+
+# Publishes the version tagged by the main pipeline (main.yml → _version.yml).
+# Runs only from prod.yml (push to the protected `prod` branch). The version
+# is read back from the highest semver tag across all refs — the tag is the
+# single source of truth, so this works regardless of the main → prod merge
+# strategy (merge commit or squash).
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version from release tag
+        run: |
+          # The main pipeline already computed and tagged the version for this
+          # release (Conventional Commits bump + run number). Read back the
+          # highest semver tag across all refs (not just HEAD-reachable).
+          LATEST_TAG=$(git for-each-ref refs/tags \
+            --sort=-v:refname \
+            --format '%(refname:short)' \
+            | grep -E '^v?[0-9]+\.[0-9]+(\.[0-9]+)?$' \
+            | head -1)
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "::error::No semver tag found. Merge to main first so the version/tag jobs create one." >&2
+            exit 1
+          fi
+
+          NEW_VERSION="${LATEST_TAG#v}"
+          echo "Publishing version: $NEW_VERSION (from tag $LATEST_TAG)"
+
+          # Write back to package.json so all downstream steps pick it up
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+            pkg.version = '${NEW_VERSION}';
+            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          echo "package.json updated to $NEW_VERSION"
+
+      - name: Set up environment (Bun + caches + chromium)
+        uses: ./.github/actions/setup-env
+
+      - name: Replace GA tag in sources
+        if: ${{ vars.G_TAG != '' }}
+        run: |
+          sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' playground/index.html
+          sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' playground/receiver-rpc.html
+
+      - name: Build playground
+        run: bun run build:app
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://wod.wiki/api' }}
+          VITE_CAST_APP_ID: ${{ vars.VITE_CAST_APP_ID }}
+
+      # Library build + npm publication chain — gated behind the
+      # NPM_PUBLISH_ENABLED repo var (WOD-436 disabled npm publication;
+      # without it the library build and its artifact have no consumer).
+      - name: Set up Node.js for npm publication
+        if: vars.NPM_PUBLISH_ENABLED == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Build library
+        if: vars.NPM_PUBLISH_ENABLED == 'true'
+        run: bun run build-library
+
+      - name: Upload library artifact
+        if: vars.NPM_PUBLISH_ENABLED == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: library-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playground/dist
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Run production smoke tests
+        id: smoke_e2e
+        run: bun x playwright test --config playwright.smoke.config.ts
+        env:
+          CI: true
+          E2E_APP_URL: https://wod.wiki
+          E2E_STORYBOOK_URL: https://story.wod.wiki
+
+      - name: Collect smoke test stats
+        id: smoke_stats
+        if: always()
+        run: |
+          set -euo pipefail
+          report="test-results/smoke-e2e-junit.xml"
+          extract_attr() {
+            local attr="$1"
+            local file="$2"
+            sed -n "s/.*${attr}=\"\\([0-9]\\+\\)\".*/\\1/p" "$file" | head -n1
+          }
+          if [ -f "$report" ]; then
+            tests=$(extract_attr "tests" "$report")
+            failures=$(extract_attr "failures" "$report")
+            skipped=$(extract_attr "skipped" "$report")
+          else
+            tests="n/a"
+            failures="n/a"
+            skipped="n/a"
+          fi
+          echo "tests=${tests:-n/a}" >> "$GITHUB_OUTPUT"
+          echo "failures=${failures:-n/a}" >> "$GITHUB_OUTPUT"
+          echo "skipped=${skipped:-n/a}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload smoke test report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: smoke-playwright-report
+          path: playwright-report/smoke/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload smoke test screenshots
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: smoke-e2e-screenshots
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Create or update GitHub release
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+            const tag = pkg.version;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // The tag was created by the main pipeline (version/tag jobs) at
+            // the moment the bump was computed. It must already exist — this
+            // job publishes it, it never creates or moves release markers.
+            try {
+              await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+            } catch (error) {
+              if (error.status === 404) {
+                core.setFailed(
+                  `Tag ${tag} does not exist. Merge to main first so the ` +
+                  `version/tag jobs create the release marker.`
+                );
+                return;
+              }
+              throw error;
+            }
+
+            try {
+              const existing = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              await github.rest.repos.updateRelease({
+                owner,
+                repo,
+                release_id: existing.data.id,
+                name: tag,
+                draft: false,
+                prerelease: false,
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+
+              await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: tag,
+                name: tag,
+                generate_release_notes: true,
+                draft: false,
+                prerelease: false,
+              });
+            }
+
+      - name: Validate npm publication prerequisites
+        if: vars.NPM_PUBLISH_ENABLED == 'true'
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+
+          if (!pkg.name || typeof pkg.name !== 'string') {
+            throw new Error('package.json must define a publishable package name.');
+          }
+
+          if (!pkg.version || typeof pkg.version !== 'string') {
+            throw new Error('package.json must define a publishable version.');
+          }
+
+          if (pkg.private) {
+            throw new Error('package.json#private=true blocks npm publication.');
+          }
+
+          console.log(`Preparing npm publish for ${pkg.name}@${pkg.version}`);
+          NODE
+
+          if [ -z "${NPM_TOKEN}" ]; then
+            echo "NPM_TOKEN secret is required for release publication." >&2
+            exit 1
+          fi
+
+      - name: Publish package to npm (idempotent)
+        if: vars.NPM_PUBLISH_ENABLED == 'true'
+        id: npm_publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+
+          if npm view "${NAME}@${VERSION}" version >/dev/null 2>&1; then
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "published_version=${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "Package ${NAME}@${VERSION} already exists on npm; skipping publish."
+            exit 0
+          fi
+
+          npm publish --provenance --access public
+          echo "published=true" >> "$GITHUB_OUTPUT"
+          echo "published_version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Write release summary
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## Release summary
+
+          - Released version: $VERSION
+          - Pages URL: ${{ steps.deployment.outputs.page_url }}
+          - Package name: ${PACKAGE_NAME}
+          - npm publish: temporarily disabled (see WOD-436)
+
+          ### Smoke tests
+
+          - Outcome: ${{ steps.smoke_e2e.outcome }}
+          - Tests: ${{ steps.smoke_stats.outputs.tests }}
+          - Failures: ${{ steps.smoke_stats.outputs.failures }}
+          - Skipped: ${{ steps.smoke_stats.outputs.skipped }}
+          EOF

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { PopOnNextBehavior, DisplayInitBehavior, HistoryRecordBehavior } from '@/runtime/behaviors';
+import { ExitBehavior, LabelingBehavior } from '@/runtime/behaviors';
 
 describe('GroupBlock', () => {
   let harness: BehaviorTestHarness;
@@ -16,26 +16,29 @@ describe('GroupBlock', () => {
   });
 
   it('should initialize display state on mount', () => {
-    const displayInit = new DisplayInitBehavior({ mode: 'clock', label: 'Group' });
-    const historyRecord = new HistoryRecordBehavior();
-    const block = new MockBlock('group-test', [displayInit, historyRecord], { blockType: 'Group' });
+    const labeling = new LabelingBehavior({ mode: 'timer', label: 'Group' });
+    const block = new MockBlock('group-test', [labeling], { blockType: 'Group' });
 
     harness.push(block);
     harness.mount();
 
     // Group blocks typically just set up display state
     expect(block.isComplete).toBe(false);
+
+    // Label memory should be set
+    const labelMemory = block.getMemoryByTag('metric:label');
+    expect(labelMemory.length).toBeGreaterThan(0);
   });
 
-  it('should mark complete on next with PopOnNextBehavior', () => {
-    const popOnNext = new PopOnNextBehavior();
-    const displayInit = new DisplayInitBehavior({ mode: 'clock', label: 'Group' });
-    const block = new MockBlock('group-test-single', [displayInit, popOnNext], { blockType: 'Group' });
+  it('should mark complete on next with ExitBehavior', () => {
+    const exit = new ExitBehavior({ mode: 'immediate', onNext: true });
+    const labeling = new LabelingBehavior({ mode: 'timer', label: 'Group' });
+    const block = new MockBlock('group-test-single', [labeling, exit], { blockType: 'Group' });
 
     harness.push(block);
     harness.mount();
 
-    // next() should mark block complete via PopOnNextBehavior
+    // next() should mark block complete via ExitBehavior
     harness.next();
 
     expect(block.isComplete).toBe(true);

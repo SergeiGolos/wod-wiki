@@ -15,24 +15,8 @@
  *   🟢 Full Session — Multi-Block
  *   🟢 Early Termination / Abort (.skip)
  */
-import { describe, it, expect, afterEach } from 'bun:test';
-import {
-    createSessionContext,
-    startSession,
-    userNext,
-    advanceClock,
-    simulateEvent,
-    disposeSession,
-    type SessionTestContext,
-} from '../jit-compilation/helpers/session-test-utils';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function currentBlockType(ctx: SessionTestContext): string | undefined {
-    return ctx.runtime.stack.current?.blockType;
-}
+import { describeCompliance, assertions } from '@/testing/script';
+import { currentBlockType } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Full Session — Start to Finish (Effort)
@@ -43,40 +27,31 @@ function currentBlockType(ctx: SessionTestContext): string | undefined {
 // Step 1: userNext       → SessionRoot · Effort (WaitingToStart completes)
 // Step 2: userNext       → session ends (depth = 0)
 // ===========================================================================
-describe('🟢 Full Session — Start to Finish (Effort)', () => {
-    const SCRIPT = '10 Pullups';
-    let ctx: SessionTestContext;
-
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('step 0: startSession → depth = 2 (SessionRoot + WaitingToStart)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Effort' });
-        expect(ctx.runtime.stack.count).toBe(2);
+describeCompliance('🟢 Full Session — Start to Finish (Effort)', '10 Pullups', (ctx) => {
+    it('step 0: startSession → depth = 2 (SessionRoot + WaitingToStart)', async () => {
+        const script = await ctx.compile();
+        expect((await script.snapshot()).depth).toBe(2);
     });
 
-    it('step 1: first userNext → WaitingToStart pops, Effort block mounts (depth = 2)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Effort' });
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBe(2);
-        expect(currentBlockType(ctx)).toMatch(/effort/i);
+    it('step 1: first userNext → WaitingToStart pops, Effort block mounts (depth = 2)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        expect((await script.snapshot()).depth).toBe(2);
+        expect(currentBlockType(await script.snapshot())).toMatch(/effort/i);
     });
 
-    it('step 2: second userNext → session ends (depth = 0)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Effort' });
-        userNext(ctx); // dismiss WaitingToStart → Effort mounts
-        userNext(ctx); // Effort completes → session ends
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 2: second userNext → session ends (depth = 0)', async () => {
+        const script = await ctx.compile();
+        await script.next(); // dismiss WaitingToStart → Effort mounts
+        await script.next(); // Effort completes → session ends
+        expect((await script.snapshot()).depth).toBe(0);
     });
 
-    it('all outputs are paired (segment + completion for every block)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'Effort' });
-        userNext(ctx);
-        userNext(ctx);
-        const unpaired = ctx.tracer.assertPairedOutputs();
+    it('all outputs are paired (segment + completion for every block)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.next();
+        const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
         expect(unpaired).toEqual([]);
     });
 });
@@ -90,39 +65,30 @@ describe('🟢 Full Session — Start to Finish (Effort)', () => {
 // Step 1: userNext              → SessionRoot · Timer (WaitingToStart completes)
 // Step 2: advanceClock(60_000)  → Timer expires → session ends
 // ===========================================================================
-describe('🟢 Full Session — Timer Auto-Complete', () => {
-    const SCRIPT = '1:00 Row';
-    let ctx: SessionTestContext;
-
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('step 0: startSession → depth = 2', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'TimerAuto' });
-        expect(ctx.runtime.stack.count).toBe(2);
+describeCompliance('🟢 Full Session — Timer Auto-Complete', '1:00 Row', (ctx) => {
+    it('step 0: startSession → depth = 2', async () => {
+        const script = await ctx.compile();
+        expect((await script.snapshot()).depth).toBe(2);
     });
 
-    it('step 1: userNext → Timer starts (no userNext needed to end)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'TimerAuto' });
-        userNext(ctx);
-        expect(currentBlockType(ctx)).toMatch(/timer/i);
+    it('step 1: userNext → Timer starts (no userNext needed to end)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        expect(currentBlockType(await script.snapshot())).toMatch(/timer/i);
     });
 
-    it('step 2: advanceClock(60_000) → timer expires, session auto-terminates (depth = 0)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'TimerAuto' });
-        userNext(ctx);
-        advanceClock(ctx, 60_000);
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 2: advanceClock(60_000) → timer expires, session auto-terminates (depth = 0)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000);
+        expect((await script.snapshot()).depth).toBe(0);
     });
 
-    it('all outputs are paired (no userNext needed to end)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'TimerAuto' });
-        userNext(ctx);
-        advanceClock(ctx, 60_000);
-        const unpaired = ctx.tracer.assertPairedOutputs();
+    it('all outputs are paired (no userNext needed to end)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        await script.tick(60_000);
+        const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
         expect(unpaired).toEqual([]);
     });
 });
@@ -135,66 +101,55 @@ describe('🟢 Full Session — Timer Auto-Complete', () => {
 //   10 Pullups
 //   15 Pushups
 // ===========================================================================
-describe('🟢 Full Session — Multi-Block', () => {
-    const SCRIPT = '(3)\n  10 Pullups\n  15 Pushups';
-    let ctx: SessionTestContext;
-
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('step 0: startSession → depth = 2', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'MultiBlock' });
-        expect(ctx.runtime.stack.count).toBe(2);
+describeCompliance('🟢 Full Session — Multi-Block', '(3)\n  10 Pullups\n  15 Pushups', (ctx) => {
+    it('step 0: startSession → depth = 2', async () => {
+        const script = await ctx.compile();
+        expect((await script.snapshot()).depth).toBe(2);
     });
 
-    it('dismiss gate: first userNext → depth = 3 (Rounds + child 1 on stack)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'MultiBlock' });
-        userNext(ctx);
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(3);
+    it('dismiss gate: first userNext → depth = 3 (Rounds + child 1 on stack)', async () => {
+        const script = await ctx.compile();
+        await script.next();
+        expect((await script.snapshot()).depth).toBeGreaterThanOrEqual(3);
     });
 
-    it('output count grows with each userNext during rounds', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'MultiBlock' });
-        userNext(ctx); // dismiss gate → R1 child1
-        const countAfterStart = ctx.tracer.count;
-        userNext(ctx); // R1 child1 → R1 child2
-        expect(ctx.tracer.count).toBeGreaterThan(countAfterStart);
+    it('output count grows with each userNext during rounds', async () => {
+        const script = await ctx.compile();
+        await script.next(); // dismiss gate → R1 child1
+        const countAfterStart = assertions(await script.snapshot()).outputs().count();
+        await script.next(); // R1 child1 → R1 child2
+        expect(assertions(await script.snapshot()).outputs().count()).toBeGreaterThan(countAfterStart);
     });
 
-    it('session ends cleanly after all 3 rounds complete', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'MultiBlock' });
-        userNext(ctx); // dismiss gate
+    it('session ends cleanly after all 3 rounds complete', async () => {
+        const script = await ctx.compile();
+        await script.next(); // dismiss gate
         // 3 rounds × 2 children = 6 exercise completions
         for (let r = 0; r < 3; r++) {
-            userNext(ctx); // child 1
-            userNext(ctx); // child 2
+            await script.next(); // child 1
+            await script.next(); // child 2
         }
-        expect(ctx.runtime.stack.count).toBe(0);
+        expect((await script.snapshot()).depth).toBe(0);
     });
 
-    it('output count is at least 16 (rounds + children + session)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'MultiBlock' });
-        userNext(ctx);
+    it('output count is at least 16 (rounds + children + session)', async () => {
+        const script = await ctx.compile();
+        await script.next();
         for (let r = 0; r < 3; r++) {
-            userNext(ctx);
-            userNext(ctx);
+            await script.next();
+            await script.next();
         }
-        expect(ctx.tracer.count).toBeGreaterThanOrEqual(16);
+        expect(assertions(await script.snapshot()).outputs().count()).toBeGreaterThanOrEqual(16);
     });
 
-    it('all outputs are paired', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'MultiBlock' });
-        userNext(ctx);
+    it('all outputs are paired', async () => {
+        const script = await ctx.compile();
+        await script.next();
         for (let r = 0; r < 3; r++) {
-            userNext(ctx);
-            userNext(ctx);
+            await script.next();
+            await script.next();
         }
-        const unpaired = ctx.tracer.assertPairedOutputs();
+        const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
         expect(unpaired).toEqual([]);
     });
 });
@@ -212,93 +167,80 @@ describe('🟢 Full Session — Multi-Block', () => {
 // Step 5:    —                        → stack empties, open segments closed
 // Step 6:    —                        → assertPairedOutputs() passes
 // ===========================================================================
-describe('🟢 Early Termination / Abort (.skip)', () => {
-    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups';
-    let ctx: SessionTestContext;
-
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
-    it('step 1: startSession → AMRAP setup visible (depth = 2)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AbortAMRAP' });
-        expect(ctx.runtime.stack.count).toBe(2);
+describeCompliance('🟢 Early Termination / Abort (.skip)', '20:00 AMRAP\n  5 Pullups\n  10 Pushups', (ctx) => {
+    it('step 1: startSession → AMRAP setup visible (depth = 2)', async () => {
+        const script = await ctx.compile();
+        expect((await script.snapshot()).depth).toBe(2);
     });
 
-    it('step 2: userNext starts AMRAP and pushes first exercise', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AbortAMRAP' });
-        userNext(ctx);
+    it('step 2: userNext starts AMRAP and pushes first exercise', async () => {
+        const script = await ctx.compile();
+        await script.next();
         // WaitingToStart popped; AMRAP block + first exercise on stack
-        expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(3);
-        const amrapBlock = ctx.runtime.stack.blocks.find(b => b.blockType === 'AMRAP');
+        expect((await script.snapshot()).depth).toBeGreaterThanOrEqual(3);
+        const amrapBlock = (await script.snapshot()).blocks.find(b => b.blockType === 'AMRAP');
         expect(amrapBlock).toBeDefined();
     });
 
-    it('step 3: complete 1 round (Pullups + Pushups) → AMRAP still running', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AbortAMRAP' });
-        userNext(ctx); // start AMRAP
-        advanceClock(ctx, 60_000);
-        userNext(ctx); // Pullups done
-        userNext(ctx); // Pushups done → round 2 starts
+    it('step 3: complete 1 round (Pullups + Pushups) → AMRAP still running', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start AMRAP
+        await script.tick(60_000);
+        await script.next(); // Pullups done
+        await script.next(); // Pushups done → round 2 starts
         // AMRAP is still on the stack (timer has not expired)
-        const amrapBlock = ctx.runtime.stack.blocks.find(b => b.blockType === 'AMRAP');
+        const amrapBlock = (await script.snapshot()).blocks.find(b => b.blockType === 'AMRAP');
         expect(amrapBlock).toBeDefined();
     });
 
-    it('step 4: simulateEvent("abort") → AMRAP force-pops, stack empties', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AbortAMRAP' });
-        userNext(ctx); // start AMRAP
-        advanceClock(ctx, 60_000);
-        userNext(ctx); // Pullups
-        userNext(ctx); // Pushups → round 2
-        simulateEvent(ctx, 'abort');
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 4: simulateEvent("abort") → AMRAP force-pops, stack empties', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start AMRAP
+        await script.tick(60_000);
+        await script.next(); // Pullups
+        await script.next(); // Pushups → round 2
+        await script.userEvent('abort');
+        expect((await script.snapshot()).depth).toBe(0);
     });
 
-    it('step 5: abort on a fresh session (no rounds done) also empties stack', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AbortFresh' });
-        userNext(ctx); // start AMRAP
-        simulateEvent(ctx, 'abort');
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('step 5: abort on a fresh session (no rounds done) also empties stack', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start AMRAP
+        await script.userEvent('abort');
+        expect((await script.snapshot()).depth).toBe(0);
     });
 
-    it('step 6: assertPairedOutputs() passes after abort', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AbortAMRAP' });
-        userNext(ctx); // start AMRAP
-        advanceClock(ctx, 60_000);
-        userNext(ctx); // Pullups
-        userNext(ctx); // Pushups → round 2
-        simulateEvent(ctx, 'abort');
-        const unpaired = ctx.tracer.assertPairedOutputs();
+    it('step 6: assertPairedOutputs() passes after abort', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start AMRAP
+        await script.tick(60_000);
+        await script.next(); // Pullups
+        await script.next(); // Pushups → round 2
+        await script.userEvent('abort');
+        const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
         expect(unpaired).toEqual([]);
     });
 
-    it('abort on an already-empty stack is a no-op (no crash)', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AbortEmpty' });
-        userNext(ctx); // start AMRAP
-        simulateEvent(ctx, 'abort'); // first abort → drains stack
-        simulateEvent(ctx, 'abort'); // second abort → should be safe no-op
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('abort on an already-empty stack is a no-op (no crash)', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start AMRAP
+        await script.userEvent('abort'); // first abort → drains stack
+        await script.userEvent('abort'); // second abort → should be safe no-op
+        expect((await script.snapshot()).depth).toBe(0);
     });
 
-    it('abort without ever starting session → no crash', () => {
-        ctx = createSessionContext(SCRIPT);
-        simulateEvent(ctx, 'abort');
-        expect(ctx.runtime.stack.count).toBe(0);
+    it('abort without ever starting session → no crash', async () => {
+        const script = await ctx.compile();
+        await script.userEvent('abort');
+        expect((await script.snapshot()).depth).toBe(0);
     });
 
-    it('outputs are emitted for all blocks present at time of abort', () => {
-        ctx = createSessionContext(SCRIPT);
-        startSession(ctx, { label: 'AbortOutputs' });
-        userNext(ctx); // start → WaitingToStart completes, AMRAP + Pullups pushed
-        const countBeforeAbort = ctx.tracer.count;
-        simulateEvent(ctx, 'abort');
+    it('outputs are emitted for all blocks present at time of abort', async () => {
+        const script = await ctx.compile();
+        await script.next(); // start → WaitingToStart completes, AMRAP + Pullups pushed
+        const countBeforeAbort = assertions(await script.snapshot()).outputs().count();
+        await script.userEvent('abort');
         // Additional completion outputs should have been emitted during abort
-        expect(ctx.tracer.count).toBeGreaterThan(countBeforeAbort);
+        expect(assertions(await script.snapshot()).outputs().count()).toBeGreaterThan(countBeforeAbort);
     });
 });

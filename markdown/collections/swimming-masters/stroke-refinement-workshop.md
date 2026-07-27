@@ -1,3 +1,9 @@
+---
+tags:
+  - swimming
+  - endurance
+---
+
 # Stroke Refinement Workshop
 
 **Type**: Technique Focus  

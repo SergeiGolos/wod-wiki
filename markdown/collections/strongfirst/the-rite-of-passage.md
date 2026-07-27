@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 2: The Rite of Passage
 
 **Category**: StrongFirst Strength Program  

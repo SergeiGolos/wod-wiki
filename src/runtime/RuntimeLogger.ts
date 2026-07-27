@@ -16,7 +16,6 @@ import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IEvent } from './contracts/events/IEvent';
-import { MemoryType } from './memory/MemoryTypes';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -84,7 +83,7 @@ class RuntimeLoggerImpl {
         if (!this._enabled) return;
 
         const behaviors = this.getBehaviorNames(block);
-        const memoryTypes = block.getMemoryTypes?.() ?? [];
+        const memoryTypes = block.getAllMemory?.().map(loc => loc.tag) ?? [];
 
         console.groupCollapsed(
             `%c[RT] ▶ PUSH %c${block.label || block.blockType || 'Block'}%c [${block.key.toString().slice(0, 8)}]`,
@@ -186,7 +185,7 @@ class RuntimeLoggerImpl {
     /**
      * Log when memory is updated on a block
      */
-    logMemoryUpdate(blockKey: string, memoryType: MemoryType, value: unknown): void {
+    logMemoryUpdate(blockKey: string, memoryType: string, value: unknown): void {
         if (!this._enabled) return;
 
         // Create a simplified view of the value

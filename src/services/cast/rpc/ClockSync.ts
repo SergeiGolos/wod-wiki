@@ -155,7 +155,7 @@ export class ClockSyncService {
 
         // Wait for the response
         const response = await this.waitForResponse<RpcClockSyncResponse>(
-            msg => msg.type === 'rpc-clock-sync-response' && msg.requestTimestamp === t1,
+            (msg): msg is RpcClockSyncResponse => msg.type === 'rpc-clock-sync-response' && msg.requestTimestamp === t1,
             2000, // 2 second timeout
         );
 

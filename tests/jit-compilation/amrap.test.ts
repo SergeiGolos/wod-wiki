@@ -13,21 +13,13 @@
  * @see docs/planning-output-statements/amrap.md
  */
 import { describe, it, expect, afterEach } from 'bun:test';
-import {
-    createSessionContext,
-    startSession,
-    userNext,
-    advanceClock,
-    stackInfo,
-    disposeSession,
-    type SessionTestContext,
-} from './helpers/session-test-utils';
+import { TestScript, assertions } from '@/testing/script';
 
 describe('AMRAP (Cindy) — Output Statements', () => {
-    let ctx: SessionTestContext;
+    let script: TestScript;
 
-    afterEach(() => {
-        if (ctx) disposeSession(ctx);
+    afterEach(async () => {
+        if (script) await script.dispose();
     });
 
     describe('Cindy — 20:00 AMRAP 5 Pullups / 10 Pushups / 15 Air Squats', () => {
@@ -35,70 +27,70 @@ describe('AMRAP (Cindy) — Output Statements', () => {
          * Advance through one complete round (3 exercises).
          */
         function advanceOneRound() {
-            userNext(ctx); // Pullups complete
-            userNext(ctx); // Pushups complete
-            userNext(ctx); // Air Squats complete
+            script.next(); // Pullups complete
+            script.next(); // Pushups complete
+            script.next(); // Air Squats complete
         }
 
-        it('should start workout with correct stack depth', () => {
-            ctx = createSessionContext('20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats');
-            startSession(ctx, { label: 'Cindy' });
+        it('should start workout with correct stack depth', async () => {
+            script = await TestScript.compile('20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats');
 
             // SessionRoot + WaitingToStart
-            expect(ctx.runtime.stack.count).toBe(2);
+            const s0 = await script.snapshot();
+            expect(s0.depth).toBe(2);
 
             // User starts
-            userNext(ctx);
+            await script.next();
             // WaitingToStart pops → AMRAP pushed → first exercise pushed
-            expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(2);
+            const s1 = await script.snapshot();
+            expect(s1.depth).toBeGreaterThanOrEqual(2);
         });
 
-        it('should allow completing one full round', () => {
-            ctx = createSessionContext('20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats');
-            startSession(ctx, { label: 'Cindy' });
-            userNext(ctx); // Start
+        it('should allow completing one full round', async () => {
+            script = await TestScript.compile('20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats');
+            await script.next(); // Start
 
             // Complete one round without time expiry
-            advanceClock(ctx, 60000); // 1 minute elapsed
-            advanceOneRound();
+            await script.tick(60000); // 1 minute elapsed
+            await advanceOneRound();
 
             // Should still be in the AMRAP (timer hasn't expired)
             // Stack should have SessionRoot + AMRAP + exercise
-            expect(ctx.runtime.stack.count).toBeGreaterThanOrEqual(2);
+            const s = await script.snapshot();
+            expect(s.depth).toBeGreaterThanOrEqual(2);
         });
 
-        it('should terminate when timer expires during a round', () => {
-            ctx = createSessionContext('20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats');
-            startSession(ctx, { label: 'Cindy' });
-            userNext(ctx); // Start
+        it('should terminate when timer expires during a round', async () => {
+            script = await TestScript.compile('20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats');
+            await script.next(); // Start
 
             // Complete 2 rounds (6 minutes simulated)
-            advanceClock(ctx, 180000); // 3 min
-            advanceOneRound();
-            advanceClock(ctx, 180000); // 6 min total
-            advanceOneRound();
+            await script.tick(180000); // 3 min
+            await advanceOneRound();
+            await script.tick(180000); // 6 min total
+            await advanceOneRound();
 
             // Now expire the timer (advance to 20+ minutes).
             // TimerCompletionBehavior detects expiry → ClearChildrenAction
             // force-pops the active exercise → NextAction on AMRAP →
             // CompletedBlockPopBehavior pops AMRAP → session ends.
-            advanceClock(ctx, 840000); // 20 min total
+            await script.tick(840000); // 20 min total
 
             // Session should auto-terminate — no manual next() calls needed
-            expect(ctx.runtime.stack.count).toBe(0);
+            const s = await script.snapshot();
+            expect(s.depth).toBe(0);
         });
 
-        it('should emit paired outputs through completion', () => {
-            ctx = createSessionContext('20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats');
-            startSession(ctx, { label: 'Cindy' });
-            userNext(ctx); // Start
+        it('should emit paired outputs through completion', async () => {
+            script = await TestScript.compile('20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats');
+            await script.next(); // Start
 
             // Do one round, expire timer
-            advanceClock(ctx, 60000); // 1 min
-            advanceOneRound();
-            advanceClock(ctx, 1140000); // 20 min total — timer expires, auto-clears
+            await script.tick(60000); // 1 min
+            await advanceOneRound();
+            await script.tick(1140000); // 20 min total — timer expires, auto-clears
 
-            const unpaired = ctx.tracer.assertPairedOutputs();
+            const unpaired = assertions(await script.snapshot()).outputs().assertPairedOutputs();
             expect(unpaired).toEqual([]);
         });
     });

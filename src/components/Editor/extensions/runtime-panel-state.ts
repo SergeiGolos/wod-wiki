@@ -12,13 +12,13 @@
 import { StateEffect, StateField } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 import type { Range } from "@codemirror/state";
-import type { WodBlock } from "../types";
+import type { ScriptBlock } from "../types";
 
 // ── Entry type ────────────────────────────────────────────────────────
 
 export interface RuntimePanelEntry {
   /** The WOD block to execute */
-  block: WodBlock;
+  block: ScriptBlock;
   /** Character position at the END of the WOD section (where the spacer goes) */
   afterPos: number;
   /** Whether the panel is expanded to fill the editor container */
@@ -155,7 +155,7 @@ export const runtimePanelField = StateField.define<Map<string, RuntimePanelEntry
 export function dispatchAddRuntimePanel(
   view: EditorView,
   sectionId: string,
-  block: WodBlock,
+  block: ScriptBlock,
   afterPos: number,
 ): void {
   view.dispatch({

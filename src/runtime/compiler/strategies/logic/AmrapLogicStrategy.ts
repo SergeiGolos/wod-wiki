@@ -1,16 +1,11 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricType } from "@/core/models/Metric";
 import { DurationMetric } from "../../metrics/DurationMetric";
-import { BlockContext } from "../../../BlockContext";
-import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
-import { MetricContainer } from "@/core/models/MetricContainer";
-import { LabelComposer } from "../../utils/LabelComposer";
-
-// Specific behaviors not covered by aspect composers
+import { compose } from "../../BlockTemplateComposer";
+import type { BlockTemplate } from "../../BlockTemplate";
 import {
     LabelingBehavior,
     SoundCueBehavior
@@ -28,8 +23,9 @@ import {
  */
 export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
     priority = 90; // High priority - runs before generic strategies
+    readonly id = 'amrap-logic';
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
         
         // Match if ANY statement has timer and ANY statement has rounds/amrap keyword
@@ -44,57 +40,41 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         return hasTimer && (hasRounds || hasRoundsKeyword);
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IRuntimeContext): void {
         const firstStatementWithTimer = statements.find(s => s.hasMetric(MetricType.Duration)) || statements[0];
-        
+
         const timerFragment = firstStatementWithTimer.metrics.find(
             f => f.type === MetricType.Duration
         ) as DurationMetric | undefined;
         const durationMs = timerFragment?.value || 0;
 
-        // Block metadata
-        const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), firstStatementWithTimer.exerciseId || '');
-        
-        // Use LabelComposer for a standardized, descriptive label
-        const label = LabelComposer.build(statements, {
-            defaultLabel: `AMRAP ${Math.round(durationMs / 60000)} min`
-        });
+        // Build the common chassis via the template composer; strategy-specific
+        // behaviors (Labeling, SoundCue) are added below.
+        const template: BlockTemplate = {
+            blockType: 'AMRAP',
+            defaultLabel: `AMRAP ${Math.round(durationMs / 60000)} min`,
+            statements,
+            runtime,
+            // AMRAP uses countdown timer that marks block complete when expired
+            timer: {
+                direction: 'down',
+                durationMs,
+                label: 'AMRAP',
+                role: 'primary',
+                mode: 'complete-block',
+                injectRest: false,
+            },
+            // Unbounded rounds — no completion on round exhaustion, the timer
+            // drives completion.
+            repeater: {
+                totalRounds: undefined,
+                startRound: 1,
+                addCompletion: false,
+            },
+            pickStatement: (stmts) => stmts.find(s => s.hasMetric(MetricType.Duration)) || stmts[0],
+        };
 
-        builder
-            .setContext(context)
-            .setKey(blockKey)
-            .setBlockType("AMRAP")
-            .setLabel(label)
-            .setSourceIds(statements.map(s => s.id));
-
-        const distributor = new PassthroughMetricDistributor();
-        const metricGroups = statements.flatMap(s => 
-            distributor.distribute(MetricContainer.from(s.metrics), "AMRAP")
-        ).filter(group => group.length > 0);
-        
-        builder.setFragments(metricGroups);
-
-        // =====================================================================
-        // ASPECT COMPOSERS - High-level composition
-        // =====================================================================
-
-        // Timer Aspect - AMRAP uses countdown timer that marks block complete when expired
-        builder.asTimer({
-            direction: 'down',
-            durationMs,
-            label: 'AMRAP',
-            role: 'primary',
-            addCompletion: true,  // Timer completion marks block as complete
-            injectRest: false
-        });
-
-        // Repeater Aspect - AMRAP has unbounded rounds (no completion on round exhaustion)
-        builder.asRepeater({
-            totalRounds: undefined,  // Unbounded - run until timer expires
-            startRound: 1,
-            addCompletion: false  // No RoundsEndBehavior - timer controls completion
-        });
+        const label = compose(builder, template);
 
         // =====================================================================
         // Display Aspect

@@ -31,6 +31,8 @@ class MockTransport implements IRpcTransport {
         return () => this.discHandlers.delete(handler);
     }
 
+    get needsClockSync(): boolean { return false; }
+
     dispose(): void {
         this.messageHandlers.clear();
     }

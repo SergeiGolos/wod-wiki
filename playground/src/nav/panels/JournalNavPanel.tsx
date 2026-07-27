@@ -6,12 +6,11 @@
  *   - Tag chip filter
  *
  * Context-aware date click behaviour:
- *   - On /journal        → updates the ?d= filter query param (scroll to date)
+ *   - On /journal        → updates the ?s= filter query param (scroll to date)
  *   - On /journal/:date  → navigates to the clicked date's entry page
  */
-
 import { useMatch, useNavigate } from 'react-router-dom'
-import { CalendarCard } from '@/components/ui/CalendarCard'
+import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { cn } from '@/lib/utils'
 import { useJournalQueryState } from '../../hooks/useJournalQueryState'
 import type { NavPanelProps } from '../navTypes'

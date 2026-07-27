@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # Nancy
 
 **Category**: CrossFit Benchmark  

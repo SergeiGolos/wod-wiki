@@ -1,3 +1,10 @@
+---
+tags:
+  - kettlebell
+  - sport
+  - competition
+---
+
 ## Workout 6: Long Cycle Training Session
 
 **Category**: Girevoy Sport Training  

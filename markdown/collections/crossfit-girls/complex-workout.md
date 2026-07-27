@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - benchmark
+---
+
 # Complex AMRAP Workout
 
 **Category**: CrossFit Style  

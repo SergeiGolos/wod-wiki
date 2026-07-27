@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, vi } from 'bun:test';
 import { ExecutionContext } from '../ExecutionContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
@@ -10,6 +10,7 @@ function createMockRuntime(): IScriptRuntime {
     return {
         clock: {
             now: new Date('2024-01-01T12:00:00Z'),
+            currentDate: new Date('2024-01-01T12:00:00Z'),
             start: () => {},
             stop: () => {},
             isRunning: true
@@ -175,11 +176,11 @@ describe('ExecutionContext LIFO Stack Behavior', () => {
         const actionA: IRuntimeAction = {
             type: 'A',
             do: (runtime: IScriptRuntime) => {
-                timestamps.push(runtime.clock.now.getTime());
+                timestamps.push(runtime.clock.currentDate.getTime());
                 runtime.do({
                     type: 'B',
                     do: (rt: IScriptRuntime) => {
-                        timestamps.push(rt.clock.now.getTime());
+                        timestamps.push(rt.clock.currentDate.getTime());
                     }
                 });
             }
@@ -193,17 +194,24 @@ describe('ExecutionContext LIFO Stack Behavior', () => {
     });
 
     it('should enforce max iteration limit', () => {
-        const mockRuntime = createMockRuntime();
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const mockRuntime = createMockRuntime();
 
-        const infiniteAction: IRuntimeAction = {
-            type: 'infinite',
-            do: (runtime: IScriptRuntime) => {
-                runtime.do(infiniteAction);
-            }
-        };
+            const infiniteAction: IRuntimeAction = {
+                type: 'infinite',
+                do: (runtime: IScriptRuntime) => {
+                    runtime.do(infiniteAction);
+                }
+            };
 
-        const ctx = new ExecutionContext(mockRuntime, 5);
-        expect(() => ctx.execute(infiniteAction)).toThrow(/Max iterations/);
+            const ctx = new ExecutionContext(mockRuntime, 5);
+            expect(() => ctx.execute(infiniteAction)).toThrow(/Max iterations/);
+            expect(consoleError).toHaveBeenCalledTimes(1);
+            expect(String(consoleError.mock.calls[0]?.[0])).toMatch(/\[ExecutionContext\] Max iterations reached \(5\)/);
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 
     it('should process deeply nested chains correctly', () => {
@@ -329,15 +337,22 @@ describe('ExecutionContext: Actions returning child actions', () => {
     });
 
     it('should detect infinite recursion from returned actions', () => {
-        const mockRuntime = createMockRuntime();
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            const mockRuntime = createMockRuntime();
 
-        const recursiveAction: IRuntimeAction = {
-            type: 'recursive',
-            do: () => [recursiveAction]
-        };
+            const recursiveAction: IRuntimeAction = {
+                type: 'recursive',
+                do: () => [recursiveAction]
+            };
 
-        const ctx = new ExecutionContext(mockRuntime, 5);
-        expect(() => ctx.execute(recursiveAction)).toThrow(/Max iterations/);
+            const ctx = new ExecutionContext(mockRuntime, 5);
+            expect(() => ctx.execute(recursiveAction)).toThrow(/Max iterations/);
+            expect(consoleError).toHaveBeenCalledTimes(1);
+            expect(String(consoleError.mock.calls[0]?.[0])).toMatch(/\[ExecutionContext\] Max iterations reached \(5\)/);
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 
     it('should mix returned actions with runtime.do() calls correctly', () => {
@@ -464,5 +479,116 @@ describe('ExecutionContext.doAll()', () => {
         // LIFO: 'single' was pushed last (on top), so it executes first
         // Then batch-1 (top of doAll), then batch-2
         expect(executionOrder).toEqual(['start', 'single', 'batch-1', 'batch-2']);
+    });
+});
+
+describe('ExecutionContext: handle() method', () => {
+    it('does not add system output when event dispatch returns no actions', () => {
+        const executionOrder: string[] = [];
+
+        // Mock runtime with eventBus that returns empty actions
+        const mockRuntime: IScriptRuntime = {
+            clock: {
+                now: new Date('2024-01-01T12:00:00Z'),
+                currentDate: new Date('2024-01-01T12:00:00Z'),
+                start: () => {},
+                stop: () => {},
+                isRunning: true
+            },
+            stack: { current: undefined, count: 0, blocks: [], push: () => {}, pop: () => undefined },
+            eventBus: {
+                register: () => () => {},
+                on: () => () => {},
+                dispatch: (_event: any, _runtime: any) => [], // returns NO actions
+                emit: () => {},
+                dispose: () => {},
+            },
+            script: {} as any,
+            jit: {} as any,
+            errors: [],
+            do: () => {},
+            doAll: () => {},
+            handle: () => {},
+            pushBlock: () => {},
+            popBlock: () => {},
+            subscribeToOutput: () => () => {},
+            getOutputStatements: () => [],
+            addOutput: () => {},
+            subscribeToStack: () => () => {},
+            setAnalyticsEngine: () => {},
+            dispose: () => {},
+        } as any;
+
+        const ctx = new ExecutionContext(mockRuntime, 20);
+
+        // execute a wrapper that calls handle() with an event that produces no actions
+        ctx.execute({
+            type: 'wrapper',
+            do: (runtime: IScriptRuntime) => {
+                executionOrder.push('before-handle');
+                runtime.handle({ name: 'test-event', timestamp: new Date(), data: {} });
+                executionOrder.push('after-handle');
+            }
+        });
+
+        // Both before and after should execute — handle() with empty actions is a no-op
+        expect(executionOrder).toContain('before-handle');
+        expect(executionOrder).toContain('after-handle');
+        expect(executionOrder).toEqual(['before-handle', 'after-handle']);
+    });
+
+    it('enqueues system output action and event actions when dispatch returns actions', () => {
+        const actionExecuted: string[] = [];
+
+        const eventAction = {
+            type: 'test-event-action',
+            do: () => {
+                actionExecuted.push('event-action');
+            }
+        };
+
+        const mockRuntime: IScriptRuntime = {
+            clock: {
+                now: new Date('2024-01-01T12:00:00Z'),
+                currentDate: new Date('2024-01-01T12:00:00Z'),
+                start: () => {},
+                stop: () => {},
+                isRunning: true
+            },
+            stack: { current: undefined, count: 0, blocks: [], push: () => {}, pop: () => undefined },
+            eventBus: {
+                register: () => () => {},
+                on: () => () => {},
+                dispatch: (_event: any, _runtime: any) => [eventAction], // returns 1 action
+                emit: () => {},
+                dispose: () => {},
+            },
+            script: {} as any,
+            jit: {} as any,
+            errors: [],
+            do: () => {},
+            doAll: () => {},
+            handle: () => {},
+            pushBlock: () => {},
+            popBlock: () => {},
+            subscribeToOutput: () => () => {},
+            getOutputStatements: () => [],
+            addOutput: () => {},
+            subscribeToStack: () => () => {},
+            setAnalyticsEngine: () => {},
+            dispose: () => {},
+        } as any;
+
+        const ctx = new ExecutionContext(mockRuntime, 20);
+
+        ctx.execute({
+            type: 'wrapper',
+            do: (runtime: IScriptRuntime) => {
+                runtime.handle({ name: 'next', timestamp: new Date(), data: {} });
+            }
+        });
+
+        // The event action should have been executed
+        expect(actionExecuted).toContain('event-action');
     });
 });

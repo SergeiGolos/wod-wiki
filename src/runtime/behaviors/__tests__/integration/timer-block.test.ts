@@ -26,10 +26,11 @@ import { CountdownTimerBehavior } from '../../CountdownTimerBehavior';
 import { CountupTimerBehavior } from '../../CountupTimerBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { LabelingBehavior } from '../../LabelingBehavior';
-import { LeafExitBehavior } from '../../LeafExitBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
 import { TimerState } from '../../../memory/MemoryTypes';
 import { IBehaviorContext } from '../../../contracts/IBehaviorContext';
+import { MetricType } from '../../../../core/models/Metric';
+import { MemoryTag } from '../../../memory/MemoryLocation';
 
 describe('Timer Block Integration', () => {
     let runtime: MockRuntime;
@@ -112,62 +113,20 @@ describe('Timer Block Integration', () => {
             expect(runtime.completionReason).toBe('timer-expired');
         });
 
-        it('should emit completion output with timer results on unmount', () => {
+        it('writes timer results to result memory on unmount', () => {
             const behaviors = createCountdownBehaviors();
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             runtime.clock.advance(7500);
             unmountBehaviors(behaviors, ctx);
 
-            // Segment output emitted on mount; completion on unmount with timing
-            const segments = runtime.outputs.filter(o => o.type === 'segment');
-            expect(segments.length).toBeGreaterThanOrEqual(1);
-            const completionOutputs = runtime.outputs.filter(o => o.type === 'completion');
-            expect(completionOutputs.length).toBe(1);
-
-            // Completion output should contain elapsed and spans metrics
-            const completion = completionOutputs[0];
-            const hasElapsed = (completion.metrics as any[]).some(f => f.type === 'elapsed');
-            const hasSpans = (completion.metrics as any[]).some(f => f.type === 'spans');
-            expect(hasElapsed).toBe(true);
-            expect(hasSpans).toBe(true);
-        });
-    });
-
-    describe('Countup Timer', () => {
-        const createCountupBehaviors = () => [
-            new CountupTimerBehavior({ label: 'For Time' }),
-            new LeafExitBehavior(),
-            new LabelingBehavior({ mode: 'clock', label: 'For Time' }),
-            new ReportOutputBehavior({ label: 'For Time' })
-        ];
-
-        it('should track elapsed time without auto-expiring', () => {
-            const behaviors = createCountupBehaviors();
-            const ctx = mountBehaviors(behaviors, runtime, block);
-
-            // Simulate 60 seconds
-            simulateTicks(runtime, ctx, 60, 1000);
-
-            // Should NOT auto-complete
-            expect(runtime.completionReason).toBeUndefined();
-
-            // Timer should still be tracking
-            const timer = block.memory.get('time') as TimerState;
-            const elapsed = calculateElapsed(timer, runtime.clock.timestamp);
-            expect(elapsed).toBe(60000);
-        });
-
-        it('should complete on user advance (next)', () => {
-            const behaviors = createCountupBehaviors();
-            const ctx = mountBehaviors(behaviors, runtime, block);
-
-            // User calls next
-            for (const behavior of behaviors) {
-                behavior.onNext(ctx);
-            }
-
-            expect(runtime.completionReason).toBe('user-advance');
+            // Timer results are written to 'metric:result' memory on unmount; in the
+            // live runtime they fold into the segment output emitted on pop.
+            const resultLocs = block.getMemoryByTag('metric:result' as MemoryTag);
+            expect(resultLocs.length).toBeGreaterThanOrEqual(1);
+            const resultMetrics = resultLocs[0].metrics;
+            expect(resultMetrics.some(f => f.type === MetricType.Elapsed)).toBe(true);
+            expect(resultMetrics.some(f => f.type === MetricType.Spans)).toBe(true);
         });
     });
 

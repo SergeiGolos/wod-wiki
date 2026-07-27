@@ -34,10 +34,6 @@ describe('useRuntimeTimer', () => {
     expect(typeof useOutputStatements).toBe('function');
   });
 
-  it('should export useWorkoutTracker', async () => {
-    const { useWorkoutTracker } = await import('../useRuntimeTimer');
-    expect(typeof useWorkoutTracker).toBe('function');
-  });
 
   it('should export useScriptRuntime', async () => {
     const { useScriptRuntime } = await import('../useRuntimeTimer');

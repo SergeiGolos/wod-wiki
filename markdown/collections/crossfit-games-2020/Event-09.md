@@ -1,3 +1,9 @@
+---
+tags:
+  - crossfit
+  - competition
+---
+
 # 2020 CrossFit Games - Event 9 "Barbara"
 
 **Category:** CrossFit Benchmark / Competition

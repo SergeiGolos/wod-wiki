@@ -1,5 +1,6 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
+import type { IEventDispatchContext } from '../../contracts/primitives/IEventDispatchContext';
 import { IEventHandler } from '../../contracts/events/IEventHandler';
 import { IEvent } from '../../contracts/events/IEvent';
 import { HandlerScope } from '../../contracts/events/IEventBus';
@@ -11,7 +12,7 @@ export class SubscribeEventAction implements IRuntimeAction {
         private eventName: string,
         private handlerId: string,
         private ownerId: string,
-        private handlerFn: (event: IEvent, runtime: IScriptRuntime) => IRuntimeAction[],
+        private handlerFn: (event: IEvent, runtime: IRuntimeContext) => IRuntimeAction[],
         /** Handler scope. Default: 'active' (only fires when owner is current block) */
         private scope: HandlerScope = 'active'
     ) { }
@@ -25,11 +26,11 @@ export class SubscribeEventAction implements IRuntimeAction {
         throw new Error('Cannot modify readonly property type');
     }
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IRuntimeContext): void {
         const handler: IEventHandler = {
             id: this.handlerId,
             name: `Subscription-${this.eventName}`,
-            handler: this.handlerFn
+            handler: this.handlerFn as unknown as (event: IEvent, runtime: IEventDispatchContext) => IRuntimeAction[]
         };
         runtime.eventBus.register(this.eventName, handler, this.ownerId, { scope: this.scope });
     }
@@ -51,7 +52,7 @@ export class UnsubscribeEventAction implements IRuntimeAction {
         throw new Error('Cannot modify readonly property type');
     }
 
-    do(runtime: IScriptRuntime): void {
+    do(runtime: IRuntimeContext): void {
         runtime.eventBus.unregisterById(this.handlerId);
     }
 }

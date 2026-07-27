@@ -1,3 +1,9 @@
+---
+tags:
+  - kettlebell
+  - strength
+---
+
 ## Workout 7: Swing Hard
 
 **Category**: Geoff Neupert Conditioning  

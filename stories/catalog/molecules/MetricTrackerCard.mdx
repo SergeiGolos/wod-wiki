@@ -5,15 +5,14 @@ import * as stories from './MetricTrackerCard.stories';
 
 # MetricTrackerCard
 
-Floating metric bubbles that display session-total analytics computed by `useWorkoutTracker()`; renders nothing when there is no active workout runtime in context.
+Floating metric bubbles that display session-total analytics; renders nothing when there is no active workout runtime in context.
 
 ## Depends On
 
 | System / Token | Usage |
 |----------------|-------|
 | `ScriptRuntimeProvider` / `ScriptRuntime` | Provides the active runtime context |
-| `useWorkoutTracker()` | Computes session totals from the runtime |
-| `WorkoutTracker` | Tracks reps, distance, load over the session |
+| `useOutputStatements()` | Reads the live output stream; session totals arrive as `'analytics'`-typed outputs emitted per segment by `AnalyticsEngine` |
 
 ## Notifies
 
@@ -33,4 +32,4 @@ interface MetricTrackerCardProps {
 
 | State | Type | Initial | Purpose |
 |-------|------|---------|---------|
-| Tracker data | `WorkoutTrackerState` | `null` | Session totals from `useWorkoutTracker()`; component renders `null` when absent |
+| Latest analytics output | `IOutputStatement \| undefined` | `undefined` | Most recent `'analytics'`-typed output from `useOutputStatements()`; component renders `null` when absent |

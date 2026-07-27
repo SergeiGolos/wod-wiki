@@ -1,13 +1,10 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
-import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
-import { BlockContext } from "../../../BlockContext";
-import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
-import { MetricContainer } from "@/core/models/MetricContainer";
+import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 import { MetricType } from "@/core/models/Metric";
-import { LabelComposer } from "../../utils/LabelComposer";
+import { compose } from "../../BlockTemplateComposer";
+import type { BlockTemplate } from "../../BlockTemplate";
 
 // New aspect-based behaviors
 import {
@@ -24,8 +21,9 @@ import {
  */
 export class GenericGroupStrategy implements IRuntimeBlockStrategy {
     priority = 50; // Same as GenericTimer/GenericLoop; runs before ChildrenStrategy (same priority, registered earlier)
+    readonly id = 'generic-group';
 
-    match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
+    match(statements: ICodeStatement[], _runtime: IRuntimeContext): boolean {
         if (!statements || statements.length === 0) return false;
         
         // Match if ANY statement has children but NO statement has timer/rounds
@@ -36,34 +34,21 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
         return hasChildren && !hasTimer && !hasRounds;
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IRuntimeContext): void {
         // If we have a timer or loop behavior, the identity is already set (Timer/Rounds/AMRAP/EMOM).
         if (builder.hasTimerBehavior() || builder.hasRoundConfig()) {
             return;
         }
 
         // If we are here, it has children but no timer/loop. It is a simple Group.
-        const firstStatement = statements[0];
-        const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), firstStatement.exerciseId || '');
-        
-        // Use LabelComposer for a standardized, descriptive label
-        const label = LabelComposer.build(statements, {
-            defaultLabel: "Group"
-        });
+        const template: BlockTemplate = {
+            blockType: 'Group',
+            defaultLabel: 'Group',
+            statements,
+            runtime,
+        };
 
-        builder.setContext(context)
-               .setKey(blockKey)
-               .setBlockType("Group")
-               .setLabel(label)
-               .setSourceIds(statements.map(s => s.id));
-
-        const distributor = new PassthroughMetricDistributor();
-        const metricGroups = statements.flatMap(s => 
-            distributor.distribute(MetricContainer.from(s.metrics), "Group")
-        ).filter(group => group.length > 0);
-        
-        builder.setFragments(metricGroups);
+        const label = compose(builder, template);
 
         // =====================================================================
         // Display Aspect
