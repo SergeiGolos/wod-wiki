@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: ''
+      app-version:
+        description: VITE_APP_VERSION stamped into the playground bundle (e.g. X.Y.Z-pr.N on PR previews); empty = package.json version
+        required: false
+        type: string
+        default: ''
     outputs:
       unit-status:
         description: Unit test outcome
@@ -99,6 +104,7 @@ jobs:
         run: bun run build:app
         env:
           VITE_BASE_PATH: ${{ inputs.preview-base-path }}
+          VITE_APP_VERSION: ${{ inputs.app-version }}
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://wod.wiki/api' }}
           VITE_CAST_APP_ID: ${{ vars.VITE_CAST_APP_ID }}
 

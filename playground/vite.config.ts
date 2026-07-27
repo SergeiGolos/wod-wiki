@@ -64,7 +64,10 @@ export default defineConfig({
     envDir: projectRoot,
     base: process.env.VITE_BASE_PATH || '/',
     define: {
-        __APP_VERSION__: JSON.stringify(pkg.version),
+        // CI pipelines stamp the deployed artifact's version via VITE_APP_VERSION
+        // (tagged version on main/prod, X.Y.Z-pr.N on PR previews); local dev
+        // and library builds fall back to package.json.
+        __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION || pkg.version),
     },
     plugins: [react(), receiverRedirectPlugin],
     resolve: {
