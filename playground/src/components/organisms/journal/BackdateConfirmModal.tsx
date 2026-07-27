@@ -9,6 +9,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { cn } from '@/lib/utils';
+import { formatDateHeader } from '@/lib/dateFormat';
 
 export interface BackdateConfirmModalProps {
   /** The date being backdated to (YYYY-MM-DD format) */
@@ -31,12 +32,7 @@ export const BackdateConfirmModal: React.FC<BackdateConfirmModalProps> = ({
 
   // Parse date for display
   const date = new Date(`${dateKey}T00:00:00`);
-  const formattedDate = date.toLocaleDateString(undefined, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const formattedDate = formatDateHeader(date);
 
   const handleConfirm = async () => {
     setConfirming(true);

@@ -27,6 +27,10 @@ export function getCanvasNoteId(route: string): string {
 }
 
 export function resolveSource(dslPath: string, wodFiles: Record<string, string>): string {
+  // Blank-note source used by canvas CTAs (e.g. home "New Workout Note").
+  // Match must be exact; 'query:' is not a general scheme here.
+  if (dslPath === 'query:new') return ''
+
   if (dslPath.startsWith('markdown/')) {
     const key = '../../' + dslPath
     if (key in wodFiles) return stripFrontmatter(wodFiles[key])

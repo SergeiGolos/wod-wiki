@@ -22,6 +22,7 @@ import {
 } from './routes'
 import { resolveJournalRoute } from './journalRoute'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
+import { formatDateMedium } from '@/lib/dateFormat'
 
 // ─── Docs-page nav constants (moved from App.tsx) ──────────────────────────
 
@@ -295,11 +296,7 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
     })
     return Array.from(dates).sort().reverse().slice(0, 10).map(d => ({
       id: d,
-      label: new Date(d + 'T00:00:00').toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }),
+      label: formatDateMedium(new Date(d + 'T00:00:00')),
       type: 'heading' as const,
     }))
   }

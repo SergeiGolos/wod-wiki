@@ -421,7 +421,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       splitSuccessIcon: <Check className="h-3 w-3" />,
       onClick: (block) => {
         buildPlaygroundUrl(block.content).then((url) => {
-          window.open(url, "_blank", "noopener,noreferrer");
+          const tab = window.open(url, "wodwiki-playground");
+          if (tab) tab.focus();
         });
       },
       onSplitClick: async (block) => {

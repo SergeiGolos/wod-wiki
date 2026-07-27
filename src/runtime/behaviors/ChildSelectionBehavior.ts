@@ -68,6 +68,10 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         // Handle interval timer resets for EMOM synchronization
         if (this.config.injectRest) {
             ctx.subscribe('timer:complete' as any, (_event, _ctx) => {
+                // While a rest block is pending/active, the rest-pop path in
+                // onNext owns the round advance — never advance twice for one
+                // interval boundary.
+                if (this.restState !== 'idle') return [];
                 // Interval over — advance round and reset for the next cycle
                 const advanceActions = this.advanceRound(ctx);
                 this.childIndex = 0;
@@ -298,6 +302,15 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
     private advanceRound(ctx: IBehaviorContext): IRuntimeAction[] {
         const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
         if (!round) return [];
+
+        // Total guard: never advance past the configured total (AMRAP leaves
+        // total undefined = unbounded). Prevents overshoot (e.g. "4/3") when
+        // advance paths interleave; completion is surfaced via markComplete so
+        // the RuntimeBlock.next() auto-pop / safety-net paths can pop the block.
+        if (round.total !== undefined && round.current >= round.total) {
+            ctx.markComplete('rounds-exhausted');
+            return [];
+        }
 
         const blockId = ctx.block.key.toString();
         const nextRound = round.current + 1;

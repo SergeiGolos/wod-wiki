@@ -100,20 +100,22 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({ provider
           <span className="text-xs text-muted-foreground">{isAudioEnabled ? 'On' : 'Off'}</span>
         </button>
 
-        <button
-          onClick={toggleDebugMode}
-          className={cn(
-            'flex items-center gap-3 w-full px-2 py-2 rounded-md text-sm transition-colors text-left',
-            isDebugMode
-              ? 'text-foreground bg-muted'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-          )}
-        >
-          <Bug className="w-4 h-4 shrink-0" />
-          <span className="flex-1">Debug Mode</span>
-          {isDebugMode && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />}
-          <span className="text-xs text-muted-foreground">{isDebugMode ? 'On' : 'Off'}</span>
-        </button>
+        {import.meta.env.DEV && (
+          <button
+            onClick={toggleDebugMode}
+            className={cn(
+              'flex items-center gap-3 w-full px-2 py-2 rounded-md text-sm transition-colors text-left',
+              isDebugMode
+                ? 'text-foreground bg-muted'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            )}
+          >
+            <Bug className="w-4 h-4 shrink-0" />
+            <span className="flex-1">Debug Mode</span>
+            {isDebugMode && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />}
+            <span className="text-xs text-muted-foreground">{isDebugMode ? 'On' : 'Off'}</span>
+          </button>
+        )}
 
         {provider && (
           <>

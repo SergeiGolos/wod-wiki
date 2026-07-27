@@ -18,6 +18,7 @@ import { CollectionWizard } from '@/components/organisms/review/CollectionWizard
 import { useUserOverrides } from '@/components/organisms/review/useUserOverrides';
 import { useCollectionMetrics, type CollectionItem } from '@/hooks/useCollectionMetrics';
 import { useDebugMode } from '@/contexts/DebugModeContext';
+import { formatDateShort } from '@/lib/dateFormat';
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type { WorkoutResult } from '@/types/storage';
@@ -60,13 +61,6 @@ function formatDuration(ms: number): string {
   if (h > 0)
     return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-function formatDateShort(ts: number): string {
-  return new Date(ts).toLocaleDateString([], {
-    month: 'short',
-    day: 'numeric',
-  });
 }
 
 function formatTime(ts: number): string {
@@ -311,7 +305,7 @@ const AcrossNoteRow: React.FC<AcrossNoteRowProps> = ({
   noteTitle,
   onOpenReview,
 }) => {
-  const dateLabel = formatDateShort(result.createdAt);
+  const dateLabel = formatDateShort(new Date(result.createdAt));
   const statusLabel = result.data?.completed ? 'Completed' : 'Partial';
   const completed = !!result.data?.completed;
 
@@ -407,7 +401,7 @@ const ResultRow: React.FC<ResultRowProps> = ({
 
   const duration = formatDuration(result.data?.duration ?? 0);
   const timeLabel = formatTime(result.createdAt);
-  const dateLabel = formatDateShort(result.createdAt);
+  const dateLabel = formatDateShort(new Date(result.createdAt));
 
   const handleSelectSegment = useCallback(
     (id: number, modifiers?: { ctrlKey: boolean; shiftKey: boolean }, visibleIds?: number[]) => {

@@ -7,6 +7,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react'
+import { formatDateHeader } from '@/lib/dateFormat'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/atoms/primitives/toast'
@@ -111,11 +112,7 @@ export function WorkoutEditorPage({
 
   const handleScheduleBlock = useCallback(
     async (block: ScriptBlock, date: Date) => {
-      const dateLabel = date.toLocaleDateString(undefined, {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-      })
+      const dateLabel = formatDateHeader(date);
       let journalNoteId: string
       let journalDate: string
       try {
@@ -138,6 +135,7 @@ export function WorkoutEditorPage({
         })
         return
       }
+      navigate(`/journal?s=${journalDate}`)
       const journalRoute = journalNotePath(journalDate, journalNoteId)
       toast({
         title: `Added to ${dateLabel}`,

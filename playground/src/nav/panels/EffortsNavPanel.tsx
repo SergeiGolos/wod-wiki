@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 import { ClockIcon } from '@heroicons/react/20/solid';
 import type { NavPanelProps } from '../navTypes';
 import { useEffortsQueryState } from '../../hooks/useEffortsQueryState';
-import { useShowPlaygrounds } from '../../hooks/useShowPlaygrounds';
 import { useEffortRegistry } from '../../contexts/EffortRegistryContext';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { WorkoutResult } from '@/types/storage';
@@ -20,6 +19,7 @@ import type { StoredOutputStatement } from '@/components/Editor/types';
 import { MetricType } from '@/core/models/Metric';
 import { journalEntryPath } from '../../lib/routes';
 import { parseNoteId } from '../../lib/noteIdentity';
+import { formatDateMedium } from '@/lib/dateFormat';
 import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 
 const ORIGIN_OPTIONS = [
@@ -89,8 +89,6 @@ export function EffortsNavPanel(_props: NavPanelProps) {
     return registry.resolve(effortSlug);
   }, [effortSlug, isReady, registry]);
 
-  const [showPlaygrounds] = useShowPlaygrounds();
-
   // ── Recent workouts state ──────────────────────────────────────────────
   const [recentResults, setRecentResults] = useState<WorkoutResult[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
@@ -99,15 +97,17 @@ export function EffortsNavPanel(_props: NavPanelProps) {
     if (!effort) return;
     setLoadingResults(true);
     try {
-      const results = await indexedDBService.getRecentResults(50);
-      const filtered = results.filter(r => {
-        const isPlayground = r.origin
-          ? r.origin === 'playground'
-          : r.noteId.startsWith('playground/');
-        if (isPlayground && !showPlaygrounds) return false;
-        return resultMentionsEffort(r, effort.label, effort.aliases);
-      });
-      setRecentResults(filtered.slice(0, 10));
+      // Pull a generous slice first; effort-mention filtering happens in memory,
+      // and playground-origin results are intentionally included here regardless
+      // of the showPlaygrounds toggle (that toggle controls notes, not workout
+      // results). Static demo results never reach IndexedDB (StaticContentProvider
+      // is in-memory only) and therefore cannot appear here without a persistence
+      // change — that is out of scope for this fix.
+      const results = await indexedDBService.getRecentResults(200);
+      const filtered = results
+        .filter(r => resultMentionsEffort(r, effort.label, effort.aliases))
+        .slice(0, 10);
+      setRecentResults(filtered);
     } catch {
       setRecentResults([]);
     } finally {
@@ -251,11 +251,7 @@ export function EffortsNavPanel(_props: NavPanelProps) {
           <div className="flex flex-col gap-1">
             {recentResults.map(result => {
               const date = new Date(result.createdAt);
-              const dateLabel = date.toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              });
+              const dateLabel = formatDateMedium(date);
               const timeLabel = date.toLocaleTimeString(undefined, {
                 hour: '2-digit',
                 minute: '2-digit',

@@ -159,9 +159,6 @@ export class EventBus implements IEventBus {
         if (result && result.length > 0) {
           actions.push(...result);
         }
-        if (runtime.errors && runtime.errors.length > 0) {
-          break;
-        }
       } catch (error) {
         console.error(`EventBus handler error for ${event.name}:`, error);
       }

@@ -8,6 +8,7 @@
 import type { PaletteDataSource, PaletteItem } from '@/components/organisms/command-palette/palette-types';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { playgroundContent } from './playgroundContent';
+import { formatDateMedium, formatDateShort } from '@/lib/dateFormat';
 import type { CanvasRoute } from '../canvas/canvasRoutes';
 import type { ScriptCollection } from '@/repositories/script-collections';
 import type { WorkoutItem as IndexWorkoutItem } from '../lib/workoutIndex';
@@ -89,7 +90,7 @@ export function globalSearchSource(
           })
           .slice(0, 5)
           .forEach(r => {
-            const date = new Date(r.createdAt).toLocaleDateString();
+            const date = formatDateMedium(new Date(r.createdAt));
             const name = r.noteId.split('/').pop() ?? r.noteId;
             results.push({
               id: r.id,
@@ -296,7 +297,7 @@ export function feedSource(excludeDateKey?: string): PaletteDataSource {
         .map(p => ({
           id: p.id,
           label: p.name,
-          sublabel: new Date(p.updatedAt).toLocaleDateString(),
+          sublabel: formatDateShort(new Date(p.updatedAt)),
           category: 'Recent',
           type: 'journal-entry' as const,
           payload: p,
@@ -350,7 +351,7 @@ export function journalHistorySource(excludeDateKey?: string): PaletteDataSource
         .map(p => ({
           id: p.id,
           label: p.name,
-          sublabel: new Date(p.updatedAt).toLocaleDateString(),
+          sublabel: formatDateShort(new Date(p.updatedAt)),
           category: 'Journal',
           type: 'journal-entry' as const,
           payload: p,

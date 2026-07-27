@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { HelpCircle, PanelRightOpen } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { cn } from '@/lib/utils';
+import { formatDateWeekdayShort } from '@/lib/dateFormat';
 import { CommitGraph } from '@/components/organisms/CommitGraph';
 import { AppVersion } from '@/components/atoms/AppVersion';
 import { NotebookMenu } from '@/components/organisms/notebook/NotebookMenu';
@@ -88,11 +89,7 @@ export const WorkbenchHeader: React.FC<WorkbenchHeaderProps> = ({
         />
         {!isMobile && currentEntry && (
           <span className="text-xs font-normal bg-muted px-2 py-0.5 rounded text-muted-foreground">
-            {new Date(currentEntry.targetDate).toLocaleDateString(undefined, {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-            })}
+            {formatDateWeekdayShort(new Date(currentEntry.targetDate))}
           </span>
         )}
       </div>

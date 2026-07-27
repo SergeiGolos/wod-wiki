@@ -1,6 +1,7 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 import { MetricContainer } from '../../../core/models/MetricContainer';
+import { MetricType } from '../../../core/models/Metric';
 import { MemoryLocation } from '../../memory/MemoryLocation';
 
 /**
@@ -70,6 +71,12 @@ export class UpdateNextPreviewAction implements IRuntimeAction {
                 metrics.merge(statement.metrics);
             }
         }
+
+        // Hint metrics are semantic markers (e.g. `behavior.*`, `workout.emom`),
+        // not display fragments — drop them so they never surface as "Up Next"
+        // badges (mirrors BlockBuilder.setFragments). This single choke point
+        // also covers the Chromecast receiver, which reads the same metric:next.
+        metrics.removeByType(MetricType.Hint);
 
         if (metrics.length === 0) {
             // No metric found — clear any existing preview

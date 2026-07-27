@@ -57,6 +57,8 @@ export class OutputEmitter {
     private _outputStatements: IOutputStatement[] = [];
     private _outputListeners: Set<OutputListener> = new Set();
     private _analyticsEngine: IAnalyticsEngine | null = null;
+    /** Session-scoped latch: summary outputs are appended once per session. */
+    private _analyticsFinalized = false;
 
     // Runtime dependencies wired once via attach() — the emission helpers read
     // these instead of taking clock/stack/script across the seam at every call.
@@ -162,6 +164,12 @@ export class OutputEmitter {
      */
     finalizeAnalytics(): IOutputStatement[] {
         if (!this._analyticsEngine) return [];
+        // Idempotent per session: session-end has multiple legitimate callers
+        // (auto-complete effect, handleStop, unmount partial-save, StrictMode
+        // double-effects) — without this latch each call re-appends the same
+        // summary outputs, producing duplicate analytics rows/cards (N9).
+        if (this._analyticsFinalized) return [];
+        this._analyticsFinalized = true;
 
         const summaryOutputs = this._analyticsEngine.finalize();
 
@@ -182,6 +190,7 @@ export class OutputEmitter {
     dispose(): void {
         this._outputStatements = [];
         this._outputListeners.clear();
+        this._analyticsFinalized = false;
     }
 
     // =========================================================================

@@ -36,6 +36,7 @@ import { CalendarSplitButton } from '@/components/molecules/CalendarSplitButton'
 import { resetUserData } from '../../services/resetUserData'
 import type { NavItemL3 } from '../../nav/navTypes'
 import { useAudio } from '@/contexts/AudioContext'
+import { useDebugMode } from '@/contexts/DebugModeContext'
 
 // ── NewEntryButton ───────────────────────────────────────────────────────────
 
@@ -86,15 +87,7 @@ export function ActionsMenu({
   const { isEnabled: isAudioEnabled, toggleAudio } = useAudio()
   
   const l3Items = items || contextL3
-  const [debugMode, setDebugMode] = useState(
-    () => localStorage.getItem('debugMode') === 'true'
-  )
-
-  const handleToggleDebug = () => {
-    const next = !debugMode
-    setDebugMode(next)
-    localStorage.setItem('debugMode', String(next))
-  }
+  const { isDebugMode, toggleDebugMode } = useDebugMode()
 
   const handleResetData = async () => {
     try {
@@ -191,11 +184,13 @@ export function ActionsMenu({
           <BuyMeACoffeeIcon className="size-5" />
           <span className="flex-1">Buy Me a Coffee</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleToggleDebug} className="gap-2">
-          <BugAntIcon className="size-4" />
-          <span className="flex-1">Debug Mode</span>
-          {debugMode && <span className="text-blue-500 text-xs">✓</span>}
-        </DropdownMenuItem>
+        {import.meta.env.DEV && (
+          <DropdownMenuItem onClick={toggleDebugMode} className="gap-2">
+            <BugAntIcon className="size-4" />
+            <span className="flex-1">Debug Mode</span>
+            {isDebugMode && <span className="text-blue-500 text-xs">✓</span>}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleResetData} className="gap-2">
           <ArrowPathIcon className="size-4 text-red-500" />
