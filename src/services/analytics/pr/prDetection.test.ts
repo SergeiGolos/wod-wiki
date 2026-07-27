@@ -68,10 +68,10 @@ describe('prDetection', () => {
     expect(prs[0].previousBest).toBe(5000);
   });
 
-  it('handles lower-is-better metrics (TIS / time)', async () => {
+  it('handles lower-is-better metrics (elapsed / time)', async () => {
     const facts: AnalyticsDataPoint[] = [
-      mockFact('f1', 'res-1', 'tis', 180, 1000),
-      mockFact('f2', 'res-2', 'tis', 150, 2000), // current target result (faster time!)
+      mockFact('f1', 'res-1', 'elapsed', 180, 1000),
+      mockFact('f2', 'res-2', 'elapsed', 150, 2000), // current target result (faster time!)
     ];
 
     const factsStore = {

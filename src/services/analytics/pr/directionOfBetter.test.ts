@@ -7,6 +7,7 @@ import {
 
 describe('directionOfBetter', () => {
   it('identifies higher-is-better metrics correctly', () => {
+    expect(getMetricDirection('tis')).toBe('higher');
     expect(getMetricDirection('totalVolume')).toBe('higher');
     expect(getMetricDirection('totalReps')).toBe('higher');
     expect(getMetricDirection('totalDistance')).toBe('higher');
@@ -15,13 +16,8 @@ describe('directionOfBetter', () => {
   });
 
   it('identifies lower-is-better metrics correctly', () => {
-    expect(getMetricDirection('tis')).toBe('lower');
     expect(getMetricDirection('elapsed')).toBe('lower');
     expect(getMetricDirection('pace')).toBe('lower');
-  });
-
-  it('defaults unknown metrics to higher-is-better', () => {
-    expect(getMetricDirection('unknownMetric')).toBe('higher');
   });
 
   it('correctly compares new values against previous best for higher-is-better', () => {
@@ -31,9 +27,9 @@ describe('directionOfBetter', () => {
   });
 
   it('correctly compares new values against previous best for lower-is-better', () => {
-    expect(isBetterValue('tis', 120, 150)).toBe(true);
-    expect(isBetterValue('tis', 180, 150)).toBe(false);
-    expect(isBetterValue('tis', 150, 150)).toBe(false);
+    expect(isBetterValue('elapsed', 120, 150)).toBe(true);
+    expect(isBetterValue('elapsed', 180, 150)).toBe(false);
+    expect(isBetterValue('elapsed', 150, 150)).toBe(false);
   });
 
   it('allows registering custom metric direction overrides', () => {

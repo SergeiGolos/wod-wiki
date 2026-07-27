@@ -128,12 +128,19 @@ export function useQueryComposerState(
     return serialized;
   }, [parsed]);
 
+  // Re-sync if initialQuery is changed externally by parent component
+  useEffect(() => {
+    const raw = initialQuery.trim() || 'sum:totalVolume{}';
+    if (raw !== query && raw !== parsed.raw) {
+      setParsed(parseQuery(raw));
+    }
+  }, [initialQuery]);
+
   useEffect(() => {
     if (onChange && !parsed.error) {
       onChange(query);
     }
   }, [query, onChange, parsed.error]);
-
   const updateParsed = useCallback((updater: (prev: ParsedQuery) => ParsedQuery) => {
     setParsed((prev) => updater(prev));
   }, []);
@@ -237,7 +244,7 @@ export function useQueryComposerState(
       if (rollupStr) {
         const match = rollupStr.match(/^(\d+)([dwmy])$/);
         if (match) {
-          rollup = { size: parseInt(match[1], 10), unit: match[2] as any };
+          rollup = { size: parseInt(match[1], 10), unit: match[2] as 'd' | 'w' | 'm' | 'y' };
         }
       }
       updateParsed((prev) => ({ ...prev, rollup, error: undefined }));

@@ -1,13 +1,13 @@
 export type MetricDirection = 'higher' | 'lower';
 
 const LOWER_IS_BETTER_METRICS = new Set<string>([
-  'tis',
   'elapsed',
   'pace',
   'duration',
 ]);
 
 const HIGHER_IS_BETTER_METRICS = new Set<string>([
+  'tis',
   'totalVolume',
   'totalReps',
   'totalDistance',

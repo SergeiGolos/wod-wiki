@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useQueryState } from 'nuqs';
-import { Play } from 'lucide-react';
 import { WqlQueryComposer } from '@/components/organisms/analytics/WqlQueryComposer';
 import { queryService, type QueryResult } from '@/services/analytics/query';
 import { ensureRollupFacts } from '@/services/analytics/rollup';

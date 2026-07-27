@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Play, Sparkles, SlidersHorizontal, Code2, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQueryComposerState } from '@/utils/analytics/useQueryComposerState';
+import type { Aggregator } from '@/services/analytics/query';
 import { WqlHumanTranslationBanner } from '@/components/molecules/analytics/WqlHumanTranslationBanner';
 import { WqlQueryField } from '@/components/organisms/editor/WqlQueryField';
 
@@ -26,6 +27,7 @@ const AGGREGATOR_OPTIONS = [
   { value: 'count', label: 'count (frequency)' },
   { value: 'min', label: 'min (lowest)' },
   { value: 'max', label: 'max (highest)' },
+  { value: 'delta', label: 'delta (change)' },
 ];
 
 const TAG_KEYS = ['discipline', 'effort', 'intensity', 'note', 'origin', 'tags'];
@@ -163,7 +165,7 @@ export function WqlQueryComposer({
                 <div className="flex gap-2">
                   <select
                     value={state.agg}
-                    onChange={(e) => state.setAgg(e.target.value as any)}
+                    onChange={(e) => state.setAgg(e.target.value as Aggregator)}
                     className="bg-background border border-border text-foreground px-2.5 py-1.5 rounded-lg font-mono text-xs"
                   >
                     {AGGREGATOR_OPTIONS.map((opt) => (
@@ -444,8 +446,7 @@ export function WqlQueryComposer({
             <span>Show me the</span>
             <select
               value={state.agg}
-              onChange={(e) => state.setAgg(e.target.value as any)}
-              className="bg-background border border-border text-amber-500 font-semibold px-2 py-1 rounded-md"
+              onChange={(e) => state.setAgg(e.target.value as Aggregator)}
             >
               {AGGREGATOR_OPTIONS.map((a) => (
                 <option key={a.value} value={a.value}>
