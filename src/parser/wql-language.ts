@@ -39,8 +39,11 @@ export const WQL_TAG_KEYS = [
 /** Virtual dimensions — time buckets and stream positions, not fact fields. */
 export const WQL_VIRTUAL_DIMS = ['day', 'week', 'session', 'round'] as const;
 
+/** Rollup Fact targets written by the lazy rollup driver (CONTEXT.md 'Rollup Fact'). */
+export const WQL_CALC_TARGETS = ['calc.acwr', 'calc.monotony', 'calc.strain'] as const;
+
 const INTENSITY_TIERS = ['low', 'moderate', 'high'] as const;
-const GRAINS = ['segment', 'summary'] as const;
+const GRAINS = ['segment', 'summary', 'rollup'] as const;
 
 // ── Highlighting ───────────────────────────────────────────────────
 
@@ -115,6 +118,7 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       ...options(WQL_METRIC_FAMILIES).map((c) => ({ ...c, type: 'variable' })),
       ...options(efforts.flatMap((slug) => WQL_METRIC_FAMILIES.map((family) => `${slug}.${family}`)))
         .map((c) => ({ ...c, type: 'variable' })),
+      ...options(WQL_CALC_TARGETS).map((c) => ({ ...c, type: 'namespace' })),
       snippetCompletion('calc.${target}', { label: 'calc.', detail: 'calculated target', type: 'namespace' }),
     ];
   };

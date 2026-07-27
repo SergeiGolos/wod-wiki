@@ -36,6 +36,11 @@ export const EXAMPLE_QUERIES: ExampleQuery[] = [
     question: 'Is my intensity 80/20?',
   },
   {
+    query: 'avg:calc.acwr{}.rollup(1d)',
+    label: 'Injury risk (ACWR)',
+    question: 'Am I spiking my workload?',
+  },
+  {
     query: 'count:totalReps{tags:mobility} by {week}.rollup(1w)',
     label: 'Mobility habit',
     question: 'Did I do mobility work?',

@@ -112,7 +112,7 @@ export interface WodWikiDB extends DBSchema {
             'by-origin': string;     // V10 — origin
             'by-metric': string;     // V10 — metricKey; canonical cross-workout metric join
             'by-effort': string;     // V10 — effortSlug
-            'by-grain': string;      // V10 — grain ('segment' | 'summary')
+            'by-grain': string;      // V10 — grain ('segment' | 'summary' | 'rollup')
             'by-discipline': string; // V10 — discipline
             'by-timestamp': number;  // V12 — canonical workout time; IDBKeyRange time scans
         };
@@ -1138,6 +1138,17 @@ export class IndexedDBService {
         const index = tx.store.index('by-result');
         for await (const cursor of index.iterate(resultId)) {
             await cursor.delete();
+        }
+        await tx.done;
+    }
+
+    /** Delete fact rows by id (rollup driver stale-window sweep). */
+    async deleteAnalyticsPoints(ids: string[]): Promise<void> {
+        if (ids.length === 0) return;
+        const db = await this.dbPromise;
+        const tx = db.transaction('analytics', 'readwrite');
+        for (const id of ids) {
+            await tx.store.delete(id);
         }
         await tx.done;
     }

@@ -69,7 +69,7 @@ describe('wqlCompletionSource', () => {
 
   it('offers intensity tiers and grains for their values', () => {
     expect(complete('sum:tis{intensity:')).toEqual(['low', 'moderate', 'high']);
-    expect(complete('sum:tis{grain:')).toEqual(['segment', 'summary']);
+    expect(complete('sum:tis{grain:')).toEqual(['segment', 'summary', 'rollup']);
   });
 
   it('offers nothing for free-form tag values', () => {

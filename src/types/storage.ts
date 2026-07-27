@@ -185,8 +185,10 @@ export interface AnalyticsDataPoint {
     origin?: ResultOrigin;
     /** V10 — FK to the `page` store (copied from the parent note). */
     pageId?: string;
-    /** V10 — fact grain: per-segment rows vs whole-result summary rows. */
-    grain?: 'segment' | 'summary';
+    /** V10 — fact grain: per-segment rows vs whole-result summary rows.
+     *  'rollup' (#736) — windowed aggregates (ACWR, monotony, strain) written
+     *  by the lazy rollup driver on analytics-surface open. */
+    grain?: 'segment' | 'summary' | 'rollup';
     /** V10 — effort catalog slug when the row derives from a known effort. */
     effortSlug?: string;
     /** V10/V12 — effort discipline from the canonical vocabulary

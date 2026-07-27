@@ -3,6 +3,7 @@ import { useQueryState } from 'nuqs';
 import { Play } from 'lucide-react';
 import { WqlQueryField } from '@/components/organisms/editor/WqlQueryField';
 import { queryService, type QueryResult } from '@/services/analytics/query';
+import { ensureRollupFacts } from '@/services/analytics/rollup';
 import {
   QueryValue,
   useAnalyticsRange,
@@ -54,6 +55,12 @@ export function AnalyticsExplorerPage() {
     setDraft(q);
   }, [q]);
 
+  // Lazy rollup driver (CONTEXT.md 'Rollup Fact'): analytics-surface open
+  // recomputes missing/stale ACWR/monotony/strain windows; no scheduler.
+  useEffect(() => {
+    void ensureRollupFacts().catch(() => undefined);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -67,8 +74,11 @@ export function AnalyticsExplorerPage() {
     const rangeStart = now - activeWeeks * 7 * DAY;
 
     setLoading(true);
-    queryService
-      .runQuery(q, { rangeStart, rangeEnd: now })
+    // Warm the rollup windows on every query; await only when the query
+    // itself consumes rollup facts (calc.*).
+    const rollupReady = ensureRollupFacts().catch(() => undefined);
+    (q.includes('calc.') ? rollupReady : Promise.resolve())
+      .then(() => queryService.runQuery(q, { rangeStart, rangeEnd: now }))
       .then((r) => {
         if (!cancelled) setResult(r);
       })

@@ -136,6 +136,8 @@ describe('explorerQueries', () => {
         tis: true,
         sessionLoad: true,
         totalReps: true,
+        // Rollup Facts written by the lazy rollup driver (#736).
+        'calc.acwr': true,
       };
       for (const ex of EXAMPLE_QUERIES) {
         const parsed = parseQuery(ex.query);
@@ -144,9 +146,8 @@ describe('explorerQueries', () => {
       }
     });
 
-    it('does not use ACWR or PR facts that are not yet shipped', () => {
+    it('does not use PR or compliance facts that are not yet shipped', () => {
       for (const ex of EXAMPLE_QUERIES) {
-        expect(ex.query).not.toContain('acwr');
         expect(ex.query).not.toContain('e1rm');
         expect(ex.query).not.toContain('compliance');
       }
