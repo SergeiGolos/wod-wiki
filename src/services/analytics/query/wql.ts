@@ -6,14 +6,18 @@
  *   sum:totalVolume{discipline:strength} by {week}.rollup(1w)
  *   avg:tis{effort:thruster,!discipline:recovery} by {session}
  *
- * This module holds the AST shape and the reference string parser. The
- * Query Service executes the AST; the Lezer grammar (WQL grammar ticket)
- * replaces the string front-end and MUST produce this exact AST shape.
+ * This module holds the AST contract the Query Service executes and the
+ * Lezer-backed `parseQuery` front-end over src/grammar/wql.grammar (house
+ * pattern). The grammar accepts the full WQL surface with error recovery;
+ * this mapper validates the recovered tree and produces the AST below.
  *
  * Semantics reference: the dashboard POC's hand-rolled engine
  * (wod-wiki-dashboard-poc/app/src/lib/wql.ts) — behavior locked there,
  * retargeted here at Canonical Metric Keys and real fact rows.
  */
+
+import { parser as wqlParser } from '@/grammar/wql.parser';
+import * as terms from '@/grammar/wql.parser.terms';
 
 export type Aggregator = 'sum' | 'avg' | 'min' | 'max' | 'count' | 'last' | 'delta';
 
@@ -41,48 +45,81 @@ export interface Series { key: string; label: string; points: SeriesPoint[] }
 
 const AGGS: Aggregator[] = ['sum', 'avg', 'min', 'max', 'count', 'last', 'delta'];
 
+function cannotParse(text: string): string {
+  return `Cannot parse "${text}". Expected agg:metric{filters} by {dims} .rollup(period)`;
+}
+
 export function parseQuery(raw: string): ParsedQuery {
   const base: ParsedQuery = { raw, agg: 'sum', metric: '', filters: [], groupBy: [] };
   const text = raw.trim();
+  const tree = wqlParser.parse(raw);
 
-  // .rollup(1w)
-  let rest = text;
-  const rollupMatch = rest.match(/\.rollup\((\d+)([dw])\)\s*$/);
-  if (rollupMatch) {
-    base.rollup = { size: parseInt(rollupMatch[1], 10), unit: rollupMatch[2] as 'd' | 'w' };
-    rest = rest.slice(0, rollupMatch.index).trim();
-  }
-
-  // by {dims}
-  const byMatch = rest.match(/\s+by\s*\{([^}]*)\}\s*$/);
-  if (byMatch) {
-    base.groupBy = byMatch[1].split(',').map((s) => s.trim()).filter(Boolean);
-    rest = rest.slice(0, byMatch.index).trim();
-  }
-
-  // {filters}
-  const filterMatch = rest.match(/\{([^}]*)\}\s*$/);
-  if (filterMatch) {
-    base.filters = filterMatch[1].split(',').map((s) => s.trim()).filter(Boolean).map((f) => {
-      const negate = f.startsWith('!');
-      const body = negate ? f.slice(1) : f;
-      const [key, value = ''] = body.split(':').map((s) => s.trim());
-      return { key, value: value.replace(/\*$/, ''), negate, wildcard: value.endsWith('*') };
-    });
-    rest = rest.slice(0, filterMatch.index).trim();
-  }
-
-  // agg:metric
-  const head = rest.match(/^(\w+):([\w.]+)$/);
-  if (!head) {
-    base.error = `Cannot parse "${text}". Expected agg:metric{filters} by {dims} .rollup(period)`;
+  // Lezer recovers from malformed input by inserting ⚠ nodes — any of them
+  // means the query is not the WQL surface.
+  let syntaxError = false;
+  tree.iterate({ enter(node) { if (node.type.isError) syntaxError = true; } });
+  if (syntaxError) {
+    base.error = cannotParse(text);
     return base;
   }
-  if (!AGGS.includes(head[1] as Aggregator)) {
-    base.error = `Unknown aggregator "${head[1]}". Try: ${AGGS.join(', ')}`;
+
+  const query = tree.topNode;
+
+  // Head — agg:metric. Unknown aggregators are a semantic error, reported
+  // exactly like the reference parser (metric left empty).
+  const head = query.getChild(terms.Head);
+  const aggNode = head?.getChild(terms.Aggregator);
+  const metricNode = head?.getChild(terms.Metric);
+  if (!head || !aggNode || !metricNode) {
+    base.error = cannotParse(text);
     return base;
   }
-  base.agg = head[1] as Aggregator;
-  base.metric = head[2];
+  const aggText = raw.slice(aggNode.from, aggNode.to);
+  if (!AGGS.includes(aggText as Aggregator)) {
+    base.error = `Unknown aggregator "${aggText}". Try: ${AGGS.join(', ')}`;
+    return base;
+  }
+  base.agg = aggText as Aggregator;
+  base.metric = raw.slice(metricNode.from, metricNode.to);
+
+  // Filters — {key:value, !key:value, key:prefix*}
+  const filters = query.getChild(terms.Filters);
+  if (filters) {
+    for (const filter of filters.getChildren(terms.Filter)) {
+      const keyNode = filter.getChild(terms.TagKey);
+      // 'word'/'star'/'negate' are anonymous tokens — not in the --names
+      // terms export — so they are addressed by name.
+      const wordNode = filter.getChild(terms.TagValue)?.getChild('word');
+      if (!keyNode || !wordNode) continue;
+      base.filters.push({
+        key: raw.slice(keyNode.from, keyNode.to),
+        value: raw.slice(wordNode.from, wordNode.to),
+        negate: filter.getChild('negate') !== null,
+        wildcard: filter.getChild('star') !== null,
+      });
+    }
+  }
+
+  // GroupBy — by {dim, dim}
+  const groupBy = query.getChild(terms.GroupBy);
+  if (groupBy) {
+    for (const dim of groupBy.getChildren(terms.Dimension)) {
+      base.groupBy.push(raw.slice(dim.from, dim.to));
+    }
+  }
+
+  // Rollup — .rollup(<size><unit>); the unit lexes as a word and is
+  // validated here.
+  const rollup = query.getChild(terms.Rollup);
+  if (rollup) {
+    const sizeNode = rollup.getChild('int');
+    const unitNode = rollup.getChild('word');
+    const unit = unitNode ? raw.slice(unitNode.from, unitNode.to) : '';
+    if (!sizeNode || (unit !== 'd' && unit !== 'w')) {
+      return { raw, agg: 'sum', metric: '', filters: [], groupBy: [], error: cannotParse(text) };
+    }
+    base.rollup = { size: parseInt(raw.slice(sizeNode.from, sizeNode.to), 10), unit };
+  }
+
   return base;
 }
