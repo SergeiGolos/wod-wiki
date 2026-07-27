@@ -55,7 +55,7 @@ export const DialogContent = React.forwardRef<
         <DialogPanel
           ref={ref}
           className={cn(
-            "w-full max-w-md transform overflow-hidden rounded-2xl bg-popover text-popover-foreground p-6 text-left align-middle shadow-xl transition-all border border-border",
+            "relative w-full max-w-md transform overflow-hidden rounded-2xl bg-popover text-popover-foreground p-6 text-left align-middle shadow-xl transition-all border border-border",
             className
           )}
           {...props}

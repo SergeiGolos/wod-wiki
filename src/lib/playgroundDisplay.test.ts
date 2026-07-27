@@ -5,20 +5,47 @@ import {
   formatPlaygroundTimestampLabel,
 } from './playgroundDisplay';
 
+function expectedTimestampId(date: Date): string {
+  const pad = (value: number, length = 2) => String(value).padStart(length, '0');
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+    pad(date.getMilliseconds(), 3),
+  ].join('-');
+}
+
+function expectedTimestampLabel(date: Date): string {
+  const dateStr = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const timeStr = date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  return `Playground – ${dateStr} ${timeStr}`;
+}
+
 describe('playgroundDisplay', () => {
   const timestamp = Date.UTC(2026, 3, 27, 14, 30, 22, 481);
+  const date = new Date(timestamp);
 
   it('formats timestamp IDs for playground URLs', () => {
-    expect(formatPlaygroundTimestampId(timestamp)).toBe('2026-04-27-14-30-22-481');
+    expect(formatPlaygroundTimestampId(timestamp)).toBe(expectedTimestampId(date));
   });
 
   it('formats playground timestamp labels', () => {
-    expect(formatPlaygroundTimestampLabel(timestamp)).toBe('Playground – Apr 27, 2026 2:30 PM');
+    expect(formatPlaygroundTimestampLabel(timestamp)).toBe(expectedTimestampLabel(date));
   });
 
   it('formats timestamp route IDs as readable playground titles', () => {
     expect(formatPlaygroundPageTitle('2026-04-27-14-30-22-481'))
-      .toBe('Playground – Apr 27, 2026 2:30 PM');
+      .toBe(expectedTimestampLabel(new Date(2026, 3, 27, 14, 30, 22, 481)));
   });
 
   it('hides legacy UUID playground IDs behind a generic title', () => {
@@ -31,6 +58,6 @@ describe('playgroundDisplay', () => {
 
   it('formats timestamp route IDs with collision suffixes as readable titles', () => {
     expect(formatPlaygroundPageTitle('2026-04-27-14-30-22-481-1'))
-      .toBe('Playground – Apr 27, 2026 2:30 PM');
+      .toBe(expectedTimestampLabel(new Date(2026, 3, 27, 14, 30, 22, 481)));
   });
 });

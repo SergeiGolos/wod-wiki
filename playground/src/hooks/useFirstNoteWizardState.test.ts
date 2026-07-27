@@ -77,7 +77,7 @@ describe('useFirstNoteWizardState', () => {
     expect(window.localStorage.getItem('wodwiki.profileInitialized.v1')).toBeNull();
   });
 
-  it('a fresh mount after dismissal re-shows the wizard (per-note nag cadence)', () => {
+  it('a fresh mount after dismissal stays hidden (dismissal persists across mounts)', () => {
     const first = renderHook(() => useFirstNoteWizardState());
     expect(first.result.current.open).toBe(true);
 
@@ -86,11 +86,10 @@ describe('useFirstNoteWizardState', () => {
     });
     expect(first.result.current.open).toBe(false);
 
-    // New mount simulates navigating to a different note (page remounts via
-    // key={effectivePlaygroundId}). The per-mount dismissed state resets; the
-    // profile is still empty; the wizard reappears.
+    // New mount simulates navigating to a different note (page remounts).
+    // Dismissal persists in localStorage so the wizard remains hidden across mounts.
     const second = renderHook(() => useFirstNoteWizardState());
-    expect(second.result.current.open).toBe(true);
+    expect(second.result.current.open).toBe(false);
   });
 
   it('a fresh mount after completion stays hidden (gate persists across mounts)', () => {

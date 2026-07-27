@@ -20,6 +20,10 @@ import { parseQuery, type Aggregator, type ParsedQuery, type Series, type Series
 
 const DAY = 86_400_000;
 
+function localDateString(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 /** Store surface the Query Service needs — injectable for tests. */
 export interface FactQueryStore {
   getFactsByMetric(metricKey: string): Promise<AnalyticsDataPoint[]>;
@@ -97,7 +101,7 @@ function matchesFilters(row: AnalyticsDataPoint, filters: TagFilter[], noteTags:
 
 /** Dimension value for grouping; virtual time dims bucket the canonical time. */
 function dimValue(row: AnalyticsDataPoint, dim: string, noteTags: ReadonlyMap<string, readonly string[]>): string {
-  if (dim === 'day') return new Date(Math.floor(row.timestamp / DAY) * DAY).toISOString().slice(0, 10);
+  if (dim === 'day') return localDateString(row.timestamp);
   if (dim === 'week') {
     const d = new Date(row.timestamp);
     const monday = new Date(row.timestamp - ((d.getDay() + 6) % 7) * DAY);
@@ -169,8 +173,20 @@ export class QueryService {
       }));
     }
 
-    const matched = candidates.filter(row => matchesFilters(row, parsed.filters, noteTags));
+    let matched = candidates.filter(row => matchesFilters(row, parsed.filters, noteTags));
 
+    // Filter per-effort vs un-attributed overall summary rows to avoid double-counting
+    if (parsed.groupBy.includes('effort') || parsed.filters.some(f => f.key === 'effort')) {
+      const hasPerEffortRows = matched.some(r => r.effortSlug !== undefined);
+      if (hasPerEffortRows) {
+        matched = matched.filter(r => r.effortSlug !== undefined);
+      }
+    } else {
+      const hasOverallRow = matched.some(r => r.effortSlug === undefined);
+      if (hasOverallRow) {
+        matched = matched.filter(r => r.effortSlug === undefined);
+      }
+    }
     // ── Stage 2: BUCKET — a time dim wins over rollup; neither → one bucket.
     const timeDim = parsed.groupBy.find((d) => d === 'day' || d === 'week');
     const tagDims = parsed.groupBy.filter((d) => d !== 'day' && d !== 'week');

@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'bun:test';
-import { getAnalyticsFromRuntime, AnalyticsTransformer, SegmentWithMetadata } from './AnalyticsTransformer';
+import { getAnalyticsFromRuntime, getAnalyticsFromLogs, AnalyticsTransformer, SegmentWithMetadata } from './AnalyticsTransformer';
 import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
 import { TimeSpan } from '../runtime/models/TimeSpan';
 import { IOutputStatement, OutputStatementType } from '../core/models/OutputStatement';
+import type { StoredOutputStatement } from '../components/Editor/types';
 import { MetricType, IMetric } from '../core/models/Metric';
 import { hintMetric } from '../core/metrics/hints';
 
-// Helper to create mock output statements
-function createMockOutput(options: {
+// Helper to create mock output statements. Generic so tests can type the
+// result as the plain stored shape (getAnalyticsFromLogs input) or the live
+// IOutputStatement shape; the fabricated object satisfies both structurally.
+function createMockOutput<T = IOutputStatement>(options: {
   id?: number;
   outputType?: OutputStatementType;
   started?: number;
@@ -16,7 +19,7 @@ function createMockOutput(options: {
   stackLevel?: number;
   metrics?: Array<Partial<IMetric> & { type: MetricType | string }>;
   hints?: string[];
-}): IOutputStatement {
+}): T {
   const now = Date.now();
   const timeSpan = new TimeSpan(options.started ?? now, options.ended ?? now + 60000);
   // Hints now travel as Hint metrics within the metric list.
@@ -34,7 +37,7 @@ function createMockOutput(options: {
     sourceStatementId: undefined,
     meta: { line: 0, columnStart: 0, columnEnd: 0, startOffset: 0, endOffset: 0, length: 0, raw: '' },
     isLeaf: true,
-  } as unknown as IOutputStatement;
+  } as unknown as T;
 }
 
 describe('AnalyticsTransformer', () => {
@@ -314,6 +317,73 @@ describe('AnalyticsTransformer', () => {
 
         expect(transformer.isFromStrategy(segment, 'TimeBoundRoundsStrategy')).toBe(true);
         expect(transformer.isFromStrategy(segment, 'IntervalLogicStrategy')).toBe(false);
+      });
+    });
+
+    describe('getAnalyticsFromLogs', () => {
+      it('drops duplicate analytics outputs with identical label/value/unit/timeSpan but keeps legitimate progressions', () => {
+        const startTime = Date.now();
+        const outputs: StoredOutputStatement[] = [
+          createMockOutput<StoredOutputStatement>({
+            id: 1,
+            outputType: 'segment',
+            started: startTime,
+            ended: startTime + 60000,
+            metrics: [{ type: MetricType.Effort, value: 'Work', image: 'Work' }],
+          }),
+          // Live + finalize pair from the legacy write path: identical values,
+          // timestamps a few hundred ms apart inside the same second.
+          createMockOutput<StoredOutputStatement>({
+            id: 2,
+            outputType: 'analytics',
+            started: startTime + 60000,
+            ended: startTime + 60000,
+            metrics: [
+              { type: MetricType.Label, value: 'Total Reps', image: 'Total Reps' },
+              { type: MetricType.Rep, value: 42, unit: 'reps', image: '42 reps' },
+            ],
+          }),
+          createMockOutput<StoredOutputStatement>({
+            id: 3,
+            outputType: 'analytics',
+            started: startTime + 60300,
+            ended: startTime + 60300,
+            metrics: [
+              { type: MetricType.Label, value: 'Total Reps', image: 'Total Reps' },
+              { type: MetricType.Rep, value: 42, unit: 'reps', image: '42 reps' },
+            ],
+          }),
+          // Legitimate progression: same label, new value, seconds later.
+          createMockOutput<StoredOutputStatement>({
+            id: 4,
+            outputType: 'analytics',
+            started: startTime + 90000,
+            ended: startTime + 90000,
+            metrics: [
+              { type: MetricType.Label, value: 'Total Reps', image: 'Total Reps' },
+              { type: MetricType.Rep, value: 43, unit: 'reps', image: '43 reps' },
+            ],
+          }),
+          // Legitimate repeat: same value as id 2/3 but seconds apart (per-round row).
+          createMockOutput<StoredOutputStatement>({
+            id: 5,
+            outputType: 'analytics',
+            started: startTime + 120000,
+            ended: startTime + 120000,
+            metrics: [
+              { type: MetricType.Label, value: 'Total Reps', image: 'Total Reps' },
+              { type: MetricType.Rep, value: 42, unit: 'reps', image: '42 reps' },
+            ],
+          }),
+        ];
+
+        const result = getAnalyticsFromLogs(outputs);
+
+        expect(result.segments).toHaveLength(4);
+        const analyticsSegments = result.segments.filter(s => s.context?.outputType === 'analytics');
+        expect(analyticsSegments).toHaveLength(3);
+        expect(analyticsSegments.filter(s => s.metric.reps === 42)).toHaveLength(2);
+        expect(analyticsSegments.some(s => s.metric.reps === 43)).toBe(true);
       });
     });
   });

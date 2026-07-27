@@ -120,9 +120,13 @@ export interface NavItem extends INavActivation {
 export interface NavItemL3 extends NavItem {
   /** Whether this L3 item is rendered as a section link (h2) or plain link */
   isSection?: boolean
+  /** Fixed level (3) for page-index links injected by mapIndexToL3. */
+  level?: 3
+  /** Optional secondary action rendered as a small icon button (e.g. run/link). */
+  secondaryAction?: INavActivation
 }
 
-// ─── Canvas navigation helpers ────────────────────────────────────────────────
+// ─── Canvas navigation helpers ─────────────────────────────────────────────────
 
 import type { INavAction, PipelineStep, OpenMode } from '@/nav/navTypes'
 

@@ -143,7 +143,8 @@ export class IndexedDBNotePersistence implements INotePersistence {
       if (mutation.workoutResult) {
         const id = this.locatorToId(locator);
         const now = Date.now();
-        note = { id, title: id, createdAt: now, type: mutation.noteType ?? mutation.metadata?.type };
+        const fallbackTitle = mutation.metadata?.title ?? (id.startsWith('journal/') ? 'Journal Note' : 'Workout Note');
+        note = { id, title: fallbackTitle, createdAt: now, type: mutation.noteType ?? mutation.metadata?.type };
         await this.storage.saveNote(note);
       } else {
         throw new NotePersistenceError('NOTE_NOT_FOUND', `Note not found: ${this.describeLocator(locator)}`);

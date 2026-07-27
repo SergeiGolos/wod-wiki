@@ -19,6 +19,10 @@ export function RawPointsTable({ matched, unit }: RawPointsTableProps) {
     if (row.origin) tags.push(`origin:${row.origin}`);
     return tags;
   };
+  const fmtDate = (ts: number) => {
+    const d = new Date(ts);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
 
   return (
     <div className="bg-card border border-border rounded-lg mt-3">
@@ -45,7 +49,7 @@ export function RawPointsTable({ matched, unit }: RawPointsTableProps) {
               {matched.slice(0, 12).map((p) => (
                 <tr key={p.id} className="border-b border-border/40">
                   <td className="py-1.5 pr-4 text-muted-foreground whitespace-nowrap">
-                    {new Date(p.timestamp).toISOString().slice(0, 10)}
+                    {fmtDate(p.timestamp)}
                   </td>
                   <td className="py-1.5 pr-4 text-primary whitespace-nowrap">{p.metricKey}</td>
                   <td className="py-1.5 pr-4 tabular-nums">

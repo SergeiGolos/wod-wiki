@@ -1,15 +1,20 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { StrictMode } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const navigateCalls: Array<{ to: string; options?: { replace?: boolean } }> = []
 const createPlaygroundPageCalls: string[] = []
 let shouldFailCreatePlaygroundPage = false
+let existingPages: Array<{ id: string; updatedAt: number }> = []
+
+const mockNavigate = (to: string, options?: { replace?: boolean }) => {
+  navigateCalls.push({ to, options })
+}
 
 mock.module('react-router-dom', () => ({
-  useNavigate: () => (to: string, options?: { replace?: boolean }) => {
-    navigateCalls.push({ to, options })
-  },
+  useNavigate: () => mockNavigate,
   useParams: () => ({}),
+  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null }),
   Navigate: ({ to }: { to: string }) => null,
 }))
 
@@ -25,6 +30,12 @@ mock.module('../services/createPlaygroundPage', () => ({
   createPlaygroundPage: createPlaygroundPageMock,
 }))
 
+mock.module('../services/playgroundContent', () => ({
+  playgroundContent: {
+    getPagesByCategory: mock(async () => existingPages),
+  },
+}))
+
 mock.module('../templates/defaultPlaygroundContent', () => ({
   DEFAULT_PLAYGROUND_CONTENT: {
     content: '# New playground\n',
@@ -37,11 +48,12 @@ beforeEach(() => {
   navigateCalls.length = 0
   createPlaygroundPageCalls.length = 0
   shouldFailCreatePlaygroundPage = false
+  existingPages = []
   createPlaygroundPageMock.mockClear()
 })
 
 describe('PlaygroundRedirect', () => {
-  it('creates an empty playground note for the /playground entry route', async () => {
+  it('creates an empty playground note when no pages exist', async () => {
     const { PlaygroundRedirect } = await componentModule
 
     render(<PlaygroundRedirect />)
@@ -51,6 +63,64 @@ describe('PlaygroundRedirect', () => {
       expect(navigateCalls).toEqual([
         {
           to: '/playground/2026-05-19%2015.30',
+          options: { replace: true },
+        },
+      ])
+    })
+  })
+
+  it('navigates to the most recent existing playground page on a repeat visit', async () => {
+    const { PlaygroundRedirect } = await componentModule
+    existingPages = [
+      { id: 'playground/older', updatedAt: 1000 },
+      { id: 'playground/newer', updatedAt: 2000 },
+    ]
+
+    render(<PlaygroundRedirect />)
+
+    await waitFor(() => {
+      expect(createPlaygroundPageCalls).toEqual([])
+      expect(navigateCalls).toEqual([
+        {
+          to: '/playground/newer',
+          options: { replace: true },
+        },
+      ])
+    })
+  })
+
+  it('creates exactly one page under StrictMode when none exists', async () => {
+    const { PlaygroundRedirect } = await componentModule
+
+    render(
+      <StrictMode>
+        <PlaygroundRedirect />
+      </StrictMode>,
+    )
+
+    await waitFor(() => {
+      expect(createPlaygroundPageCalls).toEqual(['# New playground\n'])
+      expect(navigateCalls.length).toBeGreaterThanOrEqual(1)
+      expect(navigateCalls).toContainEqual({
+        to: '/playground/2026-05-19%2015.30',
+        options: { replace: true },
+      })
+    })
+  })
+
+  it('resumes the existing page even when the first-note wizard would still open', async () => {
+    // The wizard gates on profile state and opens on the note page itself —
+    // it must not force fresh-page creation here (that was the N8 multiply bug).
+    const { PlaygroundRedirect } = await componentModule
+    existingPages = [{ id: 'playground/existing', updatedAt: 2000 }]
+
+    render(<PlaygroundRedirect />)
+
+    await waitFor(() => {
+      expect(createPlaygroundPageCalls).toEqual([])
+      expect(navigateCalls).toEqual([
+        {
+          to: '/playground/existing',
           options: { replace: true },
         },
       ])
@@ -70,7 +140,7 @@ describe('PlaygroundRedirect', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
 
     await waitFor(() => {
-      expect(createPlaygroundPageCalls.length).toBeGreaterThanOrEqual(2)
+      expect(createPlaygroundPageCalls.length).toBe(2)
       expect(createPlaygroundPageCalls.every(content => content === '# New playground\n')).toBe(true)
       expect(navigateCalls).toContainEqual({
         to: '/playground/2026-05-19%2015.30',

@@ -98,6 +98,111 @@ describe('AnalyticsEngine', () => {
     expect(results[0].outputType).toBe('analytics');
   });
 
+  describe('live/finalize deduplication', () => {
+    it('finalize returns empty when projections were already emitted live', () => {
+      const engine = new AnalyticsEngine();
+      const summary: ISummaryProcessor = {
+        id: 'sum-dedup',
+        summarize: (_outputs: IOutputStatement[]): ProjectionResult[] => [
+          {
+            name: 'Total Reps',
+            value: 42,
+            unit: 'reps',
+            timeSpan: { started: 0, ended: 1000 },
+            metricType: MetricType.Rep,
+          },
+        ],
+      };
+      engine.addSummaryProcessor(summary);
+
+      const live: IOutputStatement[] = [];
+      engine.setLiveOutputEmitter((o) => live.push(o));
+
+      engine.run(makeSegmentOutput('s1'));
+      expect(live).toHaveLength(1);
+      expect(live[0].outputType).toBe('analytics');
+
+      const finalized = engine.finalize();
+      expect(finalized).toHaveLength(0);
+      expect(live).toHaveLength(1);
+    });
+
+    it('finalize still emits when no live output was emitted', () => {
+      const engine = new AnalyticsEngine();
+      const summary: ISummaryProcessor = {
+        id: 'sum-dedup',
+        summarize: (_outputs: IOutputStatement[]): ProjectionResult[] => [
+          {
+            name: 'Total Reps',
+            value: 42,
+            unit: 'reps',
+            timeSpan: { started: 0, ended: 1000 },
+            metricType: MetricType.Rep,
+          },
+        ],
+      };
+      engine.addSummaryProcessor(summary);
+
+      engine.run(makeSegmentOutput('s1'));
+      const finalized = engine.finalize();
+      expect(finalized).toHaveLength(1);
+      expect(finalized[0].outputType).toBe('analytics');
+    });
+
+    it('run skips the live emission when projections are unchanged (completion block-pop cascade)', () => {
+      const engine = new AnalyticsEngine();
+      const summary: ISummaryProcessor = {
+        id: 'sum-static',
+        summarize: (_outputs: IOutputStatement[]): ProjectionResult[] => [
+          {
+            name: 'Total Reps',
+            value: 75,
+            unit: 'reps',
+            timeSpan: { started: 0, ended: 1000 },
+            metricType: MetricType.Rep,
+          },
+        ],
+      };
+      engine.addSummaryProcessor(summary);
+
+      const live: IOutputStatement[] = [];
+      engine.setLiveOutputEmitter((o) => live.push(o));
+
+      // Several blocks popping at completion each trigger run(); aggregates
+      // don't change between them, so only the first may emit.
+      engine.run(makeSegmentOutput('s1'));
+      engine.run(makeSegmentOutput('s2'));
+      engine.run(makeSegmentOutput('s3'));
+      expect(live).toHaveLength(1);
+    });
+
+    it('run emits again once projections actually change', () => {
+      const engine = new AnalyticsEngine();
+      let reps = 10;
+      const summary: ISummaryProcessor = {
+        id: 'sum-growing',
+        summarize: (_outputs: IOutputStatement[]): ProjectionResult[] => [
+          {
+            name: 'Total Reps',
+            value: reps,
+            unit: 'reps',
+            timeSpan: { started: 0, ended: 1000 },
+            metricType: MetricType.Rep,
+          },
+        ],
+      };
+      engine.addSummaryProcessor(summary);
+
+      const live: IOutputStatement[] = [];
+      engine.setLiveOutputEmitter((o) => live.push(o));
+
+      engine.run(makeSegmentOutput('s1'));
+      reps = 25;
+      engine.run(makeSegmentOutput('s2'));
+      expect(live).toHaveLength(2);
+    });
+  });
+
   describe('processor split behavior', () => {
     it('realtime processors enrich per-segment outputs', () => {
       const engine = new AnalyticsEngine();

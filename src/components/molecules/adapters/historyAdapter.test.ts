@@ -19,6 +19,20 @@ const baseEntry: HistoryEntry = {
   schemaVersion: 1,
 };
 
+function expectedPlaygroundLabel(timestamp: number): string {
+  const date = new Date(timestamp);
+  const dateStr = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const timeStr = date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  return `Playground – ${dateStr} ${timeStr}`;
+}
+
 function iconType(item: ReturnType<typeof historyEntryToListItem>) {
   return (item.icon as React.ReactElement).type;
 }
@@ -30,7 +44,7 @@ describe('historyEntryToListItem', () => {
       type: 'playground',
     });
 
-    expect(item.label).toBe('Playground – Apr 27, 2026 2:30 PM');
+    expect(item.label).toBe(expectedPlaygroundLabel(baseEntry.createdAt));
     expect(iconType(item)).toBe(BeakerIcon);
   });
 

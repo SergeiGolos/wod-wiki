@@ -191,7 +191,7 @@ export function normalizeSummaryFacts(
   identity: SummaryFactIdentity,
 ): AnalyticsDataPoint[] {
   const now = Date.now();
-  const rows: AnalyticsDataPoint[] = [];
+  const rowsByKey = new Map<string, AnalyticsDataPoint>();
 
   for (const output of logs) {
     if (output.outputType !== 'analytics') continue;
@@ -207,8 +207,10 @@ export function normalizeSummaryFacts(
     const discipline = metadataString(value.metadata, 'effortDiscipline');
     const intensityTier = metadataString(value.metadata, 'effortIntensityTier');
 
-    rows.push({
-      id: `${identity.resultId}-${metricKey}-${now}`,
+    const rowKey = effortSlug ? `${metricKey}:${effortSlug}` : metricKey;
+
+    rowsByKey.set(rowKey, {
+      id: `${identity.resultId}-${rowKey}-${now}`,
       noteId: identity.noteId,
       blockContentId: identity.blockContentId,
       origin: identity.origin,
@@ -232,5 +234,5 @@ export function normalizeSummaryFacts(
     });
   }
 
-  return rows;
+  return Array.from(rowsByKey.values());
 }

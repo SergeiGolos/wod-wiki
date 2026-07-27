@@ -7,13 +7,13 @@ export function formatPlaygroundTimestampId(timestamp: number): string {
   const pad = (value: number, length = 2) => String(value).padStart(length, '0');
 
   return [
-    date.getUTCFullYear(),
-    pad(date.getUTCMonth() + 1),
-    pad(date.getUTCDate()),
-    pad(date.getUTCHours()),
-    pad(date.getUTCMinutes()),
-    pad(date.getUTCSeconds()),
-    pad(date.getUTCMilliseconds(), 3),
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+    pad(date.getMilliseconds(), 3),
   ].join('-');
 }
 
@@ -23,19 +23,17 @@ export function formatPlaygroundTimestampLabel(timestamp: number): string {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-    timeZone: 'UTC',
   });
   const timeStr = date.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
-    timeZone: 'UTC',
   });
 
   return `Playground – ${dateStr} ${timeStr}`;
 }
 
 function timestampFromMatch(match: RegExpMatchArray): number {
-  return Date.UTC(
+  return new Date(
     Number(match[1]),
     Number(match[2]) - 1,
     Number(match[3]),
@@ -43,7 +41,7 @@ function timestampFromMatch(match: RegExpMatchArray): number {
     Number(match[5]),
     Number(match[6] ?? 0),
     Number(match[7] ?? 0),
-  );
+  ).getTime();
 }
 
 export function formatPlaygroundPageTitle(name: string): string {

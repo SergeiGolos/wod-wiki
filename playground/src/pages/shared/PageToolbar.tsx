@@ -128,33 +128,42 @@ export function ActionsMenu({
           <>
             <div>
               <DropdownMenuHeading>On this page</DropdownMenuHeading>
-              {l3Items.map(item => (
-                <DropdownMenuItem
-                  key={item.id}
-                  onClick={() => scrollToSection(item.id)}
-                  className="gap-2"
-                >
-                  <span className={cn('flex-1 truncate', item.level === 3 && item.secondaryAction && 'pr-8')}>
-                    {item.label}
-                  </span>
-                  {item.secondaryAction && (
-                    <button
-                      className="ml-auto flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
-                      title={item.secondaryAction.label}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (item.secondaryAction?.action.type === 'call') {
-                          item.secondaryAction.action.handler()
-                        }
-                      }}
-                    >
-                      {item.secondaryAction.icon && (
-                        <item.secondaryAction.icon className="size-3.5" />
-                      )}
-                    </button>
-                  )}
-                </DropdownMenuItem>
-              ))}
+              {l3Items.map(item => {
+                const handleL3Click = () => {
+                  if (item.action.type === 'call') {
+                    item.action.handler()
+                  } else {
+                    scrollToSection(item.id)
+                  }
+                }
+                return (
+                  <DropdownMenuItem
+                    key={item.id}
+                    onClick={handleL3Click}
+                    className="gap-2"
+                  >
+                    <span className={cn('flex-1 truncate', item.level === 3 && item.secondaryAction && 'pr-8')}>
+                      {item.label}
+                    </span>
+                    {item.secondaryAction && (
+                      <button
+                        className="ml-auto flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
+                        title={item.secondaryAction.label}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (item.secondaryAction?.action.type === 'call') {
+                            item.secondaryAction.action.handler()
+                          }
+                        }}
+                      >
+                        {item.secondaryAction.icon && (
+                          <item.secondaryAction.icon className="size-3.5" />
+                        )}
+                      </button>
+                    )}
+                  </DropdownMenuItem>
+                )
+              })}
             </div>
             <DropdownMenuSeparator />
           </>

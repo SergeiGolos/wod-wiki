@@ -21,6 +21,8 @@ import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import { encodeZip } from '../services/encodeZip'
 import { resolveSource } from '../canvas/canvasUtils'
 import { getAnalyticsFromLogs, getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer'
+import { createJournalNoteFromWorkout } from '../services/journalWorkout'
+import { playgroundRecorder } from '../services/resultRecorder'
 import { NextAction } from '@/runtime/actions/stack/NextAction'
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
@@ -170,6 +172,14 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   // ── Session results (playground completion) + scroll-mode analytics ──
   const [session, setSession] = useState<{ segments: Segment[]; results: WorkoutResults } | null>(null)
   const [scrollSegments, setScrollSegments] = useState<Segment[]>([])
+  // Journal-write state for playground completions. Drives the Session
+  // Review title + hint pill so the UI only claims "logged" when it is.
+  const [logState, setLogState] = useState<'logging' | 'logged' | 'failed' | null>(null)
+  // Latest-value mirrors for callbacks with empty dep arrays.
+  const interactiveRef = useRef(interactive)
+  interactiveRef.current = interactive
+  const docRef = useRef(doc)
+  docRef.current = doc
 
   useEffect(() => {
     if (interactive || slice.stage.id !== 'analytics' || session) return
@@ -241,6 +251,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   // ── Playground mode transitions ──
   const startRun = useCallback(() => {
     if (!blocksRef.current[0]) return
+    setLogState(null)
     setEntered((prev) => (prev.timer ? prev : { ...prev, timer: true }))
     timerAutoStartRef.current = true
     setInteractive('timer')
@@ -258,10 +269,40 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
   const handleTimerComplete = useCallback(
     (_blockId: string, results: WorkoutResults) => {
+      const wasPlaygroundRun = interactiveRef.current === 'timer'
       const { segments } = getAnalyticsFromLogs(results.logs ?? [], results.startTime)
       setSession({ segments, results })
       setEntered((prev) => (prev.analytics ? prev : { ...prev, analytics: true }))
       setInteractive((mode) => (mode === 'timer' ? 'analytics' : mode))
+
+      // Persist a real playground run to today's journal — the Session
+      // Review claims "logged from timer", so make it true. The scroll-mode
+      // fast-forward also fires onComplete; that showcase writes nothing.
+      if (!wasPlaygroundRun) return
+      const runBlock = blocksRef.current[0]
+      if (!runBlock) return
+      setLogState('logging')
+      void (async () => {
+        const note = await createJournalNoteFromWorkout({
+          workoutName: 'Welcome workout',
+          category: 'home',
+          sourceNoteLabel: 'welcome-1.md',
+          sourceNotePath: '/',
+          wodContent: docRef.current,
+        })
+        await playgroundRecorder.record({
+          runBlock,
+          blockId: runBlock.id,
+          noteId: note.id,
+          resultId: crypto.randomUUID(),
+          data: results,
+          createdAt: results.endTime ?? Date.now(),
+        })
+        setLogState('logged')
+      })().catch((err) => {
+        console.error('[HomeTour] failed to log session to journal:', err)
+        setLogState('failed')
+      })
     },
     [],
   )
@@ -556,7 +597,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
                       <Screen visible={activeScreen === 'analytics'}>
                         <TourAnalyticsScreen
                           segments={analyticsSegments}
-                          title="Journal / today · logged from timer"
+                          title={
+                            logState === 'logging'
+                              ? 'Journal / today · logging…'
+                              : logState === 'failed'
+                                ? 'Session Review · not saved to journal'
+                                : 'Journal / today · logged from timer'
+                          }
                         />
                       </Screen>
                     )}
@@ -621,7 +668,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
               ▶ Playground mode —{' '}
               {interactive === 'timer'
                 ? 'timer running · STOP to log it · tap here to exit'
-                : 'session logged · tap here to return to the tour'}
+                : logState === 'failed'
+                  ? 'session not saved · tap here to return to the tour'
+                  : logState === 'logging'
+                    ? 'logging session… · tap here to return to the tour'
+                    : 'session logged · tap here to return to the tour'}
             </button>
           )}
         </div>
