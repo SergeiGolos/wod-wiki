@@ -4,10 +4,9 @@
  * First-class domain entity system for exercise effort definitions.
  * Centralizes effort metadata (MET, discipline, aliases) and supports
  * user-defined derivations with coefficient chains and hard overrides.
- *
- * @see ADR-0008: Effort Registry Route Surface and Two-Pass Analytics Resolution
- * @see PRD-EFFORT-REGISTRY
  */
+
+import type { EffortDiscipline } from './disciplines';
 
 export type EffortRegistrySource = 'bundled' | 'user' | 'synthetic-unresolved';
 
@@ -16,8 +15,8 @@ export type IntensityTier = 'low' | 'moderate' | 'high';
 export interface EffortBaseAttributes {
   /** Metabolic equivalent of task */
   met: number;
-  /** Broad discipline category */
-  discipline?: string;
+  /** Broad discipline category — canonical vocabulary in `./disciplines`. */
+  discipline?: EffortDiscipline;
   /** TIS discipline multiplier. When omitted, resolver derives it from discipline. */
   disciplineFactor?: number;
   /** Qualitative intensity bucket */
@@ -115,7 +114,7 @@ export interface ResolvedEffort {
   met: number;
   /** Effective attributes mirrored for legacy metric consumers. */
   baseAttributes: EffortBaseAttributes;
-  discipline?: string;
+  discipline?: EffortDiscipline;
   disciplineFactor: number;
   intensityTier?: IntensityTier;
   modifiers: Record<string, string>;

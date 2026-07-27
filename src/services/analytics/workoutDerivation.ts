@@ -23,6 +23,7 @@
  *     'power', 'pace', 'totalVolume', 'tis', … (CONTEXT.md §Analytics).
  */
 import { createAnalyticsEngineForBlock } from '@/core/analytics/createAnalyticsEngineForBlock';
+import { MetricType } from '@/core/models/Metric';
 import { OutputStatement, type IOutputStatement } from '@/core/models/OutputStatement';
 import type { IEffortResolver } from '@/effort-registry/types';
 import {
@@ -30,7 +31,7 @@ import {
   type ScriptBlock,
   type StoredOutputStatement,
 } from '@/components/Editor/types';
-import type { WorkoutResult } from '@/types/storage';
+import type { AnalyticsDataPoint, ResultOrigin, WorkoutResult } from '@/types/storage';
 
 export interface DeriveWorkoutOptions {
   /** Block the workout was run from — supplies dialect + statements for the
@@ -117,4 +118,119 @@ export function resolveCanonicalMetricKey(projectionName: string): string {
       index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1),
     )
     .join('');
+}
+
+// ---------------------------------------------------------------------------
+// Summary fact normalization — logs → persisted AnalyticsDataPoint rows
+// ---------------------------------------------------------------------------
+
+/**
+ * Identity of the block a result belongs to, stamped on every fact row.
+ */
+export interface SummaryFactIdentity {
+  noteId: string;
+  resultId: string;
+  /** FK to NoteSegment.id (positional section id of the block run). */
+  segmentId?: string;
+  /** NoteSegment.version at record time. */
+  segmentVersion?: number;
+  /** Content-stable cross-note join key. */
+  blockContentId?: string;
+  /** Which surface produced the result; trend queries exclude 'playground' by default. */
+  origin?: ResultOrigin;
+  /** FK to the `page` store (copied from the parent note). */
+  pageId?: string;
+  /**
+   * Canonical workout time — WorkoutResult.createdAt (true workout end).
+   * Every fact row carries it as `timestamp` so time-range queries mean
+   * "when the workout happened", never "when the metric was derived".
+   */
+  workoutTimestamp?: number;
+}
+
+/** Logs shape read by normalizeSummaryFacts (StoredOutputStatement-compatible). */
+export interface SummaryFactSourceOutput {
+  outputType: string;
+  metrics: readonly {
+    type: string;
+    value?: unknown;
+    image?: string;
+    unit?: string;
+    /** Summary-processor payload (effortSlug / effortDiscipline / effortIntensityTier / …). */
+    metadata?: Record<string, unknown>;
+  }[];
+  timeSpan: { started: number; ended?: number };
+}
+
+/** Read a string metadata field off the projection value metric, when present. */
+function metadataString(metadata: Record<string, unknown> | undefined, key: string): string | undefined {
+  const value = metadata?.[key];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+/**
+ * Convert Tier-2 summary outputs (outputType 'analytics') in a result's logs
+ * into persisted fact rows — one row per result × Canonical Metric Key.
+ *
+ * The analytics store holds SUMMARY FACTS ONLY (CONTEXT.md, 2026-07-20):
+ * per-segment data (Tier 0 + Tier 1) is not denormalized here — it stays in
+ * WorkoutResult.data.logs, the authoritative source for a single workout.
+ *
+ * These rows exist for cross-workout queries ("compare total volume across my
+ * last 30 Fran runs"). If this write fails or is skipped, the workout result
+ * remains fully functional.
+ *
+ * V12: effort identity (effortSlug / discipline / intensityTier) is carried
+ * from the summary processor's metadata onto the row, populating the
+ * by-effort / by-discipline indexes; `timestamp` is the canonical workout
+ * time (identity.workoutTimestamp = WorkoutResult.createdAt), not the
+ * derivation-time stamp the engine puts on the output's timeSpan.
+ */
+export function normalizeSummaryFacts(
+  logs: readonly SummaryFactSourceOutput[],
+  identity: SummaryFactIdentity,
+): AnalyticsDataPoint[] {
+  const now = Date.now();
+  const rows: AnalyticsDataPoint[] = [];
+
+  for (const output of logs) {
+    if (output.outputType !== 'analytics') continue;
+    const label = output.metrics.find(m => m.type === MetricType.Label);
+    const value = output.metrics.find(m => m.type !== MetricType.Label && typeof m.value === 'number');
+    if (!label || !value) continue;
+
+    const projectionName = String(label.value ?? label.image ?? '');
+    if (!projectionName) continue;
+    const metricKey = resolveCanonicalMetricKey(projectionName);
+
+    const effortSlug = metadataString(value.metadata, 'effortSlug');
+    const discipline = metadataString(value.metadata, 'effortDiscipline');
+    const intensityTier = metadataString(value.metadata, 'effortIntensityTier');
+
+    rows.push({
+      id: `${identity.resultId}-${metricKey}-${now}`,
+      noteId: identity.noteId,
+      blockContentId: identity.blockContentId,
+      origin: identity.origin,
+      pageId: identity.pageId,
+      grain: 'summary',
+      segmentId: identity.segmentId ?? '',
+      segmentVersion: identity.segmentVersion ?? 0,
+      resultId: identity.resultId,
+      type: metricKey,
+      value: value.value as number,
+      unit: value.unit,
+      label: projectionName,
+      metricKey,
+      metricLabel: projectionName,
+      metricUnit: value.unit,
+      ...(effortSlug ? { effortSlug } : {}),
+      ...(discipline ? { discipline } : {}),
+      ...(intensityTier ? { intensityTier } : {}),
+      timestamp: identity.workoutTimestamp ?? output.timeSpan.started ?? now,
+      createdAt: now,
+    });
+  }
+
+  return rows;
 }

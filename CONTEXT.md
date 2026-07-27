@@ -132,6 +132,35 @@ _Avoid_: enrichment, derived metric (too vague — say annotation or prediction)
 **Analytics Store**:
 The cross-workout query table (the `analytics` store). Holds **summary facts only** — Tier 2 workout-level aggregates (`totalVolume`, `tis`, `sessionLoad`, …), one row per result × **Canonical Metric Key**. Per-segment data (Tier 0 + Tier 1) is **not** denormalized here — it stays in `WorkoutResult.data.logs`. Fed by **extracting `outputType: 'analytics'` statements from `data.logs`** — there is no separate `data.analytics` property on `WorkoutResults` (the `outputType` filter already discriminates Tier 2; the shapes-doc §2 split was rejected). This inverts today's write path (`normalizeAnalyticsSegments` writes per-segment rows) — the store is repurposed to summary facts.
 _Avoid_: analytics table, metrics store, denormalized logs.
+**WQL (Wod Query Language)**:
+The Datadog-flavored query language for cross-workout analytics:
+`<aggregator>:<metric.namespace>{<tag filters>} by {<dimensions>} .rollup(<period>`.
+Parsed with a Lezer grammar (house pattern) and executed by the **Query Service**
+over the **Analytics Store**. Metric namespaces build on **Canonical Metric Keys**.
+_Avoid_: query string, analytics SQL.
+**Tag**:
+A `key:value` dimension carried on an **Analytics Store** fact row (`effort`,
+`discipline`, `note`, …) that **WQL** filters and groups by. Tags are query-time
+dimensions riding on fact rows — they never enter the `IMetric` stream.
+A WQL filter key takes multiple values (`{note:a|b}` or repeated `note:a, note:b`)
+— values OR within a key, keys AND across, `!` negates the whole list.
+Distinct from markdown `tags:` frontmatter, which feeds the note_tags store.
+_Avoid_: label, facet, frontmatter tag.
+**Query Service**:
+The executor of **WQL** against the **Analytics Store**: index-first SELECT
+(by-metric + by-timestamp range fetches intersected in memory), then in-memory
+BUCKET / AGGREGATE / GROUP. Inputs uncapped at personal-journal scale; widgets
+and tables are dumb consumers of its results.
+_Avoid_: analytics API, query backend.
+**Rollup Fact**:
+An **Analytics Store** fact row at `grain: 'rollup'` — a windowed aggregate
+(ACWR, monotony, strain) computed lazily on analytics-surface open by the rollup
+driver and persisted so widgets stay dumb queries. Recompute-on-open only; there
+is no scheduler.
+_Avoid_: materialized view, cron aggregate.
+**Discipline & Discipline Factor**:
+The canonical 10-value effort discipline vocabulary (`bodyweight`, `cycling`, `gymnastics`, `kettlebell`, `recovery`, `rowing`, `running`, `strength`, `swimming`, `walking`), defined in `src/effort-registry/disciplines.ts`. Serves as the single source of truth for the effort resolver, fact-row tags, WQL tag dictionary, UI filters, and the TIS discipline multiplier (loaded modalities 1.2, recovery 0.9, monostructural & bodyweight 1.0 default).
+_Avoid_: modality (overloaded), exercise category, legacy factor tables.
 ### Dialect & runtime
 **Block Dialect**:
 The fence tag that declares a block's domain (` ```wod `, ` ```climb `) — the one

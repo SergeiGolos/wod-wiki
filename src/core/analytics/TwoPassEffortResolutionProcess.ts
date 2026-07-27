@@ -22,8 +22,7 @@ import { EFFORT_DATA_METRIC_TYPE } from './effortResolution';
  * downstream summary processors can consume it without importing the
  * registry directly.
  *
- * @see ADR-0008 Decision 6, Decision 7
- * @see PRD-EFFORT-REGISTRY FR5
+ * @see docs/adr/effort-resolution-compile-time.md
  */
 export class TwoPassEffortResolutionProcess implements IRealtimeProcessor {
   public readonly id = 'two-pass-effort-resolution';

@@ -42,6 +42,9 @@ export const ROUTE_PATTERNS = {
   efforts: '/efforts',
   effort: '/effort/:slug',
   effortDetail: '/effort/:slug',
+  analytics: '/analytics',
+  analyticsExplorer: '/analytics/explorer',
+  analyticsDashboard: '/analytics/dashboard',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -145,6 +148,15 @@ export function buildJournalLoadUrl({ zip, date }: JournalLoadUrlOptions): strin
 
 export function effortsPath(): string {
   return '/efforts';
+}
+
+/** /analytics/explorer with an optional pre-filled WQL query and range —
+ *  canonical home is `@/lib/routes`; re-exported for playground consumers. */
+export { analyticsExplorerPath } from '@/lib/routes';
+
+/** /analytics/dashboard */
+export function analyticsDashboardPath(): string {
+  return '/analytics/dashboard';
 }
 
 /** /effort/:slug with optional modifiers and page controls */

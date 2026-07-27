@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { Edit, Timer, BarChart2, Calendar, BarChart3 } from 'lucide-react';
+import { Edit, Timer, BarChart2, Calendar } from 'lucide-react';
 import type { ViewDescriptor, PanelSpan, PanelDescriptor } from './types';
 
 
@@ -145,26 +145,5 @@ export function createHistoryView(
     label: 'History',
     icon: React.createElement(Calendar, { className: 'w-4 h-4' }),
     panels,
-  };
-}
-
-/**
- * Analyze View - Comparative analysis of multiple selected entries (placeholder)
- *
- * Single full-width panel containing the AnalyzePanel component.
- */
-export function createAnalyzeView(analyzePanel: React.ReactNode): ViewDescriptor {
-  return {
-    id: 'analyze',
-    label: 'Analyze',
-    icon: React.createElement(BarChart3, { className: 'w-4 h-4' }),
-    panels: [
-      {
-        id: 'analyze-main',
-        defaultSpan: 3,
-
-        content: analyzePanel,
-      },
-    ],
   };
 }

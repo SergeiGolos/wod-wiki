@@ -1,5 +1,5 @@
 import type { WhiteboardScript } from '../../parser/WhiteboardScript';
-import type { RuntimeError } from '../actions/ErrorAction';
+import type { RuntimeError } from './IRuntimeError';
 import type { IEventBus } from './events/IEventBus';
 import type { IRuntimeStack, Unsubscribe, StackObserver } from './IRuntimeStack';
 import type { IRuntimeClock } from './IRuntimeClock';
@@ -15,15 +15,9 @@ import type { ICodeStatement } from '../../core/models/CodeStatement';
 import type { AnalyticsContext } from '../../core/analytics/AnalyticsContext';
 import type { INowProvider } from '../INowProvider';
 import type { IRuntimeContext } from './IRuntimeContext';
+import type { IJitCompiler } from './IJitCompiler';
+export type { IJitCompiler };
 
-/**
- * Interface for the Just-In-Time compiler that converts parsed statements
- * into executable runtime blocks. Defined here alongside IScriptRuntime to
- * avoid a mutual-import cycle between the two interface files.
- */
-export interface IJitCompiler {
-    compile(nodes: ICodeStatement[], runtime: IRuntimeContext): IRuntimeBlock | undefined;
-}
 
 /**
  * Listener callback for output statement events.

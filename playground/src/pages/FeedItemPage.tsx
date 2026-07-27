@@ -13,7 +13,7 @@
 
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { EditorView } from '@codemirror/view';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { JournalPageShell } from '@/panels/page-shells';
@@ -70,7 +70,7 @@ export function FeedItemPage({
   const handleStartWorkout = useCallback(
     async (block: ScriptBlock) => {
       try {
-        const runtimeId = uuidv4();
+        const runtimeId = uuidv7();
         const journalNote = await createJournalNoteFromWorkout({
           workoutName: item?.name ?? feedItem,
           category: feedSlug,
@@ -81,7 +81,7 @@ export function FeedItemPage({
         pendingRuntimes.set(runtimeId, { block, noteId: journalNote.id });
         navigate(`${journalDatePath(journalNote.journalDate ?? '')}?autoStart=${runtimeId}`);
       } catch {
-        const runtimeId = uuidv4();
+        const runtimeId = uuidv7();
         pendingRuntimes.set(runtimeId, { block, noteId });
         navigate(runPath(runtimeId));
       }
@@ -129,6 +129,7 @@ export function FeedItemPage({
         wodContent: block.content,
         date: date,
       });
+      navigate(`/journal?s=${dateKey}`);
       toast({
         title: 'Scheduled',
         description: `Added to journal for ${dateKey}`,

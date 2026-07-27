@@ -3,12 +3,10 @@
  *
  * Implements IEffortResolver with exact and fuzzy alias matching.
  * Creates synthetic unresolved efforts for unmatched labels.
- *
- * @see ADR-0008 Decision 4, Decision 7
- * @see PRD-EFFORT-REGISTRY FR4, FR5
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
+import { disciplineFactorFor } from './disciplines';
 import type {
   IEffort,
   IEffortRegistry,
@@ -198,17 +196,7 @@ export class EffortResolver implements IEffortResolver {
     const discipline = definition.baseAttributes.discipline ?? parent?.discipline;
     if (!discipline && parent) return parent.disciplineFactor;
 
-    switch (discipline?.toLowerCase()) {
-      case 'strength':
-      case 'resistance':
-        return 1.2;
-      case 'yoga':
-        return 0.9;
-      case 'cardio':
-      case 'hiit':
-      default:
-        return 1.0;
-    }
+    return disciplineFactorFor(discipline);
   }
 
   /**
@@ -219,7 +207,7 @@ export class EffortResolver implements IEffortResolver {
     const normalizedLabel = normalizeForFuzzy(label);
     const slug = normalizeSlug(label);
     return {
-      id: `synthetic-${uuidv4()}`,
+      id: `synthetic-${uuidv7()}`,
       slug,
       label: normalizedLabel,
       aliases: [normalizedLabel],

@@ -5,18 +5,21 @@
  * FullscreenReview component.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FullscreenReview } from '@/components/organisms/review/FullscreenReview'
+import { PostWorkoutRpePrompt } from '@/components/organisms/review/PostWorkoutRpePrompt'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import type { Segment } from '@/core/models/AnalyticsModels'
+import type { WorkoutResult } from '@/types/storage'
 import { useOnboardingProgress } from '../hooks/useOnboardingProgress'
 
 export function ReviewPage() {
   const { runtimeId } = useParams<{ runtimeId: string }>()
   const navigate = useNavigate()
   const [segments, setSegments] = useState<Segment[] | null>(null)
+  const [result, setResult] = useState<WorkoutResult | null>(null)
   const [title, setTitle] = useState('Workout Review')
   const [error, setError] = useState<string | null>(null)
 
@@ -36,6 +39,7 @@ export function ReviewPage() {
         setError('Result not found.')
         return
       }
+      setResult(result)
       const safeNoteId = result.noteId || ''
       const noteLabel = safeNoteId.includes('/')
         ? safeNoteId.split('/').pop()!
@@ -43,6 +47,28 @@ export function ReviewPage() {
       setTitle(noteLabel)
       if (result.data?.logs?.length) {
         const { segments: s } = getAnalyticsFromLogs(result.data.logs, result.data.startTime)
+        setSegments(s)
+      } else {
+        setSegments([])
+      }
+    }).catch(() => {
+      if (!cancelled) setError('Failed to load result.')
+    })
+    return () => { cancelled = true }
+  }, [runtimeId])
+
+  const handleRpeCaptured = useCallback(() => {
+    if (!runtimeId) return
+    let cancelled = false
+    indexedDBService.getResultById(runtimeId).then(reloaded => {
+      if (cancelled) return
+      if (!reloaded) {
+        setError('Result not found.')
+        return
+      }
+      setResult(reloaded)
+      if (reloaded.data?.logs?.length) {
+        const { segments: s } = getAnalyticsFromLogs(reloaded.data.logs, reloaded.data.startTime)
         setSegments(s)
       } else {
         setSegments([])
@@ -70,10 +96,18 @@ export function ReviewPage() {
   }
 
   return (
-    <FullscreenReview
-      segments={segments}
-      onClose={() => navigate(-1)}
-      title={title}
-    />
+    <div className="flex-1 flex flex-col">
+      <PostWorkoutRpePrompt
+        resultId={runtimeId ?? ''}
+        logs={result?.data?.logs ?? []}
+        onCaptured={handleRpeCaptured}
+        className="m-4 mb-0"
+      />
+      <FullscreenReview
+        segments={segments}
+        onClose={() => navigate(-1)}
+        title={title}
+      />
+    </div>
   )
 }

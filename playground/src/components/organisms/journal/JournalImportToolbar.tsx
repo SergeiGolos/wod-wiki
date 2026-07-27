@@ -8,6 +8,7 @@
 
 import React, { useState } from 'react';
 import { CalendarDays, CheckCircle2 } from 'lucide-react';
+import { formatDateShort } from '@/lib/dateFormat';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -69,7 +70,7 @@ export const JournalImportToolbar: React.FC<JournalImportToolbarProps> = ({
   };
 
   const dateLabel = selectedDate
-    ? selectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    ? formatDateShort(selectedDate)
     : 'Date';
 
   const isDisabled = isLoading || importing;

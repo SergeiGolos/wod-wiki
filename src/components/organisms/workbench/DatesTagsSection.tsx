@@ -5,6 +5,7 @@ import type { HistoryEntry } from '@/types/history';
 import type { IContentProvider } from '@/types/content-provider';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
 import { isNotebookTag } from '@/types/notebook';
+import { formatDateMedium, formatDateTimeMediumShort } from '@/lib/dateFormat';
 
 interface DatesTagsSectionProps {
   entry: HistoryEntry;
@@ -64,10 +65,10 @@ export const DatesTagsSection: React.FC<DatesTagsSectionProps> = ({
   );
 
   const formatDate = (ms: number) =>
-    new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    formatDateTimeMediumShort(new Date(ms));
 
   const formatDay = (ms: number) =>
-    new Date(ms).toLocaleDateString(undefined, { dateStyle: 'medium' });
+    formatDateMedium(new Date(ms));
 
   const handleDateSelect = async (date: Date) => {
     setIsCalendarOpen(false);

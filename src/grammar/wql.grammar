@@ -1,0 +1,72 @@
+// WQL — Wod Query Language (Datadog-flavored). See CONTEXT.md glossary.
+//
+//   <aggregator>:<metric.namespace>{<tag filters>} by {<dimensions>} .rollup(<period>)
+//
+//   sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(1w)
+//   avg:tis{effort:back*} by {session}
+//
+// Semantic reference: the dashboard POC's hand-rolled engine
+// (wod-wiki-dashboard-poc/app/src/lib/wql.ts) — the AST contract lives in
+// src/services/analytics/query/wql.ts.
+//
+// Token discipline: keyword tokens with @precedence over a word token shadow
+// every position GLOBALLY, not per parser state — a `rollupUnit {"d"|"w"}`
+// token with precedence made `week`, `day`, `wod.volume`, `discipline`
+// unparseable, and a `virtualDim` token made the metric in `count:session`
+// unparseable. So this grammar lexes all words with a single `word` token and
+// lets parser context disambiguate; the AST mapper
+// (src/services/analytics/query/wql.ts) validates aggregators, dimensions,
+// and the rollup unit semantically. Structural literals (`by`, `.rollup`)
+// keep their own tokens — they never overlap a word position.
+
+@top Query { Head Filters? GroupBy? Rollup? }
+
+Head { Aggregator colon Metric }
+
+// Any word — known aggregators (sum avg min max count last delta) and unknown
+// ones alike; the AST mapper reports "Unknown aggregator" for the latter.
+Aggregator { Word }
+
+// Dotted Canonical Metric Key namespaces: totalVolume, calc.acwr,
+// <effortSlug>.<family> (segments may carry effort-slug dashes).
+Metric { Word (dot Word)* }
+
+Filters { braceOpen (Filter (comma Filter)*)? braceClose }
+
+Filter { Negate? TagKey colon TagValue }
+
+TagKey { Word }
+
+// Multi-value tag values: alternatives are OR-ed within the key; each
+// alternative carries its own trailing wildcard star.
+TagValue { Word Star? (pipe Word Star?)* }
+
+GroupBy { By braceOpen (Dimension (comma Dimension)*)? braceClose }
+
+// day | week | session | round are virtual dimensions — a lexical no-op,
+// assigned meaning by the Query Service. Any other word is a fact-row tag key.
+Dimension { Word }
+
+// `.rollup` is one token: with a bare `dot` the parser would need 2-token
+// lookahead to choose between a Metric continuation and the Rollup suffix.
+Rollup { RollupDot parenOpen Int Word parenClose }
+
+@tokens {
+  By { "by" }
+  RollupDot { ".rollup" }
+  Int { $[0-9]+ }
+  Word { $[a-zA-Z0-9_-]+ }
+  Star { "*" }
+  Negate { "!" }
+  colon { ":" }
+  pipe { "|" }
+  comma { "," }
+  dot { "." }
+  braceOpen { "{" }
+  braceClose { "}" }
+  parenOpen { "(" }
+  parenClose { ")" }
+  whitespace { (" " | "\t" | "\n" | "\r")+ }
+}
+
+@skip { whitespace }

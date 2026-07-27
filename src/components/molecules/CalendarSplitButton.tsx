@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDateShort } from '@/lib/dateFormat';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,7 +63,7 @@ export const CalendarSplitButton: React.FC<CalendarSplitButtonProps> = ({
   const textSize = size === 'sm' ? 'text-[11px]' : 'text-xs';
 
   const dateLabel = selectedDate
-    ? selectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    ? formatDateShort(selectedDate)
     : 'Date';
 
   const handleOpenChange = (next: boolean) => {

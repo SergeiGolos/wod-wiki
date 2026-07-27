@@ -1,17 +1,23 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryState } from 'nuqs';
 import { playgroundPath, ROUTE_PATTERNS } from '../lib/routes';
 import { decodeZip } from '../services/decodeZip';
 import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay';
-import { journalNotes } from '../services/journalNotes';
+import { playgroundContent, pageId } from '../services/playgroundContent';
 
 export function useZipProcessor() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [zipParam, setZipParam] = useQueryState('zip');
   const [zParam, setZParam] = useQueryState('z');
 
   useEffect(() => {
+    // Only run on the plain /load route — avoid creating phantom notes when
+    // /load/journal?zip=… is handled by useJournalZipProcessor, and prevent
+    // PlanRedirect from leaking ?zip into /journal?zip=…
+    if (location.pathname !== '/load') return;
+
     const zip = zipParam || zParam;
     if (!zip) return;
 
@@ -22,16 +28,16 @@ export function useZipProcessor() {
         if (cancelled) return;
         const now = Date.now();
         const id = formatPlaygroundTimestampId(now);
-        const note = await journalNotes.create({
-          journalDate: '',
-          title: id,
-          rawContent: content,
-          type: 'playground',
-          slug: `playground/${id}`,
+        const pageIdValue = pageId('playground', id);
+        await playgroundContent.savePage({
+          id: pageIdValue,
+          category: 'playground',
+          name: id,
+          content,
+          updatedAt: now,
         });
-        
         if (!cancelled) {
-          navigate(playgroundPath(note.id), { replace: true });
+          navigate(playgroundPath(id), { replace: true });
         }
       } catch (err) {
         console.error('Failed to decode zip:', err);
@@ -41,5 +47,5 @@ export function useZipProcessor() {
       }
     })();
     return () => { cancelled = true; };
-  }, [zipParam, zParam, navigate, setZipParam, setZParam]);
+  }, [zipParam, zParam, navigate, setZipParam, setZParam, location.pathname]);
 }

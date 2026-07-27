@@ -9,7 +9,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
-import { v4 as uuidv4 } from 'uuid'
+import { v7 as uuidv7 } from 'uuid'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { JournalPageShell } from '@/panels/page-shells'
 import type { WidgetRegistry } from '@/components/Editor/widgets/types'
@@ -124,7 +124,7 @@ export function PlaygroundNotePage({
   const handleStartWorkout = useCallback(
     (block: ScriptBlock) => {
       onRunWorkout()
-      const runtimeId = uuidv4()
+      const runtimeId = uuidv7()
       pendingRuntimes.set(runtimeId, { block, noteId })
       navigate(runPath(runtimeId))
     },
@@ -176,6 +176,7 @@ export function PlaygroundNotePage({
           wodContent: block.content,
           date: date,
         })
+        navigate(`/journal?s=${dateKey}`)
         toast({
           title: 'Scheduled',
           description: `Added to journal for ${dateKey}`,

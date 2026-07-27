@@ -17,6 +17,7 @@ import { describe, expect, it } from 'bun:test';
 
 import {
   deriveWorkoutFromLogs,
+  normalizeSummaryFacts,
   replayResultAnalytics,
   resolveCanonicalMetricKey,
 } from './workoutDerivation';
@@ -130,6 +131,50 @@ describe('replayResultAnalytics', () => {
     expect(derived.some(o => o.id === 99)).toBe(false);
     expect(derived.filter(o => o.outputType === 'analytics').length).toBeGreaterThan(0);
   });
+
+  it('preserves user-origin SessionRPE and re-derives SessionLoad from it', () => {
+    const rpeStatement: StoredOutputStatement = {
+      id: 2,
+      outputType: 'segment',
+      timeSpan: { started: T0 + 60_000, ended: T0 + 60_000 },
+      metrics: [{ type: MetricType.SessionRPE, value: 9, origin: 'user', image: 'rpe: 9' }],
+      sourceBlockKey: 'block-1',
+      stackLevel: 0,
+    };
+    const result: WorkoutResult = {
+      id: 'r1',
+      noteId: 'n1',
+      segmentId: 'wod-2-test',
+      segmentVersion: 1,
+      blockContentId: 'bc-test',
+      origin: 'journal',
+      data: {
+        startTime: T0,
+        endTime: T0 + 60_000,
+        duration: 60_000,
+        completed: true,
+        logs: [segmentLog(), rpeStatement],
+      },
+      createdAt: T0 + 60_000,
+    };
+
+    const derived = replayResultAnalytics(result, BLOCK);
+
+    // User-origin SessionRPE survives the replay strip (only 'analyzed' is removed).
+    const userRpe = derived
+      .flatMap((o) => o.metrics)
+      .find((m) => m.type === MetricType.SessionRPE && m.origin === 'user');
+    expect(userRpe).toBeDefined();
+    expect(userRpe!.value).toBe(9);
+
+    // SessionLoad uses the user RPE (9) × 1 minute = 9 AU.
+    const sessionLoad = derived
+      .filter((o) => o.outputType === 'analytics')
+      .flatMap((o) => o.metrics)
+      .find((m) => m.type === MetricType.Load);
+    expect(sessionLoad).toBeDefined();
+    expect(sessionLoad!.value).toBe(9);
+  });
 });
 
 describe('resolveCanonicalMetricKey', () => {
@@ -138,5 +183,89 @@ describe('resolveCanonicalMetricKey', () => {
     expect(resolveCanonicalMetricKey('TIS')).toBe('tis');
     expect(resolveCanonicalMetricKey('Total Reps')).toBe('totalReps');
     expect(resolveCanonicalMetricKey('Session Load')).toBe('sessionLoad');
+  });
+});
+
+describe('normalizeSummaryFacts', () => {
+  it('carries summary-processor effort metadata onto the fact row', () => {
+    const points = normalizeSummaryFacts([
+      {
+        outputType: 'analytics',
+        timeSpan: { started: T0, ended: T0 },
+        metrics: [
+          { type: MetricType.Label, value: 'Training Intensity Score', image: 'Training Intensity Score' },
+          {
+            type: MetricType.TIS,
+            value: 72,
+            unit: 'pts',
+            metadata: {
+              effortSlug: 'deadlift',
+              effortDiscipline: 'strength',
+              effortIntensityTier: 'high',
+              // Non-string / unrelated metadata never leaks onto the row.
+              metScore: 5.4,
+            },
+          },
+        ],
+      },
+    ], { noteId: 'n1', resultId: 'r1' });
+
+    expect(points).toHaveLength(1);
+    expect(points[0]).toMatchObject({
+      metricKey: 'trainingIntensityScore',
+      effortSlug: 'deadlift',
+      discipline: 'strength',
+      intensityTier: 'high',
+    });
+  });
+
+  it('omits effort fields when the projection carries no effort metadata', () => {
+    const points = normalizeSummaryFacts([
+      {
+        outputType: 'analytics',
+        timeSpan: { started: T0, ended: T0 },
+        metrics: [
+          { type: MetricType.Label, value: 'Total Reps', image: 'Total Reps' },
+          { type: MetricType.Rep, value: 90, unit: 'reps' },
+        ],
+      },
+    ], { noteId: 'n1', resultId: 'r1' });
+
+    expect(points).toHaveLength(1);
+    expect(points[0].effortSlug).toBeUndefined();
+    expect(points[0].discipline).toBeUndefined();
+    expect(points[0].intensityTier).toBeUndefined();
+  });
+
+  it('stamps the canonical workout time, not the derivation-time output stamp', () => {
+    const workoutEnd = T0 + 60_000;
+    const points = normalizeSummaryFacts([
+      {
+        outputType: 'analytics',
+        // The engine stamps outputs at derivation time — must NOT win.
+        timeSpan: { started: T0 + 999_000, ended: T0 + 999_000 },
+        metrics: [
+          { type: MetricType.Label, value: 'Total Reps', image: 'Total Reps' },
+          { type: MetricType.Rep, value: 90, unit: 'reps' },
+        ],
+      },
+    ], { noteId: 'n1', resultId: 'r1', workoutTimestamp: workoutEnd });
+
+    expect(points[0].timestamp).toBe(workoutEnd);
+  });
+
+  it('falls back to the output timeSpan when no canonical time is supplied', () => {
+    const points = normalizeSummaryFacts([
+      {
+        outputType: 'analytics',
+        timeSpan: { started: T0, ended: T0 },
+        metrics: [
+          { type: MetricType.Label, value: 'Total Reps', image: 'Total Reps' },
+          { type: MetricType.Rep, value: 90, unit: 'reps' },
+        ],
+      },
+    ], { noteId: 'n1', resultId: 'r1' });
+
+    expect(points[0].timestamp).toBe(T0);
   });
 });

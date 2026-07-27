@@ -1,3 +1,5 @@
+import { formatDateDefault } from '@/lib/dateFormat';
+
 export const PLAYGROUND_CONTENT = `# My Workout Notebook
 
 Welcome to the **WOD.WIKI** playground. 
@@ -26,8 +28,7 @@ Timer 12:00
 \`\`\`
 `;
 
-
-export const getDailyTitle = () => `Daily Log - ${new Date().toLocaleDateString()}`;
+export const getDailyTitle = () => `Daily Log - ${formatDateDefault(new Date())}`;
 
 export const getDailyTemplate = () => `# ${getDailyTitle()}
 

@@ -10,7 +10,7 @@
 import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { Attachment } from '../../types/storage';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 const STATIC_ID = 'static';
 
@@ -87,7 +87,7 @@ export class StaticContentProvider implements IContentProvider {
 
     // Special handling for results: append to history instead of overwriting
     if (patch.results) {
-        const resultId = patch.resultId || uuidv4();
+        const resultId = patch.resultId || uuidv7();
         const currentResults = this.entry.extendedResults || [];
         console.log(`[StaticProvider] Appending result ${resultId} to extendedResults (prev count: ${currentResults.length})`);
         
@@ -119,7 +119,7 @@ export class StaticContentProvider implements IContentProvider {
   }
 
   async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
-    const id = attachment.id ?? uuidv4();
+    const id = attachment.id ?? uuidv7();
     const now = Date.now();
     const fullAttachment: Attachment = {
       ...attachment,

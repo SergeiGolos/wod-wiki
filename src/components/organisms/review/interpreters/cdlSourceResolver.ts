@@ -16,7 +16,7 @@ import type {
   ComputeContext,
   ColumnDef,
 } from '../column-definition-language';
-import { interpretFallbackChain } from './cdlFallbackInterpreter';
+
 
 // ─── Public API ────────────────────────────────────────────────
 
@@ -111,4 +111,105 @@ function resolveFallback(
   dependencyStack?: string[],
 ): unknown {
   return interpretFallbackChain(row, source, context, definitionMap, dependencyStack);
+}
+// ─── Fallback Chain Interpreter ───────────────────────────────
+
+export function interpretFallbackChain(
+  row: GridRow,
+  source: FallbackSource,
+  context?: ComputeContext,
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
+  dependencyStack?: string[],
+): unknown {
+  if (!source.sources || source.sources.length === 0) {
+    return undefined;
+  }
+
+  switch (source.semantics) {
+    case 'first-present':
+      return resolveFirstPresent(row, source.sources, context, definitionMap, dependencyStack);
+    case 'all-present-joined':
+      return resolveAllPresentJoined(row, source.sources, source.joinString, context, definitionMap, dependencyStack);
+    case 'all-present-combined':
+      return resolveAllPresentCombined(row, source.sources, context, definitionMap, dependencyStack);
+    default:
+      return undefined;
+  }
+}
+
+function resolveFirstPresent(
+  row: GridRow,
+  sources: ColumnSource[],
+  context?: ComputeContext,
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
+  dependencyStack?: string[],
+): unknown {
+  for (const src of sources) {
+    const value = resolveColumnSource(row, src, context, definitionMap, dependencyStack);
+    if (value !== undefined && value !== null) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function resolveAllPresentJoined(
+  row: GridRow,
+  sources: ColumnSource[],
+  joinString: string | undefined,
+  context?: ComputeContext,
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
+  dependencyStack?: string[],
+): unknown {
+  const values: unknown[] = [];
+
+  for (const src of sources) {
+    const value = resolveColumnSource(row, src, context, definitionMap, dependencyStack);
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+    values.push(value);
+  }
+
+  const separator = joinString ?? ' ';
+  return values.map((v) => extractDisplayText(v)).join(separator);
+}
+
+function resolveAllPresentCombined(
+  row: GridRow,
+  sources: ColumnSource[],
+  context?: ComputeContext,
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
+  dependencyStack?: string[],
+): unknown {
+  const values: unknown[] = [];
+
+  for (const src of sources) {
+    const value = resolveColumnSource(row, src, context, definitionMap, dependencyStack);
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+    values.push(value);
+  }
+
+  return values;
+}
+
+function extractDisplayText(value: unknown): string {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'boolean') return String(value);
+
+  const v = value as any;
+  if (v.metrics) {
+    const arr = v.metrics.toArray?.() ?? v.metrics ?? [];
+    if (arr.length > 0) {
+      const first = arr[0];
+      if (first?.image) return first.image;
+      if (first?.value !== undefined) return String(first.value);
+    }
+  }
+
+  return String(value);
 }

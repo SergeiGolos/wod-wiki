@@ -1,5 +1,5 @@
 import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { HistoryEntry, ProviderCapabilities, EntryQuery } from '../../types/history';
 import { Attachment } from '../../types/storage';
 
@@ -45,7 +45,7 @@ export class MockContentProvider implements IContentProvider {
     }
 
     async saveEntry(entry: NoteSaveInput): Promise<HistoryEntry> {
-        const id = entry.id ?? uuidv4();
+        const id = entry.id ?? uuidv7();
         const now = Date.now();
 
         const newEntry: HistoryEntry = {
@@ -64,7 +64,7 @@ export class MockContentProvider implements IContentProvider {
         const source = this.entries.get(sourceId);
         if (!source) throw new Error(`Entry ${sourceId} not found`);
 
-        const id = uuidv4();
+        const id = uuidv7();
         const now = Date.now();
 
         const newEntry: HistoryEntry = {
@@ -108,7 +108,7 @@ export class MockContentProvider implements IContentProvider {
     }
 
     async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
-        const id = attachment.id ?? uuidv4();
+        const id = attachment.id ?? uuidv7();
         const now = Date.now();
         const fullAttachment: Attachment = {
             ...attachment,

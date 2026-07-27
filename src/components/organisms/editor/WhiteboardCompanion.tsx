@@ -21,6 +21,7 @@ import { MetricType } from "@/core/models/Metric";
 import { MdTimerRuntime } from "@/hooks/useRuntimeParser";
 import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
 import { cn } from "@/lib/utils";
+import { formatDateShort } from "@/lib/dateFormat";
 import type { ScriptBlock } from '@/components/Editor/types';
 import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
 import { useScriptBlockResults } from '@/components/Editor/hooks/useScriptBlockResults';
@@ -142,7 +143,7 @@ const LineExecutionSummaryCard: React.FC<{ summary: LineExecutionSummary }> = ({
               <span className="text-muted-foreground">×{entry.hitCount}</span>
             )}
             <span className="text-muted-foreground/60">
-              {new Date(entry.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+              {formatDateShort(new Date(entry.createdAt))}
             </span>
           </div>
         ))}

@@ -26,6 +26,7 @@ import {
 } from './paletteDataSources';
 import type { ScriptCollection, ScriptCollectionItem } from '@/repositories/script-collections';
 import type { PlaygroundPage } from './playgroundContent';
+import { formatDateHeader } from '@/lib/dateFormat';
 
 export const JOURNAL_BLANK_TEMPLATE = `# Journal Entry\n\n\`\`\`wod\n\n\`\`\`\n`;
 
@@ -81,12 +82,7 @@ function stepHeader(dateLabel: string, crumbs: string[]): React.ReactNode {
 }
 
 function formatDateLabel(dateKey: string): string {
-  return new Date(dateKey + 'T00:00:00').toLocaleDateString(undefined, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  return formatDateHeader(new Date(dateKey + 'T00:00:00'));
 }
 
 // ── WOD block picker ──────────────────────────────────────────────────────

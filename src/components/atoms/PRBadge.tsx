@@ -1,0 +1,41 @@
+import { Trophy } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+export interface PRBadgeProps {
+  isPR?: boolean;
+  label?: string;
+  improvement?: number;
+  unit?: string;
+  className?: string;
+}
+
+export function PRBadge({
+  isPR = true,
+  label,
+  improvement,
+  unit,
+  className,
+}: PRBadgeProps) {
+  if (!isPR) return null;
+
+  const formattedDelta =
+    improvement !== undefined
+      ? `${improvement > 0 ? '+' : ''}${improvement}${unit ? ` ${unit}` : ''}`
+      : null;
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-500 border border-amber-500/40 shadow-xs',
+        className,
+      )}
+    >
+      <Trophy size={13} className="text-amber-500 shrink-0" />
+      <span>PR!</span>
+      {label && <span className="font-medium text-foreground/80">{label}</span>}
+      {formattedDelta && (
+        <span className="font-mono text-[11px] text-amber-400 font-semibold">({formattedDelta})</span>
+      )}
+    </span>
+  );
+}

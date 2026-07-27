@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>wod.wiki Analytics Query Builder — UX Prototype</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            polar: {
+              900: '#2e3440',
+              800: '#3b4252',
+              700: '#434c5e',
+              600: '#4c566a',
+              100: '#d8dee9',
+              200: '#e5e9f0',
+              300: '#eceff4',
+            },
+            frost: {
+              teal: '#8fbcbb',
+              ice: '#88c0d0',
+              blue: '#81a1c1',
+              darkblue: '#5e81ac',
+            },
+            aurora: {
+              red: '#bf616a',
+              orange: '#d08770',
+              yellow: '#ebcb8b',
+              green: '#a3be8c',
+              purple: '#b48ead',
+            },
+            metric: {
+              time: '#81a1c1',
+              rep: '#d08770',
+              effort: '#a3be8c',
+              rounds: '#b48ead',
+              distance: '#8fbcbb',
+              resistance: '#bf616a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #2e3440;
+      color: #d8dee9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .nord-card {
+      background-color: #3b4252;
+      border: 1px solid #434c5e;
+    }
+    .nord-card-subtle {
+      background-color: #2e3440;
+      border: 1px solid #434c5e;
+    }
+    .nord-input {
+      background-color: #2e3440;
+      border: 1px solid #4c566a;
+      color: #eceff4;
+    }
+    .nord-input:focus {
+      border-color: #88c0d0;
+      outline: none;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #2e3440;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #4c566a;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col custom-scrollbar">
+
+  <!-- TOP HEADER -->
+  <header class="border-b border-polar-700 bg-polar-800/90 px-6 py-4 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="px-2 py-0.5 text-xs font-mono font-bold bg-aurora-purple/20 text-aurora-purple border border-aurora-purple/40 rounded">UX PROTOTYPE V2</span>
+          <h1 class="text-xl font-bold text-polar-300">wod.wiki Analytics Explorer & Dual-Mode Query Composer</h1>
+        </div>
+        <p class="text-xs text-polar-100/70 mt-1">
+          Refined Dual Mode: Mapping workout log data streams (<code class="text-frost-teal font-mono">StoredOutputStatement</code>) ➔ IndexedDB fact rows (<code class="text-aurora-yellow font-mono">AnalyticsDataPoint</code>) ➔ Datadog-flavored WQL queries.
+        </p>
+      </div>
+
+      <!-- MAIN MODE TABS -->
+      <div class="flex bg-polar-900 p-1 rounded-lg border border-polar-700 self-start md:self-auto">
+        <button id="tab-split" onclick="switchMode('split')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 bg-frost-blue text-polar-900 font-semibold shadow">
+          <span>⚡</span> Refined Dual Mode (Visual + WQL)
+        </button>
+        <button id="tab-natural" onclick="switchMode('natural')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 text-polar-100 hover:text-white">
+          <span>🎯</span> Guided Question Mode
+        </button>
+        <button id="tab-visual" onclick="switchMode('visual')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 text-polar-100 hover:text-white">
+          <span>🧩</span> Visual Query Builder
+        </button>
+        <button id="tab-matrix" onclick="switchMode('matrix')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 text-polar-100 hover:text-white">
+          <span>📊</span> UX Evaluation
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+
+    <!-- PRESET EXAMPLES GALLERY -->
+    <div class="nord-card rounded-xl p-4 shadow-lg">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-frost-ice text-sm font-semibold">💡 Real Wod-Wiki Query Scenarios:</span>
+          <span class="text-xs text-polar-600">| Presets mapped to engine summary processors</span>
+        </div>
+        <span class="text-[11px] font-mono text-polar-100/50">Engine: Volume &bull; TIS &bull; Session Load &bull; MET-Min &bull; Rollup Driver</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2" id="presets-container">
+        <!-- Javascript populates preset buttons -->
+      </div>
+    </div>
+
+    <!-- BIDIRECTIONAL CODE / ENGLISH TRANSLATION BANNER -->
+    <div class="nord-card rounded-xl p-4 border-l-4 border-l-frost-ice shadow-md bg-polar-800/80">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex-1 space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] uppercase font-bold tracking-wider text-frost-teal bg-frost-teal/10 px-2 py-0.5 rounded border border-frost-teal/20">Human Translation</span>
+            <span class="text-xs text-polar-100/60 font-mono">Live AST output</span>
+          </div>
+          <p id="human-translation-text" class="text-sm font-medium text-polar-200">
+            Calculating sum of total volume for strength workouts grouped by week into 1-week rollup intervals.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 bg-polar-900/90 px-3 py-2 rounded-lg border border-polar-700 font-mono text-xs text-frost-ice shrink-0">
+          <span class="text-polar-600 text-[10px]">WQL:</span>
+          <code id="active-wql-display" class="font-bold text-aurora-yellow">sum:totalVolume{discipline:strength} by {week}.rollup(1w)</code>
+          <button onclick="copyWql()" title="Copy WQL" class="ml-2 text-polar-100 hover:text-white text-xs px-1.5 py-0.5 rounded bg-polar-800 border border-polar-600">📋</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW PANEL 1: REFINED DUAL / SPLIT MODE (PRIMARY FOCUS) -->
+    <div id="view-split" class="space-y-6">
+
+      <!-- DUAL MODE COMPOSER GRID -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- LEFT: REFINED VISUAL FORM CONTROLS -->
+        <div class="nord-card rounded-xl p-5 shadow-xl space-y-4">
+          <div class="flex items-center justify-between border-b border-polar-700 pb-3">
+            <div>
+              <h3 class="text-sm font-bold text-polar-100">🧩 Visual Form Controls</h3>
+              <p class="text-[11px] text-polar-100/60">Edits update raw WQL & human translation instantly</p>
+            </div>
+            <span class="text-[10px] text-frost-ice bg-frost-ice/10 px-2 py-0.5 rounded font-mono border border-frost-ice/20">Bidirectional Sync</span>
+          </div>
+
+          <div class="space-y-4">
+            <!-- AGGREGATOR & CATEGORIZED METRIC -->
+            <div>
+              <label class="text-xs text-polar-100/80 font-medium block mb-1.5">1. Function & Canonical Metric Key</label>
+              <div class="flex gap-2">
+                <select id="split-agg" onchange="onSplitChange()" class="nord-input px-2.5 py-1.5 rounded-lg text-xs font-mono text-aurora-yellow border-polar-600">
+                  <option value="sum">sum (total)</option>
+                  <option value="avg">avg (average)</option>
+                  <option value="last">last (latest)</option>
+                  <option value="count">count (frequency)</option>
+                  <option value="min">min (lowest)</option>
+                  <option value="max">max (highest)</option>
+                </select>
+
+                <select id="split-metric" onchange="onSplitChange()" class="nord-input flex-1 px-2.5 py-1.5 rounded-lg text-xs font-mono text-frost-ice border-polar-600">
+                  <optgroup label="Tier 2 Summary Facts (Whole Workout Engines)">
+                    <option value="totalVolume">totalVolume — Total Weight Moved (VolumeProjectionEngine)</option>
+                    <option value="tis">tis — Time-in-Motion seconds (TISProcessor)</option>
+                    <option value="sessionLoad">sessionLoad — RPE × Duration Strain (SessionLoadProjectionEngine)</option>
+                    <option value="totalReps">totalReps — Total Repetitions Count (RepProjectionEngine)</option>
+                    <option value="totalDistance">totalDistance — Total Distance meters (DistanceProjectionEngine)</option>
+                    <option value="metMinutes">metMinutes — Energy Expenditure MET-min (MetMinuteProjectionEngine)</option>
+                  </optgroup>
+                  <optgroup label="Rollup Fact Windows (Lazy Rollup Driver)">
+                    <option value="calc.acwr">calc.acwr — Acute-to-Chronic Workload Ratio</option>
+                    <option value="calc.monotony">calc.monotony — Daily Workload Monotony</option>
+                    <option value="calc.strain">calc.strain — Weekly Workload Strain</option>
+                  </optgroup>
+                  <optgroup label="Tier 0/1 Log Data Points (Per-Segment Annotations)">
+                    <option value="elapsed">elapsed — Segment Elapsed Duration (seconds)</option>
+                    <option value="pace">pace — Realtime Pace (PaceEnrichmentProcess sec/km)</option>
+                    <option value="power">power — Realtime Power (PowerEnrichmentProcess watts)</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+
+            <!-- FILTER TAGS WITH CATALOG VOCABULARY -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-xs text-polar-100/80 font-medium block">2. Tag Filters (<code class="text-aurora-orange">{key:value}</code>)</label>
+                <button onclick="addSplitFilter()" class="text-xs text-frost-ice hover:underline">+ Add Tag Filter</button>
+              </div>
+
+              <div id="split-filters-container" class="space-y-2">
+                <!-- Javascript populates split filters with dropdowns -->
+              </div>
+            </div>
+
+            <!-- GROUP BY & ROLLUP -->
+            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-polar-700">
+              <div>
+                <label class="text-xs text-polar-100/80 font-medium block mb-1">Group By (<code class="text-aurora-green">by {dim}</code>)</label>
+                <select id="split-groupby" onchange="onSplitChange()" class="nord-input w-full px-2.5 py-1.5 rounded-lg text-xs font-mono text-aurora-green border-polar-600">
+                  <option value="">(None — scalar query)</option>
+                  <option value="week">week (weekly buckets)</option>
+                  <option value="effort">effort (by exercise slug)</option>
+                  <option value="discipline">discipline (by training sport)</option>
+                  <option value="intensity">intensity (by 80/20 tier)</option>
+                  <option value="session">session (by individual workout)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-polar-100/80 font-medium block mb-1">Rollup (<code class="text-aurora-purple">.rollup()</code>)</label>
+                <select id="split-rollup" onchange="onSplitChange()" class="nord-input w-full px-2.5 py-1.5 rounded-lg text-xs font-mono text-aurora-purple border-polar-600">
+                  <option value="">(None — raw fact grain)</option>
+                  <option value="1w">1w (1 week buckets)</option>
+                  <option value="1d">1d (1 day buckets)</option>
+                  <option value="1m">1m (1 month buckets)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: EDITABLE WQL CODE FIELD & PARSER AST -->
+        <div class="nord-card rounded-xl p-5 shadow-xl space-y-4">
+          <div class="flex items-center justify-between border-b border-polar-700 pb-3">
+            <div>
+              <h3 class="text-sm font-bold text-polar-100">💻 Raw WQL Editor</h3>
+              <p class="text-[11px] text-polar-100/60">Type or paste raw query strings directly</p>
+            </div>
+            <span class="text-[10px] text-aurora-yellow font-mono bg-aurora-yellow/10 px-2 py-0.5 rounded border border-aurora-yellow/20">Lezer Grammar AST</span>
+          </div>
+
+          <div class="space-y-3">
+            <div class="space-y-1">
+              <label class="text-xs text-polar-100/70 block">WQL Query Expression</label>
+              <div class="relative">
+                <input id="split-raw-input" type="text" oninput="onRawInput(this.value)" placeholder="e.g. sum:totalVolume{discipline:strength} by {week}.rollup(1w)" class="nord-input w-full px-3 py-2 rounded-lg font-mono text-xs text-polar-100 pr-16 border-polar-600 focus:border-frost-ice">
+                <button onclick="submitRawInput()" class="absolute right-1 top-1 bottom-1 px-3 bg-frost-blue text-polar-900 font-bold text-xs rounded hover:opacity-90 transition-all">
+                  Run
+                </button>
+              </div>
+              <p id="split-parse-error" class="text-xs text-aurora-red font-mono hidden"></p>
+            </div>
+
+            <!-- PARSED AST CHIPS -->
+            <div class="nord-card-subtle p-3 rounded-lg space-y-2">
+              <span class="text-[10px] uppercase tracking-wider font-bold text-polar-100/50 block">AST Token Breakdown</span>
+              <div id="split-chips-container" class="flex flex-wrap gap-1.5 text-xs">
+                <!-- Javascript populates parsed AST chips -->
+              </div>
+            </div>
+
+            <!-- DATA STREAM ANATOMY HIGHLIGHT -->
+            <div class="p-3 bg-polar-900/80 rounded-lg border border-polar-700 text-xs space-y-1.5">
+              <div class="text-[11px] uppercase tracking-wider font-bold text-frost-teal flex items-center justify-between">
+                <span>Fact Stream Source</span>
+                <span id="ast-fact-grain" class="text-aurora-yellow font-mono">Summary Fact</span>
+              </div>
+              <p id="ast-stream-desc" class="text-polar-100/70 text-[11px] leading-relaxed">
+                Queries <code class="text-frost-ice font-mono">analytics</code> store where <code class="text-polar-200 font-mono">grain = 'summary'</code>, produced post-workout by <code class="text-aurora-green font-mono">VolumeProjectionEngine</code>.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- LOG STREAM ➔ ANALYTICS FACT LINEAGE INSPECTOR -->
+      <div class="nord-card rounded-xl p-5 shadow-xl space-y-4">
+        <div class="flex items-center justify-between border-b border-polar-700 pb-3">
+          <div>
+            <h3 class="text-sm font-bold text-polar-100 flex items-center gap-2">
+              <span>🔍</span> Workout Log Stream &bull; Fact Derivation Lineage
+            </h3>
+            <p class="text-xs text-polar-100/60 mt-0.5">
+              How workout logs (<code class="text-frost-teal">StoredOutputStatement[]</code>) transform into persisted store facts (<code class="text-aurora-yellow">AnalyticsDataPoint</code>)
+            </p>
+          </div>
+          <span class="text-xs font-mono text-polar-100/50">CONTEXT.md Analytics Pipeline</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs font-mono">
+
+          <!-- STAGE 1: RAW LOG STATEMENT -->
+          <div class="nord-card-subtle p-3 rounded-lg border-l-2 border-l-frost-blue space-y-1.5">
+            <span class="text-[10px] text-frost-blue font-bold uppercase tracking-wider block">Stage 1: Log Output</span>
+            <div class="text-polar-200 font-bold">StoredOutputStatement</div>
+            <div class="text-[11px] text-polar-100/60 leading-tight">
+              outputType: <span class="text-aurora-green">'segment'</span><br>
+              metrics: [Duration: 60s, Rep: 15, Resistance: 43kg, Effort: thruster]
+            </div>
+          </div>
+
+          <!-- STAGE 2: ANALYTICS ENGINE PROCESSORS -->
+          <div class="nord-card-subtle p-3 rounded-lg border-l-2 border-l-aurora-orange space-y-1.5">
+            <span class="text-[10px] text-aurora-orange font-bold uppercase tracking-wider block">Stage 2: Processors</span>
+            <div class="text-polar-200 font-bold">AnalyticsEngine</div>
+            <div class="text-[11px] text-polar-100/60 leading-tight">
+              Executes: VolumeProjectionEngine, TISProcessor, SessionLoadEngine
+            </div>
+          </div>
+
+          <!-- STAGE 3: SUMMARY FACT ROW -->
+          <div class="nord-card-subtle p-3 rounded-lg border-l-2 border-l-aurora-yellow space-y-1.5">
+            <span class="text-[10px] text-aurora-yellow font-bold uppercase tracking-wider block">Stage 3: Persisted Fact</span>
+            <div class="text-polar-200 font-bold">AnalyticsDataPoint</div>
+            <div class="text-[11px] text-polar-100/60 leading-tight">
+              type: <span class="text-aurora-yellow" id="lineage-metric-key">'totalVolume'</span><br>
+              discipline: <span class="text-aurora-orange" id="lineage-discipline">'strength'</span><br>
+              effortSlug: <span class="text-frost-ice" id="lineage-effort">'thruster'</span>
+            </div>
+          </div>
+
+          <!-- STAGE 4: WQL QUERY MATCH -->
+          <div class="nord-card-subtle p-3 rounded-lg border-l-2 border-l-aurora-purple space-y-1.5">
+            <span class="text-[10px] text-aurora-purple font-bold uppercase tracking-wider block">Stage 4: WQL Query</span>
+            <div class="text-polar-200 font-bold">QueryService</div>
+            <div class="text-[11px] text-polar-100/60 leading-tight">
+              Matched by: <span class="text-aurora-yellow font-mono" id="lineage-wql-match">sum:totalVolume{discipline:strength}</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VIEW PANEL 2: GUIDED QUESTION MODE (NATURAL LANGUAGE) -->
+    <div id="view-natural" class="space-y-6 hidden">
+      <div class="nord-card rounded-xl p-6 shadow-xl space-y-6">
+        <div>
+          <h2 class="text-lg font-semibold text-polar-100 flex items-center gap-2">
+            <span>🎯</span> Ask a Question (Mad-Libs Style Sentence Composer)
+          </h2>
+          <p class="text-xs text-polar-100/70 mt-1">
+            Build your query naturally by filling in the blanks. Ideal for non-technical athletes and coaches.
+          </p>
+        </div>
+
+        <!-- SENTENCE BUILDER GRID -->
+        <div class="bg-polar-900/80 p-6 rounded-xl border border-polar-700 text-sm leading-relaxed font-sans text-polar-200 space-y-4">
+          <div class="flex flex-wrap items-center gap-3 text-base">
+            <span class="text-polar-100/80 font-medium">Show me the</span>
+
+            <!-- AGGREGATE SELECTOR -->
+            <select id="nl-agg" onchange="onNlChange()" class="nord-input px-3 py-1.5 rounded-lg text-aurora-yellow font-semibold cursor-pointer">
+              <option value="sum">Sum (Total)</option>
+              <option value="avg">Average</option>
+              <option value="last">Latest Recorded Value</option>
+              <option value="count">Count of sessions</option>
+              <option value="min">Minimum</option>
+              <option value="max">Maximum</option>
+            </select>
+
+            <span class="text-polar-100/80 font-medium">of</span>
+
+            <!-- METRIC SELECTOR -->
+            <select id="nl-metric" onchange="onNlChange()" class="nord-input px-3 py-1.5 rounded-lg text-frost-ice font-semibold cursor-pointer">
+              <option value="totalVolume">Total Volume (kg / lbs moved)</option>
+              <option value="tis">Time-in-Motion (TIS seconds)</option>
+              <option value="sessionLoad">Session Load (RPE × Duration)</option>
+              <option value="totalReps">Total Repetitions</option>
+              <option value="totalDistance">Total Distance (meters)</option>
+              <option value="metMinutes">Energy Expenditure (MET-min)</option>
+              <option value="calc.acwr">Acute-to-Chronic Workload (ACWR)</option>
+            </select>
+
+            <span class="text-polar-100/80 font-medium">for</span>
+
+            <!-- FILTER DISCIPLINE / EFFORT -->
+            <select id="nl-filter" onchange="onNlChange()" class="nord-input px-3 py-1.5 rounded-lg text-aurora-orange font-semibold cursor-pointer">
+              <option value="discipline:strength">Strength workouts</option>
+              <option value="discipline:cardio">Cardio workouts</option>
+              <option value="discipline:gymnastics">Gymnastics workouts</option>
+              <option value="discipline:rowing">Rowing workouts</option>
+              <option value="effort:thruster">Thrusters</option>
+              <option value="effort:back-squat">Back Squats</option>
+              <option value="note:benchmark">Benchmark workouts</option>
+              <option value="all">All workouts (No filter)</option>
+            </select>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3 text-base pt-2 border-t border-polar-800">
+            <span class="text-polar-100/80 font-medium">Grouped and split by</span>
+
+            <!-- GROUP BY SELECTOR -->
+            <select id="nl-groupby" onchange="onNlChange()" class="nord-input px-3 py-1.5 rounded-lg text-aurora-green font-semibold cursor-pointer">
+              <option value="week">Week</option>
+              <option value="effort">Exercise / Effort</option>
+              <option value="discipline">Sport Discipline</option>
+              <option value="intensity">Intensity tier</option>
+              <option value="session">Individual Session</option>
+              <option value="none">Overall total (No grouping)</option>
+            </select>
+
+            <span class="text-polar-100/80 font-medium">rolled up every</span>
+
+            <!-- ROLLUP SELECTOR -->
+            <select id="nl-rollup" onchange="onNlChange()" class="nord-input px-3 py-1.5 rounded-lg text-aurora-purple font-semibold cursor-pointer">
+              <option value="1w">1 Week (1w)</option>
+              <option value="1d">1 Day (1d)</option>
+              <option value="1m">1 Month (1m)</option>
+              <option value="none">Raw points (No rollup)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW PANEL 3: VISUAL QUERY BUILDER -->
+    <div id="view-visual" class="space-y-6 hidden">
+      <div class="nord-card rounded-xl p-6 shadow-xl space-y-6">
+        <div>
+          <h2 class="text-lg font-semibold text-polar-100 flex items-center gap-2">
+            <span>🧩</span> Visual Query Builder
+          </h2>
+          <p class="text-xs text-polar-100/70 mt-1">
+            Build complex queries using structured pill controls without writing WQL syntax by hand.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+          <!-- COLUMN 1: AGGREGATE & METRIC -->
+          <div class="nord-card-subtle p-4 rounded-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-polar-700 pb-2">
+              <span class="text-xs uppercase tracking-wider font-bold text-aurora-yellow">1. Aggregation & Metric</span>
+              <span class="text-[10px] text-polar-100/50">Required</span>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-xs text-polar-100/80 block">Aggregator Function</label>
+              <div class="grid grid-cols-3 gap-1.5" id="vis-agg-buttons">
+                <!-- Javascript populates aggregator pills -->
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-xs text-polar-100/80 block">Canonical Metric</label>
+              <select id="vis-metric" onchange="onVisualChange()" class="nord-input w-full px-3 py-2 rounded-lg text-xs font-mono">
+                <option value="totalVolume">totalVolume (Total Weight Volume)</option>
+                <option value="tis">tis (Time-in-Motion seconds)</option>
+                <option value="sessionLoad">sessionLoad (Session Load RPE × Dur)</option>
+                <option value="totalReps">totalReps (Total Repetitions)</option>
+                <option value="totalDistance">totalDistance (Total Distance meters)</option>
+                <option value="metMinutes">metMinutes (Energy Expenditure)</option>
+                <option value="calc.acwr">calc.acwr (Acute-to-Chronic Workload)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- COLUMN 2: TAG FILTERS (WHERE) -->
+          <div class="nord-card-subtle p-4 rounded-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-polar-700 pb-2">
+              <span class="text-xs uppercase tracking-wider font-bold text-aurora-orange">2. Tag Filters (Where)</span>
+              <span class="text-[10px] text-polar-100/50">Optional</span>
+            </div>
+
+            <div id="vis-filters-list" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+              <!-- Javascript populates filter rows -->
+            </div>
+
+            <button onclick="addFilterRow()" class="w-full py-1.5 border border-dashed border-polar-600 rounded-lg text-xs text-polar-100/70 hover:text-white hover:border-frost-ice transition-all flex items-center justify-center gap-1">
+              <span>+</span> Add Filter Tag
+            </button>
+          </div>
+
+          <!-- COLUMN 3: GROUP BY & ROLLUP -->
+          <div class="nord-card-subtle p-4 rounded-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-polar-700 pb-2">
+              <span class="text-xs uppercase tracking-wider font-bold text-aurora-green">3. Grouping & Rollup</span>
+              <span class="text-[10px] text-polar-100/50">Optional</span>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-xs text-polar-100/80 block">Group By Dimension</label>
+              <div class="grid grid-cols-2 gap-1.5" id="vis-groupby-buttons">
+                <!-- Javascript populates group by pills -->
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-xs text-polar-100/80 block">Time Rollup Interval</label>
+              <div class="grid grid-cols-2 gap-1.5" id="vis-rollup-buttons">
+                <!-- Javascript populates rollup pills -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW PANEL 4: UX EVALUATION MATRIX -->
+    <div id="view-matrix" class="space-y-6 hidden">
+      <div class="nord-card rounded-xl p-6 shadow-xl space-y-6">
+        <div>
+          <h2 class="text-lg font-semibold text-polar-100 flex items-center gap-2">
+            <span>📊</span> UX Trade-off & Evaluation Matrix
+          </h2>
+          <p class="text-xs text-polar-100/70 mt-1">
+            Comparative analysis of query composition models for non-technical vs technical users.
+          </p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-polar-700 bg-polar-900/60 text-polar-100/70 uppercase font-mono text-[10px]">
+                <th class="p-3">Composition Approach</th>
+                <th class="p-3">Target User</th>
+                <th class="p-3">Learning Curve</th>
+                <th class="p-3">Syntax Safety</th>
+                <th class="p-3">Power & Speed</th>
+                <th class="p-3">Recommendation</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-polar-700">
+              <tr class="hover:bg-polar-800/40">
+                <td class="p-3 font-semibold text-polar-100">1. Raw Query String (Current)</td>
+                <td class="p-3 text-polar-200">Engineers / Data Analysts</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-aurora-red/20 text-aurora-red font-semibold">High (WQL syntax)</span></td>
+                <td class="p-3 text-aurora-red">Low (Typo prone)</td>
+                <td class="p-3 text-aurora-green">High (Instant typing)</td>
+                <td class="p-3 text-polar-100/60">Keep for advanced mode</td>
+              </tr>
+              <tr class="hover:bg-polar-800/40">
+                <td class="p-3 font-semibold text-polar-100">2. Guided Question (Mad-Libs)</td>
+                <td class="p-3 text-polar-200">Casual Athletes / Beginners</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-aurora-green/20 text-aurora-green font-semibold">Zero (Natural English)</span></td>
+                <td class="p-3 text-aurora-green">100% Safe (Dropdowns)</td>
+                <td class="p-3 text-aurora-yellow">Medium (Linear flow)</td>
+                <td class="p-3 text-frost-ice font-semibold">Great default landing UX</td>
+              </tr>
+              <tr class="hover:bg-polar-800/40">
+                <td class="p-3 font-semibold text-polar-100">3. Visual Form / Pills Builder</td>
+                <td class="p-3 text-polar-200">Coaches / Regular Users</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-aurora-yellow/20 text-aurora-yellow font-semibold">Low (Self-explanatory)</span></td>
+                <td class="p-3 text-aurora-green">100% Safe</td>
+                <td class="p-3 text-aurora-green">High (Structured pills)</td>
+                <td class="p-3 text-aurora-green font-semibold">Recommended core composer</td>
+              </tr>
+              <tr class="hover:bg-polar-800/40 bg-frost-teal/5">
+                <td class="p-3 font-bold text-frost-ice">4. Bidirectional Hybrid (Proposed)</td>
+                <td class="p-3 text-polar-100 font-medium">All User Personas</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-frost-blue/20 text-frost-blue font-bold">Progressive (Adapts)</span></td>
+                <td class="p-3 text-aurora-green font-bold">100% Safe + Parsed</td>
+                <td class="p-3 text-aurora-green font-bold">Maximum</td>
+                <td class="p-3"><span class="px-2.5 py-1 rounded bg-frost-teal text-polar-900 font-bold text-[11px]">★ WINNING ARCHITECTURE</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHARED DATA EXECUTION & CHART PREVIEW PANEL -->
+    <div class="nord-card rounded-xl p-6 shadow-xl space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-polar-700 pb-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="size-2 rounded-full bg-aurora-green animate-pulse"></span>
+            <h3 class="text-base font-semibold text-polar-100">Query Result & Data Execution</h3>
+          </div>
+          <p class="text-xs text-polar-100/60 mt-0.5">Live execution against simulated local workout store facts</p>
+        </div>
+
+        <!-- RANGE PICKER -->
+        <div class="flex items-center gap-2 text-xs">
+          <span class="text-polar-100/60">Time Range:</span>
+          <div class="flex bg-polar-900 p-0.5 rounded border border-polar-700">
+            <button onclick="setWeeks(4)" id="range-4" class="px-2 py-1 rounded text-[11px] text-polar-100/70 hover:text-white">Past 4w</button>
+            <button onclick="setWeeks(8)" id="range-8" class="px-2 py-1 rounded text-[11px] text-polar-100/70 hover:text-white">Past 8w</button>
+            <button onclick="setWeeks(16)" id="range-16" class="px-2 py-1 rounded text-[11px] bg-frost-blue text-polar-900 font-bold shadow">Past 16w</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHART CONTAINER & DATA METRICS -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- CHART DISPLAY -->
+        <div class="lg:col-span-2 nord-card-subtle p-4 rounded-xl flex flex-col justify-between min-h-[260px]">
+          <div class="flex items-center justify-between mb-2">
+            <span id="chart-title" class="text-xs font-bold text-polar-200 uppercase tracking-wider">Weekly Volume (kg)</span>
+            <span id="chart-shape-badge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-aurora-purple/20 text-aurora-purple border border-aurora-purple/30">Timeseries Chart</span>
+          </div>
+
+          <div id="chart-render-area" class="flex-1 flex items-center justify-center relative py-4">
+            <!-- Javascript populates SVG Chart or Scalar Widget -->
+          </div>
+
+          <div class="flex items-center justify-between text-[11px] text-polar-100/50 pt-2 border-t border-polar-700 font-mono">
+            <span>Grain: <span id="meta-grain" class="text-polar-200">1w rollup</span></span>
+            <span>Matched Facts: <span id="meta-facts-count" class="text-aurora-green">14 facts</span></span>
+          </div>
+        </div>
+
+        <!-- PIPELINE ANATOMY & SUMMARY STATS -->
+        <div class="nord-card-subtle p-4 rounded-xl space-y-4">
+          <span class="text-xs font-bold text-polar-200 uppercase tracking-wider block border-b border-polar-700 pb-2">Pipeline Execution Steps</span>
+
+          <div class="space-y-3 text-xs">
+            <div class="flex items-start gap-2">
+              <div class="size-5 rounded-full bg-frost-blue/20 text-frost-blue flex items-center justify-center font-bold text-[10px] shrink-0">1</div>
+              <div>
+                <span class="font-semibold text-polar-200 block">Fact Filter</span>
+                <span id="step-filter-desc" class="text-polar-100/60 text-[11px]">Filtered discipline:strength</span>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-2">
+              <div class="size-5 rounded-full bg-aurora-orange/20 text-aurora-orange flex items-center justify-center font-bold text-[10px] shrink-0">2</div>
+              <div>
+                <span class="font-semibold text-polar-200 block">Group Dimension</span>
+                <span id="step-group-desc" class="text-polar-100/60 text-[11px]">Grouped by week</span>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-2">
+              <div class="size-5 rounded-full bg-aurora-yellow/20 text-aurora-yellow flex items-center justify-center font-bold text-[10px] shrink-0">3</div>
+              <div>
+                <span class="font-semibold text-polar-200 block">Aggregate</span>
+                <span id="step-agg-desc" class="text-polar-100/60 text-[11px]">Summing totalVolume values</span>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-2">
+              <div class="size-5 rounded-full bg-aurora-purple/20 text-aurora-purple flex items-center justify-center font-bold text-[10px] shrink-0">4</div>
+              <div>
+                <span class="font-semibold text-polar-200 block">Rollup Window</span>
+                <span id="step-rollup-desc" class="text-polar-100/60 text-[11px]">Aggregated into 1w buckets</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- MATCHED FACTS DATA TABLE -->
+      <div class="space-y-2">
+        <span class="text-xs font-bold text-polar-100/70 uppercase tracking-wider">Matched Fact Rows Preview (IndexedDB Analytics Store)</span>
+        <div class="overflow-x-auto rounded-lg border border-polar-700">
+          <table class="w-full text-left text-xs font-mono">
+            <thead>
+              <tr class="bg-polar-900 text-polar-100/60 border-b border-polar-700">
+                <th class="p-2.5">Date</th>
+                <th class="p-2.5">Metric Key</th>
+                <th class="p-2.5">Value</th>
+                <th class="p-2.5">Tags (Discipline / Effort / Intensity / Note)</th>
+              </tr>
+            </thead>
+            <tbody id="raw-table-body" class="divide-y divide-polar-700/60 bg-polar-800/40">
+              <!-- Javascript populates table rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-polar-700 bg-polar-900 py-4 px-6 text-center text-xs text-polar-100/50">
+    wod.wiki Analytics Query Composer Prototype &bull; Designed for simple, non-technical exploration &bull; Pure HTML/JS Prototype
+  </footer>
+
+  <!-- SCRIPT LOGIC: WQL AST PARSER, RE-SERIALIZER, REACTIVE STATE, MOCK ENGINE & CHART RENDERER -->
+  <script>
+    // PRESET QUESTIONS
+    const PRESETS = [
+      { label: "Weekly Strength Volume", question: "Is strength volume rising?", query: "sum:totalVolume{discipline:strength} by {week}.rollup(1w)" },
+      { label: "Thruster Time-in-Motion", question: "Is time-in-motion improving?", query: "avg:tis{effort:thruster} by {week}.rollup(1w)" },
+      { label: "Cardio MET-Minutes", question: "Am I hitting cardio energy targets?", query: "sum:metMinutes{discipline:cardio} by {week}.rollup(1w)" },
+      { label: "Benchmark Session Loads", question: "Is session load dropping?", query: "last:sessionLoad{note:benchmark} by {session}" },
+      { label: "Polarized Weekly Load", question: "Is my intensity 80/20?", query: "sum:sessionLoad{} by {intensity}.rollup(1w)" },
+      { label: "Injury Risk (ACWR)", question: "Am I spiking workload?", query: "avg:calc.acwr{}.rollup(1d)" },
+    ];
+
+    const AGGREGATORS = ['sum', 'avg', 'min', 'max', 'count', 'last'];
+    const GROUP_DIMS = ['', 'week', 'effort', 'discipline', 'intensity', 'session'];
+    const ROLLUPS = ['', '1w', '1d', '1m'];
+
+    // CATALOG VOCABULARY
+    const TAG_KEYS = ['discipline', 'effort', 'intensity', 'note', 'origin'];
+    const VOCABULARY_VALUES = {
+      discipline: ['strength', 'cardio', 'gymnastics', 'rowing', 'running', 'kettlebell', 'cycling', 'swimming', 'walking', 'recovery'],
+      effort: ['thruster', 'back-squat', 'rowing', 'pull-up', 'double-under', 'burpee', 'snatch', 'clean-and-jerk', 'wall-ball', 'box-jump'],
+      intensity: ['low', 'medium', 'high', 'max'],
+      note: ['benchmark', 'hero', 'test', 'mobility', 'custom'],
+      origin: ['journal', 'playground']
+    };
+
+    // ACTIVE STATE
+    let currentState = {
+      agg: 'sum',
+      metric: 'totalVolume',
+      filters: [{ key: 'discipline', value: 'strength', negate: false }],
+      groupBy: 'week',
+      rollup: '1w',
+      activeWeeks: 16,
+      currentMode: 'split'
+    };
+
+    // MOCK STORE DATA (IndexedDB AnalyticsDataPoint rows)
+    const MOCK_FACTS = [
+      { date: '2026-07-20', metricKey: 'totalVolume', value: 4200, tags: { discipline: 'strength', effort: 'back-squat', intensity: 'high' } },
+      { date: '2026-07-18', metricKey: 'totalVolume', value: 3800, tags: { discipline: 'strength', effort: 'thruster', intensity: 'high' } },
+      { date: '2026-07-13', metricKey: 'totalVolume', value: 3500, tags: { discipline: 'strength', effort: 'back-squat', intensity: 'medium' } },
+      { date: '2026-07-10', metricKey: 'totalVolume', value: 2900, tags: { discipline: 'strength', effort: 'thruster', intensity: 'high' } },
+      { date: '2026-07-05', metricKey: 'tis', value: 140, tags: { discipline: 'strength', effort: 'thruster', intensity: 'high' } },
+      { date: '2026-07-02', metricKey: 'tis', value: 155, tags: { discipline: 'strength', effort: 'thruster', intensity: 'high' } },
+      { date: '2026-06-28', metricKey: 'metMinutes', value: 480, tags: { discipline: 'cardio', effort: 'rowing', intensity: 'medium' } },
+      { date: '2026-06-25', metricKey: 'totalReps', value: 120, tags: { discipline: 'strength', effort: 'thruster', intensity: 'medium' } },
+      { date: '2026-06-20', metricKey: 'totalReps', value: 90, tags: { discipline: 'strength', effort: 'back-squat', intensity: 'high' } },
+      { date: '2026-06-15', metricKey: 'sessionLoad', value: 450, tags: { note: 'benchmark', intensity: 'high' } },
+      { date: '2026-06-08', metricKey: 'calc.acwr', value: 1.15, tags: { discipline: 'strength' } },
+      { date: '2026-06-01', metricKey: 'calc.acwr', value: 1.28, tags: { discipline: 'strength' } },
+    ];
+
+    // INIT
+    window.addEventListener('DOMContentLoaded', () => {
+      renderPresets();
+      renderVisualControls();
+      updateAllUI();
+    });
+
+    // MODE SWITCHING
+    function switchMode(mode) {
+      currentState.currentMode = mode;
+      ['split', 'natural', 'visual', 'matrix'].forEach(m => {
+        const tab = document.getElementById(`tab-${m}`);
+        const view = document.getElementById(`view-${m}`);
+        if (m === mode) {
+          tab.className = "px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 bg-frost-blue text-polar-900 font-semibold shadow";
+          view.classList.remove('hidden');
+        } else {
+          tab.className = "px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 text-polar-100 hover:text-white";
+          view.classList.add('hidden');
+        }
+      });
+    }
+
+    // RENDER PRESETS
+    function renderPresets() {
+      const container = document.getElementById('presets-container');
+      container.innerHTML = PRESETS.map(p => `
+        <button onclick="loadQuery('${p.query}')" class="text-left p-2.5 rounded-lg border border-polar-700 bg-polar-900/60 hover:bg-polar-700/60 hover:border-frost-ice transition-all group">
+          <div class="text-xs font-semibold text-polar-100 group-hover:text-frost-ice">${p.label}</div>
+          <div class="text-[11px] text-polar-100/60 italic">${p.question}</div>
+        </button>
+      `).join('');
+    }
+
+    // RENDER VISUAL FORM PILLS
+    function renderVisualControls() {
+      // Aggregator pills
+      const aggContainer = document.getElementById('vis-agg-buttons');
+      if (aggContainer) {
+        aggContainer.innerHTML = AGGREGATORS.map(a => `
+          <button onclick="setVisAgg('${a}')" id="vis-agg-${a}" class="py-1 px-2 text-xs font-mono rounded border transition-all ${currentState.agg === a ? 'bg-aurora-yellow text-polar-900 font-bold border-aurora-yellow' : 'bg-polar-900 border-polar-700 text-polar-200'}">
+            ${a}
+          </button>
+        `).join('');
+      }
+
+      // Group By pills
+      const groupContainer = document.getElementById('vis-groupby-buttons');
+      if (groupContainer) {
+        groupContainer.innerHTML = GROUP_DIMS.map(g => `
+          <button onclick="setVisGroup('${g}')" id="vis-group-${g}" class="py-1 px-2 text-xs font-mono rounded border transition-all ${currentState.groupBy === g ? 'bg-aurora-green text-polar-900 font-bold border-aurora-green' : 'bg-polar-900 border-polar-700 text-polar-200'}">
+            ${g || '(none)'}
+          </button>
+        `).join('');
+      }
+
+      // Rollup pills
+      const rollupContainer = document.getElementById('vis-rollup-buttons');
+      if (rollupContainer) {
+        rollupContainer.innerHTML = ROLLUPS.map(r => `
+          <button onclick="setVisRollup('${r}')" id="vis-rollup-${r}" class="py-1 px-2 text-xs font-mono rounded border transition-all ${currentState.rollup === r ? 'bg-aurora-purple text-polar-900 font-bold border-aurora-purple' : 'bg-polar-900 border-polar-700 text-polar-200'}">
+            ${r || '(none)'}
+          </button>
+        `).join('');
+      }
+
+      renderFilterRows();
+    }
+
+    function renderFilterRows() {
+      const container = document.getElementById('vis-filters-list');
+      if (container) {
+        if (currentState.filters.length === 0) {
+          container.innerHTML = `<div class="text-xs text-polar-100/50 italic py-1">No active filters (matches all workouts)</div>`;
+        } else {
+          container.innerHTML = currentState.filters.map((f, idx) => `
+            <div class="flex items-center gap-1.5 bg-polar-900 p-1.5 rounded border border-polar-700">
+              <button onclick="toggleFilterNegate(${idx})" class="text-[10px] font-bold px-1.5 py-0.5 rounded ${f.negate ? 'bg-aurora-red/30 text-aurora-red border border-aurora-red/40' : 'bg-aurora-green/30 text-aurora-green border border-aurora-green/40'}">
+                ${f.negate ? 'NOT' : 'IS'}
+              </button>
+              <select onchange="updateFilterKey(${idx}, this.value)" class="nord-input text-xs font-mono px-1 py-0.5 rounded w-24">
+                ${TAG_KEYS.map(k => `<option value="${k}" ${f.key === k ? 'selected' : ''}>${k}</option>`).join('')}
+              </select>
+              <span class="text-polar-600">:</span>
+              <input type="text" value="${f.value}" onchange="updateFilterVal(${idx}, this.value)" placeholder="value" class="nord-input text-xs font-mono px-1.5 py-0.5 rounded flex-1">
+              <button onclick="removeFilterRow(${idx})" class="text-aurora-red text-xs px-1 hover:opacity-80">✕</button>
+            </div>
+          `).join('');
+        }
+      }
+
+      // Update split filters container with autocomplete dropdowns
+      const splitContainer = document.getElementById('split-filters-container');
+      if (splitContainer) {
+        if (currentState.filters.length === 0) {
+          splitContainer.innerHTML = `<span class="text-xs text-polar-100/40 italic block py-1">No filters applied (all facts included)</span>`;
+        } else {
+          splitContainer.innerHTML = currentState.filters.map((f, idx) => {
+            const knownVals = VOCABULARY_VALUES[f.key] || [];
+            return `
+              <div class="flex items-center gap-1.5 bg-polar-900 p-1.5 rounded border border-polar-700">
+                <button onclick="toggleFilterNegate(${idx})" class="text-[10px] font-bold px-1.5 py-0.5 rounded ${f.negate ? 'bg-aurora-red/30 text-aurora-red border border-aurora-red/40' : 'bg-aurora-green/30 text-aurora-green border border-aurora-green/40'}">
+                  ${f.negate ? 'NOT' : 'IS'}
+                </button>
+                <select onchange="updateFilterKey(${idx}, this.value)" class="nord-input text-xs font-mono px-1.5 py-0.5 rounded text-aurora-orange">
+                  ${TAG_KEYS.map(k => `<option value="${k}" ${f.key === k ? 'selected' : ''}>${k}</option>`).join('')}
+                </select>
+                <span class="text-polar-600">:</span>
+                ${knownVals.length > 0 ? `
+                  <select onchange="updateFilterVal(${idx}, this.value)" class="nord-input flex-1 text-xs font-mono px-1.5 py-0.5 rounded text-polar-200">
+                    ${knownVals.map(v => `<option value="${v}" ${f.value === v ? 'selected' : ''}>${v}</option>`).join('')}
+                  </select>
+                ` : `
+                  <input type="text" value="${f.value}" onchange="updateFilterVal(${idx}, this.value)" class="nord-input flex-1 text-xs font-mono px-1.5 py-0.5 rounded text-polar-200">
+                `}
+                <button onclick="removeFilterRow(${idx})" class="text-aurora-red text-xs px-1 hover:opacity-80">✕</button>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    // STATE UPDATERS
+    function setVisAgg(a) { currentState.agg = a; updateAllUI(); }
+    function setVisGroup(g) { currentState.groupBy = g; updateAllUI(); }
+    function setVisRollup(r) { currentState.rollup = r; updateAllUI(); }
+    function addFilterRow() { currentState.filters.push({ key: 'discipline', value: 'strength', negate: false }); updateAllUI(); }
+    function removeFilterRow(idx) { currentState.filters.splice(idx, 1); updateAllUI(); }
+    function toggleFilterNegate(idx) { currentState.filters[idx].negate = !currentState.filters[idx].negate; updateAllUI(); }
+    function updateFilterKey(idx, val) {
+      currentState.filters[idx].key = val;
+      const vals = VOCABULARY_VALUES[val];
+      if (vals && vals.length > 0) currentState.filters[idx].value = vals[0];
+      updateAllUI();
+    }
+    function updateFilterVal(idx, val) { currentState.filters[idx].value = val; updateAllUI(); }
+
+    function onVisualChange() {
+      currentState.metric = document.getElementById('vis-metric').value;
+      updateAllUI();
+    }
+
+    function onNlChange() {
+      currentState.agg = document.getElementById('nl-agg').value;
+      currentState.metric = document.getElementById('nl-metric').value;
+      const fVal = document.getElementById('nl-filter').value;
+      if (fVal === 'all') {
+        currentState.filters = [];
+      } else {
+        const [k, v] = fVal.split(':');
+        currentState.filters = [{ key: k, value: v, negate: false }];
+      }
+      currentState.groupBy = document.getElementById('nl-groupby').value === 'none' ? '' : document.getElementById('nl-groupby').value;
+      currentState.rollup = document.getElementById('nl-rollup').value === 'none' ? '' : document.getElementById('nl-rollup').value;
+      updateAllUI();
+    }
+
+    function onSplitChange() {
+      currentState.agg = document.getElementById('split-agg').value;
+      currentState.metric = document.getElementById('split-metric').value;
+      currentState.groupBy = document.getElementById('split-groupby').value;
+      currentState.rollup = document.getElementById('split-rollup').value;
+      updateAllUI();
+    }
+
+    function addSplitFilter() {
+      addFilterRow();
+    }
+
+    // BUILD WQL STRING FROM STATE
+    function buildWql() {
+      let fStr = currentState.filters.map(f => `${f.negate ? '!' : ''}${f.key}:${f.value}`).join(',');
+      let str = `${currentState.agg}:${currentState.metric}{${fStr}}`;
+      if (currentState.groupBy) {
+        str += ` by {${currentState.groupBy}}`;
+      }
+      if (currentState.rollup) {
+        str += `.rollup(${currentState.rollup})`;
+      }
+      return str;
+    }
+
+    // PARSE WQL STRING TO STATE
+    function parseWql(wqlStr) {
+      try {
+        const regex = /^([a-z]+):([a-zA-Z0-9\._]+)\{([^}]*)\}(?:\s+by\s+\{([^}]+)\})?(?:\.rollup\(([^)]+)\))?$/;
+        const match = wqlStr.trim().match(regex);
+        if (!match) return false;
+
+        const [_, agg, metric, filtersRaw, groupRaw, rollupRaw] = match;
+        const filters = filtersRaw ? filtersRaw.split(',').filter(Boolean).map(f => {
+          const negate = f.startsWith('!');
+          const clean = negate ? f.slice(1) : f;
+          const [k, v] = clean.split(':');
+          return { key: k || 'discipline', value: v || '', negate };
+        }) : [];
+
+        currentState.agg = agg;
+        currentState.metric = metric;
+        currentState.filters = filters;
+        currentState.groupBy = groupRaw || '';
+        currentState.rollup = rollupRaw || '';
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function loadQuery(wql) {
+      if (parseWql(wql)) {
+        updateAllUI();
+      }
+    }
+
+    function onRawInput(val) {
+      const err = document.getElementById('split-parse-error');
+      if (parseWql(val)) {
+        err.classList.add('hidden');
+        updateAllUI(false); // don't overwrite raw input field
+      } else {
+        err.textContent = `Invalid syntax. Format: agg:metric{filters} by {dim} .rollup(period)`;
+        err.classList.remove('hidden');
+      }
+    }
+
+    function submitRawInput() {
+      const val = document.getElementById('split-raw-input').value;
+      onRawInput(val);
+    }
+
+    // UPDATE ALL UI COMPONENTS
+    function updateAllUI(syncRawInput = true) {
+      const wql = buildWql();
+
+      // Active WQL display
+      document.getElementById('active-wql-display').textContent = wql;
+
+      // Human Translation
+      document.getElementById('human-translation-text').textContent = generateHumanTranslation();
+
+      // Sync Natural Form
+      if (document.getElementById('nl-agg')) document.getElementById('nl-agg').value = currentState.agg;
+      if (document.getElementById('nl-metric')) document.getElementById('nl-metric').value = currentState.metric;
+      if (document.getElementById('nl-groupby')) document.getElementById('nl-groupby').value = currentState.groupBy || 'none';
+      if (document.getElementById('nl-rollup')) document.getElementById('nl-rollup').value = currentState.rollup || 'none';
+      if (document.getElementById('nl-filter')) {
+        if (currentState.filters.length > 0) {
+          const first = currentState.filters[0];
+          document.getElementById('nl-filter').value = `${first.key}:${first.value}`;
+        } else {
+          document.getElementById('nl-filter').value = 'all';
+        }
+      }
+
+      // Sync Visual Form
+      if (document.getElementById('vis-metric')) document.getElementById('vis-metric').value = currentState.metric;
+      renderVisualControls();
+
+      // Sync Split Form
+      document.getElementById('split-agg').value = currentState.agg;
+      document.getElementById('split-metric').value = currentState.metric;
+      document.getElementById('split-groupby').value = currentState.groupBy;
+      document.getElementById('split-rollup').value = currentState.rollup;
+      if (syncRawInput) {
+        document.getElementById('split-raw-input').value = wql;
+      }
+
+      // AST Chips & Stream Description
+      renderChips();
+
+      // Update Lineage Inspector Stage Highlights
+      updateLineageInspector();
+
+      // Render Pipeline Anatomy & Simulated Data Chart
+      renderSimulatedExecution();
+    }
+
+    function generateHumanTranslation() {
+      const aggNames = { sum: 'total sum', avg: 'average', last: 'latest value', count: 'session count', min: 'minimum', max: 'maximum' };
+      const metricNames = {
+        totalVolume: 'total volume (weight moved)',
+        tis: 'time-in-motion (seconds)',
+        sessionLoad: 'session load strain (RPE × duration)',
+        totalReps: 'total repetition count',
+        totalDistance: 'total distance (meters)',
+        metMinutes: 'energy expenditure (MET-min)',
+        'calc.acwr': 'ACWR workload ratio',
+        'calc.monotony': 'daily workload monotony',
+        'calc.strain': 'weekly workload strain',
+        elapsed: 'segment duration',
+        pace: 'realtime pace (sec/km)',
+        power: 'realtime power (watts)'
+      };
+
+      let filterText = currentState.filters.length > 0
+        ? ' for workouts where ' + currentState.filters.map(f => `${f.key} ${f.negate ? 'is not' : 'is'} "${f.value}"`).join(' and ')
+        : ' across all recorded workouts';
+
+      let groupText = currentState.groupBy ? ` grouped by ${currentState.groupBy}` : '';
+      let rollupText = currentState.rollup ? ` into ${currentState.rollup} rollup windows` : '';
+
+      return `Calculating ${aggNames[currentState.agg]} of ${metricNames[currentState.metric] || currentState.metric}${filterText}${groupText}${rollupText}.`;
+    }
+
+    function renderChips() {
+      const container = document.getElementById('split-chips-container');
+      const fChips = currentState.filters.map(f => `
+        <span class="px-2 py-0.5 rounded border border-aurora-orange/40 bg-aurora-orange/10 text-aurora-orange font-mono text-[11px]">
+          ${f.negate ? 'exclude' : 'filter'}: ${f.key}:${f.value}
+        </span>
+      `).join('');
+
+      container.innerHTML = `
+        <span class="px-2 py-0.5 rounded border border-frost-blue/40 bg-frost-blue/10 text-frost-blue font-mono text-[11px]">agg: ${currentState.agg}</span>
+        <span class="px-2 py-0.5 rounded border border-frost-ice/40 bg-frost-ice/10 text-frost-ice font-mono text-[11px]">metric: ${currentState.metric}</span>
+        ${fChips}
+        ${currentState.groupBy ? `<span class="px-2 py-0.5 rounded border border-aurora-green/40 bg-aurora-green/10 text-aurora-green font-mono text-[11px]">by: ${currentState.groupBy}</span>` : ''}
+        ${currentState.rollup ? `<span class="px-2 py-0.5 rounded border border-aurora-purple/40 bg-aurora-purple/10 text-aurora-purple font-mono text-[11px]">rollup: ${currentState.rollup}</span>` : ''}
+      `;
+
+      // Update Stream Description
+      const grainElem = document.getElementById('ast-fact-grain');
+      const descElem = document.getElementById('ast-stream-desc');
+      if (currentState.metric.startsWith('calc.')) {
+        grainElem.textContent = "Rollup Fact Window";
+        descElem.innerHTML = `Queries <code class="text-frost-ice font-mono">analytics</code> store where <code class="text-polar-200 font-mono">grain = 'rollup'</code>, computed lazily by <code class="text-aurora-purple font-mono font-bold">RollupDriver</code> on analytics-surface open.`;
+      } else if (['elapsed', 'pace', 'power'].includes(currentState.metric)) {
+        grainElem.textContent = "Segment Log Metric";
+        descElem.innerHTML = `Queries <code class="text-frost-ice font-mono">results.data.logs</code> directly where <code class="text-polar-200 font-mono">outputType = 'segment'</code> (Tier 0/1 log metrics).`;
+      } else {
+        grainElem.textContent = "Summary Fact";
+        descElem.innerHTML = `Queries <code class="text-frost-ice font-mono">analytics</code> store where <code class="text-polar-200 font-mono">grain = 'summary'</code>, produced post-workout by <code class="text-aurora-green font-mono font-bold">SummaryProcessor</code>.`;
+      }
+    }
+
+    function updateLineageInspector() {
+      const metricElem = document.getElementById('lineage-metric-key');
+      const discElem = document.getElementById('lineage-discipline');
+      const effortElem = document.getElementById('lineage-effort');
+      const matchElem = document.getElementById('lineage-wql-match');
+
+      if (metricElem) metricElem.textContent = `'${currentState.metric}'`;
+      const discFilter = currentState.filters.find(f => f.key === 'discipline');
+      const effortFilter = currentState.filters.find(f => f.key === 'effort');
+
+      if (discElem) discElem.textContent = `'${discFilter ? discFilter.value : 'strength'}'`;
+      if (effortElem) effortElem.textContent = `'${effortFilter ? effortFilter.value : 'thruster'}'`;
+      if (matchElem) matchElem.textContent = buildWql();
+    }
+
+    // SIMULATED EXECUTION ENGINE & CHART RENDERER
+    function renderSimulatedExecution() {
+      // Step descriptions
+      document.getElementById('step-filter-desc').textContent = currentState.filters.length > 0 ? currentState.filters.map(f => `${f.key}:${f.value}`).join(', ') : 'No filter applied';
+      document.getElementById('step-group-desc').textContent = currentState.groupBy ? `Grouped by ${currentState.groupBy}` : 'No grouping';
+      document.getElementById('step-agg-desc').textContent = `${currentState.agg}(${currentState.metric})`;
+      document.getElementById('step-rollup-desc').textContent = currentState.rollup ? `${currentState.rollup} bucket aggregation` : 'Raw points (no rollup)';
+
+      // Filter mock facts
+      const matched = MOCK_FACTS.filter(f => {
+        if (f.metricKey !== currentState.metric) return false;
+        if (currentState.filters.length === 0) return true;
+        return currentState.filters.every(filter => {
+          const val = f.tags[filter.key];
+          return filter.negate ? val !== filter.value : val === filter.value;
+        });
+      });
+
+      // Render raw table
+      const tableBody = document.getElementById('raw-table-body');
+      if (matched.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-polar-100/50 italic">No matching fact rows in IndexedDB analytics store for active query filters</td></tr>`;
+      } else {
+        tableBody.innerHTML = matched.map(m => `
+          <tr class="hover:bg-polar-700/30">
+            <td class="p-2.5 text-polar-300">${m.date}</td>
+            <td class="p-2.5 text-frost-ice font-bold">${m.metricKey}</td>
+            <td class="p-2.5 text-aurora-yellow font-bold">${m.value}</td>
+            <td class="p-2.5 text-polar-100/70">${JSON.stringify(m.tags).replace(/"/g, '').replace(/\{|\}/g, '')}</td>
+          </tr>
+        `).join('');
+      }
+
+      document.getElementById('meta-facts-count').textContent = `${matched.length} facts`;
+      document.getElementById('meta-grain').textContent = currentState.rollup || 'raw';
+
+      // RENDER CHART (SVG)
+      const renderArea = document.getElementById('chart-render-area');
+      const chartTitle = document.getElementById('chart-title');
+      const chartBadge = document.getElementById('chart-shape-badge');
+
+      chartTitle.textContent = `${currentState.metric} (${currentState.agg})`;
+
+      if (matched.length === 0) {
+        renderArea.innerHTML = `<div class="text-xs text-polar-100/50 italic">No data to display in chart for active query parameters</div>`;
+        chartBadge.textContent = 'Empty Result';
+        return;
+      }
+
+      if (currentState.groupBy === 'effort' || currentState.groupBy === 'discipline' || currentState.groupBy === 'intensity') {
+        // BAR CHART
+        chartBadge.textContent = 'Categorical Bar Chart';
+        renderArea.innerHTML = `
+          <svg class="w-full h-44" viewBox="0 0 400 150">
+            <rect x="40" y="20" width="60" height="100" fill="#81a1c1" rx="4"/>
+            <rect x="150" y="50" width="60" height="70" fill="#a3be8c" rx="4"/>
+            <rect x="260" y="70" width="60" height="50" fill="#d08770" rx="4"/>
+            <text x="70" y="138" fill="#d8dee9" font-size="10" text-anchor="middle">thruster</text>
+            <text x="180" y="138" fill="#d8dee9" font-size="10" text-anchor="middle">back-squat</text>
+            <text x="290" y="138" fill="#d8dee9" font-size="10" text-anchor="middle">rowing</text>
+            <text x="70" y="15" fill="#88c0d0" font-size="10" font-weight="bold" text-anchor="middle">4,200</text>
+            <text x="180" y="45" fill="#88c0d0" font-size="10" font-weight="bold" text-anchor="middle">3,500</text>
+            <text x="290" y="65" fill="#88c0d0" font-size="10" font-weight="bold" text-anchor="middle">2,100</text>
+          </svg>
+        `;
+      } else if (!currentState.groupBy && !currentState.rollup) {
+        // SCALAR CARD
+        chartBadge.textContent = 'Scalar Summary Card';
+        const totalVal = matched.reduce((acc, curr) => acc + curr.value, 0);
+        renderArea.innerHTML = `
+          <div class="text-center py-6">
+            <div class="text-4xl font-bold text-frost-ice font-mono">${totalVal.toLocaleString()}</div>
+            <div class="text-xs text-polar-100/60 uppercase tracking-widest mt-1">${currentState.agg}(${currentState.metric})</div>
+          </div>
+        `;
+      } else {
+        // TIMESERIES LINE CHART
+        chartBadge.textContent = 'Timeseries Line Chart';
+        renderArea.innerHTML = `
+          <svg class="w-full h-44" viewBox="0 0 400 150">
+            <path d="M 30 110 Q 120 70, 200 80 T 370 30" fill="none" stroke="#88c0d0" stroke-width="3" />
+            <path d="M 30 110 Q 120 70, 200 80 T 370 30 L 370 130 L 30 130 Z" fill="url(#grad)" opacity="0.2" />
+            <defs>
+              <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#88c0d0" />
+                <stop offset="100%" stop-color="#88c0d0" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <circle cx="30" cy="110" r="4" fill="#ebcb8b" />
+            <circle cx="140" cy="74" r="4" fill="#ebcb8b" />
+            <circle cx="240" cy="75" r="4" fill="#ebcb8b" />
+            <circle cx="370" cy="30" r="4" fill="#ebcb8b" />
+            <text x="30" y="145" fill="#d8dee9" font-size="9" text-anchor="middle">W1</text>
+            <text x="140" y="145" fill="#d8dee9" font-size="9" text-anchor="middle">W2</text>
+            <text x="240" y="145" fill="#d8dee9" font-size="9" text-anchor="middle">W3</text>
+            <text x="370" y="145" fill="#d8dee9" font-size="9" text-anchor="middle">W4</text>
+          </svg>
+        `;
+      }
+    }
+
+    function setWeeks(w) {
+      currentState.activeWeeks = w;
+      [4, 8, 16].forEach(k => {
+        const btn = document.getElementById(`range-${k}`);
+        if (k === w) {
+          btn.className = "px-2 py-1 rounded text-[11px] bg-frost-blue text-polar-900 font-bold shadow";
+        } else {
+          btn.className = "px-2 py-1 rounded text-[11px] text-polar-100/70 hover:text-white";
+        }
+      });
+      updateAllUI();
+    }
+
+    function copyWql() {
+      const wql = buildWql();
+      navigator.clipboard.writeText(wql);
+      alert(`Copied WQL expression to clipboard:\n${wql}`);
+    }
+  </script>
+</body>
+</html>

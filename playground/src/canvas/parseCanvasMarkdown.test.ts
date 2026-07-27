@@ -565,4 +565,204 @@ route: /guide/challenge
       )
     })
   })
+
+  describe('scroll blocks', () => {
+    it('parses a scroll block into a ScrollSpec with stages and ranges', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /guide/scroll
+---
+
+\`\`\`scroll
+runway: 720vh
+stages:
+  - id: movement
+    range: [0, 0.16]
+    source: wods/examples/syntax/single-movement.md
+    caption: One movement per line.
+    quest: basics-movement
+    ring:
+      tag: "\`\`\`wod"
+  - id: measurements
+    range: [0.34, 0.5]
+    source: wods/examples/syntax/measurements.md
+    toast: 225lb · 400m
+    ring: true
+\`\`\`
+
+# Demo
+
+## Intro
+
+Body prose.
+`)
+
+      expect(page).not.toBeNull()
+      const scroll = page?.scroll
+      expect(scroll?.runway).toBe('720vh')
+      expect(scroll?.screen).toBe('editor')
+      expect(scroll?.typewriter).toBe(true)
+      expect(scroll?.stages).toHaveLength(2)
+      expect(scroll?.stages[0]).toEqual({
+        id: 'movement',
+        range: [0, 0.16],
+        source: 'wods/examples/syntax/single-movement.md',
+        caption: 'One movement per line.',
+        quest: 'basics-movement',
+        ring: { tag: '```wod' },
+      })
+      expect(scroll?.stages[1]).toEqual({
+        id: 'measurements',
+        range: [0.34, 0.5],
+        source: 'wods/examples/syntax/measurements.md',
+        toast: '225lb · 400m',
+        ring: true,
+      })
+      // The block is stripped from the body — no bleed into sections.
+      expect(getSectionProse(page!.sections[1])).not.toContain('stages:')
+    })
+
+    it('applies defaults for missing runway / screen / typewriter', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /guide/scroll
+---
+
+\`\`\`scroll
+stages:
+  - id: only
+    range: [0, 1]
+\`\`\`
+
+# Demo
+`)
+      expect(page?.scroll?.runway).toBe('600vh')
+      expect(page?.scroll?.screen).toBe('editor')
+      expect(page?.scroll?.typewriter).toBe(true)
+    })
+
+    it('honors typewriter: false', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /guide/scroll
+---
+
+\`\`\`scroll
+typewriter: false
+stages:
+  - id: only
+    range: [0, 1]
+\`\`\`
+
+# Demo
+`)
+      expect(page?.scroll?.typewriter).toBe(false)
+    })
+
+    it('leaves page.scroll null when no scroll block exists', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /guide/plain
+---
+
+# Demo
+
+## Intro
+
+Body prose.
+`)
+      expect(page?.scroll).toBeNull()
+    })
+
+    it('treats a malformed block (no stages) as null without throwing', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /guide/bad
+---
+
+\`\`\`scroll
+runway: 720vh
+\`\`\`
+
+# Demo
+
+## Intro
+
+Body prose.
+`)
+      expect(page).not.toBeNull()
+      expect(page?.scroll).toBeNull()
+      expect(page?.sections).toHaveLength(2)
+    })
+
+    it('parses per-stage effects with windows and easing', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /guide/fx
+---
+
+\`\`\`scroll
+stages:
+  - id: a
+    range: [0, 0.5]
+    effects:
+      - target: badge
+        stages: [a, b]
+        opacity: [0, 1]
+        translateY: [24, 0]
+        ease: linear
+        in: [0.2, 0.8]
+  - id: b
+    range: [0.5, 1]
+\`\`\`
+
+# Demo
+`)
+      const fx = page?.scroll?.stages[0]?.effects?.[0]
+      expect(fx).toEqual({
+        target: 'badge',
+        stages: ['a', 'b'],
+        opacity: [0, 1],
+        translateY: [24, 0],
+        ease: 'linear',
+        in: [0.2, 0.8],
+      })
+    })
+
+    it('still parses quest and chapter blocks alongside a scroll block', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /guide/mixed
+---
+
+\`\`\`chapter
+id: basics
+title: Basics
+badge: trophy
+quests: basics-movement
+sections: []
+\`\`\`
+
+\`\`\`quest
+id: basics-movement
+label: Add a movement
+validation:
+  type: has-movement
+\`\`\`
+
+\`\`\`scroll
+stages:
+  - id: movement
+    range: [0, 1]
+    quest: basics-movement
+\`\`\`
+
+# Demo
+`)
+      expect(page?.chapters).toHaveLength(1)
+      expect(page?.quests).toHaveLength(1)
+      expect(page?.quests[0]?.validation?.type).toBe('has-movement')
+      expect(page?.scroll?.stages[0]?.quest).toBe('basics-movement')
+    })
+  })
 })

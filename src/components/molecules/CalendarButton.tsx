@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDateShort } from '@/lib/dateFormat';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +43,7 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({
   const textSize = size === 'sm' ? 'text-[11px]' : 'text-xs';
 
   const dateLabel = selectedDate
-    ? selectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    ? formatDateShort(selectedDate)
     : null;
 
   const handleOpenChange = (next: boolean) => {

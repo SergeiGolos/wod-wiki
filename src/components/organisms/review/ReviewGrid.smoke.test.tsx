@@ -160,7 +160,7 @@ describe('ReviewGrid smoke', () => {
       const firstRowCells = firstRow.querySelectorAll<HTMLTableCellElement>('td');
       expect(firstRowCells.item(0)?.style.minWidth).toBe('40px');
 
-      const searchInput = screen.getByPlaceholderText('MQL (not current implement)');
+      const searchInput = screen.getByPlaceholderText('Filter results…');
       fireEvent.change(searchInput, { target: { value: 'Pull-ups' } });
 
       expect(getBodyRows()).toHaveLength(1);

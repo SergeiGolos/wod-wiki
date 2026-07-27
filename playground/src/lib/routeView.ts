@@ -22,6 +22,7 @@ import {
 } from './routes'
 import { resolveJournalRoute } from './journalRoute'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
+import { formatDateMedium } from '@/lib/dateFormat'
 
 // ─── Docs-page nav constants (moved from App.tsx) ──────────────────────────
 
@@ -71,6 +72,8 @@ export type PageKind =
   | 'collections'
   | 'effortsCatalog'
   | 'effortDetail'
+  | 'analyticsExplorer'
+  | 'analyticsDashboard'
   | 'canvas'
   | 'playground'
   | 'journalEntry'
@@ -187,6 +190,8 @@ function deriveWorkout(
     '/feeds': 'Feeds',
     '/guide/syntax': 'Syntax',
     '/collections': 'Collections',
+    '/analytics/explorer': 'Metric Explorer',
+    '/analytics/dashboard': 'Analytics Dashboard',
   }
   const namedMatch = named[pathname]
   if (namedMatch) {
@@ -291,11 +296,7 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
     })
     return Array.from(dates).sort().reverse().slice(0, 10).map(d => ({
       id: d,
-      label: new Date(d + 'T00:00:00').toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }),
+      label: formatDateMedium(new Date(d + 'T00:00:00')),
       type: 'heading' as const,
     }))
   }
@@ -310,6 +311,8 @@ function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanva
   if (pathname === '/collections') return 'collections'
   if (pathname === '/efforts') return 'effortsCatalog'
   if (pathname.startsWith('/effort/')) return 'effortDetail'
+  if (pathname === '/analytics/explorer') return 'analyticsExplorer'
+  if (pathname === '/analytics/dashboard') return 'analyticsDashboard'
   if (canvasPage) return 'canvas'
   if (flags.isPlaygroundRoute && flags.effectivePlaygroundId) return 'playground'
   if (flags.isJournalEntryRoute && flags.journalEntryId) return 'journalEntry'

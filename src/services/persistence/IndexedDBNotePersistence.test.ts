@@ -3,6 +3,7 @@ import { describe, expect, it, mock } from 'bun:test';
 import type { HistoryEntry } from '@/types/history';
 import type { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import type { AnalyticsDataPoint, Note, NoteSegment, WorkoutResult } from '@/types/storage';
+import { normalizeSummaryFacts } from '@/services/analytics/workoutDerivation';
 
 const indexedDBService = {};
 
@@ -89,8 +90,6 @@ function createHarness(latestSegments: NoteSegment[] = []) {
 
 describe('IndexedDBNotePersistence', () => {
   it('normalizes Tier-2 summary outputs into summary fact rows', async () => {
-    const { normalizeSummaryFacts } = await persistenceModule;
-
     const points = normalizeSummaryFacts([
       {
         outputType: 'analytics',
@@ -336,8 +335,6 @@ describe('IndexedDBNotePersistence', () => {
   // V6 — by-content stamp
   // V6 — by-content stamp
   it('normalizeSummaryFacts stamps block identity on every fact row', async () => {
-    const { normalizeSummaryFacts } = await persistenceModule;
-
     const points = normalizeSummaryFacts(
       [{
         outputType: 'analytics',

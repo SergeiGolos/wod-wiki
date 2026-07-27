@@ -11,6 +11,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/atoms/primitives/dropdown-menu';
 import type { Attachment } from '@/types/storage';
+import { formatDateMedium } from '@/lib/dateFormat';
 
 interface AttachmentsDropdownProps {
   attachments: Attachment[];
@@ -97,7 +98,7 @@ export const AttachmentsDropdown: React.FC<AttachmentsDropdownProps> = ({
                   </div>
                   <div className="flex w-full justify-between text-[10px] text-muted-foreground px-6">
                     <span>{att.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}</span>
-                    <span>{new Date(att.createdAt).toLocaleDateString()}</span>
+                    <span>{formatDateMedium(new Date(att.createdAt))}</span>
                   </div>
                 </DropdownMenuItem>
               ))}

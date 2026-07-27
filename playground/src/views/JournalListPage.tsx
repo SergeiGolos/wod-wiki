@@ -181,8 +181,11 @@ export function JournalListPage({
         ])
         if (cancelled) return
 
-        const grouped = new Map<string, typeof entries>()
-        for (const entry of entries) {
+        // Only count actual journal notes so the per-date "N notes" label
+        // matches the single journal card rendered by JournalFeed.
+        const journalEntriesList = entries.filter(entry => entry.type === 'journal')
+        const grouped = new Map<string, typeof journalEntriesList>()
+        for (const entry of journalEntriesList) {
           const dateKey = entry.journalDate ?? entry.slug?.replace(/^journal\//, '') ?? entry.id.replace(/^journal\//, '')
           if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) continue
           const dayEntries = grouped.get(dateKey) ?? []

@@ -1,6 +1,6 @@
 // server/src/index.ts
 import { WebSocketServer, WebSocket } from 'ws';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import dotenv from 'dotenv';
 import https from 'https';
 import fs from 'fs';
@@ -79,7 +79,7 @@ wss.on('connection', (ws, req) => {
                 if (conn.deviceType === 'receiver' && (!message.sessionId || conn.sessionId === message.sessionId)) {
                     ws.send(JSON.stringify({
                         type: 'target-discovered',
-                        messageId: uuidv4(),
+                        messageId: uuidv7(),
                         timestamp: Date.now(),
                         payload: { targetId: conn.deviceId, name: 'Chromecast', type: 'web-receiver' }
                     }));

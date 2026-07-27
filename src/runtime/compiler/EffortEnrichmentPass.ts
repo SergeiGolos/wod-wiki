@@ -19,7 +19,7 @@
  * (a sibling pre-compile pass, `applyEffortHintsToStatements`, not yet
  * implemented as of this comment).
  *
- * @see ADR-0008 Decision 1: Compile-Time Effort Enrichment
+ * @see docs/adr/effort-resolution-compile-time.md
  */
 
 import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';

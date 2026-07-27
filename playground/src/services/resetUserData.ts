@@ -7,7 +7,7 @@
  *     results, attachments, analytics, efforts, page, tags, note_tags). The
  *     service closes its connection before issuing `deleteDatabase`, so the
  *     request is not blocked. The next page load reopens a fresh DB: the
- *     `IndexedDBService` constructor runs `openDB` at DB_VERSION 11 and the
+ *     `IndexedDBService` constructor runs `openDB` at DB_VERSION 12 and the
  *     `upgrade` callback fires from version 0, recreating the full schema.
  *  2. localStorage — theme, audio, debug flag, onboarding flags, profile
  *     (wodwiki.profile.v1, wodwiki.profileInitialized.v1), and the V4

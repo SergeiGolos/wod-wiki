@@ -7,11 +7,12 @@
  */
 
 import { useState, useMemo, useCallback } from 'react'
+import { formatDateHeader } from '@/lib/dateFormat'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/atoms/primitives/toast'
 import { EditorView } from '@codemirror/view'
-import { v4 as uuidv4 } from 'uuid'
+import { v7 as uuidv7 } from 'uuid'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import { JournalPageShell } from '@/panels/page-shells'
 import type { ScriptBlock } from '@/components/Editor/types'
@@ -82,7 +83,7 @@ export function WorkoutEditorPage({
 
   const handleStartWorkout = useCallback(
     async (block: ScriptBlock) => {
-      const runtimeId = uuidv4()
+      const runtimeId = uuidv7()
       // For syntax/inline categories keep the original popup behaviour.
       if (usePopup) {
         pendingRuntimes.set(runtimeId, { block, noteId })
@@ -111,11 +112,7 @@ export function WorkoutEditorPage({
 
   const handleScheduleBlock = useCallback(
     async (block: ScriptBlock, date: Date) => {
-      const dateLabel = date.toLocaleDateString(undefined, {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-      })
+      const dateLabel = formatDateHeader(date);
       let journalNoteId: string
       let journalDate: string
       try {
@@ -138,6 +135,7 @@ export function WorkoutEditorPage({
         })
         return
       }
+      navigate(`/journal?s=${journalDate}`)
       const journalRoute = journalNotePath(journalDate, journalNoteId)
       toast({
         title: `Added to ${dateLabel}`,

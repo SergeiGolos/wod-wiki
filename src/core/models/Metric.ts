@@ -69,6 +69,14 @@ export interface IMetric {
    */
   readonly timestamp?: Date;
 
+  /**
+   * Processor-attached structured payload. Summary processors (e.g. TIS) hang
+   * derivation metadata (effortSlug, effortDiscipline, effortIntensityTier,
+   * component scores) on the projection value metric; fact normalization reads
+   * it back out. Pure data — survives the stored-logs round-trip.
+   */
+  readonly metadata?: Record<string, unknown>;
+
   // Pure data interface - no metric methods
 }
 

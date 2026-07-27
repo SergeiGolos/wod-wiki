@@ -8,6 +8,7 @@
 import { useMemo } from 'react';
 import { CalendarIcon, FileTextIcon, ChevronRightIcon, PlusIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDateHeader } from '@/lib/dateFormat';
 import { localDateKey } from './queriable-list/JournalDateScroll';
 import type { JournalEntrySummary } from './queriable-list/JournalDateScroll';
 
@@ -24,15 +25,6 @@ export interface FeedItem {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-function formatDateHeader(date: Date): string {
-  return date.toLocaleDateString(undefined, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-}
 
 // ── Props ──────────────────────────────────────────────────────────────────
 

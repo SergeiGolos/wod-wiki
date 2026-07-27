@@ -3,9 +3,6 @@
  *
  * Edit-distance based fuzzy matching for effort alias resolution.
  * Default threshold: ≤ 2 (configurable per instance).
- *
- * @see ADR-0008 Decision 4
- * @see PRD-EFFORT-REGISTRY FR4
  */
 
 /**

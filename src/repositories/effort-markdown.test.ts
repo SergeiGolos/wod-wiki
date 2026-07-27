@@ -8,7 +8,7 @@ describe('effort-markdown document format', () => {
     slug: 'running',
     label: 'Running',
     aliases: ['jogging', 'sprint'],
-    baseAttributes: { met: 5.0, discipline: 'cardio', intensityTier: 'moderate' },
+    baseAttributes: { met: 5.0, discipline: 'running', intensityTier: 'moderate' },
     registrySource: 'user',
     derivation: {
       parentSlug: 'base-running',

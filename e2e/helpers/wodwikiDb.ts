@@ -30,11 +30,73 @@ export interface ResultRow {
 export async function clearResults(page: Page, noteId?: string): Promise<void> {
   await page.evaluate(
     async ({ dbName, noteId }) => {
-      const db: IDBDatabase = await new Promise((resolve, reject) => {
-        const req = indexedDB.open(dbName);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
+      const openWodDb = (name: string): Promise<IDBDatabase> =>
+        new Promise((resolve, reject) => {
+          const req = indexedDB.open(name);
+          req.onsuccess = () => {
+            const db = req.result;
+            if (db.objectStoreNames.length === 0) {
+              db.close();
+              const upReq = indexedDB.open(name, 12);
+              upReq.onupgradeneeded = () => {
+                const upDb = upReq.result;
+                if (!upDb.objectStoreNames.contains('notes')) {
+                  const store = upDb.createObjectStore('notes', { keyPath: 'id' });
+                  store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!upDb.objectStoreNames.contains('segments')) {
+                  const store = upDb.createObjectStore('segments', { keyPath: ['id', 'version'] });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-type', 'dataType');
+                }
+                if (!upDb.objectStoreNames.contains('results')) {
+                  const store = upDb.createObjectStore('results', { keyPath: 'id' });
+                  store.createIndex('by-segment', 'segmentId');
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-content', 'blockContentId');
+                }
+                if (!upDb.objectStoreNames.contains('attachments')) {
+                  const store = upDb.createObjectStore('attachments', { keyPath: 'id' });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-time', 'createdAt');
+                }
+                if (!upDb.objectStoreNames.contains('analytics')) {
+                  const store = upDb.createObjectStore('analytics', { keyPath: 'id' });
+                  store.createIndex('by-type', 'metricType');
+                  store.createIndex('by-segment', 'segmentId');
+                  store.createIndex('by-content', 'blockContentId');
+                }
+                if (!upDb.objectStoreNames.contains('efforts')) {
+                  const store = upDb.createObjectStore('efforts', { keyPath: 'slug' });
+                  store.createIndex('by-discipline', 'baseAttributes.discipline');
+                  store.createIndex('by-source', 'registrySource');
+                }
+                if (!upDb.objectStoreNames.contains('page')) {
+                  const store = upDb.createObjectStore('page', { keyPath: 'id' });
+                  store.createIndex('by-date', 'date', { unique: true });
+                  store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!upDb.objectStoreNames.contains('tags')) {
+                  const store = upDb.createObjectStore('tags', { keyPath: 'id' });
+                  store.createIndex('by-label', 'label', { unique: true });
+                  store.createIndex('by-type', 'type');
+                }
+                if (!upDb.objectStoreNames.contains('note_tags')) {
+                  const store = upDb.createObjectStore('note_tags', { keyPath: 'id' });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-tag', 'tagId');
+                }
+              };
+              upReq.onsuccess = () => resolve(upReq.result);
+              upReq.onerror = () => reject(upReq.error);
+            } else {
+              resolve(db);
+            }
+          };
+          req.onerror = () => reject(req.error);
+        });
+
+      const db = await openWodDb(dbName);
       try {
         await new Promise<void>((resolve, reject) => {
           if (!db.objectStoreNames.contains('results')) return resolve();
@@ -67,11 +129,73 @@ export async function clearResults(page: Page, noteId?: string): Promise<void> {
 export async function getResults(page: Page, noteId?: string): Promise<ResultRow[]> {
   return page.evaluate(
     async ({ dbName, noteId }) => {
-      const db: IDBDatabase = await new Promise((resolve, reject) => {
-        const req = indexedDB.open(dbName);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
+      const openWodDb = (name: string): Promise<IDBDatabase> =>
+        new Promise((resolve, reject) => {
+          const req = indexedDB.open(name);
+          req.onsuccess = () => {
+            const db = req.result;
+            if (db.objectStoreNames.length === 0) {
+              db.close();
+              const upReq = indexedDB.open(name, 12);
+              upReq.onupgradeneeded = () => {
+                const upDb = upReq.result;
+                if (!upDb.objectStoreNames.contains('notes')) {
+                  const store = upDb.createObjectStore('notes', { keyPath: 'id' });
+                  store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!upDb.objectStoreNames.contains('segments')) {
+                  const store = upDb.createObjectStore('segments', { keyPath: ['id', 'version'] });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-type', 'dataType');
+                }
+                if (!upDb.objectStoreNames.contains('results')) {
+                  const store = upDb.createObjectStore('results', { keyPath: 'id' });
+                  store.createIndex('by-segment', 'segmentId');
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-content', 'blockContentId');
+                }
+                if (!upDb.objectStoreNames.contains('attachments')) {
+                  const store = upDb.createObjectStore('attachments', { keyPath: 'id' });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-time', 'createdAt');
+                }
+                if (!upDb.objectStoreNames.contains('analytics')) {
+                  const store = upDb.createObjectStore('analytics', { keyPath: 'id' });
+                  store.createIndex('by-type', 'metricType');
+                  store.createIndex('by-segment', 'segmentId');
+                  store.createIndex('by-content', 'blockContentId');
+                }
+                if (!upDb.objectStoreNames.contains('efforts')) {
+                  const store = upDb.createObjectStore('efforts', { keyPath: 'slug' });
+                  store.createIndex('by-discipline', 'baseAttributes.discipline');
+                  store.createIndex('by-source', 'registrySource');
+                }
+                if (!upDb.objectStoreNames.contains('page')) {
+                  const store = upDb.createObjectStore('page', { keyPath: 'id' });
+                  store.createIndex('by-date', 'date', { unique: true });
+                  store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!upDb.objectStoreNames.contains('tags')) {
+                  const store = upDb.createObjectStore('tags', { keyPath: 'id' });
+                  store.createIndex('by-label', 'label', { unique: true });
+                  store.createIndex('by-type', 'type');
+                }
+                if (!upDb.objectStoreNames.contains('note_tags')) {
+                  const store = upDb.createObjectStore('note_tags', { keyPath: 'id' });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-tag', 'tagId');
+                }
+              };
+              upReq.onsuccess = () => resolve(upReq.result);
+              upReq.onerror = () => reject(upReq.error);
+            } else {
+              resolve(db);
+            }
+          };
+          req.onerror = () => reject(req.error);
+        });
+
+      const db = await openWodDb(dbName);
       try {
         return await new Promise<ResultRow[]>((resolve, reject) => {
           if (!db.objectStoreNames.contains('results')) return resolve([]);
@@ -102,11 +226,73 @@ export async function seedNote(
 ): Promise<void> {
   await page.evaluate(
     async ({ dbName, noteId, content, type, title }) => {
-      const db: IDBDatabase = await new Promise((resolve, reject) => {
-        const req = indexedDB.open(dbName);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
+      const openWodDb = (name: string): Promise<IDBDatabase> =>
+        new Promise((resolve, reject) => {
+          const req = indexedDB.open(name);
+          req.onsuccess = () => {
+            const db = req.result;
+            if (db.objectStoreNames.length === 0) {
+              db.close();
+              const upReq = indexedDB.open(name, 12);
+              upReq.onupgradeneeded = () => {
+                const upDb = upReq.result;
+                if (!upDb.objectStoreNames.contains('notes')) {
+                  const store = upDb.createObjectStore('notes', { keyPath: 'id' });
+                  store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!upDb.objectStoreNames.contains('segments')) {
+                  const store = upDb.createObjectStore('segments', { keyPath: ['id', 'version'] });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-type', 'dataType');
+                }
+                if (!upDb.objectStoreNames.contains('results')) {
+                  const store = upDb.createObjectStore('results', { keyPath: 'id' });
+                  store.createIndex('by-segment', 'segmentId');
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-content', 'blockContentId');
+                }
+                if (!upDb.objectStoreNames.contains('attachments')) {
+                  const store = upDb.createObjectStore('attachments', { keyPath: 'id' });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-time', 'createdAt');
+                }
+                if (!upDb.objectStoreNames.contains('analytics')) {
+                  const store = upDb.createObjectStore('analytics', { keyPath: 'id' });
+                  store.createIndex('by-type', 'metricType');
+                  store.createIndex('by-segment', 'segmentId');
+                  store.createIndex('by-content', 'blockContentId');
+                }
+                if (!upDb.objectStoreNames.contains('efforts')) {
+                  const store = upDb.createObjectStore('efforts', { keyPath: 'slug' });
+                  store.createIndex('by-discipline', 'baseAttributes.discipline');
+                  store.createIndex('by-source', 'registrySource');
+                }
+                if (!upDb.objectStoreNames.contains('page')) {
+                  const store = upDb.createObjectStore('page', { keyPath: 'id' });
+                  store.createIndex('by-date', 'date', { unique: true });
+                  store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!upDb.objectStoreNames.contains('tags')) {
+                  const store = upDb.createObjectStore('tags', { keyPath: 'id' });
+                  store.createIndex('by-label', 'label', { unique: true });
+                  store.createIndex('by-type', 'type');
+                }
+                if (!upDb.objectStoreNames.contains('note_tags')) {
+                  const store = upDb.createObjectStore('note_tags', { keyPath: 'id' });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-tag', 'tagId');
+                }
+              };
+              upReq.onsuccess = () => resolve(upReq.result);
+              upReq.onerror = () => reject(upReq.error);
+            } else {
+              resolve(db);
+            }
+          };
+          req.onerror = () => reject(req.error);
+        });
+
+      const db = await openWodDb(dbName);
       try {
         const now = Date.now();
         await new Promise<void>((resolve, reject) => {
@@ -148,11 +334,73 @@ export async function seedNote(
 export async function deleteNoteByRouteId(page: Page, routeId: string): Promise<void> {
   await page.evaluate(
     async ({ dbName, routeId }) => {
-      const db: IDBDatabase = await new Promise((resolve, reject) => {
-        const req = indexedDB.open(dbName);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
+      const openWodDb = (name: string): Promise<IDBDatabase> =>
+        new Promise((resolve, reject) => {
+          const req = indexedDB.open(name);
+          req.onsuccess = () => {
+            const db = req.result;
+            if (db.objectStoreNames.length === 0) {
+              db.close();
+              const upReq = indexedDB.open(name, 12);
+              upReq.onupgradeneeded = () => {
+                const upDb = upReq.result;
+                if (!upDb.objectStoreNames.contains('notes')) {
+                  const store = upDb.createObjectStore('notes', { keyPath: 'id' });
+                  store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!upDb.objectStoreNames.contains('segments')) {
+                  const store = upDb.createObjectStore('segments', { keyPath: ['id', 'version'] });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-type', 'dataType');
+                }
+                if (!upDb.objectStoreNames.contains('results')) {
+                  const store = upDb.createObjectStore('results', { keyPath: 'id' });
+                  store.createIndex('by-segment', 'segmentId');
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-content', 'blockContentId');
+                }
+                if (!upDb.objectStoreNames.contains('attachments')) {
+                  const store = upDb.createObjectStore('attachments', { keyPath: 'id' });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-time', 'createdAt');
+                }
+                if (!upDb.objectStoreNames.contains('analytics')) {
+                  const store = upDb.createObjectStore('analytics', { keyPath: 'id' });
+                  store.createIndex('by-type', 'metricType');
+                  store.createIndex('by-segment', 'segmentId');
+                  store.createIndex('by-content', 'blockContentId');
+                }
+                if (!upDb.objectStoreNames.contains('efforts')) {
+                  const store = upDb.createObjectStore('efforts', { keyPath: 'slug' });
+                  store.createIndex('by-discipline', 'baseAttributes.discipline');
+                  store.createIndex('by-source', 'registrySource');
+                }
+                if (!upDb.objectStoreNames.contains('page')) {
+                  const store = upDb.createObjectStore('page', { keyPath: 'id' });
+                  store.createIndex('by-date', 'date', { unique: true });
+                  store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!upDb.objectStoreNames.contains('tags')) {
+                  const store = upDb.createObjectStore('tags', { keyPath: 'id' });
+                  store.createIndex('by-label', 'label', { unique: true });
+                  store.createIndex('by-type', 'type');
+                }
+                if (!upDb.objectStoreNames.contains('note_tags')) {
+                  const store = upDb.createObjectStore('note_tags', { keyPath: 'id' });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-tag', 'tagId');
+                }
+              };
+              upReq.onsuccess = () => resolve(upReq.result);
+              upReq.onerror = () => reject(upReq.error);
+            } else {
+              resolve(db);
+            }
+          };
+          req.onerror = () => reject(req.error);
+        });
+
+      const db = await openWodDb(dbName);
       try {
         await new Promise<void>((resolve, reject) => {
           const tx = db.transaction(['notes', 'segments', 'note_tags'], 'readwrite');
@@ -203,14 +451,74 @@ export async function deleteNoteByRouteId(page: Page, routeId: string): Promise<
 /** Clear every Note, Segment, and NoteTag row — full content reset for tests. */
 export async function clearAllNotes(page: Page): Promise<void> {
   await page.evaluate(async ({ dbName }) => {
-    const db: IDBDatabase = await new Promise((resolve, reject) => {
-      const req = indexedDB.open(dbName);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
+    const openWodDb = (name: string): Promise<IDBDatabase> =>
+      new Promise((resolve, reject) => {
+        const req = indexedDB.open(name);
+        req.onsuccess = () => {
+          const db = req.result;
+          if (db.objectStoreNames.length === 0) {
+            db.close();
+            const upReq = indexedDB.open(name, 12);
+            upReq.onupgradeneeded = () => {
+              const upDb = upReq.result;
+              if (!upDb.objectStoreNames.contains('notes')) {
+                const store = upDb.createObjectStore('notes', { keyPath: 'id' });
+                store.createIndex('by-slug', 'slug', { unique: true });
+              }
+              if (!upDb.objectStoreNames.contains('segments')) {
+                const store = upDb.createObjectStore('segments', { keyPath: ['id', 'version'] });
+                store.createIndex('by-note', 'noteId');
+                store.createIndex('by-type', 'dataType');
+              }
+              if (!upDb.objectStoreNames.contains('results')) {
+                const store = upDb.createObjectStore('results', { keyPath: 'id' });
+                store.createIndex('by-segment', 'segmentId');
+                store.createIndex('by-note', 'noteId');
+                store.createIndex('by-content', 'blockContentId');
+              }
+              if (!upDb.objectStoreNames.contains('attachments')) {
+                const store = upDb.createObjectStore('attachments', { keyPath: 'id' });
+                store.createIndex('by-note', 'noteId');
+                store.createIndex('by-time', 'createdAt');
+              }
+              if (!upDb.objectStoreNames.contains('analytics')) {
+                const store = upDb.createObjectStore('analytics', { keyPath: 'id' });
+                store.createIndex('by-type', 'metricType');
+                store.createIndex('by-segment', 'segmentId');
+                store.createIndex('by-content', 'blockContentId');
+              }
+              if (!upDb.objectStoreNames.contains('efforts')) {
+                const store = upDb.createObjectStore('efforts', { keyPath: 'slug' });
+                store.createIndex('by-discipline', 'baseAttributes.discipline');
+                store.createIndex('by-source', 'registrySource');
+              }
+              if (!upDb.objectStoreNames.contains('page')) {
+                const store = upDb.createObjectStore('page', { keyPath: 'id' });
+                store.createIndex('by-date', 'date', { unique: true });
+                store.createIndex('by-slug', 'slug', { unique: true });
+              }
+              if (!upDb.objectStoreNames.contains('tags')) {
+                const store = upDb.createObjectStore('tags', { keyPath: 'id' });
+                store.createIndex('by-label', 'label', { unique: true });
+                store.createIndex('by-type', 'type');
+              }
+              if (!upDb.objectStoreNames.contains('note_tags')) {
+                const store = upDb.createObjectStore('note_tags', { keyPath: 'id' });
+                store.createIndex('by-note', 'noteId');
+                store.createIndex('by-tag', 'tagId');
+              }
+            };
+            upReq.onsuccess = () => resolve(upReq.result);
+            upReq.onerror = () => reject(upReq.error);
+          } else {
+            resolve(db);
+          }
+        };
+        req.onerror = () => reject(req.error);
+      });
+
+    const db = await openWodDb(dbName);
     try {
-      // The page may not have opened wodwiki-db yet — a bare open() would
-      // create an empty v1 database with no stores; nothing to clear then.
       const required = ['notes', 'segments', 'note_tags'];
       if (required.some((s) => !db.objectStoreNames.contains(s))) return;
       await new Promise<void>((resolve, reject) => {
@@ -256,11 +564,73 @@ export async function seedJournalNote(
 ): Promise<void> {
   await page.evaluate(
     async ({ dbName, date, content, title }) => {
-      const db: IDBDatabase = await new Promise((resolve, reject) => {
-        const req = indexedDB.open(dbName);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
+      const openWodDb = (name: string): Promise<IDBDatabase> =>
+        new Promise((resolve, reject) => {
+          const req = indexedDB.open(name);
+          req.onsuccess = () => {
+            const db = req.result;
+            if (db.objectStoreNames.length === 0) {
+              db.close();
+              const upReq = indexedDB.open(name, 12);
+              upReq.onupgradeneeded = () => {
+                const upDb = upReq.result;
+                if (!upDb.objectStoreNames.contains('notes')) {
+                  const store = upDb.createObjectStore('notes', { keyPath: 'id' });
+                  store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!upDb.objectStoreNames.contains('segments')) {
+                  const store = upDb.createObjectStore('segments', { keyPath: ['id', 'version'] });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-type', 'dataType');
+                }
+                if (!upDb.objectStoreNames.contains('results')) {
+                  const store = upDb.createObjectStore('results', { keyPath: 'id' });
+                  store.createIndex('by-segment', 'segmentId');
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-content', 'blockContentId');
+                }
+                if (!upDb.objectStoreNames.contains('attachments')) {
+                  const store = upDb.createObjectStore('attachments', { keyPath: 'id' });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-time', 'createdAt');
+                }
+                if (!upDb.objectStoreNames.contains('analytics')) {
+                  const store = upDb.createObjectStore('analytics', { keyPath: 'id' });
+                  store.createIndex('by-type', 'metricType');
+                  store.createIndex('by-segment', 'segmentId');
+                  store.createIndex('by-content', 'blockContentId');
+                }
+                if (!upDb.objectStoreNames.contains('efforts')) {
+                  const store = upDb.createObjectStore('efforts', { keyPath: 'slug' });
+                  store.createIndex('by-discipline', 'baseAttributes.discipline');
+                  store.createIndex('by-source', 'registrySource');
+                }
+                if (!upDb.objectStoreNames.contains('page')) {
+                  const store = upDb.createObjectStore('page', { keyPath: 'id' });
+                  store.createIndex('by-date', 'date', { unique: true });
+                  store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!upDb.objectStoreNames.contains('tags')) {
+                  const store = upDb.createObjectStore('tags', { keyPath: 'id' });
+                  store.createIndex('by-label', 'label', { unique: true });
+                  store.createIndex('by-type', 'type');
+                }
+                if (!upDb.objectStoreNames.contains('note_tags')) {
+                  const store = upDb.createObjectStore('note_tags', { keyPath: 'id' });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-tag', 'tagId');
+                }
+              };
+              upReq.onsuccess = () => resolve(upReq.result);
+              upReq.onerror = () => reject(upReq.error);
+            } else {
+              resolve(db);
+            }
+          };
+          req.onerror = () => reject(req.error);
+        });
+
+      const db = await openWodDb(dbName);
       try {
         const now = Date.now();
         const pageId = `page/${date}`;
@@ -306,11 +676,73 @@ export async function getNoteContentByRouteId(
 ): Promise<string | null> {
   return page.evaluate(
     async ({ dbName, routeId }): Promise<string | null> => {
-      const db: IDBDatabase = await new Promise((resolve, reject) => {
-        const req = indexedDB.open(dbName);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
+      const openWodDb = (name: string): Promise<IDBDatabase> =>
+        new Promise((resolve, reject) => {
+          const req = indexedDB.open(name);
+          req.onsuccess = () => {
+            const db = req.result;
+            if (db.objectStoreNames.length === 0) {
+              db.close();
+              const upReq = indexedDB.open(name, 12);
+              upReq.onupgradeneeded = () => {
+                const upDb = upReq.result;
+                if (!upDb.objectStoreNames.contains('notes')) {
+                  const store = upDb.createObjectStore('notes', { keyPath: 'id' });
+                  store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!upDb.objectStoreNames.contains('segments')) {
+                  const store = upDb.createObjectStore('segments', { keyPath: ['id', 'version'] });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-type', 'dataType');
+                }
+                if (!upDb.objectStoreNames.contains('results')) {
+                  const store = upDb.createObjectStore('results', { keyPath: 'id' });
+                  store.createIndex('by-segment', 'segmentId');
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-content', 'blockContentId');
+                }
+                if (!upDb.objectStoreNames.contains('attachments')) {
+                  const store = upDb.createObjectStore('attachments', { keyPath: 'id' });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-time', 'createdAt');
+                }
+                if (!upDb.objectStoreNames.contains('analytics')) {
+                  const store = upDb.createObjectStore('analytics', { keyPath: 'id' });
+                  store.createIndex('by-type', 'metricType');
+                  store.createIndex('by-segment', 'segmentId');
+                  store.createIndex('by-content', 'blockContentId');
+                }
+                if (!upDb.objectStoreNames.contains('efforts')) {
+                  const store = upDb.createObjectStore('efforts', { keyPath: 'slug' });
+                  store.createIndex('by-discipline', 'baseAttributes.discipline');
+                  store.createIndex('by-source', 'registrySource');
+                }
+                if (!upDb.objectStoreNames.contains('page')) {
+                  const store = upDb.createObjectStore('page', { keyPath: 'id' });
+                  store.createIndex('by-date', 'date', { unique: true });
+                  store.createIndex('by-slug', 'slug', { unique: true });
+                }
+                if (!upDb.objectStoreNames.contains('tags')) {
+                  const store = upDb.createObjectStore('tags', { keyPath: 'id' });
+                  store.createIndex('by-label', 'label', { unique: true });
+                  store.createIndex('by-type', 'type');
+                }
+                if (!upDb.objectStoreNames.contains('note_tags')) {
+                  const store = upDb.createObjectStore('note_tags', { keyPath: 'id' });
+                  store.createIndex('by-note', 'noteId');
+                  store.createIndex('by-tag', 'tagId');
+                }
+              };
+              upReq.onsuccess = () => resolve(upReq.result);
+              upReq.onerror = () => reject(upReq.error);
+            } else {
+              resolve(db);
+            }
+          };
+          req.onerror = () => reject(req.error);
+        });
+
+      const db = await openWodDb(dbName);
       try {
         return await new Promise<string | null>((resolve, reject) => {
           const tx = db.transaction(['notes', 'segments'], 'readonly');

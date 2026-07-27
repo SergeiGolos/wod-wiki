@@ -84,7 +84,7 @@ import { FullscreenReview } from "@/components/organisms/review/FullscreenReview
 import { InlineCommandBar } from "@/components/organisms/editor/InlineCommandBar";
 import { EditorCastBridge } from "@/components/organisms/editor/EditorCastBridge";
 import type { Segment } from "@/core/models/AnalyticsModels";
-import { v4 as uuidv4 } from "uuid";
+import { v7 as uuidv7 } from "uuid";
 import type { WorkoutResult } from "@/types/storage";
 
 import { themeCompartment, languageCompartment, modeCompartment } from "@/components/Editor/compartments";
@@ -279,7 +279,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         // a visible result row.
         const section = view.state.field(sectionField).sections.find(s => s.id === blockId);
         const newResult = {
-          id: uuidv4(),
+          id: uuidv7(),
           noteId: noteId ?? "",
           blockContentId: section?.contentId,
           data: results,
@@ -421,7 +421,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       splitSuccessIcon: <Check className="h-3 w-3" />,
       onClick: (block) => {
         buildPlaygroundUrl(block.content).then((url) => {
-          window.open(url, "_blank", "noopener,noreferrer");
+          const tab = window.open(url, "wodwiki-playground");
+          if (tab) tab.focus();
         });
       },
       onSplitClick: async (block) => {

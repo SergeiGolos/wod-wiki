@@ -63,8 +63,12 @@ export function useSyntaxChallenge({
     }
     const virtualBlock = { content: block.content, statements: block.statements ?? [] };
     for (const q of quests) {
+      if (!q.validation) {
+        out[q.id] = { pass: false };
+        continue;
+      }
       if (q.validation?.type === 'workout-complete') {
-        out[q.id] = { pass: false, reason: 'Validated at runtime.' };
+        out[q.id] = { pass: false, reason: 'Finish the workout to check this off.' };
         continue;
       }
       out[q.id] = validateScriptBlock(virtualBlock, q.validation);

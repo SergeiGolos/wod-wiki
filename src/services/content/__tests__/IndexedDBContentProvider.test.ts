@@ -5,12 +5,18 @@ import { parseDocumentSections } from '../../../components/Editor/utils/sectionP
 const savedNotes: Note[] = [];
 const savedSegments: NoteSegment[] = [];
 const notes: Note[] = [];
+// T4 bridge capture: noteId -> labels from the last setNoteTags call.
+const noteTagsByNote = new Map<string, string[]>();
 
 mock.module('../../db/IndexedDBService', () => ({
   indexedDBService: {
     getNote: async (id: string) => notes.find(note => note.id === id) ?? savedNotes.find(note => note.id === id),
     getAllNotes: async () => notes,
-    getTagsForNote: async (_noteId: string) => [],
+    getTagsForNote: async (noteId: string) =>
+      (noteTagsByNote.get(noteId) ?? []).map(label => ({ id: `tag-${label}`, label, createdAt: 0 })),
+    setNoteTags: async (noteId: string, labels: string[]) => {
+      noteTagsByNote.set(noteId, labels);
+    },
     getPage: async (_id: string) => undefined,
     getAllSegments: async () => [],
     saveNote: async (note: Note) => {
@@ -45,6 +51,7 @@ afterEach(() => {
   notes.length = 0;
   savedNotes.length = 0;
   savedSegments.length = 0;
+  noteTagsByNote.clear();
 });
 
 describe('IndexedDBContentProvider', () => {
@@ -117,7 +124,7 @@ describe('IndexedDBContentProvider', () => {
       type: 'note',
     });
 
-    expect(entry.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(entry.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
 
   it('collapses per-keystroke updates to a single live segment (#705)', async () => {
@@ -155,5 +162,60 @@ describe('IndexedDBContentProvider', () => {
     for (const segment of latestById.values()) {
       if (!liveIds.has(segment.id)) expect(segment.isHistory).toBe(true);
     }
+  });
+
+  it('bridges frontmatter tags into note_tags at note creation', async () => {
+    const { IndexedDBContentProvider } = await providerModule;
+    const provider = new IndexedDBContentProvider();
+
+    const entry = await provider.saveEntry({
+      title: 'Fran',
+      rawContent: '---\ntags:\n  - crossfit\n  - girl-wods\n---\n# Fran\n',
+      tags: ['manual'],
+      targetDate: Date.now(),
+      type: 'note',
+    });
+
+    // Frontmatter labels ∪ explicit tags, deduped.
+    expect(noteTagsByNote.get(entry.id)?.sort()).toEqual(['crossfit', 'girl-wods', 'manual']);
+  });
+
+  it('unions new frontmatter tags into existing note_tags on content save', async () => {
+    const { IndexedDBContentProvider } = await providerModule;
+    const provider = new IndexedDBContentProvider();
+
+    const entry = await provider.saveEntry({
+      title: 'Fran',
+      rawContent: '---\ntags:\n  - crossfit\n---\n# Fran\n',
+      tags: [],
+      targetDate: Date.now(),
+      type: 'note',
+    });
+    expect(noteTagsByNote.get(entry.id)).toEqual(['crossfit']);
+
+    // Editing content to carry a new frontmatter label ADDS it; the old label
+    // survives (frontmatter is additive-only, never destructive).
+    await provider.updateEntry(entry.id, {
+      rawContent: '---\ntags:\n  - hero\n---\n# Fran\n',
+    });
+    expect(noteTagsByNote.get(entry.id)?.sort()).toEqual(['crossfit', 'hero']);
+  });
+
+  it('does not let a manual tag replace wipe frontmatter tags', async () => {
+    const { IndexedDBContentProvider } = await providerModule;
+    const provider = new IndexedDBContentProvider();
+
+    const entry = await provider.saveEntry({
+      title: 'Fran',
+      rawContent: '---\ntags:\n  - crossfit\n---\n# Fran\n',
+      tags: [],
+      targetDate: Date.now(),
+      type: 'note',
+    });
+
+    // A tag-editor save replaces the manual portion but re-adds the
+    // frontmatter labels still present in content.
+    await provider.updateEntry(entry.id, { tags: ['benchmark'] });
+    expect(noteTagsByNote.get(entry.id)?.sort()).toEqual(['benchmark', 'crossfit']);
   });
 });

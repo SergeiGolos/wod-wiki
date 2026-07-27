@@ -5,7 +5,7 @@
  * Manages the Note -> NoteSegment (versioned) hierarchy.
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
 import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
@@ -13,6 +13,7 @@ import { indexedDBService, type IndexedDBService } from '@/services/db/IndexedDB
 import { Note, NoteSegment, WorkoutResult, SegmentDataType, Attachment, ResultOrigin } from '../../types/storage';
 import { parseDocumentSections } from '../../components/Editor/utils/sectionParser';
 import { Section, SectionType, ScriptBlock } from '../../components/Editor/types/section';
+import { extractFrontmatterTags } from '../../lib/frontmatter';
 
 const MAX_TIMESTAMP_ID_SUFFIX_ATTEMPTS = 100;
 
@@ -29,6 +30,17 @@ function migrateSectionType(storedType: string): SectionType {
 function levelFromDataType(dataType: string): number | undefined {
     const match = /^h([1-6])$/.exec(dataType);
     return match ? Number(match[1]) : undefined;
+}
+
+/**
+ * Tags declared in the frontmatter sections of a document (T4 bridge).
+ * Accepts parser Sections (`type`) and stored NoteSegments (`dataType`).
+ */
+function frontmatterTagsOf(parts: readonly { type: string; rawContent: string }[]): string[] {
+    const tags = parts
+        .filter(part => part.type === 'frontmatter')
+        .flatMap(part => extractFrontmatterTags(part.rawContent));
+    return Array.from(new Set(tags));
 }
 
 /**
@@ -242,7 +254,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         // normal create path → mint a fresh id (playground uses timestamp ids).
         let noteId = entry.id;
         if (!noteId) {
-            noteId = entry.type === 'playground' ? formatPlaygroundTimestampId(now) : uuidv4();
+            noteId = entry.type === 'playground' ? formatPlaygroundTimestampId(now) : uuidv7();
         }
         if (entry.type === 'playground' && !entry.id) {
             const baseNoteId = noteId;
@@ -296,8 +308,10 @@ export class IndexedDBContentProvider implements IContentProvider {
         };
 
         await this.db.saveNote(note);
-        if (entry.tags.length > 0) {
-            await this.db.setNoteTags(noteId, entry.tags);
+        // T4 bridge: frontmatter `tags:` are additive into the note's tag set.
+        const mergedTags = Array.from(new Set([...entry.tags, ...frontmatterTagsOf(sections)]));
+        if (mergedTags.length > 0) {
+            await this.db.setNoteTags(noteId, mergedTags);
         }
 
         return {
@@ -336,9 +350,6 @@ export class IndexedDBContentProvider implements IContentProvider {
                 ? (await this.db.getOrCreatePageForDate(patch.journalDate)).id
                 : undefined;
         }
-        if (patch.tags) {
-            await this.db.setNoteTags(note.id, patch.tags);
-        }
 
         const metadataChanged = Boolean(
             patch.title || patch.type || patch.slug !== undefined
@@ -347,6 +358,8 @@ export class IndexedDBContentProvider implements IContentProvider {
         );
 
         let finalRawContent = '';
+        // Tags parsed out of the new content's frontmatter sections (T4).
+        let frontmatterTags: string[] | undefined;
 
         if (patch.rawContent !== undefined) {
             finalRawContent = patch.rawContent;
@@ -354,6 +367,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             // TRANSITION TO SEGMENTS
             // Parse into sections to identify units
             const sections = parseDocumentSections(patch.rawContent);
+            frontmatterTags = frontmatterTagsOf(sections);
             let position = 0;
 
             // Fetch current segments to compare versions — the full lineage
@@ -442,6 +456,24 @@ export class IndexedDBContentProvider implements IContentProvider {
             }
         }
 
+        // T4 bridge — frontmatter `tags:` union into note_tags. Frontmatter is
+        // ADDITIVE ONLY: a label present in content is (re-)added on every
+        // save; removing it from frontmatter never deletes the note_tag
+        // (note_tags carry no provenance, so destructive sync could delete
+        // manual tags sharing the label). Manual editors still replace the
+        // manual portion via patch.tags.
+        if (patch.tags || patch.rawContent !== undefined) {
+            const fmTags = frontmatterTags
+                ?? frontmatterTagsOf(
+                    (await this.db.getLatestSegmentsForNote(note.id))
+                        .map(segment => ({ type: segment.dataType, rawContent: segment.rawContent })),
+                );
+            if (patch.tags || fmTags.length > 0) {
+                const base = patch.tags ?? (await this.db.getTagsForNote(note.id)).map(tag => tag.label);
+                await this.db.setNoteTags(note.id, Array.from(new Set([...base, ...fmTags])));
+            }
+        }
+
         // Handle Results (linked to latest version state of note)
         if (patch.results) {
             const resultData = patch.results;
@@ -452,7 +484,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                 ? await this.db.getLatestSegmentVersion(patch.segmentId)
                 : undefined;
             const newResult: WorkoutResult = {
-                id: patch.resultId || uuidv4(),
+                id: patch.resultId || uuidv7(),
                 segmentId: patch.segmentId,
                 segmentVersion: latestSegment?.version,
                 noteId: note.id,   // Use resolved UUID (not raw route param)
@@ -505,7 +537,7 @@ export class IndexedDBContentProvider implements IContentProvider {
     }
 
     async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
-        const id = attachment.id ?? uuidv4();
+        const id = attachment.id ?? uuidv7();
         const now = Date.now();
         const fullAttachment: Attachment = {
             ...attachment,

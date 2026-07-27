@@ -1,6 +1,6 @@
 import type { Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { whiteboardScriptLanguage } from '@/hooks/useRuntimeParser';
 import { getAnalyticsFromLogs } from '@/hooks/useWorkbenchServices';
 import { IndexedDBNotePersistence, type INotePersistence } from '@/services/persistence';
@@ -37,7 +37,7 @@ export function createFileDropHandler(
       if (pos === null) return false;
 
       Array.from(files).forEach(async (file) => {
-        const id = uuidv4();
+        const id = uuidv7();
         const reader = new FileReader();
 
         reader.onload = async () => {

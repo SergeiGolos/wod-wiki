@@ -12,8 +12,8 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { v7 as uuidv7 } from 'uuid';
 import {
   ArrowLeftIcon,
   DocumentDuplicateIcon,
@@ -32,12 +32,14 @@ import { useScriptBlockCommands } from '../hooks/useScriptBlockCommands';
 import { useEffortRegistry } from '../contexts/EffortRegistryContext';
 import { EffortResolver } from '@/effort-registry';
 import type { IEffort, ResolvedEffort } from '@/effort-registry';
-import { effortsPath } from '../lib/routes';
+import { effortsPath, parseEffortRouteOptions } from '../lib/routes';
 import { toast } from '@/hooks/use-toast';
 import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 import { shareBlock } from '../services/openInPlayground';
 import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { CalendarCard } from '@/components/atoms/CalendarCard';
+import { effortToDocument, documentToEffort } from '@/repositories/effort-markdown';
+import { indexedDBService } from '@/services/db/IndexedDBService';
 
 /* ── Resolved view (inline widget) ─────────────────────────────────────────── */
 
@@ -87,10 +89,11 @@ function EffortResolvedInline({ resolved, effort }: { resolved: ResolvedEffort; 
 
 export function EffortDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { theme } = useTheme();
   const actualTheme = theme === 'dark' ? 'dark' : 'vs';
-  const { registry, isReady } = useEffortRegistry();
+  const { registry, isReady, refresh } = useEffortRegistry();
 
   const {
     document,
@@ -107,6 +110,61 @@ export function EffortDetailPage() {
   const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null);
   const [showResolved, setShowResolved] = useState(false);
 
+  // ── Create-custom mode ("/effort/new?mode=create") ───────────────────────
+  const opts = parseEffortRouteOptions(searchParams);
+  const isCreateMode = slug === 'new' && opts.mode === 'create';
+  const [createDocument, setCreateDocument] = useState(() => {
+    const blank: IEffort = {
+      id: `effort-user-${crypto.randomUUID()}`,
+      slug: '',
+      label: '',
+      aliases: [],
+      baseAttributes: { met: 5.0 },
+      registrySource: 'user',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    return effortToDocument(blank);
+  });
+
+  const handleCreateSubmit = useCallback(async () => {
+    if (!isReady || !registry) return;
+    const { effort: parsed, errors } = documentToEffort(createDocument);
+    if (errors.length > 0) {
+      toast({
+        title: 'Invalid YAML',
+        description: errors.join('\n'),
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!parsed.slug.trim()) {
+      toast({
+        title: 'Missing slug',
+        description: 'A unique slug is required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    parsed.slug = parsed.slug.trim().toLowerCase().replace(/\s+/g, '-');
+    parsed.label = parsed.label.trim() || parsed.slug;
+    parsed.updatedAt = new Date().toISOString();
+
+    try {
+      await registry.upsert(parsed);
+      await indexedDBService.saveEffort(parsed);
+      await refresh();
+      navigate(`/effort/${parsed.slug}`, { replace: true });
+    } catch (err) {
+      toast({
+        title: 'Save failed',
+        description: err instanceof Error ? err.message : 'Failed to save effort.',
+        variant: 'destructive',
+      });
+    }
+  }, [createDocument, isReady, registry, refresh, navigate]);
+
   // Resolve effort for the inline "resolved" widget
   const resolver = useMemo(() => new EffortResolver(registry), [registry]);
   const resolved = useMemo((): ResolvedEffort | null => {
@@ -116,7 +174,7 @@ export function EffortDetailPage() {
 
   // ── WOD block handlers ───────────────────────────────────────────────────
   const handleStartWorkout = useCallback((block: ScriptBlock) => {
-    const runtimeId = uuidv4();
+    const runtimeId = uuidv7();
     // Store in runtime store and navigate
     import('../runtimeStore').then(({ pendingRuntimes }) => {
       pendingRuntimes.set(runtimeId, { block, noteId: `effort/${slug}` });
@@ -139,6 +197,7 @@ export function EffortDetailPage() {
         wodContent: block.content,
         date,
       });
+      navigate(`/journal?s=${dateKey}`);
       toast({
         title: 'Scheduled',
         description: `Added to journal for ${dateKey}`,
@@ -176,13 +235,13 @@ export function EffortDetailPage() {
     if (cloned) {
       toast({
         title: 'Cloned',
-        description: `Created a custom copy of "${cloned.label}". You can now edit it.`,
+        description: `Created a custom copy of "${effort?.label ?? cloned.label}". You can now edit it.`,
       });
     }
   }, [cloneForEdit]);
 
   // ── Loading / error states ───────────────────────────────────────────────
-  if (!isReady || isLoading) {
+  if (!isReady) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="animate-pulse h-4 w-32 bg-muted rounded" />
@@ -190,7 +249,41 @@ export function EffortDetailPage() {
     );
   }
 
-  if (error || !effort) {
+  if (isCreateMode) {
+    // Reserved slug collision: a real effort literally named "new" collides with
+    // this create-form route. The form mints a fresh id/slug on save, so the
+    // only collision is the URL path itself (unavoidable for any hard-coded
+    // create alias).
+    return (
+      <div className="px-6 lg:px-10 py-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(effortsPath())} title="Back to catalog">
+            <ArrowLeftIcon className="size-4" />
+          </Button>
+          <h1 className="text-xl font-bold tracking-tight">Create Custom Effort</h1>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Edit the YAML frontmatter and body, then create.
+        </p>
+        <textarea
+          className="w-full h-96 p-4 font-mono text-sm border rounded-md bg-background"
+          value={createDocument}
+          onChange={(e) => setCreateDocument(e.target.value)}
+          aria-label="Effort document"
+        />
+        <div className="mt-4 flex gap-2">
+          <Button onClick={handleCreateSubmit}>
+            Create Effort
+          </Button>
+          <Button variant="outline" onClick={() => navigate(effortsPath())}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading || error || !effort) {
     return (
       <div data-testid={TEST_IDS.EFFORT_NOT_FOUND} className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <p className="text-muted-foreground">{error || `Effort "${slug}" not found.`}</p>

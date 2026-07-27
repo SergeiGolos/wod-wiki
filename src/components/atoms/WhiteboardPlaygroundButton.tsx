@@ -99,7 +99,8 @@ export const WhiteboardPlaygroundButton: React.FC<WhiteboardPlaygroundButtonProp
     e.preventDefault();
     e.stopPropagation();
     const url = await resolveUrl();
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const tab = window.open(url, 'wodwiki-playground');
+    if (tab) tab.focus();
   }, [resolveUrl]);
 
   const handleCopy = useCallback(async (e: React.MouseEvent) => {

@@ -16,6 +16,7 @@ import type { ScriptBlock } from '@/components/Editor/types';
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
 import { cn } from '@/lib/utils';
+import { formatDateWeekdayShort } from '@/lib/dateFormat';
 
 interface AddScriptToNoteDropdownProps {
     scriptBlock: ScriptBlock;
@@ -143,7 +144,7 @@ export const AddScriptToNoteDropdown: React.FC<AddScriptToNoteDropdownProps> = (
     const isToday = isSameDay(selectedDate, new Date());
     const dateLabel = isToday
         ? 'Today'
-        : selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        : formatDateWeekdayShort(selectedDate);
 
     return (
         <DropdownMenu open={open} onOpenChange={setOpen}>

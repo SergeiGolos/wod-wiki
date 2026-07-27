@@ -5,7 +5,7 @@
  * Legacy script records are converted to NoteSegments.
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { indexedDBService } from './IndexedDBService';
 import { Note, NoteSegment, WorkoutResult } from '../../types/storage';
 import { HistoryEntry } from '../../types/history';
@@ -49,7 +49,7 @@ export const migrationService = {
                     if (!entry.id || !entry.rawContent) continue;
 
                     // 1. Create a single whole-document segment
-                    const segmentId = uuidv4();
+                    const segmentId = uuidv7();
                     const segment: NoteSegment = {
                         id: segmentId,
                         version: 1,
@@ -74,7 +74,7 @@ export const migrationService = {
                         const legacyResult = entry.results as any;
 
                         const result: WorkoutResult = {
-                            id: uuidv4(),
+                            id: uuidv7(),
                             blockContentId: segmentId,
                             noteId: entry.id,
                             data: legacyResult,

@@ -1,4 +1,5 @@
 import type { IMetric, MetricOrigin } from '../models/Metric';
+import { disciplineFactorFor } from '@/effort-registry/disciplines';
 import type { IEffort, ResolvedEffort } from '@/effort-registry/types';
 import { DEFAULT_RESOLVER_OPTIONS } from '@/effort-registry/types';
 
@@ -34,7 +35,7 @@ function coerceResolvedEffort(value: IEffort | ResolvedEffort): ResolvedEffort {
   const effort = value;
   const discipline = effort.baseAttributes.discipline;
   const disciplineFactor = effort.baseAttributes.disciplineFactor
-    ?? (discipline?.toLowerCase() === 'strength' || discipline?.toLowerCase() === 'resistance' ? 1.2 : discipline?.toLowerCase() === 'yoga' ? 0.9 : 1.0);
+    ?? disciplineFactorFor(discipline);
   return {
     effort,
     definition: effort,

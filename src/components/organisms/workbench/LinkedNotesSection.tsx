@@ -5,6 +5,7 @@ import { toShortId } from '@/lib/idUtils';
 import type { HistoryEntry } from '@/types/history';
 import type { IContentProvider } from '@/types/content-provider';
 import { CloneDateDropdown } from '@/components/molecules/CloneDateDropdown';
+import { formatDateMedium, formatDateShort } from '@/lib/dateFormat';
 
 interface LinkedNotesSectionProps {
   entry: HistoryEntry;
@@ -75,11 +76,7 @@ export const LinkedNotesSection: React.FC<LinkedNotesSectionProps> = ({
           </button>
           {sourceEntry && (
             <div className="text-[10px] text-muted-foreground mt-1 ml-5">
-              {new Date(sourceEntry.targetDate).toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })}
+              {formatDateMedium(new Date(sourceEntry.targetDate))}
             </div>
           )}
         </div>
@@ -100,10 +97,7 @@ export const LinkedNotesSection: React.FC<LinkedNotesSectionProps> = ({
                 <LinkIcon className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate flex-1">{clone.title}</span>
                 <span className="text-[10px] text-muted-foreground shrink-0">
-                  {new Date(clone.targetDate).toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                  {formatDateShort(new Date(clone.targetDate))}
                 </span>
                 <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0 transition-opacity" />
               </button>

@@ -63,19 +63,19 @@ export const GridToolbar: React.FC<GridToolbarProps> = ({
       {/* Separator */}
       <div className="w-px h-5 bg-border" />
 
-      {/* MQL Search */}
+      {/* Filter */}
       <div className="flex items-center flex-1 max-w-md">
         <div className="flex w-full group">
           <input
             type="text"
             className="flex-1 px-2.5 py-1 text-xs rounded-l border border-r-0 border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/40 focus:z-10"
-            placeholder="MQL (not current implement)"
+            placeholder="Filter results…"
             value={searchText}
             onChange={(e) => onSearchChange(e.target.value)}
           />
           <button
             className="px-2.5 py-1 text-xs rounded-r border border-border bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors flex items-center gap-1.5 border-l-0"
-            title="Search with MQL"
+            title="Filter results"
           >
             <span>🔍</span>
             <span className="font-medium">Search</span>

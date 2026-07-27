@@ -175,4 +175,16 @@ describe('resolveRouteView — page + shell', () => {
     expect(resolveRouteView('/playground/abc', { id: 'abc' }, makeDeps()).page).toBe('playground')
     expect(resolveRouteView('/note/General/Fran', { category: 'General', name: 'Fran' }, makeDeps()).page).toBe('workout')
   })
+
+  it('classifies the analytics sub-routes → bare shell, named workouts', () => {
+    const explorer = resolveRouteView('/analytics/explorer', NO_PARAMS, makeDeps())
+    expect(explorer.page).toBe('analyticsExplorer')
+    expect(explorer.shell).toEqual({ wrap: 'bare' })
+    expect(explorer.workout.name).toBe('Metric Explorer')
+
+    const dashboard = resolveRouteView('/analytics/dashboard', NO_PARAMS, makeDeps())
+    expect(dashboard.page).toBe('analyticsDashboard')
+    expect(dashboard.shell).toEqual({ wrap: 'bare' })
+    expect(dashboard.workout.name).toBe('Analytics Dashboard')
+  })
 })

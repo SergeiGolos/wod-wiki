@@ -602,13 +602,13 @@ export function createWorkbenchSessionStore(
 
         console.log(`[WorkbenchSession] Processing attachment: ${file.name}`);
         const metadata = await fileProcessor.process(file);
-        const { v4: uuidv4 } = await import('uuid');
+        const { v7: uuidv7 } = await import('uuid');
 
         console.log(`[WorkbenchSession] Saving attachment to entry ${targetId}`);
         await notePersistence.mutateNote(targetId, {
           attachments: {
             add: [{
-              id: uuidv4(),
+              id: uuidv7(),
               label: metadata.label,
               mimeType: metadata.mimeType,
               data: metadata.data,
@@ -655,8 +655,8 @@ export function createWorkbenchSessionStore(
        * resolves.
        */
       completeWorkout: async (result) => {
-        const { v4: uuidv4 } = await import('uuid');
-        const resultId = uuidv4();
+        const { v7: uuidv7 } = await import('uuid');
+        const resultId = uuidv7();
         const state = get();
         const { content, selectedBlock, selectedBlockId, currentEntry } = state;
 

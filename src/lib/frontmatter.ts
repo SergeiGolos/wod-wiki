@@ -171,6 +171,28 @@ export function parseFrontmatterCategories(raw: string): string[] {
 }
 
 /**
+ * Extract the `tags` list from a frontmatter block's raw content — with or
+ * without the `---` delimiters (section rawContent keeps them; overlays hold
+ * the inner body). Accepts the block-list form (`tags:\n  - crossfit`), a
+ * bare scalar (`tags: crossfit`), and the inline form (`tags: [a, b]`).
+ * Values are trimmed, empties dropped, duplicates removed; case is preserved.
+ */
+export function extractFrontmatterTags(raw: string): string[] {
+  const meta = FRONTMATTER_RE.test(raw)
+    ? parseFrontmatter(raw).meta
+    : parseFrontmatterBody(raw);
+  const tags = meta['tags'];
+  const list = Array.isArray(tags)
+    ? tags
+    : typeof tags === 'string' && tags.trim()
+      ? tags.trim().startsWith('[') && tags.trim().endsWith(']')
+        ? tags.trim().slice(1, -1).split(',')
+        : [tags]
+      : [];
+  return [...new Set(list.map(tag => tag.trim()).filter(Boolean))];
+}
+
+/**
  * Parse flat scalar key-value pairs from raw inner content (no delimiters).
  *
  * Behavior matches the original inline parser in FrontmatterCompanion.tsx:
