@@ -167,6 +167,7 @@ export function JournalListPage({
   // ── Data loading ──────────────────────────────────────────────────────────
   const [results, setResults] = useState<unknown[]>([])
   const [journalEntries, setJournalEntries] = useState<Map<string, JournalEntrySummary>>(new Map())
+  const [notesTitleMap, setNotesTitleMap] = useState<Map<string, string>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -193,6 +194,13 @@ export function JournalListPage({
           grouped.set(dateKey, dayEntries)
         }
         const entryMap = new Map<string, JournalEntrySummary>()
+        const titleMap = new Map<string, string>()
+        for (const entry of entries) {
+          if (entry.title && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(entry.title)) {
+            titleMap.set(entry.id, entry.title)
+            if (entry.slug) titleMap.set(entry.slug, entry.title)
+          }
+        }
         for (const [dateKey, dayEntries] of grouped) {
           const titles = dayEntries.map(entry => entry.title).filter(Boolean)
           entryMap.set(dateKey, {
@@ -203,6 +211,7 @@ export function JournalListPage({
 
         setResults(rawResults)
         setJournalEntries(entryMap)
+        setNotesTitleMap(titleMap)
       } catch {
         setResults([])
         setJournalEntries(new Map())
@@ -233,11 +242,17 @@ export function JournalListPage({
       const parts = safeNoteId.split('/')
       const lastSegment = parts[parts.length - 1] || safeNoteId
       const isDateSegment = /^\d{4}-\d{2}-\d{2}$/.test(lastSegment)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(lastSegment)
+      const resolvedTitle = notesTitleMap.get(safeNoteId) || notesTitleMap.get(lastSegment)
       const title = isPlayground
         ? 'Playground'
-        : isDateSegment
-          ? (parts[parts.length - 2] || lastSegment)
-          : lastSegment
+        : resolvedTitle
+          ? resolvedTitle
+          : isDateSegment
+            ? (parts[parts.length - 2] || lastSegment)
+            : isUUID
+              ? 'Workout Note'
+              : lastSegment
       return {
         id: r.id,
         type: 'result' as const,
@@ -252,7 +267,7 @@ export function JournalListPage({
       return allItems.filter(item => item.group !== 'playground')
     }
     return allItems
-  }, [results, showPlaygrounds])
+  }, [results, showPlaygrounds, notesTitleMap])
 
   // ── Date keys to display ──────────────────────────────────────────────────
   const todayKey = useMemo(() => localDateKey(new Date()), [])

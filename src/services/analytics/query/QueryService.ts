@@ -169,8 +169,20 @@ export class QueryService {
       }));
     }
 
-    const matched = candidates.filter(row => matchesFilters(row, parsed.filters, noteTags));
+    let matched = candidates.filter(row => matchesFilters(row, parsed.filters, noteTags));
 
+    // Filter per-effort vs un-attributed overall summary rows to avoid double-counting
+    if (parsed.groupBy.includes('effort') || parsed.filters.some(f => f.key === 'effort')) {
+      const hasPerEffortRows = matched.some(r => r.effortSlug !== undefined);
+      if (hasPerEffortRows) {
+        matched = matched.filter(r => r.effortSlug !== undefined);
+      }
+    } else {
+      const hasOverallRow = matched.some(r => r.effortSlug === undefined);
+      if (hasOverallRow) {
+        matched = matched.filter(r => r.effortSlug === undefined);
+      }
+    }
     // ── Stage 2: BUCKET — a time dim wins over rollup; neither → one bucket.
     const timeDim = parsed.groupBy.find((d) => d === 'day' || d === 'week');
     const tagDims = parsed.groupBy.filter((d) => d !== 'day' && d !== 'week');

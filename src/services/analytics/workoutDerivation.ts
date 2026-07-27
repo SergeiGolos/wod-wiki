@@ -207,8 +207,10 @@ export function normalizeSummaryFacts(
     const discipline = metadataString(value.metadata, 'effortDiscipline');
     const intensityTier = metadataString(value.metadata, 'effortIntensityTier');
 
-    rowsByKey.set(metricKey, {
-      id: `${identity.resultId}-${metricKey}-${now}`,
+    const rowKey = effortSlug ? `${metricKey}:${effortSlug}` : metricKey;
+
+    rowsByKey.set(rowKey, {
+      id: `${identity.resultId}-${rowKey}-${now}`,
       noteId: identity.noteId,
       blockContentId: identity.blockContentId,
       origin: identity.origin,

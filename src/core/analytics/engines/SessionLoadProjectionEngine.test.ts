@@ -67,5 +67,25 @@ describe('SessionLoadProjectionEngine', () => {
       expect(results[0].value).toBe(5 * 10); // falls back to the moderate default
       expect(results[0].metadata?.sRPE).toBe(5);
     });
+
+    test('should not double-count root container elapsed and child segment elapsed times', () => {
+      const engine = new SessionLoadProjectionEngine();
+      const rootElapsed = 180_000; // 3 minutes total session duration
+      const childElapsed1 = 60_000; // 1 min round 1
+      const childElapsed2 = 60_000; // 1 min round 2
+      const childElapsed3 = 60_000; // 1 min round 3
+
+      const metrics: IMetric[] = [
+        { type: MetricType.Elapsed, value: childElapsed1, origin: 'runtime' },
+        { type: MetricType.Elapsed, value: childElapsed2, origin: 'runtime' },
+        { type: MetricType.Elapsed, value: childElapsed3, origin: 'runtime' },
+        { type: MetricType.Elapsed, value: rootElapsed, origin: 'runtime' },
+      ];
+
+      const results = engine.calculateFromWorkout(metrics);
+      expect(results).toHaveLength(1);
+      // Should count 3 minutes total (sRPE 5 * 3 min = 15 AU), NOT 6 minutes (30 AU)
+      expect(results[0].value).toBe(15);
+    });
   });
 });
