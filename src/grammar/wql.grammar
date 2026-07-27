@@ -25,39 +25,39 @@ Head { Aggregator colon Metric }
 
 // Any word — known aggregators (sum avg min max count last delta) and unknown
 // ones alike; the AST mapper reports "Unknown aggregator" for the latter.
-Aggregator { word }
+Aggregator { Word }
 
 // Dotted Canonical Metric Key namespaces: totalVolume, calc.acwr,
 // <effortSlug>.<family> (segments may carry effort-slug dashes).
-Metric { word (dot word)* }
+Metric { Word (dot Word)* }
 
 Filters { braceOpen (Filter (comma Filter)*)? braceClose }
 
-Filter { negate? TagKey colon TagValue }
+Filter { Negate? TagKey colon TagValue }
 
-TagKey { word }
+TagKey { Word }
 
 // The trailing wildcard star is a separate token; the AST mapper folds it
 // into TagFilter.wildcard.
-TagValue { word star? }
+TagValue { Word Star? }
 
-GroupBy { by braceOpen (Dimension (comma Dimension)*)? braceClose }
+GroupBy { By braceOpen (Dimension (comma Dimension)*)? braceClose }
 
 // day | week | session | round are virtual dimensions — a lexical no-op,
 // assigned meaning by the Query Service. Any other word is a fact-row tag key.
-Dimension { word }
+Dimension { Word }
 
 // `.rollup` is one token: with a bare `dot` the parser would need 2-token
 // lookahead to choose between a Metric continuation and the Rollup suffix.
-Rollup { rollupDot parenOpen int word parenClose }
+Rollup { RollupDot parenOpen Int Word parenClose }
 
 @tokens {
-  by { "by" }
-  rollupDot { ".rollup" }
-  int { $[0-9]+ }
-  word { $[a-zA-Z0-9_-]+ }
-  star { "*" }
-  negate { "!" }
+  By { "by" }
+  RollupDot { ".rollup" }
+  Int { $[0-9]+ }
+  Word { $[a-zA-Z0-9_-]+ }
+  Star { "*" }
+  Negate { "!" }
   colon { ":" }
   comma { "," }
   dot { "." }

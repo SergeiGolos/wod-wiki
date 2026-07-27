@@ -43,7 +43,9 @@ export interface ParsedQuery {
 export interface SeriesPoint { ts: number; value: number }
 export interface Series { key: string; label: string; points: SeriesPoint[] }
 
-const AGGS: Aggregator[] = ['sum', 'avg', 'min', 'max', 'count', 'last', 'delta'];
+export const WQL_AGGREGATORS: Aggregator[] = ['sum', 'avg', 'min', 'max', 'count', 'last', 'delta'];
+
+const AGGS: Aggregator[] = WQL_AGGREGATORS;
 
 function cannotParse(text: string): string {
   return `Cannot parse "${text}". Expected agg:metric{filters} by {dims} .rollup(period)`;
@@ -87,15 +89,14 @@ export function parseQuery(raw: string): ParsedQuery {
   if (filters) {
     for (const filter of filters.getChildren(terms.Filter)) {
       const keyNode = filter.getChild(terms.TagKey);
-      // 'word'/'star'/'negate' are anonymous tokens — not in the --names
-      // terms export — so they are addressed by name.
-      const wordNode = filter.getChild(terms.TagValue)?.getChild('word');
-      if (!keyNode || !wordNode) continue;
+      const valueNode = filter.getChild(terms.TagValue);
+      const wordNode = valueNode?.getChild(terms.Word);
+      if (!keyNode || !valueNode || !wordNode) continue;
       base.filters.push({
         key: raw.slice(keyNode.from, keyNode.to),
         value: raw.slice(wordNode.from, wordNode.to),
-        negate: filter.getChild('negate') !== null,
-        wildcard: filter.getChild('star') !== null,
+        negate: filter.getChild(terms.Negate) !== null,
+        wildcard: valueNode.getChild(terms.Star) !== null,
       });
     }
   }
@@ -112,8 +113,8 @@ export function parseQuery(raw: string): ParsedQuery {
   // validated here.
   const rollup = query.getChild(terms.Rollup);
   if (rollup) {
-    const sizeNode = rollup.getChild('int');
-    const unitNode = rollup.getChild('word');
+    const sizeNode = rollup.getChild(terms.Int);
+    const unitNode = rollup.getChild(terms.Word);
     const unit = unitNode ? raw.slice(unitNode.from, unitNode.to) : '';
     if (!sizeNode || (unit !== 'd' && unit !== 'w')) {
       return { raw, agg: 'sum', metric: '', filters: [], groupBy: [], error: cannotParse(text) };
