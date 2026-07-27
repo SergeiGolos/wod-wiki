@@ -268,4 +268,41 @@ describe('normalizeSummaryFacts', () => {
 
     expect(points[0].timestamp).toBe(T0);
   });
+
+  it('deduplicates duplicate analytics outputs by metricKey, keeping the last occurrence', () => {
+    const points = normalizeSummaryFacts([
+      {
+        outputType: 'analytics',
+        timeSpan: { started: T0, ended: T0 },
+        metrics: [
+          { type: MetricType.Label, value: 'Total Reps', image: 'Total Reps' },
+          { type: MetricType.Rep, value: 42, unit: 'reps' },
+        ],
+      },
+      {
+        outputType: 'analytics',
+        timeSpan: { started: T0 + 1000, ended: T0 + 1000 },
+        metrics: [
+          { type: MetricType.Label, value: 'Total Reps', image: 'Total Reps' },
+          { type: MetricType.Rep, value: 90, unit: 'reps' },
+        ],
+      },
+      {
+        outputType: 'analytics',
+        timeSpan: { started: T0, ended: T0 },
+        metrics: [
+          { type: MetricType.Label, value: 'Training Load', image: 'Training Load' },
+          { type: MetricType.Load, value: 100, unit: 'au' },
+        ],
+      },
+    ], { noteId: 'n1', resultId: 'r1' });
+
+    expect(points).toHaveLength(2);
+    const totalReps = points.find(p => p.metricKey === 'totalReps');
+    expect(totalReps).toBeDefined();
+    expect(totalReps!.value).toBe(90);
+    const trainingLoad = points.find(p => p.metricKey === 'trainingLoad');
+    expect(trainingLoad).toBeDefined();
+    expect(trainingLoad!.value).toBe(100);
+  });
 });

@@ -23,6 +23,7 @@ import {
 import { resolveJournalRoute } from './journalRoute'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { formatDateMedium } from '@/lib/dateFormat'
+import { formatDateKey } from '../services/dateUtils'
 
 // ─── Docs-page nav constants (moved from App.tsx) ──────────────────────────
 
@@ -288,11 +289,11 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
       // Tolerate rows from partially-migrated dev databases — a bad date must
       // not take down the whole nav derivation.
       const time = new Date(r.createdAt).getTime()
-      if (Number.isFinite(time)) dates.add(new Date(time).toISOString().split('T')[0])
+      if (Number.isFinite(time)) dates.add(formatDateKey(new Date(time)))
     })
     workoutItems.forEach(item => {
       const d = readItemDate(item)
-      if (d && Number.isFinite(new Date(d).getTime())) dates.add(new Date(d).toISOString().split('T')[0])
+      if (d && Number.isFinite(new Date(d).getTime())) dates.add(formatDateKey(new Date(d)))
     })
     return Array.from(dates).sort().reverse().slice(0, 10).map(d => ({
       id: d,

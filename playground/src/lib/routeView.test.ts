@@ -3,7 +3,7 @@
  * lived inline in `AppContent`. Classifies URLs against injected data with no
  * React mount and no IndexedDB.
  */
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it, mock } from 'bun:test'
 import type { WorkoutResult } from '@/types/storage'
 import type { WorkoutResults } from '@/components/Editor/types'
 import type { ParsedCanvasPage } from '../canvas/parseCanvasMarkdown'
@@ -12,6 +12,7 @@ import {
   SYNTAX_LINKS,
   type RouteViewDeps,
   type RouteViewParams,
+  type SelectWorkoutItem,
 } from './routeView'
 
 /** Minimal result fixture — only `createdAt` matters to the nav derivation. */
@@ -141,6 +142,74 @@ describe('resolveRouteView — collection workout', () => {
     expect(view.workout.category).toBe('General')
   })
 })
+
+describe('resolveRouteView — collection index nav', () => {
+  function makeCollectionPage(prose = '{{workouts}}'): ParsedCanvasPage {
+    return {
+      frontmatter: {},
+      template: 'canvas',
+      route: '/collections/crossfit-games-2024',
+      quests: [],
+      chapters: [],
+      sections: [
+        {
+          id: 'intro',
+          heading: 'Intro',
+          level: 2,
+          attrs: [],
+          proseChunks: [{ kind: 'prose' as const, text: prose }],
+          commands: [],
+          buttons: [],
+        },
+      ],
+    } as unknown as ParsedCanvasPage
+  }
+
+  it('derives workout links with onRun + link icon from a {{workouts}} tag', () => {
+    const selectWorkout = mock((_item: SelectWorkoutItem) => {})
+    const item = {
+      id: '../../markdown/collections/crossfit-games-2024/Event-05.md',
+      name: 'Event 5',
+      category: 'crossfit-games-2024',
+      content: '...',
+    }
+    const deps = makeDeps({
+      canvasPage: makeCollectionPage(),
+      workoutItems: [item],
+      selectWorkout,
+    })
+    const view = resolveRouteView('/collections/crossfit-games-2024', { collection: 'crossfit-games-2024' }, deps)
+
+    const workoutLink = view.nav.find(l => l.id === `workout-${item.id}`)
+    expect(workoutLink).toBeDefined()
+    expect(workoutLink?.label).toBe('Event 5')
+    expect(workoutLink?.type).toBe('wod')
+    expect(workoutLink?.runIcon).toBe('link')
+    expect(workoutLink?.onRun).toBeFunction()
+
+    workoutLink?.onRun?.()
+    expect(selectWorkout).toHaveBeenCalledWith(item)
+  })
+
+  it('falls back to listing collection items when the page has no {{workouts}} tag', () => {
+    const item = {
+      id: '../../markdown/collections/crossfit-games-2024/Event-04.md',
+      name: 'Event 4',
+      category: 'crossfit-games-2024',
+      content: '...',
+    }
+    const deps = makeDeps({
+      canvasPage: makeCollectionPage('No workouts placeholder.'),
+      workoutItems: [item],
+    })
+    const view = resolveRouteView('/collections/crossfit-games-2024', { collection: 'crossfit-games-2024' }, deps)
+
+    const workoutLink = view.nav.find(l => l.id === `workout-${item.id}`)
+    expect(workoutLink).toBeDefined()
+    expect(workoutLink?.runIcon).toBe('link')
+  })
+})
+
 describe('resolveRouteView — page + shell', () => {
   it('classifies /journal → canvas shell with journal actions + index', () => {
     const view = resolveRouteView('/journal', NO_PARAMS, makeDeps())

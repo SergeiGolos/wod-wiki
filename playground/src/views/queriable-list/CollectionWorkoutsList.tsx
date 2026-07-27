@@ -27,15 +27,46 @@ interface CollectionWorkoutsListProps {
   getItemActions?: (item: WorkoutItem) => CollectionWorkoutsListAction[];
 }
 
-function getWorkoutPreview(content?: string): string | null {
+function skipInBodyFrontmatter(lines: string[]): string[] {
+  const result: string[] = []
+  let inBlock = false
+  for (const line of lines) {
+    if (line.trim() === '---') {
+      inBlock = !inBlock
+      continue
+    }
+    if (!inBlock) {
+      result.push(line)
+    }
+  }
+  return result
+}
+
+function stripInlineMarkdown(line: string): string {
+  let text = line
+  // Remove balanced inline formatting pairs.
+  text = text.replace(/\*\*([^*]+)\*\*/g, '$1')
+  text = text.replace(/__([^_]+)__/g, '$1')
+  text = text.replace(/`([^`]+)`/g, '$1')
+  // Convert markdown links to their link text.
+  text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+  // Remove any stray markers left by unbalanced formatting.
+  text = text.replace(/\*\*/g, '')
+  text = text.replace(/__/g, '')
+  text = text.replace(/`/g, '')
+  return text.trim()
+}
+
+export function getWorkoutPreview(content?: string): string | null {
   if (!content) return null;
 
   const stripped = stripFrontmatter(content)
-    .split('\n')
+  const lines = skipInBodyFrontmatter(stripped.split('\n'))
     .map(line => line.trim())
     .filter(line => line.length > 0 && !line.startsWith('#') && !line.startsWith('```'));
 
-  return stripped[0] ?? null;
+  const first = lines[0]
+  return first ? stripInlineMarkdown(first) : null;
 }
 
 export const CollectionWorkoutsList: React.FC<CollectionWorkoutsListProps> = ({

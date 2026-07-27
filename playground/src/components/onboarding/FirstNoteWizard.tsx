@@ -20,6 +20,7 @@
 
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/atoms/Dialog';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   updateProfile,
@@ -92,6 +93,14 @@ export function FirstNoteWizard({ open, onClose }: FirstNoteWizardProps) {
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(false); }}>
       <DialogContent className="max-w-lg">
+        <button
+          type="button"
+          onClick={() => onClose(false)}
+          aria-label="Close dialog"
+          className="absolute right-4 top-4 rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <X className="h-4 w-4" />
+        </button>
         <DialogHeader>
           <DialogTitle>Make it yours — 30 seconds</DialogTitle>
           <DialogDescription>

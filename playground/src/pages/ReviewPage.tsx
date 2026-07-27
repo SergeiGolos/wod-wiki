@@ -14,6 +14,8 @@ import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResult } from '@/types/storage'
 import { useOnboardingProgress } from '../hooks/useOnboardingProgress'
+import { notePersistence } from '@/services/persistence'
+import { formatDateMedium } from '@/lib/dateFormat'
 
 export function ReviewPage() {
   const { runtimeId } = useParams<{ runtimeId: string }>()
@@ -41,10 +43,26 @@ export function ReviewPage() {
       }
       setResult(result)
       const safeNoteId = result.noteId || ''
-      const noteLabel = safeNoteId.includes('/')
-        ? safeNoteId.split('/').pop()!
-        : safeNoteId || 'Workout Review'
-      setTitle(noteLabel)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(safeNoteId)
+      if (isUUID && safeNoteId) {
+        notePersistence.getNote(safeNoteId).then(note => {
+          if (cancelled) return
+          const humanTitle = note?.title && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(note.title)
+            ? note.title
+            : undefined
+          const dateLabel = formatDateMedium(new Date(result.createdAt || Date.now()))
+          setTitle(humanTitle ? `${humanTitle} · ${dateLabel}` : `Workout Review · ${dateLabel}`)
+        }).catch(() => {
+          if (cancelled) return
+          const dateLabel = formatDateMedium(new Date(result.createdAt || Date.now()))
+          setTitle(`Workout Review · ${dateLabel}`)
+        })
+      } else {
+        const noteLabel = safeNoteId.includes('/')
+          ? safeNoteId.split('/').pop()!
+          : safeNoteId || 'Workout Review'
+        setTitle(noteLabel)
+      }
       if (result.data?.logs?.length) {
         const { segments: s } = getAnalyticsFromLogs(result.data.logs, result.data.startTime)
         setSegments(s)

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQueryState } from 'nuqs';
 import { WqlQueryComposer } from '@/components/organisms/analytics/WqlQueryComposer';
-import { queryService, type QueryResult } from '@/services/analytics/query';
+import { parseQuery, queryService, type QueryResult } from '@/services/analytics/query';
 import { ensureRollupFacts } from '@/services/analytics/rollup';
 import {
   QueryValue,
@@ -49,6 +49,7 @@ export function AnalyticsExplorerPage() {
   const [result, setResult] = useState<QueryResult | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const vocabulary = useExplorerVocabulary();
+  const liveParsed = useMemo(() => parseQuery(draft), [draft]);
 
   useEffect(() => {
     setDraft(q);
@@ -173,8 +174,8 @@ export function AnalyticsExplorerPage() {
             </div>
             {q ? (
               <>
-                <ParsedQueryChips parsed={result?.parsed ?? { raw: q, agg: 'sum', metric: '', filters: [], groupBy: [] }} />
-                {result && <PipelineAnatomy result={result} />}
+                <ParsedQueryChips parsed={result && result.parsed.raw === draft ? result.parsed : liveParsed} />
+                {result && result.parsed.raw === draft && <PipelineAnatomy result={result} />}
               </>
             ) : (
               <div className="text-sm text-muted-foreground">Submit a query to see its anatomy.</div>

@@ -75,7 +75,13 @@ export function PageNavDropdown({
         {links.map(link => (
           <DropdownMenuItem
             key={link.id}
-            onClick={() => scrollToSection(link.id)}
+            onClick={() => {
+              if (link.onRun && link.runIcon === 'link') {
+                link.onRun()
+              } else {
+                scrollToSection(link.id)
+              }
+            }}
             className={cn(
               'gap-2',
               link.type === 'wod' && 'pl-2 text-[11px]'

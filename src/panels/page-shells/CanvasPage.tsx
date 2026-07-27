@@ -289,7 +289,13 @@ export function CanvasPage({
             {index.map((link) => (
               <div key={link.id} className="flex items-center group -ml-px">
                 <button
-                  onClick={() => scrollToSection(link.id)}
+                  onClick={() => {
+                    if (link.onRun && link.runIcon === 'link') {
+                      link.onRun()
+                    } else {
+                      scrollToSection(link.id)
+                    }
+                  }}
                   className={cn(
                     'flex-1 text-left px-4 py-2 text-sm transition-all border-l',
                     link.type === 'wod'

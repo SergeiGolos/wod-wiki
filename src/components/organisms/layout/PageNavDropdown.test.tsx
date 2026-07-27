@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test';
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 
 import { PageNavDropdown } from './PageNavDropdown';
 
@@ -22,4 +22,50 @@ describe('PageNavDropdown', () => {
 
     expect(screen.getByLabelText('Page sections').textContent).toContain('Details');
   });
+
+  it('scrolls to the section on primary click for plain links', () => {
+    const scrollToSection = mock(() => {})
+    render(
+      <PageNavDropdown
+        links={[{ id: 'overview', label: 'Overview', type: 'heading' }]}
+        scrollToSection={scrollToSection}
+      />,
+    )
+
+    act(() => {
+      screen.getByLabelText('Page sections').click()
+    })
+    act(() => {
+      screen.getByRole('menuitem').click()
+    })
+    expect(scrollToSection).toHaveBeenCalledWith('overview')
+  })
+
+  it('navigates on primary click for collection workout links with the link icon', () => {
+    const onRun = mock(() => {})
+    const scrollToSection = mock(() => {})
+    render(
+      <PageNavDropdown
+        links={[
+          {
+            id: 'workout-../../markdown/collections/girls/Fran.md',
+            label: 'Fran',
+            type: 'wod',
+            onRun,
+            runIcon: 'link',
+          },
+        ]}
+        scrollToSection={scrollToSection}
+      />,
+    )
+
+    act(() => {
+      screen.getByLabelText('Page sections').click()
+    })
+    act(() => {
+      screen.getByRole('menuitem').click()
+    })
+    expect(onRun).toHaveBeenCalled()
+    expect(scrollToSection).not.toHaveBeenCalled()
+  })
 });

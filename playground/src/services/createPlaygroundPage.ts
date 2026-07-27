@@ -1,27 +1,24 @@
 import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay'
 
-import { journalNotes } from './journalNotes'
-
-const MAX_TIMESTAMP_ID_RETRIES = 10
+import { pageId, playgroundContent } from './playgroundContent'
 
 /**
- * Atomically create a new playground page.
+ * Create a new playground page.
  *
- * Tries `baseName`, then `baseName-1` … `baseName-N`. Each attempt uses
- * IndexedDB `add()` (via `addPage`), which throws a `ConstraintError` if the
- * key already exists — making the check-and-create race-free even when two
- * tabs open simultaneously.
- *
- * Returns the ID that was successfully written.
+ * Writes the composite page (`playground/<timestamp-name>`) — the identity
+ * PlaygroundNotePage actually loads — and returns the route name. Millisecond
+ * timestamp precision plus the in-flight guard in PlaygroundRedirect make
+ * collisions a non-issue; an upsert on collision is acceptable for a scratch
+ * surface.
  */
 export async function createPlaygroundPage(content: string): Promise<string> {
   const baseName = formatPlaygroundTimestampId(Date.now())
-  const note = await journalNotes.create({
-    journalDate: '',
-    title: baseName,
-    rawContent: content,
-    type: 'playground',
-    slug: `playground/${baseName}`,
+  await playgroundContent.savePage({
+    id: pageId('playground', baseName),
+    category: 'playground',
+    name: baseName,
+    content,
+    updatedAt: Date.now(),
   })
-  return note.id
+  return baseName
 }

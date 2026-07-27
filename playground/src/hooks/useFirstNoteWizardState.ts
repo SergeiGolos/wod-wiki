@@ -53,6 +53,16 @@ import { useCallback, useState } from 'react';
 import { useIsFirstNoteEver } from './useIsFirstNoteEver';
 import { useProfileInitialized } from './useProfileInitialized';
 
+const DISMISSED_KEY = 'wodwiki.firstNoteDismissed.v1';
+
+function readDismissed(): boolean {
+  if (typeof window === 'undefined' || !window.localStorage) return false;
+  try {
+    return window.localStorage.getItem(DISMISSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
 export interface UseFirstNoteWizardStateResult {
   /** Whether the wizard should render. Consumer binds `<FirstNoteWizard open={open} />`. */
   open: boolean;
@@ -61,19 +71,24 @@ export interface UseFirstNoteWizardStateResult {
 }
 
 export function useFirstNoteWizardState(): UseFirstNoteWizardStateResult {
-  const { isFirstNote, markFirstNoteDone } = useIsFirstNoteEver()
-  const { isInitialized } = useProfileInitialized()
-  const [dismissed, setDismissed] = useState(false)
+  const { isFirstNote, markFirstNoteDone } = useIsFirstNoteEver();
+  const { isInitialized } = useProfileInitialized();
+  const [dismissed, setDismissed] = useState(readDismissed);
 
   const handleClose = useCallback((completed: boolean) => {
     if (completed) {
-      markFirstNoteDone()
+      markFirstNoteDone();
     } else {
-      setDismissed(true)
+      setDismissed(true);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          window.localStorage.setItem(DISMISSED_KEY, 'true');
+        } catch {}
+      }
     }
-  }, [markFirstNoteDone])
+  }, [markFirstNoteDone]);
 
-  const open = isFirstNote && !isInitialized && !dismissed
+  const open = isFirstNote && !isInitialized && !dismissed;
 
-  return { open, handleClose }
+  return { open, handleClose };
 }

@@ -111,6 +111,7 @@ export class VolumeProjectionEngine implements ISummaryProcessor {
       timeSpan: new TimeSpan(now.getTime(), now.getTime()),
       metadata: {
         exerciseName: exerciseName,
+        effortSlug: exerciseName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
         totalSets,
         source: 'metrics',
       }
