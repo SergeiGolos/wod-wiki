@@ -333,8 +333,36 @@ export function getAnalyticsFromLogs(outputs: StoredOutputStatement[], workoutSt
     o.outputType === 'analytics' ||
     o.outputType === 'milestone'
   );
-  
-  const segments = transformer.fromOutputStatements(filteredOutputs, workoutStartTime, now);
+
+  // Drop duplicate 'analytics' outputs: same (label, value, unit) within the
+  // same second. The pre-dedupe live+finalize pair was stamped with distinct
+  // Date.now() values inside one second, so an exact-ms key misses it; a 1s
+  // window catches it while preserving legitimate progressions (same value
+  // recurring across rounds, seconds apart). Keep the last occurrence.
+  // Fact-row identity is a separate contract — see normalizeSummaryFacts
+  // (metricKey, keep-last) and AnalyticsEngine's emission signature.
+  const lastKeptByKey = new Map<string, number>();
+  const dedupedOutputs: StoredOutputStatement[] = [];
+  for (let i = filteredOutputs.length - 1; i >= 0; i--) {
+    const o = filteredOutputs[i];
+    if (o.outputType === 'analytics') {
+      const label = o.metrics.find(m => m.type === MetricType.Label);
+      const value = o.metrics.find(m => m.type !== MetricType.Label && typeof m.value === 'number');
+      if (label && value) {
+        const key = [
+          String(label.value ?? label.image ?? ''),
+          String(value.value),
+          value.unit ?? '',
+        ].join('|');
+        const kept = lastKeptByKey.get(key);
+        if (kept !== undefined && Math.abs(kept - o.timeSpan.started) < 1000) continue;
+        lastKeptByKey.set(key, o.timeSpan.started);
+      }
+    }
+    dedupedOutputs.unshift(o);
+  }
+
+  const segments = transformer.fromOutputStatements(dedupedOutputs, workoutStartTime, now);
 
   if (segments.length === 0) {
     return { segments: [], groups: [] };

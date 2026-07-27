@@ -12,6 +12,11 @@ export class AnalyticsEngine implements IAnalyticsEngine {
   private outputHistory: IOutputStatement[] = [];
   /** Emits a live 'analytics' output per segment so the UI updates in real time. */
   private _onLiveOutput?: (output: IOutputStatement) => void;
+  /**
+   * Signature of the last live projection emission. Used by finalize() to avoid
+   * re-emitting the same projections at session end. Timestamps are ignored.
+   */
+  private _lastLiveProjectionSignature?: string;
 
   /** Wire a sink for live analytics outputs (one per segment, as projections update). */
   setLiveOutputEmitter(emit: (output: IOutputStatement) => void): void {
@@ -45,8 +50,17 @@ export class AnalyticsEngine implements IAnalyticsEngine {
       this.outputHistory.push(current);
       if (this._onLiveOutput) {
         const now = Date.now();
-        for (const stmt of this._buildProjectionOutputs(this._runSummaries(), now)) {
-          this._onLiveOutput(stmt);
+        const projections = this._runSummaries();
+        const signature = this._projectionSignature(projections);
+        // Skip emission when the projections carry no new information — e.g.
+        // several blocks popping at completion each trigger run() with
+        // identical aggregates, producing byte-identical same-ms rows.
+        if (signature !== this._lastLiveProjectionSignature) {
+          this._lastLiveProjectionSignature = signature;
+          const liveOutputs = this._buildProjectionOutputs(projections, now);
+          for (const stmt of liveOutputs) {
+            this._onLiveOutput(stmt);
+          }
         }
       }
     }
@@ -55,7 +69,25 @@ export class AnalyticsEngine implements IAnalyticsEngine {
   }
 
   finalize(): IOutputStatement[] {
-    return this._buildProjectionOutputs(this._runSummaries(), Date.now());
+    const projections = this._runSummaries();
+    const outputs = this._buildProjectionOutputs(projections, Date.now());
+    const signature = this._projectionSignature(projections);
+    if (this._lastLiveProjectionSignature !== undefined && this._lastLiveProjectionSignature === signature) {
+      return [];
+    }
+    return outputs;
+  }
+
+  /**
+   * Identity of a projection set for dedupe — which fields make two emission
+   * sets 'the same'. Timestamps are intentionally ignored; display/fact
+   * layers have their own keys (see getAnalyticsFromLogs and
+   * normalizeSummaryFacts).
+   */
+  private _projectionSignature(projections: ProjectionResult[]): string {
+    return JSON.stringify(
+      projections.map((p) => ({ name: p.name, value: p.value, unit: p.unit, metricType: p.metricType })),
+    );
   }
 
   /** Build one 'analytics' OutputStatement per summary projection. */

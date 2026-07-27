@@ -79,7 +79,10 @@ export function mapIndexToL3(index: PageNavLink[]): NavItemL3[] {
     id: link.id,
     label: link.label,
     level: 3 as const,
-    action: { type: 'scroll' as const, sectionId: link.id },
+    action:
+      link.onRun && link.runIcon === 'link'
+        ? { type: 'call' as const, handler: link.onRun }
+        : { type: 'scroll' as const, sectionId: link.id },
     secondaryAction: link.onRun
       ? {
           id: link.id + '-run',

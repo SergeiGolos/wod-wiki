@@ -29,6 +29,7 @@ import {
   TrackerRedirect,
   PlanRedirect,
 } from './lib/routes'
+import { DocumentTitleSync } from './lib/DocumentTitleSync'
 import { Concept3LandingPage } from './pages/Concept3LandingPage'
 import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
 import { canvasRoutes } from './canvas/canvasRoutes'
@@ -380,6 +381,7 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.analyticsDashboard} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
+                <DocumentTitleSync />
               </NavProvider>
             </NuqsAdapter>
           </BrowserRouter>

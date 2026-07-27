@@ -28,6 +28,17 @@ describe('FirstNoteWizard close contract', () => {
     expect(onClose.mock.calls[0]?.[0]).toBe(false)
   })
 
+  it('Close (✕) button invokes onClose with completed=false', () => {
+    const onClose = mock<(completed: boolean) => void>(() => {})
+
+    render(<FirstNoteWizard open={true} onClose={onClose} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /close dialog/i }))
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose.mock.calls[0]?.[0]).toBe(false)
+  })
+
   it('clicking through all three steps and pressing Done invokes onClose with completed=true', () => {
     const onClose = mock<(completed: boolean) => void>(() => {})
 
