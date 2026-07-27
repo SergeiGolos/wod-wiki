@@ -83,7 +83,7 @@ export function ScrollCanvasPage({
       ),
     [stages, wodFiles],
   )
-  const [doc, setDoc] = useState('')
+  const [doc, setDoc] = useState(() => sourcesByStageId[stages[0]?.id] ?? '')
   const blocksRef = useRef<ScriptBlock[]>([])
   const [liveBlock, setLiveBlock] = useState<ScriptBlock | null>(null)
 

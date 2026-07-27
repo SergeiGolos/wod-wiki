@@ -45,6 +45,11 @@ export class SessionLoadProjectionEngine implements ISummaryProcessor {
         const rpe = effortVal ? (this.effortToRpe[effortVal] ?? 0) : (typeof m.value === 'number' ? m.value : 0);
         if (rpe > maxRpe) maxRpe = rpe;
       }
+      // User-captured session RPE (post-workout prompt, #735) is authoritative
+      // over the effort-label heuristic — same pattern as TISProcessor.
+      if (m.type === MetricType.SessionRPE && typeof m.value === 'number') {
+        maxRpe = m.value;
+      }
     }
 
     if (totalElapsedMs === 0) return [];

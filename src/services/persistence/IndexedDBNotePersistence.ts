@@ -229,6 +229,9 @@ export class IndexedDBNotePersistence implements INotePersistence {
     }
     await this.contentProvider.deleteEntry(note.id);
   }
+  async getResultById(resultId: string): Promise<WorkoutResult | undefined> {
+    return this.storage.getResultById(resultId);
+  }
 
   /**
    * Re-derivation cascade (Candidate 5 / spec §7) — the replay seam consumer.

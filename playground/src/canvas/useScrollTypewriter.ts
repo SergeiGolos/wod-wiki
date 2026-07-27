@@ -107,20 +107,13 @@ export function useScrollTypewriter({
       // Stage without a source holds the previous editor content.
       if (!script) return
 
-      const chars = Math.floor(quadOut(clamp01(slice.t)) * script.length)
+      const chars =
+        slice.index === 0
+          ? script.length
+          : Math.floor(quadOut(clamp01(slice.t)) * script.length)
       const target = script.slice(0, chars)
       const currentDoc = docRef.current
 
-      // User-edit guard: never clobber a user edit. Skipped for the
-      // first write after a stage change (see stageJustChangedRef).
-      if (
-        !stageJustChangedRef.current &&
-        currentDoc !== lastTypedRef.current &&
-        currentDoc !== script
-      ) {
-        setUserDiverged(true)
-        return
-      }
       stageJustChangedRef.current = false
 
       if (target === currentDoc) return

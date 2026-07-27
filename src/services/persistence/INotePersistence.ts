@@ -16,4 +16,5 @@ export interface INotePersistence {
     blockContentId: string,
     options?: { excludeNoteId?: string; includePlayground?: boolean; limit?: number },
   ): Promise<WorkoutResult[]>;
+  getResultById?(resultId: string): Promise<WorkoutResult | undefined>;
 }
