@@ -13,7 +13,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import {
   ArrowLeftIcon,
   DocumentDuplicateIcon,
@@ -116,7 +116,7 @@ export function EffortDetailPage() {
 
   // ── WOD block handlers ───────────────────────────────────────────────────
   const handleStartWorkout = useCallback((block: ScriptBlock) => {
-    const runtimeId = uuidv4();
+    const runtimeId = uuidv7();
     // Store in runtime store and navigate
     import('../runtimeStore').then(({ pendingRuntimes }) => {
       pendingRuntimes.set(runtimeId, { block, noteId: `effort/${slug}` });

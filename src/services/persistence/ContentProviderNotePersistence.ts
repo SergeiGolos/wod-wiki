@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
@@ -131,7 +131,7 @@ export class ContentProviderNotePersistence implements INotePersistence {
       version: mutation.workoutResult?.version,
       segmentId: mutation.workoutResult?.segmentId,
       origin: mutation.workoutResult?.origin,
-      resultId: mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv4() : undefined),
+      resultId: mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv7() : undefined),
     };
 
     let entry = Object.values(patch).some(value => value !== undefined)

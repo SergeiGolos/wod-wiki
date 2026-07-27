@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 import { toShortId } from '@/lib/idUtils';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
@@ -150,7 +150,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
       }
     }
 
-    const resultId = mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv4() : undefined);
+    const resultId = mutation.workoutResult?.id ?? (mutation.workoutResult ? uuidv7() : undefined);
     const patch = {
       ...mutation.metadata,
       rawContent: mutation.rawContent,
@@ -199,7 +199,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
       for (const input of mutation.attachments.add) {
         const attachment = await resolveAttachmentInput(input);
         await this.storage.saveAttachment({
-          id: attachment.id ?? uuidv4(),
+          id: attachment.id ?? uuidv7(),
           noteId: note.id,
           pageId: note.pageId,
           resultId,

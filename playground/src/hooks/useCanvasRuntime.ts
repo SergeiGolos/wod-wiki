@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { v4 as uuidv4 } from 'uuid'
+import { v7 as uuidv7 } from 'uuid'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResult } from '@/types/storage'
@@ -33,7 +33,7 @@ export function useCanvasRuntime({
   const [fullscreen, setFullscreen] = useState<FullscreenState>(null)
 
   const handleWorkoutComplete = useCallback((block: ScriptBlock, results: WorkoutResults) => {
-    const runtimeId = uuidv4()
+    const runtimeId = uuidv7()
     const blockId = block.id
     const optimisticNextResult = {
       id: runtimeId,

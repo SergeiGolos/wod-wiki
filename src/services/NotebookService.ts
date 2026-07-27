@@ -8,7 +8,7 @@
  * using the `notebook:{id}` convention.
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import type { Notebook } from '../types/notebook';
 
 const NOTEBOOKS_KEY = 'wodwiki:notebooks';
@@ -37,7 +37,7 @@ export class NotebookService {
         const notebooks = this.getAll();
         const now = Date.now();
         const notebook: Notebook = {
-            id: uuidv4(),
+            id: uuidv7(),
             name,
             description,
             icon,

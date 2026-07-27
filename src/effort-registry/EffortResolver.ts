@@ -5,7 +5,7 @@
  * Creates synthetic unresolved efforts for unmatched labels.
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { disciplineFactorFor } from './disciplines';
 import type {
   IEffort,
@@ -207,7 +207,7 @@ export class EffortResolver implements IEffortResolver {
     const normalizedLabel = normalizeForFuzzy(label);
     const slug = normalizeSlug(label);
     return {
-      id: `synthetic-${uuidv4()}`,
+      id: `synthetic-${uuidv7()}`,
       slug,
       label: normalizedLabel,
       aliases: [normalizedLabel],

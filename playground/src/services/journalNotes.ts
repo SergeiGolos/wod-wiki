@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 import type { INotePersistence } from '@/services/persistence';
 import { notePersistence } from '@/services/persistence';
@@ -38,7 +38,7 @@ function dateTimestamp(journalDate: string): number {
 }
 export function createJournalNotes({
   persistence,
-  uuid = uuidv4,
+  uuid = uuidv7,
 }: JournalNotesDependencies): JournalNotes {
   return {
     async create(input) {

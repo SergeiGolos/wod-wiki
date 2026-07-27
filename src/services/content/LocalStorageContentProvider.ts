@@ -7,7 +7,7 @@
  */
 
 import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { Attachment } from '../../types/storage';
 import { matchesId } from '../../lib/idUtils';
@@ -18,7 +18,7 @@ const NOTE_ATT_PREFIX = 'wodwiki:note-attachments:';
 const SCHEMA_VERSION = 1;
 
 function generateId(): string {
-  return uuidv4();
+  return uuidv7();
 }
 
 export class LocalStorageContentProvider implements IContentProvider {
@@ -190,7 +190,7 @@ export class LocalStorageContentProvider implements IContentProvider {
   }
 
   async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
-    const id = attachment.id ?? uuidv4();
+    const id = attachment.id ?? uuidv7();
     const now = Date.now();
     const fullAttachment: Attachment = {
       ...attachment,

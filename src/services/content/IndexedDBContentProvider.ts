@@ -5,7 +5,7 @@
  * Manages the Note -> NoteSegment (versioned) hierarchy.
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
 import type { AttachmentCreateInput, IContentProvider, ContentProviderMode, NoteSaveInput } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
@@ -254,7 +254,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         // normal create path → mint a fresh id (playground uses timestamp ids).
         let noteId = entry.id;
         if (!noteId) {
-            noteId = entry.type === 'playground' ? formatPlaygroundTimestampId(now) : uuidv4();
+            noteId = entry.type === 'playground' ? formatPlaygroundTimestampId(now) : uuidv7();
         }
         if (entry.type === 'playground' && !entry.id) {
             const baseNoteId = noteId;
@@ -484,7 +484,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                 ? await this.db.getLatestSegmentVersion(patch.segmentId)
                 : undefined;
             const newResult: WorkoutResult = {
-                id: patch.resultId || uuidv4(),
+                id: patch.resultId || uuidv7(),
                 segmentId: patch.segmentId,
                 segmentVersion: latestSegment?.version,
                 noteId: note.id,   // Use resolved UUID (not raw route param)
@@ -537,7 +537,7 @@ export class IndexedDBContentProvider implements IContentProvider {
     }
 
     async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
-        const id = attachment.id ?? uuidv4();
+        const id = attachment.id ?? uuidv7();
         const now = Date.now();
         const fullAttachment: Attachment = {
             ...attachment,

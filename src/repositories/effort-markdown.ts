@@ -23,7 +23,7 @@
  *     the bundled markdown/efforts/ repository (Vite import.meta.glob).
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { parseFrontmatter, getScalar, getList } from '@/lib/frontmatter';
 import { isEffortDiscipline } from '@/effort-registry/disciplines';
 import type {
@@ -311,7 +311,7 @@ export function documentToEffort(doc: string, baseEffort?: IEffort): ParseResult
     errors.push('Invalid met: must be a positive number');
   }
 
-  if (!result.id) result.id = baseEffort?.id || `effort-user-${uuidv4()}`;
+  if (!result.id) result.id = baseEffort?.id || `effort-user-${uuidv7()}`;
   if (!result.registrySource) result.registrySource = baseEffort?.registrySource || 'user';
 
   const effort = result as IEffort;
@@ -320,7 +320,7 @@ export function documentToEffort(doc: string, baseEffort?: IEffort): ParseResult
 
 function createDefaultEffort(): IEffort {
   return {
-    id: `effort-user-${uuidv4()}`,
+    id: `effort-user-${uuidv7()}`,
     slug: '',
     label: '',
     aliases: [],
