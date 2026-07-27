@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Code2 } from 'lucide-react';
+import { Code2, Edit3, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { WqlQueryComposer } from '@/components/organisms/analytics/WqlQueryComposer';
 import {
   WidgetFrame,
   QueryValue,
@@ -17,8 +18,33 @@ import { DEMO_WIDGETS, DASHBOARD_SOURCE } from './dashboardDefinition';
 export function AnalyticsDashboardPage() {
   const [weeks] = useAnalyticsRange();
   const [showSource, setShowSource] = useState(false);
-  const queries = useMemo(() => DEMO_WIDGETS.map((w) => ({ key: w.key, query: w.query })), []);
+  const [widgetQueries, setWidgetQueries] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    DEMO_WIDGETS.forEach((w) => {
+      initial[w.key] = w.query;
+    });
+    return initial;
+  });
+  const [editingWidgetKey, setEditingWidgetKey] = useState<string | null>(null);
+  const [draftQuery, setDraftQuery] = useState<string>('');
+
+  const queries = useMemo(
+    () => DEMO_WIDGETS.map((w) => ({ key: w.key, query: widgetQueries[w.key] ?? w.query })),
+    [widgetQueries],
+  );
   const { results, loading } = useAnalyticsQueries(queries, weeks);
+
+  const openEditor = (key: string, currentQuery: string) => {
+    setEditingWidgetKey(key);
+    setDraftQuery(currentQuery);
+  };
+
+  const saveEditor = () => {
+    if (editingWidgetKey) {
+      setWidgetQueries((prev) => ({ ...prev, [editingWidgetKey]: draftQuery }));
+      setEditingWidgetKey(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8">
@@ -54,43 +80,97 @@ export function AnalyticsDashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           {DEMO_WIDGETS.map((widget) => {
+            const currentQuery = widgetQueries[widget.key] ?? widget.query;
             const result = results[widget.key];
             return (
-              <WidgetFrame
-                key={widget.key}
-                title={widget.title}
-                question={widget.question}
-                query={widget.query}
-                span={widget.span}
-              >
-                <div className={cn('h-full', widget.type === 'value' || widget.type === 'toplist' ? 'h-36' : 'h-56')}>
-                  {widget.type === 'value' && result && (
-                    <QueryValue
-                      result={result}
-                      unit={widget.unit ?? ''}
-                      label={widget.label ?? ''}
-                      thresholds={widget.thresholds}
-                    />
-                  )}
-                  {widget.type === 'toplist' && result && (
-                    <div className="h-36 overflow-y-auto">
-                      <TopList result={result} unit={widget.unit} limit={widget.limit} />
-                    </div>
-                  )}
-                  {widget.type === 'timeseries' && result && (
-                    <WqlTimeseries result={result} unit={widget.unit} />
-                  )}
-                  {widget.type === 'bar' && result && (
-                    <WqlBars result={result} unit={widget.unit} />
-                  )}
-                  {widget.type === 'stacked' && result && (
-                    <StackedBar result={result} unit={widget.unit} />
-                  )}
-                </div>
-              </WidgetFrame>
+              <div key={widget.key} className="relative group">
+                <button
+                  onClick={() => openEditor(widget.key, currentQuery)}
+                  title="Edit Widget Query with Dual Composer"
+                  className="absolute top-2 right-2 z-10 p-1.5 rounded-lg bg-card/80 border border-border text-muted-foreground hover:text-foreground hover:border-primary opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                >
+                  <Edit3 size={13} />
+                </button>
+                <WidgetFrame
+                  title={widget.title}
+                  question={widget.question}
+                  query={currentQuery}
+                  span={widget.span}
+                >
+                  <div className={cn('h-full', widget.type === 'value' || widget.type === 'toplist' ? 'h-36' : 'h-56')}>
+                    {widget.type === 'value' && result && (
+                      <QueryValue
+                        result={result}
+                        unit={widget.unit ?? ''}
+                        label={widget.label ?? ''}
+                        thresholds={widget.thresholds}
+                      />
+                    )}
+                    {widget.type === 'toplist' && result && (
+                      <div className="h-36 overflow-y-auto">
+                        <TopList result={result} unit={widget.unit} limit={widget.limit} />
+                      </div>
+                    )}
+                    {widget.type === 'timeseries' && result && (
+                      <WqlTimeseries result={result} unit={widget.unit} />
+                    )}
+                    {widget.type === 'bar' && result && (
+                      <WqlBars result={result} unit={widget.unit} />
+                    )}
+                    {widget.type === 'stacked' && result && (
+                      <StackedBar result={result} unit={widget.unit} />
+                    )}
+                  </div>
+                </WidgetFrame>
+              </div>
             );
           })}
         </div>
+
+        {/* WIDGET QUERY INSPECTOR MODAL */}
+        {editingWidgetKey && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <div className="nord-card w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl p-6 shadow-2xl space-y-4 border-border bg-card">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-foreground">
+                    Edit Widget Query: {DEMO_WIDGETS.find((w) => w.key === editingWidgetKey)?.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Use the Dual-Mode Composer (Visual Pills or Raw WQL) to edit this dashboard section query.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setEditingWidgetKey(null)}
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <WqlQueryComposer
+                value={draftQuery}
+                onChange={setDraftQuery}
+                mode="dual"
+              />
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+                <button
+                  onClick={() => setEditingWidgetKey(null)}
+                  className="px-4 py-2 text-xs font-semibold rounded-lg border border-border text-muted-foreground hover:text-foreground"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveEditor}
+                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 shadow-sm"
+                >
+                  Apply to Widget
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

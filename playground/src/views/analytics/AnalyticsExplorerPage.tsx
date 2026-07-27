@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQueryState } from 'nuqs';
 import { Play } from 'lucide-react';
-import { WqlQueryField } from '@/components/organisms/editor/WqlQueryField';
+import { WqlQueryComposer } from '@/components/organisms/analytics/WqlQueryComposer';
 import { queryService, type QueryResult } from '@/services/analytics/query';
 import { ensureRollupFacts } from '@/services/analytics/rollup';
 import {
@@ -121,23 +121,15 @@ export function AnalyticsExplorerPage() {
         />
 
         <section className="flex-1 min-w-0">
+          <WqlQueryComposer
+            value={draft}
+            onChange={setDraft}
+            onSubmit={submit}
+            mode="dual"
+            effortNames={EFFORT_NAMES}
+            className="mb-3"
+          />
           <div className="bg-card border border-border rounded-lg p-3">
-            <div className="flex gap-2">
-              <WqlQueryField
-                value={draft}
-                onChange={setDraft}
-                onSubmit={submit}
-                effortNames={EFFORT_NAMES}
-                placeholder="sum:totalVolume{discipline:strength} by {week}.rollup(1w)"
-                className="flex-1"
-              />
-              <button
-                onClick={() => submit(draft)}
-                className="flex items-center gap-1.5 bg-primary text-primary-foreground rounded px-4 py-2 text-sm font-semibold hover:opacity-90"
-              >
-                <Play size={14} /> Run
-              </button>
-            </div>
 
             <div className="flex flex-wrap gap-1.5 mt-2.5">
               {EXAMPLE_QUERIES.map((ex) => (
