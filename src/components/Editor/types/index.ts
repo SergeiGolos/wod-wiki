@@ -3,7 +3,7 @@
  */
 
 import { ICodeStatement } from '../../../core/models/CodeStatement';
-import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
+import type { IScriptRuntime as ScriptRuntime } from '@/hooks/useRuntimeTimer';
 import type { MdTimerRuntime } from '@/hooks/useRuntimeParser';
 import { IMetric } from '../../../core/models/Metric';
 import { IOutputStatement, OutputStatementType } from '../../../core/models/OutputStatement';

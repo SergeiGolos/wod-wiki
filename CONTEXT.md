@@ -158,6 +158,9 @@ An **Analytics Store** fact row at `grain: 'rollup'` — a windowed aggregate
 driver and persisted so widgets stay dumb queries. Recompute-on-open only; there
 is no scheduler.
 _Avoid_: materialized view, cron aggregate.
+**Discipline & Discipline Factor**:
+The canonical 10-value effort discipline vocabulary (`bodyweight`, `cycling`, `gymnastics`, `kettlebell`, `recovery`, `rowing`, `running`, `strength`, `swimming`, `walking`), defined in `src/effort-registry/disciplines.ts`. Serves as the single source of truth for the effort resolver, fact-row tags, WQL tag dictionary, UI filters, and the TIS discipline multiplier (loaded modalities 1.2, recovery 0.9, monostructural & bodyweight 1.0 default).
+_Avoid_: modality (overloaded), exercise category, legacy factor tables.
 ### Dialect & runtime
 **Block Dialect**:
 The fence tag that declares a block's domain (` ```wod `, ` ```climb `) — the one

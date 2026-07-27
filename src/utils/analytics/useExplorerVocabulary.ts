@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { indexedDBService } from '@/services/db/IndexedDBService';
+import { queryService } from '@/services/analytics/query';
 
 const KNOWN_METRIC_KEYS = ['totalVolume', 'tis', 'sessionLoad', 'totalReps'];
 const KNOWN_TAG_KEYS = ['effort', 'discipline', 'intensity', 'tags', 'note', 'origin'];
@@ -23,7 +23,7 @@ export function useExplorerVocabulary(): ExplorerVocabulary {
       try {
         const end = Date.now();
         const start = end - 365 * 24 * 60 * 60 * 1000;
-        const facts = await indexedDBService.getFactsByTimeRange(start, end);
+        const facts = await queryService.getFactsByTimeRange(start, end);
         if (cancelled) return;
         const keys = new Set(
           [...KNOWN_METRIC_KEYS, ...facts.map((f) => f.metricKey)].filter((k): k is string => k !== undefined),

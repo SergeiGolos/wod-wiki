@@ -74,10 +74,6 @@ export enum MetricType {
   SystemTime = 'system-time'
 }
 
-/**
- * Re-export WhiteboardScript class
- */
-export type { WhiteboardScript } from '@/parser/WhiteboardScript';
 
 /**
  * Re-export BlockKey class

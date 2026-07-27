@@ -128,6 +128,10 @@ function aggregate(values: number[], agg: Aggregator, points: AnalyticsDataPoint
 
 export class QueryService {
   constructor(private readonly store: FactQueryStore = indexedDbFactStore) {}
+  async getFactsByTimeRange(start: number, end: number): Promise<AnalyticsDataPoint[]> {
+    return this.store.getFactsByTimeRange(start, end);
+  }
+
 
   async runQuery(raw: string, options: QueryOptions = {}): Promise<QueryResult> {
     return this.run(parseQuery(raw), options);

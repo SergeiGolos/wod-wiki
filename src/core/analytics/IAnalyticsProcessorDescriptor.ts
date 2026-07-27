@@ -1,4 +1,4 @@
-import type { FenceDialect } from '@/components/Editor/types';
+export type FenceDialect = string;
 import type { MetricType } from '../models/Metric';
 
 /**

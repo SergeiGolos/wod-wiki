@@ -11,7 +11,7 @@
  *   7. Delete the effort
  *   8. Re-run analytics → synthetic fallback with default MET 5.0
  *
- * @see PRD-EFFORT-REGISTRY Phase 4
+ * @see docs/adr/effort-resolution-compile-time.md
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';

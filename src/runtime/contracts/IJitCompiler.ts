@@ -1,5 +1,7 @@
-/**
- * Re-export IJitCompiler from IScriptRuntime where it is co-defined alongside
- * IScriptRuntime to prevent a mutual-import cycle between the two files.
- */
-export type { IJitCompiler } from './IScriptRuntime';
+import type { ICodeStatement } from '../../core/models/CodeStatement';
+import type { IRuntimeBlock } from './IRuntimeBlock';
+import type { IRuntimeActionable } from './primitives/IRuntimeActionable';
+
+export interface IJitCompiler {
+  compile(nodes: ICodeStatement[], runtime: IRuntimeActionable): IRuntimeBlock | undefined;
+}
