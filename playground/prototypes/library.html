@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Library — Find (WQL-style) | WOD Wiki</title>
+  <!--
+    PROTOTYPE — throwaway. Not production code.
+
+    Question: A single "Library" page for non-technical users to find workouts.
+    Search works like WQL — the project's own query language — adapted from
+    analytics-aggregation to workout discovery:
+
+      type:amrap dur:<15 tag:bodyweight not tag:barbell
+
+    Tokens build visual pills (IS/NOT, colored by category); the raw query
+    string and the pills stay in bidirectional sync; a live human-translation
+    banner restates the query in plain English. Borrowed straight from the
+    existing WqlQueryComposer's dual-view model (visual ↔ code ↔ translation).
+
+    Open: file://.../playground/prototypes/library.html
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design Tokens (mirrored from src/index.css — Mineral light) ──── */
+    :root {
+      --bg: #f5f2ed; --bg2: #faf8f4;
+      --card: hsl(40 38% 98%); --card2: #fffdf9;
+      --fg: #2a2218; --fg2: #6a5f52; --fg3: #998d7d;
+      --border: #cdc5b8; --border2: #e8e2d8;
+      --primary: #5980a8; --primary-fg: #faf8f4;
+      --muted: #ede9e2;
+      --accent: #948030; --accent-bg: hsl(46 42% 88%);
+      --success: #508860; --destructive: #a05858;
+      /* Metric tokens — workout-type accent + filter-category hues */
+      --m-time: #5980a8; --m-rep: #a87040; --m-effort: #508860;
+      --m-rounds: #7c62a0; --m-distance: #408888; --m-resistance: #a05858; --m-action: #948030;
+      --radius: 1rem; --radius-2xl: 1.5rem; --radius-pill: 9999px;
+      --shadow-sm: 0 1px 3px rgba(42,34,24,0.06), 0 1px 2px rgba(42,34,24,0.04);
+      --shadow: 0 4px 16px rgba(42,34,24,0.08), 0 1px 3px rgba(42,34,24,0.05);
+      --shadow-lg: 0 12px 40px rgba(42,34,24,0.12), 0 4px 12px rgba(42,34,24,0.06);
+      --font-sans: "Inter", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+    .dark {
+      --bg: #2e3440; --bg2: #353c4a;
+      --card: #3b4252; --card2: #434b5c;
+      --fg: #d8dee9; --fg2: #9099ab; --fg3: #6b7588;
+      --border: #3f4859; --border2: #353d4e;
+      --primary: #81a1c1; --primary-fg: #2e3440;
+      --muted: #262c38; --accent: #ebcb8b; --accent-bg: hsl(40 55% 28%);
+      --success: #a3be8c; --destructive: #bf616a;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3); --shadow: 0 4px 16px rgba(0,0,0,0.35); --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--fg);
+      -webkit-font-smoothing: antialiased; line-height: 1.5; min-height: 100vh;
+      transition: background 0.2s, color 0.2s; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    input { font-family: inherit; }
+    a { color: inherit; text-decoration: none; }
+    ::selection { background: hsl(212 32% 50% / 0.25); }
+
+    /* ── Nav ── */
+    .nav { position: sticky; top: 0; z-index: 40;
+      background: hsl(40 20% 96% / 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border2); }
+    .dark .nav { background: hsl(222 16% 21% / 0.85); }
+    .nav-inner { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; gap: 1.5rem; padding: 0.75rem 1.5rem; }
+    .brand { display: flex; align-items: baseline; gap: 0.5rem; font-weight: 800; }
+    .brand .name { letter-spacing: -0.05em; font-size: 1.05rem; }
+    .brand .ver { font-size: 0.7rem; font-weight: 600; color: var(--fg3); letter-spacing: 0.06em; }
+    .nav-links { display: flex; gap: 0.25rem; flex: 1; }
+    .nav-link { padding: 0.45rem 0.85rem; border-radius: var(--radius-pill); font-size: 0.8rem; font-weight: 600;
+      color: var(--fg2); display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.15s; }
+    .nav-link:hover { background: var(--muted); color: var(--fg); }
+    .nav-link.active { background: var(--fg); color: var(--bg); }
+    .nav-link.new::after { content: "NEW"; font-size: 0.55rem; font-weight: 800; background: var(--success); color: #fff;
+      padding: 1px 5px; border-radius: var(--radius-pill); letter-spacing: 0.08em; }
+    .theme-toggle { width: 2rem; height: 2rem; border-radius: var(--radius-pill); display: grid; place-items: center; color: var(--fg2); transition: all 0.15s; }
+    .theme-toggle:hover { background: var(--muted); color: var(--fg); }
+
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; }
+
+    /* ── Badges & dots ── */
+    .badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem; border-radius: var(--radius-pill);
+      font-size: 0.65rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.4; }
+    .badge.type-ForTime { color: var(--m-action); background: hsl(46 52% 90%); }
+    .badge.type-AMRAP { color: var(--m-effort); background: hsl(140 28% 90%); }
+    .badge.type-EMOM { color: var(--m-time); background: hsl(212 32% 90%); }
+    .badge.type-Intervals { color: var(--m-distance); background: hsl(180 36% 90%); }
+    .badge.type-Strength { color: var(--m-resistance); background: hsl(0 34% 92%); }
+    .badge.type-Technique { color: var(--m-rounds); background: hsl(270 26% 92%); }
+    .dark .badge.type-ForTime { background: hsl(46 52% 22%); } .dark .badge.type-AMRAP { background: hsl(140 28% 20%); }
+    .dark .badge.type-EMOM { background: hsl(212 32% 24%); } .dark .badge.type-Intervals { background: hsl(180 36% 22%); }
+    .dark .badge.type-Strength { background: hsl(0 34% 26%); } .dark .badge.type-Technique { background: hsl(270 26% 26%); }
+    .diff-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; display: inline-block; }
+    .diff-Beginner { background: var(--success); } .diff-Intermediate { background: var(--accent); } .diff-Advanced { background: var(--destructive); }
+
+    /* ══ HERO + WQL QUERY BAR ═══════════════════════════════════════ */
+    .hero { padding: 2.75rem 0 1.5rem; }
+    .hero h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 900; letter-spacing: -0.08em; line-height: 1.05; margin-bottom: 0.4rem; }
+    .hero p { color: var(--fg2); font-size: 1rem; max-width: 52ch; margin-bottom: 1.5rem; }
+
+    .composer { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow); overflow: hidden; }
+    .composer-tabs { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border2); background: var(--bg2); }
+    .composer-tabs .label { font-size: 0.7rem; font-weight: 700; color: var(--fg3); letter-spacing: 0.06em; text-transform: uppercase; margin-right: 0.25rem; }
+    .tab-group { display: flex; background: var(--muted); padding: 0.2rem; border-radius: var(--radius); border: 1px solid var(--border2); gap: 0.15rem; }
+    .tab { padding: 0.35rem 0.75rem; border-radius: calc(var(--radius) - 4px); font-size: 0.75rem; font-weight: 600;
+      color: var(--fg2); display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.12s; }
+    .tab:hover { color: var(--fg); }
+    .tab.on { background: var(--primary); color: var(--primary-fg); box-shadow: var(--shadow-sm); }
+    .composer-tabs .run { margin-left: auto; padding: 0.4rem 0.9rem; border-radius: var(--radius); font-size: 0.75rem; font-weight: 700;
+      background: var(--fg); color: var(--bg); display: inline-flex; align-items: center; gap: 0.35rem; }
+    .composer-tabs .run:hover { opacity: 0.88; }
+
+    .composer-body { padding: 1rem 1.1rem; }
+
+    /* CODE mode — the raw query field */
+    .code-field { position: relative; }
+    .code-field .prefix { position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--primary); font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; }
+    .code-field input { width: 100%; padding: 0.85rem 1rem 0.85rem 4.5rem; border: 1px solid var(--border2); border-radius: var(--radius);
+      background: var(--bg2); color: var(--fg); font-family: var(--font-mono); font-size: 0.92rem; }
+    .code-field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px hsl(212 32% 50% / 0.12); }
+    .code-field .hint { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.68rem; color: var(--fg3); font-family: var(--font-mono); border: 1px solid var(--border2); border-radius: 0.375rem; padding: 2px 6px; }
+
+    /* VISUAL mode — pills */
+    .pills { display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 2.6rem; align-items: center;
+      padding: 0.6rem; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--bg2); }
+    .pills .empty-hint { color: var(--fg3); font-size: 0.85rem; font-style: italic; padding: 0 0.4rem; }
+    .pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.4rem 0.35rem 0.7rem;
+      border-radius: var(--radius-pill); font-size: 0.78rem; font-weight: 600; font-family: var(--font-mono);
+      border: 1px solid; line-height: 1.3; }
+    .pill . polarity { font-size: 0.6rem; font-weight: 800; padding: 1px 5px; border-radius: var(--radius-pill); letter-spacing: 0.06em; }
+    .pill.is { background: hsl(140 28% 92%); color: var(--success); border-color: hsl(140 28% 70%); }
+    .pill.is .polarity { background: var(--success); color: #fff; }
+    .pill.not { background: hsl(0 34% 94%); color: var(--destructive); border-color: hsl(0 34% 75%); }
+    .pill.not .polarity { background: var(--destructive); color: #fff; }
+    .pill.free { background: var(--muted); color: var(--fg); border-color: var(--border); font-style: italic; }
+    .pill.free .polarity { display: none; }
+    .dark .pill.is { background: hsl(140 28% 20%); border-color: hsl(140 28% 35%); }
+    .dark .pill.not { background: hsl(0 34% 26%); border-color: hsl(0 34% 40%); }
+    .pill .x { width: 1.1rem; height: 1.1rem; border-radius: 50%; display: grid; place-items: center; opacity: 0.6; font-size: 0.7rem; }
+    .pill .x:hover { opacity: 1; background: rgba(0,0,0,0.08); }
+    .dark .pill .x:hover { background: rgba(255,255,255,0.12); }
+    .pill .k { opacity: 0.7; }
+    .pill .v { font-weight: 700; }
+
+    /* HUMAN TRANSLATION BANNER */
+    .translation { display: flex; align-items: flex-start; gap: 0.5rem; margin-top: 0.75rem;
+      padding: 0.6rem 0.85rem; border-radius: var(--radius); background: hsl(46 42% 90%); border: 1px solid hsl(46 42% 80%); }
+    .dark .translation { background: hsl(40 55% 22%); border-color: hsl(40 55% 32%); }
+    .translation .spark { color: var(--accent); flex-shrink: 0; margin-top: 1px; }
+    .translation .txt { font-size: 0.82rem; color: var(--fg); line-height: 1.45; }
+    .translation.err { background: hsl(0 34% 94%); border-color: hsl(0 34% 80%); }
+    .translation.err .txt { color: var(--destructive); }
+    .dark .translation.err { background: hsl(0 34% 26%); border-color: hsl(0 34% 40%); }
+
+    /* quick-add suggestions */
+    .suggestions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.85rem; align-items: center; }
+    .suggestions .lbl { font-size: 0.7rem; font-weight: 700; color: var(--fg3); letter-spacing: 0.06em; text-transform: uppercase; margin-right: 0.2rem; }
+    .suggest { padding: 0.32rem 0.7rem; border-radius: var(--radius-pill); font-size: 0.76rem; font-weight: 600;
+      color: var(--fg2); background: var(--card); border: 1px solid var(--border2); transition: all 0.12s; font-family: var(--font-mono); }
+    .suggest:hover { border-color: var(--primary); color: var(--primary); }
+    .suggest .plus { opacity: 0.5; margin-right: 0.2rem; }
+
+    .result-row .main { flex: 1; min-width: 0; }
+    .result-row .main h4 { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.02em; }
+    .result-row .main .src-line { font-size: 0.75rem; color: var(--fg2); margin-top: 0.1rem; font-family: var(--font-mono); }
+    .result-row .meta-cluster { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
+    .result-row .dur { font-size: 0.75rem; color: var(--fg2); font-variant-numeric: tabular-nums; min-width: 3rem; text-align: right; }
+
+    .empty { text-align: center; padding: 4rem 1rem; color: var(--fg2); }
+    .empty h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.3rem; color: var(--fg); }
+
+    .kbd { font-family: var(--font-mono); font-size: 0.7rem; background: var(--muted); border: 1px solid var(--border2); border-radius: 0.3rem; padding: 1px 5px; color: var(--fg2); }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <div class="brand"><span class="name">Wod.Wiki</span><span class="ver">v0.6.0</span></div>
+      <nav class="nav-links">
+        <a class="nav-link" href="#">Home</a>
+        <a class="nav-link" href="#">Journal</a>
+        <a class="nav-link active new" href="#">Library</a>
+        <a class="nav-link" href="#">Efforts</a>
+        <a class="nav-link" href="#">Analytics</a>
+      </nav>
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Find your next workout</h1>
+      <p>Type a query in plain words or WQL tokens — the library filters as you type. Build it visually with pills, or write the code; both stay in sync.</p>
+    </section>
+
+    <!-- ══ WQL COMPOSER ══ -->
+    <div class="composer">
+      <div class="composer-tabs">
+        <span class="label">Build</span>
+        <div class="tab-group">
+          <button class="tab on" data-mode="code" id="tabCode">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>
+            WQL
+          </button>
+          <button class="tab" data-mode="visual" id="tabVisual">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6m11-11h-6M7 12H1m17.5-7.5L15 8m-6 8-3.5 3.5m13 0L15 16M9 8 5.5 4.5"/></svg>
+            Pills
+          </button>
+        </div>
+        <button class="run" id="runBtn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Run
+        </button>
+      </div>
+
+      <div class="composer-body">
+        <!-- CODE mode -->
+        <div id="codeMode">
+          <div class="code-field">
+            <span class="prefix">library:find</span>
+            <input id="codeInput" type="text" spellcheck="false" autocomplete="off"
+              placeholder="type:amrap dur:&lt;15 tag:bodyweight not tag:barbell" />
+            <span class="hint">⌘ /</span>
+          </div>
+        </div>
+
+        <!-- VISUAL mode (pills) -->
+        <div id="visualMode" style="display:none">
+          <div class="pills" id="pills"></div>
+        </div>
+
+        <!-- human translation (shared) -->
+        <div class="translation" id="translation">
+          <svg class="spark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8L20 10l-5 4 1.5 6L12 17l-4.5 3L9 14l-5-4 6.1-1.2L12 3z"/></svg>
+          <span class="txt" id="translationText">Showing every workout in the library.</span>
+        </div>
+
+        <!-- quick-add suggestions -->
+        <div class="suggestions" id="suggestions"></div>
+      </div>
+    </div>
+
+    <!-- ══ FACETS + RESULTS ══ -->
+    <div class="body-grid">
+      <aside class="facets" id="facets"></aside>
+      <section>
+        <div class="results-head">
+          <span class="count"><b id="resultCount">0</b> workouts</span>
+          <button class="clear" id="clearAll">Clear query</button>
+        </div>
+        <div id="results"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // ── Mock data ────────────────────────────────────────────────────
+    const COLLECTIONS = [
+      { id:'cf-girls',    name:'CrossFit Girls',      tags:['benchmark','crossfit'] },
+      { id:'zombiefit',   name:'ZombieFit Archive',   tags:['parkour','bodyweight'] },
+      { id:'hero-wods',   name:'Hero WODs',           tags:['hero','long'] },
+      { id:'beginner-bw', name:'Beginner Bodyweight', tags:['beginner','bodyweight'] },
+      { id:'olympic',     name:'Olympic Lifting',     tags:['barbell','technique'] },
+      { id:'finishers',   name:'Quick Finishers',     tags:['short','conditioning'] },
+    ];
+    const FEEDS = [
+      { id:'crossfit-programming', name:'CrossFit Programming' },
+      { id:'dan-john-40-day',      name:'Dan John 40-Day' },
+    ];
+    const WORKOUTS = [
+      { id:'grace',     name:'Grace',          src:'cf-girls',    type:'ForTime',   dur:5,  diff:'Advanced',     tags:['crossfit','benchmark','barbell'],     preview:'30 Clean & Jerk 135lb', when:'2d' },
+      { id:'fran',      name:'Fran',           src:'cf-girls',    type:'ForTime',   dur:12, diff:'Advanced',     tags:['crossfit','benchmark'],               preview:'21-15-9 Thrusters 95lb / Pull-ups', when:'5d' },
+      { id:'cindy',     name:'Cindy',          src:'cf-girls',    type:'AMRAP',     dur:20, diff:'Intermediate', tags:['crossfit','bodyweight'],              preview:'AMRAP 20: 5 Pull-ups 10 Push-ups 15 Squats', when:'1w' },
+      { id:'karen',     name:'Karen',          src:'cf-girls',    type:'ForTime',   dur:25, diff:'Advanced',     tags:['crossfit','bodyweight'],              preview:'150 Wall Ball 20lb', when:'2w' },
+      { id:'murph',     name:'Murph',          src:'hero-wods',   type:'ForTime',   dur:45, diff:'Advanced',     tags:['hero','bodyweight','long'],           preview:'1mi Run · 100 PU · 200 PP · 300 Sq · 1mi Run', when:'1mo' },
+      { id:'dt',        name:'DT',             src:'hero-wods',   type:'ForTime',   dur:15, diff:'Advanced',     tags:['hero','barbell'],                     preview:'5 rds: 12 DL 155 · 9 HPC · 6 PJ', when:'1mo' },
+      { id:'wod25',     name:'WOD 25',         src:'zombiefit',   type:'Intervals', dur:15, diff:'Beginner',     tags:['parkour','bodyweight'],               preview:'(3) 50m Quad Move · 10 JJ · 5 Burpees', when:'3d' },
+      { id:'airsq-lad', name:'Air Squat Ladder', src:'beginner-bw', type:'EMOM',    dur:10, diff:'Beginner',     tags:['beginner','bodyweight'],              preview:'EMOM 10: +2 squats each minute', when:'4d' },
+      { id:'push-pyr',  name:'Push-up Pyramid', src:'beginner-bw', type:'ForTime',  dur:8,  diff:'Beginner',     tags:['beginner','bodyweight'],              preview:'1-2-3-…-10-…-1 Push-ups', when:'6d' },
+      { id:'scaled-fran',name:'Scaled Fran',   src:'beginner-bw', type:'ForTime',   dur:14, diff:'Beginner',     tags:['beginner','crossfit'],                preview:'21-15-9 Thrusters 45lb / Banded PU', when:'1w' },
+      { id:'40day',     name:'40-Day Easy Strength', src:'dan-john-40-day', type:'Strength', dur:30, diff:'Beginner', tags:['barbell','program'],              preview:'2 lifts · 5×5 @ easy · daily', when:'today' },
+      { id:'daily727',  name:'Daily WOD 07/27', src:'crossfit-programming', type:'AMRAP', dur:12, diff:'Intermediate', tags:['crossfit','mixed'],             preview:'AMRAP 12: 10 WB · 10 Box Jump · 10 KBS', when:'today' },
+      { id:'baseline',  name:'Baseline',       src:'crossfit-programming', type:'ForTime', dur:7, diff:'Beginner', tags:['crossfit','mixed'],                preview:'500m Row · 40 Sq · 30 Sit-ups · 20 PU', when:'1d' },
+      { id:'tabata-as', name:'Tabata Air Squats', src:'finishers', type:'Intervals', dur:4, diff:'Beginner',    tags:['short','bodyweight'],                preview:'8 × :20 on / :10 off · Air Squats', when:'2d' },
+      { id:'core-fin',  name:'Core Finisher',  src:'finishers',    type:'AMRAP',     dur:5,  diff:'Intermediate', tags:['short','bodyweight'],               preview:'AMRAP 5: 10 Hollow · 10 Superman', when:'3d' },
+      { id:'hpc-drill', name:'Hang Power Clean Drill', src:'olympic', type:'Technique', dur:20, diff:'Intermediate', tags:['barbell','technique'],            preview:'5 × 3 HPC @ 70% · focus on pull under', when:'5d' },
+      { id:'snatch-bal',name:'Snatch Balance', src:'olympic',      type:'Technique', dur:15, diff:'Intermediate', tags:['barbell','technique'],               preview:'5 × 2 Snatch Balance · build to heavy', when:'1w' },
+    ];
+
+    // ── WQL-style query model ───────────────────────────────────────
+    // token grammar (flat, whitespace-separated):
+    //   free        := <word>                      (matches name/preview/tags)
+    //   filter      := [not|-] key op value        op ∈ : | < | > | <= | >= | ..
+    //   key         := type | tag | collection | feed | diff | dur
+    //   value       := word(|word)*                (OR set)
+    const KEYS = {
+      type:       { label:'type',       values:['ForTime','AMRAP','EMOM','Intervals','Strength','Technique'] },
+      diff:       { label:'difficulty', values:['Beginner','Intermediate','Advanced'] },
+      collection: { label:'collection', values:COLLECTIONS.map(c=>c.id) },
+      feed:       { label:'feed',       values:FEEDS.map(f=>f.id) },
+      tag:        { label:'tag',        values:['bodyweight','barbell','crossfit','beginner','hero','short','parkour','technique','benchmark','long'] },
+      dur:        { label:'duration',   values:null, unit:'min' },
+    };
+    const KEY_ALIASES = { difficulty:'diff', duration:'dur', col:'collection', equip:'tag', intensity:'diff' };
+
+    function tokenize(q) {
+      const out = [];
+      const parts = q.trim().split(/\s+/).filter(Boolean);
+      let pendingNot = false; // a bare `not` / `-` carries to the next token
+      for (const raw of parts) {
+        if (/^(not|not:|-)$/i.test(raw)) { pendingNot = true; continue; }
+        // split on the FIRST ':' — the colon is always the key/value separator.
+        // the value may itself carry a comparison: <15, >=15, 15..30.
+        const ci = raw.indexOf(':');
+        if (ci < 0) { out.push({ free: raw }); pendingNot = false; continue; }
+        let key = raw.slice(0, ci).toLowerCase();
+        if (key === 'not') key = raw.slice(3, ci).toLowerCase(); // `not:key:val` form
+        const val = raw.slice(ci + 1);
+        const resolved = KEY_ALIASES[key] || key;
+        if (!KEYS[resolved] || val === '') {
+          // not a recognized filter — treat whole token as freeform
+          out.push({ free: raw }); pendingNot = false; continue;
+        }
+        const negate = pendingNot || /^not:/i.test(raw);
+        pendingNot = false;
+        // parse a leading comparison operator off the value (dur:<15, dur:>=15, dur:15..30)
+        const cmp = val.match(/^(<=|>=|<>|\.\.|<|>)/);
+        if (cmp) {
+          const op = cmp[1];
+          const rest = val.slice(cmp[1].length);
+          if (op === '..') {
+            const [a, b] = rest.split('..');
+            out.push({ negate, key: resolved, op, values: [a, b].filter(Boolean) });
+          } else {
+            out.push({ negate, key: resolved, op, values: rest.split('|').filter(Boolean) });
+          }
+        } else {
+          out.push({ negate, key: resolved, op: ':', values: val.split('|').filter(Boolean) });
+        }
+      }
+      return out;
+    }
+
+    function serialize(tokens) {
+      // round-trip: the colon is always the key/value separator; a comparison
+      // op (< > <= >= ..) rides inside the value: dur:<15, dur:15..30.
+      return tokens.map(t => {
+        if (t.free !== undefined) return t.free;
+        const pol = t.negate ? 'not ' : '';
+        if (t.op === '..') return `${pol}${t.key}:${t.values[0] ?? ''}..${t.values[1] ?? ''}`;
+        const vs = t.values.join('|');
+        return `${pol}${t.key}:${t.op === ':' ? '' : t.op}${vs}`;
+      }).join(' ');
+    }
+
+    // does a workout satisfy one token?
+    function matchToken(w, t) {
+      if (t.free !== undefined) {
+        const q = t.free.toLowerCase();
+        return w.name.toLowerCase().includes(q) || w.preview.toLowerCase().includes(q) || w.tags.some(tg=>tg.includes(q));
+      }
+      const getVals = (key) => {
+        if (key === 'type') return [w.type];
+        if (key === 'diff') return [w.diff];
+        if (key === 'collection') return COLLECTIONS.find(c=>c.id===w.src) ? [w.src] : [];
+        if (key === 'feed') return FEEDS.find(f=>f.id===w.src) ? [w.src] : [];
+        if (key === 'tag') return w.tags;
+        if (key === 'dur') return [String(w.dur)];
+        return [];
+      };
+      const have = getVals(t.key);
+      if (t.key === 'dur') {
+        const n = parseFloat(t.values[0]);
+        if (t.op === '<')  return w.dur <  n;
+        if (t.op === '>')  return w.dur >  n;
+        if (t.op === '<=') return w.dur <= n;
+        if (t.op === '>=') return w.dur >= n;
+        if (t.op === '..') { const n2 = parseFloat(t.values[1]||'999'); return w.dur >= n && w.dur <= n2; }
+        return t.values.some(v => { const n = parseFloat(v); return w.dur === n; });
+      }
+      const hit = t.values.some(v => have.some(h => h.toLowerCase() === v.toLowerCase()));
+      return t.negate ? !hit : hit;
+    }
+
+    function humanTranslation(tokens) {
+      if (tokens.length === 0) return 'Showing every workout in the library.';
+      const parts = tokens.map(t => {
+        if (t.free !== undefined) return `mentioning “${t.free}”`;
+        const k = KEYS[t.key].label;
+        let vs = t.values.join(' or ');
+        if (t.key === 'dur') {
+          const n = parseFloat(t.values[0]);
+          if (t.op === '<')  vs = `under ${n} min`;
+          else if (t.op === '>')  vs = `over ${n} min`;
+          else if (t.op === '<=') vs = `${n} min or less`;
+          else if (t.op === '>=') vs = `${n} min or more`;
+          else if (t.op === '..') vs = `${t.values[0]}–${t.values[1]||'?'} min`;
+          return `${t.negate?'excluding':'limited to'} ${vs}`;
+        }
+        if (t.key === 'collection') vs = t.values.map(v=>COLLECTIONS.find(c=>c.id===v)?.name||v).join(' or ');
+        if (t.key === 'feed')       vs = t.values.map(v=>FEEDS.find(f=>f.id===v)?.name||v).join(' or ');
+        return `${t.negate?'without':'with'} ${k} ${vs}`;
+      });
+      // join with commas + and
+      if (parts.length === 1) return `Showing workouts ${parts[0]}.`;
+      return `Showing workouts ${parts.slice(0,-1).join(', ')} and ${parts[parts.length-1]}.`;
+    }
+
+    // ── State ───────────────────────────────────────────────────────
+    let state = { tokens: [], mode: 'code', error: null };
+    const el = (s) => document.querySelector(s);
+    const els = (s) => [...document.querySelectorAll(s)];
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+    function srcName(w) {
+      return COLLECTIONS.find(c=>c.id===w.src)?.name || FEEDS.find(f=>f.id===w.src)?.name || w.src;
+    }
+
+    function syncCodeFromTokens() { el('#codeInput').value = serialize(state.tokens); }
+
+    function setQuery(q) {
+      const tokens = tokenize(q);
+      state.tokens = tokens;
+      state.error = null;
+      el('#codeInput').value = q;
+      render();
+    }
+
+    function addToken(t) {
+      // avoid exact dupes; toggle negation if same key+vals clicked again
+      const existing = state.tokens.find(x => x.key===t.key && x.op===t.op && JSON.stringify(x.values)===JSON.stringify(t.values) && x.free===t.free);
+      if (existing) { existing.negate = !existing.negate; }
+      else state.tokens.push(t);
+      syncCodeFromTokens(); render();
+    }
+    function removeToken(idx) { state.tokens.splice(idx,1); syncCodeFromTokens(); render(); }
+
+    // ── Render ──────────────────────────────────────────────────────
+    function render() {
+      // translation
+      el('#translationText').textContent = humanTranslation(state.tokens);
+      el('#translation').classList.toggle('err', !!state.error);
+
+      // pills (visual)
+      const pillsHTML = state.tokens.length === 0
+        ? `<span class="empty-hint">No filters yet — click a suggestion or facet, or type a token like <span class="kbd">type:amrap</span></span>`
+        : state.tokens.map((t,i) => {
+            if (t.free !== undefined) return `<span class="pill free" data-i="${i}"><span class="v">“${esc(t.free)}”</span><button class="x" data-rm="${i}">✕</button></span>`;
+            const pol = t.negate ? 'not' : 'is';
+            const polLbl = t.negate ? 'NOT' : 'IS';
+            const vs = t.values.join('|');
+            const opStr = t.op === ':' ? ':' : t.op;
+            return `<span class="pill ${pol}" data-i="${i}">
+              <span class="polarity">${polLbl}</span>
+              <span class="k">${esc(t.key)}${opStr}</span><span class="v">${esc(vs)}</span>
+              <button class="x" data-rm="${i}">✕</button></span>`;
+          }).join('');
+      el('#pills').innerHTML = pillsHTML;
+      els('#pills [data-rm]').forEach(b => b.onclick = () => removeToken(+b.dataset.rm));
+
+      // suggestions (quick-add) — context-aware: show keys not yet used
+      const usedKeys = new Set(state.tokens.map(t=>t.key));
+      const sugg = [];
+      if (!usedKeys.has('type')) sugg.push({ k:'type', v:'AMRAP', lbl:'type:amrap' });
+      if (!usedKeys.has('type')) sugg.push({ k:'type', v:'ForTime', lbl:'type:fortime' });
+      if (!usedKeys.has('dur'))  sugg.push({ k:'dur', v:'15', op:'<', lbl:'dur:<15' });
+      if (!usedKeys.has('tag'))  sugg.push({ k:'tag', v:'bodyweight', lbl:'tag:bodyweight' });
+      if (!usedKeys.has('tag'))  sugg.push({ k:'tag', v:'beginner', lbl:'tag:beginner' });
+      if (!usedKeys.has('diff')) sugg.push({ k:'diff', v:'Beginner', lbl:'diff:beginner' });
+      el('#suggestions').innerHTML = `<span class="lbl">Quick add</span>` +
+        sugg.map(s => `<button class="suggest" data-sugg='${JSON.stringify(s)}'><span class="plus">+</span>${esc(s.lbl)}</button>`).join('');
+      els('#suggestions .suggest').forEach(b => b.onclick = () => {
+        const s = JSON.parse(b.dataset.sugg);
+        addToken({ negate:false, key:s.k, op:s.op||':', values:[s.v] });
+      });
+
+      // facets — reflect + write tokens
+      renderFacets();
+
+      // results
+      const results = WORKOUTS.filter(w => state.tokens.every(t => matchToken(w,t)));
+      el('#resultCount').textContent = results.length;
+      el('#results').innerHTML = results.length === 0
+        ? `<div class="empty"><h3>No workouts match</h3><p>Loosen a filter or clear the query.</p></div>`
+        : results.map((w,i) => `
+          <div class="result-row">
+            <span class="num">${i+1}</span>
+            <div class="main">
+              <h4>${esc(w.name)}</h4>
+              <div class="src-line">${esc(srcName(w))} · ${esc(w.preview)}</div>
+            </div>
+            <div class="meta-cluster">
+              <span class="badge type-${w.type}">${w.type}</span>
+              <span class="diff-dot diff-${w.diff}" title="${w.diff}"></span>
+              <span class="dur">${w.dur}m</span>
+            </div>
+          </div>`).join('');
+    }
+
+    function renderFacets() {
+      const FACETS = [
+        { group:'Format',     key:'type',       vals:KEYS.type.values },
+        { group:'Difficulty', key:'diff',       vals:KEYS.diff.values },
+        { group:'Goal',       key:'tag',        vals:['bodyweight','barbell','crossfit','beginner','hero','short'] },
+        { group:'Collection', key:'collection', vals:COLLECTIONS.map(c=>({id:c.id,name:c.name})) },
+      ];
+      el('#facets').innerHTML = FACETS.map(f => {
+        const items = f.vals.map(v => {
+          const vid = typeof v === 'string' ? v : v.id;
+          const label = typeof v === 'string' ? v : v.name;
+          const n = WORKOUTS.filter(w => matchToken(w, { negate:false, key:f.key, op:':', values:[vid] })).length;
+          const active = state.tokens.some(t => t.key===f.key && t.values.includes(vid) && !t.negate);
+          return `<div class="facet-item ${active?'on':''}" data-fk="${f.key}" data-fv="${esc(vid)}"><span>${esc(label)}</span><span class="n">${n}</span></div>`;
+        }).join('');
+        return `<div class="facet-group"><h3>${f.group}</h3><div class="facet-list">${items}</div></div>`;
+      }).join('');
+      els('#facets .facet-item').forEach(node => node.onclick = () => {
+        const k = node.dataset.fk, v = node.dataset.fv;
+        const existing = state.tokens.find(t => t.key===k && t.values.includes(v));
+        if (existing) { existing.negate = !existing.negate; }
+        else state.tokens.push({ negate:false, key:k, op:':', values:[v] });
+        syncCodeFromTokens(); render();
+      });
+    }
+
+    // ── Wiring ──────────────────────────────────────────────────────
+    el('#codeInput').addEventListener('input', e => {
+      state.tokens = tokenize(e.target.value);
+      render();
+    });
+    el('#runBtn').onclick = () => { state.tokens = tokenize(el('#codeInput').value); render(); el('#results').scrollIntoView({behavior:'smooth',block:'nearest'}); };
+
+    // mode tabs
+    els('.tab').forEach(t => t.onclick = () => {
+      state.mode = t.dataset.mode;
+      els('.tab').forEach(x => x.classList.toggle('on', x === t));
+      el('#codeMode').style.display   = state.mode === 'code' ? 'block' : 'none';
+      el('#visualMode').style.display = state.mode === 'visual' ? 'block' : 'none';
+      // switching to visual keeps the code value authoritative; pills read from state.tokens
+    });
+
+    el('#clearAll').onclick = () => setQuery('');
+    el('#themeToggle').onclick = () => document.documentElement.classList.toggle('dark');
+
+    document.addEventListener('keydown', e => {
+      if ((e.metaKey||e.ctrlKey) && e.key === '/') { e.preventDefault(); el('#codeInput').focus(); }
+    });
+
+    // ── Seed an example query so the dual-sync is immediately legible ──
+    setQuery('type:amrap tag:bodyweight');
+  </script>
+</body>
+</html>
