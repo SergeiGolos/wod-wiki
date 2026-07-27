@@ -4,7 +4,7 @@ import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../models/Metric';
 import { IOutputStatement } from '../../models/OutputStatement';
 import { TimeSpan } from '../../../runtime/models/TimeSpan';
-
+import { extractEffortData } from '../effortResolution';
 /**
  * RepProjectionEngine - Accumulates total repetitions across the whole workout.
  *
@@ -20,7 +20,7 @@ export class RepProjectionEngine implements ISummaryProcessor {
   summarize(outputs: IOutputStatement[]): ProjectionResult[] {
     const metrics = extractMetrics(outputs);
     const overall = this.calculateFromWorkout(metrics);
-    const perEffort = this._runPerEffort(metrics);
+    const perEffort = this._runPerEffort(outputs);
     return [...overall, ...perEffort];
   }
 
@@ -28,34 +28,52 @@ export class RepProjectionEngine implements ISummaryProcessor {
     return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   }
 
-  private _runPerEffort(metrics: IMetric[]): ProjectionResult[] {
-    const grouped = new Map<string, number>();
-    let currentEffort: string | null = null;
+  private _runPerEffort(outputs: IOutputStatement[]): ProjectionResult[] {
+    const grouped = new Map<string, { name: string; slug: string; reps: number }>();
 
-    for (const m of metrics) {
-      if (m.type === MetricType.Effort && typeof m.value === 'string') {
-        currentEffort = m.value;
-        if (!grouped.has(currentEffort)) grouped.set(currentEffort, 0);
+    for (const output of outputs) {
+      if (output.outputType !== 'segment') continue;
+      const rawMetrics = output.metrics?.rawMetrics ?? [];
+
+      const effortData = extractEffortData(rawMetrics);
+      const effortMetric = rawMetrics.find(m => m.type === MetricType.Effort && typeof m.value === 'string');
+
+      const effortName = (effortData?.resolved.label || (typeof effortMetric?.value === 'string' ? effortMetric.value : '')).trim();
+      const effortSlug = effortData?.resolved.slug || (effortName ? this.toSlug(effortName) : '');
+
+      if (!effortSlug || effortSlug === 'rest' || effortSlug === 'pause' || effortSlug.startsWith('rest-')) {
         continue;
       }
-      if (currentEffort && m.type === MetricType.Rep && typeof m.value === 'number') {
-        grouped.set(currentEffort, (grouped.get(currentEffort) ?? 0) + m.value);
+
+      let statementReps = 0;
+      for (const m of rawMetrics) {
+        if (m.type === MetricType.Rep && typeof m.value === 'number') {
+          statementReps += m.value;
+        }
+      }
+
+      if (statementReps > 0) {
+        const existing = grouped.get(effortSlug);
+        if (existing) {
+          existing.reps += statementReps;
+        } else {
+          grouped.set(effortSlug, { name: effortName || effortSlug, slug: effortSlug, reps: statementReps });
+        }
       }
     }
 
     const now = new Date();
     const results: ProjectionResult[] = [];
-    for (const [effortName, totalReps] of grouped.entries()) {
-      if (totalReps <= 0) continue;
+    for (const item of grouped.values()) {
       results.push({
         name: 'Total Reps',
-        value: totalReps,
+        value: item.reps,
         unit: 'reps',
         metricType: MetricType.Rep,
         timeSpan: new TimeSpan(now.getTime(), now.getTime()),
         metadata: {
-          exerciseName: effortName,
-          effortSlug: this.toSlug(effortName),
+          exerciseName: item.name,
+          effortSlug: item.slug,
         },
       });
     }

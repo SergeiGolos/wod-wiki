@@ -18,9 +18,10 @@
 
 export const DAY = 86_400_000;
 
-/** UTC day bucket for a canonical timestamp. */
+/** Local day bucket for a canonical timestamp. */
 export function dayBucket(ts: number): number {
-  return Math.floor(ts / DAY);
+  const d = new Date(ts);
+  return Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / DAY);
 }
 
 /** The three Rollup Fact metric definitions (Canonical Metric Keys are `calc.<target>`). */

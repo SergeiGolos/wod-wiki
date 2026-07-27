@@ -20,6 +20,10 @@ import { parseQuery, type Aggregator, type ParsedQuery, type Series, type Series
 
 const DAY = 86_400_000;
 
+function localDateString(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 /** Store surface the Query Service needs — injectable for tests. */
 export interface FactQueryStore {
   getFactsByMetric(metricKey: string): Promise<AnalyticsDataPoint[]>;
@@ -97,7 +101,7 @@ function matchesFilters(row: AnalyticsDataPoint, filters: TagFilter[], noteTags:
 
 /** Dimension value for grouping; virtual time dims bucket the canonical time. */
 function dimValue(row: AnalyticsDataPoint, dim: string, noteTags: ReadonlyMap<string, readonly string[]>): string {
-  if (dim === 'day') return new Date(Math.floor(row.timestamp / DAY) * DAY).toISOString().slice(0, 10);
+  if (dim === 'day') return localDateString(row.timestamp);
   if (dim === 'week') {
     const d = new Date(row.timestamp);
     const monday = new Date(row.timestamp - ((d.getDay() + 6) % 7) * DAY);
