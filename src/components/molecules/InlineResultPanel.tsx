@@ -25,6 +25,8 @@ import type { WorkoutResult } from '@/types/storage';
 import { groupResultsByVersion } from '@/utils/groupResultsByVersion';
 import { notePersistence } from '@/services/persistence';
 import { MetricType } from '@/core/models/Metric';
+import { PRBadge } from '@/components/atoms/PRBadge';
+import { detectPRsForWorkoutResult, type PRMetricStatus } from '@/services/analytics/pr/prDetection';
 
 import type { ProjectionResult } from '@/core/analytics/ProjectionResult';
 import { ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
@@ -398,7 +400,20 @@ const ResultRow: React.FC<ResultRowProps> = ({
   const { overrides, setOverride } = useUserOverrides(false);
   const { collectionItems } = useCollectionMetrics(segments, overrides);
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<number>>(new Set());
+  const [prStatuses, setPRStatuses] = useState<PRMetricStatus[]>([]);
 
+  useEffect(() => {
+    if (!result.blockContentId || !result.id) return;
+    let cancelled = false;
+    detectPRsForWorkoutResult(result.blockContentId, result.id)
+      .then((prs) => {
+        if (!cancelled) setPRStatuses(prs.filter((p) => p.isPR));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [result.blockContentId, result.id]);
   const duration = formatDuration(result.data?.duration ?? 0);
   const timeLabel = formatTime(result.createdAt);
   const dateLabel = formatDateShort(new Date(result.createdAt));
@@ -483,11 +498,14 @@ const ResultRow: React.FC<ResultRowProps> = ({
 
         {/* Text column */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-foreground truncate">
-            {duration !== '--:--' ? duration : 'Result'}
-          </h3>
-          <p className="text-[11px] text-muted-foreground truncate">{dateLabel}</p>
-        </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-sm font-semibold text-foreground truncate">
+              {duration !== '--:--' ? duration : 'Result'}
+            </h3>
+            {prStatuses.map((pr) => (
+              <PRBadge key={pr.metricKey} isPR={true} label={pr.metricLabel} improvement={pr.improvement} unit={pr.unit} />
+            ))}
+          </div>
 
         {/* Inline metric chips — visible in both collapsed and expanded */}
         {projections.length > 0 && (
@@ -520,6 +538,7 @@ const ResultRow: React.FC<ResultRowProps> = ({
             )}
           </div>
         )}
+        </div>
       </button>
 
       {/* Analytics scorecard — shown only when expanded */}
