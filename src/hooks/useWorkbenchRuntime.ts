@@ -57,18 +57,23 @@ export const useWorkbenchRuntime = <T extends ScriptBlock | null = ScriptBlock |
     // Save partial results on unmount if workout is still running/paused
     useEffect(() => {
         return () => {
-            // Check current execution status from the hook's scope (using refs or direct)
-            // Since execution is a proxy/state from another hook, we need to be careful.
-            // But execution.status/startTime/elapsedTime should be available in the closure for cleanup.
+            // Read via latestRef — the [completeWorkout] dep means this closure
+            // would otherwise hold the MOUNT-TIME execution state and the
+            // partial save would silently never fire for stable callbacks.
+            const { execution: latestExecution, runtime: activeRuntime } = latestRef.current;
 
-            const isFinishing = execution.status === 'running' || execution.status === 'paused';
-            if (isFinishing && execution.startTime) {
-                const now = latestRef.current.runtime?.nowProvider ?? wallClockNow;
+            const isFinishing = latestExecution.status === 'running' || latestExecution.status === 'paused';
+            if (isFinishing && latestExecution.startTime) {
+                const now = activeRuntime?.nowProvider ?? wallClockNow;
                 console.log('[useWorkbenchRuntime] Saving partial workout results on unmount');
-                completeWorkout({
-                    startTime: execution.startTime,
+                // Same finalize + logs as the formal completion paths — a
+                // navigated-away session is still a real session, with facts.
+                activeRuntime?.finalizeAnalytics();
+                latestRef.current.completeWorkout({
+                    startTime: latestExecution.startTime,
                     endTime: now.nowMs(),
-                    duration: execution.elapsedTime,
+                    duration: latestExecution.elapsedTime,
+                    logs: (activeRuntime?.getOutputStatements() || []).map(toStoredOutputStatement),
                     completed: false // Explicitly marked as partial
                 });
             }

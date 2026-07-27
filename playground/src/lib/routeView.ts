@@ -71,6 +71,8 @@ export type PageKind =
   | 'collections'
   | 'effortsCatalog'
   | 'effortDetail'
+  | 'analyticsExplorer'
+  | 'analyticsDashboard'
   | 'canvas'
   | 'playground'
   | 'journalEntry'
@@ -187,6 +189,8 @@ function deriveWorkout(
     '/feeds': 'Feeds',
     '/guide/syntax': 'Syntax',
     '/collections': 'Collections',
+    '/analytics/explorer': 'Metric Explorer',
+    '/analytics/dashboard': 'Analytics Dashboard',
   }
   const namedMatch = named[pathname]
   if (namedMatch) {
@@ -310,6 +314,8 @@ function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanva
   if (pathname === '/collections') return 'collections'
   if (pathname === '/efforts') return 'effortsCatalog'
   if (pathname.startsWith('/effort/')) return 'effortDetail'
+  if (pathname === '/analytics/explorer') return 'analyticsExplorer'
+  if (pathname === '/analytics/dashboard') return 'analyticsDashboard'
   if (canvasPage) return 'canvas'
   if (flags.isPlaygroundRoute && flags.effectivePlaygroundId) return 'playground'
   if (flags.isJournalEntryRoute && flags.journalEntryId) return 'journalEntry'

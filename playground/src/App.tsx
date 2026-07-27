@@ -33,6 +33,7 @@ import { Concept3LandingPage } from './pages/Concept3LandingPage'
 import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
 import { canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
+import { ScrollCanvasPage } from './canvas/ScrollCanvasPage'
 import { JournalListPage } from './views/JournalListPage'
 import { FeedsPage } from './views/FeedsPage'
 import { FeedDetailPage } from './pages/FeedDetailPage'
@@ -55,6 +56,8 @@ import { JournalZipLoadPage } from './pages/JournalZipLoadPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
 import { EffortDetailPage } from './pages/EffortDetailPage'
+import { AnalyticsExplorerPage } from './views/analytics/AnalyticsExplorerPage'
+import { AnalyticsDashboardPage } from './views/analytics/AnalyticsDashboardPage'
 import { Toaster } from '@/components/atoms/primitives/toaster'
 import { PageActions } from './pages/shared/PageActions'
 import { ActionsMenu } from './pages/shared/PageToolbar'
@@ -170,11 +173,22 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     collections: () => <CollectionsPage />,
     effortsCatalog: () => <EffortsCatalogPage />,
     effortDetail: () => <EffortDetailPage />,
+    analyticsExplorer: () => <AnalyticsExplorerPage />,
+    analyticsDashboard: () => <AnalyticsDashboardPage />,
     canvas: () =>
       view.canvasPage!.route === '/' ? (
         <HomeView
           wodFiles={workoutFiles as Record<string, string>}
           theme={actualTheme}
+        />
+      ) : view.canvasPage!.scroll ? (
+        <ScrollCanvasPage
+          page={view.canvasPage!}
+          wodFiles={workoutFiles as Record<string, string>}
+          theme={actualTheme}
+          workoutItems={workoutItems}
+          onSelect={handleSelectWorkout}
+          onScrollToSection={scrollToSection}
         />
       ) : (
         <MarkdownCanvasPage
@@ -361,6 +375,9 @@ export function App() {
                   ))}
                   <Route path={ROUTE_PATTERNS.efforts} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.effort} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.analytics} element={<Navigate to={ROUTE_PATTERNS.analyticsExplorer} replace />} />
+                  <Route path={ROUTE_PATTERNS.analyticsExplorer} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.analyticsDashboard} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </NavProvider>

@@ -138,4 +138,66 @@ describe('useWorkbenchRuntime', () => {
         // useWorkbenchRuntime must NOT call setAnalyticsEngine again.
         expect(setAnalyticsEngine).not.toHaveBeenCalled();
     });
+
+    it('finalizes analytics and persists logs on the unmount partial-save path', async () => {
+        const { useWorkbenchRuntime } = await import('./useWorkbenchRuntime');
+        const { OutputStatement } = await import('@/core/models/OutputStatement');
+
+        const finalizeAnalytics = mock(() => []);
+        const liveOutput = new OutputStatement({
+            outputType: 'analytics',
+            timeSpan: { started: 1, ended: 2 },
+            sourceBlockKey: 'block-1',
+            stackLevel: 0,
+            metrics: MetricContainer.empty('seg-1')
+        });
+        const getOutputStatements = mock(() => [liveOutput]);
+        const mockRuntime = {
+            tracker: { recordMetric: mock(() => { }) },
+            setAnalyticsEngine: mock(() => { }),
+            handle: mock(() => { }),
+            finalizeAnalytics,
+            getOutputStatements,
+            subscribeToStack: mock(() => mock(() => { })),
+            eventBus: { register: mock(() => mock(() => { })), dispatch: mock(() => { }), unregisterById: mock(() => { }) }
+        };
+
+        const lifecycle = {
+            // Structural mock — only the surface the hook touches.
+            runtime: mockRuntime as unknown as import('@/runtime/ScriptRuntime').ScriptRuntime,
+            isInitializing: false,
+            error: null,
+            initializeRuntime: mock(() => { }),
+            disposeRuntime: mock(() => { })
+        };
+
+        const completeWorkout = mock((_results: WorkoutResults) => { });
+        const startWorkout = mock((_block: ScriptBlock) => { });
+        const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+            <RuntimeLifecycleContext.Provider value={lifecycle}>
+                {children}
+            </RuntimeLifecycleContext.Provider>
+        );
+
+        const { result, unmount } = renderHook(
+            () => useWorkbenchRuntime('track', null, completeWorkout, startWorkout),
+            { wrapper }
+        );
+
+        // Drive the execution state to 'running' so the unmount cleanup takes
+        // the partial-save branch.
+        act(() => {
+            result.current.handleStart();
+        });
+
+        unmount();
+
+        // Same finalize + logs contract as the formal completion paths.
+        expect(finalizeAnalytics).toHaveBeenCalledTimes(1);
+        expect(completeWorkout).toHaveBeenCalledTimes(1);
+        const saved = completeWorkout.mock.calls[0]?.[0] as WorkoutResults;
+        expect(saved.completed).toBe(false);
+        expect(saved.logs).toHaveLength(1);
+        expect(saved.logs?.[0]).toMatchObject({ outputType: 'analytics', sourceBlockKey: 'block-1' });
+    });
 });

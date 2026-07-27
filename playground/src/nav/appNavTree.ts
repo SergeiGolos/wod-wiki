@@ -5,7 +5,7 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Journal, Feeds, Collections, Efforts
+ *   L1: Home, Journal, Feeds, Collections, Efforts, Analytics
  *   L2 of Home:        Zero to Hero + Syntax/* (canvas pages)
  *   L2 of Journal:     <JournalNavPanel>   — calendar + tag chips; the
  *                                          ?mode= view-mode param drives the
@@ -13,6 +13,7 @@
  *   L2 of Feeds:       <FeedsNavPanel>     — feed selector
  *   L2 of Collections: <CollectionsNavPanel> — category toggles
  *   L2 of Efforts:     <EffortsNavPanel>   — origin/discipline filters + recent workouts
+ *   L2 of Analytics:   Explorer + Dashboard (static children)
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  */
 
@@ -22,7 +23,7 @@ import {
   FolderIcon,
   CodeBracketIcon,
 } from '@heroicons/react/20/solid'
-import { RssIcon, Dumbbell } from 'lucide-react'
+import { RssIcon, Dumbbell, ChartBarIcon } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
@@ -141,6 +142,33 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       action: { type: 'route', to: ROUTE_PATTERNS.efforts },
       isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
       panel: EffortsNavPanel,
+    },
+
+    {
+      id: 'analytics',
+      label: 'Analytics',
+      level: 1,
+      icon: ChartBarIcon,
+      action: { type: 'route', to: ROUTE_PATTERNS.analyticsExplorer },
+      isActive: (loc: Location) => loc.pathname.startsWith('/analytics'),
+      children: [
+        {
+          id: 'analytics-explorer',
+          label: 'Explorer',
+          level: 2,
+          icon: ChartBarIcon,
+          action: { type: 'route', to: ROUTE_PATTERNS.analyticsExplorer },
+          isActive: (loc: Location) => loc.pathname === '/analytics/explorer',
+        },
+        {
+          id: 'analytics-dashboard',
+          label: 'Dashboard',
+          level: 2,
+          icon: ChartBarIcon,
+          action: { type: 'route', to: ROUTE_PATTERNS.analyticsDashboard },
+          isActive: (loc: Location) => loc.pathname === '/analytics/dashboard',
+        },
+      ],
     },
   ]
 }
