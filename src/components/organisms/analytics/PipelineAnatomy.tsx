@@ -1,0 +1,66 @@
+import { ChevronRight } from 'lucide-react';
+import type { QueryResult } from '@/services/analytics/query';
+import { SERIES_COLORS } from '@/components/molecules/analytics/chartPalette';
+
+interface Stage {
+  n: number;
+  name: string;
+  desc: string;
+  count: number;
+  unit: string;
+}
+
+export interface PipelineAnatomyProps {
+  result: QueryResult;
+}
+
+export function PipelineAnatomy({ result }: PipelineAnatomyProps) {
+  const { parsed, stages } = result;
+  if (parsed.error) return null;
+
+  const timeDim = parsed.groupBy.find((d) => d === 'day' || d === 'week');
+  const bucketDesc = timeDim
+    ? `by ${timeDim}`
+    : parsed.rollup
+      ? `rollup ${parsed.rollup.size}${parsed.rollup.unit}`
+      : 'no rollup';
+  const groupDesc = parsed.groupBy.length ? `by {${parsed.groupBy.join(', ')}}` : 'single series';
+
+  const stageList: Stage[] = [
+    {
+      n: 1,
+      name: 'SELECT',
+      desc: 'tag + time index scan',
+      count: stages.selected,
+      unit: 'points',
+    },
+    { n: 2, name: 'BUCKET', desc: bucketDesc, count: stages.buckets, unit: 'buckets' },
+    { n: 3, name: 'AGGREGATE', desc: `${parsed.agg} per bucket`, count: stages.aggregated, unit: 'values' },
+    { n: 4, name: 'GROUP', desc: groupDesc, count: stages.groups, unit: 'series' },
+  ];
+
+  return (
+    <div className="flex items-center gap-0 mt-4 overflow-x-auto">
+      {stageList.map((s, i) => (
+        <div key={s.n} className="flex items-center">
+          <div className="border border-border rounded-lg bg-background/60 px-3 py-2 min-w-[130px]">
+            <div
+              className="text-[10px] font-bold tracking-wide"
+              style={{ color: SERIES_COLORS[i % SERIES_COLORS.length] }}
+            >
+              {s.n}. {s.name}
+            </div>
+            <div className="text-[11px] text-muted-foreground">{s.desc}</div>
+            <div className="text-sm font-semibold tabular-nums mt-0.5">
+              {s.count.toLocaleString()}{' '}
+              <span className="text-[10px] font-normal text-muted-foreground">{s.unit}</span>
+            </div>
+          </div>
+          {i < 3 && (
+            <ChevronRight size={16} className="text-muted-foreground mx-1 shrink-0" />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}

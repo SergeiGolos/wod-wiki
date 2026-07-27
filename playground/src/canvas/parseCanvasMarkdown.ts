@@ -152,6 +152,13 @@ export interface ParsedCanvasPage {
    * directly from the localStorage ledger).
    */
   chapters: Chapter[]
+  /**
+   * Page-level scroll-runway spec, extracted from a ```scroll fenced
+   * block (page-wide, stripped before section splitting). `null` when the
+   * page declares none (or the block is malformed) — the page then
+   * renders as a normal MarkdownCanvasPage.
+   */
+  scroll?: ScrollSpec | null
 }
 
 /** Map each challenge id to the id of the section that contains its
@@ -176,6 +183,57 @@ export interface Quest {
   label: string
   desc?: string
   validation?: { type: string; [key: string]: unknown }
+}
+
+/** Optional per-stage parallax escape hatch: maps an element carrying
+ *  `data-effect-target="<target>"` through an opacity/translateY window
+ *  driven by the active stage's local progress. */
+export interface ScrollEffect {
+  /** Matches data-effect-target="<target>" on a descendant of the runway. */
+  target: string
+  /** Stage ids this effect applies to. */
+  stages: string[]
+  /** from→to over local-t in the `in` window. */
+  opacity?: [number, number]
+  /** px, from→to over local-t in the `in` window. */
+  translateY?: [number, number]
+  /** default 'quad-out'. */
+  ease?: 'linear' | 'quad-out'
+  /** local-t window, default [0, 1]. */
+  in?: [number, number]
+}
+
+/** One stage of a ```scroll runway — the markdown-DSL equivalent of the
+ *  home tour's TourStage. */
+export interface ScrollStage {
+  id: string
+  /** [start, end) runway progress, like TourStage. */
+  range: [number, number]
+  /** wods/examples path; resolved via resolveSource. */
+  source?: string
+  /** Prose for the cross-fading caption column. */
+  caption?: string
+  /** CSS color; default hsl(var(--foreground)). */
+  accent?: string
+  /** Highlight the editor this stage (single target, v1). */
+  ring?: { tag?: string } | true
+  /** Transient message at stage open. */
+  toast?: string
+  /** Quest id fired on stage entry. */
+  quest?: string
+  /** Custom parallax on data-effect-target elements. */
+  effects?: ScrollEffect[]
+}
+
+/** Parsed ```scroll fenced block — a page-level runway spec. */
+export interface ScrollSpec {
+  /** CSS height, e.g. '720vh'. Default '600vh'. */
+  runway: string
+  /** Only 'editor' supported in v1. */
+  screen: 'editor'
+  /** default true. */
+  typewriter: boolean
+  stages: ScrollStage[]
 }
 
 /** A chapter groups one or more home-page sections and references the
@@ -470,6 +528,169 @@ function extractPageChapters(body: string): { chapters: Chapter[]; body: string 
   return { chapters, body: out.join('\n') };
 }
 
+/** Parse a JSON-style `[a, b]` pair of numbers. Undefined when malformed. */
+function parseNumberPair(raw: string): [number, number] | undefined {
+  const m = raw.match(/^\[\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\]$/)
+  if (!m) return undefined
+  return [Number(m[1]), Number(m[2])]
+}
+
+/** Strip surrounding quotes from a flat field value. */
+function unquote(value: string): string {
+  return value.trim().replace(/^["']|["']$/g, '')
+}
+
+/** Parse the `stages:` list region of a ```scroll block — the one
+ *  indentation-aware list-of-objects parser in the DSL. Each `- id: …`
+ *  item consumes its deeper-indented `key: value` lines; `ring:` and
+ *  `effects:` open one more nesting level (modeled on the `validation:`
+ *  nesting in parseQuestBlock and the list walk in parsePipelineSteps). */
+function parseScrollStages(lines: string[]): ScrollStage[] {
+  const stages: ScrollStage[] = []
+  let stageIndent = -1
+  let cur: ScrollStage | null = null
+  let nested: 'ring' | 'effects' | null = null
+  let curEffect: ScrollEffect | null = null
+
+  for (const raw of lines) {
+    if (raw.trim() === '') continue
+    const indent = raw.match(/^\s*/)![0].length
+    const line = raw.trim()
+    const item = line.match(/^-\s+([\w-]+):\s*(.*)$/)
+
+    if (item && (nested !== 'effects' || indent <= stageIndent)) {
+      // New stage item.
+      if (stageIndent === -1) stageIndent = indent
+      cur = { id: unquote(item[2]), range: [0, 1] }
+      stages.push(cur)
+      nested = null
+      curEffect = null
+      continue
+    }
+    if (item && nested === 'effects' && cur) {
+      // New effect item under `effects:`.
+      curEffect = { target: unquote(item[2]), stages: cur.id ? [cur.id] : [] }
+      ;(cur.effects ??= []).push(curEffect)
+      continue
+    }
+
+    const kv = line.match(/^(\w[\w-]*):\s*(.*)$/)
+    if (!kv || !cur) continue
+    const key = kv[1]
+    const value = kv[2].trim()
+
+    if (nested === 'ring') {
+      if (key === 'tag' && cur.ring && cur.ring !== true) cur.ring.tag = unquote(value)
+      continue
+    }
+    if (nested === 'effects' && curEffect) {
+      switch (key) {
+        case 'target': curEffect.target = unquote(value); break
+        case 'stages': curEffect.stages = parseIdList(value); break
+        case 'opacity': curEffect.opacity = parseNumberPair(value); break
+        case 'translateY': curEffect.translateY = parseNumberPair(value); break
+        case 'ease':
+          if (value === 'linear' || value === 'quad-out') curEffect.ease = value
+          break
+        case 'in': curEffect.in = parseNumberPair(value); break
+      }
+      continue
+    }
+
+    switch (key) {
+      case 'range': {
+        const pair = parseNumberPair(value)
+        if (pair) cur.range = pair
+        break
+      }
+      case 'source': cur.source = unquote(value); break
+      case 'caption': cur.caption = unquote(value); break
+      case 'accent': cur.accent = unquote(value); break
+      case 'toast': cur.toast = unquote(value); break
+      case 'quest': cur.quest = unquote(value); break
+      case 'ring':
+        if (value === '' ) {
+          cur.ring = {}
+          nested = 'ring'
+        } else if (value === 'true') {
+          cur.ring = true
+        }
+        break
+      case 'effects':
+        cur.effects = []
+        curEffect = null
+        nested = 'effects'
+        break
+    }
+  }
+  return stages
+}
+
+/** Parse the inner content of a ```scroll fenced block. Returns `null`
+ *  when the block has no stages — a runway without stages is meaningless,
+ *  so the page falls back to a normal canvas render. Never throws. */
+function parseScrollBlock(content: string): ScrollSpec | null {
+  try {
+    const lines = content.split('\n')
+    const stagesIdx = lines.findIndex((l) => /^\s*stages:\s*$/.test(l))
+    const flat = parseKeyValue(stagesIdx === -1 ? lines : lines.slice(0, stagesIdx))
+    const stages = stagesIdx === -1 ? [] : parseScrollStages(lines.slice(stagesIdx + 1))
+    if (stages.length === 0) return null
+    return {
+      runway: flat['runway'] ?? '600vh',
+      screen: 'editor',
+      typewriter: flat['typewriter'] !== 'false',
+      stages,
+    }
+  } catch (err) {
+    console.warn('[canvas] malformed ```scroll block:', err)
+    return null
+  }
+}
+
+/** Strip the page-level ```scroll fenced block from the body. Page-wide
+ *  scope (same as ```quest / ```chapter): at most one block is honored
+ *  (the first well-formed one); every block is removed from the body so it
+ *  doesn't bleed into section parsing. Malformed → console.warn + null. */
+function extractPageScroll(body: string): { scroll: ScrollSpec | null; body: string } {
+  const lines = body.split('\n');
+  let scroll: ScrollSpec | null = null;
+  const out: string[] = [];
+  let inFence = false;
+  let buffer: string[] = [];
+  const flushFence = () => {
+    if (scroll === null) {
+      const spec = parseScrollBlock(buffer.join('\n'));
+      if (spec) scroll = spec;
+      else console.warn('[canvas] ```scroll block ignored: missing or malformed stages');
+    }
+    buffer = [];
+  };
+  for (const line of lines) {
+    if (inFence) {
+      if (/^```\s*$/.test(line)) {
+        flushFence();
+        inFence = false;
+      } else {
+        buffer.push(line);
+      }
+      continue;
+    }
+    const fenceMatch = line.match(/^```(\w+)\s*$/);
+    if (fenceMatch) {
+      if (fenceMatch[1] === 'scroll') {
+        inFence = true;
+      } else {
+        out.push(line);
+      }
+      continue;
+    }
+    out.push(line);
+  }
+  if (inFence) flushFence();
+  return { scroll, body: out.join('\n') };
+}
+
 function splitProseForWidgets(text: string): ProseChunk[] {
   if (!text) return []
   const tokens = [
@@ -611,7 +832,8 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   // Pull page-level quest and chapter blocks out of the body before
   // section splitting. Both are page-wide (collect+strip every block).
   const { quests, body: bodyWithoutQuests } = extractPageQuests(body)
-  const { chapters } = extractPageChapters(bodyWithoutQuests)
+  const { scroll, body: bodyWithoutScroll } = extractPageScroll(bodyWithoutQuests)
+  const { chapters } = extractPageChapters(bodyWithoutScroll)
 
   const route = String(meta['route'] ?? defaultRoute)
   const sections: CanvasSection[] = []
@@ -648,7 +870,7 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
     })
   }
 
-  for (const line of bodyWithoutQuests.split('\n')) {
+  for (const line of bodyWithoutScroll.split('\n')) {
     const h = parseHeadingLine(line)
     if (h) {
       if (cur) flush(cur)
@@ -659,5 +881,5 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   }
   if (cur) flush(cur)
 
-  return { template: 'canvas', route, sections, frontmatter: meta, quests, chapters }
+  return { template: 'canvas', route, sections, frontmatter: meta, quests, chapters, scroll }
 }

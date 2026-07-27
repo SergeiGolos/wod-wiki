@@ -1,0 +1,48 @@
+import { useEffect, useState } from 'react';
+import { queryService, type QueryResult } from '@/services/analytics/query';
+
+const DAY = 86_400_000;
+const WEEK = 7 * DAY;
+
+export interface AnalyticsQueryDef {
+  key: string;
+  query: string;
+}
+
+export interface AnalyticsQueriesState {
+  results: Record<string, QueryResult>;
+  loading: boolean;
+}
+
+export function useAnalyticsQueries(
+  queries: AnalyticsQueryDef[],
+  weeks: number,
+): AnalyticsQueriesState {
+  const [results, setResults] = useState<Record<string, QueryResult>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      const now = Date.now();
+      const rangeStart = now - weeks * WEEK;
+      try {
+        const settled = await Promise.all(
+          queries.map(async (q) => [q.key, await queryService.runQuery(q.query, { rangeStart, rangeEnd: now })] as const),
+        );
+        if (!cancelled) setResults(Object.fromEntries(settled));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [queries, weeks]);
+
+  return { results, loading };
+}
