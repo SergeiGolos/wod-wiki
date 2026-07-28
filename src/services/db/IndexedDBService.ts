@@ -846,6 +846,21 @@ export class IndexedDBService {
         return tags.filter((tag): tag is Tag => tag !== undefined);
     }
 
+    /** Resolve every note tagged with a given label. */
+    async getNotesForTag(label: string): Promise<Note[]> {
+        const db = await this.dbPromise;
+        const tag = await db.getFromIndex('tags', 'by-label', label);
+        if (!tag) return [];
+        const links = await db.getAllFromIndex('note_tags', 'by-tag', tag.id);
+        const noteIds = [...new Set(links.map(link => link.noteId))];
+        const notes = await Promise.all(noteIds.map(noteId => db.get('notes', noteId)));
+        return notes.filter((note): note is Note => note !== undefined);
+    }
+
+    async deleteTag(id: string): Promise<void> {
+        await (await this.dbPromise).delete('tags', id);
+    }
+
     /** Replace a note's tag set (labels are shared, deduped by by-label). */
     async setNoteTags(noteId: string, labels: string[]): Promise<void> {
         const db = await this.dbPromise;
@@ -1151,6 +1166,11 @@ export class IndexedDBService {
             await tx.store.delete(id);
         }
         await tx.done;
+    }
+
+    /** Full analytics scan — used by maintenance operations that cannot join through a narrower index. */
+    async getAllAnalytics(): Promise<AnalyticsDataPoint[]> {
+        return (await this.dbPromise).getAll('analytics');
     }
 
     // =======================================================================

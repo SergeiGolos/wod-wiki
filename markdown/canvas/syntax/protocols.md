@@ -114,15 +114,15 @@ Prefix any movement with a duration to turn it into a timed block. Timers combin
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Structure & Reps
+label:  ← Core Concepts
 target: ex
 pipeline:
-  - navigate: /guide/syntax/structure
+  - navigate: /guide/syntax/basics
 ```
 
 ```button
-label:  Complex Workouts →
+label:  Rounds & Structure →
 target: ex
 pipeline:
-  - navigate: /guide/syntax/complex
+  - navigate: /guide/syntax/structure
 ```

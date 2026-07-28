@@ -1,37 +1,29 @@
 /**
  * tourStages.ts — stage machine contract for the homepage scroll walkthrough.
  *
- * The tour is a single macOS-chrome window that stays mounted and morphs
- * through four screens (editor → timer → analytics → library) as the user
- * scrolls a tall runway. Scroll progress `p` (0..1 over the runway) maps to
- * a stage via [start, end); inside a stage the local `t` (0..1) scrubs
- * per-stage beats (typewriter, cast glide, toast, row stagger).
+ * The redesigned home page folds the editor into the hero and the Library
+ * stage into the short-circuit strip. The sticky morphing window now only
+ * morphs between the Timer and Analytics stages. Progress `p` (0..1 over the
+ * runway) maps to a stage via [start, end); inside a stage the local `t`
+ * (0..1) scrubs per-stage beats (cast glide, toast).
  *
  * All embedded screens are REAL app components — no mock markup:
- *  - editor:    NoteEditor (CodeMirror) fed by a scroll-driven typewriter
  *  - timer:     RuntimeTimerPanel with a real in-memory runtime
  *  - analytics: AnalyticsScorecard + ReviewGrid from the session's outputs
- *  - library:   getScriptCollections() rows + FeedFeed with real feed items
  *
  * Accents reference the app's existing metric tokens (src/index.css) —
  * no ad-hoc palette. Use as `hsl(var(--metric-*))`.
  */
 
-export type TourScreen = 'editor' | 'timer' | 'analytics' | 'library'
+export type TourScreen = 'timer' | 'analytics'
 
-export type TourStageId = 'overview' | TourScreen
+export type TourStageId = TourScreen
 
 /**
  * Registry keys for elements the highlight ring can target. Screens
  * register wrapper elements under these keys via RingTargetsContext.
  */
-export type RingTargetKey =
-  | 'editor.note'
-  | 'timer.floor'
-  | 'timer.cast'
-  | 'analytics.scorecard'
-  | 'library.collections'
-  | 'library.feeds'
+export type RingTargetKey = 'timer.floor' | 'timer.cast' | 'analytics.scorecard'
 
 export interface TourStage {
   id: TourStageId
@@ -44,7 +36,7 @@ export interface TourStage {
   accent: string
   /** Stage-bar label. */
   label: string
-  /** Ring target at stage entry; null = no ring (overview). */
+  /** Ring target at stage entry; null = no ring. */
   ringA: RingTargetKey | null
   /** Tag rendered in the ring's corner tab for beat A / beat B. */
   tagA?: string
@@ -67,36 +59,17 @@ export const TOUR_ACCENTS = {
 } as const
 
 /**
- * Stage ranges mirror the proven POC pacing (860vh runway):
- * overview 10% · editor 22% · timer 24% · analytics 22% · library 22%.
+ * Stage ranges for the two-stage runway: timer 50% · analytics 50%.
+ * The hero and static areas live outside the runway.
  */
 export const TOUR_STAGES: TourStage[] = [
   {
-    id: 'overview',
-    start: 0.0,
-    end: 0.1,
-    screen: 'editor',
-    accent: TOUR_ACCENTS.ink,
-    label: 'The Training Loop',
-    ringA: null,
-  },
-  {
-    id: 'editor',
-    start: 0.1,
-    end: 0.32,
-    screen: 'editor',
-    accent: TOUR_ACCENTS.editor,
-    label: '01 · The Editor',
-    ringA: 'editor.note',
-    tagA: '```wod',
-  },
-  {
     id: 'timer',
-    start: 0.32,
-    end: 0.56,
+    start: 0.0,
+    end: 0.5,
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
-    label: '02 · The WallClock',
+    label: 'What Happens When It Runs',
     ringA: 'timer.floor',
     tagA: 'WallClock',
     ringB: 'timer.cast',
@@ -105,26 +78,13 @@ export const TOUR_STAGES: TourStage[] = [
   },
   {
     id: 'analytics',
-    start: 0.56,
-    end: 0.78,
+    start: 0.5,
+    end: 1.0,
     screen: 'analytics',
     accent: TOUR_ACCENTS.analytics,
-    label: '03 · The Analytics',
+    label: 'Explore Your Data',
     ringA: 'analytics.scorecard',
-    tagA: 'Logged',
-  },
-  {
-    id: 'library',
-    start: 0.78,
-    end: 1.0,
-    screen: 'library',
-    accent: TOUR_ACCENTS.library,
-    label: '04 · Collections & Feeds',
-    ringA: 'library.collections',
-    tagA: 'Collections',
-    ringB: 'library.feeds',
-    tagB: 'Feeds',
-    beatSplit: 0.55,
+    tagA: 'Review',
   },
 ]
 
@@ -164,9 +124,6 @@ export function resolveStage(progress: number): TourStageSlice {
 
 /** Runway height — matches the POC's deliberate scroll pace. */
 export const TOUR_RUNWAY_HEIGHT = '860vh'
-
-/** Mobile breakpoint (px) — below this the tour uses the split layout. */
-export const TOUR_MOBILE_BREAKPOINT = 1060
 
 /** Fixed design size of the tour canvas; scaled by transform to fit. */
 export const TOUR_CANVAS_WIDTH = 1200

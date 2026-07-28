@@ -18,6 +18,7 @@ export interface AnalyticsQueriesState {
 export function useAnalyticsQueries(
   queries: AnalyticsQueryDef[],
   weeks: number,
+  refreshKey = 0,
 ): AnalyticsQueriesState {
   const [results, setResults] = useState<Record<string, QueryResult>>({});
   const [loading, setLoading] = useState(true);
@@ -50,7 +51,7 @@ export function useAnalyticsQueries(
     return () => {
       cancelled = true;
     };
-  }, [queries, weeks]);
+  }, [queries, weeks, refreshKey]);
 
   return { results, loading };
 }

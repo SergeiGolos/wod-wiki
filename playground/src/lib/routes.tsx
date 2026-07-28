@@ -26,6 +26,7 @@ export const ROUTE_PATTERNS = {
   plan: '/plan',
   guideGettingStarted: '/guide/getting-started',
   guideSyntax: '/guide/syntax',
+  guideBehaviors: '/guide/behaviors',
   aiFirst: '/ai-first',
   feeds: '/feeds',
   feedDetail: '/feeds/:feedSlug',

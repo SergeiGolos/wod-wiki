@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Code2, Edit3, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WqlQueryComposer } from '@/components/organisms/analytics/WqlQueryComposer';
@@ -14,10 +14,14 @@ import {
   useAnalyticsQueries,
 } from '@/components/molecules/analytics';
 import { DEMO_WIDGETS, DASHBOARD_SOURCE } from './dashboardDefinition';
+import { SampleDataPrompt } from './SampleDataPrompt';
+import { hasSampleData, purgeSampleData } from '@/services/analytics/sample';
 
 export function AnalyticsDashboardPage() {
   const [weeks] = useAnalyticsRange();
   const [showSource, setShowSource] = useState(false);
+  const [sampleLoaded, setSampleLoaded] = useState<boolean | undefined>(undefined);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [widgetQueries, setWidgetQueries] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
     DEMO_WIDGETS.forEach((w) => {
@@ -32,7 +36,11 @@ export function AnalyticsDashboardPage() {
     () => DEMO_WIDGETS.map((w) => ({ key: w.key, query: widgetQueries[w.key] ?? w.query })),
     [widgetQueries],
   );
-  const { results, loading } = useAnalyticsQueries(queries, weeks);
+  const { results, loading } = useAnalyticsQueries(queries, weeks, refreshKey);
+
+  useEffect(() => {
+    void hasSampleData().then(setSampleLoaded);
+  }, [refreshKey]);
 
   const openEditor = (key: string, currentQuery: string) => {
     setEditingWidgetKey(key);
@@ -45,6 +53,17 @@ export function AnalyticsDashboardPage() {
       setEditingWidgetKey(null);
     }
   };
+
+  const handlePurgeSample = async () => {
+    await purgeSampleData();
+    setSampleLoaded(false);
+    setRefreshKey((k) => k + 1);
+  };
+
+  const allEmpty = !loading && DEMO_WIDGETS.every((w) => {
+    const r = results[w.key];
+    return !r || r.matched.length === 0;
+  });
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8">
@@ -74,57 +93,80 @@ export function AnalyticsDashboardPage() {
           </pre>
         )}
 
+        {sampleLoaded && (
+          <div className="mb-4 flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-2 text-xs">
+            <span className="text-foreground">Sample data loaded</span>
+            <button
+              onClick={handlePurgeSample}
+              className="font-medium text-destructive hover:text-destructive/80 transition-colors"
+            >
+              Purge sample data
+            </button>
+          </div>
+        )}
+
         {loading && (
           <div className="text-sm text-muted-foreground">Loading widgets…</div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          {DEMO_WIDGETS.map((widget) => {
-            const currentQuery = widgetQueries[widget.key] ?? widget.query;
-            const result = results[widget.key];
-            return (
-              <div key={widget.key} className="relative group">
-                <button
-                  onClick={() => openEditor(widget.key, currentQuery)}
-                  title="Edit Widget Query with Dual Composer"
-                  className="absolute top-2 right-2 z-10 p-1.5 rounded-lg bg-card/80 border border-border text-muted-foreground hover:text-foreground hover:border-primary opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                >
-                  <Edit3 size={13} />
-                </button>
-                <WidgetFrame
-                  title={widget.title}
-                  question={widget.question}
-                  query={currentQuery}
-                  span={widget.span}
-                >
-                  <div className={cn('h-full', widget.type === 'value' || widget.type === 'toplist' ? 'h-36' : 'h-56')}>
-                    {widget.type === 'value' && result && (
-                      <QueryValue
-                        result={result}
-                        unit={widget.unit ?? ''}
-                        label={widget.label ?? ''}
-                        thresholds={widget.thresholds}
-                      />
-                    )}
-                    {widget.type === 'toplist' && result && (
-                      <div className="h-36 overflow-y-auto">
-                        <TopList result={result} unit={widget.unit} limit={widget.limit} />
-                      </div>
-                    )}
-                    {widget.type === 'timeseries' && result && (
-                      <WqlTimeseries result={result} unit={widget.unit} />
-                    )}
-                    {widget.type === 'bar' && result && (
-                      <WqlBars result={result} unit={widget.unit} />
-                    )}
-                    {widget.type === 'stacked' && result && (
-                      <StackedBar result={result} unit={widget.unit} />
-                    )}
-                  </div>
-                </WidgetFrame>
-              </div>
-            );
-          })}
+          {allEmpty ? (
+            <div className="md:col-span-2 xl:col-span-4">
+              <SampleDataPrompt
+                layout="card"
+                onChanged={() => {
+                  setRefreshKey((k) => k + 1);
+                }}
+              />
+            </div>
+          ) : (
+            DEMO_WIDGETS.map((widget) => {
+              const currentQuery = widgetQueries[widget.key] ?? widget.query;
+              const result = results[widget.key];
+              return (
+                <div key={widget.key} className="relative group">
+                  <button
+                    onClick={() => openEditor(widget.key, currentQuery)}
+                    title="Edit Widget Query with Dual Composer"
+                    className="absolute top-2 right-2 z-10 p-1.5 rounded-lg bg-card/80 border border-border text-muted-foreground hover:text-foreground hover:border-primary opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                  >
+                    <Edit3 size={13} />
+                  </button>
+                  <WidgetFrame
+                    title={widget.title}
+                    question={widget.question}
+                    query={currentQuery}
+                    span={widget.span}
+                  >
+                    <div className={cn('h-full', widget.type === 'value' || widget.type === 'toplist' ? 'h-36' : 'h-56')}>
+                      {widget.type === 'value' && result && (
+                        <QueryValue
+                          result={result}
+                          unit={widget.unit ?? ''}
+                          label={widget.label ?? ''}
+                          thresholds={widget.thresholds}
+                        />
+                      )}
+                      {widget.type === 'toplist' && result && (
+                        <div className="h-36 overflow-y-auto">
+                          <TopList result={result} unit={widget.unit} limit={widget.limit} />
+                        </div>
+                      )}
+                      {widget.type === 'timeseries' && result && (
+                        <WqlTimeseries result={result} unit={widget.unit} />
+                      )}
+                      {widget.type === 'bar' && result && (
+                        <WqlBars result={result} unit={widget.unit} />
+                      )}
+                      {widget.type === 'stacked' && result && (
+                        <StackedBar result={result} unit={widget.unit} />
+                      )}
+                    </div>
+                  </WidgetFrame>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* WIDGET QUERY INSPECTOR MODAL */}

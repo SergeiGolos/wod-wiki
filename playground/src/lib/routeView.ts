@@ -190,6 +190,7 @@ function deriveWorkout(
     '/journal': 'Journal',
     '/feeds': 'Feeds',
     '/guide/syntax': 'Syntax',
+    '/guide/behaviors': 'Behaviors',
     '/collections': 'Collections',
     '/analytics/explorer': 'Metric Explorer',
     '/analytics/dashboard': 'Analytics Dashboard',

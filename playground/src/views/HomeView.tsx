@@ -1,29 +1,21 @@
 /**
  * HomeView — the homepage: a scroll-driven product walkthrough.
  *
- * One macOS-chrome window stays mounted and morphs through the app's four
- * surfaces — the real NoteEditor (scroll-driven typewriter), the real
- * WallClock (RuntimeTimerPanel + CastButtonRpc), the real analytics review
- * (AnalyticsScorecard + ReviewGrid), and the real Collections/Feeds lists —
- * driven by scroll position over a tall runway. Pressing Run in the editor
- * hands the window to the visitor (playground mode); Stop lands on real
- * analytics; ✕ / the hint pill returns to scroll sync.
+ * The redesigned home page renders the interactive hero (with live editor),
+ * a short-circuit strip, the Learn section, the sticky Timer/Analytics runway,
+ * and the Registry/Reference static areas. See playground/src/tour/HomeTour.tsx
+ * for the section-level implementation.
  *
  * Preserved from the markdown-driven home (markdown/canvas/home/README.md):
  *  - quick-start quests (qs-arrive / qs-edit / qs-run) plus scroll quests
  *    (qs-tour-*) fired as each tour stage scrolls into view
  *  - ChallengeHeaderBadge on '/' (mounted by App.tsx) — home quests only
- *  - search-palette content injection, zip share links
- *  - Jump-Right-In + chapter quest list with live progress (tour outro)
- *
- * Implementation lives in playground/src/tour/.
+ *  - chapter quest list with live progress (now in the Learn section)
  */
 
 import { useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { canvasRoutes, findCanvasPage } from '../canvas/canvasRoutes'
 import { HomeTour } from '../tour/HomeTour'
-import { HomeWireframe } from '../tour/prototype/HomeWireframe'
 import type { WorkoutItem } from '../App'
 
 export interface HomeViewProps {
@@ -35,14 +27,6 @@ export interface HomeViewProps {
 
 export function HomeView({ wodFiles, theme }: HomeViewProps) {
   const page = findCanvasPage('/')
-  const [searchParams] = useSearchParams()
-  const prototypeVariant = searchParams.get('variant')
-
-  // PROTOTYPE (#765): `/?variant=A|B|C` renders the home-redesign wireframes
-  // instead of the tour. Dev-only; no param = production path untouched.
-  if (import.meta.env.DEV && prototypeVariant) {
-    return <HomeWireframe variant={prototypeVariant} />
-  }
 
   // Cross-page quest id → label, so chapter quest rows can show the real
   // labels declared on their owning guide pages.

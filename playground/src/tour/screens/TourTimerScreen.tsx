@@ -60,7 +60,7 @@ export const TourTimerScreen: React.FC<TourTimerScreenProps> = ({
           />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            Write a workout in the Editor stage
+            Write a workout in the demo editor above
           </div>
         )}
       </div>

@@ -34,6 +34,14 @@ mock.module('@/services/analytics/query', () => ({
   },
 }));
 
+let sampleDataPresent = false;
+
+mock.module('@/services/analytics/sample', () => ({
+  loadSampleData: mock(async () => ({ facts: 120 })),
+  purgeSampleData: mock(async () => undefined),
+  hasSampleData: mock(async () => sampleDataPresent),
+}));
+
 import { AnalyticsExplorerPage } from './AnalyticsExplorerPage';
 
 afterEach(cleanup);
@@ -65,5 +73,24 @@ describe('AnalyticsExplorerPage', () => {
 
     // The chip should disappear immediately because the anatomy is driven by the live draft.
     await waitFor(() => expect(screen.queryByText('discipline:strength')).toBeNull());
+  });
+
+  it('empty state offers Load sample data when store is empty', async () => {
+    sampleDataPresent = false;
+    renderPage('sum:totalVolume{}');
+
+    await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull());
+    await waitFor(() => expect(screen.queryByText('Facts appear when you log or run workouts.')).not.toBeNull());
+    expect(screen.getByText('Load sample data')).toBeDefined();
+  });
+
+  it('shows a purge banner when sample data is present', async () => {
+    sampleDataPresent = true;
+
+    renderPage('sum:totalVolume{}');
+
+    await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull());
+    await waitFor(() => expect(screen.queryByText('Sample data loaded')).not.toBeNull());
+    expect(screen.getByText('Purge sample data')).toBeDefined();
   });
 });

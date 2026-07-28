@@ -73,15 +73,15 @@ Attach any key/value data to a movement line with an inline JSON object. Each pr
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Core Concepts
-target: ex
-pipeline:
-  - navigate: /guide/syntax/basics
-```
-
-```button
-label:  Structure & Reps →
+label:  ← Rounds & Structure
 target: ex
 pipeline:
   - navigate: /guide/syntax/structure
+```
+
+```button
+label:  Dialects →
+target: ex
+pipeline:
+  - navigate: /guide/syntax/dialects
 ```

@@ -6,7 +6,7 @@
  *
  * Structure:
  *   L1: Home, Journal, Feeds, Collections, Efforts, Analytics
- *   L2 of Home:        Zero to Hero + Syntax/* (canvas pages)
+ *   L2 of Home:        Zero to Hero + Syntax/* + Behaviors/* (canvas pages)
  *   L2 of Journal:     <JournalNavPanel>   — calendar + tag chips; the
  *                                          ?mode= view-mode param drives the
  *                                          unified JournalListPage
@@ -23,7 +23,7 @@ import {
   FolderIcon,
   CodeBracketIcon,
 } from '@heroicons/react/20/solid'
-import { RssIcon, Dumbbell, ChartBarIcon } from 'lucide-react'
+import { RssIcon, Dumbbell, ChartBarIcon, BookOpen } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
@@ -54,14 +54,49 @@ function isCollectionWorkoutRoute(loc: Location): boolean {
 
 // ─── L2 children for Home ─────────────────────────────────────────────────────
 
+// Sidebar order for the Syntax guide pillar (maps canonical route to position).
+// Timers/rounds come before custom-metrics; complex carries the sound-behavior
+// slot until a dedicated sound page exists.
+const syntaxOrder: Record<string, number> = {
+  '/guide/syntax': 0,
+  '/guide/syntax/basics': 1,
+  '/guide/syntax/protocols': 2,
+  '/guide/syntax/structure': 3,
+  '/guide/syntax/custom-metrics': 4,
+  '/guide/syntax/dialects': 5,
+  '/guide/syntax/complex': 6,
+}
+
 const syntaxChildren: NavItem[] = canvasRoutes
   .filter(r => !r.route.startsWith('/collections'))
   .filter(r => r.page.frontmatter?.type === 'syntax')
+  .sort((a, b) => (syntaxOrder[a.route] ?? 99) - (syntaxOrder[b.route] ?? 99))
   .map(r => ({
     id: `syntax-${r.route}`,
     label: r.page.sections[0]?.heading ?? 'Untitled',
     level: 2 as const,
     icon: CodeBracketIcon,
+    action: { type: 'route' as const, to: r.route },
+    isActive: (loc: Location) => loc.pathname === r.route,
+  }))
+
+// Sidebar order for the Behaviors guide pillar.
+const behaviorOrder: Record<string, number> = {
+  '/guide/behaviors': 0,
+  '/guide/behaviors/timers': 1,
+  '/guide/behaviors/rounds': 2,
+  '/guide/behaviors/capture': 3,
+}
+
+const behaviorsChildren: NavItem[] = canvasRoutes
+  .filter(r => !r.route.startsWith('/collections'))
+  .filter(r => r.page.frontmatter?.type === 'behavior')
+  .sort((a, b) => (behaviorOrder[a.route] ?? 99) - (behaviorOrder[b.route] ?? 99))
+  .map(r => ({
+    id: `behavior-${r.route}`,
+    label: r.page.sections[0]?.heading ?? 'Untitled',
+    level: 2 as const,
+    icon: BookOpen,
     action: { type: 'route' as const, to: r.route },
     isActive: (loc: Location) => loc.pathname === r.route,
   }))
@@ -74,6 +109,15 @@ const homeChildren: NavItem[] = [
     icon: CodeBracketIcon,
     action: { type: 'none' },
     children: syntaxChildren,
+  },
+  {
+    id: 'behaviors-group',
+    label: 'Behaviors',
+    level: 2,
+    icon: BookOpen,
+    action: { type: 'route', to: '/guide/behaviors' },
+    isActive: (loc: Location) => loc.pathname.startsWith('/guide/behaviors'),
+    children: behaviorsChildren,
   },
 ]
 
@@ -96,6 +140,7 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
         loc.pathname === '' ||
         loc.pathname === ROUTE_PATTERNS.guideGettingStarted ||
         loc.pathname.startsWith('/guide/syntax') ||
+        loc.pathname.startsWith('/guide/behaviors') ||
         loc.pathname.startsWith('/canvas') ||
         loc.pathname === ROUTE_PATTERNS.home ||
         loc.pathname.startsWith('/playground/') ||

@@ -1,7 +1,6 @@
 import React from 'react'
 import { Play, Share2 } from 'lucide-react'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
-import { useRingRef } from '../TourRing'
 import type { ScriptBlock } from '@/components/Editor/types'
 
 export interface TourEditorScreenProps {
@@ -10,6 +9,7 @@ export interface TourEditorScreenProps {
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
   onShare: () => void
+  onOpenInEditor: () => void
   theme: string
 }
 
@@ -19,9 +19,9 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
   onBlocksChange,
   onRun,
   onShare,
+  onOpenInEditor,
   theme,
 }) => {
-  const ringRef = useRingRef('editor.note')
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -40,6 +40,14 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
           </button>
           <button
             type="button"
+            title="Open in journal"
+            onClick={onOpenInEditor}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-muted/50"
+          >
+            Open in editor →
+          </button>
+          <button
+            type="button"
             title="Start the WallClock"
             onClick={onRun}
             className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
@@ -49,7 +57,7 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
           </button>
         </div>
       </div>
-      <div ref={ringRef} className="flex-1 min-h-0 relative">
+      <div className="flex-1 min-h-0 relative">
         <NoteEditor
           noteId="canvas:home"
           value={doc}

@@ -23,6 +23,7 @@ import {
   setMetricInQuery,
 } from '@/utils/analytics/explorerQueries';
 import { useExplorerVocabulary } from '@/utils/analytics/useExplorerVocabulary';
+import { SampleDataPrompt } from './SampleDataPrompt';
 import { cn } from '@/lib/utils';
 
 const EFFORT_NAMES = () =>
@@ -50,6 +51,8 @@ export function AnalyticsExplorerPage() {
   const [loading, setLoading] = useState(false);
   const vocabulary = useExplorerVocabulary();
   const liveParsed = useMemo(() => parseQuery(draft), [draft]);
+
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setDraft(q);
@@ -92,7 +95,7 @@ export function AnalyticsExplorerPage() {
     return () => {
       cancelled = true;
     };
-  }, [q, activeWeeks]);
+  }, [q, activeWeeks, refreshKey]);
 
   const shape = useChartShape(result);
 
@@ -196,7 +199,7 @@ export function AnalyticsExplorerPage() {
                     {shape.message}
                   </div>
                 ) : shape.kind === 'empty' ? (
-                  <WqlEmptyState result={result} />
+                  <SampleDataPrompt result={result} onChanged={() => setRefreshKey(k => k + 1)} />
                 ) : shape.kind === 'scalar' ? (
                   <QueryValue result={result!} unit={firstUnit ?? ''} label={`${result!.parsed.agg}(${result!.parsed.metric})`} />
                 ) : shape.kind === 'timeseries' ? (

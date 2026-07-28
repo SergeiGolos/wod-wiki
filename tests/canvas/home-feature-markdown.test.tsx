@@ -3,22 +3,17 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'fs'
 
 import { CanvasProse } from '../../playground/src/canvas/CanvasProse'
-import { parseCanvasMarkdown } from '../../playground/src/canvas/parseCanvasMarkdown'
 
 const homeMarkdown = readFileSync(new URL('../../markdown/canvas/home/README.md', import.meta.url), 'utf8')
-const page = parseCanvasMarkdown(homeMarkdown)
-
-function getSectionProse(id: string): string {
-  const section = page?.sections.find(s => s.id === id)
-  if (!section) throw new Error(`Expected home section ${id} to exist`)
-  return section.prose
-}
 
 describe('home feature markdown rendering', () => {
-  it('keeps the new home canvas sections in the parsed home page', () => {
-    expect(getSectionProse('jump-in')).toContain('Skip the tour and start using the app now')
-    expect(getSectionProse('learn')).toContain('keep scrolling to try the live demo')
-    expect(getSectionProse('whats-next')).toContain('Ready to go deeper?')
+  it('retains chapter and quest metadata after the prose cut (PRD #767)', () => {
+    for (const id of ['home-tour', 'basics', 'protocols', 'structure', 'custom-metrics', 'dialects', 'complex']) {
+      expect(homeMarkdown).toContain(`id: ${id}`)
+    }
+    for (const id of ['qs-arrive', 'qs-tour-timer', 'qs-tour-analytics', 'qs-edit', 'qs-run']) {
+      expect(homeMarkdown).toContain(`id: ${id}`)
+    }
   })
 
   it('renders analytics labels as bold prefixes with their labels intact', () => {
