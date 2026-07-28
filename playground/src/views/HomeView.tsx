@@ -20,8 +20,10 @@
  */
 
 import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { canvasRoutes, findCanvasPage } from '../canvas/canvasRoutes'
 import { HomeTour } from '../tour/HomeTour'
+import { HomeWireframe } from '../tour/prototype/HomeWireframe'
 import type { WorkoutItem } from '../App'
 
 export interface HomeViewProps {
@@ -33,6 +35,14 @@ export interface HomeViewProps {
 
 export function HomeView({ wodFiles, theme }: HomeViewProps) {
   const page = findCanvasPage('/')
+  const [searchParams] = useSearchParams()
+  const prototypeVariant = searchParams.get('variant')
+
+  // PROTOTYPE (#765): `/?variant=A|B|C` renders the home-redesign wireframes
+  // instead of the tour. Dev-only; no param = production path untouched.
+  if (import.meta.env.DEV && prototypeVariant) {
+    return <HomeWireframe variant={prototypeVariant} />
+  }
 
   // Cross-page quest id → label, so chapter quest rows can show the real
   // labels declared on their owning guide pages.
