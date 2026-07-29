@@ -79,6 +79,7 @@ export type PageKind =
   | 'playground'
   | 'journalEntry'
   | 'workout'
+  | 'libraryPrototype'
 
 /** How the page is wrapped — the `<CanvasPage>` shell vs bare. */
 export interface ShellConfig {
@@ -323,6 +324,7 @@ function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanva
   if (canvasPage) return 'canvas'
   if (flags.isPlaygroundRoute && flags.effectivePlaygroundId) return 'playground'
   if (flags.isJournalEntryRoute && flags.journalEntryId) return 'journalEntry'
+  if (pathname === '/prototype/library') return 'libraryPrototype'
   return 'workout'
 }
 

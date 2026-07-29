@@ -42,6 +42,7 @@ import { FeedItemPage } from './pages/FeedItemPage'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
 import { HomeView } from './views/HomeView'
+import { LibraryPrototypePage } from './views/prototype/LibraryPrototypePage'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
@@ -219,6 +220,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         onSearch={openSearchPalette}
       />
     ),
+    libraryPrototype: () => <LibraryPrototypePage />,
   }
 
   const canvasTitleAccessory =
@@ -386,6 +388,7 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.effort} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.analytics} element={<Navigate to={ROUTE_PATTERNS.analyticsExplorer} replace />} />
                   <Route path={ROUTE_PATTERNS.analyticsExplorer} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.libraryPrototype} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.analyticsDashboard} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
