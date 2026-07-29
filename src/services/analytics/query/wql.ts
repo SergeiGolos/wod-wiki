@@ -375,4 +375,5 @@ function parseFindQuery(raw: string): ParsedFindQuery {
     }
     result.join = join.metric;
   }
+  return result;
 }
