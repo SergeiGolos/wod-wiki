@@ -134,6 +134,10 @@ export interface BlockIndexRow {
     noteTitle: string;
     /** When the segment version was saved. */
     createdAt: number;
+    /** True for bundled static content (collections, feeds); false for user journal. */
+    isStatic?: boolean;
+    /** Original source identifier for static files. */
+    sourceId?: string;
 }
 
 // ---------------------------------------------------------------------------

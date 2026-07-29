@@ -58,6 +58,31 @@ export interface BlockQueryStore {
 const indexedDbBlockStore: BlockQueryStore = {
   getAllBlocks: () => indexedDBService.getAllBlockIndex(),
 };
+import staticBlockIndexData from '@/generated/static-block-index.json';
+const staticBlockIndex = staticBlockIndexData as BlockIndexRow[];
+
+const staticNotesMap = new Map<string, Note>();
+for (const block of staticBlockIndex) {
+  if (!staticNotesMap.has(block.noteId)) {
+    staticNotesMap.set(block.noteId, {
+      id: block.noteId,
+      title: block.noteTitle,
+      createdAt: block.createdAt,
+      type: 'workout',
+      sourceId: block.sourceId,
+    });
+  }
+}
+const staticNotes = Array.from(staticNotesMap.values());
+
+const staticNoteStore: NoteQueryStore = {
+  getAllNotes: async () => staticNotes,
+  getNoteIdsForTag: async () => new Set(), // Tags not yet indexed for static corpus
+};
+
+const staticBlockStore: BlockQueryStore = {
+  getAllBlocks: async () => staticBlockIndex,
+};
 
 export interface FindQueryResult {
   parsed: ParsedFindQuery;
@@ -206,7 +231,17 @@ export class QueryService {
     if (parsed.target === 'block') {
       return this.runFindBlock(parsed);
     }
-    let notes = await this.noteStore.getAllNotes();
+    let notes: Note[] = [];
+    const scope = parsed.scope || 'journal';
+    if (scope === 'journal' || scope === 'all') {
+      notes = notes.concat(await this.noteStore.getAllNotes());
+    }
+    if (scope === 'collections' || scope === 'feeds' || scope === 'all') {
+      let sNotes = await staticNoteStore.getAllNotes();
+      if (scope === 'collections') sNotes = sNotes.filter(n => n.sourceId?.startsWith('collection:'));
+      if (scope === 'feeds') sNotes = sNotes.filter(n => n.sourceId?.startsWith('feed:'));
+      notes = notes.concat(sNotes);
+    }
     const selectedCount = notes.length;
 
     // Tag filters — intersect note IDs across OR'd values within a key.
@@ -215,13 +250,16 @@ export class QueryService {
         const matchingIds = new Set<string>();
         for (const v of filter.values) {
           const ids = await this.noteStore.getNoteIdsForTag(v.value);
+          const sIds = await staticNoteStore.getNoteIdsForTag(v.value);
           ids.forEach(id => matchingIds.add(id));
+          sIds.forEach(id => matchingIds.add(id));
         }
         notes = notes.filter(n => matchingIds.has(n.id));
       } else if (filter.key === 'tags' && filter.negate) {
         for (const v of filter.values) {
           const ids = await this.noteStore.getNoteIdsForTag(v.value);
-          notes = notes.filter(n => !ids.has(n.id));
+          const sIds = await staticNoteStore.getNoteIdsForTag(v.value);
+          notes = notes.filter(n => !ids.has(n.id) && !sIds.has(n.id));
         }
       }
     }
@@ -258,7 +296,17 @@ export class QueryService {
    * (dataType), and time window — same tracer-bullet approach as find:note.
    */
   async runFindBlock(parsed: ParsedFindQuery): Promise<FindQueryResult> {
-    let blocks = await this.blockStore.getAllBlocks();
+    let blocks: BlockIndexRow[] = [];
+    const scope = parsed.scope || 'journal';
+    if (scope === 'journal' || scope === 'all') {
+      blocks = blocks.concat(await this.blockStore.getAllBlocks());
+    }
+    if (scope === 'collections' || scope === 'feeds' || scope === 'all') {
+      let sBlocks = await staticBlockStore.getAllBlocks();
+      if (scope === 'collections') sBlocks = sBlocks.filter(b => b.sourceId?.startsWith('collection:'));
+      if (scope === 'feeds') sBlocks = sBlocks.filter(b => b.sourceId?.startsWith('feed:'));
+      blocks = blocks.concat(sBlocks);
+    }
     const selectedCount = blocks.length;
 
     // Text filter — substring over rawContent (the block's markdown text).
@@ -283,7 +331,9 @@ export class QueryService {
         const matchingNoteIds = new Set<string>();
         for (const v of filter.values) {
           const ids = await this.noteStore.getNoteIdsForTag(v.value);
+          const sIds = await staticNoteStore.getNoteIdsForTag(v.value);
           ids.forEach(id => matchingNoteIds.add(id));
+          sIds.forEach(id => matchingNoteIds.add(id));
         }
         blocks = blocks.filter(b => matchingNoteIds.has(b.noteId));
       }
