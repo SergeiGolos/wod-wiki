@@ -236,3 +236,67 @@ export function normalizeSummaryFacts(
 
   return Array.from(rowsByKey.values());
 }
+
+/**
+ * Normalize ALL metrics from a result's logs — summary facts (Tier 2) PLUS
+ * atomic per-segment metrics (Tier 0/1) — into persisted AnalyticsDataPoint
+ * rows.
+ *
+ * V13 expansion: the analytics store now holds every numeric metric emitted
+ * by the runtime, not just summary projections. This makes atomic metrics
+ * (reps, resistance, elapsed time per segment) available for indexed
+ * cross-workout queries and threshold filters (via the by-value compound
+ * index).
+ *
+ * Summary facts keep grain 'summary'; atomic segment metrics get grain
+ * 'segment'. The two coexist in the same store, distinguished by grain.
+ */
+export function normalizeAllMetrics(
+  logs: readonly SummaryFactSourceOutput[],
+  identity: SummaryFactIdentity,
+): AnalyticsDataPoint[] {
+  // Summary facts (Tier 2) — unchanged from normalizeSummaryFacts.
+  const summaryFacts = normalizeSummaryFacts(logs, identity);
+
+  // Atomic segment metrics (Tier 0/1) — one row per numeric metric per output.
+  const now = Date.now();
+  const segmentFacts: AnalyticsDataPoint[] = [];
+  let seq = 0;
+
+  for (const output of logs) {
+    if (output.outputType === 'analytics') continue; // handled by summary path
+    for (const metric of output.metrics) {
+      if (typeof metric.value !== 'number') continue;
+      const metricKey = String(metric.type);
+      const effortSlug = metadataString(metric.metadata, 'effortSlug');
+      const discipline = metadataString(metric.metadata, 'effortDiscipline');
+      const intensityTier = metadataString(metric.metadata, 'effortIntensityTier');
+
+      segmentFacts.push({
+        id: `${identity.resultId}-seg${seq++}-${metricKey}-${now}`,
+        noteId: identity.noteId,
+        blockContentId: identity.blockContentId,
+        origin: identity.origin,
+        pageId: identity.pageId,
+        grain: 'segment',
+        segmentId: identity.segmentId ?? '',
+        segmentVersion: identity.segmentVersion ?? 0,
+        resultId: identity.resultId,
+        type: metricKey,
+        value: metric.value,
+        unit: metric.unit,
+        label: metricKey,
+        metricKey,
+        metricLabel: metricKey,
+        metricUnit: metric.unit,
+        ...(effortSlug ? { effortSlug } : {}),
+        ...(discipline ? { discipline } : {}),
+        ...(intensityTier ? { intensityTier } : {}),
+        timestamp: identity.workoutTimestamp ?? output.timeSpan.started ?? now,
+        createdAt: now,
+      });
+    }
+  }
+
+  return [...summaryFacts, ...segmentFacts];
+}

@@ -34,6 +34,7 @@ import type { ScriptBlock } from '@/components/Editor/types';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
 import { createParser } from '@/parser/parserInstance';
 import {
+    normalizeAllMetrics,
     normalizeSummaryFacts,
     replayResultAnalytics,
 } from '@/services/analytics/workoutDerivation';
@@ -115,6 +116,7 @@ export interface WodWikiDB extends DBSchema {
             'by-grain': string;      // V10 — grain ('segment' | 'summary' | 'rollup')
             'by-discipline': string; // V10 — discipline
             'by-timestamp': number;  // V12 — canonical workout time; IDBKeyRange time scans
+            'by-value': [string, number]; // V13 — compound [type, value]; IDBKeyRange threshold scans
         };
     };
     efforts: {
@@ -123,9 +125,8 @@ export interface WodWikiDB extends DBSchema {
         indexes: { 'by-discipline': string; 'by-source': IEffort['registrySource'] };
     };
 }
-
+const DB_VERSION = 13; // V13 — analytics: by-value compound index; facts expanded to include atomic segment metrics (Tier 0/1) alongside summary facts (Tier 2)
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 12; // V12 — analytics: by-timestamp index; facts re-derived (effortSlug/discipline/intensityTier populated, timestamp = WorkoutResult.createdAt) via the replay seam over every result with logs; frontmatter tags swept into note_tags
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
 
@@ -455,6 +456,62 @@ export async function backfillV12(tx: V10Tx): Promise<void> {
     );
 }
 
+/**
+ * V13 backfill — expands the analytics store to include ALL atomic metrics.
+ *
+ * V12 only persisted summary facts (Tier 2, grain 'summary'). V13 re-derives
+ * every result's logs through `normalizeAllMetrics()`, which additionally
+ * emits atomic segment metrics (Tier 0/1, grain 'segment') — reps, resistance,
+ * elapsed time, etc. — alongside the existing summary facts.
+ *
+ * This does NOT replay logs (V12 already did that if upgrading from < 12);
+ * it reads whatever logs are in the store and re-normalizes with the expanded
+ * function. The new `by-value` compound index makes threshold queries
+ * (`value > 5000`) executable as native IDBKeyRange scans.
+ */
+export async function backfillV13(tx: V10Tx): Promise<void> {
+    const resultsStore = tx.objectStore('results');
+    const analyticsStore = tx.objectStore('analytics');
+
+    const results = await resultsStore.getAll();
+    await analyticsStore.clear();
+
+    let factRows = 0;
+    let resultsWithLogs = 0;
+    let withoutLogs = 0;
+
+    for (const result of results) {
+        const logs = result.data?.logs ?? [];
+        if (logs.length === 0) {
+            withoutLogs++;
+            continue;
+        }
+        resultsWithLogs++;
+
+        const identity = {
+            noteId: result.noteId,
+            resultId: result.id,
+            segmentId: result.segmentId,
+            segmentVersion: result.segmentVersion,
+            blockContentId: result.blockContentId,
+            origin: result.origin,
+            pageId: result.pageId,
+            workoutTimestamp: result.createdAt,
+        };
+
+        const points = normalizeAllMetrics(logs, identity);
+        for (const point of points) {
+            await analyticsStore.put(point);
+        }
+        factRows += points.length;
+    }
+
+    console.info(
+        `[IndexedDBService] V13 backfill: ${resultsWithLogs} results re-normalized, ` +
+        `${withoutLogs} without logs, ${factRows} fact rows written (summary + segment)`,
+    );
+}
+
 export class IndexedDBService {
     private _dbPromise: Promise<IDBPDatabase<WodWikiDB>> | null = null;
 
@@ -589,7 +646,7 @@ export class IndexedDBService {
                 const ensureIndex = <S extends 'notes' | 'segments' | 'results' | 'attachments' | 'analytics'>(
                     storeName: S,
                     indexName: IndexNames<WodWikiDB, S>,
-                    keyPath: string,
+                    keyPath: string | string[],
                 ) => {
                     const store = tx.objectStore(storeName);
                     if (!store.indexNames.contains(indexName)) {
@@ -611,6 +668,8 @@ export class IndexedDBService {
                 ensureIndex('analytics', 'by-discipline', 'discipline');
                 // V12 — canonical workout time range scans.
                 ensureIndex('analytics', 'by-timestamp', 'timestamp');
+                // V13 — compound [type, value] for IDBKeyRange threshold scans.
+                ensureIndex('analytics', 'by-value', ['type', 'value']);
 
                 // ---- V10 backfills (upgrade from < 10 only) ----
                 if (oldVersion < 10) {
@@ -645,6 +704,11 @@ export class IndexedDBService {
                 // Fresh installs (oldVersion 0) have nothing to migrate.
                 if (oldVersion > 0 && oldVersion < 12) {
                     await backfillV12(tx);
+                }
+                // ---- V13: expand analytics to atomic metrics + by-value index ----
+                // Fresh installs (oldVersion 0) have nothing to migrate.
+                if (oldVersion > 0 && oldVersion < 13) {
+                    await backfillV13(tx);
                 }
             },
             // Another tab is waiting on a schema upgrade this connection
