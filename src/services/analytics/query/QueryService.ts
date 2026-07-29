@@ -14,10 +14,11 @@
  * note, intensity, …) — 'tags' resolves through the note_tags store.
  */
 
-import type { AnalyticsDataPoint, Note, BlockIndexRow } from '@/types/storage';
+import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult } from '@/types/storage';
 import { indexedDBService } from '@/services/db/IndexedDBService';
-import { parseQuery, isFindQuery, type Aggregator, type ParsedQuery, type ParsedFindQuery, type Series, type SeriesPoint, type TagFilter } from './wql';
+import { parseQuery, isFindQuery, type Aggregator, type ComparisonOp, type ParsedQuery, type ParsedFindQuery, type FindPredicate, type MetricPredicate, type Series, type SeriesPoint, type TagFilter } from './wql';
 import { convert, resolveDisplayUnit } from '../units';
+import { normalizeSummaryFacts } from '../workoutDerivation';
 
 const DAY = 86_400_000;
 
@@ -57,6 +58,17 @@ export interface BlockQueryStore {
 
 const indexedDbBlockStore: BlockQueryStore = {
   getAllBlocks: () => indexedDBService.getAllBlockIndex(),
+};
+
+/** Store surface for raw WorkoutResult logs — the cross-store join source.
+ *  Cross-store aggregates bypass derived facts and re-derive from these logs
+ *  ("logs win", issue #800). */
+export interface ResultLogStore {
+  getResultsByContentId(blockContentId: string): Promise<WorkoutResult[]>;
+}
+
+const indexedDbResultStore: ResultLogStore = {
+  getResultsByContentId: (blockContentId) => indexedDBService.getResultsByContentId(blockContentId),
 };
 import staticBlockIndexData from '@/generated/static-block-index.json';
 const staticBlockIndex = staticBlockIndexData as BlockIndexRow[];
@@ -196,11 +208,24 @@ function aggregate(values: number[], agg: Aggregator, points: AnalyticsDataPoint
   }
 }
 
+/** Apply a cross-store metric predicate's comparison op. */
+function compareOp(value: number, op: ComparisonOp, threshold: number): boolean {
+  switch (op) {
+    case '>': return value > threshold;
+    case '>=': return value >= threshold;
+    case '<': return value < threshold;
+    case '<=': return value <= threshold;
+    case '==': return value === threshold;
+    case '!=': return value !== threshold;
+  }
+}
+
 export class QueryService {
   constructor(
     private readonly store: FactQueryStore = indexedDbFactStore,
     private readonly noteStore: NoteQueryStore = indexedDbNoteStore,
     private readonly blockStore: BlockQueryStore = indexedDbBlockStore,
+    private readonly resultStore: ResultLogStore = indexedDbResultStore,
   ) {}
   async getFactsByTimeRange(start: number, end: number): Promise<AnalyticsDataPoint[]> {
     return this.store.getFactsByTimeRange(start, end);
@@ -287,6 +312,13 @@ export class QueryService {
       notes = notes.filter(n => n.createdAt >= cutoff);
     }
 
+    // Cross-store join (direction 1): keep notes owning a wod block whose
+    // raw-log metric aggregate satisfies the predicate.
+    if (parsed.join) {
+      const joined = await this.applyMetricJoin(parsed, notes, []);
+      notes = joined.notes;
+    }
+
     return { parsed, notes, blocks: [], stages: { selected: selectedCount, matched: notes.length } };
   }
 
@@ -345,6 +377,13 @@ export class QueryService {
       blocks = blocks.filter(b => b.createdAt >= cutoff);
     }
 
+    // Cross-store join (direction 1): keep wod blocks whose raw-log metric
+    // aggregate satisfies the predicate.
+    if (parsed.join) {
+      const joined = await this.applyMetricJoin(parsed, [], blocks);
+      blocks = joined.blocks;
+    }
+
     return { parsed, notes: [], blocks, stages: { selected: selectedCount, matched: blocks.length } };
   }
 
@@ -356,6 +395,11 @@ export class QueryService {
       matched: [],
     };
     if (parsed.error) return empty;
+
+    // Cross-store join (direction 2): bypass the analytics store and re-derive
+    // from raw WorkoutResult logs, restricted to the joined find predicate's
+    // content. Logs win (#800).
+    if (parsed.join) return this.runJoined(parsed, options);
 
     // ── Stage 1: SELECT — index-first. by-metric is always available (the
     // WQL head names the Canonical Metric Key); by-timestamp narrows when a
@@ -369,31 +413,27 @@ export class QueryService {
       candidates = candidates.filter(row => inRange.has(row.id));
     }
 
-    // Load note tag labels only when the query actually touches 'tags'.
-    const touchesNoteTags =
+    const touchesTags =
       parsed.filters.some(f => f.key === 'tags') || parsed.groupBy.includes('tags');
-    const noteTags = new Map<string, readonly string[]>();
-    if (touchesNoteTags) {
-      const noteIds = [...new Set(candidates.map(row => row.noteId))];
-      await Promise.all(noteIds.map(async (noteId) => {
-        noteTags.set(noteId, await this.store.getNoteTagLabels(noteId));
-      }));
-    }
+    const noteTags = await this.loadNoteTags(candidates, touchesTags);
+    const matched = this.applyEffortScope(
+      candidates.filter(row => matchesFilters(row, parsed.filters, noteTags)), parsed,
+    );
 
-    let matched = candidates.filter(row => matchesFilters(row, parsed.filters, noteTags));
+    return this.buildResult(matched, parsed, options, noteTags);
+  }
 
-    // Filter per-effort vs un-attributed overall summary rows to avoid double-counting
-    if (parsed.groupBy.includes('effort') || parsed.filters.some(f => f.key === 'effort')) {
-      const hasPerEffortRows = matched.some(r => r.effortSlug !== undefined);
-      if (hasPerEffortRows) {
-        matched = matched.filter(r => r.effortSlug !== undefined);
-      }
-    } else {
-      const hasOverallRow = matched.some(r => r.effortSlug === undefined);
-      if (hasOverallRow) {
-        matched = matched.filter(r => r.effortSlug === undefined);
-      }
-    }
+  /**
+   * Stages 2–4 — BUCKET → GROUP → AGGREGATE over an already-selected +
+   * filtered `matched` set. Shared by the analytics SELECT path and the
+   * cross-store join (which feeds raw-log-derived facts in as `matched`).
+   */
+  private buildResult(
+    matched: AnalyticsDataPoint[],
+    parsed: ParsedQuery,
+    options: QueryOptions,
+    noteTags: ReadonlyMap<string, readonly string[]>,
+  ): QueryResult {
     // ── Stage 2: BUCKET — a time dim wins over rollup; neither → one bucket.
     const timeDim = parsed.groupBy.find((d) => d === 'day' || d === 'week');
     const tagDims = parsed.groupBy.filter((d) => d !== 'day' && d !== 'week');
@@ -462,6 +502,181 @@ export class QueryService {
       unit: resultUnit,
     };
   }
+
+  // ── Cross-store joins (#800) ─────────────────────────────────────────
+  //
+  // Two directions, both joined at the blockContentId level against RAW
+  // WorkoutResult logs (the analytics store is bypassed — "logs win"):
+  //   • Direction 1 — find where metric:  find:note where sum:totalVolume{} > 5000
+  //   • Direction 2 — metric where find:  sum:totalVolume{} where find:note{tags:x}
+
+  /** Direction 2 — re-derive the metric from raw logs, restricted to the
+   *  blockContentIds owned by the find predicate's content matches. */
+  private async runJoined(parsed: ParsedQuery, options: QueryOptions): Promise<QueryResult> {
+    const empty: QueryResult = {
+      parsed, series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [],
+    };
+    const join = parsed.join as FindPredicate;
+    const findResult = await this.runFind({
+      raw: '', target: join.target, filters: join.filters, scope: join.scope, last: join.last,
+    });
+    const contentIds = await this.contentIdsFromFindResult(findResult);
+    if (contentIds.size === 0) return empty;
+
+    let facts = await this.deriveMetricFacts(contentIds, parsed.metric);
+    if (facts.length === 0) return empty;
+    if (options.rangeStart !== undefined || options.rangeEnd !== undefined) {
+      const start = options.rangeStart ?? 0;
+      const end = options.rangeEnd ?? Number.MAX_SAFE_INTEGER;
+      facts = facts.filter(f => f.timestamp >= start && f.timestamp <= end);
+    }
+
+    const touchesTags =
+      parsed.filters.some(f => f.key === 'tags') || parsed.groupBy.includes('tags');
+    const noteTags = await this.loadNoteTags(facts, touchesTags);
+    const matched = this.applyEffortScope(
+      facts.filter(f => matchesFilters(f, parsed.filters, noteTags)), parsed,
+    );
+
+    return this.buildResult(matched, parsed, options, noteTags);
+  }
+
+  /** Direction 1 — keep only content owning a wod block whose raw-log metric
+   *  aggregate satisfies the predicate. `notes` for find:note, `blocks` for
+   *  find:block. */
+  private async applyMetricJoin(
+    parsed: ParsedFindQuery,
+    notes: Note[],
+    blocks: BlockIndexRow[],
+  ): Promise<{ notes: Note[]; blocks: BlockIndexRow[] }> {
+    const join = parsed.join as MetricPredicate;
+    // Resolve the wod blockContentIds owned by each candidate note.
+    const noteToContent = await this.noteContentMap(new Set(notes.map(n => n.id)));
+    // Candidate content ids: wod blocks owned by matched notes or blocks.
+    const candidateIds = new Set<string>();
+    for (const set of noteToContent.values()) for (const id of set) candidateIds.add(id);
+    for (const b of blocks) if (b.dataType === 'wod' && b.blockContentId) candidateIds.add(b.blockContentId);
+
+    const passing = await this.contentIdsSatisfying(candidateIds, join);
+
+    // find:block — only wod blocks whose content id passes (prose has no metric).
+    blocks = blocks.filter(b => b.dataType === 'wod' && !!b.blockContentId && passing.has(b.blockContentId!));
+    // find:note — keep notes owning ≥1 passing wod block.
+    notes = notes.filter(n => {
+      const cids = noteToContent.get(n.id);
+      return !!cids && [...cids].some(id => passing.has(id));
+    });
+    return { notes, blocks };
+  }
+
+  /** Re-derive the metric from raw logs for each content id, aggregate per id,
+   *  and return the ids whose aggregate satisfies the join predicate. */
+  private async contentIdsSatisfying(
+    contentIds: Set<string>,
+    join: MetricPredicate,
+  ): Promise<Set<string>> {
+    const facts = await this.deriveMetricFacts(contentIds, join.metric);
+    const noteTags = await this.loadNoteTags(facts, join.filters.some(f => f.key === 'tags'));
+    const filtered = this.applyEffortScope(
+      facts.filter(f => matchesFilters(f, join.filters, noteTags)),
+      { filters: join.filters, groupBy: [] },
+    );
+    const byContent = new Map<string, AnalyticsDataPoint[]>();
+    for (const f of filtered) {
+      const cid = f.blockContentId ?? '';
+      const arr = byContent.get(cid);
+      if (arr) arr.push(f);
+      else byContent.set(cid, [f]);
+    }
+    const passing = new Set<string>();
+    for (const [cid, rows] of byContent) {
+      const values = rows.map(r => r.value as number);
+      if (compareOp(aggregate(values, join.agg, rows, undefined), join.operator, join.threshold)) passing.add(cid);
+    }
+    return passing;
+  }
+
+  /** Filter per-effort vs un-attributed overall summary rows to avoid
+   *  double-counting (same guard the SELECT path has always applied). */
+  private applyEffortScope(matched: AnalyticsDataPoint[], scope: { filters: TagFilter[]; groupBy: string[] }): AnalyticsDataPoint[] {
+    if (scope.groupBy.includes('effort') || scope.filters.some(f => f.key === 'effort')) {
+      return matched.some(r => r.effortSlug !== undefined)
+        ? matched.filter(r => r.effortSlug !== undefined)
+        : matched;
+    }
+    return matched.some(r => r.effortSlug === undefined)
+      ? matched.filter(r => r.effortSlug === undefined)
+      : matched;
+  }
+
+  /** Re-derive summary facts for one Canonical Metric Key from RAW WorkoutResult
+   *  logs across the given content ids — the cross-store join source. One fact
+   *  row per result (normalizeSummaryFacts dedupes within a result). */
+  private async deriveMetricFacts(
+    contentIds: Iterable<string>,
+    metricKey: string,
+  ): Promise<AnalyticsDataPoint[]> {
+    const out: AnalyticsDataPoint[] = [];
+    const ids = [...new Set(contentIds)];
+    await Promise.all(ids.map(async (blockContentId) => {
+      const results = await this.resultStore.getResultsByContentId(blockContentId);
+      for (const result of results) {
+        const facts = normalizeSummaryFacts(result.data.logs ?? [], {
+          noteId: result.noteId,
+          resultId: result.id,
+          segmentId: result.segmentId,
+          segmentVersion: result.segmentVersion,
+          blockContentId,
+          origin: result.origin,
+          pageId: result.pageId,
+          workoutTimestamp: result.createdAt,
+        });
+        for (const f of facts) if (f.metricKey === metricKey) out.push(f);
+      }
+    }));
+    return out;
+  }
+
+  /** All content blocks across the journal + static corpus. */
+  private async allContentBlocks(): Promise<BlockIndexRow[]> {
+    return (await this.blockStore.getAllBlocks()).concat(await staticBlockStore.getAllBlocks());
+  }
+
+  /** Map each note id to the wod blockContentIds it owns. */
+  private async noteContentMap(noteIds: Set<string>): Promise<Map<string, Set<string>>> {
+    const map = new Map<string, Set<string>>();
+    if (!noteIds.size) return map;
+    const allBlocks = await this.allContentBlocks();
+    for (const b of allBlocks) {
+      if (b.dataType !== 'wod' || !b.blockContentId || !noteIds.has(b.noteId)) continue;
+      let set = map.get(b.noteId);
+      if (!set) { set = new Set(); map.set(b.noteId, set); }
+      set.add(b.blockContentId);
+    }
+    return map;
+  }
+
+  /** Collect wod blockContentIds owned by a find query's content matches. */
+  private async contentIdsFromFindResult(findResult: FindQueryResult): Promise<Set<string>> {
+    const ids = new Set<string>();
+    for (const b of findResult.blocks) if (b.dataType === 'wod' && b.blockContentId) ids.add(b.blockContentId);
+    if (findResult.notes.length) {
+      const noteIds = new Set(findResult.notes.map(n => n.id));
+      const noteMap = await this.noteContentMap(noteIds);
+      for (const set of noteMap.values()) for (const id of set) ids.add(id);
+    }
+    return ids;
+  }
+
+  /** Load note tag labels only when the query touches 'tags'. */
+  private async loadNoteTags(rows: AnalyticsDataPoint[], touchesTags: boolean): Promise<Map<string, readonly string[]>> {
+    const noteTags = new Map<string, readonly string[]>();
+    if (!touchesTags) return noteTags;
+    const noteIds = [...new Set(rows.map(r => r.noteId))];
+    await Promise.all(noteIds.map(async (id) => noteTags.set(id, await this.store.getNoteTagLabels(id))));
+    return noteTags;
+  }
+
 }
 
 export const queryService = new QueryService();

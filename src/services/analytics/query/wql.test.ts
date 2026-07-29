@@ -188,3 +188,75 @@ describe('parseQuery — find: content queries', () => {
     expect(parsed.filters[0].values[0].value).toBe('wod');
   });
 });
+
+// ── Cross-store `where` join tests (#800) ──────────────────────────
+describe('parseQuery — cross-store where joins', () => {
+  it('parses find:note joined to a metric predicate', () => {
+    const parsed = _parseQuery('find:note where sum:totalVolume{} > 5000');
+    expect(isFindQuery(parsed)).toBe(true);
+    if (!isFindQuery(parsed) || !parsed.join) return;
+    expect(parsed.join).toEqual({
+      agg: 'sum', metric: 'totalVolume', filters: [],
+      operator: '>', threshold: 5000,
+    });
+  });
+
+  it('parses an analytics query joined to a find predicate', () => {
+    const parsed = _parseQuery('sum:totalVolume{} where find:note{tags:competition}');
+    expect(isFindQuery(parsed)).toBe(false);
+    if ('join' in parsed && parsed.join) {
+      expect(parsed.join).toEqual({
+        target: 'note',
+        filters: [{ key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] }],
+      });
+    } else {
+      throw new Error('expected a join');
+    }
+  });
+
+  it('preserves the find half\'s own scope + last on the join', () => {
+    const parsed = _parseQuery('sum:totalVolume{} where find:note{tags:pr} in journal last 8w');
+    expect(isFindQuery(parsed)).toBe(false);
+    if (!('join' in parsed) || !parsed.join) throw new Error('expected a join');
+    expect(parsed.join.scope).toBe('journal');
+    expect(parsed.join.last).toEqual({ size: 8, unit: 'w' });
+  });
+
+  it('parses every comparison operator', () => {
+    for (const op of ['>=', '<=', '!=', '==', '>', '<'] as const) {
+      const parsed = _parseQuery(`find:block where sum:totalVolume{} ${op} 1000`);
+      if (!isFindQuery(parsed) || !parsed.join) throw new Error(`no join for ${op}`);
+      expect(parsed.join.operator).toBe(op);
+      expect(parsed.join.threshold).toBe(1000);
+    }
+  });
+
+  it('passes the metric predicate\'s own filters through', () => {
+    const parsed = _parseQuery('find:note where sum:totalVolume{discipline:strength} >= 4000');
+    if (!isFindQuery(parsed) || !parsed.join) throw new Error('expected a join');
+    expect(parsed.join.filters).toEqual([
+      { key: 'discipline', negate: false, values: [{ value: 'strength', wildcard: false }] },
+    ]);
+    expect(parsed.join.operator).toBe('>=');
+  });
+
+  it('treats `where` inside filters as a tag value, not a join', () => {
+    // Single-word tag values parse; a top-level join is not created.
+    const parsed = _parseQuery('find:note{text:where}');
+    expect(isFindQuery(parsed)).toBe(true);
+    if (!isFindQuery(parsed)) return;
+    expect(parsed.join).toBeUndefined();
+    expect(parsed.filters[0].values[0].value).toBe('where');
+  });
+
+  it('rejects a find query joined to another find half', () => {
+    const parsed = _parseQuery('find:note where find:block{}');
+    if (!isFindQuery(parsed)) throw new Error('expected find query');
+    expect(parsed.error).toContain('agg:metric');
+  });
+
+  it('rejects an analytics query joined to a metric half', () => {
+    const parsed = _parseQuery('sum:totalVolume{} where sum:tis{} > 5');
+    expect(parsed.error).toContain('find:');
+  });
+});
