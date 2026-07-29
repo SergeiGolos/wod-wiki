@@ -35,6 +35,7 @@ import { useShowPlaygrounds } from '../hooks/useShowPlaygrounds'
 import { useCreateJournalEntry } from '../hooks/useCreateJournalEntry'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { notePersistence } from '@/services/persistence'
+import { normalizeNoteTitle } from '@/lib/noteTitle'
 import { localDateKey, type JournalEntrySummary } from './queriable-list/JournalDateScroll'
 import type { FilteredListItem } from './queriable-list/types'
 import { JournalFeed } from './JournalFeed'
@@ -196,15 +197,21 @@ export function JournalListPage({
         const entryMap = new Map<string, JournalEntrySummary>()
         const titleMap = new Map<string, string>()
         for (const entry of entries) {
-          if (entry.title && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(entry.title)) {
-            titleMap.set(entry.id, entry.title)
-            if (entry.slug) titleMap.set(entry.slug, entry.title)
+          const cleanTitle = normalizeNoteTitle(entry.title)
+          if (cleanTitle && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(cleanTitle)) {
+            titleMap.set(entry.id, cleanTitle)
+            if (entry.slug) titleMap.set(entry.slug, cleanTitle)
           }
         }
         for (const [dateKey, dayEntries] of grouped) {
-          const titles = dayEntries.map(entry => entry.title).filter(Boolean)
+          const normalizedTitles = dayEntries.map(entry => normalizeNoteTitle(entry.title)).filter(Boolean)
+          const title = normalizedTitles.length === 1
+            ? normalizedTitles[0]
+            : normalizedTitles.length > 1
+              ? `${normalizedTitles.length} notes`
+              : `${dayEntries.length} note${dayEntries.length !== 1 ? 's' : ''}`
           entryMap.set(dateKey, {
-            title: titles.length === 1 ? titles[0] : `${titles.length} notes`,
+            title,
             updatedAt: Math.max(...dayEntries.map(entry => entry.updatedAt)),
           })
         }

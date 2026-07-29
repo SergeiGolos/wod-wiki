@@ -35,13 +35,13 @@ function point(id: number, overrides?: Partial<AnalyticsDataPoint>): AnalyticsDa
 export const Collapsed: Story = {
   args: {
     matched: [point(0), point(1), point(2)],
-    unit: 'kg',
+    displayUnit: 'kg',
   },
 };
 
 export const Many: Story = {
   args: {
     matched: Array.from({ length: 20 }, (_, i) => point(i)),
-    unit: 'kg',
+    displayUnit: 'kg',
   },
 };

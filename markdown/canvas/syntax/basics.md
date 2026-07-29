@@ -91,8 +91,8 @@ pipeline:
 ```
 
 ```button
-label:  Structure & Reps →
+label:  Timers & Protocols →
 target: ex
 pipeline:
-  - navigate: /guide/syntax/structure
+  - navigate: /guide/syntax/protocols
 ```

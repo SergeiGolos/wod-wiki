@@ -14,7 +14,8 @@ test.describe('Home page scroll walkthrough', () => {
     const headline = tour.getByRole('heading', { level: 1 });
     await expect(headline).toContainText('Write it in Markdown');
     await expect(headline).toContainText('Run it as a Timer');
-    await expect(headline).toContainText('Own the Analytics');
+    await expect(headline).toContainText('Own the Metrics');
+    await expect(headline).toContainText('Visualize the Analytics');
 
     // The tour window mounts the REAL note editor (CodeMirror), not mock markup.
     await expect(tour.locator('.cm-editor')).toBeVisible();

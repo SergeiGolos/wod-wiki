@@ -24,6 +24,16 @@ export const TOUR_STAGE_QUEST_IDS: Record<string, string> = {
   library: 'qs-tour-library',
 };
 
+/**
+ * Validation types that require an external interaction signal (a run actually
+ * starting, a workout completing, etc.). Scroll/visibility alone must not mark
+ * these quests complete.
+ */
+const INTERACTION_VALIDATIONS: Record<string, true> = {
+  'workout-complete': true,
+  'run-started': true,
+};
+
 export function useTourScrollQuests(
   pageRoute: string,
   quests: Quest[],
@@ -31,9 +41,14 @@ export function useTourScrollQuests(
   const { markComplete } = usePageQuests(pageRoute, quests);
 
   // Ref so the returned callback stays stable when the quests array
-  // identity changes between renders.
+  // identity changes between renders. Interaction-gated quests are excluded
+  // here because their completion is driven by an external signal, not scroll.
   const questIdsRef = useRef<Set<string>>(new Set());
-  questIdsRef.current = new Set(quests.map((q) => q.id));
+  questIdsRef.current = new Set(
+    quests
+      .filter((q) => !q.validation || !INTERACTION_VALIDATIONS[q.validation.type])
+      .map((q) => q.id),
+  );
 
   return useCallback(
     (stageId: string) => {

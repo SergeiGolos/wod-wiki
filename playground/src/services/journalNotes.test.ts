@@ -101,4 +101,32 @@ describe('Journal Notes', () => {
 
     expect(notes.map(note => note.title)).toEqual(['Earlier', 'Later']);
   });
+
+  it('strips leading Markdown heading markers from stored titles', async () => {
+    const persistence = new MemoryNotePersistence();
+    const journalNotes = createJournalNotes({ persistence });
+
+    const note = await journalNotes.create({
+      journalDate: '2026-07-13',
+      title: '# Welcome workout',
+      rawContent: '# Welcome workout\n\n```wod\n5 push-ups\n```',
+    });
+
+    expect(note.title).toBe('Welcome workout');
+    expect(persistence.notes.get(note.id)?.title).toBe('Welcome workout');
+  });
+
+  it('updates titles from the first Markdown heading', async () => {
+    const persistence = new MemoryNotePersistence();
+    const journalNotes = createJournalNotes({ persistence });
+
+    const note = await journalNotes.create({
+      journalDate: '2026-07-13',
+      title: 'Fran',
+      rawContent: '# Fran',
+    });
+    await journalNotes.update(note.id, '# Changed heading\n\nSome text');
+
+    expect(persistence.notes.get(note.id)?.title).toBe('Changed heading');
+  });
 });

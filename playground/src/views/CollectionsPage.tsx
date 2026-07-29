@@ -1,11 +1,88 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FolderIcon, ChevronRightIcon } from 'lucide-react';
-import { getScriptCollections, type ScriptCollection } from '@/repositories/script-collections';
+import { v7 as uuidv7 } from 'uuid';
+import { getScriptCollection, getScriptCollections, type ScriptCollection, type ScriptCollectionItem } from '@/repositories/script-collections';
 import { useCollectionsQueryState } from '../hooks/useCollectionsQueryState';
 import { findCanvasPage } from '../canvas/canvasRoutes';
 import { CollectionListTemplate } from '../templates/CollectionListTemplate';
 import { ListPreludeCanvas } from '../templates/ListPreludeCanvas';
+import { detectScriptBlocks } from '@/components/Editor/utils/blockDetection';
+import { createJournalNoteFromWorkout } from '../services/journalWorkout';
+import { pendingRuntimes } from '../runtimeStore';
+import { journalDatePath, runPath, workoutPath } from '../lib/routes';
+import { StartHereShelf, type StartHereWorkout } from './StartHereShelf';
+
+const PREFERRED_LOOKUP: Record<string, true> = {
+  fran: true,
+  cindy: true,
+  annie: true,
+};
+const BENCHMARK_FALLBACK_NAMES = ['Fran', 'Cindy', 'Annie', 'Grace', 'Helen', 'Elizabeth', 'Diane', 'Jackie', 'Karen', 'Nancy', 'Mary', 'Angie', 'Barbara', 'Chelsea', 'Linda', 'Isabel'];
+
+function extractDescription(content: string, name: string): string {
+  const match = content.match(/## Description\s*\n+([^#\n]+(?:\n[^#\n]+)*)/i);
+  if (match) {
+    const paragraph = match[1]
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const firstSentence = paragraph.split(/(?<=[.!?])\s+/)[0];
+    return firstSentence || paragraph;
+  }
+
+  const lines = content.split('\n');
+  let afterTitle = false;
+  for (const line of lines) {
+    if (line.startsWith('# ')) {
+      afterTitle = true;
+      continue;
+    }
+    if (afterTitle && line.trim() && !line.startsWith('---') && !line.startsWith('**')) {
+      return line.trim();
+    }
+  }
+
+  return `${name} benchmark workout`;
+}
+
+function selectStartHereWorkouts(): StartHereWorkout[] {
+  const collection = getScriptCollection('crossfit-girls');
+  const allCollections = getScriptCollections();
+  let candidates: ScriptCollectionItem[] = [];
+  if (collection) {
+    const exact = Object.keys(PREFERRED_LOOKUP)
+      .map(id => collection.items.find(item => item.id.toLowerCase() === id))
+      .filter((item): item is ScriptCollectionItem => Boolean(item));
+    const remaining = collection.items.filter(item => !(PREFERRED_LOOKUP[item.id.toLowerCase()]));
+    candidates = [...exact, ...remaining];
+  }
+
+  if (candidates.length < 3) {
+    const allItems = allCollections.flatMap(c => c.items);
+    const fallback = BENCHMARK_FALLBACK_NAMES.flatMap(name => {
+      const found = allItems.find(item => item.name.toLowerCase() === name.toLowerCase());
+      return found ? [found] : [];
+    });
+    const seen = new Set(candidates.map(c => c.id));
+    candidates = [...candidates, ...fallback.filter(f => !seen.has(f.id))];
+  }
+
+  return candidates.slice(0, 3).map(item => {
+    const sourceCollection = collection ?? allCollections.find(c => c.items.some(i => i.id === item.id));
+    return {
+      id: item.id,
+      name: item.name,
+      description: extractDescription(item.content, item.name),
+      category: sourceCollection?.id ?? 'general',
+      categoryLabel: sourceCollection?.name ?? 'General',
+      content: item.content,
+    };
+  });
+}
 
 function CollectionRow({ collection }: { collection: ScriptCollection }) {
   const hasCategories = collection.categories.length > 0;
@@ -47,6 +124,33 @@ export function CollectionsPage() {
   const prependedCanvasPage = useMemo(() => findCanvasPage('/collections'), []);
   const query = useMemo(() => ({ text, selectedCategories }), [selectedCategories, text]);
   const navigate = useNavigate();
+  const [playingId, setPlayingId] = useState<string | null>(null);
+
+  const startHereWorkouts = useMemo(() => selectStartHereWorkouts(), []);
+
+  const handlePlay = useCallback(async (workout: StartHereWorkout) => {
+    const block = detectScriptBlocks(workout.content)[0];
+    if (!block) return;
+
+    const runtimeId = uuidv7();
+    setPlayingId(workout.id);
+    try {
+      const journalNote = await createJournalNoteFromWorkout({
+        workoutName: workout.name,
+        category: workout.category,
+        sourceNoteLabel: workout.categoryLabel,
+        sourceNotePath: workoutPath(workout.category, workout.id),
+        wodContent: block.content,
+      });
+      pendingRuntimes.set(runtimeId, { block, noteId: journalNote.id });
+      navigate(`${journalDatePath(journalNote.journalDate ?? '')}?autoStart=${runtimeId}`);
+    } catch {
+      pendingRuntimes.set(runtimeId, { block, noteId: `${workout.category}/${workout.id}` });
+      navigate(runPath(runtimeId));
+    } finally {
+      setPlayingId(null);
+    }
+  }, [navigate]);
 
   const loadCollections = useMemo(
     () => (currentQuery: typeof query) => {
@@ -76,9 +180,20 @@ export function CollectionsPage() {
       loadRecords={loadCollections}
       mapRecordToItem={collection => collection}
       getItemKey={collection => collection.id}
-      prependedCanvas={prependedCanvasPage ? <ListPreludeCanvas page={prependedCanvasPage} /> : undefined}
+      prependedCanvas={
+        <>
+          {startHereWorkouts.length > 0 && (
+            <StartHereShelf
+              workouts={startHereWorkouts}
+              onPlay={handlePlay}
+              isPlaying={playingId}
+            />
+          )}
+          {prependedCanvasPage && <ListPreludeCanvas page={prependedCanvasPage} />}
+        </>
+      }
       renderPrimaryContent={collection => <CollectionRow collection={collection} />}
-      getItemActions={collection => [
+      getItemActions={_collection => [
         {
           id: 'open',
           label: 'Open',

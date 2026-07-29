@@ -76,15 +76,15 @@ Groups organise movements into repeating blocks, named sections, or nested struc
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Core Concepts
-target: ex
-pipeline:
-  - navigate: /guide/syntax/basics
-```
-
-```button
-label:  Timers & Protocols →
+label:  ← Timers & Protocols
 target: ex
 pipeline:
   - navigate: /guide/syntax/protocols
+```
+
+```button
+label:  Custom Metrics →
+target: ex
+pipeline:
+  - navigate: /guide/syntax/custom-metrics
 ```

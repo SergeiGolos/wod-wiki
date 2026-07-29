@@ -37,12 +37,9 @@ const RingTargetsContext = createContext<RingTargetsContextValue | null>(null)
 
 export function RingTargetsProvider({ children }: { children: ReactNode }) {
   const registry = useRef<RingRegistry>({
-    'editor.note': null,
     'timer.floor': null,
     'timer.cast': null,
     'analytics.scorecard': null,
-    'library.collections': null,
-    'library.feeds': null,
   })
   const [version, setVersion] = useState(0)
 

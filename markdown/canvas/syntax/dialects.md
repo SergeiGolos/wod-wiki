@@ -76,9 +76,21 @@ stages:
 
 Dialect fences tell WOD Wiki what kind of training note a block represents. The line grammar stays familiar, while the fence gives the editor, review grid, and analytics layer the right intent.
 
-## Syntax Reference {sticky full-bleed dark}
+## What's Next {sticky full-bleed dark}
 
-Return to the main syntax map when you want the lower-level grammar rules.
+```button
+label:  ← Custom Metrics
+target: ex
+pipeline:
+  - navigate: /guide/syntax/custom-metrics
+```
+
+```button
+label:  Complex Workouts →
+target: ex
+pipeline:
+  - navigate: /guide/syntax/complex
+```
 
 ```button
 label:  Back to Syntax →

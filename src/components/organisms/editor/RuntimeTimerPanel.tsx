@@ -18,7 +18,7 @@
  *   Document line = block.startLine + 1 + sourceId.
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import { TimerDisplay } from "@/panels/wallclock-panel";
 import { VisualStatePanel } from "@/panels/visual-state-panel";
@@ -63,6 +63,8 @@ export interface RuntimeTimerPanelProps {
   autoStart?: boolean;
   /** Called when the internal runtime is created — allows the parent to subscribe. */
   onRuntimeReady?: (runtime: IScriptRuntime) => void;
+  /** Called once when the runtime transitions from idle to running. */
+  onRunStarted?: () => void;
 }
 
 
@@ -148,6 +150,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   onToggleExpand,
   autoStart,
   onRuntimeReady,
+  onRunStarted,
 }) => {
   const [runtimeBlock] = useState(() => prepareRuntimeBlock(block));
   const [preRunScript] = useState(() => ({ statements: runtimeBlock.statements }));
@@ -244,6 +247,16 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       setPendingStart(false);
     }
   }, [autoStart, pendingStart, ready, execution.status, execution.start]);
+
+  // Surface the first transition to running so tour quest gating can observe
+  // an actual run signal rather than just stage visibility.
+  const hasFiredRunStartedRef = useRef(false);
+  useEffect(() => {
+    if (execution.status === 'running' && !hasFiredRunStartedRef.current) {
+      hasFiredRunStartedRef.current = true;
+      onRunStarted?.();
+    }
+  }, [execution.status, onRunStarted]);
 
   const handleComplete = useCallback((completed: boolean) => {
     if (!runtime) return;

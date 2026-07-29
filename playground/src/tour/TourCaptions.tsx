@@ -3,12 +3,22 @@
  *
  * Desktop: a fixed-width column where captions cross-fade with the active
  * stage. Mobile: the parent translates the strip vertically (scrubbed
- * during the last 30% of each stage). The same CAPTIONS data drives the
- * reduced-motion static card fallback.
+ * during the last 30% of each stage) or the cards render statically. The
+ * same CAPTIONS data now carries the stage drop-off actions for the home
+ * funnel.
  */
 
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { TOUR_ACCENTS, type TourStageId } from './tourStages'
+import { telemetry, HOME_EVENTS, type HomeEventName } from '@/services/telemetry'
+import { analyticsExplorerPath } from '../lib/routes'
+
+export interface TourCaptionAction {
+  label: string
+  href: string
+  event: HomeEventName
+}
 
 export interface TourCaption {
   id: TourStageId
@@ -17,68 +27,54 @@ export interface TourCaption {
   body: string
   foot: string
   accent: string
+  actions?: TourCaptionAction[]
 }
 
 export const TOUR_CAPTIONS: TourCaption[] = [
   {
-    id: 'overview',
-    num: 'The Loop',
-    title: (
-      <>
-        One window. <em className="not-italic" style={{ color: TOUR_ACCENTS.ink }}>The whole workout lifecycle.</em>
-      </>
-    ),
-    body: 'A note, a clock, a journal and a library that all speak the same plain-text language. Scroll to walk the four parts of the app.',
-    foot: 'wod.wiki — whiteboard-script playground',
-    accent: TOUR_ACCENTS.ink,
-  },
-  {
-    id: 'editor',
-    num: '01 / 04 — The Editor',
-    title: (
-      <>
-        Write the workout. <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>It&rsquo;s just Markdown.</em>
-      </>
-    ),
-    body: 'The note view is where workouts are authored in whiteboard-script: (3 Rounds), 10 Pushups, *:30 Rest. The ```wod block compiles as you type — swap a load, add a round, and the plan updates before you lift a finger.',
-    foot: 'Rounds · rep schemes · sections · rest timers',
-    accent: TOUR_ACCENTS.editor,
-  },
-  {
     id: 'timer',
-    num: '02 / 04 — The Timer',
+    num: '01 / 02 — The Timer',
     title: (
       <>
-        Press Run. <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>The script becomes the clock.</em>
+        What Happens When It Runs.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>The script becomes the clock.</em>
       </>
     ),
-    body: 'The WallClock runs your exact script — while it captures reps, pace and volume as you go. Keep scrolling: one tap casts the whole thing to a Chromecast, and your phone stays the remote.',
-    foot: 'Live metric capture · cast to any TV',
+    body: 'The WallClock runs your exact script — while it captures reps, pace and volume as you go. One tap casts the whole thing to a Chromecast, and your phone stays the remote.',
+    foot: 'WallClock · Chromecast · live metric capture',
     accent: TOUR_ACCENTS.timer,
+    actions: [
+      {
+        label: 'Read the behaviors explainer',
+        href: '/guide/behaviors',
+        event: HOME_EVENTS.behaviorsOpened,
+      },
+    ],
   },
   {
     id: 'analytics',
-    num: '03 / 04 — The Analytics',
+    num: '02 / 02 — Explore Your Data',
     title: (
       <>
-        Clock stops. <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>The numbers land.</em>
+        Explore Your Data.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Query what you just did.</em>
       </>
     ),
-    body: 'The moment the timer completes — or you hit stop — splits, volume and every captured metric are written into the day\u2019s journal entry. Your history is yours: queryable, comparable, still plain text.',
-    foot: 'Round splits · totals · per-movement metrics',
+    body: 'The moment the timer completes — or you hit stop — splits, volume and every captured metric are written into the day\u2019s journal entry. Then query it, compare it, and share it.',
+    foot: 'Explorer · Dashboard · Movement Registry',
     accent: TOUR_ACCENTS.analytics,
-  },
-  {
-    id: 'library',
-    num: '04 / 04 — Collections & Feeds',
-    title: (
-      <>
-        Or don&rsquo;t write <em className="not-italic" style={{ color: TOUR_ACCENTS.library }}>anything at all.</em>
-      </>
-    ),
-    body: 'Dozens of bundled collections — Games archives, the benchmark Girls, Dan John, Girevoy Sport — plus feeds that drop a programmed WOD into your journal every day. Pick one, press Run, and the whole loop above just works.',
-    foot: 'Bundled collections · daily programmed feeds',
-    accent: TOUR_ACCENTS.library,
+    actions: [
+      {
+        label: 'Run a pre-filled query',
+        href: analyticsExplorerPath({ q: 'sum:totalVolume{discipline:strength} by {week}.rollup(1w)' }),
+        event: HOME_EVENTS.explorerOpened,
+      },
+      {
+        label: 'Open the dashboard',
+        href: '/analytics/dashboard',
+        event: HOME_EVENTS.dashboardViewed,
+      },
+    ],
   },
 ]
 
@@ -121,6 +117,27 @@ export function CaptionBody({ cap }: { cap: TourCaption }) {
       <div className="mt-4 border-t border-border pt-3 font-mono text-[10px] tracking-[0.06em] text-muted-foreground/60">
         {cap.foot}
       </div>
+      {cap.actions && cap.actions.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          {cap.actions.map((action, i) => {
+            const isPrimary = i === 0
+            return (
+              <Link
+                key={action.label}
+                to={action.href}
+                onClick={() => telemetry.record(action.event)}
+                className={
+                  isPrimary
+                    ? 'inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90'
+                    : 'text-sm text-primary underline-offset-2 hover:underline'
+                }
+              >
+                {action.label}
+              </Link>
+            )
+          })}
+        </div>
+      )}
     </>
   )
 }

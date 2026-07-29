@@ -12,7 +12,7 @@ import type { PageKind, SelectWorkoutItem } from './lib/routeView'
 import { DebugModeProvider } from '@/contexts/DebugModeContext'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { PaletteShell } from '@/components/organisms/command-palette/PaletteShell'
-import { globalSearchSource } from './services/paletteDataSources'
+import { globalSearchSource, constructSource } from './services/paletteDataSources'
 import { useCreateJournalEntry } from './hooks/useCreateJournalEntry'
 import { useShowPlaygrounds } from './hooks/useShowPlaygrounds'
 import { usePageScrollSync } from './hooks/usePageScrollSync'
@@ -97,7 +97,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const openSearchPalette = useCallback(() => {
     usePaletteStore.getState().open({
       placeholder: 'Search workouts, results, pages…',
-      sources: [globalSearchSource(workoutItems, canvasRoutes, showPlaygrounds)],
+      sources: [globalSearchSource(workoutItems, canvasRoutes, showPlaygrounds), constructSource()],
     }).then(result => {
       if (result.dismissed) return
       const item = result.item
@@ -299,15 +299,23 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
 }
 
 // ---------------------------------------------------------------------------
-// ScrollToTop — reset scroll position on route change
+// ScrollToTop — reset scroll position on route change; honor hash anchors
+// when they resolve to an element id (used by construct lookup links).
 // ---------------------------------------------------------------------------
 
 function ScrollToTop() {
-  const { pathname } = useLocation()
+  const { pathname, hash } = useLocation()
 
   useEffect(() => {
+    if (hash) {
+      const el = document.getElementById(hash.slice(1))
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        return
+      }
+    }
     window.scrollTo(0, 0)
-  }, [pathname])
+  }, [pathname, hash])
 
   return null
 }

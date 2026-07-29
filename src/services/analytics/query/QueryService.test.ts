@@ -275,3 +275,59 @@ describe('queryResultToGridRows', () => {
     expect(cell?.metrics.getByType(MetricType.Metric)[0]?.value).toBe(3000);
   });
 });
+
+describe('QueryService unit conversion', () => {
+  const lbFacts = [
+    fact('totalVolume', 1000, day0 + HOUR, { unit: 'lb', effortSlug: 'back-squat' }),
+    fact('totalVolume', 2000, day0 + DAY, { unit: 'lb', effortSlug: 'back-squat' }),
+    fact('totalVolume', 3000, day0 + 8 * DAY, { unit: 'lb', effortSlug: 'back-squat' }),
+  ];
+
+  it('converts to a directive display unit', async () => {
+    const service = new QueryService(makeStore(lbFacts).store);
+    const result = await service.runQuery('sum:totalVolume{} in kg');
+
+    expect(result.unit).toBe('kg');
+    expect(result.series[0]?.unit).toBe('kg');
+    expect(result.scalar).toBe(2721.55); // 6000 lb rounded to kg
+  });
+
+  it('converts to a preferred unit when the query has no directive', async () => {
+    const service = new QueryService(makeStore(lbFacts).store);
+    const result = await service.runQuery('sum:totalVolume{}', { preferredUnit: 'kg' });
+
+    expect(result.unit).toBe('kg');
+    expect(result.scalar).toBe(2721.55);
+  });
+
+  it('leaves mass values in the recorded unit when no directive or preference is given', async () => {
+    const service = new QueryService(makeStore(lbFacts).store);
+    const result = await service.runQuery('sum:totalVolume{}');
+
+    expect(result.unit).toBe('lb');
+    expect(result.scalar).toBe(6000);
+  });
+
+  it('ignores a preferred unit for non-mass metrics', async () => {
+    const repsFacts = [
+      fact('totalReps', 50, day0 + HOUR, { unit: 'reps' }),
+      fact('totalReps', 30, day0 + DAY, { unit: 'reps' }),
+    ];
+    const service = new QueryService(makeStore(repsFacts).store);
+    const result = await service.runQuery('sum:totalReps{}', { preferredUnit: 'kg' });
+
+    expect(result.unit).toBe('reps');
+    expect(result.scalar).toBe(80);
+  });
+
+  it('declares a converted unit on each series and keeps raw points original', async () => {
+    const service = new QueryService(makeStore(lbFacts).store);
+    const result = await service.runQuery('sum:totalVolume{} by {effort} in kg');
+
+    expect(result.series).toHaveLength(1);
+    expect(result.series[0]?.unit).toBe('kg');
+    expect(result.series[0]?.points[0]?.value).toBe(2721.55);
+    expect(result.matched[0]?.unit).toBe('lb');
+    expect(result.matched[0]?.value).toBe(1000);
+  });
+});

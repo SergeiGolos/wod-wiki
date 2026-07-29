@@ -13,13 +13,14 @@ import type { QueryResult } from '@/services/analytics/query';
 import { useChartShape } from './useChartShape';
 import { WqlEmptyState } from './WqlEmptyState';
 import { SERIES_COLORS } from './chartPalette';
+import { compactNumber } from './chartData';
 
 export interface WqlBarsProps {
   result: QueryResult;
   unit?: string;
 }
 
-export function WqlBars({ result, unit }: WqlBarsProps) {
+export function WqlBars({ result, unit: unitProp }: WqlBarsProps) {
   const shape = useChartShape(result);
 
   const data = useMemo(
@@ -32,13 +33,15 @@ export function WqlBars({ result, unit }: WqlBarsProps) {
     [result],
   );
 
+  const unit = result.series[0]?.unit ?? unitProp;
+
   if (shape.kind !== 'bars' && shape.kind !== 'scalar') {
     return <WqlEmptyState result={result} />;
   }
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
+      <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 48 }}>
         <CartesianGrid stroke="hsl(var(--border))" vertical={false} />
         <XAxis
           dataKey="name"
@@ -50,7 +53,8 @@ export function WqlBars({ result, unit }: WqlBarsProps) {
         <YAxis
           tickLine={false}
           axisLine={false}
-          width={64}
+          width={48}
+          tickFormatter={compactNumber}
           stroke="hsl(var(--muted-foreground))"
           tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
           unit={unit ? ` ${unit}` : ''}
@@ -61,6 +65,10 @@ export function WqlBars({ result, unit }: WqlBarsProps) {
             borderColor: 'hsl(var(--border))',
             fontSize: '12px',
             color: 'hsl(var(--popover-foreground))',
+          }}
+          formatter={(v, _n, p) => {
+            const label = typeof p?.payload?.name === 'string' ? p.payload.name : '';
+            return [`${Number(v).toLocaleString()} ${unit ?? ''}`.trim(), label];
           }}
         />
         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
