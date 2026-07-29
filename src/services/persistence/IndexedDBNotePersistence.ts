@@ -9,7 +9,7 @@ import type { Attachment, Note, WorkoutResult } from '@/types/storage';
 import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
 import {
-  normalizeSummaryFacts,
+  normalizeAllMetrics,
   replayResultAnalytics,
 } from '@/services/analytics/workoutDerivation';
 import { createParser } from '@/parser/parserInstance';
@@ -178,7 +178,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
       const segmentVersion = segmentId
         ? (await this.storage.getLatestSegmentVersion(segmentId))?.version
         : undefined;
-      const points = normalizeSummaryFacts(resultLogs, {
+      const points = normalizeAllMetrics(resultLogs, {
         noteId: note.id,
         resultId,
         segmentId,
@@ -285,7 +285,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
     if (this.storage.deleteAnalyticsPointsForResult) {
       await this.storage.deleteAnalyticsPointsForResult(result.id);
     }
-    const points = normalizeSummaryFacts(derivedLogs, {
+    const points = normalizeAllMetrics(derivedLogs, {
       noteId: updated.noteId,
       resultId: result.id,
       segmentId: updated.segmentId,
