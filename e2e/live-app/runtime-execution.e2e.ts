@@ -135,8 +135,12 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
     // Fast clock (20×): the 6s countdown completes in ~0.3s wall time. Not
     // applied file-wide — 'countdown progresses' verifies wall-clock tracking.
     await installFastClock(page);
-    const wallStart = Date.now();
     await startCleanWorkout(page, 'runtime-e2e-complete', '```wod\nTimer: 0:06\n5 Burpees\n```');
+
+    // The wall budget covers the run itself, not seed/page-load — cold Vite
+    // transforms make load time environment-dependent (CI variance), while
+    // the assertion's intent is that the accelerated run completes quickly.
+    const wallStart = Date.now();
 
     // Blocks are advanced manually (Next) — the 6s countdown expires, then
     // keep advancing through the effort block until the session completes
