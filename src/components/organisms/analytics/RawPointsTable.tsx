@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { convert, getUnitFamily } from '@/services/analytics/units';
 import type { AnalyticsDataPoint } from '@/types/storage';
 
 export interface RawPointsTableProps {
   matched: AnalyticsDataPoint[];
-  unit?: string;
+  displayUnit?: string;
 }
 
-export function RawPointsTable({ matched, unit }: RawPointsTableProps) {
+export function RawPointsTable({ matched, displayUnit }: RawPointsTableProps) {
   const [show, setShow] = useState(false);
   if (matched.length === 0) return null;
 
@@ -46,28 +47,38 @@ export function RawPointsTable({ matched, unit }: RawPointsTableProps) {
               </tr>
             </thead>
             <tbody>
-              {matched.slice(0, 12).map((p) => (
-                <tr key={p.id} className="border-b border-border/40">
-                  <td className="py-1.5 pr-4 text-muted-foreground whitespace-nowrap">
-                    {fmtDate(p.timestamp)}
-                  </td>
-                  <td className="py-1.5 pr-4 text-primary whitespace-nowrap">{p.metricKey}</td>
-                  <td className="py-1.5 pr-4 tabular-nums">
-                    {p.value}
-                    {unit ? ` ${unit}` : ''}
-                  </td>
-                  <td className="py-1.5 text-muted-foreground">
-                    {tagsForRow(p).map((t) => (
-                      <span
-                        key={t}
-                        className="inline-block bg-background/80 rounded px-1.5 py-0.5 mr-1 mb-0.5"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </td>
-                </tr>
-              ))}
+              {matched.slice(0, 12).map((p) => {
+                const originalUnit = p.unit ?? p.metricUnit;
+                const converted =
+                  displayUnit && originalUnit && getUnitFamily(originalUnit) === getUnitFamily(displayUnit)
+                    ? convert(p.value as number, originalUnit, displayUnit)
+                    : undefined;
+                return (
+                  <tr key={p.id} className="border-b border-border/40">
+                    <td className="py-1.5 pr-4 text-muted-foreground whitespace-nowrap">
+                      {fmtDate(p.timestamp)}
+                    </td>
+                    <td className="py-1.5 pr-4 text-primary whitespace-nowrap">{p.metricKey}</td>
+                    <td className="py-1.5 pr-4 tabular-nums">
+                      {p.value}
+                      {originalUnit ? ` ${originalUnit}` : ''}
+                      {converted !== undefined && originalUnit !== displayUnit
+                        ? ` → ${converted.toLocaleString()} ${displayUnit}`
+                        : ''}
+                    </td>
+                    <td className="py-1.5 text-muted-foreground">
+                      {tagsForRow(p).map((t) => (
+                        <span
+                          key={t}
+                          className="inline-block bg-background/80 rounded px-1.5 py-0.5 mr-1 mb-0.5"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {matched.length > 12 && (

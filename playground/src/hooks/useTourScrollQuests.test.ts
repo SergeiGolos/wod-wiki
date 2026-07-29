@@ -83,4 +83,43 @@ describe('useTourScrollQuests', () => {
 
     expect(readLedger()[PAGE_ROUTE]?.['qs-tour-timer']).toBe(true);
   });
+
+  it('does not mark interaction-gated quests on scroll', () => {
+    const quests = [
+      { id: 'qs-arrive', label: 'Welcome to WOD Wiki' },
+      {
+        id: 'qs-tour-timer',
+        label: 'See the timer run it',
+        validation: { type: 'run-started' },
+      },
+      { id: 'qs-tour-analytics', label: 'Review the session' },
+    ];
+    const { result } = renderHook(() => useTourScrollQuests(PAGE_ROUTE, quests));
+
+    act(() => result.current('timer'));
+
+    const page = readLedger()[PAGE_ROUTE] ?? {};
+    expect(page['qs-tour-timer']).toBeUndefined();
+    expect(page['qs-arrive']).toBeUndefined();
+    expect(page['qs-tour-analytics']).toBeUndefined();
+  });
+
+  it('still marks passive scroll quests complete', () => {
+    const quests = [
+      { id: 'qs-arrive', label: 'Welcome to WOD Wiki' },
+      {
+        id: 'qs-tour-timer',
+        label: 'See the timer run it',
+        validation: { type: 'run-started' },
+      },
+      { id: 'qs-tour-analytics', label: 'Review the session' },
+    ];
+    const { result } = renderHook(() => useTourScrollQuests(PAGE_ROUTE, quests));
+
+    act(() => result.current('analytics'));
+
+    const page = readLedger()[PAGE_ROUTE] ?? {};
+    expect(page['qs-tour-analytics']).toBe(true);
+    expect(page['qs-tour-timer']).toBeUndefined();
+  });
 });

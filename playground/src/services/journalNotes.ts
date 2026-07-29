@@ -4,6 +4,7 @@ import type { INotePersistence } from '@/services/persistence';
 import { notePersistence } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';
 
+import { normalizeNoteTitle } from '@/lib/noteTitle';
 import { parseJournalDate } from './parseJournalDate';
 
 export interface CreateJournalNoteInput {
@@ -45,7 +46,7 @@ export function createJournalNotes({
       const targetDate = input.journalDate ? dateTimestamp(input.journalDate) : Date.now();
       return persistence.createNote({
         id: uuid(),
-        title: input.title,
+        title: normalizeNoteTitle(input.title),
         rawContent: input.rawContent,
         tags: input.tags ?? [],
         targetDate,
@@ -85,7 +86,7 @@ export function createJournalNotes({
     },
 
     update(noteId, rawContent) {
-      const heading = rawContent.match(/^#\s+(.+)$/m)?.[1]?.trim();
+      const heading = normalizeNoteTitle(rawContent.match(/^#\s+(.+)$/m)?.[1]?.trim());
       return persistence.mutateNote({ id: noteId }, {
         rawContent,
         metadata: heading ? { title: heading } : undefined,

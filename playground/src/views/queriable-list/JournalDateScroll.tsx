@@ -9,6 +9,7 @@ import React, {
   useState,
 } from 'react';
 import { CalendarIcon, FileTextIcon, ChevronRightIcon } from 'lucide-react';
+import { normalizeNoteTitle } from '@/lib/noteTitle';
 import { cn } from '@/lib/utils';
 import { formatDateHeader } from '@/lib/dateFormat';
 import type { FilteredListItem } from './types';
@@ -633,30 +634,38 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
               <div className="flex flex-col gap-0 pb-1">
                 {/* Note card — links to the journal entry for this date */}
                 {noteEntry ? (
-                  renderNoteCard ? (
-                    renderNoteCard({
-                      dateKey: key,
-                      entry: noteEntry,
-                      isToday,
-                      onOpenEntry,
-                    })
-                  ) : (
-                    <button
-                      onClick={() => onOpenEntry?.(key)}
-                      className="flex items-center gap-4 px-6 py-3.5 hover:bg-muted/40 transition-colors text-left group"
-                    >
-                      <div className="flex-shrink-0 size-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                        <FileTextIcon className="size-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-bold text-foreground truncate">
-                          {noteEntry.title}
-                        </h3>
-                        <p className="text-[11px] text-muted-foreground font-medium">Note</p>
-                      </div>
-                      <ChevronRightIcon className="size-4 text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0" />
-                    </button>
-                  )
+                  (() => {
+                    const displayEntry = { ...noteEntry, title: normalizeNoteTitle(noteEntry.title) };
+                    return renderNoteCard ? (
+                      renderNoteCard({
+                        dateKey: key,
+                        entry: displayEntry,
+                        isToday,
+                        onOpenEntry,
+                      })
+                    ) : (
+                      <button
+                        onClick={() => onOpenEntry?.(key)}
+                        className="flex items-center gap-4 px-6 py-3.5 hover:bg-muted/40 transition-colors text-left group"
+                      >
+                        <div className="flex-shrink-0 size-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                          <FileTextIcon className="size-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3
+                            className={cn(
+                              'text-sm truncate',
+                              displayEntry.title ? 'font-bold text-foreground' : 'italic text-muted-foreground',
+                            )}
+                          >
+                            {displayEntry.title || 'Untitled note'}
+                          </h3>
+                          <p className="text-[11px] text-muted-foreground font-medium">Note</p>
+                        </div>
+                        <ChevronRightIcon className="size-4 text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0" />
+                      </button>
+                    );
+                  })()
                 ) : null}
 
                 {/* Results — split into Workouts and Playground groups */}

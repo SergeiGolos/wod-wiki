@@ -1,0 +1,318 @@
+/**
+ * HomeTour.ambient.test.tsx — ambient runtime behavior for the redesigned home page.
+ *
+ * Verifies that the scroll-mode demo auto-advances past the root
+ * WaitingToStart gate so the clock never ticks while the label says
+ * 'Ready to Start', while playground mode leaves the gate for the visitor.
+ */
+
+import { beforeEach, afterEach, describe, expect, it, mock, type Mock } from 'bun:test'
+import { render, screen, cleanup, fireEvent, act, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
+import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
+import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
+
+// ── Heavy / browser-only dependencies ───────────────────────────────────────
+
+mock.module('@/components/organisms/editor/NoteEditor', () => ({
+  NoteEditor: (props: {
+    value?: string
+    onChange?: (value: string) => void
+    onBlocksChange?: (blocks: ScriptBlock[]) => void
+  }) => {
+    const React = require('react')
+    React.useEffect(() => {
+      props.onBlocksChange?.([{ id: 'block-1', type: 'Timer' } as unknown as ScriptBlock])
+    }, [])
+    return (
+      <textarea
+        data-testid="mock-note-editor"
+        value={props.value ?? ''}
+        onChange={(e) => props.onChange?.(e.target.value)}
+      />
+    )
+  },
+}))
+
+type MockHandle = Mock<(event: unknown) => void>
+
+let lastMockRuntime: IScriptRuntime | null = null
+
+function eventNamesFromCalls(handle: MockHandle): string[] {
+  return handle.mock.calls.map((call) => {
+    const event = call[0]
+    if (event && typeof event === 'object' && 'name' in event && typeof event.name === 'string') {
+      return event.name
+    }
+    return ''
+  })
+}
+
+mock.module('@/components/organisms/editor/RuntimeTimerPanel', () => ({
+  RuntimeTimerPanel: ({
+    autoStart,
+    onRuntimeReady,
+  }: {
+    block: ScriptBlock | null
+    autoStart: boolean
+    onClose: () => void
+    onComplete: (blockId: string, results: WorkoutResults) => void
+    onRuntimeReady: (runtime: IScriptRuntime) => void
+  }) => {
+    const React = require('react')
+    React.useEffect(() => {
+      if (!onRuntimeReady) return
+      const handle = mock(() => {}) as MockHandle
+      const mockRuntime = {
+        handle,
+        nowProvider: { nowMs: () => Date.now() },
+        subscribeToStack: () => () => {},
+        subscribeToOutput: () => () => {},
+        getOutputStatements: () => [],
+        finalizeAnalytics: () => [],
+        addOutput: () => {},
+        pushBlock: () => {},
+        popBlock: () => {},
+        do: () => {},
+        doAll: () => {},
+        dispose: () => {},
+        options: {},
+        script: {},
+        eventBus: { on: () => () => {}, dispatch: () => {} },
+        stack: { current: null, count: 0 },
+        jit: {},
+        clock: { now: new Date(), currentDate: new Date() },
+      } as unknown as IScriptRuntime
+      lastMockRuntime = mockRuntime
+      onRuntimeReady(mockRuntime)
+    }, [onRuntimeReady])
+    return <div data-testid="mock-timer-panel" data-autostart={String(autoStart)} />
+  },
+}))
+
+mock.module('./TourTvCard', () => ({
+  TourTvCard: () => null,
+}))
+
+mock.module('@/components/organisms/review/AnalyticsScorecard', () => ({
+  AnalyticsScorecard: () => null,
+}))
+
+mock.module('@/components/organisms/review/ReviewGrid', () => ({
+  ReviewGrid: () => null,
+}))
+
+mock.module('@/components/organisms/cast/CastButtonRpc', () => ({
+  CastButtonRpc: () => null,
+}))
+
+mock.module('../hooks/useQuickStartAutoComplete', () => ({
+  useQuickStartAutoComplete: () => {},
+}))
+
+mock.module('../hooks/useCompletionChallenge', () => ({
+  useCompletionChallenge: () => {},
+}))
+
+mock.module('../hooks/useRunStartedChallenge', () => ({
+  useRunStartedChallenge: () => {},
+}))
+
+mock.module('../hooks/useTourScrollQuests', () => ({
+  useTourScrollQuests: () => () => {},
+}))
+
+mock.module('../services/resultRecorder', () => ({
+  playgroundRecorder: { record: async () => {} },
+}))
+
+mock.module('../services/journalWorkout', () => ({
+  createJournalNoteFromWorkout: async () => ({ id: 'note-clone' }),
+}))
+
+mock.module('../services/journalNotes', () => ({
+  journalNotes: { create: async () => ({ id: 'note-new' }) },
+}))
+
+mock.module('../hooks/useIsMobile', () => ({
+  useIsMobile: () => false,
+}))
+
+// ── useTourScroll mock — lets the test drive the active stage ───────────────
+
+type TestSlice = {
+  index: number
+  stage: { id: string; screen: string; accent: string; label: string }
+  t: number
+  ring: { key: string; tag?: string } | null
+}
+
+function makeSlice(progress: number): TestSlice {
+  if (progress < 0.5) {
+    const t = progress / 0.5
+    return {
+      index: 0,
+      stage: {
+        id: 'timer',
+        screen: 'timer',
+        accent: 'hsl(var(--metric-effort))',
+        label: 'What Happens When It Runs',
+      },
+      t,
+      ring: { key: 'timer.floor', tag: 'WallClock' },
+    }
+  }
+  const t = (progress - 0.5) / 0.5
+  return {
+    index: 1,
+    stage: {
+      id: 'analytics',
+      screen: 'analytics',
+      accent: 'hsl(var(--metric-rounds))',
+      label: 'Explore Your Data',
+    },
+    t,
+    ring: { key: 'analytics.scorecard', tag: 'Review' },
+  }
+}
+
+mock.module('./useTourScroll', () => {
+  const React = require('react')
+  const store: { slice: TestSlice; listeners: Set<() => void> } = {
+    slice: makeSlice(0.1),
+    listeners: new Set(),
+  }
+
+  function setTestTourProgress(progress: number) {
+    store.slice = makeSlice(progress)
+    store.listeners.forEach((cb) => cb())
+  }
+
+  const control = globalThis as unknown as { setTestTourProgressAmbient?: (p: number) => void }
+  control.setTestTourProgressAmbient = setTestTourProgress
+
+  return {
+    useTourScroll: () => {
+      const [, force] = React.useReducer((n: number) => n + 1, 0)
+      React.useEffect(() => {
+        store.listeners.add(force)
+        return () => store.listeners.delete(force)
+      }, [])
+      return {
+        slice: store.slice,
+        progress: 0,
+        subscribe: () => () => {},
+        resync: () => {},
+      }
+    },
+    scrollRunwayTo: () => {},
+  }
+})
+
+import { HomeTour } from './HomeTour'
+
+const setTestTourProgress = (progress: number) => {
+  const control = globalThis as unknown as { setTestTourProgressAmbient?: (p: number) => void }
+  control.setTestTourProgressAmbient?.(progress)
+}
+
+// ── Test data ───────────────────────────────────────────────────────────────
+
+const wodFiles: Record<string, string> = {
+  'wods/examples/home/welcome-1.md': 'AMRAP 10\n  10 Pull-ups\n  15 Push-ups\n  20 Air Squats\n',
+}
+
+const homeQuests: Quest[] = [
+  { id: 'qs-arrive', label: 'Welcome to WOD Wiki' },
+  { id: 'qs-tour-timer', label: 'See the timer run it' },
+  { id: 'qs-tour-analytics', label: 'Review the session' },
+]
+
+const chapters: Chapter[] = [
+  {
+    id: 'home-tour',
+    title: 'Take the Tour',
+    badge: 'play',
+    questIds: ['qs-arrive', 'qs-tour-timer', 'qs-tour-analytics'],
+    sectionIds: [],
+  },
+]
+
+const questLabels: Record<string, string> = {}
+
+async function renderHomeTour() {
+  const result = render(
+    <MemoryRouter>
+      <HomeTour
+        wodFiles={wodFiles}
+        theme="light"
+        quests={homeQuests}
+        chapters={chapters}
+        questLabels={questLabels}
+      />
+    </MemoryRouter>,
+  )
+  await act(async () => {
+    await Promise.resolve()
+  })
+  return result
+}
+
+// ── Tests ───────────────────────────────────────────────────────────────────
+
+describe('HomeTour ambient runtime', () => {
+  beforeEach(() => {
+    lastMockRuntime = null
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: () => ({
+        matches: false,
+        media: '',
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+        onchange: null,
+      }),
+    })
+  })
+
+  afterEach(() => {
+    cleanup()
+    window.localStorage.clear()
+  })
+
+  it('auto-advances the ambient runtime past the Ready to Start gate', async () => {
+    await renderHomeTour()
+
+    await act(async () => {
+      setTestTourProgress(0.1)
+      await Promise.resolve()
+    })
+
+    const timerPanel = await screen.findByTestId('mock-timer-panel')
+    expect(timerPanel.getAttribute('data-autostart')).toBe('true')
+
+    await waitFor(() => {
+      expect(lastMockRuntime).not.toBeNull()
+    })
+    expect(eventNamesFromCalls((lastMockRuntime as IScriptRuntime).handle as MockHandle)).toContain('next')
+  })
+
+  it('leaves the Ready to Start gate for the user in playground mode', async () => {
+    await renderHomeTour()
+
+    const runButton = await screen.findByRole('button', { name: /^Run$/i })
+    await act(async () => {
+      fireEvent.click(runButton)
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(lastMockRuntime).not.toBeNull()
+    })
+    expect(eventNamesFromCalls((lastMockRuntime as IScriptRuntime).handle as MockHandle)).not.toContain('next')
+  })
+})

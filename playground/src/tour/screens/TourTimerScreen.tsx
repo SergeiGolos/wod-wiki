@@ -13,6 +13,8 @@ export interface TourTimerScreenProps {
   onClose: () => void
   onComplete: (blockId: string, results: WorkoutResults) => void
   onRuntimeReady: (runtime: IScriptRuntime) => void
+  /** Called once when the runtime transitions from idle to running. */
+  onRunStarted?: () => void
 }
 
 export const TourTimerScreen: React.FC<TourTimerScreenProps> = ({
@@ -21,6 +23,7 @@ export const TourTimerScreen: React.FC<TourTimerScreenProps> = ({
   onClose,
   onComplete,
   onRuntimeReady,
+  onRunStarted,
 }) => {
   const castRef = useRingRef('timer.cast')
   const floorRef = useRingRef('timer.floor')
@@ -57,10 +60,11 @@ export const TourTimerScreen: React.FC<TourTimerScreenProps> = ({
             onComplete={onComplete}
             autoStart={autoStart}
             onRuntimeReady={onRuntimeReady}
+            onRunStarted={onRunStarted}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            Write a workout in the Editor stage
+            Write a workout in the demo editor above
           </div>
         )}
       </div>

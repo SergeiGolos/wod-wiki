@@ -16,6 +16,12 @@ export function mergeSeries(series: Series[]): MergedPoint[] {
   return Array.from(map.values()).sort((a, b) => a.ts - b.ts);
 }
 
+export function compactNumber(value: number): string {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
+
 export function formatTimestamp(ts: number): string {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }

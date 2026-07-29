@@ -62,6 +62,9 @@ export interface UseTourScrollResult {
   slice: TourStageSlice
   /** Raw runway progress 0..1 (state — updates with slice only). */
   progress: number
+  /** True once the runway top has reached the viewport top (i.e. the user has
+   *  scrolled past the hero). False while the hero is still visible. */
+  runwayReached: boolean
   /** Subscribe to per-frame scrub updates. Returns unsubscribe. */
   subscribe: (cb: TourScrollSubscriber) => () => void
   /** Force a re-sync from current scroll position (e.g. after exiting playground mode). */
@@ -73,6 +76,7 @@ export function useTourScroll(
   interactive: boolean,
 ): UseTourScrollResult {
   const [slice, setSlice] = useState<TourStageSlice>(() => resolveStage(0))
+  const [runwayReached, setRunwayReached] = useState(false)
   const progressRef = useRef(0)
   const sliceRef = useRef(slice)
   const subscribersRef = useRef(new Set<TourScrollSubscriber>())
@@ -101,6 +105,7 @@ export function useTourScroll(
     const total = rect.height - window.innerHeight
     if (total <= 0) return
     const progress = Math.max(0, Math.min(1, -rect.top / total))
+    setRunwayReached(rect.top <= 0)
     emit(resolveStage(progress), progress)
   }, [runwayRef, emit])
 
@@ -135,5 +140,5 @@ export function useTourScroll(
     measure()
   }, [measure])
 
-  return { slice, progress: progressRef.current, subscribe, resync }
+  return { slice, progress: progressRef.current, runwayReached, subscribe, resync }
 }

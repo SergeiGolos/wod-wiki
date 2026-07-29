@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 import { cleanup, render, waitFor } from '@testing-library/react';
 
-import { JournalDateScroll } from './JournalDateScroll';
+import { JournalDateScroll, localDateKey } from './JournalDateScroll';
 
 interface ObserverRecord {
   callback: IntersectionObserverCallback;
@@ -109,5 +109,66 @@ describe('JournalDateScroll', () => {
       triggerIntersection(topSentinel, true);
       expect(container.querySelectorAll('[id]').length).toBe(15);
     });
+  });
+
+  it('renders a clean note title without Markdown heading markers', async () => {
+    const today = new Date();
+    const todayKey = localDateKey(today);
+    const journalEntries = new Map([[todayKey, { title: '# Welcome workout', updatedAt: Date.now() }]]);
+
+    const { container } = render(
+      <JournalDateScroll
+        items={[]}
+        journalEntries={journalEntries}
+        onSelect={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(container.textContent).toContain('Welcome workout');
+      expect(container.textContent).not.toContain('# Welcome workout');
+    });
+  });
+
+  it('renders an untitled placeholder for blank note titles', async () => {
+    const today = new Date();
+    const todayKey = localDateKey(today);
+    const journalEntries = new Map([[todayKey, { title: '   ', updatedAt: Date.now() }]]);
+
+    const { container } = render(
+      <JournalDateScroll
+        items={[]}
+        journalEntries={journalEntries}
+        onSelect={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(container.textContent).toContain('Untitled note');
+    });
+  });
+
+  it('notifies onOpenEntry when a note card is clicked', async () => {
+    const today = new Date();
+    const todayKey = localDateKey(today);
+    const journalEntries = new Map([[todayKey, { title: 'Fran', updatedAt: Date.now() }]]);
+    const onOpenEntry = mock((_dateKey: string) => {});
+
+    const { container } = render(
+      <JournalDateScroll
+        items={[]}
+        journalEntries={journalEntries}
+        onSelect={() => {}}
+        onOpenEntry={onOpenEntry}
+      />,
+    );
+
+    await waitFor(() => {
+      const card = container.querySelector('button');
+      expect(card).toBeTruthy();
+      card!.click();
+    });
+
+    expect(onOpenEntry).toHaveBeenCalledWith(todayKey);
   });
 });

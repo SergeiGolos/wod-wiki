@@ -21,14 +21,14 @@ import { cn } from '@/lib/utils'
 
 const HOME_CHAPTER_ID = 'home-tour'
 
-/** Chapter id → owning guide page. Chapters without a route render without a link. */
+/** Chapter id → owning guide page. Order mirrors the current sidebar. */
 const CHAPTER_ROUTES: Record<string, string> = {
   basics: '/guide/syntax/basics',
-  structure: '/guide/syntax/structure',
   protocols: '/guide/syntax/protocols',
-  complex: '/guide/syntax/complex',
+  structure: '/guide/syntax/structure',
   'custom-metrics': '/guide/syntax/custom-metrics',
   dialects: '/guide/syntax/dialects',
+  complex: '/guide/syntax/complex',
 }
 
 export interface TourQuestsProps {
