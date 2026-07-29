@@ -132,14 +132,17 @@ note.sourceId startsWith 'feed:'                        → kind=Post,   sourceC
                                                         sourceCatalog item = noteId.split('/')[2]     // slug
 ```
 
-(For Session/Post, the catalog *id* that #807 wants is the **directory** — `crossfit-programming`, `dan-john-40-day`, `ZombieFit-org-2010-Jan`, etc. — not the file path. The static `sourceId` currently encodes `<dir>/<file>`; we may want a separate `catalog` field in the synthesized `Note` going forward, OR derive it client-side via `noteId.split('/')[0]`. **Tracked as a #810 follow-up** rather than blocking — the Library can render without the "catalog as first-class column" and the row action can compute it lazily.)
+(For Session/Post, the catalog *id* that #807 wants is the **directory** — `crossfit-programming`, `dan-john-40-day`, `ZombieFit-org-2010-Jan`, etc. — not the file path. The static `sourceId` currently encodes `<dir>/<file>`; we want a separate `catalog` field in the synthesized `Note`, OR derive it client-side via `noteId.split('/')[0]`. **Build-ticket follow-up, not blocking this research** — the Library can render without the "catalog as first-class column" and the row action can compute it lazily.)
 
-## Open questions surfaced by this research (not blocking #810)
+## Resolved by sibling tickets
 
-1. **Tri-state "Note off"** — the WQL grammar has `in journal|collections|feeds|all`, no negative scope. The panel may need a `-source:journal` filter (composes with existing `tags:!…` syntax) or the Library page must run two queries and diff. Recommend defer to #809 (panel composition); until then, the source tri-state toggles collapse to **include-only / hide** via `tags` filtering if all three are off.
-2. **Source-aware catalog id** — see kind mapping above. Decide at implementation time whether `staticNoteStore` should expose a `catalog` field (cheap; one new key in the synthesized `Note`).
-3. **Free-text on static blocks** — intersects `find:note` and `find:block` results client-side; can become a server-shaped WQL option later (`find:note{text:…}` matches block content) if performance demands it.
-4. **Cross-source dedupe** — #807 explicitly chose *not* to dedupe across sources (the Library lists one Entry per `{source.catalog, source.item}`). Approach B inherits that: `find:note in all` returns distinct rows per sourceId-prefix naturally.
+- **Tri-state "Note off"** — #809's resolution chose **option 3 (a new `source:` content filter key)**. Hide emits `!source:<kind>` in the filters; include writes `in <scope>`; neutral keeps the scope union. The "no negative scope" gap this research flagged is closed by the `source:` filter key — no two-query diff needed. *Resolved 2026-07-29 by #809.*
+
+## Open follow-ups (build-ticket, not charting)
+
+1. **Source-aware catalog id** — see kind mapping above. Decide at build time whether `staticNoteStore` should expose a `catalog` field (cheap; one new key in the synthesized `Note`).
+2. **Free-text on static blocks** — intersects `find:note` and `find:block` results client-side; can become a server-shaped WQL option later (`find:note{text:…}` matches block content) if performance demands it.
+3. **Cross-source dedupe** — #807 explicitly chose *not* to dedupe across sources (the Library lists one Entry per `{source.catalog, source.item}`). Approach B inherits that: `find:note in all` returns distinct rows per sourceId-prefix naturally. *Carried into the build ticket as a non-decision.*
 
 ## Verification
 
