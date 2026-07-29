@@ -65,6 +65,11 @@ export const EXAMPLE_QUERIES: ExampleQuery[] = [
     label: 'Recent workouts',
     question: 'What workouts did I do recently?',
   },
+  {
+    query: 'find:block{text:fran}',
+    label: 'Find Fran blocks',
+    question: 'Which blocks mention Fran?',
+  },
 ];
 
 export function serializeFilter(filter: TagFilter): string {

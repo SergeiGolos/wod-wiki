@@ -109,6 +109,34 @@ export interface NoteSegment {
 }
 
 // ---------------------------------------------------------------------------
+// BlockIndexRow — derived block index for WQL content queries (V14)
+// ---------------------------------------------------------------------------
+/**
+ * Derived projection of a NoteSegment into queryable block-index fields.
+ * Canonical source is the `segments` store; this store is disposable and can
+ * be rebuilt by backfillV14. One row per non-history segment.
+ */
+export interface BlockIndexRow {
+    /** Composite key: `${noteId}:${segmentId}:${segmentVersion}` */
+    id: string;
+    noteId: string;
+    segmentId: string;
+    segmentVersion: number;
+    /** Ordinal within the parent note (document order). */
+    position?: number;
+    /** Segment data type: 'wod' | 'h1'..'h6' | 'markdown' | 'frontmatter'. */
+    dataType: string;
+    /** Content-stable identity for wod blocks (FNV-1a hash); undefined for prose. */
+    blockContentId?: string;
+    /** Searchable snippet — the segment's raw markdown text. */
+    rawContent: string;
+    /** Denormalized note title for display. */
+    noteTitle: string;
+    /** When the segment version was saved. */
+    createdAt: number;
+}
+
+// ---------------------------------------------------------------------------
 // WorkoutResult — execution log (mostly unchanged)
 // ---------------------------------------------------------------------------
 /**
