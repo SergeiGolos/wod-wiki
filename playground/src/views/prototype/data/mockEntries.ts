@@ -234,4 +234,21 @@ export const MOCK_ENTRIES: MockEntry[] = [
   },
 ]
 
+/**
+ * Catalog ids available for the WQL composer's Catalog filter (Sessions source).
+ * Drawn from the real markdown/collections + markdown/feeds directories.
+ */
+export const MOCK_CATALOGS: { id: string; name: string; kind: 'session' | 'post' }[] = [
+  { id: 'crossfit-girls', name: 'CrossFit Girls', kind: 'session' },
+  { id: 'dan-john', name: 'Dan John', kind: 'session' },
+  { id: 'strongfirst', name: 'StrongFirst', kind: 'session' },
+  { id: 'unconventional', name: 'Unconventional', kind: 'session' },
+  { id: 'the-golos-method', name: 'The Golos Method', kind: 'session' },
+  { id: 'crossfit-games-2024', name: 'CrossFit Games 2024', kind: 'session' },
+  { id: 'crossfit-games-2023', name: 'CrossFit Games 2023', kind: 'session' },
+  { id: 'swimming-masters', name: 'Swimming — Masters', kind: 'session' },
+  { id: 'crossfit-programming', name: 'CrossFit Programming', kind: 'post' },
+  { id: 'dan-john-40-day', name: 'Dan John — 40-Day', kind: 'post' },
+]
+
 export const TODAY_KEY = isoOffset(0)
