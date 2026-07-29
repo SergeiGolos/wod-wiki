@@ -293,6 +293,18 @@ The single playground seam for persisting a **WorkoutResult**. Owns identity res
 _Avoid_: result service, result saver (too generic).
 `playground/src/services/resultRecorder.ts`.
 
+**WQL Composer Panel**:
+The Library's sticky search header (component `WqlComposerPanel`) that composes a WQL query from three categories of controls: (a) three **Source Tri-State Toggles** (Note / Session / Post), each cycling `neutral → include-only → hide → neutral` with **at most one source in `include-only` at a time**; (b) a free-text input that emits `{text:<q>}` substring filter; (c) a Datadog-style time-range selector (presets `last 1d / 3d / 1w / 2w / 4w / 12w / 26w / 52w` plus a **Custom** range). Plus an `+ Add filter` menu that emits additional WQL filter chips (catalog, tag, effort, discipline). The panel renders a live preview of the resulting WQL string. The hand-edited raw composer is a separate, debug-gated field; when visible (under `useDebugMode()`), it round-trips with the panel state — the WQL string is parsed back into the toggles, time range, and filter chips on every edit, and any toggle edit re-emits the string. Distinct from the Analytics Explorer's existing `parseQuery` editor — the panel is content-query-only.
+_Avoid_: search box, query input, filter bar.
+
+**WQL Source Filter**:
+The `source:` filter key in content-discovery WQL (e.g. `find:block{!source:feed} in all`), introduced for the **WQL Composer Panel**. Values: `journal`, `collection`, `feed`, or a specific catalog id (`collection:crossfit-girls`, `feed:crossfit-programming`). Maps onto the existing `sourceId` field on **Note** and **BlockIndexRow** rows. Negation (`!source:feed`) excludes that source from the result set. Distinct from `in <scope>`, which picks a *primary* scope; the source filter is a *fine-grained* inclusion/exclusion layered on top. The two compose: e.g. `find:block{!source:feed} in journal` means "look in journal, then drop anything tagged feed". Wired through `QueryService.runFind` and `runFindBlock` (which today already key off `sourceId.startsWith('collection:' / 'feed:')`).
+_Avoid_: catalog filter (the source filter *subsumes* catalog filtering — `source:collection:crossfit-girls` is the form), tag-source.
+
+**WQL Time Range Parameter**:
+The structured `{start, end}` time window passed alongside a WQL string to the **Query Service** (rather than embedded in the WQL as `last <n>w` / `from <date> to <date>`). The grammar accepts only relative `last <n>w|d`; the panel's **Custom** range produces absolute dates, which are passed as the structured parameter and combined with the WQL's scope/filter clauses. The WQL string the panel composes is a *partial* query (scope + filters); the host that calls the query service merges in the time range from the parameter. Presets are computed client-side and passed identically.
+_Avoid_: embedded time range (the parameter is the form; `last <n>w` is only a shortcut that the parser expands).
+
 A block cloned from a **Catalog** (Session or Post) shares its **Block Content Id** with the
 source, so results for the same workout aggregate across notes by content id.
 
