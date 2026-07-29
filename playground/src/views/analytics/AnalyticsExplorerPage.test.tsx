@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import * as React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { NuqsAdapter } from 'nuqs/adapters/react-router';
-import { parseQuery, type QueryResult } from '@/services/analytics/query';
+import { parseQuery, type QueryResult, type ParsedQuery } from '@/services/analytics/query';
 
 // CodeMirror cannot run under jsdom; replace the raw code editor with a plain input.
 mock.module('@/components/organisms/editor/WqlQueryField', () => ({
@@ -17,7 +17,7 @@ mock.module('@/components/organisms/editor/WqlQueryField', () => ({
 
 function resultOf(raw: string): QueryResult {
   return {
-    parsed: parseQuery(raw),
+    parsed: parseQuery(raw) as ParsedQuery,
     series: [],
     stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 },
     matched: [],
@@ -26,7 +26,7 @@ function resultOf(raw: string): QueryResult {
 
 function scalarResult(raw: string): QueryResult {
   return {
-    parsed: parseQuery(raw),
+    parsed: parseQuery(raw) as ParsedQuery,
     series: [{ key: 'total', label: 'total', points: [{ ts: Date.now(), value: 42 }], unit: 'kg' }],
     stages: { selected: 1, buckets: 1, aggregated: 1, groups: 0 },
     matched: [{ timestamp: Date.now(), value: 42, metricKey: 'totalVolume' } as unknown as QueryResult['matched'][number]],

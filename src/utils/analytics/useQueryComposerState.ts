@@ -115,7 +115,7 @@ export function useQueryComposerState(
 ): QueryComposerState {
   const [parsed, setParsed] = useState<ParsedQuery>(() => {
     const raw = initialQuery.trim() || 'sum:totalVolume{}';
-    return parseQuery(raw);
+    return parseQuery(raw) as ParsedQuery;
   });
 
   const query = useMemo(() => {
@@ -132,7 +132,7 @@ export function useQueryComposerState(
   useEffect(() => {
     const raw = initialQuery.trim() || 'sum:totalVolume{}';
     if (raw !== query && raw !== parsed.raw) {
-      setParsed(parseQuery(raw));
+      setParsed(parseQuery(raw) as ParsedQuery);
     }
   }, [initialQuery]);
 
@@ -254,7 +254,7 @@ export function useQueryComposerState(
 
   const setQuery = useCallback(
     (rawQuery: string): boolean => {
-      const parsedRes = parseQuery(rawQuery);
+      const parsedRes = parseQuery(rawQuery) as ParsedQuery;
       setParsed(parsedRes);
       return !parsedRes.error;
     },

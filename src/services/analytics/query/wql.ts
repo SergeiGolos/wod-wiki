@@ -17,6 +17,7 @@
  */
 
 import { parser as wqlParser } from '@/grammar/wql.parser';
+import type { SyntaxNode } from '@lezer/common';
 import * as terms from '@/grammar/wql.parser.terms';
 
 export type Aggregator = 'sum' | 'avg' | 'min' | 'max' | 'count' | 'last' | 'delta';
@@ -46,11 +47,30 @@ export interface ParsedQuery {
   error?: string;
 }
 
+/** Result of parsing a content-discovery query (`find:target{filters} in scope`). */
+export interface ParsedFindQuery {
+  raw: string;
+  /** Content target: 'note' or 'block'. */
+  target: string;
+  filters: TagFilter[];
+  /** Where to look: journal | collections | feeds | all. */
+  scope?: string;
+  /** Time window: last 8w, last 4d. */
+  last?: { size: number; unit: 'd' | 'w' };
+  error?: string;
+}
+
+export type AnyParsedQuery = ParsedQuery | ParsedFindQuery;
+
+/** Type guard: true for content-discovery queries. */
+export function isFindQuery(parsed: AnyParsedQuery): parsed is ParsedFindQuery {
+  return 'target' in parsed;
+}
+
 export interface SeriesPoint { ts: number; value: number }
 export interface Series { key: string; label: string; points: SeriesPoint[]; unit?: string }
 
 export const WQL_AGGREGATORS: Aggregator[] = ['sum', 'avg', 'min', 'max', 'count', 'last', 'delta'];
-
 const AGGS: Aggregator[] = WQL_AGGREGATORS;
 
 function cannotParse(text: string): string {
@@ -58,8 +78,45 @@ function cannotParse(text: string): string {
 }
 
 const DISPLAY_UNIT_RE = /\s+in\s+([a-zA-Z0-9_-]+)\s*$/;
+/**
+ * Parse a WQL query string into either an analytics ParsedQuery or a content
+ * ParsedFindQuery. Dispatch is textual: a leading `find:` routes to the
+ * content path, everything else to analytics.
+ */
+export function parseQuery(raw: string): AnyParsedQuery {
+  if (raw.trimStart().startsWith('find:')) {
+    return parseFindQuery(raw);
+  }
+  return parseAnalyticsQuery(raw);
+}
 
-export function parseQuery(raw: string): ParsedQuery {
+/** Shared filter extraction from a Lezer Query top node. */
+function extractFilters(query: SyntaxNode, text: string): TagFilter[] {
+  const out: TagFilter[] = [];
+  const filters = query.getChild(terms.Filters);
+  if (!filters) return out;
+  for (const filter of filters.getChildren(terms.Filter)) {
+    const keyNode = filter.getChild(terms.TagKey);
+    const valueNode = filter.getChild(terms.TagValue);
+    if (!keyNode || !valueNode) continue;
+    const values: { value: string; wildcard: boolean }[] = [];
+    for (const wordNode of valueNode.getChildren(terms.Word)) {
+      values.push({
+        value: text.slice(wordNode.from, wordNode.to),
+        wildcard: wordNode.nextSibling?.name === 'Star',
+      });
+    }
+    if (values.length === 0) continue;
+    out.push({
+      key: text.slice(keyNode.from, keyNode.to),
+      negate: filter.getChild(terms.Negate) !== null,
+      values,
+    });
+  }
+  return out;
+}
+
+function parseAnalyticsQuery(raw: string): ParsedQuery {
   // Display unit directive is parsed at the WQL surface so the Lezer grammar
   // does not need a keyword token that would shadow `in` as a word elsewhere.
   let queryText = raw;
@@ -102,28 +159,7 @@ export function parseQuery(raw: string): ParsedQuery {
   base.agg = aggText as Aggregator;
   base.metric = queryText.slice(metricNode.from, metricNode.to);
 
-  // Filters — {key:a|b*, !key:c} where alternatives within a key are OR-ed.
-  const filters = query.getChild(terms.Filters);
-  if (filters) {
-    for (const filter of filters.getChildren(terms.Filter)) {
-      const keyNode = filter.getChild(terms.TagKey);
-      const valueNode = filter.getChild(terms.TagValue);
-      if (!keyNode || !valueNode) continue;
-      const values: { value: string; wildcard: boolean }[] = [];
-      for (const wordNode of valueNode.getChildren(terms.Word)) {
-        values.push({
-          value: queryText.slice(wordNode.from, wordNode.to),
-          wildcard: wordNode.nextSibling?.name === 'Star',
-        });
-      }
-      if (values.length === 0) continue;
-      base.filters.push({
-        key: queryText.slice(keyNode.from, keyNode.to),
-        negate: filter.getChild(terms.Negate) !== null,
-        values,
-      });
-    }
-  }
+  base.filters = extractFilters(query, queryText);
 
   // GroupBy — by {dim, dim}
   const groupBy = query.getChild(terms.GroupBy);
@@ -147,4 +183,64 @@ export function parseQuery(raw: string): ParsedQuery {
   }
 
   return base;
+}
+
+// ── Find query parsing ──────────────────────────────────────────────
+
+/** Strip `last <n><unit>` and `in <scope>` suffixes (parsed in JS, same
+  * pattern as DISPLAY_UNIT_RE — avoids Lezer token-overlap conflicts). */
+const LAST_RE = /\s+last\s+(\d+)([dw])\s*$/i;
+const IN_SCOPE_RE = /\s+in\s+(\w+)\s*$/;
+
+function cannotParseFind(text: string): string {
+  return `Cannot parse "${text}". Expected find:target{filters} in scope last 8w`;
+}
+
+function parseFindQuery(raw: string): ParsedFindQuery {
+  const result: ParsedFindQuery = { raw, target: '', filters: [] };
+  let text = raw.trim();
+
+  // Strip time window: "last 8w" / "last 4d"
+  const lastMatch = LAST_RE.exec(text);
+  if (lastMatch) {
+    result.last = { size: parseInt(lastMatch[1], 10), unit: lastMatch[2].toLowerCase() as 'd' | 'w' };
+    text = text.slice(0, lastMatch.index).trim();
+  }
+
+  // Strip scope: "in journal"
+  const inMatch = IN_SCOPE_RE.exec(text);
+  if (inMatch) {
+    result.scope = inMatch[1];
+    text = text.slice(0, inMatch.index).trim();
+  }
+
+  // Parse structural part: find:target{filters}
+  const tree = wqlParser.parse(text);
+  let syntaxError = false;
+  tree.iterate({ enter(node) { if (node.type.isError) syntaxError = true; } });
+  if (syntaxError) {
+    result.error = cannotParseFind(text);
+    return result;
+  }
+
+  const query = tree.topNode;
+  const head = query.getChild(terms.Head);
+  const aggNode = head?.getChild(terms.Aggregator);
+  const metricNode = head?.getChild(terms.Metric);
+  if (!head || !aggNode || !metricNode) {
+    result.error = cannotParseFind(text);
+    return result;
+  }
+
+  // The first word must be "find" (the dispatch keyword).
+  const aggText = text.slice(aggNode.from, aggNode.to);
+  if (aggText !== 'find') {
+    result.error = `Expected "find:" but got "${aggText}:"`;
+    return result;
+  }
+
+  result.target = text.slice(metricNode.from, metricNode.to);
+  result.filters = extractFilters(query, text);
+
+  return result;
 }
