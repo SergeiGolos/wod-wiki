@@ -212,12 +212,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     if (interactive === null && runwayReached) markStageViewed(slice.stage.id)
   }, [interactive, slice.stage.id, markStageViewed, runwayReached])
 
-  // Track when the demo runtime actually starts running — either from the hero
-  // Run button or from the ambient timer stage auto-starting on scroll.
+  // The qs-tour-timer interaction quest validates on a *visitor-initiated* run.
+  // Driven from the Run click (startRun), not the runtime 'running' status: the
+  // ambient scroll demo intentionally auto-runs, and must never validate the
+  // quest (production builds fired the runtime callback on load).
   const [demoRunning, setDemoRunning] = useState(false)
-  const handleRunStarted = useCallback(() => {
-    setDemoRunning(true)
-  }, [])
   useRunStartedChallenge({ pageRoute: '/', quests, running: demoRunning })
 
   const handleHomeQuestClick = useCallback((questId: string) => {
@@ -247,6 +246,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     setEntered((prev) => (prev.timer ? prev : { ...prev, timer: true }))
     timerAutoStartRef.current = true
     setInteractive('timer')
+    setDemoRunning(true)
   }, [])
 
   const handleRun = useCallback(() => {
@@ -373,7 +373,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
             onClose={handleTimerClose}
             onComplete={handleTimerComplete}
             onRuntimeReady={handleRuntimeReady}
-            onRunStarted={handleRunStarted}
           />
         )}
         {interactive === 'analytics' && entered.analytics && (
@@ -548,7 +547,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
                           onClose={handleTimerClose}
                           onComplete={handleTimerComplete}
                           onRuntimeReady={handleRuntimeReady}
-                          onRunStarted={handleRunStarted}
                         />
                       </Screen>
                     )}

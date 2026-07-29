@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { parseQuery } from '@/services/analytics/query';
+import type { AnalyticsQueryDef } from './useAnalyticsQueries';
 
 export const ANALYTICS_UNIT_STORAGE_KEY = 'wod.analytics.unit';
 export const DEFAULT_ANALYTICS_UNIT = 'kg';
@@ -47,12 +49,63 @@ export function useAnalyticsUnitPreference() {
   return { unit, setUnit };
 }
 
-export interface AnalyticsUnitPreferenceProps {
-  className?: string;
+/**
+ * Determine the effective display unit for a single WQL query.
+ *
+ * A `kg`/`lb` display directive (`in kg` / `in lb`) overrides the stored
+ * preference and is reported as `forced`. All other queries fall back to the
+ * shared preference so the unit toggle remains the source of truth.
+ */
+export function getEffectiveAnalyticsUnit(
+  query: string,
+  preferredUnit: AnalyticsUnit,
+): { unit: AnalyticsUnit; forced: boolean } {
+  const parsed = parseQuery(query);
+  const directive = parsed.displayUnit;
+  if (directive === 'kg' || directive === 'lb') {
+    return { unit: directive, forced: true };
+  }
+  return { unit: preferredUnit, forced: false };
 }
 
-export function AnalyticsUnitPreference({ className }: AnalyticsUnitPreferenceProps) {
-  const { unit, setUnit } = useAnalyticsUnitPreference();
+/**
+ * Determine the effective display unit for a dashboard's widget queries.
+ *
+ * The directive wins only when every kg/lb directive across the widgets
+ * agrees on the same unit; otherwise the shared preference remains the default
+ * and individual widgets may still override it per-query.
+ */
+export function getDashboardEffectiveUnit(
+  queries: AnalyticsQueryDef[],
+  preferredUnit: AnalyticsUnit,
+): { unit: AnalyticsUnit; forced: boolean } {
+  const directiveUnits = new Set<AnalyticsUnit>();
+  for (const q of queries) {
+    const parsed = parseQuery(q.query);
+    const directive = parsed.displayUnit;
+    if (directive === 'kg' || directive === 'lb') {
+      directiveUnits.add(directive);
+    }
+  }
+  if (directiveUnits.size === 1) {
+    const [unit] = directiveUnits;
+    return { unit: unit!, forced: true };
+  }
+  return { unit: preferredUnit, forced: false };
+}
+
+
+export interface AnalyticsUnitPreferenceProps {
+  className?: string;
+  /** Optional unit to display. When omitted the stored preference is used. */
+  unit?: AnalyticsUnit;
+  /** When true, the unit is dictated by an active query directive and the toggle is disabled. */
+  forced?: boolean;
+}
+
+export function AnalyticsUnitPreference({ className, unit: unitProp, forced = false }: AnalyticsUnitPreferenceProps) {
+  const { unit: storedUnit, setUnit } = useAnalyticsUnitPreference();
+  const unit = unitProp ?? storedUnit;
   return (
     <div
       className={cn(
@@ -60,15 +113,22 @@ export function AnalyticsUnitPreference({ className }: AnalyticsUnitPreferencePr
         className,
       )}
     >
+      {forced && (
+        <span className="text-[10px] text-muted-foreground px-1.5 whitespace-nowrap">
+          unit set by query
+        </span>
+      )}
       {VALID_UNITS.map((u) => (
         <button
           key={u}
           onClick={() => setUnit(u)}
+          disabled={forced}
           className={cn(
             'text-xs px-2.5 py-1 rounded-md transition-colors uppercase',
             unit === u
               ? 'bg-primary text-primary-foreground font-medium'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+            forced && 'opacity-60 cursor-not-allowed',
           )}
         >
           {u}

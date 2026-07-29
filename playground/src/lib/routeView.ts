@@ -223,25 +223,30 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
     const collectionSlug = isCollection ? pathname.split('/').pop() ?? null : null
 
     const links: PageNavLink[] = []
+    const isGuidePage = pathname.startsWith('/guide/')
     canvasPage.sections
       .filter(s => s.level > 1)
       .forEach(s => {
         links.push({ id: s.id, label: s.heading, type: 'heading' as const })
 
-        // Extract standard WOD blocks from prose
-        const lines = getSectionProse(s).split('\n')
-        let wodCount = 0
-        lines.forEach((line, i) => {
-          if (/^```(wod|log|plan)\s*$/.test(line.trim())) {
-            wodCount++
-            // Canvas WOD blocks have no onRun here — MarkdownCanvasPage manages its own runtime.
-            links.push({
-              id: `${s.id}-wod-${i + 1}`,
-              label: `Workout ${wodCount}`,
-              type: 'wod' as const,
-            })
-          }
-        })
+        // Extract standard WOD blocks from prose. On guide pages these are
+        // inline examples under section headings, so listing them as generic
+        // 'Workout N' entries duplicates nothing useful; skip them.
+        if (!isGuidePage) {
+          const lines = getSectionProse(s).split('\n')
+          let wodCount = 0
+          lines.forEach((line, i) => {
+            if (/^```(wod|log|plan)\s*$/.test(line.trim())) {
+              wodCount++
+              // Canvas WOD blocks have no onRun here — MarkdownCanvasPage manages its own runtime.
+              links.push({
+                id: `${s.id}-wod-${i + 1}`,
+                label: `Workout ${wodCount}`,
+                type: 'wod' as const,
+              })
+            }
+          })
+        }
 
         if (isCollection && collectionSlug && getSectionProse(s).includes('{{workouts}}')) {
           links.push({ id: 'collection-workouts', label: 'Explore', type: 'heading' as const })
