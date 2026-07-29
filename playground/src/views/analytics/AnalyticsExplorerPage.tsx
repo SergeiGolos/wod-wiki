@@ -13,6 +13,7 @@ import {
   WqlTimeseries,
   AnalyticsUnitPreference,
   useAnalyticsUnitPreference,
+  getEffectiveAnalyticsUnit,
 } from '@/components/molecules/analytics';
 import {
   ExplorerSidebar,
@@ -48,6 +49,10 @@ export function AnalyticsExplorerPage() {
   const [q, setQ] = useQueryState('q', { defaultValue: '' });
   const [weeks, setWeeks] = useAnalyticsRange();
   const { unit: preferredUnit } = useAnalyticsUnitPreference();
+  const { unit: effectiveUnit, forced: unitForced } = useMemo(
+    () => getEffectiveAnalyticsUnit(q, preferredUnit),
+    [q, preferredUnit],
+  );
   const activeWeeks = weeks ?? 16;
   const [draft, setDraft] = useState(q);
   const [result, setResult] = useState<QueryResult | undefined>(undefined);
@@ -171,7 +176,7 @@ export function AnalyticsExplorerPage() {
                 </button>
               ))}
               <span className="text-xs text-muted-foreground ml-4">Units:</span>
-              <AnalyticsUnitPreference />
+              <AnalyticsUnitPreference unit={unitForced ? effectiveUnit : undefined} forced={unitForced} />
             </div>
           </div>
 
