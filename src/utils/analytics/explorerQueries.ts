@@ -55,6 +55,26 @@ export const EXAMPLE_QUERIES: ExampleQuery[] = [
     label: 'Volume by lift',
     question: 'Where does the volume go?',
   },
+  {
+    query: 'find:note{tags:pr} in journal',
+    label: 'Find PR notes',
+    question: 'Which notes are tagged PR?',
+  },
+  {
+    query: 'find:note{type:wod} in journal last 8w',
+    label: 'Recent workouts',
+    question: 'What workouts did I do recently?',
+  },
+  {
+    query: 'find:note in collections',
+    label: 'Library workouts',
+    question: 'What workouts are in the library?',
+  },
+  {
+    query: 'find:block{text:fran} in all',
+    label: 'Find Fran everywhere',
+    question: 'Which blocks mention Fran?',
+  },
 ];
 
 export function serializeFilter(filter: TagFilter): string {
@@ -84,7 +104,7 @@ export function serializeQuery(parsed: ParsedQuery): string {
 
 /** Add or replace a tag filter on a WQL query string. Errored queries are left unchanged. */
 export function addFilterToQuery(query: string, key: string, value: string): string {
-  const parsed = parseQuery(query);
+  const parsed = parseQuery(query) as ParsedQuery;
   if (parsed.error) return query;
 
   const existingIndex = parsed.filters.findIndex((f) => f.key === key);
@@ -99,7 +119,7 @@ export function addFilterToQuery(query: string, key: string, value: string): str
 
 /** Set the metric in a WQL query head, preserving filters / group-by / rollup. */
 export function setMetricInQuery(query: string, metric: string): string {
-  const parsed = parseQuery(query);
+  const parsed = parseQuery(query) as ParsedQuery;
   parsed.metric = metric;
   return serializeQuery(parsed);
 }

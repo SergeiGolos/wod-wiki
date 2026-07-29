@@ -11,4 +11,4 @@ export { useChartShape, type ChartShape } from './useChartShape';
 export { SERIES_COLORS } from './chartPalette';
 export { mergeSeries, formatTimestamp, tooltipTimestamp, type MergedPoint } from './chartData';
 export { WqlHumanTranslationBanner, type WqlHumanTranslationBannerProps } from './WqlHumanTranslationBanner';
-export { AnalyticsUnitPreference, useAnalyticsUnitPreference, type AnalyticsUnitPreferenceProps } from './useAnalyticsUnitPreference';
+export { AnalyticsUnitPreference, useAnalyticsUnitPreference, type AnalyticsUnitPreferenceProps, getEffectiveAnalyticsUnit, getDashboardEffectiveUnit, type AnalyticsUnit } from './useAnalyticsUnitPreference';

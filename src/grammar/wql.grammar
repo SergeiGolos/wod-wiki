@@ -1,9 +1,11 @@
 // WQL — Wod Query Language (Datadog-flavored). See CONTEXT.md glossary.
 //
 //   <aggregator>:<metric.namespace>{<tag filters>} by {<dimensions>} .rollup(<period>)
+//   find:<target>{<tag filters>} in <scope> last <n>w
 //
 //   sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(1w)
 //   avg:tis{effort:back*} by {session}
+//   find:note{tags:pr} in journal last 8w
 //
 // Semantic reference: the dashboard POC's hand-rolled engine
 // (wod-wiki-dashboard-poc/app/src/lib/wql.ts) — the AST contract lives in
@@ -18,17 +20,27 @@
 // (src/services/analytics/query/wql.ts) validates aggregators, dimensions,
 // and the rollup unit semantically. Structural literals (`by`, `.rollup`)
 // keep their own tokens — they never overlap a word position.
+//
+// Content queries (`find:target{filters} in scope`) reuse the same Head →
+// Filters structure: the AST mapper detects `find` as the aggregator and
+// dispatches to the content-query executor. The trailing `in <scope>` clause
+// is handled in JS (same pattern as the display-unit suffix) because adding
+// a `ScopeClause` node with `Word` at the top level creates a token-overlap
+// conflict with `By`/`GroupBy`.
 
 @top Query { Head Filters? GroupBy? Rollup? }
 
 Head { Aggregator colon Metric }
 
-// Any word — known aggregators (sum avg min max count last delta) and unknown
-// ones alike; the AST mapper reports "Unknown aggregator" for the latter.
+// Any word — known aggregators (sum avg min max count last delta), the
+// content-dispatch keyword `find`, and unknown ones alike; the AST mapper
+// reports "Unknown aggregator" for genuinely unknown ones and routes `find`
+// to the content-query path.
 Aggregator { Word }
 
 // Dotted Canonical Metric Key namespaces: totalVolume, calc.acwr,
 // <effortSlug>.<family> (segments may carry effort-slug dashes).
+// For content queries this is the target: note | block.
 Metric { Word (dot Word)* }
 
 Filters { braceOpen (Filter (comma Filter)*)? braceClose }

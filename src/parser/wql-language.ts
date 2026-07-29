@@ -45,6 +45,15 @@ export const WQL_CALC_TARGETS = ['calc.acwr', 'calc.monotony', 'calc.strain'] as
 const INTENSITY_TIERS = ['low', 'moderate', 'high'] as const;
 const GRAINS = ['segment', 'summary', 'rollup'] as const;
 
+/** Content-discovery query targets (find:<target>). */
+export const WQL_FIND_TARGETS = ['note', 'block'] as const;
+
+/** Content query scopes (in <scope>). */
+export const WQL_SCOPES = ['journal', 'collections', 'feeds', 'all'] as const;
+
+/** Content-specific filter keys (beyond the analytics tag keys). */
+export const WQL_CONTENT_FILTER_KEYS = ['type', 'text', 'has', ...WQL_TAG_KEYS] as const;
+
 // ── Highlighting ───────────────────────────────────────────────────
 
 export const wqlLanguage = LRLanguage.define({

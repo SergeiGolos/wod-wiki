@@ -3,7 +3,13 @@
  * Defends the AST shape contract (the grammar ticket must produce the same).
  */
 import { describe, expect, it } from 'bun:test';
-import { parseQuery } from './wql';
+import { parseQuery as _parseQuery, isFindQuery, type ParsedQuery } from './wql';
+
+// All tests in this file use analytics queries (not find: queries) — narrow
+// the union type so .agg/.metric/.groupBy are accessible.
+function parseQuery(raw: string): ParsedQuery {
+  return _parseQuery(raw) as ParsedQuery;
+}
 
 describe('parseQuery', () => {
   it('parses the full surface: agg:metric{filters} by {dims} .rollup(period)', () => {
@@ -98,5 +104,87 @@ describe('parseQuery', () => {
 
   it('errors on a dangling "in" without a unit', () => {
     expect(parseQuery('sum:totalVolume{} in').error).toContain('Cannot parse');
+  });
+});
+
+// ── Find query tests ──────────────────────────────────────────────
+// Uses the real (un-narrowed) parseQuery to verify content dispatch.
+describe('parseQuery — find: content queries', () => {
+  it('parses find:note with filters', () => {
+    const parsed = _parseQuery('find:note{tags:pr}');
+    expect(parsed.error).toBeUndefined();
+    expect(isFindQuery(parsed)).toBe(true);
+    if (!isFindQuery(parsed)) return;
+    expect(parsed.target).toBe('note');
+    expect(parsed.filters).toEqual([
+      { key: 'tags', negate: false, values: [{ value: 'pr', wildcard: false }] },
+    ]);
+    expect(parsed.scope).toBeUndefined();
+    expect(parsed.last).toBeUndefined();
+  });
+
+  it('parses scope clause (in journal)', () => {
+    const parsed = _parseQuery('find:note{tags:pr} in journal');
+    expect(isFindQuery(parsed)).toBe(true);
+    if (!isFindQuery(parsed)) return;
+    expect(parsed.scope).toBe('journal');
+  });
+
+  it('parses time window (last 8w)', () => {
+    const parsed = _parseQuery('find:note{type:wod} in journal last 8w');
+    expect(isFindQuery(parsed)).toBe(true);
+    if (!isFindQuery(parsed)) return;
+    expect(parsed.scope).toBe('journal');
+    expect(parsed.last).toEqual({ size: 8, unit: 'w' });
+  });
+
+  it('parses time window without scope', () => {
+    const parsed = _parseQuery('find:note{tags:pr} last 4d');
+    expect(isFindQuery(parsed)).toBe(true);
+    if (!isFindQuery(parsed)) return;
+    expect(parsed.scope).toBeUndefined();
+    expect(parsed.last).toEqual({ size: 4, unit: 'd' });
+  });
+
+  it('parses empty filters', () => {
+    const parsed = _parseQuery('find:note{}');
+    expect(isFindQuery(parsed)).toBe(true);
+    if (!isFindQuery(parsed)) return;
+    expect(parsed.filters).toEqual([]);
+  });
+
+  it('parses multi-value tag filters in find queries', () => {
+    const parsed = _parseQuery('find:note{tags:pr|benchmark}');
+    expect(isFindQuery(parsed)).toBe(true);
+    if (!isFindQuery(parsed)) return;
+    expect(parsed.filters[0].values).toEqual([
+      { value: 'pr', wildcard: false },
+      { value: 'benchmark', wildcard: false },
+    ]);
+  });
+
+  it('does NOT route analytics queries to the find path', () => {
+    expect(isFindQuery(_parseQuery('sum:totalVolume{}'))).toBe(false);
+    expect(isFindQuery(_parseQuery('last:sessionLoad{}'))).toBe(false);
+  });
+
+  it('parses find:block with text filter', () => {
+    const parsed = _parseQuery('find:block{text:fran}');
+    expect(isFindQuery(parsed)).toBe(true);
+    if (!isFindQuery(parsed)) return;
+    expect(parsed.target).toBe('block');
+    expect(parsed.filters).toEqual([
+      { key: 'text', negate: false, values: [{ value: 'fran', wildcard: false }] },
+    ]);
+  });
+
+  it('parses find:block with type filter and scope', () => {
+    const parsed = _parseQuery('find:block{type:wod} in journal');
+    expect(isFindQuery(parsed)).toBe(true);
+    if (!isFindQuery(parsed)) return;
+    expect(parsed.target).toBe('block');
+    expect(parsed.scope).toBe('journal');
+    expect(parsed.filters[0].key).toBe('type');
+    expect(parsed.filters[0].values[0].value).toBe('wod');
   });
 });

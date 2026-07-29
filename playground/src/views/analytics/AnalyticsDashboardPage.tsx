@@ -14,6 +14,7 @@ import {
   useAnalyticsQueries,
   AnalyticsUnitPreference,
   useAnalyticsUnitPreference,
+  getDashboardEffectiveUnit,
 } from '@/components/molecules/analytics';
 import { DEMO_WIDGETS, DASHBOARD_SOURCE } from './dashboardDefinition';
 import { SampleDataPrompt } from './SampleDataPrompt';
@@ -38,6 +39,10 @@ export function AnalyticsDashboardPage() {
   const queries = useMemo(
     () => DEMO_WIDGETS.map((w) => ({ key: w.key, query: widgetQueries[w.key] ?? w.query })),
     [widgetQueries],
+  );
+  const { unit: effectiveUnit, forced: unitForced } = useMemo(
+    () => getDashboardEffectiveUnit(queries, preferredUnit),
+    [queries, preferredUnit],
   );
   const { results, loading } = useAnalyticsQueries(queries, weeks, refreshKey, preferredUnit);
 
@@ -80,7 +85,7 @@ export function AnalyticsDashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <RangeSelector />
-            <AnalyticsUnitPreference />
+            <AnalyticsUnitPreference unit={unitForced ? effectiveUnit : undefined} forced={unitForced} />
             <button
               onClick={() => setShowSource((s) => !s)}
               className="flex items-center gap-1.5 text-xs border border-border rounded-lg px-3 py-1.5 text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors"
