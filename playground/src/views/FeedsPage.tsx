@@ -20,6 +20,7 @@ import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { journalNotePath } from '../lib/routes';
 import { useFeedsQueryState } from '../hooks/useFeedsQueryState';
 import { FeedFeed, type FeedItem } from './FeedFeed';
+import { ScopeBlockSearch } from './ScopeBlockSearch';
 import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/atoms/primitives/toast';
 
@@ -141,13 +142,24 @@ export function FeedsPage() {
   }
 
   return (
-    <FeedFeed
-      dateKeys={dateKeys}
-      items={filteredItems}
-      journalEntries={journalEntries}
-      onSelectItem={handleSelectItem}
-      onOpenEntry={handleOpenEntry}
-      onAddToToday={handleAddToToday}
-    />
+    <div className="flex flex-col flex-1">
+      <div className="px-4 pt-3 pb-1">
+        <ScopeBlockSearch
+          scope="feeds"
+          onSelectBlock={block => {
+            const feedId = block.sourceId?.replace(/^feed:/, '');
+            if (feedId) navigate(`/feeds/${encodeURIComponent(feedId)}`);
+          }}
+        />
+      </div>
+      <FeedFeed
+        dateKeys={dateKeys}
+        items={filteredItems}
+        journalEntries={journalEntries}
+        onSelectItem={handleSelectItem}
+        onOpenEntry={handleOpenEntry}
+        onAddToToday={handleAddToToday}
+      />
+    </div>
   );
 }

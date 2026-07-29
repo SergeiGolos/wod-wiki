@@ -12,6 +12,7 @@ import { createJournalNoteFromWorkout } from '../services/journalWorkout';
 import { pendingRuntimes } from '../runtimeStore';
 import { journalDatePath, runPath, workoutPath } from '../lib/routes';
 import { StartHereShelf, type StartHereWorkout } from './StartHereShelf';
+import { ScopeBlockSearch } from './ScopeBlockSearch';
 
 const PREFERRED_LOOKUP: Record<string, true> = {
   fran: true,
@@ -193,6 +194,15 @@ export function CollectionsPage() {
         </>
       }
       renderPrimaryContent={collection => <CollectionRow collection={collection} />}
+      searchSlot={
+        <ScopeBlockSearch
+          scope="collections"
+          onSelectBlock={block => {
+            const collectionId = block.sourceId?.replace(/^collection:/, '') ?? block.noteId;
+            navigate(`/collections/${encodeURIComponent(collectionId)}`);
+          }}
+        />
+      }
       getItemActions={_collection => [
         {
           id: 'open',

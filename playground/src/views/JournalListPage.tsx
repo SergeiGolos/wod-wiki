@@ -34,7 +34,7 @@ import { useJournalQueryState, type JournalViewMode } from '../hooks/useJournalQ
 import { useShowPlaygrounds } from '../hooks/useShowPlaygrounds'
 import { useCreateJournalEntry } from '../hooks/useCreateJournalEntry'
 import { indexedDBService } from '@/services/db/IndexedDBService'
-import { notePersistence } from '@/services/persistence'
+import { queryService } from '@/services/analytics/query'
 import { normalizeNoteTitle } from '@/lib/noteTitle'
 import { localDateKey, type JournalEntrySummary } from './queriable-list/JournalDateScroll'
 import type { FilteredListItem } from './queriable-list/types'
@@ -177,18 +177,23 @@ export function JournalListPage({
     async function load() {
       setIsLoading(true)
       try {
-        const [rawResults, entries] = await Promise.all([
+        const [rawResults, findResult] = await Promise.all([
           indexedDBService.getRecentResults(100),
-          notePersistence.listNotes({ projection: 'summary' }),
+          queryService.runFind({ raw: 'find:note in journal', target: 'note', filters: [], scope: 'journal' }),
         ])
         if (cancelled) return
+        const entries = findResult.notes
 
         // Only count actual journal notes so the per-date "N notes" label
         // matches the single journal card rendered by JournalFeed.
         const journalEntriesList = entries.filter(entry => entry.type === 'journal')
         const grouped = new Map<string, typeof journalEntriesList>()
         for (const entry of journalEntriesList) {
-          const dateKey = entry.journalDate ?? entry.slug?.replace(/^journal\//, '') ?? entry.id.replace(/^journal\//, '')
+          // WQL returns raw Notes (no summary projection): the journal date
+          // comes from the slug (journal/YYYY-MM-DD) or, failing that, the
+          // note's creation day.
+          const dateKey = entry.slug?.replace(/^journal\//, '')
+            ?? localDateKey(new Date(entry.createdAt))
           if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) continue
           const dayEntries = grouped.get(dateKey) ?? []
           dayEntries.push(entry)
@@ -212,7 +217,7 @@ export function JournalListPage({
               : `${dayEntries.length} note${dayEntries.length !== 1 ? 's' : ''}`
           entryMap.set(dateKey, {
             title,
-            updatedAt: Math.max(...dayEntries.map(entry => entry.updatedAt)),
+            updatedAt: Math.max(...dayEntries.map(entry => entry.createdAt)),
           })
         }
 

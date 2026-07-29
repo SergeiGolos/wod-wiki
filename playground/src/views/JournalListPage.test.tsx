@@ -65,17 +65,26 @@ mock.module('@/services/db/IndexedDBService', () => ({
   },
 }));
 
-mock.module('@/services/persistence', () => ({
-  notePersistence: {
-    listNotes: async () => [
-      {
-        id: '00000000-0000-4000-8000-000000000001',
-        journalDate: TODAY,
-        title: 'Today workout',
-        rawContent: '# Today workout',
-        updatedAt: Date.now(),
-      },
-    ],
+// Re-export the real module surface so this mock doesn't starve other
+// consumers (parseQuery, isFindQuery, …) when test files share a process.
+import * as QueryModule from '@/services/analytics/query';
+mock.module('@/services/analytics/query', () => ({
+  ...QueryModule,
+  queryService: {
+    runFind: async () => ({
+      parsed: { target: 'note', filters: [] },
+      notes: [
+        {
+          id: '00000000-0000-4000-8000-000000000001',
+          slug: `journal/${TODAY}`,
+          title: 'Today workout',
+          type: 'journal',
+          createdAt: Date.now(),
+        },
+      ],
+      blocks: [],
+      stages: { selected: 1, matched: 1 },
+    }),
   },
 }));
 
