@@ -14,9 +14,9 @@
  * note, intensity, …) — 'tags' resolves through the note_tags store.
  */
 
-import type { AnalyticsDataPoint } from '@/types/storage';
+import type { AnalyticsDataPoint, Note } from '@/types/storage';
 import { indexedDBService } from '@/services/db/IndexedDBService';
-import { parseQuery, type Aggregator, type ParsedQuery, type Series, type SeriesPoint, type TagFilter } from './wql';
+import { parseQuery, isFindQuery, type Aggregator, type ParsedQuery, type ParsedFindQuery, type Series, type SeriesPoint, type TagFilter } from './wql';
 import { convert, resolveDisplayUnit } from '../units';
 
 const DAY = 86_400_000;
@@ -37,6 +37,24 @@ const indexedDbFactStore: FactQueryStore = {
   getFactsByTimeRange: (start, end) => indexedDBService.getFactsByTimeRange(start, end),
   getNoteTagLabels: async (noteId) => (await indexedDBService.getTagsForNote(noteId)).map(tag => tag.label),
 };
+
+/** Store surface for content queries — injectable for tests. */
+export interface NoteQueryStore {
+  getAllNotes(): Promise<Note[]>;
+  getNoteIdsForTag(label: string): Promise<Set<string>>;
+}
+
+const indexedDbNoteStore: NoteQueryStore = {
+  getAllNotes: () => indexedDBService.getAllNotes(),
+  getNoteIdsForTag: async (label) =>
+    new Set((await indexedDBService.getNotesForTag(label)).map(n => n.id)),
+};
+
+export interface FindQueryResult {
+  parsed: ParsedFindQuery;
+  notes: Note[];
+  stages: { selected: number; matched: number };
+}
 
 export interface QueryOptions {
   /** Inclusive lower bound on canonical workout time (fact `timestamp`). */
@@ -143,14 +161,82 @@ function aggregate(values: number[], agg: Aggregator, points: AnalyticsDataPoint
 }
 
 export class QueryService {
-  constructor(private readonly store: FactQueryStore = indexedDbFactStore) {}
+  constructor(
+    private readonly store: FactQueryStore = indexedDbFactStore,
+    private readonly noteStore: NoteQueryStore = indexedDbNoteStore,
+  ) {}
   async getFactsByTimeRange(start: number, end: number): Promise<AnalyticsDataPoint[]> {
     return this.store.getFactsByTimeRange(start, end);
   }
 
 
   async runQuery(raw: string, options: QueryOptions = {}): Promise<QueryResult> {
-    return this.run(parseQuery(raw), options);
+    const parsed = parseQuery(raw);
+    if (isFindQuery(parsed)) {
+      // Find queries should use runFind — this safety net returns an
+      // empty analytics result so analytics-only callers don't crash.
+      return {
+        parsed: { raw, agg: 'count', metric: parsed.target, filters: [], groupBy: [] },
+        series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [],
+      };
+    }
+    return this.run(parsed, options);
+  }
+
+  /**
+   * Execute a content-discovery query (find:note). Naive in-memory filtering
+   * per the tracer-bullet scope (#797): load all notes, then apply tag/text/
+   * time filters. Block indexing and cross-store joins come in #798/#800.
+   */
+  async runFind(parsed: ParsedFindQuery): Promise<FindQueryResult> {
+    if (parsed.error) {
+      return { parsed, notes: [], stages: { selected: 0, matched: 0 } };
+    }
+
+    let notes = await this.noteStore.getAllNotes();
+    const selectedCount = notes.length;
+
+    // Tag filters — intersect note IDs across OR'd values within a key.
+    for (const filter of parsed.filters) {
+      if (filter.key === 'tags' && !filter.negate) {
+        const matchingIds = new Set<string>();
+        for (const v of filter.values) {
+          const ids = await this.noteStore.getNoteIdsForTag(v.value);
+          ids.forEach(id => matchingIds.add(id));
+        }
+        notes = notes.filter(n => matchingIds.has(n.id));
+      } else if (filter.key === 'tags' && filter.negate) {
+        for (const v of filter.values) {
+          const ids = await this.noteStore.getNoteIdsForTag(v.value);
+          notes = notes.filter(n => !ids.has(n.id));
+        }
+      }
+    }
+
+    // Text filter — substring on title (rawContent not available on Note;
+    // full-text search comes with block indexing #798).
+    for (const filter of parsed.filters) {
+      if (filter.key === 'text' && !filter.negate) {
+        const search = filter.values.map(v => v.value).join(' ').toLowerCase();
+        notes = notes.filter(n => n.title.toLowerCase().includes(search));
+      }
+    }
+
+    // Type filter — note kind (wod, note, etc.)
+    for (const filter of parsed.filters) {
+      if (filter.key === 'type' && !filter.negate) {
+        const wanted = new Set(filter.values.map(v => v.value));
+        notes = notes.filter(n => n.type && wanted.has(n.type));
+      }
+    }
+
+    // Time window
+    if (parsed.last) {
+      const cutoff = Date.now() - parsed.last.size * (parsed.last.unit === 'w' ? 7 : 1) * DAY;
+      notes = notes.filter(n => n.createdAt >= cutoff);
+    }
+
+    return { parsed, notes, stages: { selected: selectedCount, matched: notes.length } };
   }
 
   async run(parsed: ParsedQuery, options: QueryOptions = {}): Promise<QueryResult> {

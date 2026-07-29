@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { parseQuery, type QueryResult } from '@/services/analytics/query';
+import { parseQuery as _pq, type ParsedQuery, type QueryResult } from '@/services/analytics/query';
 import {
   addFilterToQuery,
   EXAMPLE_QUERIES,
@@ -7,6 +7,8 @@ import {
   serializeQuery,
   setMetricInQuery,
 } from './explorerQueries';
+// All tests use analytics queries — narrow the union.
+const parseQuery = (raw: string): ParsedQuery => _pq(raw) as ParsedQuery;
 
 describe('explorerQueries', () => {
   describe('serializeQuery', () => {
@@ -141,6 +143,8 @@ describe('explorerQueries', () => {
       };
       for (const ex of EXAMPLE_QUERIES) {
         const parsed = parseQuery(ex.query);
+        // Find queries have no metric key — skip content-discovery examples.
+        if ('target' in parsed) continue;
         expect(parsed.error).toBeUndefined();
         expect(realKeys[parsed.metric]).toBe(true);
       }
