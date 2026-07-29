@@ -267,7 +267,7 @@ Bundled, read-only workout seed-data a user loads into their own notes. A block 
 _Avoid_: bundle, library, pack, collection (legacy), feed (legacy).
 
 **Library**:
-The unified `/library` route that lists **Entries** across all three kinds (Notes + Sessions + Posts) in a single date-windowed surface built on the Journal's layout, with a search panel that exposes source toggles, free-text, and the full WQL composer. Replaces the dedicated `/journal`, `/collections`, and `/feeds` routes; their specialized flows (install, subscribe, author) become row actions on the Entry.
+The unified `/library` route that lists **Entries** across all three kinds (Notes + Sessions + Posts) in a single date-windowed surface built on the Journal's layout, with a search panel that exposes source toggles, free-text, and the full WQL composer. **Replaces the three LIST routes** (`/journal`, `/collections`, `/feeds`) — the Library becomes the single entry point for browsing your training. The deep detail routes (`/journal/:date`, `/journal/:date/:uuid`, `/journal/:identity`, `/collections/:cat`, `/collections/:cat/:workout`, `/feeds/:feedSlug`, `/feeds/:feedSlug/:date/:item`) **survive unchanged** as direct links into a specific Entry; the Library's *Open* row action routes Notes to `/journal/:date`, Sessions to `/collections/:cat/:workout`, Posts to `/feeds/:feedSlug/:date/:item`. Nav label and document title: `Library` (`Wod.Wiki - Library`).
 _Avoid_: content library, library page.
 
 **Entry**:
