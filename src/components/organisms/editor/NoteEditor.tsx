@@ -51,6 +51,7 @@ import { wodLinter } from "@/components/Editor/extensions/whiteboard-linter";
 import { wodAutocompletion, wodEditorKeymap } from "@/components/Editor/extensions/whiteboard-autocomplete";
 import { wodOverlayPanel } from "@/components/Editor/extensions/whiteboard-overlay";
 import { widgetBlockPreview } from "@/components/Editor/extensions/widget-block-preview";
+import { queryBlockPreview } from "@/components/Editor/extensions/query-block-preview";
 import { inlineButtonDecoration, type ButtonAction } from "@/components/Editor/extensions/inline-button-decoration";
 import { sectionGeometry } from "@/components/Editor/extensions/section-geometry";
 import { linkOpen } from "@/components/Editor/extensions/link-open";
@@ -562,6 +563,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       ...(widgetComponents && widgetComponents.size > 0
         ? [widgetBlockPreview(widgetComponents)]
         : []),
+
+      // Inline ```query / ```dashboard blocks — live WQL results (#801)
+      queryBlockPreview(),
 
       // Inline button decorations ([Label]{.button action=...})
       ...(onButtonAction ? [inlineButtonDecoration(onButtonAction)] : []),
