@@ -94,10 +94,13 @@ describe('result identity (real IndexedDB stack)', () => {
     const byContent = await service.getResultsByContentId(section!.contentId!);
     expect(byContent.some(r => r.id === result.id)).toBe(true);
 
-    // ── Analytics rows: summary facts only, with block identity ──────────
+    // ── Analytics rows: summary + segment facts with block identity ──────
     const points = await service.getAnalyticsByContentId(section!.contentId!);
-    expect(points).toHaveLength(1);
-    for (const point of points) {
+    expect(points.length).toBeGreaterThan(0);
+    
+    const summaries = points.filter(p => p.grain === 'summary');
+    expect(summaries).toHaveLength(1);
+    for (const point of summaries) {
       expect(point.grain).toBe('summary');
       expect(point.metricKey).toBe('totalReps');
       expect(point.value).toBe(90);

@@ -19,6 +19,7 @@
  */
 import { openDB, DBSchema, IDBPDatabase, IDBPTransaction, IndexNames, StoreNames } from 'idb';
 import {
+    BlockIndexRow,
     Note,
     NoteSegment,
     NoteTag,
@@ -124,8 +125,17 @@ export interface WodWikiDB extends DBSchema {
         value: IEffort;
         indexes: { 'by-discipline': string; 'by-source': IEffort['registrySource'] };
     };
+    block_index: {
+        key: string;
+        value: BlockIndexRow;
+        indexes: {
+            'by-note': string;       // V14 — noteId; per-note rebuilds
+            'by-content': string;    // V14 — blockContentId; cross-store joins
+            'by-type': string;       // V14 — dataType; filter by block kind
+        };
+    };
 }
-const DB_VERSION = 13; // V13 — analytics: by-value compound index; facts expanded to include atomic segment metrics (Tier 0/1) alongside summary facts (Tier 2)
+const DB_VERSION = 14; // V14 — block_index derived store for WQL find:block queries
 const DB_NAME = 'wodwiki-db';
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
@@ -512,6 +522,61 @@ export async function backfillV13(tx: V10Tx): Promise<void> {
     );
 }
 
+/**
+ * V14 backfill — builds the block_index derived store from segments.
+ *
+ * Reads all non-history NoteSegment rows, projects them into BlockIndexRow
+ * objects with the parent note's title, and writes them to the block_index
+ * store. The store is disposable: clear + rebuild on every upgrade from < 14.
+ */
+export async function backfillV14(tx: V10Tx): Promise<void> {
+    const segmentsStore = tx.objectStore('segments');
+    const notesStore = tx.objectStore('notes');
+    const blockIndexStore = tx.objectStore('block_index');
+
+    await blockIndexStore.clear();
+
+    // Build noteId → title map for denormalization.
+    const notes = await notesStore.getAll();
+    const noteTitles = new Map<string, string>();
+    for (const note of notes) {
+        noteTitles.set(note.id, note.title);
+    }
+
+    const allSegments = await segmentsStore.getAll();
+    let rows = 0;
+    let skipped = 0;
+
+    for (const segment of allSegments) {
+        if (segment.isHistory) {
+            skipped++;
+            continue;
+        }
+
+        // Extract blockContentId from wod segment data.
+        const blockContentId = segment.data?.contentId ?? undefined;
+
+        const row: BlockIndexRow = {
+            id: `${segment.noteId}:${segment.id}:${segment.version}`,
+            noteId: segment.noteId,
+            segmentId: segment.id,
+            segmentVersion: segment.version,
+            position: segment.position,
+            dataType: segment.dataType,
+            blockContentId,
+            rawContent: segment.rawContent,
+            noteTitle: noteTitles.get(segment.noteId) ?? '',
+            createdAt: segment.createdAt,
+        };
+        await blockIndexStore.put(row);
+        rows++;
+    }
+
+    console.info(
+        `[IndexedDBService] V14 backfill: ${rows} block_index rows written, ${skipped} history segments skipped`,
+    );
+}
+
 export class IndexedDBService {
     private _dbPromise: Promise<IDBPDatabase<WodWikiDB>> | null = null;
 
@@ -625,6 +690,14 @@ export class IndexedDBService {
                     store.createIndex('by-source', 'registrySource');
                 }
 
+                // ---- Block Index (V14 — derived store for find:block queries) ----
+                if (!db.objectStoreNames.contains('block_index')) {
+                    const store = db.createObjectStore('block_index', { keyPath: 'id' });
+                    store.createIndex('by-note', 'noteId');
+                    store.createIndex('by-content', 'blockContentId');
+                    store.createIndex('by-type', 'dataType');
+                }
+
                 // ---- Page / Tags / NoteTags (V10 — additive) ----
                 if (!db.objectStoreNames.contains('page')) {
                     const store = db.createObjectStore('page', { keyPath: 'id' });
@@ -701,14 +774,16 @@ export class IndexedDBService {
                 }
 
                 // ---- V12: re-derive facts + sweep frontmatter tags ----
-                // Fresh installs (oldVersion 0) have nothing to migrate.
                 if (oldVersion > 0 && oldVersion < 12) {
                     await backfillV12(tx);
                 }
                 // ---- V13: expand analytics to atomic metrics + by-value index ----
-                // Fresh installs (oldVersion 0) have nothing to migrate.
                 if (oldVersion > 0 && oldVersion < 13) {
                     await backfillV13(tx);
+                }
+                // ---- V14: build block index from segments ----
+                if (oldVersion > 0 && oldVersion < 14) {
+                    await backfillV14(tx);
                 }
             },
             // Another tab is waiting on a schema upgrade this connection
@@ -1255,6 +1330,49 @@ export class IndexedDBService {
 
     async deleteEffort(slug: string): Promise<void> {
         return (await this.dbPromise).delete('efforts', slug);
+    }
+
+    // ── Block Index (V14) ──────────────────────────────────────────
+
+    /** Rebuild block_index rows for a single note from its latest segments.
+     *  Called after segment writes in the content provider. */
+    async rebuildBlockIndexForNote(noteId: string): Promise<void> {
+        const db = await this.dbPromise;
+
+        // Fetch all required data BEFORE opening the write transaction,
+        // to avoid IDB auto-commit (TransactionInactiveError) on yield.
+        const existing = await db.getAllFromIndex('block_index', 'by-note', noteId);
+        const note = await db.get('notes', noteId);
+        const noteTitle = note?.title ?? '';
+        const segments = await this.getLatestSegmentsForNote(noteId);
+
+        const tx = db.transaction('block_index', 'readwrite');
+        for (const row of existing) {
+            await tx.store.delete(row.id);
+        }
+
+        for (const segment of segments) {
+            if (segment.isHistory) continue;
+            const blockContentId = segment.data?.contentId ?? undefined;
+            await tx.store.put({
+                id: `${noteId}:${segment.id}:${segment.version}`,
+                noteId,
+                segmentId: segment.id,
+                segmentVersion: segment.version,
+                position: segment.position,
+                dataType: segment.dataType,
+                blockContentId,
+                rawContent: segment.rawContent,
+                noteTitle,
+                createdAt: segment.createdAt,
+            });
+        }
+        await tx.done;
+    }
+
+    /** Load all block_index rows (for naive in-memory find:block queries). */
+    async getAllBlockIndex(): Promise<BlockIndexRow[]> {
+        return (await this.dbPromise).getAll('block_index');
     }
 }
 

@@ -296,6 +296,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             };
             await this.db.saveSegment(segment);
         }
+        await this.db.rebuildBlockIndexForNote?.(noteId);
 
         const note: Note = {
             id: noteId,
@@ -454,6 +455,8 @@ export class IndexedDBContentProvider implements IContentProvider {
             for (const segment of currentSegments) {
                 if (!keptIds.has(segment.id)) await retire(segment);
             }
+            // V14 — rebuild derived block index after segment changes.
+            await this.db.rebuildBlockIndexForNote?.(note.id);
         }
 
         // T4 bridge — frontmatter `tags:` union into note_tags. Frontmatter is

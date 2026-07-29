@@ -198,23 +198,36 @@ export function AnalyticsExplorerPage() {
                   <div className="text-sm text-destructive font-mono">{liveParsed.error}</div>
                 ) : loading ? (
                   <div className="text-sm text-muted-foreground">Searching…</div>
-                ) : findResult && findResult.notes.length > 0 ? (
+                ) : findResult && (findResult.notes.length > 0 || findResult.blocks.length > 0) ? (
                   <div className="space-y-2">
                     <div className="text-xs text-muted-foreground mb-1">
-                      {findResult.stages.matched} of {findResult.stages.selected} notes matched
+                      {findResult.stages.matched} of {findResult.stages.selected} {liveParsed.target}s matched
                     </div>
-                    {findResult.notes.map((note) => (
-                      <div key={note.id} className="border border-border rounded-md p-2.5 hover:bg-muted/50 transition-colors">
-                        <div className="font-medium text-sm text-foreground">{note.title}</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-2">
-                          <span>{new Date(note.createdAt).toLocaleDateString()}</span>
-                          {note.type && <span className="rounded bg-muted px-1.5 py-0.5">{note.type}</span>}
+                    {findResult.blocks.length > 0 ? (
+                      findResult.blocks.map((block) => (
+                        <div key={block.id} className="border border-border rounded-md p-2.5 hover:bg-muted/50 transition-colors">
+                          <div className="font-medium text-sm text-foreground">{block.noteTitle || block.noteId}</div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-2">
+                            <span className="rounded bg-muted px-1.5 py-0.5">{block.dataType}</span>
+                            {block.blockContentId && <span className="font-mono text-[10px]">{block.blockContentId}</span>}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{block.rawContent}</div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      findResult.notes.map((note) => (
+                        <div key={note.id} className="border border-border rounded-md p-2.5 hover:bg-muted/50 transition-colors">
+                          <div className="font-medium text-sm text-foreground">{note.title}</div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-2">
+                            <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                            {note.type && <span className="rounded bg-muted px-1.5 py-0.5">{note.type}</span>}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 ) : (
-                  <div className="text-sm text-muted-foreground">No notes found.</div>
+                  <div className="text-sm text-muted-foreground">No {liveParsed.target}s found.</div>
                 )}
               </div>
             </div>
