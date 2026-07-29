@@ -262,18 +262,30 @@ A content-stable identity for a **Block** — a hash of its normalized fenced co
 _Avoid_: content hash (implementation detail), stable id (ambiguous).
 `src/components/Editor/utils/sectionParser.ts` — `blockContentId`.
 
-**Collection**:
-Bundled, read-only workout seed-data a user loads into their own notes. A block cloned from a Collection shares its **Block Content Id** with the source (identical content → identical hash), so the same workout run across different notes and days is one identity, not many. Distinct from a **Note**, which the user owns and edits.
-_Avoid_: bundle, library, pack.
+**Catalog**:
+Bundled, read-only workout seed-data a user loads into their own notes. A block cloned from a Catalog shares its **Block Content Id** with the source (identical content → identical hash), so the same workout run across different notes and days is one identity, not many. A Catalog exposes two flavors of item: **Session** (undated, named — e.g. "Fran" inside the "CrossFit Girls" Catalog) and **Post** (dated, e.g. "2026-01-15 Morining" inside the dated posts Catalog). Distinct from a **Note**, which the user owns and edits.
+_Avoid_: bundle, library, pack, collection (legacy), feed (legacy).
+
+**Library**:
+The unified `/library` route that lists **Entries** across all three kinds (Notes + Sessions + Posts) in a single date-windowed surface built on the Journal's layout, with a search panel that exposes source toggles, free-text, and the full WQL composer. Replaces the dedicated `/journal`, `/collections`, and `/feeds` routes; their specialized flows (install, subscribe, author) become row actions on the Entry.
+_Avoid_: content library, library page.
+
+**Entry**:
+One row in the Library — the unified concept that abstracts a journal **Note**, a Catalog **Session**, and a Catalog **Post**. Identity = `{ source.catalog, source.item }`; kind = `Note | Session | Post`; carries title, optional **Date**, **Block Content Id**, and row actions (Open / Add to today / Run / Compare). A workout that exists in multiple sources lists as one Entry per source (a Session and a Post on the same date are two distinct Entries).
+_Avoid_: content item, library row, search result.
+
+**Session**:
+One named, undated workout inside a Catalog — a hard-set workout you can clone into your own journal (e.g. "Fran" in "CrossFit Girls"). Source: `{ catalog: <catalog id>, item: <session id> }`. No Date. An Add-to-today row action clones it into today's journal Note.
+_Avoid_: collection item (legacy), feed item (legacy), drill, standard, prescription.
+
+**Post**:
+One dated workout entry inside the dated posts Catalog (e.g. "2026-01-15 Morining"). Source: `{ catalog: <YYYY-MM-DD>, item: <post id> }`. Carries a Date. Distinct from a Session only by being dated and posting-context.
+_Avoid_: feed item (legacy), post item.
 
 **Grouping**:
 A bundled markdown directory of workout items under one slug
 (`markdown/collections/{slug}/` or `markdown/feeds/{slug}/`), loaded by
-`src/repositories/script-groupings.ts`. A **Collection** is a Grouping of named
-items; a feed is a Grouping whose items carry dates (`YYYY-MM-DD` parent
-directories). The public adapters (`script-collections.ts`, `script-feeds.ts`)
-own item shape and sort order; the Grouping module owns file discovery and
-display-name derivation.
+`src/repositories/script-groupings.ts`. A **Catalog** is a Grouping whose items carry either named sessions (Collections) or dated posts (Feeds); the two flavors share the Grouping machinery but diverge in item shape and sort order. The public adapters (`script-collections.ts`, `script-feeds.ts`) own item shape and sort order; the Grouping module owns file discovery and display-name derivation.
 _Avoid_: loader, bundle directory.
 
 **Result Recorder**:
@@ -281,8 +293,10 @@ The single playground seam for persisting a **WorkoutResult**. Owns identity res
 _Avoid_: result service, result saver (too generic).
 `playground/src/services/resultRecorder.ts`.
 
-## Relationships
+A block cloned from a **Catalog** (Session or Post) shares its **Block Content Id** with the
+source, so results for the same workout aggregate across notes by content id.
 
+- An **Entry**'s `source` identifies the catalog it belongs to — `{ catalog: <catalog id>, item: <item id> }`. A Journal note's Entry uses `catalog: 'journal'`; a Post uses `catalog: <YYYY-MM-DD>`. Two Entries share a **Block Content Id** when they reference the same workout across different sources; the Library does NOT dedupe across sources.
 - A **Statement** owns many **Metrics**; each Metric has exactly one **Origin**.
 - An **Origin** maps to exactly one **Ownership Layer**.
 - A **Dialect** emits **Hint** Metrics (and domain Metrics) onto a **Statement**.
