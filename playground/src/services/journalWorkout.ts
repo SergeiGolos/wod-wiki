@@ -1,6 +1,7 @@
 import { getScriptCollection } from '@/repositories/script-collections';
 import type { HistoryEntry } from '@/types/history';
 import { formatDateKey } from './dateUtils';
+import { normalizeNoteTitle } from '@/lib/noteTitle';
 import { journalNotes } from './journalNotes';
 
 export interface CreateJournalNoteFromWorkoutOptions {
@@ -48,7 +49,7 @@ export async function createJournalNoteFromWorkout({
 
   return journalNotes.create({
     journalDate,
-    title: workoutName,
+    title: normalizeNoteTitle(workoutName),
     rawContent: lines.join('\n'),
     sourceId: resolvedSourcePath,
   });

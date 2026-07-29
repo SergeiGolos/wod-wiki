@@ -1,12 +1,10 @@
-/**
- * paletteDataSources — PaletteDataSource factories for the playground app.
- *
- * Each factory returns a pure search backend with no side effects.
- * The caller receives the selected PaletteItem and decides what to do.
- */
+export { constructSource } from './constructSource';
+export type { ConstructItem } from './constructSource';
 
 import type { PaletteDataSource, PaletteItem } from '@/components/organisms/command-palette/palette-types';
 import { indexedDBService } from '@/services/db/IndexedDBService';
+import { notePersistence } from '@/services/persistence';
+import { normalizeNoteTitle } from '@/lib/noteTitle';
 import { playgroundContent } from './playgroundContent';
 import { formatDateMedium, formatDateShort } from '@/lib/dateFormat';
 import type { CanvasRoute } from '../canvas/canvasRoutes';
@@ -79,23 +77,34 @@ export function globalSearchSource(
       // Recent IndexedDB results
       try {
         const recent = await indexedDBService.getRecentResults(50);
+        const noteIds = [...new Set(recent.map(r => r.noteId))];
+        const notes = noteIds.length > 0
+          ? await notePersistence.listNotes({ ids: noteIds, projection: 'summary' }).catch(() => [])
+          : [];
+        const titleByNoteId = new Map(notes.map(n => [n.id, normalizeNoteTitle(n.title)]));
+
         recent
           .filter(r => {
             const isPlayground = r.origin
               ? r.origin === 'playground'
               : r.noteId.startsWith('playground/');
             if (isPlayground && !showPlaygrounds) return false;
-            const name = r.noteId.split('/').pop()?.toLowerCase() ?? '';
-            return !low || name.includes(low) || r.id.toLowerCase().includes(low);
+            const title = titleByNoteId.get(r.noteId) ?? '';
+            const fallbackName = r.noteId.split('/').pop()?.toLowerCase() ?? '';
+            const searchText = title || fallbackName;
+            return !low || searchText.includes(low) || r.id.toLowerCase().includes(low) || r.noteId.toLowerCase().includes(low);
           })
           .slice(0, 5)
           .forEach(r => {
             const date = formatDateMedium(new Date(r.createdAt));
-            const name = r.noteId.split('/').pop() ?? r.noteId;
+            const status = r.data?.completed ? 'Completed' : 'Partial';
+            const fallbackLabel = `${date} · ${status}`;
+            const title = titleByNoteId.get(r.noteId) ?? '';
+            const label = title || fallbackLabel;
             results.push({
               id: r.id,
-              label: name,
-              sublabel: `${date} · ${r.data?.completed ? 'Completed' : 'Partial'}`,
+              label,
+              sublabel: title ? fallbackLabel : undefined,
               category: 'Recent',
               type: 'journal-entry',
               payload: r,

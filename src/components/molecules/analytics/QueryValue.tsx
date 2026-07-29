@@ -5,13 +5,14 @@ import { WqlEmptyState } from './WqlEmptyState';
 
 export interface QueryValueProps {
   result: QueryResult;
-  unit: string;
+  unit?: string;
   label: string;
   thresholds?: { green: [number, number]; red: [number, number] };
 }
 
-export function QueryValue({ result, unit, label, thresholds }: QueryValueProps) {
+export function QueryValue({ result, unit: unitProp, label, thresholds }: QueryValueProps) {
   const shape = useChartShape(result);
+  const unit = result.series[0]?.unit ?? unitProp ?? '';
 
   const value = useMemo(() => {
     if (shape.kind === 'scalar') return shape.value;

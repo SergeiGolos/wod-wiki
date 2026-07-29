@@ -86,7 +86,7 @@ pipeline:
 ```
 
 ```button
-label:  Sound & Complex Workouts →
+label:  Complex Workouts →
 target: ex
 pipeline:
   - navigate: /guide/syntax/complex

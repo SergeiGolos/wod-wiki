@@ -12,6 +12,8 @@ import {
   RangeSelector,
   useAnalyticsRange,
   useAnalyticsQueries,
+  AnalyticsUnitPreference,
+  useAnalyticsUnitPreference,
 } from '@/components/molecules/analytics';
 import { DEMO_WIDGETS, DASHBOARD_SOURCE } from './dashboardDefinition';
 import { SampleDataPrompt } from './SampleDataPrompt';
@@ -19,6 +21,7 @@ import { hasSampleData, purgeSampleData } from '@/services/analytics/sample';
 
 export function AnalyticsDashboardPage() {
   const [weeks] = useAnalyticsRange();
+  const { unit: preferredUnit } = useAnalyticsUnitPreference();
   const [showSource, setShowSource] = useState(false);
   const [sampleLoaded, setSampleLoaded] = useState<boolean | undefined>(undefined);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -36,7 +39,7 @@ export function AnalyticsDashboardPage() {
     () => DEMO_WIDGETS.map((w) => ({ key: w.key, query: widgetQueries[w.key] ?? w.query })),
     [widgetQueries],
   );
-  const { results, loading } = useAnalyticsQueries(queries, weeks, refreshKey);
+  const { results, loading } = useAnalyticsQueries(queries, weeks, refreshKey, preferredUnit);
 
   useEffect(() => {
     void hasSampleData().then(setSampleLoaded);
@@ -77,6 +80,7 @@ export function AnalyticsDashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <RangeSelector />
+            <AnalyticsUnitPreference />
             <button
               onClick={() => setShowSource((s) => !s)}
               className="flex items-center gap-1.5 text-xs border border-border rounded-lg px-3 py-1.5 text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors"

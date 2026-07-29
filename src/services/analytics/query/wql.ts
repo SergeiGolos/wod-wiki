@@ -41,11 +41,13 @@ export interface ParsedQuery {
   /** Tag keys, or virtual dims: day | week | session | round. */
   groupBy: string[];
   rollup?: { size: number; unit: 'd' | 'w' };
+  /** Optional display unit directive — `in kg` / `in lb`. */
+  displayUnit?: string;
   error?: string;
 }
 
 export interface SeriesPoint { ts: number; value: number }
-export interface Series { key: string; label: string; points: SeriesPoint[] }
+export interface Series { key: string; label: string; points: SeriesPoint[]; unit?: string }
 
 export const WQL_AGGREGATORS: Aggregator[] = ['sum', 'avg', 'min', 'max', 'count', 'last', 'delta'];
 
@@ -55,10 +57,22 @@ function cannotParse(text: string): string {
   return `Cannot parse "${text}". Expected agg:metric{filters} by {dims} .rollup(period)`;
 }
 
+const DISPLAY_UNIT_RE = /\s+in\s+([a-zA-Z0-9_-]+)\s*$/;
+
 export function parseQuery(raw: string): ParsedQuery {
-  const base: ParsedQuery = { raw, agg: 'sum', metric: '', filters: [], groupBy: [] };
-  const text = raw.trim();
-  const tree = wqlParser.parse(raw);
+  // Display unit directive is parsed at the WQL surface so the Lezer grammar
+  // does not need a keyword token that would shadow `in` as a word elsewhere.
+  let queryText = raw;
+  let displayUnit: string | undefined;
+  const unitMatch = DISPLAY_UNIT_RE.exec(raw.trimEnd());
+  if (unitMatch) {
+    displayUnit = unitMatch[1];
+    queryText = raw.slice(0, unitMatch.index).trimEnd();
+  }
+
+  const base: ParsedQuery = { raw, agg: 'sum', metric: '', filters: [], groupBy: [], displayUnit };
+  const text = queryText.trim();
+  const tree = wqlParser.parse(queryText);
 
   // Lezer recovers from malformed input by inserting ⚠ nodes — any of them
   // means the query is not the WQL surface.
@@ -80,13 +94,13 @@ export function parseQuery(raw: string): ParsedQuery {
     base.error = cannotParse(text);
     return base;
   }
-  const aggText = raw.slice(aggNode.from, aggNode.to);
+  const aggText = queryText.slice(aggNode.from, aggNode.to);
   if (!AGGS.includes(aggText as Aggregator)) {
     base.error = `Unknown aggregator "${aggText}". Try: ${AGGS.join(', ')}`;
     return base;
   }
   base.agg = aggText as Aggregator;
-  base.metric = raw.slice(metricNode.from, metricNode.to);
+  base.metric = queryText.slice(metricNode.from, metricNode.to);
 
   // Filters — {key:a|b*, !key:c} where alternatives within a key are OR-ed.
   const filters = query.getChild(terms.Filters);
@@ -98,13 +112,13 @@ export function parseQuery(raw: string): ParsedQuery {
       const values: { value: string; wildcard: boolean }[] = [];
       for (const wordNode of valueNode.getChildren(terms.Word)) {
         values.push({
-          value: raw.slice(wordNode.from, wordNode.to),
+          value: queryText.slice(wordNode.from, wordNode.to),
           wildcard: wordNode.nextSibling?.name === 'Star',
         });
       }
       if (values.length === 0) continue;
       base.filters.push({
-        key: raw.slice(keyNode.from, keyNode.to),
+        key: queryText.slice(keyNode.from, keyNode.to),
         negate: filter.getChild(terms.Negate) !== null,
         values,
       });
@@ -115,7 +129,7 @@ export function parseQuery(raw: string): ParsedQuery {
   const groupBy = query.getChild(terms.GroupBy);
   if (groupBy) {
     for (const dim of groupBy.getChildren(terms.Dimension)) {
-      base.groupBy.push(raw.slice(dim.from, dim.to));
+      base.groupBy.push(queryText.slice(dim.from, dim.to));
     }
   }
 
@@ -125,11 +139,11 @@ export function parseQuery(raw: string): ParsedQuery {
   if (rollup) {
     const sizeNode = rollup.getChild(terms.Int);
     const unitNode = rollup.getChild(terms.Word);
-    const unit = unitNode ? raw.slice(unitNode.from, unitNode.to) : '';
+    const unit = unitNode ? queryText.slice(unitNode.from, unitNode.to) : '';
     if (!sizeNode || (unit !== 'd' && unit !== 'w')) {
-      return { raw, agg: 'sum', metric: '', filters: [], groupBy: [], error: cannotParse(text) };
+      return { raw, agg: 'sum', metric: '', filters: [], groupBy: [], error: cannotParse(text), displayUnit };
     }
-    base.rollup = { size: parseInt(raw.slice(sizeNode.from, sizeNode.to), 10), unit };
+    base.rollup = { size: parseInt(queryText.slice(sizeNode.from, sizeNode.to), 10), unit };
   }
 
   return base;

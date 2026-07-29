@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { TourHero } from './TourHero'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
@@ -9,7 +7,6 @@ import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
 import { CaptionBody, TOUR_CAPTIONS } from './TourCaptions'
-import { analyticsExplorerPath } from '../lib/routes'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { Chapter, Quest } from '../canvas/parseCanvasMarkdown'
 
@@ -72,15 +69,6 @@ export function TourMobileStack(props: TourMobileStackProps) {
           className="mx-6 rounded-2xl border border-border bg-card p-6"
         >
           <CaptionBody cap={timerCaption} />
-          <div className="mt-4">
-            <Link
-              to="/guide/behaviors"
-              onClick={() => telemetry.record(HOME_EVENTS.behaviorsOpened)}
-              className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Read the behaviors explainer
-            </Link>
-          </div>
         </article>
       )}
 
@@ -98,22 +86,6 @@ export function TourMobileStack(props: TourMobileStackProps) {
               </div>
             </div>
           )}
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Link
-              to={analyticsExplorerPath({ q: 'sum:totalVolume{discipline:strength} by {week}.rollup(1w)' })}
-              onClick={() => telemetry.record(HOME_EVENTS.explorerOpened)}
-              className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Run a pre-filled query
-            </Link>
-            <Link
-              to="/analytics/dashboard"
-              onClick={() => telemetry.record(HOME_EVENTS.dashboardViewed)}
-              className="text-sm text-primary underline-offset-2 hover:underline"
-            >
-              Open the dashboard
-            </Link>
-          </div>
         </article>
       )}
 

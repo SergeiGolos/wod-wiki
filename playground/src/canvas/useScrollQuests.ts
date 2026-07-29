@@ -17,6 +17,15 @@ import { useCallback, useRef } from 'react'
 import { usePageQuests, type Quest } from '../hooks/usePageQuests'
 import type { ScrollStage } from './parseCanvasMarkdown'
 
+/**
+ * Validation types that require an external interaction signal. Scroll/visibility
+ * alone must not mark these quests complete.
+ */
+const INTERACTION_VALIDATIONS: Record<string, true> = {
+  'workout-complete': true,
+  'run-started': true,
+};
+
 export function useScrollQuests(
   pageRoute: string,
   quests: Quest[],
@@ -25,9 +34,14 @@ export function useScrollQuests(
   const { markComplete } = usePageQuests(pageRoute, quests)
 
   // Refs so the returned callback stays stable when the quests/stages
-  // array identities change between renders.
+  // array identities change between renders. Interaction-gated quests are
+  // excluded because their completion is driven by an external signal.
   const questIdsRef = useRef<Set<string>>(new Set())
-  questIdsRef.current = new Set(quests.map((q) => q.id))
+  questIdsRef.current = new Set(
+    quests
+      .filter((q) => !q.validation || !INTERACTION_VALIDATIONS[q.validation.type])
+      .map((q) => q.id),
+  )
   const stageQuestRef = useRef<Record<string, string>>({})
   const stageQuest: Record<string, string> = {}
   for (const s of stages) {

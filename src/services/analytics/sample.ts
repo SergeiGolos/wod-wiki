@@ -40,12 +40,14 @@ interface SampleMovement {
   loadLbs: number;
   /** Approximate seconds spent in motion for this movement. */
   tisSeconds: number;
+  /** Distance in meters, when the movement is distance-bearing (rowing, running, etc.). */
+  distanceMeters?: number;
 }
 
 interface SampleSession {
   noteId: string;
   title: string;
-  workoutType: 'fran' | 'cindy' | 'annie';
+  workoutType: 'fran' | 'cindy' | 'annie' | 'rowing' | 'running' | 'strength' | 'recoveryRun';
   timestamp: number;
   durationSeconds: number;
   movements: SampleMovement[];
@@ -54,6 +56,30 @@ interface SampleSession {
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
+
+const INTENSITY_BY_EFFORT: Record<string, 'low' | 'moderate' | 'high'> = {
+  'thruster': 'high',
+  'pull-up': 'high',
+  'push-up': 'moderate',
+  'air-squat': 'moderate',
+  'double-under': 'high',
+  'sit-up': 'low',
+  'rowing': 'moderate',
+  'running': 'moderate',
+  'recovery-run': 'low',
+  'back-squat': 'high',
+  'deadlift': 'high',
+};
+
+const SESSION_INTENSITY: Record<SampleSession['workoutType'], 'low' | 'moderate' | 'high'> = {
+  fran: 'high',
+  cindy: 'moderate',
+  annie: 'moderate',
+  rowing: 'moderate',
+  running: 'moderate',
+  strength: 'high',
+  recoveryRun: 'low',
+};
 
 function franMovement(reps: number, loadLbs: number, effortSlug: string, discipline: string): SampleMovement {
   const secondsPerRep = effortSlug === 'thruster' ? 2.2 : 1.6;
@@ -67,19 +93,20 @@ function franMovement(reps: number, loadLbs: number, effortSlug: string, discipl
 }
 
 function buildFran(now: number, weekOffset: number, attempt: number): SampleSession {
-  // Slight improvement trend: duration drops ~5% per attempt.
+  // Slight improvement trend: duration drops ~5% per attempt; load rises.
   const baseDuration = 330 - attempt * 16;
   const durationSeconds = Math.max(180, round1(baseDuration + (Math.random() - 0.5) * 20));
+  const loadLbs = 95 + attempt * 5;
   const thrusterReps = 45;
   const pullUpReps = 45;
   return {
     noteId: `sample-fran-${weekOffset}-${crypto.randomUUID()}`,
-    title: `Sample — Fran (week ${12 - weekOffset})`,
+    title: `Sample — Fran (week ${16 - weekOffset})`,
     workoutType: 'fran',
     timestamp: now - weekOffset * WEEK,
     durationSeconds,
     movements: [
-      franMovement(thrusterReps, 95, 'thruster', 'strength'),
+      franMovement(thrusterReps, loadLbs, 'thruster', 'strength'),
       franMovement(pullUpReps, 0, 'pull-up', 'gymnastics'),
     ],
   };
@@ -91,7 +118,7 @@ function buildCindy(now: number, weekOffset: number, attempt: number): SampleSes
   const clampedRounds = Math.max(8, rounds);
   return {
     noteId: `sample-cindy-${weekOffset}-${crypto.randomUUID()}`,
-    title: `Sample — Cindy (week ${12 - weekOffset})`,
+    title: `Sample — Cindy (week ${16 - weekOffset})`,
     workoutType: 'cindy',
     timestamp: now - weekOffset * WEEK,
     durationSeconds: 1200,
@@ -109,7 +136,7 @@ function buildAnnie(now: number, weekOffset: number, attempt: number): SampleSes
   const reps = 150;
   return {
     noteId: `sample-annie-${weekOffset}-${crypto.randomUUID()}`,
-    title: `Sample — Annie (week ${12 - weekOffset})`,
+    title: `Sample — Annie (week ${16 - weekOffset})`,
     workoutType: 'annie',
     timestamp: now - weekOffset * WEEK,
     durationSeconds,
@@ -120,19 +147,93 @@ function buildAnnie(now: number, weekOffset: number, attempt: number): SampleSes
   };
 }
 
+function buildStrengthAccessory(now: number, weekOffset: number, attempt: number): SampleSession {
+  // Linear progression: load rises 5 lb per week.
+  const baseBackSquat = 135 + attempt * 5;
+  const baseDeadlift = 185 + attempt * 5;
+  const backSquatReps = 25; // 5x5
+  const deadliftReps = 15; // 3x5
+  return {
+    noteId: `sample-strength-${weekOffset}-${crypto.randomUUID()}`,
+    title: `Sample — Strength accessory (week ${16 - weekOffset})`,
+    workoutType: 'strength',
+    timestamp: now - weekOffset * WEEK,
+    durationSeconds: 1800,
+    movements: [
+      { effortSlug: 'back-squat', discipline: 'strength', reps: backSquatReps, loadLbs: baseBackSquat, tisSeconds: round1(backSquatReps * 2.5) },
+      { effortSlug: 'deadlift', discipline: 'strength', reps: deadliftReps, loadLbs: baseDeadlift, tisSeconds: round1(deadliftReps * 2.8) },
+    ],
+  };
+}
+
+function buildRowing(now: number, weekOffset: number, attempt: number): SampleSession {
+  const distanceMeters = 2000 + attempt * 250;
+  const durationSeconds = round1(distanceMeters / 2.0 + (Math.random() - 0.5) * 30);
+  return {
+    noteId: `sample-rowing-${weekOffset}-${crypto.randomUUID()}`,
+    title: `Sample — Rowing (week ${16 - weekOffset})`,
+    workoutType: 'rowing',
+    timestamp: now - weekOffset * WEEK,
+    durationSeconds,
+    movements: [
+      { effortSlug: 'rowing', discipline: 'rowing', reps: 1, loadLbs: 0, tisSeconds: durationSeconds, distanceMeters },
+    ],
+  };
+}
+
+function buildRunning(now: number, weekOffset: number, attempt: number): SampleSession {
+  const distanceMeters = 5000 + attempt * 500;
+  const durationSeconds = round1(distanceMeters / 2.8 + (Math.random() - 0.5) * 60);
+  return {
+    noteId: `sample-running-${weekOffset}-${crypto.randomUUID()}`,
+    title: `Sample — Running (week ${16 - weekOffset})`,
+    workoutType: 'running',
+    timestamp: now - weekOffset * WEEK,
+    durationSeconds,
+    movements: [
+      { effortSlug: 'running', discipline: 'running', reps: 1, loadLbs: 0, tisSeconds: durationSeconds, distanceMeters },
+    ],
+  };
+}
+
+function buildRecoveryRun(now: number, weekOffset: number, attempt: number): SampleSession {
+  const distanceMeters = 3000 + attempt * 50;
+  const durationSeconds = round1(distanceMeters / 2.2 + (Math.random() - 0.5) * 60);
+  return {
+    noteId: `sample-recovery-run-${weekOffset}-${crypto.randomUUID()}`,
+    title: `Sample — Recovery run (week ${16 - weekOffset})`,
+    workoutType: 'recoveryRun',
+    timestamp: now - weekOffset * WEEK,
+    durationSeconds,
+    movements: [
+      { effortSlug: 'recovery-run', discipline: 'running', reps: 1, loadLbs: 0, tisSeconds: durationSeconds, distanceMeters },
+    ],
+  };
+}
+
 function generateSessions(now: number): SampleSession[] {
   const sessions: SampleSession[] = [];
-  // Fran every 4 weeks.
-  for (let i = 0; i < 3; i++) {
-    sessions.push(buildFran(now, i * 4, i));
-  }
-  // Cindy every 3 weeks.
-  for (let i = 0; i < 4; i++) {
-    sessions.push(buildCindy(now, 1 + i * 3, i));
-  }
-  // Annie every 3 weeks, offset from Cindy.
-  for (let i = 0; i < 4; i++) {
-    sessions.push(buildAnnie(now, 2 + i * 3, i));
+  // 16-week training block with Fran/Cindy/Annie anchors, plus rowing,
+  // running, and weekly strength accessory / recovery runs to densify
+  // volume, intensity, and distance history.
+  for (let weekOffset = 0; weekOffset < 16; weekOffset++) {
+    const block = Math.floor(weekOffset / 4);
+    // Loaded strength accessory every week drives a rising tonnage trend.
+    sessions.push(buildStrengthAccessory(now, weekOffset, weekOffset));
+    // Benchmark / conditioning rotation.
+    if (weekOffset % 4 === 0) {
+      sessions.push(buildFran(now, weekOffset, block));
+    } else if (weekOffset % 4 === 1) {
+      sessions.push(buildCindy(now, weekOffset, block));
+    } else if (weekOffset % 4 === 2) {
+      sessions.push(buildAnnie(now, weekOffset, block));
+    } else if (weekOffset === 3 || weekOffset === 11) {
+      sessions.push(buildRowing(now, weekOffset, block));
+    } else if (weekOffset === 7 || weekOffset === 15) {
+      sessions.push(buildRunning(now, weekOffset, block));
+    }
+    // Recovery run every week adds low-intensity mileage.
+    sessions.push(buildRecoveryRun(now, weekOffset, weekOffset));
   }
   return sessions.sort((a, b) => a.timestamp - b.timestamp);
 }
@@ -141,6 +242,7 @@ function buildSessionFacts(session: SampleSession): AnalyticsDataPoint[] {
   const createdAt = Date.now();
   const baseId = `sample-${session.noteId}`;
   const resultId = `${baseId}-result`;
+  const sessionIntensity = SESSION_INTENSITY[session.workoutType];
   const baseIdentity = {
     noteId: session.noteId,
     resultId,
@@ -148,11 +250,13 @@ function buildSessionFacts(session: SampleSession): AnalyticsDataPoint[] {
     segmentVersion: 1,
     blockContentId: `sample-content-${session.workoutType}`,
     origin: 'journal' as const,
+    intensityTier: sessionIntensity,
   };
 
   const totalReps = session.movements.reduce((sum, m) => sum + m.reps, 0);
   const totalVolume = session.movements.reduce((sum, m) => sum + m.reps * m.loadLbs, 0);
   const totalTis = session.movements.reduce((sum, m) => sum + m.tisSeconds, 0);
+  const totalDistance = session.movements.reduce((sum, m) => sum + (m.distanceMeters ?? 0), 0);
   const sessionLoad = round1(totalVolume / 100 + totalReps + session.durationSeconds / 10);
 
   const facts: AnalyticsDataPoint[] = [
@@ -217,6 +321,25 @@ function buildSessionFacts(session: SampleSession): AnalyticsDataPoint[] {
     });
   }
 
+  if (totalDistance > 0) {
+    const distanceDiscipline = session.movements.find((m) => m.distanceMeters && m.distanceMeters > 0)?.discipline;
+    facts.push({
+      id: `${baseId}-totalDistance`,
+      ...baseIdentity,
+      grain: 'summary',
+      type: 'totalDistance',
+      metricKey: 'totalDistance',
+      value: round1(totalDistance),
+      unit: 'm',
+      label: 'Total distance',
+      metricLabel: 'Total distance',
+      metricUnit: 'm',
+      discipline: distanceDiscipline,
+      timestamp: session.timestamp,
+      createdAt,
+    });
+  }
+
   facts.push({
     id: `${baseId}-sessionLoad`,
     ...baseIdentity,
@@ -235,6 +358,7 @@ function buildSessionFacts(session: SampleSession): AnalyticsDataPoint[] {
   // Per-effort facts for `by {effort}` / `by {discipline}` queries.
   for (const m of session.movements) {
     const movementVolume = m.reps * m.loadLbs;
+    const movementIntensity = INTENSITY_BY_EFFORT[m.effortSlug] ?? 'moderate';
     facts.push({
       id: `${baseId}-totalReps-${m.effortSlug}`,
       ...baseIdentity,
@@ -248,6 +372,7 @@ function buildSessionFacts(session: SampleSession): AnalyticsDataPoint[] {
       metricUnit: 'reps',
       effortSlug: m.effortSlug,
       discipline: m.discipline,
+      intensityTier: movementIntensity,
       timestamp: session.timestamp,
       createdAt,
     });
@@ -264,6 +389,7 @@ function buildSessionFacts(session: SampleSession): AnalyticsDataPoint[] {
       metricUnit: 's',
       effortSlug: m.effortSlug,
       discipline: m.discipline,
+      intensityTier: movementIntensity,
       timestamp: session.timestamp,
       createdAt,
     });
@@ -281,6 +407,7 @@ function buildSessionFacts(session: SampleSession): AnalyticsDataPoint[] {
         metricUnit: 'lb',
         effortSlug: m.effortSlug,
         discipline: m.discipline,
+        intensityTier: movementIntensity,
         timestamp: session.timestamp,
         createdAt,
       });
@@ -298,6 +425,7 @@ function buildSessionFacts(session: SampleSession): AnalyticsDataPoint[] {
       metricUnit: 'AU',
       effortSlug: m.effortSlug,
       discipline: m.discipline,
+      intensityTier: movementIntensity,
       timestamp: session.timestamp,
       createdAt,
     });

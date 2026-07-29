@@ -17,6 +17,7 @@
 import type { AnalyticsDataPoint } from '@/types/storage';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { parseQuery, type Aggregator, type ParsedQuery, type Series, type SeriesPoint, type TagFilter } from './wql';
+import { convert, resolveDisplayUnit } from '../units';
 
 const DAY = 86_400_000;
 
@@ -42,6 +43,8 @@ export interface QueryOptions {
   rangeStart?: number;
   /** Inclusive upper bound on canonical workout time. */
   rangeEnd?: number;
+  /** Preferred display unit (e.g. 'kg') for mass-family metrics when the query does not specify one. */
+  preferredUnit?: string;
 }
 
 export interface QueryResult {
@@ -52,6 +55,8 @@ export interface QueryResult {
   /** Selected fact rows (post filter) — uncapped, for the anatomy/table views. */
   matched: AnalyticsDataPoint[];
   scalar?: number;
+  /** Declared display unit for the result (recorded or converted). */
+  unit?: string;
 }
 
 /**
@@ -114,7 +119,14 @@ function dimValue(row: AnalyticsDataPoint, dim: string, noteTags: ReadonlyMap<st
   return raw.length ? raw.join(',') : '(none)';
 }
 
-function aggregate(values: number[], agg: Aggregator, points: AnalyticsDataPoint[]): number {
+/** Convert a single fact value to the target display unit, if known. */
+function toDisplayValue(value: number, unit: string | undefined, targetUnit: string | undefined): number {
+  if (!targetUnit || unit === targetUnit) return value;
+  return convert(value, unit, targetUnit);
+}
+
+/** Aggregate values already converted to the target display unit. */
+function aggregate(values: number[], agg: Aggregator, points: AnalyticsDataPoint[], targetUnit: string | undefined): number {
   if (agg === 'count') return points.length;
   if (values.length === 0) return 0;
   switch (agg) {
@@ -124,7 +136,7 @@ function aggregate(values: number[], agg: Aggregator, points: AnalyticsDataPoint
     case 'max': return Math.max(...values);
     case 'last': {
       const latest = [...points].sort((a, b) => b.timestamp - a.timestamp)[0];
-      return latest.value as number;
+      return toDisplayValue(latest.value as number, latest.unit ?? latest.metricUnit, targetUnit);
     }
     case 'delta': return values[values.length - 1] - values[0];
   }
@@ -200,6 +212,12 @@ export class QueryService {
       ? new Set(matched.map((p) => bucketKey(p.timestamp))).size
       : (matched.length ? 1 : 0);
 
+    // ── Unit display preference / directive ───────────────────────────────
+    const { unit: targetUnit, convert: shouldConvert } = resolveDisplayUnit(matched, {
+      directive: parsed.displayUnit,
+      preferred: options.preferredUnit,
+    });
+
     // ── Stage 3+4: GROUP (tag-dimension fan-out) + AGGREGATE per bucket ──
     const groups = new Map<string, AnalyticsDataPoint[]>();
     for (const row of matched) {
@@ -221,15 +239,24 @@ export class QueryService {
       }
       const points: SeriesPoint[] = [...byBucket.entries()]
         .sort(([a], [b]) => a - b)
-        .map(([b, members]) => ({
-          ts: bucketMs ? b * bucketMs + bucketMs / 2 : Math.min(...members.map((m) => m.timestamp)),
-          value: Math.round(aggregate(members.map((m) => m.value as number), parsed.agg, members) * 100) / 100,
-        }));
-      return { key, label: key, points };
+        .map(([b, members]) => {
+          const values = members.map((m) =>
+            toDisplayValue(m.value as number, m.unit ?? m.metricUnit, shouldConvert ? targetUnit : undefined),
+          );
+          return {
+            ts: bucketMs ? b * bucketMs + bucketMs / 2 : Math.min(...members.map((m) => m.timestamp)),
+            value: Math.round(aggregate(values, parsed.agg, members, shouldConvert ? targetUnit : undefined) * 100) / 100,
+          };
+        });
+      const seriesUnit = shouldConvert
+        ? targetUnit
+        : (rows[0]?.unit ?? rows[0]?.metricUnit);
+      return { key, label: key, points, unit: seriesUnit };
     });
 
     const aggregated = series.reduce((n, s) => n + s.points.length, 0);
     const scalar = series.length === 1 && series[0].points.length === 1 ? series[0].points[0].value : undefined;
+    const resultUnit = series.length > 0 ? series[0].unit : undefined;
 
     return {
       parsed,
@@ -237,6 +264,7 @@ export class QueryService {
       stages: { selected: matched.length, buckets: bucketCount, aggregated, groups: series.length },
       matched,
       scalar,
+      unit: resultUnit,
     };
   }
 }

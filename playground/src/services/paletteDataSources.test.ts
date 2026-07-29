@@ -62,6 +62,7 @@ const {
   collectionSource,
   collectionItemsSource,
   globalSearchSource,
+  constructSource,
 } = await import('./paletteDataSources');
 
 type ExtractedScriptBlock = import('./paletteDataSources').ExtractedScriptBlock;
@@ -515,5 +516,46 @@ describe('globalSearchSource', () => {
     const results = await source.search('');
 
     expect(results.some(r => r.id === 'r-journal-origin')).toBe(true);
+  });
+});
+
+describe('constructSource', () => {
+  it('returns an empty array for an empty query', async () => {
+    const source = constructSource();
+    const results = await source.search('');
+    expect(results).toEqual([]);
+  });
+
+  it.each([
+    ['AMRAP', 'AMRAP'],
+    ['EMOM', 'EMOM'],
+    ['Tabata', 'Tabata'],
+    [':?', 'Actual result'],
+    ['?lb', 'Load prompt'],
+  ])('query %p resolves to %p', async (query, expectedLabel) => {
+    const source = constructSource();
+    const results = await source.search(query);
+    const match = results.find((r) => r.label === expectedLabel);
+    expect(match).toBeDefined();
+    expect(match?.type).toBe('route');
+    expect(match?.payload).toHaveProperty('route');
+    const route = match?.payload && typeof match.payload === 'object' && 'route' in match.payload
+      ? String(match.payload.route)
+      : '';
+    expect(route.length).toBeGreaterThan(0);
+  });
+
+  it('labels results with a distinguishable sublabel', async () => {
+    const source = constructSource();
+    const results = await source.search('AMRAP');
+    expect(results[0]?.sublabel).toBe('Timer behaviors');
+    expect(results[0]?.category).toBe('Reference');
+  });
+
+  it('does not duplicate identical constructs across multiple terms', async () => {
+    const source = constructSource();
+    const results = await source.search('load');
+    const ids = results.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

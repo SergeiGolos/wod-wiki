@@ -20,9 +20,10 @@ export interface WqlTimeseriesProps {
   unit?: string;
 }
 
-export function WqlTimeseries({ result, unit }: WqlTimeseriesProps) {
+export function WqlTimeseries({ result, unit: unitProp }: WqlTimeseriesProps) {
   const shape = useChartShape(result);
   const data = useMemo(() => mergeSeries(result.series), [result]);
+  const unit = result.series[0]?.unit ?? unitProp;
 
   if (shape.kind !== 'timeseries' && shape.kind !== 'scalar') {
     return <WqlEmptyState result={result} />;
@@ -56,6 +57,7 @@ export function WqlTimeseries({ result, unit }: WqlTimeseriesProps) {
             color: 'hsl(var(--popover-foreground))',
           }}
           labelFormatter={(v) => tooltipTimestamp(v as number)}
+          formatter={(v) => [`${Number(v).toLocaleString()} ${unit ?? ''}`.trim(), '']}
         />
         {result.series.length > 1 && (
           <Legend wrapperStyle={{ fontSize: 11 }} />

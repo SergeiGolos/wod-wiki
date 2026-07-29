@@ -65,7 +65,7 @@ Put it all together. Nested groups, mixed protocols, and chained timers let you 
 You've seen the full syntax. Time to write your own.
 
 ```button
-label:  ← Dialects
+label:  ← Dialect Examples
 target: ex
 pipeline:
   - navigate: /guide/syntax/dialects

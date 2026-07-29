@@ -70,7 +70,9 @@ desc: You landed on the playground dashboard.
 ```quest
 id: qs-tour-timer
 label: See the timer run it
-desc: Scroll through the WallClock stage of the home tour.
+desc: Let the demo timer reach a running state in the WallClock stage.
+validation:
+  type: run-started
 ```
 
 ```quest

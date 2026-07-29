@@ -19,6 +19,7 @@ export function useAnalyticsQueries(
   queries: AnalyticsQueryDef[],
   weeks: number,
   refreshKey = 0,
+  preferredUnit?: string,
 ): AnalyticsQueriesState {
   const [results, setResults] = useState<Record<string, QueryResult>>({});
   const [loading, setLoading] = useState(true);
@@ -38,7 +39,7 @@ export function useAnalyticsQueries(
       try {
         if (consumesRollups) await rollupReady;
         const settled = await Promise.all(
-          queries.map(async (q) => [q.key, await queryService.runQuery(q.query, { rangeStart, rangeEnd: now })] as const),
+          queries.map(async (q) => [q.key, await queryService.runQuery(q.query, { rangeStart, rangeEnd: now, preferredUnit })] as const),
         );
         if (!cancelled) setResults(Object.fromEntries(settled));
       } finally {
@@ -51,7 +52,7 @@ export function useAnalyticsQueries(
     return () => {
       cancelled = true;
     };
-  }, [queries, weeks, refreshKey]);
+  }, [queries, weeks, refreshKey, preferredUnit]);
 
   return { results, loading };
 }

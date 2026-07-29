@@ -43,6 +43,9 @@ export function ParsedQueryChips({ parsed }: ParsedQueryChipsProps) {
       {parsed.rollup && (
         <Chip label="rollup" value={`${parsed.rollup.size}${parsed.rollup.unit}`} className="text-purple-400" />
       )}
+      {parsed.displayUnit && (
+        <Chip label="in" value={parsed.displayUnit} className="text-pink-400" />
+      )}
     </div>
   );
 }

@@ -73,7 +73,7 @@ The same syntax rules apply in every case: indentation defines ownership, and he
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Timers & Protocols
+label:  ← Timer Behaviors
 target: ex
 pipeline:
   - navigate: /guide/behaviors/timers

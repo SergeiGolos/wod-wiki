@@ -22,9 +22,9 @@ export function TourLearnSection({
   return (
     <section
       data-testid="tour-learn"
-      className="mx-auto grid max-w-5xl gap-8 px-6 py-20 lg:grid-cols-2"
+      className="mx-auto grid max-w-5xl items-start gap-8 px-6 py-20 lg:grid-cols-2"
     >
-      <div>
+      <div className="lg:sticky lg:top-[104px]">
         <h2 className="text-3xl font-bold tracking-tight">Learn the Language</h2>
         <p className="mt-4 text-lg text-muted-foreground">
           From first <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.86em]">wod</code> line to fluency — Lesson 1 is 3 minutes, runnable in place.
@@ -38,7 +38,7 @@ export function TourLearnSection({
             Start Lesson 1
           </Link>
           <Link
-            to="/guide/syntax/complex"
+            to="/guide/syntax/cheatsheet"
             onClick={handleCheatsheet}
             className="text-sm text-primary underline-offset-2 hover:underline"
           >

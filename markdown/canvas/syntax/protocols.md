@@ -121,7 +121,7 @@ pipeline:
 ```
 
 ```button
-label:  Rounds & Structure →
+label:  Structure & Rep Schemes →
 target: ex
 pipeline:
   - navigate: /guide/syntax/structure

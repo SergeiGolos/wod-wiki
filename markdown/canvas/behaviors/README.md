@@ -52,7 +52,7 @@ pipeline:
 ```
 
 ```button
-label:  Timers & Protocols →
+label:  Timer Behaviors →
 target: ex
 pipeline:
   - navigate: /guide/behaviors/timers

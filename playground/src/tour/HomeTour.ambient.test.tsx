@@ -1,16 +1,17 @@
 /**
- * HomeTour.test.tsx — route-level component test for the redesigned home page.
+ * HomeTour.ambient.test.tsx — ambient runtime behavior for the redesigned home page.
  *
- * Asserts the locked section order, the short-circuit strip exits, the
- * Timer/Analytics stage drop-off hrefs, and the telemetry funnel events.
+ * Verifies that the scroll-mode demo auto-advances past the root
+ * WaitingToStart gate so the clock never ticks while the label says
+ * 'Ready to Start', while playground mode leaves the gate for the visitor.
  */
 
-import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
+import { beforeEach, afterEach, describe, expect, it, mock, type Mock } from 'bun:test'
 import { render, screen, cleanup, fireEvent, act, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
-import type { ScriptBlock } from '@/components/Editor/types'
-import { telemetry, HOME_EVENTS } from '@/services/telemetry'
+import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
+import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
 
 // ── Heavy / browser-only dependencies ───────────────────────────────────────
 
@@ -22,7 +23,6 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
   }) => {
     const React = require('react')
     React.useEffect(() => {
-      // Inject a minimal block so the Run action has a compiled block to use.
       props.onBlocksChange?.([{ id: 'block-1', type: 'Timer' } as unknown as ScriptBlock])
     }, [])
     return (
@@ -35,8 +35,64 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
   },
 }))
 
+type MockHandle = Mock<(event: unknown) => void>
+
+let lastMockRuntime: IScriptRuntime | null = null
+
+function eventNamesFromCalls(handle: MockHandle): string[] {
+  return handle.mock.calls.map((call) => {
+    const event = call[0]
+    if (event && typeof event === 'object' && 'name' in event && typeof event.name === 'string') {
+      return event.name
+    }
+    return ''
+  })
+}
+
 mock.module('@/components/organisms/editor/RuntimeTimerPanel', () => ({
-  RuntimeTimerPanel: () => <div data-testid="mock-timer-panel" />,
+  RuntimeTimerPanel: ({
+    autoStart,
+    onRuntimeReady,
+  }: {
+    block: ScriptBlock | null
+    autoStart: boolean
+    onClose: () => void
+    onComplete: (blockId: string, results: WorkoutResults) => void
+    onRuntimeReady: (runtime: IScriptRuntime) => void
+  }) => {
+    const React = require('react')
+    React.useEffect(() => {
+      if (!onRuntimeReady) return
+      const handle = mock(() => {}) as MockHandle
+      const mockRuntime = {
+        handle,
+        nowProvider: { nowMs: () => Date.now() },
+        subscribeToStack: () => () => {},
+        subscribeToOutput: () => () => {},
+        getOutputStatements: () => [],
+        finalizeAnalytics: () => [],
+        addOutput: () => {},
+        pushBlock: () => {},
+        popBlock: () => {},
+        do: () => {},
+        doAll: () => {},
+        dispose: () => {},
+        options: {},
+        script: {},
+        eventBus: { on: () => () => {}, dispatch: () => {} },
+        stack: { current: null, count: 0 },
+        jit: {},
+        clock: { now: new Date(), currentDate: new Date() },
+      } as unknown as IScriptRuntime
+      lastMockRuntime = mockRuntime
+      onRuntimeReady(mockRuntime)
+    }, [onRuntimeReady])
+    return <div data-testid="mock-timer-panel" data-autostart={String(autoStart)} />
+  },
+}))
+
+mock.module('./TourTvCard', () => ({
+  TourTvCard: () => null,
 }))
 
 mock.module('@/components/organisms/review/AnalyticsScorecard', () => ({
@@ -133,10 +189,8 @@ mock.module('./useTourScroll', () => {
     store.listeners.forEach((cb) => cb())
   }
 
-  // Expose the driver on globalThis so the test can switch slices without
-  // statically importing the mocked module (which would resolve before the mock).
-  const control = globalThis as unknown as { setTestTourProgress?: (p: number) => void }
-  control.setTestTourProgress = setTestTourProgress
+  const control = globalThis as unknown as { setTestTourProgressAmbient?: (p: number) => void }
+  control.setTestTourProgressAmbient = setTestTourProgress
 
   return {
     useTourScroll: () => {
@@ -148,7 +202,6 @@ mock.module('./useTourScroll', () => {
       return {
         slice: store.slice,
         progress: 0,
-        runwayReached: store.slice.t > 0 || store.slice.index > 0,
         subscribe: () => () => {},
         resync: () => {},
       }
@@ -160,9 +213,8 @@ mock.module('./useTourScroll', () => {
 import { HomeTour } from './HomeTour'
 
 const setTestTourProgress = (progress: number) => {
-  // globalThis is augmented by the useTourScroll mock factory at runtime.
-  const control = globalThis as unknown as { setTestTourProgress?: (p: number) => void }
-  control.setTestTourProgress?.(progress)
+  const control = globalThis as unknown as { setTestTourProgressAmbient?: (p: number) => void }
+  control.setTestTourProgressAmbient?.(progress)
 }
 
 // ── Test data ───────────────────────────────────────────────────────────────
@@ -185,26 +237,9 @@ const chapters: Chapter[] = [
     questIds: ['qs-arrive', 'qs-tour-timer', 'qs-tour-analytics'],
     sectionIds: [],
   },
-  {
-    id: 'basics',
-    title: 'Basics',
-    badge: 'trophy',
-    questIds: ['basics-movement'],
-    sectionIds: [],
-  },
-  {
-    id: 'protocols',
-    title: 'Protocols',
-    badge: 'timer',
-    questIds: ['protocols-timer'],
-    sectionIds: [],
-  },
 ]
 
-const questLabels: Record<string, string> = {
-  'basics-movement': 'Add a movement',
-  'protocols-timer': 'Add a timer',
-}
+const questLabels: Record<string, string> = {}
 
 async function renderHomeTour() {
   const result = render(
@@ -218,7 +253,6 @@ async function renderHomeTour() {
       />
     </MemoryRouter>,
   )
-  // Flush any post-mount effects that update state.
   await act(async () => {
     await Promise.resolve()
   })
@@ -227,13 +261,9 @@ async function renderHomeTour() {
 
 // ── Tests ───────────────────────────────────────────────────────────────────
 
-describe('HomeTour', () => {
-  let recorded: Array<{ name: string; payload?: Record<string, unknown> }> = []
-  let unsubscribe: () => void = () => {}
-
+describe('HomeTour ambient runtime', () => {
   beforeEach(() => {
-    recorded = []
-    unsubscribe = telemetry.events.subscribe((event) => recorded.push(event))
+    lastMockRuntime = null
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: () => ({
@@ -250,86 +280,29 @@ describe('HomeTour', () => {
   })
 
   afterEach(() => {
-    unsubscribe()
     cleanup()
     window.localStorage.clear()
   })
 
-  it('renders the short-circuit strip with Library and New note exits', async () => {
-    renderHomeTour()
-    const strip = await screen.findByTestId('tour-short-circuit-strip')
-    expect(strip).toBeTruthy()
+  it('auto-advances the ambient runtime past the Ready to Start gate', async () => {
+    await renderHomeTour()
 
-    const libraryLink = screen.getByRole('link', { name: /Jump to the Library/i })
-    expect(libraryLink.getAttribute('href')).toBe('/collections')
-
-    const newNoteButton = screen.getByRole('button', { name: /New note/i })
-    expect(newNoteButton).toBeTruthy()
-  })
-
-  it('exposes timer and analytics stage drop-offs with correct hrefs', async () => {
-    renderHomeTour()
-
-    // Timer stage is the initial slice.
-    const behaviorsLink = await screen.findByRole('link', { name: /Read the behaviors explainer/i })
-    expect(behaviorsLink.getAttribute('href')).toBe('/guide/behaviors')
-
-    // Drive to the Analytics stage.
     await act(async () => {
-      setTestTourProgress(0.6)
+      setTestTourProgress(0.1)
+      await Promise.resolve()
     })
 
-    const explorerLink = await screen.findByRole('link', { name: /Run a pre-filled query/i })
-    expect(explorerLink.getAttribute('href')).toContain('/analytics/explorer')
-    expect(explorerLink.getAttribute('href')).toContain('q=')
+    const timerPanel = await screen.findByTestId('mock-timer-panel')
+    expect(timerPanel.getAttribute('data-autostart')).toBe('true')
 
-    const dashboardLink = screen.getByRole('link', { name: /Open the dashboard/i })
-    expect(dashboardLink.getAttribute('href')).toBe('/analytics/dashboard')
-
-    const effortsLinks = screen.getAllByRole('link', { name: /Browse the registry/i })
-    expect(effortsLinks.length).toBeGreaterThanOrEqual(1)
-    for (const link of effortsLinks) {
-      expect(link.getAttribute('href')).toBe('/efforts')
-    }
+    await waitFor(() => {
+      expect(lastMockRuntime).not.toBeNull()
+    })
+    expect(eventNamesFromCalls((lastMockRuntime as IScriptRuntime).handle as MockHandle)).toContain('next')
   })
 
-  it('renders the static areas in locked order', async () => {
-    renderHomeTour()
-
-    const headings = (await screen.findAllByRole('heading')).map((h) => h.textContent)
-    const learnIndex = headings.findIndex((h) => h?.includes('Learn the Language'))
-    const exploreIndex = headings.findIndex((h) => h?.includes('Explore Your Data'))
-    const registryIndex = headings.findIndex((h) => h?.includes('The Movement Registry'))
-    const referenceIndex = headings.findIndex((h) => h?.includes('Quick Reference'))
-
-    expect(learnIndex).toBeGreaterThanOrEqual(0)
-    expect(learnIndex).toBeLessThan(exploreIndex)
-    expect(exploreIndex).toBeLessThan(registryIndex)
-    expect(registryIndex).toBeLessThan(referenceIndex)
-  })
-
-  it('records the matching home:* event when a drop-off is clicked', async () => {
-    renderHomeTour()
-
-    const libraryLink = await screen.findByRole('link', { name: /Jump to the Library/i })
-    fireEvent.click(libraryLink)
-    expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.libraryOpened)
-
-    // Drive to the analytics stage and click a drop-off.
-    setTestTourProgress(0.6)
-    const explorerLink = await screen.findByRole('link', { name: /Run a pre-filled query/i })
-    fireEvent.click(explorerLink)
-    expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.explorerOpened)
-
-    // Click the timer-stage drop-off as well.
-    setTestTourProgress(0.1)
-    const behaviorsLink = await screen.findByRole('link', { name: /Read the behaviors explainer/i })
-    fireEvent.click(behaviorsLink)
-    expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.behaviorsOpened)
-  })
-
-  it('desktop hero Run mounts the fullscreen overlay with WallClock and exit pill', async () => {
-    renderHomeTour()
+  it('leaves the Ready to Start gate for the user in playground mode', async () => {
+    await renderHomeTour()
 
     const runButton = await screen.findByRole('button', { name: /^Run$/i })
     await act(async () => {
@@ -337,25 +310,9 @@ describe('HomeTour', () => {
       await Promise.resolve()
     })
 
-    // The fullscreen overlay mounts above the ambient runway demo.
-    const overlay = await screen.findByTestId('tour-playground-overlay')
-    expect(overlay).toBeTruthy()
-
-    // The mocked RuntimeTimerPanel (WallClock) renders inside the overlay.
-    expect(overlay.querySelector('[data-testid="mock-timer-panel"]')).toBeTruthy()
-
-    // Exit pill returns to the tour.
-    const exitPill = await screen.findByRole('button', { name: /tap here to exit/i })
-    expect(exitPill).toBeTruthy()
-    await act(async () => {
-      fireEvent.click(exitPill)
-      await Promise.resolve()
-    })
-
-    // After exiting, the fullscreen overlay is removed. The ambient demo may
-    // still render a timer panel in the runway, so we assert on the overlay.
     await waitFor(() => {
-      expect(screen.queryByTestId('tour-playground-overlay')).toBeNull()
+      expect(lastMockRuntime).not.toBeNull()
     })
+    expect(eventNamesFromCalls((lastMockRuntime as IScriptRuntime).handle as MockHandle)).not.toContain('next')
   })
 })

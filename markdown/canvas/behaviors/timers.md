@@ -5,7 +5,7 @@ route: /guide/behaviors/timers
 type: behavior
 ---
 
-# Timers & Protocols {sticky dark full-bleed}
+# Timer Behaviors {sticky dark full-bleed}
 
 Time in WOD Wiki is a behavior, not a special case. Any duration prefix on a line becomes a timer that the runtime can count up, count down, repeat, or ring.
 

@@ -67,6 +67,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       selection: EditorSelection.cursor(pos),
       effects: EditorView.scrollIntoView(pos, { y: 'start', yMargin: 96 }),
     });
+    editorView.focus();
   }, [selectedNoteId, notes, editorView]);
 
   useEffect(() => {

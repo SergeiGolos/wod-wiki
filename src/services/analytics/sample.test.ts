@@ -39,6 +39,34 @@ describe('sample analytics dataset', () => {
     expect(pullUpTis.scalar).toBeGreaterThan(0);
   });
 
+  it('includes intensity tiers on load and volume facts', async () => {
+    const query = new QueryService(factStore(service));
+    const intensity = await query.runQuery('sum:sessionLoad{} by {intensity}.rollup(1w)');
+
+    expect(intensity.series.length).toBeGreaterThan(0);
+    const labels = intensity.series.map((s) => s.label);
+    expect(labels).not.toContain('(none)');
+    expect(labels).toContain('high');
+    expect(labels).toContain('moderate');
+    expect(labels).toContain('low');
+
+    const volumeByIntensity = await query.runQuery('sum:totalVolume{} by {intensity}');
+    expect(volumeByIntensity.series.length).toBeGreaterThan(0);
+    expect(volumeByIntensity.series.map((s) => s.label)).not.toContain('(none)');
+  });
+
+  it('includes distance facts for rowing and running disciplines', async () => {
+    const query = new QueryService(factStore(service));
+    const distance = await query.runQuery('sum:totalDistance{} by {discipline}');
+
+    expect(distance.series.length).toBeGreaterThan(0);
+    expect(distance.series.some((s) => s.points.reduce((a, p) => a + p.value, 0) > 0)).toBe(true);
+
+    const disciplines = distance.series.map((s) => s.label);
+    expect(disciplines).toContain('rowing');
+    expect(disciplines).toContain('running');
+  });
+
   it('is idempotent: a second load does not add more facts', async () => {
     const first = await loadSampleData();
     const second = await loadSampleData();

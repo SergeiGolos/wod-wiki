@@ -56,7 +56,7 @@ function isCollectionWorkoutRoute(loc: Location): boolean {
 
 // Sidebar order for the Syntax guide pillar (maps canonical route to position).
 // Timers/rounds come before custom-metrics; complex carries the sound-behavior
-// slot until a dedicated sound page exists.
+// slot until a dedicated sound page exists; cheatsheet is the reference cap.
 const syntaxOrder: Record<string, number> = {
   '/guide/syntax': 0,
   '/guide/syntax/basics': 1,
@@ -65,6 +65,7 @@ const syntaxOrder: Record<string, number> = {
   '/guide/syntax/custom-metrics': 4,
   '/guide/syntax/dialects': 5,
   '/guide/syntax/complex': 6,
+  '/guide/syntax/cheatsheet': 7,
 }
 
 const syntaxChildren: NavItem[] = canvasRoutes

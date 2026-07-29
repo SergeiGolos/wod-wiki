@@ -10,8 +10,9 @@ export interface TopListProps {
   limit?: number;
 }
 
-export function TopList({ result, unit, limit = 8 }: TopListProps) {
+export function TopList({ result, unit: unitProp, limit = 8 }: TopListProps) {
   const shape = useChartShape(result);
+  const unit = result.series[0]?.unit ?? unitProp;
 
   const rows = useMemo(
     () =>

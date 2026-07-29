@@ -70,4 +70,25 @@ describe('useScrollQuests', () => {
 
     expect(readLedger()[PAGE_ROUTE]?.['basics-reps']).toBe(true);
   });
+
+  it('does not mark interaction-gated quests on scroll', () => {
+    const quests = [
+      { id: 'basics-movement', label: 'Add a movement' },
+      {
+        id: 'basics-run',
+        label: 'Start the timer',
+        validation: { type: 'run-started' },
+      },
+    ];
+    const stages: ScrollStage[] = [
+      { id: 'movement', range: [0, 0.16], quest: 'basics-movement' },
+      { id: 'run', range: [0.16, 0.34], quest: 'basics-run' },
+    ];
+    const { result } = renderHook(() => useScrollQuests(PAGE_ROUTE, quests, stages));
+
+    act(() => result.current('run'));
+
+    expect(readLedger()[PAGE_ROUTE]?.['basics-run']).toBeUndefined();
+    expect(readLedger()[PAGE_ROUTE]?.['basics-movement']).toBeUndefined();
+  });
 });

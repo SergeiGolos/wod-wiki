@@ -11,6 +11,8 @@ import {
   WqlBars,
   WqlEmptyState,
   WqlTimeseries,
+  AnalyticsUnitPreference,
+  useAnalyticsUnitPreference,
 } from '@/components/molecules/analytics';
 import {
   ExplorerSidebar,
@@ -45,6 +47,7 @@ const DAY = 86_400_000;
 export function AnalyticsExplorerPage() {
   const [q, setQ] = useQueryState('q', { defaultValue: '' });
   const [weeks, setWeeks] = useAnalyticsRange();
+  const { unit: preferredUnit } = useAnalyticsUnitPreference();
   const activeWeeks = weeks ?? 16;
   const [draft, setDraft] = useState(q);
   const [result, setResult] = useState<QueryResult | undefined>(undefined);
@@ -81,7 +84,7 @@ export function AnalyticsExplorerPage() {
     // itself consumes rollup facts (calc.*).
     const rollupReady = ensureRollupFacts().catch(() => undefined);
     (q.includes('calc.') ? rollupReady : Promise.resolve())
-      .then(() => queryService.runQuery(q, { rangeStart, rangeEnd: now }))
+      .then(() => queryService.runQuery(q, { rangeStart, rangeEnd: now, preferredUnit }))
       .then((r) => {
         if (!cancelled) setResult(r);
       })
@@ -95,7 +98,7 @@ export function AnalyticsExplorerPage() {
     return () => {
       cancelled = true;
     };
-  }, [q, activeWeeks, refreshKey]);
+  }, [q, activeWeeks, refreshKey, preferredUnit]);
 
   const shape = useChartShape(result);
 
@@ -104,7 +107,6 @@ export function AnalyticsExplorerPage() {
   };
 
   const exampleQuestion = EXAMPLE_QUERIES.find((e) => e.query === q)?.question ?? 'custom query';
-  const firstUnit = result?.matched[0]?.unit;
 
   return (
     <div className="h-full flex flex-col min-h-0 p-4 overflow-y-auto">
@@ -168,6 +170,8 @@ export function AnalyticsExplorerPage() {
                   Past {w} weeks
                 </button>
               ))}
+              <span className="text-xs text-muted-foreground ml-4">Units:</span>
+              <AnalyticsUnitPreference />
             </div>
           </div>
 
@@ -186,6 +190,10 @@ export function AnalyticsExplorerPage() {
           </div>
 
           <div className="mt-3">
+            <SampleDataPrompt layout="banner" refreshKey={refreshKey} onChanged={() => setRefreshKey((k) => k + 1)} />
+          </div>
+
+          <div className="mt-3">
             <WidgetFrame title="Query result" question={exampleQuestion} query={q || '(empty)'}>
               <div className="h-64">
                 {!q ? (
@@ -199,19 +207,19 @@ export function AnalyticsExplorerPage() {
                     {shape.message}
                   </div>
                 ) : shape.kind === 'empty' ? (
-                  <SampleDataPrompt result={result} onChanged={() => setRefreshKey(k => k + 1)} />
+                  <SampleDataPrompt result={result} refreshKey={refreshKey} onChanged={() => setRefreshKey(k => k + 1)} />
                 ) : shape.kind === 'scalar' ? (
-                  <QueryValue result={result!} unit={firstUnit ?? ''} label={`${result!.parsed.agg}(${result!.parsed.metric})`} />
+                  <QueryValue result={result!} label={`${result!.parsed.agg}(${result!.parsed.metric})`} />
                 ) : shape.kind === 'timeseries' ? (
-                  <WqlTimeseries result={result!} unit={firstUnit} />
+                  <WqlTimeseries result={result!} />
                 ) : (
-                  <WqlBars result={result!} unit={firstUnit} />
+                  <WqlBars result={result!} />
                 )}
               </div>
             </WidgetFrame>
           </div>
 
-          {result && <RawPointsTable matched={result.matched} unit={firstUnit} />}
+          {result && <RawPointsTable matched={result.matched} displayUnit={result.unit} />}
         </section>
       </div>
     </div>

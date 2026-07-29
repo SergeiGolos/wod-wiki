@@ -1,23 +1,6 @@
 import { Link } from 'react-router-dom'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
-
-const CONSTRUCTS = [
-  '5:00 duration',
-  '(21-15-9) ladder',
-  '225lb load',
-  'AMRAP',
-  'EMOM',
-  'Tabata',
-  ':* rest',
-  ':? actual',
-  '?lb prompt',
-  '⌘/ palette',
-  'rounds',
-  'reps',
-  'load',
-  'effort',
-  'discipline',
-]
+import { CONSTRUCT_GRID_CELLS, getConstructByGridCell } from '../services/constructSource'
 
 export function TourReferenceSection() {
   // Opens the global search palette via the same keyboard path App.tsx
@@ -40,11 +23,19 @@ export function TourReferenceSection() {
       </p>
 
       <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border font-mono text-xs md:grid-cols-4">
-        {CONSTRUCTS.map((c) => (
-          <span key={c} className="bg-card px-3 py-2">
-            {c}
-          </span>
-        ))}
+        {CONSTRUCT_GRID_CELLS.map((c) => {
+          const item = getConstructByGridCell(c)
+          return (
+            <Link
+              key={c}
+              to={item?.gridRoute ?? '/guide/syntax/cheatsheet'}
+              onClick={() => telemetry.record(HOME_EVENTS.referenceOpened)}
+              className="bg-card px-3 py-2 transition-colors hover:bg-muted hover:text-primary"
+            >
+              {c}
+            </Link>
+          )
+        })}
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-4">
@@ -56,7 +47,7 @@ export function TourReferenceSection() {
           Search everything (&#8984;/)
         </button>
         <Link
-          to="/guide/syntax/complex"
+          to="/guide/syntax/cheatsheet"
           onClick={() => telemetry.record(HOME_EVENTS.referenceOpened)}
           className="text-sm text-primary underline-offset-2 hover:underline"
         >

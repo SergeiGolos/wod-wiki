@@ -73,4 +73,30 @@ describe('parseQuery', () => {
   it('rejects malformed heads', () => {
     expect(parseQuery('not a query').error).toContain('Cannot parse');
   });
+
+  it('parses the display unit directive at the end of the query', () => {
+    const parsed = parseQuery('sum:totalVolume{} by {week}.rollup(1w) in kg');
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.displayUnit).toBe('kg');
+    expect(parsed.agg).toBe('sum');
+    expect(parsed.metric).toBe('totalVolume');
+    expect(parsed.groupBy).toEqual(['week']);
+    expect(parsed.rollup).toEqual({ size: 1, unit: 'w' });
+  });
+
+  it('parses display unit directive on bare and filtered queries', () => {
+    expect(parseQuery('avg:tis{} in lb').displayUnit).toBe('lb');
+    expect(parseQuery('sum:totalVolume{discipline:strength} in kg').displayUnit).toBe('kg');
+  });
+
+  it('does not treat "in" inside filters as a display directive', () => {
+    const parsed = parseQuery('sum:totalVolume{note:in}');
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.displayUnit).toBeUndefined();
+    expect(parsed.filters).toEqual([{ key: 'note', negate: false, values: [{ value: 'in', wildcard: false }] }]);
+  });
+
+  it('errors on a dangling "in" without a unit', () => {
+    expect(parseQuery('sum:totalVolume{} in').error).toContain('Cannot parse');
+  });
 });

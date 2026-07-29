@@ -21,6 +21,7 @@ import { getAnalyticsFromLogs, getAnalyticsFromRuntime } from '@/services/Analyt
 import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { playgroundRecorder } from '../services/resultRecorder'
 import { NextAction } from '@/runtime/actions/stack/NextAction'
+import { NextEvent } from '@/runtime/events/NextEvent'
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
@@ -28,6 +29,7 @@ import type { Quest } from '../hooks/usePageQuests'
 import type { Chapter } from '../canvas/parseCanvasMarkdown'
 import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
+import { useRunStartedChallenge } from '../hooks/useRunStartedChallenge'
 import { useTourScrollQuests } from '../hooks/useTourScrollQuests'
 import { useIsMobile } from '../hooks/useIsMobile'
 import type { FullscreenState } from '../hooks/useCanvasRuntime'
@@ -59,6 +61,7 @@ import { TourMobileStack } from './TourMobileStack'
 import { HOME_EVENTS, useTelemetry } from '@/services/telemetry'
 import { journalNotePath } from '../lib/routes'
 import { getTodayDateKey } from '../services/dateUtils'
+import { toast } from '@/hooks/use-toast'
 import type { ReactNode } from 'react'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -138,7 +141,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const [interactive, setInteractive] = useState<'timer' | 'analytics' | null>(null)
 
   // ── Scroll driver ──
-  const { slice, subscribe, resync } = useTourScroll(runwayRef, interactive !== null)
+  const { slice, subscribe, resync, runwayReached } = useTourScroll(runwayRef, interactive !== null)
 
   const activeScreen: TourScreen = interactive ?? slice.stage.screen
 
@@ -203,8 +206,19 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
   const markStageViewed = useTourScrollQuests('/', quests)
   useEffect(() => {
-    if (interactive === null) markStageViewed(slice.stage.id)
-  }, [interactive, slice.stage.id, markStageViewed])
+    // Only mark a scroll stage once the runway has actually entered the
+    // viewport. At fresh load the hero is still visible (runwayReached is
+    // false), so the first tour stage is not prematurely counted.
+    if (interactive === null && runwayReached) markStageViewed(slice.stage.id)
+  }, [interactive, slice.stage.id, markStageViewed, runwayReached])
+
+  // Track when the demo runtime actually starts running — either from the hero
+  // Run button or from the ambient timer stage auto-starting on scroll.
+  const [demoRunning, setDemoRunning] = useState(false)
+  const handleRunStarted = useCallback(() => {
+    setDemoRunning(true)
+  }, [])
+  useRunStartedChallenge({ pageRoute: '/', quests, running: demoRunning })
 
   const handleHomeQuestClick = useCallback((questId: string) => {
     const stageId = HOME_QUEST_STAGE[questId]
@@ -238,21 +252,26 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const handleRun = useCallback(() => {
     track(HOME_EVENTS.demoRun)
     startRun()
-    if (!isMobile) {
-      const el = runwayRef.current
-      if (el) scrollRunwayTo(el, 0)
-    }
-  }, [startRun, isMobile, track])
+  }, [startRun, track])
 
   const handleShare = useCallback(async () => {
     if (!doc.trim()) return
-    track(HOME_EVENTS.demoShared)
     try {
       const encoded = await encodeZip(doc)
       const url = `${window.location.origin}${window.location.pathname}?z=${encoded}`
       await navigator.clipboard.writeText(url)
+      track(HOME_EVENTS.demoShared)
+      toast({
+        title: 'Link copied',
+        description: 'Share link copied to clipboard.',
+      })
     } catch (err) {
       console.error('[HomeTour] share failed:', err)
+      toast({
+        title: 'Could not copy',
+        description: err instanceof Error ? err.message : 'Failed to copy share link.',
+        variant: 'destructive',
+      })
     }
   }, [doc, track])
 
@@ -331,7 +350,62 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const handleRuntimeReady = useCallback((runtime: IScriptRuntime) => {
     runtimeRef.current = runtime
     setTourRuntime(runtime)
+    // In ambient scroll mode the timer screen auto-starts execution, but the
+    // root WaitingToStart gate keeps the label at 'Ready to Start' while the
+    // clock ticks. Advance past the gate so the demo actually runs; playground
+    // mode (interactive) leaves the gate for the visitor to press Start.
+    if (interactiveRef.current === null) {
+      // Defer one microtask so the auto-start effect in RuntimeTimerPanel has
+      // begun execution before the gate is popped.
+      queueMicrotask(() => {
+        runtime.handle(new NextEvent(undefined, runtime.nowProvider))
+      })
+    }
   }, [])
+
+  const playgroundOverlay = (
+    <div data-testid="tour-playground-overlay" className="fixed inset-0 z-50 flex flex-col bg-background">
+      <div className="relative min-h-0 flex-1">
+        {interactive === 'timer' && entered.timer && (
+          <TourTimerScreen
+            block={blocksRef.current[0] ?? null}
+            autoStart={timerAutoStartRef.current}
+            onClose={handleTimerClose}
+            onComplete={handleTimerComplete}
+            onRuntimeReady={handleRuntimeReady}
+            onRunStarted={handleRunStarted}
+          />
+        )}
+        {interactive === 'analytics' && entered.analytics && (
+          <TourAnalyticsScreen
+            segments={analyticsSegments}
+            title={
+              logState === 'logging'
+                ? 'Journal / today · logging…'
+                : logState === 'failed'
+                  ? 'Session Review · not saved to journal'
+                  : 'Journal / today · logged from timer'
+            }
+          />
+        )}
+      </div>
+      <div className="flex justify-center py-4">
+        <button
+          type="button"
+          onClick={exitPlayground}
+          className="rounded-full bg-foreground px-5 py-2.5 font-mono text-[10px] tracking-[0.06em] text-background opacity-95 transition-opacity hover:opacity-100"
+        >
+          {interactive === 'timer'
+            ? 'timer running · STOP to log it · tap here to exit'
+            : logState === 'failed'
+              ? 'session not saved · tap here to return'
+              : logState === 'logging'
+                ? 'logging session… · tap here to return'
+                : 'session logged · tap here to return'}
+        </button>
+      </div>
+    </div>
+  )
 
   // ── Canvas scaling (desktop only) ──
   const scaleRef = useRef(1)
@@ -395,49 +469,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
           onOpenInEditor={handleOpenInEditor}
         />
 
-        {/* Spec §2: mobile runs go fullscreen from the hero demo. */}
-        {interactive && (
-          <div className="fixed inset-0 z-50 flex flex-col bg-background">
-            <div className="relative min-h-0 flex-1">
-              {interactive === 'timer' && entered.timer && (
-                <TourTimerScreen
-                  block={blocksRef.current[0] ?? null}
-                  autoStart={timerAutoStartRef.current}
-                  onClose={handleTimerClose}
-                  onComplete={handleTimerComplete}
-                  onRuntimeReady={handleRuntimeReady}
-                />
-              )}
-              {interactive === 'analytics' && entered.analytics && (
-                <TourAnalyticsScreen
-                  segments={analyticsSegments}
-                  title={
-                    logState === 'logging'
-                      ? 'Journal / today · logging…'
-                      : logState === 'failed'
-                        ? 'Session Review · not saved to journal'
-                        : 'Journal / today · logged from timer'
-                  }
-                />
-              )}
-            </div>
-            <div className="flex justify-center py-4">
-              <button
-                type="button"
-                onClick={exitPlayground}
-                className="rounded-full bg-foreground px-5 py-2.5 font-mono text-[10px] tracking-[0.06em] text-background opacity-95 transition-opacity hover:opacity-100"
-              >
-                {interactive === 'timer'
-                  ? 'timer running · STOP to log it · tap here to exit'
-                  : logState === 'failed'
-                    ? 'session not saved · tap here to return'
-                    : logState === 'logging'
-                      ? 'logging session… · tap here to return'
-                      : 'session logged · tap here to return'}
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Spec §2: runs from the hero demo go fullscreen on every form factor. */}
+        {interactive && playgroundOverlay}
       </div>
     )
   }
@@ -507,7 +540,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
               >
                 <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-x-2 top-2 bottom-2">
                   <div className="relative h-full">
-                    {entered.timer && (
+                    {interactive === null && entered.timer && (
                       <Screen visible={activeScreen === 'timer'}>
                         <TourTimerScreen
                           block={blocksRef.current[0] ?? null}
@@ -515,10 +548,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
                           onClose={handleTimerClose}
                           onComplete={handleTimerComplete}
                           onRuntimeReady={handleRuntimeReady}
+                          onRunStarted={handleRunStarted}
                         />
                       </Screen>
                     )}
-                    {entered.analytics && (
+                    {interactive === null && entered.analytics && (
                       <Screen visible={activeScreen === 'analytics'}>
                         <TourAnalyticsScreen
                           segments={analyticsSegments}
@@ -533,7 +567,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
                       </Screen>
                     )}
 
-                    {/* stop toast */}
+                    {/* stop toast mirrors the ambient scroll-mode runtime finishing. */}
                     <div
                       ref={toastRef}
                       className="pointer-events-none absolute top-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2.5 whitespace-nowrap rounded-full border border-[hsl(var(--metric-rounds)/0.55)] bg-card px-5 py-2.5 font-mono text-[10.5px] tracking-[0.04em] opacity-0 shadow-xl"
@@ -555,26 +589,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
             {/* captions */}
             <TourCaptions activeIndex={slice.index} />
           </div>
-
-          {/* playground-mode hint pill */}
-          {interactive && (
-            <button
-              type="button"
-              onClick={exitPlayground}
-              className="absolute bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-foreground px-5 py-2.5 font-mono text-[10px] tracking-[0.06em] text-background opacity-95 transition-opacity hover:opacity-100"
-            >
-              ▶ Playground mode —{' '}
-              {interactive === 'timer'
-                ? 'timer running · STOP to log it · tap here to exit'
-                : logState === 'failed'
-                  ? 'session not saved · tap here to return to the tour'
-                  : logState === 'logging'
-                    ? 'logging session… · tap here to return to the tour'
-                    : 'session logged · tap here to return to the tour'}
-            </button>
-          )}
         </div>
       </section>
+
+      {interactive && playgroundOverlay}
 
       <TourRegistrySection />
       <TourReferenceSection />
