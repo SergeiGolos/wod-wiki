@@ -8,12 +8,12 @@
  */
 import { useState, useRef } from 'react'
 import { Search as SearchIcon } from 'lucide-react'
-import { TokenSlotPill, AddFilterDropdown } from './QueryPalette'
+import { TokenSlotPill, AddFilterDropdown } from '@/components/organisms/wql-composer/QueryPalette'
 import {
   type QueryClause,
   type ClauseType,
   CLAUSE_META,
-} from './queryClauses'
+} from '@/components/organisms/wql-composer'
 import { cn } from '@/lib/utils'
 
 export function VariantA({

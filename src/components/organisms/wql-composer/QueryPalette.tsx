@@ -7,6 +7,7 @@
  *   - AddFilterDropdown: Menu to add new query filter slots.
  */
 import { useState, useRef, useEffect } from 'react'
+import type { KeyboardEvent } from 'react'
 import { Plus, X, ChevronDown, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -50,7 +51,7 @@ export function TokenSlotPill({
   const hasValue = Boolean(clause.value && clause.value.trim())
 
   // Keydown listener for Tab, Up, Down, Enter, Escape when pill is focused
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
       if (!open) setOpen(true)
@@ -150,7 +151,10 @@ export function ClausePopover({
   const popoverRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    inputRef.current?.focus()
+    // Focus the filter input when present; otherwise the popover itself so
+    // Up/Down + Enter keyboard selection works for target/scope/time slots.
+    if (inputRef.current) inputRef.current.focus()
+    else popoverRef.current?.focus()
   }, [])
 
   // Backdrop click
@@ -174,9 +178,15 @@ export function ClausePopover({
     ? TIME_OPTIONS.map(o => ({ value: o.value, label: o.label }))
     : suggestions.map(s => ({ value: s, label: s }))
 
-  const filteredItems = items.filter(item => item.value.toLowerCase().includes(val.toLowerCase()) || item.label.toLowerCase().includes(val.toLowerCase()))
+  // Free-text filter input is only shown for suggestion-driven types;
+  // target/scope/time always list all options so Up/Down cycling works.
+  const showFilterInput = clause.type !== 'target' && clause.type !== 'scope' && clause.type !== 'time'
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const filteredItems = showFilterInput
+    ? items.filter(item => item.value.toLowerCase().includes(val.toLowerCase()) || item.label.toLowerCase().includes(val.toLowerCase()))
+    : items
+
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       setHighlightIdx(i => Math.min(i + 1, Math.max(0, filteredItems.length - 1)))
@@ -198,8 +208,9 @@ export function ClausePopover({
   return (
     <div
       ref={popoverRef}
+      tabIndex={-1}
       onKeyDown={handleKeyDown}
-      className="absolute top-full left-0 mt-1.5 z-50 min-w-[240px] max-w-[320px] rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-2 animate-in fade-in-50 zoom-in-95"
+      className="absolute top-full left-0 mt-1.5 z-50 min-w-[240px] max-w-[320px] rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-2 animate-in fade-in-50 zoom-in-95 focus:outline-none"
       data-testid={`clause-popover-${clause.type}`}
     >
       <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-border/50 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
@@ -213,7 +224,7 @@ export function ClausePopover({
         <WhereJoinEditor onApply={v => onChange({ value: v })} />
       ) : (
         <div>
-          {clause.type !== 'target' && clause.type !== 'scope' && clause.type !== 'time' && (
+          {showFilterInput && (
             <input
               ref={inputRef}
               type="text"
