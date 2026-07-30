@@ -985,6 +985,11 @@ export class IndexedDBService {
         return tags.filter((tag): tag is Tag => tag !== undefined);
     }
 
+    /** Every tag label in the store — the user-created typeahead vocabulary. */
+    async getAllTags(): Promise<Tag[]> {
+        return (await this.dbPromise).getAll('tags');
+    }
+
     /** Resolve every note tagged with a given label. */
     async getNotesForTag(label: string): Promise<Note[]> {
         const db = await this.dbPromise;

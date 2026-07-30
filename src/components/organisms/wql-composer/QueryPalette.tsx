@@ -11,12 +11,12 @@ import type { KeyboardEvent } from 'react'
 import { Plus, X, ChevronDown, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { composerRegistry, useComposerSlots, type CustomSlotDefinition } from './ComposerRegistry'
+import { useSuggestions } from './useSuggestions'
 import {
   type QueryClause,
   type ClauseType,
   CLAUSE_META,
   getClauseMeta,
-  getSuggestions,
   TARGET_OPTIONS,
   SCOPE_OPTIONS,
   TIME_OPTIONS,
@@ -148,6 +148,25 @@ export function TokenSlotPill({
 
 // ── ClausePopover: Keyboard-navigable Dropdown ───────────────────────────────
 
+/** "Nothing here yet" affordance for an empty suggestion list (#831). */
+function emptyStateMessage({
+  loading,
+  itemCount,
+  filter,
+  binding,
+}: {
+  loading: boolean
+  itemCount: number
+  filter: string
+  binding?: { open: boolean; emptyText: string }
+}): string {
+  if (loading) return 'Loading…'
+  if (itemCount === 0) return binding?.emptyText ?? 'Nothing here yet'
+  if (!filter.trim()) return 'No options'
+  const open = binding?.open ?? true
+  return open ? 'No matches — press Enter to use the typed value' : 'No matches — no such option'
+}
+
 export function ClausePopover({
   clause,
   onClose,
@@ -181,7 +200,7 @@ export function ClausePopover({
     return () => document.removeEventListener('mousedown', handler)
   }, [onClose])
 
-  const suggestions = getSuggestions(clause.type)
+  const { items: suggestionItems, loading: suggestionsLoading, binding } = useSuggestions(clause.type)
 
   const items = clause.type === 'target'
     ? TARGET_OPTIONS.map(o => ({ value: o.value, label: `${o.value} — ${o.description}` }))
@@ -189,7 +208,7 @@ export function ClausePopover({
     ? SCOPE_OPTIONS.map(o => ({ value: o.value, label: `${o.value} — ${o.description}` }))
     : clause.type === 'time'
     ? TIME_OPTIONS.map(o => ({ value: o.value, label: o.label }))
-    : suggestions.map(s => ({ value: s, label: s }))
+    : suggestionItems.map(s => ({ value: s.value, label: s.label ?? s.value }))
 
   // Free-text filter input is only shown for suggestion-driven types;
   // target/scope/time always list all options so Up/Down cycling works.
@@ -210,7 +229,8 @@ export function ClausePopover({
       e.preventDefault()
       if (filteredItems[highlightIdx]) {
         onChange({ value: filteredItems[highlightIdx].value })
-      } else if (val.trim()) {
+      } else if (val.trim() && (binding?.open ?? true)) {
+        // Open slots accept user-typed values not present in the list (#831).
         onChange({ value: val.trim() })
       }
     } else if (e.key === 'Escape') {
@@ -266,6 +286,20 @@ export function ClausePopover({
                 {clause.value === item.value && <Check className="size-3 text-primary shrink-0 ml-1" />}
               </button>
             ))}
+
+            {filteredItems.length === 0 && (
+              <div
+                className="px-2.5 py-2 text-[11px] italic text-muted-foreground"
+                data-testid={`clause-empty-${clause.type}`}
+              >
+                {emptyStateMessage({
+                  loading: suggestionsLoading,
+                  itemCount: items.length,
+                  filter: val,
+                  binding,
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

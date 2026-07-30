@@ -3,7 +3,7 @@
  * Defends the AST shape contract (the grammar ticket must produce the same).
  */
 import { describe, expect, it } from 'bun:test';
-import { parseQuery as _parseQuery, isFindQuery, type ParsedQuery } from './wql';
+import { parseQuery as _parseQuery, isFindQuery, WQL_COMPARISON_OPS, type ParsedQuery } from './wql';
 import { WQL_CONTENT_FILTER_KEYS } from '@/parser/wql-language';
 
 // All tests in this file use analytics queries (not find: queries) — narrow
@@ -258,8 +258,10 @@ describe('parseQuery — cross-store where joins', () => {
     expect(parsed.join.last).toEqual({ size: 8, unit: 'w' });
   });
 
-  it('parses every comparison operator', () => {
-    for (const op of ['>=', '<=', '!=', '==', '>', '<'] as const) {
+  it('parses every comparison operator in WQL_COMPARISON_OPS', () => {
+    // The exported vocabulary (composer typeahead) must match what CMP_RE
+    // accepts — iterating the const ties the two declarations together.
+    for (const op of WQL_COMPARISON_OPS) {
       const parsed = _parseQuery(`find:block where sum:totalVolume{} ${op} 1000`);
       if (!isFindQuery(parsed) || !parsed.join) throw new Error(`no join for ${op}`);
       expect(parsed.join.operator).toBe(op);

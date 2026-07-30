@@ -105,6 +105,9 @@ export interface SeriesPoint { ts: number; value: number }
 export interface Series { key: string; label: string; points: SeriesPoint[]; unit?: string }
 
 export const WQL_AGGREGATORS: Aggregator[] = ['sum', 'avg', 'min', 'max', 'count', 'last', 'delta'];
+
+/** Every comparison operator the where-join parser accepts. */
+export const WQL_COMPARISON_OPS: ComparisonOp[] = ['>', '>=', '<', '<=', '==', '!='];
 const AGGS: Aggregator[] = WQL_AGGREGATORS;
 
 function cannotParse(text: string): string {

@@ -1,10 +1,21 @@
 /**
- * Shared query-clause model + data sources for WQL Search Prototypes.
+ * Shared query-clause model + WQL compiler for the WqlComposer.
+ *
+ * Static option lists (target/scope/time) live here; dynamic typeahead data
+ * sources live in ./suggestionSources (issue #831).
  *
  * Supports freeform token slots, placeholder guidance, and keyboard navigation.
  */
 
 import { composerRegistry } from './ComposerRegistry'
+import {
+  WQL_AGGREGATORS,
+  WQL_COMPARISON_OPS,
+} from '@/services/analytics/query/wql'
+import {
+  WQL_METRIC_AGGREGATES,
+  WQL_METRIC_FAMILIES,
+} from '@/parser/wql-vocabulary'
 
 export type ClauseType =
   | 'target'
@@ -43,20 +54,6 @@ export const SCOPE_OPTIONS = [
   { value: 'all', label: 'All Sources', description: 'Universal search across everything' },
 ]
 
-export const CATALOG_SUGGESTIONS = [
-  'crossfit-girls',
-  'dan-john-40-day',
-  'ZombieFit-org-2009-Dec',
-  'swimming-college',
-  'crossfit-programming',
-]
-
-export const TAG_SUGGESTIONS = ['PR', 'Benchmark', 'Competition', 'Long', 'Short', 'Heavy', 'Mobility', 'Hero']
-export const EFFORT_SUGGESTIONS = ['Fran', 'Cindy', 'Annie', 'Helen', 'Back Squat', 'Deadlift', 'Pull-up', 'Thruster']
-export const DISCIPLINE_SUGGESTIONS = ['Strength', 'Conditioning', 'Endurance', 'Gymnastics', 'Rowing', 'Swimming']
-export const TYPE_SUGGESTIONS = ['wod', 'dashboard', 'heading', 'text', 'timer']
-export const HAS_SUGGESTIONS = ['timer', 'image', 'metric', 'rx']
-
 export const TIME_OPTIONS = [
   { value: 'last 1d', label: 'Past 24 hours' },
   { value: 'last 1w', label: 'Past week' },
@@ -67,9 +64,14 @@ export const TIME_OPTIONS = [
   { value: 'all', label: 'All time' },
 ]
 
-export const WHERE_AGGREGATORS = ['sum', 'avg', 'min', 'max', 'count']
-export const WHERE_METRICS = ['totalVolume', 'sessionLoad', 'totalReps', 'elapsed', 'totalDistance']
-export const WHERE_OPERATORS = ['>', '>=', '<', '<=', '==']
+/**
+ * Where-join editor vocab — the same source of truth the analytics composer
+ * completes against (src/parser/wql-language.ts, aggregators from the AST
+ * contract in services/analytics/query/wql.ts). Issue #831.
+ */
+export const WHERE_AGGREGATORS: readonly string[] = WQL_AGGREGATORS
+export const WHERE_METRICS: readonly string[] = [...WQL_METRIC_AGGREGATES, ...WQL_METRIC_FAMILIES]
+export const WHERE_OPERATORS: readonly string[] = WQL_COMPARISON_OPS
 
 // ── Metadata ────────────────────────────────────────────────────────────────
 
@@ -95,22 +97,6 @@ export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
   has:       { label: 'Has Feature',inputType: 'select',   placeholder: 'timer, image...',            placeholderText: 'has: [timer|image]',     icon: '✨', description: 'Note/block feature presence', prefix: 'has:' },
   time:      { label: 'Time Window',inputType: 'select',   placeholder: 'Time range',                 placeholderText: 'last: [time range]',      icon: '⏱', description: 'Date window (last Nw/Nd)', prefix: 'last:' },
   where:     { label: 'Metric Join',inputType: 'freetext', placeholder: 'sum:totalVolume{} > 5000',    placeholderText: 'where: [metric join]',   icon: '📊', description: 'Cross-store analytics join', prefix: 'where:' },
-}
-
-export function getSuggestions(type: string): string[] {
-  switch (type) {
-    case 'target':     return TARGET_OPTIONS.map(o => o.value)
-    case 'scope':      return SCOPE_OPTIONS.map(o => o.value)
-    case 'catalog':    return CATALOG_SUGGESTIONS
-    case 'tag':        return TAG_SUGGESTIONS
-    case 'effort':     return EFFORT_SUGGESTIONS
-    case 'discipline': return DISCIPLINE_SUGGESTIONS
-    case 'type':       return TYPE_SUGGESTIONS
-    case 'has':        return HAS_SUGGESTIONS
-    case 'time':       return TIME_OPTIONS.map(o => o.value)
-    case 'where':      return ['sum:totalVolume{} > 5000', 'avg:sessionLoad{} < 50', 'count:totalReps{} >= 100']
-    default:           return []
-  }
 }
 
 const CUSTOM_FALLBACK_ICON = '\u{1F9E9}'
