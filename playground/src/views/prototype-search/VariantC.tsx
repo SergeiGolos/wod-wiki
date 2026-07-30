@@ -1,165 +1,143 @@
 /**
- * Variant C — "Query Builder Cards"
+ * Variant C — "Card stack"
  *
- * A vertical stack of "filter cards" the user adds/removes. The first
- * card is always Source (Note / Session / Post — single select). Each
- * subsequent card is a filter the user chose to add. Each card has a
- * remove (×) button. An "+ Add filter" button at the bottom.
+ * Each clause is a tall card. The active card expands to show its
+ * suggestion dropdown; other cards collapse to a compact summary.
+ * Up/Down moves between cards. Clicking a card activates it.
  *
- * This is a visual query builder — each card maps to a WQL clause.
- * The composed WQL is shown at the bottom as a live readout.
+ * Structurally different from A (vertical stack) and B (spotlight):
+ * generous spacing, larger type, clear sense of each clause as a
+ * distinct thing.
  */
 import { useState } from 'react'
+import { ClauseRow } from './QueryPalette'
+import { type QueryClause, type ClauseType, CLAUSE_META } from './queryClauses'
 import { Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import {
-  type SearchState,
-  type SearchSource,
-  SOURCE_META,
-} from './shared'
 
-type CardType = 'text' | 'catalog' | 'tag' | 'discipline' | 'date'
-
-const AVAILABLE_CARDS: { type: CardType; label: string; placeholder: string }[] = [
-  { type: 'text', label: 'Text contains', placeholder: 'e.g. thrusters, Fran, 21-15-9' },
-  { type: 'catalog', label: 'In catalog', placeholder: 'Select catalog…' },
-  { type: 'tag', label: 'Tagged with', placeholder: 'Select tag…' },
-  { type: 'discipline', label: 'Discipline', placeholder: 'Select discipline…' },
-  { type: 'date', label: 'Date range', placeholder: 'Select range…' },
-]
-
-const CATALOGS = ['CrossFit Girls', 'Dan John 40-Day', 'ZombieFit Dec 2009', 'Swimming College']
-const TAGS = ['PR', 'Benchmark', 'Competition', 'Long', 'Short', 'Heavy']
-const DISCIPLINES = ['Strength', 'Conditioning', 'Endurance', 'Gymnastics', 'Rowing']
-const DATES = ['Today', 'Past week', 'Past month', 'Past 3 months', 'All time']
-
-export function VariantC({ state, onChange }: { state: SearchState; onChange: (s: SearchState) => void }) {
-  const [showAddMenu, setShowAddMenu] = useState(false)
-
-  const setSource = (s: SearchSource) => onChange({ ...state, source: s, filters: [] })
-  const addCard = (type: CardType) => {
-    setShowAddMenu(false)
-    const meta = AVAILABLE_CARDS.find(c => c.type === type)!
-    onChange({ ...state, filters: [...state.filters, { key: type, label: meta.label, value: '' }] })
-  }
-  const updateCard = (idx: number, value: string) =>
-    onChange({ ...state, filters: state.filters.map((f, i) => i === idx ? { ...f, value } : f) })
-  const removeCard = (idx: number) =>
-    onChange({ ...state, filters: state.filters.filter((_, i) => i !== idx) })
+export function VariantC({ clauses, onChange }: { clauses: QueryClause[]; onChange: (c: QueryClause[]) => void }) {
+  const [activeIdx, setActiveIdx] = useState(0)
 
   return (
-    <div className="border-b border-border bg-background px-6 py-3 space-y-2" data-testid="variant-c">
-      {/* Card 1: Source — always present, not removable */}
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2">
-        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 w-20 shrink-0">Source</span>
-        <div className="flex gap-1.5">
-          {(Object.keys(SOURCE_META) as SearchSource[]).map(s => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setSource(s)}
-              className={cn(
-                'px-3 py-1 text-xs font-medium rounded-md transition-colors',
-                state.source === s ? 'bg-primary text-primary-foreground' : 'bg-background border border-border text-muted-foreground hover:bg-muted',
-              )}
-            >
-              {SOURCE_META[s].icon} {SOURCE_META[s].label}
-            </button>
-          ))}
-        </div>
-        <span className="text-[10px] text-muted-foreground/50 ml-auto">{SOURCE_META[state.source].description}</span>
+    <div className="border-b border-border bg-background px-6 py-4" data-testid="variant-c">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">C — Card stack</span>
+        <span className="text-[10px] text-muted-foreground/40">click a card · ↑↓ to navigate</span>
       </div>
-
-      {/* Filter cards */}
-      {state.filters.map((card, idx) => (
-        <FilterCard
-          key={idx}
-          card={card}
-          onUpdate={value => updateCard(idx, value)}
-          onRemove={() => removeCard(idx)}
-        />
-      ))}
-
-      {/* Add filter button */}
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setShowAddMenu(o => !o)}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-        >
-          <span className="flex items-center justify-center size-5 rounded-full border border-primary/30 bg-primary/5">
-            <Plus className="size-3" />
-          </span>
-          Add filter
-        </button>
-        {showAddMenu && (
-          <>
-            <div className="fixed inset-0 z-10" onClick={() => setShowAddMenu(false)} />
-            <div className="absolute z-20 mt-1 min-w-[180px] rounded-md border border-border bg-background shadow-lg py-1">
-              {AVAILABLE_CARDS.map(c => (
+      <div className="space-y-2 max-w-2xl">
+        {clauses.map((clause, idx) => {
+          const isActive = idx === activeIdx
+          const meta = CLAUSE_META[clause.type]
+          return (
+            <div
+              key={clause.id}
+              onClick={() => setActiveIdx(idx)}
+              className={cn(
+                'rounded-xl border transition-all cursor-pointer',
+                isActive
+                  ? 'border-primary/50 bg-background shadow-md ring-1 ring-primary/20'
+                  : 'border-border bg-muted/30 hover:bg-background hover:border-border/70',
+              )}
+              data-testid={`variant-c-card-${clause.type}`}
+            >
+              {/* Card header: always visible */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <span className="text-xl">{meta.icon}</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                      {meta.label}
+                    </span>
+                    {clause.value && (
+                      <span className="text-sm font-semibold text-foreground">
+                        {clause.value}
+                      </span>
+                    )}
+                  </div>
+                  {!isActive && clause.value && (
+                    <div className="text-[10px] text-muted-foreground/50 mt-0.5">
+                      Click to edit
+                    </div>
+                  )}
+                </div>
                 <button
-                  key={c.type}
                   type="button"
-                  onClick={() => addCard(c.type)}
-                  className="block w-full text-left px-3 py-1.5 text-xs hover:bg-muted transition-colors"
+                  onClick={e => { e.stopPropagation(); onChange(clauses.filter((_, i) => i !== idx)) }}
+                  className="size-6 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-colors"
                 >
-                  {c.label}
+                  <X className="size-3" />
                 </button>
-              ))}
+              </div>
+              {/* Expanded: combobox */}
+              {isActive && (
+                <div className="border-t border-border/50 px-4 py-3" onClick={e => e.stopPropagation()}>
+                  <ClauseRow
+                    clause={clause}
+                    isActive={true}
+                    onFocus={() => setActiveIdx(idx)}
+                    onChange={patch => onChange(clauses.map((c, i) => i === idx ? { ...c, ...patch } : c))}
+                    onRemove={() => {
+                      const next = clauses.filter((_, i) => i !== idx)
+                      onChange(next.length ? next : [{ id: 'source', type: 'source', ...CLAUSE_META.source, value: 'Notes' }])
+                      setActiveIdx(0)
+                    }}
+                  />
+                </div>
+              )}
             </div>
-          </>
-        )}
+          )
+        })}
+        <AddClauseCard onAdd={(type) => {
+          const meta = CLAUSE_META[type]
+          const newClause: QueryClause = {
+            id: `c-${Date.now()}-${Math.random()}`,
+            type,
+            label: meta.label,
+            value: '',
+            inputType: meta.inputType,
+            placeholder: meta.placeholder,
+          }
+          onChange([...clauses, newClause])
+          setActiveIdx(clauses.length)
+        }} />
       </div>
     </div>
   )
 }
 
-function FilterCard({
-  card,
-  onUpdate,
-  onRemove,
-}: {
-  card: { key: string; label: string; value: string }
-  onUpdate: (value: string) => void
-  onRemove: () => void
-}) {
-  const options =
-    card.key === 'catalog' ? CATALOGS :
-    card.key === 'tag' ? TAGS :
-    card.key === 'discipline' ? DISCIPLINES :
-    card.key === 'date' ? DATES :
-    null
-
+function AddClauseCard({ onAdd }: { onAdd: (type: 'text' | 'catalog' | 'tag' | 'effort' | 'discipline' | 'time') => void }) {
+  const [open, setOpen] = useState(false)
+  const available = (['text', 'catalog', 'tag', 'effort', 'discipline', 'time'] as const)
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2 group hover:border-primary/30 transition-colors">
-      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 w-20 shrink-0">
-        {card.label}
-      </span>
-      {options ? (
-        <select
-          value={card.value}
-          onChange={e => onUpdate(e.target.value)}
-          className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        >
-          <option value="">Select…</option>
-          {options.map(opt => <option key={opt}>{opt}</option>)}
-        </select>
-      ) : (
-        <input
-          type="text"
-          value={card.value}
-          onChange={e => onUpdate(e.target.value)}
-          placeholder="Type to search…"
-          className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        />
-      )}
+    <div className="relative">
       <button
         type="button"
-        onClick={onRemove}
-        className="size-5 rounded-md flex items-center justify-center text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o) }}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-border text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-muted/30 hover:border-primary/30 hover:text-primary transition-colors"
       >
-        <X className="size-3" />
+        <span className="size-5 rounded-full bg-primary/10 flex items-center justify-center">
+          <Plus className="size-3" />
+        </span>
+        Add clause
       </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute z-20 mt-1 left-0 right-0 rounded-md border border-border bg-background shadow-lg py-1">
+            {available.map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => { onAdd(t); setOpen(false) }}
+                className="flex items-center gap-2 w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors"
+              >
+                <span className="text-base">{CLAUSE_META[t as ClauseType].icon}</span>
+                <span className="font-medium">{CLAUSE_META[t as ClauseType].label}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }

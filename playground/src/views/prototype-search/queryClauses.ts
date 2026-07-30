@@ -16,7 +16,6 @@
  *
  * Each clause knows its suggestions source, input type, and WQL fragment.
  */
-import type { SearchSource } from './shared'
 
 export type ClauseType = 'source' | 'text' | 'catalog' | 'tag' | 'effort' | 'discipline' | 'time'
 
@@ -28,11 +27,6 @@ export interface QueryClause {
   inputType: 'radio' | 'freetext' | 'select'
   placeholder: string
 }
-
-export type ClauseRegistry = Record<ClauseType, Omit<QueryClause, 'value'> & {
-  options?: string[]
-  suggestions?: string[]
-}>
 
 // ── Data sources (prototype — hardcoded, replace with real queries) ─────────
 
