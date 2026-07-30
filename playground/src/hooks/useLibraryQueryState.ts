@@ -1,14 +1,13 @@
 /**
  * useLibraryQueryState — URL ↔ WQL Composer Panel state for the Library route.
- * The URL is the single persistence seam; the panel reads on mount and writes
- * back on every change (debounced for free-text by the panel itself).
+ * Uses `nuqs` (`useQueryState`) to bind state to search parameters, matching the
+ * app-wide `<NuqsAdapter>` pattern.
  *
- * The tri-state encoding per #809's resolution: each of `note`, `session`,
- * `post` is one of `include | hide | neutral` (the default is `include` when
- * absent).
+ * Tri-state encoding per #809's resolution: `include | hide | neutral` (default is
+ * `include` when absent/empty in the URL).
  */
-import { useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useQueryState } from 'nuqs'
+import { useCallback, useMemo } from 'react'
 import {
   DEFAULT_PANEL_STATE,
   type PanelState,
@@ -16,61 +15,59 @@ import {
   type TimePreset,
 } from '../views/library/WqlComposerPanel'
 
-/** The shape returned by `useLibraryQueryState` — the URL ↔ panel binding. */
 export interface LibraryQueryState {
   state: PanelState
   setState: (next: PanelState) => void
 }
 
 const TRI_STATES: readonly TriState[] = ['include', 'hide', 'neutral']
-
-function parseTri(value: string | null): TriState {
-  if (value && (TRI_STATES as readonly string[]).includes(value)) return value as TriState
-  return 'include'
-}
-
-function parseTimePreset(value: string | null): TimePreset {
-  const valid: readonly TimePreset[] = ['1d', '3d', '1w', '2w', '4w', '12w', '26w', '52w', 'all', 'custom']
-  if (value && (valid as readonly string[]).includes(value)) return value as TimePreset
-  return DEFAULT_PANEL_STATE.timePreset
-}
+const TIME_PRESETS: readonly TimePreset[] = ['1d', '3d', '1w', '2w', '4w', '12w', '26w', '52w', 'all', 'custom']
 
 export function useLibraryQueryState(): LibraryQueryState {
-  const [params, setParams] = useSearchParams()
+  const [noteParam, setNoteParam] = useQueryState('note', { defaultValue: '', shallow: true, history: 'replace' })
+  const [sessionParam, setSessionParam] = useQueryState('session', { defaultValue: '', shallow: true, history: 'replace' })
+  const [postParam, setPostParam] = useQueryState('post', { defaultValue: '', shallow: true, history: 'replace' })
+  const [textParam, setTextParam] = useQueryState('text', { defaultValue: '', shallow: true, history: 'replace' })
+  const [presetParam, setPresetParam] = useQueryState('timePreset', { defaultValue: '', shallow: true, history: 'replace' })
+  const [startParam, setStartParam] = useQueryState('rangeStart', { defaultValue: '', shallow: true, history: 'replace' })
+  const [endParam, setEndParam] = useQueryState('rangeEnd', { defaultValue: '', shallow: true, history: 'replace' })
 
-  const state: PanelState = {
-    sources: {
-      note: parseTri(params.get('note')),
-      session: parseTri(params.get('session')),
-      post: parseTri(params.get('post')),
-    },
-    text: params.get('text') ?? DEFAULT_PANEL_STATE.text,
-    timePreset: parseTimePreset(params.get('timePreset')),
-    customStart: params.get('rangeStart') ?? undefined,
-    customEnd: params.get('rangeEnd') ?? undefined,
-    filters: DEFAULT_PANEL_STATE.filters,
-  }
+  const note = (TRI_STATES as readonly string[]).includes(noteParam) ? (noteParam as TriState) : 'include'
+  const session = (TRI_STATES as readonly string[]).includes(sessionParam) ? (sessionParam as TriState) : 'include'
+  const post = (TRI_STATES as readonly string[]).includes(postParam) ? (postParam as TriState) : 'include'
+  const text = textParam || DEFAULT_PANEL_STATE.text
+  const timePreset = (TIME_PRESETS as readonly string[]).includes(presetParam) ? (presetParam as TimePreset) : DEFAULT_PANEL_STATE.timePreset
+  const customStart = startParam || undefined
+  const customEnd = endParam || undefined
+
+  const state: PanelState = useMemo(
+    () => ({
+      sources: { note, session, post },
+      text,
+      timePreset,
+      customStart,
+      customEnd,
+      filters: DEFAULT_PANEL_STATE.filters,
+    }),
+    [note, session, post, text, timePreset, customStart, customEnd],
+  )
 
   const setState = useCallback(
     (next: PanelState) => {
-      const patch: Record<string, string> = {}
-      // Only write tri-states that differ from the default (include) — keeps
-      // URLs short.
-      for (const k of ['note', 'session', 'post'] as const) {
-        const v = next.sources[k]
-        patch[k] = v === 'include' ? '' : v
-      }
-      if (next.text) patch.text = next.text
-      else patch.text = ''
-      if (next.timePreset !== DEFAULT_PANEL_STATE.timePreset) patch.timePreset = next.timePreset
-      else patch.timePreset = ''
+      setNoteParam(next.sources.note === 'include' ? '' : next.sources.note)
+      setSessionParam(next.sources.session === 'include' ? '' : next.sources.session)
+      setPostParam(next.sources.post === 'include' ? '' : next.sources.post)
+      setTextParam(next.text || '')
+      setPresetParam(next.timePreset === DEFAULT_PANEL_STATE.timePreset ? '' : next.timePreset)
       if (next.timePreset === 'custom') {
-        if (next.customStart) patch.rangeStart = next.customStart
-        if (next.customEnd) patch.rangeEnd = next.customEnd
+        setStartParam(next.customStart || '')
+        setEndParam(next.customEnd || '')
+      } else {
+        setStartParam('')
+        setEndParam('')
       }
-      setParams(patch, { replace: true })
     },
-    [setParams],
+    [setNoteParam, setSessionParam, setPostParam, setTextParam, setPresetParam, setStartParam, setEndParam],
   )
 
   return { state, setState }
