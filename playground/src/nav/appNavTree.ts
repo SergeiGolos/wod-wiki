@@ -17,40 +17,15 @@
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  */
 
-import {
-  HomeIcon,
-  RectangleStackIcon,
-  FolderIcon,
-  CodeBracketIcon,
-} from '@heroicons/react/20/solid'
-import { RssIcon, Dumbbell, ChartBarIcon, BookOpen } from 'lucide-react'
+import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
+import { ChartBarIcon, BookOpen, Dumbbell } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
 
-import { JournalNavPanel }     from './panels/JournalNavPanel'
-import { CollectionsNavPanel } from './panels/CollectionsNavPanel'
-import { FeedsNavPanel }       from './panels/FeedsNavPanel'
-import { EffortsNavPanel }     from './panels/EffortsNavPanel'
-import { canvasRoutes }        from '../canvas/canvasRoutes'
-import { NON_COLLECTION_CATEGORIES } from '../pages/shared/pageUtils'
+import { EffortsNavPanel } from './panels/EffortsNavPanel'
+import { canvasRoutes } from '../canvas/canvasRoutes'
 import { ROUTE_PATTERNS } from '../lib/routes'
-
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
-function isRouteActive(to: string) {
-  return (loc: Location) =>
-    to === '/'
-      ? loc.pathname === '/' || loc.pathname === ''
-      : loc.pathname.startsWith(to)
-}
-
-function isCollectionWorkoutRoute(loc: Location): boolean {
-  const match = loc.pathname.match(/^\/workout\/([^/]+)\/[^/]+$/)
-  if (!match) return false
-  const category = decodeURIComponent(match[1])
-  return !NON_COLLECTION_CATEGORIES.has(category)
-}
 
 // ─── L2 children for Home ─────────────────────────────────────────────────────
 
@@ -151,33 +126,14 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
     },
 
     {
-      id: 'journal',
-      label: 'Journal',
+      id: 'library',
+      label: 'Library',
       level: 1,
-      icon: RectangleStackIcon,
-      action: { type: 'route', to: ROUTE_PATTERNS.journal },
-      isActive: isRouteActive(ROUTE_PATTERNS.journal),
-      panel: JournalNavPanel,
-    },
-
-    {
-      id: 'feeds',
-      label: 'Feeds',
-      level: 1,
-      icon: RssIcon,
-      action: { type: 'route', to: ROUTE_PATTERNS.feeds },
-      isActive: (loc: Location) => loc.pathname.startsWith(ROUTE_PATTERNS.feeds),
-      panel: FeedsNavPanel,
-    },
-
-    {
-      id: 'collections',
-      label: 'Collections',
-      level: 1,
-      icon: FolderIcon,
-      action: { type: 'route', to: ROUTE_PATTERNS.collections },
-      isActive: (loc) => isRouteActive(ROUTE_PATTERNS.collections)(loc) || isCollectionWorkoutRoute(loc),
-      panel: CollectionsNavPanel,
+      icon: BookOpen,
+      action: { type: 'route', to: ROUTE_PATTERNS.library },
+      isActive: (loc: Location) =>
+        loc.pathname === ROUTE_PATTERNS.library ||
+        loc.pathname.startsWith(`${ROUTE_PATTERNS.library}/`),
     },
 
     {
@@ -189,10 +145,8 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
       panel: EffortsNavPanel,
     },
-
     {
       id: 'analytics',
-      label: 'Analytics',
       level: 1,
       icon: ChartBarIcon,
       action: { type: 'route', to: ROUTE_PATTERNS.analyticsExplorer },
