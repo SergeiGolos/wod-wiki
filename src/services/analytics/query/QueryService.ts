@@ -137,7 +137,7 @@ let staticBlockIndexPromise: Promise<BlockIndexRow[]> | null = null;
 function loadStaticBlockIndex(): Promise<BlockIndexRow[]> {
     if (!staticBlockIndexPromise) {
         staticBlockIndexPromise = import(
-            /* @vite-ignore */ '@/generated/static-block-index.json'
+            '@/generated/static-block-index.json'
         ).then((m) => m.default as BlockIndexRow[]);
     }
     return staticBlockIndexPromise;
