@@ -209,19 +209,25 @@ describe('resolveRouteView — collection index nav', () => {
   })
 })
 
-describe('resolveRouteView — page + shell', () => {
-  it('classifies /journal → canvas shell with journal actions + index', () => {
+describe('resolveRouteView — Library replaces the legacy list routes', () => {
+  it('classifies /library → library page', () => {
+    const view = resolveRouteView('/library', NO_PARAMS, makeDeps())
+    expect(view.page).toBe('library')
+    expect(view.workout.name).toBe('Library')
+    expect(view.shell).toEqual({ wrap: 'bare' })
+  })
+
+  it('classifies /journal → library (Library replaces the Journal list route)', () => {
     const view = resolveRouteView('/journal', NO_PARAMS, makeDeps())
-    expect(view.page).toBe('journal')
-    expect(view.shell).toEqual({ wrap: 'canvas', title: 'Journal', actionsMode: 'journal-active', withIndex: true })
+    expect(view.page).toBe('library')
+    expect(view.shell).toEqual({ wrap: 'bare' })
   })
 
-  it('classifies /collections → canvas shell, no index, collections filter subheader', () => {
+  it('classifies /collections → library (Library replaces the Collections list route)', () => {
     const view = resolveRouteView('/collections', NO_PARAMS, makeDeps())
-    expect(view.page).toBe('collections')
-    expect(view.shell).toEqual({ wrap: 'canvas', title: 'Collections', subheader: 'filter-collections', actionsMode: 'collection-readonly' })
+    expect(view.page).toBe('library')
+    expect(view.shell).toEqual({ wrap: 'bare' })
   })
-
   it('classifies bare routes → bare shell', () => {
     expect(resolveRouteView('/feeds', NO_PARAMS, makeDeps()).shell).toEqual({ wrap: 'bare' })
     expect(resolveRouteView('/efforts', NO_PARAMS, makeDeps()).page).toBe('effortsCatalog')

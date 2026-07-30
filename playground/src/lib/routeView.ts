@@ -70,16 +70,14 @@ export type PageKind =
   | 'feeds'
   | 'feedDetail'
   | 'feedItem'
-  | 'collections'
   | 'effortsCatalog'
   | 'effortDetail'
   | 'analyticsExplorer'
   | 'analyticsDashboard'
   | 'canvas'
   | 'playground'
-  | 'journalEntry'
   | 'workout'
-  | 'libraryPrototype'
+  | 'journalEntry'
   | 'library'
 
 /** How the page is wrapped — the `<CanvasPage>` shell vs bare. */
@@ -189,6 +187,7 @@ function deriveWorkout(
   // Named routes without params
   const named: Record<string, string> = {
     '/': 'Home',
+    '/library': 'Library',
     '/journal': 'Journal',
     '/feeds': 'Feeds',
     '/guide/syntax': 'Syntax',
@@ -309,15 +308,12 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
       type: 'heading' as const,
     }))
   }
-
   return []
 }
 function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanvasPage | null): PageKind {
-  if (pathname === '/journal' || pathname === '/journal/') return 'journal'
-  if (pathname === '/feeds') return 'feeds'
+  if (pathname === '/library' || pathname === '/library/' || pathname === '/journal' || pathname === '/journal/' || pathname === '/feeds' || pathname === '/collections') return 'library'
   if (flags.feedDetailMatch) return 'feedDetail'
   if (flags.feedItemMatch) return 'feedItem'
-  if (pathname === '/collections') return 'collections'
   if (pathname === '/efforts') return 'effortsCatalog'
   if (pathname.startsWith('/effort/')) return 'effortDetail'
   if (pathname === '/analytics/explorer') return 'analyticsExplorer'
@@ -325,16 +321,11 @@ function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanva
   if (canvasPage) return 'canvas'
   if (flags.isPlaygroundRoute && flags.effectivePlaygroundId) return 'playground'
   if (flags.isJournalEntryRoute && flags.journalEntryId) return 'journalEntry'
-  if (pathname === '/prototype/library') return 'libraryPrototype'
   return 'workout'
 }
 
 function deriveShell(page: PageKind, pathname: string, workout: CurrentWorkout): ShellConfig {
   switch (page) {
-    case 'journal':
-      return { wrap: 'canvas', title: 'Journal', actionsMode: 'journal-active', withIndex: true }
-    case 'collections':
-      return { wrap: 'canvas', title: 'Collections', subheader: 'filter-collections', actionsMode: 'collection-readonly' }
     case 'canvas':
       return {
         wrap: 'canvas',
