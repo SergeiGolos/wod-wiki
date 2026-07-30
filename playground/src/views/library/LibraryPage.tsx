@@ -68,6 +68,7 @@ export function LibraryPage() {
   }, [])
   const wql = useMemo(() => composeWql(state), [state])
   const range = useMemo(() => computeRange(state), [state])
+  const rangeKey = range ? `${range.start}:${range.end}` : ''
   const catalogs = useMemo(
     () => [{ id: 'journal', name: 'Journal' }, ...listCatalogs(staticBlockIndex as never)],
     [],
@@ -148,7 +149,7 @@ export function LibraryPage() {
     return () => {
       cancelled = true
     }
-  }, [wql, range, state.text])
+  }, [wql, rangeKey, state.text])
 
   const dated = useMemo(
     () => entries.filter(e => e.kind !== 'session').sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
