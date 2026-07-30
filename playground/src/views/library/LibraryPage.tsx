@@ -19,16 +19,7 @@ import { useLibraryQueryState, type LibraryQueryState } from '../../hooks/useLib
 import { LibraryRow } from './LibraryRow'
 import { WqlComposerPanel, composeWql } from './WqlComposerPanel'
 
-function todayKey(): string {
-  const d = new Date()
-  return d.toISOString().slice(0, 10)
-}
-
-function formatDateHeader(yyyymmdd: string): string {
-  const [y, m, d] = yyyymmdd.split('-').map(Number)
-  const date = new Date(Date.UTC(y!, m! - 1, d!))
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
-}
+import { todayKey, formatDateHeader } from '../../lib/dateFormat'
 
 /** Compute the { start, end } range from the panel's timePreset + customStart/End. */
 function computeRange(state: LibraryQueryState['state']): { start: number; end: number } | undefined {

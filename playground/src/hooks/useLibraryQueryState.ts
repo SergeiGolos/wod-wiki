@@ -12,7 +12,6 @@ import { useSearchParams } from 'react-router-dom'
 import {
   DEFAULT_PANEL_STATE,
   type PanelState,
-  type SourceKey,
   type TriState,
   type TimePreset,
 } from '../views/library/WqlComposerPanel'
@@ -21,7 +20,6 @@ import {
 export interface LibraryQueryState {
   state: PanelState
   setState: (next: PanelState) => void
-  sourceKey: SourceKey
 }
 
 const TRI_STATES: readonly TriState[] = ['include', 'hide', 'neutral']
@@ -75,5 +73,5 @@ export function useLibraryQueryState(): LibraryQueryState {
     [setParams],
   )
 
-  return { state, setState, sourceKey: 'note' }
+  return { state, setState }
 }
