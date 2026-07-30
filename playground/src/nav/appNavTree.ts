@@ -147,6 +147,7 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
     },
     {
       id: 'analytics',
+      label: 'Analytics',
       level: 1,
       icon: ChartBarIcon,
       action: { type: 'route', to: ROUTE_PATTERNS.analyticsExplorer },
