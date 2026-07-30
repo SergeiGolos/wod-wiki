@@ -1,20 +1,29 @@
 /**
- * LibraryRow — the canonical Entry row used by every variant.
- *
- * Variants only rearrange the layout; the row itself is identical so the
- * user can judge placement without row-quality noise.
+ * LibraryRow — one Entry in the Library. Clicking the row body navigates to
+ * the Entry's deep-link (Open). The right-hand action stack exposes
+ * Run (Session/Post with a content id) and Compare (any row with a content id).
+ * The Add-to-today action is a creation flow (not navigation); it lives on
+ * `useCreateJournalEntry` and is wired in the Library page, not the row.
  */
-import { FileTextIcon, FolderIcon, CalendarIcon, PlayIcon, PlusIcon } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { FileTextIcon, FolderIcon, CalendarIcon, PlayIcon, BarChart3Icon, PlusIcon } from 'lucide-react'
 import type { Entry } from '../../lib/entryMapper'
+import { entryOpenHref, entryRunHref, entryCompareHref, entryCanAddToToday } from '../../lib/entryActions'
 
 export interface LibraryRowProps {
   entry: Entry
   /** Optional left-column decoration (e.g. timestamp). */
   leading?: React.ReactNode
-  /** Optional right-column action stack (defaults to 2 sensible ones). */
+  /** Optional right-column action stack (defaults to the wired stack). */
   actions?: React.ReactNode
   /** Visual emphasis — `primary` for today's main row, `secondary` otherwise. */
   tone?: 'primary' | 'secondary'
+  /**
+   * Optional Add-to-today handler. The row renders the button only when
+   * `entryCanAddToToday(entry)` is true; the page passes the actual
+   * creation flow (e.g. `useCreateJournalEntry`).
+   */
+  onAddToToday?: (entry: Entry) => void
 }
 
 const KIND_ICON: Record<Entry['kind'], React.FC<{ className?: string }>> = {
@@ -35,13 +44,18 @@ const KIND_TONE: Record<Entry['kind'], string> = {
   post: 'bg-violet-500/10 text-violet-600 group-hover:bg-violet-500/20',
 }
 
-export function LibraryRow({ entry, leading, actions, tone = 'secondary' }: LibraryRowProps) {
+export function LibraryRow({ entry, leading, actions, tone = 'secondary', onAddToToday }: LibraryRowProps) {
+  const navigate = useNavigate()
   const Icon = KIND_ICON[entry.kind]
   const isPrimary = tone === 'primary'
+
   return (
-    <button
-      type="button"
-      className={`flex items-center gap-4 px-6 py-3.5 hover:bg-muted/40 transition-colors text-left group w-full ${
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => navigate(entryOpenHref(entry))}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(entryOpenHref(entry)) } }}
+      className={`flex items-center gap-4 px-6 py-3.5 hover:bg-muted/40 transition-colors text-left group w-full cursor-pointer ${
         isPrimary ? 'bg-primary/[0.025]' : ''
       }`}
       data-testid={`library-row-${entry.kind}`}
@@ -64,30 +78,63 @@ export function LibraryRow({ entry, leading, actions, tone = 'secondary' }: Libr
           <p className="text-[11px] text-muted-foreground truncate mt-0.5">{entry.detail}</p>
         )}
       </div>
-      {actions ?? <DefaultActions />}
-    </button>
+      {actions ?? <RowActions entry={entry} onAddToToday={onAddToToday} />}
+    </div>
   )
 }
 
-function DefaultActions() {
+interface RowActionsProps {
+  entry: Entry
+  onAddToToday?: (entry: Entry) => void
+}
+
+function RowActions({ entry, onAddToToday }: RowActionsProps) {
+  const navigate = useNavigate()
+  const runHref = entryRunHref(entry)
+  const compareHref = entryCompareHref(entry)
+  const canAdd = entryCanAddToToday(entry) && !!onAddToToday
+
   return (
-    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-      <button
-        type="button"
-        className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-        title="Open"
-        onClick={e => e.stopPropagation()}
-      >
+    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+      <ActionButton title="Open" testId="action-open">
         <PlayIcon className="size-3.5" />
-      </button>
-      <button
-        type="button"
-        className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-        title="Add to today"
-        onClick={e => e.stopPropagation()}
-      >
-        <PlusIcon className="size-3.5" />
-      </button>
+      </ActionButton>
+      {canAdd && (
+        <ActionButton title="Add to today" testId="action-add" onClick={() => onAddToToday?.(entry)}>
+          <PlusIcon className="size-3.5" />
+        </ActionButton>
+      )}
+      {runHref && (
+        <ActionButton title="Run" testId="action-run" onClick={() => navigate(runHref)}>
+          <PlayIcon className="size-3.5" />
+        </ActionButton>
+      )}
+      {compareHref && (
+        <ActionButton title="Compare" testId="action-compare" onClick={() => navigate(compareHref)}>
+          <BarChart3Icon className="size-3.5" />
+        </ActionButton>
+      )}
     </div>
+  )
+}
+
+interface ActionButtonProps {
+  title: string
+  testId: string
+  onClick?: () => void
+  children: React.ReactNode
+}
+
+function ActionButton({ title, testId, onClick, children }: ActionButtonProps) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      data-testid={testId}
+      className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+    >
+      {children}
+    </button>
   )
 }
