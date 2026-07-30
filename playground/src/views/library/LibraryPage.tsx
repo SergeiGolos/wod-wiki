@@ -20,7 +20,9 @@ import { useLibraryQueryState, type LibraryQueryState } from '../../hooks/useLib
 import { LibraryRow } from './LibraryRow'
 import { WqlComposerPanel, composeWql } from './WqlComposerPanel'
 import { journalNotes } from '../../services/journalNotes'
+import { listCatalogs } from '../../lib/listCatalogs'
 import { todayKey, formatDateHeader } from '../../lib/dateFormat'
+import staticBlockIndex from '@/generated/static-block-index.json'
 
 /** Compute the { start, end } range from the panel's timePreset + customStart/End. */
 function computeRange(state: LibraryQueryState['state']): { start: number; end: number } | undefined {
@@ -43,7 +45,6 @@ export function LibraryPage() {
   const [shelfOpen, setShelfOpen] = useState(true)
   const [loading, setLoading] = useState(false)
   const handleAddToToday = useCallback(async (entry: Entry) => {
-    const today = todayKey()
     let rawContent = ''
     if (entry.kind === 'session' || entry.kind === 'post') {
       // Static content: read the first block's rawContent from the block index.
@@ -62,10 +63,13 @@ export function LibraryPage() {
     const input = addEntryToTodayInput(entry, rawContent, today)
     await journalNotes.create(input)
   }, [])
-
-
   const wql = useMemo(() => composeWql(state), [state])
   const range = useMemo(() => computeRange(state), [state])
+  const catalogs = useMemo(
+    () => [{ id: 'journal', name: 'Journal' }, ...listCatalogs(staticBlockIndex as never)],
+    [],
+  )
+
 
   useEffect(() => {
     let cancelled = false
@@ -119,7 +123,7 @@ export function LibraryPage() {
       <WqlComposerPanel
         state={state}
         onChange={setState}
-        catalogs={[]}
+        catalogs={catalogs}
       />
 
       {loading && entries.length === 0 && (
