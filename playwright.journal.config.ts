@@ -41,10 +41,11 @@ export default defineConfig({
   fullyParallel: false, // scroll tests are sensitive to ordering; run serially
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  // Files run in parallel across workers (CI caps at 4); with fullyParallel:
-  // false, tests within a file still run serially, preserving the intra-file
-  // ordering the comment below cares about.
-  workers: process.env.CI ? 4 : undefined,
+  // Files run in parallel across workers; with fullyParallel: false, tests
+  // within a file still run serially. CI uses 2 workers (down from 4) because
+  // the Vite dev server on GitHub Actions runners can't sustain 4 concurrent
+  // page loads without cascading 20s navigation timeouts.
+  workers: process.env.CI ? 2 : undefined,
   reporter: 'html',
 
   use: {
