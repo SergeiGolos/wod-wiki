@@ -54,6 +54,22 @@ function applySourceFilter<T extends { sourceId?: string }>(items: T[], filters:
     return true;
   });
 }
+/** Time-window predicate for a row, given the parsed WQL's `last` clause and
+ *  the optional explicit `range` parameter. The range overrides `last`; when
+ *  neither is set, the row passes. */
+function effectiveTimeWindow(
+  createdAt: number,
+  last: { size: number; unit: 'd' | 'w' } | undefined,
+  range: { start: number; end: number } | undefined,
+): boolean {
+  if (range) return createdAt >= range.start && createdAt <= range.end;
+  if (last) {
+    const cutoff = Date.now() - last.size * (last.unit === 'w' ? 7 : 1) * DAY;
+    return createdAt >= cutoff;
+  }
+  return true;
+}
+
 /** Store surface the Query Service needs — injectable for tests. */
 export interface FactQueryStore {
   getFactsByMetric(metricKey: string): Promise<AnalyticsDataPoint[]>;
@@ -164,6 +180,14 @@ export interface QueryOptions {
   rangeEnd?: number;
   /** Preferred display unit (e.g. 'kg') for mass-family metrics when the query does not specify one. */
   preferredUnit?: string;
+}
+
+/** Options for `runFind` / `runFindBlock` — overrides for the parsed WQL. */
+export interface FindOptions {
+  /** WQL Time Range Parameter. When set, overrides the WQL's `last <n>w|d` clause
+   *  (which is preserved in the parsed shape for round-trippability but is not the
+   *  truth source for execution when `range` is set). */
+  range?: { start: number; end: number };
 }
 
 export interface QueryResult {
@@ -301,13 +325,14 @@ export class QueryService {
    * per the tracer-bullet scope (#797): load all notes, then apply tag/text/
    * time filters. Block indexing and cross-store joins come in #798/#800.
    */
-  async runFind(parsed: ParsedFindQuery): Promise<FindQueryResult> {
+  async runFind(parsed: ParsedFindQuery, options: FindOptions = {}): Promise<FindQueryResult> {
     if (parsed.error) {
       return { parsed, notes: [], blocks: [], stages: { selected: 0, matched: 0 } };
     }
 
     if (parsed.target === 'block') {
-      return this.runFindBlock(parsed);
+
+      return this.runFindBlock(parsed, options);
     }
     let notes: Note[] = [];
     const scope = parsed.scope || 'journal';
@@ -360,10 +385,9 @@ export class QueryService {
       }
     }
 
-    // Time window
-    if (parsed.last) {
-      const cutoff = Date.now() - parsed.last.size * (parsed.last.unit === 'w' ? 7 : 1) * DAY;
-      notes = notes.filter(n => n.createdAt >= cutoff);
+    // Time window — the `range` parameter overrides the WQL's `last` clause.
+    if (parsed.last || options.range) {
+      notes = notes.filter(n => effectiveTimeWindow(n.createdAt, parsed.last, options.range));
     }
 
     // Cross-store join (direction 1): keep notes owning a wod block whose
@@ -380,7 +404,7 @@ export class QueryService {
    * Naive in-memory filtering on text (substring over rawContent), type
    * (dataType), and time window — same tracer-bullet approach as find:note.
    */
-  async runFindBlock(parsed: ParsedFindQuery): Promise<FindQueryResult> {
+  async runFindBlock(parsed: ParsedFindQuery, options: FindOptions = {}): Promise<FindQueryResult> {
     let blocks: BlockIndexRow[] = [];
     const scope = parsed.scope || 'journal';
     if (scope === 'journal' || scope === 'all') {
@@ -425,10 +449,9 @@ export class QueryService {
       }
     }
 
-    // Time window
-    if (parsed.last) {
-      const cutoff = Date.now() - parsed.last.size * (parsed.last.unit === 'w' ? 7 : 1) * DAY;
-      blocks = blocks.filter(b => b.createdAt >= cutoff);
+    // Time window — the `range` parameter overrides the WQL's `last` clause.
+    if (parsed.last || options.range) {
+      blocks = blocks.filter(b => effectiveTimeWindow(b.createdAt, parsed.last, options.range));
     }
 
     // Cross-store join (direction 1): keep wod blocks whose raw-log metric
