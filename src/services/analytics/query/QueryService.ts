@@ -134,24 +134,36 @@ function loadStaticBlockIndex(): Promise<BlockIndexRow[]> {
 
 // Build the static-notes projection (one Note per distinct noteId in the
 // block index) lazily. Memoized on the block-index promise.
+/** Pure projection of a block_index into static Notes — one Note per distinct
+ *  noteId, with a `catalog` field set to `noteId.split('/')[0]`. The catalog is
+ *  the directory the file lives under (e.g. `crossfit-girls` for collections,
+ *  `crossfit-programming` for feeds) and is what the Library's panel uses to
+ *  target the `+ Filter → Catalog` menu. */
+export function staticNotesFromBlocks(blocks: BlockIndexRow[]): Note[] {
+    const map = new Map<string, Note>();
+    for (const block of blocks) {
+        if (!map.has(block.noteId)) {
+            map.set(block.noteId, {
+                id: block.noteId,
+                title: block.noteTitle,
+                createdAt: block.createdAt,
+                type: 'workout',
+                sourceId: block.sourceId,
+                // Catalog: drop the `feeds/` wrapper for feed rows, then take the
+                // first path segment. For collections (`<dir>/<file>`) the first
+                // segment is the directory; for feeds (`feeds/<dir>/<date>/<file>`)
+                // it would be `feeds`, which is not the catalog id the panel wants.
+                catalog: (block.noteId.startsWith('feeds/') ? block.noteId.slice('feeds/'.length) : block.noteId).split('/')[0],
+            });
+        }
+    }
+    return Array.from(map.values());
+}
+
 let staticNotesPromise: Promise<Note[]> | null = null;
 function loadStaticNotes(): Promise<Note[]> {
     if (!staticNotesPromise) {
-        staticNotesPromise = loadStaticBlockIndex().then((blocks) => {
-            const map = new Map<string, Note>();
-            for (const block of blocks) {
-                if (!map.has(block.noteId)) {
-                    map.set(block.noteId, {
-                        id: block.noteId,
-                        title: block.noteTitle,
-                        createdAt: block.createdAt,
-                        type: 'workout',
-                        sourceId: block.sourceId,
-                    });
-                }
-            }
-            return Array.from(map.values());
-        });
+        staticNotesPromise = loadStaticBlockIndex().then(staticNotesFromBlocks);
     }
     return staticNotesPromise;
 }
