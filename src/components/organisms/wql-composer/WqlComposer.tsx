@@ -15,11 +15,11 @@ import type { KeyboardEvent, ReactNode } from 'react'
 import { Command } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseQuery, type AnyParsedQuery } from '@/services/analytics/query/wql'
+import { composerRegistry, useComposerSlots } from './ComposerRegistry'
 import { TokenSlotPill, AddFilterDropdown } from './QueryPalette'
 import {
   type QueryClause,
-  type ClauseType,
-  CLAUSE_META,
+  getClauseMeta,
   clausesToWql,
   defaultClauses,
 } from './queryClauses'
@@ -80,7 +80,11 @@ export function WqlComposer({
     [controlledClauses, onClausesChange],
   )
 
-  const wql = useMemo(() => clausesToWql(clauses), [clauses])
+  // Registry subscription: (un)registering a slot recompiles WQL and re-runs
+  // validation even when the clause list itself is unchanged.
+  const registeredSlots = useComposerSlots()
+
+  const wql = useMemo(() => clausesToWql(clauses), [clauses, registeredSlots])
 
   // Latest-callback refs: consumers commonly pass inline handlers; depending
   // on their identity would re-fire (and loop) on every parent render.
@@ -88,12 +92,29 @@ export function WqlComposer({
   callbacksRef.current = { onWqlChange, onValidationChange, onAstChange }
 
   // Emit composed WQL, validation state, and AST on mount and every change.
+  // Custom slots additionally run their registered validator; a clause whose
+  // stored string fails parseValue or validate marks the query invalid.
   useEffect(() => {
     const ast = parseQuery(wql)
+    let validation: WqlValidationState = ast.error ? { valid: false, error: ast.error } : { valid: true }
+    if (validation.valid) {
+      for (const clause of clauses) {
+        const def = composerRegistry.getSlot(clause.type)
+        if (!def || !clause.value.trim()) continue
+        const value = def.parseValue(clause.value.trim())
+        const error = value === undefined
+          ? `Cannot parse ${def.label} value "${clause.value}"`
+          : def.validate?.(value) ?? null
+        if (error) {
+          validation = { valid: false, error }
+          break
+        }
+      }
+    }
     callbacksRef.current.onWqlChange?.(wql)
     callbacksRef.current.onAstChange?.(ast)
-    callbacksRef.current.onValidationChange?.(ast.error ? { valid: false, error: ast.error } : { valid: true })
-  }, [wql])
+    callbacksRef.current.onValidationChange?.(validation)
+  }, [wql, clauses, registeredSlots])
 
   const updateClause = (idx: number, patch: Partial<QueryClause>) => {
     setClauses(clauses.map((c, i) => (i === idx ? { ...c, ...patch } : c)))
@@ -103,8 +124,8 @@ export function WqlComposer({
     setClauses(clauses.filter((_, i) => i !== idx))
   }
 
-  const makeClause = (type: ClauseType, value: string): QueryClause => {
-    const meta = CLAUSE_META[type]
+  const makeClause = (type: string, value: string): QueryClause => {
+    const meta = getClauseMeta(type)
     return {
       id: `c-${Date.now()}-${Math.random()}`,
       type,
@@ -115,7 +136,7 @@ export function WqlComposer({
     }
   }
 
-  const addClause = (type: ClauseType) => {
+  const addClause = (type: string) => {
     const value = type === 'time' ? 'last 2w' : type === 'where' ? 'sum:totalVolume{} > 5000' : ''
     setClauses([...clauses, makeClause(type, value)])
   }

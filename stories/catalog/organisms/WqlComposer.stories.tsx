@@ -12,12 +12,15 @@
  *  1. Default — uncontrolled, seeded with target/scope/time clauses
  *  2. Controlled — clauses + composed WQL / validation / AST surfaced live
  *  3. CustomSlots — consumer-supplied extension content inside the bar
+ *  4. RegisteredSlot — ComposerRegistry date-range picker plugin (issue #830)
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import {
   WqlComposer,
+  composerRegistry,
+  dateRangeSlot,
   defaultClauses,
   type QueryClause,
   type WqlValidationState,
@@ -88,4 +91,34 @@ export const CustomSlots: Story = {
       />
     </div>
   ),
+};
+
+const RegisteredSlotHarness: React.FC = () => {
+  const [wql, setWql] = useState('');
+  const [validation, setValidation] = useState<WqlValidationState>({ valid: true });
+
+  // Pages register their custom slots during initialization; unregister on teardown.
+  useEffect(() => composerRegistry.registerSlot(dateRangeSlot), []);
+
+  return (
+    <div className="max-w-3xl space-y-3">
+      <WqlComposer onWqlChange={setWql} onValidationChange={setValidation} />
+      <div className="font-mono text-xs break-all">
+        <span className={validation.valid ? 'text-green-600' : 'text-red-600'}>
+          {validation.valid ? 'valid' : `error: ${validation.error}`}
+        </span>
+        {' — '}
+        {wql}
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        The “Date Range” entry in Add Filter comes from the ComposerRegistry demo
+        slot (dateRangeSlot). Pick start + end, Set Range — the pill serializes
+        the range and the composer emits a parseable `daterange:` fragment.
+      </p>
+    </div>
+  );
+};
+
+export const RegisteredSlot: Story = {
+  render: () => <RegisteredSlotHarness />,
 };

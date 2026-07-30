@@ -4,6 +4,8 @@
  * Supports freeform token slots, placeholder guidance, and keyboard navigation.
  */
 
+import { composerRegistry } from './ComposerRegistry'
+
 export type ClauseType =
   | 'target'
   | 'scope'
@@ -19,7 +21,8 @@ export type ClauseType =
 
 export interface QueryClause {
   id: string
-  type: ClauseType
+  /** Built-in ClauseType or a custom slot type id from the ComposerRegistry. */
+  type: string
   label: string
   value: string
   inputType: 'radio' | 'freetext' | 'select'
@@ -70,7 +73,7 @@ export const WHERE_OPERATORS = ['>', '>=', '<', '<=', '==']
 
 // ── Metadata ────────────────────────────────────────────────────────────────
 
-export const CLAUSE_META: Record<ClauseType, {
+export interface ClauseMeta {
   label: string
   inputType: 'radio' | 'freetext' | 'select'
   placeholder: string
@@ -78,7 +81,9 @@ export const CLAUSE_META: Record<ClauseType, {
   icon: string
   description: string
   prefix?: string
-}> = {
+}
+
+export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
   target:    { label: 'Target',     inputType: 'select',   placeholder: 'note or block',              placeholderText: 'find: [note|block]',     icon: '🎯', description: 'What to return (notes or blocks)', prefix: 'find:' },
   scope:     { label: 'Scope',      inputType: 'select',   placeholder: 'journal, collections, etc', placeholderText: 'in: [scope]',            icon: '🌐', description: 'Where to search', prefix: 'in:' },
   text:      { label: 'Contains',   inputType: 'freetext', placeholder: 'Text query...',              placeholderText: 'text: [query]',           icon: '🔍', description: 'Raw text substring search', prefix: 'text:' },
@@ -92,7 +97,7 @@ export const CLAUSE_META: Record<ClauseType, {
   where:     { label: 'Metric Join',inputType: 'freetext', placeholder: 'sum:totalVolume{} > 5000',    placeholderText: 'where: [metric join]',   icon: '📊', description: 'Cross-store analytics join', prefix: 'where:' },
 }
 
-export function getSuggestions(type: ClauseType): string[] {
+export function getSuggestions(type: string): string[] {
   switch (type) {
     case 'target':     return TARGET_OPTIONS.map(o => o.value)
     case 'scope':      return SCOPE_OPTIONS.map(o => o.value)
@@ -105,6 +110,37 @@ export function getSuggestions(type: ClauseType): string[] {
     case 'time':       return TIME_OPTIONS.map(o => o.value)
     case 'where':      return ['sum:totalVolume{} > 5000', 'avg:sessionLoad{} < 50', 'count:totalReps{} >= 100']
     default:           return []
+  }
+}
+
+const CUSTOM_FALLBACK_ICON = '\u{1F9E9}'
+
+/**
+ * Metadata lookup for pills, popovers, and menus: built-in clauses come from
+ * CLAUSE_META; custom slot types resolve through the ComposerRegistry;
+ * anything else gets a generic fallback so a stale clause still renders.
+ */
+export function getClauseMeta(type: string): ClauseMeta {
+  const builtin = (CLAUSE_META as Record<string, ClauseMeta>)[type]
+  if (builtin) return builtin
+  const custom = composerRegistry.getSlot(type)
+  if (custom) {
+    return {
+      label: custom.label,
+      inputType: 'freetext',
+      placeholder: custom.placeholder,
+      placeholderText: custom.placeholderText,
+      icon: custom.icon,
+      description: custom.description ?? '',
+    }
+  }
+  return {
+    label: type,
+    inputType: 'freetext',
+    placeholder: `${type}...`,
+    placeholderText: `${type}: [value]`,
+    icon: CUSTOM_FALLBACK_ICON,
+    description: '',
   }
 }
 
@@ -124,8 +160,16 @@ export function clauseToWql(clause: QueryClause): { key?: string; filterStr?: st
     case 'effort':     return { filterStr: `effort:${val}` }
     case 'discipline': return { filterStr: `discipline:${val}` }
     case 'type':       return { filterStr: `type:${val}` }
-    case 'has':        return { filterStr: `has:${val}` }
-    default:           return {}
+    case 'has':       return { filterStr: `has:${val}` }
+    default: {
+      // Custom slot types compile through their registered wqlGenerator.
+      const def = composerRegistry.getSlot(clause.type)
+      if (!def) return {}
+      const value = def.parseValue(val)
+      if (value === undefined) return {}
+      const fragment = def.wqlGenerator(value)
+      return fragment.trim() ? { filterStr: fragment } : {}
+    }
   }
 }
 

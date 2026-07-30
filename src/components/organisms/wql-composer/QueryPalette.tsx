@@ -10,10 +10,12 @@ import { useState, useRef, useEffect } from 'react'
 import type { KeyboardEvent } from 'react'
 import { Plus, X, ChevronDown, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { composerRegistry, useComposerSlots, type CustomSlotDefinition } from './ComposerRegistry'
 import {
   type QueryClause,
   type ClauseType,
   CLAUSE_META,
+  getClauseMeta,
   getSuggestions,
   TARGET_OPTIONS,
   SCOPE_OPTIONS,
@@ -44,7 +46,8 @@ export function TokenSlotPill({
   compact = false,
   placeholderOverride,
 }: TokenSlotPillProps) {
-  const meta = CLAUSE_META[clause.type]
+  const meta = getClauseMeta(clause.type)
+  const customDef = composerRegistry.getSlot(clause.type)
   const [open, setOpen] = useState(false)
   const pillRef = useRef<HTMLDivElement>(null)
 
@@ -119,7 +122,17 @@ export function TokenSlotPill({
         )}
       </div>
 
-      {open && onChange && (
+      {open && onChange && (customDef ? (
+        <CustomSlotPopover
+          clause={clause}
+          definition={customDef}
+          onClose={() => setOpen(false)}
+          onChange={patch => {
+            onChange(patch)
+            setOpen(false)
+          }}
+        />
+      ) : (
         <ClausePopover
           clause={clause}
           onClose={() => setOpen(false)}
@@ -128,7 +141,7 @@ export function TokenSlotPill({
             setOpen(false)
           }}
         />
-      )}
+      ))}
     </div>
   )
 }
@@ -144,7 +157,7 @@ export function ClausePopover({
   onClose: () => void
   onChange: (patch: Partial<QueryClause>) => void
 }) {
-  const meta = CLAUSE_META[clause.type]
+  const meta = getClauseMeta(clause.type)
   const [val, setVal] = useState(clause.value)
   const [highlightIdx, setHighlightIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -333,6 +346,64 @@ function WhereJoinEditor({ onApply }: { onApply: (wql: string) => void }) {
   )
 }
 
+// ── CustomSlotPopover: Popover shell hosting a registered slot's editor ──────
+
+export function CustomSlotPopover({
+  clause,
+  definition,
+  onClose,
+  onChange,
+}: {
+  clause: QueryClause
+  definition: CustomSlotDefinition<any>
+  onClose: () => void
+  onChange: (patch: Partial<QueryClause>) => void
+}) {
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    popoverRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onClose])
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose()
+  }
+
+  const { Editor } = definition
+
+  return (
+    <div
+      ref={popoverRef}
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+      className="absolute top-full left-0 mt-1.5 z-50 min-w-[240px] max-w-[320px] rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-2 animate-in fade-in-50 zoom-in-95 focus:outline-none"
+      data-testid={`clause-popover-${clause.type}`}
+    >
+      <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-border/50 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <span>{definition.icon}</span> {definition.label}
+        </span>
+        <span className="text-muted-foreground/50">Esc to close</span>
+      </div>
+      <Editor
+        value={definition.parseValue(clause.value)}
+        onChange={value => onChange({ value: definition.formatValue(value) })}
+        onClose={onClose}
+      />
+    </div>
+  )
+}
+
 // ── AddFilterDropdown ──────────────────────────────────────────────────────
 
 export function AddFilterDropdown({
@@ -340,10 +411,11 @@ export function AddFilterDropdown({
   onAdd,
 }: {
   clauses: QueryClause[]
-  onAdd: (type: ClauseType) => void
+  onAdd: (type: string) => void
 }) {
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const customSlots = useComposerSlots()
 
   useEffect(() => {
     if (!open) return
@@ -366,6 +438,10 @@ export function AddFilterDropdown({
     'time',
     'where',
   ]
+  const menuItems: { type: string; icon: string; label: string }[] = [
+    ...available.map(type => ({ type, icon: CLAUSE_META[type].icon, label: CLAUSE_META[type].label })),
+    ...customSlots.map(def => ({ type: def.type, icon: def.icon, label: def.label })),
+  ]
 
   return (
     <div ref={menuRef} className="relative inline-block">
@@ -385,15 +461,14 @@ export function AddFilterDropdown({
           <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-muted-foreground border-b border-border/50 mb-1">
             Add Filter Clause
           </div>
-          {available.map(type => {
-            const meta = CLAUSE_META[type]
-            const active = existingTypes.has(type)
+          {menuItems.map(item => {
+            const active = existingTypes.has(item.type)
             return (
               <button
-                key={type}
+                key={item.type}
                 type="button"
                 onClick={() => {
-                  onAdd(type)
+                  onAdd(item.type)
                   setOpen(false)
                 }}
                 className={cn(
@@ -402,8 +477,8 @@ export function AddFilterDropdown({
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <span>{meta.icon}</span>
-                  <span className="font-medium">{meta.label}</span>
+                  <span>{item.icon}</span>
+                  <span className="font-medium">{item.label}</span>
                 </div>
                 {active && <span className="text-[9px] text-muted-foreground font-mono">added</span>}
               </button>
