@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CalendarIcon, ChevronDownIcon, ChevronRightIcon, FolderIcon } from 'lucide-react'
 import { queryService } from '@/services/analytics/query'
 import { parseQuery, isFindQuery, type ParsedFindQuery } from '@/services/analytics/query/wql'
+import type { Note } from '@/types/storage'
 import { toEntry, type Entry } from '../../lib/entryMapper'
 import { addEntryToTodayInput } from '../../lib/addToToday'
 import { useLibraryQueryState, type LibraryQueryState } from '../../hooks/useLibraryQueryState'
@@ -82,11 +83,56 @@ export function LibraryPage() {
       }
       return
     }
-    queryService
-      .runFind(parsed as ParsedFindQuery, { range })
-      .then(result => {
+
+    const hasText = state.text.trim().length > 0
+    const primaryPromise = queryService.runFind(parsed as ParsedFindQuery, { range })
+
+    // When free-text is present, also run find:block to search body text
+    const blockWql = hasText
+      ? composeWql({ ...state, text: state.text.trim() }).replace(/^find:note/, 'find:block')
+      : null
+    const blockParsed = blockWql ? parseQuery(blockWql) : null
+    const blockPromise = (blockParsed && isFindQuery(blockParsed) && !blockParsed.error)
+      ? queryService.runFind(blockParsed as ParsedFindQuery, { range })
+      : Promise.resolve(null)
+
+    Promise.all([primaryPromise, blockPromise])
+      .then(([primaryResult, blockResult]) => {
         if (cancelled) return
-        setEntries(result.notes.map(toEntry))
+        const noteMap = new Map<string, Note>()
+
+        // 1. Add notes from primary query (find:note or find:block)
+        for (const note of primaryResult.notes) {
+          noteMap.set(note.id, note)
+        }
+        for (const block of primaryResult.blocks) {
+          if (!noteMap.has(block.noteId)) {
+            noteMap.set(block.noteId, {
+              id: block.noteId,
+              title: block.noteTitle,
+              createdAt: block.createdAt,
+              type: 'workout',
+              sourceId: block.sourceId,
+            })
+          }
+        }
+
+        // 2. Add notes from secondary block body search (if present)
+        if (blockResult?.blocks) {
+          for (const block of blockResult.blocks) {
+            if (!noteMap.has(block.noteId)) {
+              noteMap.set(block.noteId, {
+                id: block.noteId,
+                title: block.noteTitle,
+                createdAt: block.createdAt,
+                type: 'workout',
+                sourceId: block.sourceId,
+              })
+            }
+          }
+        }
+
+        setEntries(Array.from(noteMap.values()).map(toEntry))
       })
       .catch(() => {
         if (!cancelled) setEntries([])
@@ -94,10 +140,11 @@ export function LibraryPage() {
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
+
     return () => {
       cancelled = true
     }
-  }, [wql, range])
+  }, [wql, range, state.text])
 
   const dated = useMemo(
     () => entries.filter(e => e.kind !== 'session').sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),

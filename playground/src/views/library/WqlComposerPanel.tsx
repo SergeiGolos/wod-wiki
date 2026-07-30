@@ -510,5 +510,5 @@ export function composeWql(state: PanelState): string {
     rangeStr = `from ${state.customStart} to ${state.customEnd}`
   }
 
-  return `find:block${filterStr} in ${scope}${rangeStr ? ' ' + rangeStr : ''}`.trim()
+  return `find:note${filterStr} in ${scope}${rangeStr ? ' ' + rangeStr : ''}`.trim()
 }
