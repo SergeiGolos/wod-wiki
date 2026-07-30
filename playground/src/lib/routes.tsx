@@ -153,9 +153,14 @@ export function effortsPath(): string {
   return '/efforts';
 }
 
-/** /analytics/explorer with an optional pre-filled WQL query and range —
- *  canonical home is `@/lib/routes`; re-exported for playground consumers. */
-export { analyticsExplorerPath } from '@/lib/routes';
+/** /analytics/explorer with an optional pre-filled WQL query and range */
+export function analyticsExplorerPath(options?: { q?: string; weeks?: number }): string {
+  const params = new URLSearchParams();
+  if (options?.q) params.set('q', options.q);
+  if (options?.weeks) params.set('weeks', String(options.weeks));
+  const qs = params.toString();
+  return `/analytics/explorer${qs ? `?${qs}` : ''}`;
+}
 
 /** /analytics/dashboard */
 export function analyticsDashboardPath(): string {
