@@ -26,6 +26,34 @@ function localDateString(ts: number): string {
   return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+/** Kind prefixes recognised by the `source:` filter. */
+const SOURCE_KINDS = new Set(['journal', 'collection', 'feed']);
+
+/** Match a single sourceId against one filter value. The `journal` kind matches
+ *  rows with no sourceId prefix; the `collection` / `feed` kinds match rows whose
+ *  sourceId starts with the kind. A `kind:id` literal matches the exact id. */
+function sourceMatches(sourceId: string | undefined, kind: string): boolean {
+  if (kind === 'journal') return !sourceId;
+  if (SOURCE_KINDS.has(kind)) {
+    if (kind === 'collection') return !!sourceId?.startsWith('collection:');
+    if (kind === 'feed') return !!sourceId?.startsWith('feed:');
+  }
+  // Literal: `kind:rest` — match the full sourceId.
+  return sourceId === kind;
+}
+
+/** Apply the `source:` filter key to a list of objects that carry `sourceId`. */
+function applySourceFilter<T extends { sourceId?: string }>(items: T[], filters: TagFilter[]): T[] {
+  const sourceFilters = filters.filter(f => f.key === 'source');
+  if (sourceFilters.length === 0) return items;
+  return items.filter(item => {
+    for (const f of sourceFilters) {
+      const hit = f.values.some(v => sourceMatches(item.sourceId, v.value));
+      if (hit === f.negate) return false;
+    }
+    return true;
+  });
+}
 /** Store surface the Query Service needs — injectable for tests. */
 export interface FactQueryStore {
   getFactsByMetric(metricKey: string): Promise<AnalyticsDataPoint[]>;
@@ -293,6 +321,7 @@ export class QueryService {
       notes = notes.concat(sNotes);
     }
     const selectedCount = notes.length;
+    notes = applySourceFilter(notes, parsed.filters);
 
     // Tag filters — intersect note IDs across OR'd values within a key.
     for (const filter of parsed.filters) {
@@ -364,6 +393,7 @@ export class QueryService {
       blocks = blocks.concat(sBlocks);
     }
     const selectedCount = blocks.length;
+    blocks = applySourceFilter(blocks, parsed.filters);
 
     // Text filter — substring over rawContent (the block's markdown text).
     for (const filter of parsed.filters) {
