@@ -21,7 +21,7 @@ test.describe('Home page scroll walkthrough', () => {
     await expect(tour.locator('.cm-editor')).toBeVisible();
 
     // The overview caption introduces the loop.
-    await expect(tour.getByText('The whole workout lifecycle.')).toBeVisible();
+    await expect(tour.getByText('A plain-text fitness scripting language')).toBeVisible();
 
     // The runway (scroll-driven stages) is present on desktop.
     const runway = tour.locator('section', { has: page.locator('[data-testid="tour-captions"]') });
