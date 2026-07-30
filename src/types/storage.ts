@@ -46,6 +46,10 @@ export interface Note {
     /** N-10 — the note this one was created from (template/collection source).
      *  Renamed from templateId. */
     sourceId?: string;
+    /** Catalog id for static notes (the directory under markdown/collections
+     *  or markdown/feeds, with the `feeds/` wrapper stripped). Synthesised by
+     *  QueryService.staticNotesFromBlocks; undefined for journal notes. */
+    catalog?: string;
 }
 
 // ---------------------------------------------------------------------------

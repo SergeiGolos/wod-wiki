@@ -4,7 +4,7 @@
  * `sourceId` discrimination; the rest of the Library never inspects it.
  */
 import { describe, it, expect } from 'bun:test'
-import { toEntry, type Entry, type EntryKind } from './entryMapper'
+import { toEntry, type EntryKind } from './entryMapper'
 import type { Note } from '@/types/storage'
 
 function makeNote(overrides: Partial<Note> = {}): Note {
