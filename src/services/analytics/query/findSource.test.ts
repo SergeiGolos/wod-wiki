@@ -97,10 +97,24 @@ describe('source: filter — runFindBlock (BlockIndexRow[])', () => {
     expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'jrnl-1']);
   });
 
-  it('narrows by catalog id when source:collection:crossfit-girls is set', async () => {
+  it('narrows by catalog prefix when source:collection:crossfit-girls is set', async () => {
     const service = makeService();
     const parsed = parseQuery('find:note{source:collection:crossfit-girls}');
     const result = await service.runFind(parsed as Parameters<typeof service.runFind>[0]);
     expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1']);
+  });
+
+  it('filters notes by catalog key when catalog:crossfit-girls is set', async () => {
+    const service = makeService();
+    const parsed = parseQuery('find:note{catalog:crossfit-girls}');
+    const result = await service.runFind(parsed as Parameters<typeof service.runFind>[0]);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1']);
+  });
+
+  it('filters blocks by catalog key when catalog:crossfit-programming is set', async () => {
+    const service = makeService();
+    const parsed = parseQuery('find:block{catalog:crossfit-programming}');
+    const result = await service.runFind(parsed as Parameters<typeof service.runFind>[0]);
+    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['feed-1']);
   });
 });

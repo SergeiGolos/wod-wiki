@@ -46,6 +46,7 @@ export function LibraryPage() {
   const [shelfOpen, setShelfOpen] = useState(true)
   const [loading, setLoading] = useState(false)
   const handleAddToToday = useCallback(async (entry: Entry) => {
+    const today = todayKey()
     let rawContent = ''
     if (entry.kind === 'session' || entry.kind === 'post') {
       // Static content: read the first block's rawContent from the block index.
@@ -58,8 +59,9 @@ export function LibraryPage() {
     } else {
       // Journal note: read the live note.
       const note = await journalNotes.getById(entry.sourceItem)
-      const candidate = (note as unknown) as { rawContent?: unknown }
-      rawContent = typeof candidate.rawContent === 'string' ? candidate.rawContent : ''
+      if (note && typeof note === 'object' && 'rawContent' in note && typeof note.rawContent === 'string') {
+        rawContent = note.rawContent
+      }
     }
     const input = addEntryToTodayInput(entry, rawContent, today)
     await journalNotes.create(input)
@@ -111,8 +113,9 @@ export function LibraryPage() {
               id: block.noteId,
               title: block.noteTitle,
               createdAt: block.createdAt,
-              type: 'workout',
+              type: 'note',
               sourceId: block.sourceId,
+              catalog: (block.noteId.startsWith('feeds/') ? block.noteId.slice('feeds/'.length) : block.noteId).split('/')[0],
             })
           }
         }
@@ -125,8 +128,9 @@ export function LibraryPage() {
                 id: block.noteId,
                 title: block.noteTitle,
                 createdAt: block.createdAt,
-                type: 'workout',
+              type: 'note',
                 sourceId: block.sourceId,
+                catalog: (block.noteId.startsWith('feeds/') ? block.noteId.slice('feeds/'.length) : block.noteId).split('/')[0],
               })
             }
           }

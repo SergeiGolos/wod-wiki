@@ -96,7 +96,7 @@ function RowActions({ entry, onAddToToday }: RowActionsProps) {
 
   return (
     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-      <ActionButton title="Open" testId="action-open">
+      <ActionButton title="Open" testId="action-open" onClick={() => navigate(entryOpenHref(entry))}>
         <PlayIcon className="size-3.5" />
       </ActionButton>
       {canAdd && (

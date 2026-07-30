@@ -29,6 +29,17 @@ function localDateString(ts: number): string {
 /** Kind prefixes recognised by the `source:` filter. */
 const SOURCE_KINDS = new Set(['journal', 'collection', 'feed']);
 
+/** Extract the catalog directory id from a Note or BlockIndexRow.
+ *  Uses explicit `catalog` when present; falls back to parsing `sourceId`
+ *  (stripping `collection:`/`feed:` prefixes and `feeds/` path components) or `noteId`. */
+function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: string; catalog?: string }): string | undefined {
+  if (item.catalog) return item.catalog;
+  const raw = item.sourceId ? item.sourceId.replace(/^(collection|feed):/, '') : (item.noteId || item.id || '');
+  if (!raw) return undefined;
+  const clean = raw.startsWith('feeds/') ? raw.slice('feeds/'.length) : raw;
+  return clean.split('/')[0];
+}
+
 /** Match a single sourceId against one filter value. The `journal` kind matches
  *  rows with no sourceId prefix; the `collection` / `feed` kinds match rows whose
  *  sourceId starts with the kind. A `kind:id` literal matches the exact id. */
@@ -38,8 +49,8 @@ function sourceMatches(sourceId: string | undefined, kind: string): boolean {
     if (kind === 'collection') return !!sourceId?.startsWith('collection:');
     if (kind === 'feed') return !!sourceId?.startsWith('feed:');
   }
-  // Literal: `kind:rest` — match the full sourceId.
-  return sourceId === kind;
+  // Literal: `kind:rest` — match full sourceId or sourceId prefix.
+  return !!sourceId && (sourceId === kind || sourceId.startsWith(kind + '/'));
 }
 
 /** Apply the `source:` filter key to a list of objects that carry `sourceId`. */
@@ -147,7 +158,7 @@ export function staticNotesFromBlocks(blocks: BlockIndexRow[]): Note[] {
                 id: block.noteId,
                 title: block.noteTitle,
                 createdAt: block.createdAt,
-                type: 'workout',
+                type: 'note',
                 sourceId: block.sourceId,
                 // Catalog: drop the `feeds/` wrapper for feed rows, then take the
                 // first path segment. For collections (`<dir>/<file>`) the first
@@ -397,6 +408,18 @@ export class QueryService {
       }
     }
 
+    // Catalog filter — static note catalog directory id (e.g. crossfit-girls, ZombieFit-org-2010-Jan)
+    for (const filter of parsed.filters) {
+      if (filter.key === 'catalog') {
+        const wanted = new Set(filter.values.map(v => v.value));
+        notes = notes.filter(n => {
+          const cat = catalogOfItem(n);
+          if (!cat) return filter.negate;
+          const hit = wanted.has(cat);
+          return filter.negate ? !hit : hit;
+        });
+      }
+    }
     // Time window — the `range` parameter overrides the WQL's `last` clause.
     if (parsed.last || options.range) {
       notes = notes.filter(n => effectiveTimeWindow(n.createdAt, parsed.last, options.range));
@@ -447,6 +470,18 @@ export class QueryService {
       }
     }
 
+    // Catalog filter — block catalog directory id
+    for (const filter of parsed.filters) {
+      if (filter.key === 'catalog') {
+        const wanted = new Set(filter.values.map(v => v.value));
+        blocks = blocks.filter(b => {
+          const cat = catalogOfItem(b);
+          if (!cat) return filter.negate;
+          const hit = wanted.has(cat);
+          return filter.negate ? !hit : hit;
+        });
+      }
+    }
     // Tag filter — map to note tags via noteId.
     for (const filter of parsed.filters) {
       if (filter.key === 'tags' && !filter.negate) {

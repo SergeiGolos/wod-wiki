@@ -52,7 +52,7 @@ export const WQL_FIND_TARGETS = ['note', 'block'] as const;
 export const WQL_SCOPES = ['journal', 'collections', 'feeds', 'all'] as const;
 
 /** Content-specific filter keys (beyond the analytics tag keys). */
-export const WQL_CONTENT_FILTER_KEYS = ['type', 'text', 'has', 'source', ...WQL_TAG_KEYS] as const;
+export const WQL_CONTENT_FILTER_KEYS = ['type', 'text', 'has', 'source', 'catalog', ...WQL_TAG_KEYS] as const;
 
 // ── Highlighting ───────────────────────────────────────────────────
 
