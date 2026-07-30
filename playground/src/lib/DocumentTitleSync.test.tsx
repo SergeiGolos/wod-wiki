@@ -34,34 +34,24 @@ describe('DocumentTitleSync', () => {
     expect(document.title).toBe('Wod.Wiki')
   })
 
-  it('sets the base title for journal routes', () => {
-    renderAt('/journal')
-    expect(document.title).toBe('Wod.Wiki - Journal')
-
-    cleanup()
-    document.title = 'Test Setup Title'
+  it('sets the base title for /journal deep detail routes (Journal is the legacy page)', () => {
     renderAt('/journal/2026-05-12')
     expect(document.title).toBe('Wod.Wiki - Journal')
   })
 
-  it('sets the base title for feeds routes', () => {
-    renderAt('/feeds')
-    expect(document.title).toBe('Wod.Wiki - Feeds')
-
-    cleanup()
-    document.title = 'Test Setup Title'
+  it('sets the base title for /feeds deep detail routes', () => {
     renderAt('/feeds/daily-wod')
     expect(document.title).toBe('Wod.Wiki - Feeds')
   })
 
-  it('sets the base title for collections routes', () => {
-    renderAt('/collections')
-    expect(document.title).toBe('Wod.Wiki - Collections')
-
-    cleanup()
-    document.title = 'Test Setup Title'
+  it('sets the base title for /collections deep detail routes', () => {
     renderAt('/collections/cardio')
     expect(document.title).toBe('Wod.Wiki - Collections')
+  })
+
+  it('sets the base title for /library', () => {
+    renderAt('/library')
+    expect(document.title).toBe('Wod.Wiki - Library')
   })
 
   it('sets the base title for efforts list route', () => {
@@ -95,8 +85,8 @@ describe('DocumentTitleSync', () => {
   })
 
   it('updates title on navigation and leaves exempt routes unchanged', () => {
-    renderAt('/collections')
-    expect(document.title).toBe('Wod.Wiki - Collections')
+    renderAt('/library')
+    expect(document.title).toBe('Wod.Wiki - Library')
 
     fireEvent.click(screen.getByText('Go Journal'))
     expect(document.title).toBe('Wod.Wiki - Journal')

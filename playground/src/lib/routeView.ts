@@ -80,6 +80,7 @@ export type PageKind =
   | 'journalEntry'
   | 'workout'
   | 'libraryPrototype'
+  | 'library'
 
 /** How the page is wrapped — the `<CanvasPage>` shell vs bare. */
 export interface ShellConfig {
