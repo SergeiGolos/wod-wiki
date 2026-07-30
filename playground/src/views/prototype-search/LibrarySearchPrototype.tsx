@@ -1,14 +1,13 @@
 /**
  * LibrarySearchPrototype — /prototype/library-search
  *
- * Three space-efficient, visual query builder approaches for Library Search:
- *   - Variant A: Ultra-Compact Filter Pill Bar (Single-line 36px bar)
- *   - Variant B: Embedded Pill Spotlight / Omni-Bar (Command Palette)
- *   - Variant C: Visual Statement Builder (Datadog/Grafana style syntax editor)
+ * Three evolved variations of the Spotlight / Command-Palette search bar (Variant B family):
+ *   - Variant B1: Freeform Spotlight Bar with Token Slots
+ *   - Variant B2: Natural Language Guided Prompt (Fill-in-the-Blanks Spotlight)
+ *   - Variant B3: Omni Command Bar with Quick Keyboard Selection
  *
- * Evaluates full WQL grammar: targets (note/block), scopes (journal/collections/feeds/all),
- * filters (text, tag, effort, discipline, type, has), time window (last Nw/Nd), and
- * cross-store metric join predicates (where sum:totalVolume{} > 5000).
+ * All variants feature full keyboard slot traversal (Tab / Shift+Tab),
+ * option selection (↑ / ↓), clear placeholder text guidance, and live WQL AST execution.
  */
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Sparkles, Terminal } from 'lucide-react'
@@ -22,9 +21,9 @@ import { parseQuery, isFindQuery, type ParsedFindQuery } from '@/services/analyt
 import { toEntry, type Entry } from '../../lib/entryMapper'
 
 const VARIANTS = [
-  { key: 'A', label: 'Variant A: Compact Filter Pill Bar' },
-  { key: 'B', label: 'Variant B: Embedded Pill Spotlight' },
-  { key: 'C', label: 'Variant C: Visual Statement Builder' },
+  { key: 'A', label: 'Variant B1: Freeform Spotlight Bar with Token Slots' },
+  { key: 'B', label: 'Variant B2: Natural Language Guided Prompt' },
+  { key: 'C', label: 'Variant B3: Omni Command Bar with Keyboard Shortcuts' },
 ] as const
 
 export function LibrarySearchPrototype() {
@@ -112,14 +111,14 @@ export function LibrarySearchPrototype() {
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-black text-foreground flex items-center gap-2">
             <Sparkles className="size-4 text-amber-500" />
-            WQL Visual Query Builder — Prototype Suite
+            WQL Spotlight Search Suite — Prototype B Series
           </h1>
           <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
             Wayfinder #810
           </span>
         </div>
         <div className="text-xs text-muted-foreground">
-          Use <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">←</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">→</kbd> to cycle layout variants
+          Use <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">Tab</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">Shift+Tab</kbd> between slots · <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">↑</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">↓</kbd> to choose · <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">←</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">→</kbd> cycle variants
         </div>
       </div>
 

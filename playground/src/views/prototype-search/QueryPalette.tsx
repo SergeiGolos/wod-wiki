@@ -1,10 +1,10 @@
 /**
- * QueryPalette — Shared low-profile components for WQL Query Builders.
+ * QueryPalette — Shared building blocks for Spotlight Query Builders.
  *
- * Provides ultra-compact, space-efficient building blocks:
- *   - ClausePill: Dense interactive badge for an active clause
- *   - ClausePopover: Inline editor popover with autocomplete & typeahead
- *   - AddFilterDropdown: Compact "+ Filter" menu to append new clauses
+ * Provides:
+ *   - TokenSlotPill: Interactive token slot pill with Tab/Shift+Tab navigation and Up/Down selection.
+ *   - ClausePopover: Inline editor popover with keyboard arrow navigation.
+ *   - AddFilterDropdown: Menu to add new query filter slots.
  */
 import { useState, useRef, useEffect } from 'react'
 import { Plus, X, ChevronDown, Check } from 'lucide-react'
@@ -22,51 +22,84 @@ import {
   WHERE_OPERATORS,
 } from './queryClauses'
 
-// ── ClausePill: Compact badge for active clause ─────────────────────────────
+// ── TokenSlotPill ────────────────────────────────────────────────────────────
 
-export interface ClausePillProps {
+export interface TokenSlotPillProps {
   clause: QueryClause
   isActive?: boolean
   onClick?: () => void
   onRemove?: () => void
   onChange?: (patch: Partial<QueryClause>) => void
   compact?: boolean
+  placeholderOverride?: string
 }
 
-export function ClausePill({
+export function TokenSlotPill({
   clause,
   isActive,
   onClick,
   onRemove,
   onChange,
   compact = false,
-}: ClausePillProps) {
+  placeholderOverride,
+}: TokenSlotPillProps) {
   const meta = CLAUSE_META[clause.type]
   const [open, setOpen] = useState(false)
+  const pillRef = useRef<HTMLDivElement>(null)
+
+  const hasValue = Boolean(clause.value && clause.value.trim())
+
+  // Keydown listener for Tab, Up, Down, Enter, Escape when pill is focused
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (!open) setOpen(true)
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      setOpen(o => !o)
+    } else if (e.key === 'Escape') {
+      setOpen(false)
+    }
+  }
 
   return (
     <div className="relative inline-flex items-center">
       <div
+        ref={pillRef}
+        tabIndex={0}
         onClick={() => {
           onClick?.()
           setOpen(o => !o)
         }}
+        onKeyDown={handleKeyDown}
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium cursor-pointer transition-all select-none',
-          isActive || open
-            ? 'border-primary/60 bg-primary/10 text-primary ring-1 ring-primary/30 shadow-xs'
-            : 'border-border bg-background hover:bg-muted/50 hover:border-border/80 text-foreground',
-          compact && 'px-1.5 py-0.5 text-[11px]',
+          'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium cursor-pointer transition-all select-none focus:outline-none focus:ring-2 focus:ring-primary/40',
+          hasValue
+            ? isActive || open
+              ? 'border-primary/60 bg-primary/10 text-primary ring-1 ring-primary/30 shadow-xs'
+              : 'border-border bg-background hover:bg-muted/50 text-foreground'
+            : 'border-dashed border-border/80 bg-muted/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground',
+          compact && 'px-2 py-0.5 text-[11px]',
         )}
-        data-testid={`clause-pill-${clause.type}`}
+        data-testid={`token-slot-${clause.type}`}
       >
         <span className="text-[11px] opacity-70">{meta.icon}</span>
-        <span className="font-semibold uppercase tracking-wider text-[10px] text-muted-foreground/70">
-          {meta.label}:
-        </span>
-        <span className="font-medium text-foreground truncate max-w-[160px]">
-          {clause.value || <span className="italic opacity-50">any</span>}
-        </span>
+
+        {hasValue ? (
+          <>
+            <span className="font-bold uppercase tracking-wider text-[10px] text-muted-foreground/70">
+              {meta.prefix || `${meta.label}:`}
+            </span>
+            <span className="font-semibold text-foreground truncate max-w-[160px]">
+              {clause.value}
+            </span>
+          </>
+        ) : (
+          <span className="font-mono text-[11px] opacity-70 italic">
+            {placeholderOverride || meta.placeholderText}
+          </span>
+        )}
+
         <ChevronDown className="size-3 opacity-40" />
 
         {onRemove && clause.type !== 'target' && clause.type !== 'scope' && (
@@ -78,7 +111,7 @@ export function ClausePill({
             }}
             className="ml-0.5 rounded p-0.5 hover:bg-red-500/20 hover:text-red-600 transition-colors opacity-60 hover:opacity-100"
             title="Remove filter"
-            data-testid={`clause-pill-remove-${clause.type}`}
+            data-testid={`token-slot-remove-${clause.type}`}
           >
             <X className="size-3" />
           </button>
@@ -99,7 +132,7 @@ export function ClausePill({
   )
 }
 
-// ── ClausePopover: Inline editor dropdown ───────────────────────────────────
+// ── ClausePopover: Keyboard-navigable Dropdown ───────────────────────────────
 
 export function ClausePopover({
   clause,
@@ -112,14 +145,15 @@ export function ClausePopover({
 }) {
   const meta = CLAUSE_META[clause.type]
   const [val, setVal] = useState(clause.value)
+  const [highlightIdx, setHighlightIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     inputRef.current?.focus()
   }, [])
 
-  // Backdrop click listener
-  const popoverRef = useRef<HTMLDivElement>(null)
+  // Backdrop click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
@@ -132,121 +166,92 @@ export function ClausePopover({
 
   const suggestions = getSuggestions(clause.type)
 
+  const items = clause.type === 'target'
+    ? TARGET_OPTIONS.map(o => ({ value: o.value, label: `${o.value} — ${o.description}` }))
+    : clause.type === 'scope'
+    ? SCOPE_OPTIONS.map(o => ({ value: o.value, label: `${o.value} — ${o.description}` }))
+    : clause.type === 'time'
+    ? TIME_OPTIONS.map(o => ({ value: o.value, label: o.label }))
+    : suggestions.map(s => ({ value: s, label: s }))
+
+  const filteredItems = items.filter(item => item.value.toLowerCase().includes(val.toLowerCase()) || item.label.toLowerCase().includes(val.toLowerCase()))
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlightIdx(i => Math.min(i + 1, Math.max(0, filteredItems.length - 1)))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlightIdx(i => Math.max(i - 1, 0))
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (filteredItems[highlightIdx]) {
+        onChange({ value: filteredItems[highlightIdx].value })
+      } else if (val.trim()) {
+        onChange({ value: val.trim() })
+      }
+    } else if (e.key === 'Escape') {
+      onClose()
+    }
+  }
+
   return (
     <div
       ref={popoverRef}
-      className="absolute top-full left-0 mt-1 z-50 min-w-[220px] max-w-[320px] rounded-lg border border-border bg-popover text-popover-foreground shadow-xl p-2 animate-in fade-in-50 zoom-in-95"
+      onKeyDown={handleKeyDown}
+      className="absolute top-full left-0 mt-1.5 z-50 min-w-[240px] max-w-[320px] rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-2 animate-in fade-in-50 zoom-in-95"
       data-testid={`clause-popover-${clause.type}`}
     >
       <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-border/50 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
         <span className="flex items-center gap-1">
           <span>{meta.icon}</span> {meta.label}
         </span>
-        <span className="text-muted-foreground/50">{meta.description}</span>
+        <span className="text-muted-foreground/50">↑↓ to choose · Enter</span>
       </div>
 
-      {clause.type === 'target' ? (
-        <div className="space-y-1">
-          {TARGET_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange({ value: opt.value })}
-              className={cn(
-                'flex items-center justify-between w-full px-2 py-1.5 text-xs rounded-md text-left transition-colors',
-                clause.value === opt.value ? 'bg-primary/15 font-semibold text-primary' : 'hover:bg-muted',
-              )}
-            >
-              <span>{opt.label}</span>
-              {clause.value === opt.value && <Check className="size-3 text-primary" />}
-            </button>
-          ))}
-        </div>
-      ) : clause.type === 'scope' ? (
-        <div className="space-y-1">
-          {SCOPE_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange({ value: opt.value })}
-              className={cn(
-                'flex items-center justify-between w-full px-2 py-1.5 text-xs rounded-md text-left transition-colors',
-                clause.value === opt.value ? 'bg-primary/15 font-semibold text-primary' : 'hover:bg-muted',
-              )}
-            >
-              <span>{opt.label}</span>
-              {clause.value === opt.value && <Check className="size-3 text-primary" />}
-            </button>
-          ))}
-        </div>
-      ) : clause.type === 'time' ? (
-        <div className="space-y-1">
-          {TIME_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange({ value: opt.value })}
-              className={cn(
-                'flex items-center justify-between w-full px-2 py-1.5 text-xs rounded-md text-left transition-colors',
-                clause.value === opt.value ? 'bg-primary/15 font-semibold text-primary' : 'hover:bg-muted',
-              )}
-            >
-              <span>{opt.label}</span>
-              {clause.value === opt.value && <Check className="size-3 text-primary" />}
-            </button>
-          ))}
-        </div>
-      ) : clause.type === 'where' ? (
-        <WhereJoinEditor
-          onApply={v => onChange({ value: v })}
-        />
+      {clause.type === 'where' ? (
+        <WhereJoinEditor onApply={v => onChange({ value: v })} />
       ) : (
         <div>
-          <input
-            ref={inputRef}
-            type="text"
-            value={val}
-            placeholder={meta.placeholder}
-            onChange={e => setVal(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                onChange({ value: val.trim() })
-              }
-              if (e.key === 'Escape') onClose()
-            }}
-            className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-          {suggestions.length > 0 && (
-            <div className="mt-1.5 max-h-40 overflow-y-auto space-y-0.5">
-              <div className="text-[9px] uppercase font-bold text-muted-foreground/50 px-1 py-0.5">Suggestions</div>
-              {suggestions
-                .filter(s => s.toLowerCase().includes(val.toLowerCase()))
-                .map(s => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => onChange({ value: s })}
-                    className="flex items-center justify-between w-full px-2 py-1 text-xs rounded hover:bg-muted text-left"
-                  >
-                    <span>{s}</span>
-                    {val === s && <Check className="size-3 text-primary" />}
-                  </button>
-                ))}
-            </div>
+          {clause.type !== 'target' && clause.type !== 'scope' && clause.type !== 'time' && (
+            <input
+              ref={inputRef}
+              type="text"
+              value={val}
+              placeholder={meta.placeholder}
+              onChange={e => {
+                setVal(e.target.value)
+                setHighlightIdx(0)
+              }}
+              className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary mb-1.5"
+            />
           )}
+
+          <div className="max-h-48 overflow-y-auto space-y-0.5">
+            {filteredItems.map((item, idx) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => onChange({ value: item.value })}
+                className={cn(
+                  'flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-md text-left transition-colors',
+                  idx === highlightIdx ? 'bg-primary/15 font-semibold text-primary' : 'hover:bg-muted text-foreground',
+                )}
+              >
+                <span className="truncate">{item.label}</span>
+                {clause.value === item.value && <Check className="size-3 text-primary shrink-0 ml-1" />}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
   )
 }
 
-// ── WhereJoinEditor: Mini builder for metric join ────────────────────────────
+// ── WhereJoinEditor ─────────────────────────────────────────────────────────
 
-function WhereJoinEditor({
-  onApply,
-}: {
-  onApply: (wql: string) => void
-}) {
+function WhereJoinEditor({ onApply }: { onApply: (wql: string) => void }) {
   const [agg, setAgg] = useState('sum')
   const [metric, setMetric] = useState('totalVolume')
   const [op, setOp] = useState('>')
@@ -317,7 +322,7 @@ function WhereJoinEditor({
   )
 }
 
-// ── AddFilterDropdown: "+ Filter" Menu ─────────────────────────────────────
+// ── AddFilterDropdown ──────────────────────────────────────────────────────
 
 export function AddFilterDropdown({
   clauses,
@@ -355,16 +360,17 @@ export function AddFilterDropdown({
     <div ref={menuRef} className="relative inline-block">
       <button
         type="button"
+        tabIndex={0}
         onClick={() => setOpen(o => !o)}
-        className="inline-flex items-center gap-1 rounded-md border border-dashed border-border hover:border-primary/50 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-primary transition-all select-none"
+        className="inline-flex items-center gap-1 rounded-md border border-dashed border-border hover:border-primary/50 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-primary transition-all select-none focus:outline-none focus:ring-2 focus:ring-primary/40"
         data-testid="add-filter-btn"
       >
         <Plus className="size-3 text-primary" />
-        <span>Filter</span>
+        <span>Add Filter</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 w-48 rounded-lg border border-border bg-popover p-1 shadow-xl animate-in fade-in-50 zoom-in-95">
+        <div className="absolute right-0 top-full mt-1.5 z-50 w-48 rounded-xl border border-border bg-popover p-1 shadow-2xl animate-in fade-in-50 zoom-in-95">
           <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-muted-foreground border-b border-border/50 mb-1">
             Add Filter Clause
           </div>
@@ -381,7 +387,7 @@ export function AddFilterDropdown({
                 }}
                 className={cn(
                   'flex items-center justify-between w-full px-2 py-1.5 text-xs rounded-md text-left transition-colors',
-                  active ? 'opacity-50 bg-muted/30' : 'hover:bg-muted',
+                  active ? 'opacity-50 bg-muted/30' : 'hover:bg-muted text-foreground',
                 )}
               >
                 <div className="flex items-center gap-2">

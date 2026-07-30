@@ -1,22 +1,18 @@
 /**
- * Variant C — Visual Statement Builder (Datadog/Grafana style)
+ * Variant B3 — Omni Command Bar with Quick Keyboard Selection
  *
- * Structured visual sentence builder mapping 1-to-1 with canonical WQL syntax:
- *   FIND <target> IN <scope> WINDOW <last>
- *   FILTERS { ... }
- *   WHERE <metric_predicate>
- *
- * Space-efficient: 60px low-profile visual statement editor.
+ * High-density command bar with placeholder slots, keyboard shortcut triggers,
+ * and Tab / Shift+Tab slot navigation + ↑ / ↓ option selection.
  */
-import { ClausePill, AddFilterDropdown } from './QueryPalette'
+import { useState, useRef } from 'react'
+import { Command } from 'lucide-react'
+import { TokenSlotPill, AddFilterDropdown } from './QueryPalette'
 import {
   type QueryClause,
   type ClauseType,
   CLAUSE_META,
-  TARGET_OPTIONS,
-  SCOPE_OPTIONS,
-  TIME_OPTIONS,
 } from './queryClauses'
+import { cn } from '@/lib/utils'
 
 export function VariantC({
   clauses,
@@ -25,6 +21,10 @@ export function VariantC({
   clauses: QueryClause[]
   onChange: (c: QueryClause[]) => void
 }) {
+  const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null)
+  const [freeText, setFreeText] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
   const updateClause = (idx: number, patch: Partial<QueryClause>) => {
     onChange(clauses.map((c, i) => (i === idx ? { ...c, ...patch } : c)))
   }
@@ -46,109 +46,68 @@ export function VariantC({
     onChange([...clauses, newClause])
   }
 
-  const targetClauseIdx = clauses.findIndex(c => c.type === 'target')
-  const scopeClauseIdx = clauses.findIndex(c => c.type === 'scope')
-  const timeClauseIdx = clauses.findIndex(c => c.type === 'time')
-  const whereClauseIdx = clauses.findIndex(c => c.type === 'where')
-
-  const targetValue = targetClauseIdx >= 0 ? clauses[targetClauseIdx].value : 'note'
-  const scopeValue = scopeClauseIdx >= 0 ? clauses[scopeClauseIdx].value : 'journal'
-  const timeValue = timeClauseIdx >= 0 ? clauses[timeClauseIdx].value : 'last 2w'
-  const whereClause = whereClauseIdx >= 0 ? clauses[whereClauseIdx] : null
-
-  const filterClauses = clauses.map((c, idx) => ({ clause: c, idx })).filter(item => item.clause.type !== 'target' && item.clause.type !== 'scope' && item.clause.type !== 'time' && item.clause.type !== 'where')
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && freeText.trim()) {
+      e.preventDefault()
+      const meta = CLAUSE_META.text
+      const newClause: QueryClause = {
+        id: `c-${Date.now()}-${Math.random()}`,
+        type: 'text',
+        label: meta.label,
+        value: freeText.trim(),
+        inputType: meta.inputType,
+        placeholder: meta.placeholder,
+      }
+      onChange([...clauses, newClause])
+      setFreeText('')
+    }
+  }
 
   return (
-    <div className="border-b border-border bg-background/95 backdrop-blur px-6 py-3 space-y-2" data-testid="variant-c">
-      {/* Statement Row 1: Target, Scope, Time Window */}
-      <div className="flex items-center gap-2 flex-wrap text-xs font-mono">
-        <span className="font-black text-amber-500 uppercase tracking-widest text-[10px]">FIND</span>
-        <select
-          value={targetValue}
-          onChange={e => {
-            if (targetClauseIdx >= 0) {
-              updateClause(targetClauseIdx, { value: e.target.value })
-            } else {
-              onChange([{ id: 'c-target', type: 'target', ...CLAUSE_META.target, value: e.target.value }, ...clauses])
-            }
-          }}
-          className="rounded-md border border-border bg-muted/30 px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-          data-testid="variant-c-target-select"
-        >
-          {TARGET_OPTIONS.map(o => (
-            <option key={o.value} value={o.value}>{o.value} ({o.label})</option>
-          ))}
-        </select>
-
-        <span className="font-black text-amber-500 uppercase tracking-widest text-[10px] ml-1">IN</span>
-        <select
-          value={scopeValue}
-          onChange={e => {
-            if (scopeClauseIdx >= 0) {
-              updateClause(scopeClauseIdx, { value: e.target.value })
-            } else {
-              onChange([{ id: 'c-scope', type: 'scope', ...CLAUSE_META.scope, value: e.target.value }, ...clauses])
-            }
-          }}
-          className="rounded-md border border-border bg-muted/30 px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-          data-testid="variant-c-scope-select"
-        >
-          {SCOPE_OPTIONS.map(o => (
-            <option key={o.value} value={o.value}>{o.value} ({o.label})</option>
-          ))}
-        </select>
-
-        <span className="font-black text-amber-500 uppercase tracking-widest text-[10px] ml-1">TIME</span>
-        <select
-          value={timeValue}
-          onChange={e => {
-            if (timeClauseIdx >= 0) {
-              updateClause(timeClauseIdx, { value: e.target.value })
-            } else {
-              onChange([...clauses, { id: 'c-time', type: 'time', ...CLAUSE_META.time, value: e.target.value }])
-            }
-          }}
-          className="rounded-md border border-border bg-muted/30 px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-          data-testid="variant-c-time-select"
-        >
-          {TIME_OPTIONS.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+    <div className="border-b border-border bg-background/95 backdrop-blur px-6 py-3" data-testid="variant-b3">
+      <div className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/60 mb-1.5 flex items-center justify-between">
+        <span>B3 — Omni Command Bar with Quick Keyboard Selection</span>
+        <span className="text-[9px] font-normal text-muted-foreground/50">Tab / Shift+Tab to jump slots · ↑↓ to choose · Type text + Enter</span>
       </div>
 
-      {/* Statement Row 2: Filters */}
-      <div className="flex items-center gap-1.5 flex-wrap text-xs">
-        <span className="font-black text-muted-foreground/60 uppercase tracking-widest text-[10px] select-none">{'{'}</span>
-        {filterClauses.length === 0 && (
-          <span className="text-[11px] text-muted-foreground/40 italic">no tag filters</span>
-        )}
-        {filterClauses.map(({ clause, idx }) => (
-          <ClausePill
-            key={clause.id}
-            clause={clause}
-            onChange={patch => updateClause(idx, patch)}
-            onRemove={() => removeClause(idx)}
-            compact
-          />
-        ))}
-        <span className="font-black text-muted-foreground/60 uppercase tracking-widest text-[10px] select-none">{'}'}</span>
+      <div className="max-w-3xl">
+        <div
+          onClick={() => inputRef.current?.focus()}
+          className={cn(
+            'flex flex-wrap items-center gap-1.5 min-h-[46px] rounded-xl border border-border bg-muted/20 px-3 py-1.5 text-xs transition-all cursor-text shadow-xs',
+            activeSlotIdx !== null && 'border-primary/60 bg-background ring-2 ring-primary/20 shadow-md',
+          )}
+        >
+          <Command className="size-4 text-amber-500 shrink-0 mr-0.5" />
 
-        <AddFilterDropdown clauses={clauses} onAdd={addClause} />
-      </div>
+          {/* Token Slots */}
+          {clauses.map((clause, idx) => (
+            <TokenSlotPill
+              key={clause.id}
+              clause={clause}
+              isActive={activeSlotIdx === idx}
+              onClick={() => setActiveSlotIdx(idx)}
+              onChange={patch => updateClause(idx, patch)}
+              onRemove={() => removeClause(idx)}
+              compact
+            />
+          ))}
 
-      {/* Optional Statement Row 3: Where Metric Predicate Join */}
-      {whereClause && (
-        <div className="flex items-center gap-2 text-xs font-mono pt-1 border-t border-border/40">
-          <span className="font-black text-violet-500 uppercase tracking-widest text-[10px]">WHERE JOIN</span>
-          <ClausePill
-            clause={whereClause}
-            onChange={patch => updateClause(whereClauseIdx, patch)}
-            onRemove={() => removeClause(whereClauseIdx)}
-            compact
+          {/* Quick Free-text Search Input */}
+          <input
+            ref={inputRef}
+            type="text"
+            value={freeText}
+            placeholder="Type search term and press Enter..."
+            onChange={e => setFreeText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="flex-1 min-w-[140px] bg-transparent text-xs focus:outline-none placeholder:text-muted-foreground/40 font-mono"
+            data-testid="variant-b3-input"
           />
+
+          <AddFilterDropdown clauses={clauses} onAdd={addClause} />
         </div>
-      )}
+      </div>
     </div>
   )
 }

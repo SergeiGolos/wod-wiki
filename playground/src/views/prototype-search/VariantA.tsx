@@ -1,19 +1,18 @@
 /**
- * Variant A — Ultra-Compact Filter Pill Bar
+ * Variant B1 — Freeform Spotlight Bar with Token Slots
  *
- * Dense, single-line horizontal filter bar. Target (note/block) & Scope
- * (journal/collections/feeds/all) sit on the left, active filter pills
- * wrap neatly in the middle, and "+ Filter" sits on the right.
+ * Spotlight input bar with ordered, tabbable Token Slot Pills.
+ * Placeholder text keeps the query structure readable even when slots are empty.
  *
- * Space-efficient: 36px vertical footprint, ~80% height reduction.
+ * Keyboard: Tab / Shift+Tab to jump between slots, ↑ / ↓ to select values.
  */
-import { ClausePill, AddFilterDropdown } from './QueryPalette'
+import { useState, useRef } from 'react'
+import { Search as SearchIcon } from 'lucide-react'
+import { TokenSlotPill, AddFilterDropdown } from './QueryPalette'
 import {
   type QueryClause,
   type ClauseType,
   CLAUSE_META,
-  TARGET_OPTIONS,
-  SCOPE_OPTIONS,
 } from './queryClauses'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +23,9 @@ export function VariantA({
   clauses: QueryClause[]
   onChange: (c: QueryClause[]) => void
 }) {
+  const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
   const updateClause = (idx: number, patch: Partial<QueryClause>) => {
     onChange(clauses.map((c, i) => (i === idx ? { ...c, ...patch } : c)))
   }
@@ -45,85 +47,36 @@ export function VariantA({
     onChange([...clauses, newClause])
   }
 
-  const targetClauseIdx = clauses.findIndex(c => c.type === 'target')
-  const scopeClauseIdx = clauses.findIndex(c => c.type === 'scope')
-
-  const targetValue = targetClauseIdx >= 0 ? clauses[targetClauseIdx].value : 'note'
-  const scopeValue = scopeClauseIdx >= 0 ? clauses[scopeClauseIdx].value : 'journal'
-
-  const filterClauses = clauses.map((c, idx) => ({ clause: c, idx })).filter(item => item.clause.type !== 'target' && item.clause.type !== 'scope')
-
   return (
-    <div className="border-b border-border bg-background/95 backdrop-blur px-4 py-2" data-testid="variant-a">
-      <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
-        {/* Left: Target & Scope Pills */}
-        <div className="flex items-center gap-1.5 shrink-0 border-r border-border/60 pr-3">
-          {/* Target Toggle */}
-          <div className="inline-flex rounded-md border border-border bg-muted/30 p-0.5 text-xs">
-            {TARGET_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  if (targetClauseIdx >= 0) {
-                    updateClause(targetClauseIdx, { value: opt.value })
-                  } else {
-                    onChange([{ id: 'c-target', type: 'target', ...CLAUSE_META.target, value: opt.value }, ...clauses])
-                  }
-                }}
-                className={cn(
-                  'px-2 py-0.5 rounded text-[11px] font-medium transition-colors select-none',
-                  targetValue === opt.value
-                    ? 'bg-background font-bold text-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-                data-testid={`variant-a-target-${opt.value}`}
-              >
-                {opt.value === 'note' ? '📝 Notes' : '📦 Blocks'}
-              </button>
-            ))}
-          </div>
+    <div className="border-b border-border bg-background/95 backdrop-blur px-6 py-3" data-testid="variant-b1">
+      <div className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/60 mb-1.5 flex items-center justify-between">
+        <span>B1 — Freeform Spotlight Bar with Token Slots</span>
+        <span className="text-[9px] font-normal text-muted-foreground/50">Tab / Shift+Tab to cycle slots · ↑↓ to choose</span>
+      </div>
 
-          {/* Scope Selector */}
-          <div className="inline-flex rounded-md border border-border bg-muted/30 p-0.5 text-xs">
-            {SCOPE_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  if (scopeClauseIdx >= 0) {
-                    updateClause(scopeClauseIdx, { value: opt.value })
-                  } else {
-                    onChange([{ id: 'c-scope', type: 'scope', ...CLAUSE_META.scope, value: opt.value }, ...clauses])
-                  }
-                }}
-                className={cn(
-                  'px-2 py-0.5 rounded text-[11px] font-medium transition-colors select-none',
-                  scopeValue === opt.value
-                    ? 'bg-primary text-primary-foreground font-bold shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-                data-testid={`variant-a-scope-${opt.value}`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
+      <div ref={containerRef} className="relative max-w-3xl">
+        <div
+          className={cn(
+            'flex flex-wrap items-center gap-1.5 min-h-[44px] rounded-xl border border-border bg-muted/20 px-3 py-1.5 text-xs transition-all shadow-xs',
+            activeSlotIdx !== null && 'border-primary/60 bg-background ring-2 ring-primary/20 shadow-md',
+          )}
+        >
+          <SearchIcon className="size-4 text-muted-foreground/60 shrink-0 mr-0.5" />
 
-        {/* Middle: Active Filter Pills */}
-        <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
-          {filterClauses.map(({ clause, idx }) => (
-            <ClausePill
+          {/* Token Slots */}
+          {clauses.map((clause, idx) => (
+            <TokenSlotPill
               key={clause.id}
               clause={clause}
+              isActive={activeSlotIdx === idx}
+              onClick={() => setActiveSlotIdx(idx)}
               onChange={patch => updateClause(idx, patch)}
               onRemove={() => removeClause(idx)}
               compact
             />
           ))}
 
-          {/* Right: Add Filter Dropdown */}
+          {/* Add Filter Button */}
           <AddFilterDropdown clauses={clauses} onAdd={addClause} />
         </div>
       </div>

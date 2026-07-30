@@ -1,12 +1,7 @@
 /**
  * Shared query-clause model + data sources for WQL Search Prototypes.
  *
- * Expands WQL content query capabilities:
- *   - Target: `find:note` vs `find:block`
- *   - Scope: `journal` | `collections` | `feeds` | `all`
- *   - Filters: `text`, `catalog`, `tags`, `effort`, `discipline`, `type`, `has`
- *   - Time: `last <n>w` / `last <n>d`
- *   - Where: Cross-store analytics join (`where sum:totalVolume{} > 5000`)
+ * Supports freeform token slots, placeholder guidance, and keyboard navigation.
  */
 
 export type ClauseType =
@@ -34,15 +29,15 @@ export interface QueryClause {
 // ── Options & Data Sources ──────────────────────────────────────────────────
 
 export const TARGET_OPTIONS = [
-  { value: 'note', label: 'Notes (find:note)' },
-  { value: 'block', label: 'Blocks (find:block)' },
+  { value: 'note', label: 'Notes', description: 'Whole markdown notes' },
+  { value: 'block', label: 'Blocks', description: 'Fenced workout/dashboard regions' },
 ]
 
 export const SCOPE_OPTIONS = [
-  { value: 'journal', label: 'Journal' },
-  { value: 'collections', label: 'Collections' },
-  { value: 'feeds', label: 'Feeds' },
-  { value: 'all', label: 'All Sources' },
+  { value: 'journal', label: 'Journal', description: 'User personal notes' },
+  { value: 'collections', label: 'Collections', description: 'Preloaded workout catalogs' },
+  { value: 'feeds', label: 'Feeds', description: 'Subscribed feed posts' },
+  { value: 'all', label: 'All Sources', description: 'Universal search across everything' },
 ]
 
 export const CATALOG_SUGGESTIONS = [
@@ -60,12 +55,12 @@ export const TYPE_SUGGESTIONS = ['wod', 'dashboard', 'heading', 'text', 'timer']
 export const HAS_SUGGESTIONS = ['timer', 'image', 'metric', 'rx']
 
 export const TIME_OPTIONS = [
-  { value: 'last 1d', label: 'Past 24 hours (last 1d)' },
-  { value: 'last 1w', label: 'Past week (last 1w)' },
-  { value: 'last 2w', label: 'Past 2 weeks (last 2w)' },
-  { value: 'last 4w', label: 'Past month (last 4w)' },
-  { value: 'last 12w', label: 'Past quarter (last 12w)' },
-  { value: 'last 52w', label: 'Past year (last 52w)' },
+  { value: 'last 1d', label: 'Past 24 hours' },
+  { value: 'last 1w', label: 'Past week' },
+  { value: 'last 2w', label: 'Past 2 weeks' },
+  { value: 'last 4w', label: 'Past month' },
+  { value: 'last 12w', label: 'Past quarter' },
+  { value: 'last 52w', label: 'Past year' },
   { value: 'all', label: 'All time' },
 ]
 
@@ -79,20 +74,22 @@ export const CLAUSE_META: Record<ClauseType, {
   label: string
   inputType: 'radio' | 'freetext' | 'select'
   placeholder: string
+  placeholderText: string
   icon: string
   description: string
+  prefix?: string
 }> = {
-  target:    { label: 'Target',     inputType: 'select',   placeholder: 'note or block',              icon: '🎯', description: 'What to return (note or block)' },
-  scope:     { label: 'Scope',      inputType: 'select',   placeholder: 'journal, collections, etc', icon: '🌐', description: 'Where to search' },
-  text:      { label: 'Contains',   inputType: 'freetext', placeholder: 'Text query...',              icon: '🔍', description: 'Raw text substring search' },
-  catalog:   { label: 'Catalog',    inputType: 'select',   placeholder: 'Pick catalog...',            icon: '📁', description: 'Filter by static catalog' },
-  tag:       { label: 'Tag',        inputType: 'select',   placeholder: 'Pick tag...',                icon: '🏷', description: 'Filter by note/workout tags' },
-  effort:    { label: 'Effort',     inputType: 'select',   placeholder: 'Pick effort...',             icon: '💪', description: 'Filter by movement/workout' },
-  discipline:{ label: 'Discipline', inputType: 'select',   placeholder: 'Pick discipline...',         icon: '⚙', description: 'Filter by domain discipline' },
-  type:      { label: 'Block Type', inputType: 'select',   placeholder: 'wod, dashboard...',          icon: '📦', description: 'Fenced block type' },
-  has:       { label: 'Has Feature',inputType: 'select',   placeholder: 'timer, image...',            icon: '✨', description: 'Note/block feature presence' },
-  time:      { label: 'Time Window',inputType: 'select',   placeholder: 'Time range',                 icon: '⏱', description: 'Date window (last Nw/Nd)' },
-  where:     { label: 'Metric Join',inputType: 'freetext', placeholder: 'sum:totalVolume{} > 5000',    icon: '📊', description: 'Cross-store analytics join' },
+  target:    { label: 'Target',     inputType: 'select',   placeholder: 'note or block',              placeholderText: 'find: [note|block]',     icon: '🎯', description: 'What to return (notes or blocks)', prefix: 'find:' },
+  scope:     { label: 'Scope',      inputType: 'select',   placeholder: 'journal, collections, etc', placeholderText: 'in: [scope]',            icon: '🌐', description: 'Where to search', prefix: 'in:' },
+  text:      { label: 'Contains',   inputType: 'freetext', placeholder: 'Text query...',              placeholderText: 'text: [query]',           icon: '🔍', description: 'Raw text substring search', prefix: 'text:' },
+  catalog:   { label: 'Catalog',    inputType: 'select',   placeholder: 'Pick catalog...',            placeholderText: 'catalog: [id]',          icon: '📁', description: 'Filter by static catalog', prefix: 'catalog:' },
+  tag:       { label: 'Tag',        inputType: 'select',   placeholder: 'Pick tag...',                placeholderText: 'tags: [tag]',            icon: '🏷', description: 'Filter by note/workout tags', prefix: 'tags:' },
+  effort:    { label: 'Effort',     inputType: 'select',   placeholder: 'Pick effort...',             placeholderText: 'effort: [movement]',     icon: '💪', description: 'Filter by movement/workout', prefix: 'effort:' },
+  discipline:{ label: 'Discipline', inputType: 'select',   placeholder: 'Pick discipline...',         placeholderText: 'discipline: [name]',     icon: '⚙', description: 'Filter by domain discipline', prefix: 'discipline:' },
+  type:      { label: 'Block Type', inputType: 'select',   placeholder: 'wod, dashboard...',          placeholderText: 'type: [wod|heading]',    icon: '📦', description: 'Fenced block type', prefix: 'type:' },
+  has:       { label: 'Has Feature',inputType: 'select',   placeholder: 'timer, image...',            placeholderText: 'has: [timer|image]',     icon: '✨', description: 'Note/block feature presence', prefix: 'has:' },
+  time:      { label: 'Time Window',inputType: 'select',   placeholder: 'Time range',                 placeholderText: 'last: [time range]',      icon: '⏱', description: 'Date window (last Nw/Nd)', prefix: 'last:' },
+  where:     { label: 'Metric Join',inputType: 'freetext', placeholder: 'sum:totalVolume{} > 5000',    placeholderText: 'where: [metric join]',   icon: '📊', description: 'Cross-store analytics join', prefix: 'where:' },
 }
 
 export function getSuggestions(type: ClauseType): string[] {
