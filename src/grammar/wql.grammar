@@ -51,7 +51,12 @@ TagKey { Word }
 
 // Multi-value tag values: alternatives are OR-ed within the key; each
 // alternative carries its own trailing wildcard star.
-TagValue { Word Star? (pipe Word Star?)* }
+// A value is one or more OR-ed atoms; each atom is `Word:Word` (e.g. the
+// catalog-id `collection:crossfit-girls` for the `source:` filter) or a bare
+// `Word`, with an optional trailing wildcard star.
+TagValue { Value (pipe Value)* }
+
+Value { Word (colon Word)? Star? }
 
 GroupBy { By braceOpen (Dimension (comma Dimension)*)? braceClose }
 

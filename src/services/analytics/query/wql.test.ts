@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from 'bun:test';
 import { parseQuery as _parseQuery, isFindQuery, type ParsedQuery } from './wql';
+import { WQL_CONTENT_FILTER_KEYS } from '@/parser/wql-language';
 
 // All tests in this file use analytics queries (not find: queries) — narrow
 // the union type so .agg/.metric/.groupBy are accessible.
@@ -187,7 +188,42 @@ describe('parseQuery — find: content queries', () => {
     expect(parsed.filters[0].key).toBe('type');
     expect(parsed.filters[0].values[0].value).toBe('wod');
   });
-});
+
+  it('parses source: filter as an affirmative kind', () => {
+    const parsed = _parseQuery('find:note{source:feed}');
+    if (!isFindQuery(parsed)) throw new Error('expected find query');
+    expect(parsed.filters).toEqual([
+      { key: 'source', negate: false, values: [{ value: 'feed', wildcard: false }] },
+    ]);
+  });
+
+  it('parses !source: filter as a negation', () => {
+    const parsed = _parseQuery('find:note{!source:feed}');
+    if (!isFindQuery(parsed)) throw new Error('expected find query');
+    expect(parsed.filters).toEqual([
+      { key: 'source', negate: true, values: [{ value: 'feed', wildcard: false }] },
+    ]);
+  });
+
+  it('parses source: with a catalog-prefixed literal id', () => {
+    const parsed = _parseQuery('find:note{source:collection:crossfit-girls}');
+    if (!isFindQuery(parsed)) throw new Error('expected find query');
+    expect(parsed.filters[0].values[0].value).toBe('collection:crossfit-girls');
+  });
+
+  it('parses source: combined with another key in the same braces', () => {
+    const parsed = _parseQuery('find:note{!source:feed,text:fran}');
+    if (!isFindQuery(parsed)) throw new Error('expected find query');
+    expect(parsed.filters).toEqual([
+      { key: 'source', negate: true, values: [{ value: 'feed', wildcard: false }] },
+      { key: 'text', negate: false, values: [{ value: 'fran', wildcard: false }] },
+    ]);
+  });
+
+  it('includes `source` in the content filter key vocabulary', () => {
+    expect(WQL_CONTENT_FILTER_KEYS).toContain('source');
+  });
+ });
 
 // ── Cross-store `where` join tests (#800) ──────────────────────────
 describe('parseQuery — cross-store where joins', () => {
