@@ -115,7 +115,7 @@ test.describe('Collection Workout — run and record', () => {
   test('creates a journal record on start; stopping early saves and displays results', async ({ page }, testInfo) => {
     const today = todayKey();
 
-    await page.goto('/journal', { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await seedNote(page, STOP_NOTE_ID, STOP_CONTENT, { title: 'E2E Stop Run' });
     await deleteNoteAndResults(page, await findNoteIdByTitle(page, STOP_TITLE));
 
@@ -177,7 +177,7 @@ test.describe('Collection Workout — run and record', () => {
   test('completing a short workout saves a completed result and shows the results view', async ({ page }, testInfo) => {
     const today = todayKey();
 
-    await page.goto('/journal', { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await seedNote(page, COMPLETE_NOTE_ID, COMPLETE_CONTENT, { title: 'E2E Complete Run' });
     await deleteNoteAndResults(page, await findNoteIdByTitle(page, COMPLETE_TITLE));
 

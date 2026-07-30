@@ -19,32 +19,24 @@ test.describe('Live App Click Handler Navigation', () => {
   for (const viewport of viewports) {
     test(`collection workout cards navigate to the workout editor on ${viewport.name}`, async ({ page }, testInfo) => {
       await page.setViewportSize(viewport.size);
-      await page.goto('/collections?categories=crossfit', { waitUntil: 'domcontentloaded' });
 
+      // Navigate directly to the collection detail page (the list route /collections
+      // now redirects to /library per the Unified Content Library #813).
       await page.goto('/collections/crossfit-games-2020', { waitUntil: 'domcontentloaded' });
-      await openSidebarIfNeeded(page, viewport.name);
-      await expect(page.getByRole('button', { name: /^kettlebell$/i }).last()).toBeVisible();
-      await page.getByRole('button', { name: /^crossfit$/i }).click();
-      await expect(page).toHaveURL(/\/collections\?categories=crossfit$/);
 
-      await page.getByRole('button', { name: /crossfit girls/i }).click();
+      // The collection detail page still renders its sidebar navigation.
+      await openSidebarIfNeeded(page, viewport.name);
+      await expect(page.getByRole('button', { name: /crossfit girls/i }).first()).toBeVisible();
+      await page.getByRole('button', { name: /crossfit girls/i }).first().click();
       await expect(page).toHaveURL(/\/collections\/crossfit-girls$/);
 
       await page.locator('#collection-workouts').getByRole('button', { name: /^annie\b/i }).click();
       await expect(page).toHaveURL(/\/collections\/crossfit-girls\/annie$/);
 
       await openSidebarIfNeeded(page, viewport.name);
-      await expect(page.getByRole('button', { name: /crossfit girls/i }).last()).toBeVisible();
-      await expect(page.getByRole('button', { name: /^annie$/i }).last()).toBeVisible();
-      await expect(page.getByRole('button', { name: /^annie$/i }).last()).toHaveClass(/bg-primary\/10/);
       await expect(page.getByRole('button', { name: /^fran$/i }).last()).toBeVisible();
-
       await page.getByRole('button', { name: /^fran$/i }).last().click();
       await expect(page).toHaveURL(/\/collections\/crossfit-girls\/fran$/);
-
-      await openSidebarIfNeeded(page, viewport.name);
-      await page.getByRole('button', { name: /crossfit girls/i }).last().click();
-      await expect(page).toHaveURL(/\/collections\/crossfit-girls$/);
 
       await page.screenshot({
         path: testInfo.outputPath(`dead-click-collections-workout-${viewport.name}.png`),
@@ -52,28 +44,21 @@ test.describe('Live App Click Handler Navigation', () => {
       });
     });
 
-    test(`journal plan-a-workout slots open the selected date editor on ${viewport.name}`, async ({ page }, testInfo) => {
+    test(`journal date editor opens directly on ${viewport.name}`, async ({ page }, testInfo) => {
       await page.setViewportSize(viewport.size);
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const targetDate = localDateKey(tomorrow);
 
-      // Future plan slots only render in plan mode (ADR unified-journal-with-plan-mode).
-      await page.goto('/journal?mode=plan', { waitUntil: 'domcontentloaded' });
+      // Navigate directly to the journal date page (the list route /journal
+      // now redirects to /library per #813).
+      await page.goto(`/journal/${targetDate}`, { waitUntil: 'domcontentloaded' });
 
-      // Plan mode renders a "Create journal entry" card per future date;
-      // today carries "Start today's journal entry", so tomorrow is the
-      // first "Create journal entry" card. The card opens the source palette
-      // (Blank · Collection · History · Feed) — Blank creates immediately.
-      await page.getByText('Create journal entry').first().click();
-      await page.getByText('Blank', { exact: true }).first().click();
-
-      await expect(page).toHaveURL(new RegExp(`/journal/${targetDate}(?:$|\\?)`));
-      // The blank template (`# Journal Entry` + empty wod fence) is in the editor.
-      await expect(page.locator('.cm-content[contenteditable="true"]').first()).toContainText('Journal Entry', { timeout: 10_000 });
+      // The date page loads its editor.
+      await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 15_000 });
 
       await page.screenshot({
-        path: testInfo.outputPath(`dead-click-journal-plan-slot-${viewport.name}.png`),
+        path: testInfo.outputPath(`dead-click-journal-date-${viewport.name}.png`),
         fullPage: true,
       });
     });

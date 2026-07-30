@@ -233,7 +233,7 @@ export async function seedNote(
             const db = req.result;
             if (db.objectStoreNames.length === 0) {
               db.close();
-              const upReq = indexedDB.open(name, 12);
+              const upReq = indexedDB.open(name, 14);
               upReq.onupgradeneeded = () => {
                 const upDb = upReq.result;
                 if (!upDb.objectStoreNames.contains('notes')) {
