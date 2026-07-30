@@ -44,6 +44,7 @@ import { HomeView } from './views/HomeView'
 import { LibraryPage } from './views/library/LibraryPage'
 import { LibrarySearchPrototype } from './views/prototype-search/LibrarySearchPrototype'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
+import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
 import { getChallengeSectionMap } from './canvas/parseCanvasMarkdown'
 // ── Extracted page components ────────────────────────────────────────────────
