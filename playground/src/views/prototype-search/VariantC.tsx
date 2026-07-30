@@ -1,142 +1,153 @@
 /**
- * Variant C — "Card stack"
+ * Variant C — Visual Statement Builder (Datadog/Grafana style)
  *
- * Each clause is a tall card. The active card expands to show its
- * suggestion dropdown; other cards collapse to a compact summary.
- * Up/Down moves between cards. Clicking a card activates it.
+ * Structured visual sentence builder mapping 1-to-1 with canonical WQL syntax:
+ *   FIND <target> IN <scope> WINDOW <last>
+ *   FILTERS { ... }
+ *   WHERE <metric_predicate>
  *
- * Structurally different from A (vertical stack) and B (spotlight):
- * generous spacing, larger type, clear sense of each clause as a
- * distinct thing.
+ * Space-efficient: 60px low-profile visual statement editor.
  */
-import { useState } from 'react'
-import { ClauseRow } from './QueryPalette'
-import { type QueryClause, type ClauseType, CLAUSE_META } from './queryClauses'
-import { Plus, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { ClausePill, AddFilterDropdown } from './QueryPalette'
+import {
+  type QueryClause,
+  type ClauseType,
+  CLAUSE_META,
+  TARGET_OPTIONS,
+  SCOPE_OPTIONS,
+  TIME_OPTIONS,
+} from './queryClauses'
 
-export function VariantC({ clauses, onChange }: { clauses: QueryClause[]; onChange: (c: QueryClause[]) => void }) {
-  const [activeIdx, setActiveIdx] = useState(0)
+export function VariantC({
+  clauses,
+  onChange,
+}: {
+  clauses: QueryClause[]
+  onChange: (c: QueryClause[]) => void
+}) {
+  const updateClause = (idx: number, patch: Partial<QueryClause>) => {
+    onChange(clauses.map((c, i) => (i === idx ? { ...c, ...patch } : c)))
+  }
+
+  const removeClause = (idx: number) => {
+    onChange(clauses.filter((_, i) => i !== idx))
+  }
+
+  const addClause = (type: ClauseType) => {
+    const meta = CLAUSE_META[type]
+    const newClause: QueryClause = {
+      id: `c-${Date.now()}-${Math.random()}`,
+      type,
+      label: meta.label,
+      value: type === 'time' ? 'last 2w' : type === 'where' ? 'sum:totalVolume{} > 5000' : '',
+      inputType: meta.inputType,
+      placeholder: meta.placeholder,
+    }
+    onChange([...clauses, newClause])
+  }
+
+  const targetClauseIdx = clauses.findIndex(c => c.type === 'target')
+  const scopeClauseIdx = clauses.findIndex(c => c.type === 'scope')
+  const timeClauseIdx = clauses.findIndex(c => c.type === 'time')
+  const whereClauseIdx = clauses.findIndex(c => c.type === 'where')
+
+  const targetValue = targetClauseIdx >= 0 ? clauses[targetClauseIdx].value : 'note'
+  const scopeValue = scopeClauseIdx >= 0 ? clauses[scopeClauseIdx].value : 'journal'
+  const timeValue = timeClauseIdx >= 0 ? clauses[timeClauseIdx].value : 'last 2w'
+  const whereClause = whereClauseIdx >= 0 ? clauses[whereClauseIdx] : null
+
+  const filterClauses = clauses.map((c, idx) => ({ clause: c, idx })).filter(item => item.clause.type !== 'target' && item.clause.type !== 'scope' && item.clause.type !== 'time' && item.clause.type !== 'where')
 
   return (
-    <div className="border-b border-border bg-background px-6 py-4" data-testid="variant-c">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">C — Card stack</span>
-        <span className="text-[10px] text-muted-foreground/40">click a card · ↑↓ to navigate</span>
-      </div>
-      <div className="space-y-2 max-w-2xl">
-        {clauses.map((clause, idx) => {
-          const isActive = idx === activeIdx
-          const meta = CLAUSE_META[clause.type]
-          return (
-            <div
-              key={clause.id}
-              onClick={() => setActiveIdx(idx)}
-              className={cn(
-                'rounded-xl border transition-all cursor-pointer',
-                isActive
-                  ? 'border-primary/50 bg-background shadow-md ring-1 ring-primary/20'
-                  : 'border-border bg-muted/30 hover:bg-background hover:border-border/70',
-              )}
-              data-testid={`variant-c-card-${clause.type}`}
-            >
-              {/* Card header: always visible */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <span className="text-xl">{meta.icon}</span>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                      {meta.label}
-                    </span>
-                    {clause.value && (
-                      <span className="text-sm font-semibold text-foreground">
-                        {clause.value}
-                      </span>
-                    )}
-                  </div>
-                  {!isActive && clause.value && (
-                    <div className="text-[10px] text-muted-foreground/50 mt-0.5">
-                      Click to edit
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={e => { e.stopPropagation(); onChange(clauses.filter((_, i) => i !== idx)) }}
-                  className="size-6 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                >
-                  <X className="size-3" />
-                </button>
-              </div>
-              {/* Expanded: combobox */}
-              {isActive && (
-                <div className="border-t border-border/50 px-4 py-3" onClick={e => e.stopPropagation()}>
-                  <ClauseRow
-                    clause={clause}
-                    isActive={true}
-                    onFocus={() => setActiveIdx(idx)}
-                    onChange={patch => onChange(clauses.map((c, i) => i === idx ? { ...c, ...patch } : c))}
-                    onRemove={() => {
-                      const next = clauses.filter((_, i) => i !== idx)
-                      onChange(next.length ? next : [{ id: 'source', type: 'source', ...CLAUSE_META.source, value: 'Notes' }])
-                      setActiveIdx(0)
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          )
-        })}
-        <AddClauseCard onAdd={(type) => {
-          const meta = CLAUSE_META[type]
-          const newClause: QueryClause = {
-            id: `c-${Date.now()}-${Math.random()}`,
-            type,
-            label: meta.label,
-            value: '',
-            inputType: meta.inputType,
-            placeholder: meta.placeholder,
-          }
-          onChange([...clauses, newClause])
-          setActiveIdx(clauses.length)
-        }} />
-      </div>
-    </div>
-  )
-}
+    <div className="border-b border-border bg-background/95 backdrop-blur px-6 py-3 space-y-2" data-testid="variant-c">
+      {/* Statement Row 1: Target, Scope, Time Window */}
+      <div className="flex items-center gap-2 flex-wrap text-xs font-mono">
+        <span className="font-black text-amber-500 uppercase tracking-widest text-[10px]">FIND</span>
+        <select
+          value={targetValue}
+          onChange={e => {
+            if (targetClauseIdx >= 0) {
+              updateClause(targetClauseIdx, { value: e.target.value })
+            } else {
+              onChange([{ id: 'c-target', type: 'target', ...CLAUSE_META.target, value: e.target.value }, ...clauses])
+            }
+          }}
+          className="rounded-md border border-border bg-muted/30 px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+          data-testid="variant-c-target-select"
+        >
+          {TARGET_OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>{o.value} ({o.label})</option>
+          ))}
+        </select>
 
-function AddClauseCard({ onAdd }: { onAdd: (type: 'text' | 'catalog' | 'tag' | 'effort' | 'discipline' | 'time') => void }) {
-  const [open, setOpen] = useState(false)
-  const available = (['text', 'catalog', 'tag', 'effort', 'discipline', 'time'] as const)
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); setOpen(o => !o) }}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-border text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-muted/30 hover:border-primary/30 hover:text-primary transition-colors"
-      >
-        <span className="size-5 rounded-full bg-primary/10 flex items-center justify-center">
-          <Plus className="size-3" />
-        </span>
-        Add clause
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute z-20 mt-1 left-0 right-0 rounded-md border border-border bg-background shadow-lg py-1">
-            {available.map(t => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => { onAdd(t); setOpen(false) }}
-                className="flex items-center gap-2 w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors"
-              >
-                <span className="text-base">{CLAUSE_META[t as ClauseType].icon}</span>
-                <span className="font-medium">{CLAUSE_META[t as ClauseType].label}</span>
-              </button>
-            ))}
-          </div>
-        </>
+        <span className="font-black text-amber-500 uppercase tracking-widest text-[10px] ml-1">IN</span>
+        <select
+          value={scopeValue}
+          onChange={e => {
+            if (scopeClauseIdx >= 0) {
+              updateClause(scopeClauseIdx, { value: e.target.value })
+            } else {
+              onChange([{ id: 'c-scope', type: 'scope', ...CLAUSE_META.scope, value: e.target.value }, ...clauses])
+            }
+          }}
+          className="rounded-md border border-border bg-muted/30 px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+          data-testid="variant-c-scope-select"
+        >
+          {SCOPE_OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>{o.value} ({o.label})</option>
+          ))}
+        </select>
+
+        <span className="font-black text-amber-500 uppercase tracking-widest text-[10px] ml-1">TIME</span>
+        <select
+          value={timeValue}
+          onChange={e => {
+            if (timeClauseIdx >= 0) {
+              updateClause(timeClauseIdx, { value: e.target.value })
+            } else {
+              onChange([...clauses, { id: 'c-time', type: 'time', ...CLAUSE_META.time, value: e.target.value }])
+            }
+          }}
+          className="rounded-md border border-border bg-muted/30 px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+          data-testid="variant-c-time-select"
+        >
+          {TIME_OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Statement Row 2: Filters */}
+      <div className="flex items-center gap-1.5 flex-wrap text-xs">
+        <span className="font-black text-muted-foreground/60 uppercase tracking-widest text-[10px] select-none">{'{'}</span>
+        {filterClauses.length === 0 && (
+          <span className="text-[11px] text-muted-foreground/40 italic">no tag filters</span>
+        )}
+        {filterClauses.map(({ clause, idx }) => (
+          <ClausePill
+            key={clause.id}
+            clause={clause}
+            onChange={patch => updateClause(idx, patch)}
+            onRemove={() => removeClause(idx)}
+            compact
+          />
+        ))}
+        <span className="font-black text-muted-foreground/60 uppercase tracking-widest text-[10px] select-none">{'}'}</span>
+
+        <AddFilterDropdown clauses={clauses} onAdd={addClause} />
+      </div>
+
+      {/* Optional Statement Row 3: Where Metric Predicate Join */}
+      {whereClause && (
+        <div className="flex items-center gap-2 text-xs font-mono pt-1 border-t border-border/40">
+          <span className="font-black text-violet-500 uppercase tracking-widest text-[10px]">WHERE JOIN</span>
+          <ClausePill
+            clause={whereClause}
+            onChange={patch => updateClause(whereClauseIdx, patch)}
+            onRemove={() => removeClause(whereClauseIdx)}
+            compact
+          />
+        </div>
       )}
     </div>
   )
