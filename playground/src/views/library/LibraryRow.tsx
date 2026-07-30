@@ -5,7 +5,7 @@
  * user can judge placement without row-quality noise.
  */
 import { FileTextIcon, FolderIcon, CalendarIcon, PlayIcon, PlusIcon } from 'lucide-react'
-import type { Entry } from '../lib/entryMapper'
+import type { Entry } from '../../lib/entryMapper'
 
 export interface LibraryRowProps {
   entry: Entry
