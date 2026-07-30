@@ -10,15 +10,16 @@
  *   4. `Note[]` → `Entry[]` via `toEntry` (the only place that touches sourceId)
  *   5. Render Dated Stream (Notes + Posts grouped by date) + CataloguesShelf (Sessions)
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CalendarIcon, ChevronDownIcon, ChevronRightIcon, FolderIcon } from 'lucide-react'
 import { queryService } from '@/services/analytics/query'
 import { parseQuery, isFindQuery, type ParsedFindQuery } from '@/services/analytics/query/wql'
 import { toEntry, type Entry } from '../../lib/entryMapper'
+import { addEntryToTodayInput } from '../../lib/addToToday'
 import { useLibraryQueryState, type LibraryQueryState } from '../../hooks/useLibraryQueryState'
 import { LibraryRow } from './LibraryRow'
 import { WqlComposerPanel, composeWql } from './WqlComposerPanel'
-
+import { journalNotes } from '../../services/journalNotes'
 import { todayKey, formatDateHeader } from '../../lib/dateFormat'
 
 /** Compute the { start, end } range from the panel's timePreset + customStart/End. */
@@ -41,6 +42,27 @@ export function LibraryPage() {
   const [entries, setEntries] = useState<Entry[]>([])
   const [shelfOpen, setShelfOpen] = useState(true)
   const [loading, setLoading] = useState(false)
+  const handleAddToToday = useCallback(async (entry: Entry) => {
+    const today = todayKey()
+    let rawContent = ''
+    if (entry.kind === 'session' || entry.kind === 'post') {
+      // Static content: read the first block's rawContent from the block index.
+      const result = await queryService.runFind({
+        raw: `find:block{note:${entry.id}}`,
+        target: 'block',
+        filters: [{ key: 'note', negate: false, values: [{ value: entry.id, wildcard: false }] }],
+      } as ParsedFindQuery)
+      rawContent = result.blocks[0]?.rawContent ?? ''
+    } else {
+      // Journal note: read the live note.
+      const note = await journalNotes.getById(entry.sourceItem)
+      const candidate = (note as unknown) as { rawContent?: unknown }
+      rawContent = typeof candidate.rawContent === 'string' ? candidate.rawContent : ''
+    }
+    const input = addEntryToTodayInput(entry, rawContent, today)
+    await journalNotes.create(input)
+  }, [])
+
 
   const wql = useMemo(() => composeWql(state), [state])
   const range = useMemo(() => computeRange(state), [state])
@@ -92,7 +114,6 @@ export function LibraryPage() {
 
   const sessionVisible = state.sources.session !== 'hide'
   const today = todayKey()
-
   return (
     <div className="bg-card flex flex-col flex-1" data-testid="library-page">
       <WqlComposerPanel
@@ -128,6 +149,7 @@ export function LibraryPage() {
                   key={entry.id}
                   entry={entry}
                   tone={isToday && entry.kind === 'note' ? 'primary' : 'secondary'}
+                  onAddToToday={handleAddToToday}
                 />
               ))}
             </div>
@@ -159,7 +181,7 @@ export function LibraryPage() {
                 <div className="px-6 py-3 text-xs text-muted-foreground/50">No sessions match.</div>
               )}
               {sessions.map(entry => (
-                <LibraryRow key={entry.id} entry={entry} />
+                <LibraryRow key={entry.id} entry={entry} onAddToToday={handleAddToToday} />
               ))}
             </div>
           )}

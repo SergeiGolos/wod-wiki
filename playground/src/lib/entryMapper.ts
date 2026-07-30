@@ -17,6 +17,11 @@ export interface Entry {
   kind: EntryKind
   sourceCatalog: string
   sourceItem: string
+  /** Original Note.sourceId (undefined for journal notes). Carried on the
+   *  Entry so the Library can pass it through to derived records (e.g. the
+   *  `sourceId` of a cloned "Add to today" journal note). The Library never
+   *  inspects this for kind classification; that's the mapper's job. */
+  sourceId?: string
   title: string
   /** YYYY-MM-DD for Post, null for Note (page resolves) and Session (undated). */
   date: string | null
@@ -57,6 +62,7 @@ export function toEntry(note: Note): Entry {
       kind: 'session',
       sourceCatalog: catalog!,
       sourceItem: rest.join('/'),
+      sourceId: note.sourceId,
       title,
       date: null,
       subtitle: (note as Note & { catalog?: string }).catalog ?? catalog,
@@ -69,6 +75,7 @@ export function toEntry(note: Note): Entry {
       kind: 'post',
       sourceCatalog: feedCatalog(id),
       sourceItem: id.split('/').slice(3).join('/') || id.split('/').pop()!,
+      sourceId: note.sourceId,
       title,
       date: feedDate(id),
       subtitle: (note as Note & { catalog?: string }).catalog ?? id.split('/')[1]!,
@@ -81,6 +88,7 @@ export function toEntry(note: Note): Entry {
     kind: 'note',
     sourceCatalog: 'journal',
     sourceItem: id,
+    sourceId: note.sourceId,
     title,
     date: null,
   }
