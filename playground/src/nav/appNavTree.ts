@@ -5,20 +5,15 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Journal, Feeds, Collections, Efforts, Analytics
+ *   L1: Home, Library, Efforts, Explore
  *   L2 of Home:        Zero to Hero + Syntax/* + Behaviors/* (canvas pages)
- *   L2 of Journal:     <JournalNavPanel>   — calendar + tag chips; the
- *                                          ?mode= view-mode param drives the
- *                                          unified JournalListPage
- *   L2 of Feeds:       <FeedsNavPanel>     — feed selector
- *   L2 of Collections: <CollectionsNavPanel> — category toggles
  *   L2 of Efforts:     <EffortsNavPanel>   — origin/discipline filters + recent workouts
- *   L2 of Analytics:   Explorer + Dashboard (static children)
+ *   L2 of Explore:     Dashboard + add-dashboard placeholder
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, BookOpen, Dumbbell } from 'lucide-react'
+import { ChartBarIcon, BookOpen, Dumbbell, Plus } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
@@ -147,20 +142,12 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
     },
     {
       id: 'analytics',
-      label: 'Analytics',
+      label: 'Explore',
       level: 1,
       icon: ChartBarIcon,
       action: { type: 'route', to: ROUTE_PATTERNS.analyticsExplorer },
       isActive: (loc: Location) => loc.pathname.startsWith('/analytics'),
       children: [
-        {
-          id: 'analytics-explorer',
-          label: 'Explorer',
-          level: 2,
-          icon: ChartBarIcon,
-          action: { type: 'route', to: ROUTE_PATTERNS.analyticsExplorer },
-          isActive: (loc: Location) => loc.pathname === '/analytics/explorer',
-        },
         {
           id: 'analytics-dashboard',
           label: 'Dashboard',
@@ -168,6 +155,14 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
           icon: ChartBarIcon,
           action: { type: 'route', to: ROUTE_PATTERNS.analyticsDashboard },
           isActive: (loc: Location) => loc.pathname === '/analytics/dashboard',
+        },
+        {
+          id: 'analytics-add-dashboard',
+          label: 'Add dashboard',
+          level: 2,
+          icon: Plus,
+          action: { type: 'none' },
+          disabled: true,
         },
       ],
     },
