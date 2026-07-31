@@ -59,6 +59,7 @@ export const wqlLanguage = LRLanguage.define({
         TagKey: t.propertyName,
         "TagKey/Word": t.propertyName,
         TagValue: t.string,
+        "TagValue/Value/Word": t.string,
         "TagValue/Word": t.string,
         Negate: t.operator,
         Star: t.operator,

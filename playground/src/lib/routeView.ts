@@ -79,7 +79,6 @@ export type PageKind =
   | 'workout'
   | 'journalEntry'
   | 'library'
-  | 'librarySearchPrototype'
 
 /** How the page is wrapped — the `<CanvasPage>` shell vs bare. */
 export interface ShellConfig {
@@ -313,7 +312,6 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
 }
 function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanvasPage | null): PageKind {
   if (pathname === '/library' || pathname === '/library/' || pathname === '/journal' || pathname === '/journal/' || pathname === '/feeds' || pathname === '/collections') return 'library'
-  if (pathname === '/prototype/library-search') return 'librarySearchPrototype'
   if (flags.feedDetailMatch) return 'feedDetail'
   if (flags.feedItemMatch) return 'feedItem'
   if (pathname === '/efforts') return 'effortsCatalog'

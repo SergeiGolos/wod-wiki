@@ -47,7 +47,6 @@ import { FeedItemPage } from './pages/FeedItemPage'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { HomeView } from './views/HomeView'
 import { LibraryPage } from './views/library/LibraryPage'
-import { LibrarySearchPrototype } from './views/prototype-search/LibrarySearchPrototype'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
@@ -227,7 +226,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       />
     ),
     library: () => <LibraryPage />,
-    librarySearchPrototype: () => <LibrarySearchPrototype />,
   }
 
   const canvasTitleAccessory =
@@ -395,7 +393,6 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.analytics} element={<Navigate to={ROUTE_PATTERNS.analyticsExplorer} replace />} />
                   <Route path={ROUTE_PATTERNS.analyticsExplorer} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.analyticsDashboard} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.librarySearchPrototype} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
                 <DocumentTitleSync />

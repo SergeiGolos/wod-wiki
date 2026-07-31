@@ -11,11 +11,11 @@ import {
 
 afterEach(() => {
   cleanup();
-  localStorage.clear();
+  if (typeof window !== 'undefined') window.localStorage.clear();
 });
 
 beforeEach(() => {
-  localStorage.clear();
+  if (typeof window !== 'undefined') window.localStorage.clear();
 });
 
 function CurrentUnit() {
@@ -30,13 +30,13 @@ describe('useAnalyticsUnitPreference', () => {
   });
 
   it('reads the persisted preference', () => {
-    localStorage.setItem(ANALYTICS_UNIT_STORAGE_KEY, 'lb');
+    window.localStorage.setItem(ANALYTICS_UNIT_STORAGE_KEY, 'lb');
     render(<CurrentUnit />);
     expect(screen.getByTestId('current-unit').textContent).toBe('lb');
   });
 
   it('ignores invalid stored values', () => {
-    localStorage.setItem(ANALYTICS_UNIT_STORAGE_KEY, 'oz');
+    window.localStorage.setItem(ANALYTICS_UNIT_STORAGE_KEY, 'oz');
     render(<CurrentUnit />);
     expect(screen.getByTestId('current-unit').textContent).toBe(DEFAULT_ANALYTICS_UNIT);
   });
@@ -53,17 +53,17 @@ describe('AnalyticsUnitPreference', () => {
     expect(lb.className).not.toContain('bg-primary');
 
     fireEvent.click(lb);
-    expect(localStorage.getItem(ANALYTICS_UNIT_STORAGE_KEY)).toBe('lb');
+    expect(window.localStorage.getItem(ANALYTICS_UNIT_STORAGE_KEY)).toBe('lb');
     expect(lb.className).toContain('bg-primary');
     expect(kg.className).not.toContain('bg-primary');
   });
 
   it('reflects an externally provided unit without changing storage', () => {
-    localStorage.setItem(ANALYTICS_UNIT_STORAGE_KEY, 'lb');
+    window.localStorage.setItem(ANALYTICS_UNIT_STORAGE_KEY, 'lb');
     render(<AnalyticsUnitPreference unit="kg" />);
     expect(screen.getByText('kg').className).toContain('bg-primary');
     expect(screen.getByText('lb').className).not.toContain('bg-primary');
-    expect(localStorage.getItem(ANALYTICS_UNIT_STORAGE_KEY)).toBe('lb');
+    expect(window.localStorage.getItem(ANALYTICS_UNIT_STORAGE_KEY)).toBe('lb');
   });
 
   it('disables the toggle and shows a hint when the unit is forced by a directive', () => {

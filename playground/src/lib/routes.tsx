@@ -47,7 +47,6 @@ export const ROUTE_PATTERNS = {
   analyticsExplorer: '/analytics/explorer',
   analyticsDashboard: '/analytics/dashboard',
   library: '/library',
-  librarySearchPrototype: '/prototype/library-search',
 } as const;
 
 // ---------------------------------------------------------------------------
