@@ -1,14 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
+
+// Must precede the react-router-dom import: repairs the partial
+// react-router-dom mock that useJournalZipProcessor.test.ts leaks
+// process-wide (see tests/helpers/repair-react-router-dom.ts).
+import '../../../../tests/helpers/repair-react-router-dom';
+
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { NuqsAdapter } from 'nuqs/adapters/react-router';
-import type { QueryResult } from '@/services/analytics/query';
+import { isFindQuery, parseQuery, type QueryResult, type ParsedFindQuery } from '@/services/analytics/query';
 import { AnalyticsDashboardPage } from './AnalyticsDashboardPage';
 
 afterEach(cleanup);
 
 let sampleDataPresent = false;
 let queryResultKind: 'empty' | 'scalar' = 'scalar';
+let runQueryCalls: string[] = [];
 
 mock.module('@/services/analytics/sample', () => ({
   loadSampleData: mock(async () => ({ facts: 120 })),
@@ -16,20 +23,20 @@ mock.module('@/services/analytics/sample', () => ({
   hasSampleData: mock(async () => sampleDataPresent),
 }));
 
-function resultOf(kind: 'empty' | 'error' | 'scalar'): QueryResult {
+function resultOf(kind: 'empty' | 'error' | 'scalar', raw?: string): QueryResult {
   const base = {
-    parsed: { raw: '', agg: 'sum' as const, metric: '', filters: [], groupBy: [] },
+    parsed: { raw: raw ?? '', agg: 'sum' as const, metric: '', filters: [], groupBy: [] },
     series: [],
     stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 },
     matched: [],
   };
   if (kind === 'error') {
-    return { ...base, parsed: { ...base.parsed, raw: 'bad', error: 'Cannot parse "bad".' } };
+    return { ...base, parsed: { ...base.parsed, raw: raw ?? 'bad', error: 'Cannot parse "bad".' } };
   }
   if (kind === 'scalar') {
     return {
       ...base,
-      parsed: { ...base.parsed, raw: 'sum:totalVolume{}', metric: 'totalVolume' },
+      parsed: { ...base.parsed, raw: raw ?? 'sum:totalVolume{}', metric: 'totalVolume' },
       series: [{ key: 'totalVolume', label: 'totalVolume', points: [{ ts: 1_700_000_000_000, value: 6000 }] }],
       stages: { selected: 1, buckets: 1, aggregated: 1, groups: 1 },
       scalar: 6000,
@@ -40,10 +47,20 @@ function resultOf(kind: 'empty' | 'error' | 'scalar'): QueryResult {
 }
 
 mock.module('@/services/analytics/query', () => ({
-  parseQuery: (raw: string) => ({ raw, agg: 'sum', metric: '', filters: [], groupBy: [] }),
+  parseQuery,
+  isFindQuery,
   QueryService: class {},
   queryService: {
-    runQuery: mock(async () => resultOf(queryResultKind)),
+    runQuery: mock(async (raw: string) => {
+      runQueryCalls.push(raw);
+      return resultOf(queryResultKind, raw);
+    }),
+    runFind: mock(async (ast: ParsedFindQuery) => ({
+      parsed: ast,
+      notes: [],
+      blocks: [],
+      stages: { selected: 0, matched: 0 },
+    })),
     run: mock(async () => resultOf(queryResultKind)),
   },
 }));
@@ -58,9 +75,17 @@ function renderPage() {
   );
 }
 
+async function openComposerFor(widgetKey: string) {
+  renderPage();
+  await waitFor(() => expect(screen.queryByText('Loading widgets…')).toBeNull());
+  fireEvent.click(screen.getByTestId(`edit-widget-${widgetKey}`));
+  await waitFor(() => expect(screen.getByTestId('widget-query-modal')).toBeDefined());
+}
+
 beforeEach(() => {
   sampleDataPresent = false;
   queryResultKind = 'scalar';
+  runQueryCalls = [];
 });
 
 describe('AnalyticsDashboardPage', () => {
@@ -107,5 +132,40 @@ describe('AnalyticsDashboardPage', () => {
     fireEvent.click(button);
     await waitFor(() => expect(screen.getByText('Hide note source')).toBeDefined());
     expect(screen.getByText(/range: past_16_weeks/)).toBeDefined();
+  });
+
+  it('renders shared WqlComposer in modal when editing a widget query', async () => {
+    await openComposerFor('avgTis');
+
+    expect(screen.getByTestId('wql-composer')).toBeDefined();
+    expect(screen.queryByText('Composition Mode:')).toBeNull();
+  });
+
+  it('composes and applies updated query to widget pipeline', async () => {
+    await openComposerFor('avgTis');
+
+    runQueryCalls = [];
+    fireEvent.click(screen.getByTestId('apply-widget-query'));
+    await waitFor(() => expect(screen.queryByTestId('widget-query-modal')).toBeNull());
+
+    // The widget query was passed to the dashboard widget query pipeline (avg:tis)
+    await waitFor(() => expect(runQueryCalls).toContain('avg:tis'));
+  });
+
+  it('disables Apply button and flags inline diagnostic error when composed WQL is invalid', async () => {
+    await openComposerFor('avgTis');
+
+    // Enter a free-text term containing spaces (breaks WQL filter brace tokenization)
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.change(input, { target: { value: 'bad value' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    // Inline diagnostics badge highlights the error
+    await waitFor(() => expect(screen.getByTestId('wql-validity-badge').getAttribute('data-valid')).toBe('false'));
+    expect(screen.getByTestId('apply-widget-query').getAttribute('disabled')).not.toBeNull();
+
+    // Clicking disabled Apply button does not close modal
+    fireEvent.click(screen.getByTestId('apply-widget-query'));
+    expect(screen.getByTestId('widget-query-modal')).toBeDefined();
   });
 });

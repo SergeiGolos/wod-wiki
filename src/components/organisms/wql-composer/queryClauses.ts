@@ -533,6 +533,15 @@ export function defaultClauses(): QueryClause[] {
   ]
 }
 
+/** Default clauses for aggregate/metrics queries (source=metrics, agg=sum, empty metric). */
+export function defaultMetricsClauses(): QueryClause[] {
+  return [
+    { id: 'c-source', type: 'source', ...CLAUSE_META.source, value: 'metrics' },
+    { id: 'c-agg',    type: 'agg',    ...CLAUSE_META.agg,    value: 'sum' },
+    { id: 'c-metric', type: 'metric', ...CLAUSE_META.metric, value: '' },
+  ]
+}
+
 /**
  * Value of the first clause of `type`, trimmed, or `fallback` when absent or
  * empty. Mirrors the lookup/defaulting `clausesToWql` performs, so consumers

@@ -31,8 +31,8 @@
 import { useSearchParams } from 'react-router-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  CLAUSE_META,
   clausesToWql,
+  defaultMetricsClauses,
   wqlToClauses,
   type QueryClause,
 } from '@/components/organisms/wql-composer'
@@ -58,17 +58,10 @@ export interface ExplorerQueryState {
   /** Set the analytics range (history replace — a view preference, not navigation). */
   setWeeks: (weeks: ExplorerRangeWeeks) => void
 }
-
 /** Explorer landing state: metrics plane, aggregate seeded, metric empty for
  * placeholder guidance. Compiles to `sum:` — parses as an aggregate (never a
  * find query), so the landing page keeps the analytics empty state. */
-export function defaultExplorerClauses(): QueryClause[] {
-  return [
-    { id: 'c-source', type: 'source', ...CLAUSE_META.source, value: 'metrics' },
-    { id: 'c-agg', type: 'agg', ...CLAUSE_META.agg, value: 'sum' },
-    { id: 'c-metric', type: 'metric', ...CLAUSE_META.metric, value: '' },
-  ]
-}
+export const defaultExplorerClauses = defaultMetricsClauses
 
 function parseWeeks(raw: string | null): ExplorerRangeWeeks {
   const n = Number.parseInt(raw ?? '', 10)
