@@ -1,12 +1,13 @@
 /**
- * QueryBlockView — the atomic renderer for a ```query fenced block (#801).
+ * QueryBlockView — the atomic renderer for a ```query fenced block (#801, #842).
  *
- * The block body is a single WQL string. It is parsed and executed through
- * the same QueryService the Explorer uses: analytics queries render a chart
- * (scalar / timeseries / bars), find queries render a note/block list. The
- * block is a dumb view over the engine — it declares, never computes.
+ * The block body is a single WQL string or structured block source. It is parsed
+ * and executed through the same QueryService the Explorer uses: analytics queries
+ * render a chart (scalar / timeseries / bars), find queries render a note/block list.
+ * Includes modal inspector editing backed by WqlComposer (decision #837).
  */
 import { useEffect, useMemo, useState } from 'react';
+import { Edit3 } from 'lucide-react';
 import {
   parseQuery,
   isFindQuery,
@@ -19,57 +20,140 @@ import { QueryValue } from '@/components/molecules/analytics/QueryValue';
 import { WqlTimeseries } from '@/components/molecules/analytics/WqlTimeseries';
 import { WqlBars } from '@/components/molecules/analytics/WqlBars';
 import { WqlEmptyState } from '@/components/molecules/analytics/WqlEmptyState';
+import { extractBlockQueries } from '../utils/blockQueryPatcher';
+import { WqlQueryInspectorModal } from './WqlQueryInspectorModal';
 
 export interface QueryBlockViewProps {
-  /** Raw text between the ```query fences — the WQL query string. */
+  /** Raw text between the ```query fences — the WQL query string or block source. */
   query: string;
+  /** Optional callback when query is saved via the inspector modal. */
+  onSaveQuery?: (newQuery: string, queryIndex?: number) => void;
+  /** Query index within parent block (default 0). */
+  queryIndex?: number;
+  /** Read-only mode flag. */
+  readOnly?: boolean;
 }
 
-export function QueryBlockView({ query }: QueryBlockViewProps) {
-  const parsed = useMemo(() => parseQuery(query), [query]);
+export function QueryBlockView({
+  query,
+  onSaveQuery,
+  queryIndex = 0,
+  readOnly = false,
+}: QueryBlockViewProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const extracted = useMemo(() => extractBlockQueries(query), [query]);
+  const effectiveQuery = extracted.length > 0 ? extracted[0].query : query;
+
+  const parsed = useMemo(() => parseQuery(effectiveQuery), [effectiveQuery]);
   const [result, setResult] = useState<QueryResult | undefined>(undefined);
   const [findResult, setFindResult] = useState<FindQueryResult | undefined>(undefined);
   const [runError, setRunError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    if (parsed.error) return;
     let cancelled = false;
     setRunError(undefined);
+    setResult(undefined);
+    setFindResult(undefined);
+
+    if (parsed.error) return;
+
     if (isFindQuery(parsed)) {
-      queryService.runFind(parsed)
-        .then((r) => { if (!cancelled) setFindResult(r); })
-        .catch((e) => { if (!cancelled) setRunError(String(e)); });
+      void queryService
+        .runFind(parsed)
+        .then((res) => {
+          if (!cancelled) setFindResult(res);
+        })
+        .catch((err) => {
+          if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
+        });
     } else {
-      queryService.runQuery(query)
-        .then((r) => { if (!cancelled) setResult(r); })
-        .catch((e) => { if (!cancelled) setRunError(String(e)); });
+      void queryService
+        .runQuery(effectiveQuery)
+        .then((res) => {
+          if (!cancelled) setResult(res);
+        })
+        .catch((err) => {
+          if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
+        });
     }
-    return () => { cancelled = true; };
-  }, [query, parsed]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveQuery, parsed]);
+
+  const handleEditClick = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleApplyQuery = (newQuery: string) => {
+    onSaveQuery?.(newQuery, queryIndex);
+  };
 
   // ── Parse / run error ──
   if (parsed.error) {
-    return <QueryBlockShell><p className="text-sm text-destructive font-mono px-1 py-2">{parsed.error}</p></QueryBlockShell>;
+    return (
+      <QueryBlockShell onEdit={onSaveQuery ? handleEditClick : undefined} readOnly={readOnly}>
+        <p className="text-sm text-destructive font-mono px-1 py-2">{parsed.error}</p>
+        {onSaveQuery && (
+          <WqlQueryInspectorModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            initialQuery={effectiveQuery}
+            onApply={handleApplyQuery}
+          />
+        )}
+      </QueryBlockShell>
+    );
   }
   if (runError) {
-    return <QueryBlockShell><p className="text-sm text-destructive font-mono px-1 py-2">{runError}</p></QueryBlockShell>;
+    return (
+      <QueryBlockShell onEdit={onSaveQuery ? handleEditClick : undefined} readOnly={readOnly}>
+        <p className="text-sm text-destructive font-mono px-1 py-2">{runError}</p>
+        {onSaveQuery && (
+          <WqlQueryInspectorModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            initialQuery={effectiveQuery}
+            onApply={handleApplyQuery}
+          />
+        )}
+      </QueryBlockShell>
+    );
   }
 
   // ── Find query → note/block list ──
   if (isFindQuery(parsed)) {
     return (
-      <QueryBlockShell>
+      <QueryBlockShell onEdit={onSaveQuery ? handleEditClick : undefined} readOnly={readOnly}>
         <FindResultList parsed={parsed} result={findResult} />
+        {onSaveQuery && (
+          <WqlQueryInspectorModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            initialQuery={effectiveQuery}
+            onApply={handleApplyQuery}
+          />
+        )}
       </QueryBlockShell>
     );
   }
 
   // ── Analytics query → chart ──
   return (
-    <QueryBlockShell>
+    <QueryBlockShell onEdit={onSaveQuery ? handleEditClick : undefined} readOnly={readOnly}>
       <div className="h-48">
         <AnalyticsChart result={result} metric={parsed.metric} />
       </div>
+      {onSaveQuery && (
+        <WqlQueryInspectorModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          initialQuery={effectiveQuery}
+          onApply={handleApplyQuery}
+        />
+      )}
     </QueryBlockShell>
   );
 }
@@ -77,60 +161,88 @@ export function QueryBlockView({ query }: QueryBlockViewProps) {
 /** Pick the right chart component for an analytics QueryResult. */
 function AnalyticsChart({ result, metric }: { result: QueryResult | undefined; metric: string }) {
   const shape = useChartShape(result);
-  if (shape.kind === 'error') {
-    return <div className="h-full flex items-center justify-center text-sm text-destructive font-mono px-4 text-center">{shape.message}</div>;
+
+  if (!result) {
+    return <WqlEmptyState label="Loading…" />;
   }
-  if (!result || shape.kind === 'empty') {
-    return <WqlEmptyState result={result} />;
+  if (shape.kind === 'empty') {
+    return <WqlEmptyState label={`No events matched '${metric}'`} />;
   }
   if (shape.kind === 'scalar') {
-    return <QueryValue result={result} label={`${result.parsed.agg}(${metric})`} />;
+    return <QueryValue result={result} label={metric} />;
   }
-  if (shape.kind === 'timeseries') {
-    return <WqlTimeseries result={result} />;
+  if (shape.kind === 'bars') {
+    return <WqlBars result={result} />;
   }
-  return <WqlBars result={result} />;
+  return <WqlTimeseries result={result} />;
 }
 
 /** Note/block list for a find query (mirrors the Explorer's find rendering). */
 function FindResultList({ parsed, result }: { parsed: FindQueryResult['parsed']; result: FindQueryResult | undefined }) {
   if (!result) {
-    return <div className="text-sm text-muted-foreground px-1 py-2">Searching…</div>;
+    return <p className="text-xs text-muted-foreground italic px-1 py-2">Searching…</p>;
   }
-  if (result.notes.length === 0 && result.blocks.length === 0) {
-    return <div className="text-sm text-muted-foreground px-1 py-2">No {parsed.target}s found.</div>;
+
+  const { notes, blocks, stages } = result;
+  const count = parsed.target === 'block' ? blocks.length : notes.length;
+
+  if (count === 0) {
+    return <WqlEmptyState label={`No ${parsed.target}s matched query`} />;
   }
+
   return (
-    <div className="space-y-1.5 px-1 py-1">
-      <div className="text-[11px] text-muted-foreground">
-        {result.stages.matched} of {result.stages.selected} {parsed.target}s matched
+    <div className="space-y-2 py-1">
+      <div className="flex items-center justify-between text-xs text-muted-foreground px-1 border-b border-border/50 pb-1">
+        <span className="font-mono text-[11px]">{parsed.raw}</span>
+        <span>
+          {count} of {stages.matched} {parsed.target}s matched
+        </span>
       </div>
-      {result.blocks.length > 0 ? result.blocks.map((block) => (
-        <div key={block.id} className="border border-border rounded-md p-2">
-          <div className="font-medium text-sm">{block.noteTitle || block.noteId}</div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">
-            <span className="rounded bg-muted px-1.5 py-0.5 mr-1">{block.dataType}</span>
-            {block.blockContentId && <span className="font-mono">{block.blockContentId}</span>}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{block.rawContent}</div>
-        </div>
-      )) : result.notes.map((note) => (
-        <div key={note.id} className="border border-border rounded-md p-2">
-          <div className="font-medium text-sm">{note.title}</div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">
-            <span>{new Date(note.createdAt).toLocaleDateString()}</span>
-            {note.type && <span className="rounded bg-muted px-1.5 py-0.5 ml-1">{note.type}</span>}
-          </div>
-        </div>
-      ))}
+      <ul className="divide-y divide-border/40 max-h-56 overflow-y-auto">
+        {parsed.target === 'block'
+          ? blocks.map((b) => (
+              <li key={b.id} className="py-1.5 px-1 hover:bg-muted/40 rounded text-xs flex items-center justify-between">
+                <span className="font-medium text-foreground truncate">{b.snippet}</span>
+                <span className="text-[10px] font-mono text-muted-foreground ml-2 shrink-0">{b.type}</span>
+              </li>
+            ))
+          : notes.map((n) => (
+              <li key={n.id} className="py-1.5 px-1 hover:bg-muted/40 rounded text-xs flex items-center justify-between">
+                <span className="font-medium text-foreground truncate">{n.title}</span>
+                {n.category && (
+                  <span className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground ml-2 shrink-0">
+                    {n.category}
+                  </span>
+                )}
+              </li>
+            ))}
+      </ul>
     </div>
   );
 }
 
 /** Consistent framed shell around an inline query result. */
-function QueryBlockShell({ children }: { children: React.ReactNode }) {
+function QueryBlockShell({
+  children,
+  onEdit,
+  readOnly,
+}: {
+  children: React.ReactNode;
+  onEdit?: () => void;
+  readOnly?: boolean;
+}) {
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 my-1">
+    <div className="relative group rounded-lg border border-border bg-card px-3 py-2 my-1">
+      {onEdit && !readOnly && (
+        <button
+          onClick={onEdit}
+          title="Edit query with Omni-Composer"
+          data-testid="edit-query-block"
+          className="absolute top-2 right-2 z-10 p-1.5 rounded-lg bg-card/80 border border-border text-muted-foreground hover:text-foreground hover:border-primary opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+        >
+          <Edit3 size={13} />
+        </button>
+      )}
       {children}
     </div>
   );

@@ -1,9 +1,10 @@
 /**
  * Query Block Preview — CM6 extension that renders ```query and ```dashboard
- * fenced blocks inline as live WQL results (#801). Mirrors widget-block-preview:
+ * fenced blocks inline as live WQL results (#801, #842). Mirrors widget-block-preview:
  * each section is replaced by a non-editable block decoration mounting a React
  * root (QueryBlockView / DashboardBlockView). Placing the cursor inside the
- * block reveals the raw source for editing.
+ * block reveals the raw source for editing. Includes modal inspector editing via
+ * WqlComposer with patch write-back (decision #837).
  */
 import {
   Decoration,
@@ -20,6 +21,7 @@ import { sectionField } from "./section-state";
 import type { EditorSection } from "./section-state";
 import { QueryBlockView } from "../blocks/QueryBlockView";
 import { DashboardBlockView } from "../blocks/DashboardBlockView";
+import { patchBlockQuery } from "../utils/blockQueryPatcher";
 
 type Root = { render: (c: React.ReactNode) => void; unmount: () => void };
 
@@ -44,17 +46,31 @@ class ReactQueryBlock extends WidgetType {
     );
   }
 
-  toDOM(): HTMLElement {
+  toDOM(view: EditorView): HTMLElement {
     const wrapper = document.createElement("div");
     wrapper.className = "cm-query-block-preview";
     wrapper.style.cssText =
       "display:block; width:100%; min-height:1.5em; outline:none;";
 
     this.root = createRoot(wrapper) as unknown as Root;
+    const onSaveQuery = (newQuery: string, queryIndex = 0) => {
+      saveBlockQuerySource(view, this.sectionId, newQuery, queryIndex);
+    };
+
     if (this.kind === "query") {
-      this.root.render(React.createElement(QueryBlockView, { query: this.rawContent }));
+      this.root.render(
+        React.createElement(QueryBlockView, {
+          query: this.rawContent,
+          onSaveQuery,
+        }),
+      );
     } else {
-      this.root.render(React.createElement(DashboardBlockView, { body: this.rawContent }));
+      this.root.render(
+        React.createElement(DashboardBlockView, {
+          body: this.rawContent,
+          onSaveQuery,
+        }),
+      );
     }
     return wrapper;
   }
@@ -69,7 +85,11 @@ class ReactQueryBlock extends WidgetType {
       r.unmount();
     } else {
       queueMicrotask(() => {
-        try { r.unmount(); } catch { /* already unmounted */ }
+        try {
+          r.unmount();
+        } catch {
+          /* already unmounted */
+        }
       });
     }
   }
@@ -141,9 +161,48 @@ export function queryBlockPreview(): Extension {
 }
 
 /** Find a query/dashboard block section by id (for tests / navigation). */
-export function findQueryBlockSection(view: EditorView, sectionId: string): EditorSection | null {
+export function findQueryBlockSection(
+  view: EditorView,
+  sectionId: string,
+): EditorSection | null {
   const { sections } = view.state.field(sectionField);
-  return sections.find(
-    (s) => (s.type === "query" || s.type === "dashboard") && s.id === sectionId,
-  ) ?? null;
+  return (
+    sections.find(
+      (s) => (s.type === "query" || s.type === "dashboard") && s.id === sectionId,
+    ) ?? null
+  );
+}
+
+/**
+ * Patch a composed WQL query back into the source of a ```query or ```dashboard section.
+ */
+export function saveBlockQuerySource(
+  view: EditorView,
+  sectionId: string,
+  newQuery: string,
+  queryIndex = 0,
+): { ok: boolean; patchedContent?: string; message?: string } {
+  const section = findQueryBlockSection(view, sectionId);
+  if (!section || section.contentFrom == null || section.contentTo == null) {
+    return {
+      ok: false,
+      message: "Unable to locate query block section in editor.",
+    };
+  }
+
+  const currentContent = view.state.doc.sliceString(
+    section.contentFrom,
+    section.contentTo,
+  );
+  const patchedContent = patchBlockQuery(currentContent, newQuery, queryIndex);
+
+  view.dispatch({
+    changes: {
+      from: section.contentFrom,
+      to: section.contentTo,
+      insert: patchedContent,
+    },
+  });
+
+  return { ok: true, patchedContent };
 }
