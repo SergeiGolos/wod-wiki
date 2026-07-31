@@ -17,7 +17,7 @@ import {
   wqlSearchSource,
   withWqlText,
   searchPaletteClauses,
-  paletteExecuteFind,
+  paletteExecute,
   navigatePaletteResult,
 } from './services/wqlSearchSource'
 import { useCreateJournalEntry } from './hooks/useCreateJournalEntry'
@@ -108,7 +108,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   // Open the palette for global search (Ctrl/Cmd+K — WQL mode, issue #834)
   const openSearchPalette = useCallback(() => {
     usePaletteStore.getState().open({
-      wql: { initialClauses: searchPaletteClauses(), executeFind: paletteExecuteFind },
+      wql: { initialClauses: searchPaletteClauses(), execute: paletteExecute },
       sources: [
         wqlSearchSource(),
         withWqlText(canvasRouteSource(canvasRoutes)),

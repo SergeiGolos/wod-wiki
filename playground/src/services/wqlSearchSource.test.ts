@@ -212,11 +212,10 @@ describe('navigatePaletteResult', () => {
 })
 
 describe('searchPaletteClauses', () => {
-  it('compiles to the unbounded global default (note / all / no time window)', () => {
+  it('compiles to the unbounded global default (source notes / all / no time window)', () => {
     const clauses = searchPaletteClauses()
     expect(clauses.map(c => [c.type, c.value])).toEqual([
-      ['target', 'note'],
-      ['scope', 'all'],
+      ['source', 'notes'],
       ['time', 'all'],
     ])
     expect(clausesToWql(clauses)).toBe('find:note in all')

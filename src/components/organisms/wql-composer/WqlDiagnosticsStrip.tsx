@@ -17,7 +17,7 @@
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isFindQuery } from '@/services/analytics/query/wql'
-import { summarizeFind, type WqlDiagnostics } from './diagnostics'
+import { summarizeAggregate, summarizeFind, type WqlDiagnostics } from './diagnostics'
 import type { WqlStageCounts } from './useWqlStageCounts'
 
 export interface WqlDiagnosticsStripProps {
@@ -45,7 +45,8 @@ export function WqlDiagnosticsStrip({
   className,
 }: WqlDiagnosticsStripProps) {
   const { valid, error, ast } = diagnostics
-  const summary = valid && isFindQuery(ast) ? summarizeFind(ast) : undefined
+  const findSummary = valid && isFindQuery(ast) ? summarizeFind(ast) : undefined
+  const aggSummary = valid && !isFindQuery(ast) ? summarizeAggregate(ast) : undefined
 
   return (
     <div
@@ -80,18 +81,35 @@ export function WqlDiagnosticsStrip({
         </span>
       )}
 
-      {summary && (
+      {findSummary && (
         <span data-testid="wql-ast-summary" className="inline-flex items-center gap-x-3 gap-y-1 flex-wrap">
-          <SummaryChip label="target" value={summary.target} testId="wql-summary-target" />
-          <SummaryChip label="scope" value={summary.scope} testId="wql-summary-scope" />
-          {summary.window && <SummaryChip label="window" value={summary.window} testId="wql-summary-window" />}
-          {summary.join && <SummaryChip label="join" value={summary.join} testId="wql-summary-join" />}
+          <SummaryChip label="target" value={findSummary.target} testId="wql-summary-target" />
+          <SummaryChip label="scope" value={findSummary.scope} testId="wql-summary-scope" />
+          {findSummary.window && <SummaryChip label="window" value={findSummary.window} testId="wql-summary-window" />}
+          {findSummary.join && <SummaryChip label="join" value={findSummary.join} testId="wql-summary-join" />}
         </span>
       )}
 
-      {summary && stages && (
+      {aggSummary && (
+        <span data-testid="wql-ast-summary" className="inline-flex items-center gap-x-3 gap-y-1 flex-wrap">
+          <SummaryChip label="agg" value={aggSummary.agg} testId="wql-summary-agg" />
+          <SummaryChip label="metric" value={aggSummary.metric} testId="wql-summary-metric" />
+          {aggSummary.dims && <SummaryChip label="by" value={aggSummary.dims} testId="wql-summary-dims" />}
+          {aggSummary.rollup && <SummaryChip label="rollup" value={aggSummary.rollup} testId="wql-summary-rollup" />}
+          {aggSummary.unit && <SummaryChip label="unit" value={aggSummary.unit} testId="wql-summary-unit" />}
+          {aggSummary.join && <SummaryChip label="join" value={aggSummary.join} testId="wql-summary-join" />}
+        </span>
+      )}
+
+      {findSummary && stages?.kind === 'find' && (
         <span data-testid="wql-stage-counts" className="text-muted-foreground">
-          {stages.matched} of {stages.selected} {summary.target}s matched
+          {stages.matched} of {stages.selected} {findSummary.target}s matched
+        </span>
+      )}
+
+      {aggSummary && stages?.kind === 'aggregate' && (
+        <span data-testid="wql-stage-counts" className="text-muted-foreground">
+          {stages.groups} groups · {stages.buckets} buckets · {stages.aggregated} aggregated
         </span>
       )}
     </div>

@@ -1,5 +1,5 @@
 /**
- * WqlComposer — shared omni command bar (issue #829).
+ * WqlComposer — shared omni command bar (issue #829, #838).
  *
  * Asserts:
  *   1. Renders token-slot pills with placeholder guidance for empty clauses.
@@ -10,6 +10,9 @@
  *      cycles options, Enter selects, Escape dismisses.
  *   5. Pills are tabbable (Tab / Shift+Tab slot traversal).
  *   6. Controlled mode: clauses prop wins, onClausesChange is the only write path.
+ *   7. Source-pivot model: metrics plane renders agg/metric pills and emits
+ *      aggregate WQL; AddFilter menu is plane-aware; pivoting drops content-only
+ *      clauses while preserving shared filters.
  */
 
 import { useState } from 'react';
@@ -18,6 +21,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import { WqlComposer, type WqlValidationState } from './WqlComposer';
 import { defaultClauses, type QueryClause } from './queryClauses';
+import { isFindQuery, type AnyParsedQuery } from '@/services/analytics/query/wql';
 
 afterEach(cleanup);
 
@@ -26,13 +30,19 @@ const emptyTagClause = (): QueryClause[] => [
   { id: 'c-tag', type: 'tag', label: 'Tag', value: '', inputType: 'select', placeholder: 'Pick tag...' },
 ];
 
+const metricsClauses = (): QueryClause[] => [
+  { id: 'c-source', type: 'source', label: 'Source', value: 'metrics', inputType: 'select', placeholder: 'journal, notes, metrics…' },
+  { id: 'c-agg', type: 'agg', label: 'Aggregate', value: 'sum', inputType: 'select', placeholder: 'sum, avg…' },
+  { id: 'c-metric', type: 'metric', label: 'Metric', value: 'totalVolume', inputType: 'select', placeholder: 'totalVolume, reps…' },
+];
+
 describe('WqlComposer', () => {
   it('renders token pills and shows placeholder guidance for empty clauses', () => {
     render(<WqlComposer initialClauses={emptyTagClause()} />);
 
     // Valued pills show prefix + value
-    expect(screen.getByTestId('token-slot-target').textContent).toContain('note');
-    expect(screen.getByTestId('token-slot-scope').textContent).toContain('journal');
+    expect(screen.getByTestId('token-slot-source').textContent).toContain('notes');
+    expect(screen.getByTestId('token-slot-time').textContent).toContain('last 2w');
 
     // Empty pill falls back to the placeholder guidance text
     expect(screen.getByTestId('token-slot-tag').textContent).toContain('tags: [tag]');
@@ -41,7 +51,7 @@ describe('WqlComposer', () => {
   it('emits wql, validation, and AST callbacks on mount', () => {
     const onWqlChange = mock((_wql: string) => {});
     const onValidationChange = mock((_s: WqlValidationState) => {});
-    const onAstChange = mock((_ast: unknown) => {});
+    const onAstChange = mock((_ast: AnyParsedQuery) => {});
 
     render(
       <WqlComposer
@@ -51,12 +61,15 @@ describe('WqlComposer', () => {
       />,
     );
 
-    expect(onWqlChange).toHaveBeenCalledWith('find:note in journal last 2w');
+    expect(onWqlChange).toHaveBeenCalledWith('find:note in all last 2w');
     expect(onValidationChange).toHaveBeenCalledWith({ valid: true });
     expect(onAstChange).toHaveBeenCalled();
-    const ast = onAstChange.mock.calls[0][0] as any;
-    expect(ast.target).toBe('note');
-    expect(ast.scope).toBe('journal');
+    const ast = onAstChange.mock.calls[0][0];
+    expect(isFindQuery(ast)).toBe(true);
+    if (isFindQuery(ast)) {
+      expect(ast.target).toBe('note');
+      expect(ast.scope).toBe('all');
+    }
   });
 
   it('appends a text clause via free-text input + Enter and fires onClausesChange', () => {
@@ -74,41 +87,41 @@ describe('WqlComposer', () => {
     expect(next[next.length - 1]?.value).toBe('Fran');
 
     // Uncontrolled path: internal state advanced → WQL re-emitted with the filter.
-    expect(onWqlChange).toHaveBeenLastCalledWith('find:note{text:Fran} in journal last 2w');
+    expect(onWqlChange).toHaveBeenLastCalledWith('find:note{text:Fran} in all last 2w');
   });
 
   it('supports keyboard-only option selection: Enter opens, Up/Down cycles, Enter selects, Escape dismisses', () => {
     render(<WqlComposer />);
 
-    const target = screen.getByTestId('token-slot-target');
-    target.focus();
+    const source = screen.getByTestId('token-slot-source');
+    source.focus();
 
     // Enter opens the popover and moves focus into it
-    fireEvent.keyDown(target, { key: 'Enter' });
-    const popover = screen.getByTestId('clause-popover-target');
+    fireEvent.keyDown(source, { key: 'Enter' });
+    const popover = screen.getByTestId('clause-popover-source');
     expect(document.activeElement).toBe(popover);
 
-    // ArrowDown then Enter selects the second option ("block")
+    // ArrowDown then Enter selects the second option ("collections")
     fireEvent.keyDown(document.activeElement as Element, { key: 'ArrowDown' });
     fireEvent.keyDown(document.activeElement as Element, { key: 'Enter' });
-    expect(screen.getByTestId('token-slot-target').textContent).toContain('block');
+    expect(screen.getByTestId('token-slot-source').textContent).toContain('collections');
 
     // Re-open and Escape dismisses
-    fireEvent.keyDown(target, { key: 'Enter' });
-    expect(screen.queryByTestId('clause-popover-target')).not.toBeNull();
+    fireEvent.keyDown(source, { key: 'Enter' });
+    expect(screen.queryByTestId('clause-popover-source')).not.toBeNull();
     fireEvent.keyDown(document.activeElement as Element, { key: 'Escape' });
-    expect(screen.queryByTestId('clause-popover-target')).toBeNull();
+    expect(screen.queryByTestId('clause-popover-source')).toBeNull();
   });
 
   it('does not loop when consumers pass inline change handlers', () => {
     // Maximum update depth would blow up if the emit effect depended on
     // callback identity.
     function Harness() {
-      const [ast, setAst] = useState<unknown>(null);
+      const [ast, setAst] = useState<AnyParsedQuery | null>(null);
       return (
         <>
           <WqlComposer onAstChange={a => setAst(a)} />
-          <span data-testid="ast-kind">{ast ? (ast as any).target : 'none'}</span>
+          <span data-testid="ast-kind">{ast && isFindQuery(ast) ? ast.target : 'none'}</span>
         </>
       );
     }
@@ -118,7 +131,7 @@ describe('WqlComposer', () => {
 
   it('keeps every slot pill tabbable for Tab / Shift+Tab traversal', () => {
     render(<WqlComposer />);
-    for (const testid of ['token-slot-target', 'token-slot-scope', 'token-slot-time']) {
+    for (const testid of ['token-slot-source', 'token-slot-time']) {
       expect(screen.getByTestId(testid).getAttribute('tabindex')).toBe('0');
     }
   });
@@ -135,5 +148,84 @@ describe('WqlComposer', () => {
     expect(next.find(c => c.type === 'time')).toBeUndefined();
     // Controlled: the pill still renders because the prop did not change.
     expect(screen.getByTestId('token-slot-time')).not.toBeNull();
+  });
+});
+
+describe('WqlComposer source-pivot analytics plane', () => {
+  it('seeds and renders aggregate head pills when source=metrics', () => {
+    render(<WqlComposer initialClauses={metricsClauses()} />);
+
+    expect(screen.getByTestId('token-slot-source').textContent).toContain('metrics');
+    expect(screen.getByTestId('token-slot-agg').textContent).toContain('sum');
+    expect(screen.getByTestId('token-slot-metric').textContent).toContain('totalVolume');
+  });
+
+  it('composes aggregate WQL from agg + metric pills', () => {
+    const onWqlChange = mock((_wql: string) => {});
+    render(<WqlComposer initialClauses={metricsClauses()} onWqlChange={onWqlChange} />);
+
+    expect(onWqlChange).toHaveBeenCalledWith('sum:totalVolume');
+  });
+
+  it('pivots to metrics when the source pill is changed, dropping time/where and seeding agg/metric', () => {
+    const onClausesChange = mock((_c: QueryClause[]) => {});
+    const clauses: QueryClause[] = [
+      { id: 'c-source', type: 'source', label: 'Source', value: 'notes', inputType: 'select', placeholder: '' },
+      { id: 'c-time', type: 'time', label: 'Time Window', value: 'last 2w', inputType: 'select', placeholder: '' },
+      { id: 'c-where', type: 'where', label: 'Metric Join', value: 'sum:totalVolume{} > 5000', inputType: 'freetext', placeholder: '' },
+      { id: 'c-tag', type: 'tag', label: 'Tag', value: 'hero', inputType: 'select', placeholder: '' },
+    ];
+    render(<WqlComposer clauses={clauses} onClausesChange={onClausesChange} />);
+
+    fireEvent.click(screen.getByTestId('token-slot-source'));
+    const popover = screen.getByTestId('clause-popover-source');
+
+    // Select metrics from the source options.
+    const option = Array.from(popover.querySelectorAll('button')).find(b => b.textContent?.toLowerCase().includes('metrics'));
+    expect(option).not.toBeUndefined();
+    fireEvent.click(option!);
+
+    expect(onClausesChange).toHaveBeenCalledTimes(1);
+    const next = onClausesChange.mock.calls[0][0] as QueryClause[];
+
+    // Source became metrics, head seeded.
+    expect(next.find(c => c.type === 'source')?.value).toBe('metrics');
+    expect(next.find(c => c.type === 'agg')?.value).toBe('sum');
+    expect(next.find(c => c.type === 'metric')?.value).toBe('');
+
+    // Content-only clauses are dropped, shared tag filter survives.
+    expect(next.find(c => c.type === 'time')).toBeUndefined();
+    expect(next.find(c => c.type === 'where')).toBeUndefined();
+    expect(next.find(c => c.type === 'tag')?.value).toBe('hero');
+  });
+
+  it('removes source/agg/metric pills when no remove button is rendered', () => {
+    render(<WqlComposer initialClauses={metricsClauses()} />);
+    expect(screen.queryByTestId('token-slot-remove-source')).toBeNull();
+    expect(screen.queryByTestId('token-slot-remove-agg')).toBeNull();
+    expect(screen.queryByTestId('token-slot-remove-metric')).toBeNull();
+  });
+
+  it('shows a filter input for metric selection but not for source selection', () => {
+    render(<WqlComposer initialClauses={metricsClauses()} />);
+
+    fireEvent.click(screen.getByTestId('token-slot-source'));
+    expect(screen.getByTestId('clause-popover-source').querySelector('input')).toBeNull();
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Escape' });
+
+    fireEvent.click(screen.getByTestId('token-slot-metric'));
+    expect(screen.getByTestId('clause-popover-metric').querySelector('input')).not.toBeNull();
+  });
+
+  it('shows metrics-only filter options in AddFilter when on the metrics plane', () => {
+    render(<WqlComposer />);
+    fireEvent.click(screen.getByTestId('add-filter-btn'));
+
+    expect(screen.getByText('Time Window')).toBeTruthy();
+    expect(screen.getByText('Metric Join')).toBeTruthy();
+
+    expect(screen.queryByText('Group By')).toBeNull();
+    expect(screen.queryByText('Rollup')).toBeNull();
+    expect(screen.queryByText('Unit')).toBeNull();
   });
 });

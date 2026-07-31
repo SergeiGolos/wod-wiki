@@ -17,9 +17,15 @@ import {
   type ClauseType,
   CLAUSE_META,
   getClauseMeta,
-  TARGET_OPTIONS,
-  SCOPE_OPTIONS,
+  clauseValue,
+  sourcePlane,
+  SOURCE_OPTIONS,
   TIME_OPTIONS,
+  AGG_OPTIONS,
+  ROLLUP_OPTIONS,
+  GROUPBY_OPTIONS,
+  METRIC_OPTIONS,
+  UNIT_OPTIONS,
   WHERE_AGGREGATORS,
   WHERE_METRICS,
   WHERE_OPERATORS,
@@ -122,7 +128,7 @@ export function TokenSlotPill({
 
         <ChevronDown className="size-3 opacity-40" />
 
-        {onRemove && clause.type !== 'target' && clause.type !== 'scope' && (
+        {onRemove && !NON_REMOVABLE_TYPES.has(clause.type) && (
           <button
             type="button"
             onClick={e => {
@@ -163,6 +169,20 @@ export function TokenSlotPill({
 }
 
 // ── ClausePopover: Keyboard-navigable Dropdown ───────────────────────────────
+
+/** Head/required slots that cannot be removed from the pill row. */
+const NON_REMOVABLE_TYPES: ReadonlySet<string> = new Set(['source', 'agg', 'metric'])
+
+/** Closed-vocabulary options for static select slots (canonical vocab, #824). */
+const STATIC_OPTIONS: Record<string, { value: string; label: string }[]> = {
+  source: SOURCE_OPTIONS.map(o => ({ value: o.value, label: `${o.value} — ${o.description}` })),
+  time: TIME_OPTIONS.map(o => ({ value: o.value, label: o.label })),
+  agg: AGG_OPTIONS,
+  rollup: ROLLUP_OPTIONS,
+  groupby: GROUPBY_OPTIONS,
+  metric: METRIC_OPTIONS,
+  unit: UNIT_OPTIONS,
+}
 
 /** "Nothing here yet" affordance for an empty suggestion list (#831). */
 function emptyStateMessage({
@@ -218,17 +238,16 @@ export function ClausePopover({
 
   const { items: suggestionItems, loading: suggestionsLoading, binding } = useSuggestions(clause.type)
 
-  const items = clause.type === 'target'
-    ? TARGET_OPTIONS.map(o => ({ value: o.value, label: `${o.value} — ${o.description}` }))
-    : clause.type === 'scope'
-    ? SCOPE_OPTIONS.map(o => ({ value: o.value, label: `${o.value} — ${o.description}` }))
-    : clause.type === 'time'
-    ? TIME_OPTIONS.map(o => ({ value: o.value, label: o.label }))
-    : suggestionItems.map(s => ({ value: s.value, label: s.label ?? s.value }))
+  // A suggestion binding wins when registered; otherwise static vocab.
+  const staticOptions = STATIC_OPTIONS[clause.type]
+  const items = binding
+    ? suggestionItems.map(s => ({ value: s.value, label: s.label ?? s.value }))
+    : (staticOptions ?? suggestionItems.map(s => ({ value: s.value, label: s.label ?? s.value })))
 
-  // Free-text filter input is only shown for suggestion-driven types;
-  // target/scope/time always list all options so Up/Down cycling works.
-  const showFilterInput = clause.type !== 'target' && clause.type !== 'scope' && clause.type !== 'time'
+  // Free-text filter input: hidden for closed static selects (Up/Down cycles
+  // the full list), shown for metric/unit (typed values also accepted) and
+  // freetext/suggestion slots so typed values filter or enter verbatim.
+  const showFilterInput = !staticOptions || clause.type === 'metric' || clause.type === 'unit'
 
   const filteredItems = showFilterInput
     ? items.filter(item => item.value.toLowerCase().includes(val.toLowerCase()) || item.label.toLowerCase().includes(val.toLowerCase()))
@@ -486,17 +505,13 @@ export function AddFilterDropdown({
   }, [open])
 
   const existingTypes = new Set(clauses.map(c => c.type))
-  const available: ClauseType[] = [
-    'text',
-    'tag',
-    'effort',
-    'discipline',
-    'catalog',
-    'type',
-    'has',
-    'time',
-    'where',
-  ]
+  // Plane-aware vocabulary (issue #838): content planes offer find filters,
+  // time, and the metric join; the metrics plane offers analytics filters
+  // and the aggregate tail slots.
+  const metrics = sourcePlane(clauseValue(clauses, 'source', 'notes')) === 'metrics'
+  const available: ClauseType[] = metrics
+    ? ['tag', 'effort', 'discipline', 'groupby', 'rollup', 'unit']
+    : ['text', 'tag', 'effort', 'discipline', 'catalog', 'type', 'has', 'time', 'where']
   const menuItems: { type: string; icon: string; label: string }[] = [
     ...available.map(type => ({ type, icon: CLAUSE_META[type].icon, label: CLAUSE_META[type].label })),
     ...customSlots.map(def => ({ type: def.type, icon: def.icon, label: def.label })),

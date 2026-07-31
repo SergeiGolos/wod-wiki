@@ -39,8 +39,7 @@ export interface LibraryQueryState {
 /** Library landing state: everything, past two weeks (the old panel default). */
 export function defaultLibraryClauses(): QueryClause[] {
   return [
-    { id: 'c-target', type: 'target', ...CLAUSE_META.target, value: 'note' },
-    { id: 'c-scope', type: 'scope', ...CLAUSE_META.scope, value: 'all' },
+    { id: 'c-source', type: 'source', ...CLAUSE_META.source, value: 'notes' },
     { id: 'c-time', type: 'time', ...CLAUSE_META.time, value: 'last 2w' },
   ]
 }
@@ -58,10 +57,8 @@ export function legacyParamsToClauses(search: URLSearchParams): QueryClause[] | 
   if ((search.get('note') ?? 'include') !== 'hide') visible.push('journal')
   if ((search.get('session') ?? 'include') !== 'hide') visible.push('collections')
   if ((search.get('post') ?? 'include') !== 'hide') visible.push('feeds')
-  // A single visible source maps to its scope; anything else is 'all'. (The
-  // old panel emitted comma-joined scopes for two sources, which runFind
-  // never matched — 'all' is the closest working semantics.)
-  const scope = visible.length === 1 ? visible[0] : 'all'
+  // A single visible source maps to its source value; anything else is 'notes'.
+  const source = visible.length === 1 ? visible[0] : 'notes'
 
   // Presets serialize as `last <preset>`; 'all' and the WQL-inexpressible
   // 'custom' both become an all-time window.
@@ -69,7 +66,7 @@ export function legacyParamsToClauses(search: URLSearchParams): QueryClause[] | 
   const time = preset === 'all' || preset === 'custom' ? 'all' : `last ${preset}`
 
   const clauses = defaultLibraryClauses().map(c =>
-    c.type === 'scope' ? { ...c, value: scope } : c.type === 'time' ? { ...c, value: time } : c,
+    c.type === 'source' ? { ...c, value: source } : c.type === 'time' ? { ...c, value: time } : c,
   )
   const text = search.get('text')?.trim()
   if (text) clauses.push({ id: 'c-text-0', type: 'text', ...CLAUSE_META.text, value: text })

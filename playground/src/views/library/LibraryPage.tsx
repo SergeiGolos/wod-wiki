@@ -25,7 +25,7 @@ import {
   WqlComposer,
   clauseValue,
   clausesToWql,
-  type FindExecutor,
+  type WqlExecutor,
 } from '@/components/organisms/wql-composer'
 import { type Entry } from '../../lib/entryMapper'
 import { searchEntries } from '../../lib/entrySearch'
@@ -66,8 +66,12 @@ export function LibraryPage() {
   const parsed = useMemo(() => parseQuery(wql), [wql])
   const queryError = !isFindQuery(parsed) || parsed.error ? (parsed.error ?? 'Not a find query') : null
 
-  // Live stage counts (matched/selected) in the composer's diagnostics strip.
-  const executeFind = useCallback<FindExecutor>(ast => queryService.runFind(ast), [])
+  // Live stage counts (matched/selected or aggregate telemetry) in the
+  // composer's diagnostics strip — dispatch on query kind.
+  const execute = useCallback<WqlExecutor>(
+    ast => (isFindQuery(ast) ? queryService.runFind(ast) : queryService.runQuery(ast.raw)),
+    [],
+  )
 
   useEffect(() => {
     // Invalid WQL: surface the error banner and keep the last valid entries
@@ -109,10 +113,10 @@ export function LibraryPage() {
     return Array.from(map.entries())
   }, [dated])
 
-  // The static shelf shows catalog sessions — relevant whenever the scope
-  // includes collections.
-  const scopeValue = clauseValue(clauses, 'scope', 'journal')
-  const sessionVisible = scopeValue === 'collections' || scopeValue === 'all'
+  // The static shelf shows catalog sessions — relevant whenever the source
+  // includes collections (or the catch-all notes source).
+  const sourceValue = clauseValue(clauses, 'source', 'notes')
+  const sessionVisible = sourceValue === 'collections' || sourceValue === 'notes'
   const today = todayKey()
   return (
     <div className="bg-card flex flex-col flex-1" data-testid="library-page">
@@ -120,7 +124,7 @@ export function LibraryPage() {
         <WqlComposer
           clauses={clauses}
           onClausesChange={setClauses}
-          executeFind={executeFind}
+          execute={execute}
         />
       </div>
 

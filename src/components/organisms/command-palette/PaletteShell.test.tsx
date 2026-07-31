@@ -19,8 +19,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom'
 import { usePaletteStore } from './palette-store'
 import type { PaletteItem, PaletteResponse } from './palette-types'
-import { CLAUSE_META, type FindExecutor, type QueryClause } from '../wql-composer'
-import type { FindQueryResult } from '@/services/analytics/query/QueryService'
+import { CLAUSE_META, type WqlExecutor, type QueryClause } from '../wql-composer'
+import { isFindQuery } from '@/services/analytics/query'
+import type { FindQueryResult, QueryResult } from '@/services/analytics/query/QueryService'
 
 import { PaletteShell } from './PaletteShell'
 
@@ -50,13 +51,16 @@ beforeAll(() => {
   }
 })
 
-const executeFind: FindExecutor = async ast =>
-  ({ parsed: ast, notes: [], blocks: [], stages: { selected: 0, matched: 0 } }) as FindQueryResult
+const execute: WqlExecutor = async ast => {
+  if (isFindQuery(ast)) {
+    return { parsed: ast, notes: [], blocks: [], stages: { selected: 0, matched: 0 } } as FindQueryResult
+  }
+  return { parsed: ast, series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 } } as unknown as QueryResult
+}
 
-/** Palette-style defaults: note target, global scope, no time window. */
+/** Palette-style defaults: all note sources, no time window. */
 const paletteClauses: QueryClause[] = [
-  { id: 'c-target', type: 'target', ...CLAUSE_META.target, value: 'note' },
-  { id: 'c-scope', type: 'scope', ...CLAUSE_META.scope, value: 'all' },
+  { id: 'c-source', type: 'source', ...CLAUSE_META.source, value: 'notes' },
   { id: 'c-time', type: 'time', ...CLAUSE_META.time, value: 'all' },
 ]
 
@@ -88,7 +92,7 @@ describe('PaletteShell WQL mode', () => {
     const search = mock(async (_query: string): Promise<PaletteItem[]> => [])
     renderShell()
     openPalette({
-      wql: { initialClauses: paletteClauses, executeFind },
+      wql: { initialClauses: paletteClauses, execute },
       sources: [{ id: 'wql-search', search }],
     })
 
@@ -96,7 +100,7 @@ describe('PaletteShell WQL mode', () => {
     await screen.findByTestId('wql-composer')
     expect(screen.queryByTestId('wql-composer-input')).not.toBeNull()
     expect(screen.queryByPlaceholderText('Search…')).toBeNull()
-    expect(screen.getByTestId('token-slot-scope').textContent).toContain('all')
+    expect(screen.getByTestId('token-slot-source').textContent).toContain('notes')
 
     await waitFor(() => expect(search).toHaveBeenCalledWith('find:note in all'))
   })
@@ -119,7 +123,7 @@ describe('PaletteShell WQL mode', () => {
     ])
     renderShell()
     const response = openPalette({
-      wql: { initialClauses: paletteClauses, executeFind },
+      wql: { initialClauses: paletteClauses, execute },
       sources: [{ id: 'wql-search', search }],
     })
 
@@ -149,16 +153,16 @@ describe('PaletteShell WQL mode', () => {
     renderShell()
     let resolved = false
     const response = openPalette({
-      wql: { initialClauses: paletteClauses, executeFind },
+      wql: { initialClauses: paletteClauses, execute },
       sources: [{ id: 'wql-search', search }],
     })
     void response.then(() => { resolved = true })
 
     await screen.findByText('Fran')
 
-    // Open the scope pill's popover and pick the next option via keyboard.
-    fireEvent.click(screen.getByTestId('token-slot-scope'))
-    const popover = await screen.findByTestId('clause-popover-scope')
+    // Open the source pill's popover and pick the next option via keyboard.
+    fireEvent.click(screen.getByTestId('token-slot-source'))
+    const popover = await screen.findByTestId('clause-popover-source')
     fireEvent.keyDown(popover, { key: 'ArrowDown' })
     fireEvent.keyDown(popover, { key: 'Enter' })
 
@@ -175,7 +179,7 @@ describe('PaletteShell WQL mode', () => {
     const search = mock(async (_query: string): Promise<PaletteItem[]> => [])
     renderShell()
     const response = openPalette({
-      wql: { initialClauses: paletteClauses, executeFind },
+      wql: { initialClauses: paletteClauses, execute },
       sources: [{ id: 'wql-search', search }],
     })
 

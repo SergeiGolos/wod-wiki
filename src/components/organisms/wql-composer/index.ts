@@ -23,12 +23,12 @@ export {
   type SuggestionItem,
 } from './suggestionSources'
 export { useSuggestions, type ClauseSuggestions } from './useSuggestions'
-export { diagnoseClauses, summarizeFind, type WqlDiagnostics, type WqlFindSummary } from './diagnostics'
+export { diagnoseClauses, summarizeAggregate, summarizeFind, type WqlAggregateSummary, type WqlDiagnostics, type WqlFindSummary } from './diagnostics'
 export { WqlDiagnosticsStrip, type WqlDiagnosticsStripProps } from './WqlDiagnosticsStrip'
 export {
   useWqlStageCounts,
   DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
-  type FindExecutor,
+  type WqlExecutor,
   type WqlStageCounts,
 } from './useWqlStageCounts'
 export {
@@ -36,9 +36,14 @@ export {
   type ClauseMeta,
   type QueryClause,
   CLAUSE_META,
-  TARGET_OPTIONS,
-  SCOPE_OPTIONS,
+  CONTENT_SOURCES,
+  SOURCE_OPTIONS,
   TIME_OPTIONS,
+  AGG_OPTIONS,
+  ROLLUP_OPTIONS,
+  GROUPBY_OPTIONS,
+  METRIC_OPTIONS,
+  UNIT_OPTIONS,
   WHERE_AGGREGATORS,
   WHERE_METRICS,
   WHERE_OPERATORS,
@@ -48,4 +53,6 @@ export {
   wqlToClauses,
   clauseValue,
   defaultClauses,
+  pivotClauses,
+  sourcePlane,
 } from './queryClauses'

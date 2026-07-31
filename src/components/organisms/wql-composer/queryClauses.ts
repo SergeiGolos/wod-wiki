@@ -1,8 +1,17 @@
 /**
  * Shared query-clause model + WQL compiler for the WqlComposer.
  *
- * Static option lists (target/scope/time) live here; dynamic typeahead data
- * sources live in ./suggestionSources (issue #831).
+ * Source-pivot model (issue #838, decision #836): a single `source` head
+ * slot — journal | collections | feeds | notes | blocks | metrics — pivots
+ * the query kind. Content sources compile the `find:` skeleton; `metrics`
+ * compiles the aggregate skeleton (`agg:metric{filters} by {dims}.rollup(p)
+ * [in unit] [where find:…]`). The find target and scope are derived from the
+ * source value (the legacy `target`/`scope` clause types are retired).
+ *
+ * Static option lists live here; dynamic typeahead data sources live in
+ * ./suggestionSources (issue #831). All vocab is sourced from the canonical
+ * modules (src/parser/wql-vocabulary.ts, services/analytics/query/wql.ts) —
+ * never hardcoded in the composer (decision #824).
  *
  * Supports freeform token slots, placeholder guidance, and keyboard navigation.
  */
@@ -13,13 +22,18 @@ import {
   WQL_COMPARISON_OPS,
 } from '@/services/analytics/query/wql'
 import {
+  WQL_CALC_TARGETS,
+  WQL_DISPLAY_UNITS,
   WQL_METRIC_AGGREGATES,
   WQL_METRIC_FAMILIES,
+  WQL_ROLLUP_PERIODS,
+  WQL_SOURCES,
+  WQL_TAG_KEYS,
+  WQL_VIRTUAL_DIMS,
 } from '@/parser/wql-vocabulary'
 
 export type ClauseType =
-  | 'target'
-  | 'scope'
+  | 'source'
   | 'text'
   | 'catalog'
   | 'tag'
@@ -29,6 +43,11 @@ export type ClauseType =
   | 'has'
   | 'time'
   | 'where'
+  | 'agg'
+  | 'metric'
+  | 'groupby'
+  | 'rollup'
+  | 'unit'
 
 export interface QueryClause {
   id: string
@@ -40,18 +59,28 @@ export interface QueryClause {
   placeholder: string
 }
 
+// ── Source planes ───────────────────────────────────────────────────────────
+
+/** Content sources compile `find:note in <scope>`; notes/blocks use `all`. */
+export const CONTENT_SOURCES = WQL_SOURCES.filter(s => s !== 'metrics')
+
+/** The plane a source value belongs to — everything but `metrics` is content. */
+export function sourcePlane(source: string): 'content' | 'metrics' {
+  return source === 'metrics' ? 'metrics' : 'content'
+}
+
+/** Clause types that only make sense on the metrics plane. */
+export const METRICS_ONLY_TYPES: ReadonlySet<string> = new Set(['agg', 'metric', 'groupby', 'rollup', 'unit'])
+
 // ── Options & Data Sources ──────────────────────────────────────────────────
 
-export const TARGET_OPTIONS = [
-  { value: 'note', label: 'Notes', description: 'Whole markdown notes' },
-  { value: 'block', label: 'Blocks', description: 'Fenced workout/dashboard regions' },
-]
-
-export const SCOPE_OPTIONS = [
-  { value: 'journal', label: 'Journal', description: 'User personal notes' },
-  { value: 'collections', label: 'Collections', description: 'Preloaded workout catalogs' },
-  { value: 'feeds', label: 'Feeds', description: 'Subscribed feed posts' },
-  { value: 'all', label: 'All Sources', description: 'Universal search across everything' },
+export const SOURCE_OPTIONS = [
+  { value: 'journal', label: 'Journal', description: 'Find notes in the personal journal' },
+  { value: 'collections', label: 'Collections', description: 'Find notes in workout catalogs' },
+  { value: 'feeds', label: 'Feeds', description: 'Find notes in subscribed feeds' },
+  { value: 'notes', label: 'All Notes', description: 'Find notes across every source' },
+  { value: 'blocks', label: 'Blocks', description: 'Find fenced workout/dashboard regions' },
+  { value: 'metrics', label: 'Metrics', description: 'Aggregate analytics facts' },
 ]
 
 export const TIME_OPTIONS = [
@@ -63,6 +92,17 @@ export const TIME_OPTIONS = [
   { value: 'last 52w', label: 'Past year' },
   { value: 'all', label: 'All time' },
 ]
+
+/** Aggregate head vocab — canonical homes (decision #824). */
+export const AGG_OPTIONS = WQL_AGGREGATORS.map(v => ({ value: v, label: v }))
+export const ROLLUP_OPTIONS = WQL_ROLLUP_PERIODS.map(v => ({
+  value: v,
+  label: v === '1d' ? 'Daily (1d)' : 'Weekly (1w)',
+}))
+export const GROUPBY_OPTIONS = [...WQL_VIRTUAL_DIMS, ...WQL_TAG_KEYS].map(v => ({ value: v, label: v }))
+export const METRIC_OPTIONS = [...WQL_METRIC_AGGREGATES, ...WQL_METRIC_FAMILIES, ...WQL_CALC_TARGETS]
+  .map(v => ({ value: v, label: v }))
+export const UNIT_OPTIONS = WQL_DISPLAY_UNITS.map(v => ({ value: v, label: v }))
 
 /**
  * Where-join editor vocab — the same source of truth the analytics composer
@@ -86,8 +126,7 @@ export interface ClauseMeta {
 }
 
 export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
-  target:    { label: 'Target',     inputType: 'select',   placeholder: 'note or block',              placeholderText: 'find: [note|block]',     icon: '🎯', description: 'What to return (notes or blocks)', prefix: 'find:' },
-  scope:     { label: 'Scope',      inputType: 'select',   placeholder: 'journal, collections, etc', placeholderText: 'in: [scope]',            icon: '🌐', description: 'Where to search', prefix: 'in:' },
+  source:    { label: 'Source',     inputType: 'select',   placeholder: 'journal, notes, metrics…', placeholderText: 'source: [plane]',      icon: '🌐', description: 'What to search (notes/blocks) or aggregate (metrics)' },
   text:      { label: 'Contains',   inputType: 'freetext', placeholder: 'Text query...',              placeholderText: 'text: [query]',           icon: '🔍', description: 'Raw text substring search', prefix: 'text:' },
   catalog:   { label: 'Catalog',    inputType: 'select',   placeholder: 'Pick catalog...',            placeholderText: 'catalog: [id]',          icon: '📁', description: 'Filter by static catalog', prefix: 'catalog:' },
   tag:       { label: 'Tag',        inputType: 'select',   placeholder: 'Pick tag...',                placeholderText: 'tags: [tag]',            icon: '🏷', description: 'Filter by note/workout tags', prefix: 'tags:' },
@@ -97,6 +136,11 @@ export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
   has:       { label: 'Has Feature',inputType: 'select',   placeholder: 'timer, image...',            placeholderText: 'has: [timer|image]',     icon: '✨', description: 'Note/block feature presence', prefix: 'has:' },
   time:      { label: 'Time Window',inputType: 'select',   placeholder: 'Time range',                 placeholderText: 'last: [time range]',      icon: '⏱', description: 'Date window (last Nw/Nd)', prefix: 'last:' },
   where:     { label: 'Metric Join',inputType: 'freetext', placeholder: 'sum:totalVolume{} > 5000',    placeholderText: 'where: [metric join]',   icon: '📊', description: 'Cross-store analytics join', prefix: 'where:' },
+  agg:       { label: 'Aggregate',  inputType: 'select',   placeholder: 'sum, avg…',                  placeholderText: 'agg: [sum|avg|…]',        icon: '∑', description: 'Aggregation function' },
+  metric:    { label: 'Metric',     inputType: 'select',   placeholder: 'totalVolume, reps…',         placeholderText: 'metric: [key]',           icon: '📈', description: 'Canonical metric key to aggregate' },
+  groupby:   { label: 'Group By',   inputType: 'select',   placeholder: 'week, effort…',              placeholderText: 'by: [dim]',               icon: '🗂', description: 'Group results by dimension' },
+  rollup:    { label: 'Rollup',     inputType: 'select',   placeholder: '1d or 1w',                   placeholderText: 'rollup: [1d|1w]',         icon: '🗓', description: 'Bucket period for rollups' },
+  unit:      { label: 'Unit',       inputType: 'select',   placeholder: 'kg, lb, km…',                placeholderText: 'in: [unit]',              icon: '📏', description: 'Display unit directive' },
 }
 
 const CUSTOM_FALLBACK_ICON = '\u{1F9E9}'
@@ -161,22 +205,14 @@ export function clauseToWql(clause: QueryClause): { key?: string; filterStr?: st
 
 /**
  * Composes a full WQL string from an array of QueryClauses.
- * Syntax: find:<target>{<filters>} in <scope> [last <n><unit>] [where <join>]
+ *
+ * Content planes: find:<target>{<filters>} in <scope> [last <n><unit>] [where <join>]
+ *   — target/scope derived from `source` (journal|collections|feeds → note in
+ *   <source>; notes → note in all; blocks → block in all; anything else →
+ *   note in <verbatim value>, the salvage path for exotic scopes).
+ * Metrics plane:   <agg>:<metric>{<filters>} [by {<dims>}] [.rollup(<p>)] [in <unit>] [where <find join>]
  */
 export function clausesToWql(clauses: QueryClause[]): string {
-  const targetClause = clauses.find(c => c.type === 'target')
-  const target = targetClause?.value?.trim() || 'note'
-
-  const scopeClause = clauses.find(c => c.type === 'scope')
-  const scope = scopeClause?.value?.trim() || 'journal'
-
-  const timeClause = clauses.find(c => c.type === 'time')
-  let timeStr = ''
-  if (timeClause && timeClause.value && timeClause.value !== 'all') {
-    const rawVal = timeClause.value.trim()
-    timeStr = rawVal.startsWith('last') ? rawVal : `last ${rawVal}`
-  }
-
   const whereClause = clauses.find(c => c.type === 'where')
   const whereStr = whereClause?.value?.trim() ? `where ${whereClause.value.trim()}` : ''
 
@@ -188,13 +224,46 @@ export function clausesToWql(clauses: QueryClause[]): string {
       filterParts.push(res.filterStr)
     }
   }
-
   const filterBraces = filterParts.length > 0 ? `{${filterParts.join(', ')}}` : ''
-  const scopeStr = scope ? `in ${scope}` : ''
+
+  const source = clauseValue(clauses, 'source', 'notes')
+
+  if (source === 'metrics') {
+    const agg = clauseValue(clauses, 'agg', 'sum')
+    const metric = clauseValue(clauses, 'metric', '')
+    const dims = clauses.filter(c => c.type === 'groupby' && c.value.trim()).map(c => c.value.trim())
+    const rollup = clauseValue(clauses, 'rollup', '')
+    const unit = clauseValue(clauses, 'unit', '')
+
+    const byStr = dims.length ? `by {${dims.join(', ')}}` : ''
+    const rollupStr = rollup ? `.rollup(${rollup})` : ''
+
+    // Rollup attaches to the by-clause when present, to the head otherwise.
+    const head = byStr
+      ? `${agg}:${metric}${filterBraces}`
+      : `${agg}:${metric}${filterBraces}${rollupStr}`
+
+    return [
+      head,
+      `${byStr}${byStr ? rollupStr : ''}`,
+      unit ? `in ${unit}` : '',
+      whereStr,
+    ].filter(Boolean).join(' ').trim()
+  }
+
+  const target = source === 'blocks' ? 'block' : 'note'
+  const scope = source === 'notes' || source === 'blocks' ? 'all' : source
+
+  const timeClause = clauses.find(c => c.type === 'time')
+  let timeStr = ''
+  if (timeClause && timeClause.value && timeClause.value !== 'all') {
+    const rawVal = timeClause.value.trim()
+    timeStr = rawVal.startsWith('last') ? rawVal : `last ${rawVal}`
+  }
 
   return [
     `find:${target}${filterBraces}`,
-    scopeStr,
+    `in ${scope}`,
     timeStr,
     whereStr,
   ].filter(Boolean).join(' ').trim()
@@ -204,9 +273,9 @@ export function clausesToWql(clauses: QueryClause[]): string {
 
 /** Built-in filter key → clause type, derived from CLAUSE_META `prefix` so a
  * new built-in filter clause is declared once (metadata) and compiled once
- * (clauseToWql). `target`/`scope`/`time`/`where` are positional, not `{...}`
- * filters, so they are excluded. */
-const POSITIONAL_CLAUSE_TYPES = new Set(['target', 'scope', 'time', 'where'])
+ * (clauseToWql). Positional head/kind clauses are not `{...}` filters, so
+ * they are excluded. */
+const POSITIONAL_CLAUSE_TYPES = new Set(['source', 'time', 'where', 'agg', 'metric', 'groupby', 'rollup', 'unit'])
 const FILTER_KEY_TO_CLAUSE_TYPE: Record<string, ClauseType> = Object.fromEntries(
   (Object.entries(CLAUSE_META) as [ClauseType, ClauseMeta][])
     .filter(([type]) => !POSITIONAL_CLAUSE_TYPES.has(type))
@@ -255,7 +324,13 @@ function splitWhereTail(text: string): { head: string; where?: string } {
 
 const RESTORE_LAST_RE = /\s+last\s+(\d+)([dw])\s*$/i
 const RESTORE_SCOPE_RE = /\s+in\s+(\w+)\s*$/
-const RESTORE_HEAD_RE = /^find:(\w+)/
+const RESTORE_FIND_HEAD_RE = /^find:(\w+)/
+// Aggregate restore segments — stripped outermost-first, mirroring
+// parseAnalyticsQuery's order (where → display unit → rollup → by → head).
+const RESTORE_UNIT_RE = /\s+in\s+([a-zA-Z0-9_-]+)\s*$/
+const RESTORE_ROLLUP_RE = /\.rollup\((\w+)\)\s*$/
+const RESTORE_BY_RE = /\s+by\s+\{([^}]*)\}\s*$/
+const RESTORE_AGG_HEAD_RE = /^(\w+):([\w.]*)/
 
 function restoreClause(id: string, type: string, value: string): QueryClause {
   return { id, type, ...getClauseMeta(type), value }
@@ -286,72 +361,156 @@ function filterFragmentToClause(fragment: string, index: number): QueryClause | 
   return null
 }
 
+/** Restore the `{...}` filter body into clauses, or null when any fragment
+ * is not composer-expressible. Shared by the find and aggregate branches. */
+function restoreFilters(rest: string): QueryClause[] | null {
+  if (!rest) return []
+  if (!rest.startsWith('{') || !rest.endsWith('}')) return null
+  const body = rest.slice(1, -1)
+  const fragments = splitTopLevel(body).map(f => f.trim()).filter(Boolean)
+  const clauses: QueryClause[] = []
+  for (let i = 0; i < fragments.length; i++) {
+    const clause = filterFragmentToClause(fragments[i], i)
+    if (!clause) return null
+    clauses.push(clause)
+  }
+  return clauses
+}
+
 /**
  * Restore composer clauses from a WQL string — the inverse of
  * `clausesToWql`, used to hydrate composer state from the URL.
  *
  * Unlike `parseQuery`, this is a *salvage* parser: it mirrors the compiler's
- * structure (`find:<target>{<filters>} in <scope> last <n><unit> where <join>`)
- * without validating the fragments, so composer-reachable states that are
- * WQL-invalid (e.g. `text:hello world`) still restore exactly — the
- * diagnostics strip then attributes the parse error to the offending slot.
+ * structure on both planes without validating the fragments, so composer-
+ * reachable states that are WQL-invalid (e.g. `text:hello world`, a `1m`
+ * rollup period, an empty metric) still restore exactly — the diagnostics
+ * strip then attributes the parse error to the offending slot.
  *
- * Returns null when the string cannot be a composer product: not a find
- * query, a negated filter, or an unknown/custom-less filter key.
+ * Returns null when the string cannot be a composer product: a negated
+ * filter, or an unknown/custom-less filter key.
  */
 export function wqlToClauses(wql: string): QueryClause[] | null {
   const { head, where } = splitWhereTail(wql.trim())
-  if (!head.startsWith('find:')) return null
 
+  if (head.startsWith('find:')) {
+    let text = head
+
+    let timeValue = 'all'
+    const lastMatch = RESTORE_LAST_RE.exec(text)
+    if (lastMatch) {
+      timeValue = `last ${lastMatch[1]}${lastMatch[2].toLowerCase()}`
+      text = text.slice(0, lastMatch.index).trim()
+    }
+
+    let scopeValue: string | undefined
+    const scopeMatch = RESTORE_SCOPE_RE.exec(text)
+    if (scopeMatch) {
+      scopeValue = scopeMatch[1]
+      text = text.slice(0, scopeMatch.index).trim()
+    }
+
+    const headMatch = RESTORE_FIND_HEAD_RE.exec(text)
+    if (!headMatch) return null
+    const targetValue = headMatch[1]
+    const rest = text.slice(headMatch[0].length).trim()
+
+    const filterClauses = restoreFilters(rest)
+    if (!filterClauses) return null
+
+    // target+scope collapse into the single source slot: blocks drop the
+    // scope (the engine ignores it for find:block); an unknown scope word
+    // restores verbatim so exotic scopes round-trip (salvage).
+    const sourceValue = targetValue === 'block'
+      ? 'blocks'
+      : !scopeValue || scopeValue === 'all'
+        ? 'notes'
+        : scopeValue
+
+    const clauses: QueryClause[] = [
+      restoreClause('c-source', 'source', sourceValue),
+      restoreClause('c-time', 'time', timeValue),
+      ...filterClauses,
+    ]
+    if (where) clauses.push(restoreClause('c-where', 'where', where))
+    return clauses
+  }
+
+  // Aggregate branch: <agg>:<metric>{<filters>} [by {<dims>}] [.rollup(<p>)] [in <unit>]
   let text = head
 
-  let timeValue = 'all'
-  const lastMatch = RESTORE_LAST_RE.exec(text)
-  if (lastMatch) {
-    timeValue = `last ${lastMatch[1]}${lastMatch[2].toLowerCase()}`
-    text = text.slice(0, lastMatch.index).trim()
+  let unitValue = ''
+  const unitMatch = RESTORE_UNIT_RE.exec(text)
+  if (unitMatch) {
+    unitValue = unitMatch[1]
+    text = text.slice(0, unitMatch.index).trim()
   }
 
-  let scopeValue = 'journal'
-  const scopeMatch = RESTORE_SCOPE_RE.exec(text)
-  if (scopeMatch) {
-    scopeValue = scopeMatch[1]
-    text = text.slice(0, scopeMatch.index).trim()
+  let rollupValue = ''
+  const rollupMatch = RESTORE_ROLLUP_RE.exec(text)
+  if (rollupMatch) {
+    rollupValue = rollupMatch[1]
+    text = text.slice(0, rollupMatch.index).trim()
   }
 
-  const headMatch = RESTORE_HEAD_RE.exec(text)
+  let dimValues: string[] = []
+  const byMatch = RESTORE_BY_RE.exec(text)
+  if (byMatch) {
+    dimValues = byMatch[1].split(',').map(d => d.trim()).filter(Boolean)
+    text = text.slice(0, byMatch.index).trim()
+  }
+
+  const headMatch = RESTORE_AGG_HEAD_RE.exec(text)
   if (!headMatch) return null
-  const targetValue = headMatch[1]
+  const aggValue = headMatch[1]
+  const metricValue = headMatch[2] ?? ''
   const rest = text.slice(headMatch[0].length).trim()
 
-  const filterClauses: QueryClause[] = []
-  if (rest) {
-    if (!rest.startsWith('{') || !rest.endsWith('}')) return null
-    const body = rest.slice(1, -1)
-    const fragments = splitTopLevel(body).map(f => f.trim()).filter(Boolean)
-    for (let i = 0; i < fragments.length; i++) {
-      const clause = filterFragmentToClause(fragments[i], i)
-      if (!clause) return null
-      filterClauses.push(clause)
-    }
-  }
+  const filterClauses = restoreFilters(rest)
+  if (!filterClauses) return null
 
   const clauses: QueryClause[] = [
-    restoreClause('c-target', 'target', targetValue),
-    restoreClause('c-scope', 'scope', scopeValue),
-    restoreClause('c-time', 'time', timeValue),
+    restoreClause('c-source', 'source', 'metrics'),
+    restoreClause('c-agg', 'agg', aggValue),
+    restoreClause('c-metric', 'metric', metricValue),
     ...filterClauses,
+    ...dimValues.map((d, i) => restoreClause(`c-groupby-${i}`, 'groupby', d)),
   ]
+  if (rollupValue) clauses.push(restoreClause('c-rollup', 'rollup', rollupValue))
+  if (unitValue) clauses.push(restoreClause('c-unit', 'unit', unitValue))
   if (where) clauses.push(restoreClause('c-where', 'where', where))
   return clauses
+}
+
+// ── Source pivot ────────────────────────────────────────────────────────────
+
+/**
+ * Re-base the clause list on a new source value (decision #836): shared
+ * filter clauses survive the pivot; kind-specific clauses are dropped
+ * (content plane: time/where and any metrics head; metrics plane: time/
+ * where). Pivoting to metrics seeds the head slots (agg=sum, metric empty
+ * for placeholder guidance).
+ */
+export function pivotClauses(clauses: QueryClause[], source: string): QueryClause[] {
+  const next = clauses
+    .filter(c => !METRICS_ONLY_TYPES.has(c.type) && c.type !== 'time' && c.type !== 'where')
+    .map(c => (c.type === 'source' ? { ...c, value: source } : c))
+
+  if (source === 'metrics') {
+    const sourceIdx = next.findIndex(c => c.type === 'source')
+    const head: QueryClause[] = []
+    if (!next.some(c => c.type === 'agg')) head.push(restoreClause('c-agg', 'agg', 'sum'))
+    if (!next.some(c => c.type === 'metric')) head.push(restoreClause('c-metric', 'metric', ''))
+    next.splice(sourceIdx >= 0 ? sourceIdx + 1 : next.length, 0, ...head)
+  }
+  return next
 }
 
 // ── Default Clauses ─────────────────────────────────────────────────────────
 
 export function defaultClauses(): QueryClause[] {
   return [
-    { id: 'c-target', type: 'target', ...CLAUSE_META.target, value: 'note' },
-    { id: 'c-scope',  type: 'scope',  ...CLAUSE_META.scope,  value: 'journal' },
+    { id: 'c-source', type: 'source', ...CLAUSE_META.source, value: 'notes' },
     { id: 'c-time',   type: 'time',   ...CLAUSE_META.time,   value: 'last 2w' },
   ]
 }

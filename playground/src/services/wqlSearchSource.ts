@@ -11,7 +11,7 @@
  */
 import type { PaletteDataSource, PaletteItem } from '@/components/organisms/command-palette/palette-types';
 import { parseQuery, isFindQuery, queryService } from '@/services/analytics/query';
-import { CLAUSE_META, type QueryClause, type FindExecutor } from '@/components/organisms/wql-composer';
+import { CLAUSE_META, type QueryClause, type WqlExecutor } from '@/components/organisms/wql-composer';
 import { entryOpenHref } from '../lib/entryActions';
 import { searchEntries } from '../lib/entrySearch';
 import type { Entry, EntryKind } from '../lib/entryMapper';
@@ -94,15 +94,17 @@ export function withWqlText(source: PaletteDataSource): PaletteDataSource {
  */
 export function searchPaletteClauses(): QueryClause[] {
   return [
-    { id: 'c-target', type: 'target', ...CLAUSE_META.target, value: 'note' },
-    { id: 'c-scope', type: 'scope', ...CLAUSE_META.scope, value: 'all' },
+    { id: 'c-source', type: 'source', ...CLAUSE_META.source, value: 'notes' },
     { id: 'c-time', type: 'time', ...CLAUSE_META.time, value: 'all' },
   ];
 }
 
 /** Stage-count executor for the palette's diagnostics strip, wired at the
- *  service layer so the generic PaletteShell stays decoupled from analytics. */
-export const paletteExecuteFind: FindExecutor = ast => queryService.runFind(ast);
+ *  service layer so the generic PaletteShell stays decoupled from analytics.
+ *  Dispatches on query kind: find queries run the find engine, aggregate
+ *  queries run the analytics engine. */
+export const paletteExecute: WqlExecutor = ast =>
+  isFindQuery(ast) ? queryService.runFind(ast) : queryService.runQuery(ast.raw);
 
 /** Route/construct items carry `{ route }` by source contract. */
 interface RoutePayload {

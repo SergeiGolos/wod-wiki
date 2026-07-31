@@ -23,11 +23,14 @@ import {
   composerRegistry,
   dateRangeSlot,
   defaultClauses,
+  CLAUSE_META,
   type QueryClause,
+  type WqlExecutor,
   type WqlValidationState,
 } from '../../../src/components/organisms/wql-composer';
 import type { AnyParsedQuery } from '../../../src/services/analytics/query/wql';
-import type { ParsedFindQuery } from '../../../src/services/analytics/query';
+import { isFindQuery } from '../../../src/services/analytics/query';
+import type { FindQueryResult, QueryResult } from '../../../src/services/analytics/query/QueryService';
 
 const meta: Meta<typeof WqlComposer> = {
   title: 'Organisms/WqlComposer',
@@ -126,22 +129,31 @@ export const RegisteredSlot: Story = {
 };
 
 const LiveDiagnosticsHarness: React.FC = () => {
-  // Deterministic stand-in for queryService.runFind: counts scale with the
-  // number of active filter clauses so edits visibly move the numbers.
-  const executeFind = async (ast: ParsedFindQuery) => ({
-    parsed: ast,
-    notes: [],
-    blocks: [],
-    stages: { selected: 128, matched: Math.max(0, 128 - ast.filters.length * 37) },
-  });
+  // Deterministic stand-in for queryService: counts scale with the number of
+  // active filter clauses so edits visibly move the numbers.
+  const execute: WqlExecutor = async (ast: AnyParsedQuery) => {
+    if (isFindQuery(ast)) {
+      return {
+        parsed: ast,
+        notes: [],
+        blocks: [],
+        stages: { selected: 128, matched: Math.max(0, 128 - ast.filters.length * 37) },
+      } as FindQueryResult
+    }
+    return {
+      parsed: ast,
+      series: [],
+      stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 },
+    } as QueryResult
+  }
 
   return (
     <div className="max-w-3xl space-y-2">
-      <WqlComposer executeFind={executeFind} />
+      <WqlComposer execute={execute} />
       <p className="text-[10px] text-muted-foreground">
         The strip under the bar re-parses on every clause change: green/red
         validity badge (red names the offending slot), AST summary
-        (target · scope · window · join), and debounced (150ms) matched/selected
+        (source · window · join), and debounced (150ms) matched/selected
         stage counts. Type “garbage” into a Metric Join slot to see the error
         attribution; add Tag filters to move the counts.
       </p>
@@ -151,4 +163,38 @@ const LiveDiagnosticsHarness: React.FC = () => {
 
 export const LiveDiagnostics: Story = {
   render: () => <LiveDiagnosticsHarness />,
+};
+
+const AnalyticsCompositionHarness: React.FC = () => {
+  const [clauses, setClauses] = useState<QueryClause[]>([
+    { id: 'c-source', type: 'source', ...CLAUSE_META.source, value: 'metrics' },
+    { id: 'c-agg', type: 'agg', ...CLAUSE_META.agg, value: 'sum' },
+    { id: 'c-metric', type: 'metric', ...CLAUSE_META.metric, value: 'totalVolume' },
+    { id: 'c-groupby', type: 'groupby', ...CLAUSE_META.groupby, value: 'week' },
+    { id: 'c-rollup', type: 'rollup', ...CLAUSE_META.rollup, value: '1w' },
+  ]);
+
+  const execute: WqlExecutor = async (ast: AnyParsedQuery) => {
+    return {
+      parsed: ast,
+      series: [],
+      stages: { selected: 12, buckets: 4, aggregated: 4, groups: 2 },
+    } as QueryResult;
+  };
+
+  return (
+    <div className="max-w-3xl space-y-2">
+      <WqlComposer clauses={clauses} onClausesChange={setClauses} execute={execute} />
+      <p className="text-[10px] text-muted-foreground">
+        Analytics composition (issue #838): the source pill pivots to the
+        metrics plane, revealing the aggregate head (agg · metric · groupby ·
+        rollup). The diagnostics strip shows aggregate chips and the aggregate
+        stage counts (selected · buckets · aggregated · groups).
+      </p>
+    </div>
+  );
+};
+
+export const AnalyticsComposition: Story = {
+  render: () => <AnalyticsCompositionHarness />,
 };

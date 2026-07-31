@@ -17,9 +17,10 @@ import {
   parseQuery,
   type AnyParsedQuery,
   type ParsedFindQuery,
+  type ParsedQuery,
 } from '@/services/analytics/query/wql'
 import { composerRegistry } from './ComposerRegistry'
-import { clausesToWql, clauseToWql, type QueryClause } from './queryClauses'
+import { clausesToWql, clauseToWql, clauseValue, sourcePlane, type QueryClause } from './queryClauses'
 
 export interface WqlDiagnostics {
   /** The composed WQL string. */
@@ -56,6 +57,30 @@ export function summarizeFind(ast: ParsedFindQuery): WqlFindSummary {
   return summary
 }
 
+/** Display summary of a valid aggregate query for the diagnostics strip
+ *  (issue #838, decision #836). */
+export interface WqlAggregateSummary {
+  agg: string
+  metric: string
+  /** `week, effort` style dimension list, when the query groups. */
+  dims?: string
+  /** `1w` style rollup period, when present. */
+  rollup?: string
+  /** Display unit directive, when present. */
+  unit?: string
+  /** `find:note` style join head, when the query carries one. */
+  join?: string
+}
+
+export function summarizeAggregate(ast: ParsedQuery): WqlAggregateSummary {
+  const summary: WqlAggregateSummary = { agg: ast.agg, metric: ast.metric }
+  if (ast.groupBy.length > 0) summary.dims = ast.groupBy.join(', ')
+  if (ast.rollup) summary.rollup = `${ast.rollup.size}${ast.rollup.unit}`
+  if (ast.displayUnit) summary.unit = ast.displayUnit
+  if (ast.join) summary.join = `find:${ast.join.target}`
+  return summary
+}
+
 /**
  * Validate a custom slot's stored string against its registered definition —
  * the same contract the composer enforced inline before (issue #829/830).
@@ -71,17 +96,20 @@ function customSlotError(clause: QueryClause): string | null {
 
 /**
  * Build a minimal probe query containing only this clause's fragment, so a
- * parse failure can be attributed to the offending slot. Returns null when
- * the clause cannot be probed (empty value, unknown custom fragment).
+ * parse failure can be attributed to the offending slot. Probes are shaped
+ * for the current plane (`find:note{…}` on content, `sum:totalVolume{…}`
+ * on metrics). Returns null when the clause cannot be probed (empty value,
+ * unknown custom fragment, or a value that is never a parse error).
  */
-function clauseProbeWql(clause: QueryClause): string | null {
+function clauseProbeWql(clause: QueryClause, plane: 'content' | 'metrics'): string | null {
   const value = clause.value.trim()
   if (!value) return null
 
   switch (clause.type) {
-    case 'target':
-      return `find:${value}`
-    case 'scope':
+    case 'source':
+      // 'metrics'/'notes' map to always-valid skeletons — never the offender.
+      if (value === 'metrics' || value === 'notes') return null
+      if (value === 'blocks') return 'find:block in all'
       return `find:note in ${value}`
     case 'time':
       // 'all' compiles to no time fragment (see clausesToWql) — probing it
@@ -89,10 +117,21 @@ function clauseProbeWql(clause: QueryClause): string | null {
       if (value === 'all') return null
       return `find:note ${value.startsWith('last') ? value : `last ${value}`}`
     case 'where':
-      return `find:note where ${value}`
+      return plane === 'metrics' ? `sum:totalVolume{} where ${value}` : `find:note where ${value}`
+    case 'agg':
+      return `${value}:totalVolume`
+    case 'metric':
+      return `sum:${value}`
+    case 'groupby':
+      return `sum:totalVolume{} by {${value}}`
+    case 'rollup':
+      return `sum:totalVolume{} by {week}.rollup(${value})`
+    case 'unit':
+      return `sum:totalVolume{} in ${value}`
     default: {
       const { filterStr } = clauseToWql(clause)
-      return filterStr ? `find:note{${filterStr}}` : null
+      if (!filterStr) return null
+      return plane === 'metrics' ? `sum:totalVolume{${filterStr}}` : `find:note{${filterStr}}`
     }
   }
 }
@@ -124,10 +163,11 @@ function firstCustomSlotError(clauses: QueryClause[]): { error: string; clauseId
 export function diagnoseClauses(clauses: QueryClause[]): WqlDiagnostics {
   const wql = clausesToWql(clauses)
   const ast = parseQuery(wql)
+  const plane = sourcePlane(clauseValue(clauses, 'source', 'notes'))
 
   if (ast.error) {
     for (const clause of clauses) {
-      const probe = clauseProbeWql(clause)
+      const probe = clauseProbeWql(clause, plane)
       if (probe && parseQuery(probe).error) {
         return { wql, ast, valid: false, error: ast.error, offendingClauseId: clause.id }
       }

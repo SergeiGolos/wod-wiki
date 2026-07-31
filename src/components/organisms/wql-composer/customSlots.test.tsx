@@ -1,5 +1,5 @@
 /**
- * Custom slot integration — ComposerRegistry × WqlComposer (issue #830).
+ * Custom slot integration — ComposerRegistry × WqlComposer (issue #830, #838).
  *
  * Asserts:
  *   1. A registered custom slot appears in the composer's add-filter menu.
@@ -51,7 +51,7 @@ describe('custom slot plugin architecture', () => {
 
     expect(clauseToWql(clause)).toEqual({ filterStr: 'daterange:2026-07-01_2026-07-15' });
 
-    const wql = 'find:note{tags:PR, daterange:2026-07-01_2026-07-15} in journal last 2w where sum:totalVolume{} > 5000';
+    const wql = 'find:note{tags:PR, daterange:2026-07-01_2026-07-15} in all last 2w where sum:totalVolume{} > 5000';
     const ast = parseQuery(wql);
     expect(ast.error).toBeUndefined();
     expect(isFindQuery(ast)).toBe(true);
@@ -115,7 +115,7 @@ describe('custom slot plugin architecture', () => {
 
     // Composed WQL carries the fragment and parses cleanly.
     const wql = onWqlChange.mock.calls[onWqlChange.mock.calls.length - 1][0];
-    expect(wql).toBe('find:note{daterange:2026-07-01_2026-07-15} in journal last 2w');
+    expect(wql).toBe('find:note{daterange:2026-07-01_2026-07-15} in all last 2w');
     expect(parseQuery(wql).error).toBeUndefined();
     expect(onValidationChange).toHaveBeenLastCalledWith({ valid: true });
   });
@@ -130,11 +130,11 @@ describe('custom slot plugin architecture', () => {
         onWqlChange={onWqlChange}
       />,
     );
-    expect(onWqlChange).toHaveBeenLastCalledWith('find:note in journal last 2w');
+    expect(onWqlChange).toHaveBeenLastCalledWith('find:note in all last 2w');
 
     act(() => registerDemo());
     expect(onWqlChange).toHaveBeenLastCalledWith(
-      'find:note{daterange:2026-07-01_2026-07-15} in journal last 2w',
+      'find:note{daterange:2026-07-01_2026-07-15} in all last 2w',
     );
   });
 

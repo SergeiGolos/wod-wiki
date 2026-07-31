@@ -1,163 +1,220 @@
+/**
+ * queryClauses — source-pivot clause model (issue #838, decision #836).
+ *
+ * Asserts:
+ *   1. The `source` head slot compiles the find skeleton for content planes
+ *      (journal/collections/feeds/notes/blocks) and the aggregate skeleton
+ *      for the metrics plane.
+ *   2. Aggregate queries compose end-to-end: head, filters, group-by,
+ *      rollup, display unit, where-join.
+ *   3. `wqlToClauses` restores aggregate and find strings; recompiling
+ *      round-trips exactly, including mixed filter clauses and salvage
+ *      states (empty metric, invalid rollup period, exotic scope).
+ *   4. `pivotClauses` switches planes: shared filter clauses survive,
+ *      kind-specific clauses (time/where vs agg/metric/groupby/rollup/unit)
+ *      are dropped, and the metrics head slots are seeded.
+ *   5. `target`/`scope` clause types are gone — find target and scope are
+ *      derived from the single `source` value.
+ */
+
 import { describe, expect, it } from 'bun:test'
-import {
-  type QueryClause,
-  clausesToWql,
-  defaultClauses,
-  wqlToClauses,
-} from './queryClauses'
 import { composerRegistry, type CustomSlotDefinition } from './ComposerRegistry'
-import { parseQuery, isFindQuery } from '@/services/analytics/query/wql'
+import {
+  clausesToWql,
+  wqlToClauses,
+  pivotClauses,
+  defaultClauses,
+  getClauseMeta,
+  type QueryClause,
+} from './queryClauses'
 
-describe('queryClauses model & WQL generation', () => {
-  it('generates default WQL correctly', () => {
-    const clauses = defaultClauses()
-    const wql = clausesToWql(clauses)
-    expect(wql).toBe('find:note in journal last 2w')
+let seq = 0
+function clause(type: string, value: string): QueryClause {
+  return { id: `t-${type}-${seq++}`, type, ...getClauseMeta(type), value }
+}
 
-    const parsed = parseQuery(wql)
-    expect(isFindQuery(parsed)).toBe(true)
-    if (isFindQuery(parsed)) {
-      expect(parsed.target).toBe('note')
-      expect(parsed.scope).toBe('journal')
-      expect(parsed.last).toEqual({ size: 2, unit: 'w' })
-    }
+/** Restore-then-recompile must reproduce the input string. */
+function expectRoundTrip(wql: string) {
+  const clauses = wqlToClauses(wql)
+  expect(clauses).not.toBeNull()
+  expect(clausesToWql(clauses!)).toBe(wql)
+}
+
+function valueOf(clauses: QueryClause[] | null, type: string): string | undefined {
+  return clauses?.find(c => c.type === type)?.value
+}
+
+describe('source-pivot compile — content planes', () => {
+  it('compiles journal/collections/feeds as find:note in <source>', () => {
+    expect(clausesToWql([clause('source', 'journal')])).toBe('find:note in journal')
+    expect(clausesToWql([clause('source', 'collections')])).toBe('find:note in collections')
+    expect(clausesToWql([clause('source', 'feeds')])).toBe('find:note in feeds')
   })
 
-  it('supports target: block and scope: all', () => {
-    const clauses: QueryClause[] = [
-      { id: '1', type: 'target', label: 'Target', value: 'block', inputType: 'select', placeholder: '' },
-      { id: '2', type: 'scope', label: 'Scope', value: 'all', inputType: 'select', placeholder: '' },
-      { id: '3', type: 'type', label: 'Type', value: 'wod', inputType: 'select', placeholder: '' },
-    ]
-    const wql = clausesToWql(clauses)
-    expect(wql).toBe('find:block{type:wod} in all')
-
-    const parsed = parseQuery(wql)
-    expect(isFindQuery(parsed)).toBe(true)
-    if (isFindQuery(parsed)) {
-      expect(parsed.target).toBe('block')
-      expect(parsed.scope).toBe('all')
-      expect(parsed.filters).toHaveLength(1)
-      expect(parsed.filters[0].key).toBe('type')
-    }
+  it('compiles notes and blocks as find in all', () => {
+    expect(clausesToWql([clause('source', 'notes')])).toBe('find:note in all')
+    expect(clausesToWql([clause('source', 'blocks')])).toBe('find:block in all')
   })
 
-  it('composes multiple filter tags correctly', () => {
-    const clauses: QueryClause[] = [
-      { id: '1', type: 'target', label: 'Target', value: 'note', inputType: 'select', placeholder: '' },
-      { id: '2', type: 'scope', label: 'Scope', value: 'collections', inputType: 'select', placeholder: '' },
-      { id: '3', type: 'text', label: 'Text', value: 'Fran', inputType: 'freetext', placeholder: '' },
-      { id: '4', type: 'tag', label: 'Tag', value: 'PR', inputType: 'select', placeholder: '' },
-      { id: '5', type: 'effort', label: 'Effort', value: 'back-squat', inputType: 'select', placeholder: '' },
-    ]
-    const wql = clausesToWql(clauses)
-    expect(wql).toBe('find:note{text:Fran, tags:PR, effort:back-squat} in collections')
-
-    const parsed = parseQuery(wql)
-    expect(isFindQuery(parsed)).toBe(true)
-    if (isFindQuery(parsed)) {
-      expect(parsed.target).toBe('note')
-      expect(parsed.scope).toBe('collections')
-      expect(parsed.filters).toHaveLength(3)
-    }
+  it('compiles filters, time, and where on the content plane', () => {
+    const wql = clausesToWql([
+      clause('source', 'feeds'),
+      clause('time', 'last 8w'),
+      clause('tag', 'pr'),
+      clause('text', 'fran'),
+      clause('where', 'sum:totalVolume{} > 5000'),
+    ])
+    expect(wql).toBe('find:note{tags:pr, text:fran} in feeds last 8w where sum:totalVolume{} > 5000')
   })
 
-  it('supports cross-store where join clause', () => {
-    const clauses: QueryClause[] = [
-      { id: '1', type: 'target', label: 'Target', value: 'note', inputType: 'select', placeholder: '' },
-      { id: '2', type: 'scope', label: 'Scope', value: 'journal', inputType: 'select', placeholder: '' },
-      { id: '3', type: 'tag', label: 'Tag', value: 'PR', inputType: 'select', placeholder: '' },
-      { id: '4', type: 'time', label: 'Time', value: 'last 8w', inputType: 'radio', placeholder: '' },
-      { id: '5', type: 'where', label: 'Where', value: 'sum:totalVolume{} > 5000', inputType: 'freetext', placeholder: '' },
-    ]
-    const wql = clausesToWql(clauses)
-    expect(wql).toBe('find:note{tags:PR} in journal last 8w where sum:totalVolume{} > 5000')
-
-    const parsed = parseQuery(wql)
-    expect(isFindQuery(parsed)).toBe(true)
-    if (isFindQuery(parsed)) {
-      expect(parsed.target).toBe('note')
-      expect(parsed.scope).toBe('journal')
-      expect(parsed.last).toEqual({ size: 8, unit: 'w' })
-      expect(parsed.join).toBeDefined()
-      expect(parsed.join?.metric).toBe('totalVolume')
-      expect(parsed.join?.threshold).toBe(5000)
-    }
+  it('ignores analytics head clauses on the content plane', () => {
+    const wql = clausesToWql([
+      clause('source', 'notes'),
+      clause('agg', 'sum'),
+      clause('metric', 'totalVolume'),
+      clause('groupby', 'week'),
+    ])
+    expect(wql).toBe('find:note in all')
   })
 })
 
-describe('wqlToClauses — URL restore (inverse of clausesToWql)', () => {
-  const clauseMap = (clauses: QueryClause[]) =>
-    new Map(clauses.map(c => [c.type, c.value]))
-
-  it('restores target, scope, time, filters, and where from composed WQL', () => {
-    const restored = wqlToClauses(
-      'find:block{text:Fran, tags:pr, effort:back-squat} in collections last 8w where sum:totalVolume{} > 5000',
-    )
-    expect(restored).not.toBeNull()
-    const byType = clauseMap(restored!)
-    expect(byType.get('target')).toBe('block')
-    expect(byType.get('scope')).toBe('collections')
-    expect(byType.get('time')).toBe('last 8w')
-    expect(byType.get('text')).toBe('Fran')
-    expect(byType.get('tag')).toBe('pr')
-    expect(byType.get('effort')).toBe('back-squat')
-    expect(byType.get('where')).toBe('sum:totalVolume{} > 5000')
+describe('source-pivot compile — metrics plane', () => {
+  it('compiles the bare aggregate head', () => {
+    expect(clausesToWql([
+      clause('source', 'metrics'),
+      clause('agg', 'sum'),
+      clause('metric', 'totalVolume'),
+    ])).toBe('sum:totalVolume')
   })
 
-  it('round-trips every composer-generated WQL string (compose → restore → compose is identity)', () => {
-    const cases: QueryClause[][] = [
-      defaultClauses(),
-      [
-        { id: '1', type: 'target', label: '', value: 'block', inputType: 'select', placeholder: '' },
-        { id: '2', type: 'scope', label: '', value: 'all', inputType: 'select', placeholder: '' },
-        { id: '3', type: 'time', label: '', value: 'all', inputType: 'select', placeholder: '' },
-        { id: '4', type: 'type', label: '', value: 'wod', inputType: 'select', placeholder: '' },
-      ],
-      [
-        { id: '1', type: 'target', label: '', value: 'note', inputType: 'select', placeholder: '' },
-        { id: '2', type: 'scope', label: '', value: 'feeds', inputType: 'select', placeholder: '' },
-        { id: '3', type: 'time', label: '', value: 'last 26w', inputType: 'select', placeholder: '' },
-        { id: '4', type: 'text', label: '', value: 'Fran', inputType: 'freetext', placeholder: '' },
-        { id: '5', type: 'catalog', label: '', value: 'crossfit-girls', inputType: 'select', placeholder: '' },
-        { id: '6', type: 'discipline', label: '', value: 'strength', inputType: 'select', placeholder: '' },
-        { id: '7', type: 'has', label: '', value: 'timer', inputType: 'select', placeholder: '' },
-        { id: '8', type: 'where', label: '', value: 'avg:pace{} < 8', inputType: 'freetext', placeholder: '' },
-      ],
-    ]
-    for (const clauses of cases) {
-      const wql = clausesToWql(clauses)
-      const restored = wqlToClauses(wql)
-      expect(restored).not.toBeNull()
-      expect(clausesToWql(restored!)).toBe(wql)
-    }
+  it('compiles filters, group-by, rollup, and unit in grammar order', () => {
+    const wql = clausesToWql([
+      clause('source', 'metrics'),
+      clause('agg', 'avg'),
+      clause('metric', 'tis'),
+      clause('discipline', 'strength'),
+      clause('groupby', 'week'),
+      clause('rollup', '1w'),
+      clause('unit', 'kg'),
+    ])
+    expect(wql).toBe('avg:tis{discipline:strength} by {week}.rollup(1w) in kg')
   })
 
-  it('restores composer states whose WQL does not parse (e.g. text with spaces)', () => {
-    // `text:hello world` is a parse error for the Lezer grammar, but it is a
-    // reachable composer state — back/forward must restore it exactly so the
-    // diagnostics strip can keep flagging the offending slot.
-    const restored = wqlToClauses('find:note{text:hello world} in journal last 2w')
-    expect(restored).not.toBeNull()
-    const byType = clauseMap(restored!)
-    expect(byType.get('text')).toBe('hello world')
-    expect(clausesToWql(restored!)).toBe('find:note{text:hello world} in journal last 2w')
+  it('compiles multiple group-by clauses into one by {...} set', () => {
+    const wql = clausesToWql([
+      clause('source', 'metrics'),
+      clause('agg', 'sum'),
+      clause('metric', 'totalVolume'),
+      clause('groupby', 'week'),
+      clause('groupby', 'effort'),
+    ])
+    expect(wql).toBe('sum:totalVolume by {week, effort}')
+  })
+
+  it('compiles rollup without group-by and a trailing where find-join', () => {
+    const wql = clausesToWql([
+      clause('source', 'metrics'),
+      clause('agg', 'sum'),
+      clause('metric', 'totalVolume'),
+      clause('rollup', '1d'),
+      clause('where', 'find:note{tags:me}'),
+    ])
+    expect(wql).toBe('sum:totalVolume.rollup(1d) where find:note{tags:me}')
+  })
+
+  it('compiles an empty metric as the salvage head "sum:"', () => {
+    expect(clausesToWql([
+      clause('source', 'metrics'),
+      clause('agg', 'sum'),
+      clause('metric', ''),
+    ])).toBe('sum:')
+  })
+
+  it('ignores the time clause on the metrics plane', () => {
+    const wql = clausesToWql([
+      clause('source', 'metrics'),
+      clause('agg', 'sum'),
+      clause('metric', 'tis'),
+      clause('time', 'last 8w'),
+    ])
+    expect(wql).toBe('sum:tis')
+  })
+})
+
+describe('wqlToClauses — find restore maps to source', () => {
+  it('maps note + known scopes to the matching source value', () => {
+    expect(valueOf(wqlToClauses('find:note in journal'), 'source')).toBe('journal')
+    expect(valueOf(wqlToClauses('find:note in collections'), 'source')).toBe('collections')
+    expect(valueOf(wqlToClauses('find:note in feeds'), 'source')).toBe('feeds')
+  })
+
+  it('maps note + all/absent scope to notes, block to blocks (scope dropped)', () => {
+    expect(valueOf(wqlToClauses('find:note in all'), 'source')).toBe('notes')
+    expect(valueOf(wqlToClauses('find:note'), 'source')).toBe('notes')
+    expect(valueOf(wqlToClauses('find:block in all'), 'source')).toBe('blocks')
+    expect(valueOf(wqlToClauses('find:block in journal'), 'source')).toBe('blocks')
+  })
+
+  it('restores an exotic scope verbatim as the source value (salvage)', () => {
+    expect(valueOf(wqlToClauses('find:note in archive'), 'source')).toBe('archive')
+  })
+
+  it('round-trips find strings exactly', () => {
+    expectRoundTrip('find:note{text:fran} in feeds last 8w')
+    expectRoundTrip('find:note{tags:pr} in journal last 8w where sum:totalVolume{} > 5000')
+    expectRoundTrip('find:block{type:wod} in all')
+    expectRoundTrip('find:note in archive')
+  })
+})
+
+describe('wqlToClauses — aggregate restore', () => {
+  it('restores head, filters, group-by, rollup, and unit', () => {
+    const clauses = wqlToClauses('avg:tis{discipline:strength} by {week}.rollup(1w) in kg')
+    expect(valueOf(clauses, 'source')).toBe('metrics')
+    expect(valueOf(clauses, 'agg')).toBe('avg')
+    expect(valueOf(clauses, 'metric')).toBe('tis')
+    expect(valueOf(clauses, 'discipline')).toBe('strength')
+    expect(valueOf(clauses, 'groupby')).toBe('week')
+    expect(valueOf(clauses, 'rollup')).toBe('1w')
+    expect(valueOf(clauses, 'unit')).toBe('kg')
+  })
+
+  it('restores multiple dims as separate group-by clauses', () => {
+    const clauses = wqlToClauses('sum:totalVolume by {week, effort}')
+    expect(clauses?.filter(c => c.type === 'groupby').map(c => c.value)).toEqual(['week', 'effort'])
+  })
+
+  it('round-trips aggregate strings exactly, including mixed filters and where', () => {
+    expectRoundTrip('sum:totalVolume{discipline:strength} by {week}.rollup(1w)')
+    expectRoundTrip('avg:tis by {week, effort} in kg')
+    expectRoundTrip('sum:totalVolume{tags:fran, effort:thruster} where find:note{tags:me}')
+    expectRoundTrip('count:sessionLoad')
+    expectRoundTrip('sum:calc.acwr')
+    expectRoundTrip('avg:calc.monotony by {week}.rollup(1w)')
+  })
+
+  it('salvages composer-reachable invalid states (bad rollup period, empty metric)', () => {
+    expectRoundTrip('sum:totalVolume.rollup(1m)')
+    expectRoundTrip('sum:')
+  })
+
+  it('round-trips canonical calc.* metric keys (dotted)', () => {
+    expect(valueOf(wqlToClauses('sum:calc.acwr'), 'metric')).toBe('calc.acwr')
+  })
+
+  it('returns null for strings that are not composer products', () => {
+    expect(wqlToClauses('random prose')).toBeNull()
+    expect(wqlToClauses('sum:totalVolume{!tags:fran}')).toBeNull()
+    expect(wqlToClauses('find:note{boguskey:x} in all')).toBeNull()
+  })
+
+  it('restores composer states whose WQL does not parse (salvage, issue #833)', () => {
+    expectRoundTrip('find:note{text:hello world} in all')
   })
 
   it('emits an explicit “all time” time clause when the WQL carries no window', () => {
-    const restored = wqlToClauses('find:note in all')
-    expect(restored).not.toBeNull()
-    const byType = clauseMap(restored!)
-    expect(byType.get('time')).toBe('all')
-    expect(clausesToWql(restored!)).toBe('find:note in all')
-  })
-
-  it('returns null for non-find queries, unknown filter keys, and negated filters', () => {
-    expect(wqlToClauses('sum:totalVolume{}')).toBeNull()
-    expect(wqlToClauses('')).toBeNull()
-    // `source:` / `note:` are valid WQL filters but not composer-expressible.
-    expect(wqlToClauses('find:note{source:feed} in all')).toBeNull()
-    expect(wqlToClauses('find:note{!tags:pr} in journal')).toBeNull()
+    const clauses = wqlToClauses('find:note in all')
+    expect(valueOf(clauses, 'time')).toBe('all')
   })
 
   it('restores custom-slot fragments through the ComposerRegistry', () => {
@@ -177,13 +234,53 @@ describe('wqlToClauses — URL restore (inverse of clausesToWql)', () => {
     }
     const unregister = composerRegistry.registerSlot(weightSlot)
     try {
-      const restored = wqlToClauses('find:note{weight:100kg} in journal last 2w')
-      expect(restored).not.toBeNull()
-      const byType = clauseMap(restored!)
-      expect(byType.get('weight')).toBe('100kg')
-      expect(clausesToWql(restored!)).toBe('find:note{weight:100kg} in journal last 2w')
+      expectRoundTrip('find:note{weight:100kg} in journal last 2w')
+      expect(valueOf(wqlToClauses('find:note{weight:100kg} in journal'), 'weight')).toBe('100kg')
     } finally {
       unregister()
     }
+  })
+})
+
+describe('pivotClauses', () => {
+  it('pivoting to metrics drops time/where, keeps shared filters, seeds agg+metric', () => {
+    const next = pivotClauses([
+      clause('source', 'notes'),
+      clause('time', 'last 8w'),
+      clause('tag', 'fran'),
+      clause('where', 'sum:totalVolume{} > 5000'),
+    ], 'metrics')
+
+    expect(valueOf(next, 'source')).toBe('metrics')
+    expect(valueOf(next, 'tag')).toBe('fran')
+    expect(next.some(c => c.type === 'time')).toBe(false)
+    expect(next.some(c => c.type === 'where')).toBe(false)
+    expect(valueOf(next, 'agg')).toBe('sum')
+    expect(valueOf(next, 'metric')).toBe('')
+  })
+
+  it('pivoting to a content plane drops the analytics head, keeps shared filters', () => {
+    const next = pivotClauses([
+      clause('source', 'metrics'),
+      clause('agg', 'sum'),
+      clause('metric', 'totalVolume'),
+      clause('groupby', 'week'),
+      clause('rollup', '1w'),
+      clause('unit', 'kg'),
+      clause('effort', 'thruster'),
+      clause('where', 'find:note{tags:me}'),
+    ], 'journal')
+
+    expect(valueOf(next, 'source')).toBe('journal')
+    expect(valueOf(next, 'effort')).toBe('thruster')
+    for (const t of ['agg', 'metric', 'groupby', 'rollup', 'unit', 'where']) {
+      expect(next.some(c => c.type === t)).toBe(false)
+    }
+  })
+})
+
+describe('defaultClauses', () => {
+  it('compiles the default content query', () => {
+    expect(clausesToWql(defaultClauses())).toBe('find:note in all last 2w')
   })
 })

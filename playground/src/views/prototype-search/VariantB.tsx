@@ -31,8 +31,8 @@ export function VariantB({
     onChange(clauses.filter((_, i) => i !== idx))
   }
 
-  const addClause = (type: ClauseType) => {
-    const meta = CLAUSE_META[type]
+  const addClause = (type: string) => {
+    const meta = CLAUSE_META[type as ClauseType]
     const newClause: QueryClause = {
       id: `c-${Date.now()}-${Math.random()}`,
       type,
@@ -44,12 +44,21 @@ export function VariantB({
     onChange([...clauses, newClause])
   }
 
-  const targetIdx = clauses.findIndex(c => c.type === 'target')
-  const scopeIdx = clauses.findIndex(c => c.type === 'scope')
+  const sourceIdx = clauses.findIndex(c => c.type === 'source')
   const timeIdx = clauses.findIndex(c => c.type === 'time')
   const whereIdx = clauses.findIndex(c => c.type === 'where')
 
-  const filterClauses = clauses.map((c, idx) => ({ clause: c, idx })).filter(item => item.clause.type !== 'target' && item.clause.type !== 'scope' && item.clause.type !== 'time' && item.clause.type !== 'where')
+  const HEAD_TYPES: Record<string, true> = {
+    source: true,
+    time: true,
+    where: true,
+    agg: true,
+    metric: true,
+    groupby: true,
+    rollup: true,
+    unit: true,
+  }
+  const filterClauses = clauses.map((c, idx) => ({ clause: c, idx })).filter(item => !HEAD_TYPES[item.clause.type])
 
   return (
     <div className="border-b border-border bg-background/95 backdrop-blur px-6 py-3" data-testid="variant-b2">
@@ -64,33 +73,19 @@ export function VariantB({
 
           <span className="text-muted-foreground font-medium">Find</span>
 
-          {/* Target Slot */}
-          {targetIdx >= 0 && (
+          {/* Source Slot */}
+          {sourceIdx >= 0 && (
             <TokenSlotPill
-              clause={clauses[targetIdx]}
-              isActive={activeSlotIdx === targetIdx}
-              onClick={() => setActiveSlotIdx(targetIdx)}
-              onChange={patch => updateClause(targetIdx, patch)}
-              placeholderOverride="[notes or blocks]"
+              clause={clauses[sourceIdx]}
+              isActive={activeSlotIdx === sourceIdx}
+              onClick={() => setActiveSlotIdx(sourceIdx)}
+              onChange={patch => updateClause(sourceIdx, patch)}
+              placeholderOverride="[notes, blocks, metrics…]"
               compact
             />
           )}
 
-          <span className="text-muted-foreground font-medium">in</span>
-
-          {/* Scope Slot */}
-          {scopeIdx >= 0 && (
-            <TokenSlotPill
-              clause={clauses[scopeIdx]}
-              isActive={activeSlotIdx === scopeIdx}
-              onClick={() => setActiveSlotIdx(scopeIdx)}
-              onChange={patch => updateClause(scopeIdx, patch)}
-              placeholderOverride="[select scope]"
-              compact
-            />
-          )}
-
-          {/* Filters */}
+          <span className="text-muted-foreground font-medium">matching</span>
           <span className="text-muted-foreground font-medium">matching</span>
           {filterClauses.length === 0 && (
             <span className="text-muted-foreground/40 italic font-mono text-[11px]">[any text / tags]</span>

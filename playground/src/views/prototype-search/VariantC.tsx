@@ -6,7 +6,7 @@
  * counts wired through queryService.runFind (issue #832).
  */
 import { WqlComposer, type QueryClause } from '@/components/organisms/wql-composer'
-import { queryService } from '@/services/analytics/query'
+import { queryService, isFindQuery } from '@/services/analytics/query'
 
 export function VariantC({
   clauses,
@@ -26,7 +26,7 @@ export function VariantC({
         <WqlComposer
           clauses={clauses}
           onClausesChange={onChange}
-          executeFind={ast => queryService.runFind(ast)}
+          execute={ast => (isFindQuery(ast) ? queryService.runFind(ast) : queryService.runQuery(ast.raw))}
         />
       </div>
     </div>

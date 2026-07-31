@@ -76,8 +76,8 @@ describe('LibraryPage', () => {
 
     expect(screen.getByTestId('wql-composer')).toBeDefined()
     expect(screen.queryByTestId('wql-composer-panel')).toBeNull()
-    // Library defaults: all sources, past two weeks.
-    expect(screen.getByTestId('token-slot-scope').textContent).toContain('all')
+    // Library defaults: all note sources, past two weeks.
+    expect(screen.getByTestId('token-slot-source').textContent).toContain('notes')
     expect(screen.getByTestId('token-slot-time').textContent).toContain('last 2w')
     await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull())
   })
@@ -112,7 +112,7 @@ describe('LibraryPage', () => {
     expect(screen.queryByText('No entries match this query.')).toBeNull()
   })
 
-  it('hides the static catalog shelf when the scope excludes collections', async () => {
+  it('hides the static catalog shelf when the source excludes collections', async () => {
     runFindImpl = async parsed => emptyResult(parsed.raw ?? '')
     const { unmount } = renderPage(`/library?q=${encodeURIComponent('find:note in journal last 1w')}`)
     await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull())

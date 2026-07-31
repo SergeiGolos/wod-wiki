@@ -1,5 +1,7 @@
 /**
- * WqlComposer — shared omni command bar (Variant B3) for composing WQL `find:` queries.
+ * WqlComposer — shared omni command bar (Variant B3) for composing WQL queries
+ * of both kinds: content `find:` queries and analytics aggregate queries
+ * (source-pivot model, issue #838 / decision #836).
  *
  * Token-slot pills with placeholder guidance, clause popover, add-filter menu,
  * where-join editor, clause model and WQL compiler — extracted from the
@@ -7,8 +9,7 @@
  * clause change re-composes and re-parses the WQL synchronously; the
  * diagnostics strip (issue #832) shows a validity badge, attributes parse
  * errors to the offending slot, summarizes the AST, and — when an
- * `executeFind` executor is wired — live matched/selected stage counts,
- * debounced at 150ms.
+ * `execute` executor is wired — live stage counts, debounced at 150ms.
  *
  * Keyboard contract (as prototyped):
  *   - Tab / Shift+Tab traverses token slots
@@ -27,12 +28,13 @@ import { WqlDiagnosticsStrip } from './WqlDiagnosticsStrip'
 import {
   useWqlStageCounts,
   DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
-  type FindExecutor,
+  type WqlExecutor,
 } from './useWqlStageCounts'
 import {
   type QueryClause,
   getClauseMeta,
   defaultClauses,
+  pivotClauses,
 } from './queryClauses'
 
 // ── Public API ───────────────────────────────────────────────────────────────
@@ -45,7 +47,7 @@ export interface WqlValidationState {
 }
 
 export interface WqlComposerProps {
-  /** Seed clauses for uncontrolled usage. Defaults to target/scope/time. */
+  /** Seed clauses for uncontrolled usage. Defaults to source/time. */
   initialClauses?: QueryClause[]
   /** Controlled clauses. When provided, the component does not own clause state. */
   clauses?: QueryClause[]
@@ -60,11 +62,12 @@ export interface WqlComposerProps {
   /** Render the diagnostics strip (badge, AST summary, stage counts). Default true. */
   showDiagnostics?: boolean
   /**
-   * Executor for live stage counts (matched/selected) in the diagnostics
-   * strip — typically `(ast) => queryService.runFind(ast)`. When omitted, the
-   * strip omits counts and no query is executed.
+   * Executor for live stage counts in the diagnostics strip — dispatch on
+   * query kind, e.g. `(ast) => isFindQuery(ast) ? queryService.runFind(ast)
+   * : queryService.runQuery(ast.raw)`. When omitted, the strip omits counts
+   * and no query is executed.
    */
-  executeFind?: FindExecutor
+  execute?: WqlExecutor
   /** Debounce for live execution feedback. Default 150ms (decision #826). */
   debounceMs?: number
   /** Extension point: extra content rendered inside the bar, after the add-filter menu. */
@@ -84,7 +87,7 @@ export function WqlComposer({
   onValidationChange,
   onAstChange,
   showDiagnostics = true,
-  executeFind,
+  execute,
   debounceMs = DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
   customSlots,
   autoFocus = false,
@@ -140,7 +143,7 @@ export function WqlComposer({
     callbacksRef.current.onValidationChange?.(validation)
   }, [diagnostics])
 
-  const stages = useWqlStageCounts(diagnostics.ast, diagnostics.valid, executeFind, debounceMs)
+  const stages = useWqlStageCounts(diagnostics.ast, diagnostics.valid, execute, debounceMs)
 
   const offendingClause = diagnostics.offendingClauseId
     ? clauses.find(c => c.id === diagnostics.offendingClauseId)
@@ -148,7 +151,15 @@ export function WqlComposer({
   const offendingLabel = offendingClause ? getClauseMeta(offendingClause.type).label : undefined
 
   const updateClause = (idx: number, patch: Partial<QueryClause>) => {
-    setClauses(clauses.map((c, i) => (i === idx ? { ...c, ...patch } : c)))
+    const updated = clauses.map((c, i) => (i === idx ? { ...c, ...patch } : c))
+    // Source edits pivot the query kind (decision #836): kind-specific
+    // clauses are dropped, shared filters survive, head slots are seeded.
+    const edited = clauses[idx]
+    if (edited?.type === 'source' && patch.value !== undefined && patch.value !== edited.value) {
+      setClauses(pivotClauses(updated, patch.value))
+      return
+    }
+    setClauses(updated)
   }
 
   const removeClause = (idx: number) => {
@@ -168,8 +179,14 @@ export function WqlComposer({
   }
 
   const addClause = (type: string) => {
-    const value = type === 'time' ? 'last 2w' : type === 'where' ? 'sum:totalVolume{} > 5000' : ''
-    setClauses([...clauses, makeClause(type, value)])
+    const seed =
+      type === 'time' ? 'last 2w'
+      : type === 'where' ? 'sum:totalVolume{} > 5000'
+      : type === 'agg' ? 'sum'
+      : type === 'groupby' ? 'week'
+      : type === 'rollup' ? '1w'
+      : ''
+    setClauses([...clauses, makeClause(type, seed)])
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

@@ -37,3 +37,19 @@ export const WQL_SCOPES = ['journal', 'collections', 'feeds', 'all'] as const;
 
 /** Content-specific filter keys (beyond the analytics tag keys). */
 export const WQL_CONTENT_FILTER_KEYS = ['type', 'text', 'has', 'source', 'catalog', ...WQL_TAG_KEYS] as const;
+
+/**
+ * Composer source planes (issue #838, decision #836): the single `source`
+ * head slot that pivots the query kind. Content sources compile the `find:`
+ * skeleton; `metrics` compiles the aggregate skeleton. `results`/`efforts`
+ * planes are deliberately absent — they need new grammar/engine semantics
+ * and are deferred to their own tickets.
+ */
+export const WQL_SOURCES = ['journal', 'collections', 'feeds', 'notes', 'blocks', 'metrics'] as const;
+
+/** Rollup periods the aggregate grammar accepts (wql.ts: unit d|w only). */
+export const WQL_ROLLUP_PERIODS = ['1d', '1w'] as const;
+
+/** Display units the app can render (analytics unit preference, kg/lb). The
+ *  `in <unit>` directive accepts any word; these are the canonical options. */
+export const WQL_DISPLAY_UNITS = ['kg', 'lb'] as const;

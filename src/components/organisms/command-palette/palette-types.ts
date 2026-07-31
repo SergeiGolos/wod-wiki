@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { QueryClause, FindExecutor } from '../wql-composer';
+import type { QueryClause, WqlExecutor } from '../wql-composer';
 
 /**
  * WQL mode for the palette (issue #834, decision #828): the plain text input
@@ -18,12 +18,12 @@ export interface PaletteWqlConfig {
   /** Render the composer's diagnostics strip (badge, AST summary, stage counts). Default true. */
   showDiagnostics?: boolean;
   /**
-   * Executor for live stage counts in the diagnostics strip — typically
-   * `(ast) => queryService.runFind(ast)`, wired by the caller so the shell
-   * stays decoupled from the query layer. When omitted, the strip omits
-   * counts and no query is executed.
+   * Executor for live stage counts in the diagnostics strip — dispatch on
+   * query kind, e.g. `(ast) => isFindQuery(ast) ? queryService.runFind(ast)
+   * : queryService.runQuery(ast.raw)`. When omitted, the strip omits counts
+   * and no query is executed.
    */
-  executeFind?: FindExecutor;
+  execute?: WqlExecutor;
 }
 
 /**

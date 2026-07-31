@@ -65,13 +65,13 @@ const withClause = (type: string, value: string): QueryClause[] => [
 describe('useLibraryQueryState', () => {
   it('falls back to library defaults when no params are present', () => {
     renderAt(['/library'])
-    expect(summary()).toBe('target=note|scope=all|time=last 2w')
+    expect(summary()).toBe('source=notes|time=last 2w')
   })
 
   it('hydrates clauses from the q parameter on mount', () => {
     const wql = 'find:note{tags:pr} in feeds last 8w'
     renderAt([`/library?q=${encodeURIComponent(wql)}`])
-    expect(summary()).toBe('target=note|scope=feeds|time=last 8w|tag=pr')
+    expect(summary()).toBe('source=feeds|time=last 8w|tag=pr')
   })
 
   it('serializes clause changes into the q parameter', async () => {
@@ -86,11 +86,11 @@ describe('useLibraryQueryState', () => {
 
     act(() => captured.setClauses(withClause('tag', 'pr')))
     await waitFor(() => expect(qParam()).toContain('tags:pr'))
-    const stateA = 'target=note|scope=all|time=last 2w|tag=pr'
+    const stateA = 'source=notes|time=last 2w|tag=pr'
 
     act(() => captured.setClauses([...withClause('tag', 'pr'), { id: 'c-text', type: 'text', label: 'Contains', value: 'fran', inputType: 'freetext', placeholder: '' }]))
     await waitFor(() => expect(qParam()).toContain('text:fran'))
-    const stateB = 'target=note|scope=all|time=last 2w|tag=pr|text=fran'
+    const stateB = 'source=notes|time=last 2w|tag=pr|text=fran'
     expect(summary()).toBe(stateB)
 
     act(() => capturedNavigate(-1))
@@ -103,7 +103,7 @@ describe('useLibraryQueryState', () => {
   it('migrates legacy tri-state redirect params to q (replace, keys removed)', async () => {
     renderAt(['/library?note=hide&session=on&post=hide'])
     // Clause state reflects the legacy params immediately (no flash of defaults).
-    expect(summary()).toBe('target=note|scope=collections|time=last 2w')
+    expect(summary()).toBe('source=collections|time=last 2w')
 
     await waitFor(() => expect(search()).toContain('q='))
     expect(qParam()).toBe('find:note in collections last 2w')
@@ -114,7 +114,7 @@ describe('useLibraryQueryState', () => {
 
   it('migrates legacy text and timePreset params', async () => {
     renderAt(['/library?text=fran&timePreset=1w'])
-    expect(summary()).toBe('target=note|scope=all|time=last 1w|text=fran')
+    expect(summary()).toBe('source=notes|time=last 1w|text=fran')
     await waitFor(() => expect(qParam()).toBe('find:note{text:fran} in all last 1w'))
     expect(search()).not.toContain('timePreset=')
   })
@@ -126,7 +126,7 @@ describe('useLibraryQueryState', () => {
     act(() => captured.setClauses(withClause('tag', '')))
 
     // The clause is present in state even though it compiles to nothing.
-    expect(summary()).toBe('target=note|scope=all|time=last 2w|tag=')
+    expect(summary()).toBe('source=notes|time=last 2w|tag=')
     // No URL churn for a WQL-no-op edit.
     await act(async () => {})
     expect(search()).toBe(searchBefore)

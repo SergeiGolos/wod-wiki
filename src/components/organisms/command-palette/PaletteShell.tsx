@@ -119,7 +119,7 @@ export const PaletteShell: React.FC = () => {
         initialClauses={wqlConfig.initialClauses}
         onWqlChange={setQuery}
         showDiagnostics={wqlConfig.showDiagnostics ?? true}
-        executeFind={wqlConfig.executeFind}
+        execute={wqlConfig.execute}
         customSlots={wqlConfig.customSlots}
         autoFocus
       />
