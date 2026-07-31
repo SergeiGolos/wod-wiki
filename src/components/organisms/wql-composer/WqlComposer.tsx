@@ -69,6 +69,8 @@ export interface WqlComposerProps {
   debounceMs?: number
   /** Extension point: extra content rendered inside the bar, after the add-filter menu. */
   customSlots?: ReactNode
+  /** Focus the free-text input on mount (e.g. when embedded in the palette, issue #834). */
+  autoFocus?: boolean
   className?: string
 }
 
@@ -85,6 +87,7 @@ export function WqlComposer({
   executeFind,
   debounceMs = DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
   customSlots,
+  autoFocus = false,
   className,
 }: WqlComposerProps) {
   const [internalClauses, setInternalClauses] = useState<QueryClause[]>(
@@ -95,6 +98,13 @@ export function WqlComposer({
   const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null)
   const [freeText, setFreeText] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Deferred so a host dialog/list wins its own mount effects first.
+  useEffect(() => {
+    if (!autoFocus) return
+    const t = setTimeout(() => inputRef.current?.focus(), 0)
+    return () => clearTimeout(t)
+  }, [autoFocus])
 
   const setClauses = useCallback(
     (next: QueryClause[]) => {
@@ -165,6 +175,9 @@ export function WqlComposer({
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && freeText.trim()) {
       e.preventDefault()
+      // Handled here — don't let an embedding list (palette) also treat this
+      // as "activate the active result".
+      e.stopPropagation()
       setClauses([...clauses, makeClause('text', freeText.trim())])
       setFreeText('')
     }

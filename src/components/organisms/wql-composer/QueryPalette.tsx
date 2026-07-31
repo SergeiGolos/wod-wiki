@@ -59,15 +59,21 @@ export function TokenSlotPill({
 
   const hasValue = Boolean(clause.value && clause.value.trim())
 
-  // Keydown listener for Tab, Up, Down, Enter, Escape when pill is focused
+  // Keydown listener for Tab, Up, Down, Enter, Escape when pill is focused.
+  // Handled keys stop at the pill so an embedding container (the palette's
+  // result list, issue #834) doesn't double-handle them.
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
+      e.stopPropagation()
       if (!open) setOpen(true)
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
+      e.stopPropagation()
       setOpen(o => !o)
     } else if (e.key === 'Escape') {
+      if (!open) return // let the host dismiss
+      e.stopPropagation()
       setOpen(false)
     }
   }
@@ -228,15 +234,20 @@ export function ClausePopover({
     ? items.filter(item => item.value.toLowerCase().includes(val.toLowerCase()) || item.label.toLowerCase().includes(val.toLowerCase()))
     : items
 
+  // Handled keys stop at the popover so an embedding container (the
+  // palette's result list, issue #834) doesn't also navigate/select.
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
+      e.stopPropagation()
       setHighlightIdx(i => Math.min(i + 1, Math.max(0, filteredItems.length - 1)))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
+      e.stopPropagation()
       setHighlightIdx(i => Math.max(i - 1, 0))
     } else if (e.key === 'Enter') {
       e.preventDefault()
+      e.stopPropagation()
       if (filteredItems[highlightIdx]) {
         onChange({ value: filteredItems[highlightIdx].value })
       } else if (val.trim() && (binding?.open ?? true)) {
@@ -244,6 +255,7 @@ export function ClausePopover({
         onChange({ value: val.trim() })
       }
     } else if (e.key === 'Escape') {
+      e.stopPropagation()
       onClose()
     }
   }
@@ -420,7 +432,10 @@ export function CustomSlotPopover({
   }, [onClose])
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') onClose()
+    if (e.key === 'Escape') {
+      e.stopPropagation()
+      onClose()
+    }
   }
 
   const { Editor } = definition

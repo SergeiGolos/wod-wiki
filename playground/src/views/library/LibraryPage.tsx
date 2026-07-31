@@ -27,8 +27,8 @@ import {
   clausesToWql,
   type FindExecutor,
 } from '@/components/organisms/wql-composer'
-import type { Note } from '@/types/storage'
-import { toEntry, type Entry } from '../../lib/entryMapper'
+import { type Entry } from '../../lib/entryMapper'
+import { searchEntries } from '../../lib/entrySearch'
 import { addEntryToTodayInput } from '../../lib/addToToday'
 import { useLibraryQueryState } from '../../hooks/useLibraryQueryState'
 import { LibraryRow } from './LibraryRow'
@@ -76,57 +76,9 @@ export function LibraryPage() {
     let cancelled = false
     setLoading(true)
 
-    const hasText = parsed.filters.some(f => f.key === 'text' && !f.negate)
-    const primaryPromise = queryService.runFind(parsed)
-
-    // When free-text is present, also run find:block to search body text
-    const blockWql = hasText && parsed.target === 'note'
-      ? wql.replace(/^find:note/, 'find:block')
-      : null
-    const blockParsed = blockWql ? parseQuery(blockWql) : null
-    const blockPromise = (blockParsed && isFindQuery(blockParsed) && !blockParsed.error)
-      ? queryService.runFind(blockParsed)
-      : Promise.resolve(null)
-
-    Promise.all([primaryPromise, blockPromise])
-      .then(([primaryResult, blockResult]) => {
-        if (cancelled) return
-        const noteMap = new Map<string, Note>()
-
-        // 1. Add notes from primary query (find:note or find:block)
-        for (const note of primaryResult.notes) {
-          noteMap.set(note.id, note)
-        }
-        for (const block of primaryResult.blocks) {
-          if (!noteMap.has(block.noteId)) {
-            noteMap.set(block.noteId, {
-              id: block.noteId,
-              title: block.noteTitle,
-              createdAt: block.createdAt,
-              type: 'note',
-              sourceId: block.sourceId,
-              catalog: (block.noteId.startsWith('feeds/') ? block.noteId.slice('feeds/'.length) : block.noteId).split('/')[0],
-            })
-          }
-        }
-
-        // 2. Add notes from secondary block body search (if present)
-        if (blockResult?.blocks) {
-          for (const block of blockResult.blocks) {
-            if (!noteMap.has(block.noteId)) {
-              noteMap.set(block.noteId, {
-                id: block.noteId,
-                title: block.noteTitle,
-                createdAt: block.createdAt,
-                type: 'note',
-                sourceId: block.sourceId,
-                catalog: (block.noteId.startsWith('feeds/') ? block.noteId.slice('feeds/'.length) : block.noteId).split('/')[0],
-              })
-            }
-          }
-        }
-
-        setEntries(Array.from(noteMap.values()).map(toEntry))
+    searchEntries(wql)
+      .then(results => {
+        if (!cancelled) setEntries(results)
       })
       .catch(() => {
         if (!cancelled) setEntries([])

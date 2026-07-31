@@ -62,6 +62,7 @@ const {
   collectionSource,
   collectionItemsSource,
   globalSearchSource,
+  canvasRouteSource,
   constructSource,
 } = await import('./paletteDataSources');
 
@@ -516,6 +517,35 @@ describe('globalSearchSource', () => {
     const results = await source.search('');
 
     expect(results.some(r => r.id === 'r-journal-origin')).toBe(true);
+  });
+});
+
+describe('canvasRouteSource', () => {
+  const routes = [
+    { route: '/canvas/home', page: { sections: [{ heading: 'Home' }] } },
+    { route: '/canvas/tour', page: { sections: [{ heading: 'Guided Tour' }] } },
+  ] as unknown as import('../canvas/canvasRoutes').CanvasRoute[];
+
+  it('matches on the page heading or route, capped at five', async () => {
+    const source = canvasRouteSource(routes);
+    const byHeading = await source.search('tour');
+    expect(byHeading.map(r => r.id)).toEqual(['route:/canvas/tour']);
+
+    const byRoute = await source.search('home');
+    expect(byRoute[0]?.label).toBe('Home');
+    expect(byRoute[0]?.type).toBe('route');
+    expect(byRoute[0]?.category).toBe('Pages');
+  });
+
+  it('returns every route (up to five) for an empty query', async () => {
+    const source = canvasRouteSource(routes);
+    expect(await source.search('')).toHaveLength(2);
+  });
+
+  it('still feeds route results into globalSearchSource', async () => {
+    const source = globalSearchSource([], routes);
+    const results = await source.search('tour');
+    expect(results.some(r => r.id === 'route:/canvas/tour')).toBe(true);
   });
 });
 

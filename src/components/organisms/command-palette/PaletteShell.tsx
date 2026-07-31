@@ -4,6 +4,7 @@ import { usePaletteStore } from './palette-store';
 import { CommandListView } from '@/components/molecules/CommandListView';
 import type { IListItem } from '@/components/molecules/types';
 import type { PaletteItem } from './palette-types';
+import { WqlComposer } from '../wql-composer';
 
 /** Map a PaletteItem to the generic list view model. */
 function toListItem(item: PaletteItem): IListItem<PaletteItem> {
@@ -25,6 +26,11 @@ function toListItem(item: PaletteItem): IListItem<PaletteItem> {
  *
  *   const result = await usePaletteStore.getState().open({ sources: [...] });
  *   if (!result.dismissed) { handle(result.item); }
+ *
+ * WQL mode (request.wql, issue #834): the plain text input is replaced by the
+ * shared WqlComposer and sources receive the composed WQL string. Keyboard
+ * flow end-to-end: composer autofocuses, Enter commits free text as a text
+ * clause, ArrowDown moves into the result list, Enter activates the item.
  */
 export const PaletteShell: React.FC = () => {
   const { isOpen, request, _select, _dismiss } = usePaletteStore();
@@ -35,12 +41,22 @@ export const PaletteShell: React.FC = () => {
   const searchVersion = useRef(0);
   // Stable ref to the current request identity — used to detect step transitions.
   const requestRef = useRef(request);
+  // Render-time identity tracking: remounts the composer on every new request
+  // so its clause state never leaks across steps.
+  const requestSeqRef = useRef(0);
+  if (requestRef.current !== request) {
+    requestRef.current = request;
+    requestSeqRef.current += 1;
+  }
+
+  const wqlConfig = request?.wql;
 
   // Reset query + results whenever the request changes (new step) or the palette opens.
   useEffect(() => {
     if (isOpen && request) {
-      requestRef.current = request;
-      setQuery(request.initialQuery ?? '');
+      // WQL mode: the composer owns the query — it emits the composed WQL on
+      // mount and every clause change; resetting here would clobber it.
+      if (!request.wql) setQuery(request.initialQuery ?? '');
       setResults([]);
       setIsLoading(false);
     }
@@ -96,11 +112,25 @@ export const PaletteShell: React.FC = () => {
     <div className="py-8 text-center text-sm text-zinc-400">Start typing to search</div>
   );
 
+  const searchRow = wqlConfig ? (
+    <div className="border-b border-zinc-200 px-3 py-2 dark:border-zinc-700">
+      <WqlComposer
+        key={requestSeqRef.current}
+        initialClauses={wqlConfig.initialClauses}
+        onWqlChange={setQuery}
+        showDiagnostics={wqlConfig.showDiagnostics ?? true}
+        executeFind={wqlConfig.executeFind}
+        customSlots={wqlConfig.customSlots}
+        autoFocus
+      />
+    </div>
+  ) : undefined;
+
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => { if (!open) _dismiss(); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-[20%] z-50 w-full max-w-xl -translate-x-1/2 outline-none shadow-2xl">
+        <Dialog.Content className={`fixed left-1/2 top-[20%] z-50 w-full ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'} -translate-x-1/2 outline-none shadow-2xl`}>
           <Dialog.Title className="sr-only">Command Palette</Dialog.Title>
           <Dialog.Description className="sr-only">
             Search and navigate. Press Escape to close.
@@ -114,6 +144,8 @@ export const PaletteShell: React.FC = () => {
             isOpen={true}
             onClose={_dismiss}
             placeholder={request?.placeholder ?? 'Search…'}
+            searchRow={searchRow}
+            filterResults={!wqlConfig}
             header={request?.header}
             emptyState={emptyState}
           />

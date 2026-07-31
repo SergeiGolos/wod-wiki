@@ -8,13 +8,19 @@ import { buildAppNavTree } from './nav/appNavTree'
 import { NavSearchInput } from '@/components/molecules/NavSearchInput'
 import { useRouteView } from './lib/useRouteView'
 import { useSelectWorkout } from './lib/useSelectWorkout'
-import type { PageKind, SelectWorkoutItem } from './lib/routeView'
+import type { PageKind } from './lib/routeView'
 import { DebugModeProvider } from '@/contexts/DebugModeContext'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { PaletteShell } from '@/components/organisms/command-palette/PaletteShell'
-import { globalSearchSource, constructSource } from './services/paletteDataSources'
+import { canvasRouteSource, constructSource } from './services/paletteDataSources'
+import {
+  wqlSearchSource,
+  withWqlText,
+  searchPaletteClauses,
+  paletteExecuteFind,
+  navigatePaletteResult,
+} from './services/wqlSearchSource'
 import { useCreateJournalEntry } from './hooks/useCreateJournalEntry'
-import { useShowPlaygrounds } from './hooks/useShowPlaygrounds'
 import { usePageScrollSync } from './hooks/usePageScrollSync'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
 import { AudioProvider } from '@/contexts/AudioContext'
@@ -22,7 +28,6 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from
 import { resolveLibraryRedirect } from './lib/routes'
 import {
   ROUTE_PATTERNS,
-  reviewPath,
   PlanRedirect,
   SyntaxRedirect,
   TrackerRedirect,
@@ -98,27 +103,22 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const handleSelectWorkout = useSelectWorkout()
   const { workout: currentWorkout, nav: currentNavLinks } = view
 
-  const [showPlaygrounds] = useShowPlaygrounds()
-
   const handleCreateJournalEntry = useCreateJournalEntry({ workoutItems })
 
-  // Open the palette for global search (Ctrl+/ or search button)
+  // Open the palette for global search (Ctrl/Cmd+K — WQL mode, issue #834)
   const openSearchPalette = useCallback(() => {
     usePaletteStore.getState().open({
-      placeholder: 'Search workouts, results, pages…',
-      sources: [globalSearchSource(workoutItems, canvasRoutes, showPlaygrounds), constructSource()],
+      wql: { initialClauses: searchPaletteClauses(), executeFind: paletteExecuteFind },
+      sources: [
+        wqlSearchSource(),
+        withWqlText(canvasRouteSource(canvasRoutes)),
+        withWqlText(constructSource()),
+      ],
     }).then(result => {
       if (result.dismissed) return
-      const item = result.item
-      if (item.type === 'route') {
-        navigate((item.payload as { route: string }).route)
-      } else if (item.type === 'workout') {
-        handleSelectWorkout(item.payload as SelectWorkoutItem)
-      } else if (item.type === 'journal-entry') {
-        navigate(reviewPath(item.id))
-      }
+      navigatePaletteResult(result.item, navigate)
     })
-  }, [workoutItems, handleSelectWorkout, navigate, showPlaygrounds])
+  }, [navigate])
 
   // Keep the parent's searchHandlerRef up-to-date so the nav tree CallAction always
   // fires the latest callback (workoutItems may change after initial mount).
@@ -126,10 +126,10 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     searchHandlerRef.current = openSearchPalette
   }, [openSearchPalette, searchHandlerRef])
 
-  // Keyboard shortcut: Ctrl/Cmd+/ (also Ctrl/Cmd+P) opens global search
+  // Keyboard shortcut: Ctrl/Cmd+K (also Ctrl/Cmd+/ and Ctrl/Cmd+P) opens global search
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if ((e.key === '/' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
+      if ((e.key === 'k' || e.key === '/' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         e.stopPropagation()
         openSearchPalette()
