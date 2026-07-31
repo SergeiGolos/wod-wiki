@@ -122,6 +122,19 @@ describe('diagnoseClauses', () => {
     }
   });
 
+  it('does not flag a healthy Time=All slot when another clause breaks the parse', () => {
+    // Regression: 'all' compiles to no time fragment (clausesToWql), so its
+    // probe must be skipped — probing `find:note last all` fails and would
+    // steal the highlight from the actual offender.
+    const clauses = [
+      ...defaultClauses().map(c => (c.type === 'time' ? { ...c, value: 'all' } : c)),
+      whereClause('garbage'),
+    ];
+    const d = diagnoseClauses(clauses);
+    expect(d.valid).toBe(false);
+    expect(d.offendingClauseId).toBe('c-where');
+  });
+
   it('does not flag any clause when every fragment parses alone', () => {
     // Sanity: probing is opt-in evidence — a valid query has no offender.
     const d = diagnoseClauses(defaultClauses());

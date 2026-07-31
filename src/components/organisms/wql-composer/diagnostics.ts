@@ -84,6 +84,9 @@ function clauseProbeWql(clause: QueryClause): string | null {
     case 'scope':
       return `find:note in ${value}`
     case 'time':
+      // 'all' compiles to no time fragment (see clausesToWql) — probing it
+      // would mis-attribute an unrelated parse failure to a healthy slot.
+      if (value === 'all') return null
       return `find:note ${value.startsWith('last') ? value : `last ${value}`}`
     case 'where':
       return `find:note where ${value}`
@@ -92,6 +95,18 @@ function clauseProbeWql(clause: QueryClause): string | null {
       return filterStr ? `find:note{${filterStr}}` : null
     }
   }
+}
+
+/**
+ * First custom slot with a semantic validation error, if any — the check
+ * shared by both paths of {@link diagnoseClauses}.
+ */
+function firstCustomSlotError(clauses: QueryClause[]): { error: string; clauseId: string } | null {
+  for (const clause of clauses) {
+    const customError = customSlotError(clause)
+    if (customError) return { error: customError, clauseId: clause.id }
+  }
+  return null
 }
 
 /**
@@ -119,21 +134,17 @@ export function diagnoseClauses(clauses: QueryClause[]): WqlDiagnostics {
     }
     // No single fragment reproduces the failure; a custom slot's semantic
     // error is still a real, reportable problem with the query.
-    for (const clause of clauses) {
-      const customError = customSlotError(clause)
-      if (customError) {
-        return { wql, ast, valid: false, error: customError, offendingClauseId: clause.id }
-      }
+    const customError = firstCustomSlotError(clauses)
+    if (customError) {
+      return { wql, ast, valid: false, error: customError.error, offendingClauseId: customError.clauseId }
     }
     return { wql, ast, valid: false, error: ast.error }
   }
 
   // The parse succeeded; custom slot values still need their semantic checks.
-  for (const clause of clauses) {
-    const customError = customSlotError(clause)
-    if (customError) {
-      return { wql, ast, valid: false, error: customError, offendingClauseId: clause.id }
-    }
+  const customError = firstCustomSlotError(clauses)
+  if (customError) {
+    return { wql, ast, valid: false, error: customError.error, offendingClauseId: customError.clauseId }
   }
 
   return { wql, ast, valid: true }
