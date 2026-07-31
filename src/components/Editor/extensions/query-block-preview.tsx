@@ -14,6 +14,7 @@ import {
 } from "@codemirror/view";
 import { Extension, StateField, Range } from "@codemirror/state";
 import type { EditorState } from "@codemirror/state";
+// @ts-ignore
 import { createRoot } from "react-dom/client";
 import React from "react";
 

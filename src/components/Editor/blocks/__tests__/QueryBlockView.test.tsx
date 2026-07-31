@@ -1,3 +1,4 @@
+import { afterEach, describe, expect, it, mock } from 'bun:test';
 /**
  * QueryBlockView tests (#801, #842) — verifies the atomic ```query renderer dispatches
  * find vs analytics through the (mocked) QueryService and renders the right
@@ -7,8 +8,6 @@
  * parseQuery / isFindQuery stay real (the dispatch contract under test); only
  * queryService.runQuery / runFind are stubbed — same seam as the Explorer tests.
  */
-import { afterEach, describe, expect, it, mock } from 'bun:test';
-import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { parseQuery, isFindQuery, type QueryResult, type FindQueryResult, type ParsedQuery } from '@/services/analytics/query';
 import { DashboardBlockView, parseDashboardQueries } from '../DashboardBlockView';

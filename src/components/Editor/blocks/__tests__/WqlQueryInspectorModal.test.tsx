@@ -1,5 +1,4 @@
 import { describe, it, expect, mock, afterEach } from 'bun:test';
-import React from 'react';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { WqlQueryInspectorModal } from '../WqlQueryInspectorModal';
 

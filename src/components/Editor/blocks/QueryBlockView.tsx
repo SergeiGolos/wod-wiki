@@ -163,10 +163,10 @@ function AnalyticsChart({ result, metric }: { result: QueryResult | undefined; m
   const shape = useChartShape(result);
 
   if (!result) {
-    return <WqlEmptyState label="Loading…" />;
+    return <WqlEmptyState result={result} />;
   }
   if (shape.kind === 'empty') {
-    return <WqlEmptyState label={`No events matched '${metric}'`} />;
+    return <WqlEmptyState result={result} />;
   }
   if (shape.kind === 'scalar') {
     return <QueryValue result={result} label={metric} />;
@@ -187,7 +187,7 @@ function FindResultList({ parsed, result }: { parsed: FindQueryResult['parsed'];
   const count = parsed.target === 'block' ? blocks.length : notes.length;
 
   if (count === 0) {
-    return <WqlEmptyState label={`No ${parsed.target}s matched query`} />;
+    return <WqlEmptyState result={undefined} />;
   }
 
   return (
@@ -202,18 +202,13 @@ function FindResultList({ parsed, result }: { parsed: FindQueryResult['parsed'];
         {parsed.target === 'block'
           ? blocks.map((b) => (
               <li key={b.id} className="py-1.5 px-1 hover:bg-muted/40 rounded text-xs flex items-center justify-between">
-                <span className="font-medium text-foreground truncate">{b.snippet}</span>
-                <span className="text-[10px] font-mono text-muted-foreground ml-2 shrink-0">{b.type}</span>
+                <span className="font-medium text-foreground truncate">{b.rawContent}</span>
+                <span className="text-[10px] font-mono text-muted-foreground ml-2 shrink-0">{b.dataType}</span>
               </li>
             ))
           : notes.map((n) => (
               <li key={n.id} className="py-1.5 px-1 hover:bg-muted/40 rounded text-xs flex items-center justify-between">
                 <span className="font-medium text-foreground truncate">{n.title}</span>
-                {n.category && (
-                  <span className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground ml-2 shrink-0">
-                    {n.category}
-                  </span>
-                )}
               </li>
             ))}
       </ul>
