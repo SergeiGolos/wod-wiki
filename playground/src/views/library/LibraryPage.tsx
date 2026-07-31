@@ -1,47 +1,42 @@
 /**
  * LibraryPage — the unified content library (`/library`). Replaces the three
- * legacy list pages (`/journal`, `/collections`, `/feeds`) and reads its
- * panel state from the URL via `useLibraryQueryState`.
+ * legacy list pages (`/journal`, `/collections`, `/feeds`) and composes its
+ * query with the shared `WqlComposer` organism (issue #833, decision #828).
+ * Composer state round-trips through the URL via `useLibraryQueryState`.
  *
- * Pipeline per state change:
- *   1. panel state → WQL string via `composeWql`
- *   2. WQL → `ParsedFindQuery` via `parseQuery`
- *   3. `queryService.runFind(parsed, { range })` → `Note[]`
+ * Pipeline per clause change:
+ *   1. clauses → WQL string via `clausesToWql`
+ *   2. WQL → `ParsedFindQuery` via `parseQuery` (the AST's `last` window is
+ *      applied by `runFind` itself — no client-side range math)
+ *   3. `queryService.runFind(parsed)` → `Note[]`
  *   4. `Note[]` → `Entry[]` via `toEntry` (the only place that touches sourceId)
  *   5. Render Dated Stream (Notes + Posts grouped by date) + CataloguesShelf (Sessions)
+ *
+ * Invalid WQL (reachable e.g. via a text clause with spaces) is surfaced
+ * visibly: the composer's diagnostics strip flags the offending slot, and a
+ * `library-query-error` banner replaces the silent entry-clearing the old
+ * panel had. The last valid entries stay on screen.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarIcon, ChevronDownIcon, ChevronRightIcon, FolderIcon } from 'lucide-react'
+import { CalendarIcon, ChevronDownIcon, ChevronRightIcon, FolderIcon, TriangleAlertIcon } from 'lucide-react'
 import { queryService } from '@/services/analytics/query'
 import { parseQuery, isFindQuery, type ParsedFindQuery } from '@/services/analytics/query/wql'
+import {
+  WqlComposer,
+  clauseValue,
+  clausesToWql,
+  type FindExecutor,
+} from '@/components/organisms/wql-composer'
 import type { Note } from '@/types/storage'
 import { toEntry, type Entry } from '../../lib/entryMapper'
 import { addEntryToTodayInput } from '../../lib/addToToday'
-import { useLibraryQueryState, type LibraryQueryState } from '../../hooks/useLibraryQueryState'
+import { useLibraryQueryState } from '../../hooks/useLibraryQueryState'
 import { LibraryRow } from './LibraryRow'
-import { WqlComposerPanel, composeWql } from './WqlComposerPanel'
 import { journalNotes } from '../../services/journalNotes'
-import { listCatalogs } from '../../lib/listCatalogs'
 import { todayKey, formatDateHeader } from '../../lib/dateFormat'
-import staticBlockIndex from '@/generated/static-block-index.json'
-
-/** Compute the { start, end } range from the panel's timePreset + customStart/End. */
-function computeRange(state: LibraryQueryState['state']): { start: number; end: number } | undefined {
-  if (state.timePreset === 'all' || state.timePreset === 'custom') return undefined
-  // TypeScript can't narrow `state.timePreset` past the `!==` checks; use a
-  // switch so each branch knows exactly which keys apply.
-  const days: Record<Exclude<typeof state.timePreset, 'all' | 'custom'>, number> = {
-    '1d': 1, '3d': 3, '1w': 7, '2w': 14, '4w': 28, '12w': 84, '26w': 182, '52w': 365,
-  }
-  const d = days[state.timePreset as Exclude<typeof state.timePreset, 'all' | 'custom'>]
-  if (!d) return undefined
-  const end = Date.now()
-  const start = end - d * 86_400_000
-  return { start, end }
-}
 
 export function LibraryPage() {
-  const { state, setState } = useLibraryQueryState()
+  const { clauses, setClauses } = useLibraryQueryState()
   const [entries, setEntries] = useState<Entry[]>([])
   const [shelfOpen, setShelfOpen] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -66,37 +61,31 @@ export function LibraryPage() {
     const input = addEntryToTodayInput(entry, rawContent, today)
     await journalNotes.create(input)
   }, [])
-  const wql = useMemo(() => composeWql(state), [state])
-  const range = useMemo(() => computeRange(state), [state])
-  const rangeKey = range ? `${range.start}:${range.end}` : ''
-  const catalogs = useMemo(
-    () => [{ id: 'journal', name: 'Journal' }, ...listCatalogs(staticBlockIndex as never)],
-    [],
-  )
 
+  const wql = useMemo(() => clausesToWql(clauses), [clauses])
+  const parsed = useMemo(() => parseQuery(wql), [wql])
+  const queryError = !isFindQuery(parsed) || parsed.error ? (parsed.error ?? 'Not a find query') : null
+
+  // Live stage counts (matched/selected) in the composer's diagnostics strip.
+  const executeFind = useCallback<FindExecutor>(ast => queryService.runFind(ast), [])
 
   useEffect(() => {
+    // Invalid WQL: surface the error banner and keep the last valid entries
+    // rather than silently clearing the list.
+    if (queryError || !isFindQuery(parsed)) return
     let cancelled = false
     setLoading(true)
-    const parsed = parseQuery(wql)
-    if (!isFindQuery(parsed) || parsed.error) {
-      if (!cancelled) {
-        setEntries([])
-        setLoading(false)
-      }
-      return
-    }
 
-    const hasText = state.text.trim().length > 0
-    const primaryPromise = queryService.runFind(parsed as ParsedFindQuery, { range })
+    const hasText = parsed.filters.some(f => f.key === 'text' && !f.negate)
+    const primaryPromise = queryService.runFind(parsed)
 
     // When free-text is present, also run find:block to search body text
-    const blockWql = hasText
-      ? composeWql({ ...state, text: state.text.trim() }).replace(/^find:note/, 'find:block')
+    const blockWql = hasText && parsed.target === 'note'
+      ? wql.replace(/^find:note/, 'find:block')
       : null
     const blockParsed = blockWql ? parseQuery(blockWql) : null
     const blockPromise = (blockParsed && isFindQuery(blockParsed) && !blockParsed.error)
-      ? queryService.runFind(blockParsed as ParsedFindQuery, { range })
+      ? queryService.runFind(blockParsed)
       : Promise.resolve(null)
 
     Promise.all([primaryPromise, blockPromise])
@@ -129,7 +118,7 @@ export function LibraryPage() {
                 id: block.noteId,
                 title: block.noteTitle,
                 createdAt: block.createdAt,
-              type: 'note',
+                type: 'note',
                 sourceId: block.sourceId,
                 catalog: (block.noteId.startsWith('feeds/') ? block.noteId.slice('feeds/'.length) : block.noteId).split('/')[0],
               })
@@ -149,7 +138,7 @@ export function LibraryPage() {
     return () => {
       cancelled = true
     }
-  }, [wql, rangeKey, state.text])
+  }, [wql, queryError, parsed])
 
   const dated = useMemo(
     () => entries.filter(e => e.kind !== 'session').sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
@@ -168,21 +157,39 @@ export function LibraryPage() {
     return Array.from(map.entries())
   }, [dated])
 
-  const sessionVisible = state.sources.session !== 'hide'
+  // The static shelf shows catalog sessions — relevant whenever the scope
+  // includes collections.
+  const scopeValue = clauseValue(clauses, 'scope', 'journal')
+  const sessionVisible = scopeValue === 'collections' || scopeValue === 'all'
   const today = todayKey()
   return (
     <div className="bg-card flex flex-col flex-1" data-testid="library-page">
-      <WqlComposerPanel
-        state={state}
-        onChange={setState}
-        catalogs={catalogs}
-      />
+      <div className="sticky top-0 z-[20] bg-background/95 backdrop-blur border-b border-border px-6 py-2.5">
+        <WqlComposer
+          clauses={clauses}
+          onClausesChange={setClauses}
+          executeFind={executeFind}
+        />
+      </div>
+
+      {queryError && (
+        <div
+          className="mx-6 mt-3 flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/[0.06] px-3 py-2"
+          data-testid="library-query-error"
+        >
+          <TriangleAlertIcon className="size-3.5 mt-0.5 text-red-500 flex-shrink-0" />
+          <div className="text-xs">
+            <span className="font-bold text-red-600">Invalid WQL — fix the highlighted clause.</span>{' '}
+            <code className="font-mono text-red-600/90">{queryError}</code>
+          </div>
+        </div>
+      )}
 
       {loading && entries.length === 0 && (
         <div className="px-6 py-12 text-center text-muted-foreground/50 text-sm">Loading…</div>
       )}
 
-      {!loading && entries.length === 0 && (
+      {!loading && !queryError && entries.length === 0 && (
         <div className="px-6 py-12 text-center text-muted-foreground/50 text-sm">
           No entries match this query.
         </div>

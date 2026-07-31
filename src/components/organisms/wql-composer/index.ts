@@ -45,5 +45,7 @@ export {
   getClauseMeta,
   clauseToWql,
   clausesToWql,
+  wqlToClauses,
+  clauseValue,
   defaultClauses,
 } from './queryClauses'

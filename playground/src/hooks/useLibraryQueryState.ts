@@ -1,74 +1,137 @@
 /**
- * useLibraryQueryState — URL ↔ WQL Composer Panel state for the Library route.
- * Uses `nuqs` (`useQueryState`) to bind state to search parameters, matching the
- * app-wide `<NuqsAdapter>` pattern.
+ * useLibraryQueryState — URL ↔ WqlComposer clause state for the Library route
+ * (issue #833, decision #828).
  *
- * Tri-state encoding per #809's resolution: `include | hide | neutral` (default is
- * `include` when absent/empty in the URL).
+ * The composed WQL round-trips through the `q` query parameter: clause edits
+ * compile to WQL and push a history entry (so browser back/forward restores
+ * the exact composer state), and URL changes hydrate clauses back through
+ * `wqlToClauses` — a salvage parser, so even WQL-invalid composer states
+ * (e.g. a text clause with spaces) survive the round trip and keep their
+ * diagnostics highlighting.
+ *
+ * Legacy tri-state deep links from the #813 redirect matrix
+ * (`?note=on&session=hide&post=hide`, plus `text` / `timePreset`) are migrated
+ * once on mount: mapped to an equivalent clause set, rewritten to `q` with a
+ * history *replace* (no phantom back entry), and the legacy keys removed.
+ * Non-legacy params are preserved untouched.
+ *
+ * Implementation note: this hook deliberately uses react-router's
+ * `useSearchParams` rather than nuqs (the app-wide pattern elsewhere). The
+ * nuqs react-router adapter reads and writes the *global* `location` /
+ * `history` directly — invisible to the router in tests (jsdom +
+ * MemoryRouter) and bypassing router listeners on shallow pushes — which
+ * makes the required back/forward contract unimplementable through it.
  */
-import { useQueryState } from 'nuqs'
-import { useCallback, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  DEFAULT_PANEL_STATE,
-  type PanelState,
-  type TriState,
-  type TimePreset,
-} from '../views/library/WqlComposerPanel'
+  CLAUSE_META,
+  clausesToWql,
+  wqlToClauses,
+  type QueryClause,
+} from '@/components/organisms/wql-composer'
 
 export interface LibraryQueryState {
-  state: PanelState
-  setState: (next: PanelState) => void
+  clauses: QueryClause[]
+  setClauses: (next: QueryClause[]) => void
 }
 
-const TRI_STATES: readonly TriState[] = ['include', 'hide', 'neutral']
-const TIME_PRESETS: readonly TimePreset[] = ['1d', '3d', '1w', '2w', '4w', '12w', '26w', '52w', 'all', 'custom']
+/** Library landing state: everything, past two weeks (the old panel default). */
+export function defaultLibraryClauses(): QueryClause[] {
+  return [
+    { id: 'c-target', type: 'target', ...CLAUSE_META.target, value: 'note' },
+    { id: 'c-scope', type: 'scope', ...CLAUSE_META.scope, value: 'all' },
+    { id: 'c-time', type: 'time', ...CLAUSE_META.time, value: 'last 2w' },
+  ]
+}
+
+const LEGACY_KEYS = ['note', 'session', 'post', 'text', 'timePreset', 'rangeStart', 'rangeEnd'] as const
+
+/** Map the #813 tri-state redirect params to composer clauses. Returns null
+ * when no legacy key carries a value (nothing to migrate). */
+export function legacyParamsToClauses(search: URLSearchParams): QueryClause[] | null {
+  if (!LEGACY_KEYS.some(k => search.get(k))) return null
+
+  // Tri-state: 'on'/'include'/'neutral' all leave the source visible; only
+  // 'hide' removes it. Absent defaults to visible (the old panel default).
+  const visible: string[] = []
+  if ((search.get('note') ?? 'include') !== 'hide') visible.push('journal')
+  if ((search.get('session') ?? 'include') !== 'hide') visible.push('collections')
+  if ((search.get('post') ?? 'include') !== 'hide') visible.push('feeds')
+  // A single visible source maps to its scope; anything else is 'all'. (The
+  // old panel emitted comma-joined scopes for two sources, which runFind
+  // never matched — 'all' is the closest working semantics.)
+  const scope = visible.length === 1 ? visible[0] : 'all'
+
+  // Presets serialize as `last <preset>`; 'all' and the WQL-inexpressible
+  // 'custom' both become an all-time window.
+  const preset = search.get('timePreset') ?? '2w'
+  const time = preset === 'all' || preset === 'custom' ? 'all' : `last ${preset}`
+
+  const clauses = defaultLibraryClauses().map(c =>
+    c.type === 'scope' ? { ...c, value: scope } : c.type === 'time' ? { ...c, value: time } : c,
+  )
+  const text = search.get('text')?.trim()
+  if (text) clauses.push({ id: 'c-text-0', type: 'text', ...CLAUSE_META.text, value: text })
+  return clauses
+}
 
 export function useLibraryQueryState(): LibraryQueryState {
-  const [noteParam, setNoteParam] = useQueryState('note', { defaultValue: '', shallow: true, history: 'replace' })
-  const [sessionParam, setSessionParam] = useQueryState('session', { defaultValue: '', shallow: true, history: 'replace' })
-  const [postParam, setPostParam] = useQueryState('post', { defaultValue: '', shallow: true, history: 'replace' })
-  const [textParam, setTextParam] = useQueryState('text', { defaultValue: '', shallow: true, history: 'replace' })
-  const [presetParam, setPresetParam] = useQueryState('timePreset', { defaultValue: '', shallow: true, history: 'replace' })
-  const [startParam, setStartParam] = useQueryState('rangeStart', { defaultValue: '', shallow: true, history: 'replace' })
-  const [endParam, setEndParam] = useQueryState('rangeEnd', { defaultValue: '', shallow: true, history: 'replace' })
+  const [searchParams, setSearchParams] = useSearchParams()
+  const q = searchParams.get('q') ?? ''
 
-  const note = (TRI_STATES as readonly string[]).includes(noteParam) ? (noteParam as TriState) : 'include'
-  const session = (TRI_STATES as readonly string[]).includes(sessionParam) ? (sessionParam as TriState) : 'include'
-  const post = (TRI_STATES as readonly string[]).includes(postParam) ? (postParam as TriState) : 'include'
-  const text = textParam || DEFAULT_PANEL_STATE.text
-  const timePreset = (TIME_PRESETS as readonly string[]).includes(presetParam) ? (presetParam as TimePreset) : DEFAULT_PANEL_STATE.timePreset
-  const customStart = startParam || undefined
-  const customEnd = endParam || undefined
-
-  const state: PanelState = useMemo(
-    () => ({
-      sources: { note, session, post },
-      text,
-      timePreset,
-      customStart,
-      customEnd,
-      filters: DEFAULT_PANEL_STATE.filters,
-    }),
-    [note, session, post, text, timePreset, customStart, customEnd],
+  const [clauses, setClausesState] = useState<QueryClause[]>(() =>
+    q
+      ? wqlToClauses(q) ?? defaultLibraryClauses()
+      : legacyParamsToClauses(searchParams) ?? defaultLibraryClauses(),
   )
+  const clausesRef = useRef(clauses)
+  clausesRef.current = clauses
+  const searchParamsRef = useRef(searchParams)
+  searchParamsRef.current = searchParams
 
-  const setState = useCallback(
-    (next: PanelState) => {
-      setNoteParam(next.sources.note === 'include' ? '' : next.sources.note)
-      setSessionParam(next.sources.session === 'include' ? '' : next.sources.session)
-      setPostParam(next.sources.post === 'include' ? '' : next.sources.post)
-      setTextParam(next.text || '')
-      setPresetParam(next.timePreset === DEFAULT_PANEL_STATE.timePreset ? '' : next.timePreset)
-      if (next.timePreset === 'custom') {
-        setStartParam(next.customStart || '')
-        setEndParam(next.customEnd || '')
-      } else {
-        setStartParam('')
-        setEndParam('')
+  // One-time legacy migration: rewrite tri-state params as `q` (replace, so
+  // the migrated URL does not add a history entry).
+  const migratedRef = useRef(false)
+  useEffect(() => {
+    if (migratedRef.current) return
+    migratedRef.current = true
+    if (q) return
+    const legacy = legacyParamsToClauses(searchParamsRef.current)
+    if (!legacy) return
+    const next = new URLSearchParams(searchParamsRef.current)
+    for (const key of LEGACY_KEYS) next.delete(key)
+    next.set('q', clausesToWql(legacy))
+    setSearchParams(next, { replace: true })
+  }, [setSearchParams, q])
+
+  // URL → clauses (back/forward, external navigation, migration). Content-
+  // compared: echoes of our own setClauses pushes restore to the same WQL
+  // and are skipped, so transient empty-valued clauses are never clobbered.
+  const prevQRef = useRef(q)
+  useEffect(() => {
+    if (q === prevQRef.current) return
+    prevQRef.current = q
+    const restored = q ? wqlToClauses(q) ?? defaultLibraryClauses() : defaultLibraryClauses()
+    setClausesState(current =>
+      clausesToWql(current) === clausesToWql(restored) ? current : restored,
+    )
+  }, [q])
+
+  // Clauses → URL. Pushes a history entry only when the composed WQL
+  // actually changed (adding a still-empty clause must not spam history).
+  const setClauses = useCallback(
+    (next: QueryClause[]) => {
+      const wql = clausesToWql(next)
+      if (wql !== clausesToWql(clausesRef.current)) {
+        const params = new URLSearchParams(searchParamsRef.current)
+        params.set('q', wql)
+        setSearchParams(params)
       }
+      setClausesState(next)
     },
-    [setNoteParam, setSessionParam, setPostParam, setTextParam, setPresetParam, setStartParam, setEndParam],
+    [setSearchParams],
   )
 
-  return { state, setState }
+  return { clauses, setClauses }
 }

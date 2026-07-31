@@ -200,6 +200,152 @@ export function clausesToWql(clauses: QueryClause[]): string {
   ].filter(Boolean).join(' ').trim()
 }
 
+// ── WQL → Clauses (URL restore) ─────────────────────────────────────────────
+
+/** Built-in filter key → clause type, derived from CLAUSE_META `prefix` so a
+ * new built-in filter clause is declared once (metadata) and compiled once
+ * (clauseToWql). `target`/`scope`/`time`/`where` are positional, not `{...}`
+ * filters, so they are excluded. */
+const POSITIONAL_CLAUSE_TYPES = new Set(['target', 'scope', 'time', 'where'])
+const FILTER_KEY_TO_CLAUSE_TYPE: Record<string, ClauseType> = Object.fromEntries(
+  (Object.entries(CLAUSE_META) as [ClauseType, ClauseMeta][])
+    .filter(([type]) => !POSITIONAL_CLAUSE_TYPES.has(type))
+    .map(([type, meta]) => [meta.prefix!.replace(/:$/, ''), type]),
+)
+
+/** Split a `{...}` body at top-level commas (depth-aware so values carrying
+ * nested braces — e.g. a where-style custom fragment — stay intact). */
+function splitTopLevel(body: string): string[] {
+  const parts: string[] = []
+  let depth = 0
+  let start = 0
+  for (let i = 0; i < body.length; i++) {
+    const c = body[i]
+    if (c === '{') depth++
+    else if (c === '}') depth = Math.max(0, depth - 1)
+    else if (c === ',' && depth === 0) {
+      parts.push(body.slice(start, i))
+      start = i + 1
+    }
+  }
+  parts.push(body.slice(start))
+  return parts
+}
+
+/** Split at the first top-level `where` keyword (same rule as the query
+ * service's parser: depth-0, word-bounded). */
+function splitWhereTail(text: string): { head: string; where?: string } {
+  let depth = 0
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (c === '{') depth++
+    else if (c === '}') depth = Math.max(0, depth - 1)
+    else if (
+      depth === 0 &&
+      c === 'w' &&
+      text.slice(i, i + 5) === 'where' &&
+      (i === 0 || /\s/.test(text[i - 1])) &&
+      (i + 5 >= text.length || /\s/.test(text[i + 5]))
+    ) {
+      return { head: text.slice(0, i).trim(), where: text.slice(i + 5).trim() }
+    }
+  }
+  return { head: text.trim() }
+}
+
+const RESTORE_LAST_RE = /\s+last\s+(\d+)([dw])\s*$/i
+const RESTORE_SCOPE_RE = /\s+in\s+(\w+)\s*$/
+const RESTORE_HEAD_RE = /^find:(\w+)/
+
+function restoreClause(id: string, type: string, value: string): QueryClause {
+  return { id, type, ...getClauseMeta(type), value }
+}
+
+/** Map one `{...}` filter fragment to a clause. Returns null when the
+ * fragment is not composer-expressible (negation, unknown key, or a custom
+ * slot whose generator does not reproduce the fragment verbatim). */
+function filterFragmentToClause(fragment: string, index: number): QueryClause | null {
+  if (fragment.startsWith('!')) return null
+  const colon = fragment.indexOf(':')
+  if (colon <= 0) return null
+  const key = fragment.slice(0, colon)
+  const value = fragment.slice(colon + 1)
+  if (!value.trim()) return null
+
+  const builtin = FILTER_KEY_TO_CLAUSE_TYPE[key]
+  if (builtin) return restoreClause(`c-${builtin}-${index}`, builtin, value)
+
+  // Custom slots: accept the first registered slot whose typed round-trip
+  // reproduces the fragment verbatim.
+  for (const slot of composerRegistry.getAllSlots()) {
+    const typed = slot.parseValue(value)
+    if (typed !== undefined && slot.wqlGenerator(typed) === fragment) {
+      return restoreClause(`c-${slot.type}-${index}`, slot.type, slot.formatValue(typed))
+    }
+  }
+  return null
+}
+
+/**
+ * Restore composer clauses from a WQL string — the inverse of
+ * `clausesToWql`, used to hydrate composer state from the URL.
+ *
+ * Unlike `parseQuery`, this is a *salvage* parser: it mirrors the compiler's
+ * structure (`find:<target>{<filters>} in <scope> last <n><unit> where <join>`)
+ * without validating the fragments, so composer-reachable states that are
+ * WQL-invalid (e.g. `text:hello world`) still restore exactly — the
+ * diagnostics strip then attributes the parse error to the offending slot.
+ *
+ * Returns null when the string cannot be a composer product: not a find
+ * query, a negated filter, or an unknown/custom-less filter key.
+ */
+export function wqlToClauses(wql: string): QueryClause[] | null {
+  const { head, where } = splitWhereTail(wql.trim())
+  if (!head.startsWith('find:')) return null
+
+  let text = head
+
+  let timeValue = 'all'
+  const lastMatch = RESTORE_LAST_RE.exec(text)
+  if (lastMatch) {
+    timeValue = `last ${lastMatch[1]}${lastMatch[2].toLowerCase()}`
+    text = text.slice(0, lastMatch.index).trim()
+  }
+
+  let scopeValue = 'journal'
+  const scopeMatch = RESTORE_SCOPE_RE.exec(text)
+  if (scopeMatch) {
+    scopeValue = scopeMatch[1]
+    text = text.slice(0, scopeMatch.index).trim()
+  }
+
+  const headMatch = RESTORE_HEAD_RE.exec(text)
+  if (!headMatch) return null
+  const targetValue = headMatch[1]
+  const rest = text.slice(headMatch[0].length).trim()
+
+  const filterClauses: QueryClause[] = []
+  if (rest) {
+    if (!rest.startsWith('{') || !rest.endsWith('}')) return null
+    const body = rest.slice(1, -1)
+    const fragments = splitTopLevel(body).map(f => f.trim()).filter(Boolean)
+    for (let i = 0; i < fragments.length; i++) {
+      const clause = filterFragmentToClause(fragments[i], i)
+      if (!clause) return null
+      filterClauses.push(clause)
+    }
+  }
+
+  const clauses: QueryClause[] = [
+    restoreClause('c-target', 'target', targetValue),
+    restoreClause('c-scope', 'scope', scopeValue),
+    restoreClause('c-time', 'time', timeValue),
+    ...filterClauses,
+  ]
+  if (where) clauses.push(restoreClause('c-where', 'where', where))
+  return clauses
+}
+
 // ── Default Clauses ─────────────────────────────────────────────────────────
 
 export function defaultClauses(): QueryClause[] {
@@ -208,4 +354,13 @@ export function defaultClauses(): QueryClause[] {
     { id: 'c-scope',  type: 'scope',  ...CLAUSE_META.scope,  value: 'journal' },
     { id: 'c-time',   type: 'time',   ...CLAUSE_META.time,   value: 'last 2w' },
   ]
+}
+
+/**
+ * Value of the first clause of `type`, trimmed, or `fallback` when absent or
+ * empty. Mirrors the lookup/defaulting `clausesToWql` performs, so consumers
+ * (e.g. the Library shelf) share one defaulting rule with the compiler.
+ */
+export function clauseValue(clauses: QueryClause[], type: string, fallback = ''): string {
+  return clauses.find(c => c.type === type)?.value?.trim() || fallback
 }
