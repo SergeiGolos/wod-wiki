@@ -30,6 +30,10 @@ import {
 export interface TokenSlotPillProps {
   clause: QueryClause
   isActive?: boolean
+  /** Flag the pill as the offending slot for a failed parse (issue #832). */
+  invalid?: boolean
+  /** Error message surfaced inline on the offending pill (tooltip). */
+  invalidReason?: string
   onClick?: () => void
   onRemove?: () => void
   onChange?: (patch: Partial<QueryClause>) => void
@@ -40,6 +44,8 @@ export interface TokenSlotPillProps {
 export function TokenSlotPill({
   clause,
   isActive,
+  invalid = false,
+  invalidReason,
   onClick,
   onRemove,
   onChange,
@@ -71,6 +77,8 @@ export function TokenSlotPill({
       <div
         ref={pillRef}
         tabIndex={0}
+        aria-invalid={invalid || undefined}
+        title={invalid ? invalidReason : undefined}
         onClick={() => {
           onClick?.()
           setOpen(o => !o)
@@ -78,11 +86,13 @@ export function TokenSlotPill({
         onKeyDown={handleKeyDown}
         className={cn(
           'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium cursor-pointer transition-all select-none focus:outline-none focus:ring-2 focus:ring-primary/40',
-          hasValue
-            ? isActive || open
-              ? 'border-primary/60 bg-primary/10 text-primary ring-1 ring-primary/30 shadow-xs'
-              : 'border-border bg-background hover:bg-muted/50 text-foreground'
-            : 'border-dashed border-border/80 bg-muted/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground',
+          invalid
+            ? 'border-red-500/60 bg-red-500/10 text-red-600 ring-1 ring-red-500/30'
+            : hasValue
+              ? isActive || open
+                ? 'border-primary/60 bg-primary/10 text-primary ring-1 ring-primary/30 shadow-xs'
+                : 'border-border bg-background hover:bg-muted/50 text-foreground'
+              : 'border-dashed border-border/80 bg-muted/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground',
           compact && 'px-2 py-0.5 text-[11px]',
         )}
         data-testid={`token-slot-${clause.type}`}

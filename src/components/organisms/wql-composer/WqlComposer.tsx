@@ -3,7 +3,12 @@
  *
  * Token-slot pills with placeholder guidance, clause popover, add-filter menu,
  * where-join editor, clause model and WQL compiler — extracted from the
- * library-search prototype (issue #829) into a reusable component.
+ * library-search prototype (issue #829) into a reusable component. Every
+ * clause change re-composes and re-parses the WQL synchronously; the
+ * diagnostics strip (issue #832) shows a validity badge, attributes parse
+ * errors to the offending slot, summarizes the AST, and — when an
+ * `executeFind` executor is wired — live matched/selected stage counts,
+ * debounced at 150ms.
  *
  * Keyboard contract (as prototyped):
  *   - Tab / Shift+Tab traverses token slots
@@ -14,13 +19,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
 import { Command } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { parseQuery, type AnyParsedQuery } from '@/services/analytics/query/wql'
-import { composerRegistry, useComposerSlots } from './ComposerRegistry'
+import type { AnyParsedQuery } from '@/services/analytics/query/wql'
+import { useComposerSlots } from './ComposerRegistry'
 import { TokenSlotPill, AddFilterDropdown } from './QueryPalette'
+import { diagnoseClauses } from './diagnostics'
+import { WqlDiagnosticsStrip } from './WqlDiagnosticsStrip'
+import {
+  useWqlStageCounts,
+  DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
+  type FindExecutor,
+} from './useWqlStageCounts'
 import {
   type QueryClause,
   getClauseMeta,
-  clausesToWql,
   defaultClauses,
 } from './queryClauses'
 
@@ -46,6 +57,16 @@ export interface WqlComposerProps {
   onValidationChange?: (state: WqlValidationState) => void
   /** Fired (including on mount) with the parsed AST. */
   onAstChange?: (ast: AnyParsedQuery) => void
+  /** Render the diagnostics strip (badge, AST summary, stage counts). Default true. */
+  showDiagnostics?: boolean
+  /**
+   * Executor for live stage counts (matched/selected) in the diagnostics
+   * strip — typically `(ast) => queryService.runFind(ast)`. When omitted, the
+   * strip omits counts and no query is executed.
+   */
+  executeFind?: FindExecutor
+  /** Debounce for live execution feedback. Default 150ms (decision #826). */
+  debounceMs?: number
   /** Extension point: extra content rendered inside the bar, after the add-filter menu. */
   customSlots?: ReactNode
   className?: string
@@ -60,6 +81,9 @@ export function WqlComposer({
   onWqlChange,
   onValidationChange,
   onAstChange,
+  showDiagnostics = true,
+  executeFind,
+  debounceMs = DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
   customSlots,
   className,
 }: WqlComposerProps) {
@@ -84,7 +108,10 @@ export function WqlComposer({
   // validation even when the clause list itself is unchanged.
   const registeredSlots = useComposerSlots()
 
-  const wql = useMemo(() => clausesToWql(clauses), [clauses, registeredSlots])
+  // Compose + parse + attribute failures to a slot — synchronous and cheap
+  // (short strings through the Lezer grammar), well within the ~150ms
+  // feedback budget; only execution is debounced (useWqlStageCounts).
+  const diagnostics = useMemo(() => diagnoseClauses(clauses), [clauses, registeredSlots])
 
   // Latest-callback refs: consumers commonly pass inline handlers; depending
   // on their identity would re-fire (and loop) on every parent render.
@@ -92,29 +119,23 @@ export function WqlComposer({
   callbacksRef.current = { onWqlChange, onValidationChange, onAstChange }
 
   // Emit composed WQL, validation state, and AST on mount and every change.
-  // Custom slots additionally run their registered validator; a clause whose
-  // stored string fails parseValue or validate marks the query invalid.
+  // The public WqlValidationState stays minimal ({ valid, error? }); slot
+  // attribution lives on the internal diagnostics object.
   useEffect(() => {
-    const ast = parseQuery(wql)
-    let validation: WqlValidationState = ast.error ? { valid: false, error: ast.error } : { valid: true }
-    if (validation.valid) {
-      for (const clause of clauses) {
-        const def = composerRegistry.getSlot(clause.type)
-        if (!def || !clause.value.trim()) continue
-        const value = def.parseValue(clause.value.trim())
-        const error = value === undefined
-          ? `Cannot parse ${def.label} value "${clause.value}"`
-          : def.validate?.(value) ?? null
-        if (error) {
-          validation = { valid: false, error }
-          break
-        }
-      }
-    }
-    callbacksRef.current.onWqlChange?.(wql)
-    callbacksRef.current.onAstChange?.(ast)
+    const validation: WqlValidationState = diagnostics.valid
+      ? { valid: true }
+      : { valid: false, error: diagnostics.error }
+    callbacksRef.current.onWqlChange?.(diagnostics.wql)
+    callbacksRef.current.onAstChange?.(diagnostics.ast)
     callbacksRef.current.onValidationChange?.(validation)
-  }, [wql, clauses, registeredSlots])
+  }, [diagnostics])
+
+  const stages = useWqlStageCounts(diagnostics.ast, diagnostics.valid, executeFind, debounceMs)
+
+  const offendingClause = diagnostics.offendingClauseId
+    ? clauses.find(c => c.id === diagnostics.offendingClauseId)
+    : undefined
+  const offendingLabel = offendingClause ? getClauseMeta(offendingClause.type).label : undefined
 
   const updateClause = (idx: number, patch: Partial<QueryClause>) => {
     setClauses(clauses.map((c, i) => (i === idx ? { ...c, ...patch } : c)))
@@ -150,45 +171,57 @@ export function WqlComposer({
   }
 
   return (
-    <div
-      onClick={() => inputRef.current?.focus()}
-      className={cn(
-        'flex flex-wrap items-center gap-1.5 min-h-[46px] rounded-xl border border-border bg-muted/20 px-3 py-1.5 text-xs transition-all cursor-text shadow-xs',
-        activeSlotIdx !== null && 'border-primary/60 bg-background ring-2 ring-primary/20 shadow-md',
-        className,
-      )}
-      data-testid="wql-composer"
-    >
-      <Command className="size-4 text-amber-500 shrink-0 mr-0.5" />
+    <div className="space-y-1">
+      <div
+        onClick={() => inputRef.current?.focus()}
+        className={cn(
+          'flex flex-wrap items-center gap-1.5 min-h-[46px] rounded-xl border border-border bg-muted/20 px-3 py-1.5 text-xs transition-all cursor-text shadow-xs',
+          activeSlotIdx !== null && 'border-primary/60 bg-background ring-2 ring-primary/20 shadow-md',
+          className,
+        )}
+        data-testid="wql-composer"
+      >
+        <Command className="size-4 text-amber-500 shrink-0 mr-0.5" />
 
-      {/* Token Slots */}
-      {clauses.map((clause, idx) => (
-        <TokenSlotPill
-          key={clause.id}
-          clause={clause}
-          isActive={activeSlotIdx === idx}
-          onClick={() => setActiveSlotIdx(idx)}
-          onChange={patch => updateClause(idx, patch)}
-          onRemove={() => removeClause(idx)}
-          compact
+        {/* Token Slots */}
+        {clauses.map((clause, idx) => (
+          <TokenSlotPill
+            key={clause.id}
+            clause={clause}
+            isActive={activeSlotIdx === idx}
+            invalid={diagnostics.offendingClauseId === clause.id}
+            invalidReason={diagnostics.offendingClauseId === clause.id ? diagnostics.error : undefined}
+            onClick={() => setActiveSlotIdx(idx)}
+            onChange={patch => updateClause(idx, patch)}
+            onRemove={() => removeClause(idx)}
+            compact
+          />
+        ))}
+
+        {/* Quick Free-text Search Input */}
+        <input
+          ref={inputRef}
+          type="text"
+          value={freeText}
+          placeholder="Type search term and press Enter..."
+          onChange={e => setFreeText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="flex-1 min-w-[140px] bg-transparent text-xs focus:outline-none placeholder:text-muted-foreground/40 font-mono"
+          data-testid="wql-composer-input"
         />
-      ))}
 
-      {/* Quick Free-text Search Input */}
-      <input
-        ref={inputRef}
-        type="text"
-        value={freeText}
-        placeholder="Type search term and press Enter..."
-        onChange={e => setFreeText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        className="flex-1 min-w-[140px] bg-transparent text-xs focus:outline-none placeholder:text-muted-foreground/40 font-mono"
-        data-testid="wql-composer-input"
-      />
+        <AddFilterDropdown clauses={clauses} onAdd={addClause} />
 
-      <AddFilterDropdown clauses={clauses} onAdd={addClause} />
+        {customSlots}
+      </div>
 
-      {customSlots}
+      {showDiagnostics && (
+        <WqlDiagnosticsStrip
+          diagnostics={diagnostics}
+          offendingLabel={offendingLabel}
+          stages={stages}
+        />
+      )}
     </div>
   )
 }

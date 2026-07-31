@@ -1,0 +1,140 @@
+/**
+ * Live WQL diagnostics for the WqlComposer (issue #832, decision #826).
+ *
+ * Pure, synchronous diagnostics over the clause model:
+ *   - {@link diagnoseClauses} composes the WQL, parses it, and — when the
+ *     parse fails — probes each clause's fragment in isolation to identify
+ *     the offending slot instead of swallowing the error.
+ *   - {@link summarizeFind} distills a valid find AST into the display
+ *     summary (target, scope, time window, join) for the diagnostics strip.
+ *
+ * Parsing short strings through the Lezer grammar is cheap; this runs
+ * synchronously on every clause change (well inside the ~150ms feedback
+ * budget). Only query *execution* is debounced (see useWqlStageCounts).
+ */
+
+import {
+  parseQuery,
+  type AnyParsedQuery,
+  type ParsedFindQuery,
+} from '@/services/analytics/query/wql'
+import { composerRegistry } from './ComposerRegistry'
+import { clausesToWql, clauseToWql, type QueryClause } from './queryClauses'
+
+export interface WqlDiagnostics {
+  /** The composed WQL string. */
+  wql: string
+  /** The parsed AST (carries `error` when the parse failed). */
+  ast: AnyParsedQuery
+  /** True when the composed WQL parses and every custom slot value validates. */
+  valid: boolean
+  /** Parser or custom-slot error message when invalid. */
+  error?: string
+  /** Id of the clause whose fragment caused the failure, when identified. */
+  offendingClauseId?: string
+}
+
+/** Display summary of a valid find query for the diagnostics strip. */
+export interface WqlFindSummary {
+  target: string
+  scope: string
+  /** `last 2w` style window, when the query carries one. */
+  window?: string
+  /** `sum:totalVolume > 5000` style join, when the query carries one. */
+  join?: string
+}
+
+export function summarizeFind(ast: ParsedFindQuery): WqlFindSummary {
+  const summary: WqlFindSummary = {
+    target: ast.target,
+    scope: ast.scope ?? 'all',
+  }
+  if (ast.last) summary.window = `last ${ast.last.size}${ast.last.unit}`
+  if (ast.join) {
+    summary.join = `${ast.join.agg}:${ast.join.metric} ${ast.join.operator} ${ast.join.threshold}`
+  }
+  return summary
+}
+
+/**
+ * Validate a custom slot's stored string against its registered definition —
+ * the same contract the composer enforced inline before (issue #829/830).
+ * Returns the error message, or null when the value is absent or valid.
+ */
+function customSlotError(clause: QueryClause): string | null {
+  const def = composerRegistry.getSlot(clause.type)
+  if (!def || !clause.value.trim()) return null
+  const value = def.parseValue(clause.value.trim())
+  if (value === undefined) return `Cannot parse ${def.label} value "${clause.value}"`
+  return def.validate?.(value) ?? null
+}
+
+/**
+ * Build a minimal probe query containing only this clause's fragment, so a
+ * parse failure can be attributed to the offending slot. Returns null when
+ * the clause cannot be probed (empty value, unknown custom fragment).
+ */
+function clauseProbeWql(clause: QueryClause): string | null {
+  const value = clause.value.trim()
+  if (!value) return null
+
+  switch (clause.type) {
+    case 'target':
+      return `find:${value}`
+    case 'scope':
+      return `find:note in ${value}`
+    case 'time':
+      return `find:note ${value.startsWith('last') ? value : `last ${value}`}`
+    case 'where':
+      return `find:note where ${value}`
+    default: {
+      const { filterStr } = clauseToWql(clause)
+      return filterStr ? `find:note{${filterStr}}` : null
+    }
+  }
+}
+
+/**
+ * Compose + parse the clause list and attribute failures to a slot.
+ *
+ * Attribution strategy: if the full query fails to parse, probe each clause's
+ * fragment alone — the first clause whose probe also fails is the offender.
+ * Probes run before custom-slot validation so the badge keeps the parser's
+ * error message and the highlight lands on the clause whose fragment actually
+ * broke the parse (a custom slot's invalid value never reaches the parser —
+ * it compiles to no fragment — so it can never be the cause of `ast.error`).
+ * Custom slot values are validated against their registered definition on
+ * both paths, after probes.
+ */
+export function diagnoseClauses(clauses: QueryClause[]): WqlDiagnostics {
+  const wql = clausesToWql(clauses)
+  const ast = parseQuery(wql)
+
+  if (ast.error) {
+    for (const clause of clauses) {
+      const probe = clauseProbeWql(clause)
+      if (probe && parseQuery(probe).error) {
+        return { wql, ast, valid: false, error: ast.error, offendingClauseId: clause.id }
+      }
+    }
+    // No single fragment reproduces the failure; a custom slot's semantic
+    // error is still a real, reportable problem with the query.
+    for (const clause of clauses) {
+      const customError = customSlotError(clause)
+      if (customError) {
+        return { wql, ast, valid: false, error: customError, offendingClauseId: clause.id }
+      }
+    }
+    return { wql, ast, valid: false, error: ast.error }
+  }
+
+  // The parse succeeded; custom slot values still need their semantic checks.
+  for (const clause of clauses) {
+    const customError = customSlotError(clause)
+    if (customError) {
+      return { wql, ast, valid: false, error: customError, offendingClauseId: clause.id }
+    }
+  }
+
+  return { wql, ast, valid: true }
+}

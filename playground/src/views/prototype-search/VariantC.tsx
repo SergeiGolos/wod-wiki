@@ -2,9 +2,11 @@
  * Variant B3 — Omni Command Bar with Quick Keyboard Selection
  *
  * Thin prototype shell around the shared <WqlComposer /> organism
- * (src/components/organisms/wql-composer, issue #829).
+ * (src/components/organisms/wql-composer, issue #829), with live stage
+ * counts wired through queryService.runFind (issue #832).
  */
 import { WqlComposer, type QueryClause } from '@/components/organisms/wql-composer'
+import { queryService } from '@/services/analytics/query'
 
 export function VariantC({
   clauses,
@@ -21,7 +23,11 @@ export function VariantC({
       </div>
 
       <div className="max-w-3xl">
-        <WqlComposer clauses={clauses} onClausesChange={onChange} />
+        <WqlComposer
+          clauses={clauses}
+          onClausesChange={onChange}
+          executeFind={ast => queryService.runFind(ast)}
+        />
       </div>
     </div>
   )

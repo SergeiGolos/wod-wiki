@@ -13,6 +13,7 @@
  *  2. Controlled — clauses + composed WQL / validation / AST surfaced live
  *  3. CustomSlots — consumer-supplied extension content inside the bar
  *  4. RegisteredSlot — ComposerRegistry date-range picker plugin (issue #830)
+ *  5. LiveDiagnostics — diagnostics strip with debounced stage counts (issue #832)
  */
 
 import React, { useEffect, useState } from 'react';
@@ -26,6 +27,7 @@ import {
   type WqlValidationState,
 } from '../../../src/components/organisms/wql-composer';
 import type { AnyParsedQuery } from '../../../src/services/analytics/query/wql';
+import type { ParsedFindQuery } from '../../../src/services/analytics/query';
 
 const meta: Meta<typeof WqlComposer> = {
   title: 'Organisms/WqlComposer',
@@ -121,4 +123,32 @@ const RegisteredSlotHarness: React.FC = () => {
 
 export const RegisteredSlot: Story = {
   render: () => <RegisteredSlotHarness />,
+};
+
+const LiveDiagnosticsHarness: React.FC = () => {
+  // Deterministic stand-in for queryService.runFind: counts scale with the
+  // number of active filter clauses so edits visibly move the numbers.
+  const executeFind = async (ast: ParsedFindQuery) => ({
+    parsed: ast,
+    notes: [],
+    blocks: [],
+    stages: { selected: 128, matched: Math.max(0, 128 - ast.filters.length * 37) },
+  });
+
+  return (
+    <div className="max-w-3xl space-y-2">
+      <WqlComposer executeFind={executeFind} />
+      <p className="text-[10px] text-muted-foreground">
+        The strip under the bar re-parses on every clause change: green/red
+        validity badge (red names the offending slot), AST summary
+        (target · scope · window · join), and debounced (150ms) matched/selected
+        stage counts. Type “garbage” into a Metric Join slot to see the error
+        attribution; add Tag filters to move the counts.
+      </p>
+    </div>
+  );
+};
+
+export const LiveDiagnostics: Story = {
+  render: () => <LiveDiagnosticsHarness />,
 };

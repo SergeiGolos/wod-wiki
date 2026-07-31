@@ -23,6 +23,14 @@ export {
   type SuggestionItem,
 } from './suggestionSources'
 export { useSuggestions, type ClauseSuggestions } from './useSuggestions'
+export { diagnoseClauses, summarizeFind, type WqlDiagnostics, type WqlFindSummary } from './diagnostics'
+export { WqlDiagnosticsStrip, type WqlDiagnosticsStripProps } from './WqlDiagnosticsStrip'
+export {
+  useWqlStageCounts,
+  DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
+  type FindExecutor,
+  type WqlStageCounts,
+} from './useWqlStageCounts'
 export {
   type ClauseType,
   type ClauseMeta,
