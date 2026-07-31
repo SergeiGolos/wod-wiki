@@ -10,11 +10,11 @@ import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TOUR_ACCENTS } from './tourStages'
 import type { ScriptBlock } from '@/components/Editor/types'
 
-const ROWS: Array<{ text: string; underline: string; accent: string }> = [
-  { text: 'Write it in ', underline: 'Markdown', accent: TOUR_ACCENTS.editor },
-  { text: 'Run it as a ', underline: 'Timer', accent: TOUR_ACCENTS.timer },
-  { text: 'Own the ', underline: 'Metrics', accent: TOUR_ACCENTS.library },
-  { text: 'Visualize the ', underline: 'Analytics', accent: TOUR_ACCENTS.analytics },
+const ROWS: Array<{ before?: string; accentText: string; after?: string; accent: string }> = [
+  { before: 'Write it in ', accentText: 'Markdown', accent: TOUR_ACCENTS.editor },
+  { before: 'Run it as a ', accentText: 'Timer', accent: TOUR_ACCENTS.timer },
+  { before: 'Own the ', accentText: 'Data', accent: TOUR_ACCENTS.library },
+  { accentText: 'Explore', after: ' the Metrics', accent: TOUR_ACCENTS.analytics },
 ]
 
 export interface TourHeroProps {
@@ -46,14 +46,15 @@ export function TourHero({
       </div>
       <h1 className="text-[clamp(34px,7vw,88px)] font-extrabold leading-[0.98] tracking-[-0.045em]">
         {ROWS.map((row) => (
-          <span key={row.underline} className="block">
-            {row.text}
+          <span key={row.accentText} className="block">
+            {row.before}
             <span
               className="underline decoration-[0.06em] underline-offset-[0.14em]"
               style={{ color: row.accent, textDecorationColor: row.accent }}
             >
-              {row.underline}
+              {row.accentText}
             </span>
+            {row.after}
             .
           </span>
         ))}
