@@ -23,6 +23,7 @@ import {
   clausesToWql,
   wqlToClauses,
   pivotClauses,
+  setMetricClause,
   defaultClauses,
   getClauseMeta,
   type QueryClause,
@@ -276,6 +277,46 @@ describe('pivotClauses', () => {
     for (const t of ['agg', 'metric', 'groupby', 'rollup', 'unit', 'where']) {
       expect(next.some(c => c.type === t)).toBe(false)
     }
+  })
+})
+
+describe('setMetricClause', () => {
+  it('sets the metric on an existing metrics-plane clause', () => {
+    const next = setMetricClause([
+      clause('source', 'metrics'),
+      clause('agg', 'sum'),
+      clause('metric', 'totalVolume'),
+    ], 'tis')
+    expect(valueOf(next, 'metric')).toBe('tis')
+    expect(clausesToWql(next)).toBe('sum:tis')
+  })
+
+  it('appends a metric clause when the metrics plane has none (pill removed)', () => {
+    const next = setMetricClause([
+      clause('source', 'metrics'),
+      clause('agg', 'avg'),
+    ], 'tis')
+    expect(valueOf(next, 'metric')).toBe('tis')
+    expect(clausesToWql(next)).toBe('avg:tis')
+  })
+
+  it('pivots a content plane to metrics, preserving shared filters', () => {
+    const next = setMetricClause([
+      clause('source', 'journal'),
+      clause('time', 'last 8w'),
+      clause('tag', 'fran'),
+    ], 'sessionLoad')
+    expect(valueOf(next, 'source')).toBe('metrics')
+    expect(valueOf(next, 'metric')).toBe('sessionLoad')
+    expect(valueOf(next, 'tag')).toBe('fran')
+    expect(next.some(c => c.type === 'time')).toBe(false)
+    expect(clausesToWql(next)).toBe('sum:sessionLoad{tags:fran}')
+  })
+
+  it('seeds the source clause when the list has none', () => {
+    const next = setMetricClause([], 'tis')
+    expect(valueOf(next, 'source')).toBe('metrics')
+    expect(clausesToWql(next)).toBe('sum:tis')
   })
 })
 

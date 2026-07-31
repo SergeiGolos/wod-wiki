@@ -149,6 +149,27 @@ describe('WqlComposer', () => {
     // Controlled: the pill still renders because the prop did not change.
     expect(screen.getByTestId('token-slot-time')).not.toBeNull();
   });
+
+  it('fires onSubmit with the composed WQL on Enter when no free text is pending', () => {
+    const onSubmit = mock((_wql: string) => {});
+    render(<WqlComposer initialClauses={metricsClauses()} onSubmit={onSubmit} />);
+
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit).toHaveBeenCalledWith('sum:totalVolume');
+  });
+
+  it('Enter with pending free text commits a text clause instead of submitting', () => {
+    const onSubmit = mock((_wql: string) => {});
+    render(<WqlComposer onSubmit={onSubmit} />);
+
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.change(input, { target: { value: 'fran' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByTestId('token-slot-text').textContent).toContain('fran');
+  });
 });
 
 describe('WqlComposer source-pivot analytics plane', () => {

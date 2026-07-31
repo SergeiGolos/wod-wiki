@@ -54,5 +54,6 @@ export {
   clauseValue,
   defaultClauses,
   pivotClauses,
+  setMetricClause,
   sourcePlane,
 } from './queryClauses'

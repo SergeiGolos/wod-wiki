@@ -59,6 +59,13 @@ export interface WqlComposerProps {
   onValidationChange?: (state: WqlValidationState) => void
   /** Fired (including on mount) with the parsed AST. */
   onAstChange?: (ast: AnyParsedQuery) => void
+  /**
+   * Fired on Enter when no free text is pending — the run-on-submit signal
+   * for hosts like the analytics explorer (issue #839). Receives the composed
+   * WQL. Hosts embedding the composer in a list (palette) omit this and keep
+   * their own Enter handling.
+   */
+  onSubmit?: (wql: string) => void
   /** Render the diagnostics strip (badge, AST summary, stage counts). Default true. */
   showDiagnostics?: boolean
   /**
@@ -86,6 +93,7 @@ export function WqlComposer({
   onWqlChange,
   onValidationChange,
   onAstChange,
+  onSubmit,
   showDiagnostics = true,
   execute,
   debounceMs = DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
@@ -190,13 +198,20 @@ export function WqlComposer({
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && freeText.trim()) {
+    if (e.key !== 'Enter') return
+    if (freeText.trim()) {
       e.preventDefault()
       // Handled here — don't let an embedding list (palette) also treat this
       // as "activate the active result".
       e.stopPropagation()
       setClauses([...clauses, makeClause('text', freeText.trim())])
       setFreeText('')
+      return
+    }
+    // Enter with no pending free text submits the composed query.
+    if (onSubmit) {
+      e.preventDefault()
+      onSubmit(diagnostics.wql)
     }
   }
 

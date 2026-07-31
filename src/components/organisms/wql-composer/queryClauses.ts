@@ -485,6 +485,24 @@ export function wqlToClauses(wql: string): QueryClause[] | null {
 // ── Source pivot ────────────────────────────────────────────────────────────
 
 /**
+ * Set the aggregate metric, re-basing the clause list on the metrics plane
+ * when needed (sidebar / launcher flows, issue #839): content planes pivot
+ * via `pivotClauses` (shared filters survive), a missing source or metric
+ * clause is seeded, and the metric value lands on the first metric clause.
+ */
+export function setMetricClause(clauses: QueryClause[], metric: string): QueryClause[] {
+  const withSource = clauses.some(c => c.type === 'source')
+    ? clauses
+    : [restoreClause('c-source', 'source', 'metrics'), ...clauses]
+  const pivoted = clauseValue(withSource, 'source') === 'metrics'
+    ? withSource
+    : pivotClauses(withSource, 'metrics')
+  return pivoted.some(c => c.type === 'metric')
+    ? pivoted.map(c => (c.type === 'metric' ? { ...c, value: metric } : c))
+    : [...pivoted, restoreClause('c-metric', 'metric', metric)]
+}
+
+/**
  * Re-base the clause list on a new source value (decision #836): shared
  * filter clauses survive the pivot; kind-specific clauses are dropped
  * (content plane: time/where and any metrics head; metrics plane: time/

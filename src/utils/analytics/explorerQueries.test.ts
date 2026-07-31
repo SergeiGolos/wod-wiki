@@ -5,7 +5,6 @@ import {
   EXAMPLE_QUERIES,
   getQueryChartShape,
   serializeQuery,
-  setMetricInQuery,
 } from './explorerQueries';
 // All tests use analytics queries — narrow the union.
 const parseQuery = (raw: string): ParsedQuery => _pq(raw) as ParsedQuery;
@@ -57,18 +56,6 @@ describe('explorerQueries', () => {
 
     it('leaves an errored query unchanged', () => {
       expect(addFilterToQuery('not-a-query', 'discipline', 'strength')).toBe('not-a-query');
-    });
-  });
-
-  describe('setMetricInQuery', () => {
-    it('changes the metric in a bare head', () => {
-      expect(setMetricInQuery('sum:totalVolume', 'tis')).toBe('sum:tis');
-    });
-
-    it('preserves filters, group-by, and rollup when changing metric', () => {
-      expect(setMetricInQuery('sum:totalVolume{discipline:strength} by {week}.rollup(1w)', 'tis')).toBe(
-        'sum:tis{discipline:strength} by {week}.rollup(1w)',
-      );
     });
   });
 

@@ -117,13 +117,6 @@ export function addFilterToQuery(query: string, key: string, value: string): str
   return serializeQuery(parsed);
 }
 
-/** Set the metric in a WQL query head, preserving filters / group-by / rollup. */
-export function setMetricInQuery(query: string, metric: string): string {
-  const parsed = parseQuery(query) as ParsedQuery;
-  parsed.metric = metric;
-  return serializeQuery(parsed);
-}
-
 /** Shape decision for chart rendering — mirrors useChartShape so it can be tested synchronously. */
 export type QueryChartShape =
   | { kind: 'empty' }
