@@ -69,6 +69,20 @@ const emptyResult = (raw: string): FindQueryResult => ({
   stages: { selected: 0, matched: 0 },
 })
 
+const BLOCK_ROW = {
+  id: 'static:feeds/stronglifts/2026-07-01--5x5:sec-3:1',
+  noteId: 'feeds/stronglifts/2026-07-01--5x5',
+  segmentId: 'sec-3',
+  segmentVersion: 1,
+  position: 1,
+  dataType: 'wod',
+  rawContent: '21-15-9\nDeadlift\nHandstand push-ups',
+  noteTitle: 'StrongLifts 5×5',
+  createdAt: Date.parse('2026-07-01T10:00:00Z'),
+  isStatic: true,
+  sourceId: 'feed:feeds/stronglifts/2026-07-01--5x5',
+} as FindQueryResult['blocks'][number]
+
 describe('LibraryPage', () => {
   it('renders the shared WqlComposer instead of the old composer panel', async () => {
     runFindImpl = async parsed => emptyResult(parsed.raw ?? '')
@@ -164,6 +178,35 @@ describe('LibraryPage', () => {
 
     await waitFor(() => expect(screen.getByTestId('library-query-error')).toBeDefined())
     expect(screen.getByTestId('library-query-error').textContent).toContain('squat')
+  })
+
+  it('renders block-level cards for find:block — type badge, preview, parent (#855)', async () => {
+    runFindImpl = async parsed => {
+      const result = emptyResult(parsed.raw ?? '')
+      if ((parsed.raw ?? '').startsWith('find:block')) result.blocks = [BLOCK_ROW]
+      return result
+    }
+    renderPage(`/library?q=${encodeURIComponent('find:block in all')}`)
+
+    await waitFor(() => expect(screen.getByTestId('library-row-block-type')).toBeDefined())
+    expect(screen.getByTestId('library-row-block-type').textContent).toBe('wod')
+    expect(screen.getByTestId('library-row-block-preview').textContent).toContain('21-15-9')
+    // The card keeps the parent note's identity, not a synthetic note card.
+    expect(screen.getByTestId('library-row-post').textContent).toContain('StrongLifts 5×5')
+    expect(screen.queryByTestId('library-cap-notice')).toBeNull()
+  })
+
+  it('caps oversized block result lists with a visible notice (#855)', async () => {
+    const many = Array.from({ length: 250 }, (_, i) => ({ ...BLOCK_ROW, id: `b-${i}`, segmentId: `seg-${i}`, createdAt: i }))
+    runFindImpl = async parsed => {
+      const result = emptyResult(parsed.raw ?? '')
+      if ((parsed.raw ?? '').startsWith('find:block')) result.blocks = many
+      return result
+    }
+    renderPage(`/library?q=${encodeURIComponent('find:block in all')}`)
+
+    await waitFor(() => expect(screen.getByTestId('library-cap-notice')).toBeDefined())
+    expect(screen.getByTestId('library-cap-notice').textContent).toContain('250')
   })
 
   it('hides the static catalog shelf when the source excludes collections', async () => {

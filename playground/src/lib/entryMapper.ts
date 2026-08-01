@@ -8,9 +8,20 @@
  * elsewhere from `Page.date`); Sessions are undated by design; Posts carry
  * a `YYYY-MM-DD` recovered from the file path.
  */
-import type { Note } from '@/types/storage'
+import type { BlockIndexRow, Note } from '@/types/storage'
 
 export type EntryKind = 'note' | 'session' | 'post'
+
+/** Block-level payload on an Entry produced from a find:block hit (#855):
+ *  the card shows the parent note's identity plus the block's own type and
+ *  a content preview, so count and presentation describe the same entity. */
+export interface EntryBlock {
+  /** Section id of the block within its note — the open-at-block anchor. */
+  segmentId: string
+  dataType: string
+  /** Up to 3 non-empty preview lines from the block's raw content. */
+  preview: string[]
+}
 
 export interface Entry {
   id: string
@@ -28,6 +39,8 @@ export interface Entry {
   subtitle?: string
   detail?: string
   blockContentId?: string
+  /** Set when the Entry represents one block (find:block), not a whole note. */
+  block?: EntryBlock
 }
 
 function isCollection(sourceId: string | undefined): boolean {
@@ -91,5 +104,56 @@ export function toEntry(note: Note): Entry {
     sourceId: note.sourceId,
     title,
     date: null,
+  }
+}
+
+/** Synthesize a minimal Note for a block hit — the input to {@link toEntry}
+ *  for block-level results. Lives here so entryMapper stays the single place
+ *  that touches sourceId classification. */
+export function noteFromBlock(block: {
+  noteId: string
+  noteTitle: string
+  createdAt: number
+  sourceId?: string
+}): Note {
+  return {
+    id: block.noteId,
+    title: block.noteTitle,
+    createdAt: block.createdAt,
+    type: 'note',
+    sourceId: block.sourceId,
+    catalog: (block.noteId.startsWith('feeds/') ? block.noteId.slice('feeds/'.length) : block.noteId).split('/')[0],
+  } as Note
+}
+
+const PREVIEW_LINE_CAP = 3
+const PREVIEW_CHAR_CAP = 120
+
+/** First non-empty lines of a block's raw content, each truncated — the
+ *  card preview that makes a block hit inspectable without opening it. */
+export function blockPreview(rawContent: string): string[] {
+  return rawContent
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .slice(0, PREVIEW_LINE_CAP)
+    .map(line => (line.length > PREVIEW_CHAR_CAP ? `${line.slice(0, PREVIEW_CHAR_CAP - 1)}…` : line))
+}
+
+/**
+ * Map one find:block hit to an Entry (#855). The Entry keeps the PARENT
+ * note's identity (id, kind, catalog, date — Open/Add-to-today act on the
+ * parent) and carries the block's own type/preview/anchor on `entry.block`.
+ */
+export function blockToEntry(block: BlockIndexRow): Entry {
+  const base = toEntry(noteFromBlock(block))
+  return {
+    ...base,
+    blockContentId: block.blockContentId ?? base.blockContentId,
+    block: {
+      segmentId: block.segmentId,
+      dataType: block.dataType,
+      preview: blockPreview(block.rawContent),
+    },
   }
 }

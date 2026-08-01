@@ -16,19 +16,24 @@
  */
 import type { Entry } from './entryMapper'
 
-/** Open: the Entry's deep-link per its kind. */
+/** Open: the Entry's deep-link per its kind; block Entries anchor to their
+ *  section within the parent note (#855 — honored wherever the target
+ *  surface exposes section DOM ids; degrades to the plain note elsewhere). */
 export function entryOpenHref(entry: Entry): string {
-  switch (entry.kind) {
-    case 'note':
-      // Entry.date is the journal-date (YYYY-MM-DD); fall back to sourceItem.
-      return `/journal/${encodeURIComponent(entry.date ?? entry.sourceItem)}/`
-    case 'session':
-      return `/collections/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(entry.sourceItem)}`
-    case 'post': {
-      const date = entry.date ?? ''
-      return `/feeds/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(date)}/${encodeURIComponent(entry.sourceItem)}`
+  const href = (() => {
+    switch (entry.kind) {
+      case 'note':
+        // Entry.date is the journal-date (YYYY-MM-DD); fall back to sourceItem.
+        return `/journal/${encodeURIComponent(entry.date ?? entry.sourceItem)}/`
+      case 'session':
+        return `/collections/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(entry.sourceItem)}`
+      case 'post': {
+        const date = entry.date ?? ''
+        return `/feeds/${encodeURIComponent(entry.sourceCatalog)}/${encodeURIComponent(date)}/${encodeURIComponent(entry.sourceItem)}`
+      }
     }
-  }
+  })()
+  return entry.block ? `${href}#${encodeURIComponent(entry.block.segmentId)}` : href
 }
 
 /** Run: only meaningful for rows with a blockContentId; Session/Post per spec. */

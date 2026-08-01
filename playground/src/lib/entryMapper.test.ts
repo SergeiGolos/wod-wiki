@@ -85,3 +85,73 @@ describe('toEntry — passthrough fields', () => {
     expect(entry.subtitle).toBe('crossfit-girls')
   })
 })
+
+// ── blockToEntry (#855) ──────────────────────────────────────────────────────
+
+import { blockToEntry, blockPreview } from './entryMapper'
+import type { BlockIndexRow } from '@/types/storage'
+
+function makeBlock(overrides: Partial<BlockIndexRow> = {}): BlockIndexRow {
+  return {
+    id: 'static:note:seg:1',
+    noteId: 'feeds/crossfit-programming/2026-01-12/wednesday-hero',
+    segmentId: 'sec-7',
+    segmentVersion: 1,
+    position: 2,
+    dataType: 'wod',
+    rawContent: 'Murph\n\n1 mile run',
+    noteTitle: 'Wednesday Hero',
+    createdAt: Date.parse('2026-01-12T00:00:00Z'),
+    isStatic: true,
+    sourceId: 'feed:feeds/crossfit-programming/2026-01-12/wednesday-hero',
+    blockContentId: 'bc-murph',
+    ...overrides,
+  } as BlockIndexRow
+}
+
+describe('blockToEntry (#855)', () => {
+  it('keeps the parent note identity and carries the block payload', () => {
+    const entry = blockToEntry(makeBlock())
+    expect(entry.id).toBe('feeds/crossfit-programming/2026-01-12/wednesday-hero')
+    expect(entry.kind).toBe<EntryKind>('post')
+    expect(entry.date).toBe('2026-01-12')
+    expect(entry.title).toBe('Wednesday Hero')
+    expect(entry.block).toEqual({
+      segmentId: 'sec-7',
+      dataType: 'wod',
+      preview: ['Murph', '1 mile run'],
+    })
+    expect(entry.blockContentId).toBe('bc-murph')
+  })
+
+  it('classifies collection blocks as Session', () => {
+    const entry = blockToEntry(makeBlock({
+      noteId: 'crossfit-girls/fran',
+      sourceId: 'collection:crossfit-girls/fran',
+    }))
+    expect(entry.kind).toBe<EntryKind>('session')
+    expect(entry.date).toBeNull()
+  })
+
+  it('classifies journal blocks (no sourceId) as Note', () => {
+    const entry = blockToEntry(makeBlock({ noteId: 'n-1', sourceId: undefined }))
+    expect(entry.kind).toBe<EntryKind>('note')
+  })
+})
+
+describe('blockPreview', () => {
+  it('caps at 3 non-empty lines', () => {
+    expect(blockPreview('a\n\nb\nc\nd\ne')).toEqual(['a', 'b', 'c'])
+  })
+
+  it('truncates long lines with an ellipsis', () => {
+    const long = 'x'.repeat(200)
+    const [line] = blockPreview(long)
+    expect(line!.length).toBe(120)
+    expect(line!.endsWith('…')).toBe(true)
+  })
+
+  it('returns [] for blank content', () => {
+    expect(blockPreview('\n  \n')).toEqual([])
+  })
+})

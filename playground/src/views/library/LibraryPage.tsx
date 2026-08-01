@@ -29,7 +29,7 @@ import {
   type WqlExecutor,
 } from '@/components/organisms/wql-composer'
 import { type Entry } from '../../lib/entryMapper'
-import { searchEntries } from '../../lib/entrySearch'
+import { searchEntriesWithMeta } from '../../lib/entrySearch'
 import { addEntryToTodayInput } from '../../lib/addToToday'
 import { useLibraryQueryState } from '../../hooks/useLibraryQueryState'
 import { LibraryRow } from './LibraryRow'
@@ -52,6 +52,7 @@ const DEFAULT_HEADING = HEADING_BY_SOURCE.notes!
 export function LibraryPage() {
   const { clauses, setClauses, urlQueryError } = useLibraryQueryState()
   const [entries, setEntries] = useState<Entry[]>([])
+  const [capped, setCapped] = useState<{ shown: number; total: number } | null>(null)
   const [shelfOpen, setShelfOpen] = useState(true)
   const [loading, setLoading] = useState(false)
   const handleAddToToday = useCallback(async (entry: Entry) => {
@@ -100,12 +101,18 @@ export function LibraryPage() {
     let cancelled = false
     setLoading(true)
 
-    searchEntries(wql)
-      .then(results => {
-        if (!cancelled) setEntries(results)
+    searchEntriesWithMeta(wql)
+      .then(result => {
+        if (!cancelled) {
+          setEntries(result.entries)
+          setCapped(result.capped ?? null)
+        }
       })
       .catch(() => {
-        if (!cancelled) setEntries([])
+        if (!cancelled) {
+          setEntries([])
+          setCapped(null)
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -239,7 +246,7 @@ export function LibraryPage() {
             <div className="flex flex-col gap-0 pb-1">
               {group.map(entry => (
                 <LibraryRow
-                  key={entry.id}
+                  key={entry.block ? `${entry.id}#${entry.block.segmentId}` : entry.id}
                   entry={entry}
                   tone={isToday && entry.kind === 'note' ? 'primary' : 'secondary'}
                   onAddToToday={handleAddToToday}
@@ -249,6 +256,15 @@ export function LibraryPage() {
           </div>
         )
       })}
+
+      {capped && (
+        <div
+          className="mx-6 my-3 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+          data-testid="library-cap-notice"
+        >
+          Showing the {capped.shown} newest of <span className="font-semibold text-foreground">{capped.total}</span> matched blocks — refine the query to narrow further.
+        </div>
+      )}
 
       {sessionVisible && (
         <div className="flex flex-col border-t-2 border-dashed border-amber-500/30 mt-4" data-testid="static-shelf">
@@ -274,7 +290,7 @@ export function LibraryPage() {
                 <div className="px-6 py-3 text-xs text-muted-foreground/50">No sessions match.</div>
               )}
               {sessions.map(entry => (
-                <LibraryRow key={entry.id} entry={entry} onAddToToday={handleAddToToday} />
+                <LibraryRow key={entry.block ? `${entry.id}#${entry.block.segmentId}` : entry.id} entry={entry} onAddToToday={handleAddToToday} />
               ))}
             </div>
           )}

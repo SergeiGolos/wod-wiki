@@ -67,6 +67,14 @@ export function LibraryRow({ entry, leading, actions, tone = 'secondary', onAddT
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-bold text-foreground truncate">{entry.title}</h3>
+          {entry.block && (
+            <span
+              className="text-[9px] font-black uppercase tracking-widest text-sky-600 border border-sky-500/40 bg-sky-500/10 rounded-full px-1.5 py-0.5"
+              data-testid="library-row-block-type"
+            >
+              {entry.block.dataType}
+            </span>
+          )}
           <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 border border-border rounded-full px-1.5 py-0.5">
             {KIND_LABEL[entry.kind]}
           </span>
@@ -74,7 +82,13 @@ export function LibraryRow({ entry, leading, actions, tone = 'secondary', onAddT
             <span className="text-[10px] text-muted-foreground/60 truncate">{entry.subtitle}</span>
           )}
         </div>
-        {entry.detail && (
+        {entry.block ? (
+          <div className="mt-0.5" data-testid="library-row-block-preview">
+            {entry.block.preview.map((line, i) => (
+              <p key={i} className="text-[11px] text-muted-foreground truncate font-mono">{line}</p>
+            ))}
+          </div>
+        ) : entry.detail && (
           <p className="text-[11px] text-muted-foreground truncate mt-0.5">{entry.detail}</p>
         )}
       </div>
