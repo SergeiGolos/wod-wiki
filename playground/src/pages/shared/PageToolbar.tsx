@@ -37,6 +37,8 @@ import { resetUserData } from '../../services/resetUserData'
 import type { NavItemL3 } from '../../nav/navTypes'
 import { useAudio } from '@/contexts/AudioContext'
 import { useDebugMode } from '@/contexts/DebugModeContext'
+import { DATE_LOCALE_OPTIONS, useDateLocale } from '../../lib/dateLocale'
+import { LanguageIcon } from '@heroicons/react/20/solid'
 
 // ── NewEntryButton ───────────────────────────────────────────────────────────
 
@@ -88,6 +90,7 @@ export function ActionsMenu({
   
   const l3Items = items || contextL3
   const { isDebugMode, toggleDebugMode } = useDebugMode()
+  const [dateLocale, setDateLocale] = useDateLocale()
 
   const handleResetData = async () => {
     try {
@@ -185,6 +188,22 @@ export function ActionsMenu({
           </span>
           <span className="flex-1">Theme: {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System'}</span>
         </DropdownMenuItem>
+        <DropdownMenuHeading className="flex items-center gap-2">
+          <LanguageIcon className="size-4" /> Date language
+        </DropdownMenuHeading>
+        {DATE_LOCALE_OPTIONS.map(option => (
+          <DropdownMenuItem
+            key={option.tag ?? 'auto'}
+            onClick={() => setDateLocale(option.tag)}
+            className="gap-2"
+            data-testid={`date-locale-${option.tag ?? 'auto'}`}
+          >
+            <span className="flex size-4 items-center justify-center text-blue-500 text-xs">
+              {dateLocale === option.tag ? '✓' : ''}
+            </span>
+            <span className="flex-1">{option.label}</span>
+          </DropdownMenuItem>
+        ))}
         <DropdownMenuItem onClick={handleDownload} className="gap-2">
           <ArrowDownTrayIcon className="size-4" />
           <span className="flex-1">Download Markdown</span>

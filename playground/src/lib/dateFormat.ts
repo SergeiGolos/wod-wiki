@@ -1,8 +1,9 @@
 /**
  * Date-formatting helpers shared by the Library and the prototype variants.
- * Kept tiny on purpose; the spec does not require locale negotiation beyond
- * what `toLocaleDateString` already provides.
+ * Kept tiny on purpose; locale comes from the "Date language" preference
+ * (#858) — Auto (browser) unless the user overrides it.
  */
+import { getDateLocale } from './dateLocale'
 
 /** Return today's date as `YYYY-MM-DD` (UTC). */
 export function todayKey(): string {
@@ -13,5 +14,5 @@ export function todayKey(): string {
 export function formatDateHeader(yyyymmdd: string): string {
   const [y, m, d] = yyyymmdd.split('-').map(Number)
   const date = new Date(Date.UTC(y!, m! - 1, d!))
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
+  return date.toLocaleDateString(getDateLocale(), { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
 }

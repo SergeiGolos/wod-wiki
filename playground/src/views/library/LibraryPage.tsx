@@ -35,6 +35,7 @@ import { useLibraryQueryState } from '../../hooks/useLibraryQueryState'
 import { LibraryRow } from './LibraryRow'
 import { journalNotes } from '../../services/journalNotes'
 import { todayKey, formatDateHeader } from '../../lib/dateFormat'
+import { useDateLocale } from '../../lib/dateLocale'
 
 /** Page heading keyed by the composer's source clause — the retired
  * Journal/Collections/Feeds routes redirect here with a source preselected
@@ -51,6 +52,8 @@ const DEFAULT_HEADING = HEADING_BY_SOURCE.notes!
 
 export function LibraryPage() {
   const { clauses, setClauses, urlQueryError } = useLibraryQueryState()
+  // Re-render date group headers when the "Date language" pref changes (#858).
+  useDateLocale()
   const [entries, setEntries] = useState<Entry[]>([])
   const [capped, setCapped] = useState<{ shown: number; total: number } | null>(null)
   const [shelfOpen, setShelfOpen] = useState(true)
