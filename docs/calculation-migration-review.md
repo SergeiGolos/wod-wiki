@@ -498,3 +498,16 @@ Line form: **2 lines** — one calc line + one `where` line — plus the `sessio
 ### 11.5 Recommendation
 
 Adopt both, layered: **line form for authoring and review** (registry seed files, docs, code review, this document), **record form for storage, validation, and tooling** (registry entries, user overrides in IndexedDB, composer diagnostics). The line form compiles to DAG records; the DAG records are what #849's migration registers. If only one can exist, keep the record form — but the ~7:1 line-count ratio on real calcs argues the authoring surface is worth the small parser.
+
+### 11.6 Authoring UX: guided typeahead for calc lines
+
+The line syntax's residual complexity is best attacked with tooling, not more syntax. The repo already ships every piece of scaffolding this needs (map #822): the token-slot `WqlComposer` core + `ComposerRegistry` custom slots, data-backed typeahead sources (#831: efforts, disciplines, tags, metric keys — exactly what `lookup()` keys and WQL atoms complete from), inline validation with per-clause error attribution (#832), and Lezer-grammar CM6 editing with completion precedent (`WqlQueryField`, `dialectCompletion`).
+
+New work, in increasing order of novelty:
+
+1. **Calc-line Lezer grammar** — needed regardless; small (line-oriented, one nesting level, atoms delegated to the WQL parser).
+2. **Expression completion** — context-aware suggestions inside the expression slot: metric names, `lookup(` → table → field (self-describing from #845 adapters), the 9 core functions, scope-appropriate context nodes (`effort`, `session.duration`, `profile.*`).
+3. **Dimension-aware feedback** — the composer surfaces the computed dimension live ("time ÷ length — suggested units: min/km, sec/m") and flags output-unit mismatches. Depends on #851's compound-dimension model, which exists anyway.
+4. **Live preview** — the headless AnalyticsEngine (`workoutDerivation` drives it over stored logs, no runtime) evaluates the draft calc against the user's real past workouts. Wiring, not research — and the strongest correctness signal a user can get.
+
+Deliberately excluded: a fully guided dropdown-only builder — it collapses on TIS-shaped multi-intermediate formulas. Text + completion + diagnostics + preview is the codebase's proven pattern.

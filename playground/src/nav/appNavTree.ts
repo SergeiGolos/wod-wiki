@@ -71,6 +71,27 @@ const behaviorsChildren: NavItem[] = canvasRoutes
     action: { type: 'route' as const, to: r.route },
     isActive: (loc: Location) => loc.pathname === r.route,
   }))
+const analyticsGuideOrder: Record<string, number> = {
+  '/guide/analytics': 0,
+  '/guide/analytics/anatomy': 1,
+  '/guide/analytics/filters': 2,
+  '/guide/analytics/joins': 3,
+  '/guide/analytics/cookbook': 4,
+  '/guide/analytics/cheatsheet': 5,
+}
+
+const analyticsGuideChildren: NavItem[] = canvasRoutes
+  .filter(r => !r.route.startsWith('/collections'))
+  .filter(r => r.page.frontmatter?.type === 'analytics')
+  .sort((a, b) => (analyticsGuideOrder[a.route] ?? 99) - (analyticsGuideOrder[b.route] ?? 99))
+  .map(r => ({
+    id: `analytics-guide-${r.route}`,
+    label: r.page.sections[0]?.heading ?? 'Untitled',
+    level: 2 as const,
+    icon: ChartBarIcon,
+    action: { type: 'route' as const, to: r.route },
+    isActive: (loc: Location) => loc.pathname === r.route,
+  }))
 
 const homeChildren: NavItem[] = [
   {
@@ -90,8 +111,16 @@ const homeChildren: NavItem[] = [
     isActive: (loc: Location) => loc.pathname.startsWith('/guide/behaviors'),
     children: behaviorsChildren,
   },
+  {
+    id: 'analytics-guide-group',
+    label: 'Analytics',
+    level: 2,
+    icon: ChartBarIcon,
+    action: { type: 'route', to: '/guide/analytics' },
+    isActive: (loc: Location) => loc.pathname.startsWith('/guide/analytics'),
+    children: analyticsGuideChildren,
+  },
 ]
-
 // ─── App nav tree ─────────────────────────────────────────────────────────────
 
 /**
@@ -112,6 +141,7 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
         loc.pathname === ROUTE_PATTERNS.guideGettingStarted ||
         loc.pathname.startsWith('/guide/syntax') ||
         loc.pathname.startsWith('/guide/behaviors') ||
+        loc.pathname.startsWith('/guide/analytics') ||
         loc.pathname.startsWith('/canvas') ||
         loc.pathname === ROUTE_PATTERNS.home ||
         loc.pathname.startsWith('/playground/') ||

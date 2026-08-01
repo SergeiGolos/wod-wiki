@@ -55,6 +55,7 @@ import { JournalPage } from './pages/JournalPage'
 import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
 import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
 import { LoadZipPage } from './pages/LoadZipPage'
+import CalcAuthoringPrototypePage from './pages/CalcAuthoringPrototypePage'
 import { JournalZipLoadPage } from './pages/JournalZipLoadPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
@@ -346,6 +347,7 @@ export function App() {
               <Toaster />
               <NavProvider tree={navTree}>
                 <Routes>
+                  <Route path="/proto/calc-authoring" element={<CalcAuthoringPrototypePage />} />
                   <Route path="/legacy" element={<PlaygroundLandingPage />} />
                   <Route path="/concept3" element={<Concept3LandingPage />} />
                   <Route path="/chapters/basics" element={<Navigate to="/guide/syntax/basics" replace />} />

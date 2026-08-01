@@ -261,8 +261,7 @@ describe('HomeTour', () => {
     expect(strip).toBeTruthy()
 
     const libraryLink = screen.getByRole('link', { name: /Jump to the Library/i })
-    expect(libraryLink.getAttribute('href')).toBe('/collections')
-
+    expect(libraryLink.getAttribute('href')).toBe('/library')
     const newNoteButton = screen.getByRole('button', { name: /New note/i })
     expect(newNoteButton).toBeTruthy()
   })
@@ -286,6 +285,8 @@ describe('HomeTour', () => {
     const dashboardLink = screen.getByRole('link', { name: /Open the dashboard/i })
     expect(dashboardLink.getAttribute('href')).toBe('/analytics/dashboard')
 
+    const analyticsGuideLink = screen.getByRole('link', { name: /Read the query guide/i })
+    expect(analyticsGuideLink.getAttribute('href')).toBe('/guide/analytics')
     const effortsLinks = screen.getAllByRole('link', { name: /Browse the registry/i })
     expect(effortsLinks.length).toBeGreaterThanOrEqual(1)
     for (const link of effortsLinks) {
@@ -321,6 +322,9 @@ describe('HomeTour', () => {
     fireEvent.click(explorerLink)
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.explorerOpened)
 
+    const analyticsGuideLink = screen.getByRole('link', { name: /Read the query guide/i })
+    fireEvent.click(analyticsGuideLink)
+    expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.analyticsGuideOpened)
     // Click the timer-stage drop-off as well.
     setTestTourProgress(0.1)
     const behaviorsLink = await screen.findByRole('link', { name: /Read the behaviors explainer/i })

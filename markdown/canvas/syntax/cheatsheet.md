@@ -129,6 +129,8 @@ The runtime derives these metrics from your text. Use them in queries and trendl
 | **effort** | Descriptive word | `easy`, `hard`, `moderate` |
 | **discipline** | Movement name | `Run`, `Back Squat`, `Pull-up` |
 
+To query, filter, and aggregate these metrics across your journal, see the [Analytics Query Guide](/guide/analytics).
+
 ## Finish Line {sticky full-bleed dark}
 
 Return to the Syntax index or open a new note and try it out.

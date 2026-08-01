@@ -74,6 +74,11 @@ export const TOUR_CAPTIONS: TourCaption[] = [
         href: '/analytics/dashboard',
         event: HOME_EVENTS.dashboardViewed,
       },
+      {
+        label: 'Read the query guide',
+        href: '/guide/analytics',
+        event: HOME_EVENTS.analyticsGuideOpened,
+      },
     ],
   },
 ]

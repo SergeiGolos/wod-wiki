@@ -190,8 +190,8 @@ function deriveWorkout(
     '/feeds': 'Feeds',
     '/guide/syntax': 'Syntax',
     '/guide/behaviors': 'Behaviors',
+    '/guide/analytics': 'Analytics Guide',
     '/collections': 'Collections',
-    '/analytics/explorer': 'Metric Explorer',
     '/analytics/dashboard': 'Analytics Dashboard',
   }
   const namedMatch = named[pathname]

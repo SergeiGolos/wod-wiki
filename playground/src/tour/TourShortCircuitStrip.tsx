@@ -30,7 +30,7 @@ export function TourShortCircuitStrip() {
     >
       <span className="text-muted-foreground">Know where you&apos;re going?</span>
       <Link
-        to="/collections"
+        to="/library"
         onClick={handleLibrary}
         className="font-medium text-primary hover:underline"
       >
