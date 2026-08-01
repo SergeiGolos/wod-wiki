@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { queryService, type QueryResult } from '@/services/analytics/query';
-import { ensureRollupFacts } from '@/services/analytics/rollup';
+import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 
 const DAY = 86_400_000;
 const WEEK = 7 * DAY;
@@ -34,7 +34,7 @@ export function useAnalyticsQueries(
       // strain windows on every open, but block only queries that consume
       // rollup facts — other widgets never wait on the recompute, and a
       // driver failure never blocks the widgets (facts are disposable).
-      const rollupReady = ensureRollupFacts().catch(() => undefined);
+      const rollupReady = ensureStoreRollupFacts().catch(() => undefined);
       const consumesRollups = queries.some((q) => q.query.includes('calc.'));
       try {
         if (consumesRollups) await rollupReady;

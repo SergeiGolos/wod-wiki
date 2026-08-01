@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Play } from 'lucide-react';
 import { parseQuery, isFindQuery, queryService, type QueryResult, type FindQueryResult } from '@/services/analytics/query';
-import { ensureRollupFacts } from '@/services/analytics/rollup';
+import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 import {
   QueryValue,
   useChartShape,
@@ -89,7 +89,7 @@ export function AnalyticsExplorerPage() {
   // Lazy rollup driver (CONTEXT.md 'Rollup Fact'): analytics-surface open
   // recomputes missing/stale ACWR/monotony/strain windows; no scheduler.
   useEffect(() => {
-    void ensureRollupFacts().catch(() => undefined);
+    void ensureStoreRollupFacts().catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -116,7 +116,7 @@ export function AnalyticsExplorerPage() {
       setFindResult(undefined);
       const now = Date.now();
       const rangeStart = now - activeWeeks * 7 * DAY;
-      const rollupReady = ensureRollupFacts().catch(() => undefined);
+      const rollupReady = ensureStoreRollupFacts().catch(() => undefined);
       (submitted.includes('calc.') ? rollupReady : Promise.resolve())
         .then(() => queryService.runQuery(submitted, { rangeStart, rangeEnd: now, preferredUnit }))
         .then((r) => { if (!cancelled) setResult(r); })

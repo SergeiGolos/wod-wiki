@@ -1,14 +1,15 @@
 /**
- * rollupDriver unit tests — in-memory RollupStore recording writes/deletes.
- * Defends the driver contract (issue #736): grain:'rollup' rows with
- * deterministic ids, idempotent re-runs (missing/stale windows only), and
- * stale-row deletion when windows stop producing values.
+ * storeRollup unit tests — store-scope composed calcs (#877) replacing the
+ * lazy rollupDriver. Same fixtures and contract as the legacy driver tests
+ * (grain:'rollup' rows, deterministic ids, idempotent re-runs, stale-row
+ * deletion), plus an explicit bit-exact parity proof against the
+ * workloadRollup.ts reference math (acceptance: 100% parity).
  */
 import { describe, expect, it } from 'bun:test';
 
 import type { AnalyticsDataPoint } from '@/types/storage';
-import { runRollupDriver, rollupFactId, type RollupStore } from './rollupDriver';
-import { DAY } from './workloadRollup';
+import { runStoreRollup, rollupFactId, type StoreRollupStore } from './storeRollup';
+import { computeWorkloadRollups, dailySessionLoads, dayBucket, DAY } from './workloadRollup';
 
 function sessionLoadFact(id: string, day: number, value: number): AnalyticsDataPoint {
   return {
@@ -23,12 +24,12 @@ function sessionLoadFact(id: string, day: number, value: number): AnalyticsDataP
     value,
     unit: 'AU',
     label: 'Session Load',
-    timestamp: day * DAY + 12 * 3_600_000, // midday inside the UTC bucket
+    timestamp: day * DAY + 12 * 3_600_000, // midday inside the day bucket
     createdAt: day * DAY,
   };
 }
 
-interface FakeStore extends RollupStore {
+interface FakeStore extends StoreRollupStore {
   rows: Map<string, AnalyticsDataPoint>;
   writeCalls: AnalyticsDataPoint[][];
   deleteCalls: string[][];
@@ -58,10 +59,10 @@ function makeStore(seed: AnalyticsDataPoint[] = []): FakeStore {
 const NOW = 6 * DAY + 12 * 3_600_000;
 const WEEK = [sessionLoadFact('a', 0, 100), sessionLoadFact('b', 2, 200), sessionLoadFact('c', 4, 300), sessionLoadFact('d', 6, 100)];
 
-describe('runRollupDriver', () => {
+describe('runStoreRollup', () => {
   it('writes grain:rollup rows with deterministic ids and hand-computed values', async () => {
     const store = makeStore(WEEK);
-    const summary = await runRollupDriver(store, { now: NOW });
+    const summary = await runStoreRollup(store, { now: NOW });
 
     expect(summary.days).toBe(7);
     expect(summary.facts).toBe(21); // 7 days × 3 metrics
@@ -81,17 +82,36 @@ describe('runRollupDriver', () => {
     expect(store.rows.get(rollupFactId('calc.strain', 6))!.unit).toBe('AU');
   });
 
+  it('matches the workloadRollup reference math bit-for-bit (parity proof, #864)', async () => {
+    const store = makeStore([sessionLoadFact('old', -10, 400), ...WEEK]);
+    await runStoreRollup(store, { now: NOW });
+
+    const sessionFacts = [sessionLoadFact('old', -10, 400), ...WEEK];
+    const reference = computeWorkloadRollups(dailySessionLoads(sessionFacts), dayBucket(NOW));
+    for (const rollup of reference) {
+      if (rollup.acwr !== undefined) {
+        expect(store.rows.get(rollupFactId('calc.acwr', rollup.day))!.value).toBe(rollup.acwr);
+      }
+      if (rollup.monotony !== undefined) {
+        expect(store.rows.get(rollupFactId('calc.monotony', rollup.day))!.value).toBe(rollup.monotony);
+      }
+      if (rollup.strain !== undefined) {
+        expect(store.rows.get(rollupFactId('calc.strain', rollup.day))!.value).toBe(rollup.strain);
+      }
+    }
+  });
+
   it('is idempotent: an unchanged re-run writes and deletes nothing, createdAt survives', async () => {
     const store = makeStore(WEEK);
-    await runRollupDriver(store, { now: NOW });
+    await runStoreRollup(store, { now: NOW });
     const before = new Map([...store.rows.entries()].map(([id, r]) => [id, r.createdAt]));
 
-    const second = await runRollupDriver(store, { now: NOW + 3_600_000 }); // same UTC day
+    const second = await runStoreRollup(store, { now: NOW + 3_600_000 }); // same day
     expect(second.written).toBe(0);
     expect(second.deleted).toBe(0);
     expect(store.writeCalls).toHaveLength(1);
     for (const [id, createdAt] of before) {
-      expect(store.rows.get(id)!.createdAt).toBe(createdAt);
+      expect(store.rows.get(id)?.createdAt).toBe(createdAt);
     }
   });
 
@@ -100,11 +120,11 @@ describe('runRollupDriver', () => {
     // all loads inside one week, sum7 == sum28 and ACWR would be 4 for every
     // day regardless of changes.
     const store = makeStore([sessionLoadFact('old', -10, 400), ...WEEK]);
-    await runRollupDriver(store, { now: NOW });
+    await runStoreRollup(store, { now: NOW });
 
     // +50 AU on day 3: only days 3..6 have day 3 inside their 28-day lookback.
     store.rows.set('fact-e', sessionLoadFact('e', 3, 50));
-    const rerun = await runRollupDriver(store, { now: NOW });
+    const rerun = await runStoreRollup(store, { now: NOW });
 
     expect(rerun.written).toBe(12); // 4 stale days × 3 metrics
     expect(rerun.deleted).toBe(0);
@@ -127,22 +147,22 @@ describe('runRollupDriver', () => {
 
   it('deletes rollup rows when their windows stop producing values', async () => {
     const store = makeStore(WEEK);
-    await runRollupDriver(store, { now: NOW });
+    await runStoreRollup(store, { now: NOW });
 
     for (const id of ['fact-a', 'fact-b', 'fact-c', 'fact-d']) store.rows.delete(id);
-    const rerun = await runRollupDriver(store, { now: NOW });
+    const rerun = await runStoreRollup(store, { now: NOW });
 
     expect(rerun.written).toBe(0);
     expect(rerun.deleted).toBe(21);
-    expect([...store.rows.values()].filter((r) => r.grain === 'rollup')).toHaveLength(0);
+    expect([...store.rows.keys()].filter((id) => id.startsWith('rollup:'))).toHaveLength(0);
   });
 
   it('advances windows when "now" moves to a later day', async () => {
     const store = makeStore(WEEK);
-    await runRollupDriver(store, { now: NOW });
+    await runStoreRollup(store, { now: NOW });
 
     // A week later: days 7..13 enter (chronic still fed by the training week).
-    const rerun = await runRollupDriver(store, { now: NOW + 7 * DAY });
+    const rerun = await runStoreRollup(store, { now: NOW + 7 * DAY });
     expect(rerun.written).toBeGreaterThan(0);
     expect(rerun.deleted).toBe(0);
     const day13 = store.rows.get(rollupFactId('calc.acwr', 13))!;
@@ -151,10 +171,10 @@ describe('runRollupDriver', () => {
   });
 
   it('ignores non-numeric and rollup-grain rows on the sessionLoad leg', async () => {
-    const bogus = { ...sessionLoadFact('x', 1, 999), value: 'high' };
-    const strayRollup = { ...sessionLoadFact('y', 1, 999), grain: 'rollup' as const };
+    const bogus: AnalyticsDataPoint = { ...sessionLoadFact('x', 1, 999), value: 'high' };
+    const strayRollup: AnalyticsDataPoint = { ...sessionLoadFact('y', 1, 999), grain: 'rollup' };
     const store = makeStore([sessionLoadFact('a', 0, 100), bogus, strayRollup]);
-    const summary = await runRollupDriver(store, { now: NOW });
+    const summary = await runStoreRollup(store, { now: NOW });
     // Only the one honest 100 AU day feeds the windows.
     expect(summary.days).toBe(7);
     expect(store.rows.get(rollupFactId('calc.acwr', 6))!.value).toBeCloseTo(4, 10);

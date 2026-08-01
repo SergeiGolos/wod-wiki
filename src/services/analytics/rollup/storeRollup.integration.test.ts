@@ -1,5 +1,5 @@
 /**
- * Rollup driver integration test — real IndexedDB stack (fake-indexeddb
+ * storeRollup integration test — real IndexedDB stack (fake-indexeddb
  * backing), same '?real' module-key seam as queryService.integration.test.ts.
  *
  * Defends the end-to-end contract (issue #736 acceptance): after a driver
@@ -19,9 +19,9 @@ import {
   dailySessionLoads,
   dayBucket,
   DAY,
-  runRollupDriver,
+  runStoreRollup,
   rollupFactId,
-  type RollupStore,
+  type StoreRollupStore,
 } from '@/services/analytics/rollup';
 
 // @ts-expect-error — bun-only '?real' specifier: bypasses the shared
@@ -53,7 +53,7 @@ function sessionLoadFact(id: string, day: number, value: number): AnalyticsDataP
   };
 }
 
-const rollupStore: RollupStore = {
+const rollupStore: StoreRollupStore = {
   getFactsByMetric: (metricKey) => service.getFactsByMetric(metricKey),
   saveAnalyticsPoints: (points) => service.saveAnalyticsPoints(points),
   deleteAnalyticsPoints: (ids) => service.deleteAnalyticsPoints(ids),
@@ -65,7 +65,7 @@ const queryStore: FactQueryStore = {
   getNoteTagLabels: async (id) => (await service.getTagsForNote(id)).map((tag) => tag.label),
 };
 
-describe('rollup driver over the real V12 fact store', () => {
+describe('store rollup over the real V12 fact store', () => {
   it('persists grain:rollup facts served by the Query Service, idempotent on re-open', async () => {
     // One training week + an older chronic-only day, near the sibling files'
     // fixture range (their facts fold into the dynamic expectations below).
@@ -80,13 +80,13 @@ describe('rollup driver over the real V12 fact store', () => {
     const now = Date.now();
     const throughDay = dayBucket(now);
 
-    const first = await runRollupDriver(rollupStore, { now });
+    const first = await runStoreRollup(rollupStore, { now });
     expect(first.written).toBe(first.facts);
     expect(first.facts).toBeGreaterThan(0);
     expect(first.deleted).toBe(0);
 
     // Re-open: nothing missing or stale → no writes, no deletes.
-    const second = await runRollupDriver(rollupStore, { now: now + 3_600_000 });
+    const second = await runStoreRollup(rollupStore, { now: now + 3_600_000 });
     expect(second.written).toBe(0);
     expect(second.deleted).toBe(0);
 
