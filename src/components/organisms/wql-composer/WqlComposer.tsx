@@ -35,7 +35,9 @@ import {
   getClauseMeta,
   defaultClauses,
   pivotClauses,
+  wqlToClauses,
 } from './queryClauses'
+import { parseQuery } from '@/services/analytics/query/wql'
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
@@ -186,6 +188,32 @@ export function WqlComposer({
     }
   }
 
+  // Live preview of what Enter will do with the box's pending text (#854):
+  // a valid, composer-restorable WQL query is adopted wholesale; a single
+  // word becomes a text chip; anything else (multi-word text — quoting is
+  // not in the grammar yet — or pure punctuation) is an honest inline
+  // error instead of a silent discard.
+  const pending = useMemo((): { kind: 'query'; clauses: QueryClause[] } | { kind: 'text'; value: string } | { kind: 'invalid'; reason: string } | null => {
+    const raw = freeText.trim()
+    if (!raw) return null
+    const restored = wqlToClauses(raw)
+    if (restored) {
+      const parsed = parseQuery(raw)
+      if (!('error' in parsed && parsed.error)) return { kind: 'query', clauses: restored }
+      // Composer-shaped but WQL-invalid (e.g. an empty metric): show the
+      // parser's own message rather than a generic one.
+      return { kind: 'invalid', reason: String(parsed.error) }
+    }
+    const words = raw.match(/[a-zA-Z0-9_-]+/g)
+    if (!words || words.length === 0) {
+      return { kind: 'invalid', reason: 'No searchable text — use words, or a full WQL query like find:note{tags:strength}' }
+    }
+    if (words.length > 1) {
+      return { kind: 'invalid', reason: 'Multi-word text is not supported yet — use one word, or a full WQL query' }
+    }
+    return { kind: 'text', value: words[0]! }
+  }, [freeText])
+
   const addClause = (type: string) => {
     const seed =
       type === 'time' ? 'last 2w'
@@ -204,8 +232,14 @@ export function WqlComposer({
       // Handled here — don't let an embedding list (palette) also treat this
       // as "activate the active result".
       e.stopPropagation()
-      setClauses([...clauses, makeClause('text', freeText.trim())])
-      setFreeText('')
+      if (pending?.kind === 'query') {
+        setClauses(pending.clauses)
+        setFreeText('')
+      } else if (pending?.kind === 'text') {
+        setClauses([...clauses, makeClause('text', pending.value)])
+        setFreeText('')
+      }
+      // 'invalid': keep the text; the inline hint already says why.
       return
     }
     // Enter with no pending free text submits the composed query.
@@ -259,6 +293,21 @@ export function WqlComposer({
 
         {customSlots}
       </div>
+
+      {pending && (
+        <div
+          className={cn(
+            'px-1.5 text-[11px] font-mono',
+            pending.kind === 'invalid' ? 'text-red-500' : 'text-muted-foreground',
+          )}
+          data-testid="wql-composer-pending"
+          role={pending.kind === 'invalid' ? 'alert' : undefined}
+        >
+          {pending.kind === 'query' && '↵ Use as query'}
+          {pending.kind === 'text' && `↵ Search text: ${pending.value}`}
+          {pending.kind === 'invalid' && pending.reason}
+        </div>
+      )}
 
       {showDiagnostics && (
         <WqlDiagnosticsStrip

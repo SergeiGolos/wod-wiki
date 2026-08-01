@@ -36,6 +36,110 @@ const metricsClauses = (): QueryClause[] => [
   { id: 'c-metric', type: 'metric', label: 'Metric', value: 'totalVolume', inputType: 'select', placeholder: 'totalVolume, reps…' },
 ];
 
+describe('WqlComposer pending-text preview (#854)', () => {
+  it('previews a single word as a text chip and commits it on Enter', () => {
+    render(<WqlComposer />)
+    const input = screen.getByTestId('wql-composer-input')
+    fireEvent.change(input, { target: { value: 'squat' } })
+
+    expect(screen.getByTestId('wql-composer-pending').textContent).toContain('Search text: squat')
+
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(screen.getByTestId('token-slot-text').textContent).toContain('squat')
+    expect((input as HTMLInputElement).value).toBe('')
+    expect(screen.queryByTestId('wql-composer-pending')).toBeNull()
+  })
+
+  it('previews a valid WQL query and adopts it wholesale on Enter', () => {
+    render(<WqlComposer />)
+    const input = screen.getByTestId('wql-composer-input')
+    fireEvent.change(input, { target: { value: 'find:note{tags:strength} in all' } })
+
+    expect(screen.getByTestId('wql-composer-pending').textContent).toContain('Use as query')
+
+    fireEvent.keyDown(input, { key: 'Enter' })
+    // Clauses replaced, not a text chip appended.
+    expect(screen.getByTestId('token-slot-tag').textContent).toContain('strength')
+    expect(screen.queryByTestId('token-slot-text')).toBeNull()
+    expect((input as HTMLInputElement).value).toBe('')
+  })
+
+  it('flags garbage inline and refuses to commit it', () => {
+    render(<WqlComposer />)
+    const input = screen.getByTestId('wql-composer-input')
+    fireEvent.change(input, { target: { value: ')))' } })
+
+    const hint = screen.getByTestId('wql-composer-pending')
+    expect(hint.getAttribute('role')).toBe('alert')
+    expect(hint.textContent).toContain('No searchable text')
+
+    fireEvent.keyDown(input, { key: 'Enter' })
+    // No chip, text kept — nothing silently discarded.
+    expect(screen.queryByTestId('token-slot-text')).toBeNull()
+    expect((input as HTMLInputElement).value).toBe(')))')
+  })
+
+  it('flags multi-word text honestly instead of emitting invalid WQL', () => {
+    render(<WqlComposer />)
+    const input = screen.getByTestId('wql-composer-input')
+    fireEvent.change(input, { target: { value: 'hello world' } })
+
+    expect(screen.getByTestId('wql-composer-pending').textContent).toContain('Multi-word text')
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(screen.queryByTestId('token-slot-text')).toBeNull()
+  })
+
+  it("surfaces the parser's own message for composer-shaped but invalid WQL", () => {
+    render(<WqlComposer />)
+    const input = screen.getByTestId('wql-composer-input')
+    // Salvage-restorable (composer shape) but grammar-invalid (space in filter).
+    fireEvent.change(input, { target: { value: 'find:note{text:hello world} in all' } })
+
+    const hint = screen.getByTestId('wql-composer-pending')
+    expect(hint.getAttribute('role')).toBe('alert')
+    expect(hint.textContent).not.toContain('Multi-word text')
+  })
+
+  it('auto-removes an unfilled placeholder chip when its popover is dismissed', () => {
+    render(<WqlComposer initialClauses={emptyTagClause()} />)
+    const pill = screen.getByTestId('token-slot-tag')
+    fireEvent.click(pill)
+    expect(screen.getByTestId('clause-popover-tag')).toBeDefined()
+
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Escape' })
+    expect(screen.queryByTestId('token-slot-tag')).toBeNull()
+  })
+
+  it('keeps a filled chip when its popover is dismissed', () => {
+    const filled = emptyTagClause().map(c => (c.type === 'tag' ? { ...c, value: 'strength' } : c))
+    render(<WqlComposer initialClauses={filled} />)
+    const pill = screen.getByTestId('token-slot-tag')
+    fireEvent.click(pill)
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Escape' })
+    expect(screen.getByTestId('token-slot-tag')).toBeDefined()
+  })
+
+  it('offers a visible commit row for typed free text in an open slot popover', () => {
+    const onClausesChange = mock((_c: QueryClause[]) => {})
+    const clauses: QueryClause[] = [
+      ...defaultClauses(),
+      { id: 'c-text', type: 'text', label: 'Contains', value: '', inputType: 'freetext', placeholder: 'Search text...' },
+    ]
+    render(<WqlComposer clauses={clauses} onClausesChange={onClausesChange} />)
+    fireEvent.click(screen.getByTestId('token-slot-text'))
+
+    // Typing in the popover filter offers a committable row, not a dead-end.
+    const filterInput = screen.getByTestId('clause-popover-text').querySelector('input')!
+    fireEvent.change(filterInput, { target: { value: 'squat' } })
+    const commitRow = screen.getByTestId('clause-commit-typed-text')
+    expect(commitRow.textContent).toContain('squat')
+
+    fireEvent.click(commitRow)
+    const lastCall = onClausesChange.mock.calls[onClausesChange.mock.calls.length - 1]![0] as QueryClause[]
+    expect(lastCall.find(c => c.type === 'text')?.value).toBe('squat')
+  })
+});
+
 describe('WqlComposer', () => {
   it('renders token pills and shows placeholder guidance for empty clauses', () => {
     render(<WqlComposer initialClauses={emptyTagClause()} />);

@@ -30,10 +30,24 @@ import {
   wqlToClauses,
   type QueryClause,
 } from '@/components/organisms/wql-composer'
+import { parseQuery } from '@/services/analytics/query/wql'
 
 export interface LibraryQueryState {
   clauses: QueryClause[]
   setClauses: (next: QueryClause[]) => void
+  /** Set when the URL's `q` could not be restored into composer clauses —
+   *  the query was rejected and the default took its place (#854). Cleared
+   *  on the next clause edit or restorable `q`. */
+  urlQueryError: string | null
+}
+
+/** Rejection message for an unrestorable `q`, with the parser's own detail. */
+function urlQueryErrorFor(q: string): string | null {
+  if (!q) return null
+  if (wqlToClauses(q)) return null
+  const parsed = parseQuery(q)
+  const detail = 'error' in parsed && parsed.error ? String(parsed.error) : 'not a find query'
+  return `Couldn't parse "${q}" — ${detail}`
 }
 
 /** Library landing state: everything, past two weeks (the old panel default). */
@@ -82,6 +96,7 @@ export function useLibraryQueryState(): LibraryQueryState {
       ? wqlToClauses(q) ?? defaultLibraryClauses()
       : legacyParamsToClauses(searchParams) ?? defaultLibraryClauses(),
   )
+  const [urlQueryError, setUrlQueryError] = useState<string | null>(() => urlQueryErrorFor(q))
   const clausesRef = useRef(clauses)
   clausesRef.current = clauses
   const searchParamsRef = useRef(searchParams)
@@ -109,6 +124,7 @@ export function useLibraryQueryState(): LibraryQueryState {
   useEffect(() => {
     if (q === prevQRef.current) return
     prevQRef.current = q
+    setUrlQueryError(urlQueryErrorFor(q))
     const restored = q ? wqlToClauses(q) ?? defaultLibraryClauses() : defaultLibraryClauses()
     setClausesState(current =>
       clausesToWql(current) === clausesToWql(restored) ? current : restored,
@@ -125,10 +141,11 @@ export function useLibraryQueryState(): LibraryQueryState {
         params.set('q', wql)
         setSearchParams(params)
       }
+      setUrlQueryError(null)
       setClausesState(next)
     },
     [setSearchParams],
   )
 
-  return { clauses, setClauses }
+  return { clauses, setClauses, urlQueryError }
 }

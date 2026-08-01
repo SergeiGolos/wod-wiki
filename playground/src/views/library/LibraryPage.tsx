@@ -50,7 +50,7 @@ const HEADING_BY_SOURCE: Record<string, { title: string; description: string }> 
 const DEFAULT_HEADING = HEADING_BY_SOURCE.notes!
 
 export function LibraryPage() {
-  const { clauses, setClauses } = useLibraryQueryState()
+  const { clauses, setClauses, urlQueryError } = useLibraryQueryState()
   const [entries, setEntries] = useState<Entry[]>([])
   const [shelfOpen, setShelfOpen] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -78,7 +78,10 @@ export function LibraryPage() {
 
   const wql = useMemo(() => clausesToWql(clauses), [clauses])
   const parsed = useMemo(() => parseQuery(wql), [wql])
-  const queryError = !isFindQuery(parsed) || parsed.error ? (parsed.error ?? 'Not a find query') : null
+  // URL rejections (#854: `?q=` that couldn't restore) take precedence — the
+  // composed query is the default fallback and has nothing to flag.
+  const composedError = !isFindQuery(parsed) || parsed.error ? (parsed.error ?? 'Not a find query') : null
+  const queryError = urlQueryError ?? composedError
 
   // Live stage counts (matched/selected or aggregate telemetry) in the
   // composer's diagnostics strip — dispatch on query kind. Find runs use the
@@ -90,9 +93,10 @@ export function LibraryPage() {
   )
 
   useEffect(() => {
-    // Invalid WQL: surface the error banner and keep the last valid entries
-    // rather than silently clearing the list.
-    if (queryError || !isFindQuery(parsed)) return
+    // Invalid composed WQL: surface the error banner and keep the last valid
+    // entries rather than silently clearing the list. A URL rejection
+    // (urlQueryError) still runs — the fallback default query is valid.
+    if (composedError || !isFindQuery(parsed)) return
     let cancelled = false
     setLoading(true)
 
@@ -110,7 +114,7 @@ export function LibraryPage() {
     return () => {
       cancelled = true
     }
-  }, [wql, queryError, parsed])
+  }, [wql, composedError, parsed])
 
   const dated = useMemo(
     () => entries.filter(e => e.kind !== 'session').sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
@@ -188,7 +192,9 @@ export function LibraryPage() {
         >
           <TriangleAlertIcon className="size-3.5 mt-0.5 text-red-500 flex-shrink-0" />
           <div className="text-xs">
-            <span className="font-bold text-red-600">Invalid WQL — fix the highlighted clause.</span>{' '}
+            <span className="font-bold text-red-600">
+              {urlQueryError ? 'Invalid URL query — showing the default query instead.' : 'Invalid WQL — fix the highlighted clause.'}
+            </span>{' '}
             <code className="font-mono text-red-600/90">{queryError}</code>
           </div>
         </div>

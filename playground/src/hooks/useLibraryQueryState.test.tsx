@@ -131,4 +131,30 @@ describe('useLibraryQueryState', () => {
     await act(async () => {})
     expect(search()).toBe(searchBefore)
   })
+
+  it('flags an unrestorable q instead of silently resetting (#854)', async () => {
+    renderAt([`/library?q=${encodeURIComponent('find:note{tags:strength} )))garbage((( ')}`])
+    // Default clauses take over, but the rejection is surfaced…
+    expect(summary()).toBe('source=notes|time=last 2w')
+    expect(captured.urlQueryError).toContain('find:note{tags:strength}')
+
+    // …and cleared by the next clause edit.
+    act(() => captured.setClauses(withClause('tag', 'pr')))
+    await waitFor(() => expect(captured.urlQueryError).toBeNull())
+  })
+
+  it('flags a non-WQL q (plain word) with the parser detail', () => {
+    renderAt([`/library?q=squat`])
+    expect(summary()).toBe('source=notes|time=last 2w')
+    expect(captured.urlQueryError).toContain('squat')
+  })
+
+  it('clears urlQueryError when navigating to a restorable q', async () => {
+    renderAt([`/library?q=squat`])
+    expect(captured.urlQueryError).not.toBeNull()
+
+    act(() => captured.setClauses(withClause('tag', 'pr')))
+    await waitFor(() => expect(qParam()).toContain('tags:pr'))
+    expect(captured.urlQueryError).toBeNull()
+  })
 })

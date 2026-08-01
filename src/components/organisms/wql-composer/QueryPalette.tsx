@@ -148,7 +148,12 @@ export function TokenSlotPill({
         <CustomSlotPopover
           clause={clause}
           definition={customDef}
-          onClose={() => setOpen(false)}
+          onClose={() => {
+            setOpen(false)
+            // Chip hygiene (#854): a placeholder chip that was never filled
+            // auto-removes when its popover is dismissed.
+            if (!clause.value.trim() && !NON_REMOVABLE_TYPES.has(clause.type)) onRemove?.()
+          }}
           onChange={patch => {
             onChange(patch)
             setOpen(false)
@@ -157,7 +162,11 @@ export function TokenSlotPill({
       ) : (
         <ClausePopover
           clause={clause}
-          onClose={() => setOpen(false)}
+          onClose={() => {
+            setOpen(false)
+            // Chip hygiene (#854): as above.
+            if (!clause.value.trim() && !NON_REMOVABLE_TYPES.has(clause.type)) onRemove?.()
+          }}
           onChange={patch => {
             onChange(patch)
             setOpen(false)
@@ -253,6 +262,16 @@ export function ClausePopover({
     ? items.filter(item => item.value.toLowerCase().includes(val.toLowerCase()) || item.label.toLowerCase().includes(val.toLowerCase()))
     : items
 
+  // Visible commit affordance for typed free text (#854): open slots accept
+  // verbatim values, but that used to be keyboard-tribal-knowledge behind a
+  // "Nothing here yet" dead-end. Exact matches don't need a duplicate row.
+  const typedValue = val.trim()
+  const canCommitTyped =
+    showFilterInput &&
+    typedValue.length > 0 &&
+    (binding?.open ?? true) &&
+    !filteredItems.some(item => item.value.toLowerCase() === typedValue.toLowerCase())
+
   // Handled keys stop at the popover so an embedding container (the
   // palette's result list, issue #834) doesn't also navigate/select.
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -313,6 +332,20 @@ export function ClausePopover({
           )}
 
           <div className="max-h-48 overflow-y-auto space-y-0.5">
+            {canCommitTyped && (
+              <button
+                type="button"
+                onClick={() => onChange({ value: typedValue })}
+                className="flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-md text-left transition-colors hover:bg-muted text-foreground"
+                data-testid={`clause-commit-typed-${clause.type}`}
+              >
+                <span className="truncate">
+                  Search for <span className="font-semibold">&ldquo;{typedValue}&rdquo;</span>
+                </span>
+                <span className="text-muted-foreground/60 ml-1 shrink-0">↵</span>
+              </button>
+            )}
+
             {filteredItems.map((item, idx) => (
               <button
                 key={item.value}
@@ -328,7 +361,7 @@ export function ClausePopover({
               </button>
             ))}
 
-            {filteredItems.length === 0 && (
+            {filteredItems.length === 0 && !canCommitTyped && (
               <div
                 className="px-2.5 py-2 text-[11px] italic text-muted-foreground"
                 data-testid={`clause-empty-${clause.type}`}

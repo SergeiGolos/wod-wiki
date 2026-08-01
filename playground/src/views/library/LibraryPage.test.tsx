@@ -144,6 +144,28 @@ describe('LibraryPage', () => {
     await waitFor(() => expect(screen.getByTestId('token-slot-source').textContent).toContain('notes'))
   })
 
+  it('banners a rejected URL query instead of silently resetting (#854)', async () => {
+    runFindImpl = async parsed => {
+      const result = emptyResult(parsed.raw ?? '')
+      result.notes = [FEED_NOTE]
+      return result
+    }
+    renderPage(`/library?q=${encodeURIComponent('find:note )))garbage((( ')}`)
+
+    await waitFor(() => expect(screen.getByTestId('library-query-error')).toBeDefined())
+    expect(screen.getByTestId('library-query-error').textContent).toContain('Invalid URL query')
+    // The default fallback query still runs — entries under the banner.
+    await waitFor(() => expect(screen.queryByText('StrongLifts 5×5')).not.toBeNull())
+  })
+
+  it('banners a plain-word q with the parser detail (#854)', async () => {
+    runFindImpl = async parsed => emptyResult(parsed.raw ?? '')
+    renderPage(`/library?q=squat`)
+
+    await waitFor(() => expect(screen.getByTestId('library-query-error')).toBeDefined())
+    expect(screen.getByTestId('library-query-error').textContent).toContain('squat')
+  })
+
   it('hides the static catalog shelf when the source excludes collections', async () => {
     runFindImpl = async parsed => emptyResult(parsed.raw ?? '')
     const { unmount } = renderPage(`/library?q=${encodeURIComponent('find:note in journal last 1w')}`)
