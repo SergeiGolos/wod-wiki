@@ -9,7 +9,7 @@
  *   4. The static catalog shelf renders for scope all/collections only.
  */
 import { afterEach, describe, expect, it, mock } from 'bun:test'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { parseQuery } from '@/services/analytics/query/wql'
 import type { FindQueryResult } from '@/services/analytics/query/QueryService'
@@ -110,6 +110,38 @@ describe('LibraryPage', () => {
     expect(screen.getByTestId('token-slot-text').textContent).toContain('hello world')
     // No silent empty-state either.
     expect(screen.queryByText('No entries match this query.')).toBeNull()
+  })
+
+  it('offers one-click fixes in the empty state (#857) and applies them', async () => {
+    runFindImpl = async parsed => emptyResult(parsed.raw ?? '')
+
+    // Default landing (source notes + last 2w): only the window remedy.
+    const first = renderPage('/library')
+    await waitFor(() => expect(screen.getByTestId('library-empty-state')).toBeDefined())
+    expect(screen.getByTestId('empty-remedy-remove-window').textContent).toContain('last 2w')
+    expect(screen.queryByTestId('empty-remedy-clear-filters')).toBeNull()
+    expect(screen.queryByTestId('empty-remedy-all-sources')).toBeNull()
+
+    // Applying it removes the time clause from the composer.
+    fireEvent.click(screen.getByTestId('empty-remedy-remove-window'))
+    await waitFor(() => expect(screen.queryByTestId('token-slot-time')).toBeNull())
+    first.unmount()
+
+    // Tag filter + window: both remedies; clearing filters keeps the window.
+    renderPage(`/library?q=${encodeURIComponent('find:note{tags:strength} in all last 2w')}`)
+    await waitFor(() => expect(screen.getByTestId('empty-remedy-clear-filters')).toBeDefined())
+    fireEvent.click(screen.getByTestId('empty-remedy-clear-filters'))
+    await waitFor(() => expect(screen.queryByTestId('token-slot-tag')).toBeNull())
+    expect(screen.getByTestId('token-slot-time')).toBeDefined()
+  })
+
+  it('offers "Search all sources" when a narrowed source matches nothing (#857)', async () => {
+    runFindImpl = async parsed => emptyResult(parsed.raw ?? '')
+    renderPage(`/library?q=${encodeURIComponent('find:note in journal')}`)
+
+    await waitFor(() => expect(screen.getByTestId('empty-remedy-all-sources')).toBeDefined())
+    fireEvent.click(screen.getByTestId('empty-remedy-all-sources'))
+    await waitFor(() => expect(screen.getByTestId('token-slot-source').textContent).toContain('notes'))
   })
 
   it('hides the static catalog shelf when the source excludes collections', async () => {

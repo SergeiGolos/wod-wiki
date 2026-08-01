@@ -73,13 +73,35 @@ function effectiveTimeWindow(
   createdAt: number,
   last: { size: number; unit: 'd' | 'w' } | undefined,
   range: { start: number; end: number } | undefined,
+  anchorNow?: number,
 ): boolean {
   if (range) return createdAt >= range.start && createdAt <= range.end;
   if (last) {
-    const cutoff = Date.now() - last.size * (last.unit === 'w' ? 7 : 1) * DAY;
+    const cutoff = (anchorNow ?? Date.now()) - last.size * (last.unit === 'w' ? 7 : 1) * DAY;
     return createdAt >= cutoff;
   }
   return true;
+}
+
+/** Newest `createdAt` in a scope-selected set — the `'latest-activity'`
+ *  window anchor (#857). Undated rows (0) never win; an all-undated set
+ *  anchors at 0, which lets every row pass (no dated activity to window
+ *  against). Computed over the scope selection, before filters: the anchor
+ *  is the index's latest activity, not the filtered subset's. */
+function latestActivity(rows: ReadonlyArray<{ createdAt: number }>): number {
+  let max = 0;
+  for (const row of rows) if (row.createdAt > max) max = row.createdAt;
+  return max;
+}
+
+/** Resolve the window anchor timestamp for a find run, per FindOptions. */
+function windowAnchor<T extends { createdAt: number }>(
+  selected: T[],
+  parsed: ParsedFindQuery,
+  options: FindOptions,
+): number | undefined {
+  if (options.anchor !== 'latest-activity' || !parsed.last || options.range) return undefined;
+  return latestActivity(selected);
 }
 
 /** Store surface the Query Service needs — injectable for tests. */
@@ -209,6 +231,11 @@ export interface FindOptions {
    *  (which is preserved in the parsed shape for round-trippability but is not the
    *  truth source for execution when `range` is set). */
   range?: { start: number; end: number };
+  /** Anchor for `last <n>d|w` windows: wall-clock now (default) or the newest
+   *  `createdAt` in the scope-selected set (`'latest-activity'`) — keeps windows
+   *  meaningful on snapshot/static corpora whose newest entry is months old
+   *  (#857). Ignored when `range` is set (range wins, same precedence rule). */
+  anchor?: 'now' | 'latest-activity';
 }
 
 export interface QueryResult {
@@ -367,6 +394,7 @@ export class QueryService {
       notes = notes.concat(sNotes);
     }
     const selectedCount = notes.length;
+    const anchorNow = windowAnchor(notes, parsed, options);
     notes = applySourceFilter(notes, parsed.filters);
 
     // Tag filters — intersect note IDs across OR'd values within a key.
@@ -420,7 +448,7 @@ export class QueryService {
     }
     // Time window — the `range` parameter overrides the WQL's `last` clause.
     if (parsed.last || options.range) {
-      notes = notes.filter(n => effectiveTimeWindow(n.createdAt, parsed.last, options.range));
+      notes = notes.filter(n => effectiveTimeWindow(n.createdAt, parsed.last, options.range, anchorNow));
     }
 
     // Cross-store join (direction 1): keep notes owning a wod block whose
@@ -450,6 +478,7 @@ export class QueryService {
       blocks = blocks.concat(sBlocks);
     }
     const selectedCount = blocks.length;
+    const anchorNow = windowAnchor(blocks, parsed, options);
     blocks = applySourceFilter(blocks, parsed.filters);
 
     // Text filter — substring over rawContent (the block's markdown text).
@@ -496,7 +525,7 @@ export class QueryService {
 
     // Time window — the `range` parameter overrides the WQL's `last` clause.
     if (parsed.last || options.range) {
-      blocks = blocks.filter(b => effectiveTimeWindow(b.createdAt, parsed.last, options.range));
+      blocks = blocks.filter(b => effectiveTimeWindow(b.createdAt, parsed.last, options.range, anchorNow));
     }
 
     // Cross-store join (direction 1): keep wod blocks whose raw-log metric

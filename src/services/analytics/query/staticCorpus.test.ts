@@ -69,3 +69,22 @@ describe('static corpus — last <n>w window (#853)', () => {
     expect(unbounded.notes.some(n => n.sourceId?.startsWith('collection:'))).toBe(true);
   });
 });
+
+describe("static corpus — activity-anchored windows (#857)", () => {
+  const runAnchored = (wql: string) =>
+    service.runFind(parseQuery(wql) as ParsedFindQuery, { anchor: 'latest-activity' });
+
+  it('last 2w anchored to latest activity keeps the newest corpus entries', async () => {
+    const result = await runAnchored('find:note in all last 2w');
+    // Corpus max date is 2026-01-12 (Wednesday Hero); cutoff = 2025-12-29.
+    expect(result.notes.length).toBeGreaterThan(0);
+    expect(result.notes.map(n => n.id)).toContain(WEDNESDAY_HERO);
+    const cutoff = Date.parse('2026-01-12T00:00:00Z') - 14 * 86_400_000;
+    expect(result.notes.every(n => n.createdAt === 0 || n.createdAt >= cutoff)).toBe(true);
+  });
+
+  it('drops entries older than the anchored window (2025-12-15 is >2w before the max)', async () => {
+    const result = await runAnchored('find:note in all last 2w');
+    expect(result.notes.some(n => n.id.includes('2025-12-15'))).toBe(false);
+  });
+});

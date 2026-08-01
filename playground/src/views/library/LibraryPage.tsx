@@ -23,6 +23,7 @@ import { queryService } from '@/services/analytics/query'
 import { parseQuery, isFindQuery, type ParsedFindQuery } from '@/services/analytics/query/wql'
 import {
   WqlComposer,
+  clauseToWql,
   clauseValue,
   clausesToWql,
   type WqlExecutor,
@@ -80,9 +81,11 @@ export function LibraryPage() {
   const queryError = !isFindQuery(parsed) || parsed.error ? (parsed.error ?? 'Not a find query') : null
 
   // Live stage counts (matched/selected or aggregate telemetry) in the
-  // composer's diagnostics strip — dispatch on query kind.
+  // composer's diagnostics strip — dispatch on query kind. Find runs use the
+  // same activity-anchored window as searchEntries (#857) so the strip's
+  // counts agree with the rendered list.
   const execute = useCallback<WqlExecutor>(
-    ast => (isFindQuery(ast) ? queryService.runFind(ast) : queryService.runQuery(ast.raw)),
+    ast => (isFindQuery(ast) ? queryService.runFind(ast, { anchor: 'latest-activity' }) : queryService.runQuery(ast.raw)),
     [],
   )
 
@@ -114,6 +117,38 @@ export function LibraryPage() {
     [entries],
   )
   const sessions = useMemo(() => entries.filter(e => e.kind === 'session'), [entries])
+
+  // Teaching empty state (#857, proposal 9): one-click fixes derived from the
+  // active clauses, so a zero-result query never dead-ends.
+  const emptyStateRemedies = useMemo(() => {
+    const remedies: { id: string; label: string; apply: () => void }[] = []
+    const timeClause = clauses.find(c => c.type === 'time' && c.value.trim() && c.value.trim() !== 'all')
+    if (timeClause) {
+      remedies.push({
+        id: 'remove-window',
+        label: `Remove time window (${timeClause.value.trim()})`,
+        apply: () => setClauses(clauses.filter(c => c.id !== timeClause.id)),
+      })
+    }
+    const activeFilters = clauses.filter(c => clauseToWql(c).filterStr)
+    if (activeFilters.length > 0) {
+      const ids = new Set(activeFilters.map(c => c.id))
+      remedies.push({
+        id: 'clear-filters',
+        label: activeFilters.length === 1 ? 'Clear filter' : `Clear filters (${activeFilters.length})`,
+        apply: () => setClauses(clauses.filter(c => !ids.has(c.id))),
+      })
+    }
+    const sourceClause = clauses.find(c => c.type === 'source')
+    if (sourceClause && sourceClause.value.trim() && sourceClause.value.trim() !== 'notes') {
+      remedies.push({
+        id: 'all-sources',
+        label: 'Search all sources',
+        apply: () => setClauses(clauses.map(c => (c.id === sourceClause.id ? { ...c, value: 'notes' } : c))),
+      })
+    }
+    return remedies
+  }, [clauses, setClauses])
 
   const byDate = useMemo(() => {
     const map = new Map<string, Entry[]>()
@@ -164,8 +199,23 @@ export function LibraryPage() {
       )}
 
       {!loading && !queryError && entries.length === 0 && (
-        <div className="px-6 py-12 text-center text-muted-foreground/50 text-sm">
-          No entries match this query.
+        <div className="px-6 py-12 text-center text-sm" data-testid="library-empty-state">
+          <p className="text-muted-foreground/50">No entries match this query.</p>
+          {emptyStateRemedies.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              {emptyStateRemedies.map(remedy => (
+                <button
+                  key={remedy.id}
+                  type="button"
+                  onClick={remedy.apply}
+                  data-testid={`empty-remedy-${remedy.id}`}
+                  className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  {remedy.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
