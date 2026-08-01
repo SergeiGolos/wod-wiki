@@ -16,7 +16,7 @@
 
 import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult } from '@/types/storage';
 import { indexedDBService } from '@/services/db/IndexedDBService';
-import { loadStaticBlockIndex } from '@/services/content/staticBlockIndex';
+import { loadStaticBlockIndex, staticTagIndexFromBlocks } from '@/services/content/staticBlockIndex';
 import { parseQuery, isFindQuery, type Aggregator, type ComparisonOp, type ParsedQuery, type ParsedFindQuery, type FindPredicate, type MetricPredicate, type Series, type SeriesPoint, type TagFilter } from './wql';
 import { convert, resolveDisplayUnit } from '../units';
 import { normalizeSummaryFacts } from '../workoutDerivation';
@@ -166,9 +166,20 @@ function loadStaticNotes(): Promise<Note[]> {
     return staticNotesPromise;
 }
 
+let staticTagIndexPromise: Promise<Map<string, Set<string>>> | null = null;
+/** Memoized tag → noteIds index over the static corpus, derived lazily so
+ *  the ~21k-row scan only runs when a `tags:` clause actually executes. */
+function loadStaticTagIndex(): Promise<Map<string, Set<string>>> {
+    if (!staticTagIndexPromise) {
+        staticTagIndexPromise = loadStaticBlockIndex().then(staticTagIndexFromBlocks);
+    }
+    return staticTagIndexPromise;
+}
+
 const staticNoteStore: NoteQueryStore = {
     getAllNotes: () => loadStaticNotes(),
-    getNoteIdsForTag: async () => new Set(), // Tags not yet indexed for static corpus
+    getNoteIdsForTag: async (label) =>
+        (await loadStaticTagIndex()).get(label) ?? new Set<string>(),
 };
 
 const staticBlockStore: BlockQueryStore = {

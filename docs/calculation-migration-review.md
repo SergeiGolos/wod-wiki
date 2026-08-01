@@ -3,7 +3,7 @@
 Status: **draft for reaction** — feeds [#849 (migration plan)](https://github.com/SergeiGolos/wod-wiki/issues/849).
 Map: [#843](https://github.com/SergeiGolos/wod-wiki/issues/843) · Decisions applied: [#844 (expression language)](https://github.com/SergeiGolos/wod-wiki/issues/844), [#845 (lookup registry)](https://github.com/SergeiGolos/wod-wiki/issues/845), [#846 (scopes & streaming)](https://github.com/SergeiGolos/wod-wiki/issues/846).
 
-This document reviews every built-in analytics calculation as it exists in code today, then re-expresses it in the composed-calculation format. The proposed sections are **notation, not shipped syntax** — the point is to make the decisions concrete enough to attack.
+This document reviews every built-in analytics calculation as it exists in code today, then re-expresses it in the composed-calculation format — twice: a structured record form (§1–8) and a line-oriented authoring syntax proposed in §11 as a simpler alternative. Both are **notation, not shipped syntax** — the point is to make the decisions concrete enough to attack.
 
 ---
 
@@ -406,3 +406,95 @@ output:
 | 8 | Variant composition via library calcs keeps the variant matrix from exploding cartesianly | #849 | TIS |
 | 9 | Rounding moves to display, not stored values (today's pace stores pre-rounded numbers) | #849 | Pace |
 | 10 | Segment-scope pairing parity proof: `has(reps) and has(resistance)` on one segment vs. today's sequential scan | #849 | Volume |
+
+---
+
+## 11. Third option: line-oriented calc syntax
+
+The YAML record form above is faithful to the registry model but hard to *think* in: one-line formulas sprawl across 15 lines of ceremony, the expression sits far from its unit, and variants read as infrastructure instead of "same math, degraded provenance." This section proposes a **line-oriented authoring syntax** over the identical DAG semantics — same nodes, same variants, same scopes; only the surface changes. The record form stays as the canonical storage/interchange format; this is what humans read and write.
+
+### 11.1 The rules (complete)
+
+1. `name = expr -> unit` — one output calc, one node, declared output unit. `-> auto` = unit follows the source values (dimension-aware).
+2. `key X` — published Canonical Metric Key (workout/store scope). In segment scope its absence means: emit an annotation whose metric type is the calc's name.
+3. `when <predicate>` — applicability. May trail a calc line or a `|`/`estimated` alternate. Section headers may carry shared `on [fences]` and `when` clauses applying to every calc beneath.
+4. `expr1 | expr2 [estimated] [when P]` — priority-ordered **variant sugar** (not expression-level fallback; #844's no-fallback decision stands). Each alternate is a variant; `estimated` sets its origin to `analyzed-estimated`.
+5. `estimated when P` trailing a calc line — the common "same math, degraded provenance" case: one expression, origin switches to `analyzed-estimated` when P holds. Sugar for a two-variant pair with identical expressions.
+6. `where a = …, b = …` (indented lines under a calc) — named intermediate nodes; the calc's DAG bindings. Indentation = referenceable only by that calc.
+7. `(library)` — library calc: exports its nodes, publishes nothing. References to library nodes are qualified (`shared-met.metMax` style becomes just the name when imported into scope).
+8. `by {dim} grouped` — grouped emission: one published fact per group, group key as tag.
+9. Section headers `segment:` / `workout:` / `store:` set scope for everything beneath.
+10. Anything the sugar can't express (exotic predicate logic, unusual emission shapes) drops to the record form — the escape hatch is always open.
+
+### 11.2 All eight calculations, rewritten
+
+```
+# ── segment scope ────────────────────────────────────────────
+segment on [wod, log] when elapsed > 0:
+
+pace.reps   = reps / convert(elapsed, min)                  -> reps/min   when has(reps)
+pace.speed  = distance / convert(elapsed, s)                -> m/s        when has(distance)
+pace.runner = convert(elapsed, min) / convert(distance, km) -> min/km     when has(distance)
+power       = reps * resistance / convert(elapsed, s)       -> auto       when has(reps) and has(resistance)
+
+segment:
+segmentVolume = reps * resistance              (library)    when has(reps) and has(resistance)
+effortRpe     = lookup("rpe-labels", effortLabel, "rpe")  (library)    when has(effortLabel)
+metMinutes    = lookup("effort", effort, "met") * convert(elapsed, min)  (library)  when elapsed > 0
+                estimated when lookup("effort", effort, "resolvedFrom") == "default"
+
+# ── workout scope ────────────────────────────────────────────
+workout on [wod, log, plan]:
+
+reps        = sum:reps{}                                       -> reps    key reps
+reps        = sum:reps{!effort:rest|pause|rest-*} by {effort}  -> reps    key reps   grouped
+distance    = sum:distance{}                                   -> auto    key distance
+totalVolume = sum:segmentVolume{}                              -> auto    key totalVolume
+totalVolume = sum:segmentVolume{} by {effort}                  -> auto    key totalVolume  grouped
+
+workout on [wod, log]:
+
+metMinutes  = round(sum:metMinutes{})                          -> MET-min key calc.metMinutes
+sessionLoad = round(rpe * convert(session.duration, min))      -> AU      key sessionLoad
+  where rpe = sessionRpe | max:effortRpe{} | 5 estimated
+
+workout on [wod, log, plan] when has(sum:metMinutes{}) and has(sum:elapsed{}):
+
+metMax = profile.vo2max / 3.5 | 11.4 estimated     (library)
+
+tis = round(0.30*metScore + 0.35*rpeScore + 0.20*durationScore + 0.15*discipline, 1)  -> pts  key tis
+  where avgMets    = sum:metMinutes{} / convert(sum:elapsed{}, min)
+        metScore   = min(100, avgMets / metMax * 100)
+        rpeScore   = (sessionRpe | max:effortRpe{} | 5 estimated) * 10
+        durationScore = convert(sum:elapsed{}, min) / 60 * metScore
+        discipline = lookup("effort", effort, "disciplineFactor")
+```
+
+That's the entire built-in analytics suite — **~25 lines** against ~600 lines of TypeScript and ~170 lines of YAML records.
+
+### 11.3 Side-by-side on one calc
+
+Current code (SessionLoadProjectionEngine): ~110 lines of TypeScript including the hierarchy-aware duration heuristic.
+
+Record form: 3 variants × full YAML blocks ≈ 45 lines.
+
+Line form: **2 lines** — one calc line + one `where` line — plus the `session.duration` engine requirement (§10.2), which all three forms share.
+
+### 11.4 What the line form buys, what it costs
+
+**Buys:**
+
+- *Reading order = thinking order.* Name, formula, unit, condition on one line; the whole system fits on one screen, so cross-calc patterns (three pace calcs share a shape; `| … estimated` recurs) become visible.
+- *The variant mechanism becomes legible.* `sessionRpe | max:effortRpe{} | 5 estimated` reads exactly like the domain rule it encodes; the YAML version buries it in priority integers and repeated node graphs.
+- *Section-level defaults* (`on [wod, log] when elapsed > 0`) kill the repeated applicability boilerplate that made the YAML noisy.
+- `estimated when P` dissolves the most common variant pair (same math, degraded origin) into a clause — metMinutes, the frequent case, stays one line.
+
+**Costs:**
+
+- A second parser. Mitigated: line-oriented, no nesting deeper than `where` indentation, atoms still delegated to the existing WQL parser (#844 decision 6) — this is a small Lezer or even hand-rolled grammar, not a language design project.
+- Sugar can blur the model: `|` *looks* like expression fallback but is variant selection. The `estimated` marker is the tell, and the record form remains the unambiguous reference.
+- Tooling (validation, composer UI, error spans) speaks the record form; the line form needs a lossless compile to it. The two forms must round-trip or the line form becomes a second source of truth — **round-trip fidelity is a hard requirement, not a nicety.**
+
+### 11.5 Recommendation
+
+Adopt both, layered: **line form for authoring and review** (registry seed files, docs, code review, this document), **record form for storage, validation, and tooling** (registry entries, user overrides in IndexedDB, composer diagnostics). The line form compiles to DAG records; the DAG records are what #849's migration registers. If only one can exist, keep the record form — but the ~7:1 line-count ratio on real calcs argues the authoring surface is worth the small parser.

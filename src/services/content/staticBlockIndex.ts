@@ -9,6 +9,7 @@
  * corpus eagerly can `await loadStaticBlockIndex()` themselves.
  */
 import type { BlockIndexRow } from '@/types/storage';
+import { extractFrontmatterTags } from '@/lib/frontmatter';
 
 let staticBlockIndexPromise: Promise<BlockIndexRow[]> | null = null;
 
@@ -19,4 +20,34 @@ export function loadStaticBlockIndex(): Promise<BlockIndexRow[]> {
         ).then((m) => m.default as BlockIndexRow[]);
     }
     return staticBlockIndexPromise;
+}
+
+/**
+ * Created-at timestamp for a feed entry's date key (`yyyy-mm-dd` from the
+ * file path). Returns 0 (undated) for malformed keys — undated rows are
+ * excluded from dated time windows but present in unbounded queries.
+ */
+export function feedDateToCreatedAt(dateKey: string): number {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return 0;
+    const ts = Date.parse(`${dateKey}T00:00:00Z`);
+    return Number.isNaN(ts) ? 0 : ts;
+}
+
+/**
+ * Tag → noteIds index over a block index's frontmatter rows. Static-corpus
+ * notes declare tags only in frontmatter `tags:`; this recovers the mapping
+ * the note store needs to answer `tags:` clauses (issue #853 — the store
+ * previously returned an empty set for every tag).
+ */
+export function staticTagIndexFromBlocks(blocks: BlockIndexRow[]): Map<string, Set<string>> {
+    const index = new Map<string, Set<string>>();
+    for (const block of blocks) {
+        if (block.dataType !== 'frontmatter') continue;
+        for (const tag of extractFrontmatterTags(block.rawContent)) {
+            const ids = index.get(tag);
+            if (ids) ids.add(block.noteId);
+            else index.set(tag, new Set([block.noteId]));
+        }
+    }
+    return index;
 }
