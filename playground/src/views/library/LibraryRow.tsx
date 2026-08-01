@@ -2,8 +2,8 @@
  * LibraryRow — one Entry in the Library. Clicking the row body navigates to
  * the Entry's deep-link (Open). The right-hand action stack exposes
  * Run (Session/Post with a content id) and Compare (any row with a content id).
- * The Add-to-today action is a creation flow (not navigation); it lives on
- * `useCreateJournalEntry` and is wired in the Library page, not the row.
+ * The Add-to-today action is a creation flow (not navigation); it is wired
+ * in the Library page, not the row.
  */
 import { useNavigate } from 'react-router-dom'
 import { FileTextIcon, FolderIcon, CalendarIcon, PlayIcon, BarChart3Icon, PlusIcon } from 'lucide-react'
@@ -21,7 +21,7 @@ export interface LibraryRowProps {
   /**
    * Optional Add-to-today handler. The row renders the button only when
    * `entryCanAddToToday(entry)` is true; the page passes the actual
-   * creation flow (e.g. `useCreateJournalEntry`).
+   * creation callback.
    */
   onAddToToday?: (entry: Entry) => void
 }

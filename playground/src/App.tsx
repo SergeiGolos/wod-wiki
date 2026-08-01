@@ -20,7 +20,6 @@ import {
   paletteExecute,
   navigatePaletteResult,
 } from './services/wqlSearchSource'
-import { useCreateJournalEntry } from './hooks/useCreateJournalEntry'
 import { usePageScrollSync } from './hooks/usePageScrollSync'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
 import { AudioProvider } from '@/contexts/AudioContext'
@@ -40,8 +39,6 @@ import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
 import { canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { ScrollCanvasPage } from './canvas/ScrollCanvasPage'
-import { JournalListPage } from './views/JournalListPage'
-import { FeedsPage } from './views/FeedsPage'
 import { FeedDetailPage } from './pages/FeedDetailPage'
 import { FeedItemPage } from './pages/FeedItemPage'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
@@ -102,8 +99,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const handleSelectWorkout = useSelectWorkout()
   const { workout: currentWorkout, nav: currentNavLinks } = view
 
-  const handleCreateJournalEntry = useCreateJournalEntry({ workoutItems })
-
   // Open the palette for global search (Ctrl/Cmd+K — WQL mode, issue #834)
   const openSearchPalette = useCallback(() => {
     usePaletteStore.getState().open({
@@ -163,10 +158,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   // wraps it in the CanvasPage shell when `view.shell` calls for it. Both close over
   // AppContent state, so no callback plumbing is needed. See docs/adr/app-route-view.md.
   const renderInner: Record<PageKind, () => ReactNode> = {
-    journal: () => (
-      <JournalListPage onSelect={handleSelectWorkout} onCreateEntry={handleCreateJournalEntry} workoutItems={workoutItems} />
-    ),
-    feeds: () => <FeedsPage />,
     feedDetail: () => <FeedDetailPage feedSlug={decodeURIComponent(view.feedDetailMatch!)} />,
     feedItem: () => (
       <FeedItemPage

@@ -123,4 +123,24 @@ describe('LibraryPage', () => {
     await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull())
     expect(screen.getByTestId('static-shelf')).toBeDefined()
   })
+
+  it('identifies the displayed content type in the page heading (#802)', async () => {
+    runFindImpl = async parsed => emptyResult(parsed.raw ?? '')
+
+    // Default library surface.
+    const first = renderPage('/library')
+    expect(screen.getByTestId('library-heading').textContent).toBe('Library')
+    first.unmount()
+
+    // Each retired route's source carries its old page's identity.
+    for (const [source, title] of [
+      ['journal', 'Journal'],
+      ['collections', 'Collections'],
+      ['feeds', 'Feeds'],
+    ] as const) {
+      const { unmount } = renderPage(`/library?q=${encodeURIComponent(`find:note in ${source} last 1w`)}`)
+      expect(screen.getByTestId('library-heading').textContent).toBe(title)
+      unmount()
+    }
+  })
 })

@@ -66,8 +66,6 @@ export interface CurrentWorkout {
  * Which page the route renders — the discriminator for the `ROUTE_PAGES` lookup.
  */
 export type PageKind =
-  | 'journal'
-  | 'feeds'
   | 'feedDetail'
   | 'feedItem'
   | 'effortsCatalog'
@@ -311,7 +309,9 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
   return []
 }
 function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanvasPage | null): PageKind {
-  if (pathname === '/library' || pathname === '/library/' || pathname === '/journal' || pathname === '/journal/' || pathname === '/feeds' || pathname === '/collections') return 'library'
+  // /journal, /feeds, /collections are LibraryRedirect-owned — the router
+  // normalizes them to /library before AppContent ever resolves a view.
+  if (pathname === '/library' || pathname === '/library/') return 'library'
   if (flags.feedDetailMatch) return 'feedDetail'
   if (flags.feedItemMatch) return 'feedItem'
   if (pathname === '/efforts') return 'effortsCatalog'

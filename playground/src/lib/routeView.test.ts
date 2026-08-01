@@ -57,17 +57,17 @@ describe('resolveRouteView — journal nav', () => {
     expect(view.nav.map(l => l.id)).toEqual(['2026-06-28'])
   })
 
-  it('classifies /journal (legacy list) as undefined page — redirects to /library', () => {
+  it('classifies /journal (legacy list) as fall-through — LibraryRedirect owns it', () => {
     const view = resolveRouteView('/journal', NO_PARAMS, makeDeps())
-    // /journal is now a redirect; resolveRouteView doesn't see the redirect
-    // (that's the router's job), so it falls through. The libraryRedirect
-    // test in routes.test covers the actual destination mapping.
-    expect(view.page === 'journal' || view.page === 'library').toBe(true)
+    // /journal is a redirect; the router normalizes it to /library before
+    // AppContent resolves a view, so derivePage never maps it. The
+    // libraryRedirect test in routes.test covers the destination mapping.
+    expect(view.page).toBe('workout')
   })
 
   it('classifies /journal/ (trailing slash) the same way', () => {
     const view = resolveRouteView('/journal/', NO_PARAMS, makeDeps())
-    expect(view.page === 'journal' || view.page === 'library').toBe(true)
+    expect(view.page).toBe('workout')
   })
 })
 
@@ -217,19 +217,19 @@ describe('resolveRouteView — Library replaces the legacy list routes', () => {
     expect(view.shell).toEqual({ wrap: 'bare' })
   })
 
-  it('classifies /journal → library (Library replaces the Journal list route)', () => {
-    const view = resolveRouteView('/journal', NO_PARAMS, makeDeps())
-    expect(view.page).toBe('library')
-    expect(view.shell).toEqual({ wrap: 'bare' })
-  })
-
-  it('classifies /collections → library (Library replaces the Collections list route)', () => {
-    const view = resolveRouteView('/collections', NO_PARAMS, makeDeps())
-    expect(view.page).toBe('library')
-    expect(view.shell).toEqual({ wrap: 'bare' })
+  it('/journal and /collections fall through — LibraryRedirect owns them before AppContent', () => {
+    // The router normalizes /journal, /collections, /feeds to /library before
+    // AppContent resolves a view, so derivePage no longer maps them; they hit
+    // the default branch. The libraryRedirect tests in routes.test cover the
+    // destination mapping.
+    for (const legacy of ['/journal', '/collections', '/feeds']) {
+      const view = resolveRouteView(legacy, NO_PARAMS, makeDeps())
+      expect(view.page).toBe('workout')
+      expect(view.shell).toEqual({ wrap: 'bare' })
+    }
   })
   it('classifies bare routes → bare shell', () => {
-    expect(resolveRouteView('/feeds', NO_PARAMS, makeDeps()).shell).toEqual({ wrap: 'bare' })
+    expect(resolveRouteView('/library', NO_PARAMS, makeDeps()).shell).toEqual({ wrap: 'bare' })
     expect(resolveRouteView('/efforts', NO_PARAMS, makeDeps()).page).toBe('effortsCatalog')
     expect(resolveRouteView('/effort/squat', NO_PARAMS, makeDeps()).page).toBe('effortDetail')
   })

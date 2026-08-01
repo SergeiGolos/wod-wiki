@@ -10,9 +10,9 @@
  *   Run   (any)   → /run/:blockContentId
  *   Compare (any) → /analytics/explorer?q=:blockContentId
  *
- * Add-to-today is not a URL (it's a creation flow); see `useCreateJournalEntry`
- * in the build slice. The shape is exposed as a boolean (`entryCanAddToToday`)
- * so the LibraryRow can render the button.
+ * Add-to-today is not a URL (it's a creation flow); the Library page wires it
+ * via `addEntryToTodayInput`. The shape is exposed as a boolean
+ * (`entryCanAddToToday`) so the LibraryRow can render the button.
  */
 import type { Entry } from './entryMapper'
 

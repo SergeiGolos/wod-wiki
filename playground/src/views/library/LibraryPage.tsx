@@ -35,6 +35,19 @@ import { LibraryRow } from './LibraryRow'
 import { journalNotes } from '../../services/journalNotes'
 import { todayKey, formatDateHeader } from '../../lib/dateFormat'
 
+/** Page heading keyed by the composer's source clause — the retired
+ * Journal/Collections/Feeds routes redirect here with a source preselected
+ * (#802), so the heading identifies the content the user is looking at. */
+const HEADING_BY_SOURCE: Record<string, { title: string; description: string }> = {
+  journal:     { title: 'Journal',     description: 'Your training log — notes and results from every session.' },
+  collections: { title: 'Collections', description: 'Curated workout collections, ready to run or add to today.' },
+  feeds:       { title: 'Feeds',       description: 'Programming feeds you follow, newest first.' },
+  notes:       { title: 'Library',     description: 'Notes, collections, and feeds — one query over everything.' },
+  blocks:      { title: 'Blocks',      description: 'Fenced workout and dashboard regions across your notes.' },
+  metrics:     { title: 'Metrics',     description: 'Aggregate analytics facts from your workout history.' },
+}
+const DEFAULT_HEADING = HEADING_BY_SOURCE.notes!
+
 export function LibraryPage() {
   const { clauses, setClauses } = useLibraryQueryState()
   const [entries, setEntries] = useState<Entry[]>([])
@@ -117,9 +130,14 @@ export function LibraryPage() {
   // includes collections (or the catch-all notes source).
   const sourceValue = clauseValue(clauses, 'source', 'notes')
   const sessionVisible = sourceValue === 'collections' || sourceValue === 'notes'
+  const heading = HEADING_BY_SOURCE[sourceValue] ?? DEFAULT_HEADING
   const today = todayKey()
   return (
     <div className="bg-card flex flex-col flex-1" data-testid="library-page">
+      <header className="px-6 pt-4 pb-2">
+        <h1 className="text-xl font-semibold text-foreground" data-testid="library-heading">{heading.title}</h1>
+        <p className="text-sm text-muted-foreground">{heading.description}</p>
+      </header>
       <div className="sticky top-0 z-[20] bg-background/95 backdrop-blur border-b border-border px-6 py-2.5">
         <WqlComposer
           clauses={clauses}

@@ -357,8 +357,8 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
     to: ({ runtimeId }) => runPath(runtimeId),
   },
   // /plan  →  /journal?mode=plan
-  // The plan view folded into the unified JournalListPage; preserve as an alias
-  // so external links, command palettes, and bookmarks resolve cleanly.
+  // Preserve as an alias so external links, command palettes, and bookmarks
+  // resolve cleanly; /journal itself redirects on to the unified Library.
   {
     match: (p) => {
       if (p !== '/plan') return false
