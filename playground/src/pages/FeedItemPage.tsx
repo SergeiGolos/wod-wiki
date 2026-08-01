@@ -58,10 +58,13 @@ export function FeedItemPage({
   const playgroundCategory = `feed/${feedSlug}/${feedDate}`;
   // Store local edits under a deterministic key in playgroundContent.
   // The feed item's canonical content is the mdContent fallback.
+  // seedOnMount: false — viewing a feed item is read-only against the local
+  // index; seeding created undated ghost notes in the library (#856).
   const { content, onChange, onLineChange, onBlur } = usePlaygroundContent({
     category: playgroundCategory,
     name: feedItem,
     mdContent: item?.content ?? `# ${feedItem}\n\n*Feed item not found.*\n`,
+    seedOnMount: false,
   });
 
   const [scriptBlocks, setScriptBlocks] = useState<ScriptBlock[]>([]);

@@ -4,7 +4,10 @@
  * Owns WHAT to load and HOW to persist. Delegates WHEN to save to useEditorSave.
  *
  * 1. If the page exists in IndexedDB → return the stored content.
- * 2. If not → return the original MD content and seed IndexedDB for next time.
+ * 2. If not → return the original MD content and (unless `seedOnMount: false`)
+ *    seed IndexedDB for next time. Read-only surfaces — feed items, collection
+ *    workouts (#856) — pass `seedOnMount: false`: merely viewing must not
+ *    create a note record, or the library index fills with undated ghosts.
  * 3. On edits (onChange) → persist to IndexedDB.
  *    - Saves after the user leaves the current editing line (line-idle debounce).
  *    - Saves immediately on blur, navigation, pagehide, or flush() call.
@@ -20,6 +23,9 @@ interface UsePlaygroundContentOptions {
   name: string;
   /** Original markdown content from the build-time glob */
   mdContent: string;
+  /** Seed IndexedDB with the bundled content when no page record exists
+   *  (default true). Read-only surfaces pass false (#856). */
+  seedOnMount?: boolean;
 }
 
 /** Cap on the initial IndexedDB read before falling back to bundled content. */
@@ -51,6 +57,7 @@ export function usePlaygroundContent({
   category,
   name,
   mdContent,
+  seedOnMount = true,
 }: UsePlaygroundContentOptions): UsePlaygroundContentResult {
   const pageId = makePageId(category, name);
   const [content, setContent] = useState(mdContent);
@@ -121,16 +128,18 @@ export function usePlaygroundContent({
         } else {
           setContent(mdContent);
           setIsModified(false);
-          // Seed IDB so block IDs get locked in
-          await playgroundContent.savePage({
-            id: pageId,
-            category,
-            name,
-            content: mdContent,
-            updatedAt: Date.now(),
-          });
-          console.info(`[usePlaygroundContent] seed savePage(${pageId}) settled at ${elapsed()}ms`);
-          if (cancelled) return;
+          if (seedOnMount) {
+            // Seed IDB so block IDs get locked in
+            await playgroundContent.savePage({
+              id: pageId,
+              category,
+              name,
+              content: mdContent,
+              updatedAt: Date.now(),
+            });
+            console.info(`[usePlaygroundContent] seed savePage(${pageId}) settled at ${elapsed()}ms`);
+            if (cancelled) return;
+          }
         }
       } catch {
         if (!cancelled) {
@@ -145,7 +154,7 @@ export function usePlaygroundContent({
 
     load();
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [pageId, mdContent, category, name]);
+  }, [pageId, mdContent, category, name, seedOnMount]);
 
   const onChange = useCallback(
     (value: string) => {
