@@ -1,10 +1,10 @@
 /**
- * searchEntriesWithMeta — find:block emits one Entry per block (parent
- * identity + block payload, #855), newest first, capped at BLOCK_RESULTS_CAP
- * with a cap record so the page can say "showing 200 of 21,329". find:note
- * behavior is unchanged (whole-note entries, blocks only expand text hits).
+ * searchEntries — find:block emits one Entry per block (parent identity +
+ * block payload, #855), newest first, uncapped: the full set is returned
+ * and the Library batches rendering (#861). find:note behavior is
+ * unchanged (whole-note entries, blocks only expand text hits).
  */
-import { afterEach, describe, expect, it, mock } from 'bun:test'
+import { describe, expect, it, mock } from 'bun:test'
 
 import * as realQuery from '@/services/analytics/query'
 import type { FindQueryResult } from '@/services/analytics/query/QueryService'
@@ -36,9 +36,7 @@ mock.module('@/services/analytics/query', () => ({
   },
 }))
 
-const { searchEntriesWithMeta, searchEntries, BLOCK_RESULTS_CAP } = await import('./entrySearch')
-
-afterEach(() => {})
+const { searchEntries } = await import('./entrySearch')
 
 function blockResult(raw: string, blocks: BlockIndexRow[]): FindQueryResult {
   return {
@@ -49,43 +47,30 @@ function blockResult(raw: string, blocks: BlockIndexRow[]): FindQueryResult {
   }
 }
 
-describe('searchEntriesWithMeta — find:block (#855)', () => {
+describe('searchEntries — find:block (#855, #861)', () => {
   it('emits one Entry per block with parent identity and block payload', async () => {
     const blocks = [makeBlock(0, 100), makeBlock(1, 200)]
     runFindImpl = async parsed => blockResult(parsed.raw, blocks)
 
-    const { entries, capped } = await searchEntriesWithMeta('find:block in all')
+    const entries = await searchEntries('find:block in all')
     expect(entries).toHaveLength(2)
-    expect(capped).toBeUndefined()
     // Newest first.
     expect(entries[0]!.block?.segmentId).toBe('seg-1')
     for (const entry of entries) {
       expect(entry.kind).toBe('post')
       expect(entry.block?.dataType).toBe('wod')
-      expect(entry.block?.preview).toEqual([expect.stringContaining('content')] as unknown as string[])
       // Parent identity preserved for Open / Add-to-today.
       expect(entry.id).toMatch(/^feeds\/feed-a\//)
     }
   })
 
-  it('caps oversized block results and reports shown/total', async () => {
-    const blocks = Array.from({ length: BLOCK_RESULTS_CAP + 50 }, (_, i) => makeBlock(i, i))
+  it('returns the full set — rendering batches at the page, not the pipeline (#861)', async () => {
+    const blocks = Array.from({ length: 500 }, (_, i) => makeBlock(i, i))
     runFindImpl = async parsed => blockResult(parsed.raw, blocks)
 
-    const { entries, capped } = await searchEntriesWithMeta('find:block in all')
-    expect(entries).toHaveLength(BLOCK_RESULTS_CAP)
-    expect(capped).toEqual({ shown: BLOCK_RESULTS_CAP, total: BLOCK_RESULTS_CAP + 50 })
-    // The cap keeps the newest, not the first rows in index order.
-    expect(entries[0]!.block?.segmentId).toBe(`seg-${BLOCK_RESULTS_CAP + 49}`)
-  })
-
-  it('does not cap at exactly the cap size', async () => {
-    const blocks = Array.from({ length: BLOCK_RESULTS_CAP }, (_, i) => makeBlock(i, i))
-    runFindImpl = async parsed => blockResult(parsed.raw, blocks)
-
-    const { entries, capped } = await searchEntriesWithMeta('find:block in all')
-    expect(entries).toHaveLength(BLOCK_RESULTS_CAP)
-    expect(capped).toBeUndefined()
+    const entries = await searchEntries('find:block in all')
+    expect(entries).toHaveLength(500)
+    expect(entries[0]!.block?.segmentId).toBe('seg-499')
   })
 })
 

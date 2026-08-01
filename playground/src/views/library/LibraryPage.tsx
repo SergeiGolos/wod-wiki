@@ -29,13 +29,14 @@ import {
   type WqlExecutor,
 } from '@/components/organisms/wql-composer'
 import { type Entry } from '../../lib/entryMapper'
-import { searchEntriesWithMeta } from '../../lib/entrySearch'
+import { searchEntries } from '../../lib/entrySearch'
 import { addEntryToTodayInput } from '../../lib/addToToday'
 import { useLibraryQueryState } from '../../hooks/useLibraryQueryState'
 import { LibraryRow } from './LibraryRow'
 import { journalNotes } from '../../services/journalNotes'
 import { todayKey, formatDateHeader } from '../../lib/dateFormat'
 import { useDateLocale } from '../../lib/dateLocale'
+import { useBatchedItems } from '../../hooks/useBatchedItems'
 
 /** Page heading keyed by the composer's source clause — the retired
  * Journal/Collections/Feeds routes redirect here with a source preselected
@@ -55,7 +56,6 @@ export function LibraryPage() {
   // Re-render date group headers when the "Date language" pref changes (#858).
   useDateLocale()
   const [entries, setEntries] = useState<Entry[]>([])
-  const [capped, setCapped] = useState<{ shown: number; total: number } | null>(null)
   const [shelfOpen, setShelfOpen] = useState(true)
   const [loading, setLoading] = useState(false)
   const handleAddToToday = useCallback(async (entry: Entry) => {
@@ -104,18 +104,12 @@ export function LibraryPage() {
     let cancelled = false
     setLoading(true)
 
-    searchEntriesWithMeta(wql)
-      .then(result => {
-        if (!cancelled) {
-          setEntries(result.entries)
-          setCapped(result.capped ?? null)
-        }
+    searchEntries(wql)
+      .then(results => {
+        if (!cancelled) setEntries(results)
       })
       .catch(() => {
-        if (!cancelled) {
-          setEntries([])
-          setCapped(null)
-        }
+        if (!cancelled) setEntries([])
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -174,6 +168,31 @@ export function LibraryPage() {
     }
     return Array.from(map.entries())
   }, [dated])
+
+  // Progressive rendering (#861): the DOM only ever holds a few batches —
+  // `find:block in all` is ~21k entries. Groups/counts derive from the FULL
+  // set; only row rendering is batched.
+  const datedBatch = useBatchedItems(dated)
+  const sessionsBatch = useBatchedItems(sessions)
+  const visibleByDate = useMemo(() => {
+    const map = new Map<string, Entry[]>()
+    for (const e of datedBatch.visible) {
+      const k = e.date ?? '(undated)'
+      const arr = map.get(k)
+      if (arr) arr.push(e)
+      else map.set(k, [e])
+    }
+    return Array.from(map.entries())
+  }, [datedBatch.visible])
+  const countByDate = useMemo(() => new Map(byDate.map(([k, group]) => [k, group.length])), [byDate])
+
+  // Jump-to-top (#861): appears once the list scrolls away from the top.
+  const [showJumpTop, setShowJumpTop] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setShowJumpTop(window.scrollY > 600)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   // The static shelf shows catalog sessions — relevant whenever the source
   // includes collections (or the catch-all notes source).
@@ -235,7 +254,7 @@ export function LibraryPage() {
         </div>
       )}
 
-      {byDate.map(([date, group]) => {
+      {visibleByDate.map(([date, group]) => {
         const isToday = date === today
         return (
           <div key={date} className="flex flex-col">
@@ -245,12 +264,16 @@ export function LibraryPage() {
                 {date === '(undated)' ? 'Undated' : formatDateHeader(date)}
                 {isToday && <span className="ml-2 text-primary">— Today</span>}
               </span>
+              <span className="text-[10px] font-bold text-muted-foreground/60 tabular-nums" data-testid="library-group-count">
+                {countByDate.get(date) ?? group.length}
+              </span>
             </div>
             <div className="flex flex-col gap-0 pb-1">
               {group.map(entry => (
                 <LibraryRow
                   key={entry.block ? `${entry.id}#${entry.block.segmentId}` : entry.id}
                   entry={entry}
+                  dateLabel={entry.date ? formatDateHeader(entry.date) : undefined}
                   tone={isToday && entry.kind === 'note' ? 'primary' : 'secondary'}
                   onAddToToday={handleAddToToday}
                 />
@@ -260,12 +283,9 @@ export function LibraryPage() {
         )
       })}
 
-      {capped && (
-        <div
-          className="mx-6 my-3 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
-          data-testid="library-cap-notice"
-        >
-          Showing the {capped.shown} newest of <span className="font-semibold text-foreground">{capped.total}</span> matched blocks — refine the query to narrow further.
+      {datedBatch.hasMore && (
+        <div ref={datedBatch.sentinelRef} className="px-6 py-4 text-center text-xs text-muted-foreground/60" data-testid="library-load-more">
+          Loading more — {datedBatch.total - datedBatch.visible.length} remaining…
         </div>
       )}
 
@@ -292,12 +312,28 @@ export function LibraryPage() {
               {sessions.length === 0 && (
                 <div className="px-6 py-3 text-xs text-muted-foreground/50">No sessions match.</div>
               )}
-              {sessions.map(entry => (
+              {sessionsBatch.visible.map(entry => (
                 <LibraryRow key={entry.block ? `${entry.id}#${entry.block.segmentId}` : entry.id} entry={entry} onAddToToday={handleAddToToday} />
               ))}
+              {sessionsBatch.hasMore && (
+                <div ref={sessionsBatch.sentinelRef} className="px-6 py-3 text-center text-xs text-muted-foreground/60" data-testid="library-shelf-load-more">
+                  Loading more — {sessionsBatch.total - sessionsBatch.visible.length} remaining…
+                </div>
+              )}
             </div>
           )}
         </div>
+      )}
+
+      {showJumpTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 z-40 rounded-full border border-border bg-background/95 backdrop-blur px-3 py-1.5 text-xs font-semibold text-muted-foreground shadow-lg hover:text-foreground hover:bg-muted transition-colors"
+          data-testid="library-jump-top"
+        >
+          ↑ Top
+        </button>
       )}
     </div>
   )

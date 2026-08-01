@@ -8,12 +8,32 @@
  *      clear the entries loaded from the last valid query.
  *   4. The static catalog shelf renders for scope all/collections only.
  */
-import { afterEach, describe, expect, it, mock } from 'bun:test'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterAll, afterEach, describe, expect, it, mock } from 'bun:test'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { parseQuery } from '@/services/analytics/query/wql'
 import type { FindQueryResult } from '@/services/analytics/query/QueryService'
 import type { Note } from '@/types/storage'
+import { formatDateHeader } from '../../lib/dateFormat'
+
+// IntersectionObserver is absent in the test env; the library's progressive
+// rendering (#861) observes a sentinel. Controllable mock.
+class MockIntersectionObserver {
+  static instances: MockIntersectionObserver[] = []
+  private readonly callback: IntersectionObserverCallback
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback
+    MockIntersectionObserver.instances.push(this)
+  }
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  trigger(isIntersecting = true) {
+    this.callback([{ isIntersecting } as IntersectionObserverEntry], this as unknown as IntersectionObserver)
+  }
+}
+const realIO = globalThis.IntersectionObserver
+globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver
 
 // ── Service mocks ────────────────────────────────────────────────────────────
 // Mocks spread the real modules (imported statically above, before the
@@ -52,7 +72,14 @@ mock.module('../../services/journalNotes', () => ({
 
 import { LibraryPage } from './LibraryPage'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  MockIntersectionObserver.instances = []
+})
+
+afterAll(() => {
+  globalThis.IntersectionObserver = realIO
+})
 
 function renderPage(initialUrl: string) {
   return render(
@@ -70,8 +97,8 @@ const emptyResult = (raw: string): FindQueryResult => ({
 })
 
 const BLOCK_ROW = {
-  id: 'static:feeds/stronglifts/2026-07-01--5x5:sec-3:1',
-  noteId: 'feeds/stronglifts/2026-07-01--5x5',
+  id: 'static:feeds/stronglifts/2026-07-01/5x5:sec-3:1',
+  noteId: 'feeds/stronglifts/2026-07-01/5x5',
   segmentId: 'sec-3',
   segmentVersion: 1,
   position: 1,
@@ -80,7 +107,7 @@ const BLOCK_ROW = {
   noteTitle: 'StrongLifts 5×5',
   createdAt: Date.parse('2026-07-01T10:00:00Z'),
   isStatic: true,
-  sourceId: 'feed:feeds/stronglifts/2026-07-01--5x5',
+  sourceId: 'feed:feeds/stronglifts/2026-07-01/5x5',
 } as FindQueryResult['blocks'][number]
 
 describe('LibraryPage', () => {
@@ -193,11 +220,20 @@ describe('LibraryPage', () => {
     expect(screen.getByTestId('library-row-block-preview').textContent).toContain('21-15-9')
     // The card keeps the parent note's identity, not a synthetic note card.
     expect(screen.getByTestId('library-row-post').textContent).toContain('StrongLifts 5×5')
-    expect(screen.queryByTestId('library-cap-notice')).toBeNull()
+    // Per-card date (#861): survives scrolled-away group headers.
+    expect(screen.getByTestId('library-row-date').textContent).toBe(formatDateHeader('2026-07-01'))
+    // Group header carries the matched count (#861).
+    expect(screen.getByTestId('library-group-count').textContent).toBe('1')
   })
 
-  it('caps oversized block result lists with a visible notice (#855)', async () => {
-    const many = Array.from({ length: 250 }, (_, i) => ({ ...BLOCK_ROW, id: `b-${i}`, segmentId: `seg-${i}`, createdAt: i }))
+  it('batches oversized block results — sentinel grows the rendered set (#861)', async () => {
+    const many = Array.from({ length: 250 }, (_, i) => ({
+      ...BLOCK_ROW,
+      id: `b-${i}`,
+      segmentId: `seg-${i}`,
+      noteId: 'feeds/stronglifts/2026-07-01/5x5',
+      createdAt: i,
+    }))
     runFindImpl = async parsed => {
       const result = emptyResult(parsed.raw ?? '')
       if ((parsed.raw ?? '').startsWith('find:block')) result.blocks = many
@@ -205,8 +241,37 @@ describe('LibraryPage', () => {
     }
     renderPage(`/library?q=${encodeURIComponent('find:block in all')}`)
 
-    await waitFor(() => expect(screen.getByTestId('library-cap-notice')).toBeDefined())
-    expect(screen.getByTestId('library-cap-notice').textContent).toContain('250')
+    // First batch only — never the full 250 rows in the DOM.
+    await waitFor(() => expect(screen.getAllByTestId('library-row-post')).toHaveLength(200))
+    expect(screen.getByTestId('library-load-more').textContent).toContain('50 remaining')
+    // Group counts reflect the FULL result set, not the rendered batch.
+    expect(screen.getByTestId('library-group-count').textContent).toBe('250')
+
+    // Sentinel approaches → the rest render.
+    act(() => MockIntersectionObserver.instances[MockIntersectionObserver.instances.length - 1]!.trigger())
+    await waitFor(() => expect(screen.getAllByTestId('library-row-post')).toHaveLength(250))
+    expect(screen.queryByTestId('library-load-more')).toBeNull()
+  })
+
+  it('offers jump-to-top once the list scrolls away (#861)', async () => {
+    runFindImpl = async parsed => emptyResult(parsed.raw ?? '')
+    const scrollToMock = mock(() => {})
+    const realScrollTo = window.scrollTo
+    window.scrollTo = scrollToMock as typeof window.scrollTo
+
+    renderPage('/library')
+    await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull())
+    expect(screen.queryByTestId('library-jump-top')).toBeNull()
+
+    Object.defineProperty(window, 'scrollY', { value: 800, configurable: true })
+    fireEvent.scroll(window)
+    expect(screen.getByTestId('library-jump-top')).toBeDefined()
+
+    fireEvent.click(screen.getByTestId('library-jump-top'))
+    expect(scrollToMock).toHaveBeenCalled()
+
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
+    window.scrollTo = realScrollTo
   })
 
   it('hides the static catalog shelf when the source excludes collections', async () => {

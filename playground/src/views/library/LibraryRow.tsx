@@ -16,6 +16,8 @@ export interface LibraryRowProps {
   leading?: React.ReactNode
   /** Optional right-column action stack (defaults to the wired stack). */
   actions?: React.ReactNode
+  /** Per-card date label (#861) — survives scrolled-away group headers. */
+  dateLabel?: string
   /** Visual emphasis — `primary` for today's main row, `secondary` otherwise. */
   tone?: 'primary' | 'secondary'
   /**
@@ -44,7 +46,7 @@ const KIND_TONE: Record<Entry['kind'], string> = {
   post: 'bg-violet-500/10 text-violet-600 group-hover:bg-violet-500/20',
 }
 
-export function LibraryRow({ entry, leading, actions, tone = 'secondary', onAddToToday }: LibraryRowProps) {
+export function LibraryRow({ entry, leading, actions, dateLabel, tone = 'secondary', onAddToToday }: LibraryRowProps) {
   const navigate = useNavigate()
   const Icon = KIND_ICON[entry.kind]
   const isPrimary = tone === 'primary'
@@ -92,6 +94,11 @@ export function LibraryRow({ entry, leading, actions, tone = 'secondary', onAddT
           <p className="text-[11px] text-muted-foreground truncate mt-0.5">{entry.detail}</p>
         )}
       </div>
+      {dateLabel && (
+        <span className="flex-shrink-0 text-[10px] text-muted-foreground/70 tabular-nums" data-testid="library-row-date">
+          {dateLabel}
+        </span>
+      )}
       {actions ?? <RowActions entry={entry} onAddToToday={onAddToToday} />}
     </div>
   )
