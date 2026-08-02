@@ -24,6 +24,9 @@ export interface TourMobileStackProps {
   onOpenInEditor: () => void
   /** Choose-your-own-adventure workout choice from the editor-blank caption card. */
   onChoice?: (wod: string) => void
+  /** Shared-script attribution + reset, forwarded to the hero editor (#882). */
+  sharedBy?: string
+  onResetShared?: () => void
 }
 
 export function TourMobileStack(props: TourMobileStackProps) {
@@ -57,6 +60,8 @@ export function TourMobileStack(props: TourMobileStackProps) {
         onRun={props.onRun}
         onShare={props.onShare}
         onOpenInEditor={props.onOpenInEditor}
+        sharedBy={props.sharedBy}
+        onResetShared={props.onResetShared}
       />
       <TourShortCircuitStrip />
 

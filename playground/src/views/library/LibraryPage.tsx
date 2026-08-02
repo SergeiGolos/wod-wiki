@@ -43,6 +43,7 @@ import {
   type WqlExecutor,
 } from '@/components/organisms/wql-composer'
 import { type Entry } from '../../lib/entryMapper'
+import { groupEntriesByDate } from '../../lib/entryGrouping'
 import { searchEntries } from '../../lib/entrySearch'
 import { addEntryToTodayInput } from '../../lib/addToToday'
 import { useLibraryQueryState } from '../../hooks/useLibraryQueryState'
@@ -198,32 +199,14 @@ export function LibraryPage({ actions }: LibraryPageProps) {
     return remedies
   }, [clauses, setClauses])
 
-  const byDate = useMemo(() => {
-    const map = new Map<string, Entry[]>()
-    for (const e of dated) {
-      const k = e.date ?? '(undated)'
-      const arr = map.get(k)
-      if (arr) arr.push(e)
-      else map.set(k, [e])
-    }
-    return Array.from(map.entries())
-  }, [dated])
+  const byDate = useMemo(() => groupEntriesByDate(dated), [dated])
 
   // Progressive rendering (#861): the DOM only ever holds a few batches —
   // `find:block in all` is ~21k entries. Groups/counts derive from the FULL
   // set; only row rendering is batched.
   const datedBatch = useBatchedItems(dated)
   const sessionsBatch = useBatchedItems(sessions)
-  const visibleByDate = useMemo(() => {
-    const map = new Map<string, Entry[]>()
-    for (const e of datedBatch.visible) {
-      const k = e.date ?? '(undated)'
-      const arr = map.get(k)
-      if (arr) arr.push(e)
-      else map.set(k, [e])
-    }
-    return Array.from(map.entries())
-  }, [datedBatch.visible])
+  const visibleByDate = useMemo(() => groupEntriesByDate(datedBatch.visible), [datedBatch.visible])
   const countByDate = useMemo(() => new Map(byDate.map(([k, group]) => [k, group.length])), [byDate])
 
   // Jump-to-top (#861): appears once the list scrolls away from the top.

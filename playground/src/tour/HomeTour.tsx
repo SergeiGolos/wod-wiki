@@ -16,6 +16,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import { encodeZip } from '../services/encodeZip'
+import {
+  clearHomeShared,
+  getShareName,
+  loadHomeShared,
+  setShareName,
+  type HomeSharedScript,
+} from '../services/homeSharedScript'
 import { resolveSource } from '../canvas/canvasUtils'
 import { getAnalyticsFromLogs, getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer'
 import { createJournalNoteFromWorkout } from '../services/journalWorkout'
@@ -132,9 +139,16 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const toastRef = useRef<HTMLDivElement | null>(null)
 
   // ── Editor document (live hero demo) ──
-  const script = useMemo(() => resolveSource(HOME_DEMO_SOURCE, wodFiles), [wodFiles])
-  const [selectedScript, setSelectedScript] = useState(script)
-  const [doc, setDoc] = useState(script)
+  // Arrival contract (#882): the initial load content is the shared script
+  // stored by /load?z= when present, else welcome-1.md. `initialContent` is
+  // the hero-reset target; `selectedScript` may diverge (adventure picks);
+  // `doc` is the live editor text.
+  const welcomeScript = useMemo(() => resolveSource(HOME_DEMO_SOURCE, wodFiles), [wodFiles])
+  const [sharedScript, setSharedScript] = useState<HomeSharedScript | null>(() => loadHomeShared())
+  const initialContent = sharedScript?.content ?? welcomeScript
+  const [selectedScript, setSelectedScript] = useState(initialContent)
+  const [doc, setDoc] = useState(initialContent)
+  const sharedBy = sharedScript ? sharedScript.by?.trim() || 'anonymous' : undefined
   const blocksRef = useRef<ScriptBlock[]>([])
   const runtimeRef = useRef<IScriptRuntime | null>(null)
   const [tourRuntime, setTourRuntime] = useState<IScriptRuntime | null>(null)
@@ -182,6 +196,41 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     runtimeRef.current = null
     setTourRuntime(null)
   }, [])
+
+  // ── Hero-reset contract (#882): re-entering the hero viewport resets the
+  // editor to the initial load content, discarding edits and session state.
+  // The initial entry (page load) is arrival, not a re-entry. ──
+  const heroRef = useRef<HTMLDivElement | null>(null)
+  const heroVisibleRef = useRef(true) // the hero mounts at the top of the page
+  const resetHeroToArrival = useCallback(() => {
+    editedRecordedRef.current = false
+    setSelectedScript(initialContent)
+    setDoc(initialContent)
+    startNewSession()
+  }, [initialContent, startNewSession])
+
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(([entry]) => {
+      const visible = entry.isIntersecting
+      if (visible && !heroVisibleRef.current) resetHeroToArrival()
+      heroVisibleRef.current = visible
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [resetHeroToArrival])
+
+  // Header Reset button: clear the stored shared script, back to welcome-1.md
+  // (re-following the original /load?z= link would store it again).
+  const handleClearShared = useCallback(() => {
+    clearHomeShared()
+    setSharedScript(null)
+    editedRecordedRef.current = false
+    setSelectedScript(welcomeScript)
+    setDoc(welcomeScript)
+    startNewSession()
+  }, [welcomeScript, startNewSession])
 
   const inTimerStage = (interactive === null && runwayReached && slice.stage.screen === 'timer') || interactive === 'timer'
   const prevInTimerStageRef = useRef(inTimerStage)
@@ -327,7 +376,14 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     if (!doc.trim()) return
     try {
       const encoded = await encodeZip(doc)
-      const url = `${window.location.origin}${window.location.pathname}?z=${encoded}`
+      // Share links land on /load?z= (#882). The first share prompts once for
+      // an optional name, persisted so later links reuse it silently.
+      let by = getShareName()
+      if (by === null) {
+        by = (window.prompt?.('Add your name to the link (shown as "shared by") — optional:') ?? '').trim()
+        setShareName(by)
+      }
+      const url = `${window.location.origin}/load?z=${encoded}${by ? `&by=${encodeURIComponent(by)}` : ''}`
       await navigator.clipboard.writeText(url)
       track(HOME_EVENTS.demoShared)
       toast({
@@ -537,6 +593,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
           onShare={handleShare}
           onOpenInEditor={handleOpenInEditor}
           onChoice={handleWorkoutChoice}
+          sharedBy={sharedBy}
+          onResetShared={handleClearShared}
         />
 
         {/* Spec §2: runs from the hero demo go fullscreen on every form factor. */}
@@ -547,15 +605,19 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
   return (
     <div data-testid="home-tour">
-      <TourHero
-        theme={theme}
-        doc={doc}
-        onDocChange={handleDocChange}
-        onBlocksChange={handleBlocksChange}
-        onRun={handleRun}
-        onShare={handleShare}
-        onOpenInEditor={handleOpenInEditor}
-      />
+      <div ref={heroRef}>
+        <TourHero
+          theme={theme}
+          doc={doc}
+          onDocChange={handleDocChange}
+          onBlocksChange={handleBlocksChange}
+          onRun={handleRun}
+          onShare={handleShare}
+          onOpenInEditor={handleOpenInEditor}
+          sharedBy={sharedBy}
+          onResetShared={handleClearShared}
+        />
+      </div>
 
       <TourShortCircuitStrip />
 
@@ -614,6 +676,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
                           onShare={handleShare}
                           onOpenInEditor={handleOpenInEditor}
                           theme={theme}
+                          sharedBy={sharedBy}
+                          onResetShared={handleClearShared}
                         />
                       </Screen>
                     )}

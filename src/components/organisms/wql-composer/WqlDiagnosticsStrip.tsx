@@ -15,6 +15,7 @@
  */
 
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { isFindQuery } from '@/services/analytics/query/wql'
 import { summarizeAggregate, summarizeFind, type WqlDiagnostics } from './diagnostics'
@@ -26,6 +27,9 @@ export interface WqlDiagnosticsStripProps {
   offendingLabel?: string
   /** Live execution counts; undefined until the debounced run resolves. */
   stages?: WqlStageCounts
+  /** Trailing actions on the feedback line — the composer's Add Calc / Add
+   * Filter menus live here rather than inside the pill bar. */
+  actions?: ReactNode
   className?: string
 }
 
@@ -42,6 +46,7 @@ export function WqlDiagnosticsStrip({
   diagnostics,
   offendingLabel,
   stages,
+  actions,
   className,
 }: WqlDiagnosticsStripProps) {
   const { valid, error, ast } = diagnostics
@@ -110,6 +115,12 @@ export function WqlDiagnosticsStrip({
       {aggSummary && stages?.kind === 'aggregate' && (
         <span data-testid="wql-stage-counts" className="text-muted-foreground">
           {stages.groups} groups · {stages.buckets} buckets · {stages.aggregated} aggregated
+        </span>
+      )}
+
+      {actions && (
+        <span className="ml-auto inline-flex items-center gap-1.5" data-testid="wql-diagnostics-actions">
+          {actions}
         </span>
       )}
     </div>

@@ -1,5 +1,5 @@
 export { WqlComposer, type WqlComposerProps, type WqlValidationState } from './WqlComposer'
-export { TokenSlotPill, ClausePopover, CustomSlotPopover, AddFilterDropdown, type TokenSlotPillProps } from './QueryPalette'
+export { TokenSlotPill, ClausePopover, CustomSlotPopover, AddFilterDropdown, AddCalcDropdown, type TokenSlotPillProps } from './QueryPalette'
 export {
   ComposerRegistry,
   composerRegistry,

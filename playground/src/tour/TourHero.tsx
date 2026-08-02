@@ -25,6 +25,9 @@ export interface TourHeroProps {
   onRun: () => void
   onShare: () => void
   onOpenInEditor: () => void
+  /** Shared-script attribution + reset, forwarded to the editor screen (#882). */
+  sharedBy?: string
+  onResetShared?: () => void
 }
 
 export function TourHero({
@@ -35,6 +38,8 @@ export function TourHero({
   onRun,
   onShare,
   onOpenInEditor,
+  sharedBy,
+  onResetShared,
 }: TourHeroProps) {
   return (
     <section
@@ -75,6 +80,8 @@ export function TourHero({
             onShare={onShare}
             onOpenInEditor={onOpenInEditor}
             theme={theme}
+            sharedBy={sharedBy}
+            onResetShared={onResetShared}
           />
         </div>
       </div>

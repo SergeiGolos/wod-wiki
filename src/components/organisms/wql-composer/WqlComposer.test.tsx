@@ -17,13 +17,18 @@
 
 import { useState } from 'react';
 import { afterEach, describe, expect, it, mock } from 'bun:test';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { WqlComposer, type WqlValidationState } from './WqlComposer';
 import { defaultClauses, type QueryClause } from './queryClauses';
+import { invalidateSuggestions, setSuggestionBinding } from './suggestionSources';
 import { isFindQuery, type AnyParsedQuery } from '@/services/analytics/query/wql';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  setSuggestionBinding('tag', undefined);
+  invalidateSuggestions();
+});
 
 const emptyTagClause = (): QueryClause[] => [
   ...defaultClauses(),
@@ -335,11 +340,11 @@ describe('WqlComposer source-pivot analytics plane', () => {
     expect(next.find(c => c.type === 'tag')?.value).toBe('hero');
   });
 
-  it('removes source/agg/metric pills when no remove button is rendered', () => {
+  it('keeps the source pill locked but lets the agg/metric head pills be removed', () => {
     render(<WqlComposer initialClauses={metricsClauses()} />);
     expect(screen.queryByTestId('token-slot-remove-source')).toBeNull();
-    expect(screen.queryByTestId('token-slot-remove-agg')).toBeNull();
-    expect(screen.queryByTestId('token-slot-remove-metric')).toBeNull();
+    expect(screen.queryByTestId('token-slot-remove-agg')).not.toBeNull();
+    expect(screen.queryByTestId('token-slot-remove-metric')).not.toBeNull();
   });
 
   it('shows a filter input for metric selection but not for source selection', () => {
@@ -363,5 +368,190 @@ describe('WqlComposer source-pivot analytics plane', () => {
     expect(screen.queryByText('Group By')).toBeNull();
     expect(screen.queryByText('Rollup')).toBeNull();
     expect(screen.queryByText('Unit')).toBeNull();
+  });
+});
+
+describe('WqlComposer multi-select filter slots', () => {
+  const tagClause = (value: string): QueryClause[] => [
+    ...defaultClauses(),
+    { id: 'c-tag', type: 'tag', label: 'Tag', value, inputType: 'select', placeholder: 'Pick tag...' },
+  ];
+
+  const bindTags = () =>
+    setSuggestionBinding('tag', {
+      load: async () => [{ value: 'pr' }, { value: 'benchmark' }, { value: 'crossfit' }],
+      cache: 'static',
+      open: true,
+      emptyText: 'No tags yet',
+    });
+
+  /** Option rows only — chip remove buttons and the commit-typed row carry test ids. */
+  const optionLabels = (popover: HTMLElement) =>
+    Array.from(popover.querySelectorAll('button'))
+      .filter(b => !(b as HTMLButtonElement).dataset.testid)
+      .map(b => b.textContent);
+
+  it('pins selected values as removable chips, opens with an empty combobox, and hides picked options', async () => {
+    bindTags();
+    render(<WqlComposer initialClauses={tagClause('pr|benchmark')} />);
+
+    fireEvent.click(screen.getByTestId('token-slot-tag'));
+    const popover = screen.getByTestId('clause-popover-tag');
+
+    const chips = screen.getByTestId('clause-chips-tag');
+    expect(chips.textContent).toContain('pr');
+    expect(chips.textContent).toContain('benchmark');
+    expect(screen.getByTestId('clause-chip-remove-tag-pr')).toBeDefined();
+    expect(screen.getByTestId('clause-chip-remove-tag-benchmark')).toBeDefined();
+
+    const input = popover.querySelector('input') as HTMLInputElement;
+    expect(input.value).toBe('');
+
+    await waitFor(() => expect(optionLabels(popover)).toEqual(['crossfit']));
+  });
+
+  it('appends a picked value to the OR-list, clears the combobox, and keeps the popover open', async () => {
+    bindTags();
+    render(<WqlComposer initialClauses={tagClause('pr')} />);
+
+    fireEvent.click(screen.getByTestId('token-slot-tag'));
+    const popover = screen.getByTestId('clause-popover-tag');
+    await waitFor(() => expect(optionLabels(popover)).toContain('crossfit'));
+
+    const crossfit = Array.from(popover.querySelectorAll('button')).find(b => b.textContent === 'crossfit')!;
+    fireEvent.click(crossfit);
+
+    // Popover stays open, input cleared, pill shows the joined list.
+    expect(screen.getByTestId('clause-popover-tag')).toBeDefined();
+    expect((popover.querySelector('input') as HTMLInputElement).value).toBe('');
+    expect(screen.getByTestId('token-slot-tag').textContent).toContain('pr, crossfit');
+    const chips = screen.getByTestId('clause-chips-tag');
+    expect(chips.textContent).toContain('pr');
+    expect(chips.textContent).toContain('crossfit');
+  });
+
+  it('filters remaining options as you type and commits the highlight on Enter', async () => {
+    bindTags();
+    render(<WqlComposer initialClauses={tagClause('benchmark')} />);
+
+    fireEvent.click(screen.getByTestId('token-slot-tag'));
+    const popover = screen.getByTestId('clause-popover-tag');
+    await waitFor(() => expect(optionLabels(popover)).toContain('pr'));
+
+    const input = popover.querySelector('input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'cro' } });
+    expect(optionLabels(popover)).toEqual(['crossfit']);
+
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(input.value).toBe('');
+    expect(screen.getByTestId('token-slot-tag').textContent).toContain('benchmark, crossfit');
+  });
+
+  it('removes a value via its chip X and via Backspace on an empty combobox', async () => {
+    bindTags();
+    render(<WqlComposer initialClauses={tagClause('pr|benchmark')} />);
+
+    fireEvent.click(screen.getByTestId('token-slot-tag'));
+    const popover = screen.getByTestId('clause-popover-tag');
+    await waitFor(() => expect(optionLabels(popover)).toEqual(['crossfit']));
+
+    fireEvent.click(screen.getByTestId('clause-chip-remove-tag-pr'));
+    expect(screen.getByTestId('token-slot-tag').textContent).toContain('benchmark');
+    expect(screen.getByTestId('token-slot-tag').textContent).not.toContain('pr');
+
+    const input = popover.querySelector('input') as HTMLInputElement;
+    fireEvent.keyDown(input, { key: 'Backspace' });
+    expect(screen.queryByTestId('clause-chips-tag')).toBeNull();
+    // Popover is still open; the emptied chip reverts to placeholder guidance.
+    expect(screen.getByTestId('clause-popover-tag')).toBeDefined();
+  });
+
+  it('says all options are selected when every value is chipped', async () => {
+    bindTags();
+    render(<WqlComposer initialClauses={tagClause('pr|benchmark|crossfit')} />);
+
+    fireEvent.click(screen.getByTestId('token-slot-tag'));
+    await waitFor(() =>
+      expect(screen.getByTestId('clause-empty-tag').textContent).toContain('All options selected'),
+    );
+  });
+});
+
+describe('WqlComposer Add Calc menu', () => {
+  it('restores a removed aggregator pill with the picked function', () => {
+    render(<WqlComposer initialClauses={metricsClauses()} />);
+
+    // Clear the agg pill — the average is gone from the row.
+    fireEvent.click(screen.getByTestId('token-slot-remove-agg'));
+    expect(screen.queryByTestId('token-slot-agg')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('add-calc-btn'));
+    fireEvent.click(screen.getByTestId('add-calc-agg-avg'));
+
+    const agg = screen.getByTestId('token-slot-agg');
+    expect(agg.textContent).toContain('avg');
+    // Re-seeded in head position: source → agg → metric.
+    const pills = Array.from(document.querySelectorAll('[data-testid^="token-slot-"]'))
+      .map(el => (el as HTMLElement).dataset.testid!)
+      .filter(id => !id.startsWith('token-slot-remove'));
+    expect(pills.slice(0, 3)).toEqual(['token-slot-source', 'token-slot-agg', 'token-slot-metric']);
+  });
+
+  it('retargets an existing aggregator instead of duplicating it', () => {
+    render(<WqlComposer initialClauses={metricsClauses()} />);
+
+    fireEvent.click(screen.getByTestId('add-calc-btn'));
+    fireEvent.click(screen.getByTestId('add-calc-agg-max'));
+
+    expect(screen.getAllByTestId('token-slot-agg')).toHaveLength(1);
+    expect(screen.getByTestId('token-slot-agg').textContent).toContain('max');
+  });
+
+  it('restores a removed metric pill via the Metric menu item', () => {
+    render(<WqlComposer initialClauses={metricsClauses()} />);
+
+    fireEvent.click(screen.getByTestId('token-slot-remove-metric'));
+    expect(screen.queryByTestId('token-slot-metric')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('add-calc-btn'));
+    fireEvent.click(screen.getByTestId('add-calc-metric'));
+
+    // Placeholder guidance returns for picking a metric.
+    expect(screen.getByTestId('token-slot-metric').textContent).toContain('metric:');
+  });
+
+  it('pivots a content query to the metrics plane with the picked calculation as head', () => {
+    render(<WqlComposer />);
+
+    fireEvent.click(screen.getByTestId('add-calc-btn'));
+    expect(screen.getByText(/Switches the source to metrics/)).toBeTruthy();
+    fireEvent.click(screen.getByTestId('add-calc-agg-count'));
+
+    expect(screen.getByTestId('token-slot-source').textContent).toContain('metrics');
+    expect(screen.getByTestId('token-slot-agg').textContent).toContain('count');
+    // Metric placeholder seeded for guidance; content-only time clause dropped.
+    expect(screen.getByTestId('token-slot-metric').textContent).toContain('metric:');
+    expect(screen.queryByTestId('token-slot-time')).toBeNull();
+  });
+
+  it('renders the Add Calc / Add Filter menus on the diagnostics line, not in the pill bar', () => {
+    render(<WqlComposer />);
+
+    const bar = screen.getByTestId('wql-composer');
+    expect(bar.querySelector('[data-testid="add-calc-btn"]')).toBeNull();
+    expect(bar.querySelector('[data-testid="add-filter-btn"]')).toBeNull();
+
+    const actions = screen.getByTestId('wql-diagnostics-actions');
+    expect(actions.querySelector('[data-testid="add-calc-btn"]')).not.toBeNull();
+    expect(actions.querySelector('[data-testid="add-filter-btn"]')).not.toBeNull();
+  });
+
+  it('keeps the add menus on a footer row when the diagnostics strip is hidden', () => {
+    render(<WqlComposer showDiagnostics={false} />);
+
+    expect(screen.queryByTestId('wql-diagnostics')).toBeNull();
+    const row = screen.getByTestId('wql-add-row');
+    expect(row.querySelector('[data-testid="add-calc-btn"]')).not.toBeNull();
+    expect(row.querySelector('[data-testid="add-filter-btn"]')).not.toBeNull();
   });
 });

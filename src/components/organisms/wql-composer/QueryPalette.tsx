@@ -118,7 +118,9 @@ export function TokenSlotPill({
               {meta.prefix || `${meta.label}:`}
             </span>
             <span className="font-semibold text-foreground truncate max-w-[160px]">
-              {clause.value}
+              {MULTI_VALUE_TYPES[clause.type]
+                ? clause.value.split('|').map(v => v.trim()).filter(Boolean).join(', ')
+                : clause.value}
             </span>
           </>
         ) : (
@@ -170,7 +172,8 @@ export function TokenSlotPill({
           }}
           onChange={patch => {
             onChange(patch)
-            setOpen(false)
+            // Multi-select slots stay open so more values can be picked.
+            if (!MULTI_VALUE_TYPES[clause.type]) setOpen(false)
           }}
         />
       ))}
@@ -180,8 +183,18 @@ export function TokenSlotPill({
 
 // ── ClausePopover: Keyboard-navigable Dropdown ───────────────────────────────
 
-/** Head/required slots that cannot be removed from the pill row. */
-const NON_REMOVABLE_TYPES: ReadonlySet<string> = new Set(['source', 'agg', 'metric'])
+/** Head/required slots that cannot be removed from the pill row. The agg and
+ * metric head pills ARE removable — the Add Calc menu is the way back. */
+const NON_REMOVABLE_TYPES: ReadonlySet<string> = new Set(['source'])
+
+/** Filter slots whose WQL key accepts an OR-ed value list (`key:a|b`). Their
+ * popover behaves as a multi-select combobox: selected values pin as
+ * removable chips on top, the filter input starts empty, picked options leave
+ * the list, and each pick clears the input for the next one. */
+export const MULTI_VALUE_TYPES: Record<string, true> = {
+  tag: true, catalog: true, effort: true, discipline: true,
+  intensity: true, origin: true, type: true, has: true,
+}
 
 /** Closed-vocabulary options for static select slots (canonical vocab, #824). */
 const STATIC_OPTIONS: Record<string, { value: string; label: string }[]> = {
@@ -202,13 +215,17 @@ function emptyStateMessage({
   itemCount,
   filter,
   binding,
+  allSelected = false,
 }: {
   loading: boolean
   itemCount: number
   filter: string
   binding?: { open: boolean; emptyText: string }
+  /** Multi-select: every option is already chipped (issue #831 affordance). */
+  allSelected?: boolean
 }): string {
   if (loading) return 'Loading…'
+  if (allSelected) return 'All options selected'
   if (itemCount === 0) return binding?.emptyText ?? 'Nothing here yet'
   if (!filter.trim()) return 'No options'
   const open = binding?.open ?? true
@@ -225,7 +242,13 @@ export function ClausePopover({
   onChange: (patch: Partial<QueryClause>) => void
 }) {
   const meta = getClauseMeta(clause.type)
-  const [val, setVal] = useState(clause.value)
+  const isMulti = Boolean(MULTI_VALUE_TYPES[clause.type])
+  const selectedValues = isMulti
+    ? clause.value.split('|').map(v => v.trim()).filter(Boolean)
+    : []
+  // Multi-select slots open with an empty combobox; the current selection
+  // lives in the chip row, not in the input.
+  const [val, setVal] = useState(isMulti ? '' : clause.value)
   const [highlightIdx, setHighlightIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -261,9 +284,14 @@ export function ClausePopover({
   // freetext/suggestion slots so typed values filter or enter verbatim.
   const showFilterInput = !staticOptions || clause.type === 'metric' || clause.type === 'unit'
 
-  const filteredItems = showFilterInput
-    ? items.filter(item => item.value.toLowerCase().includes(val.toLowerCase()) || item.label.toLowerCase().includes(val.toLowerCase()))
+  // Already-picked values leave the option list in multi-select mode.
+  const availableItems = isMulti
+    ? items.filter(item => !selectedValues.includes(item.value))
     : items
+
+  const filteredItems = showFilterInput
+    ? availableItems.filter(item => item.value.toLowerCase().includes(val.toLowerCase()) || item.label.toLowerCase().includes(val.toLowerCase()))
+    : availableItems
 
   // Visible commit affordance for typed free text (#854): open slots accept
   // verbatim values, but that used to be keyboard-tribal-knowledge behind a
@@ -273,7 +301,27 @@ export function ClausePopover({
     showFilterInput &&
     typedValue.length > 0 &&
     (binding?.open ?? true) &&
+    !selectedValues.some(v => v.toLowerCase() === typedValue.toLowerCase()) &&
     !filteredItems.some(item => item.value.toLowerCase() === typedValue.toLowerCase())
+
+  // Single-select slots hand the value up and the pill closes the popover;
+  // multi-select slots append to the OR-list, clear the combobox, and stay
+  // open for the next pick.
+  const commitValue = (value: string) => {
+    if (!isMulti) {
+      onChange({ value })
+      return
+    }
+    if (selectedValues.includes(value)) return
+    onChange({ value: [...selectedValues, value].join('|') })
+    setVal('')
+    setHighlightIdx(0)
+    inputRef.current?.focus()
+  }
+
+  const removeValue = (value: string) => {
+    onChange({ value: selectedValues.filter(v => v !== value).join('|') })
+  }
 
   // Handled keys stop at the popover so an embedding container (the
   // palette's result list, issue #834) doesn't also navigate/select.
@@ -290,11 +338,16 @@ export function ClausePopover({
       e.preventDefault()
       e.stopPropagation()
       if (filteredItems[highlightIdx]) {
-        onChange({ value: filteredItems[highlightIdx].value })
+        commitValue(filteredItems[highlightIdx].value)
       } else if (val.trim() && (binding?.open ?? true)) {
         // Open slots accept user-typed values not present in the list (#831).
-        onChange({ value: val.trim() })
+        commitValue(val.trim())
       }
+    } else if (e.key === 'Backspace' && isMulti && val === '' && selectedValues.length > 0) {
+      // Standard combobox affordance: Backspace on an empty input pops the
+      // last chip.
+      e.preventDefault()
+      removeValue(selectedValues[selectedValues.length - 1])
     } else if (e.key === 'Escape') {
       e.stopPropagation()
       onClose()
@@ -320,6 +373,31 @@ export function ClausePopover({
         <WhereJoinEditor onApply={v => onChange({ value: v })} />
       ) : (
         <div>
+          {isMulti && selectedValues.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-1.5" data-testid={`clause-chips-${clause.type}`}>
+              {selectedValues.map(value => {
+                const label = items.find(i => i.value === value)?.label ?? value
+                return (
+                  <span
+                    key={value}
+                    className="inline-flex items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary"
+                  >
+                    <span className="truncate max-w-[140px]">{label}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeValue(value)}
+                      className="rounded p-px transition-colors hover:bg-primary/20"
+                      title={`Remove ${label}`}
+                      data-testid={`clause-chip-remove-${clause.type}-${value}`}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                )
+              })}
+            </div>
+          )}
+
           {showFilterInput && (
             <input
               ref={inputRef}
@@ -338,7 +416,7 @@ export function ClausePopover({
             {canCommitTyped && (
               <button
                 type="button"
-                onClick={() => onChange({ value: typedValue })}
+                onClick={() => commitValue(typedValue)}
                 className="flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-md text-left transition-colors hover:bg-muted text-foreground"
                 data-testid={`clause-commit-typed-${clause.type}`}
               >
@@ -353,14 +431,14 @@ export function ClausePopover({
               <button
                 key={item.value}
                 type="button"
-                onClick={() => onChange({ value: item.value })}
+                onClick={() => commitValue(item.value)}
                 className={cn(
                   'flex items-center justify-between w-full px-2.5 py-1.5 text-xs rounded-md text-left transition-colors',
                   idx === highlightIdx ? 'bg-primary/15 font-semibold text-primary' : 'hover:bg-muted text-foreground',
                 )}
               >
                 <span className="truncate">{item.label}</span>
-                {clause.value === item.value && <Check className="size-3 text-primary shrink-0 ml-1" />}
+                {!isMulti && clause.value === item.value && <Check className="size-3 text-primary shrink-0 ml-1" />}
               </button>
             ))}
 
@@ -371,9 +449,10 @@ export function ClausePopover({
               >
                 {emptyStateMessage({
                   loading: suggestionsLoading,
-                  itemCount: items.length,
+                  itemCount: availableItems.length,
                   filter: val,
                   binding,
+                  allSelected: isMulti && items.length > 0 && availableItems.length === 0,
                 })}
               </div>
             )}
@@ -597,6 +676,116 @@ export function AddFilterDropdown({
               </button>
             )
           })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── AddCalcDropdown ──────────────────────────────────────────────────────
+
+/**
+ * Add Calculation menu — the counterpart to Add Filter for the aggregate
+ * head. What a calculation means depends on the source plane:
+ *
+ *   - Metrics plane: offers the missing head pieces — the aggregator pill
+ *     (re-seeded with the picked function, so a removed `avg` is one click
+ *     away) and the metric pill.
+ *   - Content planes: a calculation pivots the query to the metrics plane
+ *     (decision #836) with the picked aggregator as the new head — `count`
+ *     over sessions, `sum` over volume, etc. Content queries themselves
+ *     carry no aggregate head.
+ */
+export function AddCalcDropdown({
+  clauses,
+  onAdd,
+}: {
+  clauses: QueryClause[]
+  onAdd: (type: 'agg' | 'metric', value?: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const metrics = sourcePlane(clauseValue(clauses, 'source', 'notes')) === 'metrics'
+  const aggValue = clauses.find(c => c.type === 'agg')?.value
+  const hasMetric = clauses.some(c => c.type === 'metric')
+
+  return (
+    <div ref={menuRef} className="relative inline-block">
+      <button
+        type="button"
+        tabIndex={0}
+        onClick={() => setOpen(o => !o)}
+        className="inline-flex items-center gap-1 rounded-md border border-dashed border-border hover:border-primary/50 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-primary transition-all select-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+        data-testid="add-calc-btn"
+      >
+        <Plus className="size-3 text-primary" />
+        <span>Add Calc</span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 z-50 w-52 rounded-xl border border-border bg-popover p-1 shadow-2xl animate-in fade-in-50 zoom-in-95">
+          <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-muted-foreground border-b border-border/50 mb-1">
+            Add Calculation
+          </div>
+          {!metrics && (
+            <div className="px-2 pb-1.5 text-[10px] italic text-muted-foreground/80">
+              Switches the source to metrics
+            </div>
+          )}
+          {AGG_OPTIONS.map(option => {
+            const active = aggValue === option.value
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onAdd('agg', option.value)
+                  setOpen(false)
+                }}
+                className={cn(
+                  'flex items-center justify-between w-full px-2 py-1.5 text-xs rounded-md text-left transition-colors',
+                  active ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted text-foreground',
+                )}
+                data-testid={`add-calc-agg-${option.value}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span>{CLAUSE_META.agg.icon}</span>
+                  <span className="font-medium capitalize">{option.label}</span>
+                </div>
+                {active && <Check className="size-3 text-primary shrink-0" />}
+              </button>
+            )
+          })}
+          {metrics && (
+            <button
+              type="button"
+              onClick={() => {
+                onAdd('metric')
+                setOpen(false)
+              }}
+              className={cn(
+                'flex items-center justify-between w-full px-2 py-1.5 text-xs rounded-md text-left transition-colors',
+                hasMetric ? 'opacity-50 bg-muted/30' : 'hover:bg-muted text-foreground',
+              )}
+              data-testid="add-calc-metric"
+            >
+              <div className="flex items-center gap-2">
+                <span>{CLAUSE_META.metric.icon}</span>
+                <span className="font-medium">{CLAUSE_META.metric.label}</span>
+              </div>
+              {hasMetric && <span className="text-[9px] text-muted-foreground font-mono">added</span>}
+            </button>
+          )}
         </div>
       )}
     </div>

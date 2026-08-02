@@ -22,7 +22,7 @@ import { Command } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { AnyParsedQuery } from '@/services/analytics/query/wql'
 import { useComposerSlots } from './ComposerRegistry'
-import { TokenSlotPill, AddFilterDropdown } from './QueryPalette'
+import { TokenSlotPill, AddFilterDropdown, AddCalcDropdown } from './QueryPalette'
 import { diagnoseClauses } from './diagnostics'
 import { WqlDiagnosticsStrip } from './WqlDiagnosticsStrip'
 import {
@@ -34,6 +34,8 @@ import {
   type ClauseType,
   type QueryClause,
   getClauseMeta,
+  clauseValue,
+  sourcePlane,
   defaultClauses,
   pivotClauses,
   wqlToClauses,
@@ -80,7 +82,7 @@ export interface WqlComposerProps {
   execute?: WqlExecutor
   /** Debounce for live execution feedback. Default 150ms (decision #826). */
   debounceMs?: number
-  /** Extension point: extra content rendered inside the bar, after the add-filter menu. */
+  /** Extension point: extra content rendered inside the bar, after the free-text input. */
   customSlots?: ReactNode
   /**
    * Clause types kept in the model (WQL compile, diagnostics, change events)
@@ -236,6 +238,43 @@ export function WqlComposer({
     setClauses([...clauses, makeClause(type, seed)])
   }
 
+  /**
+   * Add Calc menu handler. What a calculation means depends on the plane:
+   * on a content plane the picked aggregator pivots the query to metrics
+   * (decision #836); on the metrics plane it restores or retargets the
+   * agg/metric head pills — the way back after clearing them.
+   */
+  const addCalc = (type: 'agg' | 'metric', value?: string) => {
+    if (type === 'metric') {
+      if (clauses.some(c => c.type === 'metric')) return
+      // Insert after the head pills so the row reads source → agg → metric.
+      const afterIdx = Math.max(
+        clauses.findIndex(c => c.type === 'agg'),
+        clauses.findIndex(c => c.type === 'source'),
+      )
+      const next = [...clauses]
+      next.splice(afterIdx + 1, 0, makeClause('metric', ''))
+      setClauses(next)
+      return
+    }
+
+    const agg = value ?? 'sum'
+    const existingIdx = clauses.findIndex(c => c.type === 'agg')
+    if (existingIdx >= 0) {
+      updateClause(existingIdx, { value: agg })
+      return
+    }
+    if (sourcePlane(clauseValue(clauses, 'source', 'notes')) !== 'metrics') {
+      setClauses(pivotClauses(clauses, 'metrics').map(c => (c.type === 'agg' ? { ...c, value: agg } : c)))
+      return
+    }
+    // Metrics plane with the agg pill removed: re-seed it after the source pill.
+    const sourceIdx = clauses.findIndex(c => c.type === 'source')
+    const next = [...clauses]
+    next.splice(sourceIdx + 1, 0, makeClause('agg', agg))
+    setClauses(next)
+  }
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return
     if (freeText.trim()) {
@@ -302,8 +341,6 @@ export function WqlComposer({
           data-testid="wql-composer-input"
         />
 
-        <AddFilterDropdown clauses={clauses} onAdd={addClause} />
-
         {customSlots}
       </div>
 
@@ -322,12 +359,26 @@ export function WqlComposer({
         </div>
       )}
 
-      {showDiagnostics && (
+      {/* The Add Calc / Add Filter menus live on the feedback line, not in
+          the pill bar. When the strip is hidden they still get a footer row
+          so the add paths never disappear. */}
+      {showDiagnostics ? (
         <WqlDiagnosticsStrip
           diagnostics={diagnostics}
           offendingLabel={offendingLabel}
           stages={stages}
+          actions={
+            <>
+              <AddCalcDropdown clauses={clauses} onAdd={addCalc} />
+              <AddFilterDropdown clauses={clauses} onAdd={addClause} />
+            </>
+          }
         />
+      ) : (
+        <div className="flex items-center justify-end gap-1.5 px-1.5" data-testid="wql-add-row">
+          <AddCalcDropdown clauses={clauses} onAdd={addCalc} />
+          <AddFilterDropdown clauses={clauses} onAdd={addClause} />
+        </div>
       )}
     </div>
   )

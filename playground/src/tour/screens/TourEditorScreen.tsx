@@ -1,5 +1,5 @@
 import React from 'react'
-import { Play, Share2 } from 'lucide-react'
+import { Play, RotateCcw, Share2 } from 'lucide-react'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { useRingRef } from '../TourRing'
@@ -11,6 +11,13 @@ export interface TourEditorScreenProps {
   onShare: () => void
   onOpenInEditor: () => void
   theme: string
+  /**
+   * Set when the demo is a shared script (#882): the header reads
+   * `shared by: {sharedBy}` instead of the welcome-1.md path, and a Reset
+   * button clears the stored script back to the default.
+   */
+  sharedBy?: string
+  onResetShared?: () => void
 }
 
 export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
@@ -21,6 +28,8 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
   onShare,
   onOpenInEditor,
   theme,
+  sharedBy,
+  onResetShared,
 }) => {
   const fenceRef = useRingRef('editor.fence')
   const wodBlockRef = useRingRef('editor.wodBlock')
@@ -30,8 +39,19 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div ref={fenceRef} className="flex items-center gap-2">
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Home / Notes / welcome-1.md
+            {sharedBy ? `shared by: ${sharedBy}` : 'Home / Notes / welcome-1.md'}
           </span>
+          {sharedBy && onResetShared && (
+            <button
+              type="button"
+              title="Reset to welcome-1.md"
+              onClick={onResetShared}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            >
+              <RotateCcw size={11} />
+              Reset
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button

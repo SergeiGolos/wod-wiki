@@ -36,12 +36,23 @@ function findResultOf(raw: string): FindQueryResult {
   };
 }
 
+// A feed note with a parseable date — feeds the date-grouped find results.
+const FEED_NOTE = {
+  id: 'feeds/stronglifts/2026-07-01--5x5',
+  title: 'StrongLifts 5×5',
+  createdAt: Date.parse('2026-07-01T10:00:00Z'),
+  type: 'note',
+  sourceId: 'feed:stronglifts',
+  catalog: 'stronglifts',
+} as unknown as FindQueryResult['notes'][number];
+
 // Page runs carry { rangeStart, rangeEnd, preferredUnit } options; the
 // diagnostics-strip executor calls runQuery(ast.raw) bare. Tests use the
 // argument shape to tell the two apart (run-on-submit vs live counts).
 let runQueryCalls: Array<{ raw: string; hasOptions: boolean }> = [];
 let runQueryImpl = async (raw: string) => resultOf(raw);
 let runFindCalls: string[] = [];
+let runFindImpl = async (raw: string) => findResultOf(raw);
 
 mock.module('@/services/analytics/query', () => ({
   parseQuery,
@@ -54,7 +65,7 @@ mock.module('@/services/analytics/query', () => ({
     }),
     runFind: mock(async (ast: ParsedFindQuery) => {
       runFindCalls.push(ast.raw);
-      return findResultOf(ast.raw);
+      return runFindImpl(ast.raw);
     }),
     run: mock(async () => resultOf('sum:totalVolume{}')),
     getFactsByTimeRange: mock(async () => []),
@@ -91,11 +102,79 @@ function renderPage(initialQuery: string) {
 
 const pageRuns = () => runQueryCalls.filter((c) => c.hasOptions).map((c) => c.raw);
 
+/** Example chips live in the header options dropdown — open it first. */
+async function clickExample(label: string) {
+  fireEvent.click(screen.getByTestId('explorer-options'));
+  fireEvent.click(await waitFor(() => screen.getByText(label)));
+}
+
 describe('AnalyticsExplorerPage', () => {
   beforeEach(() => {
     runQueryCalls = [];
     runFindCalls = [];
     runQueryImpl = async (raw: string) => resultOf(raw);
+    runFindImpl = async (raw: string) => findResultOf(raw);
+  });
+
+  it('renders find results in the Library date-grouped format', async () => {
+    runFindImpl = async (raw: string) => ({
+      ...findResultOf(raw),
+      notes: [FEED_NOTE],
+      stages: { selected: 1, matched: 1 },
+    });
+    renderPage('');
+
+    await clickExample('Find PR notes');
+
+    // The shared entry pipeline renders the same grouped rows as the Library.
+    await waitFor(() => expect(screen.getByTestId('library-group-count').textContent).toBe('1'));
+    expect(screen.getByTestId('library-row-post').textContent).toContain('StrongLifts 5×5');
+  });
+
+  it('Query → Dashboard opens the two-stage dialog seeded with the subset', async () => {
+    renderPage('find:note{tags:pr} in journal');
+    await waitFor(() => expect(screen.getByTestId('query-to-dashboard')).toBeDefined());
+
+    fireEvent.click(screen.getByTestId('query-to-dashboard'));
+
+    // Stage 1: the find query is the subset (data source).
+    expect(screen.getByTestId('dashboard-subset-query').textContent).toContain('find:note{tags:pr} in journal');
+    // Stage 2: the calculation composer seeds the subset as its where join…
+    await waitFor(() => expect(screen.getByTestId('token-slot-where').textContent).toContain('find:note{tags:pr} in journal'));
+    // …and the combined WQL previews live.
+    await waitFor(() => expect(screen.getByTestId('dashboard-combined-query').textContent).toContain('where find:note{tags:pr} in journal'));
+    // Apply is deferred — dashboard wiring is a follow-up.
+    expect(screen.getByTestId('dashboard-apply').getAttribute('disabled')).not.toBeNull();
+  });
+
+  it('shows the records behind a calculation as a Library-style list', async () => {
+    runFindImpl = async (raw: string) => ({
+      ...findResultOf(raw),
+      notes: raw.includes('tags:pr') ? [FEED_NOTE] : [],
+      stages: { selected: 1, matched: 1 },
+    });
+    renderPage('sum:totalVolume{tags:pr} by {week}');
+
+    // Chart pipeline ran…
+    await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{tags:pr} by {week}'));
+    // …and the derived records query lists the notes behind the calculation.
+    await waitFor(() => expect(screen.getByTestId('records-wql').textContent).toBe('find:note{tags:pr} in all last 16w'));
+    await waitFor(() => expect(screen.getByTestId('library-row-post').textContent).toContain('StrongLifts 5×5'));
+  });
+
+  it('moves examples, range, and units into the header options dropdown', async () => {
+    renderPage('sum:totalVolume{}');
+    await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{}'));
+
+    // The options live behind the dropdown — not on the page body.
+    expect(screen.queryByText('Weekly strength volume')).toBeNull();
+    fireEvent.click(screen.getByTestId('explorer-options'));
+    await waitFor(() => expect(screen.getByText('Weekly strength volume')).toBeDefined());
+
+    // Changing the range re-runs the submitted analytics query.
+    const runsBefore = pageRuns().length;
+    fireEvent.click(screen.getByText('Past 4 weeks'));
+    await waitFor(() => expect(pageRuns().length).toBeGreaterThan(runsBefore));
   });
 
   it('renders the shared WqlComposer in place of the legacy WqlQueryComposer', () => {
@@ -120,8 +199,7 @@ describe('AnalyticsExplorerPage', () => {
     renderPage('');
 
     // Choose an example query that has a tag filter.
-    const exampleButton = await waitFor(() => screen.getByText('Weekly strength volume'));
-    fireEvent.click(exampleButton);
+    await clickExample('Weekly strength volume');
 
     // Wait for the initial run to complete and the filter chip to appear.
     await waitFor(() => expect(screen.queryByText('discipline:strength')).not.toBeNull());
@@ -150,10 +228,10 @@ describe('AnalyticsExplorerPage', () => {
   it('restores composer state on browser back and re-runs the restored query', async () => {
     renderPage('');
 
-    fireEvent.click(await waitFor(() => screen.getByText('Weekly strength volume')));
+    await clickExample('Weekly strength volume');
     await waitFor(() => expect(screen.getByTestId('token-slot-metric').textContent).toContain('totalVolume'));
 
-    fireEvent.click(screen.getByText('Thruster time-in-motion'));
+    await clickExample('Thruster time-in-motion');
     await waitFor(() => expect(screen.getByTestId('token-slot-metric').textContent).toContain('tis'));
 
     const runsBeforeBack = pageRuns().length;
@@ -179,7 +257,7 @@ describe('AnalyticsExplorerPage', () => {
   it('dispatches find queries through runFind', async () => {
     renderPage('');
 
-    fireEvent.click(await waitFor(() => screen.getByText('Find PR notes')));
+    await clickExample('Find PR notes');
     await waitFor(() => expect(runFindCalls).toContain('find:note{tags:pr} in journal'));
     await waitFor(() => expect(screen.queryByText('No notes found.')).not.toBeNull());
   });

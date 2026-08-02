@@ -177,7 +177,11 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       />
     ),
     effortDetail: () => <EffortDetailPage />,
-    analyticsExplorer: () => <AnalyticsExplorerPage />,
+    analyticsExplorer: () => (
+      <AnalyticsExplorerPage
+        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
+      />
+    ),
     analyticsDashboard: () => <AnalyticsDashboardPage />,
     canvas: () =>
       view.canvasPage!.route === '/' ? (

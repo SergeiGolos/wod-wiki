@@ -5,10 +5,10 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Library, Efforts, Explore
+ *   L1: Home, Library, Analytics, Efforts
  *   L2 of Home:        Zero to Hero + Syntax/* + Behaviors/* (canvas pages)
+ *   L2 of Analytics:   Dashboard + add-dashboard placeholder
  *   L2 of Efforts:     <EffortsNavPanel>   — origin/discipline filters + recent workouts
- *   L2 of Explore:     Dashboard + add-dashboard placeholder
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  */
 
@@ -162,17 +162,8 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
     },
 
     {
-      id: 'efforts',
-      label: 'Efforts',
-      level: 1,
-      icon: Dumbbell,
-      action: { type: 'route', to: ROUTE_PATTERNS.efforts },
-      isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
-      panel: EffortsNavPanel,
-    },
-    {
       id: 'analytics',
-      label: 'Explore',
+      label: 'Analytics',
       level: 1,
       icon: ChartBarIcon,
       action: { type: 'route', to: ROUTE_PATTERNS.analyticsExplorer },
@@ -195,6 +186,15 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
           disabled: true,
         },
       ],
+    },
+    {
+      id: 'efforts',
+      label: 'Efforts',
+      level: 1,
+      icon: Dumbbell,
+      action: { type: 'route', to: ROUTE_PATTERNS.efforts },
+      isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
+      panel: EffortsNavPanel,
     },
   ]
 }
