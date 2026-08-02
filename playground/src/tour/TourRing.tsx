@@ -67,10 +67,12 @@ export function useRingTargets(): RingTargetsContextValue {
   return ctx
 }
 
-/** Callback ref for screens: registers the element under a ring key. */
+/** Callback ref for screens: registers the element under a ring key.
+ *  No-ops outside a RingTargetsProvider so screens can render standalone. */
 export function useRingRef(key: RingTargetKey) {
-  const { register } = useRingTargets()
-  return useCallback((el: HTMLElement | null) => register(key, el), [key, register])
+  const ctx = useContext(RingTargetsContext)
+  const register = ctx?.register
+  return useCallback((el: HTMLElement | null) => register?.(key, el), [key, register])
 }
 
 // ── Ring ────────────────────────────────────────────────────────────────────

@@ -30,6 +30,7 @@ import {
   WHERE_METRICS,
   WHERE_OPERATORS,
 } from './queryClauses'
+import { INTENSITY_TIERS, EFFORT_REGISTRY_ORIGINS } from '@/effort-registry/types'
 
 // ── TokenSlotPill ────────────────────────────────────────────────────────────
 
@@ -191,6 +192,8 @@ const STATIC_OPTIONS: Record<string, { value: string; label: string }[]> = {
   groupby: GROUPBY_OPTIONS,
   metric: METRIC_OPTIONS,
   unit: UNIT_OPTIONS,
+  intensity: INTENSITY_TIERS.map(v => ({ value: v, label: v })),
+  origin: EFFORT_REGISTRY_ORIGINS.map(v => ({ value: v, label: v === 'user' ? 'custom' : v })),
 }
 
 /** "Nothing here yet" affordance for an empty suggestion list (#831). */
@@ -542,9 +545,12 @@ export function AddFilterDropdown({
   // time, and the metric join; the metrics plane offers analytics filters
   // and the aggregate tail slots.
   const metrics = sourcePlane(clauseValue(clauses, 'source', 'notes')) === 'metrics'
+  const efforts = clauseValue(clauses, 'source', 'notes') === 'efforts'
   const available: ClauseType[] = metrics
     ? ['tag', 'effort', 'discipline', 'groupby', 'rollup', 'unit']
-    : ['text', 'tag', 'effort', 'discipline', 'catalog', 'type', 'has', 'time', 'where']
+    : efforts
+      ? ['text', 'effort', 'discipline', 'intensity', 'origin']
+      : ['text', 'tag', 'effort', 'discipline', 'catalog', 'type', 'has', 'time', 'where']
   const menuItems: { type: string; icon: string; label: string }[] = [
     ...available.map(type => ({ type, icon: CLAUSE_META[type].icon, label: CLAUSE_META[type].label })),
     ...customSlots.map(def => ({ type: def.type, icon: def.icon, label: def.label })),

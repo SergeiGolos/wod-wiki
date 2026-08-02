@@ -15,6 +15,7 @@
  */
 
 import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult } from '@/types/storage';
+import { CompositeEffortRegistry, type IEffort } from '@/effort-registry';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { loadStaticBlockIndex, staticTagIndexFromBlocks } from '@/services/content/staticBlockIndex';
 import { parseQuery, isFindQuery, type Aggregator, type ComparisonOp, type ParsedQuery, type ParsedFindQuery, type FindPredicate, type MetricPredicate, type Series, type SeriesPoint, type TagFilter } from './wql';
@@ -134,6 +135,27 @@ export interface BlockQueryStore {
   getAllBlocks(): Promise<BlockIndexRow[]>;
 }
 
+/** Store surface for effort queries (`find:effort`) — injectable for tests. */
+export interface EffortQueryStore {
+  getAllEfforts(): Promise<IEffort[]>;
+}
+
+/**
+ * Production effort store: the CompositeEffortRegistry (bundled + user,
+ * IndexedDB-backed), lazily constructed on first query — the same pattern
+ * the composer's effort suggestion binding uses (suggestionSources.ts).
+ */
+class RegistryEffortStore implements EffortQueryStore {
+  private registry?: CompositeEffortRegistry;
+  async getAllEfforts(): Promise<IEffort[]> {
+    if (!this.registry) {
+      this.registry = new CompositeEffortRegistry();
+      await this.registry.loadBundled();
+    }
+    return [...this.registry.list()];
+  }
+}
+
 const indexedDbBlockStore: BlockQueryStore = {
   getAllBlocks: () => indexedDBService.getAllBlockIndex(),
 };
@@ -213,6 +235,8 @@ export interface FindQueryResult {
   notes: Note[];
   /** Block-index rows for find:block queries. */
   blocks: BlockIndexRow[];
+  /** Registry rows for find:effort queries. */
+  efforts?: IEffort[];
   stages: { selected: number; matched: number };
 }
 
@@ -351,6 +375,7 @@ export class QueryService {
     private readonly noteStore: NoteQueryStore = indexedDbNoteStore,
     private readonly blockStore: BlockQueryStore = indexedDbBlockStore,
     private readonly resultStore: ResultLogStore = indexedDbResultStore,
+    private readonly effortStore: EffortQueryStore = new RegistryEffortStore(),
   ) {}
   async getFactsByTimeRange(start: number, end: number): Promise<AnalyticsDataPoint[]> {
     return this.store.getFactsByTimeRange(start, end);
@@ -381,6 +406,9 @@ export class QueryService {
     if (parsed.target === 'block') {
 
       return this.runFindBlock(parsed, options);
+    }
+    if (parsed.target === 'effort') {
+      return this.runFindEffort(parsed);
     }
     let notes: Note[] = [];
     const scope = parsed.scope || 'journal';
@@ -535,6 +563,58 @@ export class QueryService {
       blocks = joined.blocks;
     }
     return { parsed, notes: [], blocks, stages: { selected: selectedCount, matched: blocks.length } };
+  }
+
+  /**
+   * Execute a find:effort query against the effort registry (bundled + user).
+   * Naive in-memory filtering, same tracer-bullet approach as find:note /
+   * find:block. Supported keys:
+   *   effort     slug, or exact label/alias (case-insensitive); wildcard →
+   *              substring over slug/label/aliases
+   *   discipline baseAttributes.discipline
+   *   intensity  baseAttributes.intensityTier (low | moderate | high)
+   *   origin     registrySource (bundled | user)
+   *   text       substring over label/aliases/slug
+   * OR within a key's values, AND across keys; `negate` inverts per key.
+   * Scope and time window don't apply to the registry and are ignored.
+   */
+  async runFindEffort(parsed: ParsedFindQuery): Promise<FindQueryResult> {
+    const all = await this.effortStore.getAllEfforts();
+    const selectedCount = all.length;
+
+    const matches = (effort: IEffort, key: string, value: string, wildcard: boolean): boolean => {
+      const needle = value.toLowerCase();
+      switch (key) {
+        case 'effort':
+          if (wildcard) {
+            return effort.slug.includes(needle)
+              || effort.label.toLowerCase().includes(needle)
+              || effort.aliases.some(a => a.toLowerCase().includes(needle));
+          }
+          return effort.slug === value
+            || effort.label.toLowerCase() === needle
+            || effort.aliases.some(a => a.toLowerCase() === needle);
+        case 'discipline': return effort.baseAttributes.discipline === value;
+        case 'intensity': return effort.baseAttributes.intensityTier === value;
+        case 'origin': return effort.registrySource === value;
+        case 'text':
+          return effort.label.toLowerCase().includes(needle)
+            || effort.slug.includes(needle)
+            || effort.aliases.some(a => a.toLowerCase().includes(needle));
+        default: return true;
+      }
+    };
+
+    let efforts = all;
+    for (const filter of parsed.filters) {
+      if (!['effort', 'discipline', 'intensity', 'origin', 'text'].includes(filter.key)) continue;
+      efforts = efforts.filter(effort => {
+        const hit = filter.values.some(v => matches(effort, filter.key, v.value, v.wildcard));
+        return filter.negate ? !hit : hit;
+      });
+    }
+
+    return { parsed, notes: [], blocks: [], efforts, stages: { selected: selectedCount, matched: efforts.length } };
   }
 
   async run(parsed: ParsedQuery, options: QueryOptions = {}): Promise<QueryResult> {

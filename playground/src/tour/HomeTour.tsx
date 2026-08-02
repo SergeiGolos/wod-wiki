@@ -133,6 +133,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
   // ── Editor document (live hero demo) ──
   const script = useMemo(() => resolveSource(HOME_DEMO_SOURCE, wodFiles), [wodFiles])
+  const [selectedScript, setSelectedScript] = useState(script)
   const [doc, setDoc] = useState(script)
   const blocksRef = useRef<ScriptBlock[]>([])
   const runtimeRef = useRef<IScriptRuntime | null>(null)
@@ -192,20 +193,29 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     prevInTimerStageRef.current = inTimerStage
   }, [inTimerStage, startNewSession])
 
-  // Typeahead scrub: during slide 1 (editor-blank), chars type in over local t (0..0.5)
+  // Typeahead scrub: during slide 1 (editor-blank), chars type in over local t (0..0.5).
+  // Leaving the slide resets the edit-divergence guard so scrolling back retypes from blank.
+  const prevStageIdRef = useRef(slice.stage.id)
   useEffect(() => {
-    if (editedRecordedRef.current || interactive !== null) return
-    if (slice.stage.id === 'editor-blank') {
-      const frac = clamp01(slice.t / 0.5)
-      const count = Math.floor(script.length * frac)
-      const targetDoc = script.slice(0, count)
-      if (docRef.current !== targetDoc) setDoc(targetDoc)
-    } else if (docRef.current.length < script.length) {
-      setDoc(script)
-    }
-  }, [slice.stage.id, slice.t, script, interactive])
+    return subscribe((s: TourStageSlice) => {
+      const prevId = prevStageIdRef.current
+      prevStageIdRef.current = s.stage.id
+      if (prevId === 'editor-blank' && s.stage.id !== 'editor-blank') {
+        editedRecordedRef.current = false
+      }
+      if (editedRecordedRef.current || interactiveRef.current !== null) return
+      if (s.stage.id === 'editor-blank') {
+        const frac = clamp01(s.t / 0.5)
+        const count = Math.floor(selectedScript.length * frac)
+        const targetDoc = selectedScript.slice(0, count)
+        if (docRef.current !== targetDoc) setDoc(targetDoc)
+      } else if (docRef.current !== selectedScript) {
+        setDoc(selectedScript)
+      }
+    })
+  }, [subscribe, selectedScript])
   useEffect(() => {
-    if (interactive || slice.stage.id !== 'analytics' || session) return
+    if (interactive || slice.stage.screen !== 'analytics' || session) return
     if (scrollSegments.length > 0) return
     const runtime = runtimeRef.current
     if (!runtime) return
@@ -235,7 +245,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   useQuickStartAutoComplete({
     pageRoute: '/',
     quests,
-    initialSource: script,
+    initialSource: selectedScript,
     currentSource: doc,
   })
   const questFullscreen: FullscreenState =
@@ -270,12 +280,30 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const handleDocChange = useCallback(
     (next: string) => {
       setDoc(next)
-      if (next !== script && !editedRecordedRef.current) {
+      if (next !== selectedScript && !editedRecordedRef.current) {
         editedRecordedRef.current = true
         track(HOME_EVENTS.demoEdited)
       }
     },
-    [script, track],
+    [selectedScript, track],
+  )
+
+  // Choose-your-own-adventure: a caption workout button replaces the demo
+  // script, resets the playground session, and re-runs the typewriter.
+  const handleWorkoutChoice = useCallback(
+    (wod: string) => {
+      const next = `# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\n${wod}\n\n> Press **Run** ↑ to start the WallClock.\n`
+      editedRecordedRef.current = false
+      setSelectedScript(next)
+      startNewSession()
+      if (slice.stage.id === 'editor-blank') {
+        setDoc(next.slice(0, Math.floor(next.length * clamp01(slice.t / 0.5))))
+      } else {
+        setDoc(next)
+      }
+      track(HOME_EVENTS.demoEdited)
+    },
+    [startNewSession, slice.stage.id, slice.t, track],
   )
 
   const startRun = useCallback(() => {
@@ -508,6 +536,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
           onRun={handleRun}
           onShare={handleShare}
           onOpenInEditor={handleOpenInEditor}
+          onChoice={handleWorkoutChoice}
         />
 
         {/* Spec §2: runs from the hero demo go fullscreen on every form factor. */}
@@ -635,7 +664,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
             </div>
 
             {/* captions */}
-            <TourCaptions activeIndex={slice.index} />
+            <TourCaptions activeIndex={slice.index} onChoice={handleWorkoutChoice} />
           </div>
         </div>
       </section>

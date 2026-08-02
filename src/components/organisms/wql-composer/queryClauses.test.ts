@@ -57,6 +57,17 @@ describe('source-pivot compile — content planes', () => {
     expect(clausesToWql([clause('source', 'blocks')])).toBe('find:block in all')
   })
 
+  it('compiles efforts as find:effort in all, with effort-plane filters', () => {
+    expect(clausesToWql([clause('source', 'efforts')])).toBe('find:effort in all')
+    expect(clausesToWql([
+      clause('source', 'efforts'),
+      clause('discipline', 'strength'),
+      clause('intensity', 'high'),
+      clause('origin', 'user'),
+      clause('text', 'fran'),
+    ])).toBe('find:effort{discipline:strength, intensity:high, origin:user, text:fran} in all')
+  })
+
   it('compiles filters, time, and where on the content plane', () => {
     const wql = clausesToWql([
       clause('source', 'feeds'),
@@ -165,6 +176,16 @@ describe('wqlToClauses — find restore maps to source', () => {
     expectRoundTrip('find:note{tags:pr} in journal last 8w where sum:totalVolume{} > 5000')
     expectRoundTrip('find:block{type:wod} in all')
     expectRoundTrip('find:note in archive')
+  })
+
+  it('maps effort target to the efforts source (scope dropped)', () => {
+    expect(valueOf(wqlToClauses('find:effort in all'), 'source')).toBe('efforts')
+    expect(valueOf(wqlToClauses('find:effort{intensity:high} in all'), 'intensity')).toBe('high')
+  })
+
+  it('round-trips effort strings exactly, including the new effort-plane filters', () => {
+    expectRoundTrip('find:effort in all')
+    expectRoundTrip('find:effort{discipline:strength, intensity:high, origin:user, text:fran} in all')
   })
 })
 

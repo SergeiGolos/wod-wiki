@@ -2,8 +2,8 @@
  * Shared query-clause model + WQL compiler for the WqlComposer.
  *
  * Source-pivot model (issue #838, decision #836): a single `source` head
- * slot — journal | collections | feeds | notes | blocks | metrics — pivots
- * the query kind. Content sources compile the `find:` skeleton; `metrics`
+ * slot — journal | collections | feeds | notes | blocks | efforts | metrics —
+ * pivots the query kind. Content sources compile the `find:` skeleton; `metrics`
  * compiles the aggregate skeleton (`agg:metric{filters} by {dims}.rollup(p)
  * [in unit] [where find:…]`). The find target and scope are derived from the
  * source value (the legacy `target`/`scope` clause types are retired).
@@ -39,6 +39,8 @@ export type ClauseType =
   | 'tag'
   | 'effort'
   | 'discipline'
+  | 'intensity'
+  | 'origin'
   | 'type'
   | 'has'
   | 'time'
@@ -80,6 +82,7 @@ export const SOURCE_OPTIONS = [
   { value: 'feeds', label: 'Feeds', description: 'Find notes in subscribed feeds' },
   { value: 'notes', label: 'All Notes', description: 'Find notes across every source' },
   { value: 'blocks', label: 'Blocks', description: 'Find fenced workout/dashboard regions' },
+  { value: 'efforts', label: 'Efforts', description: 'Find registered efforts (bundled + custom)' },
   { value: 'metrics', label: 'Metrics', description: 'Aggregate analytics facts' },
 ]
 
@@ -132,6 +135,8 @@ export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
   tag:       { label: 'Tag',        inputType: 'select',   placeholder: 'Pick tag...',                placeholderText: 'tags: [tag]',            icon: '🏷', description: 'Filter by note/workout tags', prefix: 'tags:' },
   effort:    { label: 'Effort',     inputType: 'select',   placeholder: 'Pick effort...',             placeholderText: 'effort: [movement]',     icon: '💪', description: 'Filter by movement/workout', prefix: 'effort:' },
   discipline:{ label: 'Discipline', inputType: 'select',   placeholder: 'Pick discipline...',         placeholderText: 'discipline: [name]',     icon: '⚙', description: 'Filter by domain discipline', prefix: 'discipline:' },
+  intensity: { label: 'Intensity',  inputType: 'select',   placeholder: 'low, moderate, high…',       placeholderText: 'intensity: [tier]',      icon: '🔥', description: 'Effort intensity tier', prefix: 'intensity:' },
+  origin:    { label: 'Origin',     inputType: 'select',   placeholder: 'bundled, user…',             placeholderText: 'origin: [registry]',     icon: '🔖', description: 'Effort registry origin', prefix: 'origin:' },
   type:      { label: 'Block Type', inputType: 'select',   placeholder: 'wod, dashboard...',          placeholderText: 'type: [wod|heading]',    icon: '📦', description: 'Fenced block type', prefix: 'type:' },
   has:       { label: 'Has Feature',inputType: 'select',   placeholder: 'timer, image...',            placeholderText: 'has: [timer|image]',     icon: '✨', description: 'Note/block feature presence', prefix: 'has:' },
   time:      { label: 'Time Window',inputType: 'select',   placeholder: 'Time range',                 placeholderText: 'last: [time range]',      icon: '⏱', description: 'Date window (last Nw/Nd)', prefix: 'last:' },
@@ -189,6 +194,8 @@ export function clauseToWql(clause: QueryClause): { key?: string; filterStr?: st
     case 'tag':        return { filterStr: `tags:${val}` }
     case 'effort':     return { filterStr: `effort:${val}` }
     case 'discipline': return { filterStr: `discipline:${val}` }
+    case 'intensity':  return { filterStr: `intensity:${val}` }
+    case 'origin':     return { filterStr: `origin:${val}` }
     case 'type':       return { filterStr: `type:${val}` }
     case 'has':       return { filterStr: `has:${val}` }
     default: {
@@ -251,8 +258,8 @@ export function clausesToWql(clauses: QueryClause[]): string {
     ].filter(Boolean).join(' ').trim()
   }
 
-  const target = source === 'blocks' ? 'block' : 'note'
-  const scope = source === 'notes' || source === 'blocks' ? 'all' : source
+  const target = source === 'blocks' ? 'block' : source === 'efforts' ? 'effort' : 'note'
+  const scope = source === 'notes' || source === 'blocks' || source === 'efforts' ? 'all' : source
 
   const timeClause = clauses.find(c => c.type === 'time')
   let timeStr = ''
@@ -418,14 +425,16 @@ export function wqlToClauses(wql: string): QueryClause[] | null {
     const filterClauses = restoreFilters(rest)
     if (!filterClauses) return null
 
-    // target+scope collapse into the single source slot: blocks drop the
-    // scope (the engine ignores it for find:block); an unknown scope word
-    // restores verbatim so exotic scopes round-trip (salvage).
+    // target+scope collapse into the single source slot: blocks/efforts drop
+    // the scope (the engine ignores it for registry targets); an unknown
+    // scope word restores verbatim so exotic scopes round-trip (salvage).
     const sourceValue = targetValue === 'block'
       ? 'blocks'
-      : !scopeValue || scopeValue === 'all'
-        ? 'notes'
-        : scopeValue
+      : targetValue === 'effort'
+        ? 'efforts'
+        : !scopeValue || scopeValue === 'all'
+          ? 'notes'
+          : scopeValue
 
     const clauses: QueryClause[] = [
       restoreClause('c-source', 'source', sourceValue),

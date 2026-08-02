@@ -171,7 +171,11 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         onSearch={openSearchPalette}
       />
     ),
-    effortsCatalog: () => <EffortsCatalogPage />,
+    effortsCatalog: () => (
+      <EffortsCatalogPage
+        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
+      />
+    ),
     effortDetail: () => <EffortDetailPage />,
     analyticsExplorer: () => <AnalyticsExplorerPage />,
     analyticsDashboard: () => <AnalyticsDashboardPage />,

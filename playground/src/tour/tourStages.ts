@@ -18,6 +18,9 @@
 export type TourScreen = 'editor' | 'timer' | 'analytics'
 
 export type TourStageId =
+  | 'editor-blank'
+  | 'editor-metrics'
+  | 'editor-run'
   | 'editor-typeahead'
   | 'timer-wallclock'
   | 'timer-cast'
@@ -32,6 +35,9 @@ export type TourStageId =
  * register wrapper elements under these keys via RingTargetsContext.
  */
 export type RingTargetKey =
+  | 'editor.fence'
+  | 'editor.wodBlock'
+  | 'editor.runButton'
   | 'editor.typeahead'
   | 'timer.floor'
   | 'timer.cast'
@@ -76,19 +82,39 @@ export const TOUR_ACCENTS = {
  */
 export const TOUR_STAGES: TourStage[] = [
   {
-    id: 'editor-typeahead',
+    id: 'editor-blank',
     start: 0.0,
-    end: 0.20,
+    end: 0.15,
     screen: 'editor',
     accent: TOUR_ACCENTS.editor,
-    label: 'Syntax & Type-Ahead',
-    ringA: 'editor.typeahead',
-    tagA: 'Autocomplete',
+    label: 'Blank Page & Typeahead',
+    ringA: 'editor.fence',
+    tagA: '```wod Fence',
+  },
+  {
+    id: 'editor-metrics',
+    start: 0.15,
+    end: 0.30,
+    screen: 'editor',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Every Line Collects Metrics',
+    ringA: 'editor.wodBlock',
+    tagA: 'Line Metrics',
+  },
+  {
+    id: 'editor-run',
+    start: 0.30,
+    end: 0.45,
+    screen: 'editor',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Press Run to Start',
+    ringA: 'editor.runButton',
+    tagA: 'Run Button',
   },
   {
     id: 'timer-wallclock',
-    start: 0.20,
-    end: 0.40,
+    start: 0.45,
+    end: 0.60,
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
     label: 'What Happens When It Runs',
@@ -97,8 +123,8 @@ export const TOUR_STAGES: TourStage[] = [
   },
   {
     id: 'timer-cast',
-    start: 0.40,
-    end: 0.60,
+    start: 0.60,
+    end: 0.72,
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
     label: 'Broadcast the Timer',
@@ -107,8 +133,8 @@ export const TOUR_STAGES: TourStage[] = [
   },
   {
     id: 'analytics-scorecard',
-    start: 0.60,
-    end: 0.80,
+    start: 0.72,
+    end: 0.86,
     screen: 'analytics',
     accent: TOUR_ACCENTS.analytics,
     label: 'Explore Your Data',
@@ -117,7 +143,7 @@ export const TOUR_STAGES: TourStage[] = [
   },
   {
     id: 'analytics-grid',
-    start: 0.80,
+    start: 0.86,
     end: 1.0,
     screen: 'analytics',
     accent: TOUR_ACCENTS.analytics,

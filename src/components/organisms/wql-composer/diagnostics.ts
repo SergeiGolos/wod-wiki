@@ -110,6 +110,7 @@ function clauseProbeWql(clause: QueryClause, plane: 'content' | 'metrics'): stri
       // 'metrics'/'notes' map to always-valid skeletons — never the offender.
       if (value === 'metrics' || value === 'notes') return null
       if (value === 'blocks') return 'find:block in all'
+      if (value === 'efforts') return 'find:effort in all'
       return `find:note in ${value}`
     case 'time':
       // 'all' compiles to no time fragment (see clausesToWql) — probing it

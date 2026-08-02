@@ -41,11 +41,13 @@ export const WQL_CONTENT_FILTER_KEYS = ['type', 'text', 'has', 'source', 'catalo
 /**
  * Composer source planes (issue #838, decision #836): the single `source`
  * head slot that pivots the query kind. Content sources compile the `find:`
- * skeleton; `metrics` compiles the aggregate skeleton. `results`/`efforts`
- * planes are deliberately absent — they need new grammar/engine semantics
- * and are deferred to their own tickets.
+ * skeleton; `metrics` compiles the aggregate skeleton. `efforts` compiles
+ * `find:effort` against the effort registry (origin/intensity/discipline
+ * vocab from src/effort-registry/types.ts). The `results` plane is
+ * deliberately absent — it needs new grammar/engine semantics and is
+ * deferred to its own ticket.
  */
-export const WQL_SOURCES = ['journal', 'collections', 'feeds', 'notes', 'blocks', 'metrics'] as const;
+export const WQL_SOURCES = ['journal', 'collections', 'feeds', 'notes', 'blocks', 'efforts', 'metrics'] as const;
 
 /** Rollup periods the aggregate grammar accepts (wql.ts: unit d|w only). */
 export const WQL_ROLLUP_PERIODS = ['1d', '1w'] as const;

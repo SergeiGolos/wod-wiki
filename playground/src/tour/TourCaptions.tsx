@@ -20,6 +20,37 @@ export interface TourCaptionAction {
   event: HomeEventName
 }
 
+/** Choose-your-own-adventure workout option rendered as a caption button. */
+export interface TourCaptionChoice {
+  label: string
+  detail: string
+  wod: string
+}
+
+/** Workout presets for the editor-blank slide — reps + distance + load, no forced timers. */
+export const WORKOUT_PRESETS: TourCaptionChoice[] = [
+  {
+    label: '21-15-9 Rep Scaling',
+    detail: '24kg Swings · 400m Run · 225lb Deadlifts',
+    wod: '```wod\n21-15-9\n  Kettlebell Swings 24kg\n  400m Run\n  Deadlifts 225lb\n  *:30 Rest\n```',
+  },
+  {
+    label: 'Bodyweight & Distance',
+    detail: '20 Air Squats · 200m Run · 15 Push-ups',
+    wod: '```wod\n(4 Rounds)\n  20 Air Squats\n  200m Run\n  15 Push-ups\n  *:45 Rest\n```',
+  },
+  {
+    label: 'Heavy Triplet',
+    detail: '5 Back Squats 185lb · 100m Carry 50lb · 10 Ring Dips',
+    wod: '```wod\n(5 Sets)\n  5 Barbell Back Squats 185lb\n  100m Farmer Carry 50lb\n  10 Ring Dips\n```',
+  },
+  {
+    label: 'Load & Carry Ladder',
+    detail: '12 Front Squats 65kg · 100m Carry 30kg · 20 Box Jumps',
+    wod: '```wod\n(4 Sets)\n  12 Front Squats 65kg\n  100m Sandbag Carry 30kg\n  20 Box Jumps\n```',
+  },
+]
+
 export interface TourCaption {
   id: TourStageId
   num: string
@@ -28,6 +59,8 @@ export interface TourCaption {
   foot: string
   accent: string
   actions?: TourCaptionAction[]
+  /** Workout choices rendered as buttons; firing one resets the tour session. */
+  choices?: TourCaptionChoice[]
 }
 
 export const TOUR_CAPTIONS: TourCaption[] = [
@@ -43,6 +76,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     body: 'WOD Wiki notes start as freeform Markdown. As you type, live type-ahead autocomplete brings the workout onto the page and completes your script.',
     foot: 'Markdown · type-ahead completion · freeform entry',
     accent: TOUR_ACCENTS.editor,
+    choices: WORKOUT_PRESETS,
     actions: [
       {
         label: 'Start Lesson 1',
@@ -181,10 +215,12 @@ export const TOUR_CAPTIONS: TourCaption[] = [
 export interface TourCaptionsProps {
   /** Index into TOUR_CAPTIONS (matches stage index). */
   activeIndex: number
+  /** Called when a workout choice button is clicked (choose-your-own-adventure). */
+  onChoice?: (wod: string) => void
 }
 
 /** Desktop cross-fading caption column. */
-export function TourCaptions({ activeIndex }: TourCaptionsProps) {
+export function TourCaptions({ activeIndex, onChoice }: TourCaptionsProps) {
   return (
     <div className="relative w-[330px] flex-none min-h-[280px]" data-testid="tour-captions">
       {TOUR_CAPTIONS.map((cap, i) => (
@@ -194,14 +230,14 @@ export function TourCaptions({ activeIndex }: TourCaptionsProps) {
           style={{ opacity: i === activeIndex ? 1 : 0 }}
           aria-hidden={i !== activeIndex}
         >
-          <CaptionBody cap={cap} />
+          <CaptionBody cap={cap} onChoice={onChoice} />
         </div>
       ))}
     </div>
   )
 }
 
-export function CaptionBody({ cap }: { cap: TourCaption }) {
+export function CaptionBody({ cap, onChoice }: { cap: TourCaption; onChoice?: (wod: string) => void }) {
   return (
     <>
       <div
@@ -217,6 +253,21 @@ export function CaptionBody({ cap }: { cap: TourCaption }) {
       <div className="mt-4 border-t border-border pt-3 font-mono text-[10px] tracking-[0.06em] text-muted-foreground/60">
         {cap.foot}
       </div>
+      {cap.choices && cap.choices.length > 0 && (
+        <div className="mt-4 flex flex-col gap-2" data-testid="tour-workout-choices">
+          {cap.choices.map((choice) => (
+            <button
+              key={choice.label}
+              type="button"
+              onClick={() => onChoice?.(choice.wod)}
+              className="rounded-lg border border-border bg-card px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/50"
+            >
+              <div className="text-sm font-semibold text-foreground">{choice.label}</div>
+              <div className="font-mono text-[10px] text-muted-foreground">{choice.detail}</div>
+            </button>
+          ))}
+        </div>
+      )}
       {cap.actions && cap.actions.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-3">
           {cap.actions.map((action, i) => {

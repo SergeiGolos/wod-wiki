@@ -22,6 +22,8 @@ export interface TourMobileStackProps {
   onRun: () => void
   onShare: () => void
   onOpenInEditor: () => void
+  /** Choose-your-own-adventure workout choice from the editor-blank caption card. */
+  onChoice?: (wod: string) => void
 }
 
 export function TourMobileStack(props: TourMobileStackProps) {
@@ -63,7 +65,7 @@ export function TourMobileStack(props: TourMobileStackProps) {
           data-testid="tour-editor-card"
           className="mx-6 rounded-2xl border border-border bg-card p-6"
         >
-          <CaptionBody cap={editorBlankCaption} />
+          <CaptionBody cap={editorBlankCaption} onChoice={props.onChoice} />
         </article>
       )}
       {editorMetricsCaption && (

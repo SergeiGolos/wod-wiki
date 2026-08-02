@@ -1,23 +1,8 @@
 import React from 'react'
-import { Play, Share2, Sparkles } from 'lucide-react'
+import { Play, Share2 } from 'lucide-react'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { useRingRef } from '../TourRing'
-
-export const WORKOUT_PRESETS = [
-  {
-    name: '21-15-9 Rep Scaling (24kg Swings, 400m Run, 225lb Deadlifts)',
-    wod: '```wod\n21-15-9\n  Kettlebell Swings 24kg\n  400m Run\n  Deadlifts 225lb\n  *:30 Rest\n```',
-  },
-  {
-    name: 'Bodyweight & Distance (20 reps, 200m)',
-    wod: '```wod\n(4 Rounds)\n  20 Air Squats\n  200m Run\n  15 Push-ups\n  *:45 Rest\n```',
-  },
-  {
-    name: 'Heavy Triplet (5 reps, 100m, 185lb/50lb)',
-    wod: '```wod\n(5 Sets)\n  5 Barbell Back Squats 185lb\n  100m Farmer Carry 50lb\n  10 Ring Dips\n```',
-  },
-]
 export interface TourEditorScreenProps {
   doc: string
   onDocChange: (next: string) => void
@@ -40,10 +25,6 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
   const fenceRef = useRingRef('editor.fence')
   const wodBlockRef = useRingRef('editor.wodBlock')
   const runButtonRef = useRingRef('editor.runButton')
-
-  const handleSelectPreset = (wod: string) => {
-    onDocChange(`# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\n${wod}\n\n> Press **Run** ↑ to start the WallClock.\n`)
-  }
   return (
     <div className="flex h-full flex-col bg-background text-left">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
@@ -51,26 +32,6 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             Home / Notes / welcome-1.md
           </span>
-          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Sparkles size={12} className="text-primary" />
-            <select
-              aria-label="Preset workouts"
-              className="rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10.5px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              onChange={(e) => {
-                if (e.target.value) handleSelectPreset(e.target.value)
-              }}
-              defaultValue=""
-            >
-              <option value="" disabled>
-                Preset Workouts (Reps + Distance + Load)
-              </option>
-              {WORKOUT_PRESETS.map((p) => (
-                <option key={p.name} value={p.wod}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
