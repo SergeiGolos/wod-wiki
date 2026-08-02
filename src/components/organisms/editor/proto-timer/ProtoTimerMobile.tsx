@@ -20,7 +20,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Play, Pause, SkipForward, Square, ChevronLeft, ChevronRight, Timer } from 'lucide-react';
-import { useScriptRuntime, useNextPreview } from '@/hooks/useRuntimeTimer';
+import { useNextPreview } from '@/hooks/useRuntimeTimer';
 import { usePrimaryTimer, useStackTimers, useStackDisplayRows } from '@/runtime/hooks/useStackDisplay';
 import { useRoundDisplay } from '@/runtime/hooks/useBlockMemory';
 import { useWorkbenchSession } from '@/stores/workbenchSessionStore';
@@ -236,7 +236,7 @@ const PauseButton: React.FC<{ m: ProtoTimerModel; h: ProtoTimerHandlers; classNa
   </button>
 );
 
-const SecondaryChips: React.FC<{ m: Model }> = ({ m }) => (
+const SecondaryChips: React.FC<{ m: ProtoTimerModel }> = ({ m }) => (
   m.secondaryTimers.length > 0 ? (
     <div className="flex flex-wrap items-center justify-center gap-2">
       {m.secondaryTimers.map(st => (
