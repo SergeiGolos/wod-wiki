@@ -73,10 +73,11 @@ export function QueryToDashboardDialog({ open, onOpenChange, subsetQuery }: Quer
       <div className="w-full max-w-2xl rounded-xl border border-border bg-card shadow-2xl">
         <div className="flex items-start justify-between px-5 pt-4 pb-2">
           <div>
-            <h2 className="text-base font-bold text-foreground">Send query to dashboard</h2>
+            <h2 className="text-base font-bold text-foreground">Save query</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Decouple the data source from the calculation: a subset query picks
-              the workouts, the calculation runs over just that subset.
+              Shape what gets saved, then choose where it lands. A subset query
+              picks the workouts; the calculation runs over just that subset —
+              ready to pin to a dashboard.
             </p>
           </div>
           <button

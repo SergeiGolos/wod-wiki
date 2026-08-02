@@ -13,7 +13,7 @@
  * seam is diagnostics-strip stage counts only, exactly as on /library.
  */
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { CalendarIcon, LayoutDashboard, Play } from 'lucide-react';
+import { CalendarIcon, Play, Save } from 'lucide-react';
 import { parseQuery, isFindQuery, queryService, type QueryResult } from '@/services/analytics/query';
 import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
@@ -301,26 +301,26 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
               onSubmit={(wql) => submit(wql)}
               execute={diagnosticsExecutor}
               customSlots={
-                <>
-                  <button
-                    type="button"
-                    data-testid="run-query"
-                    onClick={() => submit()}
-                    className="flex items-center gap-1.5 bg-primary text-primary-foreground rounded-lg px-3 py-1 text-[11px] font-semibold hover:opacity-90 transition-all shadow-sm shrink-0"
-                  >
-                    <Play size={12} /> Run Query
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="query-to-dashboard"
-                    disabled={!draftValid}
-                    onClick={() => setDashOpen(true)}
-                    title="Decouple the data source (subset query) from the calculation, then send it to a dashboard"
-                    className="flex items-center gap-1.5 rounded-lg border border-primary/40 text-primary px-3 py-1 text-[11px] font-semibold hover:bg-primary/10 transition-all shrink-0 disabled:opacity-40 disabled:hover:bg-transparent"
-                  >
-                    <LayoutDashboard size={12} /> Query → Dashboard
-                  </button>
-                </>
+                <button
+                  type="button"
+                  data-testid="run-query"
+                  onClick={() => submit()}
+                  className="flex items-center gap-1.5 bg-primary text-primary-foreground rounded-lg px-3 py-1 text-[11px] font-semibold hover:opacity-90 transition-all shadow-sm shrink-0"
+                >
+                  <Play size={12} /> Run Query
+                </button>
+              }
+              diagnosticsActions={
+                <button
+                  type="button"
+                  data-testid="save-query"
+                  disabled={!draftValid}
+                  onClick={() => setDashOpen(true)}
+                  title="Save this query — decide where it lands (dashboard, …)"
+                  className="flex items-center gap-1.5 rounded-lg border border-primary/40 text-primary px-3 py-1 text-[11px] font-semibold hover:bg-primary/10 transition-all shrink-0 disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <Save size={12} /> Save
+                </button>
               }
             />
           </div>

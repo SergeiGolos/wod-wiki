@@ -84,6 +84,9 @@ export interface WqlComposerProps {
   debounceMs?: number
   /** Extension point: extra content rendered inside the bar, after the free-text input. */
   customSlots?: ReactNode
+  /** Host actions appended on the diagnostics line, after the built-in
+   * Add Calc / Add Filter menus (e.g. the Explorer's Save button). */
+  diagnosticsActions?: ReactNode
   /**
    * Clause types kept in the model (WQL compile, diagnostics, change events)
    * but NOT rendered as pills — the host owns their UI outside the composer
@@ -111,6 +114,7 @@ export function WqlComposer({
   execute,
   debounceMs = DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
   customSlots,
+  diagnosticsActions,
   hiddenClauseTypes,
   autoFocus = false,
   className,
@@ -371,6 +375,7 @@ export function WqlComposer({
             <>
               <AddCalcDropdown clauses={clauses} onAdd={addCalc} />
               <AddFilterDropdown clauses={clauses} onAdd={addClause} />
+              {diagnosticsActions}
             </>
           }
         />
@@ -378,6 +383,7 @@ export function WqlComposer({
         <div className="flex items-center justify-end gap-1.5 px-1.5" data-testid="wql-add-row">
           <AddCalcDropdown clauses={clauses} onAdd={addCalc} />
           <AddFilterDropdown clauses={clauses} onAdd={addClause} />
+          {diagnosticsActions}
         </div>
       )}
     </div>

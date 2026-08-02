@@ -13,8 +13,8 @@ import type { ScriptBlock } from '@/components/Editor/types'
 const ROWS: Array<{ before?: string; accentText: string; after?: string; accent: string }> = [
   { before: 'Write it in ', accentText: 'Markdown', accent: TOUR_ACCENTS.editor },
   { before: 'Run it as a ', accentText: 'Timer', accent: TOUR_ACCENTS.timer },
-  { before: 'Own the ', accentText: 'Data', accent: TOUR_ACCENTS.library },
-  { accentText: 'Explore', after: ' the Metrics', accent: TOUR_ACCENTS.analytics },
+  { before: 'Own the ', accentText: 'Metrics', accent: TOUR_ACCENTS.library },
+  { accentText: 'Explore', after: ' your analytics', accent: TOUR_ACCENTS.analytics },
 ]
 
 export interface TourHeroProps {

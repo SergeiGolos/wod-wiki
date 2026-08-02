@@ -131,11 +131,11 @@ describe('AnalyticsExplorerPage', () => {
     expect(screen.getByTestId('library-row-post').textContent).toContain('StrongLifts 5×5');
   });
 
-  it('Query → Dashboard opens the two-stage dialog seeded with the subset', async () => {
+  it('Save opens the two-stage dialog seeded with the subset', async () => {
     renderPage('find:note{tags:pr} in journal');
-    await waitFor(() => expect(screen.getByTestId('query-to-dashboard')).toBeDefined());
+    await waitFor(() => expect(screen.getByTestId('save-query')).toBeDefined());
 
-    fireEvent.click(screen.getByTestId('query-to-dashboard'));
+    fireEvent.click(screen.getByTestId('save-query'));
 
     // Stage 1: the find query is the subset (data source).
     expect(screen.getByTestId('dashboard-subset-query').textContent).toContain('find:note{tags:pr} in journal');
