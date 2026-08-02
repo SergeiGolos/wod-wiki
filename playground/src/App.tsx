@@ -217,7 +217,11 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         onSearch={openSearchPalette}
       />
     ),
-    library: () => <LibraryPage />,
+    library: () => (
+      <LibraryPage
+        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
+      />
+    ),
   }
 
   const canvasTitleAccessory =

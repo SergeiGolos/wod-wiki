@@ -111,16 +111,44 @@ const BLOCK_ROW = {
 } as FindQueryResult['blocks'][number]
 
 describe('LibraryPage', () => {
+  /** The scope radio's checked state, keyed by scope id. */
+  const scopeChecked = (scope: string) =>
+    (screen.getByTestId(`library-scope-${scope}`).querySelector('input') as HTMLInputElement).checked
+
   it('renders the shared WqlComposer instead of the old composer panel', async () => {
     runFindImpl = async parsed => emptyResult(parsed.raw ?? '')
     renderPage('/library')
 
     expect(screen.getByTestId('wql-composer')).toBeDefined()
     expect(screen.queryByTestId('wql-composer-panel')).toBeNull()
-    // Library defaults: all note sources, past two weeks.
-    expect(screen.getByTestId('token-slot-source').textContent).toContain('notes')
+    // The source head clause is owned by the scope radio — the composer
+    // keeps it in the query model but hides the pill.
+    expect(screen.queryByTestId('token-slot-source')).toBeNull()
+    expect(scopeChecked('all')).toBe(true)
     expect(screen.getByTestId('token-slot-time').textContent).toContain('last 2w')
     await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull())
+  })
+
+  it('switches the search scope via the radio, preserving the other clauses', async () => {
+    const raws: string[] = []
+    runFindImpl = async parsed => {
+      raws.push(parsed.raw ?? '')
+      return emptyResult(parsed.raw ?? '')
+    }
+    renderPage('/library')
+    await waitFor(() => expect(raws.some(r => r.includes('find:note in all'))).toBe(true))
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Feeds' }))
+
+    // The query re-bases on the feeds source and the search re-runs…
+    await waitFor(() => expect(raws.some(r => r.includes('find:note in feeds'))).toBe(true))
+    // …the scope radio follows…
+    expect(scopeChecked('feeds')).toBe(true)
+    // …the subtitle identifies the content (#802)…
+    expect(screen.getByTestId('library-heading').textContent).toBe('Feeds')
+    // …and the time window survives the switch (no pivot between content sources).
+    expect(screen.getByTestId('token-slot-time').textContent).toContain('last 2w')
+    expect(raws.find(r => r.includes('in feeds'))).toContain('last 2w')
   })
 
   it('lists entries matching the query from the URL', async () => {
@@ -181,8 +209,10 @@ describe('LibraryPage', () => {
     renderPage(`/library?q=${encodeURIComponent('find:note in journal')}`)
 
     await waitFor(() => expect(screen.getByTestId('empty-remedy-all-sources')).toBeDefined())
+    // A journal-scoped deep link selects the Notes scope.
+    expect(scopeChecked('notes')).toBe(true)
     fireEvent.click(screen.getByTestId('empty-remedy-all-sources'))
-    await waitFor(() => expect(screen.getByTestId('token-slot-source').textContent).toContain('notes'))
+    await waitFor(() => expect(scopeChecked('all')).toBe(true))
   })
 
   it('banners a rejected URL query instead of silently resetting (#854)', async () => {

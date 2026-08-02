@@ -65,7 +65,7 @@ export function TourHero({
         journal — one file, one loop, no app-switching.
       </p>
 
-      <div className="mt-8 w-full max-w-2xl">
+      <div className="mt-8 w-full max-w-2xl text-left">
         <div className="h-[min(420px,50vh)] overflow-hidden rounded-xl border border-border shadow-lg">
           <TourEditorScreen
             doc={doc}

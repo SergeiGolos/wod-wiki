@@ -93,12 +93,54 @@ type TestSlice = {
 }
 
 function makeSlice(progress: number): TestSlice {
-  if (progress < 0.5) {
-    const t = progress / 0.5
+  if (progress < 0.15) {
+    const t = progress / 0.15
     return {
       index: 0,
       stage: {
-        id: 'timer',
+        id: 'editor-blank',
+        screen: 'editor',
+        accent: 'hsl(var(--metric-resistance))',
+        label: 'Start with a Blank Page',
+      },
+      t,
+      ring: { key: 'editor.fence', tag: '```wod Fence' },
+    }
+  }
+  if (progress < 0.30) {
+    const t = (progress - 0.15) / 0.15
+    return {
+      index: 1,
+      stage: {
+        id: 'editor-metrics',
+        screen: 'editor',
+        accent: 'hsl(var(--metric-resistance))',
+        label: 'Every Line Collects Metrics',
+      },
+      t,
+      ring: { key: 'editor.wodBlock', tag: 'Line Metrics' },
+    }
+  }
+  if (progress < 0.45) {
+    const t = (progress - 0.30) / 0.15
+    return {
+      index: 2,
+      stage: {
+        id: 'editor-run',
+        screen: 'editor',
+        accent: 'hsl(var(--metric-resistance))',
+        label: 'Press Run to Start',
+      },
+      t,
+      ring: { key: 'editor.runButton', tag: 'Run Button' },
+    }
+  }
+  if (progress < 0.60) {
+    const t = (progress - 0.45) / 0.15
+    return {
+      index: 3,
+      stage: {
+        id: 'timer-wallclock',
         screen: 'timer',
         accent: 'hsl(var(--metric-effort))',
         label: 'What Happens When It Runs',
@@ -107,24 +149,52 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'timer.floor', tag: 'WallClock' },
     }
   }
-  const t = (progress - 0.5) / 0.5
+  if (progress < 0.72) {
+    const t = (progress - 0.60) / 0.12
+    return {
+      index: 4,
+      stage: {
+        id: 'timer-cast',
+        screen: 'timer',
+        accent: 'hsl(var(--metric-effort))',
+        label: 'Broadcast the Timer',
+      },
+      t,
+      ring: { key: 'timer.cast', tag: 'Chromecast' },
+    }
+  }
+  if (progress < 0.86) {
+    const t = (progress - 0.72) / 0.14
+    return {
+      index: 5,
+      stage: {
+        id: 'analytics-scorecard',
+        screen: 'analytics',
+        accent: 'hsl(var(--metric-rounds))',
+        label: 'Explore Your Data',
+      },
+      t,
+      ring: { key: 'analytics.scorecard', tag: 'Scorecard' },
+    }
+  }
+  const t = (progress - 0.86) / 0.14
   return {
-    index: 1,
+    index: 6,
     stage: {
-      id: 'analytics',
+      id: 'analytics-grid',
       screen: 'analytics',
       accent: 'hsl(var(--metric-rounds))',
-      label: 'Explore Your Data',
+      label: 'Session Review',
     },
     t,
-    ring: { key: 'analytics.scorecard', tag: 'Review' },
+    ring: { key: 'analytics.grid', tag: 'Review Grid' },
   }
 }
 
 mock.module('./useTourScroll', () => {
   const React = require('react')
   const store: { slice: TestSlice; listeners: Set<() => void> } = {
-    slice: makeSlice(0.1),
+    slice: makeSlice(0.50),
     listeners: new Set(),
   }
 
@@ -205,7 +275,6 @@ const questLabels: Record<string, string> = {
   'basics-movement': 'Add a movement',
   'protocols-timer': 'Add a timer',
 }
-
 async function renderHomeTour() {
   const result = render(
     <MemoryRouter>
@@ -214,17 +283,14 @@ async function renderHomeTour() {
         theme="light"
         quests={homeQuests}
         chapters={chapters}
-        questLabels={questLabels}
       />
     </MemoryRouter>,
   )
-  // Flush any post-mount effects that update state.
   await act(async () => {
     await Promise.resolve()
   })
   return result
 }
-
 // ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('HomeTour', () => {
@@ -232,6 +298,7 @@ describe('HomeTour', () => {
   let unsubscribe: () => void = () => {}
 
   beforeEach(() => {
+    setTestTourProgress(0.50)
     recorded = []
     unsubscribe = telemetry.events.subscribe((event) => recorded.push(event))
     Object.defineProperty(window, 'matchMedia', {
@@ -256,10 +323,9 @@ describe('HomeTour', () => {
   })
 
   it('renders the short-circuit strip with Library and New note exits', async () => {
-    renderHomeTour()
+    await renderHomeTour()
     const strip = await screen.findByTestId('tour-short-circuit-strip')
     expect(strip).toBeTruthy()
-
     const libraryLink = screen.getByRole('link', { name: /Jump to the Library/i })
     expect(libraryLink.getAttribute('href')).toBe('/library')
     const newNoteButton = screen.getByRole('button', { name: /New note/i })
@@ -267,17 +333,17 @@ describe('HomeTour', () => {
   })
 
   it('exposes timer and analytics stage drop-offs with correct hrefs', async () => {
-    renderHomeTour()
+    await renderHomeTour()
 
     // Timer stage is the initial slice.
     const behaviorsLink = await screen.findByRole('link', { name: /Read the behaviors explainer/i })
     expect(behaviorsLink.getAttribute('href')).toBe('/guide/behaviors')
 
-    // Drive to the Analytics stage.
+    // Drive to the Analytics Scorecard stage.
     await act(async () => {
-      setTestTourProgress(0.6)
+      setTestTourProgress(0.78)
+      await Promise.resolve()
     })
-
     const explorerLink = await screen.findByRole('link', { name: /Run a pre-filled query/i })
     expect(explorerLink.getAttribute('href')).toContain('/analytics/explorer')
     expect(explorerLink.getAttribute('href')).toContain('q=')
@@ -285,8 +351,14 @@ describe('HomeTour', () => {
     const dashboardLink = screen.getByRole('link', { name: /Open the dashboard/i })
     expect(dashboardLink.getAttribute('href')).toBe('/analytics/dashboard')
 
+    // Drive to the Analytics Grid stage.
+    await act(async () => {
+      setTestTourProgress(0.92)
+      await Promise.resolve()
+    })
     const analyticsGuideLink = screen.getByRole('link', { name: /Read the query guide/i })
     expect(analyticsGuideLink.getAttribute('href')).toBe('/guide/analytics')
+
     const effortsLinks = screen.getAllByRole('link', { name: /Browse the registry/i })
     expect(effortsLinks.length).toBeGreaterThanOrEqual(1)
     for (const link of effortsLinks) {
@@ -295,46 +367,63 @@ describe('HomeTour', () => {
   })
 
   it('renders the static areas in locked order', async () => {
-    renderHomeTour()
-
+    await renderHomeTour()
     const headings = (await screen.findAllByRole('heading')).map((h) => h.textContent)
+    const exploreIndex = headings.findIndex((h) => h?.includes('What Happens When It Runs') || h?.includes('Explore Your Data'))
     const learnIndex = headings.findIndex((h) => h?.includes('Learn the Language'))
-    const exploreIndex = headings.findIndex((h) => h?.includes('Explore Your Data'))
     const registryIndex = headings.findIndex((h) => h?.includes('The Movement Registry'))
     const referenceIndex = headings.findIndex((h) => h?.includes('Quick Reference'))
 
-    expect(learnIndex).toBeGreaterThanOrEqual(0)
-    expect(learnIndex).toBeLessThan(exploreIndex)
-    expect(exploreIndex).toBeLessThan(registryIndex)
+    expect(exploreIndex).toBeGreaterThanOrEqual(0)
+    expect(exploreIndex).toBeLessThan(learnIndex)
+    expect(learnIndex).toBeLessThan(registryIndex)
     expect(registryIndex).toBeLessThan(referenceIndex)
   })
 
+  it('starts a new playground session based on initial editor content when scrolling into timer stage', async () => {
+    await renderHomeTour()
+    await act(async () => {
+      setTestTourProgress(0.50)
+      await Promise.resolve()
+    })
+    const backButton = await screen.findByTitle('Back to the tour')
+    expect(backButton).toBeTruthy()
+  })
+
   it('records the matching home:* event when a drop-off is clicked', async () => {
-    renderHomeTour()
+    await renderHomeTour()
 
     const libraryLink = await screen.findByRole('link', { name: /Jump to the Library/i })
     fireEvent.click(libraryLink)
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.libraryOpened)
 
-    // Drive to the analytics stage and click a drop-off.
-    setTestTourProgress(0.6)
+    // Drive to the analytics-scorecard stage and click a drop-off.
+    await act(async () => {
+      setTestTourProgress(0.78)
+      await Promise.resolve()
+    })
     const explorerLink = await screen.findByRole('link', { name: /Run a pre-filled query/i })
     fireEvent.click(explorerLink)
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.explorerOpened)
 
-    const analyticsGuideLink = screen.getByRole('link', { name: /Read the query guide/i })
+    await act(async () => {
+      setTestTourProgress(0.92)
+      await Promise.resolve()
+    })
+    const analyticsGuideLink = await screen.findByRole('link', { name: /Read the query guide/i })
     fireEvent.click(analyticsGuideLink)
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.analyticsGuideOpened)
-    // Click the timer-stage drop-off as well.
-    setTestTourProgress(0.1)
+
+    await act(async () => {
+      setTestTourProgress(0.50)
+      await Promise.resolve()
+    })
     const behaviorsLink = await screen.findByRole('link', { name: /Read the behaviors explainer/i })
     fireEvent.click(behaviorsLink)
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.behaviorsOpened)
   })
-
   it('desktop hero Run mounts the fullscreen overlay with WallClock and exit pill', async () => {
-    renderHomeTour()
-
+    await renderHomeTour()
     const runButton = await screen.findByRole('button', { name: /^Run$/i })
     await act(async () => {
       fireEvent.click(runButton)

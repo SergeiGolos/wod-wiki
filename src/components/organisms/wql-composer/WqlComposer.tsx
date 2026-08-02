@@ -31,6 +31,7 @@ import {
   type WqlExecutor,
 } from './useWqlStageCounts'
 import {
+  type ClauseType,
   type QueryClause,
   getClauseMeta,
   defaultClauses,
@@ -81,6 +82,14 @@ export interface WqlComposerProps {
   debounceMs?: number
   /** Extension point: extra content rendered inside the bar, after the add-filter menu. */
   customSlots?: ReactNode
+  /**
+   * Clause types kept in the model (WQL compile, diagnostics, change events)
+   * but NOT rendered as pills — the host owns their UI outside the composer
+   * (e.g. the Library renders the `source` head as a scope radio above the
+   * bar). Indices into `clauses` are unaffected; the diagnostics strip still
+   * reflects the hidden clauses, so the strip never lies about the query.
+   */
+  hiddenClauseTypes?: ClauseType[]
   /** Focus the free-text input on mount (e.g. when embedded in the palette, issue #834). */
   autoFocus?: boolean
   className?: string
@@ -100,6 +109,7 @@ export function WqlComposer({
   execute,
   debounceMs = DEFAULT_DIAGNOSTICS_DEBOUNCE_MS,
   customSlots,
+  hiddenClauseTypes,
   autoFocus = false,
   className,
 }: WqlComposerProps) {
@@ -107,6 +117,7 @@ export function WqlComposer({
     () => initialClauses ?? defaultClauses(),
   )
   const clauses = controlledClauses ?? internalClauses
+  const hiddenTypes = useMemo(() => new Set<string>(hiddenClauseTypes), [hiddenClauseTypes])
 
   const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null)
   const [freeText, setFreeText] = useState('')
@@ -262,20 +273,22 @@ export function WqlComposer({
       >
         <Command className="size-4 text-amber-500 shrink-0 mr-0.5" />
 
-        {/* Token Slots */}
-        {clauses.map((clause, idx) => (
-          <TokenSlotPill
-            key={clause.id}
-            clause={clause}
-            isActive={activeSlotIdx === idx}
-            invalid={diagnostics.offendingClauseId === clause.id}
-            invalidReason={diagnostics.offendingClauseId === clause.id ? diagnostics.error : undefined}
-            onClick={() => setActiveSlotIdx(idx)}
-            onChange={patch => updateClause(idx, patch)}
-            onRemove={() => removeClause(idx)}
-            compact
-          />
-        ))}
+        {/* Token Slots — hidden types stay in the model, owned by host UI */}
+        {clauses.map((clause, idx) =>
+          hiddenTypes.has(clause.type) ? null : (
+            <TokenSlotPill
+              key={clause.id}
+              clause={clause}
+              isActive={activeSlotIdx === idx}
+              invalid={diagnostics.offendingClauseId === clause.id}
+              invalidReason={diagnostics.offendingClauseId === clause.id ? diagnostics.error : undefined}
+              onClick={() => setActiveSlotIdx(idx)}
+              onChange={patch => updateClause(idx, patch)}
+              onRemove={() => removeClause(idx)}
+              compact
+            />
+          ),
+        )}
 
         {/* Quick Free-text Search Input */}
         <input

@@ -154,12 +154,12 @@ type TestSlice = {
 }
 
 function makeSlice(progress: number): TestSlice {
-  if (progress < 0.5) {
-    const t = progress / 0.5
+  if (progress < 0.25) {
+    const t = progress / 0.25
     return {
       index: 0,
       stage: {
-        id: 'timer',
+        id: 'timer-wallclock',
         screen: 'timer',
         accent: 'hsl(var(--metric-effort))',
         label: 'What Happens When It Runs',
@@ -168,17 +168,45 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'timer.floor', tag: 'WallClock' },
     }
   }
-  const t = (progress - 0.5) / 0.5
+  if (progress < 0.5) {
+    const t = (progress - 0.25) / 0.25
+    return {
+      index: 1,
+      stage: {
+        id: 'timer-cast',
+        screen: 'timer',
+        accent: 'hsl(var(--metric-effort))',
+        label: 'Broadcast the Timer',
+      },
+      t,
+      ring: { key: 'timer.cast', tag: 'Chromecast' },
+    }
+  }
+  if (progress < 0.75) {
+    const t = (progress - 0.5) / 0.25
+    return {
+      index: 2,
+      stage: {
+        id: 'analytics-scorecard',
+        screen: 'analytics',
+        accent: 'hsl(var(--metric-rounds))',
+        label: 'Explore Your Data',
+      },
+      t,
+      ring: { key: 'analytics.scorecard', tag: 'Scorecard' },
+    }
+  }
+  const t = (progress - 0.75) / 0.25
   return {
-    index: 1,
+    index: 3,
     stage: {
-      id: 'analytics',
+      id: 'analytics-grid',
       screen: 'analytics',
       accent: 'hsl(var(--metric-rounds))',
-      label: 'Explore Your Data',
+      label: 'Session Review',
     },
     t,
-    ring: { key: 'analytics.scorecard', tag: 'Review' },
+    ring: { key: 'analytics.grid', tag: 'Review Grid' },
   }
 }
 

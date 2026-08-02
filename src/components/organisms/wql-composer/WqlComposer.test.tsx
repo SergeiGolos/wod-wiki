@@ -152,6 +152,17 @@ describe('WqlComposer', () => {
     expect(screen.getByTestId('token-slot-tag').textContent).toContain('tags: [tag]');
   });
 
+  it('keeps hidden clause types in the model while skipping their pills', () => {
+    const onWqlChange = mock((_wql: string) => {});
+    render(<WqlComposer hiddenClauseTypes={['source']} onWqlChange={onWqlChange} />);
+
+    // The source pill is gone — the host owns that UI…
+    expect(screen.queryByTestId('token-slot-source')).toBeNull();
+    // …but the clause still compiles into the WQL and diagnostics.
+    expect(onWqlChange).toHaveBeenCalledWith('find:note in all last 2w');
+    expect(screen.getByTestId('token-slot-time').textContent).toContain('last 2w');
+  });
+
   it('emits wql, validation, and AST callbacks on mount', () => {
     const onWqlChange = mock((_wql: string) => {});
     const onValidationChange = mock((_s: WqlValidationState) => {});

@@ -32,16 +32,76 @@ export interface TourCaption {
 
 export const TOUR_CAPTIONS: TourCaption[] = [
   {
-    id: 'timer',
-    num: '01 / 02 — The Timer',
+    id: 'editor-blank',
+    num: '01a / 03 — Blank Page & Typeahead',
+    title: (
+      <>
+        Start with a Blank Page.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Type-ahead & freeform Markdown.</em>
+      </>
+    ),
+    body: 'WOD Wiki notes start as freeform Markdown. As you type, live type-ahead autocomplete brings the workout onto the page and completes your script.',
+    foot: 'Markdown · type-ahead completion · freeform entry',
+    accent: TOUR_ACCENTS.editor,
+    actions: [
+      {
+        label: 'Start Lesson 1',
+        href: '/guide/syntax/basics',
+        event: HOME_EVENTS.lessonStarted,
+      },
+    ],
+  },
+  {
+    id: 'editor-metrics',
+    num: '01b / 03 — Metric Types & ``` Syntax',
+    title: (
+      <>
+        Every Line Collects Metrics.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Fenced ```wod syntax.</em>
+      </>
+    ),
+    body: 'Open a fenced block with triple backticks — ```wod. Each line defines the metrics collected: rep scaling (21-15-9), distance (400m Run), load resistance (24kg, 225lb), and rest (*:30 Rest).',
+    foot: '```wod syntax · 21-15-9 rep scaling · 400m distance · 24kg/225lb load',
+    accent: TOUR_ACCENTS.editor,
+    actions: [
+      {
+        label: 'Start Lesson 1',
+        href: '/guide/syntax/basics',
+        event: HOME_EVENTS.lessonStarted,
+      },
+    ],
+  },
+  {
+    id: 'editor-run',
+    num: '01c / 03 — Press Run',
+    title: (
+      <>
+        Press Run to Execute.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Launch the step-through clock.</em>
+      </>
+    ),
+    body: 'Click Run in the editor top bar (or keep scrolling) to launch the step-through WallClock timer for this 21-15-9 workout.',
+    foot: 'Run button · step-through WallClock · untimed rounds',
+    accent: TOUR_ACCENTS.editor,
+    actions: [
+      {
+        label: 'Read the behaviors explainer',
+        href: '/guide/behaviors',
+        event: HOME_EVENTS.behaviorsOpened,
+      },
+    ],
+  },
+  {
+    id: 'timer-wallclock',
+    num: '02a / 03 — The Working Clock',
     title: (
       <>
         What Happens When It Runs.{' '}
         <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>The script becomes the clock.</em>
       </>
     ),
-    body: 'The WallClock runs your exact script — while it captures reps, pace and volume as you go. One tap casts the whole thing to a Chromecast, and your phone stays the remote.',
-    foot: 'WallClock · Chromecast · live metric capture',
+    body: 'The WallClock runs your exact 21-15-9 script — stepping through reps, distance, and load lines at your own pace without forced time limits.',
+    foot: 'WallClock · 21-15-9 step-through · live metric capture',
     accent: TOUR_ACCENTS.timer,
     actions: [
       {
@@ -52,16 +112,36 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     ],
   },
   {
-    id: 'analytics',
-    num: '02 / 02 — Explore Your Data',
+    id: 'timer-cast',
+    num: '02b / 03 — Broadcast',
+    title: (
+      <>
+        Cast to Any Screen.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>Your phone stays the remote.</em>
+      </>
+    ),
+    body: 'One tap casts the active workout steps to a Chromecast or secondary monitor via zero-lag RPC transport, displaying full-screen progress.',
+    foot: 'Chromecast · RPC transport · multi-display',
+    accent: TOUR_ACCENTS.timer,
+    actions: [
+      {
+        label: 'Read the behaviors explainer',
+        href: '/guide/behaviors',
+        event: HOME_EVENTS.behaviorsOpened,
+      },
+    ],
+  },
+  {
+    id: 'analytics-scorecard',
+    num: '03a / 03 — Explore Your Data',
     title: (
       <>
         Explore Your Data.{' '}
         <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Query what you just did.</em>
       </>
     ),
-    body: 'The moment the timer completes — or you hit stop — splits, volume and every captured metric are written into the day\u2019s journal entry. Then query it, compare it, and share it.',
-    foot: 'Explorer · Dashboard · Movement Registry',
+    body: 'Total reps (90 reps), total distance (1200m), and load volume (Swings + Deadlifts) from this 21-15-9 workout are calculated and written to your journal.',
+    foot: 'Scorecard · 90 reps · 1200m distance · volume rollup',
     accent: TOUR_ACCENTS.analytics,
     actions: [
       {
@@ -74,6 +154,21 @@ export const TOUR_CAPTIONS: TourCaption[] = [
         href: '/analytics/dashboard',
         event: HOME_EVENTS.dashboardViewed,
       },
+    ],
+  },
+  {
+    id: 'analytics-grid',
+    num: '03b / 03 — Session Review',
+    title: (
+      <>
+        Session Log & Review.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Analyze every set and split.</em>
+      </>
+    ),
+    body: 'Drill into individual round splits (21, 15, and 9 reps), distance splits (400m), and load overrides collected during execution.',
+    foot: 'Review Grid · 21-15-9 round splits · WQL metrics',
+    accent: TOUR_ACCENTS.analytics,
+    actions: [
       {
         label: 'Read the query guide',
         href: '/guide/analytics',

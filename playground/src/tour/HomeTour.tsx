@@ -48,6 +48,7 @@ import {
   type TourStageSlice,
 } from './tourStages'
 import { TourHero } from './TourHero'
+import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourCaptions } from './TourCaptions'
 import { TourTvCard } from './TourTvCard'
 import { TourTimerScreen } from './screens/TourTimerScreen'
@@ -74,6 +75,7 @@ const fmtClock = (ms: number) => {
 }
 
 const SCREEN_TITLES: Record<TourScreen, string> = {
+  editor: 'WOD Editor & Autocomplete',
   timer: 'WallClock',
   analytics: 'Session Review',
 }
@@ -82,10 +84,10 @@ const HOME_DEMO_SOURCE = 'wods/examples/home/welcome-1.md'
 
 /** Home quest id → the tour stage that demonstrates it. */
 const HOME_QUEST_STAGE: Record<string, TourStageId> = {
-  'qs-tour-timer': 'timer',
-  'qs-tour-analytics': 'analytics',
-  'qs-edit': 'timer',
-  'qs-run': 'timer',
+  'qs-tour-timer': 'timer-wallclock',
+  'qs-tour-analytics': 'analytics-scorecard',
+  'qs-edit': 'timer-wallclock',
+  'qs-run': 'timer-wallclock',
 }
 
 function useMediaQuery(query: string): boolean {
@@ -147,6 +149,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
   // ── Lazy screen mounting (mounted once entered, kept alive after) ──
   const [entered, setEntered] = useState<Record<TourScreen, boolean>>({
+    editor: true,
     timer: false,
     analytics: false,
   })
@@ -166,6 +169,41 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const docRef = useRef(doc)
   docRef.current = doc
 
+  // ── Session key for resetting playground timer when scrolling into timer stage ──
+  const [timerSessionKey, setTimerSessionKey] = useState(0)
+
+  const startNewSession = useCallback(() => {
+    setTimerSessionKey((k) => k + 1)
+    timerStartedAtRef.current = Date.now()
+    setSession(null)
+    setScrollSegments([])
+    setLogState(null)
+    runtimeRef.current = null
+    setTourRuntime(null)
+  }, [])
+
+  const inTimerStage = (interactive === null && runwayReached && slice.stage.screen === 'timer') || interactive === 'timer'
+  const prevInTimerStageRef = useRef(inTimerStage)
+
+  useEffect(() => {
+    if (inTimerStage && !prevInTimerStageRef.current) {
+      startNewSession()
+    }
+    prevInTimerStageRef.current = inTimerStage
+  }, [inTimerStage, startNewSession])
+
+  // Typeahead scrub: during slide 1 (editor-blank), chars type in over local t (0..0.5)
+  useEffect(() => {
+    if (editedRecordedRef.current || interactive !== null) return
+    if (slice.stage.id === 'editor-blank') {
+      const frac = clamp01(slice.t / 0.5)
+      const count = Math.floor(script.length * frac)
+      const targetDoc = script.slice(0, count)
+      if (docRef.current !== targetDoc) setDoc(targetDoc)
+    } else if (docRef.current.length < script.length) {
+      setDoc(script)
+    }
+  }, [slice.stage.id, slice.t, script, interactive])
   useEffect(() => {
     if (interactive || slice.stage.id !== 'analytics' || session) return
     if (scrollSegments.length > 0) return
@@ -242,12 +280,15 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
   const startRun = useCallback(() => {
     if (!blocksRef.current[0]) return
+    startNewSession()
     setLogState(null)
     setEntered((prev) => (prev.timer ? prev : { ...prev, timer: true }))
     timerAutoStartRef.current = true
     setInteractive('timer')
     setDemoRunning(true)
-  }, [])
+    const el = runwayRef.current
+    if (el) scrollRunwayTo(el, 0.46)
+  }, [startNewSession])
 
   const handleRun = useCallback(() => {
     track(HOME_EVENTS.demoRun)
@@ -368,6 +409,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
       <div className="relative min-h-0 flex-1">
         {interactive === 'timer' && entered.timer && (
           <TourTimerScreen
+            key={timerSessionKey}
             block={blocksRef.current[0] ?? null}
             autoStart={timerAutoStartRef.current}
             onClose={handleTimerClose}
@@ -426,8 +468,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     return subscribe((s: TourStageSlice) => {
       const tv = tvCardRef.current
       if (tv) {
-        if (s.stage.id === 'timer') {
-          const k = clamp01((s.t - 0.6) / 0.22)
+        if (s.stage.id === 'timer-cast') {
+          const k = clamp01((s.t - 0.1) / 0.5)
           const e = 1 - Math.pow(1 - k, 2)
           tv.style.opacity = String(k)
           tv.style.transform = `translateY(${lerp(90, 0, e)}px)`
@@ -438,9 +480,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
       const toast = toastRef.current
       if (toast) {
-        if (s.stage.id === 'analytics') {
-          const tIn = clamp01((s.t - 0.04) / 0.12)
-          const tOut = clamp01((s.t - 0.42) / 0.14)
+        if (s.stage.id === 'analytics-scorecard') {
+          const tIn = clamp01((s.t - 0.04) / 0.2)
+          const tOut = clamp01((s.t - 0.7) / 0.2)
           toast.style.opacity = String(Math.max(0, tIn - tOut))
           toast.style.transform = `translateX(-50%) translateY(${lerp(-14, 0, tIn)}px)`
         } else {
@@ -488,12 +530,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
       <TourShortCircuitStrip />
 
-      <TourLearnSection
-        quests={quests}
-        chapters={chapters}
-        questLabels={questLabels}
-        onHomeQuestClick={handleHomeQuestClick}
-      />
 
       {/* ── Runway ── */}
       <section ref={runwayRef} className="relative" style={{ height: TOUR_RUNWAY_HEIGHT }}>
@@ -539,9 +575,23 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
               >
                 <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-x-2 top-2 bottom-2">
                   <div className="relative h-full">
+                    {interactive === null && entered.editor && (
+                      <Screen visible={activeScreen === 'editor'}>
+                        <TourEditorScreen
+                          doc={doc}
+                          onDocChange={handleDocChange}
+                          onBlocksChange={handleBlocksChange}
+                          onRun={handleRun}
+                          onShare={handleShare}
+                          onOpenInEditor={handleOpenInEditor}
+                          theme={theme}
+                        />
+                      </Screen>
+                    )}
                     {interactive === null && entered.timer && (
                       <Screen visible={activeScreen === 'timer'}>
                         <TourTimerScreen
+                          key={timerSessionKey}
                           block={blocksRef.current[0] ?? null}
                           autoStart={timerAutoStartRef.current}
                           onClose={handleTimerClose}
@@ -589,6 +639,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
           </div>
         </div>
       </section>
+
+      <TourLearnSection
+        quests={quests}
+        chapters={chapters}
+        questLabels={questLabels}
+        onHomeQuestClick={handleHomeQuestClick}
+      />
 
       {interactive && playgroundOverlay}
 

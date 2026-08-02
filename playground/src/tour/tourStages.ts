@@ -15,16 +15,28 @@
  * no ad-hoc palette. Use as `hsl(var(--metric-*))`.
  */
 
-export type TourScreen = 'timer' | 'analytics'
+export type TourScreen = 'editor' | 'timer' | 'analytics'
 
-export type TourStageId = TourScreen
+export type TourStageId =
+  | 'editor-typeahead'
+  | 'timer-wallclock'
+  | 'timer-cast'
+  | 'analytics-scorecard'
+  | 'analytics-grid'
+  | 'editor'
+  | 'timer'
+  | 'analytics'
 
 /**
  * Registry keys for elements the highlight ring can target. Screens
  * register wrapper elements under these keys via RingTargetsContext.
  */
-export type RingTargetKey = 'timer.floor' | 'timer.cast' | 'analytics.scorecard'
-
+export type RingTargetKey =
+  | 'editor.typeahead'
+  | 'timer.floor'
+  | 'timer.cast'
+  | 'analytics.scorecard'
+  | 'analytics.grid'
 export interface TourStage {
   id: TourStageId
   /** Runway progress range [start, end). */
@@ -64,27 +76,54 @@ export const TOUR_ACCENTS = {
  */
 export const TOUR_STAGES: TourStage[] = [
   {
-    id: 'timer',
+    id: 'editor-typeahead',
     start: 0.0,
-    end: 0.5,
+    end: 0.20,
+    screen: 'editor',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Syntax & Type-Ahead',
+    ringA: 'editor.typeahead',
+    tagA: 'Autocomplete',
+  },
+  {
+    id: 'timer-wallclock',
+    start: 0.20,
+    end: 0.40,
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
     label: 'What Happens When It Runs',
     ringA: 'timer.floor',
     tagA: 'WallClock',
-    ringB: 'timer.cast',
-    tagB: 'Chromecast',
-    beatSplit: 0.55,
   },
   {
-    id: 'analytics',
-    start: 0.5,
-    end: 1.0,
+    id: 'timer-cast',
+    start: 0.40,
+    end: 0.60,
+    screen: 'timer',
+    accent: TOUR_ACCENTS.timer,
+    label: 'Broadcast the Timer',
+    ringA: 'timer.cast',
+    tagA: 'Chromecast',
+  },
+  {
+    id: 'analytics-scorecard',
+    start: 0.60,
+    end: 0.80,
     screen: 'analytics',
     accent: TOUR_ACCENTS.analytics,
     label: 'Explore Your Data',
     ringA: 'analytics.scorecard',
-    tagA: 'Review',
+    tagA: 'Scorecard',
+  },
+  {
+    id: 'analytics-grid',
+    start: 0.80,
+    end: 1.0,
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: 'Session Review',
+    ringA: 'analytics.grid',
+    tagA: 'Review Grid',
   },
 ]
 

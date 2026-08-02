@@ -4,6 +4,18 @@
  * query with the shared `WqlComposer` organism (issue #833, decision #828).
  * Composer state round-trips through the URL via `useLibraryQueryState`.
  *
+ * The page uses the standard `StickyPageHeader` — same sticky behavior and
+ * action bar as the canvas and home pages. The header title is the static
+ * "Library"; the per-source identity (#802) lives in the subtitle so it
+ * stays visible without destabilizing the header. The composer bar is the
+ * header's subheader slot (sticky on both desktop and mobile), and the
+ * date-group headers stack below it via `useStickyBoundaryOffset` — no
+ * hardcoded `top` values.
+ *
+ * The `actions` slot is optional and injected by the composition root
+ * (App.tsx) as a fully-wired `PageActions`; the page renders fine without
+ * it (tests, Storybook) since the action bar pulls app-wide contexts.
+ *
  * Pipeline per clause change:
  *   1. clauses → WQL string via `clausesToWql`
  *   2. WQL → `ParsedFindQuery` via `parseQuery` (the AST's `last` window is
@@ -17,7 +29,7 @@
  * `library-query-error` banner replaces the silent entry-clearing the old
  * panel had. The last valid entries stay on screen.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { CalendarIcon, ChevronDownIcon, ChevronRightIcon, FolderIcon, TriangleAlertIcon } from 'lucide-react'
 import { queryService } from '@/services/analytics/query'
 import { parseQuery, isFindQuery, type ParsedFindQuery } from '@/services/analytics/query/wql'
@@ -26,6 +38,8 @@ import {
   clauseToWql,
   clauseValue,
   clausesToWql,
+  pivotClauses,
+  CLAUSE_META,
   type WqlExecutor,
 } from '@/components/organisms/wql-composer'
 import { type Entry } from '../../lib/entryMapper'
@@ -37,10 +51,13 @@ import { journalNotes } from '../../services/journalNotes'
 import { todayKey, formatDateHeader } from '../../lib/dateFormat'
 import { useDateLocale } from '../../lib/dateLocale'
 import { useBatchedItems } from '../../hooks/useBatchedItems'
+import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells'
+import { SourceScopeRadio, SOURCE_BY_SCOPE, SCOPE_BY_SOURCE, type LibraryScope } from './SourceScopeRadio'
 
-/** Page heading keyed by the composer's source clause — the retired
+/** Page subtitle keyed by the composer's source clause — the retired
  * Journal/Collections/Feeds routes redirect here with a source preselected
- * (#802), so the heading identifies the content the user is looking at. */
+ * (#802), so the subtitle identifies the content the user is looking at. The
+ * sticky header title itself stays the static "Library". */
 const HEADING_BY_SOURCE: Record<string, { title: string; description: string }> = {
   journal:     { title: 'Journal',     description: 'Your training log — notes and results from every session.' },
   collections: { title: 'Collections', description: 'Curated workout collections, ready to run or add to today.' },
@@ -51,7 +68,16 @@ const HEADING_BY_SOURCE: Record<string, { title: string; description: string }> 
 }
 const DEFAULT_HEADING = HEADING_BY_SOURCE.notes!
 
-export function LibraryPage() {
+export interface LibraryPageProps {
+  /**
+   * Header action bar, injected by the composition root (App.tsx) as a
+   * fully-wired `PageActions`. Optional so the page stays renderable in
+   * isolation (tests, stories) without app-wide context providers.
+   */
+  actions?: ReactNode
+}
+
+export function LibraryPage({ actions }: LibraryPageProps) {
   const { clauses, setClauses, urlQueryError } = useLibraryQueryState()
   // Re-render date group headers when the "Date language" pref changes (#858).
   useDateLocale()
@@ -82,6 +108,20 @@ export function LibraryPage() {
 
   const wql = useMemo(() => clausesToWql(clauses), [clauses])
   const parsed = useMemo(() => parseQuery(wql), [wql])
+
+  // Scope radio owns the `source` head clause's UI (the composer hides the
+  // pill via `hiddenClauseTypes`). Content→content switches keep every other
+  // clause — notably the time window; only leaving the metrics plane pivots
+  // (drops agg/metric/dims, decision #836).
+  const handleScopeChange = useCallback((scope: LibraryScope) => {
+    const source = SOURCE_BY_SCOPE[scope]
+    const prev = clauseValue(clauses, 'source', 'notes')
+    if (prev === source) return
+    const withSource = clauses.some(c => c.type === 'source')
+      ? clauses.map(c => (c.type === 'source' ? { ...c, value: source } : c))
+      : [{ id: 'c-source', type: 'source' as const, ...CLAUSE_META.source, value: source }, ...clauses]
+    setClauses(prev === 'metrics' ? pivotClauses(withSource, source) : withSource)
+  }, [clauses, setClauses])
   // URL rejections (#854: `?q=` that couldn't restore) take precedence — the
   // composed query is the default fallback and has nothing to flag.
   const composedError = !isFindQuery(parsed) || parsed.error ? (parsed.error ?? 'Not a find query') : null
@@ -200,19 +240,33 @@ export function LibraryPage() {
   const sessionVisible = sourceValue === 'collections' || sourceValue === 'notes'
   const heading = HEADING_BY_SOURCE[sourceValue] ?? DEFAULT_HEADING
   const today = todayKey()
+  // Stacked-sticky offset (#861 date headers): tracks the real bottom of the
+  // sticky header + composer bar instead of a hardcoded `top-[104px]`.
+  const stickyOffset = useStickyBoundaryOffset(104)
   return (
     <div className="bg-card flex flex-col flex-1" data-testid="library-page">
-      <header className="px-6 pt-4 pb-2">
-        <h1 className="text-xl font-semibold text-foreground" data-testid="library-heading">{heading.title}</h1>
-        <p className="text-sm text-muted-foreground">{heading.description}</p>
-      </header>
-      <div className="sticky top-0 z-[20] bg-background/95 backdrop-blur border-b border-border px-6 py-2.5">
-        <WqlComposer
-          clauses={clauses}
-          onClausesChange={setClauses}
-          execute={execute}
-        />
-      </div>
+      <StickyPageHeader
+        title="Library"
+        subtitle={
+          <>
+            <span data-testid="library-heading">{heading.title}</span>
+            {' — '}
+            {heading.description}
+          </>
+        }
+        actions={actions}
+        subheader={
+          <div className="px-6 py-2.5 flex flex-col gap-2">
+            <SourceScopeRadio scope={SCOPE_BY_SOURCE[sourceValue]} onChange={handleScopeChange} />
+            <WqlComposer
+              clauses={clauses}
+              onClausesChange={setClauses}
+              execute={execute}
+              hiddenClauseTypes={['source']}
+            />
+          </div>
+        }
+      />
 
       {queryError && (
         <div
@@ -258,7 +312,10 @@ export function LibraryPage() {
         const isToday = date === today
         return (
           <div key={date} className="flex flex-col">
-            <div className="sticky z-[5] px-6 py-2 bg-muted/80 backdrop-blur-sm border-y border-border flex items-center gap-2 top-[104px]">
+            <div
+              className="sticky z-[5] px-6 py-2 bg-muted/80 backdrop-blur-sm border-y border-border flex items-center gap-2"
+              style={{ top: stickyOffset }}
+            >
               <CalendarIcon className="size-3 text-muted-foreground flex-shrink-0" />
               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 {date === '(undated)' ? 'Undated' : formatDateHeader(date)}
@@ -294,7 +351,8 @@ export function LibraryPage() {
           <button
             type="button"
             onClick={() => setShelfOpen(o => !o)}
-            className="sticky z-[5] px-6 py-2 bg-amber-500/[0.06] backdrop-blur-sm flex items-center gap-2 top-[104px] hover:bg-amber-500/[0.1] transition-colors"
+            className="sticky z-[5] px-6 py-2 bg-amber-500/[0.06] backdrop-blur-sm flex items-center gap-2 hover:bg-amber-500/[0.1] transition-colors"
+            style={{ top: stickyOffset }}
           >
             <FolderIcon className="size-3 text-amber-500 flex-shrink-0" />
             <span className="text-[10px] font-black uppercase tracking-widest text-amber-600">
