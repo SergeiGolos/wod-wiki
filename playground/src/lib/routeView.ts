@@ -193,6 +193,7 @@ function deriveWorkout(
     '/guide/analytics': 'Analytics Guide',
     '/collections': 'Collections',
     '/analytics/dashboard': 'Analytics Dashboard',
+    '/analytics/explorer': 'Metric Explorer',
   }
   const namedMatch = named[pathname]
   if (namedMatch) {

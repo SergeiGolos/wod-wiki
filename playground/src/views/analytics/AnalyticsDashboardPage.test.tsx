@@ -155,11 +155,8 @@ describe('AnalyticsDashboardPage', () => {
   it('disables Apply button and flags inline diagnostic error when composed WQL is invalid', async () => {
     await openComposerFor('avgTis');
 
-    // Enter a free-text term containing spaces (breaks WQL filter brace tokenization)
-    const input = screen.getByTestId('wql-composer-input');
-    fireEvent.change(input, { target: { value: 'bad value' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-
+    // Remove the metric clause to create an incomplete/invalid WQL query
+    fireEvent.click(screen.getByTestId('token-slot-remove-metric'));
     // Inline diagnostics badge highlights the error
     await waitFor(() => expect(screen.getByTestId('wql-validity-badge').getAttribute('data-valid')).toBe('false'));
     expect(screen.getByTestId('apply-widget-query').getAttribute('disabled')).not.toBeNull();

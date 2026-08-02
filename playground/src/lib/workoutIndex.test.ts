@@ -15,18 +15,22 @@ import { resolveSource } from '../canvas/canvasUtils'
  * Note: this test must run under a Vite-based runner (vitest) — bun's test
  * runner does not implement `import.meta.glob`.
  */
-test('every exported glob key is in the canonical ../../markdown/ form', () => {
-  const keys = Object.keys(workoutFiles)
-  expect(keys.length).toBeGreaterThan(0)
-  for (const key of keys) {
-    expect(key.startsWith('../../../markdown/'), `key not normalised: ${key}`).toBe(false)
-    expect(key.startsWith('../../markdown/'), `key missing canonical prefix: ${key}`).toBe(true)
-  }
-})
+if (typeof (import.meta as any).glob !== 'function') {
+  test.skip('skipping Vite import.meta.glob test under bun test (run via vitest / test:glob)', () => {})
+} else {
+  test('every exported glob key is in the canonical ../../markdown/ form', () => {
+    const keys = Object.keys(workoutFiles)
+    expect(keys.length).toBeGreaterThan(0)
+    for (const key of keys) {
+      expect(key.startsWith('../../../markdown/'), `key not normalised: ${key}`).toBe(false)
+      expect(key.startsWith('../../markdown/'), `key missing canonical prefix: ${key}`).toBe(true)
+    }
+  })
 
-test('resolveSource round-trips the reported broken path against the real glob', () => {
-  const dslPath = 'wods/examples/getting-started/timer-1.md'
-  const expectedKey = '../../markdown/canvas/getting-started/timer-1.md'
-  expect(expectedKey in workoutFiles).toBe(true)
-  expect(resolveSource(dslPath, workoutFiles)).not.toContain('Source not found')
-})
+  test('resolveSource round-trips the reported broken path against the real glob', () => {
+    const dslPath = 'wods/examples/home/welcome-1.md'
+    const expectedKey = '../../markdown/canvas/home/welcome-1.md'
+    expect(expectedKey in workoutFiles).toBe(true)
+    expect(resolveSource(dslPath, workoutFiles)).not.toContain('Source not found')
+  })
+}

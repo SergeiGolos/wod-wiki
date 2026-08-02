@@ -5,7 +5,7 @@ test.describe('Explore navigation', () => {
     await page.goto('/analytics/dashboard', { waitUntil: 'domcontentloaded' })
 
     const navigation = page.getByRole('navigation')
-    const explore = navigation.getByRole('button', { name: 'Explore', exact: true })
+    const explore = navigation.getByRole('button', { name: 'Analytics', exact: true })
 
     await expect(explore).toBeVisible()
     await expect(navigation.getByRole('button', { name: 'Dashboard', exact: true })).toBeVisible()

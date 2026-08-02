@@ -18,7 +18,7 @@ test.describe('Live App Click Handler Navigation', () => {
       // The workout editor mounts its CodeMirror content area.
       await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 15_000 });
 
-      await expect(page).toHaveURL(/\/collections\/crossfit-girls\/fran$/);
+      await expect(page).toHaveURL(/\/collections\/crossfit-girls\/fran(?:\?.*)?$/);
 
       await page.screenshot({
         path: testInfo.outputPath(`dead-click-collections-workout-${viewport.name}.png`),

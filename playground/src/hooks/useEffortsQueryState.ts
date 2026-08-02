@@ -1,18 +1,14 @@
 /**
- * useEffortsQueryState — nuqs-backed URL state for the Efforts page.
+ * useEffortsQueryState — Efforts page URL state adapter.
  *
- * Manages three URL parameters:
- *   `q`        — text search query (default: '')
- *   `origin`   — origin filter: 'all', 'bundled', 'user' (default: 'all')
- *   `discipline` — discipline filter (default: '')
- *
- * Both the catalog page (writer) and filter components (readers) share
- * this hook so the URL is always the source of truth.
+ * Bridges legacy text/origin/discipline query state to the WQL composer state
+ * managed by `useEffortsComposerState`.
  */
 
-import { useQueryState } from 'nuqs';
 import { useMemo, useCallback } from 'react';
 import type { EffortRegistrySource } from '@/effort-registry';
+import { CLAUSE_META } from '@/components/organisms/wql-composer';
+import { useEffortsComposerState } from './useEffortsComposerState';
 
 export interface EffortsQueryState {
   text: string;
@@ -21,36 +17,57 @@ export interface EffortsQueryState {
 }
 
 export function useEffortsQueryState() {
-  // ── Text search ───────────────────────────────────────────────────────
-  const [text, setText] = useQueryState('q', {
-    defaultValue: '',
-    shallow: true,
-    history: 'replace',
-  });
+  const { clauses, setClauses } = useEffortsComposerState();
 
-  // ── Origin filter ───────────────────────────────────────────────────
-  const [originParam, setOriginParam] = useQueryState('origin', {
-    defaultValue: 'all',
-    shallow: true,
-    history: 'replace',
-  });
+  const text = useMemo(() => {
+    const c = clauses.find(c => c.type === 'text');
+    return c?.value ?? '';
+  }, [clauses]);
 
-  const origin = useMemo(
-    () => (originParam as any as EffortRegistrySource | 'all') || 'all',
-    [originParam],
+  const origin = useMemo(() => {
+    const c = clauses.find(c => c.type === 'origin');
+    return (c?.value as EffortRegistrySource | 'all') ?? 'all';
+  }, [clauses]);
+
+  const discipline = useMemo(() => {
+    const c = clauses.find(c => c.type === 'discipline');
+    return c?.value ?? '';
+  }, [clauses]);
+
+  const setText = useCallback(
+    (newText: string) => {
+      const next = clauses.filter(c => c.type !== 'text');
+      const val = newText.trim();
+      if (val) {
+        next.push({ id: 'c-text-0', type: 'text', ...CLAUSE_META.text, value: val });
+      }
+      setClauses(next);
+    },
+    [clauses, setClauses],
   );
 
   const setOrigin = useCallback(
-    (newOrigin: EffortRegistrySource | 'all') => setOriginParam(newOrigin),
-    [setOriginParam],
+    (newOrigin: EffortRegistrySource | 'all') => {
+      const next = clauses.filter(c => c.type !== 'origin');
+      if (newOrigin !== 'all') {
+        next.push({ id: 'c-origin-0', type: 'origin', ...CLAUSE_META.origin, value: newOrigin });
+      }
+      setClauses(next);
+    },
+    [clauses, setClauses],
   );
 
-  // ── Discipline filter ───────────────────────────────────────────────
-  const [discipline, setDiscipline] = useQueryState('discipline', {
-    defaultValue: '',
-    shallow: true,
-    history: 'replace',
-  });
+  const setDiscipline = useCallback(
+    (newDiscipline: string) => {
+      const next = clauses.filter(c => c.type !== 'discipline');
+      const val = newDiscipline.trim();
+      if (val) {
+        next.push({ id: 'c-discipline-0', type: 'discipline', ...CLAUSE_META.discipline, value: val });
+      }
+      setClauses(next);
+    },
+    [clauses, setClauses],
+  );
 
   return {
     text,

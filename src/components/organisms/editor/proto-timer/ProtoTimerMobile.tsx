@@ -20,9 +20,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Play, Pause, SkipForward, Square, ChevronLeft, ChevronRight, Timer } from 'lucide-react';
-import { useNextPreview } from '@/hooks/useRuntimeTimer';
-import { usePrimaryTimer, useStackTimers, useStackDisplayRows } from '@/runtime/hooks/useStackDisplay';
-import { useRoundDisplay } from '@/runtime/hooks/useBlockMemory';
+import { useNextPreview, usePrimaryTimer, useStackTimers, useStackDisplayRows, useRoundDisplay } from '@/hooks/useRuntimeTimer';
 import { useWorkbenchSession } from '@/stores/workbenchSessionStore';
 import { calculateDuration } from '@/lib/timeUtils';
 import { formatTimeMMSS } from '@/lib/formatTime';

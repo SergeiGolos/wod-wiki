@@ -65,9 +65,7 @@ describe('WqlQueryInspectorModal', () => {
       />,
     );
 
-    const input = screen.getByTestId('wql-composer-input');
-    fireEvent.change(input, { target: { value: 'invalid query text with space' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.click(screen.getByTestId('token-slot-remove-metric'));
 
     await waitFor(() => {
       const badge = screen.getByTestId('wql-validity-badge');

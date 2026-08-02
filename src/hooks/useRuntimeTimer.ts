@@ -12,8 +12,9 @@
 
 // ── Runtime hooks ─────────────────────────────────────────────────────────
 export { useTimerElapsed } from '@/runtime/hooks/useTimerElapsed';
-export { useRoundDisplay } from '@/runtime/hooks/useBlockMemory';
+export { useRoundDisplay, useBlockMemory } from '@/runtime/hooks/useBlockMemory';
 export { useNextPreview } from '@/runtime/hooks/useNextPreview';
+export { usePrimaryTimer, useStackTimers, useStackDisplayRows } from '@/runtime/hooks/useStackDisplay';
 export { useRuntimeExecution } from '@/runtime/hooks/useRuntimeExecution';
 export type { UseRuntimeExecutionReturn } from '@/runtime/hooks/useRuntimeExecution';
 export { useOutputStatements } from '@/runtime/hooks/useOutputStatements';

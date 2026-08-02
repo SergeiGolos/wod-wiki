@@ -55,7 +55,7 @@ test.describe('Efforts Catalog Page', () => {
     await page.waitForTimeout(800);
 
     await expect(page.getByText('Efforts').first()).toBeVisible();
-    await expect(page.getByText(/Catalog of all registered efforts/)).toBeVisible();
+    await expect(page.getByText(/Catalog of.*registered efforts/)).toBeVisible();
     await expect(page.getByText('Rowing').first()).toBeVisible();
     expect(errors).toHaveLength(0);
   });
@@ -64,27 +64,25 @@ test.describe('Efforts Catalog Page', () => {
     await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await page.waitForTimeout(800);
 
-    await expect(page.getByPlaceholder(/Search by name/i)).toBeVisible();
-    const main = page.getByRole('main');
-    await expect(main.getByRole('button', { name: 'All', exact: true })).toBeVisible();
-    await expect(main.getByRole('button', { name: 'Bundled', exact: true })).toBeVisible();
-    await expect(main.getByRole('button', { name: 'Custom', exact: true })).toBeVisible();
+    await expect(page.getByTestId('wql-composer-input')).toBeVisible();
   });
 
   test('filtering by custom shows empty state initially', async ({ page }) => {
     await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await page.waitForTimeout(800);
 
-    await page.getByRole('main').getByRole('button', { name: 'Custom', exact: true }).click();
+    const customBtn = page.getByRole('button', { name: 'Custom', exact: true }).first();
+    await customBtn.click();
     await page.waitForTimeout(400);
-    await expect(page.getByText(/No efforts match your filters/i)).toBeVisible();
+    await expect(page.getByText(/No efforts match/i)).toBeVisible();
   });
 
   test('filtering by bundled shows efforts', async ({ page }) => {
     await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await page.waitForTimeout(800);
 
-    await page.getByRole('main').getByRole('button', { name: 'Bundled', exact: true }).click();
+    const bundledBtn = page.getByRole('button', { name: 'Bundled', exact: true }).first();
+    await bundledBtn.click();
     await page.waitForTimeout(400);
     await expect(page.getByText('Rowing').first()).toBeVisible();
   });
@@ -93,8 +91,9 @@ test.describe('Efforts Catalog Page', () => {
     await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await page.waitForTimeout(800);
 
-    const search = page.getByPlaceholder(/Search by name/i);
+    const search = page.getByTestId('wql-composer-input');
     await search.fill('Rowing');
+    await search.press('Enter');
     await page.waitForTimeout(400);
     await expect(page.getByText('Rowing').first()).toBeVisible();
   });
@@ -103,10 +102,11 @@ test.describe('Efforts Catalog Page', () => {
     await page.goto('/efforts', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await page.waitForTimeout(800);
 
-    const search = page.getByPlaceholder(/Search by name/i);
+    const search = page.getByTestId('wql-composer-input');
     await search.fill('xyznonexistent');
+    await search.press('Enter');
     await page.waitForTimeout(400);
-    await expect(page.getByText(/No efforts match your filters/i)).toBeVisible();
+    await expect(page.getByText(/No efforts match/i)).toBeVisible();
   });
 
   test('clicking an effort navigates to detail page', async ({ page }) => {
