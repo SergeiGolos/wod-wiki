@@ -48,7 +48,7 @@ import { frontmatterPreview } from "@/components/Editor/extensions/frontmatter-p
 import { markdownTablePreview } from "@/components/Editor/extensions/markdown-tables";
 import { markdownSyntaxHiding } from "@/components/Editor/extensions/markdown-syntax-hiding";
 import { wodLinter } from "@/components/Editor/extensions/whiteboard-linter";
-import { wodAutocompletion, wodEditorKeymap } from "@/components/Editor/extensions/whiteboard-autocomplete";
+import { wodAutocompletion, wodEditorKeymap, wodAutoWrap } from "@/components/Editor/extensions/whiteboard-autocomplete";
 import { wodOverlayPanel } from "@/components/Editor/extensions/whiteboard-overlay";
 import { widgetBlockPreview } from "@/components/Editor/extensions/widget-block-preview";
 import { queryBlockPreview } from "@/components/Editor/extensions/query-block-preview";
@@ -527,9 +527,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Whiteboard Script linting (no separate lintGutter — unified gutter handles it)
       ...(enableLinting ? [wodLinter] : []),
 
-      // Autocomplete (dialect + embed completions)
+      // Autocomplete (fence-tag + embed completions) and fence wrapping
       wodAutocompletion,
       wodEditorKeymap,
+      wodAutoWrap,
 
       // Overlay panel for Whiteboard Script blocks
       ...(enableOverlay ? [wodOverlayPanel] : []),
