@@ -20,7 +20,7 @@ Happy Labor Day! Sorry for the late posting. There will be NO class today as the
 
 Run 1/4 mile | row 250m | bike 2 miles.
 
-```wod
+```time
 (3)
   10 Air Squats
   10 Push Ups
@@ -32,7 +32,7 @@ Run 1/4 mile | row 250m | bike 2 miles.
 
 ### Étudiant — Beginner
 
-```wod
+```time
 (8) :20 Tabata
   Air Squats
 1:00 Rest
@@ -48,7 +48,7 @@ Run 1/4 mile | row 250m | bike 2 miles.
 
 ### Avancée — Advanced
 
-```wod
+```time
 (8) :20 Tabata
   Quadrupedal Movement *
 1:00 Rest
@@ -64,7 +64,7 @@ Run 1/4 mile | row 250m | bike 2 miles.
 
 ### Traceur — Expert
 
-```wod
+```time
 (8) :20 Tabata
   Quadrupedal Movement *
 1:00 Rest

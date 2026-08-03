@@ -15,7 +15,7 @@ tags:
 
 Run, clean and jerks, and ring muscle-ups.
 
-```wod
+```time
 1 mile Run
 30 Clean & Jerks 185lb
 30 Ring Muscle Ups

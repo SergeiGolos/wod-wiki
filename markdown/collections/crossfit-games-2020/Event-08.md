@@ -15,7 +15,7 @@ tags:
 
 Max handstand push-ups in 5 minutes.
 
-```wod
+```time
 5:00 ? Handstand Pushups
 ```
 

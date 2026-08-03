@@ -16,7 +16,7 @@ Quick and the Dead is a high-intensity conditioning protocol developed by Pavel 
 
 The workout uses a specific work-to-rest ratio, typically 15 seconds of work followed by 15 seconds of rest, repeated for multiple rounds. This interval structure targets the alactic energy system while providing just enough recovery to maintain power output throughout the session. The minimalist design makes it an excellent stand-alone conditioning program or a complement to strength-focused training.
 
-```wod
+```time
 (10)
   :15 KB Swing 24kg
   :15 Rest

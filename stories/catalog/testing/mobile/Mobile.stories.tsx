@@ -22,7 +22,7 @@ const FRAN_CONTENT = `# Fran
 
 Classic benchmark "girl" WOD — 21-15-9 of thrusters and pull-ups.
 
-\`\`\`wod
+\`\`\`time
 (21-15-9)
   Thrusters 95lb
   Pullups
@@ -31,7 +31,7 @@ Classic benchmark "girl" WOD — 21-15-9 of thrusters and pull-ups.
 
 const AMRAP_CONTENT = `# AMRAP 20
 
-\`\`\`wod
+\`\`\`time
 20:00 AMRAP
   5 Pullups
   10 Pushups
@@ -39,7 +39,7 @@ const AMRAP_CONTENT = `# AMRAP 20
 \`\`\`
 `;
 
-const SYNTAX_AMRAP = `\`\`\`wod
+const SYNTAX_AMRAP = `\`\`\`time
 20:00 AMRAP
   5 Pullups
   10 Pushups

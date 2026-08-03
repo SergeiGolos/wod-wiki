@@ -24,7 +24,7 @@ In the Golos Method, these movements are performed for reps, for time, or in int
 ## Whiteboard Script
 
 ### Beginner — Clean & Press Technique
-```wod
+```time
 (10)
   5 KB Clean & Press Left 16kg
   5 KB Clean & Press Right 16kg
@@ -35,14 +35,14 @@ In the Golos Method, these movements are performed for reps, for time, or in int
 
 Single Clean and Press
 
-```wod
+```time
 (10) 1:00 EMOM
   10 KB Clean & Press Alternating 24kg
 ```
 
 Tactical Snatch
 
-```wod
+```time
 (10) 1:00 EMOM
   4|6 KB Snatch 24kg
 ```
@@ -50,19 +50,19 @@ Tactical Snatch
 
 
 ### Advanced — Snatch Endurance
-```wod
+```time
 (10)
   1:00 Double KB Clean & Press 24kg
   :30 Rest
 ```
 
-```wod
+```time
 (10) 1:00 EMOM
   4|6 KB Snatch 32kg
 ```
 
 ### The Eagle Variation (Clean & Press + Pull-Ups)
-```wod
+```time
 (5)
   5 KB Clean & Press 24kg
   5 Pullups
@@ -72,7 +72,7 @@ Tactical Snatch
 
 *Perform as many quality reps as possible in 5 minutes. Switch hands as needed.*
 
-```wod
+```time
 5:00|10:00 ? KB Snatch 24kg
 ```
 

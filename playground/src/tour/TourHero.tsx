@@ -65,7 +65,7 @@ export function TourHero({
         ))}
       </h1>
       <p className="mt-6 max-w-xl text-[clamp(15px,1.4vw,18px)] leading-[1.65] text-muted-foreground">
-        WOD Wiki compiles a <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.86em]">```wod</code> block
+        WOD Wiki compiles a <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.86em]">```time</code> block
         into a live WallClock timer, then logs every round straight back to your training
         journal — one file, one loop, no app-switching.
       </p>

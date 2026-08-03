@@ -18,7 +18,7 @@ wayback_url: "http://web.archive.org/web/2/http://zombiefit.org/2012/07/wod-0724
 
 We have a sold-out ZombieFit Class today at 6:30p.m. Make sure to check the scheduler a couple hours before to see if there are any cancellations!
 
-```wod
+```time
 Run 1/4 mile | Row 250m | Bike 0.5 miles
 (3)
   10 Push Ups
@@ -35,21 +35,21 @@ Time yourself for your first repetition, then multiply that time by 4. That is y
 
 ### Étudiant — Beginner
 
-```wod
+```time
 (5)
   100m Sprint
 ```
 
 ### Avancée — Advanced
 
-```wod
+```time
 (8)
   100m Sprint
 ```
 
 ### Traceur — Expert
 
-```wod
+```time
 (11)
   100m Sprint
 ```

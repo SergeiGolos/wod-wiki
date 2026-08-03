@@ -18,7 +18,7 @@ The program emphasizes both physical development and mindful practice, teaching 
 
 ### Day 1 - The Swing
 
-```wod
+```time
 (5)
   8 Two-Hand KB Swing 16kg
   :30 Rest
@@ -29,7 +29,7 @@ The program emphasizes both physical development and mindful practice, teaching 
 ```
 ### Day 2 - The Goblet Squat
 
-```wod
+```time
 (5)
   10 Goblet Squat 16kg
   :30 Rest
@@ -40,7 +40,7 @@ The program emphasizes both physical development and mindful practice, teaching 
 ```
 ### Day 3 - The Clean
 
-```wod
+```time
 (5)
   5 Clean Left 16kg
   5 Clean Right 16kg
@@ -52,7 +52,7 @@ The program emphasizes both physical development and mindful practice, teaching 
 ```
 ### Day 4 - The Press
 
-```wod
+```time
 (5)
   5 Clean & Press Left 16kg
   5 Clean & Press Right 16kg
@@ -64,7 +64,7 @@ The program emphasizes both physical development and mindful practice, teaching 
 ```
 ### Day 5 - The Snatch
 
-```wod
+```time
 (5)
   5 KB Snatch Left 16kg
   5 KB Snatch Right 16kg
@@ -76,7 +76,7 @@ The program emphasizes both physical development and mindful practice, teaching 
 ```
 ### Day 6 - Integration
 
-```wod
+```time
 (3)
   10 KB Swing 16kg
   5 Goblet Squat 16kg

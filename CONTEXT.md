@@ -163,7 +163,7 @@ The canonical 10-value effort discipline vocabulary (`bodyweight`, `cycling`, `g
 _Avoid_: modality (overloaded), exercise category, legacy factor tables.
 ### Dialect & runtime
 **Block Dialect**:
-The fence tag that declares a block's domain (` ```wod `, ` ```climb `) — the one
+The fence tag that declares a block's domain (` ```time `, ` ```climb `) — the one
 property that parser and analytics key on (the runtime never reads the tag — it is
 shaped indirectly via the hints the **Dialect Stack** produces, so there is no
 tag-keyed strategy seam). Selects dialect-specific

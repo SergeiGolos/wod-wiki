@@ -2,7 +2,7 @@
 search: hidden
 title: "Dialect: Climb Sport"
 ---
-```climb
+```log:climbing
 date: 2026-05-20
 location: Red Rock Canyon
 area: Calico Basin

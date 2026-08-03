@@ -15,7 +15,7 @@ tags:
 
 Run and sandbag sandwich.
 
-```wod
+```time
 1mile Run
 50 Sandbag Over Shoulder 100lb
 1mile Run

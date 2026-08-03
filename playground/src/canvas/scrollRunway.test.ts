@@ -4,7 +4,7 @@ import { resolveScrollStage, clamp01, lerp, quadOut } from './scrollRunway'
 import type { ScrollStage } from './parseCanvasMarkdown'
 
 const STAGES: ScrollStage[] = [
-  { id: 'a', range: [0, 0.25], ring: { tag: '```wod' } },
+  { id: 'a', range: [0, 0.25], ring: { tag: '```time' } },
   { id: 'b', range: [0.25, 0.75], ring: true },
   { id: 'c', range: [0.75, 1] },
 ]
@@ -42,7 +42,7 @@ describe('resolveScrollStage', () => {
   })
 
   it('resolves ring from { tag } and from true', () => {
-    expect(resolveScrollStage(0.1, STAGES).ring).toEqual({ tag: '```wod' })
+    expect(resolveScrollStage(0.1, STAGES).ring).toEqual({ tag: '```time' })
     expect(resolveScrollStage(0.5, STAGES).ring).toEqual({ tag: undefined })
     expect(resolveScrollStage(0.9, STAGES).ring).toBeNull()
   })

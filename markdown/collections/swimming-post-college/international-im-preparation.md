@@ -15,7 +15,7 @@ This comprehensive IM workout prepares post-collegiate swimmers for 200m and 400
 
 The workout structure allows for individualization based on stroke strengths and weaknesses. Swimmers should adjust effort levels on specific stroke sets, spending more energy on developmental strokes while maintaining quality on strengths. The broken IM sets simulate race execution and build the tactical awareness needed for championship racing.
 
-```wod
+```time
 (3) Warmup
   200m IM
   :30 Rest

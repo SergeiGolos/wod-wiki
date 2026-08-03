@@ -2,7 +2,7 @@
 search: hidden
 title: "Dialect: Plan"
 ---
-```plan
+```time
 (Strength)
   5 Back Squat ?lb
   5 Bench Press ?lb

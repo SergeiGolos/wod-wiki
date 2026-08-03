@@ -19,7 +19,7 @@ Heavy days focus on building absolute strength with heavier weights and lower re
 
 ### Heavy Day
 
-```wod
+```time
 (5)
   3 Clean & Press 28kg
   :60 Rest
@@ -34,7 +34,7 @@ Heavy days focus on building absolute strength with heavier weights and lower re
 ```
 ### Light Day
 
-```wod
+```time
 (5)
   8 Clean & Press 20kg
   :45 Rest

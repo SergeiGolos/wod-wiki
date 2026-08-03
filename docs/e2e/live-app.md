@@ -523,7 +523,7 @@ Resolves which graceful degradations already exist vs which are defects. Documen
 
 ### `syntactically broken wod block surfaces a lint marker or disables Play`
 - **Location:** `e2e/live-app/error-states.e2e.ts:66`
-- **Actions:** Seed `\`\`\`wod (2 ...` (unclosed round directive).
+- **Actions:** Seed `\`\`\`time (2 ...` (unclosed round directive).
 - **Asserts:** wod-linter marker OR no Play button; no pageerror.
 
 ### `bad timer value is tolerated (dropped), not surfaced as an error`

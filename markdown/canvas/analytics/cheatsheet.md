@@ -60,7 +60,7 @@ One page, every WQL construct. Copy the query pattern, plug in your metrics, and
 
 ### Query Block {#query-block}
 
-````wod
+````time
 ```query
 sum:totalVolume{discipline:strength} by {week}.rollup(1w)
 ```
@@ -68,7 +68,7 @@ sum:totalVolume{discipline:strength} by {week}.rollup(1w)
 
 ### Dashboard Block {#dashboard-block}
 
-````wod
+````time
 ```dashboard
 title: Training Review
 widgets:

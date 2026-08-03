@@ -56,7 +56,7 @@ find:<target>{<filters>} [where <cross_store_predicate>] [in <scope>] [last <n>w
 
 *   **Target (`target`):** What the query returns.
     *   `note`: Returns whole markdown notes (journal Notes, Catalog Sessions, Catalog Posts).
-    *   `block`: Returns addressable subsets of notes (fenced regions like ````wod```, ````dashboard```, ````query```, headings).
+    *   `block`: Returns addressable subsets of notes (fenced regions like ````time```, ````dashboard```, ````query```, headings).
 *   **Filters (`filters`):** Reuses the analytics tag vocabulary, plus content-specific keys:
     *   `type`: Fenced block type (e.g., `wod`, `dashboard`, `query`, `heading`).
     *   `has`: Checks for presence of elements (e.g., `timer`, `image`).

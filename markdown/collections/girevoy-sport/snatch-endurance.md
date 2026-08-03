@@ -19,7 +19,7 @@ Training sets may use various structures: fixed time sets, rep-based sets, or pa
 
 ### Snatch Endurance Session
 
-```wod
+```time
 (5)
   1:00 KB Snatch Left 16kg
   :30 Rest
@@ -28,14 +28,14 @@ Training sets may use various structures: fixed time sets, rep-based sets, or pa
 ```
 ### Build Phase
 
-```wod
+```time
 (3)
   3:00 KB Snatch 16kg
   1:00 Rest
 ```
 ### Test
 
-```wod
+```time
 5:00 ? KB Snatch 16kg
 ```
 

@@ -818,7 +818,7 @@ describe('useJournalZipProcessor', () => {
   });
 
   it('creates a journal entry for today when no date is provided', async () => {
-    const content = '# Test Workout\n\n```wod\n10:00 Run\n```\n';
+    const content = '# Test Workout\n\n```time\n10:00 Run\n```\n';
     const encoded = await encodeZip(content);
 
     const { result } = renderHook(() => useJournalZipProcessor(), {

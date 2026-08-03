@@ -2,7 +2,7 @@
 search: hidden
 title: "Dialect: WOD"
 ---
-```wod
+```time
 (3 Rounds)
   10 Pushups
   15 Air Squats

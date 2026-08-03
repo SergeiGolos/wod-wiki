@@ -13,7 +13,7 @@ tags:
 ## Description
 Cindy is a classic beginner-friendly benchmark that tests basic bodyweight endurance.
 
-```wod
+```time
 20:00 AMRAP
   5 Pullups
   10 Pushups

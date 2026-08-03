@@ -30,8 +30,8 @@ const COMPLETE_NOTE_ID = 'ZombieFit-org-2010-Jan/wod-011310';
 const STOP_TITLE = 'wod-011010';
 const COMPLETE_TITLE = 'wod-011310';
 
-const STOP_CONTENT = '# E2E Stop Run\n\n```wod\n10:00 AMRAP\n  5 Air Squats\n  5 Push Ups\n```\n';
-const COMPLETE_CONTENT = '# E2E Complete Run\n\n```wod\n0:03 AMRAP\n  5 Air Squats\n```\n';
+const STOP_CONTENT = '# E2E Stop Run\n\n```time\n10:00 AMRAP\n  5 Air Squats\n  5 Push Ups\n```\n';
+const COMPLETE_CONTENT = '# E2E Complete Run\n\n```time\n0:03 AMRAP\n  5 Air Squats\n```\n';
 
 function todayKey(): string {
   const d = new Date();

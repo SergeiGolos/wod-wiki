@@ -15,7 +15,7 @@ tags:
 
 3000 meter row.
 
-```wod
+```time
 3000m Row
 ```
 

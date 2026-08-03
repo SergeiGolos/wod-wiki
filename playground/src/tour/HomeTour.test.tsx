@@ -104,7 +104,7 @@ function makeSlice(progress: number): TestSlice {
         label: 'Start with a Blank Page',
       },
       t,
-      ring: { key: 'editor.fence', tag: '```wod Fence' },
+      ring: { key: 'editor.fence', tag: '```time Fence' },
     }
   }
   if (progress < 0.30) {

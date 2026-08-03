@@ -13,7 +13,7 @@ tags:
 ### Description
 This workout develops the aerobic capacity necessary for distance freestyle events (200m, 500m, and longer). The main set uses negative split training to teach swimmers how to pace races properly, finishing faster than they start. The descending interval structure challenges swimmers to maintain stroke efficiency while fatigued, simulating late-race conditions. This session is ideal for mid-season training when building race-specific endurance.
 
-```wod
+```time
 (4) Warmup
   200m Freestyle
   :30 Rest

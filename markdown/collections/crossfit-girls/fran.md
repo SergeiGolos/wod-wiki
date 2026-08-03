@@ -15,7 +15,7 @@ Difficulty: Advanced
 ## Description
 One of the most famous CrossFit benchmark workouts. Fran is a sprint that tests both metabolic conditioning and strength endurance.
 
-```wod
+```time
 (21-15-9) 
   Thrusters 95lb
   Pullups

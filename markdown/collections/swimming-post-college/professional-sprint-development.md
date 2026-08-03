@@ -15,7 +15,7 @@ This elite sprint session develops the explosive power and maximum velocity requ
 
 The session includes power rack or cord work for developing explosive starts and breakouts. If these tools are unavailable, swimmers can substitute vertical kicking and deck work for similar power development. The key principle is maximum effort on every sprint repetition, with generous rest ensuring full recovery between efforts.
 
-```wod
+```time
 (3) Warmup
   150m Freestyle
   :30 Rest

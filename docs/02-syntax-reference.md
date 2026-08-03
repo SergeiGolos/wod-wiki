@@ -6,7 +6,7 @@ blocks tagged `wod` (or the accepted alias `whiteboard`):
 ````markdown
 ## WOD
 
-```wod
+```time
 (10) :60 EMOM
   + 2 Burpees
   + 5 Push Ups
@@ -32,7 +32,7 @@ marker** followed by one or more **fragments**:
 **Indentation creates hierarchy.** A less-indented line is the parent; more-indented
 lines beneath it are its children. This is how rounds wrap their movements:
 
-```wod
+```time
 (3)              ← parent: 3 rounds
   10 Air Squats  ← child
   10 Push Ups    ← child
@@ -77,7 +77,7 @@ line.
 
 ### Rounds wrapping movements
 
-```wod
+```time
 (3)
   10 Air Squats
   10 Push Ups
@@ -87,7 +87,7 @@ line.
 
 ### EMOM (Every Minute On the Minute)
 
-```wod
+```time
 (10) :60 EMOM
   + 2 Burpees
   + 5 Push Ups
@@ -98,7 +98,7 @@ keyword the CrossFit dialect recognizes.*
 *The round count `(10)` is explicit. An **open EMOM** — one without a round count —
 defaults to 10 rounds in the current runtime:*
 
-```wod
+```time
 :60 EMOM
   + 2 Burpees
 ```
@@ -108,7 +108,7 @@ and may change in future versions.*
 
 ### AMRAP (As Many Rounds As Possible)
 
-```wod
+```time
 10:00 AMRAP
   5 Pull Ups
   10 Push Ups
@@ -118,7 +118,7 @@ and may change in future versions.*
 
 ### Descending rep ladder
 
-```wod
+```time
 (100-80-60-40-20)
   Double KB Swing 24kg
 ```
@@ -126,7 +126,7 @@ and may change in future versions.*
 
 ### Distance + interval intervals (swimming)
 
-```wod
+```time
 (8) Power Sprints
   25m Freestyle Sprint
   1:30 Rest
@@ -136,7 +136,7 @@ rounds line.*
 
 ### Load progression (kettlebell)
 
-```wod
+```time
 (5)
   8 KB Deadlift 16kg
   :30 Rest
@@ -145,14 +145,14 @@ rounds line.*
 
 ### Athlete-chosen value with placeholder
 
-```wod
+```time
 10:00 ? Double KB Clean & Jerk 24kg
 ```
 *A 10-minute effort; the `?` marks the rep count as something the athlete fills in.*
 
 ### Choices / substitutions
 
-```wod
+```time
 Run 1/4 mile OR Bike 1/2 mile OR Row 250m
 ```
 *Free-text efforts may include `OR` alternatives; they parse as effort text the runtime
@@ -205,7 +205,7 @@ When a recognized protocol keyword (`EMOM`, `AMRAP`, `Tabata`) appears inside
 parentheses, the parser extracts it as a **Rounds metric** rather than an **Effort
 fragment**. This means:
 
-```wod
+```time
 10:00 (EMOM)
 ```
 

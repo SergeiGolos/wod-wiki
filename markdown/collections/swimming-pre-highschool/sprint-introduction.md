@@ -13,7 +13,7 @@ tags:
 ### Description
 This workout introduces young swimmers to sprinting concepts with short, fast efforts followed by complete recovery. The focus is on explosive starts and maintaining stroke length at higher speeds. Full rest intervals ensure swimmers can perform at their best for each effort while learning the difference between sprint and distance swimming.
 
-```wod
+```time
 (4) Warmup
   50m Freestyle
   :30 Rest

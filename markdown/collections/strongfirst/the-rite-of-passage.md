@@ -16,7 +16,7 @@ The Rite of Passage is StrongFirst's premier press-focused program, designed to 
 
 The program progresses through light, medium, and heavy days, incorporating clean and press ladders along with pull-up or chin-up work. Over weeks and months, practitioners progressively increase the height of their ladders and the weight of their kettlebell, building substantial pressing power. The Rite of Passage has produced countless practitioners capable of pressing half their bodyweight or more overhead with a single kettlebell.
 
-```wod
+```time
 (5) Light Day
   + 1 Clean & Press
   + 2 Clean & Press

@@ -15,7 +15,7 @@ tags:
 
 Final event - run, clean and jerks, ring muscle-ups.
 
-```wod
+```time
 800m Run
 30 Clean & Jerks 185lb
 30 Ring Muscle Ups

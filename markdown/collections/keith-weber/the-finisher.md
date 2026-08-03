@@ -18,7 +18,7 @@ The workout can be used as a standalone conditioning session or appended to a st
 
 ### The Finisher
 
-```wod
+```time
 (5)
   20 Two-Hand KB Swing 20kg
   10 Goblet Squat 20kg
@@ -26,7 +26,7 @@ The workout can be used as a standalone conditioning session or appended to a st
 ```
 ### Tabata Finish
 
-```wod
+```time
 (8)
   :20 KB Swing 16kg
   :10 Rest

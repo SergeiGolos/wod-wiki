@@ -105,7 +105,7 @@ mock.module('./useTourScroll', () => ({
         label: 'Blank Page & Typeahead',
       },
       t: 0,
-      ring: { key: 'editor.fence', tag: '```wod Fence' },
+      ring: { key: 'editor.fence', tag: '```time Fence' },
     },
     progress: 0,
     runwayReached: false,

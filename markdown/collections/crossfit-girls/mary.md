@@ -13,7 +13,7 @@ tags:
 ## Description
 Mary is a challenging gymnastics-focused AMRAP that tests skill and endurance.
 
-```wod
+```time
 20:00 AMRAP
   + 5 Handstand Pushups
   + 10 Single-leg Squats

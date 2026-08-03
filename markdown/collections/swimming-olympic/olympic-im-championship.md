@@ -16,7 +16,7 @@ This world-class IM workout prepares athletes for Olympic competition in the 200
 
 The training philosophy for Olympic IM emphasizes developing all four strokes to world-class levels while maintaining the athlete's natural stroke strengths. Weak strokes receive additional focus in training, but never at the expense of losing speed in stronger events. The goal is to become a true "four-stroke swimmer" rather than a specialist who survives one or two strokes.
 
-```wod
+```time
 (3) Warmup
   200m IM
   :30 Rest

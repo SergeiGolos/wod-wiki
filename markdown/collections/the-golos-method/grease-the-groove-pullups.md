@@ -22,20 +22,20 @@ The beauty of GTG is its flexibility. It requires no warm-up, no equipment beyon
 ## Whiteboard Script
 
 ### Beginner — Building the First Rep
-```wod
+```time
 (8) 1:00 EMOM
   1|2 Assisted Pullup or Negatives
 ```
 
 ### Intermediate — Daily GTG
-```wod
+```time
 (5)
   3|5 Pullups  
 ```
 *Perform one set every 60-90 minutes during waking hours. Do not go to failure.*
 
 ### Advanced — Weighted GTG
-```wod
+```time
 (6)
   3 Weighted Pullup 10-20lb  
 ```

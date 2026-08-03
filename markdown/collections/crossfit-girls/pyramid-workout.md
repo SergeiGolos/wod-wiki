@@ -13,7 +13,7 @@ tags:
 ## Description
 A pyramid-style bodyweight workout that starts high and decreases reps each round.
 
-```wod
+```time
 For Time
   100 Burpees
   75 Situps

@@ -18,7 +18,7 @@ The program progresses through phases, starting with foundational movement patte
 
 ### Phase 1 Week 1-2
 
-```wod
+```time
 (5)
   + 5 KB Swing 20kg
   + 3 Goblet Squat 20kg
@@ -31,7 +31,7 @@ The program progresses through phases, starting with foundational movement patte
 ```
 ### Phase 2 Week 3-4
 
-```wod
+```time
 (5)
   + 3 Clean & Press Left 20kg
   + 3 Front Squat Left 20kg

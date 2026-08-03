@@ -18,7 +18,7 @@ The program emphasizes compound movements and high tension, creating the metabol
 
 ### Week 1-2
 
-```wod
+```time
 (5)
   + 2 Double Clean 20kg
   + 1 Double Press 20kg
@@ -27,7 +27,7 @@ The program emphasizes compound movements and high tension, creating the metabol
 ```
 ### Week 3-4
 
-```wod
+```time
 (5)
   + 2 Double Clean 24kg
   + 1 Double Press 24kg
@@ -36,7 +36,7 @@ The program emphasizes compound movements and high tension, creating the metabol
 ```
 ### Week 5-6
 
-```wod
+```time
 (5)
   + 2 Double Clean 24kg
   + 2 Double Press 24kg

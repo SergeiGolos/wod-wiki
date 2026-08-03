@@ -15,7 +15,7 @@ tags:
 
 The classic benchmark "Helen".
 
-```wod
+```time
 (3)
   400m Run
   21 KB Swings 53lb

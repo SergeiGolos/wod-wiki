@@ -15,7 +15,7 @@ tags:
 
 Long chipper with pig flips, pull-ups, toes-to-bar, and wall balls.
 
-```wod
+```time
 10 Pig Flips
 25 Chest to Bar Pullups
 50 Toes to Bar

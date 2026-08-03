@@ -135,7 +135,7 @@ export interface WodWikiDB extends DBSchema {
         };
     };
 }
-const DB_VERSION = 14; // V14 — block_index derived store for WQL find:block queries
+const DB_VERSION = 15; // V15 — fence-tag cutover: rewrite legacy ```wod/plan/whiteboard to ```time (#893)
 const DB_NAME = 'wodwiki-db';
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
@@ -577,6 +577,65 @@ export async function backfillV14(tx: V10Tx): Promise<void> {
     );
 }
 
+/** Legacy fence tags cut over to ```time by V15 (#893, part of #887). */
+const LEGACY_FENCE_RE = /(`{3,})[ \t]*(wod|plan|whiteboard)(?!\w)/g;
+
+/**
+ * Rewrite legacy fence tags (```wod / ```plan / ```whiteboard) to ```time in
+ * raw markdown text. Pure — no DB access. Four-backtick fences and
+ * trailing-whitespace variants are preserved; the word "wod" outside a fence
+ * tag is untouched.
+ */
+export function rewriteLegacyFences(text: string): string {
+    return text.replace(LEGACY_FENCE_RE, '$1time');
+}
+
+/** Stored ScriptBlock dialects cut over to 'time' by V15 (pre-cutover
+ *  FenceDialect was 'wod'|'log'|'plan'). */
+const LEGACY_BLOCK_DIALECTS = new Set(['wod', 'plan']);
+
+/**
+ * V15 backfill — one-time fence-tag cutover in stored content (#893).
+ *
+ * Rewrites legacy fence tags in every segment's rawContent (history versions
+ * included — no read alias remains, so any surfaced row must carry the new
+ * tag), migrates persisted ScriptBlock payloads (`data.dialect` 'wod'/'plan'
+ * → 'time' — the load path re-synthesizes the fence from this field), then
+ * rebuilds the block_index derived store from the rewritten segments. The
+ * `wod` SegmentDataType is deliberately untouched — the provider boundary
+ * maps it at load (#888).
+ */
+export async function backfillV15(tx: V10Tx): Promise<void> {
+    const segmentsStore = tx.objectStore('segments');
+    const allSegments = await segmentsStore.getAll();
+    let rewritten = 0;
+
+    for (const segment of allSegments) {
+        let next = segment;
+        if (typeof next.rawContent === 'string') {
+            const raw = rewriteLegacyFences(next.rawContent);
+            if (raw !== next.rawContent) next = { ...next, rawContent: raw };
+        }
+        const block = next.data as ScriptBlock | null;
+        const dialect = block?.dialect as string | undefined;
+        if (block && dialect && LEGACY_BLOCK_DIALECTS.has(dialect)) {
+            next = { ...next, data: { ...block, dialect: 'time' } };
+        }
+        if (next !== segment) {
+            await segmentsStore.put(next);
+            rewritten++;
+        }
+    }
+
+    // block_index rows carry denormalized rawContent — rebuild from the
+    // rewritten segments (store is disposable by design, see backfillV14).
+    await backfillV14(tx);
+
+    console.info(
+        `[IndexedDBService] V15 backfill: ${rewritten}/${allSegments.length} segment rows rewritten to \`\`\`time fences`,
+    );
+}
+
 export class IndexedDBService {
     private _dbPromise: Promise<IDBPDatabase<WodWikiDB>> | null = null;
 
@@ -784,6 +843,10 @@ export class IndexedDBService {
                 // ---- V14: build block index from segments ----
                 if (oldVersion > 0 && oldVersion < 14) {
                     await backfillV14(tx);
+                }
+                // ---- V15: fence-tag cutover in stored segments (#893) ----
+                if (oldVersion > 0 && oldVersion < 15) {
+                    await backfillV15(tx);
                 }
             },
             // Another tab is waiting on a schema upgrade this connection

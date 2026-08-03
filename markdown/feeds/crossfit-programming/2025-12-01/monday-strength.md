@@ -9,13 +9,13 @@ tags:
 
 Back squat cycle — week 1.
 
-```wod
+```time
 5x5 Back Squat 80%
 ```
 
 Then:
 
-```wod
+```time
 3 Rounds
 10 Romanian Deadlift 60%
 15 GHD Sit-Ups

@@ -15,7 +15,7 @@ tags:
 
 The classic benchmark "Barbara" with rest intervals.
 
-```wod
+```time
 (5)
   20 Pullups
   30 Pushups

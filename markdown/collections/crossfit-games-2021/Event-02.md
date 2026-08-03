@@ -15,7 +15,7 @@ tags:
 
 Max effort 1-rep snatch.
 
-```wod
+```time
 1 Snatch ?lb
 ```
 

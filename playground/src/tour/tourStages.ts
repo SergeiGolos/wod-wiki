@@ -89,7 +89,7 @@ export const TOUR_STAGES: TourStage[] = [
     accent: TOUR_ACCENTS.editor,
     label: 'Blank Page & Typeahead',
     ringA: 'editor.fence',
-    tagA: '```wod Fence',
+    tagA: '```time Fence',
   },
   {
     id: 'editor-metrics',

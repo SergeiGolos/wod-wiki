@@ -9,13 +9,13 @@ tags:
 
 Back squat cycle — week 5. Deload week: lower volume, maintain intensity.
 
-```wod
+```time
 3x5 Back Squat 75%
 ```
 
 Then:
 
-```wod
+```time
 3 Rounds
 10 Single Leg Deadlift 40%
 12 Hollow Rock

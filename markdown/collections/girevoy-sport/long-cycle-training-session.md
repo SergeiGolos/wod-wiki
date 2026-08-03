@@ -19,21 +19,21 @@ Sessions may use interval structures, pace training, or continuous sets dependin
 
 ### Technique
 
-```wod
+```time
 (10)
   1 Double KB Clean & Jerk 24kg
   :30 Rest
 ```
 ### Intervals
 
-```wod
+```time
 (5)
   1:00 Double KB Clean & Jerk 20kg
   :30 Rest
 ```
 ### Tempo Work
 
-```wod
+```time
 (3)
   3:00 Double KB Clean & Jerk 24kg
   2:00 Rest

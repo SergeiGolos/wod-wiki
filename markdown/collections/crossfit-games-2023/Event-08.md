@@ -15,7 +15,7 @@ tags:
 
 Heavy deadlifts and chest-to-bar pull-ups for 4 rounds.
 
-```wod
+```time
 (4)
   15 Deadlifts 275lb
   15 Chest to Bar Pullups

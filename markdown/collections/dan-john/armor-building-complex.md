@@ -16,7 +16,7 @@ The Armor Building Complex is Dan John's signature double kettlebell complex, or
 
 The term "armor building" reflects the program's ability to develop a resilient, muscular physique that can withstand impact - valuable for contact sports and life in general. The complex targets the entire body: cleans develop explosive hip power, presses build overhead strength and shoulder stability, and front squats develop leg strength and core stability. When performed for multiple rounds with appropriate weight, the ABC creates significant metabolic demand.
 
-```wod
+```time
 (5)
   + 2 Double Clean 24kg
   + 1 Double Press 24kg

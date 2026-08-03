@@ -13,7 +13,7 @@ tags:
 ### Description
 This balanced workout serves as an ideal entry point for masters swimmers seeking general fitness benefits without competitive aspirations. The session combines technique work with moderate-intensity swimming to improve cardiovascular health and muscular endurance. Swimmers can adjust distances and rest intervals based on their current fitness level, making this workout accessible to a wide range of abilities within a lane.
 
-```wod
+```time
 (3) Warmup
   100m Freestyle
   :30 Rest

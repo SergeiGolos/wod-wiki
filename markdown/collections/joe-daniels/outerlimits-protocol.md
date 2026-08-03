@@ -16,7 +16,7 @@ The Outerlimits Protocol is Joe Daniels' high-intensity strength protocol that u
 
 The protocol can be performed with single kettlebell clean and press or double kettlebells. The single rep format allows for heavier weights than traditional rep schemes while the fixed rest intervals create significant training density. This approach builds both neurological efficiency and work capacity.
 
-```wod
+```time
 (40) :30 Outerlimits
   1 Clean & Press 32kg
 ```

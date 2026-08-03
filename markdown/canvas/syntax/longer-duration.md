@@ -5,6 +5,6 @@ subtitle: "Use H:MM:SS when a session runs longer than an hour"
 section: timers
 order: 7
 ---
-```wod
+```time
 1:30:00 Long Row
 ```

@@ -28,7 +28,7 @@ export const DEFAULT_HERO_SLIDES: HeroSlide[] = [
     alt: 'WhiteboardScript editor with live syntax highlighting and inline previews',
     eyebrow: 'Write',
     title: 'Type your workout in plain Markdown.',
-    caption: 'Movements, reps, time caps, and rounds — fenced in a familiar ```wod block. No drag-and-drop. No proprietary DSL.',
+    caption: 'Movements, reps, time caps, and rounds — fenced in a familiar ```time block. No drag-and-drop. No proprietary DSL.',
   },
   {
     src: '/images/hero/timer.png',

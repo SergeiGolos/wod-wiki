@@ -6,7 +6,7 @@
 
 ```
 ┌─────────────────────────────────────────┐
-│  ```wod                                 │
+│  ```time                                 │
 │  21-15-9                                │
 │  Thrusters 95lb                         │
 │  ```                                    │
@@ -52,7 +52,7 @@ Expanding the toggle:
 
 ### State 3 — Never run (majority of blocks)
 
-No results bar at all. Just the ```wod fence with its existing styling. No badge, no version concept.
+No results bar at all. Just the ```time fence with its existing styling. No badge, no version concept.
 
 ## Header (multi-version only)
 

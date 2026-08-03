@@ -15,7 +15,7 @@ tags:
 
 Row, clean and jerks, row.
 
-```wod
+```time
 1000m Row
 30 Clean & Jerks 185lb
 1000m Row

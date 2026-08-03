@@ -39,7 +39,7 @@ sequenceDiagram
     participant S as Storage
 
     Note over E,S: Step 1 — Block created
-    U->>E: Types ```wod block
+    U->>E: Types ```time block
     E->>P: Parse sections
     P->>E: Section(blockId=wod-5, contentId=hashA, version=1)
 
@@ -146,7 +146,7 @@ To view previous versions: the inline results panel gets a "Previous versions" t
 ```mermaid
 graph LR
     subgraph "Results Bar (current version)"
-        RB["```wod block (v2)<br/>━━━━━━━━━━━━━━━<br/>Result: 4:12 — today"]
+        RB["```time block (v2)<br/>━━━━━━━━━━━━━━━<br/>Result: 4:12 — today"]
     end
 
     subgraph "Version Toggle (expanded)"

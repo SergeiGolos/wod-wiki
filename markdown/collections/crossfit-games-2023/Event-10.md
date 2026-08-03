@@ -15,7 +15,7 @@ tags:
 
 Final event - run and handstand push-ups.
 
-```wod
+```time
 1mile Run
 50 Handstand Pushups
 1mile Run

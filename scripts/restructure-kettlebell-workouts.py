@@ -115,10 +115,10 @@ def split_sections(block_content):
 
 def extract_wod_block(text):
     """
-    Extract the single ```wod ... ``` block from markdown text.
+    Extract the single ```time ... ``` block from markdown text.
     Returns (before, block_content, after) or None if not found.
     """
-    m = re.search(r'^```wod\n(.*?)^```', text, re.DOTALL | re.MULTILINE)
+    m = re.search(r'^```time\n(.*?)^```', text, re.DOTALL | re.MULTILINE)
     if not m:
         return None
     before = text[:m.start()]
@@ -133,7 +133,7 @@ def build_multi_section_markdown(sections, original_before, original_after):
     """
     parts = []
     for name, content in sections:
-        parts.append(f"### {name}\n\n```wod\n{content}\n```")
+        parts.append(f"### {name}\n\n```time\n{content}\n```")
 
     return original_before + '\n'.join(parts) + '\n' + original_after
 

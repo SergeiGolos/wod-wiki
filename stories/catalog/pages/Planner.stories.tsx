@@ -20,7 +20,7 @@ import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 
 const SAMPLE_WORKOUT = `# Fran
 
-\`\`\`wod
+\`\`\`time
 (21-15-9)
   Thrusters 95lb
   Pullups
@@ -29,7 +29,7 @@ const SAMPLE_WORKOUT = `# Fran
 
 const AMRAP_WORKOUT = `# AMRAP 20
 
-\`\`\`wod
+\`\`\`time
 20:00 AMRAP
   5 Pullups
   10 Pushups
@@ -60,7 +60,7 @@ registrySource: bundled
 ## Description
 High-intensity rowing intervals for metabolic conditioning.
 
-\`\`\`wod
+\`\`\`time
 (5)
   500m Row @hard
   1:00 Rest
@@ -187,7 +187,7 @@ category:
 
 # WOD 761
 
-\`\`\`wod
+\`\`\`time
 (3)
   10 Kettlebell Swings @53lb
   10 Goblet Squats @53lb

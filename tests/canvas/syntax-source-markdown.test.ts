@@ -70,7 +70,7 @@ function resolveDslPath(dslPath: string): string {
 }
 
 function extractScriptBlocks(raw: string): string[] {
-  const matches = Array.from(raw.matchAll(/```(?:wod|climb|log|plan)\n([\s\S]*?)```/g))
+  const matches = Array.from(raw.matchAll(/```(?:time|log)(?::\w+)?\n([\s\S]*?)```/g))
   return matches.map(match => match[1].trim()).filter(Boolean)
 }
 
@@ -115,7 +115,7 @@ describe('syntax canvas source fixtures', () => {
       const raw = readFileSync(resolvedPath, 'utf8')
       const scriptBlocks = extractScriptBlocks(raw)
 
-      expect(scriptBlocks.length, `${source} should contain at least one \`wod\` block`).toBeGreaterThan(0)
+      expect(scriptBlocks.length, `${source} should contain at least one \`time\` block`).toBeGreaterThan(0)
 
       for (const scriptBlock of scriptBlocks) {
         const result = parser.read(scriptBlock)
@@ -136,7 +136,7 @@ describe('syntax guide protocol examples compile to intended block types', () =>
   function loadFirstScriptBlock(fileName: string): string {
     const raw = readFileSync(path.join(syntaxDir, fileName), 'utf8')
     const [firstBlock] = extractScriptBlocks(raw)
-    expect(firstBlock, `${fileName} should contain a \`wod\` block`).toBeTruthy()
+    expect(firstBlock, `${fileName} should contain a \`time\` block`).toBeTruthy()
     return firstBlock
   }
 

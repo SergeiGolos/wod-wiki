@@ -13,7 +13,7 @@ tags:
 ### Description
 This workout targets masters swimmers who compete in USMS meets and open water events. The session develops race-specific fitness through interval training at threshold and race-pace intensities. Swimmers should select their primary stroke for the main set while maintaining versatility through warm-up and cool-down work. The structure accommodates swimmers training for events from 50m to 500m.
 
-```wod
+```time
 (4) Warmup
   100m Freestyle
   :20 Rest

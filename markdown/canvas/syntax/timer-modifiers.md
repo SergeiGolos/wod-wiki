@@ -5,7 +5,7 @@ subtitle: "Use ^ for count-up, * for required timers, and :? for collectible tim
 section: basics
 order: 6
 ---
-```wod
+```time
 ^5:00 Row
 *:30 Rest
 :? Bike

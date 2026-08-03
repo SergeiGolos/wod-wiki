@@ -41,7 +41,7 @@ sequenceDiagram
 
 | Stage | Where | What happens |
 |---|---|---|
-| 1. Fork (optional) | `journalWorkout.createJournalNoteFromWorkout` | Creates an independent journal `Note` (UUID, `type='journal'`, `pageId` from date, `sourceId` = source path) containing a cloned ```` ```wod ```` block + Source link. Never mutates older entries. |
+| 1. Fork (optional) | `journalWorkout.createJournalNoteFromWorkout` | Creates an independent journal `Note` (UUID, `type='journal'`, `pageId` from date, `sourceId` = source path) containing a cloned ```` ```time ```` block + Source link. Never mutates older entries. |
 | 2. Route handoff | `playground/src/runtimeStore.ts` | `pendingRuntimes.set(runtimeId, {block, noteId})`; WallClockPage consumes and **deletes** on mount. Transient only. |
 | 3. Execute | `RuntimeTimerPanel` → `buildWorkoutResults` (`src/app/editor/runtimeTimerModel.ts`) | Live `IOutputStatement`s flattened via `toStoredOutputStatement`: `MetricContainer` → plain `IMetric[]`, hint `Set` → array. Produces `{startTime, endTime, duration, completed, logs[]}`. |
 | 4. Record | `resultRecorder.record` | Resolves `origin` (explicit, or `'playground'` when noteId prefix is `playground/`/`canvas:`), stamps `blockId`/`blockContentId`/`segmentId`, delegates to `mutateNote`. |

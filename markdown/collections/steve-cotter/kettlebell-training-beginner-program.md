@@ -18,7 +18,7 @@ The program uses a structured approach with clear progression criteria. Movement
 
 ### Week 1-2
 
-```wod
+```time
 (5)
   8 KB Deadlift 16kg
   :30 Rest
@@ -33,7 +33,7 @@ The program uses a structured approach with clear progression criteria. Movement
 ```
 ### Week 3-4
 
-```wod
+```time
 (5)
   10 Two-Hand KB Swing 16kg
   :30 Rest

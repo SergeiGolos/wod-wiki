@@ -5,7 +5,7 @@ subtitle: "Fence, one statement per line, indent to nest"
 section: basics
 order: 1
 ---
-```wod
+```time
 (3 Rounds)
   10 Pushups
   15 Air Squats

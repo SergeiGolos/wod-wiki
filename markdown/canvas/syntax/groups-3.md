@@ -5,7 +5,7 @@ subtitle: "Timed intervals inside rounds"
 section: groups
 order: 3
 ---
-```wod
+```time
 (4)
   :40 Work
   :20 Rest

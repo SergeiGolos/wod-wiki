@@ -18,7 +18,7 @@ Joe Daniels has emphasized the overhead kettlebell squat as a diagnostic tool an
 
 ### Warm-up
 
-```wod
+```time
 (3)
   5 Halos 12kg
   5 Arm Bars Left 12kg
@@ -26,7 +26,7 @@ Joe Daniels has emphasized the overhead kettlebell squat as a diagnostic tool an
 ```
 ### Main Work
 
-```wod
+```time
 (5)
   3 Overhead Squat Left 16kg
   3 Overhead Squat Right 16kg

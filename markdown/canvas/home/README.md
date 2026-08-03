@@ -13,10 +13,10 @@ stages:
     range: [0.0, 0.15]
     screen: editor
     source: wods/examples/home/welcome-1.md
-    caption: "Start with a Blank Page. Freeform entry & WOD fences. WOD Wiki notes are freeform Markdown. To get live timer execution and metric tracking, open a fenced block with triple backticks — ```wod for workouts or ```wql for queries."
+    caption: "Start with a Blank Page. Freeform entry & WOD fences. WOD Wiki notes are freeform Markdown. To get live timer execution and metric tracking, open a fenced block with triple backticks — ```time for workouts or ```wql for queries."
     ring:
       key: editor.fence
-      tag: "```wod Fence"
+      tag: "```time Fence"
   - id: editor-metrics
     range: [0.15, 0.30]
     screen: editor

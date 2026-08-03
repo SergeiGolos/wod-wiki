@@ -15,7 +15,7 @@ tags:
 
 Final event - run and sandbag.
 
-```wod
+```time
 1mile Run
 50 Sandbag Over Shoulder 100lb
 1mile Run

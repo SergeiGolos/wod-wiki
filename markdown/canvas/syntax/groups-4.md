@@ -5,7 +5,7 @@ subtitle: "Rounds inside rounds"
 section: groups
 order: 4
 ---
-```wod
+```time
 (3 Rounds)
   (4)
     :20 Work

@@ -38,22 +38,22 @@ export const WORKOUT_PRESETS: TourCaptionChoice[] = [
   {
     label: '21-15-9 Rep Scaling',
     detail: '24kg Swings · 400m Run · 225lb Deadlifts',
-    wod: '```wod\n21-15-9\n  Kettlebell Swings 24kg\n  400m Run\n  Deadlifts 225lb\n  *:30 Rest\n```',
+    wod: '```time\n21-15-9\n  Kettlebell Swings 24kg\n  400m Run\n  Deadlifts 225lb\n  *:30 Rest\n```',
   },
   {
     label: 'Bodyweight & Distance',
     detail: '20 Air Squats · 200m Run · 15 Push-ups',
-    wod: '```wod\n(4 Rounds)\n  20 Air Squats\n  200m Run\n  15 Push-ups\n  *:45 Rest\n```',
+    wod: '```time\n(4 Rounds)\n  20 Air Squats\n  200m Run\n  15 Push-ups\n  *:45 Rest\n```',
   },
   {
     label: 'Heavy Triplet',
     detail: '5 Back Squats 185lb · 100m Carry 50lb · 10 Ring Dips',
-    wod: '```wod\n(5 Sets)\n  5 Barbell Back Squats 185lb\n  100m Farmer Carry 50lb\n  10 Ring Dips\n```',
+    wod: '```time\n(5 Sets)\n  5 Barbell Back Squats 185lb\n  100m Farmer Carry 50lb\n  10 Ring Dips\n```',
   },
   {
     label: 'Load & Carry Ladder',
     detail: '12 Front Squats 65kg · 100m Carry 30kg · 20 Box Jumps',
-    wod: '```wod\n(4 Sets)\n  12 Front Squats 65kg\n  100m Sandbag Carry 30kg\n  20 Box Jumps\n```',
+    wod: '```time\n(4 Sets)\n  12 Front Squats 65kg\n  100m Sandbag Carry 30kg\n  20 Box Jumps\n```',
   },
 ]
 
@@ -97,11 +97,11 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     title: (
       <>
         Every Line Collects Metrics.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Fenced ```wod syntax.</em>
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Fenced ```time syntax.</em>
       </>
     ),
-    body: 'Open a fenced block with triple backticks — ```wod. Each line defines the metrics collected: rep scaling (21-15-9), distance (400m Run), load resistance (24kg, 225lb), and rest (*:30 Rest).',
-    foot: '```wod syntax · 21-15-9 rep scaling · 400m distance · 24kg/225lb load',
+    body: 'Open a fenced block with triple backticks — ```time. Each line defines the metrics collected: rep scaling (21-15-9), distance (400m Run), load resistance (24kg, 225lb), and rest (*:30 Rest).',
+    foot: '```time syntax · 21-15-9 rep scaling · 400m distance · 24kg/225lb load',
     accent: TOUR_ACCENTS.editor,
     actions: [
       {

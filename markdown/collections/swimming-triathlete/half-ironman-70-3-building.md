@@ -14,7 +14,7 @@ tags:
 ### Description
 This workout develops the endurance and pacing discipline required for 70.3 distance swims (1.9km). The session emphasizes energy conservation through efficient stroke mechanics and smart pacing. Extended continuous swimming builds the muscular endurance needed for the 1.2-mile swim while developing the mental fortitude for longer events. Athletes should practice steady, controlled effort that leaves them fresh for T1.
 
-```wod
+```time
 (3) Warmup
   200m Freestyle
   :30 Rest

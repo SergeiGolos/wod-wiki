@@ -2,7 +2,7 @@
 search: hidden
 title: "Dialect: Climb Hangboard"
 ---
-```climb
+```log:climbing
 date: 2026-05-22
 location: Home Training Setup
 discipline: hangboard

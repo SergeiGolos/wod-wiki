@@ -15,12 +15,12 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { WorkoutEditorPage } from '../../../../playground/src/pages/WorkoutEditorPage';
 import { WorkoutScenarioShell } from '../../_shared/WorkoutScenarioShell';
 
-const singleMovement = `\`\`\`wod
+const singleMovement = `\`\`\`time
 Pushups
 \`\`\`
 `;
 
-const simpleRounds = `\`\`\`wod
+const simpleRounds = `\`\`\`time
 (3 Rounds)
   10 Pushups
   15 Situps
@@ -28,20 +28,20 @@ const simpleRounds = `\`\`\`wod
 \`\`\`
 `;
 
-const repSequence = `\`\`\`wod
+const repSequence = `\`\`\`time
 (21-15-9)
   Thrusters 95lb
   Pullups
 \`\`\`
 `;
 
-const basicEmom = `\`\`\`wod
+const basicEmom = `\`\`\`time
 (10) :60 EMOM
   3 Clean & Jerk 135lb
 \`\`\`
 `;
 
-const classicAmrap = `\`\`\`wod
+const classicAmrap = `\`\`\`time
 20:00 AMRAP
   5 Pullups
   10 Pushups
@@ -49,7 +49,7 @@ const classicAmrap = `\`\`\`wod
 \`\`\`
 `;
 
-const tabata = `\`\`\`wod
+const tabata = `\`\`\`time
 (8 Rounds)
   :20 Max Effort Burpees
   :10 Rest
@@ -58,7 +58,7 @@ const tabata = `\`\`\`wod
 
 const fullSession = `# Thursday Session
 
-\`\`\`wod
+\`\`\`time
 // Warmup
   400m Run
   10 Air Squats
@@ -78,7 +78,7 @@ const fullSession = `# Thursday Session
 \`\`\`
 `;
 
-const dialectWod = `\`\`\`wod
+const dialectWod = `\`\`\`time
 (3 Rounds)
   10 Pushups
   15 Air Squats

@@ -15,7 +15,7 @@ tags:
 
 Run and push-up endurance test.
 
-```wod
+```time
 2mile Run
 150 Pushups
 2mile Run

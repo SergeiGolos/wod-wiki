@@ -16,7 +16,7 @@ The 10,000 Swing Challenge is Dan John's most famous kettlebell program, designe
 
 The program follows a structured approach with specific swing rep schemes per set, interspersed with strength movements like goblet squats, presses, or pull-ups. The high volume of swings develops powerful hips, a strong posterior chain, and exceptional conditioning. Many practitioners report significant improvements in body composition, work capacity, and mental toughness after completing the challenge.
 
-```wod
+```time
 (5)
   10 KB Swing 24kg
   15 KB Swing 24kg
@@ -25,7 +25,7 @@ The program follows a structured approach with specific swing rep schemes per se
   :30 Rest
   1 Goblet Squat 24kg
 ```
-```wod
+```time
 (5)
   10 KB Swing 24kg
   15 KB Swing 24kg
@@ -34,7 +34,7 @@ The program follows a structured approach with specific swing rep schemes per se
   :30 Rest
   2 Goblet Squat 24kg
 ```
-```wod
+```time
 (5)
   10 KB Swing 24kg
   15 KB Swing 24kg
@@ -43,7 +43,7 @@ The program follows a structured approach with specific swing rep schemes per se
   :30 Rest
   3 Goblet Squat 24kg
 ```
-```wod
+```time
 (5)
   10 KB Swing 24kg
   15 KB Swing 24kg

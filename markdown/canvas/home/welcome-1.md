@@ -9,7 +9,7 @@ order: 1
 
 Change the reps, distance, or load below — this is live.
 
-```wod
+```time
 21-15-9
   Kettlebell Swings 24kg
   400m Run

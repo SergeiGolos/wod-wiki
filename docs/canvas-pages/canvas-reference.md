@@ -53,7 +53,7 @@ hidden during hero + Jump-In, sticky from Learn the Syntax onward.
 
 `wods/examples/home/welcome-1.md` → resolves to `markdown/canvas/home/welcome-1.md`:
 
-```wod
+```time
 (3 Rounds)
   10 Pushups
   15 Air Squats
@@ -116,7 +116,7 @@ No quests, no chapter badge.
 
 `wods/examples/syntax/core-rules.md` → `markdown/canvas/syntax/core-rules.md`:
 
-```wod
+```time
 (3 Rounds)
   10 Pushups
   15 Air Squats
@@ -146,13 +146,13 @@ No quests, no chapter badge.
 
 **A Single Movement** (`single-movement.md`):
 
-```wod
+```time
 Pushups
 ```
 
 **Three Core Rules** (`core-rules.md`):
 
-```wod
+```time
 (3 Rounds)
   10 Pushups
   15 Air Squats
@@ -160,7 +160,7 @@ Pushups
 
 **Measurements** (`measurements.md`):
 
-```wod
+```time
 5 Back Squat 225lb
 400m Run
 2000m Row
@@ -168,21 +168,21 @@ Pushups
 
 **Unknown Load** (`metrics-5.md`):
 
-```wod
+```time
 5 Deadlifts ?lb
 3 Back Squat ?kg
 ```
 
 **Supplemental Data** (`effort-notes.md`):
 
-```wod
+```time
 5 Back Squat 225lb hard
 400m Run easy
 ```
 
 **Setup Actions & Comments** (`actions-comments.md`):
 
-```wod
+```time
 [Setup Barbell]
 5 Back Squat ?lb
 // Add weight each set
@@ -227,7 +227,7 @@ Pushups
 
 **Simple Rounds** (`groups-1.md`):
 
-```wod
+```time
 (3 Rounds)
   10 Pushups
   15 Situps
@@ -236,7 +236,7 @@ Pushups
 
 **Named Groups** (`named-groups.md`):
 
-```wod
+```time
 // Warmup
   400m Run
   10 Air Squats
@@ -247,7 +247,7 @@ Pushups
 
 **Nested Groups** (`groups-4.md`):
 
-```wod
+```time
 (3 Rounds)
   (4)
     :20 Work
@@ -258,7 +258,7 @@ Pushups
 
 **Mixed Sections** (`mixed-sections.md`):
 
-```wod
+```time
 // Warmup
   500m Row
   10 Lunges
@@ -275,7 +275,7 @@ Pushups
 
 **Rep Schemes / Descending Reps** (`groups-2.md`):
 
-```wod
+```time
 (21-15-9)
   Thrusters 95lb
   Pullups
@@ -283,7 +283,7 @@ Pushups
 
 **Multiple Sets** (`multiple-sets.md`):
 
-```wod
+```time
 (5 Sets)
   3 Back Squat 225lb
   *2:00 Rest
@@ -332,7 +332,7 @@ Pushups
 
 **Timers and Rest** (`timers-rest.md`):
 
-```wod
+```time
 5:00 Run
 *:30 Rest
 10 Burpees
@@ -340,7 +340,7 @@ Pushups
 
 **Timer Modifiers** (`timer-modifiers.md`):
 
-```wod
+```time
 ^5:00 Row
 *:30 Rest
 :? Bike
@@ -348,13 +348,13 @@ Pushups
 
 **Longer Durations** (`longer-duration.md`):
 
-```wod
+```time
 1:30:00 Long Row
 ```
 
 **Mixed Timers** (`mixed-timers.md`):
 
-```wod
+```time
 5:00 Run
 10 Burpees
 *:30 Rest
@@ -363,7 +363,7 @@ Pushups
 
 **Classic AMRAP** (`classic-amrap.md`):
 
-```wod
+```time
 20:00 AMRAP
   5 Pullups
   10 Pushups
@@ -372,7 +372,7 @@ Pushups
 
 **AMRAP with a Time Cap** (`time-cap.md`):
 
-```wod
+```time
 20:00
   (21-15-9)
     Thrusters 95lb
@@ -381,7 +381,7 @@ Pushups
 
 **Multiple AMRAP Windows** (`multiple-amrap-windows.md`):
 
-```wod
+```time
 10:00 AMRAP
   5 Pullups
   10 Pushups
@@ -393,21 +393,21 @@ Pushups
 
 **Basic EMOM** (`basic-emom.md`):
 
-```wod
+```time
 (10) :60 EMOM
   3 Clean & Jerk 135lb
 ```
 
 **Longer Intervals** (`longer-intervals.md`):
 
-```wod
+```time
 (5) 2:00 EMOM
   5 Deadlifts 225lb
 ```
 
 **Alternating EMOM** (`alternating-emom.md`):
 
-```wod
+```time
 (6) :60 EMOM
   - 5 Pullups
   - 8 Pushups
@@ -415,7 +415,7 @@ Pushups
 
 **Standard Tabata** (`protocols-4.md`):
 
-```wod
+```time
 (8 Rounds)
   :20 Max Effort Burpees
   :10 Rest
@@ -423,7 +423,7 @@ Pushups
 
 **Custom Intervals** (`custom-intervals.md`):
 
-```wod
+```time
 (5 Rounds)
   :40 Bike
   *:20 Rest
@@ -431,7 +431,7 @@ Pushups
 
 **Intervals with Distance** (`distance-intervals.md`):
 
-```wod
+```time
 (4 Rounds)
   3:00 Run 800m
   2:00 Rest
@@ -473,7 +473,7 @@ Pushups
 
 **Nested Protocols** (`complex-nested-protocols.md`):
 
-```wod
+```time
 (3 Rounds)
   5:00 AMRAP
     5 Pullups
@@ -485,7 +485,7 @@ Pushups
 
 **Full Training Session** (`complex-full-session.md`):
 
-```wod
+```time
 // Warmup
   400m Run
   10 Air Squats
@@ -506,7 +506,7 @@ Pushups
 
 **Barbell Cycling** (`complex-barbell-cycling.md`):
 
-```wod
+```time
 (5) :60 EMOM
   3 Power Clean 135lb
 
@@ -518,7 +518,7 @@ Pushups
 
 **Partner Workout** (`complex-partner-workout.md`):
 
-```wod
+```time
 // Partner A
   5:00 AMRAP
     5 Pullups
@@ -566,7 +566,7 @@ Pushups
 
 **Intensity** (`custom-metrics-1.md`):
 
-```wod
+```time
 (5 Sets)
   5 Back Squat 225lb {"intensity": 80}
   *2:00 Rest
@@ -574,7 +574,7 @@ Pushups
 
 **RPE & RIR** (`custom-metrics-2.md`):
 
-```wod
+```time
 (3 Sets)
   8 Bench Press 185lb {"rpe": 8, "rir": 2}
   *2:00 Rest
@@ -582,7 +582,7 @@ Pushups
 
 **Heart Rate Zone** (`custom-metrics-3.md`):
 
-```wod
+```time
 (4 Rounds)
   400m Run {"hrZone": 4}
   *1:00 Rest
@@ -590,7 +590,7 @@ Pushups
 
 **Multiple Metrics on One Line** (`custom-metrics-4.md`):
 
-```wod
+```time
 (5 Sets)
   5 Deadlift 315lb {"intensity": 85, "rpe": 9, r}
   *3:00 Rest
@@ -598,7 +598,7 @@ Pushups
 
 **Calculated Metrics** (`custom-metrics-5.md`):
 
-```wod
+```time
 (5 Sets)
   5 Back Squat 225lb {"rpe": 8}
   *2:00 Rest
@@ -643,7 +643,7 @@ calculate
 
 **`wod` — Workout Definition** (`dialect-wod.md`):
 
-```wod
+```time
 (3 Rounds)
   10 Pushups
   15 Air Squats
@@ -667,7 +667,7 @@ rpe: 7
 
 **`plan` — Future Template** (`dialect-plan.md`):
 
-```plan
+```time
 (Strength)
   5 Back Squat ?lb
   5 Bench Press ?lb

@@ -56,7 +56,7 @@ test.describe('Journal Entry — /journal/:date', () => {
   // ── 1. Seeded date loads its note content ────────────────────────────────
 
   test('loads the note content for a seeded date', async ({}, testInfo) => {
-    const seeded = `# E2E-LOAD-${Date.now()}\n\n` + '```wod\nTimer: 0:01\n1 Burpee\n```\n';
+    const seeded = `# E2E-LOAD-${Date.now()}\n\n` + '```time\nTimer: 0:01\n1 Burpee\n```\n';
     await journal.clearStoredEntry(DATE_LOAD);
     await seedJournalNote(journal.page, DATE_LOAD, seeded);
     await journal.goto(DATE_LOAD);

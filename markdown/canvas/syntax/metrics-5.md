@@ -5,7 +5,7 @@ subtitle: "? prompts user at runtime"
 section: metrics
 order: 5
 ---
-```wod
+```time
 5 Deadlifts ?lb
 3 Back Squat ?kg
 ```

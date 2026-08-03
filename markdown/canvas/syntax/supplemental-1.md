@@ -5,7 +5,7 @@ subtitle: "[Square brackets] = non-movement steps"
 section: supplemental
 order: 1
 ---
-```wod
+```time
 (5 Sets)
   5 Back Squat ?lb
   [Adjust plates]

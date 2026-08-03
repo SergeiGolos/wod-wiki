@@ -15,7 +15,7 @@ tags:
 
 Sled push and pull event.
 
-```wod
+```time
 100m Sled Push 180lb
 50m Sled Pull
 100m Sled Push 180lb

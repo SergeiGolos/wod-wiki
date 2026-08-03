@@ -13,7 +13,7 @@ tags:
 ## Description
 Helen combines cardio with conditioning work, testing both endurance and strength.
 
-```wod
+```time
 (3)
   400m Run
   21 KB Swings 53lb

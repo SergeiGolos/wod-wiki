@@ -14,7 +14,7 @@ tags:
 ### Description
 This comprehensive workout prepares triathletes for the Ironman swim (3.8km). The session combines long continuous swimming with race-pace intervals to build both endurance and confidence at Ironman distance. Special attention is given to energy management, sighting efficiency, and mental strategies for the 2.4-mile swim. This session should be completed during peak training phases 4-8 weeks before race day.
 
-```wod
+```time
 (3) Warmup
   200m Freestyle
   :30 Rest

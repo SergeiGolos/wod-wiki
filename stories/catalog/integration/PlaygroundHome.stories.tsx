@@ -22,9 +22,9 @@ import { HomeView } from '../../../playground/src/views/HomeView';
 import type { WorkoutItem } from '../../../playground/src/App';
 
 const mockWorkoutItems: WorkoutItem[] = [
-  { id: 'benchmarks/fran', name: 'Fran', category: 'benchmarks', content: '# Fran\n\n```wod\n(21-15-9)\n  Thrusters 95lb\n  Pullups\n```\n' },
-  { id: 'benchmarks/murph', name: 'Murph', category: 'benchmarks', content: '# Murph\n\n```wod\n1 Mile Run\n(20x)\n  5 Pullups\n  10 Pushups\n  15 Air Squats\n1 Mile Run\n```\n' },
-  { id: 'benchmarks/cindy', name: 'Cindy', category: 'benchmarks', content: '# Cindy\n\n```wod\n20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats\n```\n' },
+  { id: 'benchmarks/fran', name: 'Fran', category: 'benchmarks', content: '# Fran\n\n```time\n(21-15-9)\n  Thrusters 95lb\n  Pullups\n```\n' },
+  { id: 'benchmarks/murph', name: 'Murph', category: 'benchmarks', content: '# Murph\n\n```time\n1 Mile Run\n(20x)\n  5 Pullups\n  10 Pushups\n  15 Air Squats\n1 Mile Run\n```\n' },
+  { id: 'benchmarks/cindy', name: 'Cindy', category: 'benchmarks', content: '# Cindy\n\n```time\n20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  15 Air Squats\n```\n' },
 ];
 
 const AppHomeShell: React.FC<{ workoutItems?: WorkoutItem[] }> = ({

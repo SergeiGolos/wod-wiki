@@ -15,7 +15,7 @@ tags:
 
 7 kilometer run.
 
-```wod
+```time
 7km Run
 ```
 

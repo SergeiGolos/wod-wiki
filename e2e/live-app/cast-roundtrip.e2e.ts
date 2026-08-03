@@ -52,7 +52,7 @@ test.describe('Cast Sender↔Receiver Round-Trip (LocalTabBackend)', () => {
   });
 
   test('cast handshake connects the receiver popup to the sender session', async ({ page, context }) => {
-    await startWorkoutWithTimer(page, 'cast-e2e-connect', '```wod\nTimer: 1:00\n5 Burpees\n```');
+    await startWorkoutWithTimer(page, 'cast-e2e-connect', '```time\nTimer: 1:00\n5 Burpees\n```');
 
     const castButton = page.getByRole('button', { name: 'Cast to TV' }).first();
     await expect(castButton).toBeVisible({ timeout: 10_000 });
@@ -83,7 +83,7 @@ test.describe('Cast Sender↔Receiver Round-Trip (LocalTabBackend)', () => {
   });
 
   test('sender block transitions mirror to the connected receiver', async ({ page, context }) => {
-    await startWorkoutWithTimer(page, 'cast-e2e-mirror', '```wod\nTimer: 1:00\n5 Burpees\n```');
+    await startWorkoutWithTimer(page, 'cast-e2e-mirror', '```time\nTimer: 1:00\n5 Burpees\n```');
 
     const castButton = page.getByRole('button', { name: 'Cast to TV' }).first();
     await expect(castButton).toBeVisible({ timeout: 10_000 });

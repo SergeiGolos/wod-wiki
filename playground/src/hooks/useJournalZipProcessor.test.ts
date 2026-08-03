@@ -4,7 +4,7 @@ import { useJournalZipProcessor } from './useJournalZipProcessor';
 
 // Mock dependencies
 mock.module('../services/decodeZip', () => ({
-  decodeZip: mock(() => Promise.resolve('# Journal Entry\n\n```wod\n\n```\n')),
+  decodeZip: mock(() => Promise.resolve('# Journal Entry\n\n```time\n\n```\n')),
 }));
 
 mock.module('../services/parseJournalDate', () => ({

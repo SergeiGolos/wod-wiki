@@ -15,7 +15,7 @@ tags:
 
 Run, pistols, and pull-ups.
 
-```wod
+```time
 800m Run
 100 Pistols
 50 Pullups

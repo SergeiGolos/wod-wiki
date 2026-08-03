@@ -105,7 +105,7 @@ classDiagram
 
 | Shape | Lives inside | Purpose |
 |---|---|---|
-| `ScriptBlock` | `NoteSegment.data` | parsed ```` ```wod ```` block |
+| `ScriptBlock` | `NoteSegment.data` | parsed ```` ```time ```` block |
 | `WorkoutResults {startTime,endTime,duration,completed,logs[]}` | `WorkoutResult.data` | full execution replay |
 | `StoredOutputStatement` | `WorkoutResults.logs[]` | flattened runtime output (metrics as plain arrays) |
 | `IMetric` / `MetricContainer` | runtime `OutputStatement` (in-memory only) | metric values; container flattens on save |

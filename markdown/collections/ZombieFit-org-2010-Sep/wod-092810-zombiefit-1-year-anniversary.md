@@ -44,7 +44,7 @@ Run 1/4 mile | row 250m | bike 2 miles.
 
 Perform the following movements for time:
 
-```wod
+```time
 (21-15-9)
   Jumping Pull Ups
   Sit Ups
@@ -55,7 +55,7 @@ Perform the following movements for time:
 
 Perform the following movements for time:
 
-```wod
+```time
 (21-15-9)
   Pull Ups
   Sit Ups
@@ -66,7 +66,7 @@ Perform the following movements for time:
 
 Perform the following movements for time:
 
-```wod
+```time
 (21-15-9)
   L-sit Pull Ups
   Sit Ups
@@ -75,7 +75,7 @@ Perform the following movements for time:
 
 ## Cool Down
 
-```wod
+```time
 (3)
   100m Sprint
 ```

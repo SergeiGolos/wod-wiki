@@ -126,7 +126,7 @@ We created an interactive prototype ([`PROTOTYPE_analytics_query_builder.html`](
   - Opens a modal containing `<WqlQueryComposer mode="dual" />`.
   - Non-technical users edit widget queries via visual pills (Metric, Discipline, Effort, Rollup).
   - Serializes back into YAML/WQL block source automatically:
-    ```wod
+    ```time
     ```dashboard
     widgets:
       - title: Weekly Strength Volume
