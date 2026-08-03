@@ -67,6 +67,8 @@ export interface TourCaption {
   actions?: TourCaptionAction[]
   /** Workout choices rendered as a combo box; picking one resets the tour session. */
   choices?: TourCaptionChoice[]
+  /** Prompt shown above the choices combo box. */
+  choicePrompt?: string
 }
 
 export const TOUR_CAPTIONS: TourCaption[] = [
@@ -79,10 +81,11 @@ export const TOUR_CAPTIONS: TourCaption[] = [
         <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Type-ahead & freeform Markdown.</em>
       </>
     ),
-    body: 'WOD Wiki notes start as freeform Markdown. As you type, live type-ahead autocomplete brings the workout onto the page and completes your script.',
+    body: 'Markdown is open and editable. WOD Wiki notes start as freeform Markdown — as you type, live type-ahead autocomplete brings the workout onto the page and completes your script.',
     foot: 'Markdown · type-ahead completion · freeform entry',
     accent: TOUR_ACCENTS.editor,
     choices: WORKOUT_PRESETS,
+    choicePrompt: 'Take one for a spin ↓',
     actions: [
       {
         label: 'Start Lesson 1',
@@ -267,6 +270,15 @@ export function CaptionBody({ cap, onChoice }: { cap: TourCaption; onChoice?: (w
       </div>
       {cap.choices && cap.choices.length > 0 && (
         <div className="mt-4" data-testid="tour-workout-choices">
+          {cap.choicePrompt && (
+            <div
+              className="mb-2 font-mono text-[11px] uppercase tracking-[0.18em]"
+              style={{ color: cap.accent }}
+              data-testid="tour-workout-choices-prompt"
+            >
+              {cap.choicePrompt}
+            </div>
+          )}
           <Combobox<TourCaptionChoice | null>
             options={cap.choices}
             value={null}

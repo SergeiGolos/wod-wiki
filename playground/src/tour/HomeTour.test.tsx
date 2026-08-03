@@ -6,7 +6,7 @@
  */
 
 import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
-import { render, screen, cleanup, fireEvent, act, waitFor } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, act, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
 import type { ScriptBlock } from '@/components/Editor/types'
@@ -537,5 +537,28 @@ describe('HomeTour', () => {
     expect(editors[1].value).toContain('Kettlebell Swings 24kg')
     // …and leaves the hero document untouched.
     expect(editors[0].value).toBe(heroValueBefore)
+  })
+
+  it('prompts "take one for a spin" above the picker and keeps it out of the editor window header', async () => {
+    await renderHomeTour()
+    await act(async () => {
+      setTestTourProgress(0.05)
+      await Promise.resolve()
+    })
+
+    // The prompt sits above the combo box in the active caption.
+    const prompt = await screen.findByTestId('tour-workout-choices-prompt')
+    expect(prompt.textContent?.toLowerCase()).toContain('take one for a spin')
+
+    // The picker lives in the caption column…
+    const captions = screen.getByTestId('tour-captions')
+    expect(
+      within(captions).getByRole('combobox', { name: /load a workout into the demo/i }),
+    ).toBeTruthy()
+    // …and never in an editor window header (#883) — hero and runway alike.
+    for (const header of screen.getAllByTestId('tour-editor-header')) {
+      expect(within(header).queryByRole('combobox')).toBeNull()
+      expect(within(header).queryByTestId('tour-workout-choices')).toBeNull()
+    }
   })
 })

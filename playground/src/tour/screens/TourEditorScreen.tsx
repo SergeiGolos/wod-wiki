@@ -36,7 +36,10 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
   const runButtonRef = useRingRef('editor.runButton')
   return (
     <div className="flex h-full flex-col bg-background text-left">
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+      <div
+        className="flex items-center justify-between border-b border-border px-3 py-2"
+        data-testid="tour-editor-header"
+      >
         <div ref={fenceRef} className="flex items-center gap-2">
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             {sharedBy ? `shared by: ${sharedBy}` : 'Home / Notes / welcome-1.md'}
