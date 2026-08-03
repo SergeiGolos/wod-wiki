@@ -129,7 +129,8 @@ export interface HomeTourProps {
 function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeTourProps) {
   const isMobile = useIsMobile()
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
-  const { track } = useTelemetry()
+  const telemetry = useTelemetry()
+  const track = telemetry?.track
   const navigate = useNavigate()
 
   const runwayRef = useRef<HTMLElement | null>(null)
@@ -247,18 +248,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const prevStageIdRef = useRef(slice.stage.id)
   useEffect(() => {
     return subscribe((s: TourStageSlice) => {
-      const prevId = prevStageIdRef.current
-      prevStageIdRef.current = s.stage.id
-      if (prevId === 'editor-blank' && s.stage.id !== 'editor-blank') {
-        editedRecordedRef.current = false
-      }
       if (editedRecordedRef.current || interactiveRef.current !== null) return
-      if (s.stage.id === 'editor-blank') {
-        const frac = clamp01(s.t / 0.5)
-        const count = Math.floor(selectedScript.length * frac)
-        const targetDoc = selectedScript.slice(0, count)
-        if (docRef.current !== targetDoc) setDoc(targetDoc)
-      } else if (docRef.current !== selectedScript) {
+      if (docRef.current !== selectedScript) {
         setDoc(selectedScript)
       }
     })
@@ -331,7 +322,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
       setDoc(next)
       if (next !== selectedScript && !editedRecordedRef.current) {
         editedRecordedRef.current = true
-        track(HOME_EVENTS.demoEdited)
+        track?.(HOME_EVENTS.demoEdited)
       }
     },
     [selectedScript, track],
@@ -345,12 +336,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
       editedRecordedRef.current = false
       setSelectedScript(next)
       startNewSession()
-      if (slice.stage.id === 'editor-blank') {
-        setDoc(next.slice(0, Math.floor(next.length * clamp01(slice.t / 0.5))))
-      } else {
-        setDoc(next)
-      }
-      track(HOME_EVENTS.demoEdited)
+      setDoc(next)
+      track?.(HOME_EVENTS.demoEdited)
     },
     [startNewSession, slice.stage.id, slice.t, track],
   )
@@ -368,7 +355,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   }, [startNewSession])
 
   const handleRun = useCallback(() => {
-    track(HOME_EVENTS.demoRun)
+    track?.(HOME_EVENTS.demoRun)
     startRun()
   }, [startRun, track])
 
@@ -385,7 +372,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
       }
       const url = `${window.location.origin}/load?z=${encoded}${by ? `&by=${encodeURIComponent(by)}` : ''}`
       await navigator.clipboard.writeText(url)
-      track(HOME_EVENTS.demoShared)
+      track?.(HOME_EVENTS.demoShared)
       toast({
         title: 'Link copied',
         description: 'Share link copied to clipboard.',
@@ -401,7 +388,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   }, [doc, track])
 
   const handleOpenInEditor = useCallback(async () => {
-    track(HOME_EVENTS.demoOpened)
+    track?.(HOME_EVENTS.demoOpened)
     const today = getTodayDateKey()
     const note = await createJournalNoteFromWorkout({
       workoutName: 'Welcome workout',
