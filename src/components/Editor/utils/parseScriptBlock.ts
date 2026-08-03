@@ -23,10 +23,13 @@ export interface ParseResult {
  * Parse WOD block content using the Lezer-based parser.
  * 
  * @param content - The WOD block content to parse
+ * @param sport - The block's `:sport` fence suffix (` ```log:climbing `).
+ *   Omitted → the full registry stack runs. See {@link DialectStack.dialectsFor}.
  * @returns ParseResult with statements, errors, and success flag
  */
 export function parseScriptBlock(
-  content: string
+  content: string,
+  sport?: string
 ): ParseResult {
   // Handle empty content
   if (!content || content.trim().length === 0) {
@@ -47,7 +50,7 @@ export function parseScriptBlock(
     });
 
     // Extract statements using the mapper
-    const statements = extractStatements(state);
+    const statements = extractStatements(state, sport);
     
     // Lezer handles errors gracefully by creating error nodes
     // For now we return success true unless we want to explicitly find error nodes

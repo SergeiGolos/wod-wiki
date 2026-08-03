@@ -877,7 +877,7 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
   let statements: any[] = [];
   try {
     if (content.trim()) {
-      statements = createParser().read(content).statements ?? [];
+      statements = createParser().read(content, section.sport).statements ?? [];
     }
   } catch (e) {
     // Silently ignore parse errors

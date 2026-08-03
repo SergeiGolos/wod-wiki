@@ -276,7 +276,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
 
     const block = scriptBlock.statements?.length
       ? scriptBlock
-      : { ...scriptBlock, statements: createParser().read(scriptBlock.content).statements };
+      : { ...scriptBlock, statements: createParser().read(scriptBlock.content, scriptBlock.sport).statements };
 
     const derivedLogs = replayResultAnalytics(result, block);
     const updated: WorkoutResult = {

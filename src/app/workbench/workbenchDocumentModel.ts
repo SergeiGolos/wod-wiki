@@ -33,7 +33,7 @@ function hydrateScriptBlock(block: ScriptBlock): ScriptBlock {
   }
 
   try {
-    const result = parseScriptBlock(block.content);
+    const result = parseScriptBlock(block.content, block.sport);
     return {
       ...block,
       statements: result.statements,

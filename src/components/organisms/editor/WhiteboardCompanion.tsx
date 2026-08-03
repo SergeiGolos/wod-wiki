@@ -49,7 +49,7 @@ function parseContent(view: EditorView, section: EditorSection): ICodeStatement[
   const raw = view.state.doc.sliceString(section.contentFrom, section.contentTo);
   if (!raw.trim()) return [];
   try {
-    return parser.read(raw).statements as ICodeStatement[];
+    return parser.read(raw, section.sport).statements as ICodeStatement[];
   } catch {
     return [];
   }

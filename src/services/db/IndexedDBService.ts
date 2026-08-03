@@ -408,7 +408,7 @@ export async function backfillV12(tx: V10Tx): Promise<void> {
             if (!scriptBlock) throw new Error('no recoverable segment context');
             const block = scriptBlock.statements?.length
                 ? scriptBlock
-                : { ...scriptBlock, statements: createParser().read(scriptBlock.content).statements };
+                : { ...scriptBlock, statements: createParser().read(scriptBlock.content, scriptBlock.sport).statements };
 
             const derivedLogs = replayResultAnalytics(result, block);
             await resultsStore.put({ ...result, data: { ...result.data, logs: derivedLogs } });

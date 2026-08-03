@@ -201,7 +201,7 @@ function parseStatements(
   const raw = state.doc.sliceString(section.contentFrom, section.contentTo);
   if (!raw.trim()) return null;
   try {
-    return createParser().read(raw).statements as ICodeStatement[];
+    return createParser().read(raw, section.sport).statements as ICodeStatement[];
   } catch {
     return null;
   }
