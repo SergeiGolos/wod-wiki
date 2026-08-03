@@ -1,6 +1,6 @@
 import React from 'react';
 import { DocumentItem } from '@/components/Editor/utils/documentStructure';
-import { Dumbbell, Edit2, Play } from 'lucide-react';
+import { Dumbbell, Edit2, Play, Save } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
@@ -105,9 +105,15 @@ const ItemsRenderer: React.FC<{
                                     onStartWorkout(item.id);
                                 }}
                                 className="ml-2 size-6 rounded flex items-center justify-center text-primary hover:bg-primary/10 transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
-                                title="Start workout"
+                                title={item.type === 'log' ? 'Log entry' : 'Start workout'}
                             >
-                                <Play className="size-3.5 fill-current" />
+                                {/* #891/#894: log items get the Log affordance (save icon);
+                                    the log-mode runtime lands behind IRuntime separately. */}
+                                {item.type === 'log' ? (
+                                    <Save className="size-3.5" />
+                                ) : (
+                                    <Play className="size-3.5 fill-current" />
+                                )}
                             </button>
                         )}
                     </div>

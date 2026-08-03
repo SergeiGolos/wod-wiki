@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { DocumentItem } from '@/components/Editor/utils/documentStructure';
-import { Timer, Hash, Play } from 'lucide-react';
+import { Timer, Hash, Play, Save } from 'lucide-react';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 
 export interface ScriptIndexPanelProps {
@@ -98,7 +98,9 @@ export const ScriptIndexPanel: React.FC<ScriptIndexPanelProps> = ({
                   {/* Icon based on type */}
                   <div className="flex-shrink-0 text-muted-foreground">
                     {item.type === 'header' && <Hash className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
-                    {isWorkout && <Timer className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
+                    {isWorkout && item.type === 'time' && <Timer className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
+                    {/* #891/#894: log sections get their own icon (display-only tier) */}
+                    {item.type === 'log' && <Save className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
                   </div>
 
                   {/* Content Preview */}
@@ -136,9 +138,14 @@ export const ScriptIndexPanel: React.FC<ScriptIndexPanelProps> = ({
                                 onRun(item);
                               }}
                               className="h-11 w-11 rounded-md flex items-center justify-center text-primary hover:bg-primary/10 transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
-                              title="Start workout"
+                              title={item.type === 'log' ? 'Log entry' : 'Start workout'}
                             >
-                              <Play className="h-4 w-4 fill-current" />
+                              {/* #891/#894: log items get the Log affordance (save icon) */}
+                              {item.type === 'log' ? (
+                                <Save className="h-4 w-4" />
+                              ) : (
+                                <Play className="h-4 w-4 fill-current" />
+                              )}
                             </button>
                           )}
                         </div>

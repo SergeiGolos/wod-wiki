@@ -43,7 +43,9 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
   useEffect(() => {
     if (!castTransport?.connected || isRuntimeActive || !editorState) return;
 
-    const workoutSections = sections.filter(s => s.type === 'time' || s.type === 'log');
+    // Cast preview is runnable-only (#891/#894): log sections are excluded
+    // from the payload.
+    const workoutSections = sections.filter(s => s.type === 'time');
 
     const blocks = workoutSections.map(section => {
       const content =
@@ -119,7 +121,8 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
       if (message.type !== 'rpc-event' || (message as any).name !== 'select-block') return;
 
       const { index, blockId } = ((message as any).data ?? {}) as { index?: number; blockId?: string };
-      const workoutSections = sections.filter(s => s.type === 'time' || s.type === 'log');
+      // Cast select-block resolves against runnable sections only (#891/#894).
+      const workoutSections = sections.filter(s => s.type === 'time');
 
       const targetSection = blockId
         ? workoutSections.find(s => s.id === blockId)

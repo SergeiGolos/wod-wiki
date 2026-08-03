@@ -7,7 +7,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/atoms/primitives/dropdown-menu'
-import { DocumentTextIcon, ChevronDownIcon, PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid'
+import { DocumentTextIcon, ChevronDownIcon, PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from '@heroicons/react/20/solid'
 
 export interface PageNavLink {
   id: string
@@ -101,6 +101,8 @@ export function PageNavDropdown({
                     <CheckIcon className="size-3 text-primary" />
                   ) : link.runIcon === 'link' ? (
                     <ArrowTopRightOnSquareIcon className="inline size-3 opacity-30" />
+                  ) : link.type === 'log' ? (
+                    <ArrowDownTrayIcon className="inline size-3 opacity-30" />
                   ) : (
                     <PlayIcon className="inline size-3 opacity-30" />
                   )}

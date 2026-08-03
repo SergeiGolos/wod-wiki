@@ -36,7 +36,8 @@ export interface UseNotePageNavOptions {
 }
 
 /**
- * Build the page index, wire each time/log link's `onRun`, and publish to L3 nav.
+ * Build the page index, wire each `time` link's `onRun`, and publish to L3 nav.
+ * `log` links stay display-only (#891/#894): scroll target, no Run/Log button.
  * Returns the resolved `PageNavLink[]` so the page can pass it to its shell.
  */
 export function useNotePageNav({
@@ -60,13 +61,15 @@ export function useNotePageNav({
         }
       }
 
+      // Log links are display-only (#891/#894): badges yes, Run affordance no.
+      if (link.type === 'log') return { ...link, ...badge }
+
       return {
         ...link,
         ...badge,
         onRun: () => {
           // Re-resolve at click time in case `scriptBlocks` changed.
           // Falls back to `scriptBlocks[0]` to preserve prior behavior of all
-          // three pages this hook replaced — clicking a time/log link before the
           // parser has produced a precise match still runs *something*.
           const resolvedBlock =
             block || scriptBlocks.find(b => b.startLine + 1 === lineNum) || scriptBlocks[0]

@@ -13,8 +13,9 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import type { EditorView } from "@codemirror/view";
 import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
 import { sectionGeometry as sectionGeometryPlugin, type SectionRect } from '@/components/Editor/extensions/section-geometry';
-import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
+import { commandsForAffordance, type ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
 import type { ScriptBlock, FenceDialect } from '@/components/Editor/types';
+import { runAffordance } from '@/components/Editor/types/section';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/atoms/primitives/button";
 import { ButtonGroup } from "@/components/molecules/ButtonGroup";
@@ -239,6 +240,11 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
         if (!section) return null;
 
         const block = buildScriptBlock(view, section);
+        // Per-block gating (#891/#894): log sections get the Log command in
+        // place of Play; AddToToday/Schedule are withheld.
+        const affordance = runAffordance(section.type);
+        const visibleCommands = commandsForAffordance(commands, affordance);
+        if (visibleCommands.length === 0) return null;
 
         return (
           <div
@@ -250,7 +256,7 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
               top: rect.top - scrollTop + 2,
             }}
           >
-            {commands.map((cmd) => (
+            {visibleCommands.map((cmd) => (
               <CommandPill key={cmd.id} cmd={cmd} block={block} />
             ))}
           </div>

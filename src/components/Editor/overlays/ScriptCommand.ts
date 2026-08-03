@@ -9,6 +9,35 @@
 import type React from "react";
 import type { ScriptBlock } from "../types";
 
+/** Commands that only make sense for a runnable (`time`) block (#891/#894) */
+const RUN_ONLY_COMMAND_IDS: Record<string, true> = {
+  play: true,
+  "add-to-today": true,
+  schedule: true,
+};
+
+/** The log-mode command — renders in place of `play` for `log` blocks */
+const LOG_COMMAND_ID = "log";
+
+/**
+ * Filter a page's command list down to what a block's run affordance allows
+ * (decided in #894, implemented in #891):
+ * - `run`  → everything except the `log` command.
+ * - `log`  → `log` replaces `play`; planning commands (`add-to-today`,
+ *   `schedule`) are withheld; `share` / `open-in-playground` pass through.
+ * - `null` → no run/log affordance at all; only neutral commands remain.
+ */
+export function commandsForAffordance(
+  commands: ScriptCommand[],
+  affordance: "run" | "log" | null,
+): ScriptCommand[] {
+  return commands.filter((cmd) => {
+    if (cmd.id === LOG_COMMAND_ID) return affordance === "log";
+    if (RUN_ONLY_COMMAND_IDS[cmd.id]) return affordance === "run";
+    return true;
+  });
+}
+
 export interface ScriptCommand {
   /** Unique key used for React rendering and deduplication */
   id: string;

@@ -22,6 +22,18 @@ export type FenceDialect = 'time' | 'log';
 /** Ordered list of recognised workout fence tags */
 export const VALID_FENCE_DIALECTS: FenceDialect[] = ['time', 'log'];
 
+/**
+ * Run affordance for a fence base tag (#891, decided in #894):
+ * `'time'` → `'run'` (runnable) · `'log'` → `'log'` (log-mode runtime) · else `null`.
+ * The `:sport` suffix never reaches this resolver — it scopes the DialectStack only.
+ * Single shared mechanism; surfaces MUST NOT inline their own type checks.
+ */
+export function runAffordance(baseTag: string): 'run' | 'log' | null {
+  if (baseTag === 'time') return 'run';
+  if (baseTag === 'log') return 'log';
+  return null;
+}
+
 /** Section types the editor can parse and render */
 export type SectionType = 'title' | 'markdown' | 'time' | 'log' | 'frontmatter' | 'embed';
 
