@@ -1,6 +1,6 @@
 /**
  * Utility functions for detecting and managing WOD blocks in markdown content.
- * Supports dialect fences: ```wod, ```log, ```plan
+ * Supports workout fences: ```time, ```log (with optional :sport suffix)
  */
 
 import { ScriptBlock } from '../types';
@@ -8,27 +8,22 @@ import type { FenceDialect } from '../types/section';
 import { VALID_FENCE_DIALECTS } from '../types/section';
 
 /**
- * Try to match a line against known dialect fence patterns.
- * Returns the dialect if the line opens a fenced block, or null otherwise.
+ * Try to match a line against known workout fence patterns.
+ * Returns the base tag and optional :sport suffix, or null otherwise.
  */
-function matchDialectFence(trimmedLine: string): FenceDialect | null {
-  const lower = trimmedLine.toLowerCase();
-  // Fence alias: 'whiteboard' maps to the 'wod' dialect.
-  if (lower === '```whiteboard' || lower.startsWith('```whiteboard ') || lower.startsWith('```whiteboard\t')) {
-    return 'wod';
-  }
-  for (const d of VALID_FENCE_DIALECTS) {
-    // Match ```wod, ```log, ```plan (with optional trailing text)
-    if (lower === '```' + d || lower.startsWith('```' + d + ' ') || lower.startsWith('```' + d + '\t')) {
-      return d;
-    }
+function matchDialectFence(trimmedLine: string): { dialect: FenceDialect; sport?: string } | null {
+  if (!trimmedLine.startsWith('```')) return null;
+  const tag = trimmedLine.slice(3).split(/[\s\t]/)[0].toLowerCase();
+  const [base, sport] = tag.split(':', 2);
+  if ((VALID_FENCE_DIALECTS as string[]).includes(base)) {
+    return { dialect: base as FenceDialect, sport: sport || undefined };
   }
   return null;
 }
 
 /**
  * Detects all WOD blocks in markdown content.
- * Recognises ```wod, ```log and ```plan as valid dialect fences.
+ * Recognises ```time and ```log as valid workout fences (optional :sport suffix).
  * 
  * @param content - Markdown content to parse
  * @returns Array of detected WOD blocks (with dialect set)
@@ -44,14 +39,15 @@ export function detectScriptBlocks(content: string): ScriptBlock[] {
     const trimmedLine = line.trim();
 
     if (!inBlock) {
-      const dialect = matchDialectFence(trimmedLine);
-      if (dialect) {
-        // Start of a dialect block
+      const fence = matchDialectFence(trimmedLine);
+      if (fence) {
+        // Start of a workout block
         inBlock = true;
         const now = Date.now();
         currentBlock = {
           id: `wod-block-${now}-${Math.random().toString(36).substr(2, 9)}`,
-          dialect,
+          dialect: fence.dialect,
+          sport: fence.sport,
           startLine: index,
           state: 'idle',
           widgetIds: {},
@@ -117,6 +113,6 @@ export function extractBlockContent(
   endLine: number
 ): string {
   const lines = content.split('\n');
-  // Skip first line (```wod) and last line (```)
+  // Skip first line (```time) and last line (```)
   return lines.slice(startLine + 1, endLine).join('\n');
 }

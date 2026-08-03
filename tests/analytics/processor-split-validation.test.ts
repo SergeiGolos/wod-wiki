@@ -192,7 +192,7 @@ describe('ADR-0001 + ADR-0005 Processor Split Validation', () => {
     it('builds engine from StandardAnalyticsProfile context', () => {
       const profile = new StandardAnalyticsProfile();
       const context: AnalyticsProfileContext = {
-        ...makeContext('wod', [MetricType.Rep, MetricType.Resistance]),
+        ...makeContext('time', [MetricType.Rep, MetricType.Resistance]),
         analyticsContext: { effortResolver: new MockEffortResolver() },
       };
       const { realtime, summary } = profile.build(context);
@@ -228,7 +228,7 @@ describe('ADR-0001 + ADR-0005 Processor Split Validation', () => {
       // applicability is a `when` predicate evaluated per segment.
       const profile = new StandardAnalyticsProfile();
       const context: AnalyticsProfileContext = {
-        ...makeContext('wod', [MetricType.Elapsed]),
+        ...makeContext('time', [MetricType.Elapsed]),
         analyticsContext: { effortResolver: new MockEffortResolver() },
       };
       const { realtime, summary } = profile.build(context);
@@ -244,32 +244,7 @@ describe('ADR-0001 + ADR-0005 Processor Split Validation', () => {
       expect(analytics.some(a => a.getMetric(MetricType.Rep))).toBe(false);
     });
 
-    it('filters calcs by fence dialect (plan excludes wod/log-only calcs)', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context: AnalyticsProfileContext = {
-        ...makeContext('plan', [MetricType.Elapsed, MetricType.Action]),
-        analyticsContext: { effortResolver: new MockEffortResolver() },
-      };
-      const { realtime, summary } = profile.build(context);
-      const engine = new AnalyticsEngine();
-      for (const p of realtime) engine.addRealtimeProcessor(p);
-      for (const p of summary) engine.addSummaryProcessor(p);
 
-      // pace/power/metMinutes/sessionLoad are fenced [wod, log] — under
-      // 'plan' the composed engine runs but these calcs never fire.
-      const enriched = engine.run(makeSegment('s1', [
-        { type: MetricType.Effort, value: 'run' },
-        { type: MetricType.Elapsed, value: 60_000 },
-        { type: MetricType.Rep, value: 5 },
-      ]));
-      expect(enriched.metrics.some(m => m.type === 'pace')).toBe(false);
-      expect(enriched.metrics.some(m => m.type === 'power')).toBe(false);
-      expect(enriched.metrics.some(m => m.type === 'metMinutes')).toBe(false);
-
-      const analytics = engine.finalize();
-      expect(analytics.some(a => a.getMetric(MetricType.Work))).toBe(false);
-      expect(analytics.some(a => a.getMetric(MetricType.Load))).toBe(false);
-    });
   });
 
   describe('4. Error isolation across the pipeline', () => {

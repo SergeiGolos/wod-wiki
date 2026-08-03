@@ -8,18 +8,18 @@
  * Section types:
  *  - title: Special first section — editing updates the note title.
  *  - markdown: Free-form markdown content rendered as rich text.
- *  - wod: Fenced code block (```` ```wod ````, ```` ```log ````, ```` ```plan ````).
+ *  - wod: Fenced workout block (```` ```time ````, ```` ```log ````, optional :sport suffix).
  *  - frontmatter: YAML front matter between `---` delimiters, rendered as table or embed.
  */
 
 import type { ScriptBlock } from './index';
 export type { ScriptBlock };
 
-/** Valid WOD dialect identifiers — each loads different strategies */
-export type FenceDialect = 'wod' | 'log' | 'plan';
+/** Workout fence tags — `time` is runnable, `log` is recorded (no Run affordance) */
+export type FenceDialect = 'time' | 'log';
 
-/** Ordered list of recognised dialect fence names */
-export const VALID_FENCE_DIALECTS: FenceDialect[] = ['wod', 'log', 'plan'];
+/** Ordered list of recognised workout fence tags */
+export const VALID_FENCE_DIALECTS: FenceDialect[] = ['time', 'log'];
 
 /** Section types the editor can parse and render */
 export type SectionType = 'title' | 'markdown' | 'wod' | 'frontmatter' | 'embed';
@@ -39,7 +39,7 @@ export interface Section {
   /** Structural type — determines which renderer is used */
   type: SectionType;
 
-  /** Raw markdown text including syntax (# for headings, ```wod fences, etc.) */
+  /** Raw markdown text including syntax (# for headings, ```time fences, etc.) */
   rawContent: string;
 
   /** Display content (heading text without #, paragraph text, WOD inner content) */
@@ -57,8 +57,11 @@ export interface Section {
   /** Heading level 1-6 (only meaningful inside markdown sections) */
   level?: number;
 
-  /** WOD dialect — only set when type === 'wod' */
+  /** Workout fence tag — only set when type === 'wod' */
   dialect?: FenceDialect;
+
+  /** Sport suffix from the fence (```log:climbing) — scopes the block's DialectStack */
+  sport?: string;
 
   /** Associated ScriptBlock (only when type === 'wod') */
   scriptBlock?: ScriptBlock;

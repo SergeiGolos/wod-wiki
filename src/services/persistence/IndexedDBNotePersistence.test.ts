@@ -434,7 +434,7 @@ describe('IndexedDBNotePersistence', () => {
     const scriptBlock = {
       id: 'wod-a',
       contentId: 'bc-a',
-      dialect: 'wod' as const,
+      dialect: 'time' as const,
       startLine: 2,
       endLine: 5,
       content: '21 Deadlift 60kg',

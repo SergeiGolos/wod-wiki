@@ -16,7 +16,7 @@ describe('StandardAnalyticsProfile', () => {
     it('registers TwoPass first, then the composed calc engine in both chains', () => {
       const profile = new StandardAnalyticsProfile();
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action, MetricType.Rep, MetricType.Resistance]),
         analyticsContext: { effortResolver: new MockEffortResolver() },
       };
@@ -32,7 +32,7 @@ describe('StandardAnalyticsProfile', () => {
     it('passes the user profile through to the calc engine (TIS metMax personalization)', () => {
       const profile = new StandardAnalyticsProfile();
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: new MockEffortResolver() },
         userProfile: { vo2max: 49 },
@@ -57,12 +57,12 @@ describe('StandardAnalyticsProfile', () => {
   describe('custom processor registries', () => {
     const customRealtime: IRealtimeProcessor = {
       id: 'custom-realtime',
-      fenceTypes: ['wod'],
+      fenceTypes: ['time'],
       process: (output) => output,
     };
     const customSummary: ISummaryProcessor = {
       id: 'custom-summary',
-      fenceTypes: ['wod'],
+      fenceTypes: ['time'],
       requiredMetrics: [MetricType.Rep],
       summarize: () => [],
     };
@@ -73,7 +73,7 @@ describe('StandardAnalyticsProfile', () => {
       try {
         const profile = new StandardAnalyticsProfile();
         const context: AnalyticsProfileContext = {
-          dialect: 'wod',
+          dialect: 'time',
           scriptMetricTypes: new Set([MetricType.Rep]),
           analyticsContext: { effortResolver: new MockEffortResolver() },
         };
@@ -95,7 +95,7 @@ describe('StandardAnalyticsProfile', () => {
         const profile = new StandardAnalyticsProfile();
 
         const wrongDialect = profile.build({
-          dialect: 'plan',
+          dialect: 'log',
           scriptMetricTypes: new Set([MetricType.Rep]),
           analyticsContext: { effortResolver: new MockEffortResolver() },
         });
@@ -103,7 +103,7 @@ describe('StandardAnalyticsProfile', () => {
         expect(wrongDialect.summary.map((p) => p.id)).not.toContain('custom-summary');
 
         const missingMetric = profile.build({
-          dialect: 'wod',
+          dialect: 'time',
           scriptMetricTypes: new Set([MetricType.Elapsed]),
           analyticsContext: { effortResolver: new MockEffortResolver() },
         });

@@ -31,7 +31,7 @@ const persistence = new IndexedDBNotePersistence(service, new IndexedDBContentPr
 const RAW_CONTENT = [
   '# Fran',
   '',
-  '```wod',
+  '```time',
   '21-15-9',
   'Thrusters 95lb',
   'Pull-ups',

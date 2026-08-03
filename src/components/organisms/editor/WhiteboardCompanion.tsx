@@ -165,7 +165,8 @@ function buildScriptBlock(view: EditorView, section: EditorSection): ScriptBlock
   return {
     id: section.id,
     contentId: section.contentId,
-    dialect: section.dialect || "wod",
+    dialect: section.dialect || "time",
+    sport: section.sport,
     startLine: section.startLine - 1,
     endLine: section.endLine - 1,
     content,
@@ -385,7 +386,7 @@ export const WhiteboardCompanion: React.FC<WhiteboardCompanionProps> = ({
 
   const effectiveLine = isActive ? cursorLine : (effectiveHoverLine ?? cursorLine);
 
-  // Don't show the card when on the opening ```wod or closing ``` fence lines
+  // Don't show the card when on the opening ```time or closing ``` fence lines
   const onFenceLine = section
     ? effectiveLine === section.startLine || effectiveLine === section.endLine
     : false;
@@ -468,7 +469,7 @@ export const WhiteboardCompanion: React.FC<WhiteboardCompanionProps> = ({
           {/* Header */}
           <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b border-border/50 shrink-0">
             <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-metric-time/10 text-metric-time uppercase tracking-wider font-semibold">
-              {section.dialect ?? "wod"}
+              {section.dialect ?? "time"}
             </span>
             <div className="flex items-center min-w-0 gap-2">
               <span className="text-xs text-muted-foreground/60">L{lineInContent}</span>

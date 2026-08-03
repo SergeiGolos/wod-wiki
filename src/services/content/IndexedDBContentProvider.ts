@@ -109,9 +109,13 @@ export class IndexedDBContentProvider implements IContentProvider {
             return [...byId.values()]
                 .filter((s) => !s.isHistory)
                 .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt))
-                .map(s => migrateSectionType(s.dataType) === 'wod'
-                    ? `\`\`\`${(s.data as ScriptBlock | null)?.dialect ?? 'wod'}\n${s.rawContent}\n\`\`\``
-                    : s.rawContent)
+                .map(s => {
+                    if (migrateSectionType(s.dataType) !== 'wod') return s.rawContent;
+                    const block = s.data as ScriptBlock | null;
+                    const dialect = block?.dialect ?? 'time';
+                    const fenceTag = block?.sport ? `${dialect}:${block.sport}` : dialect;
+                    return `\`\`\`${fenceTag}\n${s.rawContent}\n\`\`\``;
+                })
                 .join('\n');
         };
 
@@ -170,8 +174,10 @@ export class IndexedDBContentProvider implements IContentProvider {
         const rawContent = segments.map(s => {
             const resolvedType = migrateSectionType(s.dataType);
             if (resolvedType === 'wod') {
-                const dialect = (s.data as ScriptBlock | null)?.dialect ?? 'wod';
-                return `\`\`\`${dialect}\n${s.rawContent}\n\`\`\``;
+                const block = s.data as ScriptBlock | null;
+                const dialect = block?.dialect ?? 'time';
+                const fenceTag = block?.sport ? `${dialect}:${block.sport}` : dialect;
+                return `\`\`\`${fenceTag}\n${s.rawContent}\n\`\`\``;
             }
             // Title and markdown sections: content already includes heading prefix (e.g. "# Hello")
             return s.rawContent;
@@ -193,15 +199,17 @@ export class IndexedDBContentProvider implements IContentProvider {
         const sections: Section[] = segments.map(s => {
             const resolvedType = migrateSectionType(s.dataType);
             const block = s.data as ScriptBlock | null;
-            const dialect = block?.dialect ?? 'wod';
+            const dialect = block?.dialect ?? 'time';
+            const fenceTag = block?.sport ? `${dialect}:${block.sport}` : dialect;
             return {
                 id: s.id,
                 type: resolvedType,
                 rawContent: resolvedType === 'wod'
-                    ? `\`\`\`${dialect}\n${s.rawContent}\n\`\`\``
+                    ? `\`\`\`${fenceTag}\n${s.rawContent}\n\`\`\``
                     : s.rawContent,
                 displayContent: s.rawContent,
                 dialect: resolvedType === 'wod' ? dialect : undefined,
+                sport: resolvedType === 'wod' ? block?.sport : undefined,
                 level: levelFromDataType(s.dataType),
                 scriptBlock: block ?? undefined,
                 version: s.version,

@@ -16,9 +16,15 @@
 import { StateField, StateEffect, EditorState, Transaction } from "@codemirror/state";
 import { blockContentId } from "../utils/sectionParser";
 
-/** WOD dialect identifiers */
-export type EditorDialect = "wod" | "log" | "plan";
-const VALID_DIALECTS: EditorDialect[] = ["wod", "log", "plan"];
+/** Workout fence tags — `time` is runnable, `log` is recorded */
+export type EditorDialect = "time" | "log";
+const VALID_DIALECTS: EditorDialect[] = ["time", "log"];
+
+/** A matched workout fence: base tag plus optional :sport suffix */
+interface DialectFenceMatch {
+  dialect: EditorDialect;
+  sport?: string;
+}
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -55,8 +61,10 @@ export interface EditorSection {
   startLine: number;
   /** End line number (1-based, inclusive) */
   endLine: number;
-  /** WOD dialect (only for type === "wod") */
+  /** Workout fence tag (only for type === "wod") */
   dialect?: EditorDialect;
+  /** Sport suffix from the fence (```log:climbing) — scopes the block's DialectStack */
+  sport?: string;
   /** Fence language tag (only for type === "code") */
   language?: string;
   /** Widget name (only for type === "widget", e.g. "hero" from ```widget:hero) */
@@ -147,16 +155,12 @@ function mapIdentities(
 
 // ── Fence / Delimiter Matching ───────────────────────────────────────
 
-function matchDialectFence(trimmed: string): EditorDialect | null {
-  const lower = trimmed.toLowerCase();
-  for (const d of VALID_DIALECTS) {
-    if (
-      lower === "```" + d ||
-      lower.startsWith("```" + d + " ") ||
-      lower.startsWith("```" + d + "\t")
-    ) {
-      return d;
-    }
+function matchDialectFence(trimmed: string): DialectFenceMatch | null {
+  if (!trimmed.startsWith("```")) return null;
+  const tag = trimmed.slice(3).split(/[\s\t]/)[0].toLowerCase();
+  const [base, sport] = tag.split(":", 2);
+  if ((VALID_DIALECTS as string[]).includes(base)) {
+    return { dialect: base as EditorDialect, sport: sport || undefined };
   }
   return null;
 }
@@ -274,7 +278,7 @@ function scanFenced(state: EditorState, openLineNum: number): {
  * Parse document text into sections.
  *
  * Rules:
- *  - Fenced WOD blocks (```wod/log/plan ... ```) become type "wod".
+ *  - Fenced WOD blocks (```time/log, optional :sport suffix ... ```) become type "wod".
  *  - Generic fenced code blocks (```js, ```python, etc.) become type "code".
  *  - Content blocks (```query / ```dashboard) become typed sections rendered
  *    inline as live WQL results (#801).
@@ -373,9 +377,9 @@ function parseSections(state: EditorState): EditorSection[] {
     const line = doc.line(lineNum);
     const trimmed = line.text.trim();
 
-    // ── WOD fence ──
-    const dialect = matchDialectFence(trimmed);
-    if (dialect) {
+    // ── Workout fence (```time / ```log, optional :sport suffix) ──
+    const fence = matchDialectFence(trimmed);
+    if (fence) {
       flushMarkdown();
       const { closeLine, contentFrom, contentTo } = scanFenced(state, lineNum);
       const content = doc.sliceString(line.from, doc.line(closeLine).to);
@@ -391,7 +395,8 @@ function parseSections(state: EditorState): EditorSection[] {
         to: doc.line(closeLine).to,
         startLine: lineNum,
         endLine: closeLine,
-        dialect,
+        dialect: fence.dialect,
+        sport: fence.sport,
         contentFrom: Math.min(contentFrom, doc.length),
         contentTo: Math.max(contentFrom, contentTo),
       });

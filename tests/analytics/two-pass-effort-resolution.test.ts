@@ -87,7 +87,7 @@ describe('Two-Pass Effort Resolution Integration', () => {
     it('composed met-minutes calc uses compiler-resolved MET without hardcoded lookup', () => {
       const resolver = new MockEffortResolver().withEfforts([fixtureRunning]);
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -127,7 +127,7 @@ describe('Two-Pass Effort Resolution Integration', () => {
     it('composed TIS calc branches on analyzed origin for fuzzy-matched efforts', () => {
       const resolver = new MockEffortResolver().withEfforts([fixtureRowing]);
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -168,7 +168,7 @@ describe('Two-Pass Effort Resolution Integration', () => {
     it('composed met-minutes calc flags estimated origin for unresolved efforts', () => {
       const resolver = new MockEffortResolver(); // empty
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -196,7 +196,7 @@ describe('Two-Pass Effort Resolution Integration', () => {
       const resolver = new MockEffortResolver().withEfforts([fixtureBackSquat]);
       const engine = new AnalyticsEngine();
       engine.addRealtimeProcessor(new TwoPassEffortResolutionProcess(resolver));
-      const calc = createCalcEngine('wod', { effortResolver: resolver });
+      const calc = createCalcEngine('time', { effortResolver: resolver });
       engine.addRealtimeProcessor(calc);
       engine.addSummaryProcessor(calc);
 
@@ -214,7 +214,7 @@ describe('Two-Pass Effort Resolution Integration', () => {
       const resolver = new MockEffortResolver().withEfforts([fixtureRunning]);
       const engine = new AnalyticsEngine();
       engine.addRealtimeProcessor(new TwoPassEffortResolutionProcess(resolver));
-      const calc = createCalcEngine('wod', { effortResolver: resolver });
+      const calc = createCalcEngine('time', { effortResolver: resolver });
       engine.addRealtimeProcessor(calc);
       engine.addSummaryProcessor(calc);
 
@@ -233,7 +233,7 @@ describe('Two-Pass Effort Resolution Integration', () => {
     it('includes effort origin and slug in TIS projection metadata', () => {
       const resolver = new MockEffortResolver().withEfforts([fixtureRowing]);
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };

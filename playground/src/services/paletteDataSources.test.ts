@@ -71,18 +71,18 @@ type WorkoutItem = import('./paletteDataSources').WorkoutItem;
 type ScriptCollection = import('@/repositories/script-collections').ScriptCollection;
 
 describe('extractScriptBlocks', () => {
-  it('should extract single wod block from markdown', () => {
-    const markdown = '```wod\n5 rounds for time:\n- 10 thrusters\n- 15 pull-ups\n```';
+  it('should extract single time block from markdown', () => {
+    const markdown = '```time\n5 rounds for time:\n- 10 thrusters\n- 15 pull-ups\n```';
     const blocks = extractScriptBlocks(markdown);
 
     expect(blocks).toHaveLength(1);
-    expect(blocks[0].dialect).toBe('wod');
+    expect(blocks[0].dialect).toBe('time');
     expect(blocks[0].script).toBe('5 rounds for time:\n- 10 thrusters\n- 15 pull-ups\n');
     expect(blocks[0].preview).toBe('5 rounds for time:');
   });
 
-  it('should extract multiple wod blocks', () => {
-    const markdown = '```wod\nFirst workout\n```\n\nSome text in between\n\n```wod\nSecond workout\n```';
+  it('should extract multiple time blocks', () => {
+    const markdown = '```time\nFirst workout\n```\n\nSome text in between\n\n```time\nSecond workout\n```';
     const blocks = extractScriptBlocks(markdown);
 
     expect(blocks).toHaveLength(2);
@@ -90,54 +90,42 @@ describe('extractScriptBlocks', () => {
     expect(blocks[1].script).toBe('Second workout\n');
   });
 
-  it('should extract log blocks', () => {
-    const markdown = '```log\nRound 1: 2:30\nRound 2: 2:45\n```';
+  it('should extract log blocks for recorded notes', () => {
+    const markdown = '```log\nWeek 1: Foundation\nWeek 2: Build\n```';
     const blocks = extractScriptBlocks(markdown);
 
     expect(blocks).toHaveLength(1);
     expect(blocks[0].dialect).toBe('log');
-    expect(blocks[0].script).toBe('Round 1: 2:30\nRound 2: 2:45\n');
-  });
-
-  it('should extract plan blocks', () => {
-    const markdown = '```plan\nWeek 1: Foundation\nWeek 2: Build\n```';
-    const blocks = extractScriptBlocks(markdown);
-
-    expect(blocks).toHaveLength(1);
-    expect(blocks[0].dialect).toBe('plan');
     expect(blocks[0].script).toBe('Week 1: Foundation\nWeek 2: Build\n');
   });
 
-  it('should extract mixed block types', () => {
-    const markdown = '```wod\nWorkout\n```\n\n```log\nLog notes\n```\n\n```plan\nPlan notes\n```';
-    const blocks = extractScriptBlocks(markdown);
-
-    expect(blocks).toHaveLength(3);
-    expect(blocks[0].dialect).toBe('wod');
-    expect(blocks[1].dialect).toBe('log');
-    expect(blocks[2].dialect).toBe('plan');
-  });
-
-  it('should normalize ```whiteboard to wod dialect', () => {
-    const markdown = '```whiteboard\n5 rounds for time:\n- 10 thrusters\n```';
-    const blocks = extractScriptBlocks(markdown);
-
-    expect(blocks).toHaveLength(1);
-    expect(blocks[0].dialect).toBe('wod');
-    expect(blocks[0].script).toBe('5 rounds for time:\n- 10 thrusters\n');
-  });
-
-  it('should extract mixed wod + whiteboard fences (both normalize to wod)', () => {
-    const markdown = '```wod\nFirst\n```\n\n```whiteboard\nSecond\n```';
+  it('should extract mixed time and log block types', () => {
+    const markdown = '```time\nWorkout\n```\n\n```log\nLog notes\n```';
     const blocks = extractScriptBlocks(markdown);
 
     expect(blocks).toHaveLength(2);
-    expect(blocks[0].dialect).toBe('wod');
-    expect(blocks[1].dialect).toBe('wod');
+    expect(blocks[0].dialect).toBe('time');
+    expect(blocks[1].dialect).toBe('log');
+  });
+
+  it('should not extract legacy ```whiteboard fences', () => {
+    const markdown = '```whiteboard\n5 rounds for time:\n- 10 thrusters\n```';
+    const blocks = extractScriptBlocks(markdown);
+
+    expect(blocks).toEqual([]);
+  });
+
+  it('should extract only time blocks and ignore legacy ```whiteboard fences', () => {
+    const markdown = '```time\nFirst\n```\n\n```whiteboard\nSecond\n```';
+    const blocks = extractScriptBlocks(markdown);
+
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].dialect).toBe('time');
+    expect(blocks[0].script).toBe('First\n');
   });
 
   it('should handle empty block content', () => {
-    const markdown = '```wod\n\n```';
+    const markdown = '```time\n\n```';
     const blocks = extractScriptBlocks(markdown);
 
     expect(blocks).toHaveLength(1);
@@ -146,7 +134,7 @@ describe('extractScriptBlocks', () => {
   });
 
   it('should handle block with only whitespace', () => {
-    const markdown = '```wod\n  \n  \n```';
+    const markdown = '```time\n  \n  \n```';
     const blocks = extractScriptBlocks(markdown);
 
     expect(blocks).toHaveLength(1);
@@ -155,7 +143,7 @@ describe('extractScriptBlocks', () => {
   });
 
   it('should handle Windows line endings (\\r\\n)', () => {
-    const markdown = '```wod\r\n5 rounds for time\r\n```';
+    const markdown = '```time\r\n5 rounds for time\r\n```';
     const blocks = extractScriptBlocks(markdown);
 
     expect(blocks).toHaveLength(1);
@@ -169,25 +157,32 @@ describe('extractScriptBlocks', () => {
     expect(blocks).toEqual([]);
   });
 
-  it('should ignore non-wod/log/plan code blocks', () => {
-    const markdown = '```javascript\nconst x = 5;\n```\n\n```wod\nReal workout\n```';
+  it('should ignore non-time/log code blocks', () => {
+    const markdown = '```javascript\nconst x = 5;\n```\n\n```time\nReal workout\n```';
     const blocks = extractScriptBlocks(markdown);
 
     expect(blocks).toHaveLength(1);
-    expect(blocks[0].dialect).toBe('wod');
+    expect(blocks[0].dialect).toBe('time');
     expect(blocks[0].script).toBe('Real workout\n');
   });
 
-  it('should handle case-insensitive block types', () => {
-    const markdown = '```WOD\nUppercase WOD\n```';
+  it('should handle case-insensitive block types for current tags', () => {
+    const markdown = '```TIME\nUppercase TIME\n```';
     const blocks = extractScriptBlocks(markdown);
 
     expect(blocks).toHaveLength(1);
-    expect(blocks[0].dialect).toBe('wod');
+    expect(blocks[0].dialect).toBe('time');
+  });
+
+  it('should not extract legacy uppercase WOD tag', () => {
+    const markdown = '```WOD\nUppercase WOD\n```';
+    const blocks = extractScriptBlocks(markdown);
+
+    expect(blocks).toEqual([]);
   });
 
   it('should handle blocks with inline backticks', () => {
-    const markdown = '```wod\nDo 5 `heavy` thrusters\n```';
+    const markdown = '```time\nDo 5 `heavy` thrusters\n```';
     const blocks = extractScriptBlocks(markdown);
 
     expect(blocks).toHaveLength(1);
@@ -195,7 +190,7 @@ describe('extractScriptBlocks', () => {
   });
 
   it('should number blocks sequentially', () => {
-    const markdown = '```wod\nBlock 1\n```\n\n```wod\nBlock 2\n```\n\n```wod\nBlock 3\n```';
+    const markdown = '```time\nBlock 1\n```\n\n```time\nBlock 2\n```\n\n```log\nBlock 3\n```';
     const blocks = extractScriptBlocks(markdown);
 
     expect(blocks).toHaveLength(3);
@@ -205,7 +200,7 @@ describe('extractScriptBlocks', () => {
   });
 
   it('should extract preview from first non-empty line', () => {
-    const markdown = '```wod\n\n\nThird line is first\n```';
+    const markdown = '```time\n\n\nThird line is first\n```';
     const blocks = extractScriptBlocks(markdown);
 
     expect(blocks).toHaveLength(1);
@@ -215,7 +210,7 @@ describe('extractScriptBlocks', () => {
 
 describe('scriptBlockSource', () => {
   it('should create source with single block when workout has one block', async () => {
-    const markdown = '```wod\n5 rounds for time\n```';
+    const markdown = '```time\n5 rounds for time\n```';
     const source = scriptBlockSource('Fran', markdown);
 
     const results = await source.search('');
@@ -225,12 +220,12 @@ describe('scriptBlockSource', () => {
       index: 0,
       script: '5 rounds for time\n',
       preview: '5 rounds for time',
-      dialect: 'wod',
+      dialect: 'time',
     });
   });
 
   it('should create source with multiple blocks when workout has multiple blocks', async () => {
-    const markdown = '```wod\nFirst block\n```\n\n```wod\nSecond block\n```';
+    const markdown = '```time\nFirst block\n```\n\n```time\nSecond block\n```';
     const source = scriptBlockSource('Workout', markdown);
 
     const results = await source.search('');
@@ -248,7 +243,7 @@ describe('scriptBlockSource', () => {
   });
 
   it('should filter blocks by search query', async () => {
-    const markdown = '```wod\nThrusters and pull-ups\n```\n\n```wod\nClean and jerk\n```';
+    const markdown = '```time\nThrusters and pull-ups\n```\n\n```time\nClean and jerk\n```';
     const source = scriptBlockSource('Workout', markdown);
 
     const results = await source.search('thruster');
@@ -257,7 +252,7 @@ describe('scriptBlockSource', () => {
   });
 
   it('should handle case-insensitive search', async () => {
-    const markdown = '```wod\nThrusters and pull-ups\n```';
+    const markdown = '```time\nThrusters and pull-ups\n```';
     const source = scriptBlockSource('Workout', markdown);
 
     const results = await source.search('THRUSTER');
@@ -265,7 +260,7 @@ describe('scriptBlockSource', () => {
   });
 
   it('should match against sublabel in search', async () => {
-    const markdown = '```wod\nFirst workout\n```\n\n```wod\nSecond workout\n```';
+    const markdown = '```time\nFirst workout\n```\n\n```time\nSecond workout\n```';
     const source = scriptBlockSource('Workout', markdown);
 
     const results = await source.search('second');

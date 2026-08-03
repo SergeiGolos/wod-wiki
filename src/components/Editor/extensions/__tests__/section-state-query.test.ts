@@ -45,7 +45,7 @@ describe("sectionField — query/dashboard fences", () => {
   });
 
   it("parses query blocks alongside wod and markdown", () => {
-    const doc = "# Title\n\n```wod\n10:00 Run\n```\n\n```query\nsum:x{}\n```";
+    const doc = "# Title\n\n```time\n10:00 Run\n```\n\n```query\nsum:x{}\n```";
     expect(sections(doc).map(x => x.type)).toEqual(["markdown", "markdown", "wod", "markdown", "query"]);
   });
 

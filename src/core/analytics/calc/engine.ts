@@ -53,7 +53,7 @@ interface SegmentEffort {
 
 export class CalcEngine implements IRealtimeProcessor, ISummaryProcessor {
   readonly id = 'composed-calculations';
-  readonly fenceTypes = ['wod', 'log', 'plan'] as const;
+  readonly fenceTypes = ['time', 'log'] as const;
 
   private readonly segmentCalcs: CalculationDefinition[];
   private readonly workoutCalcs: CalculationDefinition[];

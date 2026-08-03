@@ -62,7 +62,7 @@ export const ReceiverPreviewPanel: React.FC<{
                                                 {block.timerHint}
                                             </span>
                                         )}
-                                        {block.dialect && block.dialect !== 'wod' && (
+                                        {block.dialect && block.dialect !== 'time' && (
                                             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 bg-muted/30 px-1.5 py-0.5 rounded">
                                                 {block.dialect}
                                             </span>

@@ -113,7 +113,7 @@ describe("widgetBlockPreview — decoration building", () => {
   it("should produce 0 decorations when no widget blocks are present", () => {
     const registry = makeRegistry();
     const ext = widgetBlockPreview(registry);
-    const doc = "Hello\n\n```wod\n10:00 Run\n```\n\n# Title";
+    const doc = "Hello\n\n```time\n10:00 Run\n```\n\n# Title";
     const state = EditorState.create({ doc, extensions: [sectionField, ext] });
     expect(countDecos(state, ext)).toBe(0);
   });
@@ -329,7 +329,7 @@ describe("widgetBlockPreview — decoration building", () => {
   });
 
   it("should leave WOD blocks to normal ArrowDown movement", () => {
-    const doc = "# Intro\n\n```wod\n10:00 Run\n```\n\n# Title";
+    const doc = "# Intro\n\n```time\n10:00 Run\n```\n\n# Title";
     const view = createView(doc, 2, [sectionField, previewDecorations]);
 
     expect(pressArrow(view, "ArrowDown")).toBe(false);

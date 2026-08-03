@@ -17,8 +17,9 @@ import { toast } from '@/hooks/use-toast'
 
 /** Build the /load?zip= URL for a WOD block. */
 async function buildZipUrl(block: ScriptBlock): Promise<string> {
-  const dialect = block.dialect || 'wod'
-  const markdown = `\`\`\`${dialect}\n${block.content.trimEnd()}\n\`\`\`\n`
+  const dialect = block.dialect || 'time'
+  const fenceTag = block.sport ? `${dialect}:${block.sport}` : dialect
+  const markdown = `\`\`\`${fenceTag}\n${block.content.trimEnd()}\n\`\`\`\n`
   const encoded = await encodeZip(markdown)
   return `${window.location.origin}${buildPlaygroundLoadUrl({ zip: encoded })}`
 }

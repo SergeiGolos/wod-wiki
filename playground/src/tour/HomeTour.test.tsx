@@ -205,7 +205,10 @@ mock.module('./useTourScroll', () => {
 
   // Expose the driver on globalThis so the test can switch slices without
   // statically importing the mocked module (which would resolve before the mock).
-  const control = globalThis as unknown as { setTestTourProgress?: (p: number) => void }
+  const control = globalThis as unknown as {
+    setTestTourProgress?: (p: number) => void
+    scrollRunwayToCalls?: number
+  }
   control.setTestTourProgress = setTestTourProgress
 
   return {
@@ -223,17 +226,36 @@ mock.module('./useTourScroll', () => {
         resync: () => {},
       }
     },
-    scrollRunwayTo: () => {},
+    scrollRunwayTo: () => {
+      control.scrollRunwayToCalls = (control.scrollRunwayToCalls ?? 0) + 1
+    },
   }
 })
 
 import { HomeTour } from './HomeTour'
+
+// jsdom lacks ResizeObserver; Headless UI's combobox machine touches it when
+// the option list closes after a selection.
+const globalWithResizeObserver = globalThis as unknown as { ResizeObserver?: unknown }
+globalWithResizeObserver.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
 
 const setTestTourProgress = (progress: number) => {
   // globalThis is augmented by the useTourScroll mock factory at runtime.
   const control = globalThis as unknown as { setTestTourProgress?: (p: number) => void }
   control.setTestTourProgress?.(progress)
 }
+
+// Scroll-spy access — globalThis is augmented by the useTourScroll mock factory.
+type ScrollSpy = { scrollRunwayToCalls?: number }
+const scrollSpyControl = () => globalThis as unknown as ScrollSpy
+const resetScrollSpy = () => {
+  scrollSpyControl().scrollRunwayToCalls = 0
+}
+const scrollRunwayToCallCount = () => scrollSpyControl().scrollRunwayToCalls ?? 0
 
 // ── Test data ───────────────────────────────────────────────────────────────
 
@@ -299,6 +321,7 @@ describe('HomeTour', () => {
 
   beforeEach(() => {
     setTestTourProgress(0.50)
+    resetScrollSpy()
     recorded = []
     unsubscribe = telemetry.events.subscribe((event) => recorded.push(event))
     Object.defineProperty(window, 'matchMedia', {
@@ -450,5 +473,69 @@ describe('HomeTour', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('tour-playground-overlay')).toBeNull()
     })
+  })
+
+  it('hero Run opens the fullscreen playground without scrolling the page', async () => {
+    await renderHomeTour()
+    const runButton = await screen.findByRole('button', { name: /^Run$/i })
+    await act(async () => {
+      fireEvent.click(runButton)
+      await Promise.resolve()
+    })
+
+    expect(await screen.findByTestId('tour-playground-overlay')).toBeTruthy()
+    // The overlay is fixed-position: the runway is never scrolled into view.
+    expect(scrollRunwayToCallCount()).toBe(0)
+  })
+
+  it('keeps the hero editor and the runway editor independent', async () => {
+    await renderHomeTour()
+    const editors = screen.getAllByTestId('mock-note-editor') as HTMLTextAreaElement[]
+    const [hero, runway] = editors
+    expect(editors.length).toBe(2)
+    // Same arrival content, separate documents.
+    expect(hero.value).toBe(runway.value)
+
+    fireEvent.change(hero, { target: { value: 'HERO EDITS' } })
+    expect(hero.value).toBe('HERO EDITS')
+    expect(runway.value).not.toBe('HERO EDITS')
+
+    fireEvent.change(runway, { target: { value: 'RUNWAY EDITS' } })
+    expect(runway.value).toBe('RUNWAY EDITS')
+    expect(hero.value).toBe('HERO EDITS')
+  })
+
+  it('offers workout presets in a combo box that loads into the runway demo only', async () => {
+    await renderHomeTour()
+    // Drive to the editor-blank slide — its caption (with the combo box) is
+    // aria-hidden unless active.
+    await act(async () => {
+      setTestTourProgress(0.05)
+      await Promise.resolve()
+    })
+    const input = await screen.findByRole('combobox', { name: /load a workout into the demo/i })
+    expect(input).toBeTruthy()
+
+    // Open the option list via the combo box toggle (synthetic focus doesn't
+    // trip Headless UI's `immediate` open under jsdom).
+    const wrapper = screen.getByTestId('tour-workout-choices')
+    const toggle = wrapper.querySelector('button')
+    expect(toggle).toBeTruthy()
+    fireEvent.click(toggle!)
+
+    const heroValueBefore = (screen.getAllByTestId('mock-note-editor')[0] as HTMLTextAreaElement).value
+
+    const option = await screen.findByText('21-15-9 Rep Scaling')
+    await act(async () => {
+      // Headless UI selects a ComboboxOption on mouseDown, not click.
+      fireEvent.mouseDown(option)
+      await Promise.resolve()
+    })
+
+    const editors = screen.getAllByTestId('mock-note-editor') as HTMLTextAreaElement[]
+    // The pick replaces the runway demo script…
+    expect(editors[1].value).toContain('Kettlebell Swings 24kg')
+    // …and leaves the hero document untouched.
+    expect(editors[0].value).toBe(heroValueBefore)
   })
 })

@@ -137,7 +137,7 @@ export function PlaygroundLandingPage() {
       const template = [
         '# Playground Widget Example',
         '',
-        '```wod',
+        '```time',
         script,
         '```',
         '',

@@ -42,7 +42,7 @@ describe('parseDocumentSections', () => {
   });
 
   it('parses text after title as markdown', () => {
-    const content = '# Title\n\n```wod\n5:00 Run\n```\n\nNotes here';
+    const content = '# Title\n\n```time\n5:00 Run\n```\n\nNotes here';
     const sections = parseDocumentSections(content);
     const mdSections = sections.filter(s => s.type === 'markdown');
     expect(mdSections.length).toBeGreaterThanOrEqual(1);
@@ -56,9 +56,9 @@ describe('parseDocumentSections', () => {
     expect(first.map(s => s.id)).toEqual(second.map(s => s.id));
   });
 
-  describe('with WOD blocks', () => {
-    it('parses a wod block between content', () => {
-      const content = '# Workout\n\n```wod\n5:00 Run\n```\n\nNotes';
+  describe('with workout blocks', () => {
+    it('parses a time block between content', () => {
+      const content = '# Workout\n\n```time\n5:00 Run\n```\n\nNotes';
       const sections = parseDocumentSections(content);
 
       const wodSection = sections.find(s => s.type === 'wod');
@@ -67,8 +67,8 @@ describe('parseDocumentSections', () => {
       expect(wodSection!.scriptBlock).toBeDefined();
     });
 
-    it('separates title from wod block', () => {
-      const content = '# Warm Up\n```wod\n3:00 Walk\n```';
+    it('separates title from time block', () => {
+      const content = '# Warm Up\n```time\n3:00 Walk\n```';
       const sections = parseDocumentSections(content);
 
       expect(sections[0].type).toBe('title');
@@ -84,12 +84,12 @@ describe('parseDocumentSections', () => {
       expect(wodSection!.dialect).toBe('log');
     });
 
-    it('recognises plan dialect', () => {
-      const content = '# Plan\n```plan\n10:00 Bike\n```';
+    it('recognises time dialect', () => {
+      const content = '# Plan\n```time\n10:00 Bike\n```';
       const sections = parseDocumentSections(content);
       const wodSection = sections.find(s => s.type === 'wod');
       expect(wodSection).toBeDefined();
-      expect(wodSection!.dialect).toBe('plan');
+      expect(wodSection!.dialect).toBe('time');
     });
   });
 });
@@ -105,12 +105,24 @@ describe('buildRawContent', () => {
     expect(buildRawContent(sections)).toBe(original);
   });
 
-  it('round-trips a document with wod block', () => {
-    const original = '# Title\n\n```wod\n5:00 Run\n```';
+  it('round-trips a document with time block', () => {
+    const original = '# Title\n\n```time\n5:00 Run\n```';
     const sections = parseDocumentSections(original);
     const rebuilt = buildRawContent(sections);
     expect(rebuilt).toContain('# Title');
-    expect(rebuilt).toContain('```wod');
+    expect(rebuilt).toContain('```time');
+    expect(rebuilt).toContain('5:00 Run');
+  });
+
+  it('round-trips a log block with sport suffix', () => {
+    const original = '# Session\n\n```log:climbing\n5:00 Run\n```';
+    const sections = parseDocumentSections(original);
+    const wodSection = sections.find(s => s.type === 'wod');
+    expect(wodSection).toBeDefined();
+    expect(wodSection!.dialect).toBe('log');
+    expect(wodSection!.sport).toBe('climbing');
+    const rebuilt = buildRawContent(sections);
+    expect(rebuilt).toContain('```log:climbing');
     expect(rebuilt).toContain('5:00 Run');
   });
 
@@ -277,8 +289,8 @@ describe('parseDocumentSections — frontmatter', () => {
     expect(fm).toBeUndefined();
   });
 
-  it('does not detect --- inside wod blocks as frontmatter', () => {
-    const content = '```wod\n---\nkey: val\n---\n```';
+  it('does not detect --- inside time blocks as frontmatter', () => {
+    const content = '```time\n---\nkey: val\n---\n```';
     const sections = parseDocumentSections(content);
     const fm = sections.find(s => s.type === 'frontmatter');
     expect(fm).toBeUndefined();

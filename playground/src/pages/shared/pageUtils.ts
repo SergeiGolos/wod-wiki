@@ -65,7 +65,7 @@ export function extractPageIndex(content: string): PageNavLink[] {
       links.push({ id, label, type: 'heading', timestamp })
       continue
     }
-    if (/^```(wod|log|plan)/.test(line.trim())) {
+    if (/^```(time|log)/.test(line.trim())) {
       wodCount++
       links.push({ id: `wod-line-${i + 1}`, label: `Workout ${wodCount}`, type: 'wod' })
     }

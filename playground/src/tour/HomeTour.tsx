@@ -2,14 +2,12 @@
  * HomeTour.tsx — the redesigned home page: hero + strip + learn + sticky
  * Timer/Analytics runway + registry + reference.
  *
- * The hero embeds the live welcome-1.md demo so the first interaction happens
- * without scrolling. The sticky morphing window is preserved and only morphs
- * between the Timer and Analytics stages. All static areas render as a card
- * stack below 1024px (the app's MOBILE_BREAKPOINT_PX).
- *
- * Playground mode: pressing Run in the hero freezes scroll sync and hands the
- * window to the visitor (real runtime; Stop → real analytics; ✕ / hint pill
- * returns to scroll sync).
+ * The hero embeds the live welcome-1.md demo in its own self-contained editor
+ * context (doc + blocks + runtime), independent of the runway scroll demo.
+ * Pressing Run in either editor opens the fullscreen playground (real
+ * runtime; Stop → real analytics; ✕ / hint pill returns) without scrolling
+ * the page. The runway window keeps its own runtime context, scrubbed by and
+ * aligned with the tour stages.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -139,21 +137,42 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const tvCardRef = useRef<HTMLDivElement | null>(null)
   const toastRef = useRef<HTMLDivElement | null>(null)
 
-  // ── Editor document (live hero demo) ──
+  // ── Editor documents ──
   // Arrival contract (#882): the initial load content is the shared script
-  // stored by /load?z= when present, else welcome-1.md. `initialContent` is
-  // the hero-reset target; `selectedScript` may diverge (adventure picks);
-  // `doc` is the live editor text.
+  // stored by /load?z= when present, else welcome-1.md.
+  //
+  // Two independent editor contexts:
+  //  - HERO: self-contained — its own doc, blocks, and runtime session. It is
+  //    never touched by the scroll driver; pressing Run opens the fullscreen
+  //    playground without scrolling the page.
+  //  - RUNWAY: the ambient scroll-demo window — typewriter-scrubbed by the
+  //    tour stages, shares its runtime with the Timer/Analytics stages and
+  //    the TV card.
   const welcomeScript = useMemo(() => resolveSource(HOME_DEMO_SOURCE, wodFiles), [wodFiles])
   const [sharedScript, setSharedScript] = useState<HomeSharedScript | null>(() => loadHomeShared())
   const initialContent = sharedScript?.content ?? welcomeScript
-  const [selectedScript, setSelectedScript] = useState(initialContent)
-  const [doc, setDoc] = useState(initialContent)
   const sharedBy = sharedScript ? sharedScript.by?.trim() || 'anonymous' : undefined
-  const blocksRef = useRef<ScriptBlock[]>([])
-  const runtimeRef = useRef<IScriptRuntime | null>(null)
+
+  // Hero context
+  const [heroDoc, setHeroDoc] = useState(initialContent)
+  const heroDocRef = useRef(heroDoc)
+  heroDocRef.current = heroDoc
+  const heroBlocksRef = useRef<ScriptBlock[]>([])
+  const heroEditedRecordedRef = useRef(false)
+
+  // Runway (scroll demo) context — `selectedScript` is the scrub reset target
+  // (adventure picks); `runwayDoc` is the live window text.
+  const [selectedScript, setSelectedScript] = useState(initialContent)
+  const [runwayDoc, setRunwayDoc] = useState(initialContent)
+  const runwayDocRef = useRef(runwayDoc)
+  runwayDocRef.current = runwayDoc
+  const runwayBlocksRef = useRef<ScriptBlock[]>([])
+  const runwayEditedRecordedRef = useRef(false)
+
+  // Runway runtime — owned by the scroll-mode Timer stage; feeds the TV card
+  // and the ambient analytics rollup. Never the playground runtime.
+  const runwayRuntimeRef = useRef<IScriptRuntime | null>(null)
   const [tourRuntime, setTourRuntime] = useState<IScriptRuntime | null>(null)
-  const editedRecordedRef = useRef(false)
 
   // ── Playground mode ──
   const [interactive, setInteractive] = useState<'timer' | 'analytics' | null>(null)
@@ -180,10 +199,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const [session, setSession] = useState<{ segments: Segment[]; results: WorkoutResults } | null>(null)
   const [scrollSegments, setScrollSegments] = useState<Segment[]>([])
   const [logState, setLogState] = useState<'logging' | 'logged' | 'failed' | null>(null)
+  // Which editor context started the current playground run, and the block
+  // it runs — captured at Run click so the fullscreen overlay is bound to the
+  // editor the visitor pressed Run in.
+  const playgroundSourceRef = useRef<'hero' | 'runway'>('hero')
+  const playgroundBlockRef = useRef<ScriptBlock | null>(null)
   const interactiveRef = useRef(interactive)
   interactiveRef.current = interactive
-  const docRef = useRef(doc)
-  docRef.current = doc
 
   // ── Session key for resetting playground timer when scrolling into timer stage ──
   const [timerSessionKey, setTimerSessionKey] = useState(0)
@@ -194,8 +216,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     setSession(null)
     setScrollSegments([])
     setLogState(null)
-    runtimeRef.current = null
+    runwayRuntimeRef.current = null
     setTourRuntime(null)
+    // NOTE: playgroundBlockRef is deliberately kept — startNewSession also
+    // fires from the inTimerStage effect right after a Run click, and the
+    // fullscreen overlay still needs the block it was launched with.
   }, [])
 
   // ── Hero-reset contract (#882): re-entering the hero viewport resets the
@@ -204,9 +229,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const heroRef = useRef<HTMLDivElement | null>(null)
   const heroVisibleRef = useRef(true) // the hero mounts at the top of the page
   const resetHeroToArrival = useCallback(() => {
-    editedRecordedRef.current = false
+    heroEditedRecordedRef.current = false
+    setHeroDoc(initialContent)
+    runwayEditedRecordedRef.current = false
     setSelectedScript(initialContent)
-    setDoc(initialContent)
+    setRunwayDoc(initialContent)
     startNewSession()
   }, [initialContent, startNewSession])
 
@@ -227,9 +254,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const handleClearShared = useCallback(() => {
     clearHomeShared()
     setSharedScript(null)
-    editedRecordedRef.current = false
+    heroEditedRecordedRef.current = false
+    setHeroDoc(welcomeScript)
+    runwayEditedRecordedRef.current = false
     setSelectedScript(welcomeScript)
-    setDoc(welcomeScript)
+    setRunwayDoc(welcomeScript)
     startNewSession()
   }, [welcomeScript, startNewSession])
 
@@ -245,19 +274,19 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
   // Typeahead scrub: during slide 1 (editor-blank), chars type in over local t (0..0.5).
   // Leaving the slide resets the edit-divergence guard so scrolling back retypes from blank.
-  const prevStageIdRef = useRef(slice.stage.id)
+  // Scrub drives the RUNWAY window only — the hero editor is never touched.
   useEffect(() => {
-    return subscribe((s: TourStageSlice) => {
-      if (editedRecordedRef.current || interactiveRef.current !== null) return
-      if (docRef.current !== selectedScript) {
-        setDoc(selectedScript)
+    return subscribe(() => {
+      if (runwayEditedRecordedRef.current || interactiveRef.current !== null) return
+      if (runwayDocRef.current !== selectedScript) {
+        setRunwayDoc(selectedScript)
       }
     })
   }, [subscribe, selectedScript])
   useEffect(() => {
     if (interactive || slice.stage.screen !== 'analytics' || session) return
     if (scrollSegments.length > 0) return
-    const runtime = runtimeRef.current
+    const runtime = runwayRuntimeRef.current
     if (!runtime) return
     let guard = 0
     while (runtime.stack?.current && guard++ < 200) {
@@ -282,11 +311,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   }, [activeScreen])
 
   // ── Quests (preserved from the markdown-driven home) ──
+  // qs-edit validates on edits to the HERO demo ("Change the workout"), not
+  // the scripted runway typeahead.
   useQuickStartAutoComplete({
     pageRoute: '/',
     quests,
-    initialSource: selectedScript,
-    currentSource: doc,
+    initialSource: initialContent,
+    currentSource: heroDoc,
   })
   const questFullscreen: FullscreenState =
     session != null ? { kind: 'review', segments: session.segments, results: session.results } : null
@@ -316,92 +347,143 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     if (stage) scrollRunwayTo(el, Math.min(stage.start + 0.02, stage.end - 0.005))
   }, [])
 
-  // ── Hero interactions ──
-  const handleDocChange = useCallback(
+  // ── Hero interactions (self-contained editor context) ──
+  const handleHeroDocChange = useCallback(
     (next: string) => {
-      setDoc(next)
-      if (next !== selectedScript && !editedRecordedRef.current) {
-        editedRecordedRef.current = true
+      setHeroDoc(next)
+      if (next !== initialContent && !heroEditedRecordedRef.current) {
+        heroEditedRecordedRef.current = true
+        track?.(HOME_EVENTS.demoEdited)
+      }
+    },
+    [initialContent, track],
+  )
+
+  // ── Runway interactions (ambient scroll-demo window) ──
+  const handleRunwayDocChange = useCallback(
+    (next: string) => {
+      setRunwayDoc(next)
+      if (next !== selectedScript && !runwayEditedRecordedRef.current) {
+        runwayEditedRecordedRef.current = true
         track?.(HOME_EVENTS.demoEdited)
       }
     },
     [selectedScript, track],
   )
 
-  // Choose-your-own-adventure: a caption workout button replaces the demo
-  // script, resets the playground session, and re-runs the typewriter.
+  // Choose-your-own-adventure: a caption workout pick replaces the runway
+  // demo script, resets the ambient session, and re-runs the typewriter. The
+  // hero editor keeps its own content.
   const handleWorkoutChoice = useCallback(
     (wod: string) => {
       const next = `# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\n${wod}\n\n> Press **Run** ↑ to start the WallClock.\n`
-      editedRecordedRef.current = false
+      runwayEditedRecordedRef.current = false
       setSelectedScript(next)
       startNewSession()
-      setDoc(next)
+      setRunwayDoc(next)
       track?.(HOME_EVENTS.demoEdited)
     },
     [startNewSession, slice.stage.id, slice.t, track],
   )
 
-  const startRun = useCallback(() => {
-    if (!blocksRef.current[0]) return
-    startNewSession()
-    setLogState(null)
-    setEntered((prev) => (prev.timer ? prev : { ...prev, timer: true }))
-    timerAutoStartRef.current = true
-    setInteractive('timer')
-    setDemoRunning(true)
-    const el = runwayRef.current
-    if (el) scrollRunwayTo(el, 0.46)
-  }, [startNewSession])
+  // Run opens the fullscreen playground bound to the editor context the Run
+  // button lives in. It never scrolls the page — the overlay is fixed.
+  const startRun = useCallback(
+    (source: 'hero' | 'runway') => {
+      const block =
+        source === 'hero' ? heroBlocksRef.current[0] : runwayBlocksRef.current[0]
+      if (!block) return
+      playgroundSourceRef.current = source
+      startNewSession()
+      playgroundBlockRef.current = block
+      setLogState(null)
+      setEntered((prev) => (prev.timer ? prev : { ...prev, timer: true }))
+      timerAutoStartRef.current = true
+      setInteractive('timer')
+      setDemoRunning(true)
+    },
+    [startNewSession],
+  )
 
-  const handleRun = useCallback(() => {
+  const handleHeroRun = useCallback(() => {
     track?.(HOME_EVENTS.demoRun)
-    startRun()
+    startRun('hero')
   }, [startRun, track])
 
-  const handleShare = useCallback(async () => {
-    if (!doc.trim()) return
-    try {
-      const encoded = await encodeZip(doc)
-      // Share links land on /load?z= (#882). The first share prompts once for
-      // an optional name, persisted so later links reuse it silently.
-      let by = getShareName()
-      if (by === null) {
-        by = (window.prompt?.('Add your name to the link (shown as "shared by") — optional:') ?? '').trim()
-        setShareName(by)
+  const handleRunwayRun = useCallback(() => {
+    track?.(HOME_EVENTS.demoRun)
+    startRun('runway')
+  }, [startRun, track])
+
+  const shareDoc = useCallback(
+    async (content: string) => {
+      if (!content.trim()) return
+      try {
+        const encoded = await encodeZip(content)
+        // Share links land on /load?z= (#882). The first share prompts once for
+        // an optional name, persisted so later links reuse it silently.
+        let by = getShareName()
+        if (by === null) {
+          by = (window.prompt?.('Add your name to the link (shown as "shared by") — optional:') ?? '').trim()
+          setShareName(by)
+        }
+        const url = `${window.location.origin}/load?z=${encoded}${by ? `&by=${encodeURIComponent(by)}` : ''}`
+        await navigator.clipboard.writeText(url)
+        track?.(HOME_EVENTS.demoShared)
+        toast({
+          title: 'Link copied',
+          description: 'Share link copied to clipboard.',
+        })
+      } catch (err) {
+        console.error('[HomeTour] share failed:', err)
+        toast({
+          title: 'Could not copy',
+          description: err instanceof Error ? err.message : 'Failed to copy share link.',
+          variant: 'destructive',
+        })
       }
-      const url = `${window.location.origin}/load?z=${encoded}${by ? `&by=${encodeURIComponent(by)}` : ''}`
-      await navigator.clipboard.writeText(url)
-      track?.(HOME_EVENTS.demoShared)
-      toast({
-        title: 'Link copied',
-        description: 'Share link copied to clipboard.',
-      })
-    } catch (err) {
-      console.error('[HomeTour] share failed:', err)
-      toast({
-        title: 'Could not copy',
-        description: err instanceof Error ? err.message : 'Failed to copy share link.',
-        variant: 'destructive',
-      })
-    }
-  }, [doc, track])
+    },
+    [track],
+  )
 
-  const handleOpenInEditor = useCallback(async () => {
-    track?.(HOME_EVENTS.demoOpened)
-    const today = getTodayDateKey()
-    const note = await createJournalNoteFromWorkout({
-      workoutName: 'Welcome workout',
-      category: 'home',
-      sourceNoteLabel: 'welcome-1.md',
-      sourceNotePath: '/',
-      wodContent: docRef.current,
-    })
-    navigate(journalNotePath(today, note.id))
-  }, [navigate, track])
+  const handleHeroShare = useCallback(() => {
+    void shareDoc(heroDocRef.current)
+  }, [shareDoc])
 
-  const handleBlocksChange = useCallback((blocks: ScriptBlock[]) => {
-    blocksRef.current = blocks
+  const handleRunwayShare = useCallback(() => {
+    void shareDoc(runwayDocRef.current)
+  }, [shareDoc])
+
+  const openInEditor = useCallback(
+    async (content: string) => {
+      track?.(HOME_EVENTS.demoOpened)
+      const today = getTodayDateKey()
+      const note = await createJournalNoteFromWorkout({
+        workoutName: 'Welcome workout',
+        category: 'home',
+        sourceNoteLabel: 'welcome-1.md',
+        sourceNotePath: '/',
+        wodContent: content,
+      })
+      navigate(journalNotePath(today, note.id))
+    },
+    [navigate, track],
+  )
+
+  const handleHeroOpenInEditor = useCallback(() => {
+    void openInEditor(heroDocRef.current)
+  }, [openInEditor])
+
+  const handleRunwayOpenInEditor = useCallback(() => {
+    void openInEditor(runwayDocRef.current)
+  }, [openInEditor])
+
+  const handleHeroBlocksChange = useCallback((blocks: ScriptBlock[]) => {
+    heroBlocksRef.current = blocks
+  }, [])
+
+  const handleRunwayBlocksChange = useCallback((blocks: ScriptBlock[]) => {
+    runwayBlocksRef.current = blocks
   }, [])
 
   const exitPlayground = useCallback(() => setInteractive(null), [])
@@ -422,8 +504,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
       setInteractive((mode) => (mode === 'timer' ? 'analytics' : mode))
 
       if (!wasPlaygroundRun) return
-      const runBlock = blocksRef.current[0]
+      const runBlock = playgroundBlockRef.current
       if (!runBlock) return
+      const wodContent =
+        playgroundSourceRef.current === 'hero' ? heroDocRef.current : runwayDocRef.current
       setLogState('logging')
       void (async () => {
         const note = await createJournalNoteFromWorkout({
@@ -431,7 +515,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
           category: 'home',
           sourceNoteLabel: 'welcome-1.md',
           sourceNotePath: '/',
-          wodContent: docRef.current,
+          wodContent,
         })
         await playgroundRecorder.record({
           runBlock,
@@ -459,13 +543,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     if (el) scrollRunwayTo(el, 0)
   }, [interactive, exitPlayground])
 
+  // Runway runtime — set only by the scroll-mode Timer stage. The ambient
+  // demo auto-starts execution, but the root WaitingToStart gate keeps the
+  // label at 'Ready to Start' while the clock ticks; advance past the gate so
+  // the demo actually runs.
   const handleRuntimeReady = useCallback((runtime: IScriptRuntime) => {
-    runtimeRef.current = runtime
+    runwayRuntimeRef.current = runtime
     setTourRuntime(runtime)
-    // In ambient scroll mode the timer screen auto-starts execution, but the
-    // root WaitingToStart gate keeps the label at 'Ready to Start' while the
-    // clock ticks. Advance past the gate so the demo actually runs; playground
-    // mode (interactive) leaves the gate for the visitor to press Start.
     if (interactiveRef.current === null) {
       // Defer one microtask so the auto-start effect in RuntimeTimerPanel has
       // begun execution before the gate is popped.
@@ -475,17 +559,22 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     }
   }, [])
 
+  // Playground runtime — deliberately NOT stored in runwayRuntimeRef /
+  // tourRuntime: the fullscreen session is independent of the scroll demo,
+  // and the WaitingToStart gate stays for the visitor to press Start.
+  const handlePlaygroundRuntimeReady = useCallback((_runtime: IScriptRuntime) => {}, [])
+
   const playgroundOverlay = (
     <div data-testid="tour-playground-overlay" className="fixed inset-0 z-50 flex flex-col bg-background">
       <div className="relative min-h-0 flex-1">
         {interactive === 'timer' && entered.timer && (
           <TourTimerScreen
             key={timerSessionKey}
-            block={blocksRef.current[0] ?? null}
+            block={playgroundBlockRef.current}
             autoStart={timerAutoStartRef.current}
             onClose={handleTimerClose}
             onComplete={handleTimerComplete}
-            onRuntimeReady={handleRuntimeReady}
+            onRuntimeReady={handlePlaygroundRuntimeReady}
           />
         )}
         {interactive === 'analytics' && entered.analytics && (
@@ -573,12 +662,12 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
           chapters={chapters}
           questLabels={questLabels}
           onHomeQuestClick={handleHomeQuestClick}
-          doc={doc}
-          onDocChange={handleDocChange}
-          onBlocksChange={handleBlocksChange}
-          onRun={handleRun}
-          onShare={handleShare}
-          onOpenInEditor={handleOpenInEditor}
+          doc={heroDoc}
+          onDocChange={handleHeroDocChange}
+          onBlocksChange={handleHeroBlocksChange}
+          onRun={handleHeroRun}
+          onShare={handleHeroShare}
+          onOpenInEditor={handleHeroOpenInEditor}
           onChoice={handleWorkoutChoice}
           sharedBy={sharedBy}
           onResetShared={handleClearShared}
@@ -595,12 +684,12 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
       <div ref={heroRef}>
         <TourHero
           theme={theme}
-          doc={doc}
-          onDocChange={handleDocChange}
-          onBlocksChange={handleBlocksChange}
-          onRun={handleRun}
-          onShare={handleShare}
-          onOpenInEditor={handleOpenInEditor}
+          doc={heroDoc}
+          onDocChange={handleHeroDocChange}
+          onBlocksChange={handleHeroBlocksChange}
+          onRun={handleHeroRun}
+          onShare={handleHeroShare}
+          onOpenInEditor={handleHeroOpenInEditor}
           sharedBy={sharedBy}
           onResetShared={handleClearShared}
         />
@@ -656,12 +745,12 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
                     {interactive === null && entered.editor && (
                       <Screen visible={activeScreen === 'editor'}>
                         <TourEditorScreen
-                          doc={doc}
-                          onDocChange={handleDocChange}
-                          onBlocksChange={handleBlocksChange}
-                          onRun={handleRun}
-                          onShare={handleShare}
-                          onOpenInEditor={handleOpenInEditor}
+                          doc={runwayDoc}
+                          onDocChange={handleRunwayDocChange}
+                          onBlocksChange={handleRunwayBlocksChange}
+                          onRun={handleRunwayRun}
+                          onShare={handleRunwayShare}
+                          onOpenInEditor={handleRunwayOpenInEditor}
                           theme={theme}
                           sharedBy={sharedBy}
                           onResetShared={handleClearShared}
@@ -672,7 +761,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
                       <Screen visible={activeScreen === 'timer'}>
                         <TourTimerScreen
                           key={timerSessionKey}
-                          block={blocksRef.current[0] ?? null}
+                          block={runwayBlocksRef.current[0] ?? null}
                           autoStart={timerAutoStartRef.current}
                           onClose={handleTimerClose}
                           onComplete={handleTimerComplete}

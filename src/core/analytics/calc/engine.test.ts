@@ -38,7 +38,7 @@ const fakeResolver: IEffortResolver = {
   list: () => [THRUSTER.effort],
 };
 
-const engine = (vo2max?: number, dialect = 'wod') =>
+const engine = (vo2max?: number, dialect = 'time') =>
   createCalcEngine(dialect, { effortResolver: fakeResolver, userProfile: vo2max === undefined ? undefined : { vo2max } });
 
 function segment(metrics: IMetric[], stackLevel = 1): OutputStatement {

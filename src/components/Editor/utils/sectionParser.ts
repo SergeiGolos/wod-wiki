@@ -77,13 +77,6 @@ export function blockContentId(content: string): string {
 }
 
 /**
- * Detect the dialect from a ScriptBlock (fallback to 'wod').
- */
-function blockDialect(block: ScriptBlock): FenceDialect {
-  return block.dialect ?? 'wod';
-}
-
-/**
  * Detect front matter blocks delimited by `---` lines.
  * Returns an array of { startLine, endLine } ranges (0-indexed, inclusive).
  */
@@ -201,7 +194,7 @@ function matchMarkdownEmbed(trimmed: string) {
  *  - title:    First heading-like or text row becomes the title section.
  *  - markdown: All non-fenced text (headings, paragraphs, blanks) are
  *              grouped into contiguous markdown sections.
- *  - wod:      Each fenced dialect block (```wod / ```log / ```plan)
+ *  - wod:      Each fenced workout block (```time / ```log, optional :sport)
  *              becomes its own section with `dialect` set.
  *  - embed:    Single-line markdown links/images ![label](url) or [label](url).
  * 
@@ -326,9 +319,9 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
       mdBuffer = [];
 
       // WOD section — includes fence lines
-      const dialect = blockDialect(scriptBlock);
+      const dialect: FenceDialect = scriptBlock.dialect ?? 'time';
       const { metadata, cleanText } = extractMetadata(scriptBlock.content);
-      const fenceTag = dialect;
+      const fenceTag = scriptBlock.sport ? `${dialect}:${scriptBlock.sport}` : dialect;
       const cleanRawContent = `\`\`\`${fenceTag}\n${cleanText}\n\`\`\``;
       const cleanLineCount = cleanRawContent.split('\n').length;
 
@@ -340,6 +333,7 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
         contentId,
         type: 'wod',
         dialect,
+        sport: scriptBlock.sport,
         rawContent: cleanRawContent,
         displayContent: cleanText,
         startLine: scriptBlock.startLine,

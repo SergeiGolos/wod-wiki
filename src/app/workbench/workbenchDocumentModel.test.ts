@@ -8,7 +8,7 @@ describe('deriveWorkbenchDocumentState', () => {
   });
 
   it('hydrates WOD blocks with parsed statements', () => {
-    const content = '# Workout\n\n```wod\n5:00 Run\n```';
+    const content = '# Workout\n\n```time\n5:00 Run\n```';
     const state = deriveWorkbenchDocumentState(content);
 
     expect(state.blocks).toHaveLength(1);
@@ -17,8 +17,8 @@ describe('deriveWorkbenchDocumentState', () => {
   });
 
   it('preserves stable section ids when prior sections are supplied', () => {
-    const previous = parseDocumentSections('# Old Title\n\n```wod\n5:00 Run\n```');
-    const next = deriveWorkbenchDocumentState('# New Title\n\n```wod\n5:00 Run\n```', previous);
+    const previous = parseDocumentSections('# Old Title\n\n```time\n5:00 Run\n```');
+    const next = deriveWorkbenchDocumentState('# New Title\n\n```time\n5:00 Run\n```', previous);
 
     expect(next.sections[0].id).toBe(previous[0].id);
     expect(next.sections[1].id).toBe(previous[1].id);
@@ -26,7 +26,7 @@ describe('deriveWorkbenchDocumentState', () => {
 
   it('skips re-hydration when WOD block already has pre-parsed statements', () => {
     // Parse once so blocks have statements populated
-    const content = '# Workout\n\n```wod\n5:00 Run\n```';
+    const content = '# Workout\n\n```time\n5:00 Run\n```';
     const first = deriveWorkbenchDocumentState(content);
     expect(first.blocks[0].statements?.length).toBeGreaterThan(0);
 
@@ -43,21 +43,21 @@ describe('deriveWorkbenchDocumentState', () => {
     const content = '# My Notes\n\nSome text here';
     const state = deriveWorkbenchDocumentState(content);
 
-    // No wod blocks should be extracted
+    // No workout blocks should be extracted
     expect(state.blocks).toHaveLength(0);
     expect(state.sections.length).toBeGreaterThanOrEqual(1);
   });
 
   it('handles multiple WOD blocks in one document', () => {
-    const content = '# WOD 1\n\n```wod\n5:00 Run\n```\n\n# WOD 2\n\n```wod\n10:00 Walk\n```';
+    const content = '# WOD 1\n\n```time\n5:00 Run\n```\n\n# WOD 2\n\n```time\n10:00 Walk\n```';
     const state = deriveWorkbenchDocumentState(content);
 
-    // Both wod blocks should be returned
+    // Both workout blocks should be returned
     expect(state.blocks.length).toBeGreaterThanOrEqual(2);
   });
 
   it('returns sections alongside blocks', () => {
-    const content = '# Workout\n\n```wod\n5:00 Run\n```';
+    const content = '# Workout\n\n```time\n5:00 Run\n```';
     const state = deriveWorkbenchDocumentState(content);
 
     expect(state.sections.length).toBeGreaterThan(0);

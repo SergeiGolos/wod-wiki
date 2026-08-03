@@ -6,15 +6,8 @@ import { describe, it, expect } from 'bun:test';
 import { detectScriptBlocks, findBlockAtLine, extractBlockContent } from './blockDetection';
 
 describe('detectScriptBlocks', () => {
-  it('should detect a single WOD block', () => {
-    const content = `# My Workout
-
-\`\`\`wod
-20:00 AMRAP
-  + 5 Pullups
-\`\`\`
-
-Some text after`;
+  it('should detect a single time block', () => {
+    const content = '# My Workout\n\n```time\n20:00 AMRAP\n  + 5 Pullups\n```\n\nSome text after';
 
     const blocks = detectScriptBlocks(content);
 
@@ -23,21 +16,11 @@ Some text after`;
     expect(blocks[0].endLine).toBe(5);
     expect(blocks[0].content).toBe('20:00 AMRAP\n  + 5 Pullups');
     expect(blocks[0].state).toBe('idle');
-    expect(blocks[0].id).toMatch(/^wod-block-/);
+    expect(blocks[0].dialect).toBe('time');
   });
 
-  it('should detect multiple WOD blocks', () => {
-    const content = `\`\`\`wod
-(21-15-9)
-  Thrusters
-\`\`\`
-
-Some text
-
-\`\`\`wod
-10:00
-  Run
-\`\`\``;
+  it('should detect multiple time blocks', () => {
+    const content = '```time\n(21-15-9)\n  Thrusters\n```\n\nSome text\n\n```time\n10:00\n  Run\n```';
 
     const blocks = detectScriptBlocks(content);
 
@@ -51,21 +34,15 @@ Some text
     expect(blocks).toHaveLength(0);
   });
 
-  it('should handle document with no WOD blocks', () => {
-    const content = `# Just markdown
-
-Some text here
-- List item
-- Another item`;
+  it('should handle document with no workout blocks', () => {
+    const content = '# Just markdown\n\nSome text here\n- List item\n- Another item';
 
     const blocks = detectScriptBlocks(content);
     expect(blocks).toHaveLength(0);
   });
 
   it('should handle incomplete block (no closing backticks)', () => {
-    const content = `\`\`\`wod
-20:00 AMRAP
-  + 5 Pullups`;
+    const content = '```time\n20:00 AMRAP\n  + 5 Pullups';
 
     const blocks = detectScriptBlocks(content);
 
@@ -75,80 +52,82 @@ Some text here
     expect(blocks[0].content).toBe('20:00 AMRAP\n  + 5 Pullups');
   });
 
-  it('should handle WOD blocks with extra spaces after ```wod', () => {
-    const content = `\`\`\`wod   
-20:00 AMRAP
-\`\`\``;
+  it('should handle time blocks with extra spaces after ```time', () => {
+    const content = '```time   \n20:00 AMRAP\n```';
 
     const blocks = detectScriptBlocks(content);
     expect(blocks).toHaveLength(1);
   });
 
-  it('should detect WOD blocks regardless of case', () => {
-    const content = `\`\`\`WOD
-21-15-9
-\`\`\``;
+  it('should detect time blocks regardless of case', () => {
+    const content = '```TIME\n21-15-9\n```';
 
     const blocks = detectScriptBlocks(content);
     expect(blocks).toHaveLength(1);
     expect(blocks[0].content).toBe('21-15-9');
   });
 
-  it('should not detect code blocks that are not wod', () => {
-    const content = `\`\`\`javascript
-const x = 5;
-\`\`\`
-
-\`\`\`wod
-20:00 AMRAP
-\`\`\``;
+  it('should not detect code blocks that are not time/log', () => {
+    const content = '```javascript\nconst x = 5;\n```\n\n```time\n20:00 AMRAP\n```';
 
     const blocks = detectScriptBlocks(content);
     expect(blocks).toHaveLength(1);
     expect(blocks[0].content).toBe('20:00 AMRAP');
   });
 
-  it('should handle empty WOD block', () => {
-    const content = `\`\`\`wod
-\`\`\``;
+  it('should handle empty time block', () => {
+    const content = '```time\n```';
 
     const blocks = detectScriptBlocks(content);
     expect(blocks).toHaveLength(1);
     expect(blocks[0].content).toBe('');
   });
 
-  it('should treat ```whiteboard as an alias for ```wod (normalized to wod dialect)', () => {
-    const content = `\`\`\`whiteboard
-20:00 AMRAP
-  + 5 Pullups
-\`\`\``;
+  it('should not treat ```whiteboard as a workout block', () => {
+    const content = '```whiteboard\n20:00 AMRAP\n  + 5 Pullups\n```';
 
     const blocks = detectScriptBlocks(content);
-    expect(blocks).toHaveLength(1);
-    expect(blocks[0].dialect).toBe('wod');
-    expect(blocks[0].content).toBe('20:00 AMRAP\n  + 5 Pullups');
+    expect(blocks).toHaveLength(0);
   });
 
-  it('should match whiteboard fence case-insensitively', () => {
-    const content = `\`\`\`WhiteBoard
-10:00 Run
-\`\`\``;
+  it('should not match whiteboard fence case-insensitively', () => {
+    const content = '```WhiteBoard\n10:00 Run\n```';
 
     const blocks = detectScriptBlocks(content);
+    expect(blocks).toHaveLength(0);
+  });
+
+  it('should not detect ```wod or ```plan as workout blocks', () => {
+    const wod = detectScriptBlocks('```wod\n10:00 Run\n```');
+    const plan = detectScriptBlocks('```plan\nWeek 1\n```');
+    expect(wod).toHaveLength(0);
+    expect(plan).toHaveLength(0);
+  });
+
+  it('should parse ```time as a time dialect block', () => {
+    const blocks = detectScriptBlocks('```time\n10:00 Run\n```');
     expect(blocks).toHaveLength(1);
-    expect(blocks[0].dialect).toBe('wod');
+    expect(blocks[0].dialect).toBe('time');
+    expect(blocks[0].sport).toBeUndefined();
+  });
+
+  it('should parse ```log:climbing with dialect log and sport climbing', () => {
+    const blocks = detectScriptBlocks('```log:climbing\n5:00 Run\n```');
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].dialect).toBe('log');
+    expect(blocks[0].sport).toBe('climbing');
+  });
+
+  it('should parse ```time: with empty sport suffix as dialect time only', () => {
+    const blocks = detectScriptBlocks('```time:\n10:00 Run\n```');
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].dialect).toBe('time');
+    expect(blocks[0].sport).toBeUndefined();
   });
 });
 
 describe('findBlockAtLine', () => {
-  const content = `# Title
-\`\`\`wod
-20:00 AMRAP
-\`\`\`
-Text
-\`\`\`wod
-10:00
-\`\`\``;
+  const content = '# Title\n```time\n20:00 AMRAP\n```\nText\n```time\n10:00\n```';
 
   const blocks = detectScriptBlocks(content);
 
@@ -184,29 +163,21 @@ Text
 
 describe('extractBlockContent', () => {
   it('should extract content without backticks', () => {
-    const content = `# Title
-\`\`\`wod
-20:00 AMRAP
-  + 5 Pullups
-\`\`\`
-Text`;
+    const content = '# Title\n```time\n20:00 AMRAP\n  + 5 Pullups\n```\nText';
 
     const extracted = extractBlockContent(content, 1, 4);
     expect(extracted).toBe('20:00 AMRAP\n  + 5 Pullups');
   });
 
   it('should handle single line block', () => {
-    const content = `\`\`\`wod
-20:00
-\`\`\``;
+    const content = '```time\n20:00\n```';
 
     const extracted = extractBlockContent(content, 0, 2);
     expect(extracted).toBe('20:00');
   });
 
   it('should handle empty block', () => {
-    const content = `\`\`\`wod
-\`\`\``;
+    const content = '```time\n```';
 
     const extracted = extractBlockContent(content, 0, 1);
     expect(extracted).toBe('');

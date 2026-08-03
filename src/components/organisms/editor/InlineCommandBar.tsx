@@ -32,7 +32,8 @@ function buildScriptBlock(view: EditorView, section: EditorSection): ScriptBlock
   return {
     id: section.id,
     contentId: section.contentId,
-    dialect: section.dialect || "wod",
+    dialect: section.dialect || "time",
+    sport: section.sport,
     startLine: section.startLine - 1,
     endLine: section.endLine - 1,
     content,

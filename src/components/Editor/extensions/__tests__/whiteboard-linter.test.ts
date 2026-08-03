@@ -13,7 +13,7 @@ import { sectionField } from "../section-state";
 
 describe("wod-linter integration", () => {
   it("should identify wod sections for linting", () => {
-    const doc = "# Hello\n\n```wod\n10:00 Run\n```\n\nEnd";
+    const doc = "# Hello\n\n```time\n10:00 Run\n```\n\nEnd";
     const state = EditorState.create({
       doc,
       extensions: [sectionField],
@@ -33,7 +33,7 @@ describe("wod-linter integration", () => {
   });
 
   it("should handle multiple wod blocks for linting", () => {
-    const doc = "```wod\nBlock 1\n```\n\n```log\nBlock 2\n```";
+    const doc = "```time\nBlock 1\n```\n\n```log\nBlock 2\n```";
     const state = EditorState.create({
       doc,
       extensions: [sectionField],

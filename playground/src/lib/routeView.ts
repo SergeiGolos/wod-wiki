@@ -236,7 +236,7 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
           const lines = getSectionProse(s).split('\n')
           let wodCount = 0
           lines.forEach((line, i) => {
-            if (/^```(wod|log|plan)\s*$/.test(line.trim())) {
+            if (/^```(time|log)(:\w+)?\s*$/.test(line.trim())) {
               wodCount++
               // Canvas WOD blocks have no onRun here — MarkdownCanvasPage manages its own runtime.
               links.push({

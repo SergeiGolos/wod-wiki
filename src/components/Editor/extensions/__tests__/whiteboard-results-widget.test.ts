@@ -10,7 +10,7 @@ import { sectionField } from "../section-state";
 import type { WorkoutResult } from "@/types/storage";
 
 describe("whiteboard-results-widget", () => {
-  const content = "```wod\n10 Pushups\n```";
+  const content = "```time\n10 Pushups\n```";
   let state: EditorState;
 
   beforeEach(() => {

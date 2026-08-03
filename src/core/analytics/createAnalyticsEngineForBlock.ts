@@ -33,7 +33,7 @@ export function createAnalyticsEngineForBlock(
   block: ScriptBlock,
   options?: CreateAnalyticsEngineOptions
 ): CreateAnalyticsEngineResult {
-  const dialect = block.dialect || 'wod';
+  const dialect = block.dialect || 'time';
 
   const scriptMetricTypes = new Set<MetricType | string>();
   if (block.statements) {

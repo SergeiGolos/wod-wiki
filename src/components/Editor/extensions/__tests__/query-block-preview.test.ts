@@ -58,9 +58,9 @@ describe("queryBlockPreview — decoration building", () => {
     expect(countDecos(state, ext)).toBe(2);
   });
 
-  it("does not decorate wod or code blocks", () => {
+  it("does not decorate time or code blocks", () => {
     const ext = queryBlockPreview();
-    const doc = "# Title\n\n```wod\n10:00 Run\n```\n\n```js\nx\n```";
+    const doc = "# Title\n\n```time\n10:00 Run\n```\n\n```js\nx\n```";
     const state = EditorState.create({ doc, extensions: [sectionField, ext] });
     expect(countDecos(state, ext)).toBe(0);
   });

@@ -67,7 +67,7 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
         statementCount: lines.length,
         contentPreview,
         timerHint,
-        dialect: section.dialect || 'wod',
+        dialect: section.dialect || 'time',
       };
     });
 
@@ -132,7 +132,8 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
 
       const block: ScriptBlock = {
         id: targetSection.id,
-        dialect: targetSection.dialect || 'wod',
+        dialect: targetSection.dialect || 'time',
+        sport: targetSection.sport,
         startLine: targetSection.startLine - 1,
         endLine: targetSection.endLine - 1,
         content,

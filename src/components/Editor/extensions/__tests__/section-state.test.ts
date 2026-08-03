@@ -93,8 +93,8 @@ describe("sectionField — markdown subtypes", () => {
 // ── WOD blocks ───────────────────────────────────────────────────────
 
 describe("sectionField — wod blocks", () => {
-  it("should parse markdown with a wod block", () => {
-    const doc = "# Title\n\n```wod\n10:00 Run\n```\n\nMore text";
+  it("should parse markdown with a time block", () => {
+    const doc = "# Title\n\n```time\n10:00 Run\n```\n\nMore text";
     const s = sections(doc);
 
     const types = s.map((x) => x.type);
@@ -102,23 +102,23 @@ describe("sectionField — wod blocks", () => {
     expect(types).toContain("wod");
 
     const wod = s.find((x) => x.type === "wod")!;
-    expect(wod.dialect).toBe("wod");
+    expect(wod.dialect).toBe("time");
     expect(wod.startLine).toBe(3);
     expect(wod.endLine).toBe(5);
   });
 
-  it("should detect log and plan dialects", () => {
-    const doc = "```log\n5x5 Squat\n```\n\n```plan\nWeek 1\n```";
+  it("should detect log and time dialects", () => {
+    const doc = "```log\n5x5 Squat\n```\n\n```time\nWeek 1\n```";
     const s = sections(doc);
 
     const wodSections = s.filter((x) => x.type === "wod");
     expect(wodSections).toHaveLength(2);
     expect(wodSections[0].dialect).toBe("log");
-    expect(wodSections[1].dialect).toBe("plan");
+    expect(wodSections[1].dialect).toBe("time");
   });
 
   it("should provide contentFrom/contentTo for wod sections", () => {
-    const doc = "```wod\n10:00 Run\n5:00 Rest\n```";
+    const doc = "```time\n10:00 Run\n5:00 Rest\n```";
     const state = createState(doc);
     const s = state.field(sectionField).sections;
 
@@ -132,17 +132,41 @@ describe("sectionField — wod blocks", () => {
     expect(innerContent).toContain("5:00 Rest");
   });
 
-  it("should handle unclosed wod fence", () => {
-    const s = sections("```wod\n10:00 Run\nNo closing fence");
+  it("should handle unclosed time fence", () => {
+    const s = sections("```time\n10:00 Run\nNo closing fence");
     expect(s).toHaveLength(1);
     expect(s[0].type).toBe("wod");
   });
 
-  it("should handle multiple wod blocks", () => {
-    const doc = "```wod\nBlock 1\n```\n\nSome text\n\n```wod\nBlock 2\n```";
+  it("should handle multiple time blocks", () => {
+    const doc = "```time\nBlock 1\n```\n\nSome text\n\n```time\nBlock 2\n```";
     const s = sections(doc);
     const wodSections = s.filter((x) => x.type === "wod");
     expect(wodSections).toHaveLength(2);
+  });
+
+  it("should parse ```time as a wod section with dialect 'time'", () => {
+    const s = sections("```time\n10:00 Run\n```");
+    expect(s).toHaveLength(1);
+    expect(s[0].type).toBe("wod");
+    expect(s[0].dialect).toBe("time");
+    expect(s[0].sport).toBeUndefined();
+  });
+
+  it("should parse ```log:climbing with dialect 'log' and sport 'climbing'", () => {
+    const s = sections("```log:climbing\n5:00 Boulder\n```");
+    expect(s).toHaveLength(1);
+    expect(s[0].type).toBe("wod");
+    expect(s[0].dialect).toBe("log");
+    expect(s[0].sport).toBe("climbing");
+  });
+
+  it("should parse ```time: with empty sport suffix as dialect 'time' only", () => {
+    const s = sections("```time:\n10:00 Run\n```");
+    expect(s).toHaveLength(1);
+    expect(s[0].type).toBe("wod");
+    expect(s[0].dialect).toBe("time");
+    expect(s[0].sport).toBeUndefined();
   });
 });
 
@@ -158,8 +182,8 @@ describe("sectionField — frontmatter", () => {
     expect(s[0].endLine).toBe(4);
   });
 
-  it("should not cross into wod blocks when scanning for closing ---", () => {
-    const doc = "---\ntitle: test\n```wod\nsome wod\n```\nmore lines\n---";
+  it("should not cross into time blocks when scanning for closing ---", () => {
+    const doc = "---\ntitle: test\n```time\nsome wod\n```\nmore lines\n---";
     const s = sections(doc);
     // The --- before ```wod should not find the --- after ``` as its close
     // because the scanner breaks at dialect fences
@@ -191,10 +215,10 @@ describe("sectionField — generic code fences", () => {
     expect(s[0].language).toBe("python");
   });
 
-  it("should not treat ```wod as a code section", () => {
+  it("should treat ```wod as a generic code section", () => {
     const s = sections("```wod\n10:00 Run\n```");
-    expect(s[0].type).toBe("wod");
-    expect(s[0].language).toBeUndefined();
+    expect(s[0].type).toBe("code");
+    expect(s[0].language).toBe("wod");
   });
 
   it("should handle unclosed generic code fence", () => {
@@ -274,7 +298,7 @@ describe("sectionField — stable identity", () => {
 
 describe("sectionAtPos", () => {
   it("should find section at given position", () => {
-    const doc = "# Title\n\n```wod\n10:00 Run\n```\n\nEnd";
+    const doc = "# Title\n\n```time\n10:00 Run\n```\n\nEnd";
     const state = createState(doc);
 
     const mdSection = sectionAtPos(state, 0);
@@ -290,7 +314,7 @@ describe("sectionAtPos", () => {
 
 describe("activeCursorSection", () => {
   it("should return section at cursor position", () => {
-    const doc = "# Title\n\n```wod\n10:00 Run\n```";
+    const doc = "# Title\n\n```time\n10:00 Run\n```";
     const state = EditorState.create({
       doc,
       extensions: [sectionField],

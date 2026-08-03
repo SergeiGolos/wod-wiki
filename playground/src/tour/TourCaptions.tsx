@@ -10,6 +10,12 @@
 
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  Combobox,
+  ComboboxDescription,
+  ComboboxLabel,
+  ComboboxOption,
+} from '@/components/atoms/primitives/combobox'
 import { TOUR_ACCENTS, type TourStageId } from './tourStages'
 import { telemetry, HOME_EVENTS, type HomeEventName } from '@/services/telemetry'
 import { analyticsExplorerPath } from '../lib/routes'
@@ -20,7 +26,7 @@ export interface TourCaptionAction {
   event: HomeEventName
 }
 
-/** Choose-your-own-adventure workout option rendered as a caption button. */
+/** Choose-your-own-adventure workout option rendered in the caption combo box. */
 export interface TourCaptionChoice {
   label: string
   detail: string
@@ -59,7 +65,7 @@ export interface TourCaption {
   foot: string
   accent: string
   actions?: TourCaptionAction[]
-  /** Workout choices rendered as buttons; firing one resets the tour session. */
+  /** Workout choices rendered as a combo box; picking one resets the tour session. */
   choices?: TourCaptionChoice[]
 }
 
@@ -215,7 +221,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
 export interface TourCaptionsProps {
   /** Index into TOUR_CAPTIONS (matches stage index). */
   activeIndex: number
-  /** Called when a workout choice button is clicked (choose-your-own-adventure). */
+  /** Called when a workout choice is picked from the combo box (choose-your-own-adventure). */
   onChoice?: (wod: string) => void
 }
 
@@ -227,7 +233,13 @@ export function TourCaptions({ activeIndex, onChoice }: TourCaptionsProps) {
         <div
           key={cap.id}
           className="absolute inset-0 transition-opacity duration-300"
-          style={{ opacity: i === activeIndex ? 1 : 0 }}
+          style={{
+            opacity: i === activeIndex ? 1 : 0,
+            // Inactive captions are invisible but still stacked above the
+            // active one — without this their links/buttons swallow clicks
+            // (e.g. the analytics caption's links hijacking combo box taps).
+            pointerEvents: i === activeIndex ? 'auto' : 'none',
+          }}
           aria-hidden={i !== activeIndex}
         >
           <CaptionBody cap={cap} onChoice={onChoice} />
@@ -254,18 +266,34 @@ export function CaptionBody({ cap, onChoice }: { cap: TourCaption; onChoice?: (w
         {cap.foot}
       </div>
       {cap.choices && cap.choices.length > 0 && (
-        <div className="mt-4 flex flex-col gap-2" data-testid="tour-workout-choices">
-          {cap.choices.map((choice) => (
-            <button
-              key={choice.label}
-              type="button"
-              onClick={() => onChoice?.(choice.wod)}
-              className="rounded-lg border border-border bg-card px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/50"
-            >
-              <div className="text-sm font-semibold text-foreground">{choice.label}</div>
-              <div className="font-mono text-[10px] text-muted-foreground">{choice.detail}</div>
-            </button>
-          ))}
+        <div className="mt-4" data-testid="tour-workout-choices">
+          <Combobox<TourCaptionChoice | null>
+            options={cap.choices}
+            value={null}
+            by={(a, b) => a?.label === b?.label}
+            immediate
+            virtual={false}
+            onChange={(choice) => {
+              if (choice) onChoice?.(choice.wod)
+            }}
+            displayValue={(choice) => choice?.label}
+            filter={(choice, query) => {
+              const q = query.toLowerCase()
+              return (
+                (choice?.label.toLowerCase().includes(q) ?? false) ||
+                (choice?.detail.toLowerCase().includes(q) ?? false)
+              )
+            }}
+            placeholder="Load a workout into the demo…"
+            aria-label="Load a workout into the demo"
+          >
+            {(choice) => (
+              <ComboboxOption value={choice}>
+                <ComboboxLabel>{choice.label}</ComboboxLabel>
+                <ComboboxDescription>{choice.detail}</ComboboxDescription>
+              </ComboboxOption>
+            )}
+          </Combobox>
         </div>
       )}
       {cap.actions && cap.actions.length > 0 && (

@@ -203,7 +203,7 @@ describe('workbenchSessionStore', () => {
     expect(store.getState().sections).toEqual([]);
     expect(store.getState().blocks).toEqual([]);
 
-    store.getState().setContent('# Title\n\n```wod\nFran\n21-15-9\n```\n');
+    store.getState().setContent('# Title\n\n```time\nFran\n21-15-9\n```\n');
     expect(store.getState().sections?.length ?? 0).toBeGreaterThan(0);
     expect(store.getState().blocks.length).toBeGreaterThan(0);
   });
@@ -222,12 +222,12 @@ describe('workbenchSessionStore', () => {
     store.getState().setCurrentEntry(makeEntry({ id: 'note-1' }));
     expect(provider.updated.length).toBe(0);
 
-    store.getState().setContent('# Title\n\n```wod\nbody\n```\n');
+    store.getState().setContent('# Title\n\n```time\nbody\n```\n');
     expect(provider.updated.length).toBe(0);
     expect(timer.getLiveCount()).toBe(1);
 
-    store.getState().setContent('# Title\n\n```wod\nbody v2\n```\n');
-    store.getState().setContent('# Title\n\n```wod\nbody v3\n```\n');
+    store.getState().setContent('# Title\n\n```time\nbody v2\n```\n');
+    store.getState().setContent('# Title\n\n```time\nbody v3\n```\n');
     // Reschedule cancels the prior timer, so only the latest is live.
     expect(timer.getLiveCount()).toBe(1);
 
@@ -249,7 +249,7 @@ describe('workbenchSessionStore', () => {
 
     provider.seed(makeEntry({ id: 'note-2' }));
     store.getState().setCurrentEntry(makeEntry({ id: 'note-2' }));
-    store.getState().setContent('# Title\n\n```wod\nunsaved\n```\n');
+    store.getState().setContent('# Title\n\n```time\nunsaved\n```\n');
     expect(provider.updated.length).toBe(0);
 
     await store.getState().flushSave();
@@ -334,7 +334,7 @@ describe('workbenchSessionStore', () => {
 
     const entry = makeEntry({
       id: 'note-4',
-      rawContent: '# Loaded Title\n\n```wod\nwod-A\n```\n',
+      rawContent: '# Loaded Title\n\n```time\nwod-A\n```\n',
     });
     notePersistence.seed(entry);
 
@@ -428,7 +428,7 @@ describe('workbenchSessionStore', () => {
     // still derives the document; `flushSave` is a no-op.
     const store = createWorkbenchSessionStore();
 
-    store.getState().setContent('# Title\n\n```wod\nbody\n```\n');
+    store.getState().setContent('# Title\n\n```time\nbody\n```\n');
     expect(store.getState().blocks.length).toBeGreaterThan(0);
 
     expect(() => store.getState().flushSave()).not.toThrow();

@@ -238,22 +238,21 @@ export interface ExtractedScriptBlock {
   /** The raw wod/log/plan script inside the fence */
   script: string;
   preview: string;
-  /** The dialect: wod | log | plan (whiteboard is accepted as a fence alias and normalized to 'wod') */
-  dialect: 'wod' | 'log' | 'plan';
+  /** The fence tag: time | log */
+  dialect: 'time' | 'log';
 }
 
 /**
- * Pull every ```wod / ```log / ```plan fenced block out of a markdown string.
+ * Pull every ```time / ```log fenced block out of a markdown string.
  */
 export function extractScriptBlocks(markdown: string): ExtractedScriptBlock[] {
   const blocks: ExtractedScriptBlock[] = [];
-  const re = /```(wod|whiteboard|log|plan)\r?\n([\s\S]*?)```/gi;
+  const re = /```(time|log)(:\w+)?\r?\n([\s\S]*?)```/gi;
   let match: RegExpExecArray | null;
   let index = 0;
   while ((match = re.exec(markdown)) !== null) {
-    const rawDialect = match[1].toLowerCase();
-    const dialect = (rawDialect === 'whiteboard' ? 'wod' : rawDialect) as ExtractedScriptBlock['dialect'];
-    const script = match[2];
+    const dialect = match[1].toLowerCase() as ExtractedScriptBlock['dialect'];
+    const script = match[3];
     const preview = script.split('\n').find(l => l.trim())?.trim() ?? '(empty block)';
     blocks.push({ index: index++, script, preview, dialect });
   }

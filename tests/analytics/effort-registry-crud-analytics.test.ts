@@ -103,7 +103,7 @@ describe('Effort Registry CRUD + Analytics Resolution', () => {
 
       // 2. Build analytics context with the resolver
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -130,7 +130,7 @@ describe('Effort Registry CRUD + Analytics Resolution', () => {
       registry.upsert(customEffort);
 
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -156,7 +156,7 @@ describe('Effort Registry CRUD + Analytics Resolution', () => {
 
       // 2. First analytics run
       const context1: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -194,7 +194,7 @@ describe('Effort Registry CRUD + Analytics Resolution', () => {
 
       // 2. Verify it resolves
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -258,7 +258,7 @@ describe('Effort Registry CRUD + Analytics Resolution', () => {
       await registry.upsert(userRowing);
 
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };

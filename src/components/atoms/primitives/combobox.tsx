@@ -2,7 +2,7 @@
 
 import * as Headless from '@headlessui/react'
 import { cn } from "@/lib/utils"
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 
 export function Combobox<T>({
   options,
@@ -12,6 +12,7 @@ export function Combobox<T>({
   className,
   placeholder,
   autoFocus,
+  virtual = true,
   'aria-label': ariaLabel,
   children,
   icon: Icon,
@@ -23,10 +24,17 @@ export function Combobox<T>({
   className?: string
   placeholder?: string
   autoFocus?: boolean
+  /**
+   * Headless UI virtualizes the option list through @tanstack/react-virtual,
+   * which renders zero rows when the listbox has no measurable height (e.g.
+   * jsdom, or tiny static lists). Pass `virtual={false}` for short option
+   * lists to render every option statically.
+   */
+  virtual?: boolean
   'aria-label'?: string
   icon?: React.ComponentType<{ className?: string }>
   children: (value: NonNullable<T>) => React.ReactElement
-} & Omit<Headless.ComboboxProps<T, false>, 'as' | 'multiple' | 'children'> & { anchor?: 'top' | 'bottom' }) {
+} & Omit<Headless.ComboboxProps<T, false>, 'as' | 'multiple' | 'children' | 'virtual'> & { anchor?: 'top' | 'bottom' }) {
   const [query, setQuery] = useState('')
 
   const filteredOptions =
@@ -41,7 +49,7 @@ export function Combobox<T>({
       as="div"
       {...props} 
       multiple={false} 
-      virtual={{ options: filteredOptions }} 
+      {...(virtual ? { virtual: { options: filteredOptions } } : {})}
       onClose={() => setQuery('')}
     >
       <span
@@ -128,7 +136,11 @@ export function Combobox<T>({
           'transition-opacity duration-100 ease-in data-closed:data-leave:opacity-0 data-transition:pointer-events-none'
         )}
       >
-        {({ option }) => children(option)}
+        {virtual
+          ? ({ option }: { option: NonNullable<T> }) => children(option)
+          : filteredOptions.map((option, index) => (
+              <Fragment key={index}>{children(option as NonNullable<T>)}</Fragment>
+            ))}
       </Headless.ComboboxOptions>
     </Headless.Combobox>
   )

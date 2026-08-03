@@ -2,11 +2,11 @@
  * Autocomplete & Commands Extension
  *
  * Per PRD / ADR:
- * - **Dialect Completion**: Typing ``` triggers dialect dropdown (wod, log, plan).
+ * - **Dialect Completion**: Typing ``` triggers dialect dropdown (time, log).
  * - **Component Embeds**: Typing --- triggers embeddable component dropdown.
  * - **Auto-Wrapping**: Selecting text + typing ``` wraps in dialect fence.
  * - **Snippet Support**: Frontmatter components insert YAML with cursor placement.
- * - **Smart Wrapping Command**: Cmd+Shift+W to wrap selection in ```wod fence.
+ * - **Smart Wrapping Command**: Cmd+Shift+W to wrap selection in ```time fence.
  */
 
 import {
@@ -24,32 +24,18 @@ import { activeCursorSection } from "./section-state";
 
 const DIALECTS: Completion[] = [
   {
-    label: "```wod",
-    displayLabel: "wod — Workout definition",
+    label: "```time",
+    displayLabel: "time — Runnable workout",
     type: "keyword",
-    apply: "```wod\n${}\n```",
+    apply: "```time\n${}\n```",
     boost: 3,
   },
   {
-    label: "```whiteboard",
-    displayLabel: "whiteboard — Whiteboard Script (alias for wod)",
-    type: "keyword",
-    apply: "```whiteboard\n${}\n```",
-    boost: 2,
-  },
-  {
     label: "```log",
-    displayLabel: "log — Workout log",
+    displayLabel: "log — Recorded workout (no Run)",
     type: "keyword",
     apply: "```log\n${}\n```",
     boost: 2,
-  },
-  {
-    label: "```plan",
-    displayLabel: "plan — Workout plan template",
-    type: "keyword",
-    apply: "```plan\n${}\n```",
-    boost: 1,
   },
 ];
 
@@ -146,23 +132,23 @@ function embedCompletion(context: CompletionContext): CompletionResult | null {
 // ---------- Smart Wrapping Command ----------
 
 /**
- * Wrap the current selection in a ```wod fence.
+ * Wrap the current selection in a ```time fence.
  * If no selection, insert a snippet with cursor between fences.
  */
-function wrapInWodFence(view: EditorView): boolean {
+function wrapInTimeFence(view: EditorView): boolean {
   const { from, to } = view.state.selection.main;
   const hasSelection = from !== to;
 
   if (hasSelection) {
     const selectedText = view.state.sliceDoc(from, to);
-    const wrapped = "```wod\n" + selectedText + "\n```";
+    const wrapped = "```time\n" + selectedText + "\n```";
     view.dispatch({
       changes: { from, to, insert: wrapped },
-      selection: { anchor: from + 4 }, // After ```wod\n
+      selection: { anchor: from + 6 }, // After ```time\n
     });
   } else {
-    const insert = "```wod\n\n```";
-    const cursorPos = from + "```wod\n".length;
+    const insert = "```time\n\n```";
+    const cursorPos = from + "```time\n".length;
     view.dispatch({
       changes: { from, to: from, insert },
       selection: { anchor: cursorPos },
@@ -180,7 +166,7 @@ function wrapInWodFence(view: EditorView): boolean {
 export const wodEditorKeymap = keymap.of([
   {
     key: "Mod-Shift-w",
-    run: wrapInWodFence,
+    run: wrapInTimeFence,
   },
 ]);
 

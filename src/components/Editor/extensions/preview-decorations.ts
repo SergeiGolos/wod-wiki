@@ -24,7 +24,7 @@ import { sectionField } from "./section-state";
 
 // ── Line decoration specs (allocated once) ──────────────────────────
 
-/** Opening fence line: ```wod / ```log / ```plan — faded, rounded top */
+/** Opening fence line: ```time / ```log — faded, rounded top */
 const fenceOpenDeco = Decoration.line({
   attributes: {
     class: "cm-wod-fence-open",

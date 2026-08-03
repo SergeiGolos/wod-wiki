@@ -74,7 +74,7 @@ function runComposed(segments: IOutputStatement[], vo2max?: number): PathResult 
   const resolver = makeResolver();
   const engine = new AnalyticsEngine();
   engine.addRealtimeProcessor(new TwoPassEffortResolutionProcess(resolver));
-  const calc = createCalcEngine('wod', { effortResolver: resolver, userProfile: vo2max === undefined ? undefined : { vo2max } });
+  const calc = createCalcEngine('time', { effortResolver: resolver, userProfile: vo2max === undefined ? undefined : { vo2max } });
   engine.addRealtimeProcessor(calc);
   engine.addSummaryProcessor(calc);
   return runPath(engine, segments);

@@ -30,7 +30,7 @@ const T0 = 1_700_000_000_000;
 const BLOCK: ScriptBlock = {
   id: 'wod-2-test',
   contentId: 'bc-test',
-  dialect: 'wod',
+  dialect: 'time',
   startLine: 2,
   endLine: 5,
   content: '21 Deadlift 60kg',
