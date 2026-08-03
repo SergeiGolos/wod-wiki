@@ -1,8 +1,8 @@
 /**
  * Cursor Focus Panel Extension
  *
- * CM6 StateField that tracks the cursor's active WOD line and provides:
- *  1. Focus widget — anchored to the closing fence of the focused WOD block,
+ * CM6 StateField that tracks the cursor's active workout line and provides:
+ *  1. Focus widget — anchored to the closing fence of the focused workout block,
  *     so cursor feedback lives with the block instead of in a viewport panel.
  *  2. Mark decorations — colored underlines on the cursor line, one per
  *     metric type, using CSS classes defined via EditorView.baseTheme.
@@ -36,7 +36,7 @@ import type { IMetric } from "../../../core/models/Metric";
 
 /** Data exposed to external consumers via getCursorFocusState(). */
 export interface CursorFocusState {
-  /** The WOD section the cursor is in. */
+  /** The workout section the cursor is in. */
   section: EditorSection;
   /** The parsed statement on the cursor line, or null if none. */
   statement: ICodeStatement | null;
@@ -213,7 +213,7 @@ function parseStatements(
  * Build mark decorations (underlines on metric tokens).  Decorations must be
  * sorted by `from` and passed to a single Decoration.set() call.
  *
- * Underlines are always rendered at 20% opacity across ALL WOD sections.
+ * Underlines are always rendered at 20% opacity across ALL workout sections.
  * The line the cursor is on gets full-opacity underlines.
  */
 function buildDecorations(
@@ -225,7 +225,7 @@ function buildDecorations(
 ): DecorationSet {
   const decos: Range<Decoration>[] = [];
 
-  // Mark decorations — iterate ALL WOD sections so underlines are always
+  // Mark decorations — iterate ALL workout sections so underlines are always
   // visible. Metrics on the cursor line get full opacity; all others get
   // the dim (20% opacity) variant of the same CSS class.
   for (const section of allSections) {
@@ -248,7 +248,7 @@ function buildDecorations(
         const meta = s.metricMeta?.get(metric);
         if (!meta) continue;
 
-        // startOffset / endOffset are 0-based into the WOD content string;
+        // startOffset / endOffset are 0-based into the workout content string;
         // adding contentFrom converts them to absolute document offsets.
         const from = section.contentFrom + meta.startOffset;
         const to = section.contentFrom + meta.endOffset;
@@ -261,7 +261,7 @@ function buildDecorations(
     }
   }
 
-  // Focus panel widget — anchored to the focused WOD block's closing fence.
+  // Focus panel widget — anchored to the focused workout block's closing fence.
   // The widget is a block decoration at the end of the bottom ``` line, so it
   // scrolls with the document and only appears for the block containing cursor.
   if (focus?.statement && focus.section.endLine <= state.doc.lines) {
@@ -294,11 +294,11 @@ function computeFocusState(
   const { head } = state.selection.main;
   const cursorLine = state.doc.lineAt(head).number;
 
-  // All WOD sections — used to render always-visible dim underlines
-  const wodSections = sections.filter((s) => s.type === "wod");
+  // All workout sections — used to render always-visible dim underlines
+  const workoutSections = sections.filter((s) => s.type === 'time' || s.type === 'log');
 
-  // Find the WOD section containing the cursor
-  const cursorSection = wodSections.find(
+  // Find the workout section containing the cursor
+  const cursorSection = workoutSections.find(
     (s) =>
       cursorLine >= s.startLine + 1 && // skip opening fence line
       cursorLine < s.endLine            // skip closing fence line
@@ -342,7 +342,7 @@ function computeFocusState(
   if (focus) focus.focusedMetric = focusedMetric;
 
   // Build mark decorations for all sections plus the focused block widget.
-  const decos = buildDecorations(wodSections, cursorSection, cursorLine, state, focus);
+  const decos = buildDecorations(workoutSections, cursorSection, cursorLine, state, focus);
 
   return { focus, decos };
 }
@@ -369,7 +369,7 @@ const cursorFocusInternal = StateField.define<InternalState>({
 
 /**
  * Read the current cursor focus data from any EditorState that has loaded
- * the cursorFocusExtension. Returns null if the cursor is not in a WOD block.
+ * the cursorFocusExtension. Returns null if the cursor is not in a workout block.
  */
 export function getCursorFocusState(
   state: EditorState
@@ -385,17 +385,17 @@ export function getCursorFocusState(
 
 /**
  * Jump the cursor to the next (direction=1) or previous (direction=-1) metric
- * token on the current WOD line.  Returns false when not in a WOD block or
+ * token on the current workout line.  Returns false when not in a workout block or
  * no further metric exists in that direction (so CM6 falls through to the
  * default word-jump behaviour).
  */
 function jumpMetric(view: EditorView, direction: 1 | -1): boolean {
   const focus = getCursorFocusState(view.state);
-  // Not inside a WOD block — let default word-jump behaviour apply.
+  // Not inside a workout block — let default word-jump behaviour apply.
   if (!focus) return false;
 
-  // We ARE inside a WOD block: always consume the event so the default
-  // word-jump (Ctrl+ArrowRight/Left) never fires within WOD content.
+  // We ARE inside a workout block: always consume the event so the default
+  // word-jump (Ctrl+ArrowRight/Left) never fires within workout content.
   if (!focus.statement) return true;
 
   const { section } = focus;
@@ -438,7 +438,7 @@ function jumpMetric(view: EditorView, direction: 1 | -1): boolean {
 }
 
 // Prec.high ensures this beats defaultKeymap's Ctrl+ArrowRight/Left word-jump
-// whenever the cursor is inside a WOD block.
+// whenever the cursor is inside a workout block.
 const metricNavKeymap = Prec.high(keymap.of([
   { key: "Ctrl-ArrowRight", run: (v) => jumpMetric(v, 1) },
   { key: "Ctrl-ArrowLeft",  run: (v) => jumpMetric(v, -1) },

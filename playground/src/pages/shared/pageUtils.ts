@@ -33,11 +33,11 @@ export function applyTemplate(raw: string): { content: string; cursorOffset: num
 
 // ── Page index helpers ───────────────────────────────────────────────────────
 
-/** Extract headings and wod-fence positions from markdown content. */
+/** Extract headings and workout-fence positions from markdown content. */
 export function extractPageIndex(content: string): PageNavLink[] {
   const lines = content.split('\n')
   const links: PageNavLink[] = []
-  let wodCount = 0
+  let workoutCount = 0
   const seenIds = new Map<string, number>()
 
   const uniqueId = (base: string): string => {
@@ -65,9 +65,11 @@ export function extractPageIndex(content: string): PageNavLink[] {
       links.push({ id, label, type: 'heading', timestamp })
       continue
     }
-    if (/^```(time|log)/.test(line.trim())) {
-      wodCount++
-      links.push({ id: `wod-line-${i + 1}`, label: `Workout ${wodCount}`, type: 'wod' })
+    const fenceMatch = line.trim().match(/^```(time|log)(:\w+)?\s*$/)
+    if (fenceMatch) {
+      const tag = fenceMatch[1] as 'time' | 'log'
+      workoutCount++
+      links.push({ id: `${tag}-line-${i + 1}`, label: `Workout ${workoutCount}`, type: tag })
     }
   }
   return links

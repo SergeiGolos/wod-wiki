@@ -7,7 +7,7 @@ describe('deriveWorkbenchDocumentState', () => {
     expect(deriveWorkbenchDocumentState('')).toEqual({ sections: [], blocks: [] });
   });
 
-  it('hydrates WOD blocks with parsed statements', () => {
+  it('hydrates workout blocks with parsed statements', () => {
     const content = '# Workout\n\n```time\n5:00 Run\n```';
     const state = deriveWorkbenchDocumentState(content);
 
@@ -24,7 +24,7 @@ describe('deriveWorkbenchDocumentState', () => {
     expect(next.sections[1].id).toBe(previous[1].id);
   });
 
-  it('skips re-hydration when WOD block already has pre-parsed statements', () => {
+  it('skips re-hydration when workout block already has pre-parsed statements', () => {
     // Parse once so blocks have statements populated
     const content = '# Workout\n\n```time\n5:00 Run\n```';
     const first = deriveWorkbenchDocumentState(content);
@@ -39,7 +39,7 @@ describe('deriveWorkbenchDocumentState', () => {
     expect(second.blocks[0].state).toBe('parsed');
   });
 
-  it('handles non-wod sections (headings only) returning no blocks', () => {
+  it('handles non-workout sections (headings only) returning no blocks', () => {
     const content = '# My Notes\n\nSome text here';
     const state = deriveWorkbenchDocumentState(content);
 
@@ -48,7 +48,7 @@ describe('deriveWorkbenchDocumentState', () => {
     expect(state.sections.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('handles multiple WOD blocks in one document', () => {
+  it('handles multiple workout blocks in one document', () => {
     const content = '# WOD 1\n\n```time\n5:00 Run\n```\n\n# WOD 2\n\n```time\n10:00 Walk\n```';
     const state = deriveWorkbenchDocumentState(content);
 

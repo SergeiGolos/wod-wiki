@@ -24,16 +24,16 @@ export interface ScriptIndexPanelProps {
 }
 
 /**
- * Extracts a preview title from WOD block content
+ * Extracts a preview title from a workout block's content
  */
 const getBlockPreview = (content: string): string => {
   const lines = content.trim().split('\n');
-  if (lines.length === 0) return 'Empty WOD';
-  
+  if (lines.length === 0) return 'Empty workout';
+
   // Look for Timer: or first non-empty line
   const firstLine = lines.find(line => line.trim().length > 0);
-  if (!firstLine) return 'Empty WOD';
-  
+  if (!firstLine) return 'Empty workout';
+
   // Truncate long lines
   const preview = firstLine.trim();
   return preview.length > 40 ? preview.substring(0, 40) + '...' : preview;
@@ -73,7 +73,7 @@ export const ScriptIndexPanel: React.FC<ScriptIndexPanelProps> = ({
           filteredItems.map((item) => {
             const isActive = item.id === activeBlockId;
             const isHighlighted = item.id === highlightedBlockId;
-            const isWod = item.type === 'wod';
+            const isWorkout = item.type !== 'header' && item.type !== 'paragraph';
 
             return (
               <div
@@ -83,7 +83,7 @@ export const ScriptIndexPanel: React.FC<ScriptIndexPanelProps> = ({
                   group rounded-md transition-all duration-200
                   ${isActive ? 'ring-1 ring-primary' : ''}
                   ${isHighlighted && !isActive ? 'bg-muted/50' : ''}
-                  ${isWod ? 'border border-border bg-card' : 'hover:bg-muted/30'}
+                  ${isWorkout ? 'border border-border bg-card' : 'hover:bg-muted/30'}
                 `}
                 onClick={() => onBlockClick(item)}
                 onMouseEnter={() => onBlockHover(item.id)}
@@ -93,12 +93,12 @@ export const ScriptIndexPanel: React.FC<ScriptIndexPanelProps> = ({
                 <div className={`
                   flex items-center gap-2 cursor-pointer
                   ${mobile ? 'p-4' : 'p-2'}
-                  ${isWod ? (mobile ? 'min-h-[60px]' : 'min-h-[40px]') : 'min-h-[28px]'}
+                  ${isWorkout ? (mobile ? 'min-h-[60px]' : 'min-h-[40px]') : 'min-h-[28px]'}
                 `}>
                   {/* Icon based on type */}
                   <div className="flex-shrink-0 text-muted-foreground">
                     {item.type === 'header' && <Hash className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
-                    {item.type === 'wod' && <Timer className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
+                    {isWorkout && <Timer className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
                   </div>
 
                   {/* Content Preview */}
@@ -111,7 +111,7 @@ export const ScriptIndexPanel: React.FC<ScriptIndexPanelProps> = ({
                       </div>
                     )}
 
-                    {item.type === 'wod' && (
+                    {isWorkout && (
                       <div className="flex items-center justify-between">
                         <span className={`${mobile ? 'text-base' : 'text-sm'} font-medium truncate`}>
                           {getBlockPreview(item.content)}

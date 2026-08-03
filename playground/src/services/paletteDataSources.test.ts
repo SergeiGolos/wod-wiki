@@ -5,9 +5,9 @@ import type { WorkoutResult } from '@/types/storage';
  * Unit tests for paletteDataSources.ts
  *
  * Tests cover:
- * - WOD block extraction from markdown
+ * - time/log block extraction from markdown
  * - Collection data source generation
- * - WOD block source generation
+ * - time/log block source generation
  * - Edge cases (empty inputs, malformed markdown, multiple blocks)
  * - Search query filtering
  *

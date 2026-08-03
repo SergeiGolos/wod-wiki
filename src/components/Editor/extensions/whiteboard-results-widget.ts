@@ -1,10 +1,10 @@
 /**
- * wod-results-widget
+ * workout-results-widget
  *
- * CM6 extension that manages workout result visualization within WOD blocks.
+ * CM6 extension that manages workout result visualization within workout blocks.
  *
  * Features:
- *   1. An expandable results panel inserted after the closing fence of each WOD block.
+ *   1. An expandable results panel inserted after the closing fence of each workout block.
  *   2. Collapsed state shows compact result rows (time, status, duration).
  *   3. Expanded state shows AnalyticsScorecard + full ReviewGrid (sort, filter, search, graph).
  *   4. A "Full Review" button opens the FullscreenReview dialog for the full experience.
@@ -180,7 +180,7 @@ function _buildResultsDecorations(state: EditorState): DecorationSet {
   const decos: Range<Decoration>[] = [];
 
   for (const section of sections) {
-    if (section.type !== 'wod') continue;
+    if (section.type !== 'time' && section.type !== 'log') continue;
     const allResults = resultsMap.get(section.id);
     if (!allResults || allResults.length === 0) continue;
 

@@ -45,7 +45,7 @@ describe('StandardAnalyticsProfile', () => {
 
     it('registers neither TwoPass nor the calc engine when no resolver is present', () => {
       const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Action]);
+      const context = createContext('time', [MetricType.Action]);
 
       const result = profile.build(context);
 

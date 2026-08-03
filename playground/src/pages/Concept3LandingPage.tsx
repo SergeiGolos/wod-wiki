@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
 
-const SAMPLE_SOURCE = `\`\`\`wod
+const SAMPLE_SOURCE = `\`\`\`time
 (3 Rounds)
   10 Kettlebell Swings 24kg
   15 Goblet Squats 24kg
@@ -19,7 +19,7 @@ const SAMPLE_SOURCE = `\`\`\`wod
 
 const DIALECT_PILLARS = [
   {
-    code: 'wod',
+    code: 'time',
     title: 'Compile and execute',
     description:
       'Type the workout once, launch the runtime, and keep the full movement order visible while the timer is running.',
@@ -52,17 +52,17 @@ const POWER_USER_CALLOUTS = [
   {
     title: 'Dialect switching stays explicit',
     description:
-      'Move between `wod`, `log`, and `plan` without changing the mental model or the editing surface.',
+      'Move between `time`, `log`, and `plan` without changing the mental model or the editing surface.',
   },
 ] as const
 
-function extractWodContent(source: string): string {
-  const fenceMatch = source.match(/```wod\s*\n([\s\S]*?)\n```/i)
+function extractWorkoutContent(source: string): string {
+  const fenceMatch = source.match(/```time\s*\n([\s\S]*?)\n```/i)
   return (fenceMatch?.[1] ?? source).trim()
 }
 
 function createSampleBlock(source: string): ScriptBlock {
-  const content = extractWodContent(source)
+  const content = extractWorkoutContent(source)
   const lines = content.split('\n')
 
   return {
@@ -78,7 +78,7 @@ function createSampleBlock(source: string): ScriptBlock {
 }
 
 function estimateMovementCount(source: string): number {
-  const lines = extractWodContent(source)
+  const lines = extractWorkoutContent(source)
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
@@ -87,7 +87,7 @@ function estimateMovementCount(source: string): number {
 }
 
 function buildWorkoutPreview(source: string) {
-  const lines = extractWodContent(source)
+  const lines = extractWorkoutContent(source)
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)

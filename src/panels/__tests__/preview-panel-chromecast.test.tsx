@@ -98,13 +98,13 @@ describe('ReceiverPreviewPanel', () => {
     render(
       <ReceiverPreviewPanel
         previewData={makePreviewData([
-          { id: 'block-1', title: 'EMOM', timerHint: '10:00', dialect: 'plan' },
+          { id: 'block-1', title: 'EMOM', timerHint: '10:00', dialect: 'log' },
         ])}
       />,
     );
 
     expect(screen.getByText('10:00')).toBeDefined();
-    expect(screen.getByText('plan')).toBeDefined();
+    expect(screen.getByText('log')).toBeDefined();
   });
 
   it('renders content preview when provided', () => {

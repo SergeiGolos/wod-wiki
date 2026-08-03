@@ -229,20 +229,22 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
       .forEach(s => {
         links.push({ id: s.id, label: s.heading, type: 'heading' as const })
 
-        // Extract standard WOD blocks from prose. On guide pages these are
+        // Extract standard time/log workout blocks from prose. On guide pages these are
         // inline examples under section headings, so listing them as generic
         // 'Workout N' entries duplicates nothing useful; skip them.
         if (!isGuidePage) {
           const lines = getSectionProse(s).split('\n')
-          let wodCount = 0
+          let workoutCount = 0
           lines.forEach((line, i) => {
-            if (/^```(time|log)(:\w+)?\s*$/.test(line.trim())) {
-              wodCount++
-              // Canvas WOD blocks have no onRun here — MarkdownCanvasPage manages its own runtime.
+            const fenceMatch = line.trim().match(/^```(time|log)(:\w+)?\s*$/)
+            if (fenceMatch) {
+              const tag = fenceMatch[1] as 'time' | 'log'
+              workoutCount++
+              // Canvas workout blocks have no onRun here — MarkdownCanvasPage manages its own runtime.
               links.push({
-                id: `${s.id}-wod-${i + 1}`,
-                label: `Workout ${wodCount}`,
-                type: 'wod' as const,
+                id: `${s.id}-${tag}-${i + 1}`,
+                label: `Workout ${workoutCount}`,
+                type: tag,
               })
             }
           })
@@ -257,7 +259,7 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
             links.push({
               id: `workout-${item.id}`,
               label: item.name,
-              type: 'wod' as const,
+              type: 'time',
               onRun: () => selectWorkout(item),
               runIcon: 'link' as const,
             })
@@ -276,7 +278,7 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
         links.push({
           id: `workout-${item.id}`,
           label: item.name,
-          type: 'wod' as const,
+          type: 'time',
           onRun: () => selectWorkout(item),
           runIcon: 'link' as const,
         })

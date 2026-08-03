@@ -21,7 +21,7 @@ import { formatDateWeekdayShort } from '@/lib/dateFormat';
 interface AddScriptToNoteDropdownProps {
     scriptBlock: ScriptBlock;
     provider?: IContentProvider;
-    /** ID of the note this WOD block originates from (for link tracking) */
+    /** ID of the note this workout block originates from (for link tracking) */
     sourceNoteId?: string;
     onAddSuccess?: (noteId: string) => void;
     className?: string;

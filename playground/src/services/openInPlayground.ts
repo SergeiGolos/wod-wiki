@@ -1,5 +1,5 @@
 /**
- * openInPlayground — WOD block actions that use the zip-load mechanism.
+ * openInPlayground — time/log block actions that use the zip-load mechanism.
  *
  * Both "Open in Playground" and "Share" encode the block's content as a
  * gzip+base64 URL (/load?zip=<encoded>). useZipProcessor (GlobalState) picks
@@ -15,7 +15,7 @@ import { encodeZip } from './encodeZip'
 import { buildPlaygroundLoadUrl } from '../lib/routes'
 import { toast } from '@/hooks/use-toast'
 
-/** Build the /load?zip= URL for a WOD block. */
+/** Build the /load?zip= URL for a time/log block. */
 async function buildZipUrl(block: ScriptBlock): Promise<string> {
   const dialect = block.dialect || 'time'
   const fenceTag = block.sport ? `${dialect}:${block.sport}` : dialect
@@ -25,7 +25,7 @@ async function buildZipUrl(block: ScriptBlock): Promise<string> {
 }
 
 /**
- * Navigate directly to a new playground page pre-loaded with the WOD block's
+ * Navigate directly to a new playground page pre-loaded with the time/log block's
  * content. Uses the same /load?zip= mechanism as WhiteboardPlaygroundButton.
  */
 export async function openBlockInPlayground(
@@ -39,7 +39,7 @@ export async function openBlockInPlayground(
 }
 
 /**
- * Copy the /load?zip= URL for the WOD block to the clipboard and show a
+ * Copy the /load?zip= URL for the time/log block to the clipboard and show a
  * toast confirmation. The recipient can paste this URL into any browser to
  * open the workout in their own playground.
  */

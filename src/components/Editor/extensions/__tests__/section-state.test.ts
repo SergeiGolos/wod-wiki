@@ -90,44 +90,43 @@ describe("sectionField — markdown subtypes", () => {
   });
 });
 
-// ── WOD blocks ───────────────────────────────────────────────────────
+// ── workout blocks ───────────────────────────────────────────────────
 
-describe("sectionField — wod blocks", () => {
+describe("sectionField — workout blocks", () => {
   it("should parse markdown with a time block", () => {
     const doc = "# Title\n\n```time\n10:00 Run\n```\n\nMore text";
     const s = sections(doc);
 
     const types = s.map((x) => x.type);
     expect(types).toContain("markdown");
-    expect(types).toContain("wod");
+    expect(types).toContain("time");
 
-    const wod = s.find((x) => x.type === "wod")!;
-    expect(wod.dialect).toBe("time");
-    expect(wod.startLine).toBe(3);
-    expect(wod.endLine).toBe(5);
+    const timeSection = s.find((x) => x.type === "time")!;
+    expect(timeSection.startLine).toBe(3);
+    expect(timeSection.endLine).toBe(5);
   });
 
-  it("should detect log and time dialects", () => {
+  it("should detect log and time sections", () => {
     const doc = "```log\n5x5 Squat\n```\n\n```time\nWeek 1\n```";
     const s = sections(doc);
 
-    const wodSections = s.filter((x) => x.type === "wod");
-    expect(wodSections).toHaveLength(2);
-    expect(wodSections[0].dialect).toBe("log");
-    expect(wodSections[1].dialect).toBe("time");
+    const workoutSections = s.filter((x) => x.type === 'time' || x.type === 'log');
+    expect(workoutSections).toHaveLength(2);
+    expect(workoutSections[0].type).toBe("log");
+    expect(workoutSections[1].type).toBe("time");
   });
 
-  it("should provide contentFrom/contentTo for wod sections", () => {
+  it("should provide contentFrom/contentTo for workout sections", () => {
     const doc = "```time\n10:00 Run\n5:00 Rest\n```";
     const state = createState(doc);
     const s = state.field(sectionField).sections;
 
     expect(s).toHaveLength(1);
-    const wod = s[0];
-    expect(wod.contentFrom).toBeDefined();
-    expect(wod.contentTo).toBeDefined();
+    const timeSection = s[0];
+    expect(timeSection.contentFrom).toBeDefined();
+    expect(timeSection.contentTo).toBeDefined();
 
-    const innerContent = state.doc.sliceString(wod.contentFrom!, wod.contentTo!);
+    const innerContent = state.doc.sliceString(timeSection.contentFrom!, timeSection.contentTo!);
     expect(innerContent).toContain("10:00 Run");
     expect(innerContent).toContain("5:00 Rest");
   });
@@ -135,37 +134,34 @@ describe("sectionField — wod blocks", () => {
   it("should handle unclosed time fence", () => {
     const s = sections("```time\n10:00 Run\nNo closing fence");
     expect(s).toHaveLength(1);
-    expect(s[0].type).toBe("wod");
+    expect(s[0].type).toBe("time");
   });
 
   it("should handle multiple time blocks", () => {
     const doc = "```time\nBlock 1\n```\n\nSome text\n\n```time\nBlock 2\n```";
     const s = sections(doc);
-    const wodSections = s.filter((x) => x.type === "wod");
-    expect(wodSections).toHaveLength(2);
+    const timeSections = s.filter((x) => x.type === "time");
+    expect(timeSections).toHaveLength(2);
   });
 
-  it("should parse ```time as a wod section with dialect 'time'", () => {
+  it("should parse ```time as a time section", () => {
     const s = sections("```time\n10:00 Run\n```");
     expect(s).toHaveLength(1);
-    expect(s[0].type).toBe("wod");
-    expect(s[0].dialect).toBe("time");
+    expect(s[0].type).toBe("time");
     expect(s[0].sport).toBeUndefined();
   });
 
-  it("should parse ```log:climbing with dialect 'log' and sport 'climbing'", () => {
+  it("should parse ```log:climbing as a log section with sport 'climbing'", () => {
     const s = sections("```log:climbing\n5:00 Boulder\n```");
     expect(s).toHaveLength(1);
-    expect(s[0].type).toBe("wod");
-    expect(s[0].dialect).toBe("log");
+    expect(s[0].type).toBe("log");
     expect(s[0].sport).toBe("climbing");
   });
 
-  it("should parse ```time: with empty sport suffix as dialect 'time' only", () => {
+  it("should parse ```time: with empty sport suffix as a time section only", () => {
     const s = sections("```time:\n10:00 Run\n```");
     expect(s).toHaveLength(1);
-    expect(s[0].type).toBe("wod");
-    expect(s[0].dialect).toBe("time");
+    expect(s[0].type).toBe("time");
     expect(s[0].sport).toBeUndefined();
   });
 });
@@ -183,12 +179,12 @@ describe("sectionField — frontmatter", () => {
   });
 
   it("should not cross into time blocks when scanning for closing ---", () => {
-    const doc = "---\ntitle: test\n```time\nsome wod\n```\nmore lines\n---";
+    const doc = "---\ntitle: test\n```time\nsome workout content\n```\nmore lines\n---";
     const s = sections(doc);
-    // The --- before ```wod should not find the --- after ``` as its close
-    // because the scanner breaks at dialect fences
+    // The --- before ```time should not find the --- after ``` as its close
+    // because the scanner breaks at workout fences
     const fm = s.filter((x) => x.type === "frontmatter");
-    // Depending on parser: the --- at line 1 might become markdown if it can't find close before WOD
+    // Depending on parser: the --- at line 1 might become markdown if it can't find close before workout
     // or it could match the --- at the end
     expect(s.length).toBeGreaterThan(0);
   });
@@ -305,10 +301,10 @@ describe("sectionAtPos", () => {
     expect(mdSection).not.toBeNull();
     expect(mdSection!.type).toBe("markdown");
 
-    const wodPos = doc.indexOf("10:00");
-    const wodSection = sectionAtPos(state, wodPos);
-    expect(wodSection).not.toBeNull();
-    expect(wodSection!.type).toBe("wod");
+    const workoutPos = doc.indexOf("10:00");
+    const workoutSection = sectionAtPos(state, workoutPos);
+    expect(workoutSection).not.toBeNull();
+    expect(workoutSection!.type).toBe("time");
   });
 });
 

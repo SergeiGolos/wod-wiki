@@ -260,7 +260,7 @@ export function CanvasPage({
                   }}
                   className={cn(
                     'flex-1 text-left px-4 py-2 text-sm transition-all border-l',
-                    link.type === 'wod'
+                    (link.type === 'time' || link.type === 'log')
                       ? 'text-muted-foreground/70 border-transparent pl-6 text-xs'
                       : activeId === link.id
                         ? 'font-bold text-foreground border-primary'
@@ -276,7 +276,7 @@ export function CanvasPage({
                     title={link.runIcon === 'link' ? "View workout" : "Start workout"}
                     className={cn(
                       "mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all",
-                      link.type === 'wod' ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      (link.type === 'time' || link.type === 'log') ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                     )}
                   >
                     {link.runIcon === 'link' ? (

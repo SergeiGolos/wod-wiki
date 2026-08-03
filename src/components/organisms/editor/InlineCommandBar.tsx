@@ -1,12 +1,12 @@
 /**
  * InlineCommandBar
  *
- * Lightweight command buttons rendered at the opening fence of each WOD block
+ * Lightweight command buttons rendered at the opening fence of each workout block
  * when enableOverlay is false.  This ensures Run / Playground / Plan buttons
  * remain accessible even without the full overlay panel.
  *
  * Uses the sectionField (already in the editor state) and section-geometry
- * rects to position a floating toolbar at the top-right of each WOD section.
+ * rects to position a floating toolbar at the top-right of each workout section.
  */
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
@@ -14,7 +14,7 @@ import type { EditorView } from "@codemirror/view";
 import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
 import { sectionGeometry as sectionGeometryPlugin, type SectionRect } from '@/components/Editor/extensions/section-geometry';
 import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
-import type { ScriptBlock } from '@/components/Editor/types';
+import type { ScriptBlock, FenceDialect } from '@/components/Editor/types';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/atoms/primitives/button";
 import { ButtonGroup } from "@/components/molecules/ButtonGroup";
@@ -29,10 +29,12 @@ function buildScriptBlock(view: EditorView, section: EditorSection): ScriptBlock
     section.contentFrom !== undefined && section.contentTo !== undefined
       ? view.state.doc.sliceString(section.contentFrom, section.contentTo)
       : "";
+  const dialect: FenceDialect =
+    section.type === "time" || section.type === "log" ? section.type : "time";
   return {
     id: section.id,
     contentId: section.contentId,
-    dialect: section.dialect || "time",
+    dialect,
     sport: section.sport,
     startLine: section.startLine - 1,
     endLine: section.endLine - 1,
@@ -168,10 +170,10 @@ interface InlineCommandBarProps {
 }
 
 /**
- * Renders a floating command bar at the top-right of every WOD section.
+ * Renders a floating command bar at the top-right of every workout section.
  *
  * The component listens to section-geometry updates (which fire on scroll,
- * viewport change, and document change) and positions one toolbar per WOD
+ * viewport change, and document change) and positions one toolbar per workout
  * block.
  */
 export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
@@ -219,10 +221,12 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
 
   if (!view || commands.length === 0) return null;
 
-  // Only render for WOD sections
-  const wodRects = rects.filter((r) => r.type === "wod");
+  // Only render for workout (time/log) sections
+  const workoutRects = rects.filter(
+    (r) => r.type === "time" || r.type === "log"
+  );
 
-  if (wodRects.length === 0) return null;
+  if (workoutRects.length === 0) return null;
 
   // Look up sections from the view state for block data
   const { sections } = view.state.field(sectionField);
@@ -230,7 +234,7 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
 
   return (
     <>
-      {wodRects.map((rect) => {
+      {workoutRects.map((rect) => {
         const section = sectionMap.get(rect.sectionId);
         if (!section) return null;
 

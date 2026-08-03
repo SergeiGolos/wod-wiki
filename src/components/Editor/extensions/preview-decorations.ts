@@ -1,5 +1,5 @@
 /**
- * WOD Block Decorations
+ * Workout Block Decorations
  *
  * Line-level decorations that visually distinguish WhiteboardScript code-fence blocks
  * from surrounding markdown. Instead of replacing blocks with preview widgets,
@@ -39,7 +39,7 @@ const fenceCloseDeco = Decoration.line({
 });
 
 /** Inner WhiteboardScript content lines — indented, larger, card background */
-const wodInnerDeco = Decoration.line({
+const workoutInnerDeco = Decoration.line({
   attributes: {
     class: "cm-wod-inner",
   },
@@ -47,12 +47,12 @@ const wodInnerDeco = Decoration.line({
 
 // ── Build decorations from section state ────────────────────────────
 
-function buildWodDecorations(state: EditorState): DecorationSet {
+function buildWorkoutDecorations(state: EditorState): DecorationSet {
   const { sections } = state.field(sectionField);
   const decos: Range<Decoration>[] = [];
 
   for (const section of sections) {
-    if (section.type !== "wod") continue;
+    if (section.type !== 'time' && section.type !== 'log') continue;
 
     const doc = state.doc;
     const openLine = doc.line(section.startLine);
@@ -64,7 +64,7 @@ function buildWodDecorations(state: EditorState): DecorationSet {
     // Inner content lines
     for (let ln = section.startLine + 1; ln < section.endLine; ln++) {
       const line = doc.line(ln);
-      decos.push(wodInnerDeco.range(line.from));
+      decos.push(workoutInnerDeco.range(line.from));
     }
 
     // Closing fence decoration
@@ -82,11 +82,11 @@ function buildWodDecorations(state: EditorState): DecorationSet {
 
 const scriptBlockDecoField = StateField.define<DecorationSet>({
   create(state) {
-    return buildWodDecorations(state);
+    return buildWorkoutDecorations(state);
   },
   update(value, tr) {
     if (tr.docChanged) {
-      return buildWodDecorations(tr.state);
+      return buildWorkoutDecorations(tr.state);
     }
     return value;
   },
@@ -95,7 +95,7 @@ const scriptBlockDecoField = StateField.define<DecorationSet>({
 
 // ── Base theme (fallback styles that work without Tailwind runtime) ──
 
-// ── Base theme — the card/depth styling for WOD blocks ──────────────
+// ── Base theme — the card/depth styling for workout blocks ──────────────
 //
 // Fence lines are faded and shrunk so the ``` chrome recedes.
 // Inner lines get a card-like background, left indent, rounded corners
@@ -135,7 +135,7 @@ const scriptBlockBaseTheme = EditorView.baseTheme({
     paddingBottom: "4px",
   },
 
-  // ── Inner WOD lines (the card body) ─────────────────────────────
+  // ── Inner workout lines (the card body) ─────────────────────────────
   ".cm-wod-inner": {
     fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace",
     // Left indent so content is visually inset from surrounding markdown
@@ -170,7 +170,7 @@ const scriptBlockBaseTheme = EditorView.baseTheme({
 // ── Public export ────────────────────────────────────────────────────
 
 /**
- * Combined extension: line decorations for WOD block styling.
+ * Combined extension: line decorations for workout block styling.
  */
 export const previewDecorations: Extension = [
   scriptBlockDecoField,

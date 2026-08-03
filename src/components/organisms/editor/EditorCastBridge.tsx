@@ -18,7 +18,7 @@ import { useCastTransport } from '@/contexts/CastTransportContext';
 import type { EditorSection } from '@/components/Editor/extensions/section-state';
 import type { RpcWorkbenchUpdate, RpcMessage } from '@/services/cast/rpc/RpcMessages';
 import type { EditorState } from '@codemirror/state';
-import type { ScriptBlock } from '@/components/Editor/types';
+import type { ScriptBlock, FenceDialect } from '@/components/Editor/types';
 
 interface EditorCastBridgeProps {
   /** All parsed editor sections */
@@ -43,9 +43,9 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
   useEffect(() => {
     if (!castTransport?.connected || isRuntimeActive || !editorState) return;
 
-    const wodSections = sections.filter(s => s.type === 'wod');
+    const workoutSections = sections.filter(s => s.type === 'time' || s.type === 'log');
 
-    const blocks = wodSections.map(section => {
+    const blocks = workoutSections.map(section => {
       const content =
         section.contentFrom !== undefined && section.contentTo !== undefined
           ? editorState.doc.sliceString(section.contentFrom, section.contentTo)
@@ -58,8 +58,10 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
       const timerMatch = content.match(/^(\d{1,2}:\d{2}(?::\d{2})?)/m);
       const timerHint = timerMatch?.[1];
 
-      // Derive a title from the first non-empty line or fall back to dialect
-      const title = lines[0]?.substring(0, 60) || section.dialect || 'Workout';
+      // Derive a title from the first non-empty line or fall back to a generic label
+      const title = lines[0]?.substring(0, 60) || 'Workout';
+      const dialect: FenceDialect =
+        section.type === 'time' || section.type === 'log' ? section.type : 'time';
 
       return {
         id: section.id,
@@ -67,7 +69,7 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
         statementCount: lines.length,
         contentPreview,
         timerHint,
-        dialect: section.dialect || 'time',
+        dialect,
       };
     });
 
@@ -117,11 +119,11 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
       if (message.type !== 'rpc-event' || (message as any).name !== 'select-block') return;
 
       const { index, blockId } = ((message as any).data ?? {}) as { index?: number; blockId?: string };
-      const wodSections = sections.filter(s => s.type === 'wod');
+      const workoutSections = sections.filter(s => s.type === 'time' || s.type === 'log');
 
       const targetSection = blockId
-        ? wodSections.find(s => s.id === blockId)
-        : wodSections[index ?? 0];
+        ? workoutSections.find(s => s.id === blockId)
+        : workoutSections[index ?? 0];
 
       if (!targetSection || !editorState) return;
 
@@ -132,7 +134,9 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
 
       const block: ScriptBlock = {
         id: targetSection.id,
-        dialect: targetSection.dialect || 'time',
+        dialect: targetSection.type === 'time' || targetSection.type === 'log'
+          ? targetSection.type
+          : 'time',
         sport: targetSection.sport,
         startLine: targetSection.startLine - 1,
         endLine: targetSection.endLine - 1,

@@ -8,7 +8,8 @@
  * Section types:
  *  - title: Special first section — editing updates the note title.
  *  - markdown: Free-form markdown content rendered as rich text.
- *  - wod: Fenced workout block (```` ```time ````, ```` ```log ````, optional :sport suffix).
+ *  - time / log: Fenced workout block (```` ```time ````, ```` ```log ````, optional :sport suffix).
+ *    The type IS the fence tag — `time` is runnable, `log` is recorded.
  *  - frontmatter: YAML front matter between `---` delimiters, rendered as table or embed.
  */
 
@@ -22,7 +23,15 @@ export type FenceDialect = 'time' | 'log';
 export const VALID_FENCE_DIALECTS: FenceDialect[] = ['time', 'log'];
 
 /** Section types the editor can parse and render */
-export type SectionType = 'title' | 'markdown' | 'wod' | 'frontmatter' | 'embed';
+export type SectionType = 'title' | 'markdown' | 'time' | 'log' | 'frontmatter' | 'embed';
+
+/** Workout section types — the runnable/recorded fence tags */
+export type WorkoutSectionType = Extract<SectionType, FenceDialect>;
+
+/** Type guard for workout sections (`time` runnable / `log` recorded) */
+export function isWorkoutSectionType(type: SectionType): type is WorkoutSectionType {
+  return type === 'time' || type === 'log';
+}
 
 /** Typed front matter subtypes — determines embed renderer */
 export type FrontMatterSubtype = 'default' | 'youtube' | 'strava' | 'amazon' | 'file' | 'effort';
@@ -33,7 +42,7 @@ export type FrontMatterSubtype = 'default' | 'youtube' | 'strava' | 'amazon' | '
 export interface Section {
   /** Stable identifier (survives re-parse if structurally equivalent) */
   id: string;
-  /** Content-stable identity (wod only) — survives clone/reorder/edit-above; results join on this. */
+  /** Content-stable identity (workout sections only) — survives clone/reorder/edit-above; results join on this. */
   contentId?: string;
 
   /** Structural type — determines which renderer is used */
@@ -57,13 +66,10 @@ export interface Section {
   /** Heading level 1-6 (only meaningful inside markdown sections) */
   level?: number;
 
-  /** Workout fence tag — only set when type === 'wod' */
-  dialect?: FenceDialect;
-
-  /** Sport suffix from the fence (```log:climbing) — scopes the block's DialectStack */
+  /** Sport suffix from the fence (```log:climbing) — scopes the block's DialectStack. Only for workout sections. */
   sport?: string;
 
-  /** Associated ScriptBlock (only when type === 'wod') */
+  /** Associated ScriptBlock (only for workout sections) */
   scriptBlock?: ScriptBlock;
 
   /** Front matter key-value pairs (only when type === 'frontmatter') */

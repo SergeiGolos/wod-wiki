@@ -50,7 +50,7 @@ describe('PageNavDropdown', () => {
           {
             id: 'workout-../../markdown/collections/girls/Fran.md',
             label: 'Fran',
-            type: 'wod',
+            type: 'time',
             onRun,
             runIcon: 'link',
           },

@@ -7,7 +7,7 @@
  *  - Track is `position: absolute`, inset to the content area (after gutter,
  *    before scrollbar).
  *  - Track inner div is scroll-synced via `translateY(-scrollTop)`.
- *  - Each WOD slot spans the FULL section height but is transparent — only its
+ *  - Each workout (time/log) slot spans the FULL section height but is transparent — only its
  *    absolutely-positioned children (strip, card) are visible.
  *  - The sticky run-button STRIP is always visible, following the viewport
  *    top as the section scrolls past it (sticky within section bounds).
@@ -22,7 +22,7 @@ import { sectionGeometry } from '@/components/Editor/extensions/section-geometry
 import type { SectionOverlayState } from "@/components/Editor/overlays/useOverlayWidthState";
 import type { EditorSectionType } from '@/components/Editor/extensions/section-state';
 
-// ── Non-wod slot heights (px) ────────────────────────────────────────
+// ── Non-workout slot heights (px) ────────────────────────────────────────
 const SLOT_HEIGHT_INACTIVE: Partial<Record<EditorSectionType, number>> = {
   frontmatter: 120,
   code:        60,
@@ -52,7 +52,7 @@ export interface OverlaySlotProps {
   /** 1-based line number the mouse is hovering over (undefined = not in this section). */
   hoverLine?: number;
   /**
-   * For WOD slots: how many px the section top has scrolled above the viewport.
+   * For workout (time/log) slots: how many px the section top has scrolled above the viewport.
    * Used to position the sticky strip inside the full-height transparent slot.
    */
   stickyTopOffset: number;
@@ -253,24 +253,24 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
           const isActive = rect.sectionId === activeSectionId;
           const isPanelHovered = hoverSectionId === rect.sectionId;
 
-          // ── For WOD blocks: slot always spans full section height ────
+          // ── For workout (time/log) blocks: slot always spans full section height ────
           // The WhiteboardCompanion renders its children (strip + card) using
           // absolute positioning within this transparent full-height container.
           let slotTop: number;
           let slotHeight: number;
 
-          if (rect.type === "wod") {
+          if (rect.type === "time" || rect.type === "log") {
             slotTop = rect.top;
             slotHeight = rect.height;
           } else {
-            // Non-WOD: sized and centered as before
+            // Non-workout: sized and centered as before
             const isComp = isActive;
             const heightMap = isComp ? SLOT_HEIGHT_ACTIVE : SLOT_HEIGHT_INACTIVE;
             const minH = heightMap[rect.type] ?? 0;
             slotHeight = rect.type === "widget" ? minH : Math.max(rect.height, minH);
 
             if (isActive) {
-              // Center on cursor line for active non-wod slots
+              // Center on cursor line for active non-workout slots
               const sectionMidY = rect.top + rect.height / 2;
               let targetCenterY = sectionMidY;
               if (cursorLine !== undefined) {
@@ -296,9 +296,9 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
           const stickyTopOffset = Math.min(rawSticky, Math.max(0, rect.height - STRIP_H));
 
           // lineDocY: document-space Y midpoint of the active cursor or hover line,
-          // only for WOD blocks. WhiteboardCompanion uses it to center the metric card.
+          // only for workout (time/log) blocks. WhiteboardCompanion uses it to center the metric card.
           let lineDocY: number | undefined;
-          if (rect.type === "wod") {
+          if (rect.type === "time" || rect.type === "log") {
             const refLine = isActive ? cursorLine : hoverLine;
             if (refLine !== undefined) {
               try {
@@ -329,11 +329,11 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
                 right: 0,
                 width: `${state.effectiveWidth}%`,
                 height: slotHeight,
-                pointerEvents: rect.type === "wod" ? "none" : "auto",
+                pointerEvents: rect.type === "time" || rect.type === "log" ? "none" : "auto",
                 transition: "width 150ms ease",
                 overflow: "visible",
               }}
-              onClick={rect.type !== "wod" ? handleSlotClick : undefined}
+              onClick={rect.type !== "time" && rect.type !== "log" ? handleSlotClick : undefined}
               onMouseEnter={() => setHoverSectionId(rect.sectionId)}
               onMouseLeave={() => setHoverSectionId(undefined)}
             >

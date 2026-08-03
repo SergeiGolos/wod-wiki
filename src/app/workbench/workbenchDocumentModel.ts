@@ -1,7 +1,7 @@
 import { parseDocumentSections, matchSectionIds } from '@/components/Editor/utils/sectionParser';
 import { parseScriptBlock } from '@/components/Editor/utils/parseScriptBlock';
 import type { ScriptBlock, Section } from '@/components/Editor/types';
-import type { Section as EditorSection } from '@/components/Editor/types/section';
+import { isWorkoutSectionType, type Section as EditorSection } from '@/components/Editor/types/section';
 export interface WorkbenchDocumentState {
   readonly sections: Section[];
   readonly blocks: ScriptBlock[];
@@ -21,7 +21,7 @@ export function deriveWorkbenchDocumentState(
     : parsedSections;
 
   const blocks = sections
-    .filter((section: EditorSection) => section.type === 'wod' && section.scriptBlock)
+    .filter((section: EditorSection) => isWorkoutSectionType(section.type) && section.scriptBlock)
     .map((section: EditorSection) => hydrateScriptBlock(section.scriptBlock!));
 
   return { sections, blocks };

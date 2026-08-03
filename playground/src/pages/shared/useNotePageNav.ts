@@ -4,7 +4,7 @@
  * Every note-style page (Journal, Playground, WorkoutEditor) does the same
  * thing:
  *   1. Run `extractPageIndex(content)` to produce `PageNavLink[]`.
- *   2. For each `wod` link, look up the matching `ScriptBlock` by start-line and
+ *   2. For each `time` or `log` link, look up the matching `ScriptBlock` by start-line and
  *      attach an `onRun` callback (and optional result-count badging).
  *   3. Mirror that index into the L3 nav via `setL3Items` and clear it on
  *      unmount.
@@ -24,19 +24,19 @@ import { groupResultsByVersion } from '@/utils/groupResultsByVersion';
 export interface UseNotePageNavOptions {
   /** Current editor content. */
   content: string
-  /** Parsed wod blocks (from `<NoteEditor onBlocksChange>`). */
+  /** Parsed time/log blocks (from `<NoteEditor onBlocksChange>`). */
   scriptBlocks: ScriptBlock[]
-  /** Callback invoked when the user runs a wod link. */
+  /** Callback invoked when the user runs a time/log link. */
   onStartWorkout: (block: ScriptBlock) => void
   /**
-   * Optional results to badge each wod link with `hasResult` / `resultCount`.
+   * Optional results to badge each time/log link with `hasResult` / `resultCount`.
    * Only the JournalPage uses this today.
    */
   results?: WorkoutResult[]
 }
 
 /**
- * Build the page index, wire each wod link's `onRun`, and publish to L3 nav.
+ * Build the page index, wire each time/log link's `onRun`, and publish to L3 nav.
  * Returns the resolved `PageNavLink[]` so the page can pass it to its shell.
  */
 export function useNotePageNav({
@@ -48,8 +48,8 @@ export function useNotePageNav({
   const index = useMemo((): PageNavLink[] => {
     const base = extractPageIndex(content)
     return base.map(link => {
-      if (link.type !== 'wod') return link
-      const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
+      if (link.type !== 'time' && link.type !== 'log') return link
+      const lineNum = parseInt(link.id.replace(`${link.type}-line-`, ''), 10)
       const block = scriptBlocks.find(b => b.startLine + 1 === lineNum)
       let badge: { hasResult?: boolean; resultCount?: number } = {}
       if (results && block) {
@@ -66,7 +66,7 @@ export function useNotePageNav({
         onRun: () => {
           // Re-resolve at click time in case `scriptBlocks` changed.
           // Falls back to `scriptBlocks[0]` to preserve prior behavior of all
-          // three pages this hook replaced — clicking a wod link before the
+          // three pages this hook replaced — clicking a time/log link before the
           // parser has produced a precise match still runs *something*.
           const resolvedBlock =
             block || scriptBlocks.find(b => b.startLine + 1 === lineNum) || scriptBlocks[0]

@@ -19,6 +19,7 @@ import { describe, expect, it } from 'bun:test';
 import { IndexedDBNotePersistence } from './IndexedDBNotePersistence';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { parseDocumentSections } from '@/components/Editor/utils/sectionParser';
+import { isWorkoutSectionType } from '@/components/Editor/types/section';
 import type { IndexedDBService } from '@/services/db/IndexedDBService';
 
 // @ts-expect-error — bun-only '?real' specifier: bypasses the shared
@@ -50,7 +51,7 @@ describe('result identity (real IndexedDB stack)', () => {
       targetDate: Date.now(),
     });
 
-    const section = parseDocumentSections(RAW_CONTENT).find(s => s.type === 'wod');
+    const section = parseDocumentSections(RAW_CONTENT).find(s => isWorkoutSectionType(s.type));
     expect(section).toBeDefined();
 
     await persistence.mutateNote(noteId, {
@@ -116,7 +117,7 @@ describe('result identity (real IndexedDB stack)', () => {
     // lineage; the id identifies the content incarnation that was run.
     const edited = RAW_CONTENT.replace('Thrusters 95lb', 'Thrusters 75lb');
     await persistence.mutateNote(noteId, { rawContent: edited });
-    const editedSection = parseDocumentSections(edited).find(s => s.type === 'wod')!;
+    const editedSection = parseDocumentSections(edited).find(s => isWorkoutSectionType(s.type))!;
     const bumped = await service.getLatestSegmentVersion(editedSection.id);
     expect(bumped?.version).toBe(2);
 
@@ -146,7 +147,7 @@ describe('result identity (real IndexedDB stack)', () => {
     for (const id of [noteA, noteB]) {
       await persistence.createNote({ id, title: 'Fran', rawContent: CONTENT, targetDate: Date.now() });
     }
-    const section = parseDocumentSections(CONTENT).find(s => s.type === 'wod')!;
+    const section = parseDocumentSections(CONTENT).find(s => isWorkoutSectionType(s.type))!;
 
     const record = (noteId: string, origin: 'journal' | 'playground', at: number) =>
       persistence.mutateNote(noteId, {

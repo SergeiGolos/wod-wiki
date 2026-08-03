@@ -78,8 +78,8 @@ export function usePageScrollSync(currentNavLinks: PageNavLink[]): UsePageScroll
 
       let lineIdx = -1
 
-      if (id.startsWith('wod-line-')) {
-        const lineNum = parseInt(id.replace('wod-line-', ''), 10)
+      if (id.startsWith('workout-line-')) {
+        const lineNum = parseInt(id.replace('workout-line-', ''), 10)
         lineIdx = lineNum - 1
       } else {
         lineIdx = lines.findIndex(line => {

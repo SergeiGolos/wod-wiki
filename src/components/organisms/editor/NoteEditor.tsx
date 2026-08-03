@@ -149,7 +149,7 @@ export interface NoteEditorProps {
   commands?: ScriptCommand[];
   /**
    * When true (default), clicking "Run" opens an inline runtime panel below
-   * the WOD block instead of calling onStartWorkout / navigating to the track
+   * the workout block instead of calling onStartWorkout / navigating to the track
    * route.  Set to false to restore the previous route-based behaviour.
    */
   enableInlineRuntime?: boolean;
@@ -245,7 +245,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   // Whether the fullscreen timer should auto-start on mount
   const [autoStartFullscreen, setAutoStartFullscreen] = useState(false);
 
-  // Toggle the full-screen timer for the given WOD block (Run button).
+  // Toggle the full-screen timer for the given workout block (Run button).
   const handleRun = useCallback((block: ScriptBlock, autoStart = false) => {
     setAutoStartFullscreen(autoStart);
     setFullscreenTimerBlock(block);
@@ -265,7 +265,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   }, [enableInlineRuntime, handleRun]);
 
   // Intercept workout completion: immediately push the new result into the CM6
-  // wodResultsField so the inline results bar updates without waiting for a DB
+  // results field so the inline results bar updates without waiting for a DB
   // round-trip, then forward to the parent's onCompleteWorkout callback.
   const handleCompleteWorkout = useCallback(
     (blockId: string, results: ScriptBlock["results"]) => {
@@ -315,14 +315,16 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     setFullscreenReviewSegments(null);
   }, []);
 
-  // Fetch workout results for all WOD sections and push them into the editor
-  // via the wodResultsField StateEffect so the inline results bar is visible.
+  // Fetch workout results for all workout (time/log) sections and push them into the editor
+  // via the results StateEffect so the inline results bar is visible.
   useEffect(() => {
     if (!viewRef.current) return;
-    const wodSections = sections.filter((s) => s.type === "wod");
-    if (wodSections.length === 0) return;
+    const workoutSections = sections.filter(
+      (s) => s.type === "time" || s.type === "log"
+    );
+    if (workoutSections.length === 0) return;
 
-    for (const section of wodSections) {
+    for (const section of workoutSections) {
       // 1. Priority: In-memory results from props (Static/Lesson Mode)
       if (Array.isArray(extendedResults) && extendedResults.length > 0) {
         const blockResults = extendedResults.filter(r =>
@@ -549,7 +551,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Line IDs for external navigation (IntersectionObserver, scroll)
       lineIdsExtension,
 
-      // Results bar widgets — shown after each WOD block's closing fence
+      // Results bar widgets — shown after each workout block's closing fence
       ...wodResultsWidget,
 
       // Note identity for the results widget (cross-note lookup exclusion)
@@ -722,9 +724,12 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       
       let lineIdx = -1;
 
-      // Matches logic in line-ids.ts and extractPageIndex (App.tsx)
-      if (scrollToSectionId.startsWith("wod-line-")) {
-        const lineNum = parseInt(scrollToSectionId.replace("wod-line-", ""), 10);
+      // Matches logic in line-ids.ts and extractPageIndex (App.tsx).
+      // Workout line IDs end with `-line-<1-based line number>` (the prefix
+      // mirrors the fence tag: time-line-* / log-line-*).
+      const lineMatch = scrollToSectionId.match(/-line-(\d+)$/);
+      if (lineMatch) {
+        const lineNum = parseInt(lineMatch[1], 10);
         lineIdx = lineNum - 1;
       } else {
         lineIdx = lines.findIndex((line) => {
@@ -756,7 +761,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
   // Slot renderer — routes to companion components by section type
   const renderSlot = (props: OverlaySlotProps) => {
-    if (props.sectionType === "wod") {
+    if (props.sectionType === "time" || props.sectionType === "log") {
       return (
         <WhiteboardCompanion
           noteId={noteId}
@@ -861,7 +866,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
 /** Convert an EditorSection to a ScriptBlock for callback compatibility */
 function sectionToScriptBlock(section: EditorSection, state: EditorState): ScriptBlock | null {
-  if (section.type !== "wod") return null;
+  if (section.type !== "time" && section.type !== "log") return null;
 
   const content =
     section.contentFrom !== undefined && section.contentTo !== undefined
@@ -880,7 +885,7 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
   return {
     id: section.id,
     contentId: section.contentId,
-    dialect: section.dialect || "time",
+    dialect: section.type,
     sport: section.sport,
     startLine: section.startLine - 1, // Convert to 0-indexed for ScriptBlock compat
     endLine: section.endLine - 1,
@@ -903,7 +908,7 @@ function notifyBlockChanges(
 
   const sectionState: SectionState = state.field(sectionField);
   const blocks = sectionState.sections
-    .filter((s) => s.type === "wod")
+    .filter((s) => s.type === "time" || s.type === "log")
     .map((s) => sectionToScriptBlock(s, state))
     .filter((b): b is ScriptBlock => b !== null);
 

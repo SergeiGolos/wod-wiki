@@ -48,7 +48,7 @@ export interface NotePreviewProps {
 
     /** Whether to auto-scroll to the active block */
     autoScroll?: boolean;
-    /** Provider for history/persistence (needed for WOD block "Add to Plan") */
+    /** Provider for history/persistence (needed for workout block "Add to Plan") */
     provider?: IContentProvider;
 }
 
@@ -65,6 +65,7 @@ const ItemsRenderer: React.FC<{
 }> = ({ items, activeBlockId, onBlockClick, onBlockHover, onStartWorkout }) => (
     <div className="flex flex-col">
         {items.map((item) => {
+            const isWorkout = item.type !== 'header' && item.type !== 'paragraph';
             const isActive = item.id === activeBlockId;
             return (
                 <div
@@ -73,7 +74,7 @@ const ItemsRenderer: React.FC<{
                         "group px-4 py-2 cursor-pointer transition-colors border-b border-border/50",
                         "hover:bg-accent/50",
                         isActive && "bg-accent border-l-2 border-l-primary",
-                        item.type === 'wod' && "font-mono text-sm",
+                        isWorkout && "font-mono text-sm",
                         item.type === 'header' && "font-semibold",
                         item.type === 'paragraph' && "text-muted-foreground text-sm"
                     )}
@@ -83,10 +84,7 @@ const ItemsRenderer: React.FC<{
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                            {item.type === 'header' && (
-                                <span className="text-base truncate">{item.content.replace(/^#+\s*/, '')}</span>
-                            )}
-                            {item.type === 'wod' && (
+                            {isWorkout && (
                                 <>
                                     <Dumbbell className="h-3.5 w-3.5 text-primary shrink-0" />
                                     <span className="truncate">{item.content.split('\n')[0]}</span>
@@ -95,9 +93,12 @@ const ItemsRenderer: React.FC<{
                             {item.type === 'paragraph' && (
                                 <span className="line-clamp-2">{item.content}</span>
                             )}
+                            {item.type === 'header' && (
+                                <span className="text-base truncate">{item.content.replace(/^#+\s*/, '')}</span>
+                            )}
                         </div>
 
-                        {item.type === 'wod' && onStartWorkout && (
+                        {isWorkout && onStartWorkout && (
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();

@@ -44,9 +44,9 @@ describe("sectionField — query/dashboard fences", () => {
     expect(sec.to).toBe(state.doc.length);
   });
 
-  it("parses query blocks alongside wod and markdown", () => {
+  it("parses query blocks alongside time blocks and markdown", () => {
     const doc = "# Title\n\n```time\n10:00 Run\n```\n\n```query\nsum:x{}\n```";
-    expect(sections(doc).map(x => x.type)).toEqual(["markdown", "markdown", "wod", "markdown", "query"]);
+    expect(sections(doc).map(x => x.type)).toEqual(["markdown", "markdown", "time", "markdown", "query"]);
   });
 
   it("tolerates an unclosed query fence (runs to end of doc)", () => {

@@ -52,7 +52,7 @@ function generateSectionId(type: SectionType, startLine: number, content: string
 }
 
 /**
- * Compute a content-stable identity for a wod block: a hash of its normalized
+ * Compute a content-stable identity for a workout block: a hash of its normalized
  * (trimmed) fenced content, independent of where the block sits in the
  * document. Unlike the line-embedded section id, this survives clone /
  * reorder / edit-above, so results keyed by it stay linked to the right
@@ -194,8 +194,8 @@ function matchMarkdownEmbed(trimmed: string) {
  *  - title:    First heading-like or text row becomes the title section.
  *  - markdown: All non-fenced text (headings, paragraphs, blanks) are
  *              grouped into contiguous markdown sections.
- *  - wod:      Each fenced workout block (```time / ```log, optional :sport)
- *              becomes its own section with `dialect` set.
+ *  - time/log: Each fenced workout block (```time / ```log, optional :sport)
+ *              becomes its own section — the type IS the fence tag.
  *  - embed:    Single-line markdown links/images ![label](url) or [label](url).
  * 
  * @param content - Full markdown content
@@ -305,7 +305,7 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
     flushGroup();
   }
 
-  // Accumulate markdown (non-wod) lines between wod blocks
+  // Accumulate markdown (non-workout) lines between workout blocks
   let mdBuffer: string[] = [];
   let mdBufferStart = 0;
 
@@ -314,25 +314,24 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
     const scriptBlock = blocks.find(b => b.startLine === currentLine);
 
     if (scriptBlock) {
-      // Flush any accumulated markdown before this wod block
+      // Flush any accumulated markdown before this workout block
       flushMarkdownLines(mdBuffer, mdBufferStart);
       mdBuffer = [];
 
-      // WOD section — includes fence lines
+      // Workout section — includes fence lines; the type IS the fence tag
       const dialect: FenceDialect = scriptBlock.dialect ?? 'time';
       const { metadata, cleanText } = extractMetadata(scriptBlock.content);
       const fenceTag = scriptBlock.sport ? `${dialect}:${scriptBlock.sport}` : dialect;
       const cleanRawContent = `\`\`\`${fenceTag}\n${cleanText}\n\`\`\``;
       const cleanLineCount = cleanRawContent.split('\n').length;
 
-      const sectionId = metadata?.id || generateSectionId('wod', scriptBlock.startLine, cleanText);
+      const sectionId = metadata?.id || generateSectionId(dialect, scriptBlock.startLine, cleanText);
       const contentId = blockContentId(cleanText);
 
       sections.push({
         id: sectionId,
         contentId,
-        type: 'wod',
-        dialect,
+        type: dialect,
         sport: scriptBlock.sport,
         rawContent: cleanRawContent,
         displayContent: cleanText,
@@ -392,7 +391,7 @@ export function parseDocumentSections(content: string, scriptBlocks?: ScriptBloc
       continue;
     }
 
-    // Not a wod-block or front-matter line — accumulate for markdown
+    // Not a workout-block or front-matter line — accumulate for markdown
     if (mdBuffer.length === 0) {
       mdBufferStart = currentLine;
     }

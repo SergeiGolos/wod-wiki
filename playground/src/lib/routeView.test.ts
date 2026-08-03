@@ -182,7 +182,7 @@ describe('resolveRouteView — collection index nav', () => {
     const workoutLink = view.nav.find(l => l.id === `workout-${item.id}`)
     expect(workoutLink).toBeDefined()
     expect(workoutLink?.label).toBe('Event 5')
-    expect(workoutLink?.type).toBe('wod')
+    expect(workoutLink?.type).toBe('time')
     expect(workoutLink?.runIcon).toBe('link')
     expect(workoutLink?.onRun).toBeFunction()
 

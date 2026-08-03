@@ -12,8 +12,8 @@ import { DocumentTextIcon, ChevronDownIcon, PlayIcon, CheckIcon, ArrowTopRightOn
 export interface PageNavLink {
   id: string
   label: string
-  /** 'heading' (default) or 'wod' for workout blocks */
-  type?: 'heading' | 'wod'
+  /** 'heading' (default), 'time', or 'log' for workout blocks */
+  type?: 'heading' | 'time' | 'log'
   /** When set, a small Play button is rendered aligned to the right */
   onRun?: () => void
   /** Which icon to show for the run button: 'play' (default) or 'link' */
@@ -84,14 +84,14 @@ export function PageNavDropdown({
             }}
             className={cn(
               'gap-2',
-              link.type === 'wod' && 'pl-2 text-[11px]'
+              (link.type === 'time' || link.type === 'log') && 'pl-2 text-[11px]'
             )}
           >
             <span className={cn(
               'flex-1 truncate',
               activeId === link.id ? 'font-bold text-foreground' : 'text-muted-foreground'
             )}>
-              {link.type === 'wod' && (
+              {(link.type === 'time' || link.type === 'log') && (
                 <span className="mr-2 inline-flex items-center gap-1">
                   {link.resultCount && link.resultCount > 1 ? (
                     <span className="flex items-center justify-center size-3.5 rounded-full bg-primary/10 text-primary text-[9px] font-bold">

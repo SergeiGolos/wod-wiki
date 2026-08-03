@@ -65,16 +65,16 @@ export function buildPreviewProjection(
   selectedBlock: ScriptBlock | null,
   documentItems: DocumentItem[],
 ): RpcWorkbenchUpdate {
-  const wodItems = documentItems.filter((item) => item.type === 'wod');
+  const workoutItems = documentItems.filter((item) => item.type === 'time' || item.type === 'log');
 
-  if (wodItems.length === 0 && !selectedBlock) {
+  if (workoutItems.length === 0 && !selectedBlock) {
     return { type: 'rpc-workbench-update', mode: 'idle' };
   }
 
-  const titleSource = selectedBlock?.content ?? wodItems[0]?.content ?? '';
+  const titleSource = selectedBlock?.content ?? workoutItems[0]?.content ?? '';
   const title = titleSource.split('\n')[0].trim().substring(0, 60) || 'Workout';
 
-  const blocks = wodItems.slice(0, 8).map((item) => ({
+  const blocks = workoutItems.slice(0, 8).map((item) => ({
     id: item.id,
     title: (item.scriptBlock?.content ?? item.content).split('\n')[0].trim().substring(0, 50) || 'Workout',
     statementCount: item.scriptBlock?.statements?.length ?? 0,

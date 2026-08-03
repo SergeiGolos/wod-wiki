@@ -45,7 +45,7 @@ export function detectScriptBlocks(content: string): ScriptBlock[] {
         inBlock = true;
         const now = Date.now();
         currentBlock = {
-          id: `wod-block-${now}-${Math.random().toString(36).substr(2, 9)}`,
+          id: `${fence.dialect}-block-${now}-${Math.random().toString(36).substr(2, 9)}`,
           dialect: fence.dialect,
           sport: fence.sport,
           startLine: index,

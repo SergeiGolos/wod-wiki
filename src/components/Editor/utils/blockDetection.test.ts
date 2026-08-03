@@ -97,10 +97,10 @@ describe('detectScriptBlocks', () => {
     expect(blocks).toHaveLength(0);
   });
 
-  it('should not detect ```wod or ```plan as workout blocks', () => {
-    const wod = detectScriptBlocks('```wod\n10:00 Run\n```');
+  it('should not detect legacy ```wod or ```plan tags as workout blocks', () => {
+    const legacyWod = detectScriptBlocks('```wod\n10:00 Run\n```');
     const plan = detectScriptBlocks('```plan\nWeek 1\n```');
-    expect(wod).toHaveLength(0);
+    expect(legacyWod).toHaveLength(0);
     expect(plan).toHaveLength(0);
   });
 

@@ -29,7 +29,7 @@ interface DialectFenceMatch {
 // ── Types ────────────────────────────────────────────────────────────
 
 /** Section types the parser can identify */
-export type EditorSectionType = "markdown" | "wod" | "frontmatter" | "code" | "widget" | "embed" | "query" | "dashboard";
+export type EditorSectionType = "markdown" | "time" | "log" | "frontmatter" | "code" | "widget" | "embed" | "query" | "dashboard";
 
 /** Markdown subtypes for routing per-section UI */
 export type EditorSectionSubtype =
@@ -47,7 +47,7 @@ export type EmbedType = "image" | "link" | "youtube";
 export interface EditorSection {
   /** Stable identifier (hash-based, survives structural-equivalent re-parses) */
   id: string;
-  /** Content-stable identity (wod only) — survives clone/reorder; results join on this (see `blockContentId`). */
+  /** Content-stable identity (workout sections only) — survives clone/reorder; results join on this (see `blockContentId`). */
   contentId?: string;
   /** Section type */
   type: EditorSectionType;
@@ -61,9 +61,7 @@ export interface EditorSection {
   startLine: number;
   /** End line number (1-based, inclusive) */
   endLine: number;
-  /** Workout fence tag (only for type === "wod") */
-  dialect?: EditorDialect;
-  /** Sport suffix from the fence (```log:climbing) — scopes the block's DialectStack */
+  /** Sport suffix from the fence (```log:climbing) — scopes the block's DialectStack. Only for type === "time" | "log". */
   sport?: string;
   /** Fence language tag (only for type === "code") */
   language?: string;
@@ -246,7 +244,7 @@ function detectMarkdownSubtype(lines: string[]): EditorSectionSubtype {
 
 /**
  * Scan a fenced block opened at `openLineNum` to its closing ``` fence.
- * Shared by every fence branch (wod / widget / code / query / dashboard) so
+ * Shared by every fence branch (workout / widget / code / query / dashboard) so
  * the open→close→content-offset logic has one home. Returns the close line
  * number and the inner-content character offsets.
  */
@@ -278,7 +276,8 @@ function scanFenced(state: EditorState, openLineNum: number): {
  * Parse document text into sections.
  *
  * Rules:
- *  - Fenced WOD blocks (```time/log, optional :sport suffix ... ```) become type "wod".
+ *  - Fenced workout blocks (```time / ```log, optional :sport suffix ... ```) become
+ *    typed sections — the type IS the fence tag.
  *  - Generic fenced code blocks (```js, ```python, etc.) become type "code".
  *  - Content blocks (```query / ```dashboard) become typed sections rendered
  *    inline as live WQL results (#801).
@@ -388,14 +387,13 @@ function parseSections(state: EditorState): EditorSection[] {
       // clone / reorder / line shifts.
       const contentId = blockContentId(doc.sliceString(contentFrom, contentTo));
       sections.push({
-        id: generateSectionId("wod", lineNum, content),
+        id: generateSectionId(fence.dialect, lineNum, content),
         contentId,
-        type: "wod",
+        type: fence.dialect,
         from: line.from,
         to: doc.line(closeLine).to,
         startLine: lineNum,
         endLine: closeLine,
-        dialect: fence.dialect,
         sport: fence.sport,
         contentFrom: Math.min(contentFrom, doc.length),
         contentTo: Math.max(contentFrom, contentTo),

@@ -49,7 +49,9 @@ function frontmatterTagsOf(parts: readonly { type: string; rawContent: string }[
  */
 function toSegmentDataType(section: Pick<Section, 'type' | 'level'>): SegmentDataType {
     switch (section.type) {
-        case 'wod': return 'wod';
+        case 'time':
+        case 'log':
+            return 'wod';
         case 'title': {
             const level = Math.min(6, Math.max(1, section.level ?? 1));
             return `h${level}` as SegmentDataType;
@@ -110,7 +112,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                 .filter((s) => !s.isHistory)
                 .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt))
                 .map(s => {
-                    if (migrateSectionType(s.dataType) !== 'wod') return s.rawContent;
+                    if (s.dataType !== 'wod') return s.rawContent;
                     const block = s.data as ScriptBlock | null;
                     const dialect = block?.dialect ?? 'time';
                     const fenceTag = block?.sport ? `${dialect}:${block.sport}` : dialect;
@@ -172,8 +174,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         // V11 — content always reconstructs from segments (note.rawContent is gone).
         const segments = await this.db.getLatestSegmentsForNote(note.id);
         const rawContent = segments.map(s => {
-            const resolvedType = migrateSectionType(s.dataType);
-            if (resolvedType === 'wod') {
+            if (s.dataType === 'wod') {
                 const block = s.data as ScriptBlock | null;
                 const dialect = block?.dialect ?? 'time';
                 const fenceTag = block?.sport ? `${dialect}:${block.sport}` : dialect;
@@ -197,19 +198,18 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         // Map NoteSegment to Section types for the editor
         const sections: Section[] = segments.map(s => {
-            const resolvedType = migrateSectionType(s.dataType);
+            const isWorkout = s.dataType === 'wod';
             const block = s.data as ScriptBlock | null;
             const dialect = block?.dialect ?? 'time';
             const fenceTag = block?.sport ? `${dialect}:${block.sport}` : dialect;
             return {
                 id: s.id,
-                type: resolvedType,
-                rawContent: resolvedType === 'wod'
+                type: isWorkout ? dialect : migrateSectionType(s.dataType),
+                rawContent: isWorkout
                     ? `\`\`\`${fenceTag}\n${s.rawContent}\n\`\`\``
                     : s.rawContent,
                 displayContent: s.rawContent,
-                dialect: resolvedType === 'wod' ? dialect : undefined,
-                sport: resolvedType === 'wod' ? block?.sport : undefined,
+                sport: isWorkout ? block?.sport : undefined,
                 level: levelFromDataType(s.dataType),
                 scriptBlock: block ?? undefined,
                 version: s.version,

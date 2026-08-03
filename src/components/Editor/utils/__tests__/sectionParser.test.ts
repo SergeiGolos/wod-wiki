@@ -5,6 +5,7 @@ import {
   calculateTotalLines,
   matchSectionIds,
 } from '../sectionParser';
+import { isWorkoutSectionType } from '../../types/section';
 
 describe('parseDocumentSections', () => {
   it('returns empty array for empty string', () => {
@@ -33,10 +34,10 @@ describe('parseDocumentSections', () => {
     expect(sections[0].displayContent).toBe('Just some text');
   });
 
-  it('groups subsequent non-wod text as markdown sections', () => {
+  it('groups subsequent non-workout text as markdown sections', () => {
     const content = '# Title\nSecond line\nThird line';
     const sections = parseDocumentSections(content);
-    // All consecutive non-wod lines before a wod block form a single section
+    // All consecutive non-workout lines before a workout block form a single section
     // First text block is title
     expect(sections[0].type).toBe('title');
   });
@@ -61,10 +62,10 @@ describe('parseDocumentSections', () => {
       const content = '# Workout\n\n```time\n5:00 Run\n```\n\nNotes';
       const sections = parseDocumentSections(content);
 
-      const wodSection = sections.find(s => s.type === 'wod');
-      expect(wodSection).toBeDefined();
-      expect(wodSection!.displayContent).toBeDefined();
-      expect(wodSection!.scriptBlock).toBeDefined();
+      const workoutSection = sections.find(s => isWorkoutSectionType(s.type));
+      expect(workoutSection).toBeDefined();
+      expect(workoutSection!.displayContent).toBeDefined();
+      expect(workoutSection!.scriptBlock).toBeDefined();
     });
 
     it('separates title from time block', () => {
@@ -72,24 +73,24 @@ describe('parseDocumentSections', () => {
       const sections = parseDocumentSections(content);
 
       expect(sections[0].type).toBe('title');
-      const wodSection = sections.find(s => s.type === 'wod');
-      expect(wodSection).toBeDefined();
+      const workoutSection = sections.find(s => isWorkoutSectionType(s.type));
+      expect(workoutSection).toBeDefined();
     });
 
     it('recognises log dialect', () => {
       const content = '# Session\n```log\n5:00 Run\n```';
       const sections = parseDocumentSections(content);
-      const wodSection = sections.find(s => s.type === 'wod');
-      expect(wodSection).toBeDefined();
-      expect(wodSection!.dialect).toBe('log');
+      const workoutSection = sections.find(s => isWorkoutSectionType(s.type));
+      expect(workoutSection).toBeDefined();
+      expect(workoutSection!.type).toBe('log');
     });
 
     it('recognises time dialect', () => {
       const content = '# Plan\n```time\n10:00 Bike\n```';
       const sections = parseDocumentSections(content);
-      const wodSection = sections.find(s => s.type === 'wod');
-      expect(wodSection).toBeDefined();
-      expect(wodSection!.dialect).toBe('time');
+      const workoutSection = sections.find(s => isWorkoutSectionType(s.type));
+      expect(workoutSection).toBeDefined();
+      expect(workoutSection!.type).toBe('time');
     });
   });
 });
@@ -117,10 +118,10 @@ describe('buildRawContent', () => {
   it('round-trips a log block with sport suffix', () => {
     const original = '# Session\n\n```log:climbing\n5:00 Run\n```';
     const sections = parseDocumentSections(original);
-    const wodSection = sections.find(s => s.type === 'wod');
-    expect(wodSection).toBeDefined();
-    expect(wodSection!.dialect).toBe('log');
-    expect(wodSection!.sport).toBe('climbing');
+    const workoutSection = sections.find(s => isWorkoutSectionType(s.type));
+    expect(workoutSection).toBeDefined();
+    expect(workoutSection!.type).toBe('log');
+    expect(workoutSection!.sport).toBe('climbing');
     const rebuilt = buildRawContent(sections);
     expect(rebuilt).toContain('```log:climbing');
     expect(rebuilt).toContain('5:00 Run');
