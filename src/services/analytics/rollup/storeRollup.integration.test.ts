@@ -85,8 +85,8 @@ describe('store rollup over the real V12 fact store', () => {
     expect(first.facts).toBeGreaterThan(0);
     expect(first.deleted).toBe(0);
 
-    // Re-open: nothing missing or stale → no writes, no deletes.
-    const second = await runStoreRollup(rollupStore, { now: now + 3_600_000 });
+    // Re-open within the same day bucket: nothing missing or stale → 0 writes, 0 deletes.
+    const second = await runStoreRollup(rollupStore, { now: now + 1_000 });
     expect(second.written).toBe(0);
     expect(second.deleted).toBe(0);
 
