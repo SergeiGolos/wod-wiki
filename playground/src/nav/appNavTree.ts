@@ -5,15 +5,17 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Library, Analytics, Efforts
+ *   L1: Home, Library, Dashboards, Efforts
  *   L2 of Home:        Zero to Hero + Syntax/* + Behaviors/* (canvas pages)
- *   L2 of Analytics:   Dashboard + add-dashboard placeholder
+ *   L2 of Dashboards:  Explorer (/dashboard) + the prebuilt dashboard seeds
+ *                      (/dashboard/:slug); vault-created dashboards need a
+ *                      dynamic panel to join this list (follow-up).
  *   L2 of Efforts:     <EffortsNavPanel>   — origin/discipline filters + recent workouts
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, BookOpen, Dumbbell, Plus } from 'lucide-react'
+import { ChartBarIcon, BookOpen, Dumbbell } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
@@ -21,6 +23,7 @@ import type { Location } from 'react-router-dom'
 import { EffortsNavPanel } from './panels/EffortsNavPanel'
 import { canvasRoutes } from '../canvas/canvasRoutes'
 import { ROUTE_PATTERNS } from '../lib/routes'
+import { DASHBOARD_SEEDS } from '../lib/dashboardCorpus'
 
 // ─── L2 children for Home ─────────────────────────────────────────────────────
 
@@ -162,29 +165,33 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
     },
 
     {
-      id: 'analytics',
-      label: 'Analytics',
+      id: 'dashboards',
+      label: 'Dashboards',
       level: 1,
       icon: ChartBarIcon,
-      action: { type: 'route', to: ROUTE_PATTERNS.analyticsExplorer },
-      isActive: (loc: Location) => loc.pathname.startsWith('/analytics'),
+      action: { type: 'route', to: '/dashboard' },
+      isActive: (loc: Location) => loc.pathname === '/dashboard' || loc.pathname.startsWith('/dashboard/'),
       children: [
         {
-          id: 'analytics-dashboard',
-          label: 'Dashboard',
+          id: 'dashboard-explorer',
+          label: 'Explorer',
           level: 2,
           icon: ChartBarIcon,
-          action: { type: 'route', to: ROUTE_PATTERNS.analyticsDashboard },
-          isActive: (loc: Location) => loc.pathname === '/analytics/dashboard',
+          action: { type: 'route', to: '/dashboard' },
+          isActive: (loc: Location) => loc.pathname === '/dashboard',
         },
-        {
-          id: 'analytics-add-dashboard',
-          label: 'Add dashboard',
-          level: 2,
-          icon: Plus,
-          action: { type: 'none' },
-          disabled: true,
-        },
+        // The prebuilt seeds are build-time-known, so they sit in the static
+        // L2 tree. Vault-created dashboards need a dynamic panel to appear
+        // here (follow-up); until then they remain addressable at
+        // /dashboard/:slug and surface once cloned-from lists merge.
+        ...DASHBOARD_SEEDS.map((seed) => ({
+          id: `dashboard-${seed.slug}`,
+          label: seed.title,
+          level: 2 as const,
+          icon: ChartBarIcon,
+          action: { type: 'route' as const, to: `/dashboard/${seed.slug}` },
+          isActive: (loc: Location) => loc.pathname === `/dashboard/${seed.slug}`,
+        })),
       ],
     },
     {

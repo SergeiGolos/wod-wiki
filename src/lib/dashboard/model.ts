@@ -12,6 +12,8 @@
  * extensions, the inline block renderer, and the dashboard route all share it.
  */
 
+import { WQL_CALC_TARGETS } from '@/parser/wql-vocabulary';
+
 // ── Widget types ───────────────────────────────────────────────────────────
 
 export const DASHBOARD_WIDGET_TYPES = [
@@ -48,19 +50,11 @@ export function unknownTokensMessage(missing: readonly string[]): string {
 /** Types whose renderer is planned for future maps (none remaining in #901). */
 export const PLANNED_WIDGET_TYPES: readonly string[] = [];
 
-const KNOWN_CALC_METRICS: Record<string, true> = {
-  'calc.metMinutes': true,
-  'calc.acwr': true,
-  'calc.monotony': true,
-  'calc.strain': true,
-  'calc.e1rm': true,
-  'calc.ctl': true,
-  'calc.atl': true,
-  'calc.tsb': true,
-  // NOTE: `calc.pmc` (composite {ctl, atl, tsb} series) deliberately absent —
-  // the store calc model publishes one scalar key per definition, so PMC
-  // ships as the three loads above (#905); a composite stays 'proposed'.
-};
+// The known calc.* metric set IS the canonical vocabulary (WQL_CALC_TARGETS,
+// kept in sync with the calc engine's registered outputs — #871). No
+// hand-synced duplicate here; proposed/unknown calc.* keys render as the
+// labeled placeholder badge via isProposedMetric (#901).
+const KNOWN_CALC_METRICS: ReadonlySet<string> = new Set(WQL_CALC_TARGETS);
 
 /**
  * True when a metric is a proposed calculation not yet landed in the engine
@@ -70,7 +64,7 @@ const KNOWN_CALC_METRICS: Record<string, true> = {
 export function isProposedMetric(metricKey: string | undefined): boolean {
   if (!metricKey) return false;
   if (!metricKey.startsWith('calc.')) return false;
-  return !KNOWN_CALC_METRICS[metricKey];
+  return !KNOWN_CALC_METRICS.has(metricKey);
 }
 
 // ── Fence-tag suffix parse ─────────────────────────────────────────────────

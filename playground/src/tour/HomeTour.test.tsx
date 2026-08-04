@@ -417,7 +417,7 @@ describe('HomeTour', () => {
       await Promise.resolve()
     })
     const explorerLink = await screen.findByRole('link', { name: /Run a pre-filled query/i })
-    expect(explorerLink.getAttribute('href')).toContain('/analytics/explorer')
+    expect(explorerLink.getAttribute('href')).toContain('/dashboard')
     expect(explorerLink.getAttribute('href')).toContain('q=')
 
     const dashboardLink = screen.getByRole('link', { name: /Open the dashboard/i })

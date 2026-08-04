@@ -20,7 +20,7 @@ import { composerRegistry } from './ComposerRegistry'
 import {
   WQL_AGGREGATORS,
   WQL_COMPARISON_OPS,
-} from '@/services/analytics/query/wql'
+} from '@/parser/wql-vocabulary'
 import {
   WQL_CALC_TARGETS,
   WQL_DISPLAY_UNITS,

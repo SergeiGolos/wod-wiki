@@ -19,8 +19,16 @@
 import { parser as wqlParser } from '@/grammar/wql.parser';
 import type { SyntaxNode } from '@lezer/common';
 import * as terms from '@/grammar/wql.parser.terms';
+import {
+  WQL_AGGREGATORS,
+  WQL_COMPARISON_OPS,
+  type WqlAggregator,
+  type WqlComparisonOp,
+} from '@/parser/wql-vocabulary';
 
-export type Aggregator = 'sum' | 'avg' | 'min' | 'max' | 'count' | 'last' | 'delta';
+export { WQL_AGGREGATORS, WQL_COMPARISON_OPS } from '@/parser/wql-vocabulary';
+
+export type Aggregator = WqlAggregator;
 
 export interface TagValue {
   value: string;
@@ -34,7 +42,7 @@ export interface TagFilter {
 }
 
 /** Comparison operator in a cross-store metric predicate (`> 5000`). */
-export type ComparisonOp = '>' | '>=' | '<' | '<=' | '==' | '!=';
+export type ComparisonOp = WqlComparisonOp;
 
 /**
  * Analytics half of a cross-store join — the metric predicate attached to a
@@ -104,11 +112,8 @@ export function isFindQuery(parsed: AnyParsedQuery): parsed is ParsedFindQuery {
 export interface SeriesPoint { ts: number; value: number }
 export interface Series { key: string; label: string; points: SeriesPoint[]; unit?: string }
 
-export const WQL_AGGREGATORS: Aggregator[] = ['sum', 'avg', 'min', 'max', 'count', 'last', 'delta'];
-
-/** Every comparison operator the where-join parser accepts. */
-export const WQL_COMPARISON_OPS: ComparisonOp[] = ['>', '>=', '<', '<=', '==', '!='];
-const AGGS: Aggregator[] = WQL_AGGREGATORS;
+/** Aggregate head vocabulary is owned by src/parser/wql-vocabulary (#871). */
+const AGGS: readonly Aggregator[] = WQL_AGGREGATORS;
 
 function cannotParse(text: string): string {
   return `Cannot parse "${text}". Expected agg:metric{filters} by {dims} .rollup(period)`;

@@ -1,8 +1,14 @@
 /**
- * WQL vocabulary — the pure constant tables behind wql-language.ts (the
- * CodeMirror completion source) and every other WQL surface that needs the
- * dictionary without dragging the editor bundle in (e.g. the WqlComposer
- * token-slot typeahead, issue #831).
+ * WQL vocabulary — the single owner of the WQL dictionary: aggregators,
+ * comparison operators, metric families/aggregates, calc.* targets, tag
+ * keys, dimensions, rollup periods, grains, sources, scopes, display units,
+ * and structural keywords. Every surface that needs these words imports from
+ * here (or from wql-language.ts, which re-exports this module for editor
+ * consumers) rather than hand-writing its own copy — issue #871.
+ *
+ * The calc registry's built-in calcs (src/core/analytics/calc/seeds.ts)
+ * publish exactly the `calc.*` targets listed in WQL_CALC_TARGETS; keep the
+ * two in sync. User-authored calcs (#880) extend this set at runtime.
  *
  * wql-language.ts re-exports everything here; import from there when you
  * already pay for the editor, from here when you only need the words.
@@ -14,6 +20,16 @@ export const WQL_METRIC_FAMILIES = ['reps', 'distance', 'resistance', 'elapsed',
 /** Tier-2 aggregate keys written to the Analytics Store. */
 export const WQL_METRIC_AGGREGATES = ['totalVolume', 'totalDistance', 'tis', 'sessionLoad'] as const;
 
+/** Aggregate head operators for the analytics grammar (agg:metric{filters}). */
+export const WQL_AGGREGATORS = ['sum', 'avg', 'min', 'max', 'count', 'last', 'delta'] as const;
+
+export type WqlAggregator = (typeof WQL_AGGREGATORS)[number];
+
+/** Comparison operators for cross-store `where` joins (#800). */
+export const WQL_COMPARISON_OPS = ['>', '>=', '<', '<=', '==', '!='] as const;
+
+export type WqlComparisonOp = (typeof WQL_COMPARISON_OPS)[number];
+
 /** Tag keys the Query Service reads off a fact row (QueryService.factTagValue). */
 export const WQL_TAG_KEYS = [
   'effort', 'discipline', 'intensity', 'note', 'page', 'origin',
@@ -23,8 +39,20 @@ export const WQL_TAG_KEYS = [
 /** Virtual dimensions — time buckets and stream positions, not fact fields. */
 export const WQL_VIRTUAL_DIMS = ['day', 'week', 'session', 'round'] as const;
 
-/** Rollup Fact targets written by the lazy rollup driver (CONTEXT.md 'Rollup Fact'). */
+/**
+ * Canonical `calc.*` targets. The single source of truth for the set of
+ * calculation metric keys: source for the composer/CM6 typeahead (#871) and
+ * the dashboard's known-vs-proposed gate (src/lib/dashboard/model.ts). Must
+ * match the keys the calc engine registers in
+ * src/core/analytics/calc/seeds.ts (`calc.e1rm`, `calc.metMinutes`,
+ * `calc.acwr`, `calc.monotony`, `calc.strain`, `calc.ctl`, `calc.atl`,
+ * `calc.tsb`). NOTE: `calc.pmc` (composite {ctl, atl, tsb} series) is
+ * deliberately absent — the store calc model publishes one scalar key per
+ * definition, so PMC ships as the three loads (#905); a composite stays
+ * 'proposed' until a dedicated series widget lands.
+ */
 export const WQL_CALC_TARGETS = [
+  'calc.metMinutes',
   'calc.acwr',
   'calc.monotony',
   'calc.strain',

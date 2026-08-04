@@ -15,7 +15,7 @@ import { parseFrontmatter } from '@/lib/frontmatter';
 import { parseDashboardNote } from './parser';
 import { buildDashboardDocument, isDashboardWidgetType, resolveWidgetType, splitWidgetBody } from './model';
 
-const SEEDS_DIR = join(import.meta.dir, '../../../markdown/collections/dashboards');
+const SEEDS_DIR = join(import.meta.dir, '../../../markdown/dashboards');
 const seedFiles = readdirSync(SEEDS_DIR).filter((f) => f.endsWith('.md'));
 
 describe('Dashboard Catalog seeds', () => {
