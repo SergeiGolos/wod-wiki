@@ -11,6 +11,7 @@ import { NuqsAdapter } from 'nuqs/adapters/react-router';
 import { isFindQuery, parseQuery, type QueryResult, type ParsedFindQuery } from '@/services/analytics/query';
 
 import type { HistoryEntry } from '@/types/history';
+import { buildDashboardScaffold } from '@/lib/dashboard/scaffold';
 
 afterEach(cleanup);
 
@@ -39,6 +40,28 @@ mock.module('../../services/journalNotes', () => ({
     update: mock(async (id: string, raw: string) => {
       updateNoteCalls.push({ id, raw });
       return {};
+    }),
+  },
+}));
+
+// Creation flow (#907): mock at the page's import boundary - the service
+// itself is covered by playground/src/services/dashboardNotes.test.ts.
+mock.module('../../services/dashboardNotes', () => ({
+  dashboardNotes: {
+    createDashboard: mock(async (title: string = 'New Dashboard') => {
+      const entry: HistoryEntry = {
+        id: 'note-new',
+        title,
+        rawContent: buildDashboardScaffold(title),
+        createdAt: 1,
+        updatedAt: 1,
+        targetDate: 1,
+        type: 'note',
+        tags: [],
+        schemaVersion: 1,
+      };
+      mockNotes.push(entry);
+      return entry;
     }),
   },
 }));
@@ -142,7 +165,21 @@ describe('AnalyticsDashboardPage', () => {
     mockNotes = [];
     renderPage();
     await waitFor(() => expect(screen.getByText('No active dashboard found')).toBeDefined());
-    expect(screen.getByText(/Create a note and add/)).toBeDefined();
+    expect(screen.getByText(/add/)).toBeDefined();
+  });
+
+  it('creates a blank dashboard note from the empty state', async () => {
+    mockNotes = [];
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId('create-dashboard-empty')).toBeDefined());
+
+    fireEvent.click(screen.getByTestId('create-dashboard-empty'));
+
+    // The scaffold note lands in the vault and, being active, is picked up
+    // by the re-discovery the click triggers.
+    await waitFor(() => expect(screen.getByTestId('dashboard-view')).toBeDefined());
+    expect(screen.getByText('New Dashboard')).toBeDefined();
+    expect(mockNotes.some((n) => n.rawContent.includes('dashboard: true'))).toBe(true);
   });
 
   it('renders the header and range selector from active dashboard note', async () => {

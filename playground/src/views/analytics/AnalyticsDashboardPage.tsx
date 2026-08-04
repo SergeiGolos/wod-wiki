@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { X, FileText } from 'lucide-react';
+import { X, FileText, Plus } from 'lucide-react';
 import { isFindQuery, queryService } from '@/services/analytics/query';
 import {
   WqlComposer,
@@ -18,6 +18,7 @@ import {
 } from '@/components/molecules/analytics';
 import { notePersistence } from '@/services/persistence';
 import { journalNotes } from '../../services/journalNotes';
+import { dashboardNotes } from '../../services/dashboardNotes';
 import { parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
 import { parseDashboardNote } from '@/lib/dashboard/parser';
 import { buildDashboardDocument, setDashboardTokenValue, type DashboardWidget } from '@/lib/dashboard/model';
@@ -148,6 +149,13 @@ export function AnalyticsDashboardPage() {
     setRefreshKey((k) => k + 1);
   };
 
+  // Creation flow (#907): the new note is marked active by the service, so
+  // bumping refreshKey re-discovers and renders it immediately.
+  const handleCreateDashboard = async () => {
+    await dashboardNotes.createDashboard();
+    setRefreshKey((k) => k + 1);
+  };
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8">
       <div className="max-w-[1500px] mx-auto">
@@ -161,6 +169,14 @@ export function AnalyticsDashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              data-testid="create-dashboard"
+              onClick={handleCreateDashboard}
+              className="flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-[11px] font-semibold hover:opacity-90 transition-all shadow-sm"
+            >
+              <Plus size={12} /> New dashboard
+            </button>
             <RangeSelector />
             <AnalyticsUnitPreference />
           </div>
@@ -187,13 +203,21 @@ export function AnalyticsDashboardPage() {
             </div>
             <h2 className="text-lg font-semibold text-foreground mb-2">No active dashboard found</h2>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-              Create a note and add <code>dashboard: true</code> to its frontmatter. 
-              The first dashboard note found will render here.
+              Start from a blank dashboard note, or add <code>dashboard: true</code> to
+              any note's frontmatter to render it here.
             </p>
             <div className="flex gap-4">
+              <button
+                type="button"
+                data-testid="create-dashboard-empty"
+                onClick={handleCreateDashboard}
+                className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+              >
+                Create a dashboard
+              </button>
               <Link 
                 to="/" 
-                className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+                className="px-4 py-2 text-sm font-medium border border-border text-muted-foreground rounded-lg hover:text-foreground transition-colors"
               >
                 Go to Journal
               </Link>
