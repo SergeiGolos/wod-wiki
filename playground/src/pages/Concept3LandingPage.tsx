@@ -52,7 +52,7 @@ const POWER_USER_CALLOUTS = [
   {
     title: 'Dialect switching stays explicit',
     description:
-      'Move between `time`, `log`, and `plan` without changing the mental model or the editing surface.',
+      'Move between `time` and `log` without changing the mental model or the editing surface.',
   },
 ] as const
 
