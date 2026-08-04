@@ -71,7 +71,6 @@ export type PageKind =
   | 'effortsCatalog'
   | 'effortDetail'
   | 'analyticsExplorer'
-  | 'analyticsDashboard'
   | 'dashboardExplorer'
   | 'dashboardView'
   | 'canvas'
@@ -322,7 +321,6 @@ function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanva
   if (pathname === '/efforts') return 'effortsCatalog'
   if (pathname.startsWith('/effort/')) return 'effortDetail'
   if (pathname === '/analytics/explorer') return 'analyticsExplorer'
-  if (pathname === '/analytics/dashboard') return 'analyticsDashboard'
   if (pathname === '/dashboard') return 'dashboardExplorer'
   if (pathname.startsWith('/dashboard/')) return 'dashboardView'
 

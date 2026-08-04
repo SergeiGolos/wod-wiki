@@ -21,9 +21,9 @@ import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
 
 import { EffortsNavPanel } from './panels/EffortsNavPanel'
+import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
 import { canvasRoutes } from '../canvas/canvasRoutes'
 import { ROUTE_PATTERNS } from '../lib/routes'
-import { DASHBOARD_SEEDS } from '../lib/dashboardCorpus'
 
 // ─── L2 children for Home ─────────────────────────────────────────────────────
 
@@ -171,28 +171,10 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       icon: ChartBarIcon,
       action: { type: 'route', to: '/dashboard' },
       isActive: (loc: Location) => loc.pathname === '/dashboard' || loc.pathname.startsWith('/dashboard/'),
-      children: [
-        {
-          id: 'dashboard-explorer',
-          label: 'Explorer',
-          level: 2,
-          icon: ChartBarIcon,
-          action: { type: 'route', to: '/dashboard' },
-          isActive: (loc: Location) => loc.pathname === '/dashboard',
-        },
-        // The prebuilt seeds are build-time-known, so they sit in the static
-        // L2 tree. Vault-created dashboards need a dynamic panel to appear
-        // here (follow-up); until then they remain addressable at
-        // /dashboard/:slug and surface once cloned-from lists merge.
-        ...DASHBOARD_SEEDS.map((seed) => ({
-          id: `dashboard-${seed.slug}`,
-          label: seed.title,
-          level: 2 as const,
-          icon: ChartBarIcon,
-          action: { type: 'route' as const, to: `/dashboard/${seed.slug}` },
-          isActive: (loc: Location) => loc.pathname === `/dashboard/${seed.slug}`,
-        })),
-      ],
+      // The L2 list (Explorer + vault-created + prebuilts, plus a New
+      // dashboard action) is dynamic — vault dashboards are runtime data —
+      // so it lives in the panel, not static children.
+      panel: DashboardsNavPanel,
     },
     {
       id: 'efforts',

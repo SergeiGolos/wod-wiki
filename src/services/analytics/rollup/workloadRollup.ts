@@ -24,15 +24,6 @@ export function dayBucket(ts: number): number {
   return Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / DAY);
 }
 
-/** The three Rollup Fact metric definitions (Canonical Metric Keys are `calc.<target>`). */
-export const ROLLUP_METRICS = {
-  acwr: { metricKey: 'calc.acwr', label: 'Acute:Chronic Workload Ratio', unit: 'ratio' },
-  monotony: { metricKey: 'calc.monotony', label: 'Training Monotony', unit: 'ratio' },
-  strain: { metricKey: 'calc.strain', label: 'Training Strain', unit: 'AU' },
-} as const;
-
-export type RollupMetricTarget = keyof typeof ROLLUP_METRICS;
-
 /** One UTC day's computed windows; absent fields were suppressed (see header). */
 export interface DayRollup {
   day: number;

@@ -61,7 +61,7 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
 import { EffortDetailPage } from './pages/EffortDetailPage'
 import { AnalyticsExplorerPage } from './views/analytics/AnalyticsExplorerPage'
-import { AnalyticsDashboardPage } from './views/analytics/AnalyticsDashboardPage'
+
 import { DashboardViewPage } from './views/dashboards/DashboardViewPage'
 import { Toaster } from '@/components/atoms/primitives/toaster'
 import { PageActions } from './pages/shared/PageActions'
@@ -190,7 +190,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
       />
     ),
-    analyticsDashboard: () => <AnalyticsDashboardPage />,
+
     dashboardExplorer: () => (
       <AnalyticsExplorerPage
         actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}

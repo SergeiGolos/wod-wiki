@@ -21,7 +21,6 @@ import type { SyntaxNode } from '@lezer/common';
 import * as terms from '@/grammar/wql.parser.terms';
 import {
   WQL_AGGREGATORS,
-  WQL_COMPARISON_OPS,
   type WqlAggregator,
   type WqlComparisonOp,
 } from '@/parser/wql-vocabulary';
