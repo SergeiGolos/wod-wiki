@@ -54,10 +54,12 @@ const KNOWN_CALC_METRICS: Record<string, true> = {
   'calc.monotony': true,
   'calc.strain': true,
   'calc.e1rm': true,
-  'calc.pmc': true,
   'calc.ctl': true,
   'calc.atl': true,
   'calc.tsb': true,
+  // NOTE: `calc.pmc` (composite {ctl, atl, tsb} series) deliberately absent —
+  // the store calc model publishes one scalar key per definition, so PMC
+  // ships as the three loads above (#905); a composite stays 'proposed'.
 };
 
 /**

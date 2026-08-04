@@ -120,7 +120,7 @@ function inferCallDim(node: Extract<ExprNode, { kind: 'call' }>, env: StaticEnv)
     if (args.length < 1) throw new CalcRegistrationError(`${name}() requires an argument`);
     return inferDim(args[0], env);
   }
-  if (name === 'windowMean' || name === 'windowSum' || name === 'windowSd') {
+  if (name === 'windowMean' || name === 'windowSum' || name === 'windowSd' || name === 'windowEwma') {
     if (args.length !== 2) throw new CalcRegistrationError(`${name}() takes (series, period)`);
     return inferDim(args[0], env);
   }

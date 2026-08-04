@@ -90,7 +90,12 @@ describe('isProposedMetric', () => {
     expect(isProposedMetric('calc.monotony')).toBe(false);
     expect(isProposedMetric('calc.strain')).toBe(false);
     expect(isProposedMetric('calc.e1rm')).toBe(false);
-    expect(isProposedMetric('calc.pmc')).toBe(false);
+    expect(isProposedMetric('calc.ctl')).toBe(false);
+    expect(isProposedMetric('calc.atl')).toBe(false);
+    expect(isProposedMetric('calc.tsb')).toBe(false);
+    // The composite PMC series stays proposed — one scalar key per store
+    // calc (#905), so ctl/atl/tsb ship instead of calc.pmc.
+    expect(isProposedMetric('calc.pmc')).toBe(true);
   });
 
   it('returns false for standard non-calc metrics or empty', () => {

@@ -24,7 +24,15 @@ export const WQL_TAG_KEYS = [
 export const WQL_VIRTUAL_DIMS = ['day', 'week', 'session', 'round'] as const;
 
 /** Rollup Fact targets written by the lazy rollup driver (CONTEXT.md 'Rollup Fact'). */
-export const WQL_CALC_TARGETS = ['calc.acwr', 'calc.monotony', 'calc.strain'] as const;
+export const WQL_CALC_TARGETS = [
+  'calc.acwr',
+  'calc.monotony',
+  'calc.strain',
+  'calc.e1rm',
+  'calc.ctl',
+  'calc.atl',
+  'calc.tsb',
+] as const;
 
 export const WQL_INTENSITY_TIERS = ['low', 'moderate', 'high'] as const;
 export const WQL_GRAINS = ['segment', 'summary', 'rollup'] as const;
