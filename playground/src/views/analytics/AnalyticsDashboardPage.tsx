@@ -203,8 +203,9 @@ export function AnalyticsDashboardPage() {
             </div>
             <h2 className="text-lg font-semibold text-foreground mb-2">No active dashboard found</h2>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-              Start from a blank dashboard note, or add <code>dashboard: true</code> to
-              any note's frontmatter to render it here.
+              Start from a blank dashboard note, clone a sport-specific prebuilt
+              from the catalog, or add <code>dashboard: true</code> to any note's
+              frontmatter to render it here.
             </p>
             <div className="flex gap-4">
               <button
@@ -215,8 +216,15 @@ export function AnalyticsDashboardPage() {
               >
                 Create a dashboard
               </button>
-              <Link 
-                to="/" 
+              <Link
+                to={`/library?q=${encodeURIComponent('find:note{catalog:dashboards} in collections')}`}
+                data-testid="browse-prebuilt-dashboards"
+                className="px-4 py-2 text-sm font-medium border border-primary/40 text-primary rounded-lg hover:bg-primary/10 transition-colors"
+              >
+                Browse prebuilt dashboards
+              </Link>
+              <Link
+                to="/"
                 className="px-4 py-2 text-sm font-medium border border-border text-muted-foreground rounded-lg hover:text-foreground transition-colors"
               >
                 Go to Journal

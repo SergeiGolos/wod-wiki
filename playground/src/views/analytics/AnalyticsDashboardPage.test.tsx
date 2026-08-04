@@ -165,7 +165,9 @@ describe('AnalyticsDashboardPage', () => {
     mockNotes = [];
     renderPage();
     await waitFor(() => expect(screen.getByText('No active dashboard found')).toBeDefined());
-    expect(screen.getByText(/add/)).toBeDefined();
+    // The empty state is the discovery point for the catalog prebuilts.
+    const browse = screen.getByTestId('browse-prebuilt-dashboards');
+    expect(browse.getAttribute('href')).toContain('catalog%3Adashboards');
   });
 
   it('creates a blank dashboard note from the empty state', async () => {
