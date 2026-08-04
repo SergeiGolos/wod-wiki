@@ -137,4 +137,21 @@ test.describe(`App Smoketests — ${appBaseURL()}`, () => {
     ).toBeVisible({ timeout: 20_000 });
     await page.screenshot({ path: 'e2e/screenshots/smoke-fran-timer.png', fullPage: false });
   });
+
+  // ── Deep-link cold load (#909): /analytics/* deep links are meant to be
+  // shareable (?q= carries the query). GitHub Pages can't rewrite unknown
+  // paths to a 200, so the 404.html → sessionStorage → restore fallback is
+  // what makes a cold open render. Assert the render (not the HTTP status —
+  // that's a Pages limitation, documented in #909).
+
+  test('/analytics/explorer deep link cold-loads and renders (#909)', async ({ page }) => {
+    const deepLink = '/analytics/explorer?q=' + encodeURIComponent('sum:totalVolume{}');
+    await page.goto(deepLink, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(2000);
+
+    // The SPA fallback restores the deep link and the explorer mounts.
+    await expect(page.getByText('Metric Explorer').first()).toBeVisible({ timeout: 5000 });
+    // The query survived the redirect round-trip.
+    expect(page.url()).toContain('/analytics/explorer');
+  });
 });
