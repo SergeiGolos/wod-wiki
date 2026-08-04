@@ -15,7 +15,7 @@ tags:
 
 Bodyweight chipper - handstand push-ups, pistols, pull-ups.
 
-```wod
+```time
 100 Handstand Pushups
 100 Pistols
 100 Pullups

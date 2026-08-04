@@ -16,7 +16,7 @@ Double Kettlebell Extreme represents the next level of Keith Weber's programming
 
 The workout flows through double cleans, presses, squats, and swings, creating a comprehensive full-body stimulus. The increased load demands technical proficiency and creates significant cardiovascular challenge.
 
-```wod
+```time
 (3)
   10 Double Clean 20kg
   :20 Rest

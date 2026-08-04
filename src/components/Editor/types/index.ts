@@ -9,6 +9,7 @@ import { IMetric } from '../../../core/models/Metric';
 import { IOutputStatement, OutputStatementType } from '../../../core/models/OutputStatement';
 import { getHints } from '../../../core/metrics/hints';
 import type { ParseError } from '@/core';
+import type { FenceDialect as FenceDialectType } from './section';
 export * from './section';
 export type { FenceDialect } from './section';
 export { VALID_FENCE_DIALECTS } from './section';
@@ -124,10 +125,13 @@ export interface ScriptBlock {
   /** Content-stable identity — hash of fenced content, survives line moves (see `blockContentId`). */
   contentId?: string;
 
-  /** WOD dialect — determines which strategies are loaded */
-  dialect?: import('./section').FenceDialect;
+  /** Workout fence tag ('time' runnable / 'log' recorded) */
+  dialect?: FenceDialectType;
 
-  /** Line number where ```wod/```log/```plan appears (0-indexed) */
+  /** Sport suffix from the fence (```log:climbing) — scopes the block's DialectStack */
+  sport?: string;
+
+  /** Line number where ```time/```log appears (0-indexed) */
   startLine: number;
 
   /** Line number where closing ``` appears (0-indexed) */

@@ -38,6 +38,8 @@ import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import type { DocsSection } from './types';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
 import { StickyNavPanel } from './StickyNavPanel';
+import { StickyPageHeader } from './StickyPageHeader';
+import { measureStickyBoundary } from './stickyBoundary';
 import { ScopedRuntimeProvider } from './ScopedRuntimeProvider';
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection';
 import type { NavActionDeps } from '@/nav/navTypes';
@@ -107,21 +109,7 @@ export function CanvasPage({
   const programmaticScrollTargetRef = useRef<string | null>(null);
   const programmaticScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const getStickyOffset = () => {
-    if (typeof document === 'undefined') return 100;
-
-    const stickyElements = Array.from(
-      document.querySelectorAll<HTMLElement>('[data-page-sticky-boundary="true"]'),
-    );
-
-    const visibleBottom = stickyElements.reduce((maxBottom, element) => {
-      const rect = element.getBoundingClientRect();
-      if (rect.height <= 0 || rect.bottom <= 0) return maxBottom;
-      return Math.max(maxBottom, rect.bottom);
-    }, 0);
-
-    return visibleBottom > 0 ? visibleBottom + 24 : 100;
-  };
+  const getStickyOffset = () => measureStickyBoundary(100);
 
   // Clear any pending programmatic-scroll timeout on unmount to avoid stray timers.
   useEffect(() => {
@@ -241,38 +229,12 @@ export function CanvasPage({
         'flex flex-col flex-1 min-w-0 3xl:max-w-7xl min-h-screen lg:rounded-[2.5rem]',
         PAGE_SHELL_CONTENT_SURFACE_CLASS,
       )}>
-        {/* Sticky header — hidden on mobile (SidebarLayout navbar covers it), sticky on desktop */}
-        <div
-          data-page-sticky-boundary="true"
-          className="hidden lg:block lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md lg:pt-8"
-        >
-          <div className="flex items-center justify-between px-6 lg:px-10">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="h-10 w-2 shrink-0 rounded-full bg-primary" />
-              <div className="flex items-center gap-3 min-w-0">
-                <h1 className="text-2xl md:text-4xl font-black tracking-tight text-foreground leading-none truncate">
-                  {title}
-                </h1>
-                {titleAccessory}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 md:gap-4 shrink-0">
-              {actions}
-            </div>
-          </div>
-          {subheader && <div className="mt-4">{subheader}</div>}
-          <hr role="presentation" className="mt-4 md:mt-6 w-full border-t border-border opacity-50" />
-        </div>
-
-        {/* Subheader — mobile only: sticky bar below the SidebarLayout mobile navbar */}
-        {subheader && (
-          <div
-            data-page-sticky-boundary="true"
-            className="block lg:hidden sticky top-[60px] sm:top-14 z-10 bg-background/95 backdrop-blur-md border-b border-border/50 py-2"
-          >
-            {subheader}
-          </div>
-        )}
+        <StickyPageHeader
+          title={title!}
+          titleAccessory={titleAccessory}
+          actions={actions}
+          subheader={subheader}
+        />
 
         <div className="flex-1">
           {children}
@@ -298,7 +260,7 @@ export function CanvasPage({
                   }}
                   className={cn(
                     'flex-1 text-left px-4 py-2 text-sm transition-all border-l',
-                    link.type === 'wod'
+                    (link.type === 'time' || link.type === 'log')
                       ? 'text-muted-foreground/70 border-transparent pl-6 text-xs'
                       : activeId === link.id
                         ? 'font-bold text-foreground border-primary'
@@ -314,7 +276,7 @@ export function CanvasPage({
                     title={link.runIcon === 'link' ? "View workout" : "Start workout"}
                     className={cn(
                       "mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all",
-                      link.type === 'wod' ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      (link.type === 'time' || link.type === 'log') ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                     )}
                   >
                     {link.runIcon === 'link' ? (

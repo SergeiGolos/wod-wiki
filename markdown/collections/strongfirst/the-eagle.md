@@ -16,7 +16,7 @@ The Eagle is a challenging benchmark workout that tests both strength endurance 
 
 The workout consists of a series of clean and press complexes paired with pull-ups, performed for time. The volume is significant, requiring practitioners to maintain technique and efficiency throughout. Success in The Eagle requires not only raw strength but also the ability to pace oneself and maintain composure under fatigue.
 
-```wod
+```time
 (5)
   5 Clean & Press 24kg
   5 Pullups

@@ -10,7 +10,14 @@ import type { EffortDiscipline } from './disciplines';
 
 export type EffortRegistrySource = 'bundled' | 'user' | 'synthetic-unresolved';
 
-export type IntensityTier = 'low' | 'moderate' | 'high';
+/** Origins that hold real registry records (synthetic-unresolved entries are
+ * resolver phantoms, never listed) — the WQL `origin:` filter vocabulary. */
+export const EFFORT_REGISTRY_ORIGINS = ['bundled', 'user'] as const;
+
+/** Intensity tiers, low → high — the WQL `intensity:` filter vocabulary. */
+export const INTENSITY_TIERS = ['low', 'moderate', 'high'] as const;
+
+export type IntensityTier = (typeof INTENSITY_TIERS)[number];
 
 export interface EffortBaseAttributes {
   /** Metabolic equivalent of task */

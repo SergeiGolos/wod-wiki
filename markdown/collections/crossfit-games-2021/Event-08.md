@@ -15,7 +15,7 @@ tags:
 
 Running, muscle-ups, and squat cleans.
 
-```wod
+```time
 (5)
   200m Run
   5 Muscle Ups

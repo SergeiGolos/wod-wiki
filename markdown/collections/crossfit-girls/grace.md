@@ -13,7 +13,7 @@ tags:
 ## Description
 Grace is a pure Olympic lifting workout that tests explosive power and technique.
 
-```wod
+```time
 30 Clean & Jerk 135lb
 ```
 

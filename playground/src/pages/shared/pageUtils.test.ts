@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test'
-import { mapIndexToL3, applyTemplate } from './pageUtils'
+import { mapIndexToL3, applyTemplate, extractPageIndex } from './pageUtils'
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 
 describe('mapIndexToL3', () => {
@@ -27,7 +27,7 @@ describe('mapIndexToL3', () => {
       {
         id: 'workout-../../markdown/collections/girls/Fran.md',
         label: 'Fran',
-        type: 'wod',
+        type: 'time',
         onRun,
         runIcon: 'link',
       },
@@ -36,6 +36,27 @@ describe('mapIndexToL3', () => {
 
     expect(l3[0].action).toEqual({ type: 'call', handler: onRun })
     expect(l3[0].secondaryAction?.action).toEqual({ type: 'call', handler: onRun })
+  })
+  it('gives display-only log links no secondary Run action (#891)', () => {
+    const index: PageNavLink[] = [{ id: 'log-line-7', label: 'Workout 1', type: 'log' }]
+    const l3 = mapIndexToL3(index)
+
+    expect(l3[0].action).toEqual({ type: 'scroll', sectionId: 'log-line-7' })
+    expect(l3[0].secondaryAction).toBeUndefined()
+  })
+})
+
+describe('extractPageIndex', () => {
+  it('emits time and log link types for workout fences (#891)', () => {
+    const links = extractPageIndex(['# Note', '', '```time', '10:00 AMRAP', '```', '', '```log:climbing', '5x Boulder', '```'].join('\n'))
+
+    const timeLink = links.find(l => l.type === 'time')
+    const logLink = links.find(l => l.type === 'log')
+    expect(timeLink).toBeDefined()
+    expect(logLink).toBeDefined()
+    // Neither carries onRun here — useNotePageNav wires Run for time only.
+    expect(timeLink?.onRun).toBeUndefined()
+    expect(logLink?.onRun).toBeUndefined()
   })
 })
 

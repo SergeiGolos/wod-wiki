@@ -10,7 +10,7 @@ order: 1
 Focusing on horizontal pushing strength.
 Goal: stay tight, control the descent.
 
-```wod
+```time
 5:00 (AMRAP)
   5 Pushups
   10 Air Squats

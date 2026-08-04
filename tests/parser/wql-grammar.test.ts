@@ -59,7 +59,7 @@ describe('wql.grammar', () => {
       expect(parse(source).toString()).toBe(
         'Query(' +
           'Head(Aggregator(Word),Metric(Word)),' +
-          'Filters(Filter(TagKey(Word),TagValue(Word)),Filter(Negate,TagKey(Word),TagValue(Word))),' +
+          'Filters(Filter(TagKey(Word),TagValue(Value(Word))),Filter(Negate,TagKey(Word),TagValue(Value(Word)))),' +
           'GroupBy(By,Dimension(Word),Dimension(Word)),' +
           'Rollup(RollupDot,Int,Word)' +
         ')',
@@ -68,13 +68,13 @@ describe('wql.grammar', () => {
 
     it('exposes repeated TagValue words for multi-value filters', () => {
       expect(parse('sum:totalVolume{note:a|b|c}').toString()).toBe(
-        'Query(Head(Aggregator(Word),Metric(Word)),Filters(Filter(TagKey(Word),TagValue(Word,Word,Word))))',
+        'Query(Head(Aggregator(Word),Metric(Word)),Filters(Filter(TagKey(Word),TagValue(Value(Word),Value(Word),Value(Word)))))',
       );
       expect(parse('max:tis{effort:back*|squat*}').toString()).toBe(
-        'Query(Head(Aggregator(Word),Metric(Word)),Filters(Filter(TagKey(Word),TagValue(Word,Star,Word,Star))))',
+        'Query(Head(Aggregator(Word),Metric(Word)),Filters(Filter(TagKey(Word),TagValue(Value(Word,Star),Value(Word,Star)))))',
       );
       expect(parse('sum:totalVolume{!effort:thruster|burpee}').toString()).toBe(
-        'Query(Head(Aggregator(Word),Metric(Word)),Filters(Filter(Negate,TagKey(Word),TagValue(Word,Word))))',
+        'Query(Head(Aggregator(Word),Metric(Word)),Filters(Filter(Negate,TagKey(Word),TagValue(Value(Word),Value(Word)))))',
       );
     });
   });

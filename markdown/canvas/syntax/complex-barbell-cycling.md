@@ -5,7 +5,7 @@ subtitle: "Back-to-back EMOM windows with plate-change actions"
 section: complex
 order: 7
 ---
-```wod
+```time
 (5) :60 EMOM
   3 Power Clean 135lb
 

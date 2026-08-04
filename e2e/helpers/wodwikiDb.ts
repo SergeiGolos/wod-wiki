@@ -233,7 +233,7 @@ export async function seedNote(
             const db = req.result;
             if (db.objectStoreNames.length === 0) {
               db.close();
-              const upReq = indexedDB.open(name, 12);
+              const upReq = indexedDB.open(name, 14);
               upReq.onupgradeneeded = () => {
                 const upDb = upReq.result;
                 if (!upDb.objectStoreNames.contains('notes')) {
@@ -539,7 +539,7 @@ export async function clearAllNotes(page: Page): Promise<void> {
 /**
  * Read a note's reconstructed content by route id. Mirrors
  * `IndexedDBContentProvider.getEntry` reconstruction: latest (non-history)
- * segments sorted by position, wod segments wrapped in fences.
+ * segments sorted by position, workout segments wrapped in fences.
  */
 /**
  * Seed a journal-date note that the /journal/:date page renders.
@@ -768,9 +768,9 @@ export async function getNoteContentByRouteId(
                 .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
               const raw = ordered
                 .map((s) => {
-                  const isWod = s.dataType === 'wod' || s.dataType === 'script';
-                  if (isWod) {
-                    const dialect = s.data?.dialect ?? 'wod';
+                  const isWorkout = s.dataType === 'wod' || s.dataType === 'script';
+                  if (isWorkout) {
+                    const dialect = s.data?.dialect ?? 'time';
                     return '```' + dialect + '\n' + s.rawContent + '\n```';
                   }
                   return s.rawContent;

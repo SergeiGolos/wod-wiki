@@ -48,9 +48,10 @@ import { frontmatterPreview } from "@/components/Editor/extensions/frontmatter-p
 import { markdownTablePreview } from "@/components/Editor/extensions/markdown-tables";
 import { markdownSyntaxHiding } from "@/components/Editor/extensions/markdown-syntax-hiding";
 import { wodLinter } from "@/components/Editor/extensions/whiteboard-linter";
-import { wodAutocompletion, wodEditorKeymap } from "@/components/Editor/extensions/whiteboard-autocomplete";
+import { wodAutocompletion, wodEditorKeymap, wodAutoWrap } from "@/components/Editor/extensions/whiteboard-autocomplete";
 import { wodOverlayPanel } from "@/components/Editor/extensions/whiteboard-overlay";
 import { widgetBlockPreview } from "@/components/Editor/extensions/widget-block-preview";
+import { queryBlockPreview } from "@/components/Editor/extensions/query-block-preview";
 import { inlineButtonDecoration, type ButtonAction } from "@/components/Editor/extensions/inline-button-decoration";
 import { sectionGeometry } from "@/components/Editor/extensions/section-geometry";
 import { linkOpen } from "@/components/Editor/extensions/link-open";
@@ -148,7 +149,7 @@ export interface NoteEditorProps {
   commands?: ScriptCommand[];
   /**
    * When true (default), clicking "Run" opens an inline runtime panel below
-   * the WOD block instead of calling onStartWorkout / navigating to the track
+   * the workout block instead of calling onStartWorkout / navigating to the track
    * route.  Set to false to restore the previous route-based behaviour.
    */
   enableInlineRuntime?: boolean;
@@ -217,6 +218,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const defaultNotePersistenceRef = useRef<INotePersistence | null>(null);
+  // Per-instance block-notification dedupe (#885): two editors with identical
+  // content (home hero + runway window) must each seed their own blocks — a
+  // module-level dedupe swallows the second editor's seed entirely.
+  const lastBlocksJsonRef = useRef("");
   // Mod-P opens the palette. Sources are empty here — the parent (Workbench)
   // should call palette.open() via its own onSearch prop for context-aware sources.
   const openNavigationPalette = useCallback(() => {
@@ -244,7 +249,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   // Whether the fullscreen timer should auto-start on mount
   const [autoStartFullscreen, setAutoStartFullscreen] = useState(false);
 
-  // Toggle the full-screen timer for the given WOD block (Run button).
+  // Toggle the full-screen timer for the given workout block (Run button).
   const handleRun = useCallback((block: ScriptBlock, autoStart = false) => {
     setAutoStartFullscreen(autoStart);
     setFullscreenTimerBlock(block);
@@ -264,7 +269,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   }, [enableInlineRuntime, handleRun]);
 
   // Intercept workout completion: immediately push the new result into the CM6
-  // wodResultsField so the inline results bar updates without waiting for a DB
+  // results field so the inline results bar updates without waiting for a DB
   // round-trip, then forward to the parent's onCompleteWorkout callback.
   const handleCompleteWorkout = useCallback(
     (blockId: string, results: ScriptBlock["results"]) => {
@@ -314,14 +319,16 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     setFullscreenReviewSegments(null);
   }, []);
 
-  // Fetch workout results for all WOD sections and push them into the editor
-  // via the wodResultsField StateEffect so the inline results bar is visible.
+  // Fetch workout results for all workout (time/log) sections and push them into the editor
+  // via the results StateEffect so the inline results bar is visible.
   useEffect(() => {
     if (!viewRef.current) return;
-    const wodSections = sections.filter((s) => s.type === "wod");
-    if (wodSections.length === 0) return;
+    const workoutSections = sections.filter(
+      (s) => s.type === "time" || s.type === "log"
+    );
+    if (workoutSections.length === 0) return;
 
-    for (const section of wodSections) {
+    for (const section of workoutSections) {
       // 1. Priority: In-memory results from props (Static/Lesson Mode)
       if (Array.isArray(extendedResults) && extendedResults.length > 0) {
         const blockResults = extendedResults.filter(r =>
@@ -524,9 +531,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Whiteboard Script linting (no separate lintGutter — unified gutter handles it)
       ...(enableLinting ? [wodLinter] : []),
 
-      // Autocomplete (dialect + embed completions)
+      // Autocomplete (fence-tag + embed completions) and fence wrapping
       wodAutocompletion,
       wodEditorKeymap,
+      wodAutoWrap,
 
       // Overlay panel for Whiteboard Script blocks
       ...(enableOverlay ? [wodOverlayPanel] : []),
@@ -548,7 +556,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Line IDs for external navigation (IntersectionObserver, scroll)
       lineIdsExtension,
 
-      // Results bar widgets — shown after each WOD block's closing fence
+      // Results bar widgets — shown after each workout block's closing fence
       ...wodResultsWidget,
 
       // Note identity for the results widget (cross-note lookup exclusion)
@@ -562,6 +570,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       ...(widgetComponents && widgetComponents.size > 0
         ? [widgetBlockPreview(widgetComponents)]
         : []),
+
+      // Inline ```query / ```dashboard blocks — live WQL results (#801)
+      queryBlockPreview(),
 
       // Inline button decorations ([Label]{.button action=...})
       ...(onButtonAction ? [inlineButtonDecoration(onButtonAction)] : []),
@@ -578,7 +589,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           onChange(update.state.doc.toString());
-          notifyBlockChanges(update.state, onBlocksChange);
+          notifyBlockChanges(update.state, onBlocksChange, lastBlocksJsonRef);
         }
         if (update.selectionSet || update.docChanged) {
           const { head } = update.state.selection.main;
@@ -659,7 +670,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     setCursorSectionId(initialSection?.id ?? null);
 
     // Seed block list so onBlocksChange fires on initial mount (not just on edits)
-    notifyBlockChanges(view.state, onBlocksChange);
+    notifyBlockChanges(view.state, onBlocksChange, lastBlocksJsonRef);
 
     return () => {
       if (editorRef.current) {
@@ -718,9 +729,12 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       
       let lineIdx = -1;
 
-      // Matches logic in line-ids.ts and extractPageIndex (App.tsx)
-      if (scrollToSectionId.startsWith("wod-line-")) {
-        const lineNum = parseInt(scrollToSectionId.replace("wod-line-", ""), 10);
+      // Matches logic in line-ids.ts and extractPageIndex (App.tsx).
+      // Workout line IDs end with `-line-<1-based line number>` (the prefix
+      // mirrors the fence tag: time-line-* / log-line-*).
+      const lineMatch = scrollToSectionId.match(/-line-(\d+)$/);
+      if (lineMatch) {
+        const lineNum = parseInt(lineMatch[1], 10);
         lineIdx = lineNum - 1;
       } else {
         lineIdx = lines.findIndex((line) => {
@@ -752,7 +766,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
   // Slot renderer — routes to companion components by section type
   const renderSlot = (props: OverlaySlotProps) => {
-    if (props.sectionType === "wod") {
+    if (props.sectionType === "time" || props.sectionType === "log") {
       return (
         <WhiteboardCompanion
           noteId={noteId}
@@ -857,7 +871,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
 /** Convert an EditorSection to a ScriptBlock for callback compatibility */
 function sectionToScriptBlock(section: EditorSection, state: EditorState): ScriptBlock | null {
-  if (section.type !== "wod") return null;
+  if (section.type !== "time" && section.type !== "log") return null;
 
   const content =
     section.contentFrom !== undefined && section.contentTo !== undefined
@@ -867,7 +881,7 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
   let statements: any[] = [];
   try {
     if (content.trim()) {
-      statements = createParser().read(content).statements ?? [];
+      statements = createParser().read(content, section.sport).statements ?? [];
     }
   } catch (e) {
     // Silently ignore parse errors
@@ -876,7 +890,8 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
   return {
     id: section.id,
     contentId: section.contentId,
-    dialect: section.dialect || "wod",
+    dialect: section.type,
+    sport: section.sport,
     startLine: section.startLine - 1, // Convert to 0-indexed for ScriptBlock compat
     endLine: section.endLine - 1,
     content,
@@ -889,16 +904,16 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
 }
 
 /** Notify parent of block changes by extracting ScriptBlocks from section state */
-let lastBlocksJson = "";
 function notifyBlockChanges(
   state: EditorState,
-  onBlocksChange?: (blocks: ScriptBlock[]) => void
+  onBlocksChange: ((blocks: ScriptBlock[]) => void) | undefined,
+  lastBlocksJsonRef: React.MutableRefObject<string>
 ) {
   if (!onBlocksChange) return;
 
   const sectionState: SectionState = state.field(sectionField);
   const blocks = sectionState.sections
-    .filter((s) => s.type === "wod")
+    .filter((s) => s.type === "time" || s.type === "log")
     .map((s) => sectionToScriptBlock(s, state))
     .filter((b): b is ScriptBlock => b !== null);
 
@@ -906,8 +921,8 @@ function notifyBlockChanges(
     blocks.map((b) => ({ id: b.id, startLine: b.startLine, endLine: b.endLine, content: b.content }))
   );
 
-  if (blocksJson !== lastBlocksJson) {
-    lastBlocksJson = blocksJson;
+  if (blocksJson !== lastBlocksJsonRef.current) {
+    lastBlocksJsonRef.current = blocksJson;
     onBlocksChange(blocks);
   }
 }

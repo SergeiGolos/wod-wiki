@@ -9,6 +9,21 @@ import { YogaDialect } from './YogaDialect';
 import { HabitsDialect } from './HabitsDialect';
 import { ClimbDialect } from './ClimbDialect';
 
+/** Id of the base Units Dialect — always part of a sport-scoped stack. */
+const UNITS_DIALECT_ID = 'units';
+
+/**
+ * User-facing `:sport` suffixes that differ from their dialect registry id.
+ * The fence suffix is a sport name (` ```log:climbing `); the registry id is
+ * the dialect's short id (`climb`). Exact registry ids always match directly.
+ */
+const SPORT_ALIASES: Readonly<Record<string, string>> = {
+    climbing: 'climb',
+};
+
+/** Suffixes already warned about — one warning per unknown suffix, not per parse. */
+const warnedSports = new Set<string>();
+
 /**
  * DialectStack — the single ordered place where the base Units Dialect and
  * the sport/personal Dialects are composed and run.
@@ -50,24 +65,55 @@ export class DialectStack {
     }
 
     /**
-     * Process a single statement through every Dialect in order.
-     * Each Dialect's `transform` runs before its `analyze`, and the emitted
-     * metrics (hint markers + domain values) are appended onto the statement.
+     * Resolve the effective Dialect list for a block's `:sport` suffix.
+     *
+     * - No suffix → the full stack (a bare `time`/`log` block — unchanged).
+     * - Known suffix (registry id or {@link SPORT_ALIASES} entry) → the base
+     *   Units Dialect plus the named sport Dialect, in registration order.
+     * - Unknown suffix → warn once per suffix and fall back to the full stack.
      */
-    process(statement: ICodeStatement): void {
-        for (const dialect of this.effectiveDialects) {
+    dialectsFor(sport?: string): readonly IDialect[] {
+        const all = this.effectiveDialects;
+        if (!sport) return all;
+        const id = SPORT_ALIASES[sport] ?? sport;
+        if (!all.some(d => d.id === id)) {
+            if (!warnedSports.has(sport)) {
+                warnedSports.add(sport);
+                console.warn(
+                    `[DialectStack] Unknown :sport suffix "${sport}" — falling back to the full ` +
+                    `dialect stack. Known dialect ids: ${all.map(d => d.id).join(', ')}.`,
+                );
+            }
+            return all;
+        }
+        return all.filter(d => d.id === UNITS_DIALECT_ID || d.id === id);
+    }
+
+    /**
+     * Process a single statement through the Dialects selected by `sport`
+     * (full stack when omitted). Each Dialect's `transform` runs before its
+     * `analyze`, and the emitted metrics (hint markers + domain values) are
+     * appended onto the statement.
+     */
+    process(statement: ICodeStatement, sport?: string): void {
+        this.applyDialects(statement, this.dialectsFor(sport));
+    }
+
+    /** Process a batch of statements through the Dialects selected by `sport`. */
+    processAll(statements: ICodeStatement[], sport?: string): void {
+        const dialects = this.dialectsFor(sport);
+        for (const statement of statements) {
+            this.applyDialects(statement, dialects);
+        }
+    }
+
+    private applyDialects(statement: ICodeStatement, dialects: readonly IDialect[]): void {
+        for (const dialect of dialects) {
             dialect.transform?.(statement);
             const analysis = dialect.analyze(statement);
             if (analysis?.metrics?.length) {
                 statement.metrics.add(...analysis.metrics);
             }
-        }
-    }
-
-    /** Process a batch of statements. */
-    processAll(statements: ICodeStatement[]): void {
-        for (const statement of statements) {
-            this.process(statement);
         }
     }
 

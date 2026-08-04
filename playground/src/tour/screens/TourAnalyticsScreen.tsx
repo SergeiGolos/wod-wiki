@@ -17,6 +17,7 @@ export const TourAnalyticsScreen: React.FC<TourAnalyticsScreenProps> = ({
   title,
 }) => {
   const scorecardRef = useRingRef('analytics.scorecard')
+  const gridRef = useRingRef('analytics.grid')
   const { overrides } = useUserOverrides(true)
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<number>>(new Set())
 
@@ -79,7 +80,7 @@ export const TourAnalyticsScreen: React.FC<TourAnalyticsScreenProps> = ({
         <h3 className="mb-4 text-[11px] font-bold uppercase tracking-label text-muted-foreground">
           Workout Log
         </h3>
-        <div className="flex-1 min-h-0 rounded-2xl border border-border bg-card">
+        <div ref={gridRef} className="flex-1 min-h-0 rounded-2xl border border-border bg-card">
           <ReviewGrid
             runtime={null}
             segments={segments}

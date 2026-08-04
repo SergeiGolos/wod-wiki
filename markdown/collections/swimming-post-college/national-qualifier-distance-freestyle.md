@@ -15,7 +15,7 @@ This workout targets post-collegiate swimmers pursuing national qualifying times
 
 The workout assumes access to a 50m long course pool during summer months, though it can be adapted to short course yards during winter training. Athletes training alone should use a pace clock or waterproof timing device to verify interval holds. Those with training partners should rotate lead positions to practice drafting and varied pacing.
 
-```wod
+```time
 (4) Warmup
   200m Freestyle
   :30 Rest

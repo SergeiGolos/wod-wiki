@@ -18,7 +18,7 @@ import { syntaxTree } from "@codemirror/language";
 /**
  * Parse Whiteboard Script content and extract error nodes from the Lezer tree.
  */
-function findWodErrors(content: string, offsetInDoc: number): Diagnostic[] {
+function findWorkoutErrors(content: string, offsetInDoc: number): Diagnostic[] {
   if (!content.trim()) return [];
 
   const doc = content.endsWith("\n") ? content : content + "\n";
@@ -51,12 +51,12 @@ function findWodErrors(content: string, offsetInDoc: number): Diagnostic[] {
 /**
  * Lint source that finds Whiteboard Script errors inside fenced code blocks.
  */
-function wodLintSource(view: EditorView): Diagnostic[] {
+function workoutLintSource(view: EditorView): Diagnostic[] {
   const { sections } = view.state.field(sectionField);
   const diagnostics: Diagnostic[] = [];
 
   for (const section of sections) {
-    if (section.type !== "wod") continue;
+    if (section.type !== 'time' && section.type !== 'log') continue;
     if (section.contentFrom === undefined || section.contentTo === undefined) continue;
 
     const innerContent = view.state.doc.sliceString(
@@ -64,7 +64,7 @@ function wodLintSource(view: EditorView): Diagnostic[] {
       section.contentTo
     );
 
-    const errors = findWodErrors(innerContent, section.contentFrom);
+    const errors = findWorkoutErrors(innerContent, section.contentFrom);
     diagnostics.push(...errors);
   }
 
@@ -75,6 +75,6 @@ function wodLintSource(view: EditorView): Diagnostic[] {
  * CM6 linter extension for Whiteboard Script code fences.
  * Debounced at 500ms to avoid excessive parsing during typing.
  */
-export const wodLinter = linter(wodLintSource, {
+export const wodLinter = linter(workoutLintSource, {
   delay: 500,
 });

@@ -20,7 +20,7 @@ The Reverse Mill is often described as a "preparation" or "build-up" movement fo
 ## Whiteboard Script
 
 ### Reverse Mill Practice
-```wod
+```time
 (3)
   10 Reverse Mill Left 15lb
   :60 Rest
@@ -29,7 +29,7 @@ The Reverse Mill is often described as a "preparation" or "build-up" movement fo
 ```
 
 ### Balanced Mill Work
-```wod
+```time
 (4)
   10 Mill Clockwise 15lb
   10 Reverse Mill 15lb
@@ -37,7 +37,7 @@ The Reverse Mill is often described as a "preparation" or "build-up" movement fo
 ```
 
 ### Alternating Direction Flow
-```wod
+```time
 (5)
   5 Mill 15lb
   5 Reverse Mill 15lb
@@ -45,14 +45,14 @@ The Reverse Mill is often described as a "preparation" or "build-up" movement fo
 ```
 
 ### EMOM with Both Directions
-```wod
+```time
 (10) 1:00 EMOM
   + 5 Mill Left 15lb
   + 5 Reverse Mill Left 15lb
 ```
 
 ### Volume Challenge
-```wod
+```time
 50 Mills Clockwise 15lb
 50 Reverse Mills 15lb
 ```
@@ -161,7 +161,7 @@ The Reverse Mill pairs well with:
 
 ### Sample Balanced Session
 
-```wod
+```time
 Warmup
   5 Two-Hand Mills Each Direction
 

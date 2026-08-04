@@ -15,7 +15,7 @@ tags:
 
 Pulling endurance test - all three types of muscle-ups.
 
-```wod
+```time
 30 Chest to Bar Pullups
 30 Bar Muscle Ups
 30 Ring Muscle Ups

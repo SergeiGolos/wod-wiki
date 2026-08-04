@@ -56,11 +56,11 @@ export async function gzipBase64(text: string): Promise<string> {
 
 /**
  * Builds the full absolute playground URL for the given WOD content string
- * (raw inner content of the wod fence, without the opening/closing fences).
+ * (raw inner content of the time fence, without the opening/closing fences).
  */
 export async function buildPlaygroundUrl(wodContent: string): Promise<string> {
-  // Wrap in a markdown wod fence so the playground receives valid markdown
-  const markdown = `\`\`\`wod\n${wodContent.trimEnd()}\n\`\`\`\n`;
+  // Wrap in a markdown time fence so the playground receives valid markdown
+  const markdown = `\`\`\`time\n${wodContent.trimEnd()}\n\`\`\`\n`;
   const encoded = await gzipBase64(markdown);
   const base = window.location.origin;
   return `${base}/load?zip=${encoded}`;

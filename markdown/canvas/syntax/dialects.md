@@ -26,7 +26,7 @@ id: dialects-climb
 label: Write a climb block
 validation:
   type: contains-token
-  value: \`\`\`climb
+  value: \`\`\`log:climbing
 ```
 
 ```scroll
@@ -38,7 +38,7 @@ stages:
     source: wods/examples/syntax/dialect-wod.md
     caption: Use `wod` for the session you intend to run, track, or share as the primary workout definition.
     ring:
-      tag: "```wod"
+      tag: "```time"
   - id: log
     range: [0.16, 0.34]
     source: wods/examples/syntax/dialect-log.md
@@ -51,14 +51,14 @@ stages:
     source: wods/examples/syntax/dialect-plan.md
     caption: Use `plan` for drafts, tomorrow's session, and reusable templates. Unknown loads can stay as placeholders until execution.
     ring:
-      tag: "```plan"
+      tag: "```time"
   - id: climb-bouldering
     range: [0.50, 0.68]
     source: wods/examples/syntax/dialect-climb-bouldering.md
     caption: Use `climb` for route and problem logs. Grades, send types, attempts, and beta notes become explicit climbing signals while staying readable as plain Markdown.
     quest: dialects-climb
     ring:
-      tag: "```climb"
+      tag: "```log:climbing"
   - id: climb-sport
     range: [0.68, 0.84]
     source: wods/examples/syntax/dialect-climb-sport.md

@@ -3,8 +3,8 @@
  *
  * Validates:
  *   1. TwoPassEffortResolutionProcess enriches output statements with effort-data.
- *   2. MetMinuteProjectionEngine consumes resolved effort data (no registry import).
- *   3. TISProcessor branches on effort origin (compiler / analyzed / analyzed-estimated).
+ *   2. The composed met-minutes calc consumes resolved effort data (no registry import).
+ *   3. The composed TIS calc branches on effort origin (analyzed / analyzed-estimated).
  *   4. Fuzzy recovery creates synthetic efforts with default MET 5.0 when unmatched.
  *   5. Fuzzy confidence data is available in projection metadata for debug logging.
  */
@@ -14,8 +14,7 @@ import { AnalyticsEngine } from '@/core/analytics/AnalyticsEngine';
 import { StandardAnalyticsProfile } from '@/core/analytics/StandardAnalyticsProfile';
 import type { AnalyticsProfileContext } from '@/core/analytics/IAnalyticsProfile';
 import { TwoPassEffortResolutionProcess } from '@/core/analytics/TwoPassEffortResolutionProcess';
-import { MetMinuteProjectionEngine } from '@/core/analytics/engines/MetMinuteProjectionEngine';
-import { TISProcessor } from '@/core/analytics/engines/TISProcessor';
+import { createCalcEngine } from '@/core/analytics/calc/factory';
 import { MockEffortResolver } from '@/testing/harness/MockEffortResolver';
 import { OutputStatement } from '@/core/models/OutputStatement';
 import { MetricContainer } from '@/core/models/MetricContainer';
@@ -85,10 +84,10 @@ describe('Two-Pass Effort Resolution Integration', () => {
       expect((effortData[0].value as any).baseAttributes.met).toBe(9.8);
     });
 
-    it('MetMinuteProjectionEngine uses compiler-resolved MET without hardcoded lookup', () => {
+    it('composed met-minutes calc uses compiler-resolved MET without hardcoded lookup', () => {
       const resolver = new MockEffortResolver().withEfforts([fixtureRunning]);
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -125,10 +124,10 @@ describe('Two-Pass Effort Resolution Integration', () => {
       expect((effortData[0].value as any).slug).toBe('rowing');
     });
 
-    it('TISProcessor branches on analyzed origin for fuzzy-matched efforts', () => {
+    it('composed TIS calc branches on analyzed origin for fuzzy-matched efforts', () => {
       const resolver = new MockEffortResolver().withEfforts([fixtureRowing]);
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -166,10 +165,10 @@ describe('Two-Pass Effort Resolution Integration', () => {
       expect((effortData[0].value as any).registrySource).toBe('synthetic-unresolved');
     });
 
-    it('MetMinuteProjectionEngine flags estimated origin in metadata for debug', () => {
+    it('composed met-minutes calc flags estimated origin for unresolved efforts', () => {
       const resolver = new MockEffortResolver(); // empty
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -189,15 +188,17 @@ describe('Two-Pass Effort Resolution Integration', () => {
     });
   });
 
-  describe('Processors do not import registry directly', () => {
-    it('MetMinuteProjectionEngine has no registry imports', () => {
-      // This is a structural verification: the engine file should not import
-      // from effort-registry beyond the resolution helper.
-      // The implementation uses extractEffortData which only inspects metrics.
+  describe('Composed calcs consume the effort seam without registry imports', () => {
+    it('met-minutes calc resolves MET via the lookup table adapter', () => {
+      // Structural verification: the composed engine consumes effort-data
+      // metrics + the resolver-backed effort table; it never imports the
+      // effort registry directly.
       const resolver = new MockEffortResolver().withEfforts([fixtureBackSquat]);
       const engine = new AnalyticsEngine();
       engine.addRealtimeProcessor(new TwoPassEffortResolutionProcess(resolver));
-      engine.addSummaryProcessor(new MetMinuteProjectionEngine());
+      const calc = createCalcEngine('time', { effortResolver: resolver });
+      engine.addRealtimeProcessor(calc);
+      engine.addSummaryProcessor(calc);
 
       engine.run(makeSegment('seg1', [
         { type: MetricType.Effort, value: 'back-squat', origin: 'parser' },
@@ -206,13 +207,16 @@ describe('Two-Pass Effort Resolution Integration', () => {
 
       const results = engine.finalize();
       expect(results.length).toBeGreaterThan(0);
+      expect(results.some((r) => r.getMetric(MetricType.Work))).toBe(true);
     });
 
-    it('TISProcessor has no registry imports', () => {
+    it('tis calc composes via the same seam', () => {
       const resolver = new MockEffortResolver().withEfforts([fixtureRunning]);
       const engine = new AnalyticsEngine();
       engine.addRealtimeProcessor(new TwoPassEffortResolutionProcess(resolver));
-      engine.addSummaryProcessor(new TISProcessor());
+      const calc = createCalcEngine('time', { effortResolver: resolver });
+      engine.addRealtimeProcessor(calc);
+      engine.addSummaryProcessor(calc);
 
       engine.run(makeSegment('seg1', [
         { type: MetricType.Effort, value: 'running-6-mph', origin: 'parser' },
@@ -221,6 +225,7 @@ describe('Two-Pass Effort Resolution Integration', () => {
 
       const results = engine.finalize();
       expect(results.length).toBeGreaterThan(0);
+      expect(results.some((r) => r.getMetric(MetricType.TIS))).toBe(true);
     });
   });
 
@@ -228,7 +233,7 @@ describe('Two-Pass Effort Resolution Integration', () => {
     it('includes effort origin and slug in TIS projection metadata', () => {
       const resolver = new MockEffortResolver().withEfforts([fixtureRowing]);
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };

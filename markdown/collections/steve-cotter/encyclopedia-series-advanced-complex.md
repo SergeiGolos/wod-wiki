@@ -16,7 +16,7 @@ This advanced complex from Steve Cotter's Encyclopedia of Kettlebell Lifting com
 
 The complex requires mastery of individual movements before attempting the combination. Steve emphasizes that complexity should only be added after fundamentals are solid. This complex represents advanced training for experienced practitioners.
 
-```wod
+```time
 (5)
   + 2 Clean Left 24kg
   + 2 Press Left 24kg

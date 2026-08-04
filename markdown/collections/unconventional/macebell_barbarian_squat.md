@@ -20,14 +20,14 @@ The mace's uneven weight distribution creates a destabilizing effect that forces
 ## Whiteboard Script
 
 ### Basic Strength Sets
-```wod
+```time
 (3)
   10 Mace Barbarian Squat 15lb
   :60 Rest
 ```
 
 ### Alternating Sides
-```wod
+```time
 (4)
   8 Mace Barbarian Squat Left 15lb
   8 Mace Barbarian Squat Right 15lb
@@ -35,7 +35,7 @@ The mace's uneven weight distribution creates a destabilizing effect that forces
 ```
 
 ### Combined Flow
-```wod
+```time
 (3)
   10 Mace 360 Swings 15lb
   10 Mace Barbarian Squat 15lb
@@ -44,12 +44,12 @@ The mace's uneven weight distribution creates a destabilizing effect that forces
 ```
 
 ### For Time Challenge
-```wod
+```time
 50 Mace Barbarian Squats Alternating 15lb
 ```
 
 ### EMOM Conditioning
-```wod
+```time
 (10) 1:00 EMOM
   + 5 Mace Barbarian Squat Left 15lb
   + 5 Mace Barbarian Squat Right 15lb

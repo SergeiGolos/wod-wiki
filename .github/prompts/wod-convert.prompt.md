@@ -111,7 +111,7 @@ category: zombie-fit
 
 ## Warm Up
 
-```wod
+```time
 (Warmup)
   Run 0.25 miles
   (2 Rounds)
@@ -125,7 +125,7 @@ category: zombie-fit
 
 3 rounds, 30 seconds each movement, count reps:
 
-```wod
+```time
 (3 Rounds)
   :30 Pushups ?
   :30 Situps ?

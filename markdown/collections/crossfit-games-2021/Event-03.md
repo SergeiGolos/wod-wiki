@@ -15,7 +15,7 @@ tags:
 
 Ring dips, pistols, and box jumps.
 
-```wod
+```time
 (21-15-9)
   Ring Dips
   Pistols

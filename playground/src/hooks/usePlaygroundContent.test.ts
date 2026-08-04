@@ -103,4 +103,58 @@ describe('usePlaygroundContent', () => {
     // No seed write — the cancelled load must not persist the fallback.
     expect(savedPages).toHaveLength(0);
   });
+
+  it('seeds IndexedDB on mount by default when the page is missing', async () => {
+    const { usePlaygroundContent } = await hookModule;
+    renderHook(() =>
+      usePlaygroundContent({
+        category: 'journal',
+        name: '2099-06-04',
+        mdContent: 'bundled content',
+      }),
+    );
+
+    await waitFor(() => expect(savedPages).toHaveLength(1));
+    expect(savedPages[0]).toMatchObject({
+      id: 'journal/2099-06-04',
+      content: 'bundled content',
+    });
+  });
+
+  it('does not seed on mount when seedOnMount is false (#856)', async () => {
+    const { usePlaygroundContent } = await hookModule;
+    const { result } = renderHook(() =>
+      usePlaygroundContent({
+        category: 'feed/stronglifts/2099-06-04',
+        name: '5x5',
+        mdContent: 'bundled feed content',
+        seedOnMount: false,
+      }),
+    );
+
+    // Settled into the bundled content without any write.
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.content).toBe('bundled feed content');
+    await act(async () => {});
+    expect(savedPages).toHaveLength(0);
+  });
+
+  it('still persists the first edit when seedOnMount is false (#856)', async () => {
+    const { usePlaygroundContent } = await hookModule;
+    const { result } = renderHook(() =>
+      usePlaygroundContent({
+        category: 'feed/stronglifts/2099-06-04',
+        name: '5x5',
+        mdContent: 'bundled feed content',
+        seedOnMount: false,
+      }),
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.onChange('user edit'));
+    act(() => result.current.onBlur());
+
+    await waitFor(() => expect(savedPages).toHaveLength(1));
+    expect(savedPages[0]!.content).toBe('user edit');
+  });
 });

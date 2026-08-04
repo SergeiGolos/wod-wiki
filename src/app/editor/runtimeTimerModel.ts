@@ -12,7 +12,7 @@ export function prepareRuntimeBlock(block: ScriptBlock): ScriptBlock & { stateme
   if (block.statements?.length) {
     return block as ScriptBlock & { statements: NonNullable<ScriptBlock['statements']> };
   }
-  return { ...block, statements: createParser().read(block.content).statements };
+  return { ...block, statements: createParser().read(block.content, block.sport).statements };
 }
 
 export function createRuntimeForBlock(block: ScriptBlock): IScriptRuntime | null {

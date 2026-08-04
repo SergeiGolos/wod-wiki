@@ -11,7 +11,7 @@ This editor uses **Whiteboard Script**, a markdown-based language for defining w
 3. Track your progress with checkboxes and metrics.
 
 ## Example Workout
-\`\`\`wod
+\`\`\`time
 Timer 12:00
   - 10 Pushups
   - 10 Situps
@@ -20,7 +20,7 @@ Timer 12:00
 \`\`\`
 
 ## Advanced: Repeaters
-\`\`\`wod
+\`\`\`time
 3x
   - 10 Kettlebell Swings (24kg)
   - 5 Burpees

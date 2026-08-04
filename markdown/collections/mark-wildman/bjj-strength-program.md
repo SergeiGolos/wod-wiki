@@ -17,7 +17,7 @@ This program is designed specifically for Brazilian Jiu-Jitsu practitioners, bui
 
 The programming avoids excessive soreness and fatigue that would interfere with BJJ training while still building the strength attributes that improve performance. Movements are selected for their transfer to grappling situations.
 
-```wod
+```time
 BJJ Strength Session
 (4)
   10 KB Swing 24kg

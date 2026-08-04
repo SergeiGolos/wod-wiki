@@ -2,10 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
-import { whiteboardScriptLanguage } from "@/hooks/useRuntimeParser";
+import { resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
 
 describe("whiteboardScriptLanguage highlight interop", () => {
-  it("does not crash CodeMirror highlight plugin for wod fences", () => {
+  it("does not crash CodeMirror highlight plugin for time fences", () => {
     if (!window.requestAnimationFrame) {
       window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
         return setTimeout(() => callback(Date.now()), 16) as unknown as number;
@@ -20,13 +20,10 @@ describe("whiteboardScriptLanguage highlight interop", () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const state = EditorState.create({
-      doc: "```wod\n10 Pushups\n```",
+      doc: "```time\n10 Pushups\n```",
       extensions: [
         markdown({
-          codeLanguages: (info) =>
-            info === "wod" || info === "whiteboard" || info === "log" || info === "plan"
-              ? whiteboardScriptLanguage
-              : null,
+          codeLanguages: resolveWhiteboardCodeLanguage,
         }),
       ],
     });

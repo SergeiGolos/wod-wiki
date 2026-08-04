@@ -109,7 +109,7 @@ describe('Journal Notes', () => {
     const note = await journalNotes.create({
       journalDate: '2026-07-13',
       title: '# Welcome workout',
-      rawContent: '# Welcome workout\n\n```wod\n5 push-ups\n```',
+      rawContent: '# Welcome workout\n\n```time\n5 push-ups\n```',
     });
 
     expect(note.title).toBe('Welcome workout');

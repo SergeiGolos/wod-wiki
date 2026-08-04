@@ -16,7 +16,7 @@ Tuesday Tens is a conditioning-focused workout that uses sets of 10 reps across 
 
 The workout flows through various movement patterns, creating a full-body training effect. Rest periods are kept short to maintain elevated heart rate while still allowing for quality movement. This format is easily scalable by adjusting weight or rest periods.
 
-```wod
+```time
 20:00 AMRAP
   10 Two-Hand KB Swing 20kg
   10 Goblet Squat 20kg

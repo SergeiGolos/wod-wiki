@@ -15,7 +15,7 @@ tags:
 
 Burpees and kettlebell swings for 10 rounds.
 
-```wod
+```time
 (10)
   10 Burpees
   15 KB Swings 53lb

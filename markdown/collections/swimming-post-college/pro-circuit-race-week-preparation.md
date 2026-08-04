@@ -15,7 +15,7 @@ This pre-competition workout prepares post-collegiate swimmers for professional 
 
 The workout emphasizes race-pace rehearsal with generous recovery, ensuring athletes feel sharp and confident. Swimmers should visualize their races during rest intervals, rehearsing tactical decisions and key technical focus points. This mental preparation is essential for professional competition where margins between advancement and elimination are often hundredths of seconds.
 
-```wod
+```time
 (3) Warmup
   150m Freestyle
   :30 Rest

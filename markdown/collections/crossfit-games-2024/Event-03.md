@@ -15,7 +15,7 @@ tags:
 
 Row and burpee pull-ups with 12-minute time cap.
 
-```wod
+```time
 500m Row
 30 Burpee Pullups
 500m Row

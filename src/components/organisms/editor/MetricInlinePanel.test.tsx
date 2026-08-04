@@ -21,7 +21,7 @@ function makeStatement(metrics: IMetric[]): ICodeStatement {
 function makeSection(): EditorSection {
   return {
     id: 'test-section',
-    type: 'wod',
+    type: 'time',
     from: 0,
     to: 20,
     contentFrom: 5,

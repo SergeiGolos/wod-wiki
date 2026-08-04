@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, vi } from 'bun:test';
 import { EditorState } from '@codemirror/state';
 import { DialectStack, createDialectStack, dialectStack } from '../DialectStack';
 import { UnitsDialect } from '../UnitsDialect';
@@ -219,5 +219,101 @@ describe('DialectStack — before/after hint snapshot (S5b behavior change)', ()
         for (const h of before) expect(after.has(h)).toBe(true);
         // And the after set is strictly larger (sport hints landed).
         expect(after.size).toBeGreaterThan(before.size);
+    });
+});
+
+/**
+ * :sport block scoping (#895) — a ```` ```log:climbing ```` fence runs only
+ * Units + Climb dialects on that block's statements; a bare `time`/`log`
+ * runs the full registry stack (today's behavior). Unknown suffixes warn and
+ * fall back to the full stack.
+ */
+describe('DialectStack — :sport block scoping (#895)', () => {
+    const CLIMB_LINE = '[The Shield] V7 redpoint @12';
+    const SCRIPT = `AMRAP 10\n  10 Push-ups\n${CLIMB_LINE}\n`;
+
+    function parse(script: string, sport?: string): ICodeStatement[] {
+        const state = EditorState.create({ doc: script, extensions: [whiteboardScriptLanguage] });
+        return extractStatements(state, sport);
+    }
+
+    it('bare block runs the full registry stack (unchanged behavior)', () => {
+        const hints = parse(SCRIPT).flatMap(s => getHints(s));
+        expect(hints).toContain('workout.amrap'); // crossfit ran
+        expect(hints).toContain('domain.climb');  // climb ran
+    });
+
+    it(':climbing block shows only units + climb dialect output', () => {
+        const hints = parse(SCRIPT, 'climbing').flatMap(s => getHints(s));
+        expect(hints).toContain('domain.climb');      // climb ran
+        expect(hints).not.toContain('workout.amrap'); // crossfit skipped
+    });
+
+    it('registry id is accepted directly (:climb)', () => {
+        const hints = parse(SCRIPT, 'climb').flatMap(s => getHints(s));
+        expect(hints).toContain('domain.climb');
+        expect(hints).not.toContain('workout.amrap');
+    });
+
+    it('Units still runs in a scoped block — fused units survive, other sport hints do not', () => {
+        const statements = parse('400m Run\n', 'climbing');
+        expect(statements[0].metrics.some(m => m.type === MetricType.Distance)).toBe(true);
+        expect(getHints(statements[0])).not.toContain('workout.run'); // cardio skipped
+    });
+
+    it('scoped stack preserves registration order (units before the named sport)', () => {
+        const calls: string[] = [];
+        const stack = new DialectStack([
+            probe('units', calls),
+            probe('crossfit', calls),
+            probe('climb', calls),
+        ]);
+        stack.process(makeStatement(), 'climb');
+        expect(calls).toEqual(['units:analyze', 'climb:analyze']);
+    });
+
+    it('processAll carries the suffix to every statement', () => {
+        const calls: string[] = [];
+        const stack = new DialectStack([
+            probe('units', calls),
+            probe('climb', calls),
+        ]);
+        stack.processAll([makeStatement(), makeStatement()], 'climb');
+        expect(calls).toEqual([
+            'units:analyze', 'climb:analyze',
+            'units:analyze', 'climb:analyze',
+        ]);
+    });
+
+    it('unknown suffix warns and falls back to the full stack', () => {
+        const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const scoped = parse(SCRIPT, 'underwater-basket-weaving');
+            const bare = parse(SCRIPT);
+            expect(scoped.flatMap(s => getHints(s)).sort())
+                .toEqual(bare.flatMap(s => getHints(s)).sort());
+            expect(consoleWarn).toHaveBeenCalled();
+        } finally {
+            consoleWarn.mockRestore();
+        }
+    });
+
+    it('an unknown suffix warns only once per suffix (no per-keystroke spam)', () => {
+        const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            parse('10 Pushups\n', 'not-a-sport');
+            parse('10 Pushups\n', 'not-a-sport');
+            expect(consoleWarn).toHaveBeenCalledTimes(1);
+        } finally {
+            consoleWarn.mockRestore();
+        }
+    });
+
+    it('MdTimerRuntime.read carries the suffix down (WhiteboardScript path)', () => {
+        const runtime = new MdTimerRuntime();
+        const script = runtime.read(SCRIPT, 'climbing');
+        const hints = script.statements.flatMap(s => getHints(s));
+        expect(hints).toContain('domain.climb');
+        expect(hints).not.toContain('workout.amrap');
     });
 });

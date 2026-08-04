@@ -25,7 +25,7 @@ import {
 } from "@codemirror/view";
 import { EditorState, Range, StateField, Extension, Prec } from "@codemirror/state";
 import { sectionField, EditorSection } from "./section-state";
-import { parseFrontmatterProps as parseFrontmatterPropsFromLib, detectUrlSubtype } from "@/lib/frontmatter";
+import { parseFrontmatterProps as parseFrontmatterPropsFromLib, detectUrlSubtype, extractFrontmatterTags } from "@/lib/frontmatter";
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ const LINE_HEIGHT_ESTIMATE = 20;
 
 // ── Frontmatter parsing helpers ─────────────────────────────────────
 
-type FrontmatterSubtype = "youtube" | "amazon" | "strava" | "link" | "default";
+type FrontmatterSubtype = "youtube" | "amazon" | "strava" | "link" | "effort" | "default";
 
 function parseFrontmatterProps(
   state: EditorState,
@@ -60,6 +60,10 @@ function detectSubtype(props: Record<string, string>): FrontmatterSubtype {
   if (typeValue === "youtube") return "youtube";
   if (typeValue === "amazon") return "amazon";
   if (typeValue === "strava") return "strava";
+  // Effort frontmatter has its own structured FrontmatterCompanion overlay —
+  // without this it fell through to "default" and the key/value card (#860)
+  // stacked on top of the companion.
+  if (typeValue === "effort") return "effort";
 
   const url = props["url"] || props["link"] || "";
   const urlSubtype = detectUrlSubtype(url);
@@ -70,8 +74,74 @@ function detectSubtype(props: Record<string, string>): FrontmatterSubtype {
   return "default";
 }
 
-// ── Link Preview Widget ─────────────────────────────────────────────
+// ── Default (key/value) Preview Widget (#860) ────────────────────────
 
+/**
+ * Plain key/value frontmatter (a feed note's `tags:` block, a `title:`/
+ * `difficulty:` header) renders as a compact metadata card instead of the
+ * raw `---` YAML block: list-valued `tags` as chips, scalars as key/value
+ * rows. Cursor-inside still shows the raw YAML for editing — same
+ * replacement discipline as the Amazon/Link widgets.
+ */
+export class DefaultFrontmatterWidget extends WidgetType {
+  constructor(
+    readonly props: Record<string, string>,
+    readonly tags: string[],
+    readonly sectionFrom: number,
+  ) {
+    super();
+  }
+
+  eq(other: DefaultFrontmatterWidget): boolean {
+    return (
+      JSON.stringify(other.props) === JSON.stringify(this.props) &&
+      other.tags.join("|") === this.tags.join("|") &&
+      other.sectionFrom === this.sectionFrom
+    );
+  }
+
+  toDOM(_view: EditorView): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.className = "cm-frontmatter-default";
+
+    if (this.tags.length > 0) {
+      const tagRow = document.createElement("div");
+      tagRow.className = "cm-frontmatter-tags";
+      for (const tag of this.tags) {
+        const chip = document.createElement("span");
+        chip.className = "cm-frontmatter-tag";
+        chip.textContent = tag;
+        tagRow.appendChild(chip);
+      }
+      wrapper.appendChild(tagRow);
+    }
+
+    // Scalar rows — `tags` renders as chips above; empty values carry no
+    // information (a bare `key:` line is the YAML list opener).
+    for (const [key, value] of Object.entries(this.props)) {
+      if (key === "tags" || !value.trim()) continue;
+      const row = document.createElement("div");
+      row.className = "cm-frontmatter-row";
+      const keyEl = document.createElement("span");
+      keyEl.className = "cm-frontmatter-key";
+      keyEl.textContent = key;
+      const valueEl = document.createElement("span");
+      valueEl.className = "cm-frontmatter-value";
+      valueEl.textContent = value;
+      row.appendChild(keyEl);
+      row.appendChild(valueEl);
+      wrapper.appendChild(row);
+    }
+
+    return wrapper;
+  }
+
+  ignoreEvent(): boolean {
+    return true;
+  }
+}
+
+// ── Link Preview Widget ─────────────────────────────────────────────
 class LinkPreviewWidget extends WidgetType {
   constructor(
     readonly props: Record<string, string>,
@@ -144,7 +214,7 @@ class LinkPreviewWidget extends WidgetType {
 
 // ── Amazon Product Widget ───────────────────────────────────────────
 
-class AmazonPreviewWidget extends WidgetType {
+export class AmazonPreviewWidget extends WidgetType {
   constructor(
     readonly props: Record<string, string>,
     readonly sectionFrom: number,
@@ -382,7 +452,25 @@ function buildFrontmatterDecos(state: EditorState): DecorationSet {
         }).range(section.from, section.to)
       );
     }
-    // strava and default: no preview widget (could be added later)
+    // ── Default key/value replacement (cursor outside only, #860) ────
+    if (subtype === "default" && !cursorInside) {
+      const raw = state.sliceDoc(section.from, section.to);
+      const tags = extractFrontmatterTags(raw);
+      const hasScalarRows = Object.entries(props).some(
+        ([key, value]) => key !== "tags" && value.trim(),
+      );
+      // Guard: an empty card (e.g. a bare `tags:` with no items) is worse
+      // than the raw YAML — only replace when there's content to show.
+      if (tags.length > 0 || hasScalarRows) {
+        decos.push(
+          Decoration.replace({
+            widget: new DefaultFrontmatterWidget(props, tags, section.from),
+            block: true,
+          }).range(section.from, section.to)
+        );
+      }
+    }
+    // strava: no preview widget (could be added later)
   }
 
   decos.sort((a, b) => a.from - b.from);
@@ -391,8 +479,7 @@ function buildFrontmatterDecos(state: EditorState): DecorationSet {
 
 // ── StateField ──────────────────────────────────────────────────────
 
-const frontmatterPreviewField = StateField.define<DecorationSet>({
-  create(state) {
+export const frontmatterPreviewField = StateField.define<DecorationSet>({  create(state) {
     return buildFrontmatterDecos(state);
   },
   update(value, tr) {
@@ -639,6 +726,47 @@ const frontmatterPreviewTheme = EditorView.baseTheme({
   },
   "&dark .cm-link-card:hover .cm-link-title": {
     color: "#60a5fa",
+  },
+
+  // ── Default key/value card (#860) ─────────────────────────────────
+  ".cm-frontmatter-default": {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: "6px",
+    padding: "8px 10px",
+    margin: "4px 0",
+    borderRadius: "8px",
+    border: "1px solid rgba(128,128,128,0.2)",
+    backgroundColor: "var(--cm-card-bg, #f8f9fa)",
+    fontSize: "12px",
+  },
+  ".cm-frontmatter-tags": {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "4px",
+  },
+  ".cm-frontmatter-tag": {
+    padding: "1px 8px",
+    borderRadius: "999px",
+    backgroundColor: "rgba(59, 130, 246, 0.12)",
+    color: "#2563eb",
+    fontWeight: "600",
+    fontSize: "11px",
+  },
+  ".cm-frontmatter-row": {
+    display: "flex",
+    gap: "6px",
+  },
+  ".cm-frontmatter-key": {
+    color: "#6b7280",
+    fontWeight: "600",
+  },
+  ".cm-frontmatter-key::after": {
+    content: "\": \"",
+  },
+  "&dark .cm-frontmatter-default": {
+    backgroundColor: "var(--cm-card-bg, #1e1e1e)",
   },
 });
 

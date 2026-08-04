@@ -12,8 +12,8 @@ export interface AnalyticsProfileContext {
   scriptMetricTypes: ReadonlySet<MetricType | string>;
 
   /**
-   * Optional user physiological profile. Used by processors that personalize
-   * output (e.g. TISProcessor uses vo2max to compute METmax).
+   * Optional user physiological profile. Used by calculations that personalize
+   * output (the TIS composed calc uses vo2max to compute METmax).
    */
   userProfile?: {
     /** VO2max in mL/kg/min — for personalized MET-Score normalization */

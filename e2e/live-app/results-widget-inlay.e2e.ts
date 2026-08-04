@@ -9,7 +9,7 @@ const ROUTES = {
     screenshot: 'e2e/screenshots/results-widget-journal-after-reload.png',
     content: `# Journal Result Widget Regression
 
-\`\`\`wod
+\`\`\`time
 Timer: 1:00
 5 Burpees
 \`\`\`
@@ -22,7 +22,7 @@ Timer: 1:00
     screenshot: 'e2e/screenshots/results-widget-playground-after-reload.png',
     content: `# Playground Result Widget Regression
 
-\`\`\`wod
+\`\`\`time
 Timer: 1:00
 7 Air Squats
 \`\`\`
@@ -34,7 +34,7 @@ Timer: 1:00
     title: 'Canvas Home Result Widget Regression',
     screenshot: 'e2e/screenshots/results-widget-canvas-after-reload.png',
     content: `# Morning Strength
-\`\`\`wod
+\`\`\`time
 (3)
   10 Kettlebell Swings 24kg
   *:30 Rest
@@ -46,23 +46,23 @@ Timer: 1:00
 type SeedRoute = typeof ROUTES[keyof typeof ROUTES];
 
 /**
- * Extract the heading line and fenced wod block from test content, mirroring
+ * Extract the heading line and fenced workout block from test content, mirroring
  * the app's section model so seeded segments load identically.
  */
-function parseWodContent(content: string): {
+function parseWorkoutContent(content: string): {
   heading: string;
-  wodContent: string;
+  workoutContent: string;
   dialect: string;
 } {
   const lines = content.split('\n');
   const heading = lines.find((l) => l.startsWith('#')) ?? '';
   const openIdx = lines.findIndex((l) => /^```(\w+)/.test(l.trim()));
   if (openIdx === -1) throw new Error(`No code fence in content: ${content}`);
-  const dialect = lines[openIdx].trim().match(/^```(\w+)/)?.[1] ?? 'wod';
+  const dialect = lines[openIdx].trim().match(/^```(\w+)/)?.[1] ?? 'time';
   const closeIdx = lines.findIndex((l, i) => i > openIdx && l.trim() === '```');
   const endIdx = closeIdx === -1 ? lines.length : closeIdx;
-  const wodContent = lines.slice(openIdx + 1, endIdx).join('\n');
-  return { heading, wodContent, dialect };
+  const workoutContent = lines.slice(openIdx + 1, endIdx).join('\n');
+  return { heading, workoutContent, dialect };
 }
 
 /** FNV-1a content hash — identical to sectionParser.blockContentId. */
@@ -82,16 +82,16 @@ function blockContentIdOf(content: string): string {
  * section-state plugin computes at runtime, so the results inlay widget
  * finds it without any V4-era `sectionId` / `completedAt` fields.
  */
-async function seedWodDbNotesAndResults(page: Page, routes: SeedRoute[]) {
+async function seedWorkoutDbNotesAndResults(page: Page, routes: SeedRoute[]) {
   const seeds = routes.map((route) => {
-    const { heading, wodContent, dialect } = parseWodContent(route.content);
+    const { heading, workoutContent, dialect } = parseWorkoutContent(route.content);
     return {
       route,
       heading,
-      wodContent,
+      workoutContent,
       dialect,
-      contentId: blockContentIdOf(wodContent),
-      wodSegmentId: `wod-seg-${route.noteId.replace(/[^a-z0-9]+/gi, '-')}`,
+      contentId: blockContentIdOf(workoutContent),
+      workoutSegmentId: `wod-seg-${route.noteId.replace(/[^a-z0-9]+/gi, '-')}`,
       isPlayground: route.noteId.startsWith('playground/'),
       journalDate: route.noteId.startsWith('journal/') ? route.noteId.split('/')[1] : undefined,
     };
@@ -107,7 +107,7 @@ async function seedWodDbNotesAndResults(page: Page, routes: SeedRoute[]) {
         req.onerror = () => reject(req.error);
       });
       try {
-        for (const { route, heading, wodContent, dialect, wodSegmentId, contentId, isPlayground, journalDate } of seeds) {
+        for (const { route, heading, workoutContent, dialect, workoutSegmentId, contentId, isPlayground, journalDate } of seeds) {
           await new Promise<void>((resolve, reject) => {
             const tx = db.transaction(['page', 'notes', 'segments', 'results'], 'readwrite');
             const now = Date.now();
@@ -142,15 +142,15 @@ async function seedWodDbNotesAndResults(page: Page, routes: SeedRoute[]) {
               isHistory: false,
             });
 
-            // Wod segment — the app reconstructs this as a fenced code block.
+            // Workout segment — the app reconstructs this as a fenced code block.
             tx.objectStore('segments').put({
-              id: wodSegmentId,
+              id: workoutSegmentId,
               version: 1,
               noteId: route.noteId,
               position: 1,
               dataType: 'wod',
               data: { dialect },
-              rawContent: wodContent,
+              rawContent: workoutContent,
               createdAt: now,
               updatedAt: now,
               isHistory: false,
@@ -161,7 +161,7 @@ async function seedWodDbNotesAndResults(page: Page, routes: SeedRoute[]) {
             tx.objectStore('results').put({
               id: resultId,
               noteId: route.noteId,
-              segmentId: wodSegmentId,
+              segmentId: workoutSegmentId,
               blockContentId: contentId,
               createdAt: now,
               origin: isPlayground ? 'playground' : 'journal',
@@ -217,7 +217,7 @@ async function expectResultWidgetAfterReload(page: Page, route: SeedRoute) {
   await page.screenshot({ path: route.screenshot, fullPage: true });
 }
 
-test.describe('WOD results widget persistence in live app routes', () => {
+test.describe('Workout results widget persistence in live app routes', () => {
   test('shows .cm-wod-results-inlay after reload for journal and playground routes', async ({ page }) => {
     const criticalConsole = monitorCriticalConsole(page);
 
@@ -226,7 +226,7 @@ test.describe('WOD results widget persistence in live app routes', () => {
     // app shell so seeding evaluates don't die mid-navigation.
     await expect(page.locator('#root')).not.toBeEmpty({ timeout: 15_000 });
 
-    await seedWodDbNotesAndResults(page, [ROUTES.journal, ROUTES.playground]);
+    await seedWorkoutDbNotesAndResults(page, [ROUTES.journal, ROUTES.playground]);
 
     await expectResultWidgetAfterReload(page, ROUTES.journal);
     await expectResultWidgetAfterReload(page, ROUTES.playground);
@@ -245,7 +245,7 @@ test.describe('WOD results widget persistence in live app routes', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await expect(page.locator('#root')).not.toBeEmpty({ timeout: 15_000 });
 
-    await seedWodDbNotesAndResults(page, [ROUTES.canvas]);
+    await seedWorkoutDbNotesAndResults(page, [ROUTES.canvas]);
 
     await expectResultWidgetAfterReload(page, ROUTES.canvas);
 

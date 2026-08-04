@@ -16,7 +16,7 @@ Swing Hard is a focused swing program designed to build explosive power and cond
 
 The swing is the foundation of kettlebell training, and this program builds mastery through focused, progressive practice. By concentrating on this single movement, practitioners develop powerful hips, a strong back, and exceptional conditioning.
 
-```wod
+```time
 (10)
   10 Two-Hand KB Swing 24kg
   :20 Rest

@@ -20,7 +20,7 @@ export interface CreateAnalyticsEngineOptions {
 }
 
 /**
- * Creates a fully-configured AnalyticsEngine for a WOD block.
+ * Creates a fully-configured AnalyticsEngine for a workout block.
  *
  * Extracts the dialect and metric types from the block, builds a
  * StandardAnalyticsProfile, and assembles the engine with all
@@ -33,7 +33,7 @@ export function createAnalyticsEngineForBlock(
   block: ScriptBlock,
   options?: CreateAnalyticsEngineOptions
 ): CreateAnalyticsEngineResult {
-  const dialect = block.dialect || 'wod';
+  const dialect = block.dialect || 'time';
 
   const scriptMetricTypes = new Set<MetricType | string>();
   if (block.statements) {

@@ -1,0 +1,69 @@
+/**
+ * stickyBoundary — the shared stacked-sticky measurement seam.
+ *
+ * Any element that carries `data-page-sticky-boundary="true"` participates in
+ * the page's sticky stack. {@link measureStickyBoundary} returns the viewport
+ * bottom of the lowest visible boundary element (+ a breathing-room margin),
+ * so stacked sticky children (date-group headers, shelf headers, scroll
+ * targets) position themselves from the real layout instead of magic numbers
+ * like `top-[104px]`.
+ *
+ * Two adapters exist today — CanvasPage's scroll-to-section and LibraryPage's
+ * date-group headers — so the seam is real, not hypothetical.
+ */
+
+import { useEffect, useState } from 'react'
+
+/** Selector marking an element as part of the page's sticky stack. */
+export const STICKY_BOUNDARY_SELECTOR = '[data-page-sticky-boundary="true"]'
+
+/** Gap between the sticky boundary and whatever stacks below it. */
+const BOUNDARY_MARGIN = 24
+
+/**
+ * Viewport `top` offset below the lowest visible sticky boundary element.
+ * Returns `fallback` during SSR / in document-less environments and when no
+ * boundary element is on screen.
+ */
+export function measureStickyBoundary(fallback: number): number {
+  if (typeof document === 'undefined') return fallback
+
+  const stickyElements = Array.from(
+    document.querySelectorAll<HTMLElement>(STICKY_BOUNDARY_SELECTOR),
+  )
+
+  const visibleBottom = stickyElements.reduce((maxBottom, element) => {
+    const rect = element.getBoundingClientRect()
+    if (rect.height <= 0 || rect.bottom <= 0) return maxBottom
+    return Math.max(maxBottom, rect.bottom)
+  }, 0)
+
+  return visibleBottom > 0 ? visibleBottom + BOUNDARY_MARGIN : fallback
+}
+
+/**
+ * Reactive variant of {@link measureStickyBoundary}: re-measures on scroll,
+ * resize, and mount (rAF-throttled). Use for CSS `top` of stacked sticky
+ * elements that must track the header as it sticks/unsticks.
+ */
+export function useStickyBoundaryOffset(fallback: number): number {
+  const [offset, setOffset] = useState(fallback)
+
+  useEffect(() => {
+    let raf = 0
+    const update = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => setOffset(measureStickyBoundary(fallback)))
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [fallback])
+
+  return offset
+}

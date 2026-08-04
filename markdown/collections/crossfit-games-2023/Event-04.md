@@ -15,7 +15,7 @@ tags:
 
 Pig flips, bar muscle-ups, and overhead squats.
 
-```wod
+```time
 20 Pig Flips
 40 Bar Muscle Ups
 60 Overhead Squats 95lb

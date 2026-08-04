@@ -43,14 +43,14 @@ bun run test           # unit tests (src/)
 
 ## The `wod` block syntax
 
-A workout is plain Markdown; WOD Wiki only interprets fenced ` ```wod ` blocks. Each
+A workout is plain Markdown; WOD Wiki only interprets fenced ` ```time ` blocks. Each
 line is a statement of `[lap] fragment fragment …`, and **indentation creates
 hierarchy**.
 
 ````markdown
 ## WOD
 
-```wod
+```time
 (10) :60 EMOM      ← 10 intervals of 60 seconds (Every Minute On the Minute)
   + 2 Burpees      ← composed set performed each interval
   + 5 Push Ups
@@ -78,7 +78,7 @@ hierarchy**.
 
 ### A few real shapes
 
-```wod
+```time
 (3)                        # 3 rounds of…
   10 Air Squats
   10 Push Ups

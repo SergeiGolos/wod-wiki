@@ -20,7 +20,7 @@ The Shield Cast is often considered a progression from the Mill - while both are
 ## Whiteboard Script
 
 ### Basic Shield Cast Practice
-```wod
+```time
 (3)
   10 Shield Cast Left 15lb
   10 Shield Cast Right 15lb
@@ -28,7 +28,7 @@ The Shield Cast is often considered a progression from the Mill - while both are
 ```
 
 ### Inside/Outside Variation
-```wod
+```time
 (4)
   10 Inside Shield Cast 15lb
   10 Outside Shield Cast 15lb
@@ -36,7 +36,7 @@ The Shield Cast is often considered a progression from the Mill - while both are
 ```
 
 ### Mill to Shield Cast Flow
-```wod
+```time
 (5)
   5 Mill Left 15lb
   5 Shield Cast Left 15lb
@@ -46,14 +46,14 @@ The Shield Cast is often considered a progression from the Mill - while both are
 ```
 
 ### EMOM Conditioning
-```wod
+```time
 (12) 1:00 EMOM
   + 6 Shield Cast Left 20lb
   + 6 Shield Cast Right 20lb
 ```
 
 ### Three-Movement Flow
-```wod
+```time
 (4)
   5 Arm Cast 15lb
   5 Mill 15lb

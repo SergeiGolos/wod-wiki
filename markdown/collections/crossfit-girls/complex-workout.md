@@ -13,7 +13,7 @@ tags:
 ## Description
 A challenging 20-minute AMRAP combining gymnastics skills and bodyweight movements.
 
-```wod
+```time
 20:00 AMRAP
   + 5 Handstand Pushups
   + 10 Single-leg Squats

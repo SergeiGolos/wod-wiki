@@ -15,7 +15,7 @@ tags:
 
 Max effort 1-rep clean and jerk.
 
-```wod
+```time
 1 Clean & Jerk ?lb
 ```
 

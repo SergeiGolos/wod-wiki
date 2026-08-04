@@ -29,10 +29,10 @@ function readFrontmatterField(markdown: string, field: string) {
 }
 
 function extractWorkout(markdown: string) {
-  const match = markdown.match(/```wod\n([\s\S]*?)\n```/)
+  const match = markdown.match(/```time\n([\s\S]*?)\n```/)
 
   if (!match) {
-    throw new Error('Guide example is missing a ```wod fenced block.')
+    throw new Error('Guide example is missing a ```time fenced block.')
   }
 
   return match[1]
@@ -48,7 +48,7 @@ function createReference(markdown: string, docsPath: string): SyntaxGuideReferen
     subtitle,
     docsPath,
     workout,
-    storyContent: ['# ' + title, '', subtitle, '', '```wod', workout, '```'].join('\n'),
+    storyContent: ['# ' + title, '', subtitle, '', '```time', workout, '```'].join('\n'),
   }
 }
 

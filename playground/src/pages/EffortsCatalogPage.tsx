@@ -1,31 +1,40 @@
 /**
  * EffortsCatalogPage — /efforts
  *
- * Catalog of all registered efforts (bundled + user-created).
- * Uses CollectionListTemplate for consistent list layout with keyboard navigation.
- * Supports search by label/alias/slug and filter by origin and discipline.
+ * Catalog of all registered efforts (bundled + user-created) behind the same
+ * search interface as the Library: the standard `StickyPageHeader` with a
+ * `WqlComposer` in the subheader slot. The composer compiles
+ * `find:effort{…} in all` and the query runs through the WQL engine's
+ * effort plane (`QueryService.runFindEffort`) — text/discipline/intensity/
+ * origin/effort filters are engine-applied, so the page holds no filter
+ * logic of its own. The `source` head is fixed at `efforts` and hidden from
+ * the pill row (the page IS the efforts scope — no radio per decision).
+ *
+ * URL state round-trips through `useEffortsComposerState` (shared
+ * `useComposerQueryState` core): back/forward restores the composer, and the
+ * page's legacy `?q=text&origin=&discipline=` params migrate to clauses.
+ *
+ * Selecting a row navigates to the effort detail page.
  */
 
-import React, { useMemo, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusIcon, FunnelIcon } from '@heroicons/react/20/solid';
+import { PlusIcon, TriangleAlertIcon } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { Badge } from '@/components/atoms/primitives/badge';
-import { useEffortRegistry } from '../contexts/EffortRegistryContext';
-import { useEffortsQueryState } from '../hooks/useEffortsQueryState';
-import type { IEffort, EffortRegistrySource } from '@/effort-registry';
+import { queryService } from '@/services/analytics/query';
+import { parseQuery, isFindQuery, type ParsedFindQuery } from '@/services/analytics/query/wql';
+import {
+  WqlComposer,
+  clausesToWql,
+  type WqlExecutor,
+} from '@/components/organisms/wql-composer';
+import { StickyPageHeader } from '@/panels/page-shells';
+import type { IEffort } from '@/effort-registry';
 import { effortPath } from '../lib/routes';
-import { CollectionListTemplate, type CollectionListTemplateContext } from '../templates/CollectionListTemplate';
-import { TextFilterStrip } from '../views/queriable-list/TextFilterStrip';
+import { useEffortsComposerState } from '../hooks/useEffortsComposerState';
 import { Flame, Activity, Dumbbell } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { TEST_IDS } from '@/testing/contracts/TestIdContract';
-
-const ORIGIN_OPTIONS: { value: EffortRegistrySource | 'all'; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'bundled', label: 'Bundled' },
-  { value: 'user', label: 'Custom' },
-];
 
 function OriginBadge({ source }: { source: IEffort['registrySource'] }) {
   switch (source) {
@@ -100,174 +109,125 @@ function EffortRow({ effort }: { effort: IEffort }) {
   );
 }
 
-interface EffortsQuery {
-  text: string;
-  origin: EffortRegistrySource | 'all';
-  discipline: string;
+export interface EffortsCatalogPageProps {
+  /**
+   * Header action bar, injected by the composition root (App.tsx) as a
+   * fully-wired `PageActions`. Optional so the page stays renderable in
+   * isolation (tests, stories) without app-wide context providers.
+   */
+  actions?: ReactNode;
 }
 
-function EffortsFilterSlot({
-  context,
-}: {
-  context: CollectionListTemplateContext<EffortsQuery, IEffort, IEffort>;
-}) {
-  const { origin, setOrigin, discipline, setDiscipline } = useEffortsQueryState();
-  const disciplines = useMemo(() => {
-    const set = new Set<string>();
-    for (const effort of context.items) {
-      if (effort.baseAttributes.discipline) set.add(effort.baseAttributes.discipline);
-    }
-    return Array.from(set).sort();
-  }, [context.items]);
-
-  return (
-    <div className="sticky top-0 z-10 border-b border-border/60 bg-background/95 backdrop-blur-md">
-      <div className="flex items-center gap-3 px-6 lg:px-10 py-3">
-        <FunnelIcon className="size-4 text-muted-foreground shrink-0" />
-        <div className="flex gap-1">
-          {ORIGIN_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setOrigin(opt.value)}
-              className={cn(
-                'px-2.5 py-1 rounded-md text-xs font-semibold transition-colors',
-                origin === opt.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-accent',
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {disciplines.length > 0 && (
-          <select
-            value={discipline}
-            onChange={e => setDiscipline(e.target.value)}
-            className="rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="">All disciplines</option>
-            {disciplines.map(d => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function EffortsHeaderCanvas() {
+export function EffortsCatalogPage({ actions }: EffortsCatalogPageProps) {
   const navigate = useNavigate();
+  const { clauses, setClauses, urlQueryError } = useEffortsComposerState();
+  const [efforts, setEfforts] = useState<IEffort[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const wql = useMemo(() => clausesToWql(clauses), [clauses]);
+  const parsed = useMemo(() => parseQuery(wql), [wql]);
+  const composedError = !isFindQuery(parsed) || parsed.error ? (parsed.error ?? 'Not a find query') : null;
+  const queryError = urlQueryError ?? composedError;
+
+  // Live stage counts in the composer's diagnostics strip, same executor
+  // dispatch as the Library.
+  const execute = useCallback<WqlExecutor>(
+    ast => (isFindQuery(ast) ? queryService.runFind(ast) : queryService.runQuery(ast.raw)),
+    [],
+  );
+
+  useEffect(() => {
+    if (composedError || !isFindQuery(parsed)) return;
+    let cancelled = false;
+    setLoading(true);
+
+    queryService
+      .runFind(parsed as ParsedFindQuery)
+      .then(result => {
+        if (!cancelled) setEfforts(result.efforts ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setEfforts([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [parsed, composedError]);
 
   const handleCreateCustom = useCallback(() => {
     navigate('/effort/new?mode=create');
   }, [navigate]);
 
   return (
-    <div className="px-6 lg:px-10 py-6 border-b">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Efforts</h1>
-          <p className="text-sm text-muted-foreground">
-            Catalog of all registered efforts (bundled + custom)
-          </p>
-        </div>
-        <Button data-testid={TEST_IDS.EFFORTS_CATALOG_CREATE_BTN} onClick={handleCreateCustom}>
-          <PlusIcon className="size-4 mr-2" />
-          Create Custom
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-export function EffortsCatalogPage() {
-  const navigate = useNavigate();
-  const { isReady, error, refresh, registry } = useEffortRegistry();
-  const { text, origin, discipline } = useEffortsQueryState();
-
-  const query = useMemo(
-    () => ({ text, origin, discipline }),
-    [text, origin, discipline],
-  );
-
-  const loadEfforts = useCallback(
-    (currentQuery: EffortsQuery) => {
-      if (!isReady) return [];
-
-      let efforts = registry.list();
-
-      if (currentQuery.origin && currentQuery.origin !== 'all') {
-        efforts = efforts.filter(e => e.registrySource === currentQuery.origin);
-      }
-
-      if (currentQuery.discipline) {
-        efforts = efforts.filter(e => e.baseAttributes.discipline === currentQuery.discipline);
-      }
-
-      if (currentQuery.text?.trim()) {
-        const q = currentQuery.text.trim().toLowerCase();
-        efforts = efforts.filter(e =>
-          e.label.toLowerCase().includes(q) ||
-          e.aliases.some(a => a.toLowerCase().includes(q)) ||
-          e.slug.toLowerCase().includes(q)
-        );
-      }
-
-      return efforts;
-    },
-    [isReady, registry],
-  );
-
-  const handleSelectEffort = useCallback(
-    (effort: IEffort) => {
-      navigate(effortPath(effort.slug));
-    },
-    [navigate],
-  );
-
-  if (error) {
-    return (
-      <div data-testid={TEST_IDS.EFFORTS_CATALOG_ROOT} className="flex flex-col items-center justify-center gap-4 p-12 text-center h-full">
-        <p className="text-destructive font-medium">Failed to load effort registry.</p>
-        <Button variant="outline" onClick={() => refresh()}>
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div data-testid={TEST_IDS.EFFORTS_CATALOG_ROOT} className="flex flex-col h-full">
-      <CollectionListTemplate
-        query={query}
-        loadRecords={loadEfforts}
-        mapRecordToItem={effort => effort}
-        getItemKey={effort => effort.slug}
-        prependedCanvas={<EffortsHeaderCanvas />}
-        searchSlot={<TextFilterStrip paramName="q" placeholder="Search by name, alias, or slug…" inputTestId={TEST_IDS.EFFORTS_CATALOG_SEARCH} navigationScope="q" />}
-        filterSlot={context => <EffortsFilterSlot context={context} />}
-        renderPrimaryContent={effort => <EffortRow effort={effort} />}
-        getItemActions={effort => [
-          {
-            id: 'open',
-            label: 'Open',
-            onSelect: handleSelectEffort,
-          },
-        ]}
-        loadingState={
-          <div data-testid={TEST_IDS.EFFORTS_LOADING} className="flex flex-1 items-center justify-center p-20 text-sm font-medium text-muted-foreground">
-            Loading efforts…
+    <div data-testid={TEST_IDS.EFFORTS_CATALOG_ROOT} className="bg-card flex flex-col flex-1">
+      <StickyPageHeader
+        title="Efforts"
+        subtitle="Catalog of registered efforts — bundled + custom"
+        actions={
+          <div className="flex items-center gap-3">
+            <Button data-testid={TEST_IDS.EFFORTS_CATALOG_CREATE_BTN} onClick={handleCreateCustom}>
+              <PlusIcon className="size-4 mr-2" />
+              Create Custom
+            </Button>
+            {actions}
           </div>
         }
-        emptyState={<div data-testid={TEST_IDS.EFFORTS_CATALOG_EMPTY_STATE} className="flex flex-col items-center justify-center p-20 text-muted-foreground">
-          <p className="text-sm font-medium">No efforts match your filters.</p>
-        </div>}
+        subheader={
+          <div className="px-6 py-2.5">
+            <WqlComposer
+              clauses={clauses}
+              onClausesChange={setClauses}
+              execute={execute}
+              hiddenClauseTypes={['source']}
+            />
+          </div>
+        }
       />
+
+      {queryError && (
+        <div
+          className="mx-6 mt-3 flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/[0.06] px-3 py-2"
+          data-testid="efforts-query-error"
+        >
+          <TriangleAlertIcon className="size-3.5 mt-0.5 text-red-500 flex-shrink-0" />
+          <div className="text-xs">
+            <span className="font-bold text-red-600">
+              {urlQueryError ? 'Invalid URL query — showing the default query instead.' : 'Invalid WQL — fix the highlighted clause.'}
+            </span>{' '}
+            <code className="font-mono text-red-600/90">{queryError}</code>
+          </div>
+        </div>
+      )}
+
+      {loading && efforts.length === 0 && (
+        <div className="px-6 py-12 text-center text-muted-foreground/50 text-sm">Loading…</div>
+      )}
+
+      {!loading && !queryError && efforts.length === 0 && (
+        <div
+          className="px-6 py-12 text-center text-sm text-muted-foreground/50"
+          data-testid={TEST_IDS.EFFORTS_CATALOG_EMPTY_STATE}
+        >
+          No efforts match this query.
+        </div>
+      )}
+
+      <div className="flex flex-col divide-y divide-border/50">
+        {efforts.map(effort => (
+          <button
+            key={effort.slug}
+            type="button"
+            onClick={() => navigate(effortPath(effort.slug))}
+            className="text-left hover:bg-muted/40 transition-colors"
+          >
+            <EffortRow effort={effort} />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

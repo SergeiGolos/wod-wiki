@@ -13,7 +13,7 @@ tags:
 ### Description
 This workout prepares masters swimmers for open water events ranging from 1K to 5K distances. The session develops sighting skills, pack swimming awareness, and the sustained pacing required for open water racing. Pool-based exercises simulate race conditions while building the confidence needed for open water competition. Swimmers should practice bilateral breathing and varied tempo throughout.
 
-```wod
+```time
 (3) Warmup
   150m Freestyle
   :30 Rest

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'bun:test'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter, useNavigate } from 'react-router-dom'
 import { DocumentTitleSync } from './DocumentTitleSync'
 
@@ -16,7 +16,7 @@ function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]} initialIndex={0}>
       <DocumentTitleSync />
-      <NavigateButton to="/journal">Go Journal</NavigateButton>
+      <NavigateButton to="/journal/2026-01-01">Go Journal</NavigateButton>
       <NavigateButton to="/effort/push-up">Go Effort</NavigateButton>
       <NavigateButton to="/playground/abc">Go Playground</NavigateButton>
     </MemoryRouter>,
@@ -34,34 +34,24 @@ describe('DocumentTitleSync', () => {
     expect(document.title).toBe('Wod.Wiki')
   })
 
-  it('sets the base title for journal routes', () => {
-    renderAt('/journal')
-    expect(document.title).toBe('Wod.Wiki - Journal')
-
-    cleanup()
-    document.title = 'Test Setup Title'
+  it('sets the base title for /journal deep detail routes (Journal is the legacy page)', () => {
     renderAt('/journal/2026-05-12')
     expect(document.title).toBe('Wod.Wiki - Journal')
   })
 
-  it('sets the base title for feeds routes', () => {
-    renderAt('/feeds')
-    expect(document.title).toBe('Wod.Wiki - Feeds')
-
-    cleanup()
-    document.title = 'Test Setup Title'
+  it('sets the base title for /feeds deep detail routes', () => {
     renderAt('/feeds/daily-wod')
     expect(document.title).toBe('Wod.Wiki - Feeds')
   })
 
-  it('sets the base title for collections routes', () => {
-    renderAt('/collections')
-    expect(document.title).toBe('Wod.Wiki - Collections')
-
-    cleanup()
-    document.title = 'Test Setup Title'
+  it('sets the base title for /collections deep detail routes', () => {
     renderAt('/collections/cardio')
     expect(document.title).toBe('Wod.Wiki - Collections')
+  })
+
+  it('sets the base title for /library', () => {
+    renderAt('/library')
+    expect(document.title).toBe('Wod.Wiki - Library')
   })
 
   it('sets the base title for efforts list route', () => {
@@ -95,16 +85,19 @@ describe('DocumentTitleSync', () => {
   })
 
   it('updates title on navigation and leaves exempt routes unchanged', () => {
-    renderAt('/collections')
-    expect(document.title).toBe('Wod.Wiki - Collections')
+    const { unmount: u1 } = renderAt('/library')
+    expect(document.title).toBe('Wod.Wiki - Library')
+    u1()
 
-    fireEvent.click(screen.getByText('Go Journal'))
+    const { unmount: u2 } = renderAt('/journal/2026-01-01')
     expect(document.title).toBe('Wod.Wiki - Journal')
+    u2()
 
-    fireEvent.click(screen.getByText('Go Effort'))
+    const { unmount: u3 } = renderAt('/effort/push-up')
     expect(document.title).toBe('Wod.Wiki - Journal')
+    u3()
 
-    fireEvent.click(screen.getByText('Go Playground'))
+    renderAt('/playground/abc')
     expect(document.title).toBe('Wod.Wiki - Journal')
   })
 })

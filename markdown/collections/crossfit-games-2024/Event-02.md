@@ -15,7 +15,7 @@ tags:
 
 Toes-to-bar and dumbbell box step-ups with 12-minute time cap.
 
-```wod
+```time
 (21-15-9)
   Toes to Bar
   DB Box Step Ups 50lb

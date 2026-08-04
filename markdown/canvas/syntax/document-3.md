@@ -8,14 +8,14 @@ order: 3
 # Monday — Strength + Metcon
 
 ## Strength
-```wod
+```time
 (5 Sets)
   3 Back Squat 225lb
   *2:00 Rest
 ```
 
 ## Metcon
-```wod
+```time
 20:00 (AMRAP)
   10 KB Swings 24kg
   10 Box Jumps

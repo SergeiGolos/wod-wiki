@@ -8,7 +8,7 @@ order: 6
 
 # Tuesday — Pull Day
 
-```wod
+```time
 rpe: 8
 (5 Sets)
   5 Deadlifts 225lb

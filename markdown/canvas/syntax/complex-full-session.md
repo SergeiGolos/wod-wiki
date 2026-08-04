@@ -7,7 +7,7 @@ order: 6
 ---
 # Thursday Session
 
-```wod
+```time
 // Warmup
   400m Run
   10 Air Squats

@@ -33,6 +33,36 @@ export interface TagFilter {
   values: TagValue[];
 }
 
+/** Comparison operator in a cross-store metric predicate (`> 5000`). */
+export type ComparisonOp = '>' | '>=' | '<' | '<=' | '==' | '!=';
+
+/**
+ * Analytics half of a cross-store join — the metric predicate attached to a
+ * find query via `where`. Example: `sum:totalVolume{discipline:strength} > 5000`.
+ * Aggregates are evaluated against RAW WorkoutResult logs (not derived facts),
+ * joined at the blockContentId level ("logs win", issue #800).
+ */
+export interface MetricPredicate {
+  agg: Aggregator;
+  metric: string;
+  filters: TagFilter[];
+  operator: ComparisonOp;
+  threshold: number;
+}
+
+/**
+ * Content half of a cross-store join — the find predicate attached to an
+ * analytics query via `where`. Example: `find:note{tags:competition} in journal`.
+ * Restricts the metric computation to the blockContentIds owned by matching
+ * content; the metric is recomputed from raw logs for those blocks only.
+ */
+export interface FindPredicate {
+  target: string;
+  filters: TagFilter[];
+  scope?: string;
+  last?: { size: number; unit: 'd' | 'w' };
+}
+
 export interface ParsedQuery {
   raw: string;
   agg: Aggregator;
@@ -44,6 +74,8 @@ export interface ParsedQuery {
   rollup?: { size: number; unit: 'd' | 'w' };
   /** Optional display unit directive — `in kg` / `in lb`. */
   displayUnit?: string;
+  /** Cross-store content join (`where find:note{...}`); restricts to raw logs. */
+  join?: FindPredicate;
   error?: string;
 }
 
@@ -57,6 +89,8 @@ export interface ParsedFindQuery {
   scope?: string;
   /** Time window: last 8w, last 4d. */
   last?: { size: number; unit: 'd' | 'w' };
+  /** Cross-store metric join (`where sum:totalVolume{} > 5000`). */
+  join?: MetricPredicate;
   error?: string;
 }
 
@@ -71,10 +105,79 @@ export interface SeriesPoint { ts: number; value: number }
 export interface Series { key: string; label: string; points: SeriesPoint[]; unit?: string }
 
 export const WQL_AGGREGATORS: Aggregator[] = ['sum', 'avg', 'min', 'max', 'count', 'last', 'delta'];
+
+/** Every comparison operator the where-join parser accepts. */
+export const WQL_COMPARISON_OPS: ComparisonOp[] = ['>', '>=', '<', '<=', '==', '!='];
 const AGGS: Aggregator[] = WQL_AGGREGATORS;
 
 function cannotParse(text: string): string {
   return `Cannot parse "${text}". Expected agg:metric{filters} by {dims} .rollup(period)`;
+}
+// ── Cross-store `where` joins (#800) ───────────────────────────────
+//
+// `where` is the join glue between a content query and an analytics query.
+// Like `in <scope>` / `last <n>w` / `in <unit>`, it is stripped in JS rather
+// than lexed: a top-level WhereClause node ending in a free `Word` would
+// reintroduce the token-overlap conflict documented at the top of the
+// grammar. The split is brace-aware so a `where` inside `{filters}` (a tag
+// value such as `text:where`) is never mistaken for the join.
+
+/**
+ * Split a query at the first top-level `where` keyword (depth-0, word-
+ * bounded). Returns the primary half and, when present, the join clause text.
+ */
+function splitAtWhere(text: string): { primary: string; where?: string } {
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '{') depth++;
+    else if (c === '}') depth = Math.max(0, depth - 1);
+    else if (
+      depth === 0 &&
+      c === 'w' &&
+      text.slice(i, i + 5) === 'where' &&
+      (i === 0 || /\s/.test(text[i - 1])) &&
+      (i + 5 >= text.length || /\s/.test(text[i + 5]))
+    ) {
+      return { primary: text.slice(0, i).trim(), where: text.slice(i + 5).trim() };
+    }
+  }
+  return { primary: text.trim() };
+}
+
+/** Comparison predicate at the tail of a metric join: `<op> <number>`. */
+const CMP_RE = /^(.+?)\s*(>=|<=|!=|==|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/;
+
+function cannotParseJoin(text: string): string {
+  return `Cannot parse join "${text}". Expected find:target{filters} or agg:metric{filters} <op> <number>`;
+}
+
+/**
+ * Parse the `where` clause of a cross-store join — the OTHER half of the
+ * query. A find predicate on an analytics query (`where find:note{tags:x}`),
+ * or a metric predicate on a find query (`where sum:totalVolume{} > 5000`).
+ * Both halves reuse the same Lezer Head→Filters grammar; the join keyword is
+ * JS-stripped, so no grammar change is required.
+ */
+function parseJoinClause(where: string): { metric?: MetricPredicate; find?: FindPredicate; error?: string } {
+  if (where.trimStart().startsWith('find:')) {
+    const fp = parseFindQuery(where);
+    if (fp.error) return { error: fp.error };
+    return { find: { target: fp.target, filters: fp.filters, scope: fp.scope, last: fp.last } };
+  }
+  const m = CMP_RE.exec(where.trim());
+  if (!m) return { error: cannotParseJoin(where) };
+  const head = parseAnalyticsQuery(m[1].trim());
+  if (head.error) return { error: head.error };
+  return {
+    metric: {
+      agg: head.agg,
+      metric: head.metric,
+      filters: head.filters,
+      operator: m[2] as ComparisonOp,
+      threshold: parseFloat(m[3]),
+    },
+  };
 }
 
 const DISPLAY_UNIT_RE = /\s+in\s+([a-zA-Z0-9_-]+)\s*$/;
@@ -100,11 +203,16 @@ function extractFilters(query: SyntaxNode, text: string): TagFilter[] {
     const valueNode = filter.getChild(terms.TagValue);
     if (!keyNode || !valueNode) continue;
     const values: { value: string; wildcard: boolean }[] = [];
-    for (const wordNode of valueNode.getChildren(terms.Word)) {
-      values.push({
-        value: text.slice(wordNode.from, wordNode.to),
-        wildcard: wordNode.nextSibling?.name === 'Star',
-      });
+    for (const valueChild of valueNode.getChildren(terms.Value)) {
+      // Each Value is `Word(:Word)?Star?` per the grammar. Slice its source
+      // text and strip a trailing wildcard — the colon stays in the value
+      // when the grammar accepts a catalog-id style literal like
+      // `collection:crossfit-girls` for the `source:` filter.
+      const raw = text.slice(valueChild.from, valueChild.to);
+      const wildcard = raw.endsWith('*');
+      const value = wildcard ? raw.slice(0, -1) : raw;
+      if (!value) continue;
+      values.push({ value, wildcard });
     }
     if (values.length === 0) continue;
     out.push({
@@ -117,14 +225,17 @@ function extractFilters(query: SyntaxNode, text: string): TagFilter[] {
 }
 
 function parseAnalyticsQuery(raw: string): ParsedQuery {
+  // Cross-store `where` join is stripped first (outermost suffix) so the
+  // primary's own display-unit / rollup clauses parse cleanly afterward.
+  const { primary, where: whereText } = splitAtWhere(raw);
   // Display unit directive is parsed at the WQL surface so the Lezer grammar
   // does not need a keyword token that would shadow `in` as a word elsewhere.
-  let queryText = raw;
+  let queryText = primary;
   let displayUnit: string | undefined;
-  const unitMatch = DISPLAY_UNIT_RE.exec(raw.trimEnd());
+  const unitMatch = DISPLAY_UNIT_RE.exec(primary.trimEnd());
   if (unitMatch) {
     displayUnit = unitMatch[1];
-    queryText = raw.slice(0, unitMatch.index).trimEnd();
+    queryText = primary.slice(0, unitMatch.index).trimEnd();
   }
 
   const base: ParsedQuery = { raw, agg: 'sum', metric: '', filters: [], groupBy: [], displayUnit };
@@ -182,6 +293,21 @@ function parseAnalyticsQuery(raw: string): ParsedQuery {
     base.rollup = { size: parseInt(queryText.slice(sizeNode.from, sizeNode.to), 10), unit };
   }
 
+  if (whereText) {
+    const join = parseJoinClause(whereText);
+    if (join.error) {
+      base.error = join.error;
+      return base;
+    }
+    // An analytics query joins on a content (find:) clause — a metric half
+    // here would be `sum:x{} where sum:y{}`, a no-op nonsensical join.
+    if (!join.find) {
+      base.error = `Cross-store join on an analytics query must be find:…, got "${whereText}"`;
+      return base;
+    }
+    base.join = join.find;
+  }
+
   return base;
 }
 
@@ -198,7 +324,8 @@ function cannotParseFind(text: string): string {
 
 function parseFindQuery(raw: string): ParsedFindQuery {
   const result: ParsedFindQuery = { raw, target: '', filters: [] };
-  let text = raw.trim();
+  const { primary, where: whereText } = splitAtWhere(raw);
+  let text = primary.trim();
 
   // Strip time window: "last 8w" / "last 4d"
   const lastMatch = LAST_RE.exec(text);
@@ -242,5 +369,19 @@ function parseFindQuery(raw: string): ParsedFindQuery {
   result.target = text.slice(metricNode.from, metricNode.to);
   result.filters = extractFilters(query, text);
 
+  if (whereText) {
+    const join = parseJoinClause(whereText);
+    if (join.error) {
+      result.error = join.error;
+      return result;
+    }
+    // A find query joins on a metric predicate — a find half here would be
+    // `find:note where find:block{}`, a no-op nonsensical join.
+    if (!join.metric) {
+      result.error = `Cross-store join on a find query must be agg:metric{} <op> <number>, got "${whereText}"`;
+      return result;
+    }
+    result.join = join.metric;
+  }
   return result;
 }

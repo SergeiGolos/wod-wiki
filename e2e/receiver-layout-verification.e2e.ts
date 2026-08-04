@@ -85,7 +85,7 @@ test.describe('Receiver — Preview Screen', () => {
     expect(count).toBeGreaterThanOrEqual(3);
 
     await expect(page).toHaveScreenshot('receiver-preview-screen.png', {
-      maxDiffPixels: 200,
+      maxDiffPixelRatio: 0.02,
     });
   });
 

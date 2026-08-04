@@ -21,7 +21,7 @@ const FRAN_CONTENT = `# Fran
 
 Classic benchmark "girl" WOD — 21-15-9 of thrusters and pull-ups.
 
-\`\`\`wod
+\`\`\`time
 (21-15-9)
   Thrusters 95lb
   Pullups
@@ -32,7 +32,7 @@ const MURPH_CONTENT = `# Murph
 
 Memorial WOD in honor of Navy Lt. Michael Murphy.
 
-\`\`\`wod
+\`\`\`time
 1 Mile Run
 (20x)
   5 Pullups
@@ -46,7 +46,7 @@ Memorial WOD in honor of Navy Lt. Michael Murphy.
 
 const AMRAP_CONTENT = `# AMRAP 20
 
-\`\`\`wod
+\`\`\`time
 20:00 AMRAP
   5 Pullups
   10 Pushups

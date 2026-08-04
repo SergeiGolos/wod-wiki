@@ -3,6 +3,7 @@ import { parseDocumentSections } from '@/components/Editor/utils/sectionParser';
 import type { Section } from '@/components/Editor/types/section';
 import type { BlockIndexRow, SegmentDataType } from '@/types/storage';
 import { fileToDisplayName } from '@/repositories/script-groupings';
+import { feedDateToCreatedAt } from '@/services/content/staticBlockIndex';
 import fs from 'fs';
 import path from 'path';
 
@@ -25,7 +26,11 @@ function toSegmentDataType(section: Pick<Section, 'type' | 'level'>): SegmentDat
 }
 
 const index: BlockIndexRow[] = [];
-const now = Date.now();
+
+// createdAt semantics (#853): feed rows carry their path date so `last <n>w`
+// windows filter them truthfully; collection rows are undated (0) — excluded
+// from dated windows, present in unbounded queries, matching the Library's
+// "Static, undated" treatment.
 
 // Process Collections
 const collectionsGlob = new Glob('markdown/collections/**/*.md');
@@ -56,7 +61,7 @@ for (const file of collectionsGlob.scanSync('.')) {
             blockContentId,
             rawContent: section.displayContent,
             noteTitle,
-            createdAt: now,
+            createdAt: 0,
             isStatic: true,
             sourceId: `collection:${noteId}`
         });
@@ -93,7 +98,7 @@ for (const file of feedsGlob.scanSync('.')) {
             blockContentId,
             rawContent: section.displayContent,
             noteTitle,
-            createdAt: now,
+            createdAt: feedDateToCreatedAt(dateKey),
             isStatic: true,
             sourceId: `feed:${noteId}`
         });

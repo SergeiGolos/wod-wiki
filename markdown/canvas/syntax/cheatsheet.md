@@ -15,7 +15,7 @@ One page, every construct. Copy the pattern, fill in your movements, and run it.
 
 As Many Rounds as Possible. The clock counts down; you count completed rounds.
 
-```wod
+```time
 10:00 AMRAP
   10 Pull-ups
   15 Push-ups
@@ -26,7 +26,7 @@ As Many Rounds as Possible. The clock counts down; you count completed rounds.
 
 Every Minute On the Minute. `(n)` rounds, each one minute long. A bell starts every window.
 
-```wod
+```time
 (10) 1:00 EMOM
   5 Power Cleans
 ```
@@ -35,7 +35,7 @@ Every Minute On the Minute. `(n)` rounds, each one minute long. A bell starts ev
 
 Eight rounds of `:20 Work / :10 Rest`. The colon prefix is required for sub-minute timers.
 
-```wod
+```time
 (8 Rounds) :20 Work / :10 Rest
   Air Squats
 ```
@@ -46,7 +46,7 @@ Eight rounds of `:20 Work / :10 Rest`. The colon prefix is required for sub-minu
 
 A parenthesized header repeats every indented line beneath it.
 
-```wod
+```time
 (3 Rounds)
   10 Push-ups
   15 Air Squats
@@ -56,7 +56,7 @@ A parenthesized header repeats every indented line beneath it.
 
 A dash-separated rep scheme becomes one round per value. Every movement in the block inherits the current value.
 
-```wod
+```time
 (21-15-9) Thruster / Pull-up
 ```
 
@@ -70,7 +70,7 @@ A dash-separated rep scheme becomes one round per value. Every movement in the b
 
 Nest rounds to alternate movements or group intervals. Ownership is indentation.
 
-```wod
+```time
 (5 Rounds)
   (3 Sets)
     5 Deadlift
@@ -83,7 +83,7 @@ Nest rounds to alternate movements or group intervals. Ownership is indentation.
 
 A rest block waits the declared time. `*` makes it non-skippable.
 
-```wod
+```time
 *:30 Rest
 ```
 
@@ -99,7 +99,7 @@ A rest block waits the declared time. `*` makes it non-skippable.
 
 Ask for the real result after a block finishes.
 
-```wod
+```time
 5:00 Run :?
 (3 Rounds) 10 Burpees :?
 For Time :?
@@ -109,7 +109,7 @@ For Time :?
 
 Prompt for the load when the movement is reached. Works with `lb` or `kg`.
 
-```wod
+```time
 ?lb Back Squat
 225lb ?lb Deadlift
 ?kg Clean
@@ -128,6 +128,8 @@ The runtime derives these metrics from your text. Use them in queries and trendl
 | **load** | Weight suffix | `225lb`, `100kg` |
 | **effort** | Descriptive word | `easy`, `hard`, `moderate` |
 | **discipline** | Movement name | `Run`, `Back Squat`, `Pull-up` |
+
+To query, filter, and aggregate these metrics across your journal, see the [Analytics Query Guide](/guide/analytics).
 
 ## Finish Line {sticky full-bleed dark}
 

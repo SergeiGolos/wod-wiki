@@ -19,7 +19,7 @@ import { AnalyticsEngine } from '@/core/analytics/AnalyticsEngine';
 import { StandardAnalyticsProfile } from '@/core/analytics/StandardAnalyticsProfile';
 import type { AnalyticsProfileContext } from '@/core/analytics/IAnalyticsProfile';
 import { TwoPassEffortResolutionProcess } from '@/core/analytics/TwoPassEffortResolutionProcess';
-import { MetMinuteProjectionEngine } from '@/core/analytics/engines/MetMinuteProjectionEngine';
+
 import { InMemoryEffortRegistry } from '@/effort-registry/InMemoryEffortRegistry';
 import { EffortResolver } from '@/effort-registry/EffortResolver';
 import { OutputStatement } from '@/core/models/OutputStatement';
@@ -103,7 +103,7 @@ describe('Effort Registry CRUD + Analytics Resolution', () => {
 
       // 2. Build analytics context with the resolver
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -126,11 +126,11 @@ describe('Effort Registry CRUD + Analytics Resolution', () => {
       expect((effortData[0].value as any).baseAttributes.met).toBe(8.5);
     });
 
-    it('MetMinuteProjectionEngine computes MET-minutes from custom effort MET', () => {
+    it('composed met-minutes calc computes MET-minutes from custom effort MET', () => {
       registry.upsert(customEffort);
 
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -156,7 +156,7 @@ describe('Effort Registry CRUD + Analytics Resolution', () => {
 
       // 2. First analytics run
       const context1: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -194,7 +194,7 @@ describe('Effort Registry CRUD + Analytics Resolution', () => {
 
       // 2. Verify it resolves
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };
@@ -258,7 +258,7 @@ describe('Effort Registry CRUD + Analytics Resolution', () => {
       await registry.upsert(userRowing);
 
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
         analyticsContext: { effortResolver: resolver },
       };

@@ -13,7 +13,7 @@ tags:
 ### Description
 This introductory session focuses on helping new swimmers become comfortable with freestyle mechanics. The workout emphasizes body position, breathing timing, and arm recovery. Coaches should position themselves at poolside to provide immediate feedback on technique elements. This session works well as the first structured practice for swimmers who can already perform basic water safety skills.
 
-```wod
+```time
 (4) Warmup
   25m Freestyle
   :30 Rest

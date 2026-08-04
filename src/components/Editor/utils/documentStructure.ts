@@ -1,6 +1,6 @@
 import { ScriptBlock } from '../types';
 
-export type DocumentItemType = 'wod' | 'header' | 'paragraph';
+export type DocumentItemType = 'time' | 'log' | 'header' | 'paragraph';
 
 export interface DocumentItem {
   id: string;
@@ -9,11 +9,11 @@ export interface DocumentItem {
   startLine: number;
   endLine: number;
   level?: number; // For headers
-  scriptBlock?: ScriptBlock; // If type is 'wod'
+  scriptBlock?: ScriptBlock; // If type is 'time' or 'log'
 }
 
 /**
- * Parses the document content and combines it with detected WOD blocks
+ * Parses the document content and combines it with detected workout blocks
  * to create a linear structure of the document.
  */
 export function parseDocumentStructure(content: string, scriptBlocks: ScriptBlock[]): DocumentItem[] {
@@ -23,13 +23,13 @@ export function parseDocumentStructure(content: string, scriptBlocks: ScriptBloc
   let currentLine = 0;
   
   while (currentLine < lines.length) {
-    // Check if current line is start of a WOD block
+    // Check if current line is start of a workout block
     const scriptBlock = scriptBlocks.find(b => b.startLine === currentLine);
     
     if (scriptBlock) {
       items.push({
         id: scriptBlock.id,
-        type: 'wod',
+        type: scriptBlock.dialect ?? 'time',
         content: scriptBlock.content,
         startLine: scriptBlock.startLine,
         endLine: scriptBlock.endLine,
@@ -62,13 +62,13 @@ export function parseDocumentStructure(content: string, scriptBlocks: ScriptBloc
       continue;
     }
     
-    // Paragraph (group consecutive non-empty, non-header, non-wod lines)
+    // Paragraph (group consecutive non-empty, non-header, non-workout lines)
     let paragraphEndLine = currentLine;
     let paragraphContent = [lineContent];
     
     let nextLine = currentLine + 1;
     while (nextLine < lines.length) {
-      // Stop if next line is start of WOD block
+      // Stop if next line is start of workout block
       if (scriptBlocks.some(b => b.startLine === nextLine)) break;
       
       const nextLineContent = lines[nextLine];

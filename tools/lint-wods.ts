@@ -22,7 +22,7 @@ interface FileReport {
  */
 function extractWhiteboardScriptBlocks(markdown: string): string[] {
   const blocks: string[] = [];
-  const regex = /```wod\n([\s\S]*?)```/g;
+  const regex = /```time\n([\s\S]*?)```/g;
   let match;
 
   while ((match = regex.exec(markdown)) !== null) {

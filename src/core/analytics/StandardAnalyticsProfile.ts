@@ -3,24 +3,15 @@ import type { IRealtimeProcessor } from './IRealtimeProcessor';
 import type { ISummaryProcessor } from './ISummaryProcessor';
 import type { IAnalyticsProcessorDescriptor } from './IAnalyticsProcessorDescriptor';
 import { Registry } from '@/core/Registry';
-import { PaceEnrichmentProcess } from './PaceEnrichmentProcess';
-import { PowerEnrichmentProcess } from './PowerEnrichmentProcess';
 import { TwoPassEffortResolutionProcess } from './TwoPassEffortResolutionProcess';
-import { RepProjectionEngine } from './engines/RepProjectionEngine';
-import { DistanceProjectionEngine } from './engines/DistanceProjectionEngine';
-import { VolumeProjectionEngine } from './engines/VolumeProjectionEngine';
-import { SessionLoadProjectionEngine } from './engines/SessionLoadProjectionEngine';
-import { MetMinuteProjectionEngine } from './engines/MetMinuteProjectionEngine';
-import { TISProcessor } from './engines/TISProcessor';
+import { createCalcEngine } from './calc/factory';
 
 /**
- * Consumer-facing registries for analytics processors, pre-seeded with
- * the built-in processors. Replaces the previous `allRealtime` and
- * `allSummary` flat arrays in this module.
- *
- * Register custom processors (e.g. sport-specific analytics) with the
- * standard `register`/`unregister` shape. Built-ins can be overridden by
- * `id`.
+ * Consumer-facing registries for analytics processors — extension points
+ * for custom (e.g. sport-specific) processors. The built-in calculations
+ * are no longer processors: they are registered composed calcs evaluated
+ * by the CalcEngine (#879 cutover). Register custom processors with the
+ * standard `register`/`unregister` shape.
  *
  * @example
  * ```typescript
@@ -28,23 +19,19 @@ import { TISProcessor } from './engines/TISProcessor';
  * summaryProcessorRegistry.register(ClimbGradeProgressionProcess);
  * ```
  */
-export const realtimeProcessorRegistry = new Registry<IRealtimeProcessor>([
-    new PaceEnrichmentProcess(),
-    new PowerEnrichmentProcess(),
-]);
+export const realtimeProcessorRegistry = new Registry<IRealtimeProcessor>([]);
 
-export const summaryProcessorRegistry = new Registry<ISummaryProcessor>([
-    new RepProjectionEngine(),
-    new DistanceProjectionEngine(),
-    new VolumeProjectionEngine(),
-    new SessionLoadProjectionEngine(),
-    new MetMinuteProjectionEngine(),
-]);
+export const summaryProcessorRegistry = new Registry<ISummaryProcessor>([]);
 
 /**
  * Standard built-in analytics profile.
  *
- * Filtering by fence dialect and required metrics is applied during build().
+ * Chain: TwoPassEffortResolutionProcess (effort-data infrastructure) →
+ * CalcEngine (the composed calculation layer: phase-1 segment annotations
+ * as a realtime processor, phase-2 workout running totals as a summary
+ * processor) → any custom registry processors. Applicability of individual
+ * calcs is dynamic (`when` predicates, #848); the fence/requiredMetrics
+ * filter below still applies to custom registry processors.
  */
 export class StandardAnalyticsProfile implements IAnalyticsProfile {
     build(context: AnalyticsProfileContext): {
@@ -52,24 +39,26 @@ export class StandardAnalyticsProfile implements IAnalyticsProfile {
         summary: ISummaryProcessor[];
     } {
         const realtime: IRealtimeProcessor[] = [];
+        const summary: ISummaryProcessor[] = [];
 
         // Two-pass effort resolution MUST run first so downstream processors
-        // see enriched effort-data metrics.
+        // (and the calc engine's effort context node) see enriched
+        // effort-data metrics. The calc engine needs the resolver for its
+        // effort lookup table — without one, neither is registered.
         if (context.analyticsContext?.effortResolver) {
             realtime.push(new TwoPassEffortResolutionProcess(context.analyticsContext.effortResolver));
+            const calcEngine = createCalcEngine(context.dialect, {
+                effortResolver: context.analyticsContext.effortResolver,
+                userProfile: context.userProfile,
+            });
+            realtime.push(calcEngine);
+            summary.push(calcEngine);
         }
 
         realtime.push(...realtimeProcessorRegistry.list().filter(p => this.isApplicable(p, context)));
+        summary.push(...summaryProcessorRegistry.list().filter(p => this.isApplicable(p, context)));
 
-        const summary = [
-            ...summaryProcessorRegistry.list(),
-            new TISProcessor(context.userProfile?.vo2max),
-        ];
-
-        return {
-            realtime,
-            summary: summary.filter(p => this.isApplicable(p, context)),
-        };
+        return { realtime, summary };
     }
 
     private isApplicable(

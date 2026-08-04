@@ -15,7 +15,7 @@ tags:
 
 Similar to Helen with heavier kettlebell.
 
-```wod
+```time
 (3)
   400m Run
   21 KB Swings 53lb

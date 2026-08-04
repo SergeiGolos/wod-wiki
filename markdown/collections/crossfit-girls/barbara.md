@@ -13,7 +13,7 @@ tags:
 ## Description
 Barbara is a challenging benchmark that combines gymnastics movements with structured rest periods.
 
-```wod
+```time
 (5)
   + 20 Pullups
   + 30 Pushups

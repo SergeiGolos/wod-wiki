@@ -15,7 +15,7 @@ tags:
 
 Run, clean and jerks, run.
 
-```wod
+```time
 1mile Run
 30 Clean & Jerks 185lb
 1mile Run

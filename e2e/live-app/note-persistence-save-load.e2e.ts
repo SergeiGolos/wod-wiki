@@ -94,7 +94,7 @@ test.describe('Note Persistence — save / load / workout flow', () => {
   // ── 2. Workout start via play button ──────────────────────────────────────
 
   test('starting a workout opens a runtime session without persistence errors', async ({ page }, testInfo) => {
-    const wodContent = `# Test Workout ${Date.now()}\n\n\`\`\`wod\nTimer: 1:00\n5 Burpees\n\`\`\``;
+    const wodContent = `# Test Workout ${Date.now()}\n\n\`\`\`time\nTimer: 1:00\n5 Burpees\n\`\`\``;
     await seedJournalNote(page, DATE_WORKOUT_SAVE, '# E2E Seed\n');
     await clearResults(page, DATE_WORKOUT_SAVE);
     await journal.goto(DATE_WORKOUT_SAVE);

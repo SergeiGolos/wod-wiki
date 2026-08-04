@@ -18,14 +18,14 @@ The session includes both jerk and snatch practice, following the structure of k
 
 ### Sport Preparation
 
-```wod
+```time
 10:00 ? KB Jerk 16kg
 5:00 Rest
 10:00 ? KB Snatch 16kg
 ```
 ### Technical Practice
 
-```wod
+```time
 (5)
   1:00 KB Clean 16kg
   :30 Rest

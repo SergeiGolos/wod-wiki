@@ -15,7 +15,7 @@ tags:
 
 The classic benchmark "Elizabeth".
 
-```wod
+```time
 (21-15-9)
   Cleans 135lb
   Ring Dips

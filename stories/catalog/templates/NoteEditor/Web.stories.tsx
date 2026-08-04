@@ -50,7 +50,7 @@ const FRAN_CONTENT = `# Fran
 One of the most famous CrossFit benchmark workouts. Fran is a sprint that tests
 both metabolic conditioning and strength endurance.
 
-\`\`\`wod
+\`\`\`time
 (21-15-9)
   Thrusters 95lb
   Pullups
@@ -82,7 +82,7 @@ const HELEN_CONTENT = `# Helen
 ## Description
 Helen combines cardio with conditioning work, testing both endurance and strength.
 
-\`\`\`wod
+\`\`\`time
 (3)
   400m Run
   21 KB Swings 53lb
@@ -108,7 +108,7 @@ Pavel Tsatsouline's minimalist kettlebell program — 100 one-arm swings and
 
 ## Session 1: The Daily S\\&S Session
 
-\`\`\`wod
+\`\`\`time
 5:00 100 KB Swings ?kg
   - (10)
     10 KB Swings ?kg
@@ -124,7 +124,7 @@ Pavel Tsatsouline's minimalist kettlebell program — 100 one-arm swings and
 
 For beginners building up to 100 swings.
 
-\`\`\`wod
+\`\`\`time
 (5)
   (10)
     KB Swings ?kg
@@ -147,7 +147,7 @@ const ARMOR_BUILDING_CONTENT = `# Armor Building Complex (ABC)
 ## Description
 Dan John's signature double kettlebell complex.
 
-\`\`\`wod
+\`\`\`time
 (5)
   2 Double Clean 24kg
   1 Double Press 24kg
@@ -173,7 +173,7 @@ const CINDY_CONTENT = `# Cindy
 ## Description
 Cindy tests aerobic capacity and bodyweight strength across 20 minutes.
 
-\`\`\`wod
+\`\`\`time
 20:00 AMRAP
   5 Pull-ups
   10 Push-ups
@@ -197,7 +197,7 @@ A mixed conditioning week combining gymnastics, strength, and cardio.
 
 ## Monday — Gymnastics + Barbell
 
-\`\`\`wod
+\`\`\`time
 20:00 AMRAP
   5 Pull-ups
   10 Push-ups
@@ -206,7 +206,7 @@ A mixed conditioning week combining gymnastics, strength, and cardio.
 
 ## Wednesday — Olympic Lifting
 
-\`\`\`wod
+\`\`\`time
 10x 2:00
   3 Snatch @75%
   Rest remaining
@@ -214,7 +214,7 @@ A mixed conditioning week combining gymnastics, strength, and cardio.
 
 ## Friday — Endurance
 
-\`\`\`wod
+\`\`\`time
 5:00 Run @easy
 2:00 Rest
 10:00 Tempo Run @moderate

@@ -582,7 +582,7 @@ stages:
     caption: One movement per line.
     quest: basics-movement
     ring:
-      tag: "\`\`\`wod"
+      tag: "\`\`\`time"
   - id: measurements
     range: [0.34, 0.5]
     source: wods/examples/syntax/measurements.md
@@ -609,7 +609,7 @@ Body prose.
         source: 'wods/examples/syntax/single-movement.md',
         caption: 'One movement per line.',
         quest: 'basics-movement',
-        ring: { tag: '```wod' },
+        ring: { tag: '```time' },
       })
       expect(scroll?.stages[1]).toEqual({
         id: 'measurements',

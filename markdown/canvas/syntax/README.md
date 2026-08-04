@@ -61,7 +61,7 @@ Organise movements into repeating blocks, named sections, or nested groups. Defi
 ```command
 target: preview
 pipeline:
-  - set-source: wods/examples/getting-started/groups-1.md
+  - set-source: wods/examples/syntax/groups-1.md
 ```
 
 ```button

@@ -21,38 +21,28 @@ import type { SyntaxNode } from "@lezer/common";
 import { parser } from "../grammar/wql.parser";
 import { WQL_AGGREGATORS } from "@/services/analytics/query/wql";
 import { EFFORT_DISCIPLINES } from "@/effort-registry/disciplines";
+import {
+  WQL_METRIC_FAMILIES,
+  WQL_METRIC_AGGREGATES,
+  WQL_TAG_KEYS,
+  WQL_VIRTUAL_DIMS,
+  WQL_CALC_TARGETS,
+  WQL_INTENSITY_TIERS,
+  WQL_GRAINS,
+} from "./wql-vocabulary";
 
-// ── Vocabulary ─────────────────────────────────────────────────────
-
-/** Canonical Metric Key families (CONTEXT.md §Analytics). */
-export const WQL_METRIC_FAMILIES = ['reps', 'distance', 'resistance', 'elapsed', 'power', 'pace'] as const;
-
-/** Tier-2 aggregate keys written to the Analytics Store. */
-export const WQL_METRIC_AGGREGATES = ['totalVolume', 'totalDistance', 'tis', 'sessionLoad'] as const;
-
-/** Tag keys the Query Service reads off a fact row (QueryService.factTagValue). */
-export const WQL_TAG_KEYS = [
-  'effort', 'discipline', 'intensity', 'note', 'page', 'origin',
-  'grain', 'metric', 'block', 'result', 'tags',
-] as const;
-
-/** Virtual dimensions — time buckets and stream positions, not fact fields. */
-export const WQL_VIRTUAL_DIMS = ['day', 'week', 'session', 'round'] as const;
-
-/** Rollup Fact targets written by the lazy rollup driver (CONTEXT.md 'Rollup Fact'). */
-export const WQL_CALC_TARGETS = ['calc.acwr', 'calc.monotony', 'calc.strain'] as const;
-
-const INTENSITY_TIERS = ['low', 'moderate', 'high'] as const;
-const GRAINS = ['segment', 'summary', 'rollup'] as const;
-
-/** Content-discovery query targets (find:<target>). */
-export const WQL_FIND_TARGETS = ['note', 'block'] as const;
-
-/** Content query scopes (in <scope>). */
-export const WQL_SCOPES = ['journal', 'collections', 'feeds', 'all'] as const;
-
-/** Content-specific filter keys (beyond the analytics tag keys). */
-export const WQL_CONTENT_FILTER_KEYS = ['type', 'text', 'has', ...WQL_TAG_KEYS] as const;
+// The vocabulary tables live in ./wql-vocabulary (no editor deps); re-export
+// so existing importers of wql-language keep working.
+export {
+  WQL_METRIC_FAMILIES,
+  WQL_METRIC_AGGREGATES,
+  WQL_TAG_KEYS,
+  WQL_VIRTUAL_DIMS,
+  WQL_CALC_TARGETS,
+  WQL_FIND_TARGETS,
+  WQL_SCOPES,
+  WQL_CONTENT_FILTER_KEYS,
+} from "./wql-vocabulary";
 
 // ── Highlighting ───────────────────────────────────────────────────
 
@@ -69,6 +59,7 @@ export const wqlLanguage = LRLanguage.define({
         TagKey: t.propertyName,
         "TagKey/Word": t.propertyName,
         TagValue: t.string,
+        "TagValue/Value/Word": t.string,
         "TagValue/Word": t.string,
         Negate: t.operator,
         Star: t.operator,
@@ -136,8 +127,8 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     switch (key) {
       case 'effort': return options(effortNames?.() ?? []);
       case 'discipline': return options(EFFORT_DISCIPLINES);
-      case 'intensity': return options(INTENSITY_TIERS);
-      case 'grain': return options(GRAINS);
+      case 'intensity': return options(WQL_INTENSITY_TIERS);
+      case 'grain': return options(WQL_GRAINS);
       case 'metric': return metricOptions();
       default: return null; // note/page/block/result/tags — free-form
     }

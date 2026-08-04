@@ -15,7 +15,7 @@ tags:
 
 Progressive power snatches and bar muscle-ups.
 
-```wod
+```time
 (21-15-9)
   Power Snatches 95lb
   Bar Muscle Ups

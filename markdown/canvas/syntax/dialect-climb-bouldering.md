@@ -2,7 +2,7 @@
 search: hidden
 title: "Dialect: Climb Bouldering"
 ---
-```climb
+```log:climbing
 date: 2026-05-26
 location: "Sender One LAX"
 discipline: bouldering

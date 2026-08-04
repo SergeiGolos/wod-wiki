@@ -13,7 +13,7 @@ tags:
 ### Description
 This workout progressively builds aerobic capacity for young swimmers while maintaining focus on technique. The main set uses descending rest intervals to challenge swimmers to maintain form under mild fatigue. Coaches should monitor stroke quality and encourage swimmers to focus on efficiency rather than speed during longer distances.
 
-```wod
+```time
 (2) Warmup
   100m Freestyle
   :45 Rest

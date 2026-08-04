@@ -168,6 +168,16 @@ function metadataString(metadata: Record<string, unknown> | undefined, key: stri
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+/** Group-tag pairs from grouped composed-calc emission, key-sorted. */
+function readGroupTags(metadata: Record<string, unknown> | undefined): Record<string, string> | undefined {
+  const tags = metadata?.groupTags;
+  if (!tags || typeof tags !== 'object') return undefined;
+  const entries = Object.entries(tags as Record<string, unknown>)
+    .filter((pair): pair is [string, string] => typeof pair[1] === 'string' && pair[1].length > 0)
+    .sort(([a], [b]) => (a < b ? -1 : 1));
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
 /**
  * Convert Tier-2 summary outputs (outputType 'analytics') in a result's logs
  * into persisted fact rows — one row per result × Canonical Metric Key.
@@ -201,13 +211,21 @@ export function normalizeSummaryFacts(
 
     const projectionName = String(label.value ?? label.image ?? '');
     if (!projectionName) continue;
-    const metricKey = resolveCanonicalMetricKey(projectionName);
+    // Composed calcs carry their Canonical Metric Key explicitly (#878);
+    // legacy projections fall back to name-derived keys during cutover.
+    const metricKey = metadataString(value.metadata, 'canonicalKey') ?? resolveCanonicalMetricKey(projectionName);
 
     const effortSlug = metadataString(value.metadata, 'effortSlug');
     const discipline = metadataString(value.metadata, 'effortDiscipline');
     const intensityTier = metadataString(value.metadata, 'effortIntensityTier');
 
-    const rowKey = effortSlug ? `${metricKey}:${effortSlug}` : metricKey;
+    // Row key = metricKey + sorted group-tag pairs (spec §7.1:
+    // `totalVolume:effort=thruster`). Grouped dims auto-tag; legacy
+    // per-effort projections tag `effort` from their effortSlug metadata.
+    const groupTags = readGroupTags(value.metadata) ?? (effortSlug ? { effort: effortSlug } : undefined);
+    const rowKey = groupTags
+      ? `${metricKey}:${Object.entries(groupTags).map(([k, v]) => `${k}=${v}`).join(':')}`
+      : metricKey;
 
     rowsByKey.set(rowKey, {
       id: `${identity.resultId}-${rowKey}-${now}`,

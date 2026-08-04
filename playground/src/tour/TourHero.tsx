@@ -10,11 +10,11 @@ import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TOUR_ACCENTS } from './tourStages'
 import type { ScriptBlock } from '@/components/Editor/types'
 
-const ROWS: Array<{ text: string; underline: string; accent: string }> = [
-  { text: 'Write it in ', underline: 'Markdown', accent: TOUR_ACCENTS.editor },
-  { text: 'Run it as a ', underline: 'Timer', accent: TOUR_ACCENTS.timer },
-  { text: 'Own the ', underline: 'Metrics', accent: TOUR_ACCENTS.library },
-  { text: 'Visualize the ', underline: 'Analytics', accent: TOUR_ACCENTS.analytics },
+const ROWS: Array<{ before?: string; accentText: string; after?: string; accent: string }> = [
+  { before: 'Write it in ', accentText: 'Markdown', accent: TOUR_ACCENTS.editor },
+  { before: 'Run it as a ', accentText: 'Timer', accent: TOUR_ACCENTS.timer },
+  { before: 'Own the ', accentText: 'Metrics', accent: TOUR_ACCENTS.library },
+  { accentText: 'Explore', after: ' your analytics', accent: TOUR_ACCENTS.analytics },
 ]
 
 export interface TourHeroProps {
@@ -25,6 +25,9 @@ export interface TourHeroProps {
   onRun: () => void
   onShare: () => void
   onOpenInEditor: () => void
+  /** Shared-script attribution + reset, forwarded to the editor screen (#882). */
+  sharedBy?: string
+  onResetShared?: () => void
 }
 
 export function TourHero({
@@ -35,6 +38,8 @@ export function TourHero({
   onRun,
   onShare,
   onOpenInEditor,
+  sharedBy,
+  onResetShared,
 }: TourHeroProps) {
   return (
     <section
@@ -46,25 +51,26 @@ export function TourHero({
       </div>
       <h1 className="text-[clamp(34px,7vw,88px)] font-extrabold leading-[0.98] tracking-[-0.045em]">
         {ROWS.map((row) => (
-          <span key={row.underline} className="block">
-            {row.text}
+          <span key={row.accentText} className="block">
+            {row.before}
             <span
               className="underline decoration-[0.06em] underline-offset-[0.14em]"
               style={{ color: row.accent, textDecorationColor: row.accent }}
             >
-              {row.underline}
+              {row.accentText}
             </span>
+            {row.after}
             .
           </span>
         ))}
       </h1>
       <p className="mt-6 max-w-xl text-[clamp(15px,1.4vw,18px)] leading-[1.65] text-muted-foreground">
-        WOD Wiki compiles a <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.86em]">```wod</code> block
+        WOD Wiki compiles a <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.86em]">```time</code> block
         into a live WallClock timer, then logs every round straight back to your training
         journal — one file, one loop, no app-switching.
       </p>
 
-      <div className="mt-8 w-full max-w-2xl">
+      <div className="mt-8 w-full max-w-2xl text-left">
         <div className="h-[min(420px,50vh)] overflow-hidden rounded-xl border border-border shadow-lg">
           <TourEditorScreen
             doc={doc}
@@ -74,6 +80,8 @@ export function TourHero({
             onShare={onShare}
             onOpenInEditor={onOpenInEditor}
             theme={theme}
+            sharedBy={sharedBy}
+            onResetShared={onResetShared}
           />
         </div>
       </div>

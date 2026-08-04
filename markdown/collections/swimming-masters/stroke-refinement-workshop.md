@@ -13,7 +13,7 @@ tags:
 ### Description
 This technique-focused session emphasizes stroke mechanics and efficiency over fitness. Each segment isolates specific aspects of all four competitive strokes using progressive drill sequences. This workout is ideal for masters swimmers returning to the sport after a break, those recovering from injury, or anyone seeking to improve their swimming economy. Coaches should provide individual feedback throughout the session.
 
-```wod
+```time
 (3) Warmup
   100m Freestyle
   :30 Rest

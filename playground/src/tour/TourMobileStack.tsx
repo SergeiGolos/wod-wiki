@@ -22,12 +22,18 @@ export interface TourMobileStackProps {
   onRun: () => void
   onShare: () => void
   onOpenInEditor: () => void
+  /** Choose-your-own-adventure workout choice from the editor-blank caption card. */
+  onChoice?: (wod: string) => void
+  /** Shared-script attribution + reset, forwarded to the hero editor (#882). */
+  sharedBy?: string
+  onResetShared?: () => void
 }
 
 export function TourMobileStack(props: TourMobileStackProps) {
-  const timerCaption = TOUR_CAPTIONS.find((c) => c.id === 'timer')
-  const analyticsCaption = TOUR_CAPTIONS.find((c) => c.id === 'analytics')
-
+  const editorBlankCaption = TOUR_CAPTIONS.find((c) => c.id === 'editor-blank')
+  const editorMetricsCaption = TOUR_CAPTIONS.find((c) => c.id === 'editor-metrics')
+  const timerCaption = TOUR_CAPTIONS.find((c) => c.id === 'timer-wallclock')
+  const analyticsCaption = TOUR_CAPTIONS.find((c) => c.id === 'analytics-scorecard')
   // Spec §2: mobile Explore Your Data card degrades to a single stat.
   const [weekFacts, setWeekFacts] = useState<number | undefined>(undefined)
   useEffect(() => {
@@ -54,15 +60,27 @@ export function TourMobileStack(props: TourMobileStackProps) {
         onRun={props.onRun}
         onShare={props.onShare}
         onOpenInEditor={props.onOpenInEditor}
+        sharedBy={props.sharedBy}
+        onResetShared={props.onResetShared}
       />
       <TourShortCircuitStrip />
-      <TourLearnSection
-        quests={props.quests}
-        chapters={props.chapters}
-        questLabels={props.questLabels}
-        onHomeQuestClick={props.onHomeQuestClick}
-      />
 
+      {editorBlankCaption && (
+        <article
+          data-testid="tour-editor-card"
+          className="mx-6 rounded-2xl border border-border bg-card p-6"
+        >
+          <CaptionBody cap={editorBlankCaption} onChoice={props.onChoice} />
+        </article>
+      )}
+      {editorMetricsCaption && (
+        <article
+          data-testid="tour-editor-metrics-card"
+          className="mx-6 rounded-2xl border border-border bg-card p-6"
+        >
+          <CaptionBody cap={editorMetricsCaption} />
+        </article>
+      )}
       {timerCaption && (
         <article
           data-testid="tour-timer-card"
@@ -88,6 +106,12 @@ export function TourMobileStack(props: TourMobileStackProps) {
           )}
         </article>
       )}
+      <TourLearnSection
+        quests={props.quests}
+        chapters={props.chapters}
+        questLabels={props.questLabels}
+        onHomeQuestClick={props.onHomeQuestClick}
+      />
 
       <TourRegistrySection />
       <TourReferenceSection />

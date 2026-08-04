@@ -35,7 +35,7 @@ export function NavSearchInput({ onOpen, className }: NavSearchInputProps) {
     >
       <MagnifyingGlassIcon className="size-4 shrink-0" />
       <span className="hidden sm:inline text-xs text-muted-foreground/70">Search…</span>
-      <ShortcutBadge tokens={['meta', '/']} />
+      <ShortcutBadge tokens={['meta', 'K']} />
     </button>
   )
 }

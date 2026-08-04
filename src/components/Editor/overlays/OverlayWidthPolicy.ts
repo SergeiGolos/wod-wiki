@@ -19,7 +19,8 @@ export interface OverlayWidthInput {
 }
 
 export interface OverlayWidthDefaults {
-  wod:         { active: number; inactive: number };
+  time:        { active: number; inactive: number };
+  log:         { active: number; inactive: number };
   frontmatter: { active: number; inactive: number };
   markdown:    { active: number; inactive: number };
   code:        { active: number; inactive: number };
@@ -30,7 +31,8 @@ export interface OverlayWidthDefaults {
 // ── Default policy values ────────────────────────────────────────────
 
 export const DEFAULT_OVERLAY_WIDTHS: OverlayWidthDefaults = {
-  wod:         { active: 35, inactive: 20 },
+  time:        { active: 35, inactive: 20 },
+  log:         { active: 35, inactive: 20 },
   frontmatter: { active: 35, inactive: 100 },
   markdown:    { active: 0,  inactive: 0 },
   code:        { active: 30, inactive: 0 },

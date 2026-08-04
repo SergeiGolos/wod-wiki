@@ -69,7 +69,10 @@ export function WorkoutEditorPage({
   const isCollection = !NON_COLLECTION_CATEGORIES.has(category)
   const noteId = pageId(category, name)
   const navigate = useNavigate()
-  const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({ category, name, mdContent })
+  // seedOnMount: collections are read-only bundled content — viewing one
+  // must not create an undated ghost note in the library (#856). Journal
+  // categories keep the seed (navigate-to-today creates the day's note).
+  const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({ category, name, mdContent, seedOnMount: !isCollection })
   const sourceNote = useMemo(() => {
     if (!isCollection) return null
 

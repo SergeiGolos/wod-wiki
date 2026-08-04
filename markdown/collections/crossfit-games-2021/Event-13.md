@@ -15,7 +15,7 @@ tags:
 
 Heavy dumbbell snatches and muscle-ups.
 
-```wod
+```time
 50 DB Snatches 70lb
 30 Muscle Ups
 50 DB Snatches 70lb

@@ -15,7 +15,7 @@ tags:
 
 Dumbbell snatches and burpees for 10 rounds.
 
-```wod
+```time
 (10)
   10 DB Snatches 50lb
   10 Lateral Burpees Over DB

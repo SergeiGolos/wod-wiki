@@ -20,6 +20,7 @@ export function DocumentTitleSync() {
     if (pathname.startsWith('/journal')) title = 'Wod.Wiki - Journal'
     else if (pathname.startsWith('/feeds')) title = 'Wod.Wiki - Feeds'
     else if (pathname.startsWith('/collections')) title = 'Wod.Wiki - Collections'
+    else if (pathname.startsWith('/library')) title = 'Wod.Wiki - Library'
     else if (pathname.startsWith('/efforts')) title = 'Wod.Wiki - Efforts'
     else if (pathname.startsWith('/analytics')) title = 'Wod.Wiki - Analytics'
     else if (pathname.startsWith('/review')) title = 'Wod.Wiki - Review'

@@ -9,7 +9,7 @@ tags:
 
 AMRAP with a twist — score is rounds + reps.
 
-```wod
+```time
 20:00
 5 Pull-Ups
 10 Push-Ups
@@ -18,7 +18,7 @@ AMRAP with a twist — score is rounds + reps.
 
 Rest 5 minutes, then:
 
-```wod
+```time
 4 Rounds
 200m Run
 15 Kettlebell Swings 24kg

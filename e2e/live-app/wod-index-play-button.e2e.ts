@@ -34,7 +34,7 @@ test.describe('WOD Index Play Button — /journal/:date', () => {
     // 1. Prepare clean state + seed a journal note with a WOD block (the
     // empty-date UX mounts no editor without one — #698).
     await journal.clearStoredEntry(DATE_TEST);
-    await seedJournalNote(page, DATE_TEST, '# My Test\n\n```wod\nTimer: 10:00\n10 Burpees\n```\n');
+    await seedJournalNote(page, DATE_TEST, '# My Test\n\n```time\nTimer: 10:00\n10 Burpees\n```\n');
     await journal.goto(DATE_TEST);
 
     // 3. The seeded WOD block renders a start-workout control
@@ -65,7 +65,7 @@ test.describe('WOD Index Play Button — /journal/:date', () => {
     // zero statements and `ready` never flips); RuntimeTimerPanel now shows an
     // empty state instead.
     await journal.clearStoredEntry(DATE_TEST);
-    await seedJournalNote(page, DATE_TEST, '# Empty\n\n```wod\n```\n');
+    await seedJournalNote(page, DATE_TEST, '# Empty\n\n```time\n```\n');
     await journal.goto(DATE_TEST);
 
     const play = page.locator('[data-testid="editor-start-workout"]').first();

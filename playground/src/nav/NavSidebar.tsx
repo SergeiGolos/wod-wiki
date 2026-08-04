@@ -1,10 +1,9 @@
 /**
- * NavSidebar — renders the left sidebar from NavContext.
  *
  * Rendering layers (top → bottom):
  *   1. App logo + version
- *   2. L1 items  (Home, Journal, Collections, Search)
- *   3. L2 panel  (children list OR custom component for the active L1)
+ *   2. L1 items
+ *   3. L2 panel (children list or custom component for the active L1)
  *
  * "On this page" (L3) section links are intentionally excluded here — they
  * appear only in the "…" ActionsMenu so they don't duplicate the right TOC.
@@ -105,11 +104,14 @@ function L2ChildrenList({ items }: { items: NavItem[] }) {
         return (
           <SidebarItem
             key={child.id}
-            onClick={() => handleAction(child)}
+            onClick={child.disabled ? undefined : () => handleAction(child)}
             current={active}
+            disabled={child.disabled}
+            aria-label={child.disabled ? `${child.label} (coming soon)` : undefined}
+            className={child.disabled ? 'opacity-60' : undefined}
           >
             {child.icon && <child.icon data-slot="icon" />}
-            <SidebarLabel>{child.label}</SidebarLabel>
+            <SidebarLabel>{child.disabled ? '+' : child.label}</SidebarLabel>
           </SidebarItem>
         )
       })}

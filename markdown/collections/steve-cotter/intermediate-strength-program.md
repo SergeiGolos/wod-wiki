@@ -18,7 +18,7 @@ The program uses a 3-day per week structure with each session focusing on differ
 
 ### Day 1 - Press Focus
 
-```wod
+```time
 (5)
   5 Clean & Press Left 20kg
   5 Clean & Press Right 20kg
@@ -34,7 +34,7 @@ The program uses a 3-day per week structure with each session focusing on differ
 ```
 ### Day 2 - Hip Power
 
-```wod
+```time
 (5)
   10 KB Swing 24kg
   :30 Rest
@@ -50,7 +50,7 @@ The program uses a 3-day per week structure with each session focusing on differ
 ```
 ### Day 3 - Conditioning
 
-```wod
+```time
 20:00 AMRAP
   10 KB Swing 20kg
   5 Goblet Squat 20kg

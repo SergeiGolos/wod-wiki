@@ -16,7 +16,7 @@ This straightforward yet brutally effective workout uses the double kettlebell c
 
 The beauty of this workout lies in its simplicity and scalability. By setting a fixed time window and tracking total sets, practitioners can objectively measure progress over time. The goal is not to move as fast as possible but to accumulate quality volume with adequate rest between sets. Weight selection is critical - heavy enough to challenge, light enough to maintain form throughout.
 
-```wod
+```time
 20:00 AMRAP
   5 Double Clean & Press 24kg
   :60 Rest

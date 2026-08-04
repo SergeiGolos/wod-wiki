@@ -15,7 +15,7 @@ tags:
 
 Chipper with double-unders, overhead squats, ring dips, and muscle-ups.
 
-```wod
+```time
 100 Double Unders
 20 Overhead Squats 135lb
 100 Double Unders

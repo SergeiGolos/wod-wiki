@@ -39,9 +39,7 @@ Analytics queries execute against the derived fact store (`AnalyticsDataPoint` r
 
 ## 3. Content WQL (The `find:` extension)
 
-*Note: This is the specification actively being mapped out in [Wayfinder Map #781](https://github.com/SergeiGolos/wod-wiki/issues/781).*
-
-Content queries execute against the IndexedDB journal (`INotePersistence`) and the static build-time markdown corpus (`collections`, `feeds`).
+Content queries execute against the user's IndexedDB journal (`INotePersistence`) and the preloaded Catalog corpus (`collections`, `feeds`).
 
 **Shape:**
 ```wql
@@ -52,34 +50,44 @@ find:<target>{<filters>} [where <cross_store_predicate>] [in <scope>] [last <n>w
 - `find:note{effort:thruster} in journal last 8w`
 - `find:block{type:dashboard} in collections`
 - `find:block{text:fran} in all last 52w`
+- `find:note{!source:feed} in all`
 
 ### 3.1 Content Components
 
 *   **Target (`target`):** What the query returns.
-    *   `note`: Returns whole markdown notes.
-    *   `block`: Returns addressable subsets of notes (fenced regions like ````wod```, ````dashboard```, headings).
+    *   `note`: Returns whole markdown notes (journal Notes, Catalog Sessions, Catalog Posts).
+    *   `block`: Returns addressable subsets of notes (fenced regions like ````time```, ````dashboard```, ````query```, headings).
 *   **Filters (`filters`):** Reuses the analytics tag vocabulary, plus content-specific keys:
-    *   `type`: (e.g., `wod`, `dashboard`, `heading`, `text`).
+    *   `type`: Fenced block type (e.g., `wod`, `dashboard`, `query`, `heading`).
     *   `has`: Checks for presence of elements (e.g., `timer`, `image`).
-    *   `text`: Substring match over the raw content.
-*   **Scope (`scope`):** Where to look.
+    *   `text`: Substring match over raw note/block content.
+    *   `source`: Fine-grained content source filtering (`journal`, `collection`, `feed`, or catalog ID like `collection:crossfit-girls`). Negation (`!source:feed`) excludes that source.
+*   **Scope (`scope`):** Primary search space.
     *   `journal`: IndexedDB user notes.
-    *   `collections`: Curated, preloaded library.
-    *   `feeds`: Subscribed markdown feeds.
-    *   `all`: Universal search.
-*   **Time Window (`last <n>w`):** Filters by note/feed date. (Note: standard collection items are undated).
+    *   `collections`: Curated preloaded Catalog sessions.
+    *   `feeds`: Dated Catalog posts.
+    *   `all`: Universal search across all sources.
+*   **Time Window (`last <n>w|d`):** Filters by note or post date. (Note: standard Catalog sessions are undated).
 
 ## 4. Cross-Store Queries
 
-Bridging the "separate data" gap, WQL supports joining note/block content with numeric thresholds from the analytics engine. 
+Bridging the content and analytics gap, WQL supports joining note/block content with numeric thresholds from the analytics engine via the `where` clause.
 
-**Syntax Sketch (Pending Semantics Lock #785):**
+**Syntax:**
 ```wql
 find:note{tags:pr} where sum:totalVolume{} > 5000 in journal last 8w
 ```
-*Mechanism:* The `QueryService` handles cross-store joins leveraging the deterministic `blockContentId` (FNV-1a hash) and `segmentId` keys, ensuring logs remain the authoritative source of truth over disposable facts.
 
-## 5. Lexing and Parsing Structure
+**Mechanism:** The `QueryService` handles cross-store joins leveraging the deterministic `blockContentId` (FNV-1a hash) and `segmentId` keys, ensuring raw `WorkoutResult` logs remain the authoritative source of truth over disposable facts.
+
+## 5. In-Note Query Blocks (` ```query ` and ` ```dashboard `)
+
+WQL queries can be embedded directly inside Markdown notes as first-class fenced blocks. They render inline as live, interactive results in the note editor and prose viewer.
+
+*   **` ```query ` Block:** Contains a single WQL string (analytics or `find:` content query).
+*   **` ```dashboard ` Block:** Layout container containing one WQL query per line or structured YAML widget configurations.
+
+## 6. Lexing and Parsing Structure
 
 WQL is governed by a Lezer grammar (`src/grammar/wql.grammar`). 
 *   **Avoiding Shadowing:** Structural tokens for content search (`find`, `in`, `last`, `where`) are implemented as parse-context keywords rather than global tokens to prevent shadowing legitimate tag values or metrics.

@@ -9,7 +9,7 @@ tags:
 
 The classic hero workout. Partition the pull-ups, push-ups, and squats as needed. Wear a 20 lb / 9 kg vest if you have one.
 
-```wod
+```time
 1 Mile Run
 100 Pull-Ups
 200 Push-Ups

@@ -71,8 +71,8 @@ describe('useTourScroll', () => {
 
     const { result } = renderHook(() => useTourScroll(ref, false));
 
-    // First stage is timer even though the hero is still visible.
-    expect(result.current.slice.stage.id).toBe('timer');
+    // First stage is the editor slide even though the hero is still visible.
+    expect(result.current.slice.stage.id).toBe('editor-blank');
     expect(result.current.runwayReached).toBe(false);
   });
 

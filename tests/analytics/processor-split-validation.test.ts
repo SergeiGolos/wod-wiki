@@ -24,6 +24,7 @@ import { ProjectionResult } from '@/core/analytics/ProjectionResult';
 import { IOutputStatement, OutputStatement } from '@/core/models/OutputStatement';
 import { MetricContainer } from '@/core/models/MetricContainer';
 import { MetricType } from '@/core/models/Metric';
+import { MockEffortResolver } from '@/testing/harness/MockEffortResolver';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -190,64 +191,60 @@ describe('ADR-0001 + ADR-0005 Processor Split Validation', () => {
   describe('3. Profile-driven assembly (no hardcoded registration)', () => {
     it('builds engine from StandardAnalyticsProfile context', () => {
       const profile = new StandardAnalyticsProfile();
-      const context = makeContext('wod', [MetricType.Rep, MetricType.Resistance]);
+      const context: AnalyticsProfileContext = {
+        ...makeContext('time', [MetricType.Rep, MetricType.Resistance]),
+        analyticsContext: { effortResolver: new MockEffortResolver() },
+      };
       const { realtime, summary } = profile.build(context);
 
       const engine = new AnalyticsEngine();
       for (const p of realtime) engine.addRealtimeProcessor(p);
       for (const p of summary) engine.addSummaryProcessor(p);
 
-      // With Rep + Resistance, we expect PowerEnrichmentProcess (realtime)
-      // and VolumeProjectionEngine (summary)
-      const realtimeIds = realtime.map(p => p.id);
-      const summaryIds = summary.map(p => p.id);
+      // Built-ins are the effort-resolution bridge + the composed calc engine.
+      expect(realtime.map(p => p.id)).toEqual(['two-pass-effort-resolution', 'composed-calculations']);
+      expect(summary.map(p => p.id)).toEqual(['composed-calculations']);
 
-      expect(realtimeIds).toContain('power-enrichment');
-      expect(realtimeIds).toContain('pace-enrichment');
-      expect(summaryIds).toContain('volume-projection');
-      expect(summaryIds).toContain('rep-projection');
-
-      // Run a segment with reps + resistance — power enrichment should add a metric
+      // Run a segment with reps + resistance — the power calc adds a metric.
       const seg = makeSegment('bench', [
         { type: MetricType.Rep, value: 10 },
         { type: MetricType.Resistance, value: { amount: 100, units: 'kg' } },
         { type: MetricType.Elapsed, value: 30_000 },
       ]);
       const enriched = engine.run(seg);
-
-      // PowerEnrichmentProcess adds a 'power' metric when reps, resistance, and elapsed exist
       expect(enriched.metrics.some(m => m.type === 'power')).toBe(true);
 
-      // Finalize should produce volume projection
+      // Finalize produces the volume projection under its canonical key.
       const analytics = engine.finalize();
-      const volume = analytics.find(a => a.getMetric(MetricType.Label)?.value === 'Volume Load');
+      const volume = analytics.find(a =>
+        (a.getMetric(MetricType.Volume)?.metadata as Record<string, unknown> | undefined)?.canonicalKey === 'totalVolume'
+        && !a.getMetric(MetricType.Volume)?.metadata?.effortSlug);
       expect(volume).toBeDefined();
       expect(volume!.getMetric(MetricType.Volume)?.value).toBe(1000); // 10 reps × 100 kg
     });
 
-    it('excludes processors whose required metrics are absent', () => {
+    it('applies calcs dynamically: no power without reps/resistance (#848)', () => {
+      // The static requiredMetrics tier is gone for built-in calcs —
+      // applicability is a `when` predicate evaluated per segment.
       const profile = new StandardAnalyticsProfile();
-      const context = makeContext('wod', [MetricType.Elapsed]);
+      const context: AnalyticsProfileContext = {
+        ...makeContext('time', [MetricType.Elapsed]),
+        analyticsContext: { effortResolver: new MockEffortResolver() },
+      };
       const { realtime, summary } = profile.build(context);
+      const engine = new AnalyticsEngine();
+      for (const p of realtime) engine.addRealtimeProcessor(p);
+      for (const p of summary) engine.addSummaryProcessor(p);
 
-      expect(realtime.map(p => p.id)).not.toContain('power-enrichment');
-      expect(summary.map(p => p.id)).not.toContain('volume-projection');
-      expect(summary.map(p => p.id)).not.toContain('rep-projection');
+      const enriched = engine.run(makeSegment('plank', [{ type: MetricType.Elapsed, value: 30_000 }]));
+      expect(enriched.metrics.some(m => m.type === 'power')).toBe(false);
+
+      const analytics = engine.finalize();
+      expect(analytics.some(a => a.getMetric(MetricType.Volume))).toBe(false);
+      expect(analytics.some(a => a.getMetric(MetricType.Rep))).toBe(false);
     });
 
-    it('excludes processors whose dialect does not match', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = makeContext('plan', [MetricType.Elapsed, MetricType.Action]);
-      const { realtime, summary } = profile.build(context);
 
-      // pace-enrichment and power-enrichment do not declare 'plan' dialect
-      expect(realtime.map(p => p.id)).not.toContain('pace-enrichment');
-      expect(realtime.map(p => p.id)).not.toContain('power-enrichment');
-
-      // met-minute and session-load do not declare 'plan'
-      expect(summary.map(p => p.id)).not.toContain('met-minute-projection');
-      expect(summary.map(p => p.id)).not.toContain('session-load-projection');
-    });
   });
 
   describe('4. Error isolation across the pipeline', () => {

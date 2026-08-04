@@ -107,7 +107,7 @@ No prefix = default repeat group.
 
 ### Indentation
 
-```wod
+```time
 (3)                   ← parent: 3 rounds
   400m Run            ← child (implicit repeat)
   21 KB Swings 53lb
@@ -120,7 +120,7 @@ No prefix = default repeat group.
 
 ### For Time
 Input: `Fran: 21-15-9 Thrusters (95lb) and Pullups, for time`
-```wod
+```time
 (21-15-9)
   Thrusters 95lb
   Pullups
@@ -129,7 +129,7 @@ Time tracked automatically; no `:?` needed.
 
 ### AMRAP
 Input: `20-minute AMRAP: 5 pullups, 10 pushups, 15 air squats`
-```wod
+```time
 20:00 AMRAP
   5 Pullups
   10 Pushups
@@ -138,7 +138,7 @@ Input: `20-minute AMRAP: 5 pullups, 10 pushups, 15 air squats`
 
 ### EMOM
 Input: `EMOM 30 minutes: 5 pullups, 10 pushups, 15 air squats`
-```wod
+```time
 (30) :60 EMOM
   + 5 Pullups
   + 10 Pushups
@@ -147,7 +147,7 @@ Input: `EMOM 30 minutes: 5 pullups, 10 pushups, 15 air squats`
 
 ### Intervals with Rest
 Input: `4 rounds of 100m swim with 30 seconds rest`
-```wod
+```time
 (4)
   100m Swim
   :30 Rest
@@ -155,13 +155,13 @@ Input: `4 rounds of 100m swim with 30 seconds rest`
 
 ### Single Modality For Time
 Input: `150 wall ball shots at 20lb, for time`
-```wod
+```time
 150 Wall Ball Shots 20lb
 ```
 
 ### Distance-Based For Time
 Input: `Row 1000m, 50 thrusters 45lb, 30 pullups — for time`
-```wod
+```time
 1000m Row
 50 Thrusters 45lb
 30 Pullups
@@ -169,31 +169,31 @@ Input: `Row 1000m, 50 thrusters 45lb, 30 pullups — for time`
 
 ### Max Weight
 Input: `Work up to a 1-rep max clean & jerk`
-```wod
+```time
 1 Clean & Jerk ?lb
 ```
 
 ### Max Reps in Time Domain
 Input: `In 1 minute, as many pushups as possible`
-```wod
+```time
 1:00 ? Pushups
 ```
 
 ### Run for Time, Measure Distance
 Input: `Run for 20 minutes, record distance`
-```wod
+```time
 20:00 ?m Run
 ```
 
 ### Run a Distance, Measure Time
 Input: `Run 5K for time`
-```wod
+```time
 5km Run
 ```
 
 ### EMOM Complex
 Input: `EMOM 20 minutes: 2 cleans, 1 press, 3 front squats`
-```wod
+```time
 (20) 1:00
   + 2 Clean
   + 1 Press
@@ -202,7 +202,7 @@ Input: `EMOM 20 minutes: 2 cleans, 1 press, 3 front squats`
 
 ### Descending Reps
 Input: `21-15-9 deadlifts at 225lb and handstand pushups`
-```wod
+```time
 (21-15-9)
   Deadlift 225lb
   Handstand Pushups
@@ -210,7 +210,7 @@ Input: `21-15-9 deadlifts at 225lb and handstand pushups`
 
 ### Multi-Section Workout
 Input: `Warmup: 4x100m swim/30s rest. Main: 8x50m kick/30s rest. Cooldown: 400m easy.`
-```wod
+```time
 (4) Warmup
   100m Swim
   :30 Rest
@@ -224,7 +224,7 @@ Input: `Warmup: 4x100m swim/30s rest. Main: 8x50m kick/30s rest. Cooldown: 400m 
 
 ### Rest Between Rounds
 Input: `5 rounds: 20 pullups, 30 pushups, 40 situps, 50 air squats. Rest 3 min between.`
-```wod
+```time
 (5)
   + 20 Pullups
   + 30 Pushups
@@ -235,7 +235,7 @@ Input: `5 rounds: 20 pullups, 30 pushups, 40 situps, 50 air squats. Rest 3 min b
 
 ### Bodyweight Loads
 Input: `10-9-8…1 Deadlift 1.5BW, Bench BW, Clean 0.75BW`
-```wod
+```time
 (10-9-8-7-6-5-4-3-2-1)
   Deadlift 1.5bw
   Bench Press 1bw
@@ -244,7 +244,7 @@ Input: `10-9-8…1 Deadlift 1.5BW, Bench BW, Clean 0.75BW`
 
 ### Timed Sections
 Input: `5 min: 100 KB Swings 70lb. 1 min rest. 10 min: 10 Turkish Getups 70lb.`
-```wod
+```time
 5:00 100 KB Swings 70lb
 1:00 Rest
 10:00 10 Turkish Getups 70lb
@@ -252,7 +252,7 @@ Input: `5 min: 100 KB Swings 70lb. 1 min rest. 10 min: 10 Turkish Getups 70lb.`
 
 ### Tabata
 Input: `Tabata air squats (8 rounds: 20 sec on, 10 sec off). Record lowest round.`
-```wod
+```time
 (8)
   :20 ? Air Squats
   :10 Rest
@@ -260,7 +260,7 @@ Input: `Tabata air squats (8 rounds: 20 sec on, 10 sec off). Record lowest round
 
 ### Left/Right Asymmetry
 Write separate lines per side:
-```wod
+```time
 (20)
   + 1 Clean & Press Left
   + 1 Clean & Press Right
@@ -328,7 +328,7 @@ Write separate lines per side:
 ## Description
 [Brief description]
 
-```wod
+```time
 [Whiteboard Language syntax]
 ```
 

@@ -16,7 +16,7 @@ The StrongFirst Snatch Test is the certification standard for StrongFirst SFG (S
 
 The snatch test challenges both the alactic and aerobic energy systems, requiring explosive power in each snatch while developing significant cardiovascular demand over the five minutes. Pacing strategies vary, but most successful candidates use a structured approach with planned rest periods, often breaking the 100 reps into sets with brief pauses in the rack or overhead position.
 
-```wod
+```time
 5:00 ? KB Snatch 24kg
 ```
 

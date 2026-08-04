@@ -12,6 +12,7 @@ import {
   normalizeAllMetrics,
   replayResultAnalytics,
 } from '@/services/analytics/workoutDerivation';
+import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 import { createParser } from '@/parser/parserInstance';
 import type { ScriptBlock } from '@/components/Editor/types';
 import {
@@ -193,6 +194,10 @@ export class IndexedDBNotePersistence implements INotePersistence {
       if (points.length > 0) {
         // Non-load-bearing: WorkoutResult.data.logs is the authoritative source.
         await this.storage.saveAnalyticsPoints(points);
+        // Eager-at-finalize (#877): store-scope rollups recompute as soon as
+        // new summary facts land — no lazy driver on surface open. Fire and
+        // forget: rollup rows are disposable and recompute on the next run.
+        void ensureStoreRollupFacts().catch(() => undefined);
       }
     }
 
@@ -271,7 +276,7 @@ export class IndexedDBNotePersistence implements INotePersistence {
 
     const block = scriptBlock.statements?.length
       ? scriptBlock
-      : { ...scriptBlock, statements: createParser().read(scriptBlock.content).statements };
+      : { ...scriptBlock, statements: createParser().read(scriptBlock.content, scriptBlock.sport).statements };
 
     const derivedLogs = replayResultAnalytics(result, block);
     const updated: WorkoutResult = {

@@ -19,14 +19,14 @@ Relay training focuses on high-intensity short sets with quick transitions. This
 
 ### Team Format
 
-```wod
+```time
 (4) Athletes rotate
   3:00 Double KB Jerk 24kg
   :30 Transition
 ```
 ### Individual Practice
 
-```wod
+```time
 (5)
   3:00 Double KB Jerk 24kg
   2:00 Rest

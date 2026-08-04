@@ -16,7 +16,7 @@ Easy Muscle is Geoff Neupert's hypertrophy-focused program designed specifically
 
 The program uses a "reverse ladder" structure, starting with higher reps and progressively decreasing as fatigue sets in, allowing for maximum total volume without excessive fatigue. This approach builds muscle while respecting recovery capacity, making it sustainable for long-term practice.
 
-```wod
+```time
 (3)
   10 Double Clean 20kg
   :30 Rest

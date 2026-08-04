@@ -24,7 +24,7 @@ function findMarkdownFiles(dir: string, fileList: string[] = []): string[] {
  */
 function extractScriptBlocks(content: string): string[] {
     const blocks: string[] = [];
-    const startMarker = '```wod';
+    const startMarker = '```time';
     const endMarker = '```';
 
     let startIndex = content.indexOf(startMarker);

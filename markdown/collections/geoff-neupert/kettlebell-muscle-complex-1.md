@@ -16,7 +16,7 @@ This complex from Geoff Neupert's "Kettlebell Muscle" program combines pressing,
 
 The sequence flows naturally from one movement to the next: cleans bring the bells to the rack, presses develop overhead strength, squats build leg power, and rows provide pulling balance. The continuous nature of the complex means cardiovascular conditioning is developed alongside muscular strength and endurance.
 
-```wod
+```time
 (4)
   + 2 Double Clean 20kg
   + 2 Double Press 20kg

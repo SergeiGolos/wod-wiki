@@ -38,8 +38,8 @@ describe("cursorFocusExtension", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders feedback as a widget anchored to the focused WOD closing fence", () => {
-    const view = createView("Intro\n```wod\n10 Pushups\n```", 3);
+  it("renders feedback as a widget anchored to the focused workout closing fence", () => {
+    const view = createView("Intro\n```time\n10 Pushups\n```", 3);
     const panel = view.contentDOM.querySelector(".cm-wod-metric-panel-anchor .cm-wod-metric-panel");
 
     expect(panel?.textContent).toContain("Reps");
@@ -49,8 +49,8 @@ describe("cursorFocusExtension", () => {
     view.destroy();
   });
 
-  it("removes the closing-fence widget when the cursor leaves the WOD section", () => {
-    const view = createView("Intro\n```wod\n10 Pushups\n```", 3);
+  it("removes the closing-fence widget when the cursor leaves the workout section", () => {
+    const view = createView("Intro\n```time\n10 Pushups\n```", 3);
 
     expect(view.contentDOM.querySelector(".cm-wod-metric-panel-anchor")).not.toBeNull();
 
@@ -76,7 +76,7 @@ describe("cursorFocusExtension", () => {
       }),
     } as any);
 
-    const create = () => createView("Intro\n```wod\n10 Pushups\n```", 3);
+    const create = () => createView("Intro\n```time\n10 Pushups\n```", 3);
     expect(create).not.toThrow();
 
     const view = create();

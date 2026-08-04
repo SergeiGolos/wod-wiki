@@ -15,7 +15,7 @@ tags:
 
 Handstand walking and handstand push-up medley.
 
-```wod
+```time
 50ft Handstand Walk
 10 Handstand Pushups
 50ft Handstand Walk

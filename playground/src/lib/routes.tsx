@@ -27,6 +27,7 @@ export const ROUTE_PATTERNS = {
   guideGettingStarted: '/guide/getting-started',
   guideSyntax: '/guide/syntax',
   guideBehaviors: '/guide/behaviors',
+  guideAnalytics: '/guide/analytics',
   aiFirst: '/ai-first',
   feeds: '/feeds',
   feedDetail: '/feeds/:feedSlug',
@@ -46,6 +47,7 @@ export const ROUTE_PATTERNS = {
   analytics: '/analytics',
   analyticsExplorer: '/analytics/explorer',
   analyticsDashboard: '/analytics/dashboard',
+  library: '/library',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -151,9 +153,14 @@ export function effortsPath(): string {
   return '/efforts';
 }
 
-/** /analytics/explorer with an optional pre-filled WQL query and range —
- *  canonical home is `@/lib/routes`; re-exported for playground consumers. */
-export { analyticsExplorerPath } from '@/lib/routes';
+/** /analytics/explorer with an optional pre-filled WQL query and range */
+export function analyticsExplorerPath(options?: { q?: string; weeks?: number }): string {
+  const params = new URLSearchParams();
+  if (options?.q) params.set('q', options.q);
+  if (options?.weeks) params.set('weeks', String(options.weeks));
+  const qs = params.toString();
+  return `/analytics/explorer${qs ? `?${qs}` : ''}`;
+}
 
 /** /analytics/dashboard */
 export function analyticsDashboardPath(): string {
@@ -351,8 +358,8 @@ export const ROUTE_REDIRECTS: RedirectRule[] = [
     to: ({ runtimeId }) => runPath(runtimeId),
   },
   // /plan  →  /journal?mode=plan
-  // The plan view folded into the unified JournalListPage; preserve as an alias
-  // so external links, command palettes, and bookmarks resolve cleanly.
+  // Preserve as an alias so external links, command palettes, and bookmarks
+  // resolve cleanly; /journal itself redirects on to the unified Library.
   {
     match: (p) => {
       if (p !== '/plan') return false
@@ -377,6 +384,40 @@ export function resolveRedirect(pathname: string): string | null {
 
 
   return null;
+
+}
+
+// ---------------------------------------------------------------------------
+// Library redirect matrix (#813) — the three legacy list routes redirect to
+// `/library` with the source tri-state pre-set. Existing query params are
+// preserved (appended after the tri-state keys) so deep-link state survives.
+// ---------------------------------------------------------------------------
+
+type LibraryTriState = 'note=on&session=hide&post=hide' | 'note=hide&session=on&post=hide' | 'note=hide&session=hide&post=on'
+
+const LIBRARY_REDIRECTS: Array<{
+  match: (pathname: string) => boolean
+  triState: LibraryTriState
+}> = [
+  { match: (p) => p === '/journal' || p === '/journal/', triState: 'note=on&session=hide&post=hide' },
+  { match: (p) => p === '/collections' || p === '/collections/', triState: 'note=hide&session=on&post=hide' },
+  { match: (p) => p === '/feeds' || p === '/feeds/', triState: 'note=hide&session=hide&post=on' },
+]
+
+/**
+ * Resolve a pathname + search against the Library redirect matrix.
+ * Returns the `/library?…` destination, or `null` when no alias matches.
+ */
+export function resolveLibraryRedirect(pathname: string, search: string): string | null {
+  for (const rule of LIBRARY_REDIRECTS) {
+    if (rule.match(pathname)) {
+      // `search` arrives as `?k=v&k2=v2` or `''`. Strip the leading `?` for
+      // appending to the tri-state prefix.
+      const extra = search.startsWith('?') ? search.slice(1) : search
+      return extra ? `/library?${rule.triState}&${extra}` : `/library?${rule.triState}`
+    }
+  }
+  return null
 }
 
 // ---------------------------------------------------------------------------

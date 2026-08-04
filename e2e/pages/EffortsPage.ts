@@ -21,7 +21,7 @@ export class EffortsPage {
   }
 
   catalogSearch(): Locator {
-    return this.page.getByTestId(TEST_IDS.EFFORTS_CATALOG_SEARCH);
+    return this.page.getByTestId(TEST_IDS.EFFORTS_CATALOG_SEARCH).or(this.page.getByTestId('wql-composer-input'));
   }
 
   createCustomButton(): Locator {
@@ -131,7 +131,18 @@ export class EffortsPage {
   }
 
   async searchFor(value: string) {
+    if (!value) {
+      const textTokenRemove = this.page.getByTestId('token-slot-remove-text');
+      if (await textTokenRemove.isVisible().catch(() => false)) {
+        await textTokenRemove.click();
+        return;
+      }
+      await this.catalogSearch().fill('');
+      await this.catalogSearch().press('Enter');
+      return;
+    }
     await this.catalogSearch().fill(value);
+    await this.catalogSearch().press('Enter');
   }
 
   async openNavigationIfPresent() {

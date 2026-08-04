@@ -18,5 +18,7 @@ export { ScopedRuntimeProvider, type ScopedRuntimeProviderProps } from './Scoped
 
 // Page Shells
 export { CanvasPage, type CanvasPageProps } from './CanvasPage';
+export { StickyPageHeader, type StickyPageHeaderProps } from './StickyPageHeader';
+export { measureStickyBoundary, useStickyBoundaryOffset, STICKY_BOUNDARY_SELECTOR } from './stickyBoundary';
 export { JournalPageShell, type JournalPageShellProps } from './JournalPageShell';
 export { CalendarPageShell, type CalendarPageShellProps } from './CalendarPageShell';

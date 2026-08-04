@@ -7,5 +7,5 @@ export {
 } from './workloadRollup';
 export type { DayRollup, RollupMetricTarget } from './workloadRollup';
 
-export { ensureRollupFacts, rollupFactId, runRollupDriver } from './rollupDriver';
-export type { RollupDriverOptions, RollupRunSummary, RollupStore } from './rollupDriver';
+export { ensureStoreRollupFacts, rollupFactId, runStoreRollup } from './storeRollup';
+export type { StoreRollupOptions, StoreRollupStore, StoreRollupSummary } from './storeRollup';

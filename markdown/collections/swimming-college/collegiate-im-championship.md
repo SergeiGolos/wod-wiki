@@ -13,7 +13,7 @@ tags:
 ### Description
 This elite IM workout develops the comprehensive skills needed for 200m and 400m IM success at the NCAA level. The session includes dedicated work on each stroke, transition efficiency between strokes, and race-pace rehearsal for full IM distances. Advanced swimmers will focus on maintaining stroke integrity through fatigue while developing the tactical awareness to manage energy distribution across all four strokes.
 
-```wod
+```time
 (3) Warmup
   200m IM
   :30 Rest

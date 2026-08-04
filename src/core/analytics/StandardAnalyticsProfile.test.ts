@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'bun:test';
-import { StandardAnalyticsProfile } from './StandardAnalyticsProfile';
+import { StandardAnalyticsProfile, realtimeProcessorRegistry, summaryProcessorRegistry } from './StandardAnalyticsProfile';
 import { MetricType } from '../models/Metric';
 import type { AnalyticsProfileContext } from './IAnalyticsProfile';
+import type { IRealtimeProcessor } from './IRealtimeProcessor';
+import type { ISummaryProcessor } from './ISummaryProcessor';
 import { MockEffortResolver } from '@/testing/harness/MockEffortResolver';
 
 describe('StandardAnalyticsProfile', () => {
@@ -10,309 +12,106 @@ describe('StandardAnalyticsProfile', () => {
     scriptMetricTypes: new Set(metricTypes),
   });
 
-  describe('build() with all metrics present', () => {
-    it('should return all realtime and summary processors when all required metrics are present', () => {
+  describe('build() with an effort resolver', () => {
+    it('registers TwoPass first, then the composed calc engine in both chains', () => {
       const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [
-        MetricType.Elapsed,
-        MetricType.Rep,
-        MetricType.Resistance,
-        MetricType.Distance,
-        MetricType.Action,
-      ]);
-
-      const result = profile.build(context);
-
-      expect(result.realtime).toHaveLength(2);
-      expect(result.summary).toHaveLength(6);
-    });
-
-    it('should inject TwoPassEffortResolutionProcess when analyticsContext is provided', () => {
-      const profile = new StandardAnalyticsProfile();
-      const resolver = new MockEffortResolver();
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action, MetricType.Rep, MetricType.Resistance]),
-        analyticsContext: { effortResolver: resolver },
+        analyticsContext: { effortResolver: new MockEffortResolver() },
       };
 
       const result = profile.build(context);
 
-      expect(result.realtime.map(p => p.id)).toContain('two-pass-effort-resolution');
-      // Resolution process is first, then the 2 standard realtime processors
-      expect(result.realtime[0].id).toBe('two-pass-effort-resolution');
-      expect(result.realtime).toHaveLength(3);
+      expect(result.realtime.map((p) => p.id)).toEqual(['two-pass-effort-resolution', 'composed-calculations']);
+      expect(result.summary.map((p) => p.id)).toEqual(['composed-calculations']);
+      // One engine instance serves both phases (segment annotations + running totals).
+      expect(Object.is(result.summary[0], result.realtime[1])).toBe(true);
     });
 
-    it('should not inject TwoPassEffortResolutionProcess when analyticsContext is absent', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Action]);
-
-      const result = profile.build(context);
-
-      expect(result.realtime.map(p => p.id)).not.toContain('two-pass-effort-resolution');
-    });
-  });
-
-  describe('build() requiredMetrics filtering', () => {
-    it('should include PaceEnrichmentProcess regardless of metrics (no requiredMetrics)', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Rep]);
-
-      const result = profile.build(context);
-
-      const ids = result.realtime.map(p => p.id);
-      expect(ids).toContain('pace-enrichment');
-    });
-
-    it('should include PowerEnrichmentProcess when Rep and Resistance are present', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Rep, MetricType.Resistance]);
-
-      const result = profile.build(context);
-
-      const ids = result.realtime.map(p => p.id);
-      expect(ids).toContain('power-enrichment');
-    });
-
-    it('should exclude PowerEnrichmentProcess when a required metric is absent', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Rep]);
-
-      const result = profile.build(context);
-
-      const ids = result.realtime.map(p => p.id);
-      expect(ids).not.toContain('power-enrichment');
-    });
-
-    it('should include RepProjectionEngine when Rep is present', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Rep]);
-
-      const result = profile.build(context);
-
-      const ids = result.summary.map(p => p.id);
-      expect(ids).toContain('rep-projection');
-    });
-
-    it('should exclude RepProjectionEngine when Rep is absent', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Elapsed]);
-
-      const result = profile.build(context);
-
-      const ids = result.summary.map(p => p.id);
-      expect(ids).not.toContain('rep-projection');
-    });
-
-    it('should include DistanceProjectionEngine when Distance is present', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Distance]);
-
-      const result = profile.build(context);
-
-      const ids = result.summary.map(p => p.id);
-      expect(ids).toContain('distance-projection');
-    });
-
-    it('should exclude DistanceProjectionEngine when Distance is absent', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Elapsed]);
-
-      const result = profile.build(context);
-
-      const ids = result.summary.map(p => p.id);
-      expect(ids).not.toContain('distance-projection');
-    });
-
-    it('should include VolumeProjectionEngine when Rep and Resistance are present', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Rep, MetricType.Resistance]);
-
-      const result = profile.build(context);
-
-      const ids = result.summary.map(p => p.id);
-      expect(ids).toContain('volume-projection');
-    });
-
-    it('should exclude VolumeProjectionEngine when Resistance is absent', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Rep]);
-
-      const result = profile.build(context);
-
-      const ids = result.summary.map(p => p.id);
-      expect(ids).not.toContain('volume-projection');
-    });
-
-    it('should include SessionLoadProjectionEngine regardless of metrics (no requiredMetrics)', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Rep]);
-
-      const result = profile.build(context);
-
-      const ids = result.summary.map(p => p.id);
-      expect(ids).toContain('session-load-projection');
-    });
-
-    it('should include MetMinuteProjectionEngine when Action is present', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Action]);
-
-      const result = profile.build(context);
-
-      const ids = result.summary.map(p => p.id);
-      expect(ids).toContain('met-minute-projection');
-    });
-
-    it('should exclude MetMinuteProjectionEngine when Action is absent', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Elapsed]);
-
-      const result = profile.build(context);
-
-      const ids = result.summary.map(p => p.id);
-      expect(ids).not.toContain('met-minute-projection');
-    });
-
-    it('should include TISProcessor when Action is present', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Action]);
-
-      const result = profile.build(context);
-
-      const ids = result.summary.map(p => p.id);
-      expect(ids).toContain('tis-projection');
-    });
-
-    it('should exclude TISProcessor when Action is absent', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Elapsed]);
-
-      const result = profile.build(context);
-
-      const ids = result.summary.map(p => p.id);
-      expect(ids).not.toContain('tis-projection');
-    });
-  });
-
-  describe('build() dialect filtering', () => {
-    it('should include log-dialect processors for log context', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('log', [MetricType.Rep, MetricType.Resistance]);
-
-      const result = profile.build(context);
-
-      expect(result.realtime.map(p => p.id)).toContain('pace-enrichment');
-      expect(result.realtime.map(p => p.id)).toContain('power-enrichment');
-      expect(result.summary.map(p => p.id)).toContain('rep-projection');
-      expect(result.summary.map(p => p.id)).toContain('volume-projection');
-    });
-
-    it('should include plan-dialect processors for plan context', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('plan', [MetricType.Rep, MetricType.Resistance]);
-
-      const result = profile.build(context);
-
-      // Realtime processors do not declare 'plan', so they are excluded
-      expect(result.realtime.map(p => p.id)).not.toContain('pace-enrichment');
-      expect(result.realtime.map(p => p.id)).not.toContain('power-enrichment');
-      // Summary processors that declare 'plan' are included
-      expect(result.summary.map(p => p.id)).toContain('rep-projection');
-      expect(result.summary.map(p => p.id)).toContain('volume-projection');
-    });
-
-    it('should exclude processors whose dialect list does not match context', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('plan', [MetricType.Elapsed, MetricType.Distance]);
-
-      const result = profile.build(context);
-
-      // SessionLoad and MetMinute do not include 'plan'
-      expect(result.summary.map(p => p.id)).not.toContain('session-load-projection');
-      expect(result.summary.map(p => p.id)).not.toContain('met-minute-projection');
-      // DistanceProjectionEngine includes 'plan'
-      expect(result.summary.map(p => p.id)).toContain('distance-projection');
-    });
-  });
-
-  describe('build() userProfile vo2max passthrough', () => {
-    it('should pass vo2max to TISProcessor when provided in context', () => {
+    it('passes the user profile through to the calc engine (TIS metMax personalization)', () => {
       const profile = new StandardAnalyticsProfile();
       const context: AnalyticsProfileContext = {
-        dialect: 'wod',
+        dialect: 'time',
         scriptMetricTypes: new Set([MetricType.Action]),
-        userProfile: { vo2max: 49.0 },
+        analyticsContext: { effortResolver: new MockEffortResolver() },
+        userProfile: { vo2max: 49 },
       };
 
       const result = profile.build(context);
-      const tis = result.summary.find(p => p.id === 'tis-projection');
-      expect(tis).toBeDefined();
+      // Engine constructed without error; vo2max flows via CalcEngineDeps.
+      expect(result.summary).toHaveLength(1);
     });
 
-    it('should create TISProcessor without vo2max when userProfile is absent', () => {
+    it('registers neither TwoPass nor the calc engine when no resolver is present', () => {
       const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Action]);
+      const context = createContext('time', [MetricType.Action]);
 
       const result = profile.build(context);
-      const tis = result.summary.find(p => p.id === 'tis-projection');
-      expect(tis).toBeDefined();
+
+      expect(result.realtime).toHaveLength(0);
+      expect(result.summary).toHaveLength(0);
     });
   });
 
-  describe('build() combined filtering', () => {
-    it('should return only applicable processors for a strength workout', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Elapsed, MetricType.Rep, MetricType.Resistance]);
+  describe('custom processor registries', () => {
+    const customRealtime: IRealtimeProcessor = {
+      id: 'custom-realtime',
+      fenceTypes: ['time'],
+      process: (output) => output,
+    };
+    const customSummary: ISummaryProcessor = {
+      id: 'custom-summary',
+      fenceTypes: ['time'],
+      requiredMetrics: [MetricType.Rep],
+      summarize: () => [],
+    };
 
-      const result = profile.build(context);
+    it('includes applicable custom processors after the built-in chain', () => {
+      realtimeProcessorRegistry.register(customRealtime);
+      summaryProcessorRegistry.register(customSummary);
+      try {
+        const profile = new StandardAnalyticsProfile();
+        const context: AnalyticsProfileContext = {
+          dialect: 'time',
+          scriptMetricTypes: new Set([MetricType.Rep]),
+          analyticsContext: { effortResolver: new MockEffortResolver() },
+        };
 
-      expect(result.realtime.map(p => p.id).sort()).toEqual([
-        'pace-enrichment',
-        'power-enrichment',
-      ]);
-      expect(result.summary.map(p => p.id).sort()).toEqual([
-        'rep-projection',
-        'session-load-projection',
-        'volume-projection',
-      ]);
+        const result = profile.build(context);
+
+        expect(result.realtime.map((p) => p.id)).toEqual(['two-pass-effort-resolution', 'composed-calculations', 'custom-realtime']);
+        expect(result.summary.map((p) => p.id)).toEqual(['composed-calculations', 'custom-summary']);
+      } finally {
+        realtimeProcessorRegistry.unregister('custom-realtime');
+        summaryProcessorRegistry.unregister('custom-summary');
+      }
     });
 
-    it('should return only applicable processors for a cardio workout', () => {
-      const profile = new StandardAnalyticsProfile();
-      const context = createContext('wod', [MetricType.Elapsed, MetricType.Distance, MetricType.Action]);
+    it('filters custom processors by fence dialect and required metrics', () => {
+      realtimeProcessorRegistry.register(customRealtime);
+      summaryProcessorRegistry.register(customSummary);
+      try {
+        const profile = new StandardAnalyticsProfile();
 
-      const result = profile.build(context);
+        const wrongDialect = profile.build({
+          dialect: 'log',
+          scriptMetricTypes: new Set([MetricType.Rep]),
+          analyticsContext: { effortResolver: new MockEffortResolver() },
+        });
+        expect(wrongDialect.realtime.map((p) => p.id)).not.toContain('custom-realtime');
+        expect(wrongDialect.summary.map((p) => p.id)).not.toContain('custom-summary');
 
-      expect(result.realtime.map(p => p.id).sort()).toEqual([
-        'pace-enrichment',
-      ]);
-      expect(result.summary.map(p => p.id).sort()).toEqual([
-        'distance-projection',
-        'met-minute-projection',
-        'session-load-projection',
-        'tis-projection',
-      ]);
-    });
-
-    it('should include resolution process first for cardio with analyticsContext', () => {
-      const profile = new StandardAnalyticsProfile();
-      const resolver = new MockEffortResolver();
-      const context: AnalyticsProfileContext = {
-        dialect: 'wod',
-        scriptMetricTypes: new Set([MetricType.Elapsed, MetricType.Distance, MetricType.Action]),
-        analyticsContext: { effortResolver: resolver },
-      };
-
-      const result = profile.build(context);
-
-      expect(result.realtime[0].id).toBe('two-pass-effort-resolution');
-      // Power-enrichment requires Rep + Resistance, not present in cardio context
-      expect(result.realtime.map(p => p.id).sort()).toEqual([
-        'pace-enrichment',
-        'two-pass-effort-resolution',
-      ]);
+        const missingMetric = profile.build({
+          dialect: 'time',
+          scriptMetricTypes: new Set([MetricType.Elapsed]),
+          analyticsContext: { effortResolver: new MockEffortResolver() },
+        });
+        expect(missingMetric.summary.map((p) => p.id)).not.toContain('custom-summary');
+      } finally {
+        realtimeProcessorRegistry.unregister('custom-realtime');
+        summaryProcessorRegistry.unregister('custom-summary');
+      }
     });
   });
 });

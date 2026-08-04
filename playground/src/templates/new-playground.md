@@ -1,5 +1,5 @@
 # My Workout
 
-```wod
+```time
 $CURSOR
 ```

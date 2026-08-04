@@ -13,7 +13,7 @@ tags:
 ### Description
 This high-intensity session targets the anaerobic energy systems required for sprint freestyle events (50m and 100m). Short distances with long rest intervals allow swimmers to perform at maximum effort for each repetition. The workout incorporates resistance work and explosive starts to develop race-specific power. Coaches should monitor stroke rate and distance per stroke to ensure swimmers maintain efficiency at high speeds.
 
-```wod
+```time
 (3) Warmup
   150m Freestyle
   :30 Rest

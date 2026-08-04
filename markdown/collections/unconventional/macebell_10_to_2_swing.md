@@ -20,7 +20,7 @@ The 10-to-2 Swing is particularly valuable for athletes who need rotational powe
 ## Whiteboard Script
 
 ### Beginner Practice (One Direction)
-```wod
+```time
 (3)
   10 Mace 10-to-2 Swing Left 10lb
   :60 Rest
@@ -29,14 +29,14 @@ The 10-to-2 Swing is particularly valuable for athletes who need rotational powe
 ```
 
 ### Intermediate Volume Session
-```wod
+```time
 (4)
   15 Mace 10-to-2 Swing Alternating 15lb
   :45 Rest
 ```
 
 ### Advanced Flow Practice
-```wod
+```time
 (5)
   10 Mace 10-to-2 Swing Left 20lb
   10 Mace 10-to-2 Swing Right 20lb
@@ -45,13 +45,13 @@ The 10-to-2 Swing is particularly valuable for athletes who need rotational powe
 ```
 
 ### For Time Challenge
-```wod
+```time
 50 Mace 10-to-2 Swings Left 15lb
 50 Mace 10-to-2 Swings Right 15lb
 ```
 
 ### Competition Style Set
-```wod
+```time
 10 Mace 10-to-2 Swings ?lb
 ```
 

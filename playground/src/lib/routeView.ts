@@ -66,19 +66,17 @@ export interface CurrentWorkout {
  * Which page the route renders — the discriminator for the `ROUTE_PAGES` lookup.
  */
 export type PageKind =
-  | 'journal'
-  | 'feeds'
   | 'feedDetail'
   | 'feedItem'
-  | 'collections'
   | 'effortsCatalog'
   | 'effortDetail'
   | 'analyticsExplorer'
   | 'analyticsDashboard'
   | 'canvas'
   | 'playground'
-  | 'journalEntry'
   | 'workout'
+  | 'journalEntry'
+  | 'library'
 
 /** How the page is wrapped — the `<CanvasPage>` shell vs bare. */
 export interface ShellConfig {
@@ -187,13 +185,15 @@ function deriveWorkout(
   // Named routes without params
   const named: Record<string, string> = {
     '/': 'Home',
+    '/library': 'Library',
     '/journal': 'Journal',
     '/feeds': 'Feeds',
     '/guide/syntax': 'Syntax',
     '/guide/behaviors': 'Behaviors',
+    '/guide/analytics': 'Analytics Guide',
     '/collections': 'Collections',
-    '/analytics/explorer': 'Metric Explorer',
     '/analytics/dashboard': 'Analytics Dashboard',
+    '/analytics/explorer': 'Metric Explorer',
   }
   const namedMatch = named[pathname]
   if (namedMatch) {
@@ -229,20 +229,22 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
       .forEach(s => {
         links.push({ id: s.id, label: s.heading, type: 'heading' as const })
 
-        // Extract standard WOD blocks from prose. On guide pages these are
+        // Extract standard time/log workout blocks from prose. On guide pages these are
         // inline examples under section headings, so listing them as generic
         // 'Workout N' entries duplicates nothing useful; skip them.
         if (!isGuidePage) {
           const lines = getSectionProse(s).split('\n')
-          let wodCount = 0
+          let workoutCount = 0
           lines.forEach((line, i) => {
-            if (/^```(wod|log|plan)\s*$/.test(line.trim())) {
-              wodCount++
-              // Canvas WOD blocks have no onRun here — MarkdownCanvasPage manages its own runtime.
+            const fenceMatch = line.trim().match(/^```(time|log)(:\w+)?\s*$/)
+            if (fenceMatch) {
+              const tag = fenceMatch[1] as 'time' | 'log'
+              workoutCount++
+              // Canvas workout blocks have no onRun here — MarkdownCanvasPage manages its own runtime.
               links.push({
-                id: `${s.id}-wod-${i + 1}`,
-                label: `Workout ${wodCount}`,
-                type: 'wod' as const,
+                id: `${s.id}-${tag}-${i + 1}`,
+                label: `Workout ${workoutCount}`,
+                type: tag,
               })
             }
           })
@@ -257,7 +259,7 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
             links.push({
               id: `workout-${item.id}`,
               label: item.name,
-              type: 'wod' as const,
+              type: 'time',
               onRun: () => selectWorkout(item),
               runIcon: 'link' as const,
             })
@@ -276,7 +278,7 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
         links.push({
           id: `workout-${item.id}`,
           label: item.name,
-          type: 'wod' as const,
+          type: 'time',
           onRun: () => selectWorkout(item),
           runIcon: 'link' as const,
         })
@@ -307,15 +309,14 @@ function deriveNav(pathname: string, deps: RouteViewDeps): PageNavLink[] {
       type: 'heading' as const,
     }))
   }
-
   return []
 }
 function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanvasPage | null): PageKind {
-  if (pathname === '/journal' || pathname === '/journal/') return 'journal'
-  if (pathname === '/feeds') return 'feeds'
+  // /journal, /feeds, /collections are LibraryRedirect-owned — the router
+  // normalizes them to /library before AppContent ever resolves a view.
+  if (pathname === '/library' || pathname === '/library/') return 'library'
   if (flags.feedDetailMatch) return 'feedDetail'
   if (flags.feedItemMatch) return 'feedItem'
-  if (pathname === '/collections') return 'collections'
   if (pathname === '/efforts') return 'effortsCatalog'
   if (pathname.startsWith('/effort/')) return 'effortDetail'
   if (pathname === '/analytics/explorer') return 'analyticsExplorer'
@@ -328,10 +329,6 @@ function derivePage(flags: RouteFlags, pathname: string, canvasPage: ParsedCanva
 
 function deriveShell(page: PageKind, pathname: string, workout: CurrentWorkout): ShellConfig {
   switch (page) {
-    case 'journal':
-      return { wrap: 'canvas', title: 'Journal', actionsMode: 'journal-active', withIndex: true }
-    case 'collections':
-      return { wrap: 'canvas', title: 'Collections', subheader: 'filter-collections', actionsMode: 'collection-readonly' }
     case 'canvas':
       return {
         wrap: 'canvas',

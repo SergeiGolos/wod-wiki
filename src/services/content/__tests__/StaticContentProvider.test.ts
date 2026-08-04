@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { StaticContentProvider } from '../StaticContentProvider';
 
 describe('StaticContentProvider', () => {
-  const content = '# Test Workout\n\n```wod\n10:00 Run\n```';
+  const content = '# Test Workout\n\n```time\n10:00 Run\n```';
 
   it('should have mode "static"', () => {
     const provider = new StaticContentProvider(content);

@@ -32,7 +32,7 @@ const SEGMENT: NoteSegment = {
   data: {
     id: 'wod-2-test',
     contentId: 'bc-test',
-    dialect: 'wod',
+    dialect: 'time',
     startLine: 2,
     endLine: 5,
     content: BLOCK_CONTENT,
