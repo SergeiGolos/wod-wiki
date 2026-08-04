@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 // process-wide (see tests/helpers/repair-react-router-dom.ts).
 import '../../../../tests/helpers/repair-react-router-dom';
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { isFindQuery, parseQuery, type FindQueryResult, type ParsedFindQuery, type QueryResult, type ParsedQuery } from '@/services/analytics/query';
 
@@ -102,10 +102,11 @@ function renderPage(initialQuery: string) {
 
 const pageRuns = () => runQueryCalls.filter((c) => c.hasOptions).map((c) => c.raw);
 
-/** Example chips live in the header options dropdown — open it first. */
+/** Examples live in the command-bar combo box — open it first. */
 async function clickExample(label: string) {
-  fireEvent.click(screen.getByTestId('explorer-options'));
-  fireEvent.click(await waitFor(() => screen.getByText(label)));
+  fireEvent.click(screen.getByTestId('explorer-examples'));
+  const menu = await waitFor(() => screen.getByTestId('explorer-examples-menu'));
+  fireEvent.click(within(menu).getByText(label));
 }
 
 describe('AnalyticsExplorerPage', () => {
@@ -114,6 +115,48 @@ describe('AnalyticsExplorerPage', () => {
     runFindCalls = [];
     runQueryImpl = async (raw: string) => resultOf(raw);
     runFindImpl = async (raw: string) => findResultOf(raw);
+  });
+
+  it('lands on a valid default draft — no parse error, grammar as placeholder', () => {
+    renderPage('');
+
+    // The first-visit state is calm: a seeded valid draft, not `sum:`.
+    expect(screen.queryByText(/Cannot parse/)).toBeNull();
+    expect(screen.getByTestId('draft-validity').textContent).toContain('valid');
+    expect(screen.getByTestId('wql-composer-input').getAttribute('placeholder')).toContain('agg:metric{filters}');
+  });
+
+  it('resets the examples combo to its placeholder after a manual edit', async () => {
+    renderPage('');
+    expect(screen.getByTestId('explorer-examples').textContent).toContain('Examples…');
+
+    await clickExample('Weekly strength volume');
+    await waitFor(() => expect(screen.getByTestId('explorer-examples').textContent).toContain('Weekly strength volume'));
+
+    // A manual edit means the running query is no longer that example.
+    fireEvent.click(screen.getByTestId('token-slot-remove-discipline'));
+    await waitFor(() => expect(screen.getByTestId('explorer-examples').textContent).toContain('Examples…'));
+  });
+
+  it('keeps the combo label for examples whose WQL normalizes on restore', async () => {
+    renderPage('');
+
+    // Empty braces drop in the clause round-trip ('avg:tis{} by {round}'
+    // restores as 'avg:tis by {round}') — the label must still claim the
+    // running example until the draft is edited.
+    await clickExample('TIS by round');
+    await waitFor(() => expect(pageRuns()).toContain('avg:tis{} by {round}'));
+    expect(screen.getByTestId('explorer-examples').textContent).toContain('TIS by round');
+  });
+
+  it('hides pipeline anatomy behind the Inspect pipeline disclosure', async () => {
+    renderPage('sum:totalVolume{}');
+    await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{}'));
+
+    // Collapsed by default; stage counts appear once opened.
+    expect(screen.queryByTestId('pipeline-anatomy')).toBeNull();
+    fireEvent.click(await waitFor(() => screen.getByTestId('inspect-pipeline')));
+    await waitFor(() => expect(screen.getByTestId('pipeline-anatomy')).toBeDefined());
   });
 
   it('renders find results in the Library date-grouped format', async () => {
@@ -157,24 +200,31 @@ describe('AnalyticsExplorerPage', () => {
 
     // Chart pipeline ran…
     await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{tags:pr} by {week}'));
-    // …and the derived records query lists the notes behind the calculation.
+    // …and the derived records query sits behind the Records disclosure.
+    expect(screen.queryByTestId('records-wql')).toBeNull();
+    fireEvent.click(await waitFor(() => screen.getByTestId('records-toggle')));
     await waitFor(() => expect(screen.getByTestId('records-wql').textContent).toBe('find:note{tags:pr} in all last 16w'));
     await waitFor(() => expect(screen.getByTestId('library-row-post').textContent).toContain('StrongLifts 5×5'));
   });
 
-  it('moves examples, range, and units into the header options dropdown', async () => {
+  it('keeps range and units in the options menu; examples live in the command-bar combo', async () => {
     renderPage('sum:totalVolume{}');
     await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{}'));
 
-    // The options live behind the dropdown — not on the page body.
-    expect(screen.queryByText('Weekly strength volume')).toBeNull();
+    // The options menu no longer hosts examples.
     fireEvent.click(screen.getByTestId('explorer-options'));
-    await waitFor(() => expect(screen.getByText('Weekly strength volume')).toBeDefined());
+    await waitFor(() => expect(screen.getByText('Past 4 weeks')).toBeDefined());
+    expect(screen.queryByText('Weekly strength volume')).toBeNull();
 
     // Changing the range re-runs the submitted analytics query.
     const runsBefore = pageRuns().length;
     fireEvent.click(screen.getByText('Past 4 weeks'));
     await waitFor(() => expect(pageRuns().length).toBeGreaterThan(runsBefore));
+
+    // Examples moved to the command-bar combo box.
+    fireEvent.click(screen.getByTestId('explorer-examples'));
+    const menu = await waitFor(() => screen.getByTestId('explorer-examples-menu'));
+    expect(within(menu).getByText('Weekly strength volume')).toBeDefined();
   });
 
   it('renders the shared WqlComposer in place of the legacy WqlQueryComposer', () => {
@@ -200,6 +250,9 @@ describe('AnalyticsExplorerPage', () => {
 
     // Choose an example query that has a tag filter.
     await clickExample('Weekly strength volume');
+
+    // The parsed chips render inside the Inspect pipeline disclosure.
+    fireEvent.click(await waitFor(() => screen.getByTestId('inspect-pipeline')));
 
     // Wait for the initial run to complete and the filter chip to appear.
     await waitFor(() => expect(screen.queryByText('discipline:strength')).not.toBeNull());
@@ -246,7 +299,7 @@ describe('AnalyticsExplorerPage', () => {
     expect(pageRuns()[pageRuns().length - 1]).toBe('sum:totalVolume{discipline:strength} by {week}.rollup(1w)');
   });
 
-  it('sidebar metric selection populates the composer and submits', async () => {
+  it('meta-line metric chip selection populates the composer and submits', async () => {
     renderPage('');
 
     fireEvent.click(await waitFor(() => screen.getByText('tis')));
@@ -269,6 +322,7 @@ describe('AnalyticsExplorerPage', () => {
     renderPage('sum:totalVolume{!tags:fran}');
 
     await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{!tags:fran}'));
+    fireEvent.click(await waitFor(() => screen.getByTestId('inspect-pipeline')));
     await waitFor(() => expect(screen.queryByText(/1\. SELECT/)).not.toBeNull());
   });
 

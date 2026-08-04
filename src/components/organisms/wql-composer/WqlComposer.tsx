@@ -97,6 +97,9 @@ export interface WqlComposerProps {
   hiddenClauseTypes?: ClauseType[]
   /** Focus the free-text input on mount (e.g. when embedded in the palette, issue #834). */
   autoFocus?: boolean
+  /** Free-text input placeholder (e.g. the explorer's WQL grammar hint,
+   * issue #897). Defaults to the search-term guidance. */
+  placeholder?: string
   className?: string
 }
 
@@ -117,6 +120,7 @@ export function WqlComposer({
   diagnosticsActions,
   hiddenClauseTypes,
   autoFocus = false,
+  placeholder = 'Type search term and press Enter...',
   className,
 }: WqlComposerProps) {
   const [internalClauses, setInternalClauses] = useState<QueryClause[]>(
@@ -338,7 +342,7 @@ export function WqlComposer({
           ref={inputRef}
           type="text"
           value={freeText}
-          placeholder="Type search term and press Enter..."
+          placeholder={placeholder}
           onChange={e => setFreeText(e.target.value)}
           onKeyDown={handleKeyDown}
           className="flex-1 min-w-[140px] bg-transparent text-xs focus:outline-none placeholder:text-muted-foreground/40 font-mono"

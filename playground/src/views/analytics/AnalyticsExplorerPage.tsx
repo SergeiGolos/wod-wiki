@@ -1,19 +1,26 @@
 /**
  * AnalyticsExplorerPage (`/analytics/explorer`) — WQL workbench over the
- * analytics store, composed with the shared `WqlComposer` organism
- * (issue #839, decisions #828/#836). The legacy dual-mode `WqlQueryComposer`
- * is gone; clause state round-trips through `?q=` via `useExplorerQueryState`
- * (the router-native #833 pattern — no nuqs on this route), with a
- * run-on-submit split: the live draft drives `ParsedQueryChips`, while only
- * the submitted snapshot gates the run effect and `PipelineAnatomy`.
+ * analytics store, rebuilt around a single command bar (issue #897,
+ * prototype variant C): examples combo + shared `WqlComposer` organism
+ * (decisions #828/#836) + Run in one row, with the metric/filter vocabulary
+ * demoted to a compact meta line beneath it (the old `ExplorerSidebar` is
+ * retired from this page). One surface per concern: the result renders in a
+ * single full-bleed `WidgetFrame`, pipeline anatomy (`ParsedQueryChips` +
+ * `PipelineAnatomy`) hides behind an "Inspect pipeline" disclosure, and the
+ * calculation's records list behind a "Records" disclosure — no stacked
+ * bordered panels.
+ *
+ * Data flow is unchanged: clause state round-trips through `?q=` via
+ * `useExplorerQueryState` (the router-native #833 pattern), with the
+ * run-on-submit split — the live draft drives the meta-line validity
+ * indicator, while only the submitted snapshot gates the run effect.
  *
  * Run dispatch is unchanged: find queries go through `queryService.runFind`,
  * analytics queries through `queryService.runQuery` with range/unit options
- * (plus the lazy rollup driver for calc.* metrics). The composer's `execute`
- * seam is diagnostics-strip stage counts only, exactly as on /library.
+ * (plus the lazy rollup driver for calc.* metrics).
  */
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { CalendarIcon, Play, Save } from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Play, Save } from 'lucide-react';
 import { parseQuery, isFindQuery, queryService, type QueryResult } from '@/services/analytics/query';
 import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
@@ -35,7 +42,6 @@ import {
   getEffectiveAnalyticsUnit,
 } from '@/components/molecules/analytics';
 import {
-  ExplorerSidebar,
   ParsedQueryChips,
   PipelineAnatomy,
   RawPointsTable,
@@ -45,7 +51,6 @@ import {
   clausesToWql,
   setMetricClause,
   wqlToClauses,
-  type WqlExecutor,
 } from '@/components/organisms/wql-composer';
 import { EXAMPLE_QUERIES } from '@/utils/analytics/explorerQueries';
 import { useExplorerVocabulary } from '@/utils/analytics/useExplorerVocabulary';
@@ -53,10 +58,16 @@ import {
   useExplorerQueryState,
   defaultExplorerClauses,
 } from '../../hooks/useExplorerQueryState';
+import { ExplorerCommandBar } from './ExplorerCommandBar';
 import { ExplorerOptionsMenu } from './ExplorerOptionsMenu';
 import { SampleDataPrompt } from './SampleDataPrompt';
+import { cn } from '@/lib/utils';
 
 const DAY = 86_400_000;
+
+/** WQL grammar hint shown as the composer input's placeholder (issue #897 —
+ * syntax discoverable without taking up visual space). */
+const WQL_GRAMMAR_PLACEHOLDER = 'agg:metric{filters} by {dims} .rollup(period)';
 
 /** Filter keys the note store understands — the only calculation filters
  * that can derive a records query truthfully. Effort/discipline/intensity
@@ -183,14 +194,8 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   }, [recordsWql]);
 
   const [refreshKey, setRefreshKey] = useState(0);
-
-  // Live stage counts in the composer's diagnostics strip — dispatch on query
-  // kind (same seam as LibraryPage). Deliberately separate from the run effect
-  // below: the strip executor carries no range/unit options.
-  const diagnosticsExecutor = useCallback<WqlExecutor>(
-    (ast) => (isFindQuery(ast) ? queryService.runFind(ast) : queryService.runQuery(ast.raw)),
-    [],
-  );
+  const [anatomyOpen, setAnatomyOpen] = useState(false);
+  const [recordsOpen, setRecordsOpen] = useState(false);
 
   // Lazy rollup driver (CONTEXT.md 'Rollup Fact'): analytics-surface open
   // recomputes missing/stale ACWR/monotony/strain windows; no scheduler.
@@ -247,18 +252,34 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
 
   const shape = useChartShape(result);
 
-  /** Sidebar metric click: pivot to the metrics plane, set the metric clause, run. */
+  /** Metric chip click: pivot to the metrics plane, set the metric clause, run. */
   const selectMetric = (metric: string) => {
     const next = setMetricClause(clauses, metric);
     setClauses(next);
     submit(clausesToWql(next));
   };
 
+  const [pickedExample, setPickedExample] = useState<string | null>(null);
+
   /** Example chip: hydrate the composer from the query and run it. */
   const runExample = (wql: string) => {
+    setPickedExample(wql);
     setClauses(wqlToClauses(wql) ?? defaultExplorerClauses());
     submit(wql);
   };
+
+  // The combo claims an example only while the draft is still that example's
+  // own composed form — any manual edit resets it to "Examples…". Compare
+  // against the composed draft, not the raw catalog string: clause
+  // round-tripping normalizes the WQL (empty `{}` braces drop), and some
+  // examples (`note:` filters) don't restore through the clause model at all.
+  const activeExample = useMemo(() => {
+    if (!pickedExample) return undefined;
+    const composedDraft = clausesToWql(wqlToClauses(pickedExample) ?? defaultExplorerClauses());
+    return draft === composedDraft
+      ? EXAMPLE_QUERIES.find((e) => e.query === pickedExample)
+      : undefined;
+  }, [pickedExample, draft]);
 
   const exampleQuestion = EXAMPLE_QUERIES.find((e) => e.query === submitted)?.question ?? 'custom query';
 
@@ -276,66 +297,119 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
     (sameQuery(result.parsed.raw, draft) ||
       (result.parsed.raw === submitted && draft === restoredDraft));
 
+  // The empty result surface carries its own "Inspect pipeline" toggle next
+  // to the sample-data prompt (issue #897 — both next steps equally visible);
+  // with data on screen the same toggle lives in the controls row below the
+  // frame, so exactly one `inspect-pipeline` control is rendered at a time.
+  const resultEmpty = !submitted || (!loading && shape.kind === 'empty');
+
+  const inspectPipelineButton = (
+    <button
+      type="button"
+      data-testid="inspect-pipeline"
+      aria-expanded={anatomyOpen}
+      onClick={() => setAnatomyOpen((o) => !o)}
+      className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+    >
+      {anatomyOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+      Inspect pipeline
+    </button>
+  );
+
   return (
     <div className="bg-card flex flex-col flex-1">
       <StickyPageHeader
         title="Metric Explorer"
-        subtitle="Run WQL queries against your workout analytics store and inspect the pipeline anatomy."
         actions={
           <div className="flex items-center gap-3">
             <ExplorerOptionsMenu
               weeks={activeWeeks}
               onWeeks={setWeeks}
-              onRunExample={runExample}
-              submitted={submitted}
               unitForced={unitForced}
             />
             {actions}
           </div>
         }
-        subheader={
-          <div className="px-6 py-2.5">
-            <WqlComposer
-              clauses={clauses}
-              onClausesChange={setClauses}
-              onSubmit={(wql) => submit(wql)}
-              execute={diagnosticsExecutor}
-              customSlots={
-                <button
-                  type="button"
-                  data-testid="run-query"
-                  onClick={() => submit()}
-                  className="flex items-center gap-1.5 bg-primary text-primary-foreground rounded-lg px-3 py-1 text-[11px] font-semibold hover:opacity-90 transition-all shadow-sm shrink-0"
-                >
-                  <Play size={12} /> Run Query
-                </button>
-              }
-              diagnosticsActions={
-                <button
-                  type="button"
-                  data-testid="save-query"
-                  disabled={!draftValid}
-                  onClick={() => setDashOpen(true)}
-                  title="Save this query — decide where it lands (dashboard, …)"
-                  className="flex items-center gap-1.5 rounded-lg border border-primary/40 text-primary px-3 py-1 text-[11px] font-semibold hover:bg-primary/10 transition-all shrink-0 disabled:opacity-40 disabled:hover:bg-transparent"
-                >
-                  <Save size={12} /> Save
-                </button>
-              }
-            />
-          </div>
-        }
       />
 
-      <div className="flex gap-4 min-h-0 p-4">
-        <ExplorerSidebar
-          metricKeys={vocabulary.metricKeys}
-          tagKeys={vocabulary.tagKeys}
-          query={draft}
-          onSelectMetric={selectMetric}
-        />
+      <div className="flex flex-col min-h-0 p-4">
+        <ExplorerCommandBar active={activeExample} onRunExample={runExample}>
+          <WqlComposer
+            clauses={clauses}
+            onClausesChange={setClauses}
+            onSubmit={(wql) => submit(wql)}
+            showDiagnostics={false}
+            placeholder={WQL_GRAMMAR_PLACEHOLDER}
+            customSlots={
+              <button
+                type="button"
+                data-testid="run-query"
+                onClick={() => submit()}
+                className="flex items-center gap-1.5 bg-primary text-primary-foreground rounded-lg px-3 py-1 text-[11px] font-semibold hover:opacity-90 transition-all shadow-sm shrink-0"
+              >
+                <Play size={12} /> Run
+              </button>
+            }
+            diagnosticsActions={
+              <button
+                type="button"
+                data-testid="save-query"
+                disabled={!draftValid}
+                onClick={() => setDashOpen(true)}
+                title="Save this query — decide where it lands (dashboard, …)"
+                className="flex items-center gap-1.5 rounded-lg border border-primary/40 text-primary px-3 py-1 text-[11px] font-semibold hover:bg-primary/10 transition-all shrink-0 disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                <Save size={12} /> Save
+              </button>
+            }
+          />
+        </ExplorerCommandBar>
 
-        <section className="flex-1 min-w-0">
+        {/* Meta line: quiet draft-validity indicator + the metric/filter
+            vocabulary chips that replaced the sidebar (issue #897). */}
+        <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1" data-testid="explorer-meta">
+          {draft.trim().length > 0 && (
+            <span data-testid="draft-validity" className="mr-1 inline-flex items-center gap-1 text-[11px]">
+              {liveParsed.error ? (
+                <span className="inline-flex items-center gap-1 font-mono text-red-600">
+                  <AlertCircle size={11} className="shrink-0" /> {liveParsed.error}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-green-600">
+                  <CheckCircle2 size={11} className="shrink-0" /> valid
+                </span>
+              )}
+            </span>
+          )}
+          {vocabulary.metricKeys.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => selectMetric(key)}
+              className={cn(
+                'rounded-full border px-2 py-0.5 text-[11px] font-mono transition-colors',
+                draft.includes(key)
+                  ? 'border-primary/60 bg-primary/10 text-primary'
+                  : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted',
+              )}
+            >
+              {key}
+            </button>
+          ))}
+          <span className="mx-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+            filters
+          </span>
+          {vocabulary.tagKeys.map((key) => (
+            <span
+              key={key}
+              className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] font-mono text-muted-foreground/70"
+            >
+              {key}
+            </span>
+          ))}
+        </div>
+
+        <section className="min-w-0">
           {isFindQuery(liveParsed) ? (
             /* ── Find query result: the Library's date-grouped stream ── */
             <div className="mt-3">
@@ -371,22 +445,9 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
               </div>
             </div>
           ) : (
-            /* ── Analytics query result: anatomy + chart ── */
+            /* ── Analytics query result: one full-bleed surface, diagnostics
+               and records behind on-demand disclosures (issue #897) ── */
             <>
-              <div className="bg-card border border-border rounded-lg p-4 mt-3">
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
-                  Anatomy of the query
-                </div>
-                {submitted ? (
-                  <>
-                    <ParsedQueryChips parsed={resultIsCurrent ? result.parsed : liveParsed} />
-                    {resultIsCurrent && <PipelineAnatomy result={result} />}
-                  </>
-                ) : (
-                  <div className="text-sm text-muted-foreground">Submit a query to see its anatomy.</div>
-                )}
-              </div>
-
               <div className="mt-3">
                 <SampleDataPrompt layout="banner" refreshKey={refreshKey} onChanged={() => setRefreshKey((k) => k + 1)} />
               </div>
@@ -395,8 +456,11 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
                 <WidgetFrame title="Query result" question={exampleQuestion} query={submitted || '(empty)'}>
                   <div className="h-64">
                     {!submitted ? (
-                      <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                        Enter a WQL query or choose an example to explore your data.
+                      <div className="h-full flex flex-col items-center justify-center gap-3">
+                        <div className="text-sm text-muted-foreground">
+                          Enter a WQL query or choose an example to explore your data.
+                        </div>
+                        {inspectPipelineButton}
                       </div>
                     ) : loading ? (
                       <WqlEmptyState result={undefined} />
@@ -405,7 +469,10 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
                         {shape.message}
                       </div>
                     ) : shape.kind === 'empty' ? (
-                      <SampleDataPrompt result={result} refreshKey={refreshKey} onChanged={() => setRefreshKey(k => k + 1)} />
+                      <div className="h-full flex flex-wrap items-center justify-center gap-6">
+                        <SampleDataPrompt result={result} refreshKey={refreshKey} onChanged={() => setRefreshKey(k => k + 1)} />
+                        {inspectPipelineButton}
+                      </div>
                     ) : shape.kind === 'scalar' ? (
                       <QueryValue result={result!} label={`${result!.parsed.agg}(${result!.parsed.metric})`} />
                     ) : shape.kind === 'timeseries' ? (
@@ -417,11 +484,45 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
                 </WidgetFrame>
               </div>
 
-              {recordsWql && records !== undefined && (
-                <div className="bg-card border border-border rounded-lg p-4 mt-3">
-                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
-                    Records in this calculation
-                  </div>
+              {submitted && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {/* While loading, no Inspect toggle renders anywhere — it
+                      appears in one stable spot once the run settles (in the
+                      empty state, or here when data is on screen). */}
+                  {!loading && !resultEmpty && inspectPipelineButton}
+                  {recordsWql && records !== undefined && (
+                    <button
+                      type="button"
+                      data-testid="records-toggle"
+                      aria-expanded={recordsOpen}
+                      onClick={() => setRecordsOpen((o) => !o)}
+                      className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      {recordsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                      Records in this calculation
+                      <span className="text-[10px] font-bold text-muted-foreground/60 tabular-nums">
+                        {records.length}
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {anatomyOpen && (
+                <div className="mt-3" data-testid="pipeline-anatomy">
+                  {submitted ? (
+                    <>
+                      <ParsedQueryChips parsed={resultIsCurrent ? result.parsed : liveParsed} />
+                      {resultIsCurrent && <PipelineAnatomy result={result} />}
+                    </>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">Submit a query to see its anatomy.</div>
+                  )}
+                </div>
+              )}
+
+              {recordsOpen && recordsWql && records !== undefined && (
+                <div className="mt-3">
                   <code className="block mb-3 rounded-md border border-border bg-muted/40 px-3 py-2 font-mono text-xs text-foreground" data-testid="records-wql">
                     {recordsWql}
                   </code>
