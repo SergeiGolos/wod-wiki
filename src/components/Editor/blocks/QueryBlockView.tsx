@@ -56,12 +56,14 @@ export function QueryBlockView({
   const extracted = useMemo(() => extractBlockQueries(query), [query]);
   // Strip trailing `/` widget params (#899-7), then substitute $token refs at
   // execution time with the note's current frontmatter values (#899-6).
-  const { query: effectiveQuery, missing } = useMemo(() => {
+  const { query: effectiveQuery, params: effectiveParams, missing } = useMemo(() => {
     const raw = extracted.length > 0 ? extracted[0].query : query;
-    const { query: body } = splitWidgetBody(raw);
-    return substituteTokens(body, tokenValues ?? {});
+    const { query: body, params: rawParams } = splitWidgetBody(raw);
+    const subQuery = substituteTokens(body, tokenValues ?? {});
+    const paramSubs = rawParams.map((p) => substituteTokens(p, tokenValues ?? {}));
+    const missing = [...new Set([...subQuery.missing, ...paramSubs.flatMap((s) => s.missing)])];
+    return { query: subQuery.query, params: paramSubs.map((s) => s.query), missing };
   }, [extracted, query, tokenValues]);
-
   const parsed = useMemo(() => parseQuery(effectiveQuery), [effectiveQuery]);
   // Unknown fence-suffix types badge without executing (#899 — never silent).
   const unknownType =
@@ -188,7 +190,7 @@ export function QueryBlockView({
   return (
     <QueryBlockShell onEdit={onSaveQuery ? handleEditClick : undefined} readOnly={readOnly}>
       <div className="h-48">
-        <AnalyticsChart result={result} metric={parsed.metric} widgetType={widgetType} />
+        <AnalyticsChart result={result} metric={parsed.metric} widgetType={widgetType} params={effectiveParams} />
       </div>
       {onSaveQuery && (
         <WqlQueryInspectorModal
@@ -207,16 +209,18 @@ function AnalyticsChart({
   result,
   metric,
   widgetType,
+  params,
 }: {
   result: QueryResult | undefined;
   metric: string;
   widgetType?: string;
+  params?: string[];
 }) {
   const shape = useChartShape(result);
 
   // Explicit fence suffix (```query:timeseries) wins over shape inference.
   if (widgetType != null) {
-    return <WidgetChart type={widgetType} result={result} label={metric} />;
+    return <WidgetChart type={widgetType} result={result} label={metric} params={params} />;
   }
 
   if (!result) {

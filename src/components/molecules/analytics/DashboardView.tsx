@@ -66,18 +66,22 @@ export function DashboardView({
     [document.tokens, tokenValues],
   );
 
-  // Resolve each widget's executable query (params already split by the
-  // builder; tokens substituted here at execution time — decision #899-6).
+  // Resolve each widget's executable query & params (tokens substituted here
+  // at execution time — decision #899-6).
   const resolved = useMemo(
     () =>
       document.widgets.map((widget) => {
-        const { query, missing } = substituteTokens(widget.query, values);
-        return { widget, query, missing };
+        const { query, missing: queryMissing } = substituteTokens(widget.query, values);
+        const paramSub = widget.params.map((p) => substituteTokens(p, values));
+        const params = paramSub.map((s) => s.query);
+        const paramMissing = paramSub.flatMap((s) => s.missing);
+        const missing = [...new Set([...queryMissing, ...paramMissing])];
+        return { widget, query, params, missing };
       }),
     [document.widgets, values],
   );
   const resolvedKey = useMemo(
-    () => JSON.stringify(resolved.map((r) => [r.widget.key, r.query, r.missing])),
+    () => JSON.stringify(resolved.map((r) => [r.widget.key, r.query, r.params, r.missing])),
     [resolved],
   );
 
@@ -158,7 +162,7 @@ export function DashboardView({
       {loading && <div className="text-sm text-muted-foreground mb-3">Loading widgets…</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-        {resolved.map(({ widget, query }) => {
+        {resolved.map(({ widget, query, params }) => {
           const run = runs[widget.key];
           return (
             <div key={widget.key} className="relative group">
@@ -189,6 +193,7 @@ export function DashboardView({
                     <WidgetChart
                       type={widget.type}
                       result={run?.result}
+                      params={params}
                     />
                   )}
                 </div>

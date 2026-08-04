@@ -10,6 +10,7 @@ import {
   extractDashboardTokens,
   isDashboardMeta,
   isDashboardWidgetType,
+  isProposedMetric,
   parseQueryWidgetSuffix,
   referencedTokens,
   setDashboardTokenValue,
@@ -74,6 +75,28 @@ describe('isDashboardWidgetType', () => {
   it('rejects others', () => {
     expect(isDashboardWidgetType('query_value')).toBe(false);
     expect(isDashboardWidgetType('')).toBe(false);
+  });
+});
+
+describe('isProposedMetric', () => {
+  it('identifies proposed calc.* metrics', () => {
+    expect(isProposedMetric('calc.readiness')).toBe(true);
+    expect(isProposedMetric('calc.mvcBw')).toBe(true);
+    expect(isProposedMetric('calc.hrv')).toBe(true);
+  });
+
+  it('returns false for supported calc.* metrics', () => {
+    expect(isProposedMetric('calc.acwr')).toBe(false);
+    expect(isProposedMetric('calc.monotony')).toBe(false);
+    expect(isProposedMetric('calc.strain')).toBe(false);
+    expect(isProposedMetric('calc.e1rm')).toBe(false);
+    expect(isProposedMetric('calc.pmc')).toBe(false);
+  });
+
+  it('returns false for standard non-calc metrics or empty', () => {
+    expect(isProposedMetric('totalVolume')).toBe(false);
+    expect(isProposedMetric('tis')).toBe(false);
+    expect(isProposedMetric(undefined)).toBe(false);
   });
 });
 

@@ -9,6 +9,8 @@ export { DashboardView, type DashboardViewProps } from './DashboardView';
 export { WqlEmptyState, type WqlEmptyStateProps } from './WqlEmptyState';
 export { TopList, type TopListProps } from './TopList';
 export { StackedBar, type StackedBarProps } from './StackedBar';
+export { GoalRings, type GoalRingsProps } from './GoalRings';
+export { ZoneDistribution, type ZoneDistributionProps } from './ZoneDistribution';
 export { RangeSelector, useAnalyticsRange, type AnalyticsRangeWeeks, type RangeSelectorProps } from './RangeSelector';
 export { useAnalyticsQueries, type AnalyticsQueryDef, type AnalyticsQueriesState } from './useAnalyticsQueries';
 export { useChartShape, type ChartShape } from './useChartShape';

@@ -45,8 +45,31 @@ export function unknownTokensMessage(missing: readonly string[]): string {
   return `unknown token${missing.length > 1 ? 's' : ''}: ${missing.map((m) => `$${m}`).join(', ')}`;
 }
 
-/** Types whose renderer lands in #901 — render as labeled placeholders until then. */
-export const PLANNED_WIDGET_TYPES: readonly string[] = ['goal-rings', 'zone-distribution'];
+/** Types whose renderer is planned for future maps (none remaining in #901). */
+export const PLANNED_WIDGET_TYPES: readonly string[] = [];
+
+const KNOWN_CALC_METRICS: Record<string, true> = {
+  'calc.metMinutes': true,
+  'calc.acwr': true,
+  'calc.monotony': true,
+  'calc.strain': true,
+  'calc.e1rm': true,
+  'calc.pmc': true,
+  'calc.ctl': true,
+  'calc.atl': true,
+  'calc.tsb': true,
+};
+
+/**
+ * True when a metric is a proposed calculation not yet landed in the engine
+ * (e.g. `calc.readiness`, `calc.mvcBw`, `calc.hrv`). Renderers show a labeled
+ * placeholder badge (#901).
+ */
+export function isProposedMetric(metricKey: string | undefined): boolean {
+  if (!metricKey) return false;
+  if (!metricKey.startsWith('calc.')) return false;
+  return !KNOWN_CALC_METRICS[metricKey];
+}
 
 // ── Fence-tag suffix parse ─────────────────────────────────────────────────
 

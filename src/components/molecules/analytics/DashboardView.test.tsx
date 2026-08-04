@@ -138,13 +138,24 @@ describe('DashboardView', () => {
     expect(runQuery).not.toHaveBeenCalled();
   });
 
-  it('renders planned #901 widget types as labeled placeholders', async () => {
-    const doc = makeDocument([query('max:calc.e1rm{} / $goal', { widgetType: 'goal-rings' })], {
-      'dashboard.goal': 240,
-    });
+  it('renders goal-rings and zone-distribution widget types (#901)', async () => {
+    const doc = makeDocument(
+      [
+        query('max:calc.e1rm{} / $goal', { widgetType: 'goal-rings' }),
+        query('sum:sessionLoad{} by {intensity} / 80 0 20', { widgetType: 'zone-distribution' }),
+      ],
+      { 'dashboard.goal': 240 },
+    );
     render(<DashboardView document={doc} />);
-    await waitFor(() => expect(screen.getByTestId('widget-planned')).toBeTruthy());
-    expect(screen.getByTestId('widget-planned').textContent).toContain('goal-rings');
+    await waitFor(() => expect(screen.getByTestId('goal-rings')).toBeTruthy());
+    expect(screen.getByTestId('zone-distribution')).toBeTruthy();
+  });
+
+  it('renders proposed metrics with a ProposedMetricBadge (#901)', async () => {
+    const doc = makeDocument([query('avg:calc.readiness{}', { widgetType: 'value' })]);
+    render(<DashboardView document={doc} />);
+    await waitFor(() => expect(screen.getByTestId('widget-proposed-metric')).toBeTruthy());
+    expect(screen.getByTestId('widget-proposed-metric').textContent).toContain('calc.readiness');
   });
 
   it('applies span classes from the fence suffix', async () => {
