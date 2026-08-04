@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Code2, Edit3, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { X, FileText } from 'lucide-react';
 import { isFindQuery, queryService } from '@/services/analytics/query';
 import {
   WqlComposer,
@@ -11,70 +10,135 @@ import {
   type WqlExecutor,
 } from '@/components/organisms/wql-composer';
 import {
-  WidgetFrame,
-  QueryValue,
-  WqlTimeseries,
-  WqlBars,
-  TopList,
-  StackedBar,
   RangeSelector,
   useAnalyticsRange,
-  useAnalyticsQueries,
   AnalyticsUnitPreference,
   useAnalyticsUnitPreference,
-  getDashboardEffectiveUnit,
+  DashboardView,
 } from '@/components/molecules/analytics';
-import { DEMO_WIDGETS, DASHBOARD_SOURCE } from './dashboardDefinition';
-import { SampleDataPrompt } from './SampleDataPrompt';
+import { notePersistence } from '@/services/persistence';
+import { journalNotes } from '../../services/journalNotes';
+import { parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
+import { parseDashboardNote } from '@/lib/dashboard/parser';
+import { buildDashboardDocument, setDashboardTokenValue, type DashboardWidget } from '@/lib/dashboard/model';
 import { hasSampleData, purgeSampleData } from '@/services/analytics/sample';
+import { Link } from 'react-router-dom';
 
 export function AnalyticsDashboardPage() {
   const [weeks] = useAnalyticsRange();
   const { unit: preferredUnit } = useAnalyticsUnitPreference();
-  const [showSource, setShowSource] = useState(false);
   const [sampleLoaded, setSampleLoaded] = useState<boolean | undefined>(undefined);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [widgetQueries, setWidgetQueries] = useState<Record<string, string>>(() => {
-    const initial: Record<string, string> = {};
-    DEMO_WIDGETS.forEach((w) => {
-      initial[w.key] = w.query;
-    });
-    return initial;
-  });
-  const [editingWidgetKey, setEditingWidgetKey] = useState<string | null>(null);
+
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [activeNoteContent, setActiveNoteContent] = useState<string | null>(null);
+  // False until the discovery effect settles — gates the empty state so it
+  // never flashes while the note list is loading.
+  const [noteLoaded, setNoteLoaded] = useState(false);
+  const [editingWidget, setEditingWidget] = useState<DashboardWidget | null>(null);
   const [clauses, setClauses] = useState<QueryClause[]>([]);
   const [isValid, setIsValid] = useState<boolean>(true);
 
-  const queries = useMemo(
-    () => DEMO_WIDGETS.map((w) => ({ key: w.key, query: widgetQueries[w.key] ?? w.query })),
-    [widgetQueries],
-  );
-  const { unit: effectiveUnit, forced: unitForced } = useMemo(
-    () => getDashboardEffectiveUnit(queries, preferredUnit),
-    [queries, preferredUnit],
-  );
-  const { results, loading } = useAnalyticsQueries(queries, weeks, refreshKey, preferredUnit);
+  // Discover the active dashboard note: notes carry content in segments, so
+  // list through the persistence layer (HistoryEntry includes rawContent).
+  // Selection: `dashboard.active: true` wins, else the first dashboard note.
+  useEffect(() => {
+    let cancelled = false;
+    notePersistence.listNotes({}).then((notes) => {
+      if (cancelled) return;
+      const dashboardNotes = notes.filter(
+        (n) => parseFrontmatter(n.rawContent).meta['dashboard'] === 'true'
+      );
+      
+      if (dashboardNotes.length > 0) {
+        const active =
+          dashboardNotes.find((n) => parseFrontmatter(n.rawContent).meta['dashboard.active'] === 'true') ||
+          dashboardNotes[0];
+        setActiveNoteId(active.id);
+        setActiveNoteContent(active.rawContent);
+      } else {
+        setActiveNoteId(null);
+        setActiveNoteContent(null);
+      }
+      setNoteLoaded(true);
+    }).catch(() => {
+      if (!cancelled) {
+        setActiveNoteId(null);
+        setActiveNoteContent(null);
+        setNoteLoaded(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
 
   useEffect(() => {
     void hasSampleData().then(setSampleLoaded);
   }, [refreshKey]);
 
+  // Parse the active note into sections and build the DashboardDocument
+  const { parsedSections, document } = useMemo(() => {
+    if (!activeNoteContent) return { parsedSections: [], document: null };
+    const { meta, sections } = parseDashboardNote(activeNoteContent);
+    return {
+      parsedSections: sections,
+      document: buildDashboardDocument(sections, meta),
+    };
+  }, [activeNoteContent]);
+
+  // Live stage counts in the edit modal's diagnostics strip (same seam as
+  // the explorer / library hosts).
   const diagnosticsExecutor = useCallback<WqlExecutor>(
     (ast) => (isFindQuery(ast) ? queryService.runFind(ast) : queryService.runQuery(ast.raw)),
     [],
   );
 
-  const openEditor = (key: string, currentQuery: string) => {
-    setEditingWidgetKey(key);
-    setClauses(wqlToClauses(currentQuery) ?? defaultMetricsClauses());
+  const handleTokenChange = async (name: string, value: string) => {
+    if (!activeNoteId || !activeNoteContent) return;
+    const { meta, body } = parseFrontmatter(activeNoteContent);
+    const newMeta = setDashboardTokenValue(meta, name, value);
+    const newRawContent = `---\n${serializeFrontmatter(newMeta)}\n---\n${body}`;
+    
+    await journalNotes.update(activeNoteId, newRawContent);
+    setActiveNoteContent(newRawContent);
+  };
+
+  const openEditor = (widget: DashboardWidget) => {
+    setEditingWidget(widget);
+    setClauses(wqlToClauses(widget.query) ?? defaultMetricsClauses());
     setIsValid(true);
   };
 
-  const saveEditor = () => {
-    if (editingWidgetKey && isValid) {
+  const saveEditor = async () => {
+    if (editingWidget && isValid && activeNoteId && activeNoteContent) {
       const wql = clausesToWql(clauses);
-      setWidgetQueries((prev) => ({ ...prev, [editingWidgetKey]: wql }));
-      setEditingWidgetKey(null);
+      
+      // widget keys are strictly sequential `w0`, `w1`, etc.
+      const secIdx = Number(editingWidget.key.slice(1));
+      const querySections = parsedSections.filter((s) => s.type === 'query');
+      const targetSection = querySections[secIdx];
+      
+      if (targetSection) {
+        const lines = activeNoteContent.split(/\r?\n/);
+        // Preserve any positional parameters trailing the query
+        const newBody = editingWidget.params.length > 0
+          ? `${wql} / ${editingWidget.params.join(' ')}`
+          : wql;
+          
+        // Replace only the block BODY lines — startLine/endLine point at
+        // the fences themselves; the ` ```query:<suffix> ` wrapper survives.
+        lines.splice(
+          targetSection.startLine + 1,
+          targetSection.endLine - targetSection.startLine - 1,
+          newBody
+        );
+        const newRawContent = lines.join('\n');
+        
+        await journalNotes.update(activeNoteId, newRawContent);
+        setActiveNoteContent(newRawContent);
+        setEditingWidget(null);
+      }
     }
   };
 
@@ -84,39 +148,23 @@ export function AnalyticsDashboardPage() {
     setRefreshKey((k) => k + 1);
   };
 
-  const allEmpty = !loading && DEMO_WIDGETS.every((w) => {
-    const r = results[w.key];
-    return !r || r.matched.length === 0;
-  });
-
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8">
       <div className="max-w-[1500px] mx-auto">
         <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-3 mb-4">
           <div>
-            <h1 className="text-lg font-bold text-foreground">Coaching Dashboard — Training Block Review</h1>
+            <h1 className="text-lg font-bold text-foreground">
+              {document?.title || 'Coaching Dashboard'}
+            </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Every widget below is one WQL query over the same fact store.
+              Dashboard composition driven by the active dashboard note.
             </p>
           </div>
           <div className="flex items-center gap-2">
             <RangeSelector />
-            <AnalyticsUnitPreference unit={unitForced ? effectiveUnit : undefined} forced={unitForced} />
-            <button
-              onClick={() => setShowSource((s) => !s)}
-              className="flex items-center gap-1.5 text-xs border border-border rounded-lg px-3 py-1.5 text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors"
-            >
-              <Code2 size={13} />
-              {showSource ? 'Hide note source' : 'View as note'}
-            </button>
+            <AnalyticsUnitPreference />
           </div>
         </div>
-
-        {showSource && (
-          <pre className="bg-card border border-border rounded-lg p-4 mb-4 text-[12px] font-mono text-muted-foreground overflow-x-auto whitespace-pre">
-            {DASHBOARD_SOURCE}
-          </pre>
-        )}
 
         {sampleLoaded && (
           <div className="mb-4 flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-2 text-xs">
@@ -130,86 +178,53 @@ export function AnalyticsDashboardPage() {
           </div>
         )}
 
-        {loading && (
-          <div className="text-sm text-muted-foreground">Loading widgets…</div>
+        {!noteLoaded ? (
+          <div className="text-sm text-muted-foreground">Loading dashboard…</div>
+        ) : !document ? (
+          <div className="flex flex-col items-center justify-center p-12 mt-8 border border-dashed border-border rounded-xl bg-card">
+            <div className="bg-primary/10 p-4 rounded-full mb-4">
+              <FileText className="text-primary size-8" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground mb-2">No active dashboard found</h2>
+            <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
+              Create a note and add <code>dashboard: true</code> to its frontmatter. 
+              The first dashboard note found will render here.
+            </p>
+            <div className="flex gap-4">
+              <Link 
+                to="/" 
+                className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+              >
+                Go to Journal
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <DashboardView
+            document={document}
+            onTokenChange={handleTokenChange}
+            onEditQuery={openEditor}
+            rangeStart={Date.now() - weeks * 7 * 86400000}
+            rangeEnd={Date.now()}
+            preferredUnit={preferredUnit}
+          />
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          {allEmpty ? (
-            <div className="md:col-span-2 xl:col-span-4">
-              <SampleDataPrompt
-                layout="card"
-                onChanged={() => {
-                  setRefreshKey((k) => k + 1);
-                }}
-              />
-            </div>
-          ) : (
-            DEMO_WIDGETS.map((widget) => {
-              const currentQuery = widgetQueries[widget.key] ?? widget.query;
-              const result = results[widget.key];
-              return (
-                <div key={widget.key} className="relative group">
-                  <button
-                    onClick={() => openEditor(widget.key, currentQuery)}
-                    title="Edit Widget Query with Omni-Composer"
-                    data-testid={`edit-widget-${widget.key}`}
-                    className="absolute top-2 right-2 z-10 p-1.5 rounded-lg bg-card/80 border border-border text-muted-foreground hover:text-foreground hover:border-primary opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                  >
-                    <Edit3 size={13} />
-                  </button>
-                  <WidgetFrame
-                    title={widget.title}
-                    question={widget.question}
-                    query={currentQuery}
-                    span={widget.span}
-                  >
-                    <div className={cn('h-full', widget.type === 'value' || widget.type === 'toplist' ? 'h-36' : 'h-56')}>
-                      {widget.type === 'value' && result && (
-                        <QueryValue
-                          result={result}
-                          unit={widget.unit ?? ''}
-                          label={widget.label ?? ''}
-                          thresholds={widget.thresholds}
-                        />
-                      )}
-                      {widget.type === 'toplist' && result && (
-                        <div className="h-36 overflow-y-auto">
-                          <TopList result={result} unit={widget.unit} limit={widget.limit} />
-                        </div>
-                      )}
-                      {widget.type === 'timeseries' && result && (
-                        <WqlTimeseries result={result} unit={widget.unit} />
-                      )}
-                      {widget.type === 'bar' && result && (
-                        <WqlBars result={result} unit={widget.unit} />
-                      )}
-                      {widget.type === 'stacked' && result && (
-                        <StackedBar result={result} unit={widget.unit} />
-                      )}
-                    </div>
-                  </WidgetFrame>
-                </div>
-              );
-            })
-          )}
-        </div>
-
         {/* WIDGET QUERY INSPECTOR MODAL */}
-        {editingWidgetKey && (
+        {editingWidget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" data-testid="widget-query-modal">
             <div className="nord-card w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl p-6 shadow-2xl space-y-4 border-border bg-card">
               <div className="flex items-center justify-between border-b border-border pb-3">
                 <div>
                   <h3 className="text-base font-bold text-foreground">
-                    Edit Widget Query: {DEMO_WIDGETS.find((w) => w.key === editingWidgetKey)?.title}
+                    Edit Widget Query: {editingWidget.title ?? editingWidget.query}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Use the Omni-Composer to edit this dashboard section query.
                   </p>
                 </div>
                 <button
-                  onClick={() => setEditingWidgetKey(null)}
+                  onClick={() => setEditingWidget(null)}
                   className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted"
                   data-testid="close-widget-query-modal"
                 >
@@ -226,7 +241,7 @@ export function AnalyticsDashboardPage() {
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
                 <button
-                  onClick={() => setEditingWidgetKey(null)}
+                  onClick={() => setEditingWidget(null)}
                   className="px-4 py-2 text-xs font-semibold rounded-lg border border-border text-muted-foreground hover:text-foreground"
                   data-testid="cancel-widget-query"
                 >

@@ -9,18 +9,38 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import { NuqsAdapter } from 'nuqs/adapters/react-router';
 import { isFindQuery, parseQuery, type QueryResult, type ParsedFindQuery } from '@/services/analytics/query';
-import { AnalyticsDashboardPage } from './AnalyticsDashboardPage';
+
+import type { HistoryEntry } from '@/types/history';
 
 afterEach(cleanup);
 
 let sampleDataPresent = false;
 let queryResultKind: 'empty' | 'scalar' = 'scalar';
 let runQueryCalls: string[] = [];
+let mockNotes: HistoryEntry[] = [];
+let updateNoteCalls: { id: string, raw: string }[] = [];
 
 mock.module('@/services/analytics/sample', () => ({
   loadSampleData: mock(async () => ({ facts: 120 })),
   purgeSampleData: mock(async () => undefined),
   hasSampleData: mock(async () => sampleDataPresent),
+}));
+
+mock.module('@/services/persistence', () => ({
+  notePersistence: {
+    listNotes: mock(async () => mockNotes),
+  },
+}));
+
+// The page imports journalNotes relatively (playground/src/services is outside
+// the `@` alias) — the mock specifier must match the same resolved module.
+mock.module('../../services/journalNotes', () => ({
+  journalNotes: {
+    update: mock(async (id: string, raw: string) => {
+      updateNoteCalls.push({ id, raw });
+      return {};
+    }),
+  },
 }));
 
 function resultOf(kind: 'empty' | 'error' | 'scalar', raw?: string): QueryResult {
@@ -65,6 +85,8 @@ mock.module('@/services/analytics/query', () => ({
   },
 }));
 
+import { AnalyticsDashboardPage } from './AnalyticsDashboardPage';
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/analytics/dashboard']} initialIndex={0}>
@@ -75,85 +97,112 @@ function renderPage() {
   );
 }
 
-async function openComposerFor(widgetKey: string) {
-  renderPage();
-  await waitFor(() => expect(screen.queryByText('Loading widgets…')).toBeNull());
-  fireEvent.click(screen.getByTestId(`edit-widget-${widgetKey}`));
-  await waitFor(() => expect(screen.getByTestId('widget-query-modal')).toBeDefined());
-}
+const DEFAULT_DASHBOARD = `---
+dashboard: true
+title: My Active Dashboard
+dashboard.weeks: 4
+---
+
+## Total Volume
+What is my volume?
+\`\`\`query:value
+sum:totalVolume{tags:pr}
+\`\`\`
+
+## Average TIS
+Is it hard?
+
+\`\`\`query:value
+avg:tis{}
+\`\`\`
+`;
 
 beforeEach(() => {
   sampleDataPresent = false;
   queryResultKind = 'scalar';
   runQueryCalls = [];
+  updateNoteCalls = [];
+  mockNotes = [
+    {
+      id: 'note-1',
+      title: 'My Active Dashboard',
+      rawContent: DEFAULT_DASHBOARD,
+      createdAt: 0,
+      updatedAt: 0,
+      targetDate: 0,
+      type: 'note',
+      tags: [],
+      schemaVersion: 1,
+    }
+  ];
 });
 
 describe('AnalyticsDashboardPage', () => {
-  it('renders the header and range selector', async () => {
+  it('renders the empty state when no dashboard note is found', async () => {
+    mockNotes = [];
     renderPage();
-    await waitFor(() => expect(screen.queryByText('Loading widgets…')).toBeNull());
-    expect(screen.getByText('Coaching Dashboard — Training Block Review')).toBeDefined();
-    expect(screen.getByText('4w')).toBeDefined();
-    expect(screen.getByText('8w')).toBeDefined();
-    expect(screen.getByText('16w')).toBeDefined();
+    await waitFor(() => expect(screen.getByText('No active dashboard found')).toBeDefined());
+    expect(screen.getByText(/Create a note and add/)).toBeDefined();
   });
 
-  it('renders all demo widgets without crashing when widgets have data', async () => {
+  it('renders the header and range selector from active dashboard note', async () => {
     renderPage();
-    await waitFor(() => expect(screen.queryByText('Loading widgets…')).toBeNull());
-    expect(screen.getByText('Avg TIS')).toBeDefined();
-    expect(screen.getByText('Total volume')).toBeDefined();
-    expect(screen.getByText('Volume by effort')).toBeDefined();
-    expect(screen.getByText('Weekly tonnage')).toBeDefined();
+    await waitFor(() => expect(screen.getByText('My Active Dashboard')).toBeDefined());
+    expect(screen.getByTestId('dashboard-view')).toBeDefined();
   });
-
-  it('shows Load sample data prompt when all widgets are empty', async () => {
-    sampleDataPresent = false;
-    queryResultKind = 'empty';
-
+  it('renders widgets from the parsed note', async () => {
     renderPage();
-    await waitFor(() => expect(screen.queryByText('Loading widgets…')).toBeNull());
-    await waitFor(() => expect(screen.queryByText('Facts appear when you log or run workouts.')).not.toBeNull());
-    expect(screen.getByText('Load sample data')).toBeDefined();
+    await waitFor(() => expect(screen.getByTestId('dashboard-view')).toBeDefined());
+    expect(screen.getByText('Total Volume')).toBeDefined();
+    expect(screen.getByText('Average TIS')).toBeDefined();
+    expect(screen.getByText('What is my volume?')).toBeDefined();
   });
 
   it('shows purge banner when sample data is present', async () => {
     sampleDataPresent = true;
 
     renderPage();
-    await waitFor(() => expect(screen.queryByText('Loading widgets…')).toBeNull());
     await waitFor(() => expect(screen.queryByText('Sample data loaded')).not.toBeNull(), { timeout: 3000 });
     expect(screen.getByText('Purge sample data')).toBeDefined();
   });
 
-  it('toggles the dashboard source view', async () => {
-    renderPage();
-    const button = await waitFor(() => screen.getByText('View as note'));
-    fireEvent.click(button);
-    await waitFor(() => expect(screen.getByText('Hide note source')).toBeDefined());
-    expect(screen.getByText(/range: past_16_weeks/)).toBeDefined();
-  });
-
   it('renders shared WqlComposer in modal when editing a widget query', async () => {
-    await openComposerFor('avgTis');
-
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId('dashboard-view')).toBeDefined());
+    
+    fireEvent.click(screen.getByTestId('edit-widget-w0'));
+    await waitFor(() => expect(screen.getByTestId('widget-query-modal')).toBeDefined());
     expect(screen.getByTestId('wql-composer')).toBeDefined();
-    expect(screen.queryByText('Composition Mode:')).toBeNull();
   });
 
-  it('composes and applies updated query to widget pipeline', async () => {
-    await openComposerFor('avgTis');
-
-    runQueryCalls = [];
+  it('composes and applies updated query back to the active note', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId('dashboard-view')).toBeDefined());
+    
+    fireEvent.click(screen.getByTestId('edit-widget-w0'));
+    await waitFor(() => expect(screen.getByTestId('widget-query-modal')).toBeDefined());
+    // Edit the query by removing the tag filter
+    fireEvent.click(screen.getByTestId('token-slot-remove-tag'));
+    
+    // Wait for validity to resolve after edit
+    await waitFor(() => expect(screen.getByTestId('apply-widget-query').getAttribute('disabled')).toBeNull());
     fireEvent.click(screen.getByTestId('apply-widget-query'));
+
     await waitFor(() => expect(screen.queryByTestId('widget-query-modal')).toBeNull());
 
-    // The widget query was passed to the dashboard widget query pipeline (avg:tis)
-    await waitFor(() => expect(runQueryCalls).toContain('avg:tis'));
+    // Should have updated the note (fences preserved; empty {} braces drop
+    // in the clause round-trip)
+    expect(updateNoteCalls.length).toBe(1);
+    expect(updateNoteCalls[0].id).toBe('note-1');
+    expect(updateNoteCalls[0].raw).toContain('```query:value\nsum:totalVolume\n```');
   });
 
   it('disables Apply button and flags inline diagnostic error when composed WQL is invalid', async () => {
-    await openComposerFor('avgTis');
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId('dashboard-view')).toBeDefined());
+    
+    fireEvent.click(screen.getByTestId('edit-widget-w0'));
+    await waitFor(() => expect(screen.getByTestId('widget-query-modal')).toBeDefined());
 
     // Remove the metric clause to create an incomplete/invalid WQL query
     fireEvent.click(screen.getByTestId('token-slot-remove-metric'));
