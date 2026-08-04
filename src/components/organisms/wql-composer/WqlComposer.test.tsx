@@ -84,14 +84,16 @@ describe('WqlComposer pending-text preview (#854)', () => {
     expect((input as HTMLInputElement).value).toBe(')))')
   })
 
-  it('flags multi-word text honestly instead of emitting invalid WQL', () => {
+  it('commits multi-word text as a quoted text clause (#867)', () => {
     render(<WqlComposer />)
     const input = screen.getByTestId('wql-composer-input')
     fireEvent.change(input, { target: { value: 'hello world' } })
 
-    expect(screen.getByTestId('wql-composer-pending').textContent).toContain('Multi-word text')
+    expect(screen.getByTestId('wql-composer-pending').textContent).toContain('Search text: hello world')
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect(screen.queryByTestId('token-slot-text')).toBeNull()
+    const chip = screen.getByTestId('token-slot-text')
+    expect(chip.textContent).toContain('hello world')
+    expect((input as HTMLInputElement).value).toBe('')
   })
 
   it("surfaces the parser's own message for composer-shaped but invalid WQL", () => {

@@ -208,13 +208,17 @@ function extractFilters(query: SyntaxNode, text: string): TagFilter[] {
     if (!keyNode || !valueNode) continue;
     const values: { value: string; wildcard: boolean }[] = [];
     for (const valueChild of valueNode.getChildren(terms.Value)) {
-      // Each Value is `Word(:Word)?Star?` per the grammar. Slice its source
-      // text and strip a trailing wildcard — the colon stays in the value
-      // when the grammar accepts a catalog-id style literal like
-      // `collection:crossfit-girls` for the `source:` filter.
+      // Each Value is `Word(:Word)?Star?` or a quoted phrase `"..."` per the
+      // grammar. Slice its source text; a quoted node (#867) carries its
+      // surrounding quotes (stripped here), a word value strips a trailing
+      // wildcard — the colon stays in the value when the grammar accepts a
+      // catalog-id style literal like `collection:crossfit-girls` for the
+      // `source:` filter.
       const raw = text.slice(valueChild.from, valueChild.to);
-      const wildcard = raw.endsWith('*');
-      const value = wildcard ? raw.slice(0, -1) : raw;
+      const quoted = valueChild.getChild(terms.Quoted) !== null;
+      let value = quoted ? raw.slice(1, -1) : raw;
+      const wildcard = quoted ? false : value.endsWith('*');
+      if (wildcard) value = value.slice(0, -1);
       if (!value) continue;
       values.push({ value, wildcard });
     }

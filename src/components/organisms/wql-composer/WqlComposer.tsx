@@ -210,10 +210,10 @@ export function WqlComposer({
   }
 
   // Live preview of what Enter will do with the box's pending text (#854):
-  // a valid, composer-restorable WQL query is adopted wholesale; a single
-  // word becomes a text chip; anything else (multi-word text — quoting is
-  // not in the grammar yet — or pure punctuation) is an honest inline
-  // error instead of a silent discard.
+  // a valid, composer-restorable WQL query is adopted wholesale; searchable
+  // text (one or more words — multi-word phrases are quoted on emit, #867)
+  // becomes a text chip; pure punctuation is an honest inline error instead
+  // of a silent discard.
   const pending = useMemo((): { kind: 'query'; clauses: QueryClause[] } | { kind: 'text'; value: string } | { kind: 'invalid'; reason: string } | null => {
     const raw = freeText.trim()
     if (!raw) return null
@@ -230,7 +230,9 @@ export function WqlComposer({
       return { kind: 'invalid', reason: 'No searchable text — use words, or a full WQL query like find:note{tags:strength}' }
     }
     if (words.length > 1) {
-      return { kind: 'invalid', reason: 'Multi-word text is not supported yet — use one word, or a full WQL query' }
+      // Multi-word free text commits as a quoted text clause (#867) — the
+      // value is quoted on emit so it round-trips through the grammar.
+      return { kind: 'text', value: raw }
     }
     return { kind: 'text', value: words[0]! }
   }, [freeText])

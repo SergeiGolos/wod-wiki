@@ -189,7 +189,12 @@ export function clauseToWql(clause: QueryClause): { key?: string; filterStr?: st
   const val = clause.value.trim()
 
   switch (clause.type) {
-    case 'text':       return { filterStr: `text:${val}` }
+    case 'text': {
+      // Multi-word values take a quoted phrase form so they parse (#867);
+      // already-quoted values pass through unchanged.
+      const needsQuotes = /\s/.test(val) && !(val.startsWith('"') && val.endsWith('"'));
+      return { filterStr: `text:${needsQuotes ? `"${val}"` : val}` };
+    }
     case 'catalog':    return { filterStr: `catalog:${val}` }
     case 'tag':        return { filterStr: `tags:${val}` }
     case 'effort':     return { filterStr: `effort:${val}` }
@@ -294,12 +299,14 @@ const FILTER_KEY_TO_CLAUSE_TYPE: Record<string, ClauseType> = Object.fromEntries
 function splitTopLevel(body: string): string[] {
   const parts: string[] = []
   let depth = 0
+  let inQuote = false
   let start = 0
   for (let i = 0; i < body.length; i++) {
     const c = body[i]
-    if (c === '{') depth++
-    else if (c === '}') depth = Math.max(0, depth - 1)
-    else if (c === ',' && depth === 0) {
+    if (c === '"') inQuote = !inQuote
+    else if (!inQuote && c === '{') depth++
+    else if (!inQuote && c === '}') depth = Math.max(0, depth - 1)
+    else if (!inQuote && c === ',' && depth === 0) {
       parts.push(body.slice(start, i))
       start = i + 1
     }
@@ -355,7 +362,15 @@ function filterFragmentToClause(fragment: string, index: number): QueryClause | 
   if (!value.trim()) return null
 
   const builtin = FILTER_KEY_TO_CLAUSE_TYPE[key]
-  if (builtin) return restoreClause(`c-${builtin}-${index}`, builtin, value)
+  if (builtin) {
+    // Unquote a quoted text phrase on restore so the chip shows the spaced
+    // form, not the `"…"` literal (#867).
+    const restoredValue =
+      builtin === 'text' && value.length >= 2 && value.startsWith('"') && value.endsWith('"')
+        ? value.slice(1, -1)
+        : value
+    return restoreClause(`c-${builtin}-${index}`, builtin, restoredValue)
+  }
 
   // Custom slots: accept the first registered slot whose typed round-trip
   // reproduces the fragment verbatim.

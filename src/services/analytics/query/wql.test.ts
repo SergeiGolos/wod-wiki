@@ -297,4 +297,21 @@ describe('parseQuery — cross-store where joins', () => {
     const parsed = _parseQuery('sum:totalVolume{} where sum:tis{} > 5');
     expect(parsed.error).toContain('find:');
   });
+
+  it('unquotes a multi-word text filter value (#867)', () => {
+    const parsed = _parseQuery('find:note{text:"300 Air Squats"} in all');
+    expect(isFindQuery(parsed)).toBe(true);
+    if (!isFindQuery(parsed)) return;
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.target).toBe('note');
+    expect(parsed.filters).toEqual([
+      { key: 'text', negate: false, values: [{ value: '300 Air Squats', wildcard: false }] },
+    ]);
+  });
+
+  it('round-trips a quoted text value with single-word text unchanged', () => {
+    const single = _parseQuery('find:note{text:pr}');
+    if (!isFindQuery(single)) return;
+    expect(single.filters[0].values[0].value).toBe('pr');
+  });
 });
