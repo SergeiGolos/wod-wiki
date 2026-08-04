@@ -1,7 +1,7 @@
 /**
- * query-block-preview decoration tests (#801, #842) — verifies ```query and
- * ```dashboard fenced blocks produce Decoration.replace decorations and test
- * saveBlockQuerySource patching back into CM6 editor document state.
+ * query-block-preview decoration tests (#801, #842, #899) — verifies ```query
+ * fenced blocks (with widget suffixes) produce Decoration.replace decorations
+ * and tests saveBlockQuerySource patching back into CM6 editor document state.
  */
 import { describe, expect, it } from "bun:test";
 import { EditorState } from "@codemirror/state";
@@ -44,11 +44,18 @@ describe("queryBlockPreview — decoration building", () => {
     expect(countDecos(state, ext)).toBe(1);
   });
 
-  it("produces a decoration for a ```dashboard block", () => {
+  it("produces a decoration for a suffixed ```query:type-N block (#899)", () => {
     const ext = queryBlockPreview();
-    const doc = "Lead\n\n```dashboard\nsum:totalVolume{}\nfind:note{tags:pr}\n```\n\nTail";
+    const doc = "Lead\n\n```query:timeseries-2\nsum:totalVolume{}\n```\n\nTail";
     const state = EditorState.create({ doc, extensions: [sectionField, ext] });
     expect(countDecos(state, ext)).toBe(1);
+  });
+
+  it("does not decorate the retired ```dashboard fence (now generic code, #899-8)", () => {
+    const ext = queryBlockPreview();
+    const doc = "Lead\n\n```dashboard\nsum:totalVolume{}\n```\n\nTail";
+    const state = EditorState.create({ doc, extensions: [sectionField, ext] });
+    expect(countDecos(state, ext)).toBe(0);
   });
 
   it("produces one decoration per query block", () => {
@@ -107,17 +114,17 @@ describe("saveBlockQuerySource — CM6 document patching", () => {
     );
   });
 
-  it("patches specific query index in a dashboard block", () => {
-    const doc = "Lead\n\n```dashboard\n# Header\nsum:totalVolume{}\nfind:note{tags:pr}\n```\n\nTail";
+  it("patches a query by index in a multi-line query block", () => {
+    const doc = "Lead\n\n```query\n# Header\nsum:totalVolume{}\nfind:note{tags:pr}\n```\n\nTail";
     const view = createView(doc);
 
-    const section = view.state.field(sectionField).sections.find((s) => s.type === "dashboard");
+    const section = view.state.field(sectionField).sections.find((s) => s.type === "query");
     expect(section).toBeDefined();
 
     const res = saveBlockQuerySource(view, section!.id, "find:note{tags:workout}", 1);
     expect(res.ok).toBe(true);
     expect(view.state.doc.toString()).toBe(
-      "Lead\n\n```dashboard\n# Header\nsum:totalVolume{}\nfind:note{tags:workout}\n```\n\nTail",
+      "Lead\n\n```query\n# Header\nsum:totalVolume{}\nfind:note{tags:workout}\n```\n\nTail",
     );
   });
 });

@@ -56,7 +56,7 @@ find:<target>{<filters>} [where <cross_store_predicate>] [in <scope>] [last <n>w
 
 *   **Target (`target`):** What the query returns.
     *   `note`: Returns whole markdown notes (journal Notes, Catalog Sessions, Catalog Posts).
-    *   `block`: Returns addressable subsets of notes (fenced regions like ````time```, ````dashboard```, ````query```, headings).
+    *   `block`: Returns addressable subsets of notes (fenced regions like ````time```, ````query```, headings).
 *   **Filters (`filters`):** Reuses the analytics tag vocabulary, plus content-specific keys:
     *   `type`: Fenced block type (e.g., `wod`, `dashboard`, `query`, `heading`).
     *   `has`: Checks for presence of elements (e.g., `timer`, `image`).
@@ -80,12 +80,12 @@ find:note{tags:pr} where sum:totalVolume{} > 5000 in journal last 8w
 
 **Mechanism:** The `QueryService` handles cross-store joins leveraging the deterministic `blockContentId` (FNV-1a hash) and `segmentId` keys, ensuring raw `WorkoutResult` logs remain the authoritative source of truth over disposable facts.
 
-## 5. In-Note Query Blocks (` ```query ` and ` ```dashboard `)
+## 5. In-Note Query Blocks and Dashboard Notes
 
 WQL queries can be embedded directly inside Markdown notes as first-class fenced blocks. They render inline as live, interactive results in the note editor and prose viewer.
 
-*   **` ```query ` Block:** Contains a single WQL string (analytics or `find:` content query).
-*   **` ```dashboard ` Block:** Layout container containing one WQL query per line or structured YAML widget configurations.
+*   **` ```query ` Block:** Contains a single WQL string (analytics or `find:` content query). An optional fence-tag suffix picks the widget type and grid span — ` ```query:timeseries-2 ` — from the vocabulary `table` (default), `value`, `timeseries`, `bar`, `toplist`, `stacked-bar` (plus `goal-rings` / `zone-distribution` as they land).
+*   **Dashboard Notes (#899):** a note marked `dashboard: true` in frontmatter composes its query blocks into a dashboard. The markdown heading above a block becomes the widget title, the paragraph its coaching question, and `dashboard.*` frontmatter keys become top-level controls referenced in queries as `$name` (substituted at execution time). A block body is one line: the WQL query plus optional `/`-separated positional parameters (e.g. a goal target). The ` ```dashboard ` fence from #801 was retired in the same cutover — stale blocks render as plain code.
 
 ## 6. Lexing and Parsing Structure
 

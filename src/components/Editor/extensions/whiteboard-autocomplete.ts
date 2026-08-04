@@ -3,7 +3,8 @@
  *
  * Per PRD / ADR (#892):
  * - **Fence Completion**: Typing ``` offers the fence-tag dropdown
- *   (time, log, query, dashboard — bare tags; :sport suffix UX is fog).
+ *   (time, log, query, query:timeseries — the ```dashboard fence retired in
+ *   #899; :sport suffix UX is fog).
  * - **Component Embeds**: Typing --- triggers embeddable component dropdown.
  * - **Auto-Wrapping**: Selecting text + typing ` wraps in a ```time fence.
  * - **Snippet Support**: Frontmatter components insert YAML with cursor placement.
@@ -46,10 +47,10 @@ const FENCE_TAGS: Completion[] = [
     boost: 2,
   },
   {
-    label: "```dashboard",
-    displayLabel: "dashboard — Live WQL dashboard block",
+    label: "```query:timeseries",
+    displayLabel: "query:timeseries — dashboard widget (type[-N|-full], #899)",
     type: "keyword",
-    apply: "```dashboard\n${}\n```",
+    apply: "```query:timeseries\n${}\n```",
     boost: 1,
   },
 ];

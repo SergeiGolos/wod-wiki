@@ -1,6 +1,6 @@
 /**
  * blockQueryPatcher — utilities to extract and patch WQL queries inside ```query
- * and ```dashboard fenced block sources (#842).
+ * fenced block sources (#842).
  *
  * Supports both plain line queries and structured YAML key-value blocks.
  * Preserves sibling keys, comments, formatting, and quotes when patching.
