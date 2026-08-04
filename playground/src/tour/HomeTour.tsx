@@ -264,6 +264,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
   const inTimerStage = (interactive === null && runwayReached && slice.stage.screen === 'timer') || interactive === 'timer'
   const prevInTimerStageRef = useRef(inTimerStage)
+  // Screen at completion time — read inside handleTimerComplete (stable
+  // callback) to decide whether a scroll-mode completion should auto-slide.
+  const stageScreenRef = useRef<TourScreen>(slice.stage.screen)
+  stageScreenRef.current = slice.stage.screen
 
   useEffect(() => {
     if (inTimerStage && !prevInTimerStageRef.current) {
@@ -503,7 +507,18 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
       setEntered((prev) => (prev.analytics ? prev : { ...prev, analytics: true }))
       setInteractive((mode) => (mode === 'timer' ? 'analytics' : mode))
 
-      if (!wasPlaygroundRun) return
+      if (!wasPlaygroundRun) {
+        // Scroll-mode completion (#885): clicking Next through to the end of
+        // the run auto-slides the runway to analytics card 1. Guarded to the
+        // timer cards — the ambient analytics drain also completes the
+        // runtime, and the visitor is already on the analytics cards then.
+        if (results.completed && stageScreenRef.current === 'timer') {
+          const el = runwayRef.current
+          const stage = TOUR_STAGES.find((s) => s.id === 'analytics-scorecard')
+          if (el && stage) scrollRunwayTo(el, Math.min(stage.start + 0.02, stage.end - 0.005))
+        }
+        return
+      }
       const runBlock = playgroundBlockRef.current
       if (!runBlock) return
       const wodContent =
@@ -543,6 +558,16 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     if (el) scrollRunwayTo(el, 0)
   }, [interactive, exitPlayground])
 
+  // Header Reset (#885): restart the timer run on demand — a fresh session
+  // key remounts the panel and the auto-start replays from the gate.
+  const handleTimerReset = useCallback(() => {
+    startNewSession()
+  }, [startNewSession])
+
+  // Scroll-out stop (#885): leaving the timer cards halts the ambient
+  // runtime WITHOUT resetting it — the analytics cards keep the run's data.
+  const scrollOutPause = interactive === null && entered.timer && !inTimerStage
+
   // Runway runtime — set only by the scroll-mode Timer stage. The ambient
   // demo auto-starts execution, but the root WaitingToStart gate keeps the
   // label at 'Ready to Start' while the clock ticks; advance past the gate so
@@ -575,6 +600,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
             onClose={handleTimerClose}
             onComplete={handleTimerComplete}
             onRuntimeReady={handlePlaygroundRuntimeReady}
+            onReset={handleTimerReset}
           />
         )}
         {interactive === 'analytics' && entered.analytics && (
@@ -628,7 +654,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     return subscribe((s: TourStageSlice) => {
       const tv = tvCardRef.current
       if (tv) {
-        if (s.stage.id === 'timer-cast') {
+        if (s.stage.id === 'timer-next') {
           const k = clamp01((s.t - 0.1) / 0.5)
           const e = 1 - Math.pow(1 - k, 2)
           tv.style.opacity = String(k)
@@ -767,6 +793,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
                           onClose={handleTimerClose}
                           onComplete={handleTimerComplete}
                           onRuntimeReady={handleRuntimeReady}
+                          onReset={handleTimerReset}
+                          externalPause={scrollOutPause}
                         />
                       </Screen>
                     )}

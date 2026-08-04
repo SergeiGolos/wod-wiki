@@ -218,6 +218,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const defaultNotePersistenceRef = useRef<INotePersistence | null>(null);
+  // Per-instance block-notification dedupe (#885): two editors with identical
+  // content (home hero + runway window) must each seed their own blocks — a
+  // module-level dedupe swallows the second editor's seed entirely.
+  const lastBlocksJsonRef = useRef("");
   // Mod-P opens the palette. Sources are empty here — the parent (Workbench)
   // should call palette.open() via its own onSearch prop for context-aware sources.
   const openNavigationPalette = useCallback(() => {
@@ -585,7 +589,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           onChange(update.state.doc.toString());
-          notifyBlockChanges(update.state, onBlocksChange);
+          notifyBlockChanges(update.state, onBlocksChange, lastBlocksJsonRef);
         }
         if (update.selectionSet || update.docChanged) {
           const { head } = update.state.selection.main;
@@ -666,7 +670,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     setCursorSectionId(initialSection?.id ?? null);
 
     // Seed block list so onBlocksChange fires on initial mount (not just on edits)
-    notifyBlockChanges(view.state, onBlocksChange);
+    notifyBlockChanges(view.state, onBlocksChange, lastBlocksJsonRef);
 
     return () => {
       if (editorRef.current) {
@@ -900,10 +904,10 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
 }
 
 /** Notify parent of block changes by extracting ScriptBlocks from section state */
-let lastBlocksJson = "";
 function notifyBlockChanges(
   state: EditorState,
-  onBlocksChange?: (blocks: ScriptBlock[]) => void
+  onBlocksChange: ((blocks: ScriptBlock[]) => void) | undefined,
+  lastBlocksJsonRef: React.MutableRefObject<string>
 ) {
   if (!onBlocksChange) return;
 
@@ -917,8 +921,8 @@ function notifyBlockChanges(
     blocks.map((b) => ({ id: b.id, startLine: b.startLine, endLine: b.endLine, content: b.content }))
   );
 
-  if (blocksJson !== lastBlocksJson) {
-    lastBlocksJson = blocksJson;
+  if (blocksJson !== lastBlocksJsonRef.current) {
+    lastBlocksJsonRef.current = blocksJson;
     onBlocksChange(blocks);
   }
 }

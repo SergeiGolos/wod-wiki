@@ -23,7 +23,7 @@ export type TourStageId =
   | 'editor-run'
   | 'editor-typeahead'
   | 'timer-wallclock'
-  | 'timer-cast'
+  | 'timer-next'
   | 'analytics-scorecard'
   | 'analytics-grid'
   | 'editor'
@@ -40,7 +40,7 @@ export type RingTargetKey =
   | 'editor.runButton'
   | 'editor.typeahead'
   | 'timer.floor'
-  | 'timer.cast'
+  | 'timer.nextButton'
   | 'analytics.scorecard'
   | 'analytics.grid'
 export interface TourStage {
@@ -122,14 +122,14 @@ export const TOUR_STAGES: TourStage[] = [
     tagA: 'WallClock',
   },
   {
-    id: 'timer-cast',
+    id: 'timer-next',
     start: 0.60,
     end: 0.72,
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
-    label: 'Broadcast the Timer',
-    ringA: 'timer.cast',
-    tagA: 'Chromecast',
+    label: 'Advance Rounds with Next',
+    ringA: 'timer.nextButton',
+    tagA: 'Next Button',
   },
   {
     id: 'analytics-scorecard',

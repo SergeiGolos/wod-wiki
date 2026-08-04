@@ -41,14 +41,14 @@ stages:
     ring:
       key: timer.floor
       tag: WallClock
-  - id: timer-cast
+  - id: timer-next
     range: [0.60, 0.72]
     screen: timer
     source: wods/examples/home/welcome-1.md
-    caption: "Cast to Any Screen. Your phone stays the remote. One tap casts the active workout steps to a Chromecast or secondary monitor via zero-lag RPC transport."
+    caption: "Next Advances the Workout. Every click locks a time. Click Next to advance to the next movement or round — each click locks the elapsed time into the collected metrics as a split; completing the run slides straight into the analytics."
     ring:
-      key: timer.cast
-      tag: Chromecast
+      key: timer.nextButton
+      tag: Next Button
   - id: analytics-scorecard
     range: [0.72, 0.86]
     screen: analytics

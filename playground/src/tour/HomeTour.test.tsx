@@ -9,7 +9,7 @@ import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
 import { render, screen, cleanup, fireEvent, act, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
-import type { ScriptBlock } from '@/components/Editor/types'
+import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 
 // ── Heavy / browser-only dependencies ───────────────────────────────────────
@@ -47,7 +47,27 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
 }))
 
 mock.module('@/components/organisms/editor/RuntimeTimerPanel', () => ({
-  RuntimeTimerPanel: () => <div data-testid="mock-timer-panel" />,
+  RuntimeTimerPanel: (props: {
+    onComplete?: (blockId: string, results: WorkoutResults) => void
+    externalPause?: boolean
+  }) => {
+    const control = globalThis as unknown as {
+      mockTimerPanelMounts?: number
+      fireTimerComplete?: (results: WorkoutResults) => void
+    }
+    const React = require('react')
+    React.useEffect(() => {
+      control.mockTimerPanelMounts = (control.mockTimerPanelMounts ?? 0) + 1
+    }, [])
+    control.fireTimerComplete = (results: WorkoutResults) =>
+      props.onComplete?.('block-1', results)
+    return (
+      <div
+        data-testid="mock-timer-panel"
+        data-external-pause={String(props.externalPause ?? false)}
+      />
+    )
+  },
 }))
 
 mock.module('@/components/organisms/review/AnalyticsScorecard', () => ({
@@ -165,13 +185,13 @@ function makeSlice(progress: number): TestSlice {
     return {
       index: 4,
       stage: {
-        id: 'timer-cast',
+        id: 'timer-next',
         screen: 'timer',
         accent: 'hsl(var(--metric-effort))',
-        label: 'Broadcast the Timer',
+        label: 'Advance Rounds with Next',
       },
       t,
-      ring: { key: 'timer.cast', tag: 'Chromecast' },
+      ring: { key: 'timer.nextButton', tag: 'Next Button' },
     }
   }
   if (progress < 0.86) {
@@ -267,6 +287,21 @@ const resetScrollSpy = () => {
   scrollSpyControl().scrollRunwayToCalls = 0
 }
 const scrollRunwayToCallCount = () => scrollSpyControl().scrollRunwayToCalls ?? 0
+
+// Timer-panel access — globalThis is augmented by the RuntimeTimerPanel mock.
+type TimerPanelControl = {
+  mockTimerPanelMounts?: number
+  fireTimerComplete?: (results: WorkoutResults) => void
+}
+const timerPanelControl = () => globalThis as unknown as TimerPanelControl
+const completedResults = (): WorkoutResults =>
+  ({
+    startTime: 0,
+    endTime: 60_000,
+    duration: 60_000,
+    completed: true,
+    logs: [],
+  }) as unknown as WorkoutResults
 
 // ── Test data ───────────────────────────────────────────────────────────────
 
@@ -601,5 +636,89 @@ describe('HomeTour', () => {
       await Promise.resolve()
     })
     expect(screen.getAllByTestId('tour-wod-block-region')).toHaveLength(1)
+  })
+
+  it('restarts the run from the timer header Reset button (#885)', async () => {
+    await renderHomeTour()
+    await act(async () => {
+      setTestTourProgress(0.50)
+      await Promise.resolve()
+    })
+    await screen.findByTestId('mock-timer-panel')
+
+    const resetButton = await screen.findByRole('button', { name: /Reset timer/i })
+    const mountsBefore = timerPanelControl().mockTimerPanelMounts ?? 0
+    await act(async () => {
+      fireEvent.click(resetButton)
+      await Promise.resolve()
+    })
+
+    // Reset remounts the panel with a fresh session (auto-start replays).
+    expect(timerPanelControl().mockTimerPanelMounts ?? 0).toBeGreaterThan(mountsBefore)
+    expect(await screen.findByTestId('mock-timer-panel')).toBeTruthy()
+  })
+
+  it('pauses the ambient timer without resetting it when scrolling out of the timer cards (#885)', async () => {
+    await renderHomeTour()
+    await act(async () => {
+      setTestTourProgress(0.50)
+      await Promise.resolve()
+    })
+    const panel = await screen.findByTestId('mock-timer-panel')
+    expect(panel.getAttribute('data-external-pause')).toBe('false')
+
+    // Scroll forward onto the analytics cards — the same panel stays mounted
+    // (no reset) but is signaled to halt.
+    await act(async () => {
+      setTestTourProgress(0.78)
+      await Promise.resolve()
+    })
+    expect(screen.getByTestId('mock-timer-panel').getAttribute('data-external-pause')).toBe('true')
+
+    // Scroll back up to the editor cards — still halted, still the same run.
+    await act(async () => {
+      setTestTourProgress(0.20)
+      await Promise.resolve()
+    })
+    expect(screen.getByTestId('mock-timer-panel').getAttribute('data-external-pause')).toBe('true')
+  })
+
+  it('auto-slides the runway to analytics card 1 when Next completes the run (#885)', async () => {
+    await renderHomeTour()
+    // Card 2 of the timer walkthrough — the Next tutorial.
+    await act(async () => {
+      setTestTourProgress(0.65)
+      await Promise.resolve()
+    })
+    await screen.findByTestId('mock-timer-panel')
+
+    resetScrollSpy()
+    await act(async () => {
+      timerPanelControl().fireTimerComplete?.(completedResults())
+      await Promise.resolve()
+    })
+    expect(scrollRunwayToCallCount()).toBeGreaterThan(0)
+  })
+
+  it('does not auto-slide when the runtime completes on the analytics cards (#885)', async () => {
+    await renderHomeTour()
+    await act(async () => {
+      setTestTourProgress(0.50)
+      await Promise.resolve()
+    })
+    await screen.findByTestId('mock-timer-panel')
+
+    // Visitor scrolls to analytics first; the ambient drain completing the
+    // runtime there must not yank the runway back to card 1.
+    await act(async () => {
+      setTestTourProgress(0.78)
+      await Promise.resolve()
+    })
+    resetScrollSpy()
+    await act(async () => {
+      timerPanelControl().fireTimerComplete?.(completedResults())
+      await Promise.resolve()
+    })
+    expect(scrollRunwayToCallCount()).toBe(0)
   })
 })

@@ -173,13 +173,13 @@ function makeSlice(progress: number): TestSlice {
     return {
       index: 1,
       stage: {
-        id: 'timer-cast',
+        id: 'timer-next',
         screen: 'timer',
         accent: 'hsl(var(--metric-effort))',
-        label: 'Broadcast the Timer',
+        label: 'Advance Rounds with Next',
       },
       t,
-      ring: { key: 'timer.cast', tag: 'Chromecast' },
+      ring: { key: 'timer.nextButton', tag: 'Next Button' },
     }
   }
   if (progress < 0.75) {

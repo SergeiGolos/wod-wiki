@@ -167,16 +167,16 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     ],
   },
   {
-    id: 'timer-cast',
-    num: '02b / 03 — Broadcast',
+    id: 'timer-next',
+    num: '02b / 03 — Advance & Lock In',
     title: (
       <>
-        Cast to Any Screen.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>Your phone stays the remote.</em>
+        Next Advances the Workout.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>Every click locks a time.</em>
       </>
     ),
-    body: 'One tap casts the active workout steps to a Chromecast or secondary monitor via zero-lag RPC transport, displaying full-screen progress.',
-    foot: 'Chromecast · RPC transport · multi-display',
+    body: 'Click Next to advance to the next movement or round at your own pace — each click locks the elapsed time into the collected metrics as a split. Click all the way through and the run completes, sliding you straight into the analytics.',
+    foot: 'Next button · round advance · locked time splits',
     accent: TOUR_ACCENTS.timer,
     actions: [
       {
