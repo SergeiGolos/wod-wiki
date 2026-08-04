@@ -1,7 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Code2, Edit3, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { WqlQueryComposer } from '@/components/organisms/analytics/WqlQueryComposer';
+import { isFindQuery, queryService } from '@/services/analytics/query';
+import {
+  WqlComposer,
+  clausesToWql,
+  defaultMetricsClauses,
+  wqlToClauses,
+  type QueryClause,
+  type WqlExecutor,
+} from '@/components/organisms/wql-composer';
 import {
   WidgetFrame,
   QueryValue,
@@ -14,6 +22,7 @@ import {
   useAnalyticsQueries,
   AnalyticsUnitPreference,
   useAnalyticsUnitPreference,
+  getDashboardEffectiveUnit,
 } from '@/components/molecules/analytics';
 import { DEMO_WIDGETS, DASHBOARD_SOURCE } from './dashboardDefinition';
 import { SampleDataPrompt } from './SampleDataPrompt';
@@ -33,11 +42,16 @@ export function AnalyticsDashboardPage() {
     return initial;
   });
   const [editingWidgetKey, setEditingWidgetKey] = useState<string | null>(null);
-  const [draftQuery, setDraftQuery] = useState<string>('');
+  const [clauses, setClauses] = useState<QueryClause[]>([]);
+  const [isValid, setIsValid] = useState<boolean>(true);
 
   const queries = useMemo(
     () => DEMO_WIDGETS.map((w) => ({ key: w.key, query: widgetQueries[w.key] ?? w.query })),
     [widgetQueries],
+  );
+  const { unit: effectiveUnit, forced: unitForced } = useMemo(
+    () => getDashboardEffectiveUnit(queries, preferredUnit),
+    [queries, preferredUnit],
   );
   const { results, loading } = useAnalyticsQueries(queries, weeks, refreshKey, preferredUnit);
 
@@ -45,14 +59,21 @@ export function AnalyticsDashboardPage() {
     void hasSampleData().then(setSampleLoaded);
   }, [refreshKey]);
 
+  const diagnosticsExecutor = useCallback<WqlExecutor>(
+    (ast) => (isFindQuery(ast) ? queryService.runFind(ast) : queryService.runQuery(ast.raw)),
+    [],
+  );
+
   const openEditor = (key: string, currentQuery: string) => {
     setEditingWidgetKey(key);
-    setDraftQuery(currentQuery);
+    setClauses(wqlToClauses(currentQuery) ?? defaultMetricsClauses());
+    setIsValid(true);
   };
 
   const saveEditor = () => {
-    if (editingWidgetKey) {
-      setWidgetQueries((prev) => ({ ...prev, [editingWidgetKey]: draftQuery }));
+    if (editingWidgetKey && isValid) {
+      const wql = clausesToWql(clauses);
+      setWidgetQueries((prev) => ({ ...prev, [editingWidgetKey]: wql }));
       setEditingWidgetKey(null);
     }
   };
@@ -80,7 +101,7 @@ export function AnalyticsDashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <RangeSelector />
-            <AnalyticsUnitPreference />
+            <AnalyticsUnitPreference unit={unitForced ? effectiveUnit : undefined} forced={unitForced} />
             <button
               onClick={() => setShowSource((s) => !s)}
               className="flex items-center gap-1.5 text-xs border border-border rounded-lg px-3 py-1.5 text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors"
@@ -131,7 +152,8 @@ export function AnalyticsDashboardPage() {
                 <div key={widget.key} className="relative group">
                   <button
                     onClick={() => openEditor(widget.key, currentQuery)}
-                    title="Edit Widget Query with Dual Composer"
+                    title="Edit Widget Query with Omni-Composer"
+                    data-testid={`edit-widget-${widget.key}`}
                     className="absolute top-2 right-2 z-10 p-1.5 rounded-lg bg-card/80 border border-border text-muted-foreground hover:text-foreground hover:border-primary opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                   >
                     <Edit3 size={13} />
@@ -175,7 +197,7 @@ export function AnalyticsDashboardPage() {
 
         {/* WIDGET QUERY INSPECTOR MODAL */}
         {editingWidgetKey && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" data-testid="widget-query-modal">
             <div className="nord-card w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl p-6 shadow-2xl space-y-4 border-border bg-card">
               <div className="flex items-center justify-between border-b border-border pb-3">
                 <div>
@@ -183,33 +205,38 @@ export function AnalyticsDashboardPage() {
                     Edit Widget Query: {DEMO_WIDGETS.find((w) => w.key === editingWidgetKey)?.title}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Use the Dual-Mode Composer (Visual Pills or Raw WQL) to edit this dashboard section query.
+                    Use the Omni-Composer to edit this dashboard section query.
                   </p>
                 </div>
                 <button
                   onClick={() => setEditingWidgetKey(null)}
                   className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted"
+                  data-testid="close-widget-query-modal"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <WqlQueryComposer
-                value={draftQuery}
-                onChange={setDraftQuery}
-                mode="dual"
+              <WqlComposer
+                clauses={clauses}
+                onClausesChange={setClauses}
+                onValidationChange={(state) => setIsValid(state.valid)}
+                execute={diagnosticsExecutor}
               />
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
                 <button
                   onClick={() => setEditingWidgetKey(null)}
                   className="px-4 py-2 text-xs font-semibold rounded-lg border border-border text-muted-foreground hover:text-foreground"
+                  data-testid="cancel-widget-query"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={saveEditor}
-                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 shadow-sm"
+                  disabled={!isValid}
+                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="apply-widget-query"
                 >
                   Apply to Widget
                 </button>

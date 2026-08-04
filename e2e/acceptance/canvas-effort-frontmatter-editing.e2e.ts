@@ -63,7 +63,7 @@ test.describe('Canvas effort frontmatter editing flow', () => {
         await expect(companion.locator('input[spellcheck="false"]')).toHaveValue('rowing-intervals');
         await expect(companion.locator('input[type="number"]')).toHaveValue('7.0');
         // Verify the select has the expected options
-        await expect(companion.locator('select')).toHaveValue('high');
+        await expect(companion.locator('select').first()).toHaveValue('high');
       }
 
       // On mobile inactive frontmatter, the companion shows compact summary

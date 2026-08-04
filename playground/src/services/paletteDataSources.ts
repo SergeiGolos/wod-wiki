@@ -18,6 +18,38 @@ export type WorkoutItem = IndexWorkoutItem;
 // ── Global search ─────────────────────────────────────────────────────────
 
 /**
+ * Lists canvas route pages. Standalone so the WQL-driven global palette
+ * (issue #834) can combine it with WQL results; `globalSearchSource`
+ * delegates to it.
+ */
+export function canvasRouteSource(canvasRoutes: CanvasRoute[]): PaletteDataSource {
+  return {
+    id: 'canvas-routes',
+    label: 'Pages',
+    search: (query) => {
+      const low = query.toLowerCase();
+      return canvasRoutes
+        .filter(r => {
+          const title = r.page.sections[0]?.heading ?? r.route;
+          return !low || title.toLowerCase().includes(low) || r.route.toLowerCase().includes(low);
+        })
+        .slice(0, 5)
+        .map(r => {
+          const title = r.page.sections[0]?.heading ?? r.route;
+          return {
+            id: `route:${r.route}`,
+            label: title,
+            sublabel: r.route,
+            category: 'Pages',
+            type: 'route' as const,
+            payload: { route: r.route },
+          };
+        });
+    },
+  };
+}
+
+/**
  * Searches canvas pages, workout library items, and recent IndexedDB results.
  * Used for Ctrl+/ global search.
  */
@@ -35,23 +67,7 @@ export function globalSearchSource(
 
       // Canvas route pages
       if (canvasRoutes?.length) {
-        canvasRoutes
-          .filter(r => {
-            const title = r.page.sections[0]?.heading ?? r.route;
-            return !low || title.toLowerCase().includes(low) || r.route.toLowerCase().includes(low);
-          })
-          .slice(0, 5)
-          .forEach(r => {
-            const title = r.page.sections[0]?.heading ?? r.route;
-            results.push({
-              id: `route:${r.route}`,
-              label: title,
-              sublabel: r.route,
-              category: 'Pages',
-              type: 'route',
-              payload: { route: r.route },
-            });
-          });
+        results.push(...await canvasRouteSource(canvasRoutes).search(query));
       }
 
       // Workout library
@@ -222,22 +238,21 @@ export interface ExtractedScriptBlock {
   /** The raw wod/log/plan script inside the fence */
   script: string;
   preview: string;
-  /** The dialect: wod | log | plan (whiteboard is accepted as a fence alias and normalized to 'wod') */
-  dialect: 'wod' | 'log' | 'plan';
+  /** The fence tag: time | log */
+  dialect: 'time' | 'log';
 }
 
 /**
- * Pull every ```wod / ```log / ```plan fenced block out of a markdown string.
+ * Pull every ```time / ```log fenced block out of a markdown string.
  */
 export function extractScriptBlocks(markdown: string): ExtractedScriptBlock[] {
   const blocks: ExtractedScriptBlock[] = [];
-  const re = /```(wod|whiteboard|log|plan)\r?\n([\s\S]*?)```/gi;
+  const re = /```(time|log)(:\w+)?\r?\n([\s\S]*?)```/gi;
   let match: RegExpExecArray | null;
   let index = 0;
   while ((match = re.exec(markdown)) !== null) {
-    const rawDialect = match[1].toLowerCase();
-    const dialect = (rawDialect === 'whiteboard' ? 'wod' : rawDialect) as ExtractedScriptBlock['dialect'];
-    const script = match[2];
+    const dialect = match[1].toLowerCase() as ExtractedScriptBlock['dialect'];
+    const script = match[3];
     const preview = script.split('\n').find(l => l.trim())?.trim() ?? '(empty block)';
     blocks.push({ index: index++, script, preview, dialect });
   }

@@ -30,7 +30,7 @@ const T0 = 1_700_000_000_000;
 const BLOCK: ScriptBlock = {
   id: 'wod-2-test',
   contentId: 'bc-test',
-  dialect: 'wod',
+  dialect: 'time',
   startLine: 2,
   endLine: 5,
   content: '21 Deadlift 60kg',
@@ -111,6 +111,34 @@ describe('deriveWorkoutFromLogs', () => {
     };
     const derived = deriveWorkoutFromLogs([segmentLog(), milestone], { block: BLOCK });
     expect(derived).toContainEqual(milestone);
+  });
+
+  it('re-derives TIS through the composed engine while freezing estimated predictions (#876)', () => {
+    const derived = deriveWorkoutFromLogs([
+      segmentLog([
+        // A frozen prediction from recording time — never re-derived.
+        { type: 'metMinutes', value: 5, origin: 'analyzed-estimated' },
+      ]),
+    ], { block: BLOCK });
+
+    // The composed engine re-derives the full Tier-2 suite (strip rule:
+    // legacy 'analytics' outputs are gone, fresh ones are appended).
+    const summaries = derived.filter((o) => o.outputType === 'analytics');
+    const keys = summaries.map((o) => {
+      const value = o.metrics.find((m) => m.type !== MetricType.Label && typeof m.value === 'number');
+      return (value?.metadata as Record<string, unknown> | undefined)?.canonicalKey;
+    });
+    expect(keys).toContain('tis');
+    expect(keys).toContain('sessionLoad');
+    expect(keys).toContain('calc.metMinutes');
+    expect(keys).toContain('reps');
+
+    // The frozen prediction survives exactly once — no double-counted
+    // re-derivation beside it.
+    const segment = derived.find((o) => o.outputType === 'segment')!;
+    const metMinutes = segment.metrics.filter((m) => m.type === 'metMinutes');
+    expect(metMinutes).toHaveLength(1);
+    expect(metMinutes[0]).toMatchObject({ value: 5, origin: 'analyzed-estimated' });
   });
 });
 
@@ -235,6 +263,76 @@ describe('normalizeSummaryFacts', () => {
     expect(points[0].effortSlug).toBeUndefined();
     expect(points[0].discipline).toBeUndefined();
     expect(points[0].intensityTier).toBeUndefined();
+  });
+
+  // #878 — generalized fact identity for composed calculation outputs.
+  it('prefers the canonicalKey metadata over the name-derived metric key', () => {
+    const points = normalizeSummaryFacts([
+      {
+        outputType: 'analytics',
+        timeSpan: { started: T0, ended: T0 },
+        metrics: [
+          { type: MetricType.Label, value: 'calc.metMinutes', image: 'calc.metMinutes' },
+          { type: 'work', value: 135, unit: 'MET-min', metadata: { canonicalKey: 'calc.metMinutes' } },
+        ],
+      },
+    ], { noteId: 'n1', resultId: 'r1' });
+
+    expect(points[0].metricKey).toBe('calc.metMinutes');
+    expect(points[0].type).toBe('calc.metMinutes');
+  });
+
+  it('builds row keys from sorted group-tag pairs and dedupes keep-last per row key', () => {
+    const output = (value: number, totalSets: number) => ({
+      outputType: 'analytics',
+      timeSpan: { started: T0, ended: T0 },
+      metrics: [
+        { type: MetricType.Label, value: 'totalVolume', image: 'totalVolume' },
+        {
+          type: 'volume',
+          value,
+          unit: 'kg',
+          metadata: {
+            canonicalKey: 'totalVolume',
+            groupTags: { effort: 'thruster' },
+            effortSlug: 'thruster',
+            effortDiscipline: 'strength',
+            effortIntensityTier: 'high',
+            totalSets,
+          },
+        },
+      ],
+    });
+    // Two emissions for the same row key (live running totals): last wins.
+    const points = normalizeSummaryFacts([output(600, 1), output(900, 2)], { noteId: 'n1', resultId: 'r1' });
+
+    expect(points).toHaveLength(1);
+    expect(points[0].value).toBe(900);
+    expect(points[0].id).toContain('totalVolume:effort=thruster');
+    expect(points[0]).toMatchObject({
+      metricKey: 'totalVolume',
+      effortSlug: 'thruster',
+      discipline: 'strength',
+      intensityTier: 'high',
+    });
+  });
+
+  it('sorts multiple group tags deterministically in the row key', () => {
+    const points = normalizeSummaryFacts([
+      {
+        outputType: 'analytics',
+        timeSpan: { started: T0, ended: T0 },
+        metrics: [
+          { type: MetricType.Label, value: 'reps', image: 'reps' },
+          {
+            type: 'rep', value: 15, unit: 'reps',
+            metadata: { canonicalKey: 'reps', groupTags: { effort: 'thruster', day: 'monday' } },
+          },
+        ],
+      },
+    ], { noteId: 'n1', resultId: 'r1' });
+
+    expect(points[0].id).toContain('reps:day=monday:effort=thruster');
   });
 
   it('stamps the canonical workout time, not the derivation-time output stamp', () => {

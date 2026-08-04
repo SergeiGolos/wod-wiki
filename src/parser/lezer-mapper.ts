@@ -23,9 +23,12 @@ export function extractStatementsRaw(state: EditorState): ICodeStatement[] {
  * The Dialect Stack (base Units + sport Dialects + personal-overrides) runs on
  * every statement here, so every parse consumer (read(), the editor preview,
  * tests) gets fused units and sport hints uniformly. See `DialectStack.ts`.
+ *
+ * @param sport - The block's `:sport` fence suffix (` ```log:climbing `).
+ *   Omitted → the full registry stack runs. See {@link DialectStack.dialectsFor}.
  */
-export function extractStatements(state: EditorState): ICodeStatement[] {
+export function extractStatements(state: EditorState, sport?: string): ICodeStatement[] {
   const statements = extractStatementsRaw(state);
-  dialectStack.processAll(statements);
+  dialectStack.processAll(statements, sport);
   return statements;
 }

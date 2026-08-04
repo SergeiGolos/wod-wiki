@@ -5,7 +5,7 @@ subtitle: "? captures user input at runtime"
 section: supplemental
 order: 4
 ---
-```wod
+```time
 (5 Sets)
   5 Deadlifts ?lb
   // Choose a challenging working weight

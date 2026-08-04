@@ -15,7 +15,7 @@ tags:
 
 Burpee box jump overs and wall balls in descending reps.
 
-```wod
+```time
 (21-18-15-12-9-6-3)
   Burpee Box Jump Overs 24in
   Wall Balls 20lb

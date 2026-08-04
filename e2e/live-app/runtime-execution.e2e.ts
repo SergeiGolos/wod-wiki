@@ -71,7 +71,7 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
   });
 
   test('countdown progresses and tracks wall clock', async ({ page }) => {
-    await startCleanWorkout(page, 'runtime-e2e-countdown', '```wod\nTimer: 1:00\n10 Burpees\n```');
+    await startCleanWorkout(page, 'runtime-e2e-countdown', '```time\nTimer: 1:00\n10 Burpees\n```');
 
     const v0 = await timerSeconds(page);
     expect(v0).toBeGreaterThan(0);
@@ -86,7 +86,7 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
   });
 
   test('pause freezes the countdown and resume restarts it', async ({ page }) => {
-    await startCleanWorkout(page, 'runtime-e2e-pause', '```wod\nTimer: 1:00\n10 Burpees\n```');
+    await startCleanWorkout(page, 'runtime-e2e-pause', '```time\nTimer: 1:00\n10 Burpees\n```');
 
     await pauseIconButton(page).click();
     await expect(playIconButton(page)).toBeVisible({ timeout: 5_000 });
@@ -102,7 +102,7 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
   });
 
   test('next block advances to the next segment', async ({ page }) => {
-    await startCleanWorkout(page, 'runtime-e2e-next', '```wod\n(2)\n  5 Burpees\n  10 Squats\n```');
+    await startCleanWorkout(page, 'runtime-e2e-next', '```time\n(2)\n  5 Burpees\n  10 Squats\n```');
 
     // First child is current; advancing surfaces the next movement.
     const nextButton = page.getByTestId(TEST_IDS.TIMER_NEXT_BLOCK).first();
@@ -114,7 +114,7 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
   });
 
   test('stop session records no completed result', async ({ page }) => {
-    await startCleanWorkout(page, 'runtime-e2e-stop', '```wod\nTimer: 1:00\n10 Burpees\n```');
+    await startCleanWorkout(page, 'runtime-e2e-stop', '```time\nTimer: 1:00\n10 Burpees\n```');
 
     // Session-output signal: the countdown has started ticking (replaces the
     // fixed 1s "let the session produce some output" sleep).
@@ -135,7 +135,7 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
     // Fast clock (20×): the 6s countdown completes in ~0.3s wall time. Not
     // applied file-wide — 'countdown progresses' verifies wall-clock tracking.
     await installFastClock(page);
-    await startCleanWorkout(page, 'runtime-e2e-complete', '```wod\nTimer: 0:06\n5 Burpees\n```');
+    await startCleanWorkout(page, 'runtime-e2e-complete', '```time\nTimer: 0:06\n5 Burpees\n```');
 
     // The wall budget covers the run itself, not seed/page-load — cold Vite
     // transforms make load time environment-dependent (CI variance), while
@@ -160,7 +160,7 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
   test('completion result feeds the results inlay on the source note', async ({ page }) => {
     await installFastClock(page);
     const id = 'runtime-e2e-inlay';
-    await startCleanWorkout(page, id, '```wod\nTimer: 0:06\n5 Burpees\n```');
+    await startCleanWorkout(page, id, '```time\nTimer: 0:06\n5 Burpees\n```');
 
     await advanceUntilReview(page);
     expect((await getResults(page)).some((r) => r.data?.completed === true)).toBe(true);

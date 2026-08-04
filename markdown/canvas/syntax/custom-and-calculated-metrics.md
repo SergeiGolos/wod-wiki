@@ -30,7 +30,7 @@ Known keys map to canonical metric types:
 Any other key stays visible as a custom metric.
 That includes coach-specific fields like `location`, `surface`, or `note`.
 
-```wod
+```time
 rpe: 8
 location: "Garage"
 surface: indoor
@@ -59,7 +59,7 @@ Supported functions are:
 
 Supported operators are `+`, `-`, `*`, `/`, `^`, and parentheses.
 
-```wod
+```time
 rpe: 8
 (5 Sets)
   5 Deadlifts 225lb

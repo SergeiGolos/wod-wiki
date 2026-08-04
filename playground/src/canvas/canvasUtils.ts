@@ -6,22 +6,6 @@ export const MOBILE_STICKY_TOP = 65
 export const MOBILE_BREAKPOINT_PX = 1023
 export const INITIAL_SOURCE_KEY = '__initial__'
 
-export function getPageStickyOffset(fallback: number): number {
-  if (typeof document === 'undefined') return fallback
-
-  const stickyElements = Array.from(
-    document.querySelectorAll<HTMLElement>('[data-page-sticky-boundary="true"]'),
-  )
-
-  const visibleBottom = stickyElements.reduce((maxBottom, element) => {
-    const rect = element.getBoundingClientRect()
-    if (rect.height <= 0 || rect.bottom <= 0) return maxBottom
-    return Math.max(maxBottom, rect.bottom)
-  }, 0)
-
-  return visibleBottom > 0 ? visibleBottom + 24 : fallback
-}
-
 export function getCanvasNoteId(route: string): string {
   return route === '/' ? 'canvas:home' : `canvas:${route.replace(/^\//, '')}`
 }

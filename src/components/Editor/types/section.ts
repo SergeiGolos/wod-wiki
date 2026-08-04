@@ -8,21 +8,42 @@
  * Section types:
  *  - title: Special first section — editing updates the note title.
  *  - markdown: Free-form markdown content rendered as rich text.
- *  - wod: Fenced code block (```` ```wod ````, ```` ```log ````, ```` ```plan ````).
+ *  - time / log: Fenced workout block (```` ```time ````, ```` ```log ````, optional :sport suffix).
+ *    The type IS the fence tag — `time` is runnable, `log` is recorded.
  *  - frontmatter: YAML front matter between `---` delimiters, rendered as table or embed.
  */
 
 import type { ScriptBlock } from './index';
 export type { ScriptBlock };
 
-/** Valid WOD dialect identifiers — each loads different strategies */
-export type FenceDialect = 'wod' | 'log' | 'plan';
+/** Workout fence tags — `time` is runnable, `log` is recorded (no Run affordance) */
+export type FenceDialect = 'time' | 'log';
 
-/** Ordered list of recognised dialect fence names */
-export const VALID_FENCE_DIALECTS: FenceDialect[] = ['wod', 'log', 'plan'];
+/** Ordered list of recognised workout fence tags */
+export const VALID_FENCE_DIALECTS: FenceDialect[] = ['time', 'log'];
+
+/**
+ * Run affordance for a fence base tag (#891, decided in #894):
+ * `'time'` → `'run'` (runnable) · `'log'` → `'log'` (log-mode runtime) · else `null`.
+ * The `:sport` suffix never reaches this resolver — it scopes the DialectStack only.
+ * Single shared mechanism; surfaces MUST NOT inline their own type checks.
+ */
+export function runAffordance(baseTag: string): 'run' | 'log' | null {
+  if (baseTag === 'time') return 'run';
+  if (baseTag === 'log') return 'log';
+  return null;
+}
 
 /** Section types the editor can parse and render */
-export type SectionType = 'title' | 'markdown' | 'wod' | 'frontmatter' | 'embed';
+export type SectionType = 'title' | 'markdown' | 'time' | 'log' | 'frontmatter' | 'embed';
+
+/** Workout section types — the runnable/recorded fence tags */
+export type WorkoutSectionType = Extract<SectionType, FenceDialect>;
+
+/** Type guard for workout sections (`time` runnable / `log` recorded) */
+export function isWorkoutSectionType(type: SectionType): type is WorkoutSectionType {
+  return type === 'time' || type === 'log';
+}
 
 /** Typed front matter subtypes — determines embed renderer */
 export type FrontMatterSubtype = 'default' | 'youtube' | 'strava' | 'amazon' | 'file' | 'effort';
@@ -33,13 +54,13 @@ export type FrontMatterSubtype = 'default' | 'youtube' | 'strava' | 'amazon' | '
 export interface Section {
   /** Stable identifier (survives re-parse if structurally equivalent) */
   id: string;
-  /** Content-stable identity (wod only) — survives clone/reorder/edit-above; results join on this. */
+  /** Content-stable identity (workout sections only) — survives clone/reorder/edit-above; results join on this. */
   contentId?: string;
 
   /** Structural type — determines which renderer is used */
   type: SectionType;
 
-  /** Raw markdown text including syntax (# for headings, ```wod fences, etc.) */
+  /** Raw markdown text including syntax (# for headings, ```time fences, etc.) */
   rawContent: string;
 
   /** Display content (heading text without #, paragraph text, WOD inner content) */
@@ -57,10 +78,10 @@ export interface Section {
   /** Heading level 1-6 (only meaningful inside markdown sections) */
   level?: number;
 
-  /** WOD dialect — only set when type === 'wod' */
-  dialect?: FenceDialect;
+  /** Sport suffix from the fence (```log:climbing) — scopes the block's DialectStack. Only for workout sections. */
+  sport?: string;
 
-  /** Associated ScriptBlock (only when type === 'wod') */
+  /** Associated ScriptBlock (only for workout sections) */
   scriptBlock?: ScriptBlock;
 
   /** Front matter key-value pairs (only when type === 'frontmatter') */

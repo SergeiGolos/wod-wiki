@@ -27,7 +27,7 @@ wayback_url: "http://web.archive.org/web/2/http://zombiefit.org/2009/11/wod-1201
 
 Run 1/4 mile | bike 2 miles | row 500m followed by:
 
-\`\`\`wod
+\`\`\`time
 (2)
   250m Quadrupedal Movement
   50 Jumping Jacks
@@ -62,7 +62,7 @@ describe('getWorkoutPreview', () => {
   })
 
   it('skips heading and code-fence delimiter lines when picking the first body line', () => {
-    const content = FRONTMATTER + '\n# Title\n\nFirst real sentence.\n\n```wod\n(5) burpees\n```\n'
+    const content = FRONTMATTER + '\n# Title\n\nFirst real sentence.\n\n```time\n(5) burpees\n```\n'
     expect(getWorkoutPreview(content)).toBe('First real sentence.')
   })
 })

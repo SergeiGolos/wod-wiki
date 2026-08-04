@@ -16,7 +16,7 @@ The Secret Service Snatch Test (SSST) is a legendary kettlebell test of strength
 
 The test challenges both the alactic and aerobic energy systems while demanding technical proficiency to maintain efficiency over 10 continuous minutes. Successful completion requires strategic pacing, efficient technique, and significant conditioning. Geoff Neupert has published various training protocols to help athletes prepare for and pass this demanding test.
 
-```wod
+```time
 10:00 ? KB Snatch 24kg
 ```
 

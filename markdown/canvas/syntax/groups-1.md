@@ -5,7 +5,7 @@ subtitle: "Parentheses repeat everything inside"
 section: groups
 order: 1
 ---
-```wod
+```time
 (3 Rounds)
   10 Pushups
   15 Situps

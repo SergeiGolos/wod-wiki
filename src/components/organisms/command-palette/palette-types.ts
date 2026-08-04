@@ -1,4 +1,30 @@
 import type React from 'react';
+import type { QueryClause, WqlExecutor } from '../wql-composer';
+
+/**
+ * WQL mode for the palette (issue #834, decision #828): the plain text input
+ * is replaced by the embedded WqlComposer, and sources receive the composed
+ * WQL string instead of fuzzy text.
+ */
+export interface PaletteWqlConfig {
+  /**
+   * Palette-specific slot configuration — seed clauses for the composer
+   * (e.g. its default target/scope/time). Defaults to the composer's own
+   * defaults (note / journal / last 2w).
+   */
+  initialClauses?: QueryClause[];
+  /** Extra content rendered inside the composer bar, after the add-filter menu. */
+  customSlots?: React.ReactNode;
+  /** Render the composer's diagnostics strip (badge, AST summary, stage counts). Default true. */
+  showDiagnostics?: boolean;
+  /**
+   * Executor for live stage counts in the diagnostics strip — dispatch on
+   * query kind, e.g. `(ast) => isFindQuery(ast) ? queryService.runFind(ast)
+   * : queryService.runQuery(ast.raw)`. When omitted, the strip omits counts
+   * and no query is executed.
+   */
+  execute?: WqlExecutor;
+}
 
 /**
  * The request a caller passes to `usePaletteStore.open()`.
@@ -9,6 +35,8 @@ export interface PaletteRequest {
   initialQuery?: string;
   /** Optional contextual UI rendered below the search input (e.g. breadcrumbs, segment display). */
   header?: React.ReactNode;
+  /** WQL mode: embed the WqlComposer and feed composed WQL to the sources. */
+  wql?: PaletteWqlConfig;
   sources: PaletteDataSource[];
 }
 
@@ -30,7 +58,7 @@ export interface PaletteItem {
   sublabel?: string;
   /** Used as group header in the results list. */
   category?: string;
-  type?: 'journal-entry' | 'collection' | 'workout' | 'action' | 'statement-part' | 'route';
+  type?: 'journal-entry' | 'collection' | 'workout' | 'action' | 'statement-part' | 'route' | 'entry';
   /** Caller-defined; returned as-is in PaletteResponse. */
   payload?: unknown;
 }

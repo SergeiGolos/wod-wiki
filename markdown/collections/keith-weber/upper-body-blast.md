@@ -16,7 +16,7 @@ The Upper Body Blast focuses on pressing, pulling, and core strength through a c
 
 The circuit includes pressing variations, rowing movements, and core work, creating comprehensive upper-body development. The continuous format with minimal rest creates significant metabolic demand in addition to muscular stimulus.
 
-```wod
+```time
 (3)
   10 Clean & Press Left 16kg
   10 Clean & Press Right 16kg

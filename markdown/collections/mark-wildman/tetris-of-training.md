@@ -19,7 +19,7 @@ The concept uses a horizontal and vertical organization: horizontally organizing
 
 ### Day 1 - Hinge Focus
 
-```wod
+```time
 (5)
   10 KB Swing 24kg
   :30 Rest
@@ -29,7 +29,7 @@ The concept uses a horizontal and vertical organization: horizontally organizing
 ```
 ### Day 2 - Squat Focus
 
-```wod
+```time
 (5)
   10 Goblet Squat 24kg
   :30 Rest
@@ -39,7 +39,7 @@ The concept uses a horizontal and vertical organization: horizontally organizing
 ```
 ### Day 3 - Push/Pull
 
-```wod
+```time
 (5)
   8 Clean & Press 20kg
   :45 Rest

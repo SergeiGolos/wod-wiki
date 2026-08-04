@@ -17,7 +17,7 @@ const makeSegment = (overrides: Partial<import('@/core/models/AnalyticsModels').
 });
 
 describe('workbenchProjection', () => {
-  it('builds idle preview when no WOD blocks are present', () => {
+  it('builds idle preview when no workout blocks are present', () => {
     expect(buildPreviewProjection(null, [])).toEqual({
       type: 'rpc-workbench-update',
       mode: 'idle',
@@ -28,7 +28,7 @@ describe('workbenchProjection', () => {
     const preview = buildPreviewProjection(null, [
       {
         id: 'block-1',
-        type: 'wod',
+        type: 'time',
         content: 'Fran\n21-15-9 thrusters',
         startLine: 1,
         endLine: 2,

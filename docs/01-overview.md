@@ -6,7 +6,7 @@ docs is a zoom-in on one of these stages.
 ```
                     ┌─────────────────────────────────────────────────────────────┐
                     │                       MARKDOWN                                │
-                    │  # Title + frontmatter + prose + fenced ```wod ``` blocks     │
+                    │  # Title + frontmatter + prose + fenced ```time ``` blocks     │
                     └───────────────────────────────┬─────────────────────────────┘
                                                     │  parse (lezer grammar)
                                                     ▼

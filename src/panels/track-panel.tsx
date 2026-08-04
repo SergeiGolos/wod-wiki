@@ -35,11 +35,11 @@ export interface TrackPanelProps {
   onNext: () => void;
   /** Raw markdown content for the preview panel */
   content?: string;
-  /** Called when user clicks Run on a WOD block in the preview */
+  /** Called when user clicks Run on a workout block in the preview */
   onStartWorkout?: (block: ScriptBlock) => void;
   /**
    * Optional section-type filter for the preview panel.
-   * Defaults to `['wod']` to show only runnable blocks.
+   * Defaults to `['time']` to show only runnable blocks.
    */
   previewFilter?: SectionType[];
   /** Callback to update parsed blocks */
@@ -82,7 +82,7 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   content,
   onStartWorkout,
   setBlocks,
-  previewFilter = ['wod'],
+  previewFilter = ['time'],
 }) => {
   const { isCompact } = usePanelSize();
   const { sectionId } = useParams<{ sectionId?: string }>();
@@ -96,7 +96,7 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   /**
    * Resolve a ChoiceCollectionItem by collapsing the chosen alternative into the
    * Statement's MetricContainer (origin 'user-plan'). Delegates to the single
-   * ChoiceResolution owner; runs before the WOD blocks compile.
+   * ChoiceResolution owner; runs before the workout blocks compile.
    */
   const resolveChoice = React.useCallback(
     (item: ChoiceCollectionItem, selectedIndex: number) => {
@@ -192,7 +192,7 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
                 <div className="h-12 w-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto mb-4">
                   <span className="text-xl font-bold">!</span>
                 </div>
-                <h3 className="text-lg font-semibold mb-2 text-foreground">WOD Not Found</h3>
+                <h3 className="text-lg font-semibold mb-2 text-foreground">Workout Not Found</h3>
                 <p className="text-sm opacity-80 mb-6">
                   The workout segment you're looking for doesn't exist in this note or has been moved.
                 </p>

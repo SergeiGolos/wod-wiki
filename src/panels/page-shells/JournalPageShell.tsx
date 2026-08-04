@@ -162,7 +162,7 @@ export function JournalPageShell({
                   onClick={() => scrollToSection(link.id)}
                   className={cn(
                     'flex-1 text-left px-4 py-2 text-sm transition-all border-l',
-                    link.type === 'wod'
+                    link.type === 'time' || link.type === 'log'
                       ? activeId === link.id
                         ? 'font-bold text-foreground border-primary pl-6 text-xs'
                         : 'text-muted-foreground/70 border-transparent hover:text-foreground hover:border-border pl-6 text-xs'
@@ -173,7 +173,7 @@ export function JournalPageShell({
                 >
                   {link.timestamp && <span className="font-bold text-[10px] tabular-nums mr-2 opacity-60">{link.timestamp}</span>}
                   {link.label}
-                  {link.type === 'wod' && (
+                  {(link.type === 'time' || link.type === 'log') && (
                     <span className="ml-2 inline-flex items-center gap-1">
                       {link.resultCount && link.resultCount > 1 ? (
                         <span className="flex items-center justify-center size-4 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
@@ -194,7 +194,7 @@ export function JournalPageShell({
                     title={link.runIcon === 'link' ? "View workout" : "Start workout"}
                     className={cn(
                       "mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all",
-                      link.type === 'wod' ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      link.type === 'time' || link.type === 'log' ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                     )}
                   >
                     {link.runIcon === 'link' ? (

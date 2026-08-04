@@ -102,7 +102,7 @@ function makeSlice(index: 0 | 1): TestSlice {
     ? {
         index: 0,
         stage: {
-          id: 'timer',
+          id: 'timer-wallclock',
           screen: 'timer',
           accent: 'hsl(var(--metric-effort))',
           label: 'What Happens When It Runs',

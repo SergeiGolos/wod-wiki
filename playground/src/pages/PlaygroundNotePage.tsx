@@ -206,9 +206,9 @@ export function PlaygroundNotePage({
   const handleAttentionAction = useCallback(
     (action: 'scroll-to-workout' | 'open-search') => {
       if (action === 'scroll-to-workout') {
-        const firstWod = index.find(item => item.type === 'wod')
-        if (firstWod) {
-          onScrollToSection?.(firstWod.id)
+        const firstWorkout = index.find(item => item.type === 'time' || item.type === 'log')
+        if (firstWorkout) {
+          onScrollToSection?.(firstWorkout.id)
         }
       } else if (action === 'open-search') {
         onSearch?.()
@@ -219,7 +219,7 @@ export function PlaygroundNotePage({
 
   const handleCodeExampleRun = useCallback(
     (script: string) => {
-      // Parse the script as a WOD block and start workout
+      // Parse the script as a time block and start workout
       const exampleBlock: ScriptBlock = {
         id: 'code-example-block',
         line: 0,
@@ -248,7 +248,7 @@ export function PlaygroundNotePage({
       if (action === 'route' && params['route']) {
         navigate(params['route'])
       } else if (action === 'start-workout') {
-        // Start the first available wod block
+        // Start the first available workout block
         const firstBlock = scriptBlocks[0]
         if (firstBlock) handleStartWorkout(firstBlock)
       } else if (action === 'new-note') {

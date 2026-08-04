@@ -10,7 +10,7 @@ order: 2
 - [ ] Shoulder CARs x 10
 - [ ] Band pull-aparts x 20
 
-```wod
+```time
 (5 Sets)
   5 Bench Press 185lb
   *3:00 Rest

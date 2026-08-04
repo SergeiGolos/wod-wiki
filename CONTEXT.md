@@ -130,7 +130,7 @@ _Avoid_: metric type (the parser/runtime enum), display label, metric name.
 A runtime-derived per-segment metric produced by a realtime processor (`origin: 'analyzed'` — power, pace). Distinct from **Prediction** (compile-time, `origin: 'prediction'`/`compiler`) and from summary aggregates. Re-derived on replay; predictions and Tier-0 metrics are preserved.
 _Avoid_: enrichment, derived metric (too vague — say annotation or prediction).
 **Analytics Store**:
-The cross-workout query table (the `analytics` store). Holds **summary facts only** — Tier 2 workout-level aggregates (`totalVolume`, `tis`, `sessionLoad`, …), one row per result × **Canonical Metric Key**. Per-segment data (Tier 0 + Tier 1) is **not** denormalized here — it stays in `WorkoutResult.data.logs`. Fed by **extracting `outputType: 'analytics'` statements from `data.logs`** — there is no separate `data.analytics` property on `WorkoutResults` (the `outputType` filter already discriminates Tier 2; the shapes-doc §2 split was rejected). This inverts today's write path (`normalizeAnalyticsSegments` writes per-segment rows) — the store is repurposed to summary facts.
+The cross-workout query table (the `analytics` store). Holds fact rows at three **grains**: `summary` (Tier 2 workout-level aggregates — `totalVolume`, `tis`, `sessionLoad`, …, one row per result × **Canonical Metric Key** + sorted group tags, keep-last dedupe within a result), `rollup` (windowed per-point facts — ACWR, monotony, strain), and `segment` (per-segment numeric metrics, denormalized since V13 for indexed cross-workout threshold filters). Across all grains, `WorkoutResult.data.logs` stays authoritative for a single workout; the store is disposable and re-derivable — if store and logs disagree, logs win. Tier-2 facts feed in by **extracting `outputType: 'analytics'` statements from `data.logs`** — there is no separate `data.analytics` property on `WorkoutResults`.
 _Avoid_: analytics table, metrics store, denormalized logs.
 **WQL (Wod Query Language)**:
 The Datadog-flavored query language for cross-workout analytics:
@@ -163,7 +163,7 @@ The canonical 10-value effort discipline vocabulary (`bodyweight`, `cycling`, `g
 _Avoid_: modality (overloaded), exercise category, legacy factor tables.
 ### Dialect & runtime
 **Block Dialect**:
-The fence tag that declares a block's domain (` ```wod `, ` ```climb `) — the one
+The fence tag that declares a block's domain (` ```time `, ` ```climb `) — the one
 property that parser and analytics key on (the runtime never reads the tag — it is
 shaped indirectly via the hints the **Dialect Stack** produces, so there is no
 tag-keyed strategy seam). Selects dialect-specific
@@ -262,18 +262,30 @@ A content-stable identity for a **Block** — a hash of its normalized fenced co
 _Avoid_: content hash (implementation detail), stable id (ambiguous).
 `src/components/Editor/utils/sectionParser.ts` — `blockContentId`.
 
-**Collection**:
-Bundled, read-only workout seed-data a user loads into their own notes. A block cloned from a Collection shares its **Block Content Id** with the source (identical content → identical hash), so the same workout run across different notes and days is one identity, not many. Distinct from a **Note**, which the user owns and edits.
-_Avoid_: bundle, library, pack.
+**Catalog**:
+Bundled, read-only workout seed-data a user loads into their own notes. A block cloned from a Catalog shares its **Block Content Id** with the source (identical content → identical hash), so the same workout run across different notes and days is one identity, not many. A Catalog exposes two flavors of item: **Session** (undated, named — e.g. "Fran" inside the "CrossFit Girls" Catalog) and **Post** (dated, e.g. "2026-01-15 Morining" inside the dated posts Catalog). Distinct from a **Note**, which the user owns and edits.
+_Avoid_: bundle, library, pack, collection (legacy), feed (legacy).
+
+**Library**:
+The unified `/library` route that lists **Entries** across all three kinds (Notes + Sessions + Posts) in a single date-windowed surface built on the Journal's layout, with a search panel that exposes source toggles, free-text, and the full WQL composer. **Replaces the three LIST routes** (`/journal`, `/collections`, `/feeds`) — the Library becomes the single entry point for browsing your training. The deep detail routes (`/journal/:date`, `/journal/:date/:uuid`, `/journal/:identity`, `/collections/:cat`, `/collections/:cat/:workout`, `/feeds/:feedSlug`, `/feeds/:feedSlug/:date/:item`) **survive unchanged** as direct links into a specific Entry; the Library's *Open* row action routes Notes to `/journal/:date`, Sessions to `/collections/:cat/:workout`, Posts to `/feeds/:feedSlug/:date/:item`. Nav label and document title: `Library` (`Wod.Wiki - Library`).
+_Avoid_: content library, library page.
+
+**Entry**:
+One row in the Library — the unified concept that abstracts a journal **Note**, a Catalog **Session**, and a Catalog **Post**. Identity = `{ source.catalog, source.item }`; kind = `Note | Session | Post`; carries title, optional **Date**, **Block Content Id**, and row actions (Open / Add to today / Run / Compare). A workout that exists in multiple sources lists as one Entry per source (a Session and a Post on the same date are two distinct Entries).
+_Avoid_: content item, library row, search result.
+
+**Session**:
+One named, undated workout inside a Catalog — a hard-set workout you can clone into your own journal (e.g. "Fran" in "CrossFit Girls"). Source: `{ catalog: <catalog id>, item: <session id> }`. No Date. An Add-to-today row action clones it into today's journal Note.
+_Avoid_: collection item (legacy), feed item (legacy), drill, standard, prescription.
+
+**Post**:
+One dated workout entry inside the dated posts Catalog (e.g. "2026-01-15 Morining"). Source: `{ catalog: <YYYY-MM-DD>, item: <post id> }`. Carries a Date. Distinct from a Session only by being dated and posting-context.
+_Avoid_: feed item (legacy), post item.
 
 **Grouping**:
 A bundled markdown directory of workout items under one slug
 (`markdown/collections/{slug}/` or `markdown/feeds/{slug}/`), loaded by
-`src/repositories/script-groupings.ts`. A **Collection** is a Grouping of named
-items; a feed is a Grouping whose items carry dates (`YYYY-MM-DD` parent
-directories). The public adapters (`script-collections.ts`, `script-feeds.ts`)
-own item shape and sort order; the Grouping module owns file discovery and
-display-name derivation.
+`src/repositories/script-groupings.ts`. A **Catalog** is a Grouping whose items carry either named sessions (Collections) or dated posts (Feeds); the two flavors share the Grouping machinery but diverge in item shape and sort order. The public adapters (`script-collections.ts`, `script-feeds.ts`) own item shape and sort order; the Grouping module owns file discovery and display-name derivation.
 _Avoid_: loader, bundle directory.
 
 **Result Recorder**:
@@ -281,8 +293,22 @@ The single playground seam for persisting a **WorkoutResult**. Owns identity res
 _Avoid_: result service, result saver (too generic).
 `playground/src/services/resultRecorder.ts`.
 
-## Relationships
+**WQL Composer Panel**:
+The Library's sticky search header (component `WqlComposerPanel`) that composes a WQL query from three categories of controls: (a) three **Source Tri-State Toggles** (Note / Session / Post), each cycling `neutral → include-only → hide → neutral` with **at most one source in `include-only` at a time**; (b) a free-text input that emits `{text:<q>}` substring filter; (c) a Datadog-style time-range selector (presets `last 1d / 3d / 1w / 2w / 4w / 12w / 26w / 52w` plus a **Custom** range). Plus an `+ Add filter` menu that emits additional WQL filter chips (catalog, tag, effort, discipline). The panel renders a live preview of the resulting WQL string. The hand-edited raw composer is a separate, debug-gated field; when visible (under `useDebugMode()`), it round-trips with the panel state — the WQL string is parsed back into the toggles, time range, and filter chips on every edit, and any toggle edit re-emits the string. Distinct from the Analytics Explorer's existing `parseQuery` editor — the panel is content-query-only.
+_Avoid_: search box, query input, filter bar.
 
+**WQL Source Filter**:
+The `source:` filter key in content-discovery WQL (e.g. `find:block{!source:feed} in all`), introduced for the **WQL Composer Panel**. Values: `journal`, `collection`, `feed`, or a specific catalog id (`collection:crossfit-girls`, `feed:crossfit-programming`). Maps onto the existing `sourceId` field on **Note** and **BlockIndexRow** rows. Negation (`!source:feed`) excludes that source from the result set. Distinct from `in <scope>`, which picks a *primary* scope; the source filter is a *fine-grained* inclusion/exclusion layered on top. The two compose: e.g. `find:block{!source:feed} in journal` means "look in journal, then drop anything tagged feed". Wired through `QueryService.runFind` and `runFindBlock` (which today already key off `sourceId.startsWith('collection:' / 'feed:')`).
+_Avoid_: catalog filter (the source filter *subsumes* catalog filtering — `source:collection:crossfit-girls` is the form), tag-source.
+
+**WQL Time Range Parameter**:
+The structured `{start, end}` time window passed alongside a WQL string to the **Query Service** (rather than embedded in the WQL as `last <n>w` / `from <date> to <date>`). The grammar accepts only relative `last <n>w|d`; the panel's **Custom** range produces absolute dates, which are passed as the structured parameter and combined with the WQL's scope/filter clauses. The WQL string the panel composes is a *partial* query (scope + filters); the host that calls the query service merges in the time range from the parameter. Presets are computed client-side and passed identically.
+_Avoid_: embedded time range (the parameter is the form; `last <n>w` is only a shortcut that the parser expands).
+
+A block cloned from a **Catalog** (Session or Post) shares its **Block Content Id** with the
+source, so results for the same workout aggregate across notes by content id.
+
+- An **Entry**'s `source` identifies the catalog it belongs to — `{ catalog: <catalog id>, item: <item id> }`. A Journal note's Entry uses `catalog: 'journal'`; a Post uses `catalog: <YYYY-MM-DD>`. Two Entries share a **Block Content Id** when they reference the same workout across different sources; the Library does NOT dedupe across sources.
 - A **Statement** owns many **Metrics**; each Metric has exactly one **Origin**.
 - An **Origin** maps to exactly one **Ownership Layer**.
 - A **Dialect** emits **Hint** Metrics (and domain Metrics) onto a **Statement**.

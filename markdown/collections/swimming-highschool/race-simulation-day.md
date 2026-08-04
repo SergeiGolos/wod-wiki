@@ -13,7 +13,7 @@ tags:
 ### Description
 This pre-meet workout simulates race conditions and prepares swimmers mentally and physically for competition. Short, sharp efforts at race pace prime the nervous system while allowing adequate recovery before the meet. The session includes race-pace rehearsals for primary events and starts practice. Coaches should use this workout the day before competition to ensure swimmers are sharp but not fatigued.
 
-```wod
+```time
 (3) Warmup
   100m Freestyle
   :20 Rest

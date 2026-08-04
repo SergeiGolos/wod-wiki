@@ -1,7 +1,7 @@
 /**
  * FeedDetailPage — /feeds/:feedSlug
  *
- * Single-feed view. Same pattern as FeedsPage / JournalListPage:
+ * Single-feed view. Same pattern as the other feed surfaces:
  * explicit dateKeys from feed data only, no infinite scroll, no empty rows.
  */
 

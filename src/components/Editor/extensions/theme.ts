@@ -10,7 +10,8 @@ export function editorTheme(isDark: boolean): Extension {
       width: "100%",
       maxWidth: "100%",
       boxSizing: "border-box",
-      fontSize: "14px"
+      fontSize: "14px",
+      textAlign: "left"
     },
     "&.cm-focused": {
       outline: "none",
@@ -25,7 +26,8 @@ export function editorTheme(isDark: boolean): Extension {
       fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace",
       lineHeight: "22px",
       padding: "0",
-      margin: "0 3px"
+      margin: "0 3px",
+      textAlign: "left"
     },
     ".cm-gutters": {
       backgroundColor: isDark ? "#252841" : "transparent",

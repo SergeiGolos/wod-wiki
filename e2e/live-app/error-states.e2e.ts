@@ -49,7 +49,7 @@ test.describe('Error-Path Resilience', () => {
   // ── 1. Malformed WOD blocks ───────────────────────────────────────────────
 
   test('unclosed wod fence does not crash the editor', async ({ page }) => {
-    await openNote(page, 'error-unclosed-fence', '# Unclosed\n\n```wod\n5 Burpees');
+    await openNote(page, 'error-unclosed-fence', '# Unclosed\n\n```time\n5 Burpees');
 
     // Editor remains mounted; no unhandled error.
     await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeVisible();
@@ -60,7 +60,7 @@ test.describe('Error-Path Resilience', () => {
     // "(2" — an unclosed round directive — is genuinely invalid Whiteboard
     // syntax: the Lezer parser emits an error node, which the wod-linter
     // extension (@codemirror/lint) surfaces as a gutter marker.
-    await openNote(page, 'error-bad-syntax', '# Bad\n\n```wod\n(2\n  5 Burpees\n```\n');
+    await openNote(page, 'error-bad-syntax', '# Bad\n\n```time\n(2\n  5 Burpees\n```\n');
 
     const lintMarker = page.locator('.cm-lint-marker-error, .cm-lint-marker.cm-lint-marker-error');
     const play = page.getByRole('button', { name: 'Play' });
@@ -75,7 +75,7 @@ test.describe('Error-Path Resilience', () => {
     // `Timer: banana` is DROPPED rather than surfacing a parse error — so the
     // block is still valid and runnable. This documents the existing graceful
     // degradation (tolerate-and-drop) for the ticket's inventory.
-    await openNote(page, 'error-bad-timer', '# Bad timer\n\n```wod\nTimer: banana\n5 Burpees\n```\n');
+    await openNote(page, 'error-bad-timer', '# Bad timer\n\n```time\nTimer: banana\n5 Burpees\n```\n');
 
     await expect(page.getByRole('button', { name: 'Play' }).first()).toBeVisible({ timeout: 10_000 });
     expect(errors).toEqual([]);

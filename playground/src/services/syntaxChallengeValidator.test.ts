@@ -176,7 +176,7 @@ describe('validateScriptBlock — min-rounds', () => {
 describe('validateScriptBlock — contains-token', () => {
   it('passes when the token appears in the content', () => {
     const r = validateScriptBlock(
-      { content: '```wod\n10 KB Swings\n```', statements: [] },
+      { content: '```time\n10 KB Swings\n```', statements: [] },
       { type: 'contains-token', value: 'KB' },
     );
     expect(r.pass).toBe(true);
@@ -184,7 +184,7 @@ describe('validateScriptBlock — contains-token', () => {
 
   it('fails when the token is absent', () => {
     const r = validateScriptBlock(
-      { content: '```wod\n10 Push-ups\n```', statements: [] },
+      { content: '```time\n10 Push-ups\n```', statements: [] },
       { type: 'contains-token', value: 'KB' },
     );
     expect(r.pass).toBe(false);
@@ -241,70 +241,71 @@ describe('validateAllQuests', () => {
 /**
  * Integration test — proves the *real* compile→validate data path that
  * `useSyntaxChallenge` uses. The unit tests above build blocks with a
- * hand-crafted MetricContainer; this one feeds raw wod text through the
+ * hand-crafted MetricContainer; this one feeds raw time text through the
  * editor's own `MdTimerRuntime.read()` and confirms the validator sees the
  * expected metrics. If a metric-shape mismatch ever lands between the
  * parser and the validator, the banner would silently never flip in the
  * real editor — these tests are the line of defense.
  */
 describe('end-to-end compile→validate (real MdTimerRuntime output)', () => {
-  it('empty wod block produces zero statements, so no quest passes', () => {
-    const script = createParser().read('```wod\n```');
+  it('empty time block produces zero statements, so no quest passes', () => {
+    const script = createParser().read('');
     const r = validateScriptBlock(
-      { content: '```wod\n```', statements: script.statements },
+      { content: '```time\n```', statements: script.statements },
       { type: 'has-movement' },
     );
     expect(r.pass).toBe(false);
   });
 
   it('"10 Pushups" satisfies has-movement', () => {
-    const script = createParser().read('```wod\n10 Pushups\n```');
+    const script = createParser().read('10 Pushups');
     const r = validateScriptBlock(
-      { content: '```wod\n10 Pushups\n```', statements: script.statements },
+      { content: '```time\n10 Pushups\n```', statements: script.statements },
       { type: 'has-movement' },
     );
     expect(r.pass).toBe(true);
   });
 
   it('"*:30 Rest" satisfies has-timer', () => {
-    const script = createParser().read('```wod\n*:30 Rest\n```');
+    const script = createParser().read('*:30 Rest');
     const r = validateScriptBlock(
-      { content: '```wod\n*:30 Rest\n```', statements: script.statements },
+      { content: '```time\n*:30 Rest\n```', statements: script.statements },
       { type: 'has-timer' },
     );
     expect(r.pass).toBe(true);
   });
 
   it('"(3 Rounds) KB" satisfies min-rounds with count=3', () => {
-    const script = createParser().read('```wod\n(3 Rounds)\n10 KB\n```');
+    const script = createParser().read('(3 Rounds)\n10 KB');
     const r = validateScriptBlock(
-      { content: '```wod\n(3 Rounds)\n10 KB\n```', statements: script.statements },
+      { content: '```time\n(3 Rounds)\n10 KB\n```', statements: script.statements },
       { type: 'min-rounds', count: 3 },
     );
     expect(r.pass).toBe(true);
   });
 
   it('"(1 Round)" fails min-rounds with count=3', () => {
-    const script = createParser().read('```wod\n(1 Round)\n10 KB\n```');
+    const script = createParser().read('(1 Round)\n10 KB');
     const r = validateScriptBlock(
-      { content: '```wod\n(1 Round)\n10 KB\n```', statements: script.statements },
+      { content: '```time\n(1 Round)\n10 KB\n```', statements: script.statements },
       { type: 'min-rounds', count: 3 },
     );
     expect(r.pass).toBe(false);
   });
 
   it('full 3-quest script flips all three challenges', () => {
-    const source = '```wod\n(3 Rounds)\n  10 KB Swings\n  15 Goblet Squats\n  *:30 Rest\n```';
-    const script = createParser().read(source);
+    const source = '```time\n(3 Rounds)\n  10 KB Swings\n  15 Goblet Squats\n  *:30 Rest\n```';
+    const scriptText = '(3 Rounds)\n  10 KB Swings\n  15 Goblet Squats\n  *:30 Rest';
+    const script = createParser().read(scriptText);
     const block = { content: source, statements: script.statements };
     expect(validateScriptBlock(block, { type: 'has-movement' }).pass).toBe(true);
     expect(validateScriptBlock(block, { type: 'has-timer' }).pass).toBe(true);
     expect(validateScriptBlock(block, { type: 'min-rounds', count: 3 }).pass).toBe(true);
   });
 
-  it('blank source (no wod block) fails all three challenges', () => {
-    const source = '# Just a heading\n\nNo wod block here.';
-    const script = createParser().read(source);
+  it('blank source (no time block) fails all three challenges', () => {
+    const source = '# Just a heading\n\nNo time block here.';
+    const script = createParser().read('');
     const block = { content: source, statements: script.statements };
     expect(validateScriptBlock(block, { type: 'has-movement' }).pass).toBe(false);
     expect(validateScriptBlock(block, { type: 'has-timer' }).pass).toBe(false);

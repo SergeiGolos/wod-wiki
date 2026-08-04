@@ -6,8 +6,8 @@
  * selected yet, replacing the old redirect-to-Plan behavior.
  *
  * Supports an optional `filter` prop that restricts which section types are
- * displayed. On the Track view, the default filter is `['wod']` so only
- * runnable WOD blocks are visible.
+ * displayed. On the Track view, the default filter is `['time']` so only
+ * runnable workout blocks are visible.
  */
 
 import React from 'react';
@@ -21,7 +21,7 @@ export interface WorkoutPreviewPanelProps {
   /** Raw markdown content of the note */
   content: string;
 
-  /** Called when the user clicks "Run" on a WOD block */
+  /** Called when the user clicks "Run" on a workout block */
   onStartWorkout?: (block: ScriptBlock) => void;
 
   /** Callback when blocks change (parsed from content) */

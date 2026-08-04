@@ -7,7 +7,7 @@ function makeBlock(overrides: Partial<ScriptBlock> = {}): ScriptBlock {
   return {
     id: 'wod-5-deadbeef',
     contentId: 'bc-aaaaaaaa',
-    dialect: 'wod',
+    dialect: 'time',
     startLine: 4,
     endLine: 8,
     content: '21-15-9\nThrusters 95lb\nPull-ups',

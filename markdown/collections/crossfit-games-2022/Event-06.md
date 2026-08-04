@@ -15,7 +15,7 @@ tags:
 
 Run and swim combination.
 
-```wod
+```time
 500m Run
 500m Swim
 500m Run

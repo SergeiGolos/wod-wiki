@@ -13,7 +13,7 @@ tags:
 ### Description
 This championship-caliber workout prepares mid-distance swimmers (200m and 400m events) for the specific demands of elite racing. The session uses pace training at goal race speeds, broken swims that simulate race execution, and negative split work that develops finishing speed. This workout is designed for the taper phase when swimmers are reducing volume while maintaining race-specific intensity and sharpening their feel for pace.
 
-```wod
+```time
 (3) Warmup
   200m Freestyle
   :30 Rest

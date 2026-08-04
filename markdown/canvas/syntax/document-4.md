@@ -13,7 +13,7 @@ order: 4
 | Plates | 45lb | 4 |
 | Kettlebell | 24kg | 1 |
 
-```wod
+```time
 FOR TIME
   50 Kettlebell Swings 24kg
   400m Run

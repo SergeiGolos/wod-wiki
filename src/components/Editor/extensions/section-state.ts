@@ -16,14 +16,20 @@
 import { StateField, StateEffect, EditorState, Transaction } from "@codemirror/state";
 import { blockContentId } from "../utils/sectionParser";
 
-/** WOD dialect identifiers */
-export type EditorDialect = "wod" | "log" | "plan";
-const VALID_DIALECTS: EditorDialect[] = ["wod", "log", "plan"];
+/** Workout fence tags — `time` is runnable, `log` is recorded */
+export type EditorDialect = "time" | "log";
+const VALID_DIALECTS: EditorDialect[] = ["time", "log"];
+
+/** A matched workout fence: base tag plus optional :sport suffix */
+interface DialectFenceMatch {
+  dialect: EditorDialect;
+  sport?: string;
+}
 
 // ── Types ────────────────────────────────────────────────────────────
 
 /** Section types the parser can identify */
-export type EditorSectionType = "markdown" | "wod" | "frontmatter" | "code" | "widget" | "embed";
+export type EditorSectionType = "markdown" | "time" | "log" | "frontmatter" | "code" | "widget" | "embed" | "query" | "dashboard";
 
 /** Markdown subtypes for routing per-section UI */
 export type EditorSectionSubtype =
@@ -41,7 +47,7 @@ export type EmbedType = "image" | "link" | "youtube";
 export interface EditorSection {
   /** Stable identifier (hash-based, survives structural-equivalent re-parses) */
   id: string;
-  /** Content-stable identity (wod only) — survives clone/reorder; results join on this (see `blockContentId`). */
+  /** Content-stable identity (workout sections only) — survives clone/reorder; results join on this (see `blockContentId`). */
   contentId?: string;
   /** Section type */
   type: EditorSectionType;
@@ -55,8 +61,8 @@ export interface EditorSection {
   startLine: number;
   /** End line number (1-based, inclusive) */
   endLine: number;
-  /** WOD dialect (only for type === "wod") */
-  dialect?: EditorDialect;
+  /** Sport suffix from the fence (```log:climbing) — scopes the block's DialectStack. Only for type === "time" | "log". */
+  sport?: string;
   /** Fence language tag (only for type === "code") */
   language?: string;
   /** Widget name (only for type === "widget", e.g. "hero" from ```widget:hero) */
@@ -147,16 +153,12 @@ function mapIdentities(
 
 // ── Fence / Delimiter Matching ───────────────────────────────────────
 
-function matchDialectFence(trimmed: string): EditorDialect | null {
-  const lower = trimmed.toLowerCase();
-  for (const d of VALID_DIALECTS) {
-    if (
-      lower === "```" + d ||
-      lower.startsWith("```" + d + " ") ||
-      lower.startsWith("```" + d + "\t")
-    ) {
-      return d;
-    }
+function matchDialectFence(trimmed: string): DialectFenceMatch | null {
+  if (!trimmed.startsWith("```")) return null;
+  const tag = trimmed.slice(3).split(/[\s\t]/)[0].toLowerCase();
+  const [base, sport] = tag.split(":", 2);
+  if ((VALID_DIALECTS as string[]).includes(base)) {
+    return { dialect: base as EditorDialect, sport: sport || undefined };
   }
   return null;
 }
@@ -172,6 +174,19 @@ function matchWidgetFence(trimmed: string): string | null {
 }
 
 /**
+ * Match a bare content-block fence — ```query or ```dashboard (#801). These
+ * are first-class inline blocks (live WQL results), distinct from generic
+ * ```lang code blocks and ```widget:<name> registry blocks. Returns the block
+ * kind or null.
+ */
+function matchContentFence(trimmed: string): "query" | "dashboard" | null {
+  const lower = trimmed.toLowerCase();
+  if (lower === "```query" || lower.startsWith("```query ") || lower.startsWith("```query\t")) return "query";
+  if (lower === "```dashboard" || lower.startsWith("```dashboard ") || lower.startsWith("```dashboard\t")) return "dashboard";
+  return null;
+}
+
+/**
  * Match a generic fenced code block opening (``` followed by a language tag
  * that is NOT a WOD dialect). Returns the language string or null.
  */
@@ -182,6 +197,8 @@ function matchGenericFence(trimmed: string): string | null {
   if (matchDialectFence(trimmed)) return null;
   // Already a widget?
   if (matchWidgetFence(trimmed)) return null;
+  // Already a content block (```query / ```dashboard)?
+  if (matchContentFence(trimmed)) return null;
   // Extract language tag: everything after ``` up to first space/tab or end
   const rest = trimmed.slice(3).trim();
   if (rest.length === 0) return null;
@@ -225,14 +242,45 @@ function detectMarkdownSubtype(lines: string[]): EditorSectionSubtype {
   return "unknown";
 }
 
+/**
+ * Scan a fenced block opened at `openLineNum` to its closing ``` fence.
+ * Shared by every fence branch (workout / widget / code / query / dashboard) so
+ * the open→close→content-offset logic has one home. Returns the close line
+ * number and the inner-content character offsets.
+ */
+function scanFenced(state: EditorState, openLineNum: number): {
+  closeLine: number; contentFrom: number; contentTo: number;
+} {
+  const doc = state.doc;
+  const lineCount = doc.lines;
+  const contentFrom = doc.line(openLineNum).to + 1;
+  let closeLine = openLineNum;
+  let contentTo = doc.line(openLineNum).to;
+  for (let j = openLineNum + 1; j <= lineCount; j++) {
+    if (doc.line(j).text.trim() === "```") {
+      closeLine = j;
+      contentTo = doc.line(j).from - 1;
+      break;
+    }
+  }
+  if (closeLine === openLineNum) { // no closing fence → run to end of doc
+    closeLine = lineCount;
+    contentTo = doc.line(lineCount).to;
+  }
+  return { closeLine, contentFrom, contentTo };
+}
+
 // ── Core Parser ──────────────────────────────────────────────────────
 
 /**
  * Parse document text into sections.
  *
  * Rules:
- *  - Fenced WOD blocks (```wod/log/plan ... ```) become type "wod".
+ *  - Fenced workout blocks (```time / ```log, optional :sport suffix ... ```) become
+ *    typed sections — the type IS the fence tag.
  *  - Generic fenced code blocks (```js, ```python, etc.) become type "code".
+ *  - Content blocks (```query / ```dashboard) become typed sections rendered
+ *    inline as live WQL results (#801).
  *  - Frontmatter (--- ... ---) becomes type "frontmatter".
  *  - All remaining lines are grouped into "markdown" sections, split at
  *    blank-line boundaries. Each resulting markdown section gets a subtype.
@@ -328,49 +376,28 @@ function parseSections(state: EditorState): EditorSection[] {
     const line = doc.line(lineNum);
     const trimmed = line.text.trim();
 
-    // ── WOD fence ──
-    const dialect = matchDialectFence(trimmed);
-    if (dialect) {
+    // ── Workout fence (```time / ```log, optional :sport suffix) ──
+    const fence = matchDialectFence(trimmed);
+    if (fence) {
       flushMarkdown();
-
-      const openLine = lineNum;
-      const contentFrom = line.to + 1;
-      let closeLine = lineNum;
-      let contentTo = line.to;
-      let foundClose = false;
-
-      for (let j = lineNum + 1; j <= lineCount; j++) {
-        if (doc.line(j).text.trim() === "```") {
-          closeLine = j;
-          contentTo = doc.line(j).from - 1;
-          foundClose = true;
-          break;
-        }
-      }
-
-      if (!foundClose) {
-        closeLine = lineCount;
-        contentTo = doc.line(lineCount).to;
-      }
-
+      const { closeLine, contentFrom, contentTo } = scanFenced(state, lineNum);
       const content = doc.sliceString(line.from, doc.line(closeLine).to);
       // Content-stable id over the INNER fenced content (matches the
       // sectionParser cleanText path) so a block keeps its identity across
       // clone / reorder / line shifts.
       const contentId = blockContentId(doc.sliceString(contentFrom, contentTo));
       sections.push({
-        id: generateSectionId("wod", openLine, content),
+        id: generateSectionId(fence.dialect, lineNum, content),
         contentId,
-        type: "wod",
+        type: fence.dialect,
         from: line.from,
         to: doc.line(closeLine).to,
-        startLine: openLine,
+        startLine: lineNum,
         endLine: closeLine,
-        dialect,
+        sport: fence.sport,
         contentFrom: Math.min(contentFrom, doc.length),
         contentTo: Math.max(contentFrom, contentTo),
       });
-
       lineNum = closeLine + 1;
       continue;
     }
@@ -379,40 +406,39 @@ function parseSections(state: EditorState): EditorSection[] {
     const widgetName = matchWidgetFence(trimmed);
     if (widgetName) {
       flushMarkdown();
-
-      const openLine = lineNum;
-      const contentFrom = line.to + 1;
-      let closeLine = lineNum;
-      let contentTo = line.to;
-      let foundClose = false;
-
-      for (let j = lineNum + 1; j <= lineCount; j++) {
-        if (doc.line(j).text.trim() === "```") {
-          closeLine = j;
-          contentTo = doc.line(j).from - 1;
-          foundClose = true;
-          break;
-        }
-      }
-
-      if (!foundClose) {
-        closeLine = lineCount;
-        contentTo = doc.line(lineCount).to;
-      }
-
+      const { closeLine, contentFrom, contentTo } = scanFenced(state, lineNum);
       const content = doc.sliceString(line.from, doc.line(closeLine).to);
       sections.push({
-        id: generateSectionId("widget", openLine, content),
+        id: generateSectionId("widget", lineNum, content),
         type: "widget",
         widgetName,
         from: line.from,
         to: doc.line(closeLine).to,
-        startLine: openLine,
+        startLine: lineNum,
         endLine: closeLine,
         contentFrom: Math.min(contentFrom, doc.length),
         contentTo: Math.max(contentFrom, contentTo),
       });
+      lineNum = closeLine + 1;
+      continue;
+    }
 
+    // ── Content-block fence (```query / ```dashboard ... ```) — #801 ──
+    const contentKind = matchContentFence(trimmed);
+    if (contentKind) {
+      flushMarkdown();
+      const { closeLine, contentFrom, contentTo } = scanFenced(state, lineNum);
+      const content = doc.sliceString(line.from, doc.line(closeLine).to);
+      sections.push({
+        id: generateSectionId(contentKind, lineNum, content),
+        type: contentKind,
+        from: line.from,
+        to: doc.line(closeLine).to,
+        startLine: lineNum,
+        endLine: closeLine,
+        contentFrom: Math.min(contentFrom, doc.length),
+        contentTo: Math.max(contentFrom, contentTo),
+      });
       lineNum = closeLine + 1;
       continue;
     }
@@ -421,40 +447,19 @@ function parseSections(state: EditorState): EditorSection[] {
     const lang = matchGenericFence(trimmed);
     if (lang) {
       flushMarkdown();
-
-      const openLine = lineNum;
-      const contentFrom = line.to + 1;
-      let closeLine = lineNum;
-      let contentTo = line.to;
-      let foundClose = false;
-
-      for (let j = lineNum + 1; j <= lineCount; j++) {
-        if (doc.line(j).text.trim() === "```") {
-          closeLine = j;
-          contentTo = doc.line(j).from - 1;
-          foundClose = true;
-          break;
-        }
-      }
-
-      if (!foundClose) {
-        closeLine = lineCount;
-        contentTo = doc.line(lineCount).to;
-      }
-
+      const { closeLine, contentFrom, contentTo } = scanFenced(state, lineNum);
       const content = doc.sliceString(line.from, doc.line(closeLine).to);
       sections.push({
-        id: generateSectionId("code", openLine, content),
+        id: generateSectionId("code", lineNum, content),
         type: "code",
         language: lang,
         from: line.from,
         to: doc.line(closeLine).to,
-        startLine: openLine,
+        startLine: lineNum,
         endLine: closeLine,
         contentFrom: Math.min(contentFrom, doc.length),
         contentTo: Math.max(contentFrom, contentTo),
       });
-
       lineNum = closeLine + 1;
       continue;
     }

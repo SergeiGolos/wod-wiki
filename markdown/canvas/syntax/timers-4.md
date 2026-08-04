@@ -5,7 +5,7 @@ subtitle: "* marks an explicit rest period"
 section: timers
 order: 4
 ---
-```wod
+```time
 (5 Sets)
   5 Back Squat 185lb
   *3:00 Rest

@@ -1,15 +1,14 @@
 /**
  * FeedFeed — flat list of date groups for feed content.
  *
- * Mirrors JournalFeed exactly: the caller computes and passes `dateKeys`
- * (only dates with content), no infinite scroll, no IO observers.
+ * The caller computes and passes `dateKeys` (only dates with content), no
+ * infinite scroll, no IO observers.
  */
 
 import { useMemo } from 'react';
 import { CalendarIcon, FileTextIcon, ChevronRightIcon, PlusIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDateHeader } from '@/lib/dateFormat';
-import { localDateKey } from './queriable-list/JournalDateScroll';
 import type { JournalEntrySummary } from './queriable-list/JournalDateScroll';
 
 // ── Types ──────────────────────────────────────────────────────────────────

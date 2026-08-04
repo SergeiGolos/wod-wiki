@@ -15,7 +15,7 @@ tags:
 
 Squat snatches and box jumps for 5 rounds.
 
-```wod
+```time
 (5)
   6 Squat Snatches 155lb
   12 Box Jumps 30in

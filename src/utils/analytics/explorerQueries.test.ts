@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'bun:test';
-import { parseQuery, type QueryResult } from '@/services/analytics/query';
+import { parseQuery as _pq, type ParsedQuery, type QueryResult } from '@/services/analytics/query';
 import {
   addFilterToQuery,
   EXAMPLE_QUERIES,
   getQueryChartShape,
   serializeQuery,
-  setMetricInQuery,
 } from './explorerQueries';
+// All tests use analytics queries — narrow the union.
+const parseQuery = (raw: string): ParsedQuery => _pq(raw) as ParsedQuery;
 
 describe('explorerQueries', () => {
   describe('serializeQuery', () => {
@@ -55,18 +56,6 @@ describe('explorerQueries', () => {
 
     it('leaves an errored query unchanged', () => {
       expect(addFilterToQuery('not-a-query', 'discipline', 'strength')).toBe('not-a-query');
-    });
-  });
-
-  describe('setMetricInQuery', () => {
-    it('changes the metric in a bare head', () => {
-      expect(setMetricInQuery('sum:totalVolume', 'tis')).toBe('sum:tis');
-    });
-
-    it('preserves filters, group-by, and rollup when changing metric', () => {
-      expect(setMetricInQuery('sum:totalVolume{discipline:strength} by {week}.rollup(1w)', 'tis')).toBe(
-        'sum:tis{discipline:strength} by {week}.rollup(1w)',
-      );
     });
   });
 
@@ -141,6 +130,8 @@ describe('explorerQueries', () => {
       };
       for (const ex of EXAMPLE_QUERIES) {
         const parsed = parseQuery(ex.query);
+        // Find queries have no metric key — skip content-discovery examples.
+        if ('target' in parsed) continue;
         expect(parsed.error).toBeUndefined();
         expect(realKeys[parsed.metric]).toBe(true);
       }

@@ -8,26 +8,30 @@ import { buildAppNavTree } from './nav/appNavTree'
 import { NavSearchInput } from '@/components/molecules/NavSearchInput'
 import { useRouteView } from './lib/useRouteView'
 import { useSelectWorkout } from './lib/useSelectWorkout'
-import type { PageKind, SelectWorkoutItem } from './lib/routeView'
+import type { PageKind } from './lib/routeView'
 import { DebugModeProvider } from '@/contexts/DebugModeContext'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { PaletteShell } from '@/components/organisms/command-palette/PaletteShell'
-import { globalSearchSource, constructSource } from './services/paletteDataSources'
-import { useCreateJournalEntry } from './hooks/useCreateJournalEntry'
-import { useShowPlaygrounds } from './hooks/useShowPlaygrounds'
+import { canvasRouteSource, constructSource } from './services/paletteDataSources'
+import {
+  wqlSearchSource,
+  withWqlText,
+  searchPaletteClauses,
+  paletteExecute,
+  navigatePaletteResult,
+} from './services/wqlSearchSource'
 import { usePageScrollSync } from './hooks/usePageScrollSync'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
 import { AudioProvider } from '@/contexts/AudioContext'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { resolveLibraryRedirect } from './lib/routes'
 import {
   ROUTE_PATTERNS,
-  reviewPath,
-  NotePlaygroundRedirect,
-  WorkoutRedirect,
-  GettingStartedRedirect,
+  PlanRedirect,
   SyntaxRedirect,
   TrackerRedirect,
-  PlanRedirect,
+  NotePlaygroundRedirect,
+  WorkoutRedirect,
 } from './lib/routes'
 import { DocumentTitleSync } from './lib/DocumentTitleSync'
 import { Concept3LandingPage } from './pages/Concept3LandingPage'
@@ -35,13 +39,11 @@ import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
 import { canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { ScrollCanvasPage } from './canvas/ScrollCanvasPage'
-import { JournalListPage } from './views/JournalListPage'
-import { FeedsPage } from './views/FeedsPage'
 import { FeedDetailPage } from './pages/FeedDetailPage'
 import { FeedItemPage } from './pages/FeedItemPage'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
-import { CollectionsPage } from './views/CollectionsPage'
 import { HomeView } from './views/HomeView'
+import { LibraryPage } from './views/library/LibraryPage'
 import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadge'
@@ -53,6 +55,7 @@ import { JournalPage } from './pages/JournalPage'
 import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
 import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
 import { LoadZipPage } from './pages/LoadZipPage'
+import CalcAuthoringPrototypePage from './pages/CalcAuthoringPrototypePage'
 import { JournalZipLoadPage } from './pages/JournalZipLoadPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
@@ -74,6 +77,14 @@ import { EffortRegistryProvider } from './contexts/EffortRegistryContext'
 import { workoutFiles, useWorkoutItems, type WorkoutItem } from './lib/workoutIndex'
 export type { WorkoutItem }
 
+/** Redirect /journal|/collections|/feeds → /library?… (with tri-state + query
+ *  preservation). Uses `useLocation` to capture the search the user typed. */
+function LibraryRedirect(): ReactNode {
+  const { pathname, search } = useLocation()
+  const dest = resolveLibraryRedirect(pathname, search)
+  return <Navigate to={dest ?? '/library'} replace />
+}
+
 function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<() => void> }) {
   const navigate = useNavigate()
 
@@ -89,27 +100,20 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const handleSelectWorkout = useSelectWorkout()
   const { workout: currentWorkout, nav: currentNavLinks } = view
 
-  const [showPlaygrounds] = useShowPlaygrounds()
-
-  const handleCreateJournalEntry = useCreateJournalEntry({ workoutItems })
-
-  // Open the palette for global search (Ctrl+/ or search button)
+  // Open the palette for global search (Ctrl/Cmd+K — WQL mode, issue #834)
   const openSearchPalette = useCallback(() => {
     usePaletteStore.getState().open({
-      placeholder: 'Search workouts, results, pages…',
-      sources: [globalSearchSource(workoutItems, canvasRoutes, showPlaygrounds), constructSource()],
+      wql: { initialClauses: searchPaletteClauses(), execute: paletteExecute },
+      sources: [
+        wqlSearchSource(),
+        withWqlText(canvasRouteSource(canvasRoutes)),
+        withWqlText(constructSource()),
+      ],
     }).then(result => {
       if (result.dismissed) return
-      const item = result.item
-      if (item.type === 'route') {
-        navigate((item.payload as { route: string }).route)
-      } else if (item.type === 'workout') {
-        handleSelectWorkout(item.payload as SelectWorkoutItem)
-      } else if (item.type === 'journal-entry') {
-        navigate(reviewPath(item.id))
-      }
+      navigatePaletteResult(result.item, navigate)
     })
-  }, [workoutItems, handleSelectWorkout, navigate, showPlaygrounds])
+  }, [navigate])
 
   // Keep the parent's searchHandlerRef up-to-date so the nav tree CallAction always
   // fires the latest callback (workoutItems may change after initial mount).
@@ -117,10 +121,10 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     searchHandlerRef.current = openSearchPalette
   }, [openSearchPalette, searchHandlerRef])
 
-  // Keyboard shortcut: Ctrl/Cmd+/ (also Ctrl/Cmd+P) opens global search
+  // Keyboard shortcut: Ctrl/Cmd+K (also Ctrl/Cmd+/ and Ctrl/Cmd+P) opens global search
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if ((e.key === '/' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
+      if ((e.key === 'k' || e.key === '/' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         e.stopPropagation()
         openSearchPalette()
@@ -155,10 +159,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   // wraps it in the CanvasPage shell when `view.shell` calls for it. Both close over
   // AppContent state, so no callback plumbing is needed. See docs/adr/app-route-view.md.
   const renderInner: Record<PageKind, () => ReactNode> = {
-    journal: () => (
-      <JournalListPage onSelect={handleSelectWorkout} onCreateEntry={handleCreateJournalEntry} workoutItems={workoutItems} />
-    ),
-    feeds: () => <FeedsPage />,
     feedDetail: () => <FeedDetailPage feedSlug={decodeURIComponent(view.feedDetailMatch!)} />,
     feedItem: () => (
       <FeedItemPage
@@ -171,10 +171,17 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         onSearch={openSearchPalette}
       />
     ),
-    collections: () => <CollectionsPage />,
-    effortsCatalog: () => <EffortsCatalogPage />,
+    effortsCatalog: () => (
+      <EffortsCatalogPage
+        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
+      />
+    ),
     effortDetail: () => <EffortDetailPage />,
-    analyticsExplorer: () => <AnalyticsExplorerPage />,
+    analyticsExplorer: () => (
+      <AnalyticsExplorerPage
+        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
+      />
+    ),
     analyticsDashboard: () => <AnalyticsDashboardPage />,
     canvas: () =>
       view.canvasPage!.route === '/' ? (
@@ -215,8 +222,12 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         mdContent={view.workout.content}
         theme={actualTheme}
         onViewCreated={handleViewCreated}
-        onScrollToSection={scrollToSection}
         onSearch={openSearchPalette}
+      />
+    ),
+    library: () => (
+      <LibraryPage
+        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
       />
     ),
   }
@@ -348,10 +359,9 @@ export function App() {
               <Toaster />
               <NavProvider tree={navTree}>
                 <Routes>
+                  <Route path="/proto/calc-authoring" element={<CalcAuthoringPrototypePage />} />
                   <Route path="/legacy" element={<PlaygroundLandingPage />} />
                   <Route path="/concept3" element={<Concept3LandingPage />} />
-                  <Route path="/getting-started" element={<GettingStartedRedirect />} />
-                  <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
                   <Route path="/chapters/basics" element={<Navigate to="/guide/syntax/basics" replace />} />
                   <Route path="/chapters/sequences" element={<Navigate to="/guide/syntax" replace />} />
                   <Route path="/chapters/protocols" element={<Navigate to="/guide/syntax/protocols" replace />} />
@@ -359,10 +369,10 @@ export function App() {
                   <Route path="/syntax" element={<SyntaxRedirect />} />
                   <Route path="/syntax/*" element={<SyntaxRedirect />} />
                   <Route path={ROUTE_PATTERNS.plan} element={<PlanRedirect />} />
-                  <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.feeds} element={<LibraryRedirect />} />
                   <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.collections} element={<LibraryRedirect />} />
                   <Route path={ROUTE_PATTERNS.collectionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.collectionWorkout} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.load} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><LoadZipPage /></Suspense>} />
@@ -374,7 +384,8 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journalNote} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.journal} element={<LibraryRedirect />} />
+                  <Route path={ROUTE_PATTERNS.library} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />
                   <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
                   <Route path={ROUTE_PATTERNS.review} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><ReviewPage /></Suspense>} />

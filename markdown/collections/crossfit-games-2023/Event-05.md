@@ -15,7 +15,7 @@ tags:
 
 Helen with heavy kettlebell.
 
-```wod
+```time
 (3)
   400m Run
   21 KB Swings 70lb

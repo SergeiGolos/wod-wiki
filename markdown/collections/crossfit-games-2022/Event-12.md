@@ -15,7 +15,7 @@ tags:
 
 The classic benchmark "Fran".
 
-```wod
+```time
 (21-15-9)
   Thrusters 95lb
   Pullups

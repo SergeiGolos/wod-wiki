@@ -13,7 +13,7 @@ tags:
 ## Description
 Annie is a classic CrossFit benchmark that tests gymnastics endurance and double-under skill.
 
-```wod
+```time
 (50-40-30-20-10)
   Double-Unders
   Situps

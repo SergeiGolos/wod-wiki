@@ -45,7 +45,7 @@ stages:
     caption: The simplest workout is one exercise on one line. No reps, no timer — just a movement. The runtime will ask you to log how many you did when you finish.
     quest: basics-movement
     ring:
-      tag: "```wod"
+      tag: "```time"
   - id: three-rules
     range: [0.16, 0.34]
     source: wods/examples/syntax/core-rules.md

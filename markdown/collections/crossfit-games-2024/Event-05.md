@@ -15,7 +15,7 @@ tags:
 
 Modified Amanda with longer rep scheme.
 
-```wod
+```time
 (13-11-9-7-5)
   Muscle Ups
   Squat Snatches 95lb

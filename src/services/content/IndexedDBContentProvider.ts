@@ -49,7 +49,9 @@ function frontmatterTagsOf(parts: readonly { type: string; rawContent: string }[
  */
 function toSegmentDataType(section: Pick<Section, 'type' | 'level'>): SegmentDataType {
     switch (section.type) {
-        case 'wod': return 'wod';
+        case 'time':
+        case 'log':
+            return 'wod';
         case 'title': {
             const level = Math.min(6, Math.max(1, section.level ?? 1));
             return `h${level}` as SegmentDataType;
@@ -109,9 +111,13 @@ export class IndexedDBContentProvider implements IContentProvider {
             return [...byId.values()]
                 .filter((s) => !s.isHistory)
                 .sort((a, b) => (a.position ?? a.createdAt) - (b.position ?? b.createdAt))
-                .map(s => migrateSectionType(s.dataType) === 'wod'
-                    ? `\`\`\`${(s.data as ScriptBlock | null)?.dialect ?? 'wod'}\n${s.rawContent}\n\`\`\``
-                    : s.rawContent)
+                .map(s => {
+                    if (s.dataType !== 'wod') return s.rawContent;
+                    const block = s.data as ScriptBlock | null;
+                    const dialect = block?.dialect ?? 'time';
+                    const fenceTag = block?.sport ? `${dialect}:${block.sport}` : dialect;
+                    return `\`\`\`${fenceTag}\n${s.rawContent}\n\`\`\``;
+                })
                 .join('\n');
         };
 
@@ -168,10 +174,11 @@ export class IndexedDBContentProvider implements IContentProvider {
         // V11 — content always reconstructs from segments (note.rawContent is gone).
         const segments = await this.db.getLatestSegmentsForNote(note.id);
         const rawContent = segments.map(s => {
-            const resolvedType = migrateSectionType(s.dataType);
-            if (resolvedType === 'wod') {
-                const dialect = (s.data as ScriptBlock | null)?.dialect ?? 'wod';
-                return `\`\`\`${dialect}\n${s.rawContent}\n\`\`\``;
+            if (s.dataType === 'wod') {
+                const block = s.data as ScriptBlock | null;
+                const dialect = block?.dialect ?? 'time';
+                const fenceTag = block?.sport ? `${dialect}:${block.sport}` : dialect;
+                return `\`\`\`${fenceTag}\n${s.rawContent}\n\`\`\``;
             }
             // Title and markdown sections: content already includes heading prefix (e.g. "# Hello")
             return s.rawContent;
@@ -191,17 +198,18 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         // Map NoteSegment to Section types for the editor
         const sections: Section[] = segments.map(s => {
-            const resolvedType = migrateSectionType(s.dataType);
+            const isWorkout = s.dataType === 'wod';
             const block = s.data as ScriptBlock | null;
-            const dialect = block?.dialect ?? 'wod';
+            const dialect = block?.dialect ?? 'time';
+            const fenceTag = block?.sport ? `${dialect}:${block.sport}` : dialect;
             return {
                 id: s.id,
-                type: resolvedType,
-                rawContent: resolvedType === 'wod'
-                    ? `\`\`\`${dialect}\n${s.rawContent}\n\`\`\``
+                type: isWorkout ? dialect : migrateSectionType(s.dataType),
+                rawContent: isWorkout
+                    ? `\`\`\`${fenceTag}\n${s.rawContent}\n\`\`\``
                     : s.rawContent,
                 displayContent: s.rawContent,
-                dialect: resolvedType === 'wod' ? dialect : undefined,
+                sport: isWorkout ? block?.sport : undefined,
                 level: levelFromDataType(s.dataType),
                 scriptBlock: block ?? undefined,
                 version: s.version,
@@ -296,6 +304,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             };
             await this.db.saveSegment(segment);
         }
+        await this.db.rebuildBlockIndexForNote?.(noteId);
 
         const note: Note = {
             id: noteId,
@@ -454,6 +463,8 @@ export class IndexedDBContentProvider implements IContentProvider {
             for (const segment of currentSegments) {
                 if (!keptIds.has(segment.id)) await retire(segment);
             }
+            // V14 — rebuild derived block index after segment changes.
+            await this.db.rebuildBlockIndexForNote?.(note.id);
         }
 
         // T4 bridge — frontmatter `tags:` union into note_tags. Frontmatter is

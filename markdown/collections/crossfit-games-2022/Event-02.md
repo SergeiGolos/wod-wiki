@@ -15,7 +15,7 @@ tags:
 
 A skill-focused medley testing multiple gymnastics movements.
 
-```wod
+```time
 10 Legless Rope Climbs
 50 Double Unders
 50ft Handstand Walk

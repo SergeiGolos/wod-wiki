@@ -16,7 +16,7 @@ Simple & Sinister is Pavel Tsatsouline's flagship program, designed to develop f
 
 The "Simple" standard represents a respectable level of strength and conditioning that most dedicated practitioners can achieve with consistent training. The "Sinister" standard represents elite performance, requiring exceptional power, conditioning, and mental fortitude. Both standards have specific weight and time requirements that serve as clear, measurable goals for practitioners.
 
-```wod
+```time
 5:00 AMRAP
   10 KB Swing 32kg
   :30 Rest

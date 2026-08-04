@@ -16,7 +16,7 @@ This world-class distance workout prepares athletes for Olympic finals in the 40
 
 Athletes should complete this session during the quality phase of training, approximately 8-12 weeks before major competition. The prescribed paces should match or exceed goal Olympic pace, with athletes training their bodies and minds to sustain speeds that will challenge for medals. The set structure allows coaches to monitor fatigue accumulation and adjust volume based on individual response.
 
-```wod
+```time
 (4) Warmup
   200m Freestyle
   :30 Rest

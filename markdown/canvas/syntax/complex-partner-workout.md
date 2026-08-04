@@ -7,7 +7,7 @@ order: 8
 ---
 # Partner Intervals
 
-```wod
+```time
 // Partner A
   5:00 AMRAP
     5 Pullups

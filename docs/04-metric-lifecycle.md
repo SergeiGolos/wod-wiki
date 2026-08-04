@@ -7,7 +7,7 @@ the `IMetric` shape and the `origin` precedence tiers.
 
 We'll trace a single line:
 
-```wod
+```time
 (5)
   8 KB Deadlift 16kg
 ```

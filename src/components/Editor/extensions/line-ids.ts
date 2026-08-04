@@ -23,10 +23,10 @@ export const lineIdsExtension = ViewPlugin.fromClass(
     getDecorations(view: EditorView) {
       const builder = new RangeSetBuilder<Decoration>();
       const { doc } = view.state;
-      let wodCount = 0;
+      let workoutCount = 0;
 
       // Iterate through the document to find headers and WOD blocks.
-      // We must do this for the entire document to keep wodCount accurate,
+      // We must do this for the entire document to keep workoutCount accurate,
       // but we only apply decorations to the current viewport for performance.
       for (let i = 1; i <= doc.lines; i++) {
         const line = doc.line(i);
@@ -45,9 +45,9 @@ export const lineIdsExtension = ViewPlugin.fromClass(
             if (!label) label = timestamp;
           }
           id = label.toLowerCase().replace(/[^\w]+/g, "-");
-        } else if (/^```(wod|log|plan)/.test(trimmed)) {
-          wodCount++;
-          id = `wod-line-${i}`;
+        } else if (/^```(time|log)/.test(trimmed)) {
+          workoutCount++;
+          id = `workout-line-${i}`;
         }
 
         if (id && line.from >= view.viewport.from && line.to <= view.viewport.to) {

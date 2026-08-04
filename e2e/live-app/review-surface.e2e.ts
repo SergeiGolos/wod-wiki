@@ -76,7 +76,7 @@ test.describe('Review Surface — /review/:runtimeId', () => {
   test('completed workout → review matches the executed script', async ({ page }) => {
     const id = 'review-e2e-match';
     // Two rounds, two distinct movements → distinguishable per-round structure.
-    const script = '```wod\n(2)\n  5 Burpees\n  10 Squats\n```';
+    const script = '```time\n(2)\n  5 Burpees\n  10 Squats\n```';
     await startWorkoutFromPlayground(page, id, script);
     await advanceUntilReview(page);
 

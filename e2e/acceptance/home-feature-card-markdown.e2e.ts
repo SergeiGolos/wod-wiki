@@ -15,13 +15,13 @@ test.describe('Home page scroll walkthrough', () => {
     await expect(headline).toContainText('Write it in Markdown');
     await expect(headline).toContainText('Run it as a Timer');
     await expect(headline).toContainText('Own the Metrics');
-    await expect(headline).toContainText('Visualize the Analytics');
+    await expect(headline).toContainText('Explore the Data');
 
     // The tour window mounts the REAL note editor (CodeMirror), not mock markup.
     await expect(tour.locator('.cm-editor')).toBeVisible();
 
     // The overview caption introduces the loop.
-    await expect(tour.getByText('The whole workout lifecycle.')).toBeVisible();
+    await expect(tour.getByText('A plain-text fitness scripting language')).toBeVisible();
 
     // The runway (scroll-driven stages) is present on desktop.
     const runway = tour.locator('section', { has: page.locator('[data-testid="tour-captions"]') });

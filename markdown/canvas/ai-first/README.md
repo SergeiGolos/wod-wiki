@@ -12,7 +12,7 @@ Text-based workout scripts are the perfect interface for AI. They're compact, un
 ```view
 name:    ai-demo
 state:   note
-source:  wods/examples/getting-started/statement-1.md
+source:  wods/examples/home/welcome-1.md
 runtime: in-memory
 launch:  host
 align:   right
@@ -29,7 +29,7 @@ width:   50%
 ```command
 target: ai-demo
 pipeline:
-  - set-source: wods/examples/getting-started/statement-1.md
+  - set-source: wods/examples/home/welcome-1.md
   - set-state: note
 ```
 

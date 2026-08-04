@@ -17,6 +17,17 @@ export interface CommandListViewProps<TPayload> {
   onClose: () => void;
   /** Optional custom header rendered below search input (e.g. statement builder) */
   header?: React.ReactNode;
+  /**
+   * Replaces the default search input row (e.g. the WqlComposer in the
+   * palette's WQL mode, issue #834). The custom row owns its own autofocus.
+   */
+  searchRow?: React.ReactNode;
+  /**
+   * Client-side filter results by `query` (default true). Set false when the
+   * sources already interpret the query (WQL mode) — the query string is WQL
+   * syntax, not display text, so substring filtering would drop every hit.
+   */
+  filterResults?: boolean;
   placeholder?: string;
   /** Per-item actions — merged with item.actions at render time */
   actions?: (item: IListItem<TPayload>) => IItemAction[];
@@ -35,6 +46,8 @@ export function CommandListView<TPayload>({
   isOpen,
   onClose,
   header,
+  searchRow,
+  filterResults = true,
   placeholder = 'Search…',
   actions,
   renderItem,
@@ -77,17 +90,18 @@ export function CommandListView<TPayload>({
 
   const state = useListState({ items, onSelect: handleActivate });
 
-  // Focus input when opened
+  // Focus input when opened (the custom search row owns its own autofocus)
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !searchRow) {
       setTimeout(() => inputRef.current?.focus(), 0);
     }
-  }, [isOpen]);
+  }, [isOpen, searchRow]);
 
-  // Sync external query into list state filter
+  // Sync external query into list state filter (skipped when sources own
+  // query interpretation — WQL mode, issue #834)
   useEffect(() => {
-    state.setQuery(query);
-  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
+    state.setQuery(filterResults ? query : '');
+  }, [query, filterResults]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isOpen) return null;
 
@@ -109,21 +123,23 @@ export function CommandListView<TPayload>({
       )}
       onKeyDown={handleKeyDown}
     >
-      {/* Search row */}
-      <div className="flex items-center gap-2 border-b border-zinc-200 px-3 dark:border-zinc-700">
-        <Search className="h-4 w-4 shrink-0 text-zinc-400" />
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={e => onQueryChange(e.target.value)}
-          placeholder={placeholder}
-          className="flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-zinc-400"
-        />
-        <kbd className="hidden rounded border border-zinc-200 px-1.5 py-0.5 text-[10px] text-zinc-400 sm:inline dark:border-zinc-600">
-          esc
-        </kbd>
-      </div>
+      {/* Search row (default input or a custom composer) */}
+      {searchRow ?? (
+        <div className="flex items-center gap-2 border-b border-zinc-200 px-3 dark:border-zinc-700">
+          <Search className="h-4 w-4 shrink-0 text-zinc-400" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={e => onQueryChange(e.target.value)}
+            placeholder={placeholder}
+            className="flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-zinc-400"
+          />
+          <kbd className="hidden rounded border border-zinc-200 px-1.5 py-0.5 text-[10px] text-zinc-400 sm:inline dark:border-zinc-600">
+            esc
+          </kbd>
+        </div>
+      )}
 
       {/* Optional contextual header (e.g. statement builder segment UI) */}
       {header}

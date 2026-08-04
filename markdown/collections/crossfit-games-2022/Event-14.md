@@ -15,7 +15,7 @@ tags:
 
 Final event - run, wall balls, toes-to-bar.
 
-```wod
+```time
 800m Run
 50 Wall Balls 20lb
 50 Toes to Bar

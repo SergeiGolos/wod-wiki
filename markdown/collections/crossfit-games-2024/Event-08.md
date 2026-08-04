@@ -15,7 +15,7 @@ tags:
 
 Clean and jerks and bar muscle-ups chipper.
 
-```wod
+```time
 30 Clean & Jerks 185lb
 30 Bar Muscle Ups
 30 Clean & Jerks 185lb

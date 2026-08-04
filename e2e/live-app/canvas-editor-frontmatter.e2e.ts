@@ -5,14 +5,14 @@ test.describe('Canvas editor source content', () => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
 
-    await page.goto('/syntax/basics', { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    await page.goto('/guide/syntax/protocols', { waitUntil: 'domcontentloaded', timeout: 20_000 });
 
-    const editors = page.locator('.cm-content[contenteditable="true"]');
-    await expect(editors.first()).toBeAttached({ timeout: 15_000 });
+    const editors = page.locator('.cm-content');
+    await expect(editors.first()).toBeVisible({ timeout: 15_000 });
 
     await expect
       .poll(async () => (await editors.allInnerTexts()).join('\n'), { timeout: 15_000 })
-      .toContain('Pushups');
+      .toContain('Run');
     const allEditorText = await editors.allInnerTexts();
     const joinedEditorText = allEditorText.join('\n');
     expect(joinedEditorText.trimStart().startsWith('---')).toBe(false);

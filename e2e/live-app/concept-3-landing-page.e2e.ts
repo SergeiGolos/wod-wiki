@@ -20,7 +20,7 @@ test.describe('Concept 3 landing page', () => {
     await expect(page.getByRole('heading', { name: 'Stop tap-dancing with fitness apps. Just type.' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Open Sandbox Editor' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Read Syntax Docs' })).toBeVisible()
-    await expect(page.getByText('wod', { exact: true })).toBeVisible()
+    await expect(page.getByText('time', { exact: true })).toBeVisible()
     await expect(page.getByText('log', { exact: true })).toBeVisible()
     await expect(page.getByText('wiki', { exact: true })).toBeVisible()
     await expect(page.getByText('Chromecast and big-screen casting')).toBeVisible()

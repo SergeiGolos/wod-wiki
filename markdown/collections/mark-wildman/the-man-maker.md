@@ -19,7 +19,7 @@ The session is designed to be progressively overloaded through weight increases 
 
 ### The Man Maker
 
-```wod
+```time
 (4)
   10 Two-Hand KB Swing 24kg
   :30 Rest
@@ -40,7 +40,7 @@ The session is designed to be progressively overloaded through weight increases 
 ```
 ### Finisher
 
-```wod
+```time
 (2)
   15 Two-Hand KB Swing 24kg
   :20 Rest

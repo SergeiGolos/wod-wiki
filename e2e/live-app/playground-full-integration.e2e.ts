@@ -40,7 +40,7 @@ const WIDGET_RICH_NOTE = `# Wod.Wiki Playground
 {}
 \`\`\`
 
-\`\`\`wod
+\`\`\`time
 (3)
   10 Kettlebell Swings 24kg
   *:30 Rest
@@ -225,7 +225,7 @@ test.describe('Playground Full Page Integration — /playground/:id', () => {
     await seedNote(
       page,
       `playground/${TEST_PAGE_NAME}`,
-      '# My Workout\n\n```wod\nTimer 1:00\n  - 10 Pushups\n  - 10 Situps\n```\n',
+      '# My Workout\n\n```time\nTimer 1:00\n  - 10 Pushups\n  - 10 Situps\n```\n',
       { type: 'playground', title: TEST_PAGE_NAME },
     );
 

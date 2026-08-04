@@ -5,7 +5,7 @@ subtitle: "Stopwatch to completion"
 section: protocols
 order: 3
 ---
-```wod
+```time
 FOR TIME
   21 Thrusters 95lb
   21 Pullups

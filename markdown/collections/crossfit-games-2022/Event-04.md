@@ -15,7 +15,7 @@ tags:
 
 Row, double-unders, and pull movements for 2 rounds.
 
-```wod
+```time
 (2)
   500m Row
   30 Double Unders

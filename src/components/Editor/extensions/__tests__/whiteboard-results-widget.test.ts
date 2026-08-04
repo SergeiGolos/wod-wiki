@@ -10,7 +10,7 @@ import { sectionField } from "../section-state";
 import type { WorkoutResult } from "@/types/storage";
 
 describe("whiteboard-results-widget", () => {
-  const content = "```wod\n10 Pushups\n```";
+  const content = "```time\n10 Pushups\n```";
   let state: EditorState;
 
   beforeEach(() => {
@@ -27,8 +27,8 @@ describe("whiteboard-results-widget", () => {
 
   it("should update results for a section", () => {
     const { sections } = state.field(sectionField);
-    const wodSection = sections.find((s) => s.type === "wod");
-    expect(wodSection).toBeDefined();
+    const workoutSection = sections.find((s) => s.type === 'time' || s.type === 'log');
+    expect(workoutSection).toBeDefined();
 
     const mockResult: WorkoutResult = {
       id: "test-id",
@@ -40,7 +40,7 @@ describe("whiteboard-results-widget", () => {
     const tr = state.update({
       effects: [
         updateSectionResults.of({
-          sectionId: wodSection!.id,
+          sectionId: workoutSection!.id,
           results: [mockResult],
         }),
       ],
@@ -48,12 +48,12 @@ describe("whiteboard-results-widget", () => {
     
     state = tr.state;
     const results = state.field(wodResultsField);
-    expect(results.get(wodSection!.id)).toEqual([mockResult]);
+    expect(results.get(workoutSection!.id)).toEqual([mockResult]);
   });
 
   it("should generate one decoration for results (the bar)", () => {
     const { sections } = state.field(sectionField);
-    const wodSection = sections.find((s) => s.type === "wod");
+    const workoutSection = sections.find((s) => s.type === 'time' || s.type === 'log');
 
     const mockResult: WorkoutResult = {
       id: "test-id",
@@ -65,7 +65,7 @@ describe("whiteboard-results-widget", () => {
     const tr = state.update({
       effects: [
         updateSectionResults.of({
-          sectionId: wodSection!.id,
+          sectionId: workoutSection!.id,
           results: [mockResult],
         }),
       ],

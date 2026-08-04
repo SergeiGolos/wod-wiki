@@ -16,7 +16,7 @@ tags:
 
 The program structure involves three training days per week (Light, Moderate, Heavy) with the complex evolving in complexity and intensity over the six weeks. This progressive approach allows for adaptation while continuously challenging the body, making it effective for both fat loss and strength development.
 
-```wod
+```time
 (3) Light Day
   + 2 Double Clean 16kg
   + 1 Double Press 16kg

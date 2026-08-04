@@ -1,16 +1,31 @@
+/**
+ * useZipProcessor — Global zip-load handler for the /load route.
+ *
+ * Branches on the param name (#882):
+ *  - `?z=` (+ optional `by`) is the home-hero share contract: decode, persist
+ *    to the home-shared localStorage store, redirect home — the hero editor
+ *    renders it instead of welcome-1.md until the visitor resets it.
+ *  - `?zip=` stays the playground flow: save as a new playground page in
+ *    IndexedDB, redirect to /playground/:id.
+ *
+ * Only runs on the plain /load route — /load/journal* is handled by
+ * useJournalZipProcessor.
+ */
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryState } from 'nuqs';
 import { playgroundPath, ROUTE_PATTERNS } from '../lib/routes';
 import { decodeZip } from '../services/decodeZip';
+import { saveHomeShared } from '../services/homeSharedScript';
 import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay';
 import { playgroundContent, pageId } from '../services/playgroundContent';
 
 export function useZipProcessor() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [zipParam, setZipParam] = useQueryState('zip');
-  const [zParam, setZParam] = useQueryState('z');
+  const [zipParam] = useQueryState('zip');
+  const [zParam] = useQueryState('z');
+  const [byParam] = useQueryState('by');
 
   useEffect(() => {
     // Only run on the plain /load route — avoid creating phantom notes when
@@ -18,13 +33,29 @@ export function useZipProcessor() {
     // PlanRedirect from leaking ?zip into /journal?zip=…
     if (location.pathname !== '/load') return;
 
-    const zip = zipParam || zParam;
-    if (!zip) return;
+    if (zParam) {
+      let cancelled = false;
+      (async () => {
+        try {
+          const content = await decodeZip(zParam);
+          if (cancelled) return;
+          saveHomeShared({ content, by: byParam ?? undefined });
+        } catch (err) {
+          console.error('Failed to decode zip:', err);
+        }
+        if (!cancelled) {
+          navigate('/', { replace: true });
+        }
+      })();
+      return () => { cancelled = true; };
+    }
+
+    if (!zipParam) return;
 
     let cancelled = false;
     (async () => {
       try {
-        const content = await decodeZip(zip);
+        const content = await decodeZip(zipParam);
         if (cancelled) return;
         const now = Date.now();
         const id = formatPlaygroundTimestampId(now);
@@ -47,5 +78,5 @@ export function useZipProcessor() {
       }
     })();
     return () => { cancelled = true; };
-  }, [zipParam, zParam, navigate, setZipParam, setZParam, location.pathname]);
+  }, [zipParam, zParam, byParam, navigate, location.pathname]);
 }

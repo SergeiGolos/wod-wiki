@@ -15,7 +15,7 @@ tags:
 
 10 rounds of deadlifts, burpees, and pull-ups.
 
-```wod
+```time
 (10)
   5 Deadlifts 225lb
   5 Burpees

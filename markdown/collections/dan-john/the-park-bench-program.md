@@ -16,7 +16,7 @@ The Park Bench Program represents Dan John's philosophy of "park bench" training
 
 The workout uses basic movement patterns with moderate volume, focusing on consistency over intensity. It can be performed 3-5 times per week indefinitely, making it ideal for maintenance phases or as a foundation for more intense training blocks.
 
-```wod
+```time
 (3) Park Bench
   5 Goblet Squat 24kg
   5 KB Swing 24kg

@@ -15,7 +15,7 @@ tags:
 
 Heavy wall balls and chest-to-bar pull-ups.
 
-```wod
+```time
 (21-15-9)
   Wall Balls 30lb
   Chest to Bar Pullups

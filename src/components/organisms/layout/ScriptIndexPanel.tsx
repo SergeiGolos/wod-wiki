@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { DocumentItem } from '@/components/Editor/utils/documentStructure';
-import { Timer, Hash, Play } from 'lucide-react';
+import { Timer, Hash, Play, Save } from 'lucide-react';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 
 export interface ScriptIndexPanelProps {
@@ -24,16 +24,16 @@ export interface ScriptIndexPanelProps {
 }
 
 /**
- * Extracts a preview title from WOD block content
+ * Extracts a preview title from a workout block's content
  */
 const getBlockPreview = (content: string): string => {
   const lines = content.trim().split('\n');
-  if (lines.length === 0) return 'Empty WOD';
-  
+  if (lines.length === 0) return 'Empty workout';
+
   // Look for Timer: or first non-empty line
   const firstLine = lines.find(line => line.trim().length > 0);
-  if (!firstLine) return 'Empty WOD';
-  
+  if (!firstLine) return 'Empty workout';
+
   // Truncate long lines
   const preview = firstLine.trim();
   return preview.length > 40 ? preview.substring(0, 40) + '...' : preview;
@@ -73,7 +73,7 @@ export const ScriptIndexPanel: React.FC<ScriptIndexPanelProps> = ({
           filteredItems.map((item) => {
             const isActive = item.id === activeBlockId;
             const isHighlighted = item.id === highlightedBlockId;
-            const isWod = item.type === 'wod';
+            const isWorkout = item.type !== 'header' && item.type !== 'paragraph';
 
             return (
               <div
@@ -83,7 +83,7 @@ export const ScriptIndexPanel: React.FC<ScriptIndexPanelProps> = ({
                   group rounded-md transition-all duration-200
                   ${isActive ? 'ring-1 ring-primary' : ''}
                   ${isHighlighted && !isActive ? 'bg-muted/50' : ''}
-                  ${isWod ? 'border border-border bg-card' : 'hover:bg-muted/30'}
+                  ${isWorkout ? 'border border-border bg-card' : 'hover:bg-muted/30'}
                 `}
                 onClick={() => onBlockClick(item)}
                 onMouseEnter={() => onBlockHover(item.id)}
@@ -93,12 +93,14 @@ export const ScriptIndexPanel: React.FC<ScriptIndexPanelProps> = ({
                 <div className={`
                   flex items-center gap-2 cursor-pointer
                   ${mobile ? 'p-4' : 'p-2'}
-                  ${isWod ? (mobile ? 'min-h-[60px]' : 'min-h-[40px]') : 'min-h-[28px]'}
+                  ${isWorkout ? (mobile ? 'min-h-[60px]' : 'min-h-[40px]') : 'min-h-[28px]'}
                 `}>
                   {/* Icon based on type */}
                   <div className="flex-shrink-0 text-muted-foreground">
                     {item.type === 'header' && <Hash className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
-                    {item.type === 'wod' && <Timer className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
+                    {isWorkout && item.type === 'time' && <Timer className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
+                    {/* #891/#894: log sections get their own icon (display-only tier) */}
+                    {item.type === 'log' && <Save className={`${mobile ? 'h-5 w-5' : 'h-3.5 w-3.5'}`} />}
                   </div>
 
                   {/* Content Preview */}
@@ -111,7 +113,7 @@ export const ScriptIndexPanel: React.FC<ScriptIndexPanelProps> = ({
                       </div>
                     )}
 
-                    {item.type === 'wod' && (
+                    {isWorkout && (
                       <div className="flex items-center justify-between">
                         <span className={`${mobile ? 'text-base' : 'text-sm'} font-medium truncate`}>
                           {getBlockPreview(item.content)}
@@ -136,9 +138,14 @@ export const ScriptIndexPanel: React.FC<ScriptIndexPanelProps> = ({
                                 onRun(item);
                               }}
                               className="h-11 w-11 rounded-md flex items-center justify-center text-primary hover:bg-primary/10 transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
-                              title="Start workout"
+                              title={item.type === 'log' ? 'Log entry' : 'Start workout'}
                             >
-                              <Play className="h-4 w-4 fill-current" />
+                              {/* #891/#894: log items get the Log affordance (save icon) */}
+                              {item.type === 'log' ? (
+                                <Save className="h-4 w-4" />
+                              ) : (
+                                <Play className="h-4 w-4 fill-current" />
+                              )}
                             </button>
                           )}
                         </div>

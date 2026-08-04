@@ -48,7 +48,7 @@ const FRAN_CONTENT = `# Fran
 **Type**: For Time
 **Difficulty**: Advanced
 
-\`\`\`wod
+\`\`\`time
 (21-15-9)
   Thrusters 95lb
   Pullups
@@ -61,7 +61,7 @@ const CINDY_CONTENT = `# Cindy
 **Type**: AMRAP
 **Difficulty**: Intermediate
 
-\`\`\`wod
+\`\`\`time
 20:00 AMRAP
   5 Pull-ups
   10 Push-ups
@@ -73,7 +73,7 @@ const WEEKLY_PLAN_CONTENT = `# Week Training Plan
 
 ## Monday — Gymnastics + Barbell
 
-\`\`\`wod
+\`\`\`time
 20:00 AMRAP
   5 Pull-ups
   10 Push-ups
@@ -82,7 +82,7 @@ const WEEKLY_PLAN_CONTENT = `# Week Training Plan
 
 ## Wednesday — Olympic Lifting
 
-\`\`\`wod
+\`\`\`time
 10x 2:00
   3 Snatch @75%
   Rest remaining
@@ -90,7 +90,7 @@ const WEEKLY_PLAN_CONTENT = `# Week Training Plan
 
 ## Friday — Endurance
 
-\`\`\`wod
+\`\`\`time
 5:00 Run @easy
 2:00 Rest
 10:00 Tempo Run @moderate

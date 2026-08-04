@@ -16,7 +16,7 @@ The KBOMG program is Joe Daniels' comprehensive kettlebell-only muscle building 
 
 The program uses moderate weights with controlled tempos and strategic volume to create the metabolic stress necessary for hypertrophy. Unlike traditional bodybuilding, the kettlebell movements require and develop coordination and stability alongside muscle mass.
 
-```wod
+```time
 (4) Press Block
   8 Clean & Press Left 20kg
   8 Clean & Press Right 20kg

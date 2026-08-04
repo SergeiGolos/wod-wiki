@@ -5,7 +5,7 @@ subtitle: "* marks an explicit rest block"
 section: supplemental
 order: 2
 ---
-```wod
+```time
 (3 Rounds)
   Run 400m
   *2:00 Rest

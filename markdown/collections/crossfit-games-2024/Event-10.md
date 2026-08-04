@@ -15,7 +15,7 @@ tags:
 
 Pyramid-style thrusters and pull-ups.
 
-```wod
+```time
 (21-15-9-15-21)
   Thrusters 95lb
   Pullups

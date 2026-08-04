@@ -16,7 +16,7 @@ This single-kettlebell version of the Armor Building Complex provides similar be
 
 The single-kettlebell complex involves a clean and press on one side, a swing to switch hands, then a clean and press on the other side, followed by squats or additional movements. While the total load is reduced compared to doubles, the unilateral nature challenges stability and core strength in different ways.
 
-```wod
+```time
 (5)
   + 1 Clean & Press Left 24kg
   + 1 Swing

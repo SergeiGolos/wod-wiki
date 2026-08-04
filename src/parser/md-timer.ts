@@ -12,7 +12,14 @@ export class MdTimerRuntime {
     // No longer needs Chevrotain Lexer/Visitor
   }
 
-  read(inputText: string): IScript {
+  /**
+   * Parse WhiteboardScript source into a {@link WhiteboardScript}, running the
+   * Dialect Stack on every statement.
+   *
+   * @param sport - The block's `:sport` fence suffix (` ```log:climbing `).
+   *   Omitted → the full registry stack runs. See {@link DialectStack.dialectsFor}.
+   */
+  read(inputText: string, sport?: string): IScript {
     // Handle empty/whitespace-only input
     if (!inputText || !inputText.trim()) {
       return new WhiteboardScript(inputText, [], []);
@@ -26,7 +33,7 @@ export class MdTimerRuntime {
         extensions: [whiteboardScriptLanguage]
       });
 
-      const statements = extractStatements(state);
+      const statements = extractStatements(state, sport);
 
       // Lezer doesn't provide a list of ParseErrors in the same way Chevrotain does,
       // it produces a tree with error nodes. For now, we return empty errors list.

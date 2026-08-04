@@ -13,7 +13,7 @@ tags:
 ## Description
 Karen is a simple but brutal workout that tests muscular endurance and mental toughness.
 
-```wod
+```time
 150 Wall Ball Shots 20lb
 ```
 

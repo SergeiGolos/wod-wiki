@@ -5,15 +5,20 @@ import { useTheme } from '@/contexts/ThemeProvider'
 import { Switch } from '@/components/atoms/primitives/switch'
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { canvasRoutes } from '../canvas/canvasRoutes'
-import { globalSearchSource } from '../services/paletteDataSources'
+import { canvasRouteSource } from '../services/paletteDataSources'
+import {
+  wqlSearchSource,
+  withWqlText,
+  searchPaletteClauses,
+  paletteExecute,
+  navigatePaletteResult,
+} from '../services/wqlSearchSource'
 import { createPlaygroundPage } from '../services/createPlaygroundPage'
 import { AttentionWidget, type AttentionActionType, type AttentionWidgetConfig } from '../components/molecules/AttentionWidget'
 import { CodeExampleWidget, type CodeExampleWidgetConfig } from '../components/molecules/CodeExampleWidget'
 import { SyntaxGroupWidget, type SyntaxGroupWidgetConfig } from '../components/molecules/SyntaxGroupWidget'
 import { syntaxGuideReference } from '@/content/syntaxGuideReference'
-import { playgroundPath, reviewPath, workoutPath } from '../lib/routes'
-import { useWorkoutItems } from '../lib/workoutIndex'
-import { useShowPlaygrounds } from '../hooks/useShowPlaygrounds'
+import { playgroundPath } from '../lib/routes'
 import { LandingTemplate } from '../templates/LandingTemplate'
 
 const ATTENTION_CONFIG: AttentionWidgetConfig = {
@@ -99,41 +104,19 @@ export function PlaygroundLandingPage() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   }, [theme])
 
-  const workoutItems = useWorkoutItems()
-
-  const [showPlaygrounds] = useShowPlaygrounds()
-
-  const handleSelectWorkout = useCallback(
-    (item: { name: string; category?: string }) => {
-      const category = item.category || 'General'
-      navigate(workoutPath(category, item.name))
-    },
-    [navigate],
-  )
-
+  // Same global Search Palette as Cmd+K in App (WQL mode, issue #834).
   const openSearch = useCallback(async () => {
     const result = await usePaletteStore.getState().open({
-      placeholder: 'Search workouts, results, pages…',
-      sources: [globalSearchSource(workoutItems, canvasRoutes, showPlaygrounds)],
+      wql: { initialClauses: searchPaletteClauses(), execute: paletteExecute },
+      sources: [
+        wqlSearchSource(),
+        withWqlText(canvasRouteSource(canvasRoutes)),
+      ],
     })
 
     if (result.dismissed) return
-    const item = result.item
-
-    if (item.type === 'route') {
-      navigate((item.payload as { route: string }).route)
-      return
-    }
-
-    if (item.type === 'workout') {
-      handleSelectWorkout(item.payload as { name: string; category?: string })
-      return
-    }
-
-    if (item.type === 'journal-entry') {
-      navigate(reviewPath(item.id))
-    }
-  }, [handleSelectWorkout, navigate, workoutItems, showPlaygrounds])
+    navigatePaletteResult(result.item, navigate)
+  }, [navigate])
 
   const handleAttentionAction = useCallback(
     (action: AttentionActionType) => {
@@ -154,7 +137,7 @@ export function PlaygroundLandingPage() {
       const template = [
         '# Playground Widget Example',
         '',
-        '```wod',
+        '```time',
         script,
         '```',
         '',

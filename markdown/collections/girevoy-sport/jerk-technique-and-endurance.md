@@ -19,21 +19,21 @@ Training progresses from short sets focusing on technique to longer sets buildin
 
 ### Jerk Technique Session
 
-```wod
+```time
 (10)
   1 Double KB Jerk 24kg
   :30 Rest
 ```
 ### Jerk Endurance
 
-```wod
+```time
 (5)
   2:00 Double KB Jerk 20kg
   1:00 Rest
 ```
 ### Competition Prep
 
-```wod
+```time
 (3)
   5:00 Double KB Jerk 24kg
   3:00 Rest

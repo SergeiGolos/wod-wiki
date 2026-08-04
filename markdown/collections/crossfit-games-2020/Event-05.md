@@ -15,7 +15,7 @@ tags:
 
 Double-unders and GHD sit-ups in descending reps.
 
-```wod
+```time
 (50-40-30-20-10)
   Double Unders
   GHD Situps

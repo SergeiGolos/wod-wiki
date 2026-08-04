@@ -49,7 +49,7 @@ const orphanResultId = `${RUN_ID}-orphan`;
 const SCRIPT_BLOCK: ScriptBlock = {
   id: `${RUN_ID}-wod`,
   contentId: `${RUN_ID}-bc`,
-  dialect: 'wod',
+  dialect: 'time',
   startLine: 2,
   endLine: 5,
   content: '21 Burpee',

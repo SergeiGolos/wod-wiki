@@ -22,19 +22,19 @@ Ten minutes is long enough to accumulate significant volume, short enough to mai
 ## Whiteboard Script
 
 ### Beginner — Bodyweight Foundation
-```wod
+```time
 (10) 1:00 EMOM
   5 Pushup
 ```
 
 ### Intermediate — Light Load
-```wod
+```time
 (10) 1:00 EMOM
   5 Weighted Pushup 10|20|30lb
 ```
 
 ### Advanced — Heavy Load
-```wod
+```time
 (10) 1:00 EMOM
   3 Weighted Pushup 45|65|85|105lb
 ```

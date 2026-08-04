@@ -15,16 +15,34 @@
  * no ad-hoc palette. Use as `hsl(var(--metric-*))`.
  */
 
-export type TourScreen = 'timer' | 'analytics'
+export type TourScreen = 'editor' | 'timer' | 'analytics'
 
-export type TourStageId = TourScreen
+export type TourStageId =
+  | 'editor-blank'
+  | 'editor-metrics'
+  | 'editor-run'
+  | 'editor-typeahead'
+  | 'timer-wallclock'
+  | 'timer-next'
+  | 'analytics-scorecard'
+  | 'analytics-grid'
+  | 'editor'
+  | 'timer'
+  | 'analytics'
 
 /**
  * Registry keys for elements the highlight ring can target. Screens
  * register wrapper elements under these keys via RingTargetsContext.
  */
-export type RingTargetKey = 'timer.floor' | 'timer.cast' | 'analytics.scorecard'
-
+export type RingTargetKey =
+  | 'editor.window'
+  | 'editor.wodBlock'
+  | 'editor.runButton'
+  | 'editor.typeahead'
+  | 'timer.floor'
+  | 'timer.nextButton'
+  | 'analytics.scorecard'
+  | 'analytics.grid'
 export interface TourStage {
   id: TourStageId
   /** Runway progress range [start, end). */
@@ -64,27 +82,74 @@ export const TOUR_ACCENTS = {
  */
 export const TOUR_STAGES: TourStage[] = [
   {
-    id: 'timer',
+    id: 'editor-blank',
     start: 0.0,
-    end: 0.5,
+    end: 0.15,
+    screen: 'editor',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Blank Page & Typeahead',
+    ringA: 'editor.window',
+    tagA: 'Live Editor',
+  },
+  {
+    id: 'editor-metrics',
+    start: 0.15,
+    end: 0.30,
+    screen: 'editor',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Every Line Collects Metrics',
+    ringA: 'editor.wodBlock',
+    tagA: 'Line Metrics',
+  },
+  {
+    id: 'editor-run',
+    start: 0.30,
+    end: 0.45,
+    screen: 'editor',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Press Run to Start',
+    ringA: 'editor.runButton',
+    tagA: 'Run Button',
+  },
+  {
+    id: 'timer-wallclock',
+    start: 0.45,
+    end: 0.60,
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
     label: 'What Happens When It Runs',
     ringA: 'timer.floor',
     tagA: 'WallClock',
-    ringB: 'timer.cast',
-    tagB: 'Chromecast',
-    beatSplit: 0.55,
   },
   {
-    id: 'analytics',
-    start: 0.5,
-    end: 1.0,
+    id: 'timer-next',
+    start: 0.60,
+    end: 0.72,
+    screen: 'timer',
+    accent: TOUR_ACCENTS.timer,
+    label: 'Advance Rounds with Next',
+    ringA: 'timer.nextButton',
+    tagA: 'Next Button',
+  },
+  {
+    id: 'analytics-scorecard',
+    start: 0.72,
+    end: 0.86,
     screen: 'analytics',
     accent: TOUR_ACCENTS.analytics,
     label: 'Explore Your Data',
     ringA: 'analytics.scorecard',
-    tagA: 'Review',
+    tagA: 'Scorecard',
+  },
+  {
+    id: 'analytics-grid',
+    start: 0.86,
+    end: 1.0,
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: 'Session Review',
+    ringA: 'analytics.grid',
+    tagA: 'Review Grid',
   },
 ]
 

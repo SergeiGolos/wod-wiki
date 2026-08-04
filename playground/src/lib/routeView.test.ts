@@ -57,18 +57,17 @@ describe('resolveRouteView — journal nav', () => {
     expect(view.nav.map(l => l.id)).toEqual(['2026-06-28'])
   })
 
-  it('classifies /journal as the journal list, not an entry', () => {
+  it('classifies /journal (legacy list) as fall-through — LibraryRedirect owns it', () => {
     const view = resolveRouteView('/journal', NO_PARAMS, makeDeps())
-    expect(view.isJournalEntryRoute).toBe(false)
-    expect(view.workout.name).toBe('Journal')
-    expect(view.workout.category).toBe('General')
+    // /journal is a redirect; the router normalizes it to /library before
+    // AppContent resolves a view, so derivePage never maps it. The
+    // libraryRedirect test in routes.test covers the destination mapping.
+    expect(view.page).toBe('workout')
   })
 
-  it('classifies /journal/ (trailing slash) as the journal list, not an entry', () => {
+  it('classifies /journal/ (trailing slash) the same way', () => {
     const view = resolveRouteView('/journal/', NO_PARAMS, makeDeps())
-    expect(view.isJournalEntryRoute).toBe(false)
-    expect(view.journalEntryId).toBeUndefined()
-    expect(view.page).toBe('journal')
+    expect(view.page).toBe('workout')
   })
 })
 
@@ -183,7 +182,7 @@ describe('resolveRouteView — collection index nav', () => {
     const workoutLink = view.nav.find(l => l.id === `workout-${item.id}`)
     expect(workoutLink).toBeDefined()
     expect(workoutLink?.label).toBe('Event 5')
-    expect(workoutLink?.type).toBe('wod')
+    expect(workoutLink?.type).toBe('time')
     expect(workoutLink?.runIcon).toBe('link')
     expect(workoutLink?.onRun).toBeFunction()
 
@@ -210,21 +209,27 @@ describe('resolveRouteView — collection index nav', () => {
   })
 })
 
-describe('resolveRouteView — page + shell', () => {
-  it('classifies /journal → canvas shell with journal actions + index', () => {
-    const view = resolveRouteView('/journal', NO_PARAMS, makeDeps())
-    expect(view.page).toBe('journal')
-    expect(view.shell).toEqual({ wrap: 'canvas', title: 'Journal', actionsMode: 'journal-active', withIndex: true })
+describe('resolveRouteView — Library replaces the legacy list routes', () => {
+  it('classifies /library → library page', () => {
+    const view = resolveRouteView('/library', NO_PARAMS, makeDeps())
+    expect(view.page).toBe('library')
+    expect(view.workout.name).toBe('Library')
+    expect(view.shell).toEqual({ wrap: 'bare' })
   })
 
-  it('classifies /collections → canvas shell, no index, collections filter subheader', () => {
-    const view = resolveRouteView('/collections', NO_PARAMS, makeDeps())
-    expect(view.page).toBe('collections')
-    expect(view.shell).toEqual({ wrap: 'canvas', title: 'Collections', subheader: 'filter-collections', actionsMode: 'collection-readonly' })
+  it('/journal and /collections fall through — LibraryRedirect owns them before AppContent', () => {
+    // The router normalizes /journal, /collections, /feeds to /library before
+    // AppContent resolves a view, so derivePage no longer maps them; they hit
+    // the default branch. The libraryRedirect tests in routes.test cover the
+    // destination mapping.
+    for (const legacy of ['/journal', '/collections', '/feeds']) {
+      const view = resolveRouteView(legacy, NO_PARAMS, makeDeps())
+      expect(view.page).toBe('workout')
+      expect(view.shell).toEqual({ wrap: 'bare' })
+    }
   })
-
   it('classifies bare routes → bare shell', () => {
-    expect(resolveRouteView('/feeds', NO_PARAMS, makeDeps()).shell).toEqual({ wrap: 'bare' })
+    expect(resolveRouteView('/library', NO_PARAMS, makeDeps()).shell).toEqual({ wrap: 'bare' })
     expect(resolveRouteView('/efforts', NO_PARAMS, makeDeps()).page).toBe('effortsCatalog')
     expect(resolveRouteView('/effort/squat', NO_PARAMS, makeDeps()).page).toBe('effortDetail')
   })

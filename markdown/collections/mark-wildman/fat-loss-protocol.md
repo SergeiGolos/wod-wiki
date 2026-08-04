@@ -19,7 +19,7 @@ The protocol combines swings, squats, and pressing movements to create metabolic
 
 ### Beginner
 
-```wod
+```time
 (3)
   10 KB Swing 16kg
   10 Goblet Squat 16kg
@@ -27,7 +27,7 @@ The protocol combines swings, squats, and pressing movements to create metabolic
 ```
 ### Intermediate
 
-```wod
+```time
 (5)
   15 KB Swing 20kg
   15 Goblet Squat 20kg
@@ -35,7 +35,7 @@ The protocol combines swings, squats, and pressing movements to create metabolic
 ```
 ### Advanced
 
-```wod
+```time
 (5)
   20 KB Swing 24kg
   15 Clean & Press 20kg

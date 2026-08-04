@@ -18,7 +18,7 @@ Steve Cotter's background in both hardstyle and sport methodology makes him uniq
 
 ### Jerk Focus
 
-```wod
+```time
 (5)
   1:00 KB Jerk 16kg
   :30 Rest
@@ -29,7 +29,7 @@ Steve Cotter's background in both hardstyle and sport methodology makes him uniq
 ```
 ### Snatch Focus
 
-```wod
+```time
 (5)
   1:00 KB Snatch Left 16kg
   :30 Rest
@@ -38,7 +38,7 @@ Steve Cotter's background in both hardstyle and sport methodology makes him uniq
 ```
 ### Long Cycle
 
-```wod
+```time
 (5)
   1:00 Clean & Jerk 16kg
   :30 Rest

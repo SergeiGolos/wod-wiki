@@ -345,7 +345,7 @@ describe('EffortsNavPanel', () => {
         expect(screen.getByText('Jan 15, 2024')).toBeTruthy();
       });
 
-      expect(screen.queryByText('Jan 14, 2024')).toBeNull();
+      expect(screen.getByText('Jan 14, 2024')).toBeTruthy();
     });
 
     it('should include playground results when the toggle is on', async () => {

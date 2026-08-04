@@ -15,7 +15,7 @@ tags:
 
 Long chipper with step-ups, double-unders, and burpees.
 
-```wod
+```time
 200 DB Box Step Ups 50lb
 100 Double Unders
 50 Burpees

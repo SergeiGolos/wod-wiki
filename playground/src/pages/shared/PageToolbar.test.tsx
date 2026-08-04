@@ -80,4 +80,35 @@ describe('ActionsMenu', () => {
     expect(onRun).toHaveBeenCalled();
     expect(scrollToSection).not.toHaveBeenCalled();
   });
+
+  it('offers Date language options with the current one marked, and persists a pick (#858)', () => {
+    renderWithNav([]);
+    act(() => {
+      screen.getByRole('button').click();
+    });
+
+    // Auto (browser) is the default and carries the ✓.
+    expect(screen.getByTestId('date-locale-auto').textContent).toContain('Auto (browser)')
+    expect(screen.getByTestId('date-locale-auto').textContent).toContain('✓')
+    expect(screen.getByTestId('date-locale-en').textContent).not.toContain('✓')
+
+    act(() => {
+      screen.getByTestId('date-locale-en').click();
+    });
+    expect(localStorage.getItem('wodwiki:dateLocale')).toBe('en')
+
+    // Item clicks close the menu — re-open to assert the ✓ moved.
+    act(() => {
+      screen.getByRole('button').click();
+    });
+    expect(screen.getByTestId('date-locale-en').textContent).toContain('✓')
+    expect(screen.getByTestId('date-locale-auto').textContent).not.toContain('✓')
+
+    // Back to Auto clears the stored override.
+    act(() => {
+      screen.getByTestId('date-locale-auto').click();
+    });
+    expect(localStorage.getItem('wodwiki:dateLocale')).toBeNull()
+    localStorage.clear()
+  });
 });

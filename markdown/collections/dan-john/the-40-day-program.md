@@ -16,7 +16,7 @@ The 40-Day Program is Dan John's approach to "Easy Strength" - building strength
 
 The beauty of the 40-Day Program lies in its sustainability. Because the weights are sub-maximal and the volume is moderate, recovery is rapid, allowing for daily practice. Over time, the frequent exposure to the movements builds neural efficiency, technical mastery, and surprisingly strong strength gains without the burnout associated with high-intensity programs.
 
-```wod
+```time
 (5) Easy Strength Day
   + 2 Double Clean 24kg
   + 2 Double Press 24kg

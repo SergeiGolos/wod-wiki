@@ -27,7 +27,7 @@ These movements are performed as a continuous flow or in structured sets, creati
 ## Whiteboard Script
 
 ### Beginner — Movement Practice
-```wod
+```time
 (4)
   5 Mace 360 Swing Left 10lb
   5 Mace 360 Swing Right 10lb
@@ -37,7 +37,7 @@ These movements are performed as a continuous flow or in structured sets, creati
 ```
 
 ### Intermediate — Flow Combo
-```wod
+```time
 (5)
   5 Mace 360 Swing Alternating 15lb
   5 Mace 10 to 2 Alternating 15lb
@@ -48,7 +48,7 @@ These movements are performed as a continuous flow or in structured sets, creati
 ```
 
 ### Advanced — EMOM Flow
-```wod
+```time
 (12) 1:00 EMOM
   + 4 Mace 360 Swing Alternating 20lb
   + 4 Mace 10 to 2 Alternating 20lb
@@ -56,7 +56,7 @@ These movements are performed as a continuous flow or in structured sets, creati
 ```
 
 ### Density Challenge
-```wod
+```time
 10:00 ?
   Mace Flow 15lb
 ```

@@ -15,7 +15,7 @@ tags:
 
 Final event - run, burpee box jump overs, and wall balls.
 
-```wod
+```time
 2000m Run
 50 Burpee Box Jump Overs 24in
 50 Wall Balls 20lb

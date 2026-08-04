@@ -166,10 +166,11 @@ describe('IndexedDBNotePersistence', () => {
       },
     });
 
-    // One summary fact (from the Tier-2 output), carrying the block's
-    // segment identity (version 7 from the segments store) + recorder origin.
-    expect(savedAnalyticsPoints).toHaveLength(1);
-    expect(savedAnalyticsPoints[0]).toMatchObject({
+    // V13: summary facts (from Tier-2) + atomic segment metrics (from Tier-0/1).
+    const summaryFacts = savedAnalyticsPoints.filter(p => p.grain === 'summary');
+    const segmentFacts = savedAnalyticsPoints.filter(p => p.grain === 'segment');
+    expect(summaryFacts).toHaveLength(1);
+    expect(summaryFacts[0]).toMatchObject({
       metricKey: 'totalReps',
       value: 45,
       grain: 'summary',
@@ -177,6 +178,8 @@ describe('IndexedDBNotePersistence', () => {
       segmentVersion: 7,
       origin: 'playground',
     });
+    // V13: the segment output's numeric metric (rep: 21) is now also indexed.
+    expect(segmentFacts.length).toBeGreaterThan(0);
   });
 
   it('preserves attachment descriptor ids and time spans', async () => {
@@ -431,7 +434,7 @@ describe('IndexedDBNotePersistence', () => {
     const scriptBlock = {
       id: 'wod-a',
       contentId: 'bc-a',
-      dialect: 'wod' as const,
+      dialect: 'time' as const,
       startLine: 2,
       endLine: 5,
       content: '21 Deadlift 60kg',
@@ -510,10 +513,10 @@ describe('IndexedDBNotePersistence', () => {
     expect((updated.data.logs?.filter(o => o.outputType === 'analytics').length ?? 0)).toBeGreaterThan(0);
 
     // Facts purged for exactly this result, then rewritten as summary rows
-    // with block identity.
+    // V13: facts now include summary + segment grains
+    expect(rewrittenFacts.some(p => p.grain === 'summary')).toBe(true);
     expect(purgedFor).toEqual(['result-replay']);
     expect(rewrittenFacts.length).toBeGreaterThan(0);
-    expect(rewrittenFacts.every(p => p.grain === 'summary')).toBe(true);
     expect(rewrittenFacts.every(p => p.resultId === 'result-replay')).toBe(true);
     expect(rewrittenFacts.every(p => p.segmentId === 'wod-a')).toBe(true);
     expect(rewrittenFacts.every(p => p.origin === 'journal')).toBe(true);

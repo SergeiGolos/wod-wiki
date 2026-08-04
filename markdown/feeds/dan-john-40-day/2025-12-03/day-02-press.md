@@ -8,13 +8,13 @@ tags:
 
 Session 2 of 40. Strict press — no leg drive.
 
-```wod
+```time
 5x5 Press
 ```
 
 Optional assistance:
 
-```wod
+```time
 3x10 Push-Ups
 3x8 Dumbbell Row
 ```

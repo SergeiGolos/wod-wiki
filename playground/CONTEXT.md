@@ -32,6 +32,9 @@ Domain vocabulary that applies repo-wide lives in the root
 | Result recorder | `playground/src/services/resultRecorder.ts` | `createResultRecorder(sink)` is testable with an in-memory sink; `playgroundRecorder` is the production instance. |
 | Cast backend | `playground/src/cast/getCastBackend.ts` | Reads `VITE_CAST_BACKEND`; returns `ChromecastBackend` or `LocalTabBackend`. |
 | Workbench session | `playground/src/state/workbenchSessionStore.ts` | The coherent editing-session state. Exercisable without React. |
+| Sticky page header | `src/panels/page-shells/StickyPageHeader.tsx` | The standard page header for every playground page: sticky title bar + actions + subheader slot (rendered once, doubles as the mobile sticky bar). Pages compose it directly (LibraryPage) or get it via the `CanvasPage` shell. Stacked sticky children position via `measureStickyBoundary` / `useStickyBoundaryOffset` (`src/panels/page-shells/stickyBoundary.ts`) — never hardcode `top` values. |
+| Composer query state | `playground/src/hooks/useComposerQueryState.ts` | URL ↔ WqlComposer clause round-trip through `q` (back/forward restores the composer; salvage parser keeps invalid states editable). Adapters supply their landing defaults + legacy-param migration: `useLibraryQueryState` (Library), `useEffortsComposerState` (Efforts). |
+| Effort find plane | `src/services/analytics/query/QueryService.ts` (`runFindEffort`) | `find:effort{…} in all` queries the effort registry through the `EffortQueryStore` seam (default: CompositeEffortRegistry). Filter vocab: effort/discipline/intensity/origin/text. |
 
 ## Conventions
 

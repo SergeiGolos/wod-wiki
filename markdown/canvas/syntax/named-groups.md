@@ -5,7 +5,7 @@ subtitle: "Use labels to organize a session"
 section: groups
 order: 5
 ---
-```wod
+```time
 // Warmup
   400m Run
   10 Air Squats

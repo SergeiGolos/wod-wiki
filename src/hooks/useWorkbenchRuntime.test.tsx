@@ -110,7 +110,7 @@ describe('useWorkbenchRuntime', () => {
 
         const selectedBlock: ScriptBlock = {
             id: 'test-block',
-            dialect: 'wod',
+            dialect: 'time',
             startLine: 0,
             endLine: 2,
             content: '10 Pushups',

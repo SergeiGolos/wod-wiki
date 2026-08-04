@@ -5,6 +5,6 @@ subtitle: "The smallest valid workout line"
 section: basics
 order: 2
 ---
-```wod
+```time
 Pushups
 ```

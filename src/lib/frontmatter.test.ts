@@ -168,19 +168,19 @@ title: Just a Movement
 section: statement
 order: 1
 ---
-\`\`\`wod
+\`\`\`time
 Pushups
 \`\`\`
 `;
 
-    expect(stripFrontmatter(raw)).toBe(`\`\`\`wod
+    expect(stripFrontmatter(raw)).toBe(`\`\`\`time
 Pushups
 \`\`\`
 `);
   });
 
   it('leaves content without leading frontmatter unchanged', () => {
-    const raw = `\`\`\`wod
+    const raw = `\`\`\`time
 ---
 Pushups
 ---

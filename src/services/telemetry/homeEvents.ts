@@ -13,6 +13,7 @@ export const HOME_EVENTS = {
   lessonStarted: 'home:lesson_started',
   cheatsheetOpened: 'home:cheatsheet_opened',
   behaviorsOpened: 'home:behaviors_opened',
+  analyticsGuideOpened: 'home:analytics_guide_opened',
   explorerOpened: 'home:explorer_opened',
   dashboardViewed: 'home:dashboard_viewed',
   effortsOpened: 'home:efforts_opened',

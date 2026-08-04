@@ -15,7 +15,7 @@ tags:
 
 Classic Fran to finish.
 
-```wod
+```time
 (21-15-9)
   Thrusters 95lb
   Pullups

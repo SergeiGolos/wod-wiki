@@ -168,6 +168,16 @@ function metadataString(metadata: Record<string, unknown> | undefined, key: stri
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+/** Group-tag pairs from grouped composed-calc emission, key-sorted. */
+function readGroupTags(metadata: Record<string, unknown> | undefined): Record<string, string> | undefined {
+  const tags = metadata?.groupTags;
+  if (!tags || typeof tags !== 'object') return undefined;
+  const entries = Object.entries(tags as Record<string, unknown>)
+    .filter((pair): pair is [string, string] => typeof pair[1] === 'string' && pair[1].length > 0)
+    .sort(([a], [b]) => (a < b ? -1 : 1));
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
 /**
  * Convert Tier-2 summary outputs (outputType 'analytics') in a result's logs
  * into persisted fact rows — one row per result × Canonical Metric Key.
@@ -201,13 +211,21 @@ export function normalizeSummaryFacts(
 
     const projectionName = String(label.value ?? label.image ?? '');
     if (!projectionName) continue;
-    const metricKey = resolveCanonicalMetricKey(projectionName);
+    // Composed calcs carry their Canonical Metric Key explicitly (#878);
+    // legacy projections fall back to name-derived keys during cutover.
+    const metricKey = metadataString(value.metadata, 'canonicalKey') ?? resolveCanonicalMetricKey(projectionName);
 
     const effortSlug = metadataString(value.metadata, 'effortSlug');
     const discipline = metadataString(value.metadata, 'effortDiscipline');
     const intensityTier = metadataString(value.metadata, 'effortIntensityTier');
 
-    const rowKey = effortSlug ? `${metricKey}:${effortSlug}` : metricKey;
+    // Row key = metricKey + sorted group-tag pairs (spec §7.1:
+    // `totalVolume:effort=thruster`). Grouped dims auto-tag; legacy
+    // per-effort projections tag `effort` from their effortSlug metadata.
+    const groupTags = readGroupTags(value.metadata) ?? (effortSlug ? { effort: effortSlug } : undefined);
+    const rowKey = groupTags
+      ? `${metricKey}:${Object.entries(groupTags).map(([k, v]) => `${k}=${v}`).join(':')}`
+      : metricKey;
 
     rowsByKey.set(rowKey, {
       id: `${identity.resultId}-${rowKey}-${now}`,
@@ -235,4 +253,68 @@ export function normalizeSummaryFacts(
   }
 
   return Array.from(rowsByKey.values());
+}
+
+/**
+ * Normalize ALL metrics from a result's logs — summary facts (Tier 2) PLUS
+ * atomic per-segment metrics (Tier 0/1) — into persisted AnalyticsDataPoint
+ * rows.
+ *
+ * V13 expansion: the analytics store now holds every numeric metric emitted
+ * by the runtime, not just summary projections. This makes atomic metrics
+ * (reps, resistance, elapsed time per segment) available for indexed
+ * cross-workout queries and threshold filters (via the by-value compound
+ * index).
+ *
+ * Summary facts keep grain 'summary'; atomic segment metrics get grain
+ * 'segment'. The two coexist in the same store, distinguished by grain.
+ */
+export function normalizeAllMetrics(
+  logs: readonly SummaryFactSourceOutput[],
+  identity: SummaryFactIdentity,
+): AnalyticsDataPoint[] {
+  // Summary facts (Tier 2) — unchanged from normalizeSummaryFacts.
+  const summaryFacts = normalizeSummaryFacts(logs, identity);
+
+  // Atomic segment metrics (Tier 0/1) — one row per numeric metric per output.
+  const now = Date.now();
+  const segmentFacts: AnalyticsDataPoint[] = [];
+  let seq = 0;
+
+  for (const output of logs) {
+    if (output.outputType === 'analytics') continue; // handled by summary path
+    for (const metric of output.metrics) {
+      if (typeof metric.value !== 'number') continue;
+      const metricKey = String(metric.type);
+      const effortSlug = metadataString(metric.metadata, 'effortSlug');
+      const discipline = metadataString(metric.metadata, 'effortDiscipline');
+      const intensityTier = metadataString(metric.metadata, 'effortIntensityTier');
+
+      segmentFacts.push({
+        id: `${identity.resultId}-seg${seq++}-${metricKey}-${now}`,
+        noteId: identity.noteId,
+        blockContentId: identity.blockContentId,
+        origin: identity.origin,
+        pageId: identity.pageId,
+        grain: 'segment',
+        segmentId: identity.segmentId ?? '',
+        segmentVersion: identity.segmentVersion ?? 0,
+        resultId: identity.resultId,
+        type: metricKey,
+        value: metric.value,
+        unit: metric.unit,
+        label: metricKey,
+        metricKey,
+        metricLabel: metricKey,
+        metricUnit: metric.unit,
+        ...(effortSlug ? { effortSlug } : {}),
+        ...(discipline ? { discipline } : {}),
+        ...(intensityTier ? { intensityTier } : {}),
+        timestamp: identity.workoutTimestamp ?? output.timeSpan.started ?? now,
+        createdAt: now,
+      });
+    }
+  }
+
+  return [...summaryFacts, ...segmentFacts];
 }

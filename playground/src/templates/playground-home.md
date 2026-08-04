@@ -39,7 +39,7 @@ Welcome to your personalized training scratchpad. WOD Wiki combines the simplici
 
 ## 🏋️ Your First Workout
 
-```wod
+```time
 (3)
   10 Kettlebell Swings 24kg
   15 Goblet Squats 24kg

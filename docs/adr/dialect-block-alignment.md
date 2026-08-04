@@ -1,6 +1,6 @@
 # Dialect as the Block Alignment Axis
 
-The **Block Dialect** — the fence tag (` ```wod `, ` ```climb `) — is the one
+The **Block Dialect** — the fence tag (` ```time `, ` ```climb `) — is the one
 property that aligns parser, analytics, and editor for a domain. One registry of
 dialect descriptors (tags + aliases + optional overrides) is the single source of
 truth. Universal defaults always run; a Block Dialect overrides, it does not
@@ -10,7 +10,7 @@ This is the companion to [the plan](./dialect-block-alignment-plan.md).
 
 ## Context — the vision
 
-` ```wod ` is the wod dialect; ` ```climb ` should be a climbing dialect. A dialect
+` ```time ` is the wod dialect; ` ```climb ` should be a climbing dialect. A dialect
 is the axis that aligns how a block is parsed, analyzed, and edited for its domain
 — including, at a high level, the ability to override CodeMirror editor behaviors.
 

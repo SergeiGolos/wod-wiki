@@ -53,14 +53,23 @@ mock.module('@/components/organisms/editor/RuntimeTimerPanel', () => ({
   RuntimeTimerPanel: ({
     autoStart,
     onRuntimeReady,
+    onRunStarted,
   }: {
     block: ScriptBlock | null
     autoStart: boolean
     onClose: () => void
     onComplete: (blockId: string, results: WorkoutResults) => void
     onRuntimeReady: (runtime: IScriptRuntime) => void
+    onRunStarted?: () => void
   }) => {
     const React = require('react')
+    const startedRef = React.useRef(false)
+    React.useEffect(() => {
+      if (autoStart && onRunStarted && !startedRef.current) {
+        startedRef.current = true
+        onRunStarted()
+      }
+    }, [autoStart, onRunStarted])
     React.useEffect(() => {
       if (!onRuntimeReady) return
       const handle = mock(() => {}) as MockHandle
@@ -115,10 +124,6 @@ mock.module('../hooks/useCompletionChallenge', () => ({
   useCompletionChallenge: () => {},
 }))
 
-mock.module('../hooks/useRunStartedChallenge', () => ({
-  useRunStartedChallenge: () => {},
-}))
-
 mock.module('../hooks/useTourScrollQuests', () => ({
   useTourScrollQuests: () => () => {},
 }))
@@ -149,12 +154,12 @@ type TestSlice = {
 }
 
 function makeSlice(progress: number): TestSlice {
-  if (progress < 0.5) {
-    const t = progress / 0.5
+  if (progress < 0.25) {
+    const t = progress / 0.25
     return {
       index: 0,
       stage: {
-        id: 'timer',
+        id: 'timer-wallclock',
         screen: 'timer',
         accent: 'hsl(var(--metric-effort))',
         label: 'What Happens When It Runs',
@@ -163,17 +168,45 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'timer.floor', tag: 'WallClock' },
     }
   }
-  const t = (progress - 0.5) / 0.5
+  if (progress < 0.5) {
+    const t = (progress - 0.25) / 0.25
+    return {
+      index: 1,
+      stage: {
+        id: 'timer-next',
+        screen: 'timer',
+        accent: 'hsl(var(--metric-effort))',
+        label: 'Advance Rounds with Next',
+      },
+      t,
+      ring: { key: 'timer.nextButton', tag: 'Next Button' },
+    }
+  }
+  if (progress < 0.75) {
+    const t = (progress - 0.5) / 0.25
+    return {
+      index: 2,
+      stage: {
+        id: 'analytics-scorecard',
+        screen: 'analytics',
+        accent: 'hsl(var(--metric-rounds))',
+        label: 'Explore Your Data',
+      },
+      t,
+      ring: { key: 'analytics.scorecard', tag: 'Scorecard' },
+    }
+  }
+  const t = (progress - 0.75) / 0.25
   return {
-    index: 1,
+    index: 3,
     stage: {
-      id: 'analytics',
+      id: 'analytics-grid',
       screen: 'analytics',
       accent: 'hsl(var(--metric-rounds))',
-      label: 'Explore Your Data',
+      label: 'Session Review',
     },
     t,
-    ring: { key: 'analytics.scorecard', tag: 'Review' },
+    ring: { key: 'analytics.grid', tag: 'Review Grid' },
   }
 }
 
@@ -225,7 +258,7 @@ const wodFiles: Record<string, string> = {
 
 const homeQuests: Quest[] = [
   { id: 'qs-arrive', label: 'Welcome to WOD Wiki' },
-  { id: 'qs-tour-timer', label: 'See the timer run it' },
+  { id: 'qs-tour-timer', label: 'See the timer run it', validation: { type: 'run-started' } },
   { id: 'qs-tour-analytics', label: 'Review the session' },
 ]
 
@@ -237,9 +270,33 @@ const chapters: Chapter[] = [
     questIds: ['qs-arrive', 'qs-tour-timer', 'qs-tour-analytics'],
     sectionIds: [],
   },
+  {
+    id: 'basics',
+    title: 'Basics',
+    badge: 'trophy',
+    questIds: ['basics-movement'],
+    sectionIds: [],
+  },
+  {
+    id: 'protocols',
+    title: 'Protocols',
+    badge: 'timer',
+    questIds: ['protocols-timer'],
+    sectionIds: [],
+  },
 ]
 
-const questLabels: Record<string, string> = {}
+const questLabels: Record<string, string> = {
+  'basics-movement': 'Add a movement',
+  'protocols-timer': 'Add a timer',
+}
+
+const STORAGE_KEY = 'wodwiki.quests.v1'
+
+function seedHomeArrival() {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ '/': { 'qs-arrive': true } }))
+  window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }))
+}
 
 async function renderHomeTour() {
   const result = render(
@@ -314,5 +371,44 @@ describe('HomeTour ambient runtime', () => {
       expect(lastMockRuntime).not.toBeNull()
     })
     expect(eventNamesFromCalls((lastMockRuntime as IScriptRuntime).handle as MockHandle)).not.toContain('next')
+  })
+
+  it('does not validate qs-tour-timer from the ambient scroll auto-start', async () => {
+    seedHomeArrival()
+    await renderHomeTour()
+
+    await act(async () => {
+      setTestTourProgress(0.1)
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(lastMockRuntime).not.toBeNull()
+    })
+
+    expect(screen.getByText('1/5 quests complete')).toBeTruthy()
+    const ledger = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')
+    expect(ledger['/']?.['qs-arrive']).toBe(true)
+    expect(ledger['/']?.['qs-tour-timer']).toBeUndefined()
+  })
+
+  it('validates qs-tour-timer when the hero Run button starts a playground run', async () => {
+    seedHomeArrival()
+    await renderHomeTour()
+
+    const runButton = await screen.findByRole('button', { name: /^Run$/i })
+    await act(async () => {
+      fireEvent.click(runButton)
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('tour-playground-overlay')).not.toBeNull()
+    })
+
+    expect(screen.getByText('2/5 quests complete')).toBeTruthy()
+    const ledger = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')
+    expect(ledger['/']?.['qs-arrive']).toBe(true)
+    expect(ledger['/']?.['qs-tour-timer']).toBe(true)
   })
 })

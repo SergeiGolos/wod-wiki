@@ -19,6 +19,7 @@
  */
 import { openDB, DBSchema, IDBPDatabase, IDBPTransaction, IndexNames, StoreNames } from 'idb';
 import {
+    BlockIndexRow,
     Note,
     NoteSegment,
     NoteTag,
@@ -34,6 +35,7 @@ import type { ScriptBlock } from '@/components/Editor/types';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
 import { createParser } from '@/parser/parserInstance';
 import {
+    normalizeAllMetrics,
     normalizeSummaryFacts,
     replayResultAnalytics,
 } from '@/services/analytics/workoutDerivation';
@@ -115,6 +117,7 @@ export interface WodWikiDB extends DBSchema {
             'by-grain': string;      // V10 — grain ('segment' | 'summary' | 'rollup')
             'by-discipline': string; // V10 — discipline
             'by-timestamp': number;  // V12 — canonical workout time; IDBKeyRange time scans
+            'by-value': [string, number]; // V13 — compound [type, value]; IDBKeyRange threshold scans
         };
     };
     efforts: {
@@ -122,10 +125,18 @@ export interface WodWikiDB extends DBSchema {
         value: IEffort;
         indexes: { 'by-discipline': string; 'by-source': IEffort['registrySource'] };
     };
+    block_index: {
+        key: string;
+        value: BlockIndexRow;
+        indexes: {
+            'by-note': string;       // V14 — noteId; per-note rebuilds
+            'by-content': string;    // V14 — blockContentId; cross-store joins
+            'by-type': string;       // V14 — dataType; filter by block kind
+        };
+    };
 }
-
+const DB_VERSION = 15; // V15 — fence-tag cutover: rewrite legacy ```wod/plan/whiteboard to ```time (#893)
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 12; // V12 — analytics: by-timestamp index; facts re-derived (effortSlug/discipline/intensityTier populated, timestamp = WorkoutResult.createdAt) via the replay seam over every result with logs; frontmatter tags swept into note_tags
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
 
@@ -397,7 +408,7 @@ export async function backfillV12(tx: V10Tx): Promise<void> {
             if (!scriptBlock) throw new Error('no recoverable segment context');
             const block = scriptBlock.statements?.length
                 ? scriptBlock
-                : { ...scriptBlock, statements: createParser().read(scriptBlock.content).statements };
+                : { ...scriptBlock, statements: createParser().read(scriptBlock.content, scriptBlock.sport).statements };
 
             const derivedLogs = replayResultAnalytics(result, block);
             await resultsStore.put({ ...result, data: { ...result.data, logs: derivedLogs } });
@@ -452,6 +463,176 @@ export async function backfillV12(tx: V10Tx): Promise<void> {
     console.info(
         `[IndexedDBService] V12 backfill: ${replayed} results replayed, ${renormalized} re-normalized from stored logs, ` +
         `${withoutLogs} without logs, ${factRows} fact rows written, ${tagLinks} frontmatter tag links added`,
+    );
+}
+
+/**
+ * V13 backfill — expands the analytics store to include ALL atomic metrics.
+ *
+ * V12 only persisted summary facts (Tier 2, grain 'summary'). V13 re-derives
+ * every result's logs through `normalizeAllMetrics()`, which additionally
+ * emits atomic segment metrics (Tier 0/1, grain 'segment') — reps, resistance,
+ * elapsed time, etc. — alongside the existing summary facts.
+ *
+ * This does NOT replay logs (V12 already did that if upgrading from < 12);
+ * it reads whatever logs are in the store and re-normalizes with the expanded
+ * function. The new `by-value` compound index makes threshold queries
+ * (`value > 5000`) executable as native IDBKeyRange scans.
+ */
+export async function backfillV13(tx: V10Tx): Promise<void> {
+    const resultsStore = tx.objectStore('results');
+    const analyticsStore = tx.objectStore('analytics');
+
+    const results = await resultsStore.getAll();
+    await analyticsStore.clear();
+
+    let factRows = 0;
+    let resultsWithLogs = 0;
+    let withoutLogs = 0;
+
+    for (const result of results) {
+        const logs = result.data?.logs ?? [];
+        if (logs.length === 0) {
+            withoutLogs++;
+            continue;
+        }
+        resultsWithLogs++;
+
+        const identity = {
+            noteId: result.noteId,
+            resultId: result.id,
+            segmentId: result.segmentId,
+            segmentVersion: result.segmentVersion,
+            blockContentId: result.blockContentId,
+            origin: result.origin,
+            pageId: result.pageId,
+            workoutTimestamp: result.createdAt,
+        };
+
+        const points = normalizeAllMetrics(logs, identity);
+        for (const point of points) {
+            await analyticsStore.put(point);
+        }
+        factRows += points.length;
+    }
+
+    console.info(
+        `[IndexedDBService] V13 backfill: ${resultsWithLogs} results re-normalized, ` +
+        `${withoutLogs} without logs, ${factRows} fact rows written (summary + segment)`,
+    );
+}
+
+/**
+ * V14 backfill — builds the block_index derived store from segments.
+ *
+ * Reads all non-history NoteSegment rows, projects them into BlockIndexRow
+ * objects with the parent note's title, and writes them to the block_index
+ * store. The store is disposable: clear + rebuild on every upgrade from < 14.
+ */
+export async function backfillV14(tx: V10Tx): Promise<void> {
+    const segmentsStore = tx.objectStore('segments');
+    const notesStore = tx.objectStore('notes');
+    const blockIndexStore = tx.objectStore('block_index');
+
+    await blockIndexStore.clear();
+
+    // Build noteId → title map for denormalization.
+    const notes = await notesStore.getAll();
+    const noteTitles = new Map<string, string>();
+    for (const note of notes) {
+        noteTitles.set(note.id, note.title);
+    }
+
+    const allSegments = await segmentsStore.getAll();
+    let rows = 0;
+    let skipped = 0;
+
+    for (const segment of allSegments) {
+        if (segment.isHistory) {
+            skipped++;
+            continue;
+        }
+
+        // Extract blockContentId from wod segment data.
+        const blockContentId = segment.data?.contentId ?? undefined;
+
+        const row: BlockIndexRow = {
+            id: `${segment.noteId}:${segment.id}:${segment.version}`,
+            noteId: segment.noteId,
+            segmentId: segment.id,
+            segmentVersion: segment.version,
+            position: segment.position,
+            dataType: segment.dataType,
+            blockContentId,
+            rawContent: segment.rawContent,
+            noteTitle: noteTitles.get(segment.noteId) ?? '',
+            createdAt: segment.createdAt,
+        };
+        await blockIndexStore.put(row);
+        rows++;
+    }
+
+    console.info(
+        `[IndexedDBService] V14 backfill: ${rows} block_index rows written, ${skipped} history segments skipped`,
+    );
+}
+
+/** Legacy fence tags cut over to ```time by V15 (#893, part of #887). */
+const LEGACY_FENCE_RE = /(`{3,})[ \t]*(wod|plan|whiteboard)(?!\w)/g;
+
+/**
+ * Rewrite legacy fence tags (```wod / ```plan / ```whiteboard) to ```time in
+ * raw markdown text. Pure — no DB access. Four-backtick fences and
+ * trailing-whitespace variants are preserved; the word "wod" outside a fence
+ * tag is untouched.
+ */
+export function rewriteLegacyFences(text: string): string {
+    return text.replace(LEGACY_FENCE_RE, '$1time');
+}
+
+/** Stored ScriptBlock dialects cut over to 'time' by V15 (pre-cutover
+ *  FenceDialect was 'wod'|'log'|'plan'). */
+const LEGACY_BLOCK_DIALECTS = new Set(['wod', 'plan']);
+
+/**
+ * V15 backfill — one-time fence-tag cutover in stored content (#893).
+ *
+ * Rewrites legacy fence tags in every segment's rawContent (history versions
+ * included — no read alias remains, so any surfaced row must carry the new
+ * tag), migrates persisted ScriptBlock payloads (`data.dialect` 'wod'/'plan'
+ * → 'time' — the load path re-synthesizes the fence from this field), then
+ * rebuilds the block_index derived store from the rewritten segments. The
+ * `wod` SegmentDataType is deliberately untouched — the provider boundary
+ * maps it at load (#888).
+ */
+export async function backfillV15(tx: V10Tx): Promise<void> {
+    const segmentsStore = tx.objectStore('segments');
+    const allSegments = await segmentsStore.getAll();
+    let rewritten = 0;
+
+    for (const segment of allSegments) {
+        let next = segment;
+        if (typeof next.rawContent === 'string') {
+            const raw = rewriteLegacyFences(next.rawContent);
+            if (raw !== next.rawContent) next = { ...next, rawContent: raw };
+        }
+        const block = next.data as ScriptBlock | null;
+        const dialect = block?.dialect as string | undefined;
+        if (block && dialect && LEGACY_BLOCK_DIALECTS.has(dialect)) {
+            next = { ...next, data: { ...block, dialect: 'time' } };
+        }
+        if (next !== segment) {
+            await segmentsStore.put(next);
+            rewritten++;
+        }
+    }
+
+    // block_index rows carry denormalized rawContent — rebuild from the
+    // rewritten segments (store is disposable by design, see backfillV14).
+    await backfillV14(tx);
+
+    console.info(
+        `[IndexedDBService] V15 backfill: ${rewritten}/${allSegments.length} segment rows rewritten to \`\`\`time fences`,
     );
 }
 
@@ -568,6 +749,14 @@ export class IndexedDBService {
                     store.createIndex('by-source', 'registrySource');
                 }
 
+                // ---- Block Index (V14 — derived store for find:block queries) ----
+                if (!db.objectStoreNames.contains('block_index')) {
+                    const store = db.createObjectStore('block_index', { keyPath: 'id' });
+                    store.createIndex('by-note', 'noteId');
+                    store.createIndex('by-content', 'blockContentId');
+                    store.createIndex('by-type', 'dataType');
+                }
+
                 // ---- Page / Tags / NoteTags (V10 — additive) ----
                 if (!db.objectStoreNames.contains('page')) {
                     const store = db.createObjectStore('page', { keyPath: 'id' });
@@ -589,7 +778,7 @@ export class IndexedDBService {
                 const ensureIndex = <S extends 'notes' | 'segments' | 'results' | 'attachments' | 'analytics'>(
                     storeName: S,
                     indexName: IndexNames<WodWikiDB, S>,
-                    keyPath: string,
+                    keyPath: string | string[],
                 ) => {
                     const store = tx.objectStore(storeName);
                     if (!store.indexNames.contains(indexName)) {
@@ -611,6 +800,8 @@ export class IndexedDBService {
                 ensureIndex('analytics', 'by-discipline', 'discipline');
                 // V12 — canonical workout time range scans.
                 ensureIndex('analytics', 'by-timestamp', 'timestamp');
+                // V13 — compound [type, value] for IDBKeyRange threshold scans.
+                ensureIndex('analytics', 'by-value', ['type', 'value']);
 
                 // ---- V10 backfills (upgrade from < 10 only) ----
                 if (oldVersion < 10) {
@@ -642,9 +833,20 @@ export class IndexedDBService {
                 }
 
                 // ---- V12: re-derive facts + sweep frontmatter tags ----
-                // Fresh installs (oldVersion 0) have nothing to migrate.
                 if (oldVersion > 0 && oldVersion < 12) {
                     await backfillV12(tx);
+                }
+                // ---- V13: expand analytics to atomic metrics + by-value index ----
+                if (oldVersion > 0 && oldVersion < 13) {
+                    await backfillV13(tx);
+                }
+                // ---- V14: build block index from segments ----
+                if (oldVersion > 0 && oldVersion < 14) {
+                    await backfillV14(tx);
+                }
+                // ---- V15: fence-tag cutover in stored segments (#893) ----
+                if (oldVersion > 0 && oldVersion < 15) {
+                    await backfillV15(tx);
                 }
             },
             // Another tab is waiting on a schema upgrade this connection
@@ -844,6 +1046,11 @@ export class IndexedDBService {
         const links = await db.getAllFromIndex('note_tags', 'by-note', noteId);
         const tags = await Promise.all(links.map(link => db.get('tags', link.tagId)));
         return tags.filter((tag): tag is Tag => tag !== undefined);
+    }
+
+    /** Every tag label in the store — the user-created typeahead vocabulary. */
+    async getAllTags(): Promise<Tag[]> {
+        return (await this.dbPromise).getAll('tags');
     }
 
     /** Resolve every note tagged with a given label. */
@@ -1191,6 +1398,49 @@ export class IndexedDBService {
 
     async deleteEffort(slug: string): Promise<void> {
         return (await this.dbPromise).delete('efforts', slug);
+    }
+
+    // ── Block Index (V14) ──────────────────────────────────────────
+
+    /** Rebuild block_index rows for a single note from its latest segments.
+     *  Called after segment writes in the content provider. */
+    async rebuildBlockIndexForNote(noteId: string): Promise<void> {
+        const db = await this.dbPromise;
+
+        // Fetch all required data BEFORE opening the write transaction,
+        // to avoid IDB auto-commit (TransactionInactiveError) on yield.
+        const existing = await db.getAllFromIndex('block_index', 'by-note', noteId);
+        const note = await db.get('notes', noteId);
+        const noteTitle = note?.title ?? '';
+        const segments = await this.getLatestSegmentsForNote(noteId);
+
+        const tx = db.transaction('block_index', 'readwrite');
+        for (const row of existing) {
+            await tx.store.delete(row.id);
+        }
+
+        for (const segment of segments) {
+            if (segment.isHistory) continue;
+            const blockContentId = segment.data?.contentId ?? undefined;
+            await tx.store.put({
+                id: `${noteId}:${segment.id}:${segment.version}`,
+                noteId,
+                segmentId: segment.id,
+                segmentVersion: segment.version,
+                position: segment.position,
+                dataType: segment.dataType,
+                blockContentId,
+                rawContent: segment.rawContent,
+                noteTitle,
+                createdAt: segment.createdAt,
+            });
+        }
+        await tx.done;
+    }
+
+    /** Load all block_index rows (for naive in-memory find:block queries). */
+    async getAllBlockIndex(): Promise<BlockIndexRow[]> {
+        return (await this.dbPromise).getAll('block_index');
     }
 }
 

@@ -16,7 +16,7 @@ This elite sprint session develops the maximum velocity and explosive power requ
 
 The session should be performed during the sharpening phase, 4-6 weeks before Olympic competition, when athletes are reducing volume but maintaining or increasing intensity. Full recovery between efforts is essential—sprint training quality is compromised when athletes begin repetitions in a fatigued state. Coaches should monitor stroke mechanics closely, as technical breakdown at maximum speed can create inefficiencies that persist under racing conditions.
 
-```wod
+```time
 (3) Warmup
   200m Freestyle
   :30 Rest

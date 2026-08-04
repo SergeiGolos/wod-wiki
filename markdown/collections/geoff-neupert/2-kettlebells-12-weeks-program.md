@@ -18,14 +18,14 @@ The program is designed for those committed to long-term development, with each 
 
 ### Week 1-4 Foundation
 
-```wod
+```time
 (5)
   3 Double Clean 16kg
   :30 Rest
 ```
 ### Week 5-8 Development
 
-```wod
+```time
 (5)
   + 2 Double Clean 20kg
   + 2 Double Press 20kg
@@ -33,7 +33,7 @@ The program is designed for those committed to long-term development, with each 
 ```
 ### Week 9-12 Advanced
 
-```wod
+```time
 (5)
   + 2 Double Clean 24kg
   + 2 Double Press 24kg

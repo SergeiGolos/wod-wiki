@@ -1,7 +1,7 @@
 /**
  * WhiteboardCompanion
  *
- * Overlay companion for wod / log / plan fenced code blocks.
+ * Overlay companion for time / log fenced code blocks.
  *
  * Layout modes:
  *   INACTIVE (15% strip) — cursor is outside the block.
@@ -22,7 +22,7 @@ import { MdTimerRuntime } from "@/hooks/useRuntimeParser";
 import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
 import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/dateFormat";
-import type { ScriptBlock } from '@/components/Editor/types';
+import type { ScriptBlock, FenceDialect } from '@/components/Editor/types';
 import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
 import { useScriptBlockResults } from '@/components/Editor/hooks/useScriptBlockResults';
 import { useScriptLineResults } from '@/components/Editor/hooks/useScriptLineResults';
@@ -49,7 +49,7 @@ function parseContent(view: EditorView, section: EditorSection): ICodeStatement[
   const raw = view.state.doc.sliceString(section.contentFrom, section.contentTo);
   if (!raw.trim()) return [];
   try {
-    return parser.read(raw).statements as ICodeStatement[];
+    return parser.read(raw, section.sport).statements as ICodeStatement[];
   } catch {
     return [];
   }
@@ -162,10 +162,13 @@ function buildScriptBlock(view: EditorView, section: EditorSection): ScriptBlock
     section.contentFrom !== undefined && section.contentTo !== undefined
       ? view.state.doc.sliceString(section.contentFrom, section.contentTo)
       : "";
+  const dialect: FenceDialect =
+    section.type === "time" || section.type === "log" ? section.type : "time";
   return {
     id: section.id,
     contentId: section.contentId,
-    dialect: section.dialect || "wod",
+    dialect,
+    sport: section.sport,
     startLine: section.startLine - 1,
     endLine: section.endLine - 1,
     content,
@@ -385,7 +388,7 @@ export const WhiteboardCompanion: React.FC<WhiteboardCompanionProps> = ({
 
   const effectiveLine = isActive ? cursorLine : (effectiveHoverLine ?? cursorLine);
 
-  // Don't show the card when on the opening ```wod or closing ``` fence lines
+  // Don't show the card when on the opening ```time or closing ``` fence lines
   const onFenceLine = section
     ? effectiveLine === section.startLine || effectiveLine === section.endLine
     : false;
@@ -468,7 +471,7 @@ export const WhiteboardCompanion: React.FC<WhiteboardCompanionProps> = ({
           {/* Header */}
           <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b border-border/50 shrink-0">
             <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-metric-time/10 text-metric-time uppercase tracking-wider font-semibold">
-              {section.dialect ?? "wod"}
+              {section.type}
             </span>
             <div className="flex items-center min-w-0 gap-2">
               <span className="text-xs text-muted-foreground/60">L{lineInContent}</span>

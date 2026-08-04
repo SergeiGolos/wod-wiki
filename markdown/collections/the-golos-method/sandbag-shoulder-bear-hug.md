@@ -24,7 +24,7 @@ Together, these movements develop what strongman competitors call "farm strength
 ## Whiteboard Script
 
 ### Beginner — Light Sandbag Practice
-```wod
+```time
 (5)
   3 Sandbag Over Shoulder 50lb
   :60 Rest
@@ -33,7 +33,7 @@ Together, these movements develop what strongman competitors call "farm strength
 ```
 
 ### Intermediate — Shoulder & Carry Superset
-```wod
+```time
 (4)
   5 Sandbag Over Shoulder 80lb
   40m Sandbag Bear Hug Carry 80lb
@@ -41,7 +41,7 @@ Together, these movements develop what strongman competitors call "farm strength
 ```
 
 ### Advanced — Density Block
-```wod
+```time
 10:00 ?
   Sandbag Over Shoulder 100lb
   Sandbag Bear Hug Carry 100lb
@@ -49,7 +49,7 @@ Together, these movements develop what strongman competitors call "farm strength
 *Alternate movements each round. Perform as many rounds as possible with good form.*
 
 ### Heavy Carry Test
-```wod
+```time
 60m Sandbag Bear Hug Carry 100-150lb
 ```
 *For time. Do not set the sandbag down until the distance is complete.*

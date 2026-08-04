@@ -16,7 +16,7 @@ This race-week session prepares Olympic athletes for maximum performance during 
 
 The psychological component of this session is as important as the physical preparation. Athletes should visualize their Olympic race during every race-pace effort, rehearsing tactical decisions, emotional responses, and technical focus points. The session should leave athletes feeling confident, sharp, and ready to perform at their absolute best when it matters most.
 
-```wod
+```time
 (2) Warmup
   200m Freestyle
   :30 Rest

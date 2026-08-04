@@ -14,7 +14,7 @@ tags:
 ### Description
 This workout prepares triathletes for sprint-distance swim legs (typically 750m). The session emphasizes fast starts, sighting efficiency, and negative split pacing to ensure athletes exit the water with energy remaining for the bike and run. The main set simulates race effort with interval work that builds confidence at race pace. This session works well in the final 4-6 weeks before a sprint-distance race.
 
-```wod
+```time
 (3) Warmup
   100m Freestyle
   :20 Rest

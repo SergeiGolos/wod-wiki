@@ -150,7 +150,7 @@ The distinction between `-` and `+`:
 
 Indentation defines the hierarchical structure of a workout:
 
-```wod
+```time
 (3)                    ← parent: 3 rounds
   400m Run             ← child: runs within each round (implicitly "repeat" group)
   21 KB Swings 53lb    ← child: runs within each round
@@ -171,7 +171,7 @@ The athlete is prescribed the work. The measurement is **how long it takes**.
 > Fran: 21-15-9 Thrusters (95lb) and Pullups, for time
 
 **WOD Wiki syntax:**
-```wod
+```time
 (21-15-9)
   Thrusters 95lb
   Pullups
@@ -187,7 +187,7 @@ The athlete is given a fixed time. The measurement is **rounds completed**.
 > 20-minute AMRAP: 5 pullups, 10 pushups, 15 air squats
 
 **WOD Wiki syntax:**
-```wod
+```time
 20:00 AMRAP
   5 Pullups
   10 Pushups
@@ -204,7 +204,7 @@ The athlete is given intervals. The measurement is **completion within each inte
 > EMOM 30 minutes: 5 pullups, 10 pushups, 15 air squats
 
 **WOD Wiki syntax:**
-```wod
+```time
 (30) :60 EMOM
   + 5 Pullups
   + 10 Pushups
@@ -219,7 +219,7 @@ The `+` prefix composes the exercises into a single set done each minute. `(30)`
 > 4 rounds of 100m swim with 30 seconds rest
 
 **WOD Wiki syntax:**
-```wod
+```time
 (4) Warmup
   100m Swim
   :30 Rest
@@ -231,7 +231,7 @@ The `+` prefix composes the exercises into a single set done each minute. `(30)`
 > 150 wall ball shots at 20lb, for time
 
 **WOD Wiki syntax:**
-```wod
+```time
 150 Wall Ball Shots 20lb
 ```
 
@@ -241,7 +241,7 @@ The `+` prefix composes the exercises into a single set done each minute. `(30)`
 > Row 1000m, then 50 thrusters at 45lb, then 30 pullups — for time
 
 **WOD Wiki syntax:**
-```wod
+```time
 1000m Row
 50 Thrusters 45lb
 30 Pullups
@@ -255,7 +255,7 @@ When the goal is to find a max weight, the weight is the collectible.
 > Work up to a 1-rep max clean & jerk
 
 **WOD Wiki syntax:**
-```wod
+```time
 1 Clean & Jerk ?lb
 ```
 
@@ -267,7 +267,7 @@ The `?lb` makes weight the collectible — the athlete enters what they achieved
 > In 1 minute, do as many pushups as possible
 
 **WOD Wiki syntax:**
-```wod
+```time
 1:00 ? Pushups
 ```
 
@@ -279,7 +279,7 @@ The `?` makes reps the collectible.
 > Run for 20 minutes, record distance
 
 **WOD Wiki syntax:**
-```wod
+```time
 20:00 ?m Run
 ```
 
@@ -291,7 +291,7 @@ The timer is fixed. The distance `?m` is the collectible.
 > Run 5K for time
 
 **WOD Wiki syntax:**
-```wod
+```time
 5km Run
 ```
 
@@ -305,7 +305,7 @@ When exercises are done together as a unit (barbell complex, superset), use `+` 
 > EMOM 20 minutes: 2 cleans, 1 press, 3 front squats
 
 **WOD Wiki syntax:**
-```wod
+```time
 (20) 1:00
   + 2 Clean
   + 1 Press
@@ -318,7 +318,7 @@ When exercises are done together as a unit (barbell complex, superset), use `+` 
 > 21-15-9 deadlifts at 225lb and handstand pushups
 
 **WOD Wiki syntax:**
-```wod
+```time
 (21-15-9)
   Deadlift 225lb
   Handstand Pushups
@@ -334,7 +334,7 @@ When a workout has distinct phases (warmup, main set, cooldown), write each sect
 > Warmup: 4x100m swim with 30s rest. Main set: 8x50m kick with 30s rest. Cooldown: 400m easy swim.
 
 **WOD Wiki syntax:**
-```wod
+```time
 (4) Warmup
   100m Swim
   :30 Rest
@@ -352,7 +352,7 @@ When a workout has distinct phases (warmup, main set, cooldown), write each sect
 > 5 rounds of 20 pullups, 30 pushups, 40 situps, 50 air squats. Rest 3 minutes between rounds.
 
 **WOD Wiki syntax:**
-```wod
+```time
 (5)
   + 20 Pullups
   + 30 Pushups
@@ -367,7 +367,7 @@ When a workout has distinct phases (warmup, main set, cooldown), write each sect
 > 10-9-8-7-6-5-4-3-2-1 of Deadlift at 1.5x bodyweight, Bench Press at bodyweight, Clean at 0.75x bodyweight
 
 **WOD Wiki syntax:**
-```wod
+```time
 (10-9-8-7-6-5-4-3-2-1)
   
   Deadlift 1.5bw
@@ -381,7 +381,7 @@ When a workout has distinct phases (warmup, main set, cooldown), write each sect
 > 5 minutes: 100 KB Swings at 70lb. 1 minute rest. 10 minutes: 10 Turkish Getups at 70lb.
 
 **WOD Wiki syntax:**
-```wod
+```time
 5:00 100 KB Swings 70lb
 1:00 Rest
 10:00 10 Turkish Getups 70lb
@@ -393,7 +393,7 @@ When a workout has distinct phases (warmup, main set, cooldown), write each sect
 > For time: Run 800 meters, 100 Pistols, 50 Pull-ups, Run 800 meters
 
 **WOD Wiki syntax:**
-```wod
+```time
 800m Run
 100 Pistols
 50 Pullups
@@ -527,7 +527,7 @@ When converting a workout, produce a markdown document with this structure:
 ## Description
 Brief description of the workout.
 
-```wod
+```time
 [WOD Wiki syntax here]
 ```
 
@@ -557,7 +557,7 @@ The `## Collectible Metrics` section should explicitly state what the athlete is
 - Time cap is prescribed context, not part of the syntax (it's metadata)
 
 **Output:**
-```wod
+```time
 10 Thrusters 95lb
 10 Chest to Bar Pullups
 10 Thrusters 135lb
@@ -576,7 +576,7 @@ The `## Collectible Metrics` section should explicitly state what the athlete is
 - Part 2: Prescribed reps and sets at a computed weight
 
 **Output:**
-```wod
+```time
 3 Back Squat ?lb
 
 (3)
@@ -589,7 +589,7 @@ The `## Collectible Metrics` section should explicitly state what the athlete is
 > Run 1 mile, then 50 sandbag over shoulder (100 lbs), then run 1 mile. For time.
 
 **Output:**
-```wod
+```time
 1mile Run
 50 Sandbag Over Shoulder 100lb
 1mile Run
@@ -601,7 +601,7 @@ The `## Collectible Metrics` section should explicitly state what the athlete is
 > Tabata air squats (8 rounds: 20 seconds on, 10 seconds off). Record lowest round.
 
 **Output:**
-```wod
+```time
 (8)
   :20 ? Air Squats
   :10 Rest
@@ -615,7 +615,7 @@ The `?` on reps makes each round's count collectible.
 
 ### No Equipment / Bodyweight Only
 Omit resistance entirely:
-```wod
+```time
 100 Burpees
 75 Situps
 50 Pushups
@@ -624,7 +624,7 @@ Omit resistance entirely:
 
 ### Mixed Modality (Cardio + Lifting)
 Different fragments coexist on the same line:
-```wod
+```time
 (5)
   400m Run
   15 Overhead Squats 95lb
@@ -632,7 +632,7 @@ Different fragments coexist on the same line:
 
 ### Asymmetrical Loading (Left/Right)
 Write separate lines for each side:
-```wod
+```time
 (20)
   + 1 Clean & Press Left
   + 1 Clean & Press Right
@@ -641,7 +641,7 @@ Write separate lines for each side:
 
 ### Rest Periods
 Rest is just an effort name with a timer:
-```wod
+```time
 :30 Rest
 1:00 Rest
 3:00 Rest
@@ -649,7 +649,7 @@ Rest is just an effort name with a timer:
 
 ### Named Sections
 Use labels as effort names on the round line:
-```wod
+```time
 (4) Warmup
   100m Swim
   :30 Rest

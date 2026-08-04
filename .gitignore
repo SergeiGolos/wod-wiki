@@ -176,3 +176,5 @@ e2e/**/*.png
 .repowise/wiki.db
 .repowise/wiki.db-wal
 .repowise/wiki.db-shm
+pluto.forest-adhara.ts.net.crt.bak
+pluto.forest-adhara.ts.net.key.bak

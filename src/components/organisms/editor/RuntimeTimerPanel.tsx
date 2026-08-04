@@ -38,6 +38,8 @@ import { useUserOverrides } from '@/components/organisms/review/useUserOverrides
 import { buildWorkoutResults, countSegmentOutputs, createRuntimeForBlock, prepareRuntimeBlock } from "@/app/editor/runtimeTimerModel";
 import { useCollectionMetrics, resolveChoiceSelection } from "@/hooks/useCollectionMetrics";
 import { CollectionWizard } from "@/components/organisms/review/CollectionWizard";
+// PROTOTYPE — throwaway import; delete with proto-timer/
+import { ProtoTimerMobile, getProtoTimerVariant } from "./proto-timer/ProtoTimerMobile";
 
 import type { ChoiceCollectionItem } from "@/hooks/useCollectionMetrics";
 
@@ -65,6 +67,12 @@ export interface RuntimeTimerPanelProps {
   onRuntimeReady?: (runtime: IScriptRuntime) => void;
   /** Called once when the runtime transitions from idle to running. */
   onRunStarted?: () => void;
+  /**
+   * Scroll-out stop (#885): while true, a running execution is paused in
+   * place — state and outputs are preserved (no reset) so analytics keeps
+   * the run's data.
+   */
+  externalPause?: boolean;
 }
 
 
@@ -90,6 +98,21 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
   const { isCompact } = usePanelSize();
   const screenMode = useScreenMode();
   const isMobile = screenMode === 'mobile' || isCompact;
+
+  // PROTOTYPE hook-in — throwaway. When ?proto-timer=A|B|C is in the URL,
+  // replace the whole body with the mobile-layout prototype variants.
+  // See proto-timer/ProtoTimerMobile.tsx. Delete after a variant wins.
+  if (getProtoTimerVariant()) {
+    return (
+      <ProtoTimerMobile
+        isPaused={execution.status === 'paused'}
+        onStart={handleStart}
+        onPause={execution.pause}
+        onStop={handleStop}
+        onNext={handleNext}
+      />
+    );
+  }
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background">
@@ -151,6 +174,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   autoStart,
   onRuntimeReady,
   onRunStarted,
+  externalPause,
 }) => {
   const [runtimeBlock] = useState(() => prepareRuntimeBlock(block));
   const [preRunScript] = useState(() => ({ statements: runtimeBlock.statements }));
@@ -257,6 +281,15 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       onRunStarted?.();
     }
   }, [execution.status, onRunStarted]);
+
+  // Scroll-out stop (#885): the home tour halts the ambient demo runtime when
+  // the visitor scrolls out of the timer cards. Pause preserves elapsed time
+  // and collected outputs — nothing is reset.
+  useEffect(() => {
+    if (externalPause && execution.status === 'running') {
+      execution.pause();
+    }
+  }, [externalPause, execution.status, execution.pause]);
 
   const handleComplete = useCallback((completed: boolean) => {
     if (!runtime) return;

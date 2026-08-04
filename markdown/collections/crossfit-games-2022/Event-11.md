@@ -15,7 +15,7 @@ tags:
 
 8-minute AMRAP with ascending reps.
 
-```wod
+```time
 8:00 AMRAP
   3 Burpees
   3 Clean & Jerks 155lb

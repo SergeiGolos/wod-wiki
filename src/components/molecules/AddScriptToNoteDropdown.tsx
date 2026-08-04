@@ -21,7 +21,7 @@ import { formatDateWeekdayShort } from '@/lib/dateFormat';
 interface AddScriptToNoteDropdownProps {
     scriptBlock: ScriptBlock;
     provider?: IContentProvider;
-    /** ID of the note this WOD block originates from (for link tracking) */
+    /** ID of the note this workout block originates from (for link tracking) */
     sourceNoteId?: string;
     onAddSuccess?: (noteId: string) => void;
     className?: string;
@@ -97,7 +97,10 @@ export const AddScriptToNoteDropdown: React.FC<AddScriptToNoteDropdownProps> = (
             const note = await provider.getEntry(noteId);
             if (!note) return;
 
-            const blockText = `\n\n\`\`\`${scriptBlock.dialect || 'wod'}\n${scriptBlock.content.trim()}\n\`\`\``;
+            const fenceTag = scriptBlock.sport
+                ? `${scriptBlock.dialect || 'time'}:${scriptBlock.sport}`
+                : scriptBlock.dialect || 'time';
+            const blockText = `\n\n\`\`\`${fenceTag}\n${scriptBlock.content.trim()}\n\`\`\``;
             const newContent = note.rawContent.trim() + blockText;
 
             await provider.updateEntry(noteId, { rawContent: newContent });
@@ -119,7 +122,10 @@ export const AddScriptToNoteDropdown: React.FC<AddScriptToNoteDropdownProps> = (
             const targetDate = new Date(selectedDate);
             targetDate.setHours(12, 0, 0, 0);
 
-            const blockText = `\`\`\`${scriptBlock.dialect || 'wod'}\n${scriptBlock.content.trim()}\n\`\`\``;
+            const fenceTag = scriptBlock.sport
+                ? `${scriptBlock.dialect || 'time'}:${scriptBlock.sport}`
+                : scriptBlock.dialect || 'time';
+            const blockText = `\`\`\`${fenceTag}\n${scriptBlock.content.trim()}\n\`\`\``;
             const newEntry = await provider.saveEntry({
                 title: 'New Workout',
                 rawContent: `# New Workout\n\n${blockText}`,

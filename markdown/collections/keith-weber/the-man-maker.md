@@ -16,7 +16,7 @@ The Man Maker is Keith Weber's leg-focused workout designed to build lower body 
 
 The session uses goblet squats, lunges, and swing variations to target the legs from multiple angles. The continuous format with minimal rest creates significant metabolic demand while building muscular endurance in the quads, glutes, and hamstrings.
 
-```wod
+```time
 (3)
   20 Goblet Squat 20kg
   :15 Rest

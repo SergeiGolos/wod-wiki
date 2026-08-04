@@ -18,7 +18,7 @@ The 360 Swing is unique because it combines ballistic movement with precise cont
 ## Whiteboard Script
 
 ### Beginner Practice Session
-```wod
+```time
 (3)
   10 Mace 360 Swing Left 10lb
   10 Mace 360 Swing Right 10lb
@@ -26,7 +26,7 @@ The 360 Swing is unique because it combines ballistic movement with precise cont
 ```
 
 ### Intermediate Volume Build
-```wod
+```time
 (5)
   15 Mace 360 Swing Left 15lb
   15 Mace 360 Swing Right 15lb
@@ -34,13 +34,13 @@ The 360 Swing is unique because it combines ballistic movement with precise cont
 ```
 
 ### Advanced EMOM Challenge
-```wod
+```time
 (20) 1:00 EMOM
   + 10 Mace 360 Swing Alternating 20lb
 ```
 
 ### For Time Challenge
-```wod
+```time
 100 Mace 360 Swings 15lb
 ```
 

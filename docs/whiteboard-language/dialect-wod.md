@@ -32,7 +32,7 @@ Typical cases:
 ## Example
 
 ````markdown
-```wod
+```time
 (3 Rounds)
   10 Pushups
   15 Air Squats

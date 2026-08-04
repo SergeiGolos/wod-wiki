@@ -5,7 +5,7 @@ subtitle: "Chain separate AMRAP blocks in one session"
 section: protocols
 order: 8
 ---
-```wod
+```time
 10:00 AMRAP
   5 Pullups
   10 Pushups

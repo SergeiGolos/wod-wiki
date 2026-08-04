@@ -17,7 +17,7 @@ import { NotePersistenceError } from './types';
 const BASE_ENTRY: HistoryEntry = {
   id: 'note-abc123',
   title: 'Annie',
-  rawContent: '# Annie\n\n```wod\n50-40-30-20-10\nDouble Unders\nSit-ups\n```',
+  rawContent: '# Annie\n\n```time\n50-40-30-20-10\nDouble Unders\nSit-ups\n```',
   tags: ['crossfit', 'benchmark'],
   createdAt: 1000,
   updatedAt: 2000,

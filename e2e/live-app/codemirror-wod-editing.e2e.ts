@@ -3,7 +3,7 @@ import { seedNote } from '../helpers/wodwikiDb';
 
 test('CodeMirror accepts typing and Enter inside wod code fences', async ({ page }) => {
   const id = 'codemirror-wod-editing-regression';
-  const content = '# Repro\n\n```wod\nTimer: 1:00\n```\n';
+  const content = '# Repro\n\n```time\nTimer: 1:00\n```\n';
   const consoleErrors: string[] = [];
 
   page.on('console', (message) => {

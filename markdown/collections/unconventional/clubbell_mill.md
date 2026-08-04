@@ -20,7 +20,7 @@ The Mill differs from mace swinging in that the club's center of mass is closer 
 ## Whiteboard Script
 
 ### Two-Hand Mill Practice
-```wod
+```time
 (3)
   10 Two-Hand Mill Clockwise 15lb
   :60 Rest
@@ -29,7 +29,7 @@ The Mill differs from mace swinging in that the club's center of mass is closer 
 ```
 
 ### Single-Arm Mill
-```wod
+```time
 (3)
   10 One-Arm Mill Left 15lb
   10 One-Arm Mill Right 15lb
@@ -37,7 +37,7 @@ The Mill differs from mace swinging in that the club's center of mass is closer 
 ```
 
 ### Mill & Reverse Mill Flow
-```wod
+```time
 (5)
   10 Mill Clockwise 15lb
   10 Reverse Mill 15lb
@@ -45,14 +45,14 @@ The Mill differs from mace swinging in that the club's center of mass is closer 
 ```
 
 ### EMOM Conditioning
-```wod
+```time
 (15) 1:00 EMOM
   + 8 Mill Left 15lb
   + 8 Mill Right 15lb
 ```
 
 ### Volume Challenge
-```wod
+```time
 (10)
   10 Mill Alternating 15lb
   :20 Rest

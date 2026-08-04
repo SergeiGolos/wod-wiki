@@ -41,7 +41,7 @@ export async function createJournalNoteFromWorkout({
   ].filter((line): line is string => line !== null);
 
   if (wrapInWod) {
-    lines.push('```wod', wodContent.trimEnd(), '```');
+    lines.push('```time', wodContent.trimEnd(), '```');
   } else {
     lines.push(wodContent.trimEnd());
   }

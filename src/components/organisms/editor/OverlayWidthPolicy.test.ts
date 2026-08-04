@@ -11,12 +11,12 @@ import {
 describe("computeOverlayWidth", () => {
   // ── Default policy tests ──
 
-  it("wod active → 35%", () => {
-    expect(computeOverlayWidth({ sectionType: "wod", isActive: true })).toBe(35);
+  it("time active → 35%", () => {
+    expect(computeOverlayWidth({ sectionType: "time", isActive: true })).toBe(35);
   });
 
-  it("wod inactive → 20%", () => {
-    expect(computeOverlayWidth({ sectionType: "wod", isActive: false })).toBe(20);
+  it("time inactive → 20%", () => {
+    expect(computeOverlayWidth({ sectionType: "time", isActive: false })).toBe(20);
   });
 
   it("frontmatter active → 35%", () => {
@@ -47,31 +47,31 @@ describe("computeOverlayWidth", () => {
 
   it("user override takes precedence over default", () => {
     expect(
-      computeOverlayWidth({ sectionType: "wod", isActive: true, userOverride: 75 }),
+      computeOverlayWidth({ sectionType: "time", isActive: true, userOverride: 75 }),
     ).toBe(75);
   });
 
   it("user override takes precedence even when inactive", () => {
     expect(
-      computeOverlayWidth({ sectionType: "wod", isActive: false, userOverride: 25 }),
+      computeOverlayWidth({ sectionType: "time", isActive: false, userOverride: 25 }),
     ).toBe(25);
   });
 
   it("user override clamped to 0", () => {
     expect(
-      computeOverlayWidth({ sectionType: "wod", isActive: true, userOverride: -10 }),
+      computeOverlayWidth({ sectionType: "time", isActive: true, userOverride: -10 }),
     ).toBe(0);
   });
 
   it("user override clamped to 100", () => {
     expect(
-      computeOverlayWidth({ sectionType: "wod", isActive: true, userOverride: 150 }),
+      computeOverlayWidth({ sectionType: "time", isActive: true, userOverride: 150 }),
     ).toBe(100);
   });
 
   it("user override of 0 hides overlay even for active section", () => {
     expect(
-      computeOverlayWidth({ sectionType: "wod", isActive: true, userOverride: 0 }),
+      computeOverlayWidth({ sectionType: "time", isActive: true, userOverride: 0 }),
     ).toBe(0);
   });
 

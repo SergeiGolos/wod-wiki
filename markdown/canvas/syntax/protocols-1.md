@@ -5,7 +5,7 @@ subtitle: "Countdown, unbounded rounds"
 section: protocols
 order: 1
 ---
-```wod
+```time
 20:00 (AMRAP)
   5 Pullups
   10 Pushups
