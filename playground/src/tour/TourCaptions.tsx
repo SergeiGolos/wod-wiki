@@ -48,14 +48,26 @@ export const WORKOUT_PRESETS: TourCaptionChoice[] = [
   {
     label: 'Heavy Triplet',
     detail: '5 Back Squats 185lb · 100m Carry 50lb · 10 Ring Dips',
-    wod: '```time\n(5 Sets)\n  5 Barbell Back Squats 185lb\n  100m Farmer Carry 50lb\n  10 Ring Dips\n```',
+    wod: '```time\n(5 Sets)\n  5 Barbell Back Squats 185lb\n  100m Farmer Carry 50lb\n  10 Ring Dips\n  *:30 Rest\n```',
   },
   {
     label: 'Load & Carry Ladder',
     detail: '12 Front Squats 65kg · 100m Carry 30kg · 20 Box Jumps',
-    wod: '```time\n(4 Sets)\n  12 Front Squats 65kg\n  100m Sandbag Carry 30kg\n  20 Box Jumps\n```',
+    wod: '```time\n(4 Sets)\n  12 Front Squats 65kg\n  100m Sandbag Carry 30kg\n  20 Box Jumps\n  *:45 Rest\n```',
   },
 ]
+
+/**
+ * Adventure script scaffolding (#884): identical header/footer for every
+ * preset and for welcome-1.md, so the fenced block always occupies document
+ * lines 5–11 and the card-2 highlight is fixed. Every preset fence spans 7
+ * lines (open + 5 content + close) — keep them normalized when editing.
+ */
+export const ADVENTURE_FENCE_LINES = { open: 5, close: 11 } as const
+
+export function buildAdventureScript(wod: string): string {
+  return `# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\n${wod}\n\n> Press **Run** ↑ to start the WallClock.\n`
+}
 
 export interface TourCaption {
   id: TourStageId
@@ -123,7 +135,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
         <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Launch the step-through clock.</em>
       </>
     ),
-    body: 'Click Run in the editor top bar (or keep scrolling) to launch the step-through WallClock timer for this 21-15-9 workout.',
+    body: 'Click Run in the editor top bar to execute the block — the step-through WallClock launches and every line starts generating collected metrics.',
     foot: 'Run button · step-through WallClock · untimed rounds',
     accent: TOUR_ACCENTS.editor,
     actions: [

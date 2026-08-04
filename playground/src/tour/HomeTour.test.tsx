@@ -26,11 +26,22 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
       props.onBlocksChange?.([{ id: 'block-1', type: 'Timer' } as unknown as ScriptBlock])
     }, [])
     return (
-      <textarea
-        data-testid="mock-note-editor"
-        value={props.value ?? ''}
-        onChange={(e) => props.onChange?.(e.target.value)}
-      />
+      <div>
+        <textarea
+          data-testid="mock-note-editor"
+          value={props.value ?? ''}
+          onChange={(e) => props.onChange?.(e.target.value)}
+        />
+        {/* Stand-ins for previewDecorations' styled fence lines, which the
+            card-2 block highlight measures (#884). */}
+        {(props.value ?? '').includes('```') && (
+          <>
+            <div className="cm-wod-fence-open" />
+            <div className="cm-wod-inner" />
+            <div className="cm-wod-fence-close" />
+          </>
+        )}
+      </div>
     )
   },
 }))
@@ -104,7 +115,7 @@ function makeSlice(progress: number): TestSlice {
         label: 'Start with a Blank Page',
       },
       t,
-      ring: { key: 'editor.fence', tag: '```time Fence' },
+      ring: { key: 'editor.window', tag: 'Live Editor' },
     }
   }
   if (progress < 0.30) {
@@ -260,7 +271,10 @@ const scrollRunwayToCallCount = () => scrollSpyControl().scrollRunwayToCalls ?? 
 // ── Test data ───────────────────────────────────────────────────────────────
 
 const wodFiles: Record<string, string> = {
-  'wods/examples/home/welcome-1.md': 'AMRAP 10\n  10 Pull-ups\n  15 Push-ups\n  20 Air Squats\n',
+  // Real welcome-1.md scaffold (frontmatter stripped): the fence sits on
+  // lines 5–11, line-aligned with every adventure preset (#884).
+  '../../markdown/canvas/home/welcome-1.md':
+    '# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\n```time\n21-15-9\n  Kettlebell Swings 24kg\n  400m Run\n  Deadlifts 225lb\n  *:30 Rest\n```\n\n> Press **Run** ↑ to start the WallClock.\n',
 }
 
 const homeQuests: Quest[] = [
@@ -560,5 +574,32 @@ describe('HomeTour', () => {
       expect(within(header).queryByRole('combobox')).toBeNull()
       expect(within(header).queryByTestId('tour-workout-choices')).toBeNull()
     }
+  })
+
+  it('registers the fenced-block highlight region only in the runway window (#884)', async () => {
+    await renderHomeTour()
+    await act(async () => {
+      setTestTourProgress(0.20)
+      await Promise.resolve()
+    })
+
+    // The welcome script carries a fence, so the runway editor measures and
+    // registers its block region; the hero editor never opts in.
+    expect(screen.getAllByTestId('tour-wod-block-region')).toHaveLength(1)
+
+    // Picking an adventure preset keeps exactly one fixed region (the fence
+    // is line-aligned across presets, so the box does not move).
+    await act(async () => {
+      setTestTourProgress(0.05)
+      await Promise.resolve()
+    })
+    const wrapper = screen.getByTestId('tour-workout-choices')
+    fireEvent.click(wrapper.querySelector('button')!)
+    const option = await screen.findByText('Heavy Triplet')
+    await act(async () => {
+      fireEvent.mouseDown(option)
+      await Promise.resolve()
+    })
+    expect(screen.getAllByTestId('tour-wod-block-region')).toHaveLength(1)
   })
 })

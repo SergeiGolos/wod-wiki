@@ -37,7 +37,7 @@ const RingTargetsContext = createContext<RingTargetsContextValue | null>(null)
 
 export function RingTargetsProvider({ children }: { children: ReactNode }) {
   const registry = useRef<RingRegistry>({
-    'editor.fence': null,
+    'editor.window': null,
     'editor.wodBlock': null,
     'editor.runButton': null,
     'editor.typeahead': null,

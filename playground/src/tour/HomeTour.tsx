@@ -54,7 +54,7 @@ import {
 } from './tourStages'
 import { TourHero } from './TourHero'
 import { TourEditorScreen } from './screens/TourEditorScreen'
-import { TourCaptions } from './TourCaptions'
+import { TourCaptions, buildAdventureScript } from './TourCaptions'
 import { TourTvCard } from './TourTvCard'
 import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
@@ -376,7 +376,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   // hero editor keeps its own content.
   const handleWorkoutChoice = useCallback(
     (wod: string) => {
-      const next = `# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\n${wod}\n\n> Press **Run** ↑ to start the WallClock.\n`
+      const next = buildAdventureScript(wod)
       runwayEditedRecordedRef.current = false
       setSelectedScript(next)
       startNewSession()
@@ -754,6 +754,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
                           theme={theme}
                           sharedBy={sharedBy}
                           onResetShared={handleClearShared}
+                          withRingTargets
                         />
                       </Screen>
                     )}

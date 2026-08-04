@@ -35,7 +35,7 @@ export type TourStageId =
  * register wrapper elements under these keys via RingTargetsContext.
  */
 export type RingTargetKey =
-  | 'editor.fence'
+  | 'editor.window'
   | 'editor.wodBlock'
   | 'editor.runButton'
   | 'editor.typeahead'
@@ -88,8 +88,8 @@ export const TOUR_STAGES: TourStage[] = [
     screen: 'editor',
     accent: TOUR_ACCENTS.editor,
     label: 'Blank Page & Typeahead',
-    ringA: 'editor.fence',
-    tagA: '```time Fence',
+    ringA: 'editor.window',
+    tagA: 'Live Editor',
   },
   {
     id: 'editor-metrics',
