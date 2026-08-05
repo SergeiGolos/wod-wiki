@@ -95,11 +95,11 @@ export function ScrollSection({
         <div
           data-testid="scroll-section-sticky-window"
           className={cn(
-            'sticky z-20 shrink-0 overflow-hidden rounded-2xl border border-border bg-background shadow-2xl transition-shadow',
+            'sticky z-20 overflow-hidden rounded-2xl border border-border bg-background shadow-2xl transition-shadow',
             // Mobile: top-sticky at 65px below header, ~50vh height
-            'top-[65px] h-[calc(50vh-32px)] px-4 pt-[2px] pb-1',
-            // Desktop: side-sticky at 80px below header, 360px wide
-            'lg:top-[80px] lg:w-[360px] lg:h-auto lg:max-h-[calc(100vh-100px)] lg:p-4',
+            'top-[65px] h-[calc(50vh-32px)] px-4 pt-[2px] pb-1 shrink-0',
+            // Desktop: side-sticky, code sample takes 2/3 of the width
+            'lg:top-[80px] lg:flex-[2_1_0%] lg:w-auto lg:h-auto lg:max-h-[calc(100vh-100px)] lg:p-4',
           )}
         >
           {stickyView}
