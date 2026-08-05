@@ -21,6 +21,7 @@ import {
   navigatePaletteResult,
 } from './services/wqlSearchSource'
 import { usePageScrollSync } from './hooks/usePageScrollSync'
+import { useNav } from './nav/NavContext'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
 import { AudioProvider } from '@/contexts/AudioContext'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
@@ -331,18 +332,21 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation()
+  const { scrollToSection } = useNav()
 
   useEffect(() => {
     if (hash) {
-      const el = document.getElementById(hash.slice(1))
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        return
-      }
+      const targetId = hash.slice(1)
+      scrollToSection(targetId)
+      const timer = setTimeout(() => {
+        scrollToSection(targetId)
+      }, 50)
+      return () => clearTimeout(timer)
     }
     window.scrollTo(0, 0)
+    // Only run on location change (pathname or hash)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, hash])
-
   return null
 }
 
@@ -370,9 +374,9 @@ export function App() {
             <BrowserRouter>
               <NuqsAdapter>
               <GlobalState />
-              <ScrollToTop />
               <Toaster />
               <NavProvider tree={navTree}>
+                <ScrollToTop />
                 <Routes>
                   <Route path="/proto/calc-authoring" element={<CalcAuthoringPrototypePage />} />
                   <Route path="/legacy" element={<PlaygroundLandingPage />} />

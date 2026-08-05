@@ -17,6 +17,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useMemo,
   useRef,
 } from 'react'
 import { useLocation } from 'react-router-dom'
@@ -147,23 +148,33 @@ export function NavProvider({ tree, children }: NavProviderProps) {
   }, [])
 
   const setL3Items = useCallback((items: NavItemL3[]) => {
-    setL3ItemsInternal(items)
+    setL3ItemsInternal((prev) => {
+      if (
+        prev.length === items.length &&
+        prev.every((item, i) => item.id === items[i]?.id && item.label === items[i]?.label)
+      ) {
+        return prev
+      }
+      return items
+    })
   }, [])
 
   const registerScrollFn = useCallback((fn: (id: string) => void) => {
     scrollFnRef.current = fn
   }, [])
 
-  const value: NavContextValue = {
-    tree,
-    navState,
-    dispatch,
-    l3Items,
-    setL3Items,
-    scrollToSection,
-    registerScrollFn,
-  }
-
+  const value: NavContextValue = useMemo(
+    () => ({
+      tree,
+      navState,
+      dispatch,
+      l3Items,
+      setL3Items,
+      scrollToSection,
+      registerScrollFn,
+    }),
+    [tree, navState, l3Items, setL3Items, scrollToSection, registerScrollFn],
+  )
   return (
     <NavContext.Provider value={value}>
       {children}

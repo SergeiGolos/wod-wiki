@@ -25,7 +25,7 @@ import { useNav } from '../nav/NavContext'
 import type { NavStateAction } from '../nav/navTypes'
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import { mapIndexToL3 } from '../pages/shared/pageUtils'
-
+import { parseDocumentSections } from '@/components/Editor/utils/sectionParser'
 export interface UsePageScrollSync {
   /** Pass to a CodeMirror factory so we can hold the live `EditorView` for editor-scroll fallback. */
   handleViewCreated: (view: EditorView) => void
@@ -42,21 +42,33 @@ export function usePageScrollSync(currentNavLinks: PageNavLink[]): UsePageScroll
   }, [])
 
   const scrollToSection = useCallback((id: string) => {
-    // 1. Try standard DOM element (Canvas / List pages).
-    //    Use scrollIntoView so the browser finds the correct scroll container
-    //    (works inside nested flex layouts like HomeView > CanvasPage).
-    const el = document.getElementById(id)
+    if (!id) return
+
+    const findDomElement = (targetId: string): HTMLElement | null => {
+      let el = document.getElementById(targetId)
+      if (el) return el
+      el = document.querySelector(`[data-section-id="${targetId}"]`)
+      if (el) return el
+      const parts = targetId.split(':')
+      for (const part of parts) {
+        if (part) {
+          el = document.getElementById(part) ?? document.querySelector(`[data-section-id="${part}"]`)
+          if (el) return el
+        }
+      }
+      return null
+    }
+
+    // 1. Try standard DOM element (Canvas / List / Card pages).
+    const el = findDomElement(id)
     if (el) {
-      // Apply a temporary scroll-margin so the sticky header/mobile editor is not covered.
       const prev = el.style.scrollMarginTop
-      
       const isMobileViewport = window.innerWidth < 1024
       const hasStickyMobilePanel = !!document.querySelector('.lg\\:hidden.sticky')
-      
+
       let scrollMargin = '96px'
       if (isMobileViewport) {
         if (hasStickyMobilePanel) {
-          // Offset by 50vh (editor) + (MOBILE_STICKY_TOP / 2) (33px) + 7px buffer
           scrollMargin = 'calc(50vh + 40px)'
         } else {
           scrollMargin = '75px'
@@ -65,12 +77,11 @@ export function usePageScrollSync(currentNavLinks: PageNavLink[]): UsePageScroll
 
       el.style.scrollMarginTop = scrollMargin
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      // Restore after animation frame so the style doesn't persist.
       requestAnimationFrame(() => { el.style.scrollMarginTop = prev })
       return
     }
 
-    // 2. Try CodeMirror line (Editor pages).
+    // 2. Try CodeMirror line (Editor pages / Note surfaces).
     if (editorViewRef.current) {
       const view = editorViewRef.current
       const content = view.state.doc.toString()
@@ -82,21 +93,35 @@ export function usePageScrollSync(currentNavLinks: PageNavLink[]): UsePageScroll
         const lineNum = parseInt(id.replace('workout-line-', ''), 10)
         lineIdx = lineNum - 1
       } else {
-        lineIdx = lines.findIndex(line => {
-          const match = line.match(/^(#{1,6})\s+(.*)$/)
-          if (match) {
-            let label = match[2]!.trim()
-            const timeMatch = label.match(/(\d{1,2}:\d{2})/)
-            if (timeMatch) {
-              const timestamp = timeMatch[1]!
-              label = label.replace(timestamp, '').replace(/\s+/g, ' ').trim()
-              if (!label) label = timestamp
-            }
-            const headerId = label.toLowerCase().replace(/[^\w]+/g, '-')
-            return headerId === id
-          }
+        // Section / segmentId match via parseDocumentSections
+        const sections = parseDocumentSections(content)
+        const matchedSec = sections.find((s) => {
+          if (s.id === id) return true
+          if (s.scriptBlock?.id === id) return true
+          if (id.includes(`:${s.id}:`) || id.endsWith(`:${s.id}`)) return true
           return false
         })
+
+        if (matchedSec) {
+          lineIdx = matchedSec.startLine
+        } else {
+          // Fallback: heading match
+          lineIdx = lines.findIndex((line) => {
+            const match = line.match(/^(#{1,6})\s+(.*)$/)
+            if (match) {
+              let label = match[2]!.trim()
+              const timeMatch = label.match(/(\d{1,2}:\d{2})/)
+              if (timeMatch) {
+                const timestamp = timeMatch[1]!
+                label = label.replace(timestamp, '').replace(/\s+/g, ' ').trim()
+                if (!label) label = timestamp
+              }
+              const headerId = label.toLowerCase().replace(/[^\w]+/g, '-')
+              return headerId === id
+            }
+            return false
+          })
+        }
       }
 
       if (lineIdx >= 0 && lineIdx < lines.length) {
@@ -105,7 +130,6 @@ export function usePageScrollSync(currentNavLinks: PageNavLink[]): UsePageScroll
           selection: { anchor: pos, head: pos },
           effects: [EditorView.scrollIntoView(pos, { y: 'start', yMargin: 20 })],
         })
-        // Also scroll the window to the editor's container if needed on desktop only.
         const editorEl = view.dom.parentElement
         if (editorEl && window.innerWidth >= 1024) {
           const y = editorEl.getBoundingClientRect().top + window.scrollY - 120
