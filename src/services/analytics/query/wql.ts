@@ -24,8 +24,10 @@ import {
   type WqlAggregator,
   type WqlComparisonOp,
 } from '@/parser/wql-vocabulary';
+import { parseWqlSuffixes, splitAtWhere } from './wqlSuffix';
 
 export { WQL_AGGREGATORS, WQL_COMPARISON_OPS } from '@/parser/wql-vocabulary';
+export { parseWqlSuffixes, splitAtWhere } from './wqlSuffix';
 
 export type Aggregator = WqlAggregator;
 
@@ -233,22 +235,26 @@ function extractFilters(query: SyntaxNode, text: string): TagFilter[] {
 }
 
 function parseAnalyticsQuery(raw: string): ParsedQuery {
-  // Cross-store `where` join is stripped first (outermost suffix) so the
-  // primary's own display-unit / rollup clauses parse cleanly afterward.
-  const { primary, where: whereText } = splitAtWhere(raw);
-  // Display unit directive is parsed at the WQL surface so the Lezer grammar
-  // does not need a keyword token that would shadow `in` as a word elsewhere.
-  let queryText = primary;
-  let displayUnit: string | undefined;
-  const unitMatch = DISPLAY_UNIT_RE.exec(primary.trimEnd());
-  if (unitMatch) {
-    displayUnit = unitMatch[1];
-    queryText = primary.slice(0, unitMatch.index).trimEnd();
+  const suffixes = parseWqlSuffixes(raw);
+  const { where: whereText, displayUnit, groupBy, rollup, primaryText: text } = suffixes;
+
+  const base: ParsedQuery = {
+    raw,
+    agg: 'sum',
+    metric: '',
+    filters: [],
+    groupBy: groupBy ?? [],
+    displayUnit,
+    rollup: rollup ? { size: rollup.size, unit: rollup.unit as 'd' | 'w' } : undefined,
+  };
+
+  // Validate rollup unit if a rollup suffix was present
+  if (rollup && rollup.unit !== 'd' && rollup.unit !== 'w') {
+    base.error = cannotParse(text);
+    return base;
   }
 
-  const base: ParsedQuery = { raw, agg: 'sum', metric: '', filters: [], groupBy: [], displayUnit };
-  const text = queryText.trim();
-  const tree = wqlParser.parse(queryText);
+  const tree = wqlParser.parse(text);
 
   // Lezer recovers from malformed input by inserting ⚠ nodes — any of them
   // means the query is not the WQL surface.
@@ -270,37 +276,15 @@ function parseAnalyticsQuery(raw: string): ParsedQuery {
     base.error = cannotParse(text);
     return base;
   }
-  const aggText = queryText.slice(aggNode.from, aggNode.to);
+  const aggText = text.slice(aggNode.from, aggNode.to);
   if (!AGGS.includes(aggText as Aggregator)) {
     base.error = `Unknown aggregator "${aggText}". Try: ${AGGS.join(', ')}`;
     return base;
   }
   base.agg = aggText as Aggregator;
-  base.metric = queryText.slice(metricNode.from, metricNode.to);
+  base.metric = text.slice(metricNode.from, metricNode.to);
 
-  base.filters = extractFilters(query, queryText);
-
-  // GroupBy — by {dim, dim}
-  const groupBy = query.getChild(terms.GroupBy);
-  if (groupBy) {
-    for (const dim of groupBy.getChildren(terms.Dimension)) {
-      base.groupBy.push(queryText.slice(dim.from, dim.to));
-    }
-  }
-
-  // Rollup — .rollup(<size><unit>); the unit lexes as a word and is
-  // validated here.
-  const rollup = query.getChild(terms.Rollup);
-  if (rollup) {
-    const sizeNode = rollup.getChild(terms.Int);
-    const unitNode = rollup.getChild(terms.Word);
-    const unit = unitNode ? queryText.slice(unitNode.from, unitNode.to) : '';
-    if (!sizeNode || (unit !== 'd' && unit !== 'w')) {
-      return { raw, agg: 'sum', metric: '', filters: [], groupBy: [], error: cannotParse(text), displayUnit };
-    }
-    base.rollup = { size: parseInt(queryText.slice(sizeNode.from, sizeNode.to), 10), unit };
-  }
-
+  base.filters = extractFilters(query, text);
   if (whereText) {
     const join = parseJoinClause(whereText);
     if (join.error) {
@@ -315,40 +299,25 @@ function parseAnalyticsQuery(raw: string): ParsedQuery {
     }
     base.join = join.find;
   }
-
   return base;
 }
 
 // ── Find query parsing ──────────────────────────────────────────────
-
-/** Strip `last <n><unit>` and `in <scope>` suffixes (parsed in JS, same
-  * pattern as DISPLAY_UNIT_RE — avoids Lezer token-overlap conflicts). */
-const LAST_RE = /\s+last\s+(\d+)([dw])\s*$/i;
-const IN_SCOPE_RE = /\s+in\s+(\w+)\s*$/;
 
 function cannotParseFind(text: string): string {
   return `Cannot parse "${text}". Expected find:target{filters} in scope last 8w`;
 }
 
 function parseFindQuery(raw: string): ParsedFindQuery {
-  const result: ParsedFindQuery = { raw, target: '', filters: [] };
-  const { primary, where: whereText } = splitAtWhere(raw);
-  let text = primary.trim();
-
-  // Strip time window: "last 8w" / "last 4d"
-  const lastMatch = LAST_RE.exec(text);
-  if (lastMatch) {
-    result.last = { size: parseInt(lastMatch[1], 10), unit: lastMatch[2].toLowerCase() as 'd' | 'w' };
-    text = text.slice(0, lastMatch.index).trim();
-  }
-
-  // Strip scope: "in journal"
-  const inMatch = IN_SCOPE_RE.exec(text);
-  if (inMatch) {
-    result.scope = inMatch[1];
-    text = text.slice(0, inMatch.index).trim();
-  }
-
+  const suffixes = parseWqlSuffixes(raw);
+  const { where: whereText, last, scope, primaryText: text } = suffixes;
+  const result: ParsedFindQuery = {
+    raw,
+    target: '',
+    filters: [],
+    scope,
+    last: last ? { size: last.size, unit: last.unit } : undefined,
+  };
   // Parse structural part: find:target{filters}
   const tree = wqlParser.parse(text);
   let syntaxError = false;
