@@ -3,6 +3,7 @@ import type { FenceDialect } from '@/components/Editor/types';
 import type { IRealtimeProcessor } from './IRealtimeProcessor';
 import type { ISummaryProcessor } from './ISummaryProcessor';
 import type { AnalyticsContext } from './AnalyticsContext';
+import type { CalculationDefinition } from './calc/types';
 
 /**
  * Context used to select processors for a given workout.
@@ -26,6 +27,12 @@ export interface AnalyticsProfileContext {
    * processors consume resolved effort data instead of hardcoded lookups.
    */
   analyticsContext?: AnalyticsContext;
+
+  /**
+   * User-authored composed calcs (#880), registered after the built-ins so
+   * they override same-id built-ins and evaluate at high priority.
+   */
+  calcs?: CalculationDefinition[];
 }
 
 /**
