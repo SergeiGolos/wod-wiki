@@ -39,6 +39,10 @@ import { TourLearnSection } from './TourLearnSection'
 import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
+import { CelebrationBridge } from './CelebrationBridge'
+import { ChapterHeroSection } from './ChapterHeroSection'
+import { LearnProgressOverview } from './TourLearnSection'
+import { TourRing } from './TourRing'
 
 /**
  * Scroll pacing per caption card: each card dwells in the reading zone for
@@ -118,6 +122,7 @@ export function TourMobileRunway({
   const trackRef = useRef<HTMLDivElement | null>(null)
   const cardRefs = useRef<Array<HTMLDivElement | null>>([])
 
+  const windowCanvasRef = useRef<HTMLDivElement | null>(null)
   // ── Stage detection ──
   // reached: the track top has hit the app header — nothing counts before.
   const reachedRef = useRef(false)
@@ -244,7 +249,8 @@ export function TourMobileRunway({
           style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)` }}
         >
           <MacOSChrome title={SCREEN_TITLES[screen]} className="h-full">
-            <div className="relative h-full">
+            <div ref={windowCanvasRef} className="relative h-full">
+              <TourRing target={stage?.ring} accent="hsl(var(--metric-resistance))" canvasRef={windowCanvasRef} unscaled />
               <ScreenFade visible={screen === 'editor'}>
                 <TourEditorScreen
                   doc={doc}
@@ -309,7 +315,26 @@ export function TourMobileRunway({
         </div>
       </div>
 
-      <TourLearnSection
+      <CelebrationBridge chapters={chapters} />
+
+      {/* Six Syntax Chapter Heroes */}
+      {chapters
+        .filter((c) => c.id !== 'home-tour')
+        .map((ch) => (
+          <ChapterHeroSection
+            key={ch.id}
+            chapter={ch}
+            allChapters={chapters}
+            allQuests={quests}
+            questLabels={questLabels}
+            onRunExample={(chapterId, source) => {
+              onDocChange(source)
+              onRun()
+            }}
+          />
+        ))}
+
+      <LearnProgressOverview
         quests={quests}
         chapters={chapters}
         questLabels={questLabels}

@@ -9,8 +9,15 @@ type: syntax
 id: complex
 title: Complex Workouts
 badge: puzzle
-quests: complex-time, complex-rounds
+quests: complex-run, complex-time, complex-rounds
 sections: []
+```
+
+```quest
+id: complex-run
+label: Run the First Example
+validation:
+  type: run-started
 ```
 
 ```quest

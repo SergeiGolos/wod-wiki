@@ -80,7 +80,7 @@ sections: []
 id: basics
 title: Basics
 badge: trophy
-quests: basics-movement, basics-reps, basics-load
+quests: basics-run, basics-movement, basics-reps, basics-load
 sections: []
 ```
 
@@ -88,7 +88,7 @@ sections: []
 id: protocols
 title: Protocols
 badge: timer
-quests: protocols-timer, protocols-rounds, protocols-tag
+quests: protocols-run, protocols-timer, protocols-rounds, protocols-tag
 sections: []
 ```
 
@@ -96,7 +96,7 @@ sections: []
 id: structure
 title: Structure
 badge: blocks
-quests: structure-rounds, structure-repscheme
+quests: structure-run, structure-rounds, structure-repscheme
 sections: []
 ```
 
@@ -104,7 +104,7 @@ sections: []
 id: custom-metrics
 title: Custom Metrics
 badge: activity
-quests: metrics-custom, metrics-calc
+quests: custom-metrics-run, metrics-custom, metrics-calc
 sections: []
 ```
 
@@ -112,7 +112,7 @@ sections: []
 id: dialects
 title: Dialects
 badge: file-text
-quests: dialects-log, dialects-climb
+quests: dialects-run, dialects-log, dialects-climb
 sections: []
 ```
 
@@ -120,7 +120,7 @@ sections: []
 id: complex
 title: Complex Workouts
 badge: puzzle
-quests: complex-time, complex-rounds
+quests: complex-run, complex-time, complex-rounds
 sections: []
 ```
 
@@ -156,4 +156,46 @@ label: Run it to the finish
 desc: Press Run and let the workout complete.
 validation:
   type: workout-complete
+```
+
+```quest
+id: basics-run
+label: Run the First Example
+validation:
+  type: run-started
+```
+
+```quest
+id: protocols-run
+label: Run the First Example
+validation:
+  type: run-started
+```
+
+```quest
+id: structure-run
+label: Run the First Example
+validation:
+  type: run-started
+```
+
+```quest
+id: custom-metrics-run
+label: Run the First Example
+validation:
+  type: run-started
+```
+
+```quest
+id: dialects-run
+label: Run the First Example
+validation:
+  type: run-started
+```
+
+```quest
+id: complex-run
+label: Run the First Example
+validation:
+  type: run-started
 ```

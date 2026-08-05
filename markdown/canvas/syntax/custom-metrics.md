@@ -9,8 +9,15 @@ type: syntax
 id: custom-metrics
 title: Custom Metrics
 badge: activity
-quests: metrics-custom, metrics-calc
+quests: custom-metrics-run, metrics-custom, metrics-calc
 sections: []
+```
+
+```quest
+id: custom-metrics-run
+label: Run the First Example
+validation:
+  type: run-started
 ```
 
 ```quest

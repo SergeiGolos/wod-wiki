@@ -62,6 +62,9 @@ import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { TourLearnSection } from './TourLearnSection'
+import { CelebrationBridge } from './CelebrationBridge'
+import { ChapterHeroSection } from './ChapterHeroSection'
+import { LearnProgressOverview } from './TourLearnSection'
 import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
@@ -940,7 +943,27 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
         </div>
       </section>
 
-      <TourLearnSection
+      <CelebrationBridge chapters={chapters} />
+
+      {/* Six Syntax Chapter Heroes */}
+      {chapters
+        .filter((c) => c.id !== 'home-tour')
+        .map((ch) => (
+          <ChapterHeroSection
+            key={ch.id}
+            chapter={ch}
+            allChapters={chapters}
+            allQuests={quests}
+            questLabels={questLabels}
+            onRunExample={(chapterId, source) => {
+              telemetry?.track?.('home:chapter_example_run', { chapter: chapterId })
+              handleRunwayDocChange(source)
+              handleHeroRun()
+            }}
+          />
+        ))}
+
+      <LearnProgressOverview
         quests={quests}
         chapters={chapters}
         questLabels={questLabels}

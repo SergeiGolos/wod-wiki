@@ -1,3 +1,12 @@
+/**
+ * TourLearnSection.tsx / LearnProgressOverview — progress summary section.
+ *
+ * Appears after the six syntax chapter heroes on the home page.
+ * Displays overall quest progress across all chapters via TourQuests,
+ * with quick links to Lesson 1 (Basics) and the Cheatsheet.
+ */
+
+import React from 'react'
 import { Link } from 'react-router-dom'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 import { TourQuests } from './TourQuests'
@@ -10,7 +19,7 @@ export interface TourLearnSectionProps {
   onHomeQuestClick?: (questId: string) => void
 }
 
-export function TourLearnSection({
+export function LearnProgressOverview({
   quests,
   chapters,
   questLabels,
@@ -22,12 +31,12 @@ export function TourLearnSection({
   return (
     <section
       data-testid="tour-learn"
-      className="mx-auto grid max-w-5xl items-start gap-8 px-6 py-20 lg:grid-cols-2"
+      className="mx-auto grid max-w-5xl items-start gap-8 px-6 py-16 lg:grid-cols-2 border-b border-border/60"
     >
       <div className="lg:sticky lg:top-[104px]">
-        <h2 className="text-3xl font-bold tracking-tight">Learn the Language</h2>
-        <p className="mt-4 text-lg text-muted-foreground">
-          From first <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.86em]">wod</code> line to fluency — Lesson 1 is 3 minutes, runnable in place.
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Learn the Language</h2>
+        <p className="mt-3 text-muted-foreground leading-relaxed">
+          Track your progress across all six syntax chapters. Complete quests by running examples or working through the syntax guides.
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-4">
           <Link
@@ -40,14 +49,14 @@ export function TourLearnSection({
           <Link
             to="/guide/syntax/cheatsheet"
             onClick={handleCheatsheet}
-            className="text-sm text-primary underline-offset-2 hover:underline"
+            className="text-sm font-semibold text-primary underline-offset-2 hover:underline"
           >
-            Cheat sheet
+            Cheat sheet →
           </Link>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-6">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <TourQuests
           quests={quests}
           chapters={chapters}
@@ -58,3 +67,5 @@ export function TourLearnSection({
     </section>
   )
 }
+
+export const TourLearnSection = LearnProgressOverview
