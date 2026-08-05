@@ -44,11 +44,13 @@ import {
 } from './TourRing'
 import { useTourScroll, scrollRunwayTo } from './useTourScroll'
 import {
+  SCREEN_TITLES,
   TOUR_CANVAS_HEIGHT,
   TOUR_CANVAS_WIDTH,
   TOUR_RUNWAY_HEIGHT,
   TOUR_STAGES,
   type TourScreen,
+  type TourStage,
   type TourStageId,
   type TourStageSlice,
 } from './tourStages'
@@ -64,6 +66,7 @@ import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
 import { TourMobileStack } from './TourMobileStack'
+import { TourMobileRunway, type TourMobileRunwayApi } from './TourMobileRunway'
 import { HOME_EVENTS, useTelemetry } from '@/services/telemetry'
 import { journalNotePath } from '../lib/routes'
 import { getTodayDateKey } from '../services/dateUtils'
@@ -79,11 +82,6 @@ const fmtClock = (ms: number) => {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
 
-const SCREEN_TITLES: Record<TourScreen, string> = {
-  editor: 'WOD Editor & Autocomplete',
-  timer: 'WallClock',
-  analytics: 'Session Review',
-}
 
 const HOME_DEMO_SOURCE = 'wods/examples/home/welcome-1.md'
 
@@ -177,6 +175,15 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   // ── Playground mode ──
   const [interactive, setInteractive] = useState<'timer' | 'analytics' | null>(null)
 
+  // ── Mobile runway stage (card-visibility driven; inert on desktop) ──
+  const [mobileStage, setMobileStage] = useState<TourStage | null>(null)
+  const mobileRunwayApiRef = useRef<TourMobileRunwayApi | null>(null)
+  const isMobileRef = useRef(isMobile)
+  isMobileRef.current = isMobile
+  const mobileStageRef = useRef<TourStage | null>(null)
+  mobileStageRef.current = mobileStage
+  const handleMobileStageChange = useCallback((stage: TourStage) => setMobileStage(stage), [])
+
   // ── Scroll driver ──
   const { slice, subscribe, resync, runwayReached } = useTourScroll(runwayRef, interactive !== null)
 
@@ -194,6 +201,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     setEntered((prev) => (prev[activeScreen] ? prev : { ...prev, [activeScreen]: true }))
     if (activeScreen === 'timer') timerAutoStartRef.current = true
   }, [activeScreen])
+  // Mobile runway drives `entered` from the reported stage (the desktop
+  // driver keys off the scroll-resolved activeScreen).
+  useEffect(() => {
+    if (!isMobile || !mobileStage) return
+    setEntered((prev) => (prev[mobileStage.screen] ? prev : { ...prev, [mobileStage.screen]: true }))
+    if (mobileStage.screen === 'timer') timerAutoStartRef.current = true
+  }, [isMobile, mobileStage])
 
   // ── Session results (playground completion) + scroll-mode analytics ──
   const [session, setSession] = useState<{ segments: Segment[]; results: WorkoutResults } | null>(null)
@@ -262,7 +276,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     startNewSession()
   }, [welcomeScript, startNewSession])
 
-  const inTimerStage = (interactive === null && runwayReached && slice.stage.screen === 'timer') || interactive === 'timer'
+  const inTimerStage = (interactive === null && runwayReached && slice.stage.screen === 'timer') || interactive === 'timer' || (isMobile && mobileStage?.screen === 'timer')
   const prevInTimerStageRef = useRef(inTimerStage)
   // Screen at completion time — read inside handleTimerComplete (stable
   // callback) to decide whether a scroll-mode completion should auto-slide.
@@ -299,6 +313,20 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     const { segments } = getAnalyticsFromRuntime(runtime)
     if (segments.length > 0) setScrollSegments(segments)
   }, [interactive, slice.stage.id, session, scrollSegments.length])
+  // Mobile twin of the scroll-mode analytics drain above, keyed on the
+  // card-driven stage instead of the desktop scroll slice.
+  useEffect(() => {
+    if (!isMobile || interactive || mobileStage?.screen !== 'analytics' || session) return
+    if (scrollSegments.length > 0) return
+    const runtime = runwayRuntimeRef.current
+    if (!runtime) return
+    let guard = 0
+    while (runtime.stack?.current && guard++ < 200) {
+      runtime.do(new NextAction())
+    }
+    const { segments } = getAnalyticsFromRuntime(runtime)
+    if (segments.length > 0) setScrollSegments(segments)
+  }, [isMobile, interactive, mobileStage, session, scrollSegments.length])
 
   const analyticsSegments = session?.segments ?? scrollSegments
 
@@ -334,6 +362,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     // false), so the first tour stage is not prematurely counted.
     if (interactive === null && runwayReached) markStageViewed(slice.stage.id)
   }, [interactive, slice.stage.id, markStageViewed, runwayReached])
+  useEffect(() => {
+    if (!isMobile || interactive !== null || !mobileStage) return
+    markStageViewed(mobileStage.id)
+  }, [isMobile, interactive, mobileStage, markStageViewed])
 
   // The qs-tour-timer interaction quest validates on a *visitor-initiated* run.
   // Driven from the Run click (startRun), not the runtime 'running' status: the
@@ -345,11 +377,29 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const handleHomeQuestClick = useCallback((questId: string) => {
     const stageId = HOME_QUEST_STAGE[questId]
     if (!stageId) return
+    if (mobileRunwayApiRef.current) {
+      mobileRunwayApiRef.current.scrollToStage(stageId)
+      return
+    }
     const el = runwayRef.current
     if (!el) return
     const stage = TOUR_STAGES.find((s) => s.id === stageId)
     if (stage) scrollRunwayTo(el, Math.min(stage.start + 0.02, stage.end - 0.005))
   }, [])
+
+  // Choose-your-own-adventure on the mobile runway replaces the pinned
+  // (hero-context) editor's script — the runway editor context is
+  // desktop-only.
+  const handleMobileChoice = useCallback(
+    (wod: string) => {
+      const next = buildAdventureScript(wod)
+      heroEditedRecordedRef.current = false
+      setHeroDoc(next)
+      startNewSession()
+      track?.(HOME_EVENTS.demoEdited)
+    },
+    [startNewSession, track],
+  )
 
   // ── Hero interactions (self-contained editor context) ──
   const handleHeroDocChange = useCallback(
@@ -509,13 +559,19 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
       if (!wasPlaygroundRun) {
         // Scroll-mode completion (#885): clicking Next through to the end of
-        // the run auto-slides the runway to analytics card 1. Guarded to the
-        // timer cards — the ambient analytics drain also completes the
-        // runtime, and the visitor is already on the analytics cards then.
-        if (results.completed && stageScreenRef.current === 'timer') {
-          const el = runwayRef.current
-          const stage = TOUR_STAGES.find((s) => s.id === 'analytics-scorecard')
-          if (el && stage) scrollRunwayTo(el, Math.min(stage.start + 0.02, stage.end - 0.005))
+        // the run auto-slides to the analytics cards. Guarded to the timer
+        // cards — the ambient analytics drain also completes the runtime, and
+        // the visitor is already on the analytics cards then.
+        if (results.completed) {
+          if (isMobileRef.current) {
+            if (mobileStageRef.current?.screen === 'timer') {
+              mobileRunwayApiRef.current?.scrollToStage('analytics-scorecard')
+            }
+          } else if (stageScreenRef.current === 'timer') {
+            const el = runwayRef.current
+            const stage = TOUR_STAGES.find((s) => s.id === 'analytics-scorecard')
+            if (el && stage) scrollRunwayTo(el, Math.min(stage.start + 0.02, stage.end - 0.005))
+          }
         }
         return
       }
@@ -552,6 +608,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   const handleTimerClose = useCallback(() => {
     if (interactive) {
       exitPlayground()
+      return
+    }
+    if (mobileRunwayApiRef.current) {
+      mobileRunwayApiRef.current.scrollToStage('editor-blank')
       return
     }
     const el = runwayRef.current
@@ -678,8 +738,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     })
   }, [subscribe])
 
-  // ── Mobile / reduced-motion stack ──
-  if (isMobile || prefersReducedMotion) {
+  // ── Reduced-motion stack (flat cards — sticky scroll is opted out) ──
+  if (prefersReducedMotion) {
     return (
       <div data-testid="home-tour">
         <TourMobileStack
@@ -697,6 +757,48 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
           onChoice={handleWorkoutChoice}
           sharedBy={sharedBy}
           onResetShared={handleClearShared}
+        />
+
+        {/* Spec §2: runs from the hero demo go fullscreen on every form factor. */}
+        {interactive && playgroundOverlay}
+      </div>
+    )
+  }
+
+  // ── Mobile sticky-editor runway ──
+  if (isMobile) {
+    return (
+      <div data-testid="home-tour">
+        <TourMobileRunway
+          theme={theme}
+          quests={quests}
+          chapters={chapters}
+          questLabels={questLabels}
+          onHomeQuestClick={handleHomeQuestClick}
+          doc={heroDoc}
+          onDocChange={handleHeroDocChange}
+          onBlocksChange={handleHeroBlocksChange}
+          onRun={handleHeroRun}
+          onShare={handleHeroShare}
+          onOpenInEditor={handleHeroOpenInEditor}
+          sharedBy={sharedBy}
+          onResetShared={handleClearShared}
+          onChoice={handleMobileChoice}
+          entered={entered}
+          onStageChange={handleMobileStageChange}
+          timer={{
+            sessionKey: timerSessionKey,
+            block: heroBlocksRef.current[0] ?? null,
+            autoStart: timerAutoStartRef.current,
+            externalPause: scrollOutPause,
+            onClose: handleTimerClose,
+            onComplete: handleTimerComplete,
+            onRuntimeReady: handleRuntimeReady,
+            onReset: handleTimerReset,
+          }}
+          analyticsSegments={analyticsSegments}
+          heroRef={heroRef}
+          apiRef={mobileRunwayApiRef}
         />
 
         {/* Spec §2: runs from the hero demo go fullscreen on every form factor. */}

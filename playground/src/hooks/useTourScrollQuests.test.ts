@@ -55,6 +55,18 @@ describe('useTourScrollQuests', () => {
     expect(page['qs-tour-timer']).toBeUndefined();
   });
 
+  it('maps the editor runway stages to the editor quest', () => {
+    // The runway resolves discrete stage ids (editor-blank / editor-metrics /
+    // editor-run); all of them count as "the editor stage scrolled into view".
+    for (const stageId of ['editor-blank', 'editor-metrics', 'editor-run']) {
+      window.localStorage.clear();
+      const { result, unmount } = renderHook(() => useTourScrollQuests(PAGE_ROUTE, tourQuests));
+      act(() => result.current(stageId));
+      expect(readLedger()[PAGE_ROUTE]?.['qs-tour-editor']).toBe(true);
+      unmount();
+    }
+  });
+
   it('ignores the overview stage (no quest attached)', () => {
     const { result } = renderHook(() => useTourScrollQuests(PAGE_ROUTE, tourQuests));
 

@@ -76,6 +76,13 @@ export const TOUR_ACCENTS = {
   library: 'hsl(var(--metric-rep))',
 } as const
 
+/** Window-chrome title shown while each screen is active. */
+export const SCREEN_TITLES: Record<TourScreen, string> = {
+  editor: 'WOD Editor & Autocomplete',
+  timer: 'WallClock',
+  analytics: 'Session Review',
+}
+
 /**
  * Stage ranges for the two-stage runway: timer 50% · analytics 50%.
  * The hero and static areas live outside the runway.

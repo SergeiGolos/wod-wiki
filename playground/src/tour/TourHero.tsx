@@ -30,6 +30,44 @@ export interface TourHeroProps {
   onResetShared?: () => void
 }
 
+/**
+ * Headline, copy, and scroll cue — shared by the desktop hero (which adds
+ * the live editor below) and the mobile runway (where the editor lives in
+ * the pinned window instead).
+ */
+export function TourHeroHeading() {
+  return (
+    <>
+      <div className="mb-6 font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground/60">
+        A plain-text fitness scripting language
+      </div>
+      <h1 className="text-[clamp(34px,7vw,88px)] font-extrabold leading-[0.98] tracking-[-0.045em]">
+        {ROWS.map((row) => (
+          <span key={row.accentText} className="block">
+            {row.before}
+            <span
+              className="underline decoration-[0.06em] underline-offset-[0.14em]"
+              style={{ color: row.accent, textDecorationColor: row.accent }}
+            >
+              {row.accentText}
+            </span>
+            {row.after}.
+          </span>
+        ))}
+      </h1>
+      <p className="mt-6 max-w-xl text-[clamp(15px,1.4vw,18px)] leading-[1.65] text-muted-foreground">
+        WOD Wiki compiles a <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.86em]">```time</code> block
+        into a live WallClock timer, then logs every round straight back to your training
+        journal — one file, one loop, no app-switching.
+      </p>
+
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 animate-bounce font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">
+        ↓ Scroll — the app, part by part
+      </div>
+    </>
+  )
+}
+
 export function TourHero({
   theme,
   doc,
@@ -46,29 +84,7 @@ export function TourHero({
       data-testid="tour-hero"
       className="relative flex min-h-[calc(100vh-104px)] flex-col items-center justify-center px-6 py-16 text-center"
     >
-      <div className="mb-6 font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground/60">
-        A plain-text fitness scripting language
-      </div>
-      <h1 className="text-[clamp(34px,7vw,88px)] font-extrabold leading-[0.98] tracking-[-0.045em]">
-        {ROWS.map((row) => (
-          <span key={row.accentText} className="block">
-            {row.before}
-            <span
-              className="underline decoration-[0.06em] underline-offset-[0.14em]"
-              style={{ color: row.accent, textDecorationColor: row.accent }}
-            >
-              {row.accentText}
-            </span>
-            {row.after}
-            .
-          </span>
-        ))}
-      </h1>
-      <p className="mt-6 max-w-xl text-[clamp(15px,1.4vw,18px)] leading-[1.65] text-muted-foreground">
-        WOD Wiki compiles a <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.86em]">```time</code> block
-        into a live WallClock timer, then logs every round straight back to your training
-        journal — one file, one loop, no app-switching.
-      </p>
+      <TourHeroHeading />
 
       <div className="mt-8 w-full max-w-2xl text-left">
         <div className="h-[min(420px,50vh)] overflow-hidden rounded-xl border border-border shadow-lg">
@@ -84,10 +100,6 @@ export function TourHero({
             onResetShared={onResetShared}
           />
         </div>
-      </div>
-
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 animate-bounce font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">
-        ↓ Scroll — the app, part by part
       </div>
     </section>
   )
