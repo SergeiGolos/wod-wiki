@@ -113,7 +113,7 @@ export const UNIT_OPTIONS = WQL_DISPLAY_UNITS.map(v => ({ value: v, label: v }))
  * contract in services/analytics/query/wql.ts). Issue #831.
  */
 export const WHERE_AGGREGATORS: readonly string[] = WQL_AGGREGATORS
-export const WHERE_METRICS: readonly string[] = [...WQL_METRIC_AGGREGATES, ...WQL_METRIC_FAMILIES]
+export const WHERE_METRICS: readonly string[] = [...WQL_METRIC_AGGREGATES, ...WQL_METRIC_FAMILIES, ...WQL_CALC_TARGETS]
 export const WHERE_OPERATORS: readonly string[] = WQL_COMPARISON_OPS
 
 // ── Metadata ────────────────────────────────────────────────────────────────

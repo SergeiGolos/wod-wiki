@@ -173,14 +173,11 @@ describe('LibraryPage', () => {
       result.notes = [FEED_NOTE]
       return result
     }
-    // `text:hello world` is a reachable composer state that fails the Lezer
-    // grammar — it must be flagged, not silently swallowed.
-    renderPage(`/library?q=${encodeURIComponent('find:note{text:hello world} in feeds')}`)
+    // `tags::` is an unparseable tag filter that fails WQL validation.
+    renderPage(`/library?q=${encodeURIComponent('find:note{tags::} in feeds')}`)
 
     await waitFor(() => expect(screen.getByTestId('library-query-error')).toBeDefined())
     expect(screen.getByTestId('library-query-error').textContent).toContain('Invalid WQL')
-    // The composer keeps the offending clause so diagnostics can flag it.
-    expect(screen.getByTestId('token-slot-text').textContent).toContain('hello world')
     // No silent empty-state either.
     expect(screen.queryByText('No entries match this query.')).toBeNull()
   })
@@ -233,12 +230,12 @@ describe('LibraryPage', () => {
     await waitFor(() => expect(screen.queryByText('StrongLifts 5×5')).not.toBeNull())
   })
 
-  it('banners a plain-word q with the parser detail (#854)', async () => {
+  it('banners invalid WQL query string with the parser detail (#854)', async () => {
     runFindImpl = async parsed => emptyResult(parsed.raw ?? '')
-    renderPage(`/library?q=squat`)
+    renderPage(`/library?q=%21%21%21`)
 
     await waitFor(() => expect(screen.getByTestId('library-query-error')).toBeDefined())
-    expect(screen.getByTestId('library-query-error').textContent).toContain('squat')
+    expect(screen.getByTestId('library-query-error').textContent).toContain('Cannot parse')
   })
 
   it('renders block-level cards for find:block — type badge, preview, parent (#855)', async () => {

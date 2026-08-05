@@ -1,21 +1,24 @@
 import { expect, test } from '@playwright/test'
 
 test.describe('Explore navigation', () => {
-  test('opens the explorer from L1 and exposes dashboard slots in L2', async ({ page }) => {
+  test('opens the explorer from the dashboards nav and exposes dashboard slots in L2', async ({ page }) => {
+    // Legacy /analytics/dashboard redirects to the /dashboard namespace,
+    // where the WQL explorer lives; .first() scopes to the desktop sidebar
+    // nav (SidebarLayout wraps the inner Sidebar in its own <nav>).
     await page.goto('/analytics/dashboard', { waitUntil: 'domcontentloaded' })
 
-    const navigation = page.getByRole('navigation')
-    const explore = navigation.getByRole('button', { name: 'Analytics', exact: true })
-
+    const navigation = page.getByRole('navigation').first()
+    // Dashboards is the active L1; the explorer + dashboard slots live in L2.
+    await expect(navigation.getByRole('button', { name: 'Dashboards', exact: true })).toBeVisible()
+    const explore = navigation.getByRole('button', { name: 'Explorer', exact: true })
     await expect(explore).toBeVisible()
-    await expect(navigation.getByRole('button', { name: 'Dashboard', exact: true })).toBeVisible()
-    await expect(navigation.getByRole('button', { name: 'Explorer', exact: true })).toHaveCount(0)
-    await expect(navigation.getByRole('button', { name: 'Add dashboard (coming soon)' })).toHaveText('+')
-    await expect(navigation.getByRole('button', { name: 'Add dashboard (coming soon)' })).toBeDisabled()
+    // Dashboard slots are exposed in L2: the New action plus prebuilt seeds.
+    await expect(navigation.getByRole('button', { name: 'New dashboard' })).toBeVisible()
+    await expect(navigation.getByRole('button', { name: /prebuilt/ }).first()).toBeVisible()
 
     await explore.click()
 
-    await expect(page).toHaveURL(/\/analytics\/explorer(?:\?.*)?$/)
+    await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/)
     await expect(page.getByRole('heading', { name: 'Metric Explorer' })).toBeVisible()
   })
 
