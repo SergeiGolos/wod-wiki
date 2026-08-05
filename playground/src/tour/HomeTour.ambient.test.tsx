@@ -7,7 +7,7 @@
  */
 
 import { beforeEach, afterEach, describe, expect, it, mock, type Mock } from 'bun:test'
-import { render, screen, cleanup, fireEvent, act, waitFor } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, act, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
@@ -361,7 +361,7 @@ describe('HomeTour ambient runtime', () => {
   it('leaves the Ready to Start gate for the user in playground mode', async () => {
     await renderHomeTour()
 
-    const runButton = await screen.findByRole('button', { name: /^Run$/i })
+    const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
     await act(async () => {
       fireEvent.click(runButton)
       await Promise.resolve()
@@ -396,7 +396,7 @@ describe('HomeTour ambient runtime', () => {
     seedHomeArrival()
     await renderHomeTour()
 
-    const runButton = await screen.findByRole('button', { name: /^Run$/i })
+    const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
     await act(async () => {
       fireEvent.click(runButton)
       await Promise.resolve()

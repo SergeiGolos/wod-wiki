@@ -72,6 +72,10 @@ export interface TourMobileRunwayProps {
   quests: Quest[]
   chapters: Chapter[]
   questLabels?: Record<string, string>
+  /** Chapter hero run/share/open — forwarded to each ChapterHeroSection. */
+  onChapterRun?: (chapterId: string, block: ScriptBlock | null, doc: string) => void
+  onChapterShare?: (doc: string) => void
+  onChapterOpenInEditor?: (doc: string) => void
   onHomeQuestClick?: (questId: string) => void
   /** Hero editor context — the pinned live editor (editable, runnable). */
   doc: string
@@ -102,6 +106,9 @@ export function TourMobileRunway({
   quests,
   chapters,
   questLabels,
+  onChapterRun,
+  onChapterShare,
+  onChapterOpenInEditor,
   onHomeQuestClick,
   doc,
   onDocChange,
@@ -326,11 +333,11 @@ export function TourMobileRunway({
             chapter={ch}
             allChapters={chapters}
             allQuests={quests}
+            theme={theme}
             questLabels={questLabels}
-            onRunExample={(chapterId, source) => {
-              onDocChange(source)
-              onRun()
-            }}
+            onRun={onChapterRun}
+            onShare={onChapterShare}
+            onOpenInEditor={onChapterOpenInEditor}
           />
         ))}
 

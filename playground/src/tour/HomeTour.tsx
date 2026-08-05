@@ -219,8 +219,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   // Which editor context started the current playground run, and the block
   // it runs — captured at Run click so the fullscreen overlay is bound to the
   // editor the visitor pressed Run in.
-  const playgroundSourceRef = useRef<'hero' | 'runway'>('hero')
+  const playgroundSourceRef = useRef<'hero' | 'runway' | 'chapter'>('hero')
   const playgroundBlockRef = useRef<ScriptBlock | null>(null)
+  /** Doc for the most recently run chapter example (journal logging). */
+  const chapterRunDocRef = useRef<string>('')
   const interactiveRef = useRef(interactive)
   interactiveRef.current = interactive
 
@@ -375,7 +377,18 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
   // ambient scroll demo intentionally auto-runs, and must never validate the
   // quest (production builds fired the runtime callback on load).
   const [demoRunning, setDemoRunning] = useState(false)
-  useRunStartedChallenge({ pageRoute: '/', quests, running: demoRunning })
+  // Per-chapter scoping (#919): the global run-started hook handles only the
+  // home-tour's own run quest (qs-tour-timer). Each chapter's `<chapter>-run`
+  // lead quest is completed by its own ChapterHeroSection on that chapter's Run.
+  const chapterLeadQuestIds = useMemo(
+    () => new Set(chapters.filter((c) => c.id !== 'home-tour').map((c) => `${c.id}-run`)),
+    [chapters],
+  )
+  const tourRunQuests = useMemo(
+    () => quests.filter((q) => !chapterLeadQuestIds.has(q.id)),
+    [quests, chapterLeadQuestIds],
+  )
+  useRunStartedChallenge({ pageRoute: '/', quests: tourRunQuests, running: demoRunning })
 
   const handleHomeQuestClick = useCallback((questId: string) => {
     const stageId = HOME_QUEST_STAGE[questId]
@@ -462,6 +475,25 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     [startNewSession],
   )
 
+  // Chapter example run — scoped per chapter (#919): opens the playground
+  // bound to the chapter's own block WITHOUT firing the global run-started
+  // hook (setDemoRunning), so it completes only this chapter's lead quest
+  // (handled by ChapterHeroSection's own markComplete).
+  const startChapterRun = useCallback(
+    (block: ScriptBlock | null, doc: string) => {
+      if (!block) return
+      playgroundSourceRef.current = 'chapter'
+      chapterRunDocRef.current = doc
+      startNewSession()
+      playgroundBlockRef.current = block
+      setLogState(null)
+      setEntered((prev) => (prev.timer ? prev : { ...prev, timer: true }))
+      timerAutoStartRef.current = true
+      setInteractive('timer')
+    },
+    [startNewSession],
+  )
+
   const handleHeroRun = useCallback(() => {
     track?.(HOME_EVENTS.demoRun)
     startRun('hero')
@@ -535,6 +567,17 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     void openInEditor(runwayDocRef.current)
   }, [openInEditor])
 
+  // Chapter heroes (#926): run/share/open use the chapter's own example doc.
+  const handleChapterRun = useCallback(
+    (_chapterId: string, block: ScriptBlock | null, doc: string) => {
+      track?.(HOME_EVENTS.chapterExampleRun, { chapter: _chapterId })
+      startChapterRun(block, doc)
+    },
+    [startChapterRun, track],
+  )
+  const handleChapterShare = useCallback((doc: string) => void shareDoc(doc), [shareDoc])
+  const handleChapterOpenInEditor = useCallback((doc: string) => void openInEditor(doc), [openInEditor])
+
   const handleHeroBlocksChange = useCallback((blocks: ScriptBlock[]) => {
     heroBlocksRef.current = blocks
   }, [])
@@ -581,7 +624,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
       const runBlock = playgroundBlockRef.current
       if (!runBlock) return
       const wodContent =
-        playgroundSourceRef.current === 'hero' ? heroDocRef.current : runwayDocRef.current
+        playgroundSourceRef.current === 'hero'
+          ? heroDocRef.current
+          : playgroundSourceRef.current === 'chapter'
+            ? chapterRunDocRef.current
+            : runwayDocRef.current
       setLogState('logging')
       void (async () => {
         const note = await createJournalNoteFromWorkout({
@@ -777,6 +824,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
           quests={quests}
           chapters={chapters}
           questLabels={questLabels}
+          onChapterRun={handleChapterRun}
+          onChapterShare={handleChapterShare}
+          onChapterOpenInEditor={handleChapterOpenInEditor}
           onHomeQuestClick={handleHomeQuestClick}
           doc={heroDoc}
           onDocChange={handleHeroDocChange}
@@ -830,7 +880,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
 
       {/* ── Runway ── */}
-      <section ref={runwayRef} className="relative" style={{ height: TOUR_RUNWAY_HEIGHT }}>
+      <section ref={runwayRef} data-testid="tour-runway" className="relative" style={{ height: TOUR_RUNWAY_HEIGHT }}>
         <div className="sticky top-[104px] flex h-[calc(100vh-104px)] flex-col overflow-hidden">
           {/* stage bar */}
           <div className="mx-auto flex w-full max-w-[1500px] items-center justify-between px-6 pt-6 pb-2 lg:px-12">
@@ -954,12 +1004,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
             chapter={ch}
             allChapters={chapters}
             allQuests={quests}
+            theme={theme}
             questLabels={questLabels}
-            onRunExample={(chapterId, source) => {
-              telemetry?.track?.('home:chapter_example_run', { chapter: chapterId })
-              handleRunwayDocChange(source)
-              handleHeroRun()
-            }}
+            onRun={handleChapterRun}
+            onShare={handleChapterShare}
+            onOpenInEditor={handleChapterOpenInEditor}
           />
         ))}
 

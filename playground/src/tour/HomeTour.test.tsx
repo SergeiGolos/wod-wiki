@@ -496,7 +496,7 @@ describe('HomeTour', () => {
   })
   it('desktop hero Run mounts the fullscreen overlay with WallClock and exit pill', async () => {
     await renderHomeTour()
-    const runButton = await screen.findByRole('button', { name: /^Run$/i })
+    const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
     await act(async () => {
       fireEvent.click(runButton)
       await Promise.resolve()
@@ -526,7 +526,7 @@ describe('HomeTour', () => {
 
   it('hero Run opens the fullscreen playground without scrolling the page', async () => {
     await renderHomeTour()
-    const runButton = await screen.findByRole('button', { name: /^Run$/i })
+    const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
     await act(async () => {
       fireEvent.click(runButton)
       await Promise.resolve()
@@ -539,9 +539,8 @@ describe('HomeTour', () => {
 
   it('keeps the hero editor and the runway editor independent', async () => {
     await renderHomeTour()
-    const editors = screen.getAllByTestId('mock-note-editor') as HTMLTextAreaElement[]
-    const [hero, runway] = editors
-    expect(editors.length).toBe(2)
+    const hero = within(screen.getByTestId('tour-hero')).getByTestId('mock-note-editor') as HTMLTextAreaElement
+    const runway = within(screen.getByTestId('tour-runway')).getByTestId('mock-note-editor') as HTMLTextAreaElement
     // Same arrival content, separate documents.
     expect(hero.value).toBe(runway.value)
 
