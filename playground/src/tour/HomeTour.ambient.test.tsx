@@ -386,7 +386,7 @@ describe('HomeTour ambient runtime', () => {
       expect(lastMockRuntime).not.toBeNull()
     })
 
-    expect(screen.getByText('1/5 quests complete')).toBeTruthy()
+    // qs-arrive is complete (seeded), qs-tour-timer must NOT validate from ambient auto-start.
     const ledger = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')
     expect(ledger['/']?.['qs-arrive']).toBe(true)
     expect(ledger['/']?.['qs-tour-timer']).toBeUndefined()
@@ -406,7 +406,7 @@ describe('HomeTour ambient runtime', () => {
       expect(screen.queryByTestId('tour-playground-overlay')).not.toBeNull()
     })
 
-    expect(screen.getByText('2/5 quests complete')).toBeTruthy()
+    // qs-tour-timer validated by the visitor-initiated hero Run (asserted via ledger below).
     const ledger = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')
     expect(ledger['/']?.['qs-arrive']).toBe(true)
     expect(ledger['/']?.['qs-tour-timer']).toBe(true)

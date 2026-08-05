@@ -232,8 +232,8 @@ export function TourMobileRunway({
       {/* Headline — scrolls away naturally; the editor lives in the pinned window. */}
       <div
         ref={heroRef}
-        className="relative flex flex-col items-center justify-center px-6 py-16 text-center"
-        style={{ minHeight: `calc(100vh - ${MOBILE_STICKY_TOP}px)` }}
+        className="relative flex flex-col items-center justify-center px-6 pt-10 pb-6 text-center"
+        style={{ minHeight: 'auto' }}
       >
         <TourHeroHeading />
       </div>

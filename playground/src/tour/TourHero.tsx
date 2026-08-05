@@ -38,10 +38,10 @@ export interface TourHeroProps {
 export function TourHeroHeading() {
   return (
     <>
-      <div className="mb-6 font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground/60">
+      <div className="mb-4 font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground/60">
         A plain-text fitness scripting language
       </div>
-      <h1 className="text-[clamp(34px,7vw,88px)] font-extrabold leading-[0.98] tracking-[-0.045em]">
+      <h1 className="text-[clamp(30px,5vw,64px)] font-extrabold leading-[0.98] tracking-[-0.045em]">
         {ROWS.map((row) => (
           <span key={row.accentText} className="block">
             {row.before}
@@ -55,7 +55,7 @@ export function TourHeroHeading() {
           </span>
         ))}
       </h1>
-      <p className="mt-6 max-w-xl text-[clamp(15px,1.4vw,18px)] leading-[1.65] text-muted-foreground">
+      <p className="mt-4 max-w-xl text-[clamp(14px,1.2vw,16px)] leading-[1.6] text-muted-foreground">
         WOD Wiki compiles a <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.86em]">```time</code> block
         into a live WallClock timer, then logs every round straight back to your training
         journal — one file, one loop, no app-switching.
@@ -82,11 +82,10 @@ export function TourHero({
   return (
     <section
       data-testid="tour-hero"
-      className="relative flex min-h-[calc(100vh-104px)] flex-col items-center justify-center px-6 py-16 text-center"
+      className="relative flex min-h-0 flex-col items-center justify-center px-6 pt-10 pb-8 text-center"
     >
       <TourHeroHeading />
-
-      <div className="mt-8 w-full max-w-2xl text-left">
+      <div className="mt-6 w-full max-w-2xl text-left">
         <div className="h-[min(420px,50vh)] overflow-hidden rounded-xl border border-border shadow-lg">
           <TourEditorScreen
             doc={doc}
