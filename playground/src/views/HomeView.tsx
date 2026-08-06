@@ -53,6 +53,7 @@ export function HomeView({ wodFiles, theme }: HomeViewProps) {
       quests={page.quests ?? []}
       chapters={page.chapters ?? []}
       questLabels={questLabels}
+      chapterScroll={page.namedScrolls?.['chapters']}
     />
   )
 }

@@ -429,31 +429,6 @@ sections: timers, groups
       ])
     })
 
-    it('parses chapter desc (blurb) and focus (line spec)', () => {
-      const page = parseCanvasMarkdown(`---
-template: canvas
-route: /
----
-
-# Top
-
-\`\`\`chapter
-id: basics
-title: Basics
-badge: trophy
-desc: Statements, metrics, and how a workout block reads.
-focus: 2-4
-quests: first-movement
-sections: statement
-\`\`\`
-`)
-      expect(page?.chapters[0]).toMatchObject({
-        id: 'basics',
-        desc: 'Statements, metrics, and how a workout block reads.',
-        focus: '2-4',
-      })
-    })
-
     it('defaults badge to "trophy" when missing', () => {
       const page = parseCanvasMarkdown(`---
 template: canvas
@@ -645,6 +620,43 @@ Body prose.
       })
       // The block is stripped from the body — no bleed into sections.
       expect(getSectionProse(page!.sections[1])).not.toContain('stages:')
+    })
+
+    it('captures a named scroll block into namedScrolls alongside the primary', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /
+---
+
+\`\`\`scroll
+runway: 860vh
+stages:
+  - id: hero
+    range: [0, 1]
+    source: wods/examples/home/welcome-1.md
+\`\`\`
+
+\`\`\`scroll:chapters
+runway: 720vh
+stages:
+  - id: basics
+    range: [0, 0.5]
+    source: wods/examples/syntax/single-movement.md
+    caption: Basics blurb.
+    quest: basics-run
+  - id: protocols
+    range: [0.5, 1]
+    source: wods/examples/syntax/timers-rest.md
+    quest: protocols-run
+\`\`\`
+`)
+
+      expect(page?.scroll?.stages[0]?.id).toBe('hero')
+      const chapters = page?.namedScrolls?.['chapters']
+      expect(chapters?.runway).toBe('720vh')
+      expect(chapters?.stages).toHaveLength(2)
+      expect(chapters?.stages[0]).toMatchObject({ id: 'basics', quest: 'basics-run' })
+      expect(chapters?.stages[1]).toMatchObject({ id: 'protocols', quest: 'protocols-run' })
     })
 
     it('applies defaults for missing runway / screen / typewriter', () => {

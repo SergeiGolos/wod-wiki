@@ -67,6 +67,55 @@ stages:
       tag: Review Grid
 ```
 
+```scroll:chapters
+runway: 720vh
+screen: editor
+typewriter: true
+stages:
+  - id: basics
+    range: [0.0, 0.166]
+    screen: editor
+    source: wods/examples/syntax/single-movement.md
+    caption: "Basics. Statements and metrics — how a workout line reads, from rounds to reps."
+    ring:
+      tag: Basics example
+  - id: protocols
+    range: [0.166, 0.333]
+    screen: editor
+    source: wods/examples/syntax/timers-rest.md
+    caption: "Protocols. Countdowns, AMRAPs, EMOMs — the timing protocols that pace a workout."
+    ring:
+      tag: Protocols example
+  - id: structure
+    range: [0.333, 0.5]
+    screen: editor
+    source: wods/examples/syntax/groups-1.md
+    caption: "Structure. Rounds, groups, and nesting — how blocks compose a workout."
+    ring:
+      tag: Structure example
+  - id: custom-metrics
+    range: [0.5, 0.666]
+    screen: editor
+    source: wods/syntax/custom-metrics-1.md
+    caption: "Custom Metrics. Reps, loads, and custom metrics — what gets tracked per movement."
+    ring:
+      tag: Custom Metrics example
+  - id: dialects
+    range: [0.666, 0.833]
+    screen: editor
+    source: wods/examples/syntax/dialect-wod.md
+    caption: "Dialects. Run, climb, strength — dialect tags that specialize a block."
+    ring:
+      tag: Dialects example
+  - id: complex
+    range: [0.833, 1.0]
+    screen: editor
+    source: wods/examples/syntax/complex-nested-protocols.md
+    caption: "Complex Workouts. AMRAPs into strength ladders — composing richer workout shapes."
+    ring:
+      tag: Complex example
+```
+
 
 ```chapter
 id: home-tour
@@ -80,8 +129,6 @@ sections: []
 id: basics
 title: Basics
 badge: trophy
-desc: Statements and metrics — how a workout line reads, from rounds to reps.
-focus: 2-4
 quests: basics-run, basics-movement, basics-reps, basics-load
 sections: []
 ```
@@ -90,8 +137,6 @@ sections: []
 id: protocols
 title: Protocols
 badge: timer
-desc: Countdowns, AMRAPs, EMOMs — the timing protocols that pace a workout.
-focus: 1,5
 quests: protocols-run, protocols-timer, protocols-rounds, protocols-tag
 sections: []
 ```
@@ -100,8 +145,6 @@ sections: []
 id: structure
 title: Structure
 badge: blocks
-desc: Rounds, groups, and nesting — how blocks compose a workout.
-focus: 1
 quests: structure-run, structure-rounds, structure-repscheme
 sections: []
 ```
@@ -110,8 +153,6 @@ sections: []
 id: custom-metrics
 title: Custom Metrics
 badge: activity
-desc: Reps, loads, and custom metrics — what gets tracked per movement.
-focus: 2-5
 quests: custom-metrics-run, metrics-custom, metrics-calc
 sections: []
 ```
@@ -120,8 +161,6 @@ sections: []
 id: dialects
 title: Dialects
 badge: file-text
-desc: Run, climb, strength — dialect tags that specialize a block.
-focus: 5-6
 quests: dialects-run, dialects-log, dialects-climb
 sections: []
 ```
@@ -130,8 +169,6 @@ sections: []
 id: complex
 title: Complex Workouts
 badge: puzzle
-desc: AMRAPs into strength ladders — composing richer workout shapes.
-focus: 5-6
 quests: complex-run, complex-time, complex-rounds
 sections: []
 ```

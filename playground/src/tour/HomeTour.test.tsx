@@ -8,7 +8,7 @@
 import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
 import { render, screen, cleanup, fireEvent, act, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
+import type { Quest, Chapter, ScrollSpec } from '../canvas/parseCanvasMarkdown'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 
@@ -360,6 +360,17 @@ const questLabels: Record<string, string> = {
   'basics-movement': 'Add a movement',
   'protocols-timer': 'Add a timer',
 }
+
+/** The ```scroll:chapters runway spec (six chapter stages → two here). */
+const chapterScroll: ScrollSpec = {
+  runway: '720vh',
+  screen: 'editor',
+  typewriter: true,
+  stages: [
+    { id: 'basics', range: [0, 0.5], screen: 'editor', source: '../../markdown/canvas/home/welcome-1.md', caption: 'Basics blurb.', quest: 'basics-run', ring: { tag: 'Basics example' } },
+    { id: 'protocols', range: [0.5, 1], screen: 'editor', source: '../../markdown/canvas/home/welcome-1.md', caption: 'Protocols blurb.', quest: 'protocols-run', ring: { tag: 'Protocols example' } },
+  ],
+}
 async function renderHomeTour() {
   const result = render(
     <MemoryRouter>
@@ -368,6 +379,7 @@ async function renderHomeTour() {
         theme="light"
         quests={homeQuests}
         chapters={chapters}
+        chapterScroll={chapterScroll}
       />
     </MemoryRouter>,
   )
