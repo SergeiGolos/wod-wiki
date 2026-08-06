@@ -89,24 +89,25 @@ export function ScrollSection({
         </h2>
       )}
 
-      {/* Responsive layout: stacked top-sticky on mobile, side-sticky on desktop */}
+      {/* Mobile: flat stack (editor block above grouped slides). Desktop: side-sticky 2/3 : 1/3. */}
       <div className="lg:flex lg:items-start lg:gap-6">
-        {/* Sticky Window Column */}
+        {/* Editor window — flat on mobile (sized to fit, internal scroll), side-sticky on desktop */}
         <div
           data-testid="scroll-section-sticky-window"
           className={cn(
-            'sticky z-20 overflow-hidden rounded-2xl border border-border bg-background shadow-2xl transition-shadow',
-            // Mobile: top-sticky at 65px below header, ~50vh height
-            'top-[65px] h-[calc(50vh-32px)] px-4 pt-[2px] pb-1 shrink-0',
+            'overflow-hidden rounded-2xl border border-border bg-background shadow-2xl',
+            // Mobile: flat block, horizontal margin + comfortable height that
+            // fits the editor (CodeMirror scrolls internally — nothing clipped).
+            'mx-4 mb-5 h-[55vh] min-h-[320px] max-h-[75vh]',
             // Desktop: side-sticky, code sample takes 2/3 of the width
-            'lg:top-[80px] lg:flex-[2_1_0%] lg:w-auto lg:h-auto lg:max-h-[calc(100vh-100px)] lg:p-4',
+            'lg:sticky lg:top-[80px] lg:z-20 lg:mx-0 lg:mb-0 lg:h-auto lg:w-auto lg:flex-[2_1_0%] lg:max-h-[calc(100vh-100px)] lg:p-4',
           )}
         >
           {stickyView}
         </div>
 
-        {/* Content / Slides Column */}
-        <div className="min-w-0 flex-1 flex flex-col gap-4 py-4 lg:py-0">
+        {/* Slides — grouped list with horizontal padding on mobile, beside the window on desktop */}
+        <div className="min-w-0 flex-1 flex flex-col gap-3 px-4 pb-2 lg:px-0 lg:pb-0 lg:py-0">
           {slides}
           {footer && <div className="mt-2">{footer}</div>}
         </div>

@@ -113,48 +113,44 @@ export function ChapterHeroSection({
     </div>
   )
 
-  // Slides: tall card slots on mobile (scroll through the reading zone below
-  // the pinned window); compact list on desktop (beside the side-sticky window).
+  // Slides: the chapter's quest cards as a grouped list (mobile below the
+  // editor block, desktop beside the side-sticky window).
   const slides = (
     <div className="flex flex-col gap-3">
       {questItems.map((q, idx) => (
         <div
           key={q.id}
           data-testid={`chapter-quest-card-${q.id}`}
-          className="flex min-h-[42vh] items-center lg:min-h-0"
+          className={cn(
+            'flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors',
+            q.isDone
+              ? 'border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10'
+              : 'border-border bg-card',
+          )}
         >
-          <div
+          <span
             className={cn(
-              'flex w-full items-center gap-3 rounded-xl border px-4 py-3 transition-colors',
+              'flex size-5 flex-none items-center justify-center rounded-full border text-[10px] font-bold',
               q.isDone
-                ? 'border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10'
-                : 'border-border bg-card',
+                ? 'border-emerald-500 bg-emerald-500 text-white'
+                : 'border-border text-muted-foreground',
             )}
           >
-            <span
-              className={cn(
-                'flex size-5 flex-none items-center justify-center rounded-full border text-[10px] font-bold',
-                q.isDone
-                  ? 'border-emerald-500 bg-emerald-500 text-white'
-                  : 'border-border text-muted-foreground',
-              )}
-            >
-              {q.isDone ? <Check className="size-3 stroke-[2.5]" /> : idx + 1}
-            </span>
-            <span
-              className={cn(
-                'text-[13px] font-medium',
-                q.isDone ? 'text-muted-foreground line-through' : 'text-foreground',
-              )}
-            >
-              {q.label}
-            </span>
-            {q.isDone && (
-              <span className="ml-auto font-mono text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                done
-              </span>
+            {q.isDone ? <Check className="size-3 stroke-[2.5]" /> : idx + 1}
+          </span>
+          <span
+            className={cn(
+              'text-[13px] font-medium',
+              q.isDone ? 'text-muted-foreground line-through' : 'text-foreground',
             )}
-          </div>
+          >
+            {q.label}
+          </span>
+          {q.isDone && (
+            <span className="ml-auto font-mono text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              done
+            </span>
+          )}
         </div>
       ))}
     </div>
