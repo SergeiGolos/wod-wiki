@@ -243,6 +243,10 @@ export interface Chapter {
   title: string
   /** Lucide icon name — resolved by the renderer. */
   badge: string
+  /** Prose blurb shown on the chapter's slide in the chapter tour. */
+  desc?: string
+  /** Line spec for the window focus highlight (e.g. `2-4` or `2,5` — 1-indexed lines of the chapter example). */
+  focus?: string
   /** Quest ids (any page) whose completion contributes to this chapter. */
   questIds: string[]
   /** Section ids (on this page) that belong to this chapter, for visual grouping. */
@@ -474,6 +478,8 @@ function parseChapterBlock(content: string): Chapter | null {
     questIds: parseIdList(meta.quests),
     sectionIds: parseIdList(meta.sections),
   };
+  if (meta.desc) c.desc = meta.desc;
+  if (meta.focus) c.focus = meta.focus;
   return c;
 }
 

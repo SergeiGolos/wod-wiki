@@ -429,6 +429,31 @@ sections: timers, groups
       ])
     })
 
+    it('parses chapter desc (blurb) and focus (line spec)', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /
+---
+
+# Top
+
+\`\`\`chapter
+id: basics
+title: Basics
+badge: trophy
+desc: Statements, metrics, and how a workout block reads.
+focus: 2-4
+quests: first-movement
+sections: statement
+\`\`\`
+`)
+      expect(page?.chapters[0]).toMatchObject({
+        id: 'basics',
+        desc: 'Statements, metrics, and how a workout block reads.',
+        focus: '2-4',
+      })
+    })
+
     it('defaults badge to "trophy" when missing', () => {
       const page = parseCanvasMarkdown(`---
 template: canvas

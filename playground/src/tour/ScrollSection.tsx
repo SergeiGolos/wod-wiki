@@ -24,6 +24,12 @@ export interface ScrollSectionProps {
   slides: React.ReactNode
   footer?: React.ReactNode
   onVisibilityChange?: (visible: boolean) => void
+  /**
+   * Fired with the slide index that currently occupies the reading zone
+   * (each slide must carry `data-slide-index="{i}"`). Debounced to index
+   * changes. Drives the morphing-window chapter tour.
+   */
+  onActiveSlideChange?: (index: number) => void
   className?: string
 }
 
@@ -34,10 +40,12 @@ export function ScrollSection({
   slides,
   footer,
   onVisibilityChange,
+  onActiveSlideChange,
   className,
 }: ScrollSectionProps) {
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const sectionRef = useRef<HTMLElement | null>(null)
+  const activeIndexRef = useRef<number>(-1)
 
   useEffect(() => {
     if (!onVisibilityChange || !sectionRef.current || typeof IntersectionObserver === 'undefined') return
@@ -50,6 +58,31 @@ export function ScrollSection({
     observer.observe(sectionRef.current)
     return () => observer.disconnect()
   }, [onVisibilityChange])
+
+  // Active-slide tracking: the slide whose slot crosses the vertical reading
+  // zone (middle band of the viewport) is reported to the parent. Debounced
+  // to index changes so the window morph happens per slide, never per-pixel.
+  useEffect(() => {
+    if (!onActiveSlideChange || !sectionRef.current || typeof IntersectionObserver === 'undefined') return
+    const root = sectionRef.current
+    const slots = Array.from(root.querySelectorAll<HTMLElement>('[data-slide-index]'))
+    if (slots.length === 0) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          const idx = Number((entry.target as HTMLElement).dataset.slideIndex)
+          if (Number.isNaN(idx) || idx === activeIndexRef.current) continue
+          activeIndexRef.current = idx
+          onActiveSlideChange(idx)
+        }
+      },
+      // Only the middle band of the viewport counts as "in the reading zone".
+      { rootMargin: '-45% 0px -45% 0px' },
+    )
+    slots.forEach((slot) => observer.observe(slot))
+    return () => observer.disconnect()
+  }, [onActiveSlideChange])
 
   // Reduced motion: flat static vertical stack without sticky positioning
   if (prefersReducedMotion) {
