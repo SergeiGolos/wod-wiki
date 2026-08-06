@@ -916,7 +916,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
             {/* canvas */}
             <div
               ref={canvasRef}
-              className="relative aspect-[1200/720] w-[min(920px,calc(100vw-440px))] flex-none"
+              className="relative aspect-[1200/720] w-[min(920px,calc(100vw-440px))] min-w-0 shrink"
             >
               <div
                 ref={canvasInnerRef}
