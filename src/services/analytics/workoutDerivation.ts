@@ -23,6 +23,7 @@
  *     'power', 'pace', 'totalVolume', 'tis', … (CONTEXT.md §Analytics).
  */
 import { createAnalyticsEngineForBlock } from '@/core/analytics/createAnalyticsEngineForBlock';
+import type { CalculationDefinition } from '@/core/analytics/calc/types';
 import { MetricType } from '@/core/models/Metric';
 import { OutputStatement, type IOutputStatement } from '@/core/models/OutputStatement';
 import type { IEffortResolver } from '@/effort-registry/types';
@@ -39,6 +40,8 @@ export interface DeriveWorkoutOptions {
   block: ScriptBlock;
   effortResolver?: IEffortResolver;
   userProfile?: { vo2max?: number };
+  /** User-authored composed calcs (#880), registered after the built-ins. */
+  calcs?: CalculationDefinition[];
 }
 
 /**
@@ -77,6 +80,7 @@ export function deriveWorkoutFromLogs(
   const { engine } = createAnalyticsEngineForBlock(options.block, {
     effortResolver: options.effortResolver,
     userProfile: options.userProfile,
+    calcs: options.calcs,
   });
 
   const derived: StoredOutputStatement[] = [];

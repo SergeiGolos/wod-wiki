@@ -3,6 +3,7 @@ export * from './units';
 export * from './values';
 export * from './ast';
 export * from './parser';
+export * from './lineform';
 export * from './evaluator';
 export * from './check';
 export * from './types';

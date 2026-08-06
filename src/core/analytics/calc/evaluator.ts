@@ -232,6 +232,26 @@ function evalCall(node: Extract<ExprNode, { kind: 'call' }>, ctx: EvalContext): 
     return windowMap(name, series, period.days);
   }
 
+  // EWMA over the continuous day domain (PMC-style, #905): recursion
+  // v_d = v_{d-1} + (load_d − v_{d-1}) / N with the canonical 1/N gain
+  // (TrainingPeaks CTL/ATL), seeded at 0 and warmed by the zero-filled
+  // domain — early days underestimate until the window saturates.
+  if (name === 'windowEwma') {
+    const [series, period] = vals;
+    if (series?.kind === 'absent') return ABSENT;
+    if (series?.kind !== 'series' || period?.kind !== 'period') {
+      throw new CalcEvalError('windowEwma() takes (series, period)');
+    }
+    const gain = 1 / period.days;
+    let prev = 0;
+    const points = new Map<number, number>();
+    for (const day of [...series.points.keys()].sort((a, b) => a - b)) {
+      prev = prev + ((series.points.get(day) ?? 0) - prev) * gain;
+      points.set(day, prev);
+    }
+    return { kind: 'series', points, dim: series.dim, unit: series.unit };
+  }
+
   // Scalar reductions over a series: sum/mean/min/max/last.
   if (vals[0]?.kind === 'series' && (name === 'sum' || name === 'mean' || name === 'min' || name === 'max' || name === 'last')) {
     const series = vals[0];

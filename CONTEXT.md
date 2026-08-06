@@ -152,6 +152,23 @@ The executor of **WQL** against the **Analytics Store**: index-first SELECT
 BUCKET / AGGREGATE / GROUP. Inputs uncapped at personal-journal scale; widgets
 and tables are dumb consumers of its results.
 _Avoid_: analytics API, query backend.
+**Dashboard Note**:
+A markdown note marked `dashboard: true` in frontmatter whose ```query blocks
+compose into a dashboard (format locked in #899; unified renderer #900). Widget
+type and grid span ride the fence-tag suffix (` ```query:timeseries-2 `, `-full`
+for a full row; vocabulary: `table` default, `value`, `timeseries`, `bar`,
+`toplist`, `stacked-bar`, with `goal-rings` / `zone-distribution` placeholders
+until #901). A widget's title and coaching question associate from the markdown
+heading/paragraph directly above its block; `dashboard.*` frontmatter dot-keys
+declare top-level controls (scalar → input, block list → segmented, first entry
+default) referenced in queries as `$name` and substituted as raw text at
+execution time — control changes write back to the note's frontmatter when the
+note is editable. A block body is one line: the WQL query plus optional
+`/`-separated positional parameters (e.g. a goal target). One document, two
+presentations: inline (bare charts beneath their visible markdown) and the
+`/analytics/dashboard` route (composed cards). The ` ```dashboard ` fence from
+#801 is retired — stale blocks degrade to generic code.
+_Avoid_: dashboard block, widget YAML, dashboard schema.
 **Rollup Fact**:
 An **Analytics Store** fact row at `grain: 'rollup'` — a windowed aggregate
 (ACWR, monotony, strain) computed lazily on analytics-surface open by the rollup

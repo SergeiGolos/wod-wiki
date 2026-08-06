@@ -80,6 +80,20 @@ export class CalcEngine implements IRealtimeProcessor, ISummaryProcessor {
     const effortData = extractEffortData(output.metrics.rawMetrics);
     if (effortData) this.lastSegmentEffort = effortData.resolved.slug;
     const atoms = buildSegmentAtoms(output, this.lastSegmentEffort);
+    // Effort identity rides segment annotations as metadata so persisted
+    // segment-grain facts (workoutDerivation.normalizeAllMetrics) carry the
+    // effortSlug/discipline/intensityTier tags that WQL `by {effort}` and
+    // discipline filters group on — without this, derived metrics like
+    // calc.e1rm could never group by lift (#904).
+    const effortSlug = segmentEffort(output).slug ?? this.lastSegmentEffort;
+    const effortTags: Record<string, unknown> = {};
+    if (effortSlug) {
+      effortTags.effortSlug = effortSlug;
+      const discipline = this.lookupString(effortSlug, 'discipline');
+      const intensityTier = this.lookupString(effortSlug, 'intensityTier');
+      if (discipline) effortTags.effortDiscipline = discipline;
+      if (intensityTier) effortTags.effortIntensityTier = intensityTier;
+    }
 
     for (const def of this.segmentCalcs) {
       const ctx = this.makeContext(atoms);
@@ -97,14 +111,14 @@ export class CalcEngine implements IRealtimeProcessor, ISummaryProcessor {
         for (const [nodeId, value] of values) {
           if (value.kind !== 'number') continue;
           if (this.hasFrozen(output, nodeId)) continue;
-          this.appendAnnotation(output, nodeId, value, variant.origin);
+          this.appendAnnotation(output, nodeId, value, variant.origin, undefined, effortTags);
         }
       } else {
         for (const nodeId of outputNodeIds(def)) {
           const value = values.get(nodeId);
           if (value?.kind !== 'number') continue;
           if (this.hasFrozen(output, def.output?.emitType ?? def.id)) continue;
-          this.appendAnnotation(output, def.output?.emitType ?? def.id, value, variant.origin, def.output?.unit);
+          this.appendAnnotation(output, def.output?.emitType ?? def.id, value, variant.origin, def.output?.unit, effortTags);
         }
       }
     }
@@ -117,6 +131,7 @@ export class CalcEngine implements IRealtimeProcessor, ISummaryProcessor {
     value: Extract<Val, { kind: 'number' }>,
     origin: MetricOrigin,
     declaredUnit?: string,
+    metadata?: Record<string, unknown>,
   ): void {
     const unit = !declaredUnit || declaredUnit === 'auto' ? value.unit : declaredUnit;
     output.metrics.add({
@@ -126,6 +141,7 @@ export class CalcEngine implements IRealtimeProcessor, ISummaryProcessor {
       unit,
       origin,
       timestamp: new Date(),
+      ...(metadata && Object.keys(metadata).length > 0 ? { metadata } : {}),
     });
   }
 

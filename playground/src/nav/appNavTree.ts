@@ -5,20 +5,23 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Library, Analytics, Efforts
+ *   L1: Home, Library, Dashboards, Efforts
  *   L2 of Home:        Zero to Hero + Syntax/* + Behaviors/* (canvas pages)
- *   L2 of Analytics:   Dashboard + add-dashboard placeholder
+ *   L2 of Dashboards:  Explorer (/dashboard) + the prebuilt dashboard seeds
+ *                      (/dashboard/:slug); vault-created dashboards need a
+ *                      dynamic panel to join this list (follow-up).
  *   L2 of Efforts:     <EffortsNavPanel>   — origin/discipline filters + recent workouts
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  */
 
 import { HomeIcon, CodeBracketIcon } from '@heroicons/react/20/solid'
-import { ChartBarIcon, BookOpen, Dumbbell, Plus } from 'lucide-react'
+import { ChartBarIcon, BookOpen, Dumbbell } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
 
 import { EffortsNavPanel } from './panels/EffortsNavPanel'
+import { DashboardsNavPanel } from './panels/DashboardsNavPanel'
 import { canvasRoutes } from '../canvas/canvasRoutes'
 import { ROUTE_PATTERNS } from '../lib/routes'
 
@@ -162,30 +165,16 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
     },
 
     {
-      id: 'analytics',
-      label: 'Analytics',
+      id: 'dashboards',
+      label: 'Dashboards',
       level: 1,
       icon: ChartBarIcon,
-      action: { type: 'route', to: ROUTE_PATTERNS.analyticsExplorer },
-      isActive: (loc: Location) => loc.pathname.startsWith('/analytics'),
-      children: [
-        {
-          id: 'analytics-dashboard',
-          label: 'Dashboard',
-          level: 2,
-          icon: ChartBarIcon,
-          action: { type: 'route', to: ROUTE_PATTERNS.analyticsDashboard },
-          isActive: (loc: Location) => loc.pathname === '/analytics/dashboard',
-        },
-        {
-          id: 'analytics-add-dashboard',
-          label: 'Add dashboard',
-          level: 2,
-          icon: Plus,
-          action: { type: 'none' },
-          disabled: true,
-        },
-      ],
+      action: { type: 'route', to: '/dashboard' },
+      isActive: (loc: Location) => loc.pathname === '/dashboard' || loc.pathname.startsWith('/dashboard/'),
+      // The L2 list (Explorer + vault-created + prebuilts, plus a New
+      // dashboard action) is dynamic — vault dashboards are runtime data —
+      // so it lives in the panel, not static children.
+      panel: DashboardsNavPanel,
     },
     {
       id: 'efforts',

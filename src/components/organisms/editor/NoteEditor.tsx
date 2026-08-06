@@ -571,7 +571,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         ? [widgetBlockPreview(widgetComponents)]
         : []),
 
-      // Inline ```query / ```dashboard blocks — live WQL results (#801)
+      // Inline ```query blocks — live WQL results (#801, widget suffixes #899)
       queryBlockPreview(),
 
       // Inline button decorations ([Label]{.button action=...})

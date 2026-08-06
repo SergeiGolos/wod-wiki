@@ -275,13 +275,16 @@ export class ScriptRuntime implements IScriptRuntime {
         // directly — `emitStack` is a broadcast and would re-deliver to all
         // existing subscribers, which is not the catch-up behavior either
         // adapter had before this refactor.
-        const initialSnapshot = this._buildInitialSnapshot();
+        // Build the snapshot at delivery time, not subscribe time: mutations
+        // between subscription and the deferred delivery (e.g. the tour's
+        // microtask gate-pop) would otherwise deliver a stale snapshot that
+        // clobbers fresher push/pop notifications.
         setTimeout(() => {
             // Re-check membership: the observer may have unsubscribed before
             // the deferred callback fired.
             if (!this._observers.hasStackObserver(observer)) return;
             try {
-                observer(initialSnapshot);
+                observer(this._buildInitialSnapshot());
             } catch (err) {
                 console.error('[RT] Stack observer error (initial):', err);
             }

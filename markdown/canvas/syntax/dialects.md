@@ -9,8 +9,15 @@ type: syntax
 id: dialects
 title: Dialects
 badge: file-text
-quests: dialects-log, dialects-climb
+quests: dialects-run, dialects-log, dialects-climb
 sections: []
+```
+
+```quest
+id: dialects-run
+label: Run the First Example
+validation:
+  type: run-started
 ```
 
 ```quest

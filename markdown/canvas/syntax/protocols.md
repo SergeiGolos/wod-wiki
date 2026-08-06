@@ -9,8 +9,15 @@ type: syntax
 id: protocols
 title: Protocols
 badge: timer
-quests: protocols-timer, protocols-rounds, protocols-tag
+quests: protocols-run, protocols-timer, protocols-rounds, protocols-tag
 sections: []
+```
+
+```quest
+id: protocols-run
+label: Run the First Example
+validation:
+  type: run-started
 ```
 
 ```quest

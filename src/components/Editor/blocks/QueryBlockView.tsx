@@ -20,6 +20,8 @@ import { QueryValue } from '@/components/molecules/analytics/QueryValue';
 import { WqlTimeseries } from '@/components/molecules/analytics/WqlTimeseries';
 import { WqlBars } from '@/components/molecules/analytics/WqlBars';
 import { WqlEmptyState } from '@/components/molecules/analytics/WqlEmptyState';
+import { WidgetChart, WidgetProblemBadge } from '@/components/molecules/analytics/WidgetChart';
+import { splitWidgetBody, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage } from '@/lib/dashboard/model';
 import { extractBlockQueries } from '../utils/blockQueryPatcher';
 import { WqlQueryInspectorModal } from './WqlQueryInspectorModal';
 
@@ -32,6 +34,12 @@ export interface QueryBlockViewProps {
   queryIndex?: number;
   /** Read-only mode flag. */
   readOnly?: boolean;
+  /** Widget type from the fence suffix (```query:timeseries) — explicit chart dispatch (#899). */
+  widgetType?: string;
+  /** Malformed fence-suffix reason — rendered as a badge instead of executing. */
+  widgetError?: string;
+  /** Current dashboard-token values for $name substitution (from the note's frontmatter). */
+  tokenValues?: Record<string, string>;
 }
 
 export function QueryBlockView({
@@ -39,13 +47,27 @@ export function QueryBlockView({
   onSaveQuery,
   queryIndex = 0,
   readOnly = false,
+  widgetType,
+  widgetError,
+  tokenValues,
 }: QueryBlockViewProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const extracted = useMemo(() => extractBlockQueries(query), [query]);
-  const effectiveQuery = extracted.length > 0 ? extracted[0].query : query;
-
+  // Strip trailing `/` widget params (#899-7), then substitute $token refs at
+  // execution time with the note's current frontmatter values (#899-6).
+  const { query: effectiveQuery, params: effectiveParams, missing } = useMemo(() => {
+    const raw = extracted.length > 0 ? extracted[0].query : query;
+    const { query: body, params: rawParams } = splitWidgetBody(raw);
+    const subQuery = substituteTokens(body, tokenValues ?? {});
+    const paramSubs = rawParams.map((p) => substituteTokens(p, tokenValues ?? {}));
+    const missing = [...new Set([...subQuery.missing, ...paramSubs.flatMap((s) => s.missing)])];
+    return { query: subQuery.query, params: paramSubs.map((s) => s.query), missing };
+  }, [extracted, query, tokenValues]);
   const parsed = useMemo(() => parseQuery(effectiveQuery), [effectiveQuery]);
+  // Unknown fence-suffix types badge without executing (#899 — never silent).
+  const unknownType =
+    widgetType != null && widgetType !== '' && !isDashboardWidgetType(widgetType);
   const [result, setResult] = useState<QueryResult | undefined>(undefined);
   const [findResult, setFindResult] = useState<FindQueryResult | undefined>(undefined);
   const [runError, setRunError] = useState<string | undefined>(undefined);
@@ -57,6 +79,7 @@ export function QueryBlockView({
     setFindResult(undefined);
 
     if (parsed.error) return;
+    if (widgetError || unknownType || missing.length > 0) return;
 
     if (isFindQuery(parsed)) {
       void queryService
@@ -90,6 +113,29 @@ export function QueryBlockView({
   const handleApplyQuery = (newQuery: string) => {
     onSaveQuery?.(newQuery, queryIndex);
   };
+
+  // ── Malformed fence suffix / unknown $tokens — loud badges (#899) ──
+  if (widgetError) {
+    return (
+      <QueryBlockShell readOnly={readOnly}>
+        <WidgetProblemBadge message={widgetError} />
+      </QueryBlockShell>
+    );
+  }
+  if (unknownType) {
+    return (
+      <QueryBlockShell readOnly={readOnly}>
+        <WidgetProblemBadge message={unknownWidgetTypeMessage(widgetType ?? '')} />
+      </QueryBlockShell>
+    );
+  }
+  if (missing.length > 0) {
+    return (
+      <QueryBlockShell readOnly={readOnly}>
+        <WidgetProblemBadge message={unknownTokensMessage(missing)} />
+      </QueryBlockShell>
+    );
+  }
 
   // ── Parse / run error ──
   if (parsed.error) {
@@ -144,7 +190,7 @@ export function QueryBlockView({
   return (
     <QueryBlockShell onEdit={onSaveQuery ? handleEditClick : undefined} readOnly={readOnly}>
       <div className="h-48">
-        <AnalyticsChart result={result} metric={parsed.metric} />
+        <AnalyticsChart result={result} metric={parsed.metric} widgetType={widgetType} params={effectiveParams} />
       </div>
       {onSaveQuery && (
         <WqlQueryInspectorModal
@@ -159,8 +205,23 @@ export function QueryBlockView({
 }
 
 /** Pick the right chart component for an analytics QueryResult. */
-function AnalyticsChart({ result, metric }: { result: QueryResult | undefined; metric: string }) {
+function AnalyticsChart({
+  result,
+  metric,
+  widgetType,
+  params,
+}: {
+  result: QueryResult | undefined;
+  metric: string;
+  widgetType?: string;
+  params?: string[];
+}) {
   const shape = useChartShape(result);
+
+  // Explicit fence suffix (```query:timeseries) wins over shape inference.
+  if (widgetType != null) {
+    return <WidgetChart type={widgetType} result={result} label={metric} params={params} />;
+  }
 
   if (!result) {
     return <WqlEmptyState result={result} />;

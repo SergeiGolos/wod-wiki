@@ -9,8 +9,15 @@ type: syntax
 id: structure
 title: Structure
 badge: blocks
-quests: structure-rounds, structure-repscheme
+quests: structure-run, structure-rounds, structure-repscheme
 sections: []
+```
+
+```quest
+id: structure-run
+label: Run the First Example
+validation:
+  type: run-started
 ```
 
 ```quest

@@ -8,6 +8,7 @@ import { InMemoryEffortRegistry } from '@/effort-registry/InMemoryEffortRegistry
 import { EffortResolver } from '@/effort-registry/EffortResolver';
 import { bundledEfforts } from '@/effort-registry/data/bundled-efforts';
 import type { IEffortResolver } from '@/effort-registry/types';
+import type { CalculationDefinition } from './calc/types';
 
 export interface CreateAnalyticsEngineResult {
   engine: AnalyticsEngine;
@@ -17,6 +18,8 @@ export interface CreateAnalyticsEngineResult {
 export interface CreateAnalyticsEngineOptions {
   effortResolver?: IEffortResolver;
   userProfile?: { vo2max?: number };
+  /** User-authored composed calcs (#880), registered after the built-ins. */
+  calcs?: CalculationDefinition[];
 }
 
 /**
@@ -60,6 +63,7 @@ export function createAnalyticsEngineForBlock(
     scriptMetricTypes,
     analyticsContext,
     userProfile: options?.userProfile,
+    calcs: options?.calcs,
   };
 
   const profile = new StandardAnalyticsProfile();

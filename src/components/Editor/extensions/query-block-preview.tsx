@@ -1,10 +1,14 @@
 /**
- * Query Block Preview — CM6 extension that renders ```query and ```dashboard
- * fenced blocks inline as live WQL results (#801, #842). Mirrors widget-block-preview:
- * each section is replaced by a non-editable block decoration mounting a React
- * root (QueryBlockView / DashboardBlockView). Placing the cursor inside the
- * block reveals the raw source for editing. Includes modal inspector editing via
- * WqlComposer with patch write-back (decision #837).
+ * Query Block Preview — CM6 extension that renders ```query fenced blocks
+ * inline as live WQL results (#801, #842; widget-suffix grammar #899). Mirrors
+ * widget-block-preview: each section is replaced by a non-editable block
+ * decoration mounting a React root (QueryBlockView). Placing the cursor inside
+ * the block reveals the raw source for editing. Includes modal inspector
+ * editing via WqlComposer with patch write-back (decision #837).
+ *
+ * The note's frontmatter `dashboard.*` tokens are resolved once per rebuild
+ * and passed to every block so `$name` references substitute at execution
+ * time (#899-6). Inline editing of tokens happens in the frontmatter itself.
  */
 import {
   Decoration,
@@ -13,16 +17,16 @@ import {
   type DecorationSet,
 } from "@codemirror/view";
 import { Extension, StateField, Range } from "@codemirror/state";
+import React from "react";
 import type { EditorState } from "@codemirror/state";
 // @ts-ignore
 import { createRoot } from "react-dom/client";
-import React from "react";
 
-import { sectionField } from "./section-state";
-import type { EditorSection } from "./section-state";
+import { sectionField, type EditorSection } from "./section-state";
 import { QueryBlockView } from "../blocks/QueryBlockView";
-import { DashboardBlockView } from "../blocks/DashboardBlockView";
 import { patchBlockQuery } from "../utils/blockQueryPatcher";
+import { parseFrontmatterBody } from "@/lib/frontmatter";
+import { defaultTokenValues, extractDashboardTokens } from "@/lib/dashboard/model";
 
 type Root = { render: (c: React.ReactNode) => void; unmount: () => void };
 
@@ -32,18 +36,22 @@ class ReactQueryBlock extends WidgetType {
   private root: Root | null = null;
 
   constructor(
-    readonly kind: "query" | "dashboard",
     readonly rawContent: string,
     readonly sectionId: string,
+    readonly widgetType: string | undefined,
+    readonly widgetError: string | undefined,
+    readonly tokenValues: Record<string, string>,
   ) {
     super();
   }
 
   eq(other: ReactQueryBlock): boolean {
     return (
-      this.kind === other.kind &&
       this.rawContent === other.rawContent &&
-      this.sectionId === other.sectionId
+      this.sectionId === other.sectionId &&
+      this.widgetType === other.widgetType &&
+      this.widgetError === other.widgetError &&
+      JSON.stringify(this.tokenValues) === JSON.stringify(other.tokenValues)
     );
   }
 
@@ -58,21 +66,15 @@ class ReactQueryBlock extends WidgetType {
       saveBlockQuerySource(view, this.sectionId, newQuery, queryIndex);
     };
 
-    if (this.kind === "query") {
-      this.root.render(
-        React.createElement(QueryBlockView, {
-          query: this.rawContent,
-          onSaveQuery,
-        }),
-      );
-    } else {
-      this.root.render(
-        React.createElement(DashboardBlockView, {
-          body: this.rawContent,
-          onSaveQuery,
-        }),
-      );
-    }
+    this.root.render(
+      React.createElement(QueryBlockView, {
+        query: this.rawContent,
+        onSaveQuery,
+        widgetType: this.widgetType,
+        widgetError: this.widgetError,
+        tokenValues: this.tokenValues,
+      }),
+    );
     return wrapper;
   }
 
@@ -118,8 +120,19 @@ function buildQueryBlockDecos(state: EditorState): DecorationSet {
   const cursorHead = state.selection.main.head;
   const doc = state.doc;
 
+  // Resolve the note's dashboard tokens once — every query block in the note
+  // shares the same frontmatter (#899-2).
+  let tokenValues: Record<string, string> = {};
+  const frontmatter = sections.find((s) => s.type === "frontmatter");
+  if (frontmatter?.contentFrom != null && frontmatter.contentTo != null) {
+    const meta = parseFrontmatterBody(
+      doc.sliceString(frontmatter.contentFrom, frontmatter.contentTo),
+    );
+    tokenValues = defaultTokenValues(extractDashboardTokens(meta));
+  }
+
   for (const section of sections) {
-    if (section.type !== "query" && section.type !== "dashboard") continue;
+    if (section.type !== "query") continue;
     if (section.startLine > doc.lines || section.endLine > doc.lines) continue;
 
     // Reveal source for editing when the cursor is inside the block.
@@ -132,7 +145,13 @@ function buildQueryBlockDecos(state: EditorState): DecorationSet {
 
     decos.push(
       Decoration.replace({
-        widget: new ReactQueryBlock(section.type, rawContent, section.id),
+        widget: new ReactQueryBlock(
+          rawContent,
+          section.id,
+          section.widgetType,
+          section.widgetError,
+          tokenValues,
+        ),
         block: true,
       }).range(section.from, section.to),
     );
@@ -146,7 +165,7 @@ function buildQueryBlockDecos(state: EditorState): DecorationSet {
 
 /**
  * Mount as an editor extension alongside sectionField. Always enabled — query
- * and dashboard blocks are first-class, not registry-driven.
+ * blocks are first-class, not registry-driven.
  */
 export function queryBlockPreview(): Extension {
   return StateField.define<DecorationSet>({
@@ -161,21 +180,17 @@ export function queryBlockPreview(): Extension {
   });
 }
 
-/** Find a query/dashboard block section by id (for tests / navigation). */
+/** Find a query block section by id (for tests / navigation). */
 export function findQueryBlockSection(
   view: EditorView,
   sectionId: string,
 ): EditorSection | null {
   const { sections } = view.state.field(sectionField);
-  return (
-    sections.find(
-      (s) => (s.type === "query" || s.type === "dashboard") && s.id === sectionId,
-    ) ?? null
-  );
+  return sections.find((s) => s.type === "query" && s.id === sectionId) ?? null;
 }
 
 /**
- * Patch a composed WQL query back into the source of a ```query or ```dashboard section.
+ * Patch a composed WQL query back into the source of a ```query section.
  */
 export function saveBlockQuerySource(
   view: EditorView,

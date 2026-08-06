@@ -187,6 +187,27 @@ describe('wqlToClauses — find restore maps to source', () => {
     expectRoundTrip('find:effort in all')
     expectRoundTrip('find:effort{discipline:strength, intensity:high, origin:user, text:fran} in all')
   })
+
+  it('quotes multi-word text on emit and unquotes on restore (#867)', () => {
+    // Emit: spaced text takes a quoted-phrase form so it parses.
+    expect(clausesToWql([clause('source', 'notes'), clause('text', '300 Air Squats')]))
+      .toBe('find:note{text:"300 Air Squats"} in all')
+    // Single-word text stays unquoted.
+    expect(clausesToWql([clause('source', 'notes'), clause('text', 'fran')]))
+      .toBe('find:note{text:fran} in all')
+  })
+
+  it('round-trips a quoted text phrase with the spaced chip form', () => {
+    const clauses = wqlToClauses('find:note{text:"Hello world"} in all')
+    expect(valueOf(clauses, 'text')).toBe('Hello world')
+    expect(clausesToWql(clauses!)).toBe('find:note{text:"Hello world"} in all')
+  })
+
+  it('keeps quoted phrases with commas intact (quote-aware split, #867)', () => {
+    const clauses = wqlToClauses('find:note{text:"abs, ripper"} in all')
+    expect(valueOf(clauses, 'text')).toBe('abs, ripper')
+    expect(clausesToWql(clauses!)).toBe('find:note{text:"abs, ripper"} in all')
+  })
 })
 
 describe('wqlToClauses — aggregate restore', () => {
@@ -230,8 +251,10 @@ describe('wqlToClauses — aggregate restore', () => {
     expect(wqlToClauses('find:note{boguskey:x} in all')).toBeNull()
   })
 
-  it('restores composer states whose WQL does not parse (salvage, issue #833)', () => {
-    expectRoundTrip('find:note{text:hello world} in all')
+  it('salvages a spaced text fragment and re-emits it quoted (#867)', () => {
+    const clauses = wqlToClauses('find:note{text:hello world} in all')
+    expect(valueOf(clauses, 'text')).toBe('hello world')
+    expect(clausesToWql(clauses!)).toBe('find:note{text:"hello world"} in all')
   })
 
   it('emits an explicit “all time” time clause when the WQL carries no window', () => {

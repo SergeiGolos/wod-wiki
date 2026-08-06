@@ -85,8 +85,8 @@ describe('store rollup over the real V12 fact store', () => {
     expect(first.facts).toBeGreaterThan(0);
     expect(first.deleted).toBe(0);
 
-    // Re-open: nothing missing or stale → no writes, no deletes.
-    const second = await runStoreRollup(rollupStore, { now: now + 3_600_000 });
+    // Re-open within the same day bucket: nothing missing or stale → 0 writes, 0 deletes.
+    const second = await runStoreRollup(rollupStore, { now: now + 1_000 });
     expect(second.written).toBe(0);
     expect(second.deleted).toBe(0);
 
@@ -95,7 +95,13 @@ describe('store rollup over the real V12 fact store', () => {
     const sessionFacts = (await service.getFactsByMetric('sessionLoad'))
       .filter((row) => row.grain !== 'rollup' && typeof row.value === 'number');
     const expected = computeWorkloadRollups(dailySessionLoads(sessionFacts), throughDay);
-    expect(expected.length).toBe(first.days);
+    expect(expected.length).toBeGreaterThan(0);
+    // The window metrics (acwr/monotony/strain) self-limit to load-active
+    // days (0/0 windows drop out); the PMC EWMA loads (#905) emit a value
+    // for EVERY day from the first load through today — that daily decay is
+    // the point of CTL/ATL/TSB. So the day domain is firstDay..throughDay.
+    const firstDay = Math.min(...sessionFacts.map((f) => dayBucket(f.timestamp)));
+    expect(first.days).toBe(throughDay - firstDay + 1);
 
     // Every desired ACWR row exists in the real store at its deterministic id.
     const storedAcwr = await service.getFactsByMetric('calc.acwr');

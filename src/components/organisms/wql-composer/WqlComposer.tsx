@@ -97,6 +97,9 @@ export interface WqlComposerProps {
   hiddenClauseTypes?: ClauseType[]
   /** Focus the free-text input on mount (e.g. when embedded in the palette, issue #834). */
   autoFocus?: boolean
+  /** Free-text input placeholder (e.g. the explorer's WQL grammar hint,
+   * issue #897). Defaults to the search-term guidance. */
+  placeholder?: string
   className?: string
 }
 
@@ -117,6 +120,7 @@ export function WqlComposer({
   diagnosticsActions,
   hiddenClauseTypes,
   autoFocus = false,
+  placeholder = 'Type search term and press Enter...',
   className,
 }: WqlComposerProps) {
   const [internalClauses, setInternalClauses] = useState<QueryClause[]>(
@@ -206,10 +210,10 @@ export function WqlComposer({
   }
 
   // Live preview of what Enter will do with the box's pending text (#854):
-  // a valid, composer-restorable WQL query is adopted wholesale; a single
-  // word becomes a text chip; anything else (multi-word text — quoting is
-  // not in the grammar yet — or pure punctuation) is an honest inline
-  // error instead of a silent discard.
+  // a valid, composer-restorable WQL query is adopted wholesale; searchable
+  // text (one or more words — multi-word phrases are quoted on emit, #867)
+  // becomes a text chip; pure punctuation is an honest inline error instead
+  // of a silent discard.
   const pending = useMemo((): { kind: 'query'; clauses: QueryClause[] } | { kind: 'text'; value: string } | { kind: 'invalid'; reason: string } | null => {
     const raw = freeText.trim()
     if (!raw) return null
@@ -226,7 +230,9 @@ export function WqlComposer({
       return { kind: 'invalid', reason: 'No searchable text — use words, or a full WQL query like find:note{tags:strength}' }
     }
     if (words.length > 1) {
-      return { kind: 'invalid', reason: 'Multi-word text is not supported yet — use one word, or a full WQL query' }
+      // Multi-word free text commits as a quoted text clause (#867) — the
+      // value is quoted on emit so it round-trips through the grammar.
+      return { kind: 'text', value: raw }
     }
     return { kind: 'text', value: words[0]! }
   }, [freeText])
@@ -338,7 +344,7 @@ export function WqlComposer({
           ref={inputRef}
           type="text"
           value={freeText}
-          placeholder="Type search term and press Enter..."
+          placeholder={placeholder}
           onChange={e => setFreeText(e.target.value)}
           onKeyDown={handleKeyDown}
           className="flex-1 min-w-[140px] bg-transparent text-xs focus:outline-none placeholder:text-muted-foreground/40 font-mono"

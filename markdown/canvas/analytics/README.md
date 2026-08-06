@@ -17,7 +17,7 @@ WQL progressive disclosure maps across three surfaces in the application:
 
 1. **Library (`/library`) — Browse Mode:** Zero-syntax discovery using tri-state source toggles (Note / Session / Post), free-text search, and time-range presets to find entries.
 2. **Explorer (`/analytics/explorer`) — Explore Mode:** Interactive WQL workbench with a visual composer, sentence builder, and chart previews.
-3. **In-Note Blocks — Compose Mode:** Embedded ````query``` and ````dashboard``` fenced blocks inside plain Markdown notes that render live results inline.
+3. **In-Note Blocks — Compose Mode:** Embedded ````query``` fenced blocks (optionally typed, ````query:timeseries-2```) inside plain Markdown notes that render live results inline; a note marked `dashboard: true` composes them into a dashboard (#899).
 
 ## Two Query Planes {sticky}
 

@@ -20,7 +20,7 @@ import { composerRegistry } from './ComposerRegistry'
 import {
   WQL_AGGREGATORS,
   WQL_COMPARISON_OPS,
-} from '@/services/analytics/query/wql'
+} from '@/parser/wql-vocabulary'
 import {
   WQL_CALC_TARGETS,
   WQL_DISPLAY_UNITS,
@@ -31,7 +31,7 @@ import {
   WQL_TAG_KEYS,
   WQL_VIRTUAL_DIMS,
 } from '@/parser/wql-vocabulary'
-
+import { parseWqlSuffixes, splitAtWhere } from '@/services/analytics/query/wqlSuffix'
 export type ClauseType =
   | 'source'
   | 'text'
@@ -113,7 +113,7 @@ export const UNIT_OPTIONS = WQL_DISPLAY_UNITS.map(v => ({ value: v, label: v }))
  * contract in services/analytics/query/wql.ts). Issue #831.
  */
 export const WHERE_AGGREGATORS: readonly string[] = WQL_AGGREGATORS
-export const WHERE_METRICS: readonly string[] = [...WQL_METRIC_AGGREGATES, ...WQL_METRIC_FAMILIES]
+export const WHERE_METRICS: readonly string[] = [...WQL_METRIC_AGGREGATES, ...WQL_METRIC_FAMILIES, ...WQL_CALC_TARGETS]
 export const WHERE_OPERATORS: readonly string[] = WQL_COMPARISON_OPS
 
 // ── Metadata ────────────────────────────────────────────────────────────────
@@ -189,7 +189,12 @@ export function clauseToWql(clause: QueryClause): { key?: string; filterStr?: st
   const val = clause.value.trim()
 
   switch (clause.type) {
-    case 'text':       return { filterStr: `text:${val}` }
+    case 'text': {
+      // Multi-word values take a quoted phrase form so they parse (#867);
+      // already-quoted values pass through unchanged.
+      const needsQuotes = /\s/.test(val) && !(val.startsWith('"') && val.endsWith('"'));
+      return { filterStr: `text:${needsQuotes ? `"${val}"` : val}` };
+    }
     case 'catalog':    return { filterStr: `catalog:${val}` }
     case 'tag':        return { filterStr: `tags:${val}` }
     case 'effort':     return { filterStr: `effort:${val}` }
@@ -294,12 +299,14 @@ const FILTER_KEY_TO_CLAUSE_TYPE: Record<string, ClauseType> = Object.fromEntries
 function splitTopLevel(body: string): string[] {
   const parts: string[] = []
   let depth = 0
+  let inQuote = false
   let start = 0
   for (let i = 0; i < body.length; i++) {
     const c = body[i]
-    if (c === '{') depth++
-    else if (c === '}') depth = Math.max(0, depth - 1)
-    else if (c === ',' && depth === 0) {
+    if (c === '"') inQuote = !inQuote
+    else if (!inQuote && c === '{') depth++
+    else if (!inQuote && c === '}') depth = Math.max(0, depth - 1)
+    else if (!inQuote && c === ',' && depth === 0) {
       parts.push(body.slice(start, i))
       start = i + 1
     }
@@ -310,35 +317,13 @@ function splitTopLevel(body: string): string[] {
 
 /** Split at the first top-level `where` keyword (same rule as the query
  * service's parser: depth-0, word-bounded). */
-function splitWhereTail(text: string): { head: string; where?: string } {
-  let depth = 0
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i]
-    if (c === '{') depth++
-    else if (c === '}') depth = Math.max(0, depth - 1)
-    else if (
-      depth === 0 &&
-      c === 'w' &&
-      text.slice(i, i + 5) === 'where' &&
-      (i === 0 || /\s/.test(text[i - 1])) &&
-      (i + 5 >= text.length || /\s/.test(text[i + 5]))
-    ) {
-      return { head: text.slice(0, i).trim(), where: text.slice(i + 5).trim() }
-    }
-  }
-  return { head: text.trim() }
+export function splitWhereTail(text: string): { head: string; where?: string } {
+  const { primary, where } = splitAtWhere(text)
+  return { head: primary, where }
 }
 
-const RESTORE_LAST_RE = /\s+last\s+(\d+)([dw])\s*$/i
-const RESTORE_SCOPE_RE = /\s+in\s+(\w+)\s*$/
-const RESTORE_FIND_HEAD_RE = /^find:(\w+)/
-// Aggregate restore segments — stripped outermost-first, mirroring
-// parseAnalyticsQuery's order (where → display unit → rollup → by → head).
-const RESTORE_UNIT_RE = /\s+in\s+([a-zA-Z0-9_-]+)\s*$/
-const RESTORE_ROLLUP_RE = /\.rollup\((\w+)\)\s*$/
-const RESTORE_BY_RE = /\s+by\s+\{([^}]*)\}\s*$/
-const RESTORE_AGG_HEAD_RE = /^(\w+):([\w.]*)/
-
+const RESTORE_FIND_HEAD_RE = /^find:([a-zA-Z0-9_-]*)/
+const RESTORE_AGG_HEAD_RE = /^([a-zA-Z0-9_-]+):([a-zA-Z0-9_.-]*)/
 function restoreClause(id: string, type: string, value: string): QueryClause {
   return { id, type, ...getClauseMeta(type), value }
 }
@@ -355,7 +340,15 @@ function filterFragmentToClause(fragment: string, index: number): QueryClause | 
   if (!value.trim()) return null
 
   const builtin = FILTER_KEY_TO_CLAUSE_TYPE[key]
-  if (builtin) return restoreClause(`c-${builtin}-${index}`, builtin, value)
+  if (builtin) {
+    // Unquote a quoted text phrase on restore so the chip shows the spaced
+    // form, not the `"…"` literal (#867).
+    const restoredValue =
+      builtin === 'text' && value.length >= 2 && value.startsWith('"') && value.endsWith('"')
+        ? value.slice(1, -1)
+        : value
+    return restoreClause(`c-${builtin}-${index}`, builtin, restoredValue)
+  }
 
   // Custom slots: accept the first registered slot whose typed round-trip
   // reproduces the fragment verbatim.
@@ -398,32 +391,20 @@ function restoreFilters(rest: string): QueryClause[] | null {
  * filter, or an unknown/custom-less filter key.
  */
 export function wqlToClauses(wql: string): QueryClause[] | null {
-  const { head, where } = splitWhereTail(wql.trim())
+  const suffixes = parseWqlSuffixes(wql.trim())
+  const { where, displayUnit, groupBy, rollup, last, scope, primaryText } = suffixes
 
-  if (head.startsWith('find:')) {
-    let text = head
-
-    let timeValue = 'all'
-    const lastMatch = RESTORE_LAST_RE.exec(text)
-    if (lastMatch) {
-      timeValue = `last ${lastMatch[1]}${lastMatch[2].toLowerCase()}`
-      text = text.slice(0, lastMatch.index).trim()
-    }
-
-    let scopeValue: string | undefined
-    const scopeMatch = RESTORE_SCOPE_RE.exec(text)
-    if (scopeMatch) {
-      scopeValue = scopeMatch[1]
-      text = text.slice(0, scopeMatch.index).trim()
-    }
-
-    const headMatch = RESTORE_FIND_HEAD_RE.exec(text)
+  if (primaryText.startsWith('find:')) {
+    const headMatch = RESTORE_FIND_HEAD_RE.exec(primaryText)
     if (!headMatch) return null
     const targetValue = headMatch[1]
-    const rest = text.slice(headMatch[0].length).trim()
+    const rest = primaryText.slice(headMatch[0].length).trim()
 
     const filterClauses = restoreFilters(rest)
     if (!filterClauses) return null
+
+    const timeValue = last ? `last ${last.size}${last.unit}` : 'all'
+    const scopeValue = scope
 
     // target+scope collapse into the single source slot: blocks/efforts drop
     // the scope (the engine ignores it for registry targets); an unknown
@@ -446,37 +427,18 @@ export function wqlToClauses(wql: string): QueryClause[] | null {
   }
 
   // Aggregate branch: <agg>:<metric>{<filters>} [by {<dims>}] [.rollup(<p>)] [in <unit>]
-  let text = head
-
-  let unitValue = ''
-  const unitMatch = RESTORE_UNIT_RE.exec(text)
-  if (unitMatch) {
-    unitValue = unitMatch[1]
-    text = text.slice(0, unitMatch.index).trim()
-  }
-
-  let rollupValue = ''
-  const rollupMatch = RESTORE_ROLLUP_RE.exec(text)
-  if (rollupMatch) {
-    rollupValue = rollupMatch[1]
-    text = text.slice(0, rollupMatch.index).trim()
-  }
-
-  let dimValues: string[] = []
-  const byMatch = RESTORE_BY_RE.exec(text)
-  if (byMatch) {
-    dimValues = byMatch[1].split(',').map(d => d.trim()).filter(Boolean)
-    text = text.slice(0, byMatch.index).trim()
-  }
-
-  const headMatch = RESTORE_AGG_HEAD_RE.exec(text)
+  const headMatch = RESTORE_AGG_HEAD_RE.exec(primaryText)
   if (!headMatch) return null
   const aggValue = headMatch[1]
   const metricValue = headMatch[2] ?? ''
-  const rest = text.slice(headMatch[0].length).trim()
+  const rest = primaryText.slice(headMatch[0].length).trim()
 
   const filterClauses = restoreFilters(rest)
   if (!filterClauses) return null
+
+  const dimValues = groupBy ?? []
+  const rollupValue = rollup?.raw ?? ''
+  const unitValue = displayUnit ?? ''
 
   const clauses: QueryClause[] = [
     restoreClause('c-source', 'source', 'metrics'),

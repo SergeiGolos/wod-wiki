@@ -14,6 +14,7 @@
  */
 
 import { StateField, StateEffect, EditorState, Transaction } from "@codemirror/state";
+import { parseQueryWidgetSuffix } from "@/lib/dashboard/model";
 import { blockContentId } from "../utils/sectionParser";
 
 /** Workout fence tags — `time` is runnable, `log` is recorded */
@@ -29,7 +30,7 @@ interface DialectFenceMatch {
 // ── Types ────────────────────────────────────────────────────────────
 
 /** Section types the parser can identify */
-export type EditorSectionType = "markdown" | "time" | "log" | "frontmatter" | "code" | "widget" | "embed" | "query" | "dashboard";
+export type EditorSectionType = "markdown" | "time" | "log" | "frontmatter" | "code" | "widget" | "embed" | "query";
 
 /** Markdown subtypes for routing per-section UI */
 export type EditorSectionSubtype =
@@ -63,6 +64,14 @@ export interface EditorSection {
   endLine: number;
   /** Sport suffix from the fence (```log:climbing) — scopes the block's DialectStack. Only for type === "time" | "log". */
   sport?: string;
+  /** Widget type suffix from the fence (```query:timeseries) — only for type === "query". */
+  widgetType?: string;
+  /** Grid column span 1..4 from the fence (```query:bar-2) — only for type === "query". */
+  spanCols?: number;
+  /** Full-row flag from the fence (```query:bar-full) — only for type === "query". */
+  spanFull?: boolean;
+  /** Malformed widget-suffix reason (```query:bar-9) — renderers badge it. Only for type === "query". */
+  widgetError?: string;
   /** Fence language tag (only for type === "code") */
   language?: string;
   /** Widget name (only for type === "widget", e.g. "hero" from ```widget:hero) */
@@ -173,16 +182,39 @@ function matchWidgetFence(trimmed: string): string | null {
   return rest.length > 0 ? rest : null;
 }
 
+/** A matched content-block fence: kind plus the parsed widget suffix. */
+interface ContentFenceMatch {
+  kind: "query";
+  /** Raw widget type (```query:timeseries); undefined for a bare ```query fence. */
+  widgetType?: string;
+  spanCols?: number;
+  spanFull?: boolean;
+  /** Malformed-suffix reason — the block still parses as a query, renderers badge it. */
+  widgetError?: string;
+}
+
 /**
- * Match a bare content-block fence — ```query or ```dashboard (#801). These
- * are first-class inline blocks (live WQL results), distinct from generic
- * ```lang code blocks and ```widget:<name> registry blocks. Returns the block
- * kind or null.
+ * Match a content-block fence — ```query with an optional widget suffix
+ * ```query:<type>[-<N>|-full] (#801, grammar locked in #899). These are
+ * first-class inline blocks (live WQL results), distinct from generic
+ * ```lang code blocks and ```widget:<name> registry blocks. The retired
+ * ```dashboard fence (#899 decision 8) intentionally no longer matches — it
+ * degrades to a generic code block so stale source stays visible.
  */
-function matchContentFence(trimmed: string): "query" | "dashboard" | null {
-  const lower = trimmed.toLowerCase();
-  if (lower === "```query" || lower.startsWith("```query ") || lower.startsWith("```query\t")) return "query";
-  if (lower === "```dashboard" || lower.startsWith("```dashboard ") || lower.startsWith("```dashboard\t")) return "dashboard";
+function matchContentFence(trimmed: string): ContentFenceMatch | null {
+  if (!trimmed.startsWith("```")) return null;
+  const tag = trimmed.slice(3).split(/[\s\t]/)[0].toLowerCase();
+  if (tag === "query") return { kind: "query" };
+  if (tag.startsWith("query:")) {
+    const spec = parseQueryWidgetSuffix(tag.slice("query:".length));
+    return {
+      kind: "query",
+      widgetType: spec.type || undefined,
+      spanCols: spec.spanCols,
+      spanFull: spec.spanFull,
+      widgetError: spec.error,
+    };
+  }
   return null;
 }
 
@@ -197,7 +229,7 @@ function matchGenericFence(trimmed: string): string | null {
   if (matchDialectFence(trimmed)) return null;
   // Already a widget?
   if (matchWidgetFence(trimmed)) return null;
-  // Already a content block (```query / ```dashboard)?
+  // Already a content block (```query)?
   if (matchContentFence(trimmed)) return null;
   // Extract language tag: everything after ``` up to first space/tab or end
   const rest = trimmed.slice(3).trim();
@@ -279,8 +311,8 @@ function scanFenced(state: EditorState, openLineNum: number): {
  *  - Fenced workout blocks (```time / ```log, optional :sport suffix ... ```) become
  *    typed sections — the type IS the fence tag.
  *  - Generic fenced code blocks (```js, ```python, etc.) become type "code".
- *  - Content blocks (```query / ```dashboard) become typed sections rendered
- *    inline as live WQL results (#801).
+ *  - Content blocks (```query[:type[-N|-full]]) become typed sections rendered
+ *    inline as live WQL results (#801, suffix grammar #899).
  *  - Frontmatter (--- ... ---) becomes type "frontmatter".
  *  - All remaining lines are grouped into "markdown" sections, split at
  *    blank-line boundaries. Each resulting markdown section gets a subtype.
@@ -423,15 +455,19 @@ function parseSections(state: EditorState): EditorSection[] {
       continue;
     }
 
-    // ── Content-block fence (```query / ```dashboard ... ```) — #801 ──
+    // ── Content-block fence (```query[:type[-N|-full]] ... ```) — #801/#899 ──
     const contentKind = matchContentFence(trimmed);
     if (contentKind) {
       flushMarkdown();
       const { closeLine, contentFrom, contentTo } = scanFenced(state, lineNum);
       const content = doc.sliceString(line.from, doc.line(closeLine).to);
       sections.push({
-        id: generateSectionId(contentKind, lineNum, content),
-        type: contentKind,
+        id: generateSectionId(contentKind.kind, lineNum, content),
+        type: contentKind.kind,
+        widgetType: contentKind.widgetType,
+        spanCols: contentKind.spanCols,
+        spanFull: contentKind.spanFull,
+        widgetError: contentKind.widgetError,
         from: line.from,
         to: doc.line(closeLine).to,
         startLine: lineNum,

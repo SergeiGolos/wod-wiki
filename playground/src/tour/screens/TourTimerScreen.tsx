@@ -38,6 +38,7 @@ export const TourTimerScreen: React.FC<TourTimerScreenProps> = ({
 }) => {
   const floorRef = useRingRef('timer.floor')
   const nextButtonRef = useRingRef('timer.nextButton')
+  const castButtonRef = useRingRef('timer.castButton')
   const floorElRef = useRef<HTMLDivElement | null>(null)
 
   const setFloorEl = useCallback(
@@ -92,7 +93,7 @@ export const TourTimerScreen: React.FC<TourTimerScreenProps> = ({
             <RotateCcw className="h-4 w-4" />
           </Button>
         )}
-        <div>
+        <div ref={castButtonRef}>
           <CastButtonRpc />
         </div>
         <Button

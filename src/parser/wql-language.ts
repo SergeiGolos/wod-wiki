@@ -19,9 +19,9 @@ import type { Extension } from "@codemirror/state";
 import { styleTags, tags as t } from "@lezer/highlight";
 import type { SyntaxNode } from "@lezer/common";
 import { parser } from "../grammar/wql.parser";
-import { WQL_AGGREGATORS } from "@/services/analytics/query/wql";
 import { EFFORT_DISCIPLINES } from "@/effort-registry/disciplines";
 import {
+  WQL_AGGREGATORS,
   WQL_METRIC_FAMILIES,
   WQL_METRIC_AGGREGATES,
   WQL_TAG_KEYS,
@@ -29,6 +29,7 @@ import {
   WQL_CALC_TARGETS,
   WQL_INTENSITY_TIERS,
   WQL_GRAINS,
+  WQL_ROLLUP_PERIODS,
 } from "./wql-vocabulary";
 
 // The vocabulary tables live in ./wql-vocabulary (no editor deps); re-export
@@ -42,6 +43,9 @@ export {
   WQL_FIND_TARGETS,
   WQL_SCOPES,
   WQL_CONTENT_FILTER_KEYS,
+  WQL_AGGREGATORS,
+  WQL_COMPARISON_OPS,
+  WQL_ROLLUP_PERIODS,
 } from "./wql-vocabulary";
 
 // ── Highlighting ───────────────────────────────────────────────────
@@ -207,7 +211,7 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
     if (ancestor(node, 'Rollup')) {
       return {
         from: word.from,
-        options: options(['1d', '7d', '1w', '2w', '4w']).map((c) => ({ ...c, type: 'constant' })),
+        options: options(WQL_ROLLUP_PERIODS).map((c) => ({ ...c, type: 'constant' })),
         validFor: /^[\w]*$/,
       };
     }

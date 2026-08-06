@@ -47,7 +47,7 @@
     "test-library": "bun test ./src --preload ./tests/unit-setup.ts",
     "test-story": "bunx vitest run --config vitest.storybook.config.js",
     "build-library": "vite build",
-    "build:app": "bun x vite build --config playground/vite.config.ts",
+    "build:app": "bun x vite build --config playground/vite.config.ts && bun run scripts/generate-static-shells.ts",
     "preview:app": "node node_modules/vite/bin/vite.js preview --config playground/vite.config.ts",
     "playground": "node node_modules/vite/bin/vite.js --config playground/vite.config.ts",
     "build": "bun run build-storybook",

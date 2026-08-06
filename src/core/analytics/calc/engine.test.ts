@@ -101,6 +101,34 @@ describe('Phase 1: segment-scope pipeline', () => {
     expect(annotations(seg, 'segmentVolume')[0]).toMatchObject({ value: 600, unit: 'kg' });
   });
 
+  it('annotates calc.e1rm via Epley, tagged with the segment effort (#904)', () => {
+    const seg = segment([
+      effortData('thruster', 'Thruster', 8.5, 'strength'),
+      { type: MetricType.Rep, value: 5, origin: 'runtime' },
+      { type: MetricType.Resistance, value: { amount: 100, units: 'kg' }, origin: 'runtime' },
+    ]);
+    engine().process(seg);
+    const e1rm = annotations(seg, 'calc.e1rm');
+    expect(e1rm).toHaveLength(1);
+    // Epley: 100 × (1 + 5/30) = 116.666… → 116.7
+    expect(e1rm[0]).toMatchObject({ value: 116.7, unit: 'kg', origin: 'analyzed' });
+    // Effort identity tags feed WQL `by {effort}` grouping on segment facts.
+    expect(e1rm[0].metadata).toMatchObject({
+      effortSlug: 'thruster',
+      effortDiscipline: 'strength',
+      effortIntensityTier: 'high',
+    });
+  });
+
+  it('emits no calc.e1rm for bodyweight segments (no resistance)', () => {
+    const seg = segment([
+      effortData('thruster', 'Thruster', 8.5, 'strength'),
+      { type: MetricType.Rep, value: 15, origin: 'runtime' },
+    ]);
+    engine().process(seg);
+    expect(annotations(seg, 'calc.e1rm')).toHaveLength(0);
+  });
+
   it('computes metMinutes from the effort table (resolved variant, analyzed)', () => {
     const seg = segment([
       { type: MetricType.Elapsed, value: 600_000, origin: 'runtime' },

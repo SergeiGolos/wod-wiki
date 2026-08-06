@@ -89,13 +89,24 @@ export function LibraryPage({ actions }: LibraryPageProps) {
     const today = todayKey()
     let rawContent = ''
     if (entry.kind === 'session' || entry.kind === 'post') {
-      // Static content: read the first block's rawContent from the block index.
+      // Static content: reassemble the note from ALL of its indexed blocks
+      // in position order (#903 — the first-block-only copy cloned
+      // multi-section seeds, e.g. dashboard notes, as frontmatter-only).
       const result = await queryService.runFind({
         raw: `find:block{note:${entry.id}}`,
         target: 'block',
         filters: [{ key: 'note', negate: false, values: [{ value: entry.id, wildcard: false }] }],
       } as ParsedFindQuery)
-      rawContent = result.blocks[0]?.rawContent ?? ''
+      // The block index stores the frontmatter row WITHOUT its `---`
+      // fences (just the YAML body); re-wrap it so the cloned note parses
+      // as a real frontmatter-bearing note — otherwise a cloned dashboard
+      // seed loses `dashboard: true` and never registers. Empty rows (blank
+      // line spacers) are dropped; the `\n\n` join reconstructs sections.
+      rawContent = [...result.blocks]
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        .filter((b) => b.rawContent.trim() !== '')
+        .map((b) => (b.dataType === 'frontmatter' ? `---\n${b.rawContent}\n---` : b.rawContent))
+        .join('\n\n')
     } else {
       // Journal note: read the live note.
       const note = await journalNotes.getById(entry.sourceItem)
