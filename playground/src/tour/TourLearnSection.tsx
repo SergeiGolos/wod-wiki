@@ -51,7 +51,7 @@ export function LearnProgressOverview({
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Learn the Language</h2>
           <p className="mt-2 text-muted-foreground leading-relaxed max-w-xl">
-            Six chapters, each with a runnable example and quests to earn. Track your progress below or dive into a guide.
+            Six chapters, each with a runnable example and quests to earn — progress shows on the chapter cards above.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -72,43 +72,33 @@ export function LearnProgressOverview({
         </div>
       </div>
 
-      {/* Per-chapter progress — summary only, no per-quest rows. */}
-      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Slim progress strip (#dogfood: the previous per-chapter card grid
+          duplicated the chapter heroes' quest cards — one challenge surface
+          per chapter now lives on the hero card; this is the footer readout). */}
+      <div className="mt-8 flex flex-wrap items-center gap-2">
         {languageChapters.map(({ chapter, completedCount, totalCount, isComplete }) => {
           const route = CHAPTER_ROUTES[chapter.id] ?? '/guide/syntax'
-          const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
           const Icon = chapterIcon(chapter.badge)
           return (
             <Link
               key={chapter.id}
               to={route}
+              data-testid={`learn-progress-chip-${chapter.id}`}
               className={cn(
-                'group flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm transition-colors hover:border-primary/40',
-                isComplete ? 'border-emerald-500/30' : 'border-border',
+                'group inline-flex items-center gap-2 rounded-full border px-3 py-1.5 transition-colors hover:border-primary/40',
+                isComplete ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-border bg-card',
               )}
             >
-              <div className="flex items-center gap-2.5">
-                <span className="flex size-8 items-center justify-center rounded-lg border border-border bg-muted/30 text-muted-foreground">
-                  {Icon && <Icon className="size-4" />}
-                </span>
-                <span className="text-[13px] font-semibold text-foreground">{chapter.title}</span>
-                {isComplete && (
-                  <span className="ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 font-mono text-[9px] font-black uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                    done
-                  </span>
+              {Icon && <Icon className="size-3.5 text-muted-foreground" />}
+              <span className="text-[12px] font-semibold text-foreground">{chapter.title}</span>
+              <span
+                className={cn(
+                  'font-mono text-[10px] font-bold tabular-nums',
+                  isComplete ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground',
                 )}
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                <span className="font-mono text-[10px] font-bold tabular-nums text-muted-foreground">
-                  {completedCount}/{totalCount}
-                </span>
-              </div>
+              >
+                {isComplete ? 'done ✓' : `${completedCount}/${totalCount}`}
+              </span>
             </Link>
           )
         })}

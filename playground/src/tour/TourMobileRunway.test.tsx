@@ -137,6 +137,12 @@ function makeProps(overrides: Partial<TourMobileRunwayProps> = {}): TourMobileRu
     onRun: () => {},
     onShare: () => {},
     onOpenInEditor: () => {},
+    runwayDoc: 'AMRAP 10\n  10 Pull-ups\n',
+    onRunwayDocChange: () => {},
+    onRunwayBlocksChange: () => {},
+    onRunwayRun: () => {},
+    onRunwayShare: () => {},
+    onRunwayOpenInEditor: () => {},
     onChoice: () => {},
     entered: { editor: true, timer: false, analytics: false },
     onStageChange: () => {},
@@ -203,10 +209,11 @@ describe('TourMobileRunway', () => {
   it('renders the pinned editor window and all seven caption cards', async () => {
     await renderRunway()
 
-    // The pinned window holds the live hero editor.
+    // The pinned window holds the live runway editor; the hero editor also
+    // mounts at the top of the page (two editor contexts, like desktop).
     const window_ = screen.getByTestId('tour-mobile-runway-window')
     expect(window_.textContent).toContain('WOD Editor & Autocomplete')
-    expect(screen.getByTestId('mock-note-editor')).toBeTruthy()
+    expect(screen.getAllByTestId('mock-note-editor')).toHaveLength(2)
 
     for (const stageId of [
       'editor-blank',
@@ -299,8 +306,9 @@ describe('TourMobileRunway', () => {
       cardObserver()!.trigger([{ target: timerCard, isIntersecting: true }])
     })
 
-    // The editor stays in the DOM (cross-faded out, not unmounted).
-    expect(screen.getByTestId('mock-note-editor')).toBeTruthy()
+    // The runway editor stays in the DOM (cross-faded out, not unmounted);
+    // the hero editor at the top is also still mounted.
+    expect(screen.getAllByTestId('mock-note-editor').length).toBeGreaterThanOrEqual(2)
   })
 
   it('exposes scrollToStage which scrolls the stage card into view', async () => {

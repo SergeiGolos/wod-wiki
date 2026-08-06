@@ -61,6 +61,14 @@ export const TourTvCard = forwardRef<HTMLDivElement, TourTvCardProps>(
         data-testid="tour-tv-card"
         className="pointer-events-none absolute -right-8 -bottom-12 z-20 w-[360px] opacity-0"
       >
+        {/* Identity badge (#dogfood: the unlabeled mini-timer read as a
+            duplicate artifact of the main demo window). */}
+        <div className="mb-2 flex justify-end">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-background shadow-lg">
+            <span className="size-[7px] animate-pulse rounded-full bg-[hsl(var(--metric-effort))]" />
+            Casting to Living Room TV
+          </span>
+        </div>
         {/* Bezel */}
         <div className="rounded-xl border border-black/80 bg-[#141311] p-[10px] pb-[22px] shadow-[0_30px_60px_-18px_rgba(18,17,14,0.5)]">
           {/* Screen: real receiver UI rendered at 960×540, scaled to fit */}
@@ -108,10 +116,6 @@ export const TourTvCard = forwardRef<HTMLDivElement, TourTvCardProps>(
         {/* Stand */}
         <div className="mx-auto h-2.5 w-[64px] rounded-b-md bg-[#2A2822]" />
         <div className="mx-auto h-[5px] w-[150px] rounded-[3px] bg-[#22201C] shadow-[0_4px_10px_rgba(18,17,14,0.4)]" />
-        <div className="mt-2.5 flex items-center gap-2 text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
-          <span className="size-[7px] animate-pulse rounded-full bg-[hsl(var(--metric-effort))]" />
-          Living Room TV · Chromecast
-        </div>
       </div>
     )
   },

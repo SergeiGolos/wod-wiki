@@ -11,7 +11,7 @@
  *    on desktop they compact into a list beside the side-sticky window.
  */
 
-import React, { useRef, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import type { Chapter, Quest } from '../canvas/parseCanvasMarkdown'
@@ -59,7 +59,14 @@ export function ChapterHeroSection({
   onOpenInEditor,
   className,
 }: ChapterHeroSectionProps) {
-  const [visible, setVisible] = useState(true)
+  // Mount-once (#dogfood: fast scroll-jumps churned CodeMirror mount/unmount
+  // cycles, leaving cards blank until the main thread settled). The sticky
+  // window keeps its size whether or not the editor has mounted, so the
+  // placeholder is a blank panel, not layout shift.
+  const [everVisible, setEverVisible] = useState(false)
+  const handleVisibilityChange = useCallback((visible: boolean) => {
+    if (visible) setEverVisible(true)
+  }, [])
   const { markComplete } = usePageQuests('/', allQuests)
   const { chapters: chapterProgress } = useChapterProgress(allChapters)
 
@@ -83,16 +90,32 @@ export function ChapterHeroSection({
     return { id, label, isDone }
   })
 
-  // Sticky view: real editor, lazy-mounted while on-screen (memory budget).
+  // Sticky view: real editor, mounted on first visibility and kept (churn
+  // from unmounting on exit was the fast-scroll blank-card bug).
   const stickyView = (
     <div className="flex h-full flex-col bg-background">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <span className="font-mono text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
           {chapter.title} · first example
         </span>
+        {currentChapterProgress && (
+          <span
+            data-testid={`chapter-progress-${chapter.id}`}
+            className={cn(
+              'rounded-full px-2 py-0.5 font-mono text-[9px] font-bold tabular-nums',
+              currentChapterProgress.isComplete
+                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                : 'bg-muted text-muted-foreground',
+            )}
+          >
+            {currentChapterProgress.isComplete
+              ? 'done ✓'
+              : `${currentChapterProgress.completedCount}/${currentChapterProgress.totalCount}`}
+          </span>
+        )}
       </div>
       <div className="min-h-0 flex-1">
-        {visible ? (
+        {everVisible ? (
           <TourEditorScreen
             doc={doc}
             onDocChange={setDoc}
@@ -105,9 +128,7 @@ export function ChapterHeroSection({
             theme={theme}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-            Offscreen
-          </div>
+          <div className="h-full bg-muted/20" aria-hidden />
         )}
       </div>
     </div>
@@ -175,7 +196,7 @@ export function ChapterHeroSection({
       stickyView={stickyView}
       slides={slides}
       footer={footer}
-      onVisibilityChange={setVisible}
+      onVisibilityChange={handleVisibilityChange}
       className={className}
     />
   )

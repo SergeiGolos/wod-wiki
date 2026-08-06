@@ -82,7 +82,6 @@ describe('ScriptRuntime StackSnapshot construction', () => {
         const before = clock.currentDate.getTime();
         const received: StackSnapshot[] = [];
         runtime.subscribeToStack((snapshot) => received.push(snapshot));
-        const after = clock.currentDate.getTime();
 
         expect(received.length).toBe(0);
         vi.runAllTimers();
@@ -92,6 +91,26 @@ describe('ScriptRuntime StackSnapshot construction', () => {
         expect(received[0].blocks).toEqual(runtime.stack.blocks);
         const snapshotTime = received[0].clockTime.getTime();
         expect(snapshotTime).toBeGreaterThanOrEqual(before);
-        expect(snapshotTime).toBeLessThanOrEqual(after);
+    });
+
+    it('captures the deferred initial snapshot at delivery time, not subscribe time', () => {
+        // Regression (#dogfood "WaitingToStart" headline): the tour pops its
+        // idle-gate block in a microtask between subscription and the deferred
+        // delivery. Capture-at-subscribe would deliver that stale stack last,
+        // clobbering the fresher pop/push notifications.
+        vi.useFakeTimers();
+        const received: StackSnapshot[] = [];
+        runtime.subscribeToStack((snapshot) => received.push(snapshot));
+
+        // Mutate AFTER subscribing but BEFORE the deferred delivery fires.
+        const late = createMockBlock('LateBlock');
+        runtime.pushBlock(late);
+        received.length = 0; // ignore the synchronous push notification
+
+        vi.runAllTimers();
+        expect(received.length).toBe(1);
+        expect(received[0].type).toBe('initial');
+        expect(received[0].blocks).toEqual(runtime.stack.blocks);
+        expect(received[0].blocks).toContain(late);
     });
 });

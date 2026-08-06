@@ -29,19 +29,18 @@ import {
   type TourStage,
   type TourStageId,
 } from './tourStages'
-import { TourHeroHeading } from './TourHero'
+import { TourHero } from './TourHero'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
 import { TOUR_CAPTIONS, CaptionBody } from './TourCaptions'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
-import { TourLearnSection } from './TourLearnSection'
+import { LearnProgressOverview } from './TourLearnSection'
 import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
 import { CelebrationBridge } from './CelebrationBridge'
 import { ChapterHeroSection } from './ChapterHeroSection'
-import { LearnProgressOverview } from './TourLearnSection'
 import { TourRing } from './TourRing'
 
 /**
@@ -77,13 +76,22 @@ export interface TourMobileRunwayProps {
   onChapterShare?: (doc: string) => void
   onChapterOpenInEditor?: (doc: string) => void
   onHomeQuestClick?: (questId: string) => void
-  /** Hero editor context — the pinned live editor (editable, runnable). */
+  /** Hero editor context — the live welcome-1.md editor at the top of the
+   *  page (editable, runnable), matching the desktop hero. */
   doc: string
   onDocChange: (next: string) => void
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
   onShare: () => void
   onOpenInEditor: () => void
+  /** Runway editor context — the pinned demo window (editor → timer →
+   *  analytics), independent of the hero like the desktop runway. */
+  runwayDoc: string
+  onRunwayDocChange: (next: string) => void
+  onRunwayBlocksChange: (blocks: ScriptBlock[]) => void
+  onRunwayRun: () => void
+  onRunwayShare: () => void
+  onRunwayOpenInEditor: () => void
   /** Shared-script attribution + reset, forwarded to the editor (#882). */
   sharedBy?: string
   onResetShared?: () => void
@@ -95,6 +103,8 @@ export interface TourMobileRunwayProps {
   onStageChange: (stage: TourStage) => void
   timer: TourMobileTimerProps
   analyticsSegments: Segment[]
+  /** Crumb for the analytics screen (fixture vs logged session). */
+  analyticsTitle?: string
   /** Arrival-reset sentinel (#882) — HomeTour observes this wrapper. */
   heroRef: React.Ref<HTMLDivElement>
   /** Imperative escape hatch for quest clicks / completion auto-slide. */
@@ -116,6 +126,12 @@ export function TourMobileRunway({
   onRun,
   onShare,
   onOpenInEditor,
+  runwayDoc,
+  onRunwayDocChange,
+  onRunwayBlocksChange,
+  onRunwayRun,
+  onRunwayShare,
+  onRunwayOpenInEditor,
   sharedBy,
   onResetShared,
   onChoice,
@@ -123,6 +139,7 @@ export function TourMobileRunway({
   onStageChange,
   timer,
   analyticsSegments,
+  analyticsTitle,
   heroRef,
   apiRef,
 }: TourMobileRunwayProps) {
@@ -149,20 +166,23 @@ export function TourMobileRunway({
   const readingZoneTop = Math.round(viewportHeight / 2 + MOBILE_STICKY_TOP / 2)
 
   const resolveVisibleStage = useCallback(() => {
-    // Pick the visible card nearest the reading-zone center.
-    const zoneCenter = readingZoneTop + (viewportHeight - readingZoneTop) / 2
+    // Active card = the one whose TOP sits nearest just below the pinned
+    // window (#dogfood mobile: headline clipped behind the demo card when the
+    // center-anchored pick settled mid-card). Anchoring to the top keeps the
+    // active card's headline visible; taller cards simply read on downward.
+    const anchor = readingZoneTop + 12
     let bestIdx = -1
     let bestDist = Infinity
     visibleRef.current.forEach((idx, el) => {
       const rect = el.getBoundingClientRect()
-      const dist = Math.abs(rect.top + rect.height / 2 - zoneCenter)
+      const dist = Math.abs(rect.top - anchor)
       if (dist < bestDist) {
         bestDist = dist
         bestIdx = idx
       }
     })
     if (bestIdx >= 0) setStage(TOUR_STAGES[bestIdx])
-  }, [readingZoneTop, viewportHeight])
+  }, [readingZoneTop])
 
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') return
@@ -208,7 +228,9 @@ export function TourMobileRunway({
     apiRef.current = {
       scrollToStage: (stageId) => {
         const idx = TOUR_STAGES.findIndex((s) => s.id === stageId)
-        if (idx >= 0) cardRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        // block:'start' + the cards' scroll-margin-top lands the card top just
+        // below the pinned window — center-landing hid the headline behind it.
+        if (idx >= 0) cardRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       },
     }
     return () => {
@@ -234,15 +256,28 @@ export function TourMobileRunway({
 
   const screen: TourScreen = stage?.screen ?? 'editor'
 
+  // Mobile ring resolution: the desktop slice resolves ringA/ringB beats from
+  // scroll progress; the card-driven mobile stage has no local t, so beat A
+  // is the anchor (#dogfood: `stage?.ring` doesn't exist on TourStage — the
+  // ring never rendered on mobile).
+  const ringTarget = stage?.ringA ? { key: stage.ringA, tag: stage.tagA } : null
+
   return (
     <div data-testid="tour-mobile-runway" className="flex flex-col">
-      {/* Headline — scrolls away naturally; the editor lives in the pinned window. */}
-      <div
-        ref={heroRef}
-        className="relative flex flex-col items-center justify-center px-6 pt-10 pb-6 text-center"
-        style={{ minHeight: 'auto' }}
-      >
-        <TourHeroHeading />
+      {/* Hero — same first section as desktop: headline + live welcome-1.md
+          demo editor, formatted for mobile. */}
+      <div ref={heroRef}>
+        <TourHero
+          theme={theme}
+          doc={doc}
+          onDocChange={onDocChange}
+          onBlocksChange={onBlocksChange}
+          onRun={onRun}
+          onShare={onShare}
+          onOpenInEditor={onOpenInEditor}
+          sharedBy={sharedBy}
+          onResetShared={onResetShared}
+        />
       </div>
 
       <TourShortCircuitStrip />
@@ -257,18 +292,19 @@ export function TourMobileRunway({
         >
           <MacOSChrome title={SCREEN_TITLES[screen]} className="h-full">
             <div ref={windowCanvasRef} className="relative h-full">
-              <TourRing target={stage?.ring} accent="hsl(var(--metric-resistance))" canvasRef={windowCanvasRef} unscaled />
+              <TourRing target={ringTarget} accent={stage?.accent ?? 'hsl(var(--metric-resistance))'} canvasRef={windowCanvasRef} unscaled />
               <ScreenFade visible={screen === 'editor'}>
                 <TourEditorScreen
-                  doc={doc}
-                  onDocChange={onDocChange}
-                  onBlocksChange={onBlocksChange}
-                  onRun={onRun}
-                  onShare={onShare}
-                  onOpenInEditor={onOpenInEditor}
+                  doc={runwayDoc}
+                  onDocChange={onRunwayDocChange}
+                  onBlocksChange={onRunwayBlocksChange}
+                  onRun={onRunwayRun}
+                  onShare={onRunwayShare}
+                  onOpenInEditor={onRunwayOpenInEditor}
                   theme={theme}
                   sharedBy={sharedBy}
                   onResetShared={onResetShared}
+                  withRingTargets
                 />
               </ScreenFade>
               {entered.timer && (
@@ -287,7 +323,7 @@ export function TourMobileRunway({
               )}
               {entered.analytics && (
                 <ScreenFade visible={screen === 'analytics'}>
-                  <TourAnalyticsScreen segments={analyticsSegments} />
+                  <TourAnalyticsScreen segments={analyticsSegments} title={analyticsTitle} />
                 </ScreenFade>
               )}
             </div>
@@ -304,7 +340,12 @@ export function TourMobileRunway({
               }}
               data-testid={`tour-mobile-card-${cap.id}`}
               className="flex items-center justify-center px-6 py-8"
-              style={{ minHeight: CARD_SLOT_MIN_HEIGHT }}
+              style={{
+                minHeight: CARD_SLOT_MIN_HEIGHT,
+                // Land scrollToStage arrivals just below the pinned window
+                // (window bottom ≈ 50vh + MOBILE_STICKY_TOP / 2).
+                scrollMarginTop: `calc(50vh + ${MOBILE_STICKY_TOP / 2}px + 12px)`,
+              }}
             >
               <article className="w-full max-w-xl rounded-2xl border border-border bg-card p-6">
                 <CaptionBody cap={cap} onChoice={onChoice} />

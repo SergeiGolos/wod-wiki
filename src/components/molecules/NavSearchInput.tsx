@@ -35,7 +35,10 @@ export function NavSearchInput({ onOpen, className }: NavSearchInputProps) {
     >
       <MagnifyingGlassIcon className="size-4 shrink-0" />
       <span className="hidden sm:inline text-xs text-muted-foreground/70">Search…</span>
-      <ShortcutBadge tokens={['meta', 'K']} />
+      {/* Keyboard affordance is meaningless on touch viewports (#dogfood). */}
+      <span className="hidden sm:contents">
+        <ShortcutBadge tokens={['meta', 'K']} />
+      </span>
     </button>
   )
 }

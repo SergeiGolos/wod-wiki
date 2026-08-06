@@ -61,7 +61,6 @@ import { TourTvCard } from './TourTvCard'
 import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
-import { TourLearnSection } from './TourLearnSection'
 import { CelebrationBridge } from './CelebrationBridge'
 import { ChapterHeroSection } from './ChapterHeroSection'
 import { LearnProgressOverview } from './TourLearnSection'
@@ -70,6 +69,7 @@ import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
 import { TourMobileStack } from './TourMobileStack'
 import { TourMobileRunway, type TourMobileRunwayApi } from './TourMobileRunway'
+import { getTourFixtureSegments } from './tourFixtureSession'
 import { HOME_EVENTS, useTelemetry } from '@/services/telemetry'
 import { journalNotePath } from '../lib/routes'
 import { getTodayDateKey } from '../services/dateUtils'
@@ -333,7 +333,22 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     if (segments.length > 0) setScrollSegments(segments)
   }, [isMobile, interactive, mobileStage, session, scrollSegments.length])
 
-  const analyticsSegments = session?.segments ?? scrollSegments
+  const fixtureSegments = useMemo(
+    // Canned 21-15-9 session (#dogfood): the analytics slides must never boot
+    // empty for a visitor who hasn't run the demo. A real session or the
+    // ambient scroll-mode drain always takes precedence over the fixture.
+    () => (entered.analytics && !session && scrollSegments.length === 0 ? getTourFixtureSegments() : []),
+    [entered.analytics, session, scrollSegments.length],
+  )
+  const analyticsSegments = session?.segments ?? (scrollSegments.length > 0 ? scrollSegments : fixtureSegments)
+  const analyticsIsFixture = !session && scrollSegments.length === 0 && fixtureSegments.length > 0
+  const analyticsTitle = analyticsIsFixture
+    ? 'Sample session · press Run to log your own'
+    : logState === 'logging'
+      ? 'Journal / today · logging…'
+      : logState === 'failed'
+        ? 'Session Review · not saved to journal'
+        : 'Journal / today · logged from timer'
 
   // ── TV card clock (mirrors the real session start) ──
   const timerStartedAtRef = useRef<number | null>(null)
@@ -402,20 +417,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     const stage = TOUR_STAGES.find((s) => s.id === stageId)
     if (stage) scrollRunwayTo(el, Math.min(stage.start + 0.02, stage.end - 0.005))
   }, [])
-
-  // Choose-your-own-adventure on the mobile runway replaces the pinned
-  // (hero-context) editor's script — the runway editor context is
-  // desktop-only.
-  const handleMobileChoice = useCallback(
-    (wod: string) => {
-      const next = buildAdventureScript(wod)
-      heroEditedRecordedRef.current = false
-      setHeroDoc(next)
-      startNewSession()
-      track?.(HOME_EVENTS.demoEdited)
-    },
-    [startNewSession, track],
-  )
 
   // ── Hero interactions (self-contained editor context) ──
   const handleHeroDocChange = useCallback(
@@ -716,13 +717,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
         {interactive === 'analytics' && entered.analytics && (
           <TourAnalyticsScreen
             segments={analyticsSegments}
-            title={
-              logState === 'logging'
-                ? 'Journal / today · logging…'
-                : logState === 'failed'
-                  ? 'Session Review · not saved to journal'
-                  : 'Journal / today · logged from timer'
-            }
+            title={analyticsTitle}
           />
         )}
       </div>
@@ -834,14 +829,20 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
           onRun={handleHeroRun}
           onShare={handleHeroShare}
           onOpenInEditor={handleHeroOpenInEditor}
+          runwayDoc={runwayDoc}
+          onRunwayDocChange={handleRunwayDocChange}
+          onRunwayBlocksChange={handleRunwayBlocksChange}
+          onRunwayRun={handleRunwayRun}
+          onRunwayShare={handleRunwayShare}
+          onRunwayOpenInEditor={handleRunwayOpenInEditor}
           sharedBy={sharedBy}
           onResetShared={handleClearShared}
-          onChoice={handleMobileChoice}
+          onChoice={handleWorkoutChoice}
           entered={entered}
           onStageChange={handleMobileStageChange}
           timer={{
             sessionKey: timerSessionKey,
-            block: heroBlocksRef.current[0] ?? null,
+            block: runwayBlocksRef.current[0] ?? null,
             autoStart: timerAutoStartRef.current,
             externalPause: scrollOutPause,
             onClose: handleTimerClose,
@@ -850,6 +851,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
             onReset: handleTimerReset,
           }}
           analyticsSegments={analyticsSegments}
+          analyticsTitle={analyticsTitle}
           heroRef={heroRef}
           apiRef={mobileRunwayApiRef}
         />
@@ -957,13 +959,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
                       <Screen visible={activeScreen === 'analytics'}>
                         <TourAnalyticsScreen
                           segments={analyticsSegments}
-                          title={
-                            logState === 'logging'
-                              ? 'Journal / today · logging…'
-                              : logState === 'failed'
-                                ? 'Session Review · not saved to journal'
-                                : 'Journal / today · logged from timer'
-                          }
+                          title={analyticsTitle}
                         />
                       </Screen>
                     )}

@@ -61,7 +61,11 @@ export function TourHeroHeading() {
         journal — one file, one loop, no app-switching.
       </p>
 
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 animate-bounce font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">
+      {/* Desktop-only: absolutely positioned against the full-height hero.
+          On mobile the heading block is short, so the cue overlapped the intro
+          paragraph — the short-circuit strip below already carries the
+          "keep scrolling" hint there. */}
+      <div className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 animate-bounce font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60 sm:block">
         ↓ Scroll — the app, part by part
       </div>
     </>
