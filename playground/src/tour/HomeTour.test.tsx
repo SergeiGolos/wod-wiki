@@ -166,8 +166,8 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'editor.runButton', tag: 'Run Button' },
     }
   }
-  if (progress < 0.60) {
-    const t = (progress - 0.45) / 0.15
+  if (progress < 0.58) {
+    const t = (progress - 0.45) / 0.13
     return {
       index: 3,
       stage: {
@@ -180,8 +180,8 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'timer.floor', tag: 'WallClock' },
     }
   }
-  if (progress < 0.72) {
-    const t = (progress - 0.60) / 0.12
+  if (progress < 0.68) {
+    const t = (progress - 0.58) / 0.10
     return {
       index: 4,
       stage: {
@@ -194,10 +194,24 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'timer.nextButton', tag: 'Next Button' },
     }
   }
-  if (progress < 0.86) {
-    const t = (progress - 0.72) / 0.14
+  if (progress < 0.79) {
+    const t = (progress - 0.68) / 0.11
     return {
       index: 5,
+      stage: {
+        id: 'timer-cast',
+        screen: 'timer',
+        accent: 'hsl(var(--metric-effort))',
+        label: 'Cast to the Big Screen',
+      },
+      t,
+      ring: { key: 'timer.castButton', tag: 'Cast' },
+    }
+  }
+  if (progress < 0.895) {
+    const t = (progress - 0.79) / 0.105
+    return {
+      index: 6,
       stage: {
         id: 'analytics-scorecard',
         screen: 'analytics',
@@ -208,9 +222,9 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'analytics.scorecard', tag: 'Scorecard' },
     }
   }
-  const t = (progress - 0.86) / 0.14
+  const t = (progress - 0.895) / 0.105
   return {
-    index: 6,
+    index: 7,
     stage: {
       id: 'analytics-grid',
       screen: 'analytics',
@@ -413,7 +427,7 @@ describe('HomeTour', () => {
 
     // Drive to the Analytics Scorecard stage.
     await act(async () => {
-      setTestTourProgress(0.78)
+      setTestTourProgress(0.83)
       await Promise.resolve()
     })
     const explorerLink = await screen.findByRole('link', { name: /Run a pre-filled query/i })
@@ -471,7 +485,7 @@ describe('HomeTour', () => {
 
     // Drive to the analytics-scorecard stage and click a drop-off.
     await act(async () => {
-      setTestTourProgress(0.78)
+      setTestTourProgress(0.83)
       await Promise.resolve()
     })
     const explorerLink = await screen.findByRole('link', { name: /Run a pre-filled query/i })
@@ -669,7 +683,7 @@ describe('HomeTour', () => {
     // Scroll forward onto the analytics cards — the same panel stays mounted
     // (no reset) but is signaled to halt.
     await act(async () => {
-      setTestTourProgress(0.78)
+      setTestTourProgress(0.83)
       await Promise.resolve()
     })
     expect(screen.getByTestId('mock-timer-panel').getAttribute('data-external-pause')).toBe('true')
@@ -710,7 +724,7 @@ describe('HomeTour', () => {
     // Visitor scrolls to analytics first; the ambient drain completing the
     // runtime there must not yank the runway back to card 1.
     await act(async () => {
-      setTestTourProgress(0.78)
+      setTestTourProgress(0.83)
       await Promise.resolve()
     })
     resetScrollSpy()

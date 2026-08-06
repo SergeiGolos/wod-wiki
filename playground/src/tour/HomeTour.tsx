@@ -912,7 +912,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
           </div>
 
           {/* stage main */}
-          <div className="relative mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 items-center justify-center gap-[clamp(24px,3.5vw,56px)] px-0 pb-0 lg:px-12 lg:pb-5">
+          <div className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 items-center justify-center gap-[clamp(24px,3.5vw,56px)] px-0 pb-0 lg:px-12 lg:pb-5">
             {/* canvas */}
             <div
               ref={canvasRef}
@@ -977,17 +977,17 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
                   </div>
                 </MacOSChrome>
 
+                {/* cast TV — rises over the timer window's left sidebar
+                    (the Up Next zone) during the timer-cast slide, clear of
+                    the clock and the Stop/Pause/Next controls. */}
+                <TourTvCard ref={tvCardRef} runtime={tourRuntime} />
+
                 <TourRing target={interactive ? null : slice.ring} accent={slice.stage.accent} canvasRef={canvasInnerRef} />
               </div>
             </div>
 
             {/* captions */}
             <TourCaptions activeIndex={slice.index} onChoice={handleWorkoutChoice} />
-
-            {/* cast TV — rises on the right, under the captions, during the
-                timer-cast slide (kept out of the scaled canvas so it never
-                covers the clock window it mirrors). */}
-            <TourTvCard ref={tvCardRef} runtime={tourRuntime} />
           </div>
         </div>
       </section>
