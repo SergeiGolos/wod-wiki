@@ -4,7 +4,6 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import React from 'react'
 import { ScrollSection } from './ScrollSection'
 
 // Mock IntersectionObserver
@@ -105,15 +104,15 @@ describe('ScrollSection', () => {
     const slot = (i: number) => ({ dataset: { slideIndex: String(i) } }) as unknown as HTMLElement
 
     // Slide 0 enters the reading zone.
-    observerCallback([{ isIntersecting: true, target: slot(0) } as IntersectionObserverEntry])
+    observerCallback([{ isIntersecting: true, target: slot(0) } as unknown as IntersectionObserverEntry])
     expect(onActiveSlideChange).toHaveBeenLastCalledWith(0)
 
     // Same index again is not re-fired (debounced).
-    observerCallback([{ isIntersecting: true, target: slot(0) } as IntersectionObserverEntry])
+    observerCallback([{ isIntersecting: true, target: slot(0) } as unknown as IntersectionObserverEntry])
     expect(onActiveSlideChange).toHaveBeenCalledTimes(1)
 
     // Slide 1 replaces it.
-    observerCallback([{ isIntersecting: true, target: slot(1) } as IntersectionObserverEntry])
+    observerCallback([{ isIntersecting: true, target: slot(1) } as unknown as IntersectionObserverEntry])
     expect(onActiveSlideChange).toHaveBeenLastCalledWith(1)
     expect(onActiveSlideChange).toHaveBeenCalledTimes(2)
   })

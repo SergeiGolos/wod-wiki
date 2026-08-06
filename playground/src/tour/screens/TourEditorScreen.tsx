@@ -1,8 +1,10 @@
-import React, { useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Play, RotateCcw, Share2 } from 'lucide-react'
+import type { EditorView } from '@codemirror/view'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { useRingRef } from '../TourRing'
+import { chapterFocus, setChapterFocus } from '@/components/Editor/extensions/chapter-focus'
 export interface TourEditorScreenProps {
   doc: string
   onDocChange: (next: string) => void
@@ -11,6 +13,12 @@ export interface TourEditorScreenProps {
   onShare: () => void
   onOpenInEditor: () => void
   theme: string
+  /**
+   * Chapter-tour focus line spec (e.g. `2-4`): highlights the lines this
+   * chapter teaches. Dispatched as a StateEffect — no editor reconfigure,
+   * so fast chapter scroll-swaps don't churn CodeMirror.
+   */
+  focus?: string
   /**
    * Set when the demo is a shared script (#882): the header reads
    * `shared by: {sharedBy}` instead of the welcome-1.md path, and a Reset
@@ -43,6 +51,7 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
   onShare,
   onOpenInEditor,
   theme,
+  focus,
   sharedBy,
   onResetShared,
   withRingTargets = false,
@@ -51,6 +60,15 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
   const wodBlockRef = useRingRef('editor.wodBlock')
   const runButtonRef = useRingRef('editor.runButton')
   const bodyRef = useRef<HTMLDivElement | null>(null)
+  const viewRef = useRef<EditorView | null>(null)
+
+  // Chapter-tour focus: re-apply the line highlight whenever the chapter's
+  // focus spec or the doc changes (doc swap completes before this runs —
+  // child effects flush before parent effects).
+  useEffect(() => {
+    if (!viewRef.current) return
+    setChapterFocus(viewRef.current, focus ?? null)
+  }, [focus, doc])
   const [blockBox, setBlockBox] = useState<BlockBox | null>(null)
 
   // Card 2 highlight (#884): measure the styled fence lines
@@ -159,6 +177,8 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
           value={doc}
           onChange={onDocChange}
           onBlocksChange={onBlocksChange}
+          onViewCreated={(v) => { viewRef.current = v }}
+          extensions={[chapterFocus()]}
           theme={theme}
           readonly={false}
           showLineNumbers={false}

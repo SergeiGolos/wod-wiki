@@ -62,8 +62,7 @@ import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { CelebrationBridge } from './CelebrationBridge'
-import { ChapterHeroSection } from './ChapterHeroSection'
-import { LearnProgressOverview } from './TourLearnSection'
+import { ChapterTourSection } from './ChapterTourSection'
 import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
@@ -994,28 +993,15 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
       <CelebrationBridge chapters={chapters} />
 
-      {/* Six Syntax Chapter Heroes */}
-      {chapters
-        .filter((c) => c.id !== 'home-tour')
-        .map((ch) => (
-          <ChapterHeroSection
-            key={ch.id}
-            chapter={ch}
-            allChapters={chapters}
-            allQuests={quests}
-            theme={theme}
-            questLabels={questLabels}
-            onRun={handleChapterRun}
-            onShare={handleChapterShare}
-            onOpenInEditor={handleChapterOpenInEditor}
-          />
-        ))}
-
-      <LearnProgressOverview
-        quests={quests}
+      {/* Six Syntax Chapters — one shared morphing window + per-chapter slides */}
+      <ChapterTourSection
         chapters={chapters}
+        allQuests={quests}
+        theme={theme}
         questLabels={questLabels}
-        onHomeQuestClick={handleHomeQuestClick}
+        onRun={handleChapterRun}
+        onShare={handleChapterShare}
+        onOpenInEditor={handleChapterOpenInEditor}
       />
 
       {interactive && playgroundOverlay}

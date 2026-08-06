@@ -80,6 +80,8 @@ sections: []
 id: basics
 title: Basics
 badge: trophy
+desc: Statements and metrics — how a workout line reads, from rounds to reps.
+focus: 2-4
 quests: basics-run, basics-movement, basics-reps, basics-load
 sections: []
 ```
@@ -88,6 +90,8 @@ sections: []
 id: protocols
 title: Protocols
 badge: timer
+desc: Countdowns, AMRAPs, EMOMs — the timing protocols that pace a workout.
+focus: 1,5
 quests: protocols-run, protocols-timer, protocols-rounds, protocols-tag
 sections: []
 ```
@@ -96,6 +100,8 @@ sections: []
 id: structure
 title: Structure
 badge: blocks
+desc: Rounds, groups, and nesting — how blocks compose a workout.
+focus: 1
 quests: structure-run, structure-rounds, structure-repscheme
 sections: []
 ```
@@ -104,6 +110,8 @@ sections: []
 id: custom-metrics
 title: Custom Metrics
 badge: activity
+desc: Reps, loads, and custom metrics — what gets tracked per movement.
+focus: 2-5
 quests: custom-metrics-run, metrics-custom, metrics-calc
 sections: []
 ```
@@ -112,6 +120,8 @@ sections: []
 id: dialects
 title: Dialects
 badge: file-text
+desc: Run, climb, strength — dialect tags that specialize a block.
+focus: 5-6
 quests: dialects-run, dialects-log, dialects-climb
 sections: []
 ```
@@ -120,6 +130,8 @@ sections: []
 id: complex
 title: Complex Workouts
 badge: puzzle
+desc: AMRAPs into strength ladders — composing richer workout shapes.
+focus: 5-6
 quests: complex-run, complex-time, complex-rounds
 sections: []
 ```

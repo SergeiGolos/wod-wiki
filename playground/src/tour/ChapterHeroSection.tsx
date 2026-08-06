@@ -37,7 +37,7 @@ export interface ChapterHeroSectionProps {
 }
 
 /** First-example source per chapter (mirrors each guide's opening ```time block). */
-const CHAPTER_EXAMPLES: Record<string, string> = {
+export const CHAPTER_EXAMPLES: Record<string, string> = {
   basics: '```time\n10 Pushups\n15 Air Squats\n:30 Rest\n```',
   protocols: '```time (3 Rounds)\n10 Pushups\n15 Air Squats\n:30 Rest\n5:00 Run hard\n```',
   structure: '```time (3 Rounds)\n10 Pushups\n15 Air Squats\n:30 Rest\n```',
