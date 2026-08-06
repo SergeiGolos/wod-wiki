@@ -759,7 +759,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
     return subscribe((s: TourStageSlice) => {
       const tv = tvCardRef.current
       if (tv) {
-        if (s.stage.id === 'timer-next') {
+        if (s.stage.id === 'timer-cast') {
           const k = clamp01((s.t - 0.1) / 0.5)
           const e = 1 - Math.pow(1 - k, 2)
           tv.style.opacity = String(k)
@@ -912,7 +912,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
           </div>
 
           {/* stage main */}
-          <div className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 items-center justify-center gap-[clamp(24px,3.5vw,56px)] px-0 pb-0 lg:px-12 lg:pb-5">
+          <div className="relative mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 items-center justify-center gap-[clamp(24px,3.5vw,56px)] px-0 pb-0 lg:px-12 lg:pb-5">
             {/* canvas */}
             <div
               ref={canvasRef}
@@ -977,14 +977,17 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
                   </div>
                 </MacOSChrome>
 
-                <TourTvCard ref={tvCardRef} runtime={tourRuntime} />
-
                 <TourRing target={interactive ? null : slice.ring} accent={slice.stage.accent} canvasRef={canvasInnerRef} />
               </div>
             </div>
 
             {/* captions */}
             <TourCaptions activeIndex={slice.index} onChoice={handleWorkoutChoice} />
+
+            {/* cast TV — rises on the right, under the captions, during the
+                timer-cast slide (kept out of the scaled canvas so it never
+                covers the clock window it mirrors). */}
+            <TourTvCard ref={tvCardRef} runtime={tourRuntime} />
           </div>
         </div>
       </section>

@@ -43,6 +43,7 @@ export function RingTargetsProvider({ children }: { children: ReactNode }) {
     'editor.typeahead': null,
     'timer.floor': null,
     'timer.nextButton': null,
+    'timer.castButton': null,
     'analytics.scorecard': null,
     'analytics.grid': null,
   })

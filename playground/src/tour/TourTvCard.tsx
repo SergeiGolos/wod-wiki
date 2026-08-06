@@ -59,7 +59,7 @@ export const TourTvCard = forwardRef<HTMLDivElement, TourTvCardProps>(
       <div
         ref={innerRef}
         data-testid="tour-tv-card"
-        className="pointer-events-none absolute -right-8 -bottom-12 z-20 w-[360px] opacity-0"
+        className="pointer-events-none absolute right-4 bottom-2 z-20 w-[360px] opacity-0 lg:right-12 lg:bottom-6"
       >
         {/* Identity badge (#dogfood: the unlabeled mini-timer read as a
             duplicate artifact of the main demo window). */}

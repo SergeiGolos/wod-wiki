@@ -206,7 +206,7 @@ describe('TourMobileRunway', () => {
     ;(globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = realIO
   })
 
-  it('renders the pinned editor window and all seven caption cards', async () => {
+  it('renders the pinned editor window and all eight caption cards', async () => {
     await renderRunway()
 
     // The pinned window holds the live runway editor; the hero editor also
@@ -221,6 +221,7 @@ describe('TourMobileRunway', () => {
       'editor-run',
       'timer-wallclock',
       'timer-next',
+      'timer-cast',
       'analytics-scorecard',
       'analytics-grid',
     ]) {
