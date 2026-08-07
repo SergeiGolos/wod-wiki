@@ -112,7 +112,7 @@ const scriptBlockBaseTheme = EditorView.baseTheme({
   ".cm-wod-fence-open, .cm-wod-fence-close": {
     fontSize: "10px",
     lineHeight: "22px",
-    opacity: "0.35",
+    opacity: "0.45",
     fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace",
     color: "inherit",
     // Indent to align with inner content
@@ -147,7 +147,7 @@ const scriptBlockBaseTheme = EditorView.baseTheme({
   // ── Dark mode adjustments ───────────────────────────────────────
   "&dark .cm-wod-fence-open, &dark .cm-wod-fence-close": {
     backgroundColor: "rgba(96, 165, 250, 0.06)",
-    opacity: "0.3",
+    opacity: "0.4",
   },
   "&dark .cm-wod-fence-open": {
     boxShadow: "0 -3px 10px -2px rgba(0,0,0,0.25), -3px 0 10px -4px rgba(0,0,0,0.2), 3px 0 10px -4px rgba(0,0,0,0.2)",
