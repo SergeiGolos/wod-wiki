@@ -59,7 +59,7 @@ segmentVolume = reps * resistance (library) when has(reps) and has(resistance)
   useEffect(() => {
     if (!initialId) return;
     void (async () => {
-      const rec = (await listUserCalcs()).find((r) => r.id === initialId || r.id === initialId);
+      const rec = (await listUserCalcs()).find((r) => r.id === initialId);
       if (rec) {
         setSrc(rec.lineForm);
         setNotice(`Loaded "${rec.id}".`);

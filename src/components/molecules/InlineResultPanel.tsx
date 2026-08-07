@@ -416,7 +416,6 @@ const ResultRow: React.FC<ResultRowProps> = ({
   }, [result.blockContentId, result.id]);
   const duration = formatDuration(result.data?.duration ?? 0);
   const timeLabel = formatTime(result.createdAt);
-  const dateLabel = formatDateShort(new Date(result.createdAt));
 
   const handleSelectSegment = useCallback(
     (id: number, modifiers?: { ctrlKey: boolean; shiftKey: boolean }, visibleIds?: number[]) => {

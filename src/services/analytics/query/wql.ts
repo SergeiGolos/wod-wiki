@@ -24,7 +24,7 @@ import {
   type WqlAggregator,
   type WqlComparisonOp,
 } from '@/parser/wql-vocabulary';
-import { parseWqlSuffixes, splitAtWhere } from './wqlSuffix';
+import { parseWqlSuffixes } from './wqlSuffix';
 
 export { WQL_AGGREGATORS, WQL_COMPARISON_OPS } from '@/parser/wql-vocabulary';
 export { parseWqlSuffixes, splitAtWhere } from './wqlSuffix';
@@ -128,29 +128,6 @@ function cannotParse(text: string): string {
 // grammar. The split is brace-aware so a `where` inside `{filters}` (a tag
 // value such as `text:where`) is never mistaken for the join.
 
-/**
- * Split a query at the first top-level `where` keyword (depth-0, word-
- * bounded). Returns the primary half and, when present, the join clause text.
- */
-function splitAtWhere(text: string): { primary: string; where?: string } {
-  let depth = 0;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (c === '{') depth++;
-    else if (c === '}') depth = Math.max(0, depth - 1);
-    else if (
-      depth === 0 &&
-      c === 'w' &&
-      text.slice(i, i + 5) === 'where' &&
-      (i === 0 || /\s/.test(text[i - 1])) &&
-      (i + 5 >= text.length || /\s/.test(text[i + 5]))
-    ) {
-      return { primary: text.slice(0, i).trim(), where: text.slice(i + 5).trim() };
-    }
-  }
-  return { primary: text.trim() };
-}
-
 /** Comparison predicate at the tail of a metric join: `<op> <number>`. */
 const CMP_RE = /^(.+?)\s*(>=|<=|!=|==|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/;
 
@@ -186,7 +163,6 @@ function parseJoinClause(where: string): { metric?: MetricPredicate; find?: Find
   };
 }
 
-const DISPLAY_UNIT_RE = /\s+in\s+([a-zA-Z0-9_-]+)\s*$/;
 /**
  * Parse a WQL query string into either an analytics ParsedQuery or a content
  * ParsedFindQuery. Dispatch is textual: a leading `find:` routes to the
