@@ -187,6 +187,26 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     ],
   },
   {
+    id: 'timer-cast',
+    num: '02c / 03 — Cast to the Big Screen',
+    title: (
+      <>
+        Cast to the Big Screen.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>The room paces together.</em>
+      </>
+    ),
+    body: 'Tap the cast button in the timer header and the running clock mirrors to any Chromecast — the receiver shows the movement stack and the live clock, so the whole room follows the same rep without crowding your screen.',
+    foot: 'Chromecast button · receiver UI · shared pacing',
+    accent: TOUR_ACCENTS.timer,
+    actions: [
+      {
+        label: 'Read the behaviors explainer',
+        href: '/guide/behaviors',
+        event: HOME_EVENTS.behaviorsOpened,
+      },
+    ],
+  },
+  {
     id: 'analytics-scorecard',
     num: '03a / 03 — Explore Your Data',
     title: (

@@ -66,18 +66,42 @@ sum:totalVolume{discipline:strength} by {week}.rollup(1w)
 ```
 ````
 
-### Dashboard Block {#dashboard-block}
+### Typed Query Widget {#query-widget}
+
+Widget type and grid span ride the fence-tag suffix (#899):
 
 ````time
-```dashboard
+```query:timeseries-2
+sum:totalVolume{discipline:strength} by {week}.rollup(1w)
+```
+````
+
+### Dashboard Note {#dashboard-note}
+
+A dashboard is a note marked `dashboard: true`, composed of `query` blocks —
+titles come from the markdown heading above each block, controls from
+`dashboard.*` frontmatter tokens referenced as `$name`:
+
+````markdown
+---
 title: Training Review
-widgets:
-  - type: query_value
-    title: Avg TIS
-    query: avg:tis{}
-  - type: timeseries
-    title: Weekly volume
-    query: sum:totalVolume{} by {week}.rollup(1w)
+dashboard: true
+dashboard.intensity:
+  - low
+  - high
+---
+
+## Avg TIS
+
+```query:value
+avg:tis{}
+```
+
+## Load by intensity
+Is training polarized?
+
+```query:stacked-bar
+sum:sessionLoad{intensity:$intensity} by {week}.rollup(1w)
 ```
 ````
 

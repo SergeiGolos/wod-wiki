@@ -58,10 +58,15 @@ export interface ExplorerQueryState {
   /** Set the analytics range (history replace — a view preference, not navigation). */
   setWeeks: (weeks: ExplorerRangeWeeks) => void
 }
-/** Explorer landing state: metrics plane, aggregate seeded, metric empty for
- * placeholder guidance. Compiles to `sum:` — parses as an aggregate (never a
- * find query), so the landing page keeps the analytics empty state. */
-export const defaultExplorerClauses = defaultMetricsClauses
+/** Explorer landing state: metrics plane with `sum:totalVolume` seeded — a
+ * valid, parseable draft (issue #897: the old empty-metric default compiled
+ * to `sum:`, which surfaced a parser error on first visit). Submitted state
+ * still starts empty, so nothing runs until the user submits. */
+export function defaultExplorerClauses(): QueryClause[] {
+  return defaultMetricsClauses().map(c =>
+    c.type === 'metric' ? { ...c, value: 'totalVolume' } : c,
+  )
+}
 
 function parseWeeks(raw: string | null): ExplorerRangeWeeks {
   const n = Number.parseInt(raw ?? '', 10)

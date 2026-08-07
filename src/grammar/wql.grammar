@@ -53,10 +53,11 @@ TagKey { Word }
 // alternative carries its own trailing wildcard star.
 // A value is one or more OR-ed atoms; each atom is `Word:Word` (e.g. the
 // catalog-id `collection:crossfit-girls` for the `source:` filter) or a bare
-// `Word`, with an optional trailing wildcard star.
+// `Word`, or a double-quoted phrase for multi-word text (`text:"300 Air Squats"`,
+// #867). Quoted atoms carry no colon/wildcard forms.
 TagValue { Value (pipe Value)* }
 
-Value { Word (colon Word)? Star? }
+Value { Word (colon Word)? Star? | Quoted Star? }
 
 GroupBy { By braceOpen (Dimension (comma Dimension)*)? braceClose }
 
@@ -75,6 +76,10 @@ Rollup { RollupDot parenOpen Int Word parenClose }
   Word { $[a-zA-Z0-9_-]+ }
   Star { "*" }
   Negate { "!" }
+  // Double-quoted phrase for multi-word text filters — lexically distinct
+  // from Word (starts with `"`), so it cannot shadow any word position. The
+  // AST mapper strips the quotes (src/services/analytics/query/wql.ts).
+  Quoted { "\"" !["]* "\"" }
   colon { ":" }
   pipe { "|" }
   comma { "," }

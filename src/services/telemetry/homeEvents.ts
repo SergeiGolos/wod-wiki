@@ -18,6 +18,9 @@ export const HOME_EVENTS = {
   dashboardViewed: 'home:dashboard_viewed',
   effortsOpened: 'home:efforts_opened',
   referenceOpened: 'home:reference_opened',
+  chapterHeroViewed: 'home:chapter_hero_viewed',
+  chapterExampleRun: 'home:chapter_example_run',
+  chapterGuideClicked: 'home:chapter_guide_clicked',
 } as const;
 
 export type HomeEventName = (typeof HOME_EVENTS)[keyof typeof HOME_EVENTS];

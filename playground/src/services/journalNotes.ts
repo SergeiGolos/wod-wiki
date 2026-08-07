@@ -8,7 +8,8 @@ import { normalizeNoteTitle } from '@/lib/noteTitle';
 import { parseJournalDate } from './parseJournalDate';
 
 export interface CreateJournalNoteInput {
-  journalDate: string;
+  /** Optional - dashboard and other non-journal notes carry no date. */
+  journalDate?: string;
   title: string;
   rawContent: string;
   tags?: string[];

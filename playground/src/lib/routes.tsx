@@ -47,6 +47,8 @@ export const ROUTE_PATTERNS = {
   analytics: '/analytics',
   analyticsExplorer: '/analytics/explorer',
   analyticsDashboard: '/analytics/dashboard',
+  dashboard: '/dashboard',
+  dashboardView: '/dashboard/:slug',
   library: '/library',
 } as const;
 
@@ -153,18 +155,25 @@ export function effortsPath(): string {
   return '/efforts';
 }
 
-/** /analytics/explorer with an optional pre-filled WQL query and range */
+/** /analytics/explorer with an optional pre-filled WQL query and range.
+ * The explorer now lives at /dashboard; this builder keeps deep links (?q=)
+ * working by pointing at the new home. */
 export function analyticsExplorerPath(options?: { q?: string; weeks?: number }): string {
   const params = new URLSearchParams();
   if (options?.q) params.set('q', options.q);
   if (options?.weeks) params.set('weeks', String(options.weeks));
   const qs = params.toString();
-  return `/analytics/explorer${qs ? `?${qs}` : ''}`;
+  return `/dashboard${qs ? `?${qs}` : ''}`;
 }
 
-/** /analytics/dashboard */
-export function analyticsDashboardPath(): string {
-  return '/analytics/dashboard';
+/** /dashboard — the WQL explorer (the dashboard namespace landing). */
+export function dashboardPath(): string {
+  return '/dashboard';
+}
+
+/** /dashboard/:slug — a saved or prebuilt dashboard. */
+export function dashboardViewPath(slug: string): string {
+  return `/dashboard/${encodeURIComponent(slug)}`;
 }
 
 /** /effort/:slug with optional modifiers and page controls */

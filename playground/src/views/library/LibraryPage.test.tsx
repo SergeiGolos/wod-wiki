@@ -8,7 +8,7 @@
  *      clear the entries loaded from the last valid query.
  *   4. The static catalog shelf renders for scope all/collections only.
  */
-import { afterAll, afterEach, describe, expect, it, mock } from 'bun:test'
+import { afterAll, afterEach, describe, expect, it, mock, type Mock } from 'bun:test'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { parseQuery } from '@/services/analytics/query/wql'
@@ -71,6 +71,10 @@ mock.module('../../services/journalNotes', () => ({
 }))
 
 import { LibraryPage } from './LibraryPage'
+import { journalNotes } from '../../services/journalNotes'
+import type { CreateJournalNoteInput } from '../../services/journalNotes'
+
+const createMock = journalNotes.create as Mock<(input: CreateJournalNoteInput) => Promise<unknown>>
 
 afterEach(() => {
   cleanup()
@@ -169,14 +173,11 @@ describe('LibraryPage', () => {
       result.notes = [FEED_NOTE]
       return result
     }
-    // `text:hello world` is a reachable composer state that fails the Lezer
-    // grammar — it must be flagged, not silently swallowed.
-    renderPage(`/library?q=${encodeURIComponent('find:note{text:hello world} in feeds')}`)
+    // `tags::` is an unparseable tag filter that fails WQL validation.
+    renderPage(`/library?q=${encodeURIComponent('find:note{tags::} in feeds')}`)
 
     await waitFor(() => expect(screen.getByTestId('library-query-error')).toBeDefined())
     expect(screen.getByTestId('library-query-error').textContent).toContain('Invalid WQL')
-    // The composer keeps the offending clause so diagnostics can flag it.
-    expect(screen.getByTestId('token-slot-text').textContent).toContain('hello world')
     // No silent empty-state either.
     expect(screen.queryByText('No entries match this query.')).toBeNull()
   })
@@ -229,12 +230,12 @@ describe('LibraryPage', () => {
     await waitFor(() => expect(screen.queryByText('StrongLifts 5×5')).not.toBeNull())
   })
 
-  it('banners a plain-word q with the parser detail (#854)', async () => {
+  it('banners invalid WQL query string with the parser detail (#854)', async () => {
     runFindImpl = async parsed => emptyResult(parsed.raw ?? '')
-    renderPage(`/library?q=squat`)
+    renderPage(`/library?q=%21%21%21`)
 
     await waitFor(() => expect(screen.getByTestId('library-query-error')).toBeDefined())
-    expect(screen.getByTestId('library-query-error').textContent).toContain('squat')
+    expect(screen.getByTestId('library-query-error').textContent).toContain('Cannot parse')
   })
 
   it('renders block-level cards for find:block — type badge, preview, parent (#855)', async () => {
@@ -281,6 +282,43 @@ describe('LibraryPage', () => {
     act(() => MockIntersectionObserver.instances[MockIntersectionObserver.instances.length - 1]!.trigger())
     await waitFor(() => expect(screen.getAllByTestId('library-row-post')).toHaveLength(250))
     expect(screen.queryByTestId('library-load-more')).toBeNull()
+  })
+
+  it('reassembles a static seed into a valid dashboard note (#903, #906)', async () => {
+    // Mirror the real block-index shape: the frontmatter row stores the
+    // YAML body WITHOUT `---` fences (dataType 'frontmatter'), blank-line
+    // spacers carry empty rawContent, and rows arrive out of position order.
+    const seedBlocks = [
+      { ...BLOCK_ROW, id: 'b-0', position: 0, dataType: 'frontmatter', rawContent: 'dashboard: true\ntitle: Seeded' },
+      { ...BLOCK_ROW, id: 'sp', position: 1, rawContent: '' },
+      { ...BLOCK_ROW, id: 'b-2', position: 3, rawContent: '```query:value\nsum:totalVolume{}\n```' },
+      { ...BLOCK_ROW, id: 'b-1', position: 2, rawContent: '## Total Volume\nWhat is my volume?' },
+    ]
+    runFindImpl = async parsed => {
+      const raw = parsed.raw ?? ''
+      const result = emptyResult(raw)
+      if (raw.startsWith('find:block')) {
+        result.blocks = seedBlocks
+      } else {
+        result.notes = [FEED_NOTE]
+        result.stages = { selected: 1, matched: 1 }
+      }
+      return result
+    }
+    createMock.mockClear()
+    renderPage('/library')
+
+    await waitFor(() => expect(screen.getByTestId('action-add')).toBeDefined())
+    fireEvent.click(screen.getByTestId('action-add'))
+
+    await waitFor(() => expect(createMock.mock.calls).toHaveLength(1))
+    const raw = (createMock.mock.calls[0] as [CreateJournalNoteInput])[0].rawContent
+    // Frontmatter is re-fenced so the clone parses as a dashboard note.
+    expect(raw.startsWith('---\ndashboard: true\n')).toBe(true)
+    expect(raw).toContain('```query:value')
+    // Empty spacer rows dropped; position order preserved.
+    expect(raw.indexOf('dashboard: true')).toBeLessThan(raw.indexOf('## Total Volume'))
+    expect(raw.indexOf('## Total Volume')).toBeLessThan(raw.indexOf('```query:value'))
   })
 
   it('offers jump-to-top once the list scrolls away (#861)', async () => {

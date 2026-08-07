@@ -201,6 +201,12 @@ const ACCEPT_LIST: AcceptEntry[] = [
     used: 0,
   },
   {
+    id: 'e1rm-annotation-new',
+    reason: '#904 — calc.e1rm (Epley estimated 1RM from segment load × reps) is a new segment metric; legacy never computed it.',
+    match: (d) => d.kind === 'annotation-only-composed' && d.where.startsWith('calc.e1rm:'),
+    used: 0,
+  },
+  {
     id: 'per-exercise-volume-amount-shape',
     reason: '§10.10 — legacy per-exercise volume ignores {amount,units} resistance (workout-level accepts it); composed emits per-effort volume for both shapes.',
     match: (d) =>

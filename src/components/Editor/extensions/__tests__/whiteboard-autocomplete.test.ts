@@ -64,11 +64,11 @@ function fenceOptions(doc: string, cursor = doc.length) {
 // ── ``` completion dropdown ──────────────────────────────────────────
 
 describe("fenceCompletion — offered set", () => {
-  it("offers time, log, query, and dashboard when typing ```", () => {
+  it("offers time, log, and query fences when typing ```", () => {
     const result = fenceOptions("```");
     expect(result).not.toBeNull();
     const labels = result!.options.map((o) => o.label);
-    expect(labels).toEqual(["```time", "```log", "```query", "```dashboard"]);
+    expect(labels).toEqual(["```time", "```log", "```query", "```query:timeseries"]);
   });
 
   it("triggers on a single backtick too", () => {
@@ -85,12 +85,13 @@ describe("fenceCompletion — offered set", () => {
     expect(result!.options[1].label).toBe("```log");
   });
 
-  it("does not offer removed tags (wod, plan, whiteboard)", () => {
+  it("does not offer removed tags (wod, plan, whiteboard, dashboard)", () => {
     const result = fenceOptions("```");
     const labels = result!.options.map((o) => o.label);
     expect(labels).not.toContain("```wod");
     expect(labels).not.toContain("```plan");
     expect(labels).not.toContain("```whiteboard");
+    expect(labels).not.toContain("```dashboard");
   });
 });
 
@@ -107,7 +108,7 @@ describe("fenceCompletion — section gating", () => {
     expect(fenceOptions("```query\nSELECT *\n``")).toBeNull();
   });
 
-  it("does not fire inside a dashboard block", () => {
+  it("does not fire inside a retired dashboard fence (now generic code)", () => {
     expect(fenceOptions("```dashboard\n``")).toBeNull();
   });
 

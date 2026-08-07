@@ -12,9 +12,10 @@ export const
   TagValue = 10,
   Value = 11,
   Star = 12,
-  GroupBy = 13,
-  By = 14,
-  Dimension = 15,
-  Rollup = 16,
-  RollupDot = 17,
-  Int = 18
+  Quoted = 13,
+  GroupBy = 14,
+  By = 15,
+  Dimension = 16,
+  Rollup = 17,
+  RollupDot = 18,
+  Int = 19

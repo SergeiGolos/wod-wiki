@@ -250,15 +250,15 @@ describe('resolveRouteView — Library replaces the legacy list routes', () => {
     expect(resolveRouteView('/note/General/Fran', { category: 'General', name: 'Fran' }, makeDeps()).page).toBe('workout')
   })
 
-  it('classifies the analytics sub-routes → bare shell, named workouts', () => {
+  it('classifies the dashboard namespace → bare shell', () => {
+    // Legacy /analytics/explorer still classifies (it redirects to /dashboard
+    // at the router, but resolveRouteView is pure on the pathname).
     const explorer = resolveRouteView('/analytics/explorer', NO_PARAMS, makeDeps())
     expect(explorer.page).toBe('analyticsExplorer')
     expect(explorer.shell).toEqual({ wrap: 'bare' })
-    expect(explorer.workout.name).toBe('Metric Explorer')
 
-    const dashboard = resolveRouteView('/analytics/dashboard', NO_PARAMS, makeDeps())
-    expect(dashboard.page).toBe('analyticsDashboard')
-    expect(dashboard.shell).toEqual({ wrap: 'bare' })
-    expect(dashboard.workout.name).toBe('Analytics Dashboard')
+    // The new namespace: /dashboard is the explorer, /dashboard/:slug a view.
+    expect(resolveRouteView('/dashboard', NO_PARAMS, makeDeps()).page).toBe('dashboardExplorer')
+    expect(resolveRouteView('/dashboard/training-block-review', NO_PARAMS, makeDeps()).page).toBe('dashboardView')
   })
 })

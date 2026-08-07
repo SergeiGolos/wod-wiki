@@ -3,8 +3,8 @@
  * (issue #839).
  *
  * Asserts:
- *   1. No params → explorer defaults (metrics plane, seeded agg, empty metric),
- *      nothing submitted, weeks 16.
+ *   1. No params → explorer defaults (metrics plane, seeded agg and metric —
+ *      a valid `sum:totalVolume` draft, issue #897), nothing submitted, weeks 16.
  *   2. `?q=<wql>` hydrates clauses and the submitted snapshot on mount.
  *   3. setClauses serializes the composed WQL into `q` (history push).
  *   4. Draft edits never touch `submitted` (run-on-submit); submit() snaps
@@ -76,7 +76,7 @@ const withMetric = (metric: string): QueryClause[] =>
 describe('useExplorerQueryState', () => {
   it('falls back to explorer defaults when no params are present', () => {
     renderAt(['/analytics/explorer'])
-    expect(summary()).toBe('source=metrics|agg=sum|metric=')
+    expect(summary()).toBe('source=metrics|agg=sum|metric=totalVolume')
     expect(submitted()).toBe('')
     expect(weeks()).toBe('16')
   })
@@ -121,24 +121,26 @@ describe('useExplorerQueryState', () => {
   it('restores the exact composer state on browser back/forward and re-submits it', async () => {
     renderAt(['/analytics/explorer'])
 
+    // State A must differ from the seeded default (`sum:totalVolume`) — an
+    // edit to the default's own WQL is a no-op and pushes no history entry.
     act(() => {
-      captured.setClauses(withMetric('totalVolume'))
-      captured.submit('sum:totalVolume')
+      captured.setClauses(withMetric('sessionLoad'))
+      captured.submit('sum:sessionLoad')
     })
-    await waitFor(() => expect(qParam()).toBe('sum:totalVolume'))
-    const stateA = 'source=metrics|agg=sum|metric=totalVolume'
+    await waitFor(() => expect(qParam()).toBe('sum:sessionLoad'))
+    const stateA = 'source=metrics|agg=sum|metric=sessionLoad'
 
     act(() => captured.setClauses(withMetric('tis')))
     await waitFor(() => expect(qParam()).toBe('sum:tis'))
     const stateB = 'source=metrics|agg=sum|metric=tis'
     expect(summary()).toBe(stateB)
     // The edit did not submit: the run snapshot is still A.
-    expect(submitted()).toBe('sum:totalVolume')
+    expect(submitted()).toBe('sum:sessionLoad')
 
     act(() => capturedNavigate(-1))
     await waitFor(() => expect(summary()).toBe(stateA))
     // Popstate re-submits the restored query (legacy behavior).
-    await waitFor(() => expect(submitted()).toBe('sum:totalVolume'))
+    await waitFor(() => expect(submitted()).toBe('sum:sessionLoad'))
 
     act(() => capturedNavigate(1))
     await waitFor(() => expect(summary()).toBe(stateB))
@@ -176,7 +178,7 @@ describe('useExplorerQueryState', () => {
       ]),
     )
 
-    expect(summary()).toBe('source=metrics|agg=sum|metric=|tag=')
+    expect(summary()).toBe('source=metrics|agg=sum|metric=totalVolume|tag=')
     await act(async () => {})
     expect(search()).toBe(searchBefore)
   })

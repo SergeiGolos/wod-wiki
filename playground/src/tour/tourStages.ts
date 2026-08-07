@@ -24,6 +24,7 @@ export type TourStageId =
   | 'editor-typeahead'
   | 'timer-wallclock'
   | 'timer-next'
+  | 'timer-cast'
   | 'analytics-scorecard'
   | 'analytics-grid'
   | 'editor'
@@ -41,6 +42,7 @@ export type RingTargetKey =
   | 'editor.typeahead'
   | 'timer.floor'
   | 'timer.nextButton'
+  | 'timer.castButton'
   | 'analytics.scorecard'
   | 'analytics.grid'
 export interface TourStage {
@@ -75,6 +77,13 @@ export const TOUR_ACCENTS = {
   analytics: 'hsl(var(--metric-rounds))',
   library: 'hsl(var(--metric-rep))',
 } as const
+
+/** Window-chrome title shown while each screen is active. */
+export const SCREEN_TITLES: Record<TourScreen, string> = {
+  editor: 'WOD Editor & Autocomplete',
+  timer: 'WallClock',
+  analytics: 'Session Review',
+}
 
 /**
  * Stage ranges for the two-stage runway: timer 50% · analytics 50%.
@@ -114,7 +123,7 @@ export const TOUR_STAGES: TourStage[] = [
   {
     id: 'timer-wallclock',
     start: 0.45,
-    end: 0.60,
+    end: 0.58,
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
     label: 'What Happens When It Runs',
@@ -123,8 +132,8 @@ export const TOUR_STAGES: TourStage[] = [
   },
   {
     id: 'timer-next',
-    start: 0.60,
-    end: 0.72,
+    start: 0.58,
+    end: 0.68,
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
     label: 'Advance Rounds with Next',
@@ -132,9 +141,19 @@ export const TOUR_STAGES: TourStage[] = [
     tagA: 'Next Button',
   },
   {
+    id: 'timer-cast',
+    start: 0.68,
+    end: 0.79,
+    screen: 'timer',
+    accent: TOUR_ACCENTS.timer,
+    label: 'Cast to the Big Screen',
+    ringA: 'timer.castButton',
+    tagA: 'Cast',
+  },
+  {
     id: 'analytics-scorecard',
-    start: 0.72,
-    end: 0.86,
+    start: 0.79,
+    end: 0.895,
     screen: 'analytics',
     accent: TOUR_ACCENTS.analytics,
     label: 'Explore Your Data',
@@ -143,7 +162,7 @@ export const TOUR_STAGES: TourStage[] = [
   },
   {
     id: 'analytics-grid',
-    start: 0.86,
+    start: 0.895,
     end: 1.0,
     screen: 'analytics',
     accent: TOUR_ACCENTS.analytics,

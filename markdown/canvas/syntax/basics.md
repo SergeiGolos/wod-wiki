@@ -9,8 +9,15 @@ type: syntax
 id: basics
 title: Basics
 badge: trophy
-quests: basics-movement, basics-reps, basics-load
+quests: basics-run, basics-movement, basics-reps, basics-load
 sections: []
+```
+
+```quest
+id: basics-run
+label: Run the First Example
+validation:
+  type: run-started
 ```
 
 ```quest

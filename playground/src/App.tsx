@@ -21,6 +21,7 @@ import {
   navigatePaletteResult,
 } from './services/wqlSearchSource'
 import { usePageScrollSync } from './hooks/usePageScrollSync'
+import { useNav } from './nav/NavContext'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider'
 import { AudioProvider } from '@/contexts/AudioContext'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
@@ -56,12 +57,15 @@ import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
 import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
 import { LoadZipPage } from './pages/LoadZipPage'
 import CalcAuthoringPrototypePage from './pages/CalcAuthoringPrototypePage'
+
+import { CalcAuthoringPanel } from '@/components/organisms/calc-authoring/CalcAuthoringPanel'
 import { JournalZipLoadPage } from './pages/JournalZipLoadPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
 import { EffortDetailPage } from './pages/EffortDetailPage'
 import { AnalyticsExplorerPage } from './views/analytics/AnalyticsExplorerPage'
-import { AnalyticsDashboardPage } from './views/analytics/AnalyticsDashboardPage'
+
+import { DashboardViewPage } from './views/dashboards/DashboardViewPage'
 import { Toaster } from '@/components/atoms/primitives/toaster'
 import { PageActions } from './pages/shared/PageActions'
 import { ActionsMenu } from './pages/shared/PageToolbar'
@@ -83,6 +87,13 @@ function LibraryRedirect(): ReactNode {
   const { pathname, search } = useLocation()
   const dest = resolveLibraryRedirect(pathname, search)
   return <Navigate to={dest ?? '/library'} replace />
+}
+
+/** Redirect /analytics/explorer → /dashboard, preserving the shareable ?q=
+ *  (and ?weeks=) query string. The WQL explorer moved to /dashboard. */
+function ExplorerRedirect(): ReactNode {
+  const { search } = useLocation()
+  return <Navigate to={{ pathname: '/dashboard', search }} replace />
 }
 
 function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<() => void> }) {
@@ -182,7 +193,14 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
       />
     ),
-    analyticsDashboard: () => <AnalyticsDashboardPage />,
+
+    dashboardExplorer: () => (
+      <AnalyticsExplorerPage
+        actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={[]} onSearch={openSearchPalette} />}
+      />
+    ),
+    dashboardView: () => <DashboardViewPage />,
+
     canvas: () =>
       view.canvasPage!.route === '/' ? (
         <HomeView
@@ -316,18 +334,21 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation()
+  const { scrollToSection } = useNav()
 
   useEffect(() => {
     if (hash) {
-      const el = document.getElementById(hash.slice(1))
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        return
-      }
+      const targetId = hash.slice(1)
+      scrollToSection(targetId)
+      const timer = setTimeout(() => {
+        scrollToSection(targetId)
+      }, 50)
+      return () => clearTimeout(timer)
     }
     window.scrollTo(0, 0)
+    // Only run on location change (pathname or hash)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, hash])
-
   return null
 }
 
@@ -355,11 +376,13 @@ export function App() {
             <BrowserRouter>
               <NuqsAdapter>
               <GlobalState />
-              <ScrollToTop />
               <Toaster />
               <NavProvider tree={navTree}>
+                <ScrollToTop />
                 <Routes>
                   <Route path="/proto/calc-authoring" element={<CalcAuthoringPrototypePage />} />
+
+                  <Route path="/settings/library/calcs" element={<div className="p-6"><CalcAuthoringPanel /></div>} />
                   <Route path="/legacy" element={<PlaygroundLandingPage />} />
                   <Route path="/concept3" element={<Concept3LandingPage />} />
                   <Route path="/chapters/basics" element={<Navigate to="/guide/syntax/basics" replace />} />
@@ -395,9 +418,13 @@ export function App() {
                   ))}
                   <Route path={ROUTE_PATTERNS.efforts} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.effort} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.analytics} element={<Navigate to={ROUTE_PATTERNS.analyticsExplorer} replace />} />
-                  <Route path={ROUTE_PATTERNS.analyticsExplorer} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.analyticsDashboard} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  {/* The dashboard namespace (/dashboard = WQL explorer, /dashboard/:slug = a
+                      saved or prebuilt dashboard). Legacy /analytics/* redirect here. */}
+                  <Route path={ROUTE_PATTERNS.dashboard} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.dashboardView} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.analytics} element={<Navigate to="/dashboard" replace />} />
+                  <Route path={ROUTE_PATTERNS.analyticsExplorer} element={<ExplorerRedirect />} />
+                  <Route path={ROUTE_PATTERNS.analyticsDashboard} element={<Navigate to="/dashboard" replace />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
                 <DocumentTitleSync />

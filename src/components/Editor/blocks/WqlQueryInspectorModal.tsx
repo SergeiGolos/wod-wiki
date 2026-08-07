@@ -1,6 +1,6 @@
 /**
  * WqlQueryInspectorModal — modal dialog embedding WqlComposer for editing
- * ```query and ```dashboard WQL block queries (#842, decision #837).
+ * ```query WQL block queries (#842, decision #837).
  */
 import { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';

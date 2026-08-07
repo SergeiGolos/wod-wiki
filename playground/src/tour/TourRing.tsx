@@ -43,6 +43,7 @@ export function RingTargetsProvider({ children }: { children: ReactNode }) {
     'editor.typeahead': null,
     'timer.floor': null,
     'timer.nextButton': null,
+    'timer.castButton': null,
     'analytics.scorecard': null,
     'analytics.grid': null,
   })
@@ -63,7 +64,13 @@ export function RingTargetsProvider({ children }: { children: ReactNode }) {
 
 export function useRingTargets(): RingTargetsContextValue {
   const ctx = useContext(RingTargetsContext)
-  if (!ctx) throw new Error('useRingTargets must be used within RingTargetsProvider')
+  if (!ctx) {
+    return {
+      registry: { current: {} as RingRegistry },
+      register: () => () => {},
+      version: 0,
+    }
+  }
   return ctx
 }
 
@@ -78,15 +85,11 @@ export function useRingRef(key: RingTargetKey) {
 // ── Ring ────────────────────────────────────────────────────────────────────
 
 export interface TourRingProps {
-  /** Active target; null hides the ring. */
-  target: { key: RingTargetKey; tag?: string } | null
-  /** Accent color (CSS color string). */
+  target?: { key: RingTargetKey; tag?: string } | null
   accent: string
-  /**
-   * Ref to the scaled canvas-inner element the ring renders inside.
-   * Measurements are made relative to it and divided by its scale.
-   */
   canvasRef: React.RefObject<HTMLElement | null>
+  /** Set to true when measuring an unscaled window (e.g. mobile runway). */
+  unscaled?: boolean
 }
 
 interface RingBox {
@@ -96,7 +99,7 @@ interface RingBox {
   h: number
 }
 
-export function TourRing({ target, accent, canvasRef }: TourRingProps) {
+export function TourRing({ target, accent, canvasRef, unscaled }: TourRingProps) {
   const { registry, version } = useRingTargets()
   const [box, setBox] = useState<RingBox | null>(null)
   const targetKey = target?.key ?? null
@@ -115,7 +118,7 @@ export function TourRing({ target, accent, canvasRef }: TourRingProps) {
       }
       const elRect = el.getBoundingClientRect()
       const canvasRect = canvas.getBoundingClientRect()
-      const scale = canvasRect.width / TOUR_CANVAS_WIDTH || 1
+      const scale = unscaled ? 1 : canvasRect.width / TOUR_CANVAS_WIDTH || 1
       // Round to whole canvas px: during a resize drag the subpixel noise
       // would otherwise restart the 500ms position transition every event
       // and the ring would smear/shimmer instead of staying glued.

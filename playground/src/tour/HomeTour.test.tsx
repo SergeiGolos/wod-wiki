@@ -8,7 +8,7 @@
 import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
 import { render, screen, cleanup, fireEvent, act, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
+import type { Quest, Chapter, ScrollSpec } from '../canvas/parseCanvasMarkdown'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 
@@ -166,8 +166,8 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'editor.runButton', tag: 'Run Button' },
     }
   }
-  if (progress < 0.60) {
-    const t = (progress - 0.45) / 0.15
+  if (progress < 0.58) {
+    const t = (progress - 0.45) / 0.13
     return {
       index: 3,
       stage: {
@@ -180,8 +180,8 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'timer.floor', tag: 'WallClock' },
     }
   }
-  if (progress < 0.72) {
-    const t = (progress - 0.60) / 0.12
+  if (progress < 0.68) {
+    const t = (progress - 0.58) / 0.10
     return {
       index: 4,
       stage: {
@@ -194,10 +194,24 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'timer.nextButton', tag: 'Next Button' },
     }
   }
-  if (progress < 0.86) {
-    const t = (progress - 0.72) / 0.14
+  if (progress < 0.79) {
+    const t = (progress - 0.68) / 0.11
     return {
       index: 5,
+      stage: {
+        id: 'timer-cast',
+        screen: 'timer',
+        accent: 'hsl(var(--metric-effort))',
+        label: 'Cast to the Big Screen',
+      },
+      t,
+      ring: { key: 'timer.castButton', tag: 'Cast' },
+    }
+  }
+  if (progress < 0.895) {
+    const t = (progress - 0.79) / 0.105
+    return {
+      index: 6,
       stage: {
         id: 'analytics-scorecard',
         screen: 'analytics',
@@ -208,9 +222,9 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'analytics.scorecard', tag: 'Scorecard' },
     }
   }
-  const t = (progress - 0.86) / 0.14
+  const t = (progress - 0.895) / 0.105
   return {
-    index: 6,
+    index: 7,
     stage: {
       id: 'analytics-grid',
       screen: 'analytics',
@@ -346,6 +360,17 @@ const questLabels: Record<string, string> = {
   'basics-movement': 'Add a movement',
   'protocols-timer': 'Add a timer',
 }
+
+/** The ```scroll:chapters runway spec (six chapter stages → two here). */
+const chapterScroll: ScrollSpec = {
+  runway: '720vh',
+  screen: 'editor',
+  typewriter: true,
+  stages: [
+    { id: 'basics', range: [0, 0.5], screen: 'editor', source: '../../markdown/canvas/home/welcome-1.md', caption: 'Basics blurb.', quest: 'basics-run', ring: { tag: 'Basics example' } },
+    { id: 'protocols', range: [0.5, 1], screen: 'editor', source: '../../markdown/canvas/home/welcome-1.md', caption: 'Protocols blurb.', quest: 'protocols-run', ring: { tag: 'Protocols example' } },
+  ],
+}
 async function renderHomeTour() {
   const result = render(
     <MemoryRouter>
@@ -354,6 +379,7 @@ async function renderHomeTour() {
         theme="light"
         quests={homeQuests}
         chapters={chapters}
+        chapterScroll={chapterScroll}
       />
     </MemoryRouter>,
   )
@@ -413,11 +439,11 @@ describe('HomeTour', () => {
 
     // Drive to the Analytics Scorecard stage.
     await act(async () => {
-      setTestTourProgress(0.78)
+      setTestTourProgress(0.83)
       await Promise.resolve()
     })
     const explorerLink = await screen.findByRole('link', { name: /Run a pre-filled query/i })
-    expect(explorerLink.getAttribute('href')).toContain('/analytics/explorer')
+    expect(explorerLink.getAttribute('href')).toContain('/dashboard')
     expect(explorerLink.getAttribute('href')).toContain('q=')
 
     const dashboardLink = screen.getByRole('link', { name: /Open the dashboard/i })
@@ -471,7 +497,7 @@ describe('HomeTour', () => {
 
     // Drive to the analytics-scorecard stage and click a drop-off.
     await act(async () => {
-      setTestTourProgress(0.78)
+      setTestTourProgress(0.83)
       await Promise.resolve()
     })
     const explorerLink = await screen.findByRole('link', { name: /Run a pre-filled query/i })
@@ -496,7 +522,7 @@ describe('HomeTour', () => {
   })
   it('desktop hero Run mounts the fullscreen overlay with WallClock and exit pill', async () => {
     await renderHomeTour()
-    const runButton = await screen.findByRole('button', { name: /^Run$/i })
+    const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
     await act(async () => {
       fireEvent.click(runButton)
       await Promise.resolve()
@@ -526,7 +552,7 @@ describe('HomeTour', () => {
 
   it('hero Run opens the fullscreen playground without scrolling the page', async () => {
     await renderHomeTour()
-    const runButton = await screen.findByRole('button', { name: /^Run$/i })
+    const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
     await act(async () => {
       fireEvent.click(runButton)
       await Promise.resolve()
@@ -539,9 +565,8 @@ describe('HomeTour', () => {
 
   it('keeps the hero editor and the runway editor independent', async () => {
     await renderHomeTour()
-    const editors = screen.getAllByTestId('mock-note-editor') as HTMLTextAreaElement[]
-    const [hero, runway] = editors
-    expect(editors.length).toBe(2)
+    const hero = within(screen.getByTestId('tour-hero')).getByTestId('mock-note-editor') as HTMLTextAreaElement
+    const runway = within(screen.getByTestId('tour-runway')).getByTestId('mock-note-editor') as HTMLTextAreaElement
     // Same arrival content, separate documents.
     expect(hero.value).toBe(runway.value)
 
@@ -670,7 +695,7 @@ describe('HomeTour', () => {
     // Scroll forward onto the analytics cards — the same panel stays mounted
     // (no reset) but is signaled to halt.
     await act(async () => {
-      setTestTourProgress(0.78)
+      setTestTourProgress(0.83)
       await Promise.resolve()
     })
     expect(screen.getByTestId('mock-timer-panel').getAttribute('data-external-pause')).toBe('true')
@@ -711,7 +736,7 @@ describe('HomeTour', () => {
     // Visitor scrolls to analytics first; the ambient drain completing the
     // runtime there must not yank the runway back to card 1.
     await act(async () => {
-      setTestTourProgress(0.78)
+      setTestTourProgress(0.83)
       await Promise.resolve()
     })
     resetScrollSpy()

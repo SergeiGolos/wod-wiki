@@ -46,30 +46,40 @@ sum:totalVolume{discipline:strength} by {week}.rollup(1w)
 ```
 ````
 
-## Creating In-Note Dashboards (` ```dashboard `) {sticky}
+## Creating Dashboard Notes {sticky}
 
-A ````dashboard``` block aggregates multiple queries into a single responsive panel:
+A dashboard is a note, not a block: mark it `dashboard: true` in frontmatter and compose `query` blocks — the heading above each block becomes the widget title, the paragraph its coaching question, and `dashboard.*` frontmatter tokens become top-level controls referenced as `$name` (#899):
 
 ````markdown
-```dashboard
+---
 title: Training Review
-range: past_16_weeks
-widgets:
-  - type: query_value
-    title: Avg TIS
-    query: avg:tis{}
-  - type: query_value
-    title: Total volume
-    query: sum:totalVolume{}
-  - type: toplist
-    title: Volume by effort
-    query: sum:totalVolume{} by {effort}
-    limit: 6
-  - type: timeseries
-    title: Weekly tonnage
-    query: sum:totalVolume{} by {week}.rollup(1w)
+dashboard: true
+dashboard.weeks: 16
+---
+
+## Avg TIS
+How hard are sessions?
+
+```query:value
+avg:tis{}
+```
+
+## Weekly tonnage
+Is volume rising?
+
+```query:timeseries-2
+sum:totalVolume{} by {week}.rollup(1w)
+```
+
+## Volume by effort
+Where does the volume go?
+
+```query:toplist
+sum:totalVolume{} by {effort}
 ```
 ````
+
+Widget types: `table` (default), `value`, `timeseries`, `bar`, `toplist`, `stacked-bar`. Grid span rides the suffix: `query:timeseries-2` spans 2 columns, `-full` spans the row.
 
 Edit any widget in place by clicking **Edit Widget Query** in the note editor.
 

@@ -81,6 +81,29 @@ export const BUILTIN_CALCS: CalculationDefinition[] = [
       nodes: { segmentVolume: expr('segmentVolume', 'reps * resistance') },
     }],
   },
+  // Estimated one-rep max (#904) — Epley: load × (1 + reps/30). Bodyweight
+  // segments (no resistance) produce no estimate by construction, which
+  // sidesteps the missing bodyweight profile field; an RPE/RIR-adjusted
+  // variant can layer on later via effortRpe (higher priority, same key).
+  // emitType carries the full `calc.e1rm` key so segment-grain facts and
+  // WQL (`max:calc.e1rm{} by {effort}`) resolve it directly.
+  {
+    id: 'e1rm',
+    kind: 'output',
+    scope: 'segment',
+    fences: ['time', 'log'],
+    when: 'has(reps) and has(resistance) and reps > 0 and resistance > 0',
+    variants: [{
+      id: 'default', priority: 10, origin: 'analyzed',
+      nodes: {
+        // ratio cast (§5.3): reps is count-dimensioned, the Epley factor
+        // must be dimensionless for 1 + reps/30 to type-check.
+        repFactor: expr('repFactor', 'reps / 30', 'ratio'),
+        value: expr('value', 'round(resistance * (1 + repFactor), 1)'),
+      },
+    }],
+    output: { nodeId: 'value', emitType: 'calc.e1rm', key: 'calc.e1rm', unit: 'auto', label: 'Estimated 1RM' },
+  },
   {
     id: 'effort-rpe',
     kind: 'library',
@@ -388,5 +411,53 @@ export const STORE_CALCS: CalculationDefinition[] = [
       },
     }],
     output: { nodeId: 'value', key: 'calc.strain', unit: 'AU', label: 'Training Strain' },
+  },
+  // ── PMC (#905): CTL/ATL/TSB as EWMAs over daily sessionLoad. Canonical
+  // TrainingPeaks gains (1/42, 1/7); TSB = CTL − ATL pointwise. A composite
+  // `calc.pmc` series widget is out of scope for this map — the three scalar
+  // loads feed value/zone/goal widgets individually.
+  {
+    id: 'ctl',
+    kind: 'output',
+    scope: 'store',
+    fences: ['time', 'log'],
+    variants: [{
+      id: 'default', priority: 10, origin: 'analyzed',
+      nodes: {
+        daily: dailyLoads(),
+        value: expr('value', 'windowEwma(daily, 42d)'),
+      },
+    }],
+    output: { nodeId: 'value', key: 'calc.ctl', unit: 'AU', label: 'Chronic Training Load (CTL)' },
+  },
+  {
+    id: 'atl',
+    kind: 'output',
+    scope: 'store',
+    fences: ['time', 'log'],
+    variants: [{
+      id: 'default', priority: 10, origin: 'analyzed',
+      nodes: {
+        daily: dailyLoads(),
+        value: expr('value', 'windowEwma(daily, 7d)'),
+      },
+    }],
+    output: { nodeId: 'value', key: 'calc.atl', unit: 'AU', label: 'Acute Training Load (ATL)' },
+  },
+  {
+    id: 'tsb',
+    kind: 'output',
+    scope: 'store',
+    fences: ['time', 'log'],
+    variants: [{
+      id: 'default', priority: 10, origin: 'analyzed',
+      nodes: {
+        daily: dailyLoads(),
+        ctl: expr('ctl', 'windowEwma(daily, 42d)'),
+        atl: expr('atl', 'windowEwma(daily, 7d)'),
+        value: expr('value', 'ctl - atl'),
+      },
+    }],
+    output: { nodeId: 'value', key: 'calc.tsb', unit: 'AU', label: 'Training Stress Balance (TSB)' },
   },
 ];

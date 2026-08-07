@@ -2,14 +2,14 @@
 import {LRParser} from "@lezer/lr"
 export const parser = LRParser.deserialize({
   version: 14,
-  states: "(dOVQPOOOOQO'#C_'#C_O[QPO'#C^QaQQOOOlQPO,58xOqQPO'#CbO|QPO'#CiO!RQPO'#ClQOQPOOQ!WQPOOQ!]QQOOO!eQQO'#CaOOQO1G.d1G.dOOQO'#Ce'#CeO!vQPO'#CcO!{QPO'#CcOOQO,58|,58|O#QQPO,58|O#YQPO,59TO#bQQO,59WO#gQPO'#CoO#lQQO,58{O#}QPO,58}O$SQPO,58}O$XQPO'#CqO$aQPO1G.hOOQO1G.h1G.hOOQO'#Ck'#CkOOQO1G.o1G.oO$iQPO1G.oO$qQPO1G.rOOQO,59Z,59ZOOQO-E6m-E6mO$vQPO'#CgO%XQPO'#CfOOQO1G.i1G.iO#}QPO1G.iOOQO,59],59]OOQO-E6o-E6oOOQO7+$S7+$SO%dQPO'#CrO%iQPO7+$ZOOQO7+$Z7+$ZO%qQPO7+$^OOQO,59R,59RO%vQPO,59RO#}QPO'#CpO%{QPO,59QOOQO7+$T7+$TOOQO,59^,59^OOQO-E6p-E6pOOQO<<Gu<<GuOOQO<<Gx<<GxO&WQPO1G.mOOQO,59[,59[OOQO-E6n-E6nOOQO7+$X7+$X",
-  stateData: "&f~OiOS~OSPO~OjSO~O^UOaVOlTO~OSZO~OS]OW_Oo`O~OlbO~OpcO~OaVO~O^UOaVO~OkdO^TXaTXgTXlTX~OjfO~OS]O~OnhOojO~OSkOolO~ObnO~OSoO~OkdO^TaaTagTalTa~OSqO~OjtO~OS]OW_O~OnhOowO~OnxOozO~OS{O~O[|Oj}OmZXnZXoZX~Om!OOnYXoYX~OSkO~OnxOo!TO~Oq!UO~OS!VO~Om!OOnYaoYa~O[!YOmZinZioZi~O",
-  goto: "#XgPPhkPnqtPz!R!XP!`P!d!jPP!o!u!{#RRRORQOR[SRYRQaTRuhS^ThRg_QsfR!QtSrftR!W!OTXRYQmbR!RxVWRXYQeZRpeQ!PrR!X!PQiaRviQymR!Sy",
-  nodeNames: "⚠ Query Head Aggregator Word Metric Filters Filter Negate TagKey TagValue Value Star GroupBy By Dimension Rollup RollupDot Int",
-  maxTerm: 33,
+  states: "(jOVQPOOOOQO'#C_'#C_O[QPO'#C^QaQQOOOlQPO,58xOqQPO'#CbO|QPO'#CjO!RQPO'#CmQOQPOOQ!WQPOOQ!]QQOOO!eQQO'#CaOOQO1G.d1G.dOOQO'#Ce'#CeO!vQPO'#CcO!{QPO'#CcOOQO,58|,58|O#QQPO,58|O#YQPO,59UO#bQQO,59XO#gQPO'#CpO#lQQO,58{O#}QPO,58}O$VQPO,58}O$[QPO'#CrO$dQPO1G.hOOQO1G.h1G.hOOQO'#Cl'#ClOOQO1G.p1G.pO$lQPO1G.pO$tQPO1G.sOOQO,59[,59[OOQO-E6n-E6nO$yQPO'#CgO%[QPO'#CgO%jQPO'#CfOOQO1G.i1G.iO#}QPO1G.iOOQO,59^,59^OOQO-E6p-E6pOOQO7+$S7+$SO%uQPO'#CsO%zQPO7+$[OOQO7+$[7+$[O&SQPO7+$_OOQO,59R,59RO&XQPO,59RO#}QPO'#CqO&^QPO,59QOOQO7+$T7+$TOOQO,59_,59_OOQO-E6q-E6qOOQO<<Gv<<GvOOQO<<Gy<<GyO&iQPO1G.mOOQO,59],59]OOQO-E6o-E6oOOQO7+$X7+$X",
+  stateData: "&w~OjOS~OSPO~OkSO~O_UObVOmTO~OSZO~OS]OW_Op`O~OmbO~OqcO~ObVO~O_UObVO~OldO_TXbTXhTXmTX~OkfO~OS]O~OohOpjO~OSkOplO~OcnO~OSoO~OldO_TabTahTamTa~OSqO]rO~OkuO~OS]OW_O~OohOpxO~OoyOp{O~OS|O~O[}Ok!OOnZXoZXpZX~O[}OnZXoZXpZX~On!POoYXpYX~OSkO~OoyOp!UO~Or!VO~OS!WO~On!POoYapYa~O[!ZOnZioZipZi~O",
+  goto: "#YhPPilPoruP{!S!YPP!aP!e!kPP!p!v!|#SRRORQOR[SRYRQaTRvhS^ThRg_QtfR!RuSsfuR!X!PTXRYQmbR!SyVWRXYQeZRpeQ!QsR!Y!QQiaRwiQzmR!Tz",
+  nodeNames: "⚠ Query Head Aggregator Word Metric Filters Filter Negate TagKey TagValue Value Star Quoted GroupBy By Dimension Rollup RollupDot Int",
+  maxTerm: 34,
   skippedNodes: [0],
   repeatNodeCount: 4,
-  tokenData: "&o~ReXY!dYZ!d]^!dpq!dqr!uxy!zyz#Pz{#U|}#Z}!O#`!O!P#t!Q![$q![!]%X!c!}#`#R#S#`#T#U#`#U#V%^#V#o#`#o#p&`#p#q&e#q#r&j~!iSi~XY!dYZ!d]^!dpq!d~!zOW~~#POp~~#UOq~~#ZO[~~#`On~P#eTSP}!O#`!Q![#`!c!}#`#R#S#`#T#o#`~#yPk~#f#g#|~$PP#c#d$S~$VP#`#a$Y~$]P#`#a$`~$cP#i#j$f~$iP#d#e$l~$qOa~R$xTbQSP}!O#`!Q![$q!c!}#`#R#S#`#T#o#`~%^Oj~R%cVSP}!O#`!Q![#`!c!}#`#R#S#`#T#m#`#m#n%x#n#o#`R&PT^QSP}!O#`!Q![#`!c!}#`#R#S#`#T#o#`~&eOl~~&jOm~~&oOo~",
+  tokenData: "'a~RfXY!gYZ!g]^!gpq!gqr!xrs!}xy#lyz#qz{#v|}#{}!O$Q!O!P$f!Q![%c![!]%y!c!}$Q#R#S$Q#T#U$Q#U#V&O#V#o$Q#o#p'Q#p#q'V#q#r'[~!lSj~XY!gYZ!g]^!gpq!g~!}OW~~#QTOr!}rs#as;'S!};'S;=`#f<%lO!}~#fO]~~#iP;=`<%l!}~#qOq~~#vOr~~#{O[~~$QOo~P$VTSP}!O$Q!Q![$Q!c!}$Q#R#S$Q#T#o$Q~$kPl~#f#g$n~$qP#c#d$t~$wP#`#a$z~$}P#`#a%Q~%TP#i#j%W~%ZP#d#e%^~%cOb~R%jTcQSP}!O$Q!Q![%c!c!}$Q#R#S$Q#T#o$Q~&OOk~R&TVSP}!O$Q!Q![$Q!c!}$Q#R#S$Q#T#m$Q#m#n&j#n#o$QR&qT_QSP}!O$Q!Q![$Q!c!}$Q#R#S$Q#T#o$Q~'VOm~~'[On~~'aOp~",
   tokenizers: [0, 1],
   topRules: {"Query":[0,1]},
   tokenPrec: 0

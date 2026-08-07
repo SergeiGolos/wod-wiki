@@ -1,0 +1,132 @@
+/**
+ * Contextual typeahead for the calc-line editor (#880) — a CM6 autocomplete
+ * source over the calc vocabulary. Context-aware:
+ *   - inside `lookup(...)` → tables, then fields (and effort keys);
+ *   - after `->` → dimension-filtered unit suggestions (using the engine's
+ *     inferred vector when the draft line is valid, else all units);
+ *   - after an aggregator `sum:` → stream metric keys;
+ *   - otherwise → scope-aware atoms, functions, aggregates, clause keywords.
+ */
+
+import { CompletionContext, CompletionResult, autocompletion } from '@codemirror/autocomplete';
+import { CalcScope } from '../../../core/analytics/calc/types';
+import {
+  FUNCTION_NAMES,
+  LOOKUP_TABLES,
+  SEGMENT_ATOMS,
+  WORKOUT_CONTEXT_ATOMS,
+  STREAM_METRICS,
+  AGGREGATE_NAMES,
+  WQL_AGGREGATORS,
+  CLAUSE_WORDS,
+  unitsForDimension,
+} from './calcVocabulary';
+import { analyzeCalcLine } from './calcDiagnostics';
+
+export interface CalcCompletionOptions {
+  /** Scope used for atom suggestions and dimension inference. */
+  scope?: CalcScope;
+}
+
+interface Sugg {
+  label: string;
+  insert: string;
+  detail: string;
+}
+
+/** Effort catalog keys suggested in the `lookup("effort", …, …)` key slot. */
+const EFFORT_KEYS = ['effort', 'thruster', 'push-press', 'front-squat', 'wall-ball', 'row', 'run'];
+
+export function calcCompletionSource(options: CalcCompletionOptions = {}): (context: CompletionContext) => CompletionResult | null {
+  const scope = options.scope ?? 'segment';
+
+  return (context: CompletionContext): CompletionResult | null => {
+    const text = context.state.sliceDoc(0, context.pos);
+    const word = context.matchBefore(/[\w./"]*/);
+    if (!word) return null;
+
+    // ── lookup(...) inner context ───────────────────────────────────────
+    const inLookup = /lookup\(\s*/.test(text);
+    if (inLookup) {
+      const lookupAt = text.lastIndexOf('lookup(');
+      const inside = text.slice(lookupAt + 'lookup('.length);
+      // Table slot: `lookup("...` with no comma yet.
+      if (!/,/.test(inside) && /^"?[\w.-]*"?$/.test(inside.replace(/"/g, '').trim() || '')) {
+        const frag = inside.replace(/"/g, '').trim();
+        const options = LOOKUP_TABLES.filter((t) => t.name.startsWith(frag))
+          .map((t) => ({ label: t.name, insert: `"${t.name}"`, detail: t.detail }));
+        if (options.length) {
+          return { from: context.pos - frag.length, options, validFor: /^[\w.-]*$/ };
+        }
+      }
+      // Field slot (3rd quoted arg): `lookup("T", key, "...`
+      const fieldM = /lookup\(\s*"[^"]+"\s*,\s*[^,]+,\s*"?([\w-]*)"?$/.exec(text);
+      if (fieldM) {
+        const table = /lookup\(\s*"([^"]+)"/.exec(text)?.[1];
+        const t = LOOKUP_TABLES.find((x) => x.name === table);
+        const options = (t?.fields ?? []).filter((f) => f.startsWith(fieldM[1]))
+          .map((f) => ({ label: f, insert: `"${f}"`, detail: `${table} field` }));
+        return { from: context.pos - fieldM[1].length, options, validFor: /^[\w-]*$/ };
+      }
+      // Key slot (2nd arg) for effort.
+      const keyM = /lookup\(\s*"(effort)"\s*,\s*"?([\w.-]*)"?$/.exec(text);
+      if (keyM) {
+        const keys = EFFORT_KEYS.filter((k) => k.startsWith(keyM[2]));
+        const options = keys.map((k) => ({ label: k, insert: k === 'effort' ? k : `"${k}"`, detail: 'effort key' }));
+        return { from: context.pos - keyM[2].length, options, validFor: /^[\w.-]*$/ };
+      }
+    }
+
+    // ── Unit context (after `->`) — dimension-filtered ──────────────────
+    const unitM = /->\s*([\w/]*)$/.exec(text);
+    if (unitM) {
+      const lineText = context.state.doc.lineAt(context.pos).text;
+      const analysis = analyzeCalcLine(lineText, scope);
+      const dim = analysis.diagnostics.length === 0 ? analysis.dim : undefined;
+      const options = unitsForDimension(dim)
+        .filter((u) => u.startsWith(unitM[1]))
+        .map((u) => ({ label: u, detail: dim ? 'matches inferred dimension' : 'unit' }));
+      return { from: context.pos - unitM[1].length, options, validFor: /^[\w/]*$/ };
+    }
+
+    // ── WQL atom aggregator context (store scope), e.g. `sum:reps` ─────
+    if (scope === 'store') {
+      const wqlM = /^(sum|avg|max|min|count|last):([\w.]*)$/.exec(word.text);
+      if (wqlM) {
+        const options = STREAM_METRICS.filter((m) => m.startsWith(wqlM[2]))
+          .map((m) => ({ label: m, detail: 'metric key' }));
+        return { from: word.from + word.text.indexOf(':') + 1, options, validFor: /^[\w.]*$/ };
+      }
+    }
+
+    // ── Generic atom/function/clause context ────────────────────────────
+    const items: Sugg[] = [];
+    if (scope === 'segment') {
+      items.push(...SEGMENT_ATOMS.map((a) => ({ label: a.name, insert: a.name, detail: a.detail })));
+    } else {
+      items.push(...WORKOUT_CONTEXT_ATOMS.map((a) => ({ label: a.name, insert: a.name, detail: a.detail })));
+      if (scope === 'workout') {
+        for (const agg of AGGREGATE_NAMES) {
+          for (const m of ['reps', 'distance', 'segmentVolume', 'metMinutes', 'elapsed', 'effortRpe']) {
+            items.push({ label: `${agg}(${m})`, insert: `${agg}(${m})`, detail: 'aggregate' });
+          }
+        }
+        items.push({ label: 'sum(reps, without: rest)', insert: 'sum(reps, without: rest)', detail: 'exclusion aggregate' });
+      }
+    }
+    items.push(...FUNCTION_NAMES.map((f) => ({ label: `${f}()`, insert: `${f}()`, detail: 'function' })));
+    if (scope === 'store') items.push(...WQL_AGGREGATORS.map((a) => ({ label: `${a}:{}`, insert: `${a}:`, detail: 'WQL atom' })));
+    items.push(...CLAUSE_WORDS.map((c) => ({ label: c, insert: c === 'when' ? 'when ' : c, detail: 'clause' })));
+    items.push({ label: 'estimated', insert: 'estimated', detail: 'variant origin' });
+    items.push({ label: '(library)', insert: '(library)', detail: 'library calc' });
+
+    const filtered = items.filter((i) => i.label.startsWith(word.text)).slice(0, 20);
+    if (!filtered.length) return null;
+    return { from: word.from, options: filtered, validFor: /^[\w./]*$/ };
+  };
+}
+
+/** Ready-to-use autocomplete extension. */
+export function calcCompletion(options?: CalcCompletionOptions) {
+  return autocompletion({ override: [calcCompletionSource(options)] });
+}

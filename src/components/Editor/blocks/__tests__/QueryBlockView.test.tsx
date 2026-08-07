@@ -10,7 +10,6 @@ import { afterEach, describe, expect, it, mock } from 'bun:test';
  */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { parseQuery, isFindQuery, type QueryResult, type FindQueryResult, type ParsedQuery } from '@/services/analytics/query';
-import { DashboardBlockView, parseDashboardQueries } from '../DashboardBlockView';
 
 const runQuery = mock(async (_raw: string): Promise<QueryResult> => scalarResult('sum:totalVolume{}'));
 const runFind = mock(async (parsed: ParsedQuery): Promise<FindQueryResult> => ({
@@ -85,36 +84,44 @@ describe('QueryBlockView', () => {
 
     expect(onSaveQuery).toHaveBeenCalledWith('sum:totalVolume', 0);
   });
-});
 
-describe('DashboardBlockView', () => {
-  it('splits the body into one query per non-empty, non-comment line', () => {
-    expect(parseDashboardQueries('sum:a{}\n# header\n\nfind:note{x}\n')).toEqual([
-      'sum:a{}', 'find:note{x}',
-    ]);
+  it('dispatches the fence-suffix widget type over shape inference (#899)', async () => {
+    render(<QueryBlockView query="sum:totalVolume{}" widgetType="timeseries" />);
+    await waitFor(() => expect(runQuery).toHaveBeenCalledTimes(1));
+    // A scalar result under an explicit timeseries type renders the chart,
+    // not the scalar QueryValue fallback.
+    expect(document.querySelector('.recharts-responsive-container')).toBeTruthy();
   });
 
-  it('stacks each line as a separate query execution', async () => {
-    render(<DashboardBlockView body={'sum:a{}\nsum:b{}'} />);
-    await waitFor(() => expect(runQuery).toHaveBeenCalledTimes(2));
+  it('badges unknown widget types without executing', async () => {
+    render(<QueryBlockView query="sum:totalVolume{}" widgetType="bogus" />);
+    await waitFor(() => expect(screen.getByTestId('widget-problem')).toBeTruthy());
+    expect(screen.getByTestId('widget-problem').textContent).toContain('bogus');
+    expect(runQuery).not.toHaveBeenCalled();
   });
 
-  it('renders an empty-state hint when the body has no queries', () => {
-    render(<DashboardBlockView body={'# just a comment\n'} />);
-    expect(screen.getByText(/Empty dashboard/i)).toBeTruthy();
+  it('badges malformed suffixes via widgetError without executing', async () => {
+    render(<QueryBlockView query="sum:totalVolume{}" widgetType="bar" widgetError="span 9 outside 1..4" />);
+    await waitFor(() => expect(screen.getByTestId('widget-problem')).toBeTruthy());
+    expect(runQuery).not.toHaveBeenCalled();
   });
 
-  it('passes onSaveQuery to each child query view with correct query index', async () => {
-    const onSaveQuery = mock((_q: string, _idx: number) => {});
-    render(<DashboardBlockView body={'sum:a{}\nsum:b{}'} onSaveQuery={onSaveQuery} />);
+  it('substitutes $token refs from the note frontmatter before executing (#899-6)', async () => {
+    render(<QueryBlockView query="sum:sessionLoad{intensity:$intensity}" tokenValues={{ intensity: 'low' }} />);
+    await waitFor(() => expect(runQuery).toHaveBeenCalledTimes(1));
+    expect(runQuery).toHaveBeenCalledWith('sum:sessionLoad{intensity:low}');
+  });
 
-    const editBtns = screen.getAllByTestId('edit-query-block');
-    expect(editBtns).toHaveLength(2);
+  it('badges unknown $token refs without executing (#899-6)', async () => {
+    render(<QueryBlockView query="sum:sessionLoad{intensity:$intensity}" tokenValues={{}} />);
+    await waitFor(() => expect(screen.getByTestId('widget-problem')).toBeTruthy());
+    expect(screen.getByTestId('widget-problem').textContent).toContain('$intensity');
+    expect(runQuery).not.toHaveBeenCalled();
+  });
 
-    fireEvent.click(editBtns[1]);
-    expect(screen.getByTestId('query-inspector-modal')).toBeDefined();
-
-    fireEvent.click(screen.getByTestId('apply-query-inspector'));
-    expect(onSaveQuery).toHaveBeenCalledWith('sum:b', 1);
+  it('strips trailing / widget params before executing (#899-7)', async () => {
+    render(<QueryBlockView query="max:calc.e1rm{} / $goal" tokenValues={{ goal: '240' }} />);
+    await waitFor(() => expect(runQuery).toHaveBeenCalledTimes(1));
+    expect(runQuery).toHaveBeenCalledWith('max:calc.e1rm{}');
   });
 });

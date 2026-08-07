@@ -50,6 +50,7 @@ export class StandardAnalyticsProfile implements IAnalyticsProfile {
             const calcEngine = createCalcEngine(context.dialect, {
                 effortResolver: context.analyticsContext.effortResolver,
                 userProfile: context.userProfile,
+                calcs: context.calcs,
             });
             realtime.push(calcEngine);
             summary.push(calcEngine);

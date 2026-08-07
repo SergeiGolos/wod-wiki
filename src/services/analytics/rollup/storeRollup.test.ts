@@ -55,7 +55,8 @@ function makeStore(seed: AnalyticsDataPoint[] = []): FakeStore {
 }
 
 // Fixture: one training week — 100/200/300/100 AU on days 0/2/4/6,
-// "now" midday of day 6. Days 0..6 each produce acwr + monotony + strain.
+// "now" midday of day 6. Days 0..6 each produce acwr + monotony + strain +
+// ctl + atl + tsb.
 const NOW = 6 * DAY + 12 * 3_600_000;
 const WEEK = [sessionLoadFact('a', 0, 100), sessionLoadFact('b', 2, 200), sessionLoadFact('c', 4, 300), sessionLoadFact('d', 6, 100)];
 
@@ -65,8 +66,8 @@ describe('runStoreRollup', () => {
     const summary = await runStoreRollup(store, { now: NOW });
 
     expect(summary.days).toBe(7);
-    expect(summary.facts).toBe(21); // 7 days × 3 metrics
-    expect(summary.written).toBe(21);
+    expect(summary.facts).toBe(42); // 7 days × 6 metrics
+    expect(summary.written).toBe(42);
     expect(summary.deleted).toBe(0);
 
     const acwr6 = store.rows.get(rollupFactId('calc.acwr', 6))!;
@@ -80,6 +81,32 @@ describe('runStoreRollup', () => {
     expect(store.rows.get(rollupFactId('calc.monotony', 6))!.value).toBeCloseTo(0.93541, 4);
     expect(store.rows.get(rollupFactId('calc.strain', 6))!.value).toBeCloseTo(654.79003, 4);
     expect(store.rows.get(rollupFactId('calc.strain', 6))!.unit).toBe('AU');
+  });
+
+  it('derives PMC loads as EWMAs of daily sessionLoad (#905)', async () => {
+    const store = makeStore(WEEK);
+    await runStoreRollup(store, { now: NOW });
+
+    // Reference recursion over the zero-filled day domain 0..6, gain 1/N:
+    //   v_d = v_{d-1} + (load_d − v_{d-1}) / N, seeded at 0.
+    const loads = [100, 0, 200, 0, 300, 0, 100];
+    const ewma = (n: number): number[] => {
+      let prev = 0;
+      return loads.map((load) => (prev = prev + (load - prev) / n));
+    };
+    const ctl = ewma(42);
+    const atl = ewma(7);
+
+    for (let day = 0; day <= 6; day++) {
+      expect(store.rows.get(rollupFactId('calc.ctl', day))!.value).toBeCloseTo(ctl[day], 10);
+      expect(store.rows.get(rollupFactId('calc.atl', day))!.value).toBeCloseTo(atl[day], 10);
+      expect(store.rows.get(rollupFactId('calc.tsb', day))!.value).toBeCloseTo(ctl[day] - atl[day], 10);
+    }
+    // Spot values: ATL reacts fast (66.86 after the 300 AU day), CTL lags.
+    expect(store.rows.get(rollupFactId('calc.atl', 6))!.value).toBeCloseTo(66.86, 2);
+    expect(store.rows.get(rollupFactId('calc.ctl', 6))!.value).toBeCloseTo(15.57, 2);
+    expect(store.rows.get(rollupFactId('calc.tsb', 6))!.unit).toBe('AU');
+    expect(store.rows.get(rollupFactId('calc.ctl', 6))!.metricLabel).toBe('Chronic Training Load (CTL)');
   });
 
   it('matches the workloadRollup reference math bit-for-bit (parity proof, #864)', async () => {
@@ -126,11 +153,13 @@ describe('runStoreRollup', () => {
     store.rows.set('fact-e', sessionLoadFact('e', 3, 50));
     const rerun = await runStoreRollup(store, { now: NOW });
 
-    expect(rerun.written).toBe(12); // 4 stale days × 3 metrics
+    // 4 stale days × 3 window metrics, plus the EWMA loads: the recursion
+    // makes every day ≥ 3 stale for ctl/atl/tsb too (4 × 3).
+    expect(rerun.written).toBe(24);
     expect(rerun.deleted).toBe(0);
     const rewrittenIds = new Set(store.writeCalls[1].map((r) => r.id));
     for (const day of [3, 4, 5, 6]) {
-      for (const key of ['calc.acwr', 'calc.monotony', 'calc.strain']) {
+      for (const key of ['calc.acwr', 'calc.monotony', 'calc.strain', 'calc.ctl', 'calc.atl', 'calc.tsb']) {
         expect(rewrittenIds.has(rollupFactId(key, day))).toBe(true);
       }
     }
@@ -153,7 +182,7 @@ describe('runStoreRollup', () => {
     const rerun = await runStoreRollup(store, { now: NOW });
 
     expect(rerun.written).toBe(0);
-    expect(rerun.deleted).toBe(21);
+    expect(rerun.deleted).toBe(42);
     expect([...store.rows.keys()].filter((id) => id.startsWith('rollup:'))).toHaveLength(0);
   });
 
