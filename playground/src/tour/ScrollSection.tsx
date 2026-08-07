@@ -96,9 +96,10 @@ export function ScrollSection({
           data-testid="scroll-section-sticky-window"
           className={cn(
             'overflow-hidden rounded-2xl border border-border bg-background shadow-2xl',
-            // Mobile: flat block sized to the short chapter examples — the old
-            // 55vh window left dead whitespace + ghosted rows below the code.
-            'mb-4 h-[260px]',
+            // Mobile: flat block sized to the longest chapter example
+            // (dialects/complex, ~244px incl. chrome) — the old 55vh window
+            // left dead whitespace + ghosted rows below short examples.
+            'mb-4 h-[250px]',
             // Desktop: side-sticky, code sample takes 2/3 of the width
             'lg:sticky lg:top-[80px] lg:z-20 lg:mx-0 lg:mb-0 lg:h-auto lg:w-auto lg:flex-[2_1_0%] lg:max-h-[calc(100vh-100px)] lg:p-4',
           )}
