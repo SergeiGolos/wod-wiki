@@ -67,6 +67,55 @@ stages:
       tag: Review Grid
 ```
 
+```scroll:chapters
+runway: 720vh
+screen: editor
+typewriter: true
+stages:
+  - id: basics
+    range: [0.0, 0.166]
+    screen: editor
+    source: wods/examples/syntax/single-movement.md
+    caption: "Basics. Statements and metrics — how a workout line reads, from rounds to reps."
+    ring:
+      tag: Basics example
+  - id: protocols
+    range: [0.166, 0.333]
+    screen: editor
+    source: wods/examples/syntax/timers-rest.md
+    caption: "Protocols. Countdowns, AMRAPs, EMOMs — the timing protocols that pace a workout."
+    ring:
+      tag: Protocols example
+  - id: structure
+    range: [0.333, 0.5]
+    screen: editor
+    source: wods/examples/syntax/groups-1.md
+    caption: "Structure. Rounds, groups, and nesting — how blocks compose a workout."
+    ring:
+      tag: Structure example
+  - id: custom-metrics
+    range: [0.5, 0.666]
+    screen: editor
+    source: wods/syntax/custom-metrics-1.md
+    caption: "Custom Metrics. Reps, loads, and custom metrics — what gets tracked per movement."
+    ring:
+      tag: Custom Metrics example
+  - id: dialects
+    range: [0.666, 0.833]
+    screen: editor
+    source: wods/examples/syntax/dialect-wod.md
+    caption: "Dialects. Run, climb, strength — dialect tags that specialize a block."
+    ring:
+      tag: Dialects example
+  - id: complex
+    range: [0.833, 1.0]
+    screen: editor
+    source: wods/examples/syntax/complex-nested-protocols.md
+    caption: "Complex Workouts. AMRAPs into strength ladders — composing richer workout shapes."
+    ring:
+      tag: Complex example
+```
+
 
 ```chapter
 id: home-tour

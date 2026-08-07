@@ -159,6 +159,8 @@ export interface ParsedCanvasPage {
    * renders as a normal MarkdownCanvasPage.
    */
   scroll?: ScrollSpec | null
+  /** Named ```scroll:<name> runways (e.g. a chapter tour) parsed from the page. */
+  namedScrolls?: Record<string, ScrollSpec>
 }
 
 /** Map each challenge id to the id of the section that contains its
@@ -648,23 +650,33 @@ function parseScrollBlock(content: string): ScrollSpec | null {
   }
 }
 
-/** Strip the page-level ```scroll fenced block from the body. Page-wide
- *  scope (same as ```quest / ```chapter): at most one block is honored
- *  (the first well-formed one); every block is removed from the body so it
- *  doesn't bleed into section parsing. Malformed → console.warn + null. */
-function extractPageScroll(body: string): { scroll: ScrollSpec | null; body: string } {
+/** Strip page-level ```scroll fenced blocks from the body. Page-wide
+ *  scope (same as ```quest / ```chapter). The first unnamed block becomes
+ *  `page.scroll`; any named blocks (```scroll:<name>) are captured into
+ *  `namedScrolls` so a page can declare multiple runways (e.g. a hero
+ *  runway + a chapter runway). Every block is removed from the body so it
+ *  doesn't bleed into section parsing. Malformed → console.warn + skipped. */
+function extractPageScroll(body: string): { scroll: ScrollSpec | null; namedScrolls: Record<string, ScrollSpec>; body: string } {
   const lines = body.split('\n');
   let scroll: ScrollSpec | null = null;
+  const namedScrolls: Record<string, ScrollSpec> = {};
   const out: string[] = [];
   let inFence = false;
+  let fenceName: string | null = null;
   let buffer: string[] = [];
   const flushFence = () => {
-    if (scroll === null) {
-      const spec = parseScrollBlock(buffer.join('\n'));
-      if (spec) scroll = spec;
-      else console.warn('[canvas] ```scroll block ignored: missing or malformed stages');
+    const spec = parseScrollBlock(buffer.join('\n'));
+    if (spec) {
+      if (fenceName) {
+        if (namedScrolls[fenceName]) console.warn(`[canvas] duplicate named \`\`\`scroll:${fenceName} block ignored`);
+        else namedScrolls[fenceName] = spec;
+      } else if (scroll === null) scroll = spec;
+      else console.warn('[canvas] duplicate unnamed ```scroll block ignored');
+    } else {
+      console.warn('[canvas] ```scroll block ignored: missing or malformed stages');
     }
     buffer = [];
+    fenceName = null;
   };
   for (const line of lines) {
     if (inFence) {
@@ -676,19 +688,16 @@ function extractPageScroll(body: string): { scroll: ScrollSpec | null; body: str
       }
       continue;
     }
-    const fenceMatch = line.match(/^```(\w+)\s*$/);
+    const fenceMatch = line.match(/^```scroll(?::([\w-]+))?\s*$/);
     if (fenceMatch) {
-      if (fenceMatch[1] === 'scroll') {
-        inFence = true;
-      } else {
-        out.push(line);
-      }
+      inFence = true;
+      fenceName = fenceMatch[1] ?? null;
       continue;
     }
     out.push(line);
   }
   if (inFence) flushFence();
-  return { scroll, body: out.join('\n') };
+  return { scroll, namedScrolls, body: out.join('\n') };
 }
 
 function splitProseForWidgets(text: string): ProseChunk[] {
@@ -832,7 +841,7 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   // Pull page-level quest and chapter blocks out of the body before
   // section splitting. Both are page-wide (collect+strip every block).
   const { quests, body: bodyWithoutQuests } = extractPageQuests(body)
-  const { scroll, body: bodyWithoutScroll } = extractPageScroll(bodyWithoutQuests)
+  const { scroll, namedScrolls, body: bodyWithoutScroll } = extractPageScroll(bodyWithoutQuests)
   const { chapters } = extractPageChapters(bodyWithoutScroll)
 
   const route = String(meta['route'] ?? defaultRoute)
@@ -881,5 +890,5 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   }
   if (cur) flush(cur)
 
-  return { template: 'canvas', route, sections, frontmatter: meta, quests, chapters, scroll }
+  return { template: 'canvas', route, sections, frontmatter: meta, quests, chapters, scroll, namedScrolls }
 }

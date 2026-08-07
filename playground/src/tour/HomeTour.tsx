@@ -31,7 +31,7 @@ import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { Quest } from '../hooks/usePageQuests'
-import type { Chapter } from '../canvas/parseCanvasMarkdown'
+import type { Chapter, ScrollSpec } from '../canvas/parseCanvasMarkdown'
 import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
 import { useRunStartedChallenge } from '../hooks/useRunStartedChallenge'
@@ -62,8 +62,7 @@ import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { CelebrationBridge } from './CelebrationBridge'
-import { ChapterHeroSection } from './ChapterHeroSection'
-import { LearnProgressOverview } from './TourLearnSection'
+import { ChapterScrollTour } from './ChapterScrollTour'
 import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
@@ -121,11 +120,13 @@ export interface HomeTourProps {
   chapters: Chapter[]
   /** Cross-page quest id → label, collected from every canvas route. */
   questLabels?: Record<string, string>
+  /** The ```scroll:chapters runway spec (six chapter stages) from the home canvas markdown. */
+  chapterScroll?: ScrollSpec
 }
 
 // ── Inner (needs RingTargetsContext) ──────────────────────────────────────────
 
-function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeTourProps) {
+function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapterScroll }: HomeTourProps) {
   const isMobile = useIsMobile()
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const telemetry = useTelemetry()
@@ -994,29 +995,17 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels }: HomeT
 
       <CelebrationBridge chapters={chapters} />
 
-      {/* Six Syntax Chapter Heroes */}
-      {chapters
-        .filter((c) => c.id !== 'home-tour')
-        .map((ch) => (
-          <ChapterHeroSection
-            key={ch.id}
-            chapter={ch}
-            allChapters={chapters}
-            allQuests={quests}
-            theme={theme}
-            questLabels={questLabels}
-            onRun={handleChapterRun}
-            onShare={handleChapterShare}
-            onOpenInEditor={handleChapterOpenInEditor}
-          />
-        ))}
-
-      <LearnProgressOverview
-        quests={quests}
-        chapters={chapters}
-        questLabels={questLabels}
-        onHomeQuestClick={handleHomeQuestClick}
-      />
+      {/* Six Syntax Chapters — markdown ```scroll:chapters runway (same format as the hero) */}
+      {chapterScroll && (
+        <ChapterScrollTour
+          scroll={chapterScroll}
+          chapters={chapters}
+          allQuests={quests}
+          theme={theme}
+          wodFiles={wodFiles}
+          onRun={handleChapterRun}
+        />
+      )}
 
       {interactive && playgroundOverlay}
 
