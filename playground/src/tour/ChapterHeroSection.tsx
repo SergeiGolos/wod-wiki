@@ -137,31 +137,31 @@ export function ChapterHeroSection({
   // Slides: the chapter's quest cards as a grouped list (mobile below the
   // editor block, desktop beside the side-sticky window).
   const slides = (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-1">
       {questItems.map((q, idx) => (
         <div
           key={q.id}
           data-testid={`chapter-quest-card-${q.id}`}
           className={cn(
-            'flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors',
+            'flex items-center gap-2 rounded-lg px-2.5 py-1.5 transition-colors',
             q.isDone
-              ? 'border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10'
-              : 'border-border bg-card',
+              ? 'bg-emerald-500/5 dark:bg-emerald-500/10'
+              : 'bg-transparent',
           )}
         >
           <span
             className={cn(
-              'flex size-5 flex-none items-center justify-center rounded-full border text-[10px] font-bold',
+              'flex size-4 flex-none items-center justify-center rounded-full border text-[9px] font-bold',
               q.isDone
                 ? 'border-emerald-500 bg-emerald-500 text-white'
                 : 'border-border text-muted-foreground',
             )}
           >
-            {q.isDone ? <Check className="size-3 stroke-[2.5]" /> : idx + 1}
+            {q.isDone ? <Check className="size-2.5 stroke-[2.5]" /> : idx + 1}
           </span>
           <span
             className={cn(
-              'text-[13px] font-medium',
+              'truncate text-[12px] font-medium',
               q.isDone ? 'text-muted-foreground line-through' : 'text-foreground',
             )}
           >

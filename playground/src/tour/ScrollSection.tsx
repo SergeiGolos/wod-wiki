@@ -81,10 +81,10 @@ export function ScrollSection({
       ref={sectionRef}
       id={id}
       data-testid={`scroll-section-${id}`}
-      className={cn('relative py-8 border-b border-border/60', className)}
+      className={cn('relative px-4 py-6 border-b border-border/60 lg:px-0', className)}
     >
       {title && (
-        <h2 className="mb-4 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+        <h2 className="mb-3 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
           {title}
         </h2>
       )}
@@ -96,9 +96,10 @@ export function ScrollSection({
           data-testid="scroll-section-sticky-window"
           className={cn(
             'overflow-hidden rounded-2xl border border-border bg-background shadow-2xl',
-            // Mobile: flat block, horizontal margin + comfortable height that
-            // fits the editor (CodeMirror scrolls internally — nothing clipped).
-            'mx-4 mb-5 h-[55vh] min-h-[320px] max-h-[75vh]',
+            // Mobile: flat block sized to the longest chapter example
+            // (dialects/complex, ~244px incl. chrome) — the old 55vh window
+            // left dead whitespace + ghosted rows below short examples.
+            'mb-4 h-[250px]',
             // Desktop: side-sticky, code sample takes 2/3 of the width
             'lg:sticky lg:top-[80px] lg:z-20 lg:mx-0 lg:mb-0 lg:h-auto lg:w-auto lg:flex-[2_1_0%] lg:max-h-[calc(100vh-100px)] lg:p-4',
           )}
@@ -107,7 +108,7 @@ export function ScrollSection({
         </div>
 
         {/* Slides — grouped list with horizontal padding on mobile, beside the window on desktop */}
-        <div className="min-w-0 flex-1 flex flex-col gap-3 px-4 pb-2 lg:px-0 lg:pb-0 lg:py-0">
+        <div className="min-w-0 flex-1 flex flex-col gap-2 pb-1 lg:px-0 lg:pb-0 lg:py-0">
           {slides}
           {footer && <div className="mt-2">{footer}</div>}
         </div>

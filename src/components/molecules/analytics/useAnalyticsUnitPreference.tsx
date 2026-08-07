@@ -9,6 +9,13 @@ export type AnalyticsUnit = 'kg' | 'lb';
 
 const VALID_UNITS: readonly AnalyticsUnit[] = ['kg', 'lb'];
 
+/** Same-tab subscribers: real `storage` events only fire in OTHER tabs, so a
+ * writer pings these directly to sync other hooks mounted in this tab. */
+const unitListeners = new Set<() => void>();
+function notifyUnitChange() {
+  for (const l of unitListeners) l();
+}
+
 function readStoredUnit(): AnalyticsUnit {
   if (typeof window === 'undefined') return DEFAULT_ANALYTICS_UNIT;
   const stored = window.localStorage.getItem(ANALYTICS_UNIT_STORAGE_KEY);
@@ -28,24 +35,19 @@ export function useAnalyticsUnitPreference() {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(ANALYTICS_UNIT_STORAGE_KEY, next);
     setUnitState(next);
-    window.dispatchEvent(
-      new StorageEvent('storage', { key: ANALYTICS_UNIT_STORAGE_KEY, newValue: next }),
-    );
+    notifyUnitChange();
   }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const handler = (e: StorageEvent) => {
-      if (e.key !== ANALYTICS_UNIT_STORAGE_KEY) return;
-      const next = (VALID_UNITS as readonly string[]).includes(e.newValue ?? '')
-        ? (e.newValue as AnalyticsUnit)
-        : DEFAULT_ANALYTICS_UNIT;
-      setUnitState(next);
+    const sync = () => setUnitState(readStoredUnit());
+    unitListeners.add(sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      unitListeners.delete(sync);
+      window.removeEventListener('storage', sync);
     };
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
   }, []);
-
   return { unit, setUnit };
 }
 
