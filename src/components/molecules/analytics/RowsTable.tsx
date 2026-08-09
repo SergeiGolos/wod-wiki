@@ -7,9 +7,10 @@
  * headers only appear when more than one run is present (block:/note: scopes).
  *
  * No widen toggle, no RPE chrome here — that's the results-flavored layer
- * (#948) built on top of this plain grid.
+ * (#948) built on top of this plain grid; hosts inject per-run header chrome
+ * through `renderRunHeaderExtra`.
  */
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import type { RowsQueryResult, RowsRun } from '@/services/analytics/query';
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer';
 import { ReviewGrid } from '@/components/organisms/review/ReviewGrid';
@@ -29,7 +30,14 @@ function formatRunHeader(run: RowsRun): string {
   return `${date} — ${minutes}:${seconds}`;
 }
 
-export function RowsTable({ result }: { result: RowsQueryResult }) {
+export function RowsTable({
+  result,
+  renderRunHeaderExtra,
+}: {
+  result: RowsQueryResult;
+  /** Optional per-run chrome rendered inside the section header (#948 RPE). */
+  renderRunHeaderExtra?: (run: RowsRun) => ReactNode;
+}) {
   const runs = useMemo(
     () =>
       result.runs.map((run) => ({
@@ -52,8 +60,9 @@ export function RowsTable({ result }: { result: RowsQueryResult }) {
       {runs.map(({ run, segments }) => (
         <section key={run.result.id}>
           {runs.length > 1 && (
-            <div className="text-[11px] font-semibold text-muted-foreground px-1 py-1 bg-muted/40 rounded-t-md border-b border-border/60">
-              {formatRunHeader(run)}
+            <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-muted-foreground px-1 py-1 bg-muted/40 rounded-t-md border-b border-border/60">
+              <span>{formatRunHeader(run)}</span>
+              {renderRunHeaderExtra?.(run)}
             </div>
           )}
           <ReviewGrid

@@ -13,6 +13,22 @@ import { NotePersistenceError, type NotePersistenceStorage } from '@/services/pe
 
 export type CaptureSessionRpeOutcome = 'captured' | 'captured-no-rederive' | 'not-found';
 
+/**
+ * Read the user-captured session RPE from a result's logs — the value written
+ * by {@link captureSessionRpe}. Returns undefined when the run was never rated.
+ */
+export function readSessionRpe(logs: StoredOutputStatement[] | undefined): number | undefined {
+  if (!logs) return undefined;
+  for (const statement of logs) {
+    if (statement.outputType !== 'segment') continue;
+    const metric = statement.metrics.find(
+      (m) => m.type === MetricType.SessionRPE && m.origin === 'user',
+    );
+    if (metric && typeof metric.value === 'number') return metric.value;
+  }
+  return undefined;
+}
+
 export interface CaptureSessionRpeDeps {
   storage?: NotePersistenceStorage;
   persistence?: IndexedDBNotePersistence;

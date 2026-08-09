@@ -18,6 +18,7 @@ import {
   type RowsQueryResult,
 } from '@/services/analytics/query';
 import { RowsTable } from '@/components/molecules/analytics/RowsTable';
+import { RowsResultsChrome } from './RowsResultsChrome';
 import { useChartShape } from '@/components/molecules/analytics/useChartShape';
 import { QueryValue } from '@/components/molecules/analytics/QueryValue';
 import { WqlTimeseries } from '@/components/molecules/analytics/WqlTimeseries';
@@ -75,6 +76,8 @@ export function QueryBlockView({
   const [findResult, setFindResult] = useState<FindQueryResult | undefined>(undefined);
   const [rowsResult, setRowsResult] = useState<RowsQueryResult | undefined>(undefined);
   const [runError, setRunError] = useState<string | undefined>(undefined);
+  // Bumped by the rows chrome after an RPE capture so the grid re-derives (#948).
+  const [rowsRefreshKey, setRowsRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,7 +121,7 @@ export function QueryBlockView({
     return () => {
       cancelled = true;
     };
-  }, [effectiveQuery, parsed]);
+  }, [effectiveQuery, parsed, rowsRefreshKey]);
 
   const handleEditClick = () => {
     setIsModalOpen(true);
@@ -185,12 +188,24 @@ export function QueryBlockView({
 
   // ── Rows query → per-run pivoted grid (rows:{…}, #949) ──
   if (isRowsQuery(parsed)) {
+    // The written-on-completion shape (rows:{result:…}, #944) gets the
+    // results chrome: widen toggle + inline RPE (#948). Any other rows block
+    // renders the plain grouped grid.
+    const sessionResultId = parsed.filters.find((f) => f.key === 'result')?.values[0]?.value;
     return (
       <QueryBlockShell onEdit={onSaveQuery ? handleEditClick : undefined} readOnly={readOnly}>
         {rowsResult?.error ? (
           <p className="text-sm text-destructive font-mono px-1 py-2">{rowsResult.error}</p>
         ) : rowsResult ? (
-          <RowsTable result={rowsResult} />
+          sessionResultId ? (
+            <RowsResultsChrome
+              resultId={sessionResultId}
+              sessionResult={rowsResult}
+              onCaptured={() => setRowsRefreshKey((k) => k + 1)}
+            />
+          ) : (
+            <RowsTable result={rowsResult} />
+          )
         ) : (
           <p className="text-xs text-muted-foreground italic px-1 py-2">Loading rows…</p>
         )}
