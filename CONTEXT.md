@@ -138,6 +138,13 @@ The Datadog-flavored query language for cross-workout analytics:
 Parsed with a Lezer grammar (house pattern) and executed by the **Query Service**
 over the **Analytics Store**. Metric namespaces build on **Canonical Metric Keys**.
 _Avoid_: query string, analytics SQL.
+**Rows Query**:
+The third **WQL** family — `rows:{<tag filters>}` (optional output-type target:
+`rows:segment{…}`) — returning raw output-statement rows for one scope instead of
+aggregated series. Scoped by `result:` (one session), `block:` (all versions of a
+**Block Content Id**), or `note:` (a whole note). Backs the session results table:
+the per-round wide view the aggregate families cannot express.
+_Avoid_: logs query, raw query, segment dump.
 **Tag**:
 A `key:value` dimension carried on an **Analytics Store** fact row (`effort`,
 `discipline`, `note`, …) that **WQL** filters and groups by. Tags are query-time
