@@ -99,7 +99,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     return uuid;
   }, [journalDate]);
 
-  const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"]) => {
+  const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"], editorResultId?: string) => {
     // AutoStart runs carry their identities from pendingRuntimes: the block
     // id embeds the SOURCE page's doc line, so line-based resolution against
     // this page's doc misses and no result is recorded. Match the journal
@@ -124,7 +124,9 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       runBlock,
       blockId,
       noteId: uuid,
-      resultId: activeRuntimeId || crypto.randomUUID(),
+      // The editor-generated id (already embedded in the inserted query:table
+      // block, #944) wins; autoStart runs fall back to their pending runtime id.
+      resultId: editorResultId ?? activeRuntimeId ?? crypto.randomUUID(),
       data: results!,
       createdAt: results?.endTime || Date.now(),
     }).then((result) => {

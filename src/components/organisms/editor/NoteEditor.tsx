@@ -42,6 +42,7 @@ import { smartIncrement } from "@/components/Editor/extensions/smart-increment";
 
 // Note editor extensions
 import { sectionField, SectionState, activeCursorSection, type EditorSection } from "@/components/Editor/extensions/section-state";
+import { sessionQueryInsert } from "@/components/Editor/extensions/sessionQueryBlock";
 import { previewDecorations } from "@/components/Editor/extensions/preview-decorations";
 import { embedPreviewDecorations } from "@/components/Editor/extensions/embed-preview";
 import { frontmatterPreview } from "@/components/Editor/extensions/frontmatter-preview";
@@ -65,7 +66,6 @@ import { createFileDropHandler, deriveReviewSegments, resolveNotePersistence, re
 
 import {
   wodResultsWidget,
-  wodResultsField,
   updateSectionResults,
   WOD_RESULT_CLICK_EVENT,
   compactResultsMode,
@@ -114,8 +114,10 @@ export interface NoteEditorProps {
   className?: string;
   /** Called when user triggers "Run" on a Whiteboard Script block */
   onStartWorkout?: (block: ScriptBlock) => void;
-  /** Called when a workout is completed with the results */
-  onCompleteWorkout?: (blockId: string, results: ScriptBlock["results"]) => void;
+  /** Called when a workout is completed with the results.
+   * `resultId` is the id the editor generated for the optimistic result and
+   * used in the inserted query:table block — persistence MUST reuse it (#944). */
+  onCompleteWorkout?: (blockId: string, results: ScriptBlock["results"], resultId?: string) => void;
   /** Called when Whiteboard Script blocks change */
   onBlocksChange?: (blocks: ScriptBlock[]) => void;
   /** Called when user triggers "Add to Plan" on a Whiteboard Script block */
@@ -268,43 +270,22 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     }
   }, [enableInlineRuntime, handleRun]);
 
-  // Intercept workout completion: immediately push the new result into the CM6
-  // results field so the inline results bar updates without waiting for a DB
-  // round-trip, then forward to the parent's onCompleteWorkout callback.
+  // Intercept workout completion: insert a ```query:table block carrying the
+  // session-scoped rows query directly after the workout block (#944 — the
+  // query block replaces the old wodResultsField optimistic write; result data
+  // still persists via the parent's onCompleteWorkout). Placement is resolved
+  // live from sectionField (content-identity section lookup at insert time),
+  // so it survives edits above the block; inserting at exactly section.to
+  // stacks re-runs newest-first between the workout block and prior tables.
   const handleCompleteWorkout = useCallback(
     (blockId: string, results: ScriptBlock["results"]) => {
+      const resultId = uuidv7();
       if (results && viewRef.current) {
         const view = viewRef.current;
-        const now = results.endTime || Date.now();
-        // Read the section live from the editor state instead of the React
-        // `sections` closure — the callback is memoised on [noteId,
-        // onCompleteWorkout] so the closure value is stale (typically the
-        // initial empty array), which made every optimistic result land with
-        // `blockContentId: undefined` and render as hidden history instead of
-        // a visible result row.
-        const section = view.state.field(sectionField).sections.find(s => s.id === blockId);
-        const newResult = {
-          id: uuidv7(),
-          noteId: noteId ?? "",
-          blockContentId: section?.contentId,
-          data: results,
-          createdAt: now,
-        };
-
-        // Read existing results for this section and prepend the new one
-        // (most-recent first) before dispatching.
-        const existingMap = view.state.field(wodResultsField);
-        const prev = existingMap.get(blockId) ?? [];
-        view.dispatch({
-          effects: [
-            updateSectionResults.of({
-              sectionId: blockId,
-              results: [newResult, ...prev],
-            }),
-          ],
-        });
+        const insert = sessionQueryInsert(view.state, blockId, resultId);
+        if (insert) view.dispatch({ changes: insert });
       }
-      onCompleteWorkout?.(blockId, results);
+      onCompleteWorkout?.(blockId, results, resultId);
     },
     [noteId, onCompleteWorkout],
   );
