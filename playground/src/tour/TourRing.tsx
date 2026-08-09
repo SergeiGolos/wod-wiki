@@ -44,8 +44,6 @@ export function RingTargetsProvider({ children }: { children: ReactNode }) {
     'timer.floor': null,
     'timer.nextButton': null,
     'timer.castButton': null,
-    'analytics.scorecard': null,
-    'analytics.grid': null,
   })
   const [version, setVersion] = useState(0)
 

@@ -37,22 +37,22 @@ describe('timer walkthrough card ring targets (#885)', () => {
 })
 
 describe('timer walkthrough card order (#885)', () => {
-  it('runs exactly three timer cards between the editor and analytics cards', () => {
+  it('runs exactly three timer cards after the editor cards and ends the runway', () => {
     const timerStages = TOUR_STAGES.filter((s) => s.screen === 'timer')
     expect(timerStages.map((s) => s.id)).toEqual(['timer-wallclock', 'timer-next', 'timer-cast'])
 
     const ids = TOUR_STAGES.map((s) => s.id)
     expect(ids.indexOf('timer-wallclock')).toBeGreaterThan(ids.indexOf('editor-run'))
-    expect(ids.indexOf('analytics-scorecard')).toBeGreaterThan(ids.indexOf('timer-cast'))
+    expect(ids.indexOf('timer-cast')).toBe(ids.length - 1)
   })
 
   it('the Chromecast broadcast card is its own slide again, after Next', () => {
     const ids = TOUR_STAGES.map((s) => s.id)
     expect(ids.indexOf('timer-cast')).toBeGreaterThan(ids.indexOf('timer-next'))
     expect(TOUR_CAPTIONS.some((c) => c.id === 'timer-cast')).toBe(true)
-    // Stage ranges stay contiguous and ordered.
+    // Stage ranges stay contiguous and ordered; cast is the final slide.
     expect(stage('timer-cast').start).toBe(stage('timer-next').end)
-    expect(stage('analytics-scorecard').start).toBe(stage('timer-cast').end)
+    expect(stage('timer-cast').end).toBe(1.0)
   })
 })
 
