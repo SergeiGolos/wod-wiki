@@ -8,9 +8,56 @@
  * Also used by `dev:app` when the receiver needs its own dev server,
  * but the primary dev path is via the Storybook middleware in .storybook/main.mjs.
  */
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import fs from 'fs';
+import postcss from 'postcss';
+import { transform as lightningTransform } from 'lightningcss';
+
+/**
+ * Lowers the emitted receiver CSS for Chromecast firmware Chromium /
+ * Android System WebView (commonly < Chrome 99). Tailwind v4 emits every
+ * rule inside `@layer` blocks, which those engines discard wholesale — the
+ * receiver renders with no styling at all. Two passes:
+ *
+ *   1. postcss — unwrap `@layer` blocks in document order (single cascade
+ *      order in this file, so semantics are preserved) and drop `@property`
+ *      registrations (unsupported; old parsers skip them anyway).
+ *   2. lightningcss at chrome 87 — lowers oklch/lab colors to hex/rgb
+ *      fallbacks, keeping modern values behind `@supports` upgrades.
+ *
+ * Dev-server rendering (local debug tab) is untouched; only the built
+ * artifact is rewritten. See docs/cast-research/chromecast-receiver-css-legacy.md.
+ */
+const legacyReceiverCssPlugin = (): Plugin => ({
+    name: 'legacy-receiver-css',
+    apply: 'build',
+    closeBundle() {
+        const assetsDir = resolve(__dirname, 'storybook-static/assets');
+        const cssFiles = fs.existsSync(assetsDir)
+            ? fs.readdirSync(assetsDir).filter((f) => f.startsWith('receiver-') && f.endsWith('.css'))
+            : [];
+        for (const file of cssFiles) {
+            const filePath = resolve(assetsDir, file);
+            const root = postcss.parse(fs.readFileSync(filePath, 'utf-8'), { from: filePath });
+            root.walkAtRules('layer', (rule) => {
+                if (rule.nodes && rule.nodes.length > 0) rule.replaceWith(...rule.nodes);
+                else rule.remove();
+            });
+            root.walkAtRules('property', (rule) => rule.remove());
+            const { code, map } = lightningTransform({
+                filename: file,
+                code: Buffer.from(root.toString()),
+                minify: true,
+                sourceMap: true,
+                targets: { chrome: 87 << 16 },
+            });
+            fs.writeFileSync(filePath, `${code}\n/*# sourceMappingURL=${file}.map */`);
+            if (map) fs.writeFileSync(`${filePath}.map`, map);
+        }
+    },
+});
 
 export default defineConfig({
     // Root must be playground so that /src/receiver-rpc.tsx in
@@ -18,7 +65,7 @@ export default defineConfig({
     root: resolve(__dirname, 'playground'),
     // Relative base so assets resolve correctly whether served at / or a subpath
     base: './',
-    plugins: [react()],
+    plugins: [react(), legacyReceiverCssPlugin()],
     resolve: {
         alias: {
             '@': resolve(__dirname, 'src'),

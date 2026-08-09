@@ -5,7 +5,6 @@ import { AnalyticsScorecard } from '@/components/organisms/review/AnalyticsScore
 import type { Segment } from '@/core/models/AnalyticsModels'
 import { MetricType } from '@/core/models/Metric'
 import type { ProjectionResult } from '@/core/analytics/ProjectionResult'
-import { useRingRef } from '../TourRing'
 
 export interface TourAnalyticsScreenProps {
   segments: Segment[]
@@ -16,8 +15,6 @@ export const TourAnalyticsScreen: React.FC<TourAnalyticsScreenProps> = ({
   segments,
   title,
 }) => {
-  const scorecardRef = useRingRef('analytics.scorecard')
-  const gridRef = useRingRef('analytics.grid')
   const { overrides } = useUserOverrides(true)
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<number>>(new Set())
 
@@ -66,7 +63,7 @@ export const TourAnalyticsScreen: React.FC<TourAnalyticsScreenProps> = ({
         {crumb}
       </div>
 
-      <div ref={scorecardRef} className="shrink-0 px-6 pb-3">
+      <div className="shrink-0 px-6 pb-3">
         {projections.length > 0 ? (
           <AnalyticsScorecard projections={projections} />
         ) : segments.length === 0 ? (
@@ -80,7 +77,7 @@ export const TourAnalyticsScreen: React.FC<TourAnalyticsScreenProps> = ({
         <h3 className="mb-4 text-[11px] font-bold uppercase tracking-label text-muted-foreground">
           Workout Log
         </h3>
-        <div ref={gridRef} className="flex-1 min-h-0 rounded-2xl border border-border bg-card">
+        <div className="flex-1 min-h-0 rounded-2xl border border-border bg-card">
           <ReviewGrid
             runtime={null}
             segments={segments}

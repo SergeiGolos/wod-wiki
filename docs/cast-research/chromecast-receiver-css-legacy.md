@@ -1,6 +1,6 @@
 # Chromecast receiver renders unstyled on TV — root cause & fix
 
-**Status:** root cause confirmed against the built artifact; fix validated with a working PoC.
+**Status:** FIXED in `vite.receiver.config.ts` (`legacyReceiverCssPlugin`, build-only). Verified against the built artifact — see Verification.
 **Date:** 2026-08-09
 
 ## Symptom
@@ -104,13 +104,33 @@ Layout, flex/grid, typography, and all colors are preserved.
 | No interaction required; D-pad navigation | ✅ `useSpatialNavigation`, `data-nav-id` attributes |
 | Keep receiver lightweight (low-end hardware, limited memory) | ⚠️ receiver bundles the full app CSS (246 KB) and shared vendor chunks; a receiver-scoped content scan would shrink both |
 
-## Verification plan
+## Verification (done)
 
-1. Rebuild the receiver, confirm emitted CSS has zero `@layer`/`@property`
-   and no bare `oklch(`.
-2. Local regression: open the built `receiver-rpc.html` (not the dev server)
-   in desktop Chrome — styling must be unchanged.
-3. Emulated check: Chrome DevTools rendering at 1080p, or an older Chromium
-   if available.
-4. On-device: cast, then `chrome://inspect` → the receiver page → confirm
-   computed styles and note the actual WebView version for the record.
+1. `bun x vite build --config vite.receiver.config.ts` → emitted
+   `storybook-static/assets/receiver-*.css` has **zero** `@layer`, `@property`,
+   `oklch`; all 138 `lab(` occurrences sit inside `@supports` upgrade blocks;
+   theme vars are hex (`--color-zinc-950:#09090b`); fresh sourcemap written.
+2. Built `receiver-rpc.html` served statically and driven in headless Chromium
+   at 1920×1080: 2,360 rules parsed, `body` computes to `rgb(0,0,0)` via the
+   `.bg-black` → `var(--color-black)` chain, white foreground, flex layout,
+   idle splash centered and styled (screenshot verified). The
+   `waiting-for-cast (degraded)` suffix is the expected boot fallback without
+   a CAF cast context, not a styling issue.
+3. Dev path untouched: the plugin is `apply: 'build'` in the receiver config
+   only — the playground dev server (local debug tab) serves Tailwind v4 CSS
+   as before.
+
+## Still open
+
+- **On-device check**: cast to the TV, `chrome://inspect` the receiver,
+  confirm parsed rule count and record the actual WebView version.
+- **Playground production build** (`playground/vite.config.ts` → wod.wiki)
+  still ships unlayered v4 CSS for its `receiver-rpc.html`. It was NOT
+  lowered because the playground build emits one CSS asset shared with the
+  main app, and unwrapping layers there changes cascade precedence for the
+  50 hand-written unlayered rules (they currently beat layered utilities
+  regardless of position). If the registered Cast App ID (`38F01E0E`) points
+  at `wod.wiki/receiver-rpc.html`, either repoint it at the (now lowered)
+  storybook-static receiver, or split the receiver's CSS into its own asset
+  in the playground build and lower only that one.
+- **Overscan / weight** items from the best-practice table above remain.

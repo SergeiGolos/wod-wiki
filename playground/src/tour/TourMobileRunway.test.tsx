@@ -156,7 +156,6 @@ function makeProps(overrides: Partial<TourMobileRunwayProps> = {}): TourMobileRu
       onRuntimeReady: () => {},
       onReset: () => {},
     },
-    analyticsSegments: [],
     heroRef: { current: null },
     apiRef: { current: null },
     ...overrides,

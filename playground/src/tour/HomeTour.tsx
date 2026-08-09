@@ -22,10 +22,9 @@ import {
   type HomeSharedScript,
 } from '../services/homeSharedScript'
 import { resolveSource } from '../canvas/canvasUtils'
-import { getAnalyticsFromLogs, getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer'
+import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { playgroundRecorder } from '../services/resultRecorder'
-import { NextAction } from '@/runtime/actions/stack/NextAction'
 import { NextEvent } from '@/runtime/events/NextEvent'
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
@@ -69,7 +68,6 @@ import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
 import { TourMobileStack } from './TourMobileStack'
 import { TourMobileRunway, type TourMobileRunwayApi } from './TourMobileRunway'
-import { getTourFixtureSegments } from './tourFixtureSession'
 import { HOME_EVENTS, useTelemetry } from '@/services/telemetry'
 import { journalNotePath } from '../lib/routes'
 import { getTodayDateKey } from '../services/dateUtils'
@@ -216,7 +214,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
 
   // ── Session results (playground completion) + scroll-mode analytics ──
   const [session, setSession] = useState<{ segments: Segment[]; results: WorkoutResults } | null>(null)
-  const [scrollSegments, setScrollSegments] = useState<Segment[]>([])
   const [logState, setLogState] = useState<'logging' | 'logged' | 'failed' | null>(null)
   // Which editor context started the current playground run, and the block
   // it runs — captured at Run click so the fullscreen overlay is bound to the
@@ -235,7 +232,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
     setTimerSessionKey((k) => k + 1)
     timerStartedAtRef.current = Date.now()
     setSession(null)
-    setScrollSegments([])
     setLogState(null)
     runwayRuntimeRef.current = null
     setTourRuntime(null)
@@ -308,45 +304,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
       }
     })
   }, [subscribe, selectedScript])
-  useEffect(() => {
-    if (interactive || slice.stage.screen !== 'analytics' || session) return
-    if (scrollSegments.length > 0) return
-    const runtime = runwayRuntimeRef.current
-    if (!runtime) return
-    let guard = 0
-    while (runtime.stack?.current && guard++ < 200) {
-      runtime.do(new NextAction())
-    }
-    const { segments } = getAnalyticsFromRuntime(runtime)
-    if (segments.length > 0) setScrollSegments(segments)
-  }, [interactive, slice.stage.id, session, scrollSegments.length])
-  // Mobile twin of the scroll-mode analytics drain above, keyed on the
-  // card-driven stage instead of the desktop scroll slice.
-  useEffect(() => {
-    if (!isMobile || interactive || mobileStage?.screen !== 'analytics' || session) return
-    if (scrollSegments.length > 0) return
-    const runtime = runwayRuntimeRef.current
-    if (!runtime) return
-    let guard = 0
-    while (runtime.stack?.current && guard++ < 200) {
-      runtime.do(new NextAction())
-    }
-    const { segments } = getAnalyticsFromRuntime(runtime)
-    if (segments.length > 0) setScrollSegments(segments)
-  }, [isMobile, interactive, mobileStage, session, scrollSegments.length])
-
-  const fixtureSegments = useMemo(
-    // Canned 21-15-9 session (#dogfood): the analytics slides must never boot
-    // empty for a visitor who hasn't run the demo. A real session or the
-    // ambient scroll-mode drain always takes precedence over the fixture.
-    () => (entered.analytics && !session && scrollSegments.length === 0 ? getTourFixtureSegments() : []),
-    [entered.analytics, session, scrollSegments.length],
-  )
-  const analyticsSegments = session?.segments ?? (scrollSegments.length > 0 ? scrollSegments : fixtureSegments)
-  const analyticsIsFixture = !session && scrollSegments.length === 0 && fixtureSegments.length > 0
-  const analyticsTitle = analyticsIsFixture
-    ? 'Sample session · press Run to log your own'
-    : logState === 'logging'
+  const analyticsSegments = session?.segments ?? []
+  const analyticsTitle =
+    logState === 'logging'
       ? 'Journal / today · logging…'
       : logState === 'failed'
         ? 'Session Review · not saved to journal'
