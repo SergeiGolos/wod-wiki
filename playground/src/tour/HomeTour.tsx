@@ -36,7 +36,6 @@ import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
 import { useRunStartedChallenge } from '../hooks/useRunStartedChallenge'
 import { useTourScrollQuests } from '../hooks/useTourScrollQuests'
 import { useIsMobile } from '../hooks/useIsMobile'
-import type { FullscreenState } from '../hooks/useCanvasRuntime'
 import {
   RingTargetsProvider,
   TourRing,
@@ -333,9 +332,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
     initialSource: initialContent,
     currentSource: heroDoc,
   })
-  const questFullscreen: FullscreenState =
-    session != null ? { kind: 'review', segments: session.segments, results: session.results } : null
-  useCompletionChallenge({ pageRoute: '/', quests, fullscreen: questFullscreen })
+  useCompletionChallenge({ pageRoute: '/', quests, completedResults: session?.results ?? null })
 
   const markStageViewed = useTourScrollQuests('/', quests)
   useEffect(() => {

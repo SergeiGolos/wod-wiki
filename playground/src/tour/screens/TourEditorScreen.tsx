@@ -164,7 +164,6 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
           showLineNumbers={false}
           enableOverlay={false}
           enableInlineRuntime={false}
-          forceFullscreenReview
           className="h-full"
         />
         {withRingTargets && blockBox && (

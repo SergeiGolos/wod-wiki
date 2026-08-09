@@ -1,14 +1,12 @@
 import { useState, useCallback } from 'react'
 import { v7 as uuidv7 } from 'uuid'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
-import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResult } from '@/types/storage'
 import { playgroundRecorder } from '../services/resultRecorder'
 import type { RunButtonState } from '../components/molecules/SectionButtons'
 
 export type FullscreenState =
   | { kind: 'timer'; block: ScriptBlock; results: WorkoutResults | null }
-  | { kind: 'review'; segments: Segment[]; results: WorkoutResults }
   | null
 
 export interface UseCanvasRuntimeOptions {
@@ -21,6 +19,8 @@ export interface UseCanvasRuntimeReturn {
   setPersistedResults: React.Dispatch<React.SetStateAction<WorkoutResult[]>>
   fullscreen: FullscreenState
   setFullscreen: (state: FullscreenState) => void
+  /** Results of the last completed workout on this page (#945 quest signal). */
+  completedResults: WorkoutResults | null
   runState: RunButtonState
   handleWorkoutComplete: (block: ScriptBlock, results: WorkoutResults) => void
 }
@@ -31,9 +31,11 @@ export function useCanvasRuntime({
 }: UseCanvasRuntimeOptions): UseCanvasRuntimeReturn {
   const [persistedResults, setPersistedResults] = useState<WorkoutResult[]>([])
   const [fullscreen, setFullscreen] = useState<FullscreenState>(null)
+  const [completedResults, setCompletedResults] = useState<WorkoutResults | null>(null)
 
   const handleWorkoutComplete = useCallback((block: ScriptBlock, results: WorkoutResults) => {
     const runtimeId = uuidv7()
+    setCompletedResults(results)
     const blockId = block.id
     const optimisticNextResult = {
       id: runtimeId,
@@ -76,6 +78,7 @@ export function useCanvasRuntime({
     setPersistedResults,
     fullscreen,
     setFullscreen,
+    completedResults,
     runState,
     handleWorkoutComplete,
   }

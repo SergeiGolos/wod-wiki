@@ -42,11 +42,23 @@ mock.module('@/services/persistence', () => ({
   },
 }));
 
-import { NoteEditor } from './NoteEditor';
+// Lives in the playground tree on purpose: `bun test ./src` shares one module
+// registry per process and sibling suites stub '@/services/analytics/query'
+// without runRows, which crashes the QueryBlockView this test mounts. The
+// playground suite runs each file in its own process (tests/run-isolated.ts),
+// so the real query module loads cleanly here.
+
+import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 
 // CM6 measures via the jsdom window, not globalThis — polyfill both.
 (window as any).requestAnimationFrame ??= (cb: FrameRequestCallback) => setTimeout(cb, 0);
 (window as any).cancelAnimationFrame ??= (id: number) => clearTimeout(id);
+// scrollIntoView schedules a CM6 measure pass, which reads text rects jsdom
+// doesn't implement.
+const zeroRect = { x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, toJSON: () => ({}) };
+(window.Range.prototype as any).getClientRects ??= () => [];
+(window.Range.prototype as any).getBoundingClientRect ??= () => zeroRect;
+(window.Element.prototype as any).getClientRects ??= () => [];
 
 const DOC = 'Intro prose.\n\n```time\n5s\n```\n\nTrailing notes.';
 

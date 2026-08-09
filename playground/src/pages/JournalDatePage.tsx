@@ -6,11 +6,8 @@ import type { HistoryEntry } from '@/types/history';
 import { journalNotes } from '../services/journalNotes';
 import { playgroundRecorder } from '../services/resultRecorder';
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer';
-import { FullscreenReview } from '@/components/organisms/review/FullscreenReview';
 import { useSearchParams } from 'react-router-dom';
 import { pendingRuntimes } from '../runtimeStore';
-import type { Segment } from '@/core/models/AnalyticsModels';
-import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer';
 import { WorkbenchSessionProvider } from '@/stores/workbenchSessionStore';
 import { notePersistence } from '@/services/persistence';
 import { indexedDBService } from '@/services/db/IndexedDBService';
@@ -38,11 +35,9 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   const [allResults, setAllResults] = useState<WorkoutResult[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [isTimerOpen, setIsTimerOpen] = useState(false);
-  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [timerBlock, setTimerBlock] = useState<ScriptBlock | null>(null);
   const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
-  const [reviewSegments, setReviewSegments] = useState<Segment[]>([]);
 
   const boundariesRef = useRef<NoteBoundary[]>([]);
   const [blocks, setBlocks] = useState<ScriptBlock[]>([]);
@@ -87,8 +82,6 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     }, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  const handleCloseReview = useCallback(() => setIsReviewOpen(false), []);
-
   const resolveNoteUuid = useCallback((startLine: number): string => {
     const boundaries = boundariesRef.current;
     let uuid = boundaries[0]?.uuid ?? journalDate;
@@ -130,14 +123,10 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       data: results!,
       createdAt: results?.endTime || Date.now(),
     }).then((result) => {
-      // Surface the new result inline without waiting for a reload.
+      // Surface the new result inline without waiting for a reload. The query
+      // block inserted by the editor (#944/#945) is the results moment — no
+      // review overlay here.
       setAllResults(prev => [...prev, result]);
-      if (results?.logs?.length) {
-        const segments = getAnalyticsFromLogs(results.logs).segments;
-        setReviewSegments(segments);
-        setIsTimerOpen(false);
-        setIsReviewOpen(true);
-      }
     }).catch(() => {});
     setActiveRuntimeId(null);
     setActiveNoteId(null);
@@ -233,13 +222,6 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
           }}
           onCompleteWorkout={handleCompleteWorkout}
           autoStart
-        />
-      )}
-      {isReviewOpen && reviewSegments.length > 0 && (
-        <FullscreenReview
-          segments={reviewSegments}
-          onClose={handleCloseReview}
-          title="Workout Review"
         />
       )}
     </WorkbenchSessionProvider>

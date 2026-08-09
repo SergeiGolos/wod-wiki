@@ -13,7 +13,6 @@ import { Play } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
-import { FullscreenReview } from '@/components/organisms/review/FullscreenReview'
 import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCanvasEditorSource } from '../hooks/useCanvasEditorSource'
@@ -33,7 +32,6 @@ import {
   MOBILE_STICKY_TOP,
   INITIAL_SOURCE_KEY,
 } from './canvasUtils'
-import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { type ParsedCanvasPage, type CanvasSection, SECTION_THEME_STYLES, type SectionTheme } from './parseCanvasMarkdown'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
@@ -170,7 +168,7 @@ export function MarkdownCanvasPage({
   useCompletionChallenge({
     pageRoute: page.route,
     quests: pageQuests,
-    fullscreen: runtime.fullscreen,
+    completedResults: runtime.completedResults,
   })
 
   useQuickStartAutoComplete({
@@ -524,18 +522,11 @@ export function MarkdownCanvasPage({
             const block = getBlock()
             if (block) {
               runtime.handleWorkoutComplete(block, results)
-              const { segments } = getAnalyticsFromLogs(results.logs || [], results.startTime)
-              runtime.setFullscreen({ kind: 'review', segments, results })
+              // #945: no review overlay on completion — canvas pages record
+              // the result and return to the note.
+              runtime.setFullscreen(null)
             }
           }}
-        />
-      )}
-
-      {runtime.fullscreen?.kind === 'review' && (
-        <FullscreenReview
-          segments={runtime.fullscreen.segments}
-          onClose={() => runtime.setFullscreen(null)}
-          title="Workout Review"
         />
       )}
 

@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { usePageQuests, type Quest } from './usePageQuests';
-import type { FullscreenState } from './useCanvasRuntime';
+import type { WorkoutResults } from '@/components/Editor/types';
 
 export interface UseCompletionChallengeArgs {
   pageRoute: string;
   quests: Quest[];
-  fullscreen: FullscreenState;
+  /** Results of the last finished workout, if any (#945: completion no longer
+   * opens a review overlay, so the quest signal rides the results directly). */
+  completedResults: WorkoutResults | null;
   enabled?: boolean;
 }
 
@@ -16,7 +18,7 @@ export interface UseCompletionChallengeResult {
 export function useCompletionChallenge({
   pageRoute,
   quests,
-  fullscreen,
+  completedResults,
   enabled = true,
 }: UseCompletionChallengeArgs): UseCompletionChallengeResult {
   const { markComplete } = usePageQuests(pageRoute, quests);
@@ -36,9 +38,9 @@ export function useCompletionChallenge({
   );
 
   useEffect(() => {
-    if (!enabled || !fullscreen) return;
+    if (!enabled || !completedResults) return;
 
-    if (fullscreen.kind === 'review' && fullscreen.results?.completed === true) {
+    if (completedResults.completed === true) {
       for (const q of completionQuests) {
         if (firedRef.current.has(q.id)) continue;
         
@@ -46,7 +48,7 @@ export function useCompletionChallenge({
         firedRef.current.add(q.id);
       }
     }
-  }, [enabled, fullscreen, completionQuests, markComplete]);
+  }, [enabled, completedResults, completionQuests, markComplete]);
 
   return {
     questIds: completionQuests.map((q) => q.id),

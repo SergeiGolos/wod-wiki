@@ -62,13 +62,12 @@ import { lineIdsExtension } from "@/components/Editor/extensions/line-ids";
 
 import { createParser } from "@/parser/parserInstance";
 import type { INotePersistence } from "@/services/persistence";
-import { createFileDropHandler, deriveReviewSegments, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
+import { createFileDropHandler, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
 
 import {
   wodResultsWidget,
   updateSectionResults,
   WOD_RESULT_CLICK_EVENT,
-  compactResultsMode,
   noteIdFacet,
   type WodResultClickDetail,
 } from "@/components/Editor/extensions/whiteboard-results-widget";
@@ -81,10 +80,8 @@ import { WidgetCompanion } from "@/components/organisms/editor/WidgetCompanion";
 import type { WidgetRegistry } from "@/components/Editor/widgets/types";
 import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
 import { FullscreenTimer } from "@/components/organisms/review/FullscreenTimer";
-import { FullscreenReview } from "@/components/organisms/review/FullscreenReview";
 import { InlineCommandBar } from "@/components/organisms/editor/InlineCommandBar";
 import { EditorCastBridge } from "@/components/organisms/editor/EditorCastBridge";
-import type { Segment } from "@/core/models/AnalyticsModels";
 import { v7 as uuidv7 } from "uuid";
 import type { WorkoutResult } from "@/types/storage";
 
@@ -156,13 +153,6 @@ export interface NoteEditorProps {
    */
   enableInlineRuntime?: boolean;
   /**
-   * When true, clicking a result row opens the fullscreen review overlay
-   * directly instead of expanding the inline AnalyticsScorecard + ReviewGrid.
-   * Used by canvas pages where the editor panel is too narrow for inline
-   * results. Default: false (inline expand, as on /playground and /journal).
-   */
-  forceFullscreenReview?: boolean;
-  /**
    * Registry of custom widget components rendered inside ```widget:<name> blocks.
    * Keys are widget names (e.g. "hero"), values are React components.
    * Each registered widget replaces the fenced block with a full-width React component.
@@ -210,7 +200,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   commands,
   hideDefaultCommands = false,
   enableInlineRuntime = true,
-  forceFullscreenReview = false,
   extensions: extraExtensions,
   widgetComponents,
   onButtonAction,
@@ -245,8 +234,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   // Full-screen timer block: when set, the FullscreenTimer overlay is shown.
   const [fullscreenTimerBlock, setFullscreenTimerBlock] = useState<ScriptBlock | null>(null);
 
-  // Full-screen review segments: when set, the FullscreenReview overlay is shown.
-  const [fullscreenReviewSegments, setFullscreenReviewSegments] = useState<Segment[] | null>(null);
 
   // Whether the fullscreen timer should auto-start on mount
   const [autoStartFullscreen, setAutoStartFullscreen] = useState(false);
@@ -283,22 +270,20 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       if (results && viewRef.current) {
         const view = viewRef.current;
         const insert = sessionQueryInsert(view.state, blockId, resultId);
-        if (insert) view.dispatch({ changes: insert });
+        if (insert) {
+          // #945: the inserted table IS the results moment — reveal it inline,
+          // no overlay. Positions in scroll effects refer to the post-change doc.
+          const blockStart = insert.from + insert.insert.indexOf("```");
+          view.dispatch({
+            changes: insert,
+            effects: [EditorView.scrollIntoView(blockStart, { y: "start", yMargin: 96 })],
+          });
+        }
       }
       onCompleteWorkout?.(blockId, results, resultId);
     },
     [noteId, onCompleteWorkout],
   );
-
-  // Open the full-screen review.
-  const handleOpenReview = useCallback((segments: Segment[]) => {
-    setFullscreenReviewSegments(segments);
-  }, []);
-
-  // Close the full-screen review.
-  const handleReviewClose = useCallback(() => {
-    setFullscreenReviewSegments(null);
-  }, []);
 
   // Fetch workout results for all workout (time/log) sections and push them into the editor
   // via the results StateEffect so the inline results bar is visible.
@@ -360,18 +345,14 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // If parent provided an onOpenReview handler, use it first
       if (onOpenReview) {
         onOpenReview(result);
-        return;
       }
-
-      // Default behavior: show inline FullscreenReview overlay if logs exist
-      if (result?.data?.logs && result.data.logs.length > 0) {
-        handleOpenReview(deriveReviewSegments(result));
-      }
+      // No default overlay (#945): results live in the inline query:table —
+      // the remaining widget chrome is retired with the results widget itself.
     };
 
     el.addEventListener(WOD_RESULT_CLICK_EVENT, handleResultClick);
     return () => el.removeEventListener(WOD_RESULT_CLICK_EVENT, handleResultClick);
-  }, [handleOpenReview, onOpenReview]);
+  }, [onOpenReview]);
 
   // Build effective command list: use explicit commands if provided, otherwise
   // synthesize from legacy onStartWorkout / onAddToPlan for backward compat.
@@ -543,10 +524,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Note identity for the results widget (cross-note lookup exclusion)
       noteIdFacet.of(noteId),
 
-      // Compact results mode: result rows open fullscreen review on click
-      // instead of expanding inline (canvas pages with small editor panels)
-      ...(forceFullscreenReview ? [compactResultsMode.of(true)] : []),
-
       // Full-row widget block replacements (```widget:<name>``` sections)
       ...(widgetComponents && widgetComponents.size > 0
         ? [widgetBlockPreview(widgetComponents)]
@@ -604,7 +581,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       noteId,
       notePersistence,
       onButtonAction,
-      forceFullscreenReview,
       extraExtensions,
     ]
   );
@@ -827,13 +803,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           onClose={handleTimerClose}
           onCompleteWorkout={handleCompleteWorkout}
           autoStart={autoStartFullscreen}
-        />
-      )}
-
-      {fullscreenReviewSegments && (
-        <FullscreenReview
-          segments={fullscreenReviewSegments}
-          onClose={handleReviewClose}
         />
       )}
 

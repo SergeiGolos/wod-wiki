@@ -113,10 +113,6 @@ mock.module('@/components/organisms/review/FullscreenTimer', () => ({
   ),
 }))
 
-mock.module('@/components/organisms/review/FullscreenReview', () => ({
-  FullscreenReview: () => <div data-testid="fullscreen-review" />,
-}))
-
 mock.module('@/components/organisms/review/ReviewGrid', () => ({
   ReviewGrid: () => <div data-testid="review-grid" />,
 }))

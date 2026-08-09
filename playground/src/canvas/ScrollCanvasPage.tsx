@@ -18,8 +18,6 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryState } from 'nuqs'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
-import { FullscreenReview } from '@/components/organisms/review/FullscreenReview'
-import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { useCanvasRuntime } from '../hooks/useCanvasRuntime'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
@@ -82,7 +80,7 @@ export function ScrollCanvasPage({
   useCompletionChallenge({
     pageRoute: page.route,
     quests: page.quests,
-    fullscreen: runtime.fullscreen,
+    completedResults: runtime.completedResults,
   })
 
   // ── Nav deps for trailing sections (buttons, pipelines) ──
@@ -162,18 +160,11 @@ export function ScrollCanvasPage({
             const block = getBlock()
             if (block) {
               runtime.handleWorkoutComplete(block, results)
-              const { segments } = getAnalyticsFromLogs(results.logs || [], results.startTime)
-              runtime.setFullscreen({ kind: 'review', segments, results })
+              // #945: no review overlay on completion — canvas pages record
+              // the result and return to the note.
+              runtime.setFullscreen(null)
             }
           }}
-        />
-      )}
-
-      {runtime.fullscreen?.kind === 'review' && (
-        <FullscreenReview
-          segments={runtime.fullscreen.segments}
-          onClose={() => runtime.setFullscreen(null)}
-          title="Workout Review"
         />
       )}
 
