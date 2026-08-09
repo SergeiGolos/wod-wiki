@@ -22,10 +22,9 @@ import {
   type HomeSharedScript,
 } from '../services/homeSharedScript'
 import { resolveSource } from '../canvas/canvasUtils'
-import { getAnalyticsFromLogs, getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer'
+import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { playgroundRecorder } from '../services/resultRecorder'
-import { NextAction } from '@/runtime/actions/stack/NextAction'
 import { NextEvent } from '@/runtime/events/NextEvent'
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
@@ -63,12 +62,12 @@ import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { CelebrationBridge } from './CelebrationBridge'
 import { ChapterScrollTour } from './ChapterScrollTour'
+import { HomeAnalyticsSection } from './HomeAnalyticsSection'
 import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
 import { TourMobileStack } from './TourMobileStack'
 import { TourMobileRunway, type TourMobileRunwayApi } from './TourMobileRunway'
-import { getTourFixtureSegments } from './tourFixtureSession'
 import { HOME_EVENTS, useTelemetry } from '@/services/telemetry'
 import { journalNotePath } from '../lib/routes'
 import { getTodayDateKey } from '../services/dateUtils'
@@ -90,7 +89,6 @@ const HOME_DEMO_SOURCE = 'wods/examples/home/welcome-1.md'
 /** Home quest id → the tour stage that demonstrates it. */
 const HOME_QUEST_STAGE: Record<string, TourStageId> = {
   'qs-tour-timer': 'timer-wallclock',
-  'qs-tour-analytics': 'analytics-scorecard',
   'qs-edit': 'timer-wallclock',
   'qs-run': 'timer-wallclock',
 }
@@ -134,6 +132,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
   const navigate = useNavigate()
 
   const runwayRef = useRef<HTMLElement | null>(null)
+  const analyticsSectionRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLDivElement | null>(null)
   const canvasInnerRef = useRef<HTMLDivElement | null>(null)
   const tvCardRef = useRef<HTMLDivElement | null>(null)
@@ -215,7 +214,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
 
   // ── Session results (playground completion) + scroll-mode analytics ──
   const [session, setSession] = useState<{ segments: Segment[]; results: WorkoutResults } | null>(null)
-  const [scrollSegments, setScrollSegments] = useState<Segment[]>([])
   const [logState, setLogState] = useState<'logging' | 'logged' | 'failed' | null>(null)
   // Which editor context started the current playground run, and the block
   // it runs — captured at Run click so the fullscreen overlay is bound to the
@@ -234,7 +232,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
     setTimerSessionKey((k) => k + 1)
     timerStartedAtRef.current = Date.now()
     setSession(null)
-    setScrollSegments([])
     setLogState(null)
     runwayRuntimeRef.current = null
     setTourRuntime(null)
@@ -307,45 +304,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
       }
     })
   }, [subscribe, selectedScript])
-  useEffect(() => {
-    if (interactive || slice.stage.screen !== 'analytics' || session) return
-    if (scrollSegments.length > 0) return
-    const runtime = runwayRuntimeRef.current
-    if (!runtime) return
-    let guard = 0
-    while (runtime.stack?.current && guard++ < 200) {
-      runtime.do(new NextAction())
-    }
-    const { segments } = getAnalyticsFromRuntime(runtime)
-    if (segments.length > 0) setScrollSegments(segments)
-  }, [interactive, slice.stage.id, session, scrollSegments.length])
-  // Mobile twin of the scroll-mode analytics drain above, keyed on the
-  // card-driven stage instead of the desktop scroll slice.
-  useEffect(() => {
-    if (!isMobile || interactive || mobileStage?.screen !== 'analytics' || session) return
-    if (scrollSegments.length > 0) return
-    const runtime = runwayRuntimeRef.current
-    if (!runtime) return
-    let guard = 0
-    while (runtime.stack?.current && guard++ < 200) {
-      runtime.do(new NextAction())
-    }
-    const { segments } = getAnalyticsFromRuntime(runtime)
-    if (segments.length > 0) setScrollSegments(segments)
-  }, [isMobile, interactive, mobileStage, session, scrollSegments.length])
-
-  const fixtureSegments = useMemo(
-    // Canned 21-15-9 session (#dogfood): the analytics slides must never boot
-    // empty for a visitor who hasn't run the demo. A real session or the
-    // ambient scroll-mode drain always takes precedence over the fixture.
-    () => (entered.analytics && !session && scrollSegments.length === 0 ? getTourFixtureSegments() : []),
-    [entered.analytics, session, scrollSegments.length],
-  )
-  const analyticsSegments = session?.segments ?? (scrollSegments.length > 0 ? scrollSegments : fixtureSegments)
-  const analyticsIsFixture = !session && scrollSegments.length === 0 && fixtureSegments.length > 0
-  const analyticsTitle = analyticsIsFixture
-    ? 'Sample session · press Run to log your own'
-    : logState === 'logging'
+  const analyticsSegments = session?.segments ?? []
+  const analyticsTitle =
+    logState === 'logging'
       ? 'Journal / today · logging…'
       : logState === 'failed'
         ? 'Session Review · not saved to journal'
@@ -388,6 +349,25 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
     markStageViewed(mobileStage.id)
   }, [isMobile, interactive, mobileStage, markStageViewed])
 
+  // The analytics story is now the WQL-elements showcase section (#938), not a
+  // runway stage — completing its quest fires when the showcase scrolls into
+  // view, on any form factor (it is one static section, no scroll driver).
+  useEffect(() => {
+    const el = analyticsSectionRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          markStageViewed('analytics')
+          io.disconnect()
+        }
+      },
+      { rootMargin: '-30% 0px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [markStageViewed])
+
   // The qs-tour-timer interaction quest validates on a *visitor-initiated* run.
   // Driven from the Run click (startRun), not the runtime 'running' status: the
   // ambient scroll demo intentionally auto-runs, and must never validate the
@@ -407,6 +387,12 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
   useRunStartedChallenge({ pageRoute: '/', quests: tourRunQuests, running: demoRunning })
 
   const handleHomeQuestClick = useCallback((questId: string) => {
+    // The analytics story is now the WQL-elements showcase section (#938), not
+    // a runway stage — scroll straight to it.
+    if (questId === 'qs-tour-analytics') {
+      analyticsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
     const stageId = HOME_QUEST_STAGE[questId]
     if (!stageId) return
     if (mobileRunwayApiRef.current) {
@@ -607,19 +593,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
 
       if (!wasPlaygroundRun) {
         // Scroll-mode completion (#885): clicking Next through to the end of
-        // the run auto-slides to the analytics cards. Guarded to the timer
-        // cards — the ambient analytics drain also completes the runtime, and
-        // the visitor is already on the analytics cards then.
+        // the run carries the visitor to the WQL analytics showcase (#938) —
+        // the session-review runway cards it used to auto-slide to are gone.
         if (results.completed) {
-          if (isMobileRef.current) {
-            if (mobileStageRef.current?.screen === 'timer') {
-              mobileRunwayApiRef.current?.scrollToStage('analytics-scorecard')
-            }
-          } else if (stageScreenRef.current === 'timer') {
-            const el = runwayRef.current
-            const stage = TOUR_STAGES.find((s) => s.id === 'analytics-scorecard')
-            if (el && stage) scrollRunwayTo(el, Math.min(stage.start + 0.02, stage.end - 0.005))
-          }
+          analyticsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
         }
         return
       }
@@ -772,7 +749,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
 
       const toast = toastRef.current
       if (toast) {
-        if (s.stage.id === 'analytics-scorecard') {
+        if (s.index === TOUR_STAGES.length - 1) {
           const tIn = clamp01((s.t - 0.04) / 0.2)
           const tOut = clamp01((s.t - 0.7) / 0.2)
           toast.style.opacity = String(Math.max(0, tIn - tOut))
@@ -851,8 +828,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
             onRuntimeReady: handleRuntimeReady,
             onReset: handleTimerReset,
           }}
-          analyticsSegments={analyticsSegments}
-          analyticsTitle={analyticsTitle}
           heroRef={heroRef}
           apiRef={mobileRunwayApiRef}
         />
@@ -956,14 +931,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
                         />
                       </Screen>
                     )}
-                    {interactive === null && entered.analytics && (
-                      <Screen visible={activeScreen === 'analytics'}>
-                        <TourAnalyticsScreen
-                          segments={analyticsSegments}
-                          title={analyticsTitle}
-                        />
-                      </Screen>
-                    )}
 
                     {/* stop toast mirrors the ambient scroll-mode runtime finishing. */}
                     <div
@@ -992,6 +959,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
           </div>
         </div>
       </section>
+
+      {/* WQL-elements analytics showcase (#938) — replaces the runway's
+          single-workout session-review stages with the query vocabulary and
+          the presentations it drives. */}
+      <div ref={analyticsSectionRef}>
+        <HomeAnalyticsSection />
+      </div>
 
       <CelebrationBridge chapters={chapters} />
 

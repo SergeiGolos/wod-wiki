@@ -2,14 +2,18 @@
  * tourStages.ts — stage machine contract for the homepage scroll walkthrough.
  *
  * The redesigned home page folds the editor into the hero and the Library
- * stage into the short-circuit strip. The sticky morphing window now only
- * morphs between the Timer and Analytics stages. Progress `p` (0..1 over the
- * runway) maps to a stage via [start, end); inside a stage the local `t`
- * (0..1) scrubs per-stage beats (cast glide, toast).
+ * stage into the short-circuit strip. The sticky morphing window morphs
+ * between the Editor and Timer stages. Progress `p` (0..1 over the runway)
+ * maps to a stage via [start, end); inside a stage the local `t` (0..1)
+ * scrubs per-stage beats (cast glide, toast).
+ *
+ * The analytics story is no longer a runway stage — the runway releases into
+ * the full-bleed WQL-elements showcase section (#938). The `analytics`
+ * screen survives only as the post-run review overlay (interactive mode).
  *
  * All embedded screens are REAL app components — no mock markup:
- *  - timer:     RuntimeTimerPanel with a real in-memory runtime
- *  - analytics: AnalyticsScorecard + ReviewGrid from the session's outputs
+ *  - editor: the real WOD editor with autocomplete
+ *  - timer:  RuntimeTimerPanel with a real in-memory runtime
  *
  * Accents reference the app's existing metric tokens (src/index.css) —
  * no ad-hoc palette. Use as `hsl(var(--metric-*))`.
@@ -25,8 +29,6 @@ export type TourStageId =
   | 'timer-wallclock'
   | 'timer-next'
   | 'timer-cast'
-  | 'analytics-scorecard'
-  | 'analytics-grid'
   | 'editor'
   | 'timer'
   | 'analytics'
@@ -43,8 +45,6 @@ export type RingTargetKey =
   | 'timer.floor'
   | 'timer.nextButton'
   | 'timer.castButton'
-  | 'analytics.scorecard'
-  | 'analytics.grid'
 export interface TourStage {
   id: TourStageId
   /** Runway progress range [start, end). */
@@ -86,8 +86,9 @@ export const SCREEN_TITLES: Record<TourScreen, string> = {
 }
 
 /**
- * Stage ranges for the two-stage runway: timer 50% · analytics 50%.
- * The hero and static areas live outside the runway.
+ * Stage ranges for the runway: three editor beats then three timer beats.
+ * The hero and static areas live outside the runway; the WQL analytics
+ * showcase section (#938) follows it.
  */
 export const TOUR_STAGES: TourStage[] = [
   {
@@ -143,32 +144,12 @@ export const TOUR_STAGES: TourStage[] = [
   {
     id: 'timer-cast',
     start: 0.68,
-    end: 0.79,
+    end: 1.0,
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
     label: 'Cast to the Big Screen',
     ringA: 'timer.castButton',
     tagA: 'Cast',
-  },
-  {
-    id: 'analytics-scorecard',
-    start: 0.79,
-    end: 0.895,
-    screen: 'analytics',
-    accent: TOUR_ACCENTS.analytics,
-    label: 'Explore Your Data',
-    ringA: 'analytics.scorecard',
-    tagA: 'Scorecard',
-  },
-  {
-    id: 'analytics-grid',
-    start: 0.895,
-    end: 1.0,
-    screen: 'analytics',
-    accent: TOUR_ACCENTS.analytics,
-    label: 'Session Review',
-    ringA: 'analytics.grid',
-    tagA: 'Review Grid',
   },
 ]
 

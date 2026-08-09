@@ -26,8 +26,6 @@ export const TOUR_STAGE_QUEST_IDS: Record<string, string> = {
   'timer-wallclock': 'qs-tour-timer',
   'timer-next': 'qs-tour-timer',
   analytics: 'qs-tour-analytics',
-  'analytics-scorecard': 'qs-tour-analytics',
-  'analytics-grid': 'qs-tour-analytics',
   library: 'qs-tour-library',
 };
 

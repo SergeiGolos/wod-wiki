@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react'
-import { indexedDBService } from '@/services/db/IndexedDBService'
 import { TourHero } from './TourHero'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { TourLearnSection } from './TourLearnSection'
 import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
+import { HomeAnalyticsSection } from './HomeAnalyticsSection'
 import { CaptionBody, TOUR_CAPTIONS } from './TourCaptions'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { Chapter, Quest } from '../canvas/parseCanvasMarkdown'
@@ -33,22 +32,6 @@ export function TourMobileStack(props: TourMobileStackProps) {
   const editorBlankCaption = TOUR_CAPTIONS.find((c) => c.id === 'editor-blank')
   const editorMetricsCaption = TOUR_CAPTIONS.find((c) => c.id === 'editor-metrics')
   const timerCaption = TOUR_CAPTIONS.find((c) => c.id === 'timer-wallclock')
-  const analyticsCaption = TOUR_CAPTIONS.find((c) => c.id === 'analytics-scorecard')
-  // Spec §2: mobile Explore Your Data card degrades to a single stat.
-  const [weekFacts, setWeekFacts] = useState<number | undefined>(undefined)
-  useEffect(() => {
-    const end = Date.now()
-    let cancelled = false
-    void indexedDBService
-      .getFactsByTimeRange(end - 7 * 86_400_000, end)
-      .then((facts) => {
-        if (!cancelled) setWeekFacts(facts.length)
-      })
-      .catch(() => undefined)
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   return (
     <div data-testid="tour-mobile-stack" className="flex flex-col gap-4">
@@ -90,22 +73,9 @@ export function TourMobileStack(props: TourMobileStackProps) {
         </article>
       )}
 
-      {analyticsCaption && (
-        <article
-          data-testid="tour-analytics-card"
-          className="mx-6 rounded-2xl border border-border bg-card p-6"
-        >
-          <CaptionBody cap={analyticsCaption} />
-          {weekFacts !== undefined && (
-            <div className="mt-4">
-              <div className="text-3xl font-black text-foreground">{weekFacts}</div>
-              <div className="text-xs text-muted-foreground">
-                facts logged in the last 7 days
-              </div>
-            </div>
-          )}
-        </article>
-      )}
+      {/* WQL-elements analytics showcase (#938) — static, so reduced-motion
+          renders it as-is in the flat stack. */}
+      <HomeAnalyticsSection />
       <TourLearnSection
         quests={props.quests}
         chapters={props.chapters}

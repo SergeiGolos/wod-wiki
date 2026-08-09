@@ -14,12 +14,10 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { indexedDBService } from '@/services/db/IndexedDBService'
 import { MOBILE_STICKY_TOP } from '../canvas/canvasUtils'
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
-import type { Segment } from '@/core/models/AnalyticsModels'
 import type { Quest } from '../hooks/usePageQuests'
 import type { Chapter } from '../canvas/parseCanvasMarkdown'
 import {
@@ -32,7 +30,7 @@ import {
 import { TourHero } from './TourHero'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
-import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
+import { HomeAnalyticsSection } from './HomeAnalyticsSection'
 import { TOUR_CAPTIONS, CaptionBody } from './TourCaptions'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { LearnProgressOverview } from './TourLearnSection'
@@ -102,9 +100,6 @@ export interface TourMobileRunwayProps {
   /** Reports the stage whose caption card owns the reading zone. */
   onStageChange: (stage: TourStage) => void
   timer: TourMobileTimerProps
-  analyticsSegments: Segment[]
-  /** Crumb for the analytics screen (fixture vs logged session). */
-  analyticsTitle?: string
   /** Arrival-reset sentinel (#882) — HomeTour observes this wrapper. */
   heroRef: React.Ref<HTMLDivElement>
   /** Imperative escape hatch for quest clicks / completion auto-slide. */
@@ -138,8 +133,6 @@ export function TourMobileRunway({
   entered,
   onStageChange,
   timer,
-  analyticsSegments,
-  analyticsTitle,
   heroRef,
   apiRef,
 }: TourMobileRunwayProps) {
@@ -238,22 +231,6 @@ export function TourMobileRunway({
     }
   }, [apiRef])
 
-  // ── Spec §2: the mobile analytics card degrades to a single live stat ──
-  const [weekFacts, setWeekFacts] = useState<number | undefined>(undefined)
-  useEffect(() => {
-    const end = Date.now()
-    let cancelled = false
-    void indexedDBService
-      .getFactsByTimeRange(end - 7 * 86_400_000, end)
-      .then((facts) => {
-        if (!cancelled) setWeekFacts(facts.length)
-      })
-      .catch(() => undefined)
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   const screen: TourScreen = stage?.screen ?? 'editor'
 
   // Mobile ring resolution: the desktop slice resolves ringA/ringB beats from
@@ -321,11 +298,6 @@ export function TourMobileRunway({
                   />
                 </ScreenFade>
               )}
-              {entered.analytics && (
-                <ScreenFade visible={screen === 'analytics'}>
-                  <TourAnalyticsScreen segments={analyticsSegments} title={analyticsTitle} />
-                </ScreenFade>
-              )}
             </div>
           </MacOSChrome>
         </div>
@@ -349,19 +321,15 @@ export function TourMobileRunway({
             >
               <article className="w-full max-w-xl rounded-2xl border border-border bg-card p-6">
                 <CaptionBody cap={cap} onChoice={onChoice} />
-                {cap.id === 'analytics-scorecard' && weekFacts !== undefined && (
-                  <div className="mt-4">
-                    <div className="text-3xl font-black text-foreground">{weekFacts}</div>
-                    <div className="text-xs text-muted-foreground">
-                      facts logged in the last 7 days
-                    </div>
-                  </div>
-                )}
               </article>
             </div>
           ))}
         </div>
       </div>
+
+      {/* WQL-elements analytics showcase (#938) — one static section; the
+          tile grid stacks to a single column on mobile. */}
+      <HomeAnalyticsSection />
 
       <CelebrationBridge chapters={chapters} />
 

@@ -1,7 +1,9 @@
 /**
  * ChapterScrollTour.tsx — the home-page chapter tour, driven by the
  * ```scroll:chapters markdown spec (the same ```scroll format the hero and
- * the chapter guide pages use) rendered by the shared ScrollRunwaySection.
+ * the chapter guide pages use) rendered by the shared RunwayAdapter (#936) —
+ * the adapter picks the desktop slide runway, mobile pinned window, or reduced
+ * flat stack by Form Factor.
  *
  * Scrolling morphs a single runway window through the six chapter examples
  * (typewriter in, cross-fading blurb captions, ring focus). Per-chapter
@@ -15,7 +17,7 @@ import { useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import type { Chapter, Quest, ScrollSpec } from '../canvas/parseCanvasMarkdown'
 import type { ScriptBlock } from '@/components/Editor/types'
-import { ScrollRunwaySection } from '../canvas/ScrollRunwaySection'
+import { RunwayAdapter } from '../canvas/RunwayAdapter'
 import { useChapterProgress } from '../hooks/useChapterProgress'
 import { usePageQuests } from '../hooks/usePageQuests'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
@@ -134,8 +136,8 @@ export function ChapterScrollTour({
         </div>
       </div>
 
-      <ScrollRunwaySection
-        scroll={scroll}
+      <RunwayAdapter
+        spec={scroll}
         wodFiles={wodFiles}
         theme={theme}
         noteTitle="chapters.md"

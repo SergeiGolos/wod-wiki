@@ -1,10 +1,11 @@
 /**
- * ScrollRunwaySection.tsx — the scroll-runway rendering core, extracted from
- * ScrollCanvasPage so a ```scroll spec can be embedded as a section anywhere
- * (e.g. the home page's chapter tour). Renders the home-tour-style runway:
- * stage bar, typewriter-driven live editor, cross-fading captions, editor
- * ring, transient toasts, playground mode, and a prefers-reduced-motion
- * static-card fallback — driven entirely by the parsed ScrollSpec.
+ * ScrollRunwaySection.tsx — the DESKTOP presentation of a ```scroll runway (the
+ * slide runway): stage bar, typewriter-driven live editor, cross-fading
+ * captions, editor ring, transient toasts, playground mode — driven entirely by
+ * the parsed ScrollSpec. One branch of the Runway Adapter (#936): the adapter
+ * routes desktop here, mobile to RunwayMobile, and reduced-motion to
+ * RunwayReduced — so this file no longer self-detects reduced motion; the
+ * adapter decides Form Factor.
  *
  * Deliberately page-agnostic: no fullscreen runtime, trailing sections, or
  * page-level quest validation (those stay on ScrollCanvasPage). Run and
@@ -28,7 +29,6 @@ import { useScrollTypewriter } from './useScrollTypewriter'
 import { ScrollCaption } from './ScrollCaption'
 import { ScrollToast } from './ScrollToast'
 import { ScrollRing } from './ScrollRing'
-import { CanvasProse } from './CanvasProse'
 
 export interface ScrollRunwaySectionProps {
   scroll: ScrollSpec
@@ -36,6 +36,11 @@ export interface ScrollRunwaySectionProps {
   theme: string
   /** Window-chrome title (e.g. `chapters.md`). */
   noteTitle?: string
+  /** Controlled editor document (with `onDocChange`) — a host that owns the runway's doc (ScrollCanvasPage: swapSource + runtime) passes it; omit for an uncontrolled runway (home chapter tour). */
+  doc?: string
+  onDocChange?: (doc: string) => void
+  /** Fired when the compiled blocks change (feeds the host's live block). */
+  onBlocksChange?: (blocks: ScriptBlock[]) => void
   /** Called when a stage enters (non-interactive). Wire chapter quest completion / telemetry. */
   onStageEnter?: (stageId: string) => void
   /** Run handler — opens the host's playground with the current doc + compiled block. When omitted, Run is hidden. */
@@ -48,15 +53,14 @@ export function ScrollRunwaySection({
   wodFiles,
   theme,
   noteTitle = 'note.md',
+  doc: controlledDoc,
+  onDocChange,
+  onBlocksChange,
   onStageEnter,
   onRun,
   className,
 }: ScrollRunwaySectionProps) {
   const stages = scroll.stages
-
-  const [prefersReducedMotion] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  )
 
   const runwayRef = useRef<HTMLElement | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -70,7 +74,12 @@ export function ScrollRunwaySection({
       ),
     [stages, wodFiles],
   )
-  const [doc, setDoc] = useState(() => sourcesByStageId[stages[0]?.id] ?? '')
+  // Controlled-or-uncontrolled document: a host that owns the runway's doc
+  // (ScrollCanvasPage — swapSource + runtime) passes doc/onDocChange; otherwise
+  // the runway keeps its own.
+  const [internalDoc, setInternalDoc] = useState(() => sourcesByStageId[stages[0]?.id] ?? '')
+  const doc = controlledDoc ?? internalDoc
+  const setDoc = onDocChange ?? setInternalDoc
   const blocksRef = useRef<ScriptBlock[]>([])
 
   const [interactive, setInteractive] = useState(false)
@@ -98,7 +107,7 @@ export function ScrollRunwaySection({
     doc,
     setDoc,
     subscribe,
-    enabled: !interactive && scroll.typewriter && !prefersReducedMotion,
+    enabled: !interactive && scroll.typewriter,
   })
 
   const stageId = slice.stage.id
@@ -162,7 +171,8 @@ export function ScrollRunwaySection({
 
   const handleBlocksChange = useCallback((blocks: ScriptBlock[]) => {
     blocksRef.current = blocks
-  }, [])
+    onBlocksChange?.(blocks)
+  }, [onBlocksChange])
 
   const handleRun = useCallback(() => {
     onRun?.(doc, blocksRef.current[0] ?? null)
@@ -170,152 +180,97 @@ export function ScrollRunwaySection({
 
   const activeAccent = slice.stage.accent ?? 'hsl(var(--foreground))'
 
-  // ── Reduced-motion fallback: static cards + IO quest firing ──
-  const cardsRef = useRef<HTMLDivElement | null>(null)
-  useEffect(() => {
-    if (!prefersReducedMotion || typeof IntersectionObserver === 'undefined') return
-    const list = cardsRef.current
-    if (!list) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue
-          const sid = (entry.target as HTMLElement).dataset.cardId
-          if (sid) {
-            onStageEnter?.(sid)
-            observer.unobserve(entry.target)
-          }
-        }
-      },
-      { threshold: 0.4 },
-    )
-    list.querySelectorAll('[data-card-id]').forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
-  }, [prefersReducedMotion, onStageEnter])
-
   return (
     <div ref={rootRef} className={className} data-testid="scroll-runway-section">
-      {prefersReducedMotion ? (
-        <section className="px-6 pt-4 pb-24" data-testid="scroll-static-cards">
-          <div ref={cardsRef} className="mx-auto max-w-2xl">
-            {stages.map((stage, i) => (
-              <article
-                key={stage.id}
-                data-card-id={stage.id}
-                className="mb-6 rounded-2xl border border-border bg-card p-7"
+      <section ref={runwayRef} className="relative" style={{ height: scroll.runway }}>
+        <div className="sticky top-[104px] flex h-[calc(100vh-104px)] flex-col overflow-hidden">
+          {/* stage bar */}
+          <div className="mx-auto flex w-full max-w-[1500px] items-center justify-between px-6 pt-6 pb-2 lg:px-12">
+            <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+              {interactive ? 'Playground mode' : slice.stage.id.replace(/-/g, ' ')}
+            </div>
+            <div className="flex items-center gap-1.5">
+              {stages.map((seg: ScrollStage, i: number) => {
+                const live = slice.index === i
+                const done = slice.index > i
+                return (
+                  <span
+                    key={seg.id}
+                    className="h-1 rounded-full transition-all duration-300"
+                    style={{
+                      width: live ? 30 : 10,
+                      background: live
+                        ? (seg.accent ?? 'hsl(var(--foreground))')
+                        : done
+                          ? 'hsl(var(--foreground))'
+                          : 'hsl(var(--foreground) / 0.15)',
+                    }}
+                  />
+                )
+              })}
+            </div>
+          </div>
+
+          {/* stage main */}
+          <div className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 items-center justify-center gap-[clamp(24px,3.5vw,56px)] px-6 pb-5 max-lg:flex-col max-lg:justify-start lg:px-12">
+            {/* editor canvas */}
+            <div className="relative aspect-[1200/720] w-[min(920px,calc(100%-400px))] max-w-full flex-none max-lg:aspect-auto max-lg:h-[50vh] max-lg:w-full">
+              <MacOSChrome
+                title={noteTitle}
+                className="absolute inset-x-2 top-2 bottom-2"
+                headerActions={
+                  onRun ? (
+                    <button
+                      type="button"
+                      title="Run the workout"
+                      onClick={handleRun}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                    >
+                      <Play size={11} fill="currentColor" />
+                      Run
+                    </button>
+                  ) : undefined
+                }
               >
-                <div
-                  className="font-mono text-[11px] uppercase tracking-[0.22em]"
-                  style={{ color: stage.accent ?? 'hsl(var(--muted-foreground))' }}
-                >
-                  {String(i + 1).padStart(2, '0')} / {String(stages.length).padStart(2, '0')}
+                <div className="relative h-full">
+                  <NoteEditor
+                    noteId="canvas:scroll-runway"
+                    value={doc}
+                    onChange={setDoc}
+                    onBlocksChange={handleBlocksChange}
+                    theme={theme}
+                    readonly={false}
+                    showLineNumbers={false}
+                    enableOverlay={false}
+                    enableInlineRuntime={false}
+                    forceFullscreenReview
+                    className="h-full"
+                  />
+                  {slice.stage.toast && (
+                    <ScrollToast ref={toastRef} text={slice.stage.toast} accent={activeAccent} />
+                  )}
                 </div>
-                <h3 className="mt-3 text-2xl font-bold tracking-tight text-foreground">
-                  {stage.id.replace(/-/g, ' ')}
-                </h3>
-                {stage.caption && (
-                  <CanvasProse prose={stage.caption} className="mt-3 text-sm text-muted-foreground" />
-                )}
-                {sourcesByStageId[stage.id] && (
-                  <pre className="mt-5 overflow-x-auto rounded-lg bg-background px-4 py-4 font-mono text-[12px] tracking-[0.04em] text-muted-foreground">
-                    {sourcesByStageId[stage.id]}
-                  </pre>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : (
-        <section ref={runwayRef} className="relative" style={{ height: scroll.runway }}>
-          <div className="sticky top-[104px] flex h-[calc(100vh-104px)] flex-col overflow-hidden">
-            {/* stage bar */}
-            <div className="mx-auto flex w-full max-w-[1500px] items-center justify-between px-6 pt-6 pb-2 lg:px-12">
-              <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                {interactive ? 'Playground mode' : slice.stage.id.replace(/-/g, ' ')}
-              </div>
-              <div className="flex items-center gap-1.5">
-                {stages.map((seg: ScrollStage, i: number) => {
-                  const live = slice.index === i
-                  const done = slice.index > i
-                  return (
-                    <span
-                      key={seg.id}
-                      className="h-1 rounded-full transition-all duration-300"
-                      style={{
-                        width: live ? 30 : 10,
-                        background: live
-                          ? (seg.accent ?? 'hsl(var(--foreground))')
-                          : done
-                            ? 'hsl(var(--foreground))'
-                            : 'hsl(var(--foreground) / 0.15)',
-                      }}
-                    />
-                  )
-                })}
-              </div>
+              </MacOSChrome>
+              {slice.ring && !interactive && (
+                <ScrollRing tag={slice.ring.tag} accent={activeAccent} />
+              )}
             </div>
 
-            {/* stage main */}
-            <div className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 items-center justify-center gap-[clamp(24px,3.5vw,56px)] px-6 pb-5 max-lg:flex-col max-lg:justify-start lg:px-12">
-              {/* editor canvas */}
-              <div className="relative aspect-[1200/720] w-[min(920px,calc(100%-400px))] max-w-full flex-none max-lg:aspect-auto max-lg:h-[50vh] max-lg:w-full">
-                <MacOSChrome
-                  title={noteTitle}
-                  className="absolute inset-x-2 top-2 bottom-2"
-                  headerActions={
-                    onRun ? (
-                      <button
-                        type="button"
-                        title="Run the workout"
-                        onClick={handleRun}
-                        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                      >
-                        <Play size={11} fill="currentColor" />
-                        Run
-                      </button>
-                    ) : undefined
-                  }
-                >
-                  <div className="relative h-full">
-                    <NoteEditor
-                      noteId="canvas:scroll-runway"
-                      value={doc}
-                      onChange={setDoc}
-                      onBlocksChange={handleBlocksChange}
-                      theme={theme}
-                      readonly={false}
-                      showLineNumbers={false}
-                      enableOverlay={false}
-                      enableInlineRuntime={false}
-                      forceFullscreenReview
-                      className="h-full"
-                    />
-                    {slice.stage.toast && (
-                      <ScrollToast ref={toastRef} text={slice.stage.toast} accent={activeAccent} />
-                    )}
-                  </div>
-                </MacOSChrome>
-                {slice.ring && !interactive && (
-                  <ScrollRing tag={slice.ring.tag} accent={activeAccent} />
-                )}
-              </div>
-
-              <ScrollCaption stages={stages} activeIndex={slice.index} />
-            </div>
-
-            {/* playground-mode exit pill */}
-            {interactive && (
-              <button
-                type="button"
-                onClick={() => setInteractive(false)}
-                className="absolute bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-foreground px-5 py-2.5 font-mono text-[10px] tracking-[0.06em] text-background opacity-95 transition-opacity hover:opacity-100"
-              >
-                ▶ Playground mode — {userDiverged ? 'your edits are kept' : 'editing'} · tap here to return to the tour
-              </button>
-            )}
+            <ScrollCaption stages={stages} activeIndex={slice.index} />
           </div>
-        </section>
-      )}
+
+          {/* playground-mode exit pill */}
+          {interactive && (
+            <button
+              type="button"
+              onClick={() => setInteractive(false)}
+              className="absolute bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-foreground px-5 py-2.5 font-mono text-[10px] tracking-[0.06em] text-background opacity-95 transition-opacity hover:opacity-100"
+            >
+              ▶ Playground mode — {userDiverged ? 'your edits are kept' : 'editing'} · tap here to return to the tour
+            </button>
+          )}
+        </div>
+      </section>
     </div>
   )
 }

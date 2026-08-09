@@ -156,7 +156,6 @@ function makeProps(overrides: Partial<TourMobileRunwayProps> = {}): TourMobileRu
       onRuntimeReady: () => {},
       onReset: () => {},
     },
-    analyticsSegments: [],
     heroRef: { current: null },
     apiRef: { current: null },
     ...overrides,
@@ -206,7 +205,7 @@ describe('TourMobileRunway', () => {
     ;(globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = realIO
   })
 
-  it('renders the pinned editor window and all eight caption cards', async () => {
+  it('renders the pinned editor window and all six caption cards', async () => {
     await renderRunway()
 
     // The pinned window holds the live runway editor; the hero editor also
@@ -222,8 +221,6 @@ describe('TourMobileRunway', () => {
       'timer-wallclock',
       'timer-next',
       'timer-cast',
-      'analytics-scorecard',
-      'analytics-grid',
     ]) {
       expect(screen.getByTestId(`tour-mobile-card-${stageId}`)).toBeTruthy()
     }
@@ -317,21 +314,8 @@ describe('TourMobileRunway', () => {
     await renderRunway({ apiRef })
 
     expect(apiRef.current).toBeTruthy()
-    apiRef.current!.scrollToStage('analytics-scorecard')
+    apiRef.current!.scrollToStage('timer-cast')
 
     expect(scrollSpy).toHaveBeenCalled()
-  })
-
-  it('shows the single week-facts stat on the analytics card (spec §2)', async () => {
-    const { indexedDBService } = await import('@/services/db/IndexedDBService')
-    ;(indexedDBService.getFactsByTimeRange as ReturnType<typeof mock>).mockResolvedValueOnce(
-      Array.from({ length: 12 }, (_, i) => ({ id: i })),
-    )
-
-    await renderRunway()
-
-    const card = screen.getByTestId('tour-mobile-card-analytics-scorecard')
-    expect(card.textContent).toContain('12')
-    expect(card.textContent).toContain('facts logged in the last 7 days')
   })
 })

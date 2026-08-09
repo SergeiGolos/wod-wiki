@@ -18,7 +18,6 @@ import {
 } from '@/components/atoms/primitives/combobox'
 import { TOUR_ACCENTS, type TourStageId } from './tourStages'
 import { telemetry, HOME_EVENTS, type HomeEventName } from '@/services/telemetry'
-import { analyticsExplorerPath } from '../lib/routes'
 
 export interface TourCaptionAction {
   label: string
@@ -203,51 +202,6 @@ export const TOUR_CAPTIONS: TourCaption[] = [
         label: 'Read the behaviors explainer',
         href: '/guide/behaviors',
         event: HOME_EVENTS.behaviorsOpened,
-      },
-    ],
-  },
-  {
-    id: 'analytics-scorecard',
-    num: '03a / 03 — Explore Your Data',
-    title: (
-      <>
-        Explore Your Data.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Query what you just did.</em>
-      </>
-    ),
-    body: 'Total reps (90 reps), total distance (1200m), and load volume (Swings + Deadlifts) from this 21-15-9 workout are calculated and written to your journal.',
-    foot: 'Scorecard · 90 reps · 1200m distance · volume rollup',
-    accent: TOUR_ACCENTS.analytics,
-    actions: [
-      {
-        label: 'Run a pre-filled query',
-        href: analyticsExplorerPath({ q: 'sum:totalVolume{discipline:strength} by {week}.rollup(1w)' }),
-        event: HOME_EVENTS.explorerOpened,
-      },
-      {
-        label: 'Open the dashboard',
-        href: '/analytics/dashboard',
-        event: HOME_EVENTS.dashboardViewed,
-      },
-    ],
-  },
-  {
-    id: 'analytics-grid',
-    num: '03b / 03 — Session Review',
-    title: (
-      <>
-        Session Log & Review.{' '}
-        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Analyze every set and split.</em>
-      </>
-    ),
-    body: 'Drill into individual round splits (21, 15, and 9 reps), distance splits (400m), and load overrides collected during execution.',
-    foot: 'Review Grid · 21-15-9 round splits · WQL metrics',
-    accent: TOUR_ACCENTS.analytics,
-    actions: [
-      {
-        label: 'Read the query guide',
-        href: '/guide/analytics',
-        event: HOME_EVENTS.analyticsGuideOpened,
       },
     ],
   },

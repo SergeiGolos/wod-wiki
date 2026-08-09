@@ -194,45 +194,17 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'timer.nextButton', tag: 'Next Button' },
     }
   }
-  if (progress < 0.79) {
-    const t = (progress - 0.68) / 0.11
-    return {
-      index: 5,
-      stage: {
-        id: 'timer-cast',
-        screen: 'timer',
-        accent: 'hsl(var(--metric-effort))',
-        label: 'Cast to the Big Screen',
-      },
-      t,
-      ring: { key: 'timer.castButton', tag: 'Cast' },
-    }
-  }
-  if (progress < 0.895) {
-    const t = (progress - 0.79) / 0.105
-    return {
-      index: 6,
-      stage: {
-        id: 'analytics-scorecard',
-        screen: 'analytics',
-        accent: 'hsl(var(--metric-rounds))',
-        label: 'Explore Your Data',
-      },
-      t,
-      ring: { key: 'analytics.scorecard', tag: 'Scorecard' },
-    }
-  }
-  const t = (progress - 0.895) / 0.105
+  const t = (progress - 0.68) / 0.32
   return {
-    index: 7,
+    index: 5,
     stage: {
-      id: 'analytics-grid',
-      screen: 'analytics',
-      accent: 'hsl(var(--metric-rounds))',
-      label: 'Session Review',
+      id: 'timer-cast',
+      screen: 'timer',
+      accent: 'hsl(var(--metric-effort))',
+      label: 'Cast to the Big Screen',
     },
     t,
-    ring: { key: 'analytics.grid', tag: 'Review Grid' },
+    ring: { key: 'timer.castButton', tag: 'Cast' },
   }
 }
 
@@ -430,38 +402,19 @@ describe('HomeTour', () => {
     expect(newNoteButton).toBeTruthy()
   })
 
-  it('exposes timer and analytics stage drop-offs with correct hrefs', async () => {
+  it('exposes timer drop-offs with correct hrefs and no analytics caption links', async () => {
     await renderHomeTour()
 
     // Timer stage is the initial slice.
     const behaviorsLink = await screen.findByRole('link', { name: /Read the behaviors explainer/i })
     expect(behaviorsLink.getAttribute('href')).toBe('/guide/behaviors')
 
-    // Drive to the Analytics Scorecard stage.
-    await act(async () => {
-      setTestTourProgress(0.83)
-      await Promise.resolve()
-    })
-    const explorerLink = await screen.findByRole('link', { name: /Run a pre-filled query/i })
-    expect(explorerLink.getAttribute('href')).toContain('/dashboard')
-    expect(explorerLink.getAttribute('href')).toContain('q=')
+    // The analytics runway cards are gone; the showcase section sits below the runway.
+    expect(screen.queryByTestId('home-analytics-section')).toBeTruthy()
 
-    const dashboardLink = screen.getByRole('link', { name: /Open the dashboard/i })
-    expect(dashboardLink.getAttribute('href')).toBe('/analytics/dashboard')
-
-    // Drive to the Analytics Grid stage.
-    await act(async () => {
-      setTestTourProgress(0.92)
-      await Promise.resolve()
-    })
-    const analyticsGuideLink = screen.getByRole('link', { name: /Read the query guide/i })
-    expect(analyticsGuideLink.getAttribute('href')).toBe('/guide/analytics')
-
-    const effortsLinks = screen.getAllByRole('link', { name: /Browse the registry/i })
-    expect(effortsLinks.length).toBeGreaterThanOrEqual(1)
-    for (const link of effortsLinks) {
-      expect(link.getAttribute('href')).toBe('/efforts')
-    }
+    expect(screen.queryByRole('link', { name: /Run a pre-filled query/i })).toBeNull()
+    expect(screen.queryByRole('link', { name: /Open the dashboard/i })).toBeNull()
+    expect(screen.queryByRole('link', { name: /Read the query guide/i })).toBeNull()
   })
 
   it('renders the static areas in locked order', async () => {
@@ -495,23 +448,7 @@ describe('HomeTour', () => {
     fireEvent.click(libraryLink)
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.libraryOpened)
 
-    // Drive to the analytics-scorecard stage and click a drop-off.
-    await act(async () => {
-      setTestTourProgress(0.83)
-      await Promise.resolve()
-    })
-    const explorerLink = await screen.findByRole('link', { name: /Run a pre-filled query/i })
-    fireEvent.click(explorerLink)
-    expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.explorerOpened)
-
-    await act(async () => {
-      setTestTourProgress(0.92)
-      await Promise.resolve()
-    })
-    const analyticsGuideLink = await screen.findByRole('link', { name: /Read the query guide/i })
-    fireEvent.click(analyticsGuideLink)
-    expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.analyticsGuideOpened)
-
+    // Drive to the timer stage and click the timer drop-off.
     await act(async () => {
       setTestTourProgress(0.50)
       await Promise.resolve()
@@ -692,10 +629,10 @@ describe('HomeTour', () => {
     const panel = await screen.findByTestId('mock-timer-panel')
     expect(panel.getAttribute('data-external-pause')).toBe('false')
 
-    // Scroll forward onto the analytics cards — the same panel stays mounted
+    // Scroll out of the timer cards — the same panel stays mounted
     // (no reset) but is signaled to halt.
     await act(async () => {
-      setTestTourProgress(0.83)
+      setTestTourProgress(0.20)
       await Promise.resolve()
     })
     expect(screen.getByTestId('mock-timer-panel').getAttribute('data-external-pause')).toBe('true')
@@ -708,42 +645,60 @@ describe('HomeTour', () => {
     expect(screen.getByTestId('mock-timer-panel').getAttribute('data-external-pause')).toBe('true')
   })
 
-  it('auto-slides the runway to analytics card 1 when Next completes the run (#885)', async () => {
-    await renderHomeTour()
-    // Card 2 of the timer walkthrough — the Next tutorial.
-    await act(async () => {
-      setTestTourProgress(0.65)
-      await Promise.resolve()
-    })
-    await screen.findByTestId('mock-timer-panel')
+  it('carries the visitor to the analytics showcase when Next completes the run (#885)', async () => {
+    const scrollIntoViewSpy = mock(() => {})
+    const originalScrollIntoView = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = scrollIntoViewSpy as unknown as typeof originalScrollIntoView
 
-    resetScrollSpy()
-    await act(async () => {
-      timerPanelControl().fireTimerComplete?.(completedResults())
-      await Promise.resolve()
-    })
-    expect(scrollRunwayToCallCount()).toBeGreaterThan(0)
+    try {
+      await renderHomeTour()
+      // Card 2 of the timer walkthrough — the Next tutorial.
+      await act(async () => {
+        setTestTourProgress(0.65)
+        await Promise.resolve()
+      })
+      await screen.findByTestId('mock-timer-panel')
+
+      resetScrollSpy()
+      await act(async () => {
+        timerPanelControl().fireTimerComplete?.(completedResults())
+        await Promise.resolve()
+      })
+      expect(scrollIntoViewSpy).toHaveBeenCalled()
+      expect(scrollRunwayToCallCount()).toBe(0)
+    } finally {
+      Element.prototype.scrollIntoView = originalScrollIntoView
+    }
   })
 
-  it('does not auto-slide when the runtime completes on the analytics cards (#885)', async () => {
-    await renderHomeTour()
-    await act(async () => {
-      setTestTourProgress(0.50)
-      await Promise.resolve()
-    })
-    await screen.findByTestId('mock-timer-panel')
+  it('carries the visitor to the analytics showcase from the last timer stage too', async () => {
+    const scrollIntoViewSpy = mock(() => {})
+    const originalScrollIntoView = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = scrollIntoViewSpy as unknown as typeof originalScrollIntoView
 
-    // Visitor scrolls to analytics first; the ambient drain completing the
-    // runtime there must not yank the runway back to card 1.
-    await act(async () => {
-      setTestTourProgress(0.83)
-      await Promise.resolve()
-    })
-    resetScrollSpy()
-    await act(async () => {
-      timerPanelControl().fireTimerComplete?.(completedResults())
-      await Promise.resolve()
-    })
-    expect(scrollRunwayToCallCount()).toBe(0)
+    try {
+      await renderHomeTour()
+      await act(async () => {
+        setTestTourProgress(0.50)
+        await Promise.resolve()
+      })
+      await screen.findByTestId('mock-timer-panel')
+
+      // Visitor is on the final timer slide; completing the run still carries
+      // them to the WQL showcase below the runway, not to a removed runway card.
+      await act(async () => {
+        setTestTourProgress(0.83)
+        await Promise.resolve()
+      })
+      resetScrollSpy()
+      await act(async () => {
+        timerPanelControl().fireTimerComplete?.(completedResults())
+        await Promise.resolve()
+      })
+      expect(scrollIntoViewSpy).toHaveBeenCalled()
+      expect(scrollRunwayToCallCount()).toBe(0)
+    } finally {
+      Element.prototype.scrollIntoView = originalScrollIntoView
+    }
   })
 })
