@@ -37,7 +37,6 @@ export const ROUTE_PATTERNS = {
   collectionWorkout: '/collections/:collection/:workout',
   tracker: '/tracker/:runtimeId',
   run: '/run/:runtimeId',
-  review: '/review/:runtimeId',
   load: '/load',
   loadJournal: '/load/journal',
   loadJournalDate: '/load/journal/:date',
@@ -119,11 +118,6 @@ export function trackerPath(runtimeId: string): string {
 /** /run/:runtimeId (canonical runtime seam for WOD-505) */
 export function runPath(runtimeId: string): string {
   return `/run/${encodeURIComponent(runtimeId)}`;
-}
-
-/** /review/:runtimeId */
-export function reviewPath(runtimeId: string): string {
-  return `/review/${encodeURIComponent(runtimeId)}`;
 }
 
 /** /load */
@@ -253,6 +247,29 @@ export function WorkoutRedirect(): ReactNode {
 export function TrackerRedirect(): ReactNode {
   const { runtimeId } = useParams<{ runtimeId: string }>()
   return <Navigate to={runPath(runtimeId!)} replace />
+}
+
+/**
+ * Retired review routes (#946): the dedicated results screens are gone — the
+ * explorer with a rows query is the review. Bookmarks land on `/dashboard`
+ * with the equivalent WQL preselected:
+ *   /review/:runtimeId                              → rows:{result:…}
+ *   /note/:noteId/review[/…]                        → rows:{note:…}
+ *   /note/:noteId/review/:sectionId/:resultId       → rows:{result:…}
+ * A section-only URL cannot narrow to `rows:{block:…}` — legacy section ids
+ * predate block content ids — so it widens to the note scope (a truthful
+ * superset) rather than landing on an empty table.
+ */
+export function ReviewRedirect(): ReactNode {
+  const { runtimeId, noteId, resultId } = useParams<{
+    runtimeId?: string
+    noteId?: string
+    sectionId?: string
+    resultId?: string
+  }>()
+  const scope = resultId ?? runtimeId
+  const q = scope ? `rows:{result:${scope}}` : `rows:{note:${noteId ?? ''}}`
+  return <Navigate to={`/dashboard?q=${encodeURIComponent(q)}`} replace />
 }
 
 /** Redirect /getting-started → / (retired: content folded into home) */
@@ -446,11 +463,6 @@ export function isJournalEntryPath(pathname: string): boolean {
 /** Detect whether a location pathname belongs to the tracker/run family. */
 export function isTrackerPath(pathname: string): boolean {
   return pathname.startsWith('/tracker/') || pathname.startsWith('/run/');
-}
-
-/** Detect whether a location pathname belongs to the review family. */
-export function isReviewPath(pathname: string): boolean {
-  return pathname.startsWith('/review/');
 }
 
 /** Detect whether a location pathname belongs to the collection workout family. */

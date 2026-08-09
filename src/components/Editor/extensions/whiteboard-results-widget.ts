@@ -7,7 +7,8 @@
  *   1. An expandable results panel inserted after the closing fence of each workout block.
  *   2. Collapsed state shows compact result rows (time, status, duration).
  *   3. Expanded state shows AnalyticsScorecard + full ReviewGrid (sort, filter, search, graph).
- *   4. A "Full Review" button opens the FullscreenReview dialog for the full experience.
+ *   4. A "Full Review" button fires `WOD_RESULT_CLICK_EVENT` for the host to
+ *      route (the built-in FullscreenReview dialog was retired in #946).
  *
  * Architecture:
  *   - `wodResultsField`: Stores the actual result data per section.

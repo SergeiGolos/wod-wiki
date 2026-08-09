@@ -69,11 +69,6 @@ describe('DocumentTitleSync', () => {
     expect(document.title).toBe('Wod.Wiki - Analytics')
   })
 
-  it('sets the base title for review routes', () => {
-    renderAt('/review/runtime-1')
-    expect(document.title).toBe('Wod.Wiki - Review')
-  })
-
   it('does not override the title for /effort/:slug', () => {
     renderAt('/effort/push-up')
     expect(document.title).toBe('Test Setup Title')

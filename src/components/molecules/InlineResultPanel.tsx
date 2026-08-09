@@ -7,7 +7,8 @@
  * Collapsed: Result rows with summary info (duration, date, time).
  * Expanded:  AnalyticsScorecard + full ReviewGrid (sort, filter, search, graph, user overrides).
  * Clicking a result row toggles its expanded state.
- * A "Full Review" button in the expanded view opens the FullscreenReview dialog.
+ * A "Full Review" button in the expanded view fires `WOD_RESULT_CLICK_EVENT`
+ * for the host to route (no built-in overlay since #946).
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -83,7 +84,7 @@ function deriveSegmentsFromResult(result: WorkoutResult): {
   const analytics = getAnalyticsFromLogs(result.data.logs, result.data.startTime);
   const segments = analytics.segments;
 
-  // Extract projections the same way FullscreenReview does
+  // Extract projections the same way the retired FullscreenReview did
   const projections: ProjectionResult[] = segments
     .filter((s) => (s as any).context?.outputType === 'analytics')
     .map((s) => {

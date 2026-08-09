@@ -61,13 +61,11 @@ import { deriveWorkbenchDocumentState } from '@/app/workbench/workbenchDocumentM
 export type NavigationIntent =
   | { type: 'goToPlan'; noteId: string }
   | { type: 'goToTrack'; noteId: string; sectionId?: string }
-  | { type: 'goToReview'; noteId: string; sectionId?: string; resultId?: string }
   | { type: 'goTo'; view: ViewMode | 'history' | 'analyze'; noteId?: string; sectionId?: string; resultId?: string };
 
 /**
  * NavigateFn — the injected port the session uses to emit navigation.
- * `react-router`'s `useReactRouterNavigation` implements it for production;
- * tests pass a function that captures the intents.
+ * Tests pass a function that captures the intents.
  */
 export type NavigateFn = (intent: NavigationIntent) => void;
 
@@ -649,10 +647,10 @@ export function createWorkbenchSessionStore(
       /**
        * `completeWorkout` — the unified single-source write path for finishing a
        * workout. Reads `content` / `selectedBlockId` / `analyticsSegments` /
-       * `currentEntry` from the session state and emits one navigation intent
-       * (goToReview) plus one persistence call. Returns the generated resultId
-       * so callers can navigate synchronously before the persistence promise
-       * resolves.
+       * `currentEntry` from the session state and persists the result.
+       * Returns the generated resultId so callers can navigate synchronously
+       * before the persistence promise resolves. (#946 removed the goToReview
+       * intent — the explorer with a rows query is the review now.)
        */
       completeWorkout: async (result) => {
         const { v7: uuidv7 } = await import('uuid');
@@ -723,15 +721,6 @@ export function createWorkbenchSessionStore(
 
         // Append to the session's results list (used by review view).
         set((s) => ({ results: [...s.results, result] }));
-
-        // Navigate to review. The injected `navigate` is the unified route
-        // vocabulary (Step 5 retires the dual Context→Store navigation seam).
-        deps.navigate?.({
-          type: 'goToReview',
-          noteId: currentEntry?.id ?? 'static',
-          sectionId: selectedBlockId ?? undefined,
-          resultId,
-        });
 
         return resultId;
       },

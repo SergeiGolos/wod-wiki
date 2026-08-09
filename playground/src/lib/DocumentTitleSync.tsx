@@ -23,7 +23,6 @@ export function DocumentTitleSync() {
     else if (pathname.startsWith('/library')) title = 'Wod.Wiki - Library'
     else if (pathname.startsWith('/efforts')) title = 'Wod.Wiki - Efforts'
     else if (pathname.startsWith('/analytics')) title = 'Wod.Wiki - Analytics'
-    else if (pathname.startsWith('/review')) title = 'Wod.Wiki - Review'
 
     document.title = title
   }, [location.pathname])

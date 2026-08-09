@@ -31,6 +31,7 @@ import {
   PlanRedirect,
   SyntaxRedirect,
   TrackerRedirect,
+  ReviewRedirect,
   NotePlaygroundRedirect,
   WorkoutRedirect,
 } from './lib/routes'
@@ -51,7 +52,6 @@ import { ChallengeHeaderBadge } from './components/molecules/ChallengeHeaderBadg
 import { getChallengeSectionMap } from './canvas/parseCanvasMarkdown'
 // ── Extracted page components ────────────────────────────────────────────────
 import { WallClockPage } from './pages/WallClockPage'
-import { ReviewPage } from './pages/ReviewPage'
 import { JournalPage } from './pages/JournalPage'
 import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
 import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
@@ -411,7 +411,11 @@ export function App() {
                   <Route path={ROUTE_PATTERNS.library} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><WallClockPage /></Suspense>} />
                   <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
-                  <Route path={ROUTE_PATTERNS.review} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><ReviewPage /></Suspense>} />
+                  {/* Retired review screens (#946) — bookmarks land on the explorer with the matching rows query. */}
+                  <Route path="/review/:runtimeId" element={<ReviewRedirect />} />
+                  <Route path="/note/:noteId/review" element={<ReviewRedirect />} />
+                  <Route path="/note/:noteId/review/:sectionId" element={<ReviewRedirect />} />
+                  <Route path="/note/:noteId/review/:sectionId/:resultId" element={<ReviewRedirect />} />
                   <Route path="/workout/:category/:name" element={<WorkoutRedirect />} />
                   {canvasRoutes.map(({ route }) => (
                     <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />

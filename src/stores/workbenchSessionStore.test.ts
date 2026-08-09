@@ -256,7 +256,7 @@ describe('workbenchSessionStore', () => {
     expect(provider.updated.length).toBe(1);
   });
 
-  it('completeWorkout calls mutateNote with analytics + emits a goToReview intent', async () => {
+  it('completeWorkout calls mutateNote with analytics (#946: no review intent)', async () => {
     const store = createWorkbenchSessionStore({
       nowProvider: now,
       notePersistence,
@@ -315,9 +315,7 @@ describe('workbenchSessionStore', () => {
     // mints it and passes it through.
     expect(call.mutation.workoutResult?.id).toBe(resultId);
 
-    expect(intents.length).toBe(1);
-    const intent = intents[0] as { type: string };
-    expect(intent.type).toBe('goToReview');
+    expect(intents.length).toBe(0);
 
     expect(store.getState().results.length).toBe(1);
     expect(store.getState().results[0]).toEqual(result);
