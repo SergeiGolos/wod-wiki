@@ -106,8 +106,11 @@ export interface NoteEditorProps {
   onStartWorkout?: (block: ScriptBlock) => void;
   /** Called when a workout is completed with the results.
    * `resultId` is the id the editor generated for the optimistic result and
-   * used in the inserted query:table block — persistence MUST reuse it (#944). */
-  onCompleteWorkout?: (blockId: string, results: ScriptBlock["results"], resultId?: string) => void;
+   * used in the inserted query:table block — persistence MUST reuse it (#944).
+   * `runBlock` is the section-derived identity (id + contentId) of the block
+   * that just completed, so results persist against the right block even when
+   * the session's selected block is stale or absent. */
+  onCompleteWorkout?: (blockId: string, results: ScriptBlock["results"], resultId?: string, runBlock?: Pick<ScriptBlock, "id" | "contentId">) => void;
   /** Called when Whiteboard Script blocks change */
   onBlocksChange?: (blocks: ScriptBlock[]) => void;
   /** Called when user triggers "Add to Plan" on a Whiteboard Script block */
@@ -254,8 +257,14 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const handleCompleteWorkout = useCallback(
     (blockId: string, results: ScriptBlock["results"]) => {
       const resultId = uuidv7();
+      let runBlock: Pick<ScriptBlock, "id" | "contentId"> | undefined;
       if (results && viewRef.current) {
         const view = viewRef.current;
+        // Resolve the completed block's identity live from the editor state —
+        // the same section lookup the insert uses — so persistence records the
+        // result against the exact block that ran (contentId survives moves).
+        const section = view.state.field(sectionField).sections.find((s) => s.id === blockId);
+        if (section) runBlock = { id: section.id, contentId: section.contentId };
         const insert = sessionQueryInsert(view.state, blockId, resultId);
         if (insert) {
           // #945: the inserted table IS the results moment — reveal it inline,
@@ -267,7 +276,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           });
         }
       }
-      onCompleteWorkout?.(blockId, results, resultId);
+      onCompleteWorkout?.(blockId, results, resultId, runBlock);
     },
     [noteId, onCompleteWorkout],
   );

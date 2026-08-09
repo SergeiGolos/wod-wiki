@@ -205,7 +205,7 @@ export interface WorkbenchSessionActions {
    * generated resultId so callers can navigate synchronously before the
    * persistence promise resolves.
    */
-  completeWorkout: (result: WorkoutResults, explicitResultId?: string) => Promise<string>;
+  completeWorkout: (result: WorkoutResults, explicitResultId?: string, runBlock?: Pick<ScriptBlock, "id" | "contentId"> | null) => Promise<string>;
   /** Patch the loaded entry's `results` slice (used by route-result loading). */
   patchCurrentEntryResults: (results: WorkoutResults) => void;
   /**
@@ -652,11 +652,18 @@ export function createWorkbenchSessionStore(
        * before the persistence promise resolves. (#946 removed the goToReview
        * intent — the explorer with a rows query is the review now.)
        */
-      completeWorkout: async (result, explicitResultId) => {
+      completeWorkout: async (result, explicitResultId, runBlock) => {
         const { v7: uuidv7 } = await import('uuid');
         const resultId = explicitResultId ?? uuidv7();
         const state = get();
         const { content, selectedBlock, selectedBlockId, currentEntry } = state;
+
+        // The completed block may arrive from the editor (inline runs) or the
+        // session selection (track view); `setSelectedBlock` is only used by
+        // tests today, so never require `selectedBlock` to persist — fall back
+        // to blockId alone rather than dropping the result (a crash here used
+        // to silently lose every editor-run completion).
+        const identity = runBlock ?? selectedBlock;
 
         const provider = deps.provider;
         const notePersistence = deps.notePersistence;
@@ -687,14 +694,21 @@ export function createWorkbenchSessionStore(
                 });
               }
               // Then resolve identity + persist the result via the Recorder (placement A).
-              await createResultRecorder(notePersistence).record({
-                runBlock: selectedBlock!,
-                blockId: selectedBlockId ?? '',
-                noteId: targetId,
-                resultId: payload.resultId,
-                data: payload.results,
-                createdAt: payload.results.endTime,
-              });
+              // Guarded: a failure to persist must surface in the console, not
+              // silently drop the completion (the query:table already references
+              // `resultId`, so an unrecorded run shows an empty table).
+              try {
+                await createResultRecorder(notePersistence).record({
+                  runBlock: identity,
+                  blockId: selectedBlockId ?? identity?.id ?? '',
+                  noteId: targetId,
+                  resultId: payload.resultId,
+                  data: payload.results,
+                  createdAt: payload.results.endTime,
+                });
+              } catch (err) {
+                console.error('[workbench] failed to persist workout result:', err);
+              }
               const refreshed = await notePersistence.getNote(targetId, {
                 projection: 'workbench',
                 includeAttachments: true,

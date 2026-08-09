@@ -102,6 +102,12 @@ describe('NoteEditor write-on-completion (#944)', () => {
     // The table references the id persistence is told to record.
     expect(onCompleteWorkout).toHaveBeenCalledTimes(1);
     expect(onCompleteWorkout.mock.calls[0][2]).toBe(match![1]);
+    // The completed block's identity rides along so persistence records the
+    // result against the right block without relying on session selection.
+    const runBlock = onCompleteWorkout.mock.calls[0][3] as { id: string; contentId?: string } | undefined;
+    expect(runBlock).toBeDefined();
+    expect(runBlock!.contentId).toBeTruthy();
+    expect(runBlock!.id).toBe(onCompleteWorkout.mock.calls[0][0]);
   });
 
   it('stacks a re-run newest-first between the workout block and the prior table', async () => {

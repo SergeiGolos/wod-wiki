@@ -14,6 +14,8 @@ import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { WorkoutResult } from '@/types/storage';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
+import { sessionQueryInsert } from '@/components/Editor/extensions/sessionQueryBlock';
+import { resolveCompletionTargets } from '../lib/workoutCompletion';
 import { useEditorSave } from '../hooks/useEditorSave';
 
 const journalContentProvider = new IndexedDBContentProvider();
@@ -92,34 +94,36 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     return uuid;
   }, [journalDate]);
 
-  const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"], editorResultId?: string) => {
-    // AutoStart runs carry their identities from pendingRuntimes: the block
-    // id embeds the SOURCE page's doc line, so line-based resolution against
-    // this page's doc misses and no result is recorded. Match the journal
-    // page's own block by content id (content-stable) and fall back to the
-    // pending block itself.
-    const isActiveRun = activeNoteId !== null && timerBlock?.id === blockId;
-    const runBlock =
-      blocks.find(b => b.id === blockId) ??
-      (isActiveRun
-        ? blocks.find(b => b.contentId && b.contentId === timerBlock!.contentId) ?? timerBlock!
-        : undefined);
-    if (!runBlock) return;
+  const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"], editorResultId?: string, editorRunBlock?: Pick<ScriptBlock, "id" | "contentId">) => {
+    // Map the completed run back to its block + note + result id in one place
+    // (see workoutCompletion.ts): the result MUST record under the same id the
+    // query:table references, or the inline table renders empty.
+    const targets = resolveCompletionTargets({
+      blockId,
+      editorRunBlock,
+      blocks,
+      activeNoteId,
+      timerBlock,
+      activeRuntimeId,
+      editorResultId,
+      resolveNoteUuid,
+    });
+    if (!targets) return;
+    const { runBlock, noteId, resultId } = targets;
 
-    const uuid = activeNoteId ?? (() => {
-      const match = blockId.match(/^wod-(\d+)-/);
-      if (!match) return null;
-      return resolveNoteUuid(parseInt(match[1], 10));
-    })();
-    if (!uuid) return;
+    // Page-level runs (?autoStart / note Play button) bypass NoteEditor's own
+    // completion hook, so no query:table was inserted — do it here so the
+    // note still presents the run as a table.
+    if (!editorRunBlock && editorView) {
+      const insert = sessionQueryInsert(editorView.state, blockId, resultId);
+      if (insert) editorView.dispatch({ changes: insert });
+    }
 
     playgroundRecorder.record({
       runBlock,
       blockId,
-      noteId: uuid,
-      // The editor-generated id (already embedded in the inserted query:table
-      // block, #944) wins; autoStart runs fall back to their pending runtime id.
-      resultId: editorResultId ?? activeRuntimeId ?? crypto.randomUUID(),
+      noteId,
+      resultId,
       data: results!,
       createdAt: results?.endTime || Date.now(),
     }).then((result) => {
@@ -130,7 +134,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     }).catch(() => {});
     setActiveRuntimeId(null);
     setActiveNoteId(null);
-  }, [resolveNoteUuid, blocks, activeRuntimeId, activeNoteId, timerBlock]);
+  }, [resolveNoteUuid, blocks, activeRuntimeId, activeNoteId, timerBlock, editorView]);
 
   useEffect(() => {
     let cancelled = false;
@@ -219,7 +223,9 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
             setActiveRuntimeId(null);
             setActiveNoteId(null);
           }}
-          onCompleteWorkout={handleCompleteWorkout}
+          onCompleteWorkout={(blockId, results) =>
+            handleCompleteWorkout(blockId, results, activeRuntimeId ?? undefined, timerBlock ?? undefined)
+          }
           autoStart
         />
       )}

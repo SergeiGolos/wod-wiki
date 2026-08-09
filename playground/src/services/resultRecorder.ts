@@ -39,8 +39,11 @@ export interface ResultWriter {
 }
 
 export interface RecordResultInput {
-  /** The block that was actually run — carries `contentId` + `content`. */
-  runBlock: ScriptBlock;
+  /** The block that was actually run — carries `contentId` + `content`.
+   * Optional: completion paths that cannot resolve the block (no editor
+   * section / stale session selection) fall back to `blockId` for identity,
+   * leaving `blockContentId` undefined rather than dropping the result. */
+  runBlock?: ScriptBlock | Pick<ScriptBlock, "id" | "contentId"> | null;
   /** Section position identity — which block in the note. */
   blockId: string;
   /** Canonical UUID of the owning Note. */
@@ -74,6 +77,8 @@ export function createResultRecorder(writer: ResultWriter): ResultRecorder {
       // The NoteSegment version is resolved at write time by the persistence
       // adapter (which owns content versioning) — no result pre-fetch needed.
       const resolvedOrigin = origin ?? (parseNoteId(noteId).kind === 'playground' ? 'playground' : 'journal');
+      const segmentId = runBlock?.id ?? blockId;
+      const blockContentId = runBlock?.contentId;
 
       // Delegate the write through the chosen writer (INotePersistence.mutateNote).
       // The writer routes through the adapter that backs it — IndexedDB-full for
@@ -84,8 +89,8 @@ export function createResultRecorder(writer: ResultWriter): ResultRecorder {
           workoutResult: {
             id: resultId,
             blockId,
-            blockContentId: runBlock.contentId,
-            segmentId: runBlock.id,
+            blockContentId,
+            segmentId,
             origin: resolvedOrigin,
             data,
             createdAt,
@@ -97,9 +102,9 @@ export function createResultRecorder(writer: ResultWriter): ResultRecorder {
       const result: WorkoutResult = {
         id: resultId,
         noteId,
-        segmentId: runBlock.id,
+        segmentId,
         blockId,
-        blockContentId: runBlock.contentId,
+        blockContentId,
         origin: resolvedOrigin,
         data,
         createdAt,
