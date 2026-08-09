@@ -208,7 +208,6 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
             onBlocksChange={setBlocks}
             onCompleteWorkout={handleCompleteWorkout}
             onViewCreated={handleViewCreated}
-            extendedResults={allResults}
           />
         )}
       </div>

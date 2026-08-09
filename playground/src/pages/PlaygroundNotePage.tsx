@@ -334,7 +334,6 @@ export function PlaygroundNotePage({
             onBlocksChange={setScriptBlocks}
             onButtonAction={handleButtonAction}
             widgetComponents={widgetComponents}
-            extendedResults={results}
           />
         }
       />

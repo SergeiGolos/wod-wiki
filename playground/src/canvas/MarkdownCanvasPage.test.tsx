@@ -88,7 +88,7 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
 
     editorSnapshots.push({
       noteId: props.noteId,
-      resultCount: props.extendedResults?.length ?? 0,
+      resultCount: 0,
       source: typeof props.value === 'string' ? props.value : undefined,
     })
 
@@ -96,7 +96,7 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
       <textarea
         data-testid="note-editor"
         data-note-id={props.noteId}
-        data-result-count={String(props.extendedResults?.length ?? 0)}
+        data-result-count="0"
         data-editor-source={typeof props.value === 'string' ? props.value : ''}
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}
@@ -269,7 +269,7 @@ describe('MarkdownCanvasPage result persistence', () => {
     document.body.innerHTML = ''
   })
 
-  it('persists the first inline canvas completion and feeds it back to the editor', async () => {
+  it('persists the first inline canvas completion', async () => {
     const { MarkdownCanvasPage } = await markdownCanvasPageModule
     let panelActions: PanelActions | null = null
 
@@ -310,19 +310,9 @@ describe('MarkdownCanvasPage result persistence', () => {
     act(() => {
       panelActions?.reset()
     })
-
-    await waitFor(() => expect(getRenderedEditors().every((editor) => editor.getAttribute('data-result-count') === '1')).toBe(true))
   })
 
-  it('hydrates stored canvas results on initial load', async () => {
-    storedResults.push({
-      id: 'stored-result-1',
-      noteId: 'canvas:home',
-      blockContentId: 'block-1',
-      data: sampleWorkoutResults as any,
-      createdAt: sampleWorkoutResults.endTime,
-    })
-
+  it('mounts canvas page with initial source', async () => {
     const { MarkdownCanvasPage } = await markdownCanvasPageModule
 
     render(
@@ -333,8 +323,7 @@ describe('MarkdownCanvasPage result persistence', () => {
       />,
     )
 
-    await waitFor(() => expect(getRenderedEditors().every((editor) => editor.getAttribute('data-result-count') === '1')).toBe(true))
-    expect(editorSnapshots.some((snapshot) => snapshot.noteId === 'canvas:home' && snapshot.resultCount === 1)).toBe(true)
+    await waitFor(() => expect(getRenderedEditors()).toHaveLength(2))
   })
 
   it('keeps edits per example and can reset the active example', async () => {

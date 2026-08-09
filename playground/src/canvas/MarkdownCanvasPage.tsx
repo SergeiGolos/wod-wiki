@@ -137,18 +137,6 @@ export function MarkdownCanvasPage({
   const getBlock = useCallback(() => scriptBlocksRef.current[0] ?? null, [])
   const runtime = useCanvasRuntime({ canvasNoteId, getBlock })
 
-  // Persisted results loading
-  useEffect(() => {
-    let cancelled = false
-    notePersistence.listNotes({ ids: [canvasNoteId], projection: 'history-detail' }).then((entries) => {
-      const results = entries[0]?.extendedResults ?? []
-      if (cancelled) return
-      runtime.setPersistedResults(results.sort((a, b) => b.createdAt - a.createdAt))
-    }).catch(() => {
-      if (!cancelled) runtime.setPersistedResults([])
-    })
-    return () => { cancelled = true }
-  }, [canvasNoteId])
 
   // Reactive state mirror of the first script block so quest validation
   // re-runs on every editor compile. Kept in sync via `onBlocksChange`.
@@ -455,7 +443,6 @@ export function MarkdownCanvasPage({
       activeSectionId={activeSectionId}
       onBlocksChange={handleBlocksChange}
       onViewCreated={setEditorView}
-      persistedResults={runtime.persistedResults}
     />
   )
 

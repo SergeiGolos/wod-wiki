@@ -64,13 +64,6 @@ import { createParser } from "@/parser/parserInstance";
 import type { INotePersistence } from "@/services/persistence";
 import { createFileDropHandler, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
 
-import {
-  wodResultsWidget,
-  updateSectionResults,
-  WOD_RESULT_CLICK_EVENT,
-  noteIdFacet,
-  type WodResultClickDetail,
-} from "@/components/Editor/extensions/whiteboard-results-widget";
 import { OverlayTrack } from "@/components/organisms/editor/OverlayTrack";
 import { useOverlayWidthState } from "@/components/Editor/overlays/useOverlayWidthState";
 import type { OverlaySlotProps } from "@/components/organisms/editor/OverlayTrack";
@@ -119,10 +112,6 @@ export interface NoteEditorProps {
   onBlocksChange?: (blocks: ScriptBlock[]) => void;
   /** Called when user triggers "Add to Plan" on a Whiteboard Script block */
   onAddToPlan?: (block: ScriptBlock) => void;
-  /** Called when user wants to review a specific result (for custom routing/popups) */
-  onOpenReview?: (result: WorkoutResult) => void;
-  /** In-memory results fallback (for non-persistent sessions) */
-  extendedResults?: WorkoutResult[];
   /** Note persistence seam used for result and attachment projections */
   notePersistence?: INotePersistence;
   /** Exposed EditorView ref */
@@ -187,8 +176,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   onCompleteWorkout,
   onBlocksChange,
   onAddToPlan,
-  onOpenReview,
-  extendedResults,
   notePersistence: providedNotePersistence,
   onViewCreated,
   mode = "edit",
@@ -287,72 +274,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
   // Fetch workout results for all workout (time/log) sections and push them into the editor
   // via the results StateEffect so the inline results bar is visible.
-  useEffect(() => {
-    if (!viewRef.current) return;
-    const workoutSections = sections.filter(
-      (s) => s.type === "time" || s.type === "log"
-    );
-    if (workoutSections.length === 0) return;
-
-    for (const section of workoutSections) {
-      // 1. Priority: In-memory results from props (Static/Lesson Mode)
-      if (Array.isArray(extendedResults) && extendedResults.length > 0) {
-        const blockResults = extendedResults.filter(r =>
-          r.blockContentId === section.contentId || r.blockId === section.id
-        )
-        if (blockResults.length > 0) {
-          viewRef.current.dispatch({
-            effects: [updateSectionResults.of({ sectionId: section.id, results: blockResults })],
-          });
-          continue;
-        }
-      }
-
-      // 2. Fallback: Persistent storage (History/App Mode)
-      notePersistence
-        .getNote(noteId ?? "", {
-          projection: "history-detail",
-          resultSelection: {
-            mode: "all-for-section",
-            blockContentId: section.contentId!,
-          },
-        })
-        .then((entry) => {
-          const view = viewRef.current;
-          if (!view || !view.dom.isConnected) return;
-          const sorted = (entry.extendedResults ?? []).sort((a, b) => b.createdAt - a.createdAt);
-          view.dispatch({
-            effects: [
-              updateSectionResults.of({ sectionId: section.id, results: sorted }),
-            ],
-          });
-        })
-        .catch(() => {
-          // IndexedDB unavailable (e.g. Storybook) – silently ignore
-        });
-    }
-  }, [noteId, sections, extendedResults, notePersistence]);
-
-  // Listen for "Full Review" clicks fired by the inline results panel and
-  // open the full-screen review overlay if the result has detailed logs.
-  useEffect(() => {
-    const el = editorRef.current;
-    if (!el) return;
-
-    const handleResultClick = (e: Event) => {
-      const { result } = (e as CustomEvent<WodResultClickDetail>).detail;
-      
-      // If parent provided an onOpenReview handler, use it first
-      if (onOpenReview) {
-        onOpenReview(result);
-      }
-      // No default overlay (#945): results live in the inline query:table —
-      // the remaining widget chrome is retired with the results widget itself.
-    };
-
-    el.addEventListener(WOD_RESULT_CLICK_EVENT, handleResultClick);
-    return () => el.removeEventListener(WOD_RESULT_CLICK_EVENT, handleResultClick);
-  }, [onOpenReview]);
 
   // Build effective command list: use explicit commands if provided, otherwise
   // synthesize from legacy onStartWorkout / onAddToPlan for backward compat.
@@ -518,11 +439,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Line IDs for external navigation (IntersectionObserver, scroll)
       lineIdsExtension,
 
-      // Results bar widgets — shown after each workout block's closing fence
-      ...wodResultsWidget,
-
-      // Note identity for the results widget (cross-note lookup exclusion)
-      noteIdFacet.of(noteId),
 
       // Full-row widget block replacements (```widget:<name>``` sections)
       ...(widgetComponents && widgetComponents.size > 0

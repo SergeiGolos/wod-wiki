@@ -8,7 +8,6 @@ import type { EditorView } from '@codemirror/view'
 import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import type { ScriptBlock } from '@/components/Editor/types'
-import type { WorkoutResult } from '@/types/storage'
 
 export interface CanvasPanelContentProps {
   // Editor slice
@@ -26,8 +25,6 @@ export interface CanvasPanelContentProps {
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onViewCreated: (view: EditorView | null) => void
 
-  // Editor persistence
-  persistedResults: WorkoutResult[]
 
 }
 
@@ -43,7 +40,6 @@ export function CanvasPanelContent({
   activeSectionId,
   onBlocksChange,
   onViewCreated,
-  persistedResults,
 }: CanvasPanelContentProps) {
   const isEditorDirty = editorSource !== activeOriginalSource
   return (
@@ -73,7 +69,6 @@ export function CanvasPanelContent({
           showLineNumbers={false}
           enableOverlay={false}
           enableInlineRuntime={false}
-          extendedResults={persistedResults}
           commands={commands}
           hideDefaultCommands={false}
           className="h-full"

@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { v7 as uuidv7 } from 'uuid'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
-import type { WorkoutResult } from '@/types/storage'
 import { playgroundRecorder } from '../services/resultRecorder'
 import type { RunButtonState } from '../components/molecules/SectionButtons'
 
@@ -15,8 +14,6 @@ export interface UseCanvasRuntimeOptions {
 }
 
 export interface UseCanvasRuntimeReturn {
-  persistedResults: WorkoutResult[]
-  setPersistedResults: React.Dispatch<React.SetStateAction<WorkoutResult[]>>
   fullscreen: FullscreenState
   setFullscreen: (state: FullscreenState) => void
   /** Results of the last completed workout on this page (#945 quest signal). */
@@ -29,7 +26,6 @@ export function useCanvasRuntime({
   canvasNoteId,
   getBlock,
 }: UseCanvasRuntimeOptions): UseCanvasRuntimeReturn {
-  const [persistedResults, setPersistedResults] = useState<WorkoutResult[]>([])
   const [fullscreen, setFullscreen] = useState<FullscreenState>(null)
   const [completedResults, setCompletedResults] = useState<WorkoutResults | null>(null)
 
@@ -45,10 +41,6 @@ export function useCanvasRuntime({
       data: results,
       createdAt: results.endTime || Date.now(),
     }
-    setPersistedResults((previous) => {
-      const deduped = previous.filter((result) => result.id !== optimisticNextResult.id)
-      return [optimisticNextResult, ...deduped].sort((a, b) => b.createdAt - a.createdAt)
-    })
     playgroundRecorder.record({
       runBlock: block,
       blockId,
@@ -74,8 +66,6 @@ export function useCanvasRuntime({
   }
 
   return {
-    persistedResults,
-    setPersistedResults,
     fullscreen,
     setFullscreen,
     completedResults,

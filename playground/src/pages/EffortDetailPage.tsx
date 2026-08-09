@@ -354,7 +354,6 @@ export function EffortDetailPage() {
               mode="edit"
               commands={commands}
               onBlocksChange={setScriptBlocks}
-              extendedResults={results}
             />
           </div>
         }
