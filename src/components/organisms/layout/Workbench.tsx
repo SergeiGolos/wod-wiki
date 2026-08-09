@@ -299,9 +299,9 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     return () => { cleanup(); };
   }, [documentItems, setHighlightedLine]);
 
-  const handleCompleteWorkout = useCallback((blockId: string, results: WorkoutResults | undefined) => {
+  const handleCompleteWorkout = useCallback((blockId: string, results: WorkoutResults | undefined, resultId?: string) => {
     if (results) {
-      void completeWorkout(results);
+      void completeWorkout(results, resultId);
     }
     void blockId;
   }, [completeWorkout]);

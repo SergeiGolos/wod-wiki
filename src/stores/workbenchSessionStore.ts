@@ -205,7 +205,7 @@ export interface WorkbenchSessionActions {
    * generated resultId so callers can navigate synchronously before the
    * persistence promise resolves.
    */
-  completeWorkout: (result: WorkoutResults) => Promise<string>;
+  completeWorkout: (result: WorkoutResults, explicitResultId?: string) => Promise<string>;
   /** Patch the loaded entry's `results` slice (used by route-result loading). */
   patchCurrentEntryResults: (results: WorkoutResults) => void;
   /**
@@ -652,9 +652,9 @@ export function createWorkbenchSessionStore(
        * before the persistence promise resolves. (#946 removed the goToReview
        * intent — the explorer with a rows query is the review now.)
        */
-      completeWorkout: async (result) => {
+      completeWorkout: async (result, explicitResultId) => {
         const { v7: uuidv7 } = await import('uuid');
-        const resultId = uuidv7();
+        const resultId = explicitResultId ?? uuidv7();
         const state = get();
         const { content, selectedBlock, selectedBlockId, currentEntry } = state;
 

@@ -51,7 +51,7 @@ export interface UseWorkbenchSessionLifecycleDeps {
   selectedBlock: ScriptBlock | null;
   /** Workspace-level completion callback; the adapter forwards it to
    * `useWorkbenchRuntime` which calls it on auto-stop. */
-  completeWorkout: (results: WorkoutResults) => void;
+  completeWorkout: (results: WorkoutResults, resultId?: string) => void;
   /** Workspace-level start callback; the adapter forwards it. */
   startWorkout: (block: ScriptBlock) => void;
 }
