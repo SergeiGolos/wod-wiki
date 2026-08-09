@@ -50,6 +50,10 @@ export type ClauseType =
   | 'groupby'
   | 'rollup'
   | 'unit'
+  | 'result'
+  | 'block'
+  | 'note'
+  | 'output'
 
 export interface QueryClause {
   id: string
@@ -84,6 +88,7 @@ export const SOURCE_OPTIONS = [
   { value: 'blocks', label: 'Blocks', description: 'Find fenced workout/dashboard regions' },
   { value: 'efforts', label: 'Efforts', description: 'Find registered efforts (bundled + custom)' },
   { value: 'metrics', label: 'Metrics', description: 'Aggregate analytics facts' },
+  { value: 'rows', label: 'Sessions (rows)', description: 'Raw workout logs as per-round rows (#949)' },
 ]
 
 export const TIME_OPTIONS = [
@@ -146,6 +151,10 @@ export const CLAUSE_META: Record<ClauseType, ClauseMeta> = {
   groupby:   { label: 'Group By',   inputType: 'select',   placeholder: 'week, effort…',              placeholderText: 'by: [dim]',               icon: '🗂', description: 'Group results by dimension' },
   rollup:    { label: 'Rollup',     inputType: 'select',   placeholder: '1d or 1w',                   placeholderText: 'rollup: [1d|1w]',         icon: '🗓', description: 'Bucket period for rollups' },
   unit:      { label: 'Unit',       inputType: 'select',   placeholder: 'kg, lb, km…',                placeholderText: 'in: [unit]',              icon: '📏', description: 'Display unit directive' },
+  result:    { label: 'Session',    inputType: 'freetext', placeholder: 'result id…',                  placeholderText: 'result: [id]',            icon: '🏁', description: 'Scope to one workout session', prefix: 'result:' },
+  block:     { label: 'Block',      inputType: 'freetext', placeholder: 'block content id…',           placeholderText: 'block: [contentId]',      icon: '🧱', description: 'Scope to all versions of a block', prefix: 'block:' },
+  note:      { label: 'Note',       inputType: 'freetext', placeholder: 'note id…',                    placeholderText: 'note: [id]',              icon: '📓', description: 'Scope to one note', prefix: 'note:' },
+  output:    { label: 'Output Type',inputType: 'select',   placeholder: 'segment, milestone…',          placeholderText: 'rows:[type]',             icon: '📋', description: 'Output-statement type for rows queries' },
 }
 
 const CUSTOM_FALLBACK_ICON = '\u{1F9E9}'
@@ -203,6 +212,9 @@ export function clauseToWql(clause: QueryClause): { key?: string; filterStr?: st
     case 'origin':     return { filterStr: `origin:${val}` }
     case 'type':       return { filterStr: `type:${val}` }
     case 'has':       return { filterStr: `has:${val}` }
+    case 'result':    return { filterStr: `result:${val}` }
+    case 'block':     return { filterStr: `block:${val}` }
+    case 'note':      return { filterStr: `note:${val}` }
     default: {
       // Custom slot types compile through their registered wqlGenerator.
       const def = composerRegistry.getSlot(clause.type)
@@ -239,6 +251,21 @@ export function clausesToWql(clauses: QueryClause[]): string {
   const filterBraces = filterParts.length > 0 ? `{${filterParts.join(', ')}}` : ''
 
   const source = clauseValue(clauses, 'source', 'notes')
+
+  if (source === 'rows') {
+    // Rows plane (#949): rows[:<outputType>]{<filters>} [last <n><unit>]
+    const output = clauseValue(clauses, 'output', '')
+    const timeClause = clauses.find(c => c.type === 'time')
+    let timeStr = ''
+    if (timeClause && timeClause.value && timeClause.value !== 'all') {
+      const rawVal = timeClause.value.trim()
+      timeStr = rawVal.startsWith('last') ? rawVal : `last ${rawVal}`
+    }
+    return [
+      `rows:${output}${filterBraces}`,
+      timeStr,
+    ].filter(Boolean).join(' ').trim()
+  }
 
   if (source === 'metrics') {
     const agg = clauseValue(clauses, 'agg', 'sum')
@@ -287,7 +314,7 @@ export function clausesToWql(clauses: QueryClause[]): string {
  * new built-in filter clause is declared once (metadata) and compiled once
  * (clauseToWql). Positional head/kind clauses are not `{...}` filters, so
  * they are excluded. */
-const POSITIONAL_CLAUSE_TYPES = new Set(['source', 'time', 'where', 'agg', 'metric', 'groupby', 'rollup', 'unit'])
+const POSITIONAL_CLAUSE_TYPES = new Set(['source', 'time', 'where', 'agg', 'metric', 'groupby', 'rollup', 'unit', 'output'])
 const FILTER_KEY_TO_CLAUSE_TYPE: Record<string, ClauseType> = Object.fromEntries(
   (Object.entries(CLAUSE_META) as [ClauseType, ClauseMeta][])
     .filter(([type]) => !POSITIONAL_CLAUSE_TYPES.has(type))
@@ -393,6 +420,23 @@ function restoreFilters(rest: string): QueryClause[] | null {
 export function wqlToClauses(wql: string): QueryClause[] | null {
   const suffixes = parseWqlSuffixes(wql.trim())
   const { where, displayUnit, groupBy, rollup, last, scope, primaryText } = suffixes
+
+  // Rows plane (#949): rows[:<outputType>]{<filters>} [last <n><unit>] —
+  // restore onto the dedicated rows source so the round-trip is lossless.
+  const rowsMatch = /^rows(?:\:([a-zA-Z0-9_-]+))?\:?/.exec(primaryText)
+  if (rowsMatch) {
+    if (where || groupBy || rollup) return null
+    const rest = primaryText.slice(rowsMatch[0].length).trim()
+    const filterClauses = restoreFilters(rest)
+    if (!filterClauses) return null
+    const clauses: QueryClause[] = [
+      restoreClause('c-source', 'source', 'rows'),
+      restoreClause('c-time', 'time', last ? `last ${last.size}${last.unit}` : 'all'),
+      ...(rowsMatch[1] ? [restoreClause('c-output', 'output', rowsMatch[1])] : []),
+      ...filterClauses,
+    ]
+    return clauses
+  }
 
   if (primaryText.startsWith('find:')) {
     const headMatch = RESTORE_FIND_HEAD_RE.exec(primaryText)

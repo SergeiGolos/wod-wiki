@@ -11,10 +11,13 @@ import { Edit3 } from 'lucide-react';
 import {
   parseQuery,
   isFindQuery,
+  isRowsQuery,
   queryService,
   type QueryResult,
   type FindQueryResult,
+  type RowsQueryResult,
 } from '@/services/analytics/query';
+import { RowsTable } from '@/components/molecules/analytics/RowsTable';
 import { useChartShape } from '@/components/molecules/analytics/useChartShape';
 import { QueryValue } from '@/components/molecules/analytics/QueryValue';
 import { WqlTimeseries } from '@/components/molecules/analytics/WqlTimeseries';
@@ -70,6 +73,7 @@ export function QueryBlockView({
     widgetType != null && widgetType !== '' && !isDashboardWidgetType(widgetType);
   const [result, setResult] = useState<QueryResult | undefined>(undefined);
   const [findResult, setFindResult] = useState<FindQueryResult | undefined>(undefined);
+  const [rowsResult, setRowsResult] = useState<RowsQueryResult | undefined>(undefined);
   const [runError, setRunError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -77,6 +81,7 @@ export function QueryBlockView({
     setRunError(undefined);
     setResult(undefined);
     setFindResult(undefined);
+    setRowsResult(undefined);
 
     if (parsed.error) return;
     if (widgetError || unknownType || missing.length > 0) return;
@@ -86,6 +91,15 @@ export function QueryBlockView({
         .runFind(parsed)
         .then((res) => {
           if (!cancelled) setFindResult(res);
+        })
+        .catch((err) => {
+          if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
+        });
+    } else if (isRowsQuery(parsed)) {
+      void queryService
+        .runRows(parsed)
+        .then((res) => {
+          if (!cancelled) setRowsResult(res);
         })
         .catch((err) => {
           if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
@@ -157,6 +171,29 @@ export function QueryBlockView({
     return (
       <QueryBlockShell onEdit={onSaveQuery ? handleEditClick : undefined} readOnly={readOnly}>
         <p className="text-sm text-destructive font-mono px-1 py-2">{runError}</p>
+        {onSaveQuery && (
+          <WqlQueryInspectorModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            initialQuery={effectiveQuery}
+            onApply={handleApplyQuery}
+          />
+        )}
+      </QueryBlockShell>
+    );
+  }
+
+  // ── Rows query → per-run pivoted grid (rows:{…}, #949) ──
+  if (isRowsQuery(parsed)) {
+    return (
+      <QueryBlockShell onEdit={onSaveQuery ? handleEditClick : undefined} readOnly={readOnly}>
+        {rowsResult?.error ? (
+          <p className="text-sm text-destructive font-mono px-1 py-2">{rowsResult.error}</p>
+        ) : rowsResult ? (
+          <RowsTable result={rowsResult} />
+        ) : (
+          <p className="text-xs text-muted-foreground italic px-1 py-2">Loading rows…</p>
+        )}
         {onSaveQuery && (
           <WqlQueryInspectorModal
             isOpen={isModalOpen}

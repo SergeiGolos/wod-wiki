@@ -98,7 +98,7 @@ function makeService() {
     // BlockQueryStore
     { getAllBlocks: async () => BLOCKS },
     // ResultLogStore — the raw WorkoutResult logs (the join source).
-    { getResultsByContentId: async (cid: string) => RESULTS[cid] ?? [] },
+    { getResultsByContentId: async (cid: string) => RESULTS[cid] ?? [], getResultById: async () => undefined, getResultsForNote: async () => [] },
   );
 }
 

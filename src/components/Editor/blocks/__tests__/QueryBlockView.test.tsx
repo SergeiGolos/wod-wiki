@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it, mock } from 'bun:test';
  * queryService.runQuery / runFind are stubbed — same seam as the Explorer tests.
  */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { parseQuery, isFindQuery, type QueryResult, type FindQueryResult, type ParsedQuery } from '@/services/analytics/query';
+import { parseQuery, isFindQuery, isRowsQuery, type QueryResult, type FindQueryResult, type ParsedQuery, type RowsQueryResult, type ParsedRowsQuery } from '@/services/analytics/query';
 
 const runQuery = mock(async (_raw: string): Promise<QueryResult> => scalarResult('sum:totalVolume{}'));
 const runFind = mock(async (parsed: ParsedQuery): Promise<FindQueryResult> => ({
@@ -18,11 +18,20 @@ const runFind = mock(async (parsed: ParsedQuery): Promise<FindQueryResult> => ({
   blocks: [],
   stages: { selected: 1, matched: 1 },
 }));
+const runRows = mock(async (parsed: ParsedRowsQuery): Promise<RowsQueryResult> => ({
+  parsed,
+  runs: [{ result: { id: 'rA' } as never, logs: [] }],
+}));
 
 mock.module('@/services/analytics/query', () => ({
   parseQuery,
   isFindQuery,
-  queryService: { runQuery, runFind },
+  isRowsQuery,
+  queryService: { runQuery, runFind, runRows },
+}));
+
+mock.module('@/components/molecules/analytics/RowsTable', () => ({
+  RowsTable: ({ result }: { result: RowsQueryResult }) => <div data-testid="rows-table">{result.runs.length} runs</div>,
 }));
 
 import { QueryBlockView } from '../QueryBlockView';
@@ -36,7 +45,7 @@ function scalarResult(raw: string): QueryResult {
   };
 }
 
-afterEach(() => { cleanup(); runQuery.mockClear(); runFind.mockClear(); });
+afterEach(() => { cleanup(); runQuery.mockClear(); runFind.mockClear(); runRows.mockClear(); });
 
 describe('QueryBlockView', () => {
   it('renders an analytics query as a chart (scalar)', async () => {
@@ -123,5 +132,13 @@ describe('QueryBlockView', () => {
     render(<QueryBlockView query="max:calc.e1rm{} / $goal" tokenValues={{ goal: '240' }} />);
     await waitFor(() => expect(runQuery).toHaveBeenCalledTimes(1));
     expect(runQuery).toHaveBeenCalledWith('max:calc.e1rm{}');
+  });
+
+  it('renders a rows query through runRows + RowsTable (#949)', async () => {
+    render(<QueryBlockView query="rows:{result:rA}" />);
+    await waitFor(() => expect(runRows).toHaveBeenCalledTimes(1));
+    expect(runQuery).not.toHaveBeenCalled();
+    expect(runFind).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByTestId('rows-table')).toBeTruthy());
   });
 });

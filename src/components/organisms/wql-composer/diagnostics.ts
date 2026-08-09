@@ -107,8 +107,8 @@ function clauseProbeWql(clause: QueryClause, plane: 'content' | 'metrics'): stri
 
   switch (clause.type) {
     case 'source':
-      // 'metrics'/'notes' map to always-valid skeletons — never the offender.
-      if (value === 'metrics' || value === 'notes') return null
+      // 'metrics'/'notes'/'rows' map to always-valid skeletons — never the offender.
+      if (value === 'metrics' || value === 'notes' || value === 'rows') return null
       if (value === 'blocks') return 'find:block in all'
       if (value === 'efforts') return 'find:effort in all'
       return `find:note in ${value}`

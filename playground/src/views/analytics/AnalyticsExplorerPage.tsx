@@ -21,7 +21,8 @@
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Play, Save } from 'lucide-react';
-import { parseQuery, isFindQuery, queryService, type QueryResult } from '@/services/analytics/query';
+import { parseQuery, isFindQuery, isRowsQuery, queryService, type QueryResult, type RowsQueryResult } from '@/services/analytics/query';
+import { RowsTable } from '@/components/molecules/analytics/RowsTable';
 import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
 import { searchEntries } from '../../lib/entrySearch';
@@ -146,6 +147,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
     [submitted, preferredUnit],
   );
   const [result, setResult] = useState<QueryResult | undefined>(undefined);
+  const [rowsResult, setRowsResult] = useState<RowsQueryResult | undefined>(undefined);
   const [entries, setEntries] = useState<Entry[] | undefined>(undefined);
   const [records, setRecords] = useState<Entry[] | undefined>(undefined);
   const [efforts, setEfforts] = useState<IEffort[] | undefined>(undefined);
@@ -172,7 +174,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   const recordsWql = useMemo(() => {
     if (!submitted) return null;
     const p = parseQuery(submitted);
-    if (isFindQuery(p) || p.error) return null;
+    if (isFindQuery(p) || isRowsQuery(p) || p.error) return null;
     if (p.join) {
       const jf = p.join;
       return `find:${jf.target}${serializeTagFilters(jf.filters)} in ${jf.scope ?? 'all'}${jf.last ? ` last ${jf.last.size}${jf.last.unit}` : ''}`;
@@ -208,6 +210,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
 
     if (!submitted) {
       setResult(undefined);
+      setRowsResult(undefined);
       setEntries(undefined);
       setEfforts(undefined);
       setLoading(false);
@@ -220,6 +223,8 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
     if (isFindQuery(parsed)) {
       // Content query — the shared WQL → Entry[] pipeline (same rows as the
       // Library, #833); effort targets come from the engine's effort plane.
+      setRowsResult(undefined);
+      setResult(undefined);
       if (parsed.target === 'effort') {
         queryService.runFind(parsed)
           .then((r) => { if (!cancelled) { setEfforts(r.efforts ?? []); setEntries([]); } })
@@ -231,8 +236,18 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
           .catch(() => { if (!cancelled) { setEntries(undefined); setEfforts(undefined); } })
           .finally(() => { if (!cancelled) setLoading(false); });
       }
+    } else if (isRowsQuery(parsed)) {
+      // Rows query (rows:{…}, #949) — per-run logs grid re-derived from logs.
+      setResult(undefined);
+      setEntries(undefined);
+      setEfforts(undefined);
+      queryService.runRows(parsed)
+        .then((r) => { if (!cancelled) setRowsResult(r); })
+        .catch(() => { if (!cancelled) setRowsResult(undefined); })
+        .finally(() => { if (!cancelled) setLoading(false); });
     } else {
       // Analytics query — existing chart pipeline
+      setRowsResult(undefined);
       setEntries(undefined);
       setEfforts(undefined);
       const now = Date.now();
@@ -441,6 +456,27 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
                   <GroupedEntryList entries={entries} stickyOffset={stickyOffset} />
                 ) : (
                   <div className="text-sm text-muted-foreground">No {liveParsed.target}s found.</div>
+                )}
+              </div>
+            </div>
+          ) : isRowsQuery(liveParsed) ? (
+            /* ── Rows query result: per-run logs grid (rows:{…}, #949) ── */
+            <div className="mt-3">
+              <div className="bg-card border border-border rounded-lg p-4">
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+                  Rows{liveParsed.outputType ? `:${liveParsed.outputType}` : ''}
+                  {liveParsed.last && <span className="ml-1">last {liveParsed.last.size}{liveParsed.last.unit}</span>}
+                </div>
+                {liveParsed.error ? (
+                  <div className="text-sm text-destructive font-mono">{liveParsed.error}</div>
+                ) : loading ? (
+                  <div className="text-sm text-muted-foreground">Loading rows…</div>
+                ) : rowsResult?.error ? (
+                  <div className="text-sm text-destructive font-mono">{rowsResult.error}</div>
+                ) : rowsResult ? (
+                  <RowsTable result={rowsResult} />
+                ) : (
+                  <div className="text-sm text-muted-foreground">No workout logs matched.</div>
                 )}
               </div>
             </div>

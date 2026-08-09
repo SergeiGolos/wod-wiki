@@ -17,7 +17,7 @@
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
-import { isFindQuery } from '@/services/analytics/query/wql'
+import { isFindQuery, isRowsQuery } from '@/services/analytics/query/wql'
 import { summarizeAggregate, summarizeFind, type WqlDiagnostics } from './diagnostics'
 import type { WqlStageCounts } from './useWqlStageCounts'
 
@@ -51,7 +51,7 @@ export function WqlDiagnosticsStrip({
 }: WqlDiagnosticsStripProps) {
   const { valid, error, ast } = diagnostics
   const findSummary = valid && isFindQuery(ast) ? summarizeFind(ast) : undefined
-  const aggSummary = valid && !isFindQuery(ast) ? summarizeAggregate(ast) : undefined
+  const aggSummary = valid && !isFindQuery(ast) && !isRowsQuery(ast) ? summarizeAggregate(ast) : undefined
 
   return (
     <div

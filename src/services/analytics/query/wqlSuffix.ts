@@ -88,9 +88,12 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
   let scope: string | undefined;
 
   const isFind = text.startsWith('find:');
+  const isRows = /^rows(?=[:{]|\s|$)/.test(text);
 
-  if (isFind) {
-    // Content find queries strip `last <n><unit>` then `in <scope>`
+  if (isFind || isRows) {
+    // Content find queries strip `last <n><unit>` then `in <scope>`;
+    // rows queries (#949) strip `last` plus the aggregation suffixes
+    // (surfaced as loud errors downstream — rows never aggregates).
     const lastMatch = LAST_RE.exec(text);
     if (lastMatch) {
       last = {
@@ -101,10 +104,24 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
       text = text.slice(0, lastMatch.index).trim();
     }
 
-    const scopeMatch = IN_SCOPE_RE.exec(text);
-    if (scopeMatch) {
-      scope = scopeMatch[1];
-      text = text.slice(0, scopeMatch.index).trim();
+    if (isFind) {
+      const scopeMatch = IN_SCOPE_RE.exec(text);
+      if (scopeMatch) {
+        scope = scopeMatch[1];
+        text = text.slice(0, scopeMatch.index).trim();
+      }
+    } else {
+      const rollupMatch = ROLLUP_RE.exec(text);
+      if (rollupMatch) {
+        const rawRollup = rollupMatch[1] + rollupMatch[2];
+        rollup = { size: rollupMatch[1] ? parseInt(rollupMatch[1], 10) : 1, unit: rollupMatch[2] || '', raw: rawRollup };
+        text = text.slice(0, rollupMatch.index).trim();
+      }
+      const byMatch = BY_RE.exec(text);
+      if (byMatch) {
+        groupBy = byMatch[1].split(',').map((d) => d.trim()).filter(Boolean);
+        text = text.slice(0, byMatch.index).trim();
+      }
     }
   } else {
     // Analytics queries strip `in <unit>`, `.rollup(<period>)`, `by {<dims>}`
