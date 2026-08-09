@@ -97,34 +97,22 @@ type TestSlice = {
   ring: { key: string; tag?: string } | null
 }
 
-function makeSlice(index: 0 | 1): TestSlice {
-  return index === 0
-    ? {
-        index: 0,
-        stage: {
-          id: 'timer-wallclock',
-          screen: 'timer',
-          accent: 'hsl(var(--metric-effort))',
-          label: 'What Happens When It Runs',
-        },
-        t: 0,
-        ring: { key: 'timer.floor', tag: 'WallClock' },
-      }
-    : {
-        index: 1,
-        stage: {
-          id: 'analytics',
-          screen: 'analytics',
-          accent: 'hsl(var(--metric-rounds))',
-          label: 'Explore Your Data',
-        },
-        t: 0,
-        ring: { key: 'analytics.scorecard' },
-      }
+function makeSlice(): TestSlice {
+  return {
+    index: 0,
+    stage: {
+      id: 'timer-wallclock',
+      screen: 'timer',
+      accent: 'hsl(var(--metric-effort))',
+      label: 'What Happens When It Runs',
+    },
+    t: 0,
+    ring: { key: 'timer.floor', tag: 'WallClock' },
+  }
 }
 
 const store: { slice: TestSlice; runwayReached: boolean; isMobile: boolean; listeners: Set<() => void> } = {
-  slice: makeSlice(0),
+  slice: makeSlice(),
   runwayReached: false,
   isMobile: false,
   listeners: new Set(),
@@ -132,11 +120,6 @@ const store: { slice: TestSlice; runwayReached: boolean; isMobile: boolean; list
 
 function setTestRunwayReached(reached: boolean) {
   store.runwayReached = reached
-  store.listeners.forEach((cb) => cb())
-}
-
-function setTestTourStage(index: 0 | 1) {
-  store.slice = makeSlice(index)
   store.listeners.forEach((cb) => cb())
 }
 
@@ -199,7 +182,7 @@ function renderHomeTour() {
 
 beforeEach(() => {
   window.localStorage.clear()
-  store.slice = makeSlice(0)
+  store.slice = makeSlice()
   store.runwayReached = false
   store.isMobile = false
 
@@ -257,20 +240,5 @@ describe('HomeTour stage counter derivation', () => {
     expect(progress['qs-arrive']).toBe(true)
     expect(progress['qs-tour-timer']).toBeUndefined()
     expect(progress['qs-tour-analytics']).toBeUndefined()
-  })
-
-  it('advances to analytics when the stage changes after the runway is reached', () => {
-    store.runwayReached = true
-    renderHomeTour()
-
-    expect(readHomeProgress()['qs-tour-timer']).toBe(true)
-
-    act(() => {
-      setTestTourStage(1)
-    })
-
-    const progress = readHomeProgress()
-    expect(progress['qs-tour-timer']).toBe(true)
-    expect(progress['qs-tour-analytics']).toBe(true)
   })
 })

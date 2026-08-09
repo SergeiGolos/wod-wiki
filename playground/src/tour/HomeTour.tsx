@@ -63,6 +63,7 @@ import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { CelebrationBridge } from './CelebrationBridge'
 import { ChapterScrollTour } from './ChapterScrollTour'
+import { HomeAnalyticsSection } from './HomeAnalyticsSection'
 import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
@@ -90,7 +91,6 @@ const HOME_DEMO_SOURCE = 'wods/examples/home/welcome-1.md'
 /** Home quest id → the tour stage that demonstrates it. */
 const HOME_QUEST_STAGE: Record<string, TourStageId> = {
   'qs-tour-timer': 'timer-wallclock',
-  'qs-tour-analytics': 'analytics-scorecard',
   'qs-edit': 'timer-wallclock',
   'qs-run': 'timer-wallclock',
 }
@@ -134,6 +134,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
   const navigate = useNavigate()
 
   const runwayRef = useRef<HTMLElement | null>(null)
+  const analyticsSectionRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLDivElement | null>(null)
   const canvasInnerRef = useRef<HTMLDivElement | null>(null)
   const tvCardRef = useRef<HTMLDivElement | null>(null)
@@ -388,6 +389,25 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
     markStageViewed(mobileStage.id)
   }, [isMobile, interactive, mobileStage, markStageViewed])
 
+  // The analytics story is now the WQL-elements showcase section (#938), not a
+  // runway stage — completing its quest fires when the showcase scrolls into
+  // view, on any form factor (it is one static section, no scroll driver).
+  useEffect(() => {
+    const el = analyticsSectionRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          markStageViewed('analytics')
+          io.disconnect()
+        }
+      },
+      { rootMargin: '-30% 0px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [markStageViewed])
+
   // The qs-tour-timer interaction quest validates on a *visitor-initiated* run.
   // Driven from the Run click (startRun), not the runtime 'running' status: the
   // ambient scroll demo intentionally auto-runs, and must never validate the
@@ -407,6 +427,12 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
   useRunStartedChallenge({ pageRoute: '/', quests: tourRunQuests, running: demoRunning })
 
   const handleHomeQuestClick = useCallback((questId: string) => {
+    // The analytics story is now the WQL-elements showcase section (#938), not
+    // a runway stage — scroll straight to it.
+    if (questId === 'qs-tour-analytics') {
+      analyticsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
     const stageId = HOME_QUEST_STAGE[questId]
     if (!stageId) return
     if (mobileRunwayApiRef.current) {
@@ -607,19 +633,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
 
       if (!wasPlaygroundRun) {
         // Scroll-mode completion (#885): clicking Next through to the end of
-        // the run auto-slides to the analytics cards. Guarded to the timer
-        // cards — the ambient analytics drain also completes the runtime, and
-        // the visitor is already on the analytics cards then.
+        // the run carries the visitor to the WQL analytics showcase (#938) —
+        // the session-review runway cards it used to auto-slide to are gone.
         if (results.completed) {
-          if (isMobileRef.current) {
-            if (mobileStageRef.current?.screen === 'timer') {
-              mobileRunwayApiRef.current?.scrollToStage('analytics-scorecard')
-            }
-          } else if (stageScreenRef.current === 'timer') {
-            const el = runwayRef.current
-            const stage = TOUR_STAGES.find((s) => s.id === 'analytics-scorecard')
-            if (el && stage) scrollRunwayTo(el, Math.min(stage.start + 0.02, stage.end - 0.005))
-          }
+          analyticsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
         }
         return
       }
@@ -772,7 +789,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
 
       const toast = toastRef.current
       if (toast) {
-        if (s.stage.id === 'analytics-scorecard') {
+        if (s.index === TOUR_STAGES.length - 1) {
           const tIn = clamp01((s.t - 0.04) / 0.2)
           const tOut = clamp01((s.t - 0.7) / 0.2)
           toast.style.opacity = String(Math.max(0, tIn - tOut))
@@ -851,8 +868,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
             onRuntimeReady: handleRuntimeReady,
             onReset: handleTimerReset,
           }}
-          analyticsSegments={analyticsSegments}
-          analyticsTitle={analyticsTitle}
           heroRef={heroRef}
           apiRef={mobileRunwayApiRef}
         />
@@ -956,14 +971,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
                         />
                       </Screen>
                     )}
-                    {interactive === null && entered.analytics && (
-                      <Screen visible={activeScreen === 'analytics'}>
-                        <TourAnalyticsScreen
-                          segments={analyticsSegments}
-                          title={analyticsTitle}
-                        />
-                      </Screen>
-                    )}
 
                     {/* stop toast mirrors the ambient scroll-mode runtime finishing. */}
                     <div
@@ -992,6 +999,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
           </div>
         </div>
       </section>
+
+      {/* WQL-elements analytics showcase (#938) — replaces the runway's
+          single-workout session-review stages with the query vocabulary and
+          the presentations it drives. */}
+      <div ref={analyticsSectionRef}>
+        <HomeAnalyticsSection />
+      </div>
 
       <CelebrationBridge chapters={chapters} />
 

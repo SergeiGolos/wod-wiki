@@ -339,6 +339,76 @@ source, so results for the same workout aggregate across notes by content id.
 - A block cloned from a **Collection** shares its **Block Content Id** with the
   source, so results for the same workout aggregate across notes by content id.
 
+### Canvas & scroll
+
+**Page Block**:
+The atomic, positional unit of a canvas page — one typed element in the ordered
+block stream a `template: canvas` markdown document parses into. Kinds: **Demo
+Runway**, **Working-Editor Panel**, and the flowed **Content Sections** (prose,
+chapters, analytics, buttons, hero). Multiple scroll modules interleave with
+content in document order; a runway can sit *between* content sections.
+_Avoid_: section (overloaded), widget, region.
+
+**Page Composer**:
+The single module that owns a canvas page's ordered **Page Block** stream and
+renders it: it walks the stream, dispatches each block by kind to a **Form
+Factor**-aware renderer, and owns the page-level runtime (fullscreen
+timer/review, the run action). The thin route hosts (`HomeView`,
+`ScrollCanvasPage`, `MarkdownCanvasPage`) only feed it a parsed page.
+_Avoid_: page component, layout, template.
+
+**Demo Runway**:
+A sticky **Page Block** that renders a parsed `ScrollSpec` as a scripted stage
+demo (typewriter, cross-fade captions, ring). Its presentation swaps by **Form
+Factor** — desktop slide runway, mobile pinned window, reduced-motion flat
+stack — via the **Runway Adapter**; the pinned-window/cards look is a
+presentation, not a separate block kind.
+_Avoid_: scroll section, runway block, tour stage list.
+
+**Runway Adapter**:
+The **Form Factor**-aware renderer of a **Demo Runway** — the sticky-demo seam.
+The **Page Composer** hands it `{ spec, formFactor, callbacks }`; its
+per-form-factor internals (slide / pinned / flat) are owned by the adapter
+effort, not the composer.
+_Avoid_: scroll section, runway component.
+
+**Working-Editor Panel**:
+A sticky **Page Block** hosting a live editor (edit + run) — side-pane beside
+flowing prose on desktop, stacked on mobile. Distinct from a **Demo Runway**,
+which is scripted, not edited.
+_Avoid_: editor panel, canvas panel, split pane.
+
+**Content Section**:
+A flowed (non-sticky) **Page Block**: prose, chapters, analytics, buttons, hero.
+Renders inline in document order between sticky blocks.
+_Avoid_: prose chunk (the sub-block unit), section (overloaded).
+
+**Form Factor**:
+The presentation context the **Page Composer** derives once (`desktop` |
+`mobile` | `reduced`, from breakpoint + `prefers-reduced-motion`) and provides
+to every block; each block renderer is form-factor-aware.
+_Avoid_: breakpoint, viewport mode, device.
+
+**Stage Slice**:
+The resolved output of the **Stage-Resolution seam**: `{ index, stage, t, ring }`
+— the active stage, the local progress within it (`t`, 0..1), and the ring
+target. `t` is continuous on desktop (scroll-scrubbed) and discrete on mobile.
+_Avoid_: stage state, slice state.
+
+**Stage Resolver**:
+The pure `(progress, stages) → Stage Slice` function (`resolveScrollStage`)
+behind the seam — range-clamping, unit-testable. The one resolver; the TS
+`resolveStage` folded into it when the tour migrated onto `ScrollSpec`.
+_Avoid_: stage machine (that's the seam + drivers), resolveStage (legacy TS).
+
+**Scroll Driver**:
+A **Form Factor** adapter that produces the active **Stage Slice** and feeds
+scrubbed visuals (typewriter, ring, toasts) via React-state + per-frame
+subscribe. Two drivers behind the one seam: the desktop scroll-progress driver
+(window-scroll over the runway) and the mobile card-visibility driver
+(IntersectionObserver over the reading zone).
+_Avoid_: scroll hook, scroll spy (that's reading-zone geometry).
+
 ## Example dialogue
 
 - A **Dialect** imports a **Unit** set from the **Unit Registry** and **Fusion**

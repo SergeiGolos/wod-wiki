@@ -89,17 +89,18 @@ export function ScrollSection({
         </h2>
       )}
 
-      {/* Mobile: flat stack (editor block above grouped slides). Desktop: side-sticky 2/3 : 1/3. */}
+      {/* Mobile: top-sticky window pins while quest cards scroll below, releases after the last card. Desktop: side-sticky 2/3 : 1/3. */}
       <div className="lg:flex lg:items-start lg:gap-6">
-        {/* Editor window — flat on mobile (sized to fit, internal scroll), side-sticky on desktop */}
+        {/* Editor window — top-sticky on mobile (content-height, no dead whitespace), side-sticky on desktop */}
         <div
           data-testid="scroll-section-sticky-window"
           className={cn(
             'overflow-hidden rounded-2xl border border-border bg-background shadow-2xl',
-            // Mobile: flat block sized to the longest chapter example
-            // (dialects/complex, ~244px incl. chrome) — the old 55vh window
-            // left dead whitespace + ghosted rows below short examples.
-            'mb-4 h-[250px]',
+            // Mobile: top-sticky at the mobile header (65px). Content-height
+            // (~250px, the longest chapter example) so short examples leave no
+            // dead whitespace — pins while the quest cards scroll below and
+            // releases after the last card (#923/#924; replaces flat block).
+            'sticky top-[65px] z-20 mb-4 h-[250px]',
             // Desktop: side-sticky, code sample takes 2/3 of the width
             'lg:sticky lg:top-[80px] lg:z-20 lg:mx-0 lg:mb-0 lg:h-auto lg:w-auto lg:flex-[2_1_0%] lg:max-h-[calc(100vh-100px)] lg:p-4',
           )}

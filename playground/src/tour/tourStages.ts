@@ -25,8 +25,6 @@ export type TourStageId =
   | 'timer-wallclock'
   | 'timer-next'
   | 'timer-cast'
-  | 'analytics-scorecard'
-  | 'analytics-grid'
   | 'editor'
   | 'timer'
   | 'analytics'
@@ -143,32 +141,12 @@ export const TOUR_STAGES: TourStage[] = [
   {
     id: 'timer-cast',
     start: 0.68,
-    end: 0.79,
+    end: 1.0,
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
     label: 'Cast to the Big Screen',
     ringA: 'timer.castButton',
     tagA: 'Cast',
-  },
-  {
-    id: 'analytics-scorecard',
-    start: 0.79,
-    end: 0.895,
-    screen: 'analytics',
-    accent: TOUR_ACCENTS.analytics,
-    label: 'Explore Your Data',
-    ringA: 'analytics.scorecard',
-    tagA: 'Scorecard',
-  },
-  {
-    id: 'analytics-grid',
-    start: 0.895,
-    end: 1.0,
-    screen: 'analytics',
-    accent: TOUR_ACCENTS.analytics,
-    label: 'Session Review',
-    ringA: 'analytics.grid',
-    tagA: 'Review Grid',
   },
 ]
 

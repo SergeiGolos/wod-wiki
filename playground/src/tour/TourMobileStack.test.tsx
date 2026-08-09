@@ -94,36 +94,11 @@ describe('TourMobileStack', () => {
     expect(links[0].getAttribute('href')).toBe('/guide/behaviors')
   })
 
-  it('renders exactly one Explorer link and one Dashboard link in the analytics card', async () => {
-    await renderStack()
-
-    const card = screen.getByTestId('tour-analytics-card')
-    expect(card).toBeTruthy()
-
-    const explorerLinks = screen.getAllByRole('link', { name: /Run a pre-filled query/i })
-    expect(explorerLinks.length).toBe(1)
-
-    const dashboardLinks = screen.getAllByRole('link', { name: /Open the dashboard/i })
-    expect(dashboardLinks.length).toBe(1)
-
-    expect(dashboardLinks[0].getAttribute('href')).toBe('/analytics/dashboard')
-  })
-
   it('records the correct telemetry event from the timer card drop-off', async () => {
     await renderStack()
 
     const link = screen.getByRole('link', { name: /Read the behaviors explainer/i })
     link.click()
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.behaviorsOpened)
-  })
-
-  it('records the correct telemetry events from the analytics card drop-offs', async () => {
-    await renderStack()
-
-    screen.getByRole('link', { name: /Run a pre-filled query/i }).click()
-    expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.explorerOpened)
-
-    screen.getByRole('link', { name: /Open the dashboard/i }).click()
-    expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.dashboardViewed)
   })
 })
