@@ -57,6 +57,7 @@ import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
 import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
 import { LoadZipPage } from './pages/LoadZipPage'
 import CalcAuthoringPrototypePage from './pages/CalcAuthoringPrototypePage'
+import ResultsTablePrototypePage from './pages/ResultsTablePrototypePage'
 
 import { CalcAuthoringPanel } from '@/components/organisms/calc-authoring/CalcAuthoringPanel'
 import { JournalZipLoadPage } from './pages/JournalZipLoadPage'
@@ -381,6 +382,7 @@ export function App() {
                 <ScrollToTop />
                 <Routes>
                   <Route path="/proto/calc-authoring" element={<CalcAuthoringPrototypePage />} />
+                  <Route path="/proto/results-table" element={<ResultsTablePrototypePage />} />
 
                   <Route path="/settings/library/calcs" element={<div className="p-6"><CalcAuthoringPanel /></div>} />
                   <Route path="/legacy" element={<PlaygroundLandingPage />} />
