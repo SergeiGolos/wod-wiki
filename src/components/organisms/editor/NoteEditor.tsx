@@ -117,6 +117,8 @@ export interface NoteEditorProps {
   onAddToPlan?: (block: ScriptBlock) => void;
   /** Note persistence seam used for result and attachment projections */
   notePersistence?: INotePersistence;
+  /** Optional in-memory workout results override */
+  results?: any[];
   /** Exposed EditorView ref */
   onViewCreated?: (view: EditorView) => void;
   /** Editor mode */
@@ -193,8 +195,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   extensions: extraExtensions,
   widgetComponents,
   onButtonAction,
-  scrollToSectionId,
+  stickyTopOffset = 0,
+  hoverLine,
   activeSectionId: externalActiveSectionId,
+  scrollToSectionId,
+  results,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -660,7 +665,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           cursorLine={cursorLine}
           docVersion={props.docVersion}
           commands={effectiveCommands}
-          extendedResults={extendedResults}
+          extendedResults={results}
           hoverLine={props.hoverLine}
           stickyTopOffset={props.stickyTopOffset}
           isPanelHovered={props.isPanelHovered}
