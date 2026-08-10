@@ -9,6 +9,14 @@ name: CI – Pull Request
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, closed]
+    # Base-branch scope: only PRs targeting `main` run this pipeline. A
+    # main → prod promotion PR (base: prod) is already covered end-to-end by
+    # CI – Main on the same SHA (verify + version + site deploy + e2e) —
+    # running here would duplicate the verify, and worse: the head branch is
+    # `main`, so the preview slug is `main` and the preview job would sync
+    # over (and destroy would --delete) the very `main/` S3 prefixes the
+    # Main site job owns.
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:

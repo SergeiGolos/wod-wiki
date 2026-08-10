@@ -441,7 +441,10 @@ _Avoid_: scroll hook, scroll spy (that's reading-zone geometry).
   (on close)`. The deployed-artifact e2e publishes its Playwright HTML
   report to `s3://<bucket>/<slug>/e2e-report/` — browsable at
   `https://<slug>.e2e.wod.wiki` and linked from the job's step summary and
-  the PR preview comment.
+  the PR preview comment. **Scoped to PRs whose base is `main`** — a
+  `main → prod` promotion PR is covered by CI – Main on the same SHA, and
+  its head-branch slug is `main`, so its preview would race (and destroy
+  would delete) the site job's `main/` S3 prefixes.
 - **Main pipeline** — `main.yml`. The one graph per merge:
   `verify (no e2e, no smoke build) → release (Pages + tag + smoke e2e)` and
   `verify → site (S3 deploy) → e2e (deployed-artifact e2e in
