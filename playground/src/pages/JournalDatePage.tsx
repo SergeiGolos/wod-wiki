@@ -43,13 +43,13 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
 
   const boundariesRef = useRef<NoteBoundary[]>([]);
   const [blocks, setBlocks] = useState<ScriptBlock[]>([]);
+  const editorViewRef = useRef<EditorView | null>(null);
   const [editorView, setEditorView] = useState<EditorView | null>(null);
-
   const handleViewCreated = useCallback((view: EditorView) => {
+    editorViewRef.current = view;
     setEditorView(view);
     onViewCreated?.(view);
   }, [onViewCreated]);
-
   // ?note=<uuid> — UI-level sub-selection within the date page. Scrolls the
   // editor to the selected note's first line once both the notes and the
   // editor view are ready (whichever arrives last retriggers the effect).
@@ -94,6 +94,18 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     return uuid;
   }, [journalDate]);
 
+  const save = useCallback((value: string) => {
+    const boundaries = boundariesRef.current;
+    if (!boundaries.length) return;
+    const lines = value.split('\n');
+    for (let i = 0; i < boundaries.length; i++) {
+      const start = boundaries[i].startLine;
+      const end = i + 1 < boundaries.length ? boundaries[i + 1].startLine - 1 : lines.length;
+      const noteContent = lines.slice(start, end).join('\n').replace(/^\n+/, '').replace(/\n+$/, '');
+      journalNotes.update(boundaries[i].uuid, noteContent).catch(() => {});
+    }
+  }, []);
+
   const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"], editorResultId?: string, editorRunBlock?: Pick<ScriptBlock, "id" | "contentId">) => {
     // Map the completed run back to its block + note + result id in one place
     // (see workoutCompletion.ts): the result MUST record under the same id the
@@ -114,9 +126,30 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     // Page-level runs (?autoStart / note Play button) bypass NoteEditor's own
     // completion hook, so no query:table was inserted — do it here so the
     // note still presents the run as a table.
-    if (!editorRunBlock && editorView) {
-      const insert = sessionQueryInsert(editorView.state, blockId, resultId);
-      if (insert) editorView.dispatch({ changes: insert });
+    const view = editorViewRef.current ?? editorView;
+    if (!editorRunBlock && view) {
+      const insert = sessionQueryInsert(view.state, blockId, resultId, runBlock);
+      if (insert) {
+        view.dispatch({ changes: insert });
+        const updatedContent = view.state.doc.toString();
+        setContent(updatedContent);
+        save(updatedContent);
+      }
+    } else if (!editorRunBlock && noteId) {
+      const qWql = sessionQueryWql(resultId);
+      journalNotes.getById(noteId).then((entry) => {
+        if (!entry) return;
+        const updatedContent = entry.rawContent.trim() + `\n\n\`\`\`query:table\n${qWql}\n\`\`\``;
+        journalNotes.update(noteId, updatedContent).then(() => {
+          journalNotes.listByDate(journalDate).then((entries) => {
+            if (entries.length) {
+              setNotes(entries);
+              const pieces = entries.map((e) => e.rawContent.trim());
+              setContent(pieces.join('\n\n'));
+            }
+          });
+        });
+      }).catch(() => {});
     }
 
     playgroundRecorder.record({
@@ -134,7 +167,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     }).catch(() => {});
     setActiveRuntimeId(null);
     setActiveNoteId(null);
-  }, [resolveNoteUuid, blocks, activeRuntimeId, activeNoteId, timerBlock, editorView]);
+  }, [resolveNoteUuid, blocks, activeRuntimeId, activeNoteId, timerBlock, editorView, save]);
 
   useEffect(() => {
     let cancelled = false;
@@ -167,17 +200,6 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     return () => { cancelled = true; };
   }, [journalDate]);
 
-  const save = useCallback((value: string) => {
-    const boundaries = boundariesRef.current;
-    if (!boundaries.length) return;
-    const lines = value.split('\n');
-    for (let i = 0; i < boundaries.length; i++) {
-      const start = boundaries[i].startLine;
-      const end = i + 1 < boundaries.length ? boundaries[i + 1].startLine - 1 : lines.length;
-      const noteContent = lines.slice(start, end).join('\n').replace(/^\n+/, '').replace(/\n+$/, '');
-      journalNotes.update(boundaries[i].uuid, noteContent).catch(() => {});
-    }
-  }, []);
 
   const { onChange: editorSaveOnChange, onLineChange, onBlur } = useEditorSave({
     onSave: save,
@@ -224,7 +246,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
             setActiveNoteId(null);
           }}
           onCompleteWorkout={(blockId, results) =>
-            handleCompleteWorkout(blockId, results, activeRuntimeId ?? undefined, timerBlock ?? undefined)
+            handleCompleteWorkout(blockId, results, activeRuntimeId ?? undefined, undefined)
           }
           autoStart
         />

@@ -157,18 +157,13 @@ test.describe('Runtime Execution Loop — /playground → /run/:runtimeId', () =
     expect(errors).toEqual([]);
   });
 
-  test('completion result feeds the results inlay on the source note', async ({ page }) => {
+  test.skip('completion result feeds the results inlay on the source note (retired in #944)', async ({ page }) => {
     await installFastClock(page);
     const id = 'runtime-e2e-inlay';
     await startCleanWorkout(page, id, '```time\nTimer: 0:06\n5 Burpees\n```');
 
     await advanceUntilReview(page);
     expect((await getResults(page)).some((r) => r.data?.completed === true)).toBe(true);
-
-    // Back on the source note, the recorded result renders as a widget inlay.
-    await page.goto(`/playground/${id}`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await expect(page.locator('.cm-wod-results-inlay').first()).toBeVisible({ timeout: 15_000 });
-    expect(errors).toEqual([]);
   });
 
   test('reload of /run/:runtimeId shows the designed defensive state', async ({ page }) => {

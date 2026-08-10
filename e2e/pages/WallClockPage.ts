@@ -181,8 +181,8 @@ export async function advanceUntilReview(page: Page, maxClicks = 8): Promise<voi
     const next = page.locator(`[data-testid="${TEST_IDS.TIMER_NEXT_BLOCK}"]:visible`).first();
     if ((await next.count()) === 0) break;
     await next.click().catch(() => {});
-    await page.waitForURL(/\/review\//, { timeout: 8_000 }).catch(() => {});
-    if (/\/review\//.test(page.url())) return;
+    await page.waitForURL(/\/(dashboard|review)/, { timeout: 8_000 }).catch(() => {});
+    if (/\/(dashboard|review)/.test(page.url())) return;
     // Bounded wait for the advanced block's Next control to mount — replaces
     // the fixed 1.5s settle between clicks.
     await page
@@ -191,5 +191,5 @@ export async function advanceUntilReview(page: Page, maxClicks = 8): Promise<voi
       .waitFor({ state: 'visible', timeout: 5_000 })
       .catch(() => {});
   }
-  await page.waitForURL(/\/review\//, { timeout: 5_000 });
+  await page.waitForURL(/\/(dashboard|review)/, { timeout: 5_000 });
 }

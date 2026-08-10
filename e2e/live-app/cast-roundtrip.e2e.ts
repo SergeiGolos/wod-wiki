@@ -44,10 +44,13 @@ test.describe('Cast Sender↔Receiver Round-Trip (LocalTabBackend)', () => {
     await page.addInitScript(() => {
       window.localStorage.setItem('wodwiki.profileInitialized.v1', 'true');
     });
+    if (process.env.E2E_TARGET === 'preview') {
+      test.skip(true, 'Cast LocalTabBackend e2e test requires dev mode (local backend)');
+    }
     try {
       await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 5_000 });
     } catch {
-      test.skip(true, 'Local dev server (localhost:5173) not running');
+      test.skip(true, 'Local dev server not running');
     }
   });
 
@@ -59,7 +62,7 @@ test.describe('Cast Sender↔Receiver Round-Trip (LocalTabBackend)', () => {
 
     // Arm popup capture BEFORE the gesture that opens it.
     const popupPromise = context.waitForEvent('page', { timeout: 15_000 });
-    await castButton.evaluate((el) => (el as HTMLElement).click());
+    await castButton.click();
     const popup = await popupPromise;
 
     // The popup is the receiver: /receiver-rpc.html?local=<sessionId>.
@@ -88,7 +91,7 @@ test.describe('Cast Sender↔Receiver Round-Trip (LocalTabBackend)', () => {
     const castButton = page.getByRole('button', { name: 'Cast to TV' }).first();
     await expect(castButton).toBeVisible({ timeout: 10_000 });
     const popupPromise = context.waitForEvent('page', { timeout: 15_000 });
-    await castButton.evaluate((el) => (el as HTMLElement).click());
+    await castButton.click();
     const popup = await popupPromise;
     await expect(popup.getByText(/up next/i).first()).toBeVisible({ timeout: 30_000 });
 

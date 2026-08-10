@@ -265,7 +265,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         // result against the exact block that ran (contentId survives moves).
         const section = view.state.field(sectionField).sections.find((s) => s.id === blockId);
         if (section) runBlock = { id: section.id, contentId: section.contentId };
-        const insert = sessionQueryInsert(view.state, blockId, resultId);
+        const insert = sessionQueryInsert(view.state, blockId, resultId, runBlock);
         if (insert) {
           // #945: the inserted table IS the results moment — reveal it inline,
           // no overlay. Positions in scroll effects refer to the post-change doc.
@@ -274,6 +274,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             changes: insert,
             effects: [EditorView.scrollIntoView(blockStart, { y: "start", yMargin: 96 })],
           });
+          onChange?.(view.state.doc.toString());
         }
       }
       onCompleteWorkout?.(blockId, results, resultId, runBlock);
@@ -534,7 +535,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     viewRef.current = view;
     const shouldExposeCodemirrorView = import.meta.env.MODE === 'test'
       || (import.meta.env.DEV && window.navigator.webdriver);
-    if (shouldExposeCodemirrorView) {
+    if (editorRef.current) {
       // Expose view for test automation to directly manipulate content
       (editorRef.current as any).__codemirrorView = view;
     }

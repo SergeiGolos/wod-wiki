@@ -157,7 +157,7 @@ test.describe('Collection Workout — run and record', () => {
       await closeReview.click();
     }
     await expect(
-      page.locator('.cm-wod-results-inlay').first(),
+      page.locator('.cm-query-block-preview, [data-testid="rows-table"]').first(),
       'result renders inline on the WOD block after stopping',
     ).toBeVisible({ timeout: 15_000 });
     await page.screenshot({ path: testInfo.outputPath('collection-run-stop-review.png') });
@@ -166,7 +166,7 @@ test.describe('Collection Workout — run and record', () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('.cm-content')).toContainText(STOP_TITLE, { timeout: 15_000 });
     await expect(
-      page.locator('.cm-wod-results-inlay').first(),
+      page.locator('.cm-query-block-preview, [data-testid="rows-table"]').first(),
       'persisted result renders inline on the WOD block',
     ).toBeVisible({ timeout: 15_000 });
     await page.screenshot({ path: testInfo.outputPath('collection-run-stop-inline.png') });

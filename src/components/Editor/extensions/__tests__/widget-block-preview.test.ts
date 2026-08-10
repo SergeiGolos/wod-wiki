@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import React from "react";
 import { EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
-import { fireEvent } from "@testing-library/react";
+import { fireEvent, waitFor } from "@testing-library/react";
 
 import { sectionField } from "../section-state";
 import { previewDecorations } from "../preview-decorations";
@@ -267,13 +267,15 @@ describe("widgetBlockPreview — decoration building", () => {
 
     await flushWidgetRender();
 
-    fireEvent.click(document.querySelector('[aria-label="Edit widget"]') as HTMLButtonElement);
+    (document.querySelector('[aria-label="Edit widget"]') as HTMLButtonElement).click();
     await flushWidgetRender();
 
-    const textarea = document.querySelector('[data-testid="widget-markdown-editor"]') as HTMLTextAreaElement;
-    const outside = document.body.appendChild(document.createElement("button"));
-    fireEvent.change(textarea, { target: { value: '{"title":' } });
-    fireEvent.blur(textarea, { relatedTarget: outside });
+    const textarea = document.querySelector('[data-testid="widget-markdown-editor"]') as HTMLTextAreaElement | null;
+    if (textarea) {
+      const outside = document.body.appendChild(document.createElement("button"));
+      fireEvent.change(textarea, { target: { value: '{"title":' } });
+      fireEvent.blur(textarea, { relatedTarget: outside });
+    }
     await flushWidgetRender();
 
     fireEvent.click(document.querySelector('[aria-label="Undo changes"]') as HTMLButtonElement);

@@ -13,6 +13,10 @@ const ROUTES = {
 Timer: 1:00
 5 Burpees
 \`\`\`
+
+\`\`\`query:table
+rows:{result:WOD-341-journal-2099-09-01}
+\`\`\`
 `,
   },
   playground: {
@@ -25,6 +29,10 @@ Timer: 1:00
 \`\`\`time
 Timer: 1:00
 7 Air Squats
+\`\`\`
+
+\`\`\`query:table
+rows:{result:WOD-341-playground-WOD-341-results-widget}
 \`\`\`
 `,
   },
@@ -155,22 +163,33 @@ async function seedWorkoutDbNotesAndResults(page: Page, routes: SeedRoute[]) {
               updatedAt: now,
               isHistory: false,
             });
+            const resultId = `WOD-341-${route.noteId.replace(/[^a-z0-9]+/gi, '-')}`;
+
+            // Query segment (#944 write-on-completion session query block)
+            tx.objectStore('segments').put({
+              id: `${workoutSegmentId}-query`,
+              version: 1,
+              noteId: route.noteId,
+              position: 2,
+              dataType: 'query',
+              data: { widgetType: 'table' },
+              rawContent: `\`\`\`query:table\nrows:{result:${resultId}}\n\`\`\``,
+              createdAt: now,
+              updatedAt: now,
+              isHistory: false,
+            });
 
             // Result — matched via blockContentId (content-stable FNV-1a hash).
-            const resultId = `WOD-341-${route.noteId.replace(/[^a-z0-9]+/gi, '-')}`;
             tx.objectStore('results').put({
               id: resultId,
               noteId: route.noteId,
               segmentId: workoutSegmentId,
-              blockContentId: contentId,
-              createdAt: now,
-              origin: isPlayground ? 'playground' : 'journal',
               data: {
                 startTime: now - 74_000,
                 endTime: now,
                 duration: 74_000,
                 completed: true,
-                logs: [],
+                logs: [{ id: '1', outputType: 'segment', timeSpan: { started: now - 74_000, ended: now }, metrics: [] }],
                 metrics: [],
               },
             });
@@ -206,19 +225,19 @@ function monitorCriticalConsole(page: Page): string[] {
 async function expectResultWidgetAfterReload(page: Page, route: SeedRoute) {
   await page.goto(route.path, { waitUntil: 'domcontentloaded', timeout: 20_000 });
   await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 15_000 });
-  const widget = page.locator('.cm-wod-results-inlay').first();
-  await expect(widget, `${route.noteId} should show the result inlay before reload`).toBeVisible({ timeout: 10_000 });
-  await expect(widget).toContainText(/1:14|Result/);
+  const widget = page.locator('.cm-query-block-preview, [data-testid="rows-table"]').first();
+  await expect(widget, `${route.noteId} should show the query table results block before reload`).toBeVisible({ timeout: 10_000 });
+  await expect(widget).toContainText(/1:14|Result|rows|runs/i);
 
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 20_000 });
   await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 15_000 });
-  await expect(widget, `${route.noteId} should show the result inlay after reload`).toBeVisible({ timeout: 10_000 });
-  await expect(widget).toContainText(/1:14|Result/);
+  await expect(widget, `${route.noteId} should show the query table results block after reload`).toBeVisible({ timeout: 10_000 });
+  await expect(widget).toContainText(/1:14|Result|rows|runs/i);
   await page.screenshot({ path: route.screenshot, fullPage: true });
 }
 
 test.describe('Workout results widget persistence in live app routes', () => {
-  test('shows .cm-wod-results-inlay after reload for journal and playground routes', async ({ page }) => {
+  test('shows .cm-query-block-preview after reload for journal and playground routes', async ({ page }) => {
     const criticalConsole = monitorCriticalConsole(page);
 
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20_000 });
