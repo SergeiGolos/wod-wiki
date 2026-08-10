@@ -28,6 +28,7 @@ import { WidgetChart, WidgetProblemBadge } from '@/components/molecules/analytic
 import { splitWidgetBody, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage } from '@/lib/dashboard/model';
 import { extractBlockQueries } from '../utils/blockQueryPatcher';
 import { WqlQueryInspectorModal } from './WqlQueryInspectorModal';
+import { onResultSaved } from '@/services/resultRecorder';
 
 export interface QueryBlockViewProps {
   /** Raw text between the ```query fences — the WQL query string or block source. */
@@ -78,6 +79,11 @@ export function QueryBlockView({
   const [runError, setRunError] = useState<string | undefined>(undefined);
   // Bumped by the rows chrome after an RPE capture so the grid re-derives (#948).
   const [rowsRefreshKey, setRowsRefreshKey] = useState(0);
+  useEffect(() => {
+    return onResultSaved(() => {
+      setRowsRefreshKey((k) => k + 1);
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,14 +105,29 @@ export function QueryBlockView({
           if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
         });
     } else if (isRowsQuery(parsed)) {
-      void queryService
-        .runRows(parsed)
-        .then((res) => {
-          if (!cancelled) setRowsResult(res);
-        })
-        .catch((err) => {
-          if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
-        });
+      let retryTimer: number | NodeJS.Timeout | undefined;
+      const executeRows = (attemptCount: number) => {
+        void queryService
+          .runRows(parsed)
+          .then((res) => {
+            if (cancelled) return;
+            setRowsResult(res);
+            if (res.runs.length === 0 && attemptCount < 4) {
+              const delays = [50, 150, 350, 750];
+              retryTimer = setTimeout(() => {
+                if (!cancelled) executeRows(attemptCount + 1);
+              }, delays[attemptCount] ?? 500);
+            }
+          })
+          .catch((err) => {
+            if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
+          });
+      };
+      executeRows(0);
+      return () => {
+        cancelled = true;
+        if (retryTimer) clearTimeout(retryTimer);
+      };
     } else {
       void queryService
         .runQuery(effectiveQuery)

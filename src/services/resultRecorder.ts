@@ -65,6 +65,25 @@ export interface RecordResultInput {
 export interface ResultRecorder {
   record(input: RecordResultInput): Promise<WorkoutResult>;
 }
+type ResultSavedListener = (result: WorkoutResult) => void;
+const resultSavedListeners = new Set<ResultSavedListener>();
+
+export function onResultSaved(listener: ResultSavedListener): () => void {
+  resultSavedListeners.add(listener);
+  return () => {
+    resultSavedListeners.delete(listener);
+  };
+}
+
+export function notifyResultSaved(result: WorkoutResult): void {
+  for (const listener of resultSavedListeners) {
+    try {
+      listener(result);
+    } catch (err) {
+      console.error('[resultRecorder] error in listener:', err);
+    }
+  }
+}
 
 /**
  * Build a Recorder over an injected writer. Tests pass a stub writer;
@@ -109,6 +128,7 @@ export function createResultRecorder(writer: ResultWriter): ResultRecorder {
         data,
         createdAt,
       };
+      notifyResultSaved(result);
       return result;
     },
   };

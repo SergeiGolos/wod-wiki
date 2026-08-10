@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, mock } from 'bun:test';
  * parseQuery / isFindQuery stay real (the dispatch contract under test); only
  * queryService.runQuery / runFind are stubbed — same seam as the Explorer tests.
  */
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { parseQuery, isFindQuery, isRowsQuery, type QueryResult, type FindQueryResult, type ParsedQuery, type RowsQueryResult, type ParsedRowsQuery } from '@/services/analytics/query';
 
 const runQuery = mock(async (_raw: string): Promise<QueryResult> => scalarResult('sum:totalVolume{}'));
@@ -31,6 +31,8 @@ mock.module('@/services/analytics/query', () => ({
   isRowsQuery,
   queryService: { runQuery, runFind, runRows },
 }));
+
+import { notifyResultSaved } from '@/services/resultRecorder';
 
 mock.module('@/components/molecules/analytics/RowsTable', () => ({
   RowsTable: ({ result, renderRunHeaderExtra }: { result: RowsQueryResult; renderRunHeaderExtra?: (run: RowsQueryResult['runs'][number]) => React.ReactNode }) => (
@@ -239,6 +241,16 @@ describe('QueryBlockView', () => {
     fireEvent.click(screen.getByLabelText('RPE 7'));
     await waitFor(() => expect(captureSessionRpeMock).toHaveBeenCalledWith('rA', 7));
     // One initial run + one refresh after capture.
+    await waitFor(() => expect(runRows.mock.calls.length).toBeGreaterThanOrEqual(2));
+  });
+  it('re-runs the query when notifyResultSaved fires after workout persistence', async () => {
+    render(<QueryBlockView query="rows:{result:rA}" />);
+    await waitFor(() => expect(runRows).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      notifyResultSaved({ id: 'rA', noteId: 'n1', segmentId: 's1', origin: 'journal', data: { logs: [] }, createdAt: Date.now() });
+    });
+
     await waitFor(() => expect(runRows.mock.calls.length).toBeGreaterThanOrEqual(2));
   });
 });

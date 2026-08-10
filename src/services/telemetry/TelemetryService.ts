@@ -141,3 +141,5 @@ export class TelemetryService {
     });
   }
 }
+/** App-wide telemetry singleton. The forwarder is wired by the playground shell (lib/telemetry-gtag). */
+export const telemetry = new TelemetryService();
