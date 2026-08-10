@@ -23,12 +23,23 @@ import { getScalar, parseFrontmatter } from '@/lib/frontmatter'
 // Vite glob keys are relative to THIS module, so they change depth whenever the
 // file moves — that drift is what broke every canvas page ("Source not found")
 // when this glob moved out of App.tsx (2 levels deep) into lib/ (3 levels).
-const rawWorkoutFiles = typeof (import.meta as any).glob === 'function'
-  ? (import.meta as any).glob(
-      '../../../markdown/**/*.md',
-      { eager: true, query: '?raw', import: 'default' },
-    )
-  : {}
+//
+// `import.meta.glob` is a COMPILE-TIME macro: in dev/build the call below is
+// replaced with a static object literal, so `import.meta.glob` itself is
+// `undefined` at runtime. A `typeof import.meta.glob === 'function'` guard
+// therefore always fails in the browser — the ternary discarded the compiled
+// map and every canvas page rendered "Source not found". try/catch is the
+// correct bun-test guard: the call throws where the macro doesn't exist (bun),
+// and returns the compiled map where it does (vite dev/build, vitest).
+let rawWorkoutFiles: Record<string, string> = {};
+try {
+  rawWorkoutFiles = import.meta.glob(
+    '../../../markdown/**/*.md',
+    { eager: true, query: '?raw', import: 'default' },
+  );
+} catch {
+  rawWorkoutFiles = {};
+}
 
 // Normalise to the canonical `../../markdown/...` contract that resolveSource,
 // MarkdownCanvasPage.test.tsx, and HomeView.stories.tsx all already expect, so
