@@ -20,9 +20,18 @@ import { resolve } from 'path';
 import os from 'os';
 
 const args = process.argv.slice(2);
-const dir = args.find((a) => !a.startsWith('--')) ?? './playground/src';
-const preloadIdx = args.indexOf('--preload');
-const preload = preloadIdx >= 0 ? args[preloadIdx + 1] : './tests/unit-setup.ts';
+let preload = './tests/unit-setup.ts';
+let dir = '';
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--preload' && i + 1 < args.length) {
+    preload = args[i + 1];
+    i++;
+  } else if (!args[i].startsWith('--')) {
+    dir = args[i];
+  }
+}
+if (!dir) dir = './playground/src';
 
 const glob = new Glob('**/*.{test,spec}.{ts,tsx}');
 const files: string[] = [];
@@ -55,12 +64,24 @@ async function worker() {
       env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
     });
 
-    const [stdout, stderr, exitCode] = await Promise.all([
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<{ stdout: string; stderr: string; exitCode: number }>((res) => {
+      timeoutHandle = setTimeout(() => {
+        try { proc.kill(); } catch {}
+        res({ stdout: '', stderr: `Test timed out after 45 seconds: ${rel}`, exitCode: 1 });
+      }, 45_000);
+    });
+
+    const runPromise = Promise.all([
       new Response(proc.stdout).text(),
       new Response(proc.stderr).text(),
       proc.exited,
-    ]);
+    ]).then(([stdout, stderr, exitCode]) => {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      return { stdout, stderr, exitCode };
+    });
 
+    const { stdout, stderr, exitCode } = await Promise.race([runPromise, timeoutPromise]);
     const raw = stdout + stderr;
     const out = raw.replace(/\x1b\[[0-9;]*m/g, '');
     let pass = 0;

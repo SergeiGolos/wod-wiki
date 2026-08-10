@@ -23,10 +23,12 @@ import { getScalar, parseFrontmatter } from '@/lib/frontmatter'
 // Vite glob keys are relative to THIS module, so they change depth whenever the
 // file moves — that drift is what broke every canvas page ("Source not found")
 // when this glob moved out of App.tsx (2 levels deep) into lib/ (3 levels).
-const rawWorkoutFiles = import.meta.glob(
-  '../../../markdown/**/*.md',
-  { eager: true, query: '?raw', import: 'default' },
-)
+const rawWorkoutFiles = typeof (import.meta as any).glob === 'function'
+  ? (import.meta as any).glob(
+      '../../../markdown/**/*.md',
+      { eager: true, query: '?raw', import: 'default' },
+    )
+  : {}
 
 // Normalise to the canonical `../../markdown/...` contract that resolveSource,
 // MarkdownCanvasPage.test.tsx, and HomeView.stories.tsx all already expect, so
