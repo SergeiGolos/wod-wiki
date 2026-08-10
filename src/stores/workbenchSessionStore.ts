@@ -40,7 +40,7 @@ import type { INotePersistence } from '@/services/persistence';
 import { toNotebookTag } from '@/types/notebook';
 import { fileProcessor } from '@/hooks/useBrowserServices';
 import { loadStaticWorkbenchContent } from '@/app/workbench/workbenchProviders';
-import { createResultRecorder } from '../../playground/src/services/resultRecorder';
+import { createResultRecorder } from '@/services/resultRecorder';
 import type { HistoryEntry } from '@/types/history';
 import type { Attachment } from '@/types/storage';
 import { wallClockNow } from '@/runtime/INowProvider';
@@ -61,13 +61,11 @@ import { deriveWorkbenchDocumentState } from '@/app/workbench/workbenchDocumentM
 export type NavigationIntent =
   | { type: 'goToPlan'; noteId: string }
   | { type: 'goToTrack'; noteId: string; sectionId?: string }
-  | { type: 'goToReview'; noteId: string; sectionId?: string; resultId?: string }
   | { type: 'goTo'; view: ViewMode | 'history' | 'analyze'; noteId?: string; sectionId?: string; resultId?: string };
 
 /**
  * NavigateFn — the injected port the session uses to emit navigation.
- * `react-router`'s `useReactRouterNavigation` implements it for production;
- * tests pass a function that captures the intents.
+ * Tests pass a function that captures the intents.
  */
 export type NavigateFn = (intent: NavigationIntent) => void;
 
@@ -207,7 +205,7 @@ export interface WorkbenchSessionActions {
    * generated resultId so callers can navigate synchronously before the
    * persistence promise resolves.
    */
-  completeWorkout: (result: WorkoutResults) => Promise<string>;
+  completeWorkout: (result: WorkoutResults, explicitResultId?: string, runBlock?: Pick<ScriptBlock, "id" | "contentId"> | null) => Promise<string>;
   /** Patch the loaded entry's `results` slice (used by route-result loading). */
   patchCurrentEntryResults: (results: WorkoutResults) => void;
   /**
@@ -649,16 +647,23 @@ export function createWorkbenchSessionStore(
       /**
        * `completeWorkout` — the unified single-source write path for finishing a
        * workout. Reads `content` / `selectedBlockId` / `analyticsSegments` /
-       * `currentEntry` from the session state and emits one navigation intent
-       * (goToReview) plus one persistence call. Returns the generated resultId
-       * so callers can navigate synchronously before the persistence promise
-       * resolves.
+       * `currentEntry` from the session state and persists the result.
+       * Returns the generated resultId so callers can navigate synchronously
+       * before the persistence promise resolves. (#946 removed the goToReview
+       * intent — the explorer with a rows query is the review now.)
        */
-      completeWorkout: async (result) => {
+      completeWorkout: async (result, explicitResultId, runBlock) => {
         const { v7: uuidv7 } = await import('uuid');
-        const resultId = uuidv7();
+        const resultId = explicitResultId ?? uuidv7();
         const state = get();
         const { content, selectedBlock, selectedBlockId, currentEntry } = state;
+
+        // The completed block may arrive from the editor (inline runs) or the
+        // session selection (track view); `setSelectedBlock` is only used by
+        // tests today, so never require `selectedBlock` to persist — fall back
+        // to blockId alone rather than dropping the result (a crash here used
+        // to silently lose every editor-run completion).
+        const identity = runBlock ?? selectedBlock;
 
         const provider = deps.provider;
         const notePersistence = deps.notePersistence;
@@ -689,14 +694,21 @@ export function createWorkbenchSessionStore(
                 });
               }
               // Then resolve identity + persist the result via the Recorder (placement A).
-              await createResultRecorder(notePersistence).record({
-                runBlock: selectedBlock!,
-                blockId: selectedBlockId ?? '',
-                noteId: targetId,
-                resultId: payload.resultId,
-                data: payload.results,
-                createdAt: payload.results.endTime,
-              });
+              // Guarded: a failure to persist must surface in the console, not
+              // silently drop the completion (the query:table already references
+              // `resultId`, so an unrecorded run shows an empty table).
+              try {
+                await createResultRecorder(notePersistence).record({
+                  runBlock: identity,
+                  blockId: selectedBlockId ?? identity?.id ?? '',
+                  noteId: targetId,
+                  resultId: payload.resultId,
+                  data: payload.results,
+                  createdAt: payload.results.endTime,
+                });
+              } catch (err) {
+                console.error('[workbench] failed to persist workout result:', err);
+              }
               const refreshed = await notePersistence.getNote(targetId, {
                 projection: 'workbench',
                 includeAttachments: true,
@@ -723,15 +735,6 @@ export function createWorkbenchSessionStore(
 
         // Append to the session's results list (used by review view).
         set((s) => ({ results: [...s.results, result] }));
-
-        // Navigate to review. The injected `navigate` is the unified route
-        // vocabulary (Step 5 retires the dual Context→Store navigation seam).
-        deps.navigate?.({
-          type: 'goToReview',
-          noteId: currentEntry?.id ?? 'static',
-          sectionId: selectedBlockId ?? undefined,
-          resultId,
-        });
 
         return resultId;
       },

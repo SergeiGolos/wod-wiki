@@ -62,6 +62,19 @@ export const WQL_CALC_TARGETS = [
   'calc.ctl',
   'calc.atl',
   'calc.tsb',
+  // Wellness + capture metrics (seeds in seeds.ts): soreness/sleep/hrv are
+  // user-captured passthroughs; readiness is their composite; mvcBw is
+  // hang/%BW; ef is running pace ÷ HR; adherence is sessions ÷ planned;
+  // pct1rm is the Epley-inverse intensity; sends count climbing sends.
+  'calc.soreness',
+  'calc.sleep',
+  'calc.hrv',
+  'calc.readiness',
+  'calc.mvcBw',
+  'calc.ef',
+  'calc.adherence',
+  'calc.pct1rm',
+  'calc.sends',
 ] as const;
 export type WqlCalcTarget = (typeof WQL_CALC_TARGETS)[number];
 

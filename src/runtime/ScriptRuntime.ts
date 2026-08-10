@@ -240,6 +240,13 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     /**
+     * Ephemeral Tier-2 (running-total) snapshot for live display; never persisted.
+     */
+    public getLiveAnalytics(): IOutputStatement[] {
+        return this._output.getLiveAnalytics();
+    }
+
+    /**
      * Add an output statement to the collection and notify subscribers.
      * Used by BehaviorContext to emit outputs at any lifecycle point.
      */

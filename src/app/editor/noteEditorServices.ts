@@ -2,10 +2,7 @@ import type { Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { v7 as uuidv7 } from 'uuid';
 import { whiteboardScriptLanguage } from '@/hooks/useRuntimeParser';
-import { getAnalyticsFromLogs } from '@/hooks/useWorkbenchServices';
 import { IndexedDBNotePersistence, type INotePersistence } from '@/services/persistence';
-import type { Segment } from '@/core/models/AnalyticsModels';
-import type { WorkoutResult } from '@/types/storage';
 
 export function resolveNotePersistence(
   cache: { current: INotePersistence | null },
@@ -74,14 +71,6 @@ export function createFileDropHandler(
       return true;
     },
   });
-}
-
-export function deriveReviewSegments(result: WorkoutResult): Segment[] {
-  if (!result?.data?.logs?.length) {
-    return [];
-  }
-
-  return getAnalyticsFromLogs(result.data.logs, result.data.startTime).segments;
 }
 
 export function resolveWhiteboardCodeLanguage(info: string | null | undefined) {

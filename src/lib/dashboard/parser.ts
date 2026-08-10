@@ -32,7 +32,7 @@ export function parseDashboardNote(rawContent: string): { meta: DashboardMeta; s
     const trimmed = line.trim();
 
     // Query block
-    if (trimmed.startsWith('```query')) {
+    if (/^```query/.test(trimmed)) {
       const tag = trimmed.slice(3).split(/[\s\t]/)[0].toLowerCase();
       let widgetType;
       let spanCols;
@@ -50,7 +50,7 @@ export function parseDashboardNote(rawContent: string): { meta: DashboardMeta; s
       const startLine = i;
       i++;
       const bodyLines: string[] = [];
-      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+      while (i < lines.length && !/^```[\w\d_:-]*$/.test(lines[i].trim())) {
         bodyLines.push(lines[i]);
         i++;
       }
@@ -67,6 +67,29 @@ export function parseDashboardNote(rawContent: string): { meta: DashboardMeta; s
         endLine,
       });
       i++;
+      continue;
+    }
+
+    // Generic fenced block (non-query code fence, e.g. ```wellness)
+    if (/^```[\w\d_:-]*$/.test(trimmed)) {
+      const startLine = i;
+      const fenceLines: string[] = [lines[i]];
+      i++;
+      while (i < lines.length && !/^```[\w\d_:-]*$/.test(lines[i].trim())) {
+        fenceLines.push(lines[i]);
+        i++;
+      }
+      if (i < lines.length) {
+        fenceLines.push(lines[i]);
+        i++;
+      }
+      sections.push({
+        type: 'markdown',
+        subtype: 'paragraph',
+        content: fenceLines.join('\n'),
+        startLine,
+        endLine: i - 1,
+      });
       continue;
     }
 
@@ -91,7 +114,7 @@ export function parseDashboardNote(rawContent: string): { meta: DashboardMeta; s
         i < lines.length &&
         lines[i].trim() !== '' &&
         !lines[i].trim().startsWith('#') &&
-        !lines[i].trim().startsWith('```')
+        !/^```[\w\d_:-]*$/.test(lines[i].trim())
       ) {
         paraLines.push(lines[i]);
         i++;

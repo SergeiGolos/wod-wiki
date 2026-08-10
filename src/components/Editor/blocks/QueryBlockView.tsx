@@ -11,10 +11,14 @@ import { Edit3 } from 'lucide-react';
 import {
   parseQuery,
   isFindQuery,
+  isRowsQuery,
   queryService,
   type QueryResult,
   type FindQueryResult,
+  type RowsQueryResult,
 } from '@/services/analytics/query';
+import { RowsTable } from '@/components/molecules/analytics/RowsTable';
+import { RowsResultsChrome } from './RowsResultsChrome';
 import { useChartShape } from '@/components/molecules/analytics/useChartShape';
 import { QueryValue } from '@/components/molecules/analytics/QueryValue';
 import { WqlTimeseries } from '@/components/molecules/analytics/WqlTimeseries';
@@ -24,6 +28,7 @@ import { WidgetChart, WidgetProblemBadge } from '@/components/molecules/analytic
 import { splitWidgetBody, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage } from '@/lib/dashboard/model';
 import { extractBlockQueries } from '../utils/blockQueryPatcher';
 import { WqlQueryInspectorModal } from './WqlQueryInspectorModal';
+import { onResultSaved } from '@/services/resultRecorder';
 
 export interface QueryBlockViewProps {
   /** Raw text between the ```query fences — the WQL query string or block source. */
@@ -70,13 +75,22 @@ export function QueryBlockView({
     widgetType != null && widgetType !== '' && !isDashboardWidgetType(widgetType);
   const [result, setResult] = useState<QueryResult | undefined>(undefined);
   const [findResult, setFindResult] = useState<FindQueryResult | undefined>(undefined);
+  const [rowsResult, setRowsResult] = useState<RowsQueryResult | undefined>(undefined);
   const [runError, setRunError] = useState<string | undefined>(undefined);
+  // Bumped by the rows chrome after an RPE capture so the grid re-derives (#948).
+  const [rowsRefreshKey, setRowsRefreshKey] = useState(0);
+  useEffect(() => {
+    return onResultSaved(() => {
+      setRowsRefreshKey((k) => k + 1);
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     setRunError(undefined);
     setResult(undefined);
     setFindResult(undefined);
+    setRowsResult(undefined);
 
     if (parsed.error) return;
     if (widgetError || unknownType || missing.length > 0) return;
@@ -90,6 +104,30 @@ export function QueryBlockView({
         .catch((err) => {
           if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
         });
+    } else if (isRowsQuery(parsed)) {
+      let retryTimer: number | NodeJS.Timeout | undefined;
+      const executeRows = (attemptCount: number) => {
+        void queryService
+          .runRows(parsed)
+          .then((res) => {
+            if (cancelled) return;
+            setRowsResult(res);
+            if (res.runs.length === 0 && attemptCount < 4) {
+              const delays = [50, 150, 350, 750];
+              retryTimer = setTimeout(() => {
+                if (!cancelled) executeRows(attemptCount + 1);
+              }, delays[attemptCount] ?? 500);
+            }
+          })
+          .catch((err) => {
+            if (!cancelled) setRunError(err instanceof Error ? err.message : String(err));
+          });
+      };
+      executeRows(0);
+      return () => {
+        cancelled = true;
+        if (retryTimer) clearTimeout(retryTimer);
+      };
     } else {
       void queryService
         .runQuery(effectiveQuery)
@@ -104,7 +142,7 @@ export function QueryBlockView({
     return () => {
       cancelled = true;
     };
-  }, [effectiveQuery, parsed]);
+  }, [effectiveQuery, parsed, rowsRefreshKey]);
 
   const handleEditClick = () => {
     setIsModalOpen(true);
@@ -157,6 +195,41 @@ export function QueryBlockView({
     return (
       <QueryBlockShell onEdit={onSaveQuery ? handleEditClick : undefined} readOnly={readOnly}>
         <p className="text-sm text-destructive font-mono px-1 py-2">{runError}</p>
+        {onSaveQuery && (
+          <WqlQueryInspectorModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            initialQuery={effectiveQuery}
+            onApply={handleApplyQuery}
+          />
+        )}
+      </QueryBlockShell>
+    );
+  }
+
+  // ── Rows query → per-run pivoted grid (rows:{…}, #949) ──
+  if (isRowsQuery(parsed)) {
+    // The written-on-completion shape (rows:{result:…}, #944) gets the
+    // results chrome: widen toggle + inline RPE (#948). Any other rows block
+    // renders the plain grouped grid.
+    const sessionResultId = parsed.filters.find((f) => f.key === 'result')?.values[0]?.value;
+    return (
+      <QueryBlockShell onEdit={onSaveQuery ? handleEditClick : undefined} readOnly={readOnly}>
+        {rowsResult?.error ? (
+          <p className="text-sm text-destructive font-mono px-1 py-2">{rowsResult.error}</p>
+        ) : rowsResult ? (
+          sessionResultId ? (
+            <RowsResultsChrome
+              resultId={sessionResultId}
+              sessionResult={rowsResult}
+              onCaptured={() => setRowsRefreshKey((k) => k + 1)}
+            />
+          ) : (
+            <RowsTable result={rowsResult} />
+          )
+        ) : (
+          <p className="text-xs text-muted-foreground italic px-1 py-2">Loading rows…</p>
+        )}
         {onSaveQuery && (
           <WqlQueryInspectorModal
             isOpen={isModalOpen}

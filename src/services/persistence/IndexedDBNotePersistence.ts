@@ -13,6 +13,7 @@ import {
   replayResultAnalytics,
 } from '@/services/analytics/workoutDerivation';
 import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
+import { captureWellnessFacts } from '@/services/analytics/wellness';
 import { createParser } from '@/parser/parserInstance';
 import type { ScriptBlock } from '@/components/Editor/types';
 import {
@@ -167,6 +168,21 @@ export class IndexedDBNotePersistence implements INotePersistence {
 
     if (Object.values(patch).some(value => value !== undefined)) {
       await this.contentProvider.updateEntry(note.id, patch);
+    }
+
+    // Wellness capture: ```wellness fences in the note body become day-grain
+    // user facts (soreness/sleep/hrv/weight/hang/hr/planned) — the raw inputs
+    // the wellness `calc.*` seeds derive from. Reconciles on every save:
+    // changed values upsert in place, removed keys delete their rows.
+    if (mutation.rawContent !== undefined && this.storage.getFactsByMetric && this.storage.deleteAnalyticsPoints) {
+      // Journal day comes from the entry's targetDate (calendar page); other
+      // notes stamp the current day.
+      const entry = await this.contentProvider.getEntry(note.id).catch(() => null);
+      await captureWellnessFacts(note.id, mutation.rawContent, this.storage as import('@/services/analytics/wellness').WellnessFactStore, {
+        targetDate: entry?.targetDate,
+      }).catch(() => undefined);
+      // Store-scope wellness seeds (calc.soreness etc.) recompute eagerly.
+      void ensureStoreRollupFacts().catch(() => undefined);
     }
 
     // Summary facts: extracted from Tier-2 ('analytics') outputs already in

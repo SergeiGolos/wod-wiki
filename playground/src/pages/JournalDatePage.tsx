@@ -4,19 +4,18 @@ import { EditorSelection } from '@codemirror/state';
 import type { ScriptBlock } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
 import { journalNotes } from '../services/journalNotes';
-import { playgroundRecorder } from '../services/resultRecorder';
+import { playgroundRecorder } from '@/services/resultRecorder';
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer';
-import { FullscreenReview } from '@/components/organisms/review/FullscreenReview';
 import { useSearchParams } from 'react-router-dom';
 import { pendingRuntimes } from '../runtimeStore';
-import type { Segment } from '@/core/models/AnalyticsModels';
-import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer';
 import { WorkbenchSessionProvider } from '@/stores/workbenchSessionStore';
 import { notePersistence } from '@/services/persistence';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { WorkoutResult } from '@/types/storage';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
+import { sessionQueryInsert } from '@/components/Editor/extensions/sessionQueryBlock';
+import { resolveCompletionTargets } from '../lib/workoutCompletion';
 import { useEditorSave } from '../hooks/useEditorSave';
 
 const journalContentProvider = new IndexedDBContentProvider();
@@ -38,21 +37,19 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   const [allResults, setAllResults] = useState<WorkoutResult[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [isTimerOpen, setIsTimerOpen] = useState(false);
-  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [timerBlock, setTimerBlock] = useState<ScriptBlock | null>(null);
   const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
-  const [reviewSegments, setReviewSegments] = useState<Segment[]>([]);
 
   const boundariesRef = useRef<NoteBoundary[]>([]);
   const [blocks, setBlocks] = useState<ScriptBlock[]>([]);
+  const editorViewRef = useRef<EditorView | null>(null);
   const [editorView, setEditorView] = useState<EditorView | null>(null);
-
   const handleViewCreated = useCallback((view: EditorView) => {
+    editorViewRef.current = view;
     setEditorView(view);
     onViewCreated?.(view);
   }, [onViewCreated]);
-
   // ?note=<uuid> — UI-level sub-selection within the date page. Scrolls the
   // editor to the selected note's first line once both the notes and the
   // editor view are ready (whichever arrives last retriggers the effect).
@@ -87,8 +84,6 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     }, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  const handleCloseReview = useCallback(() => setIsReviewOpen(false), []);
-
   const resolveNoteUuid = useCallback((startLine: number): string => {
     const boundaries = boundariesRef.current;
     let uuid = boundaries[0]?.uuid ?? journalDate;
@@ -99,47 +94,80 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     return uuid;
   }, [journalDate]);
 
-  const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"]) => {
-    // AutoStart runs carry their identities from pendingRuntimes: the block
-    // id embeds the SOURCE page's doc line, so line-based resolution against
-    // this page's doc misses and no result is recorded. Match the journal
-    // page's own block by content id (content-stable) and fall back to the
-    // pending block itself.
-    const isActiveRun = activeNoteId !== null && timerBlock?.id === blockId;
-    const runBlock =
-      blocks.find(b => b.id === blockId) ??
-      (isActiveRun
-        ? blocks.find(b => b.contentId && b.contentId === timerBlock!.contentId) ?? timerBlock!
-        : undefined);
-    if (!runBlock) return;
+  const save = useCallback((value: string) => {
+    const boundaries = boundariesRef.current;
+    if (!boundaries.length) return;
+    const lines = value.split('\n');
+    for (let i = 0; i < boundaries.length; i++) {
+      const start = boundaries[i].startLine;
+      const end = i + 1 < boundaries.length ? boundaries[i + 1].startLine - 1 : lines.length;
+      const noteContent = lines.slice(start, end).join('\n').replace(/^\n+/, '').replace(/\n+$/, '');
+      journalNotes.update(boundaries[i].uuid, noteContent).catch(() => {});
+    }
+  }, []);
 
-    const uuid = activeNoteId ?? (() => {
-      const match = blockId.match(/^wod-(\d+)-/);
-      if (!match) return null;
-      return resolveNoteUuid(parseInt(match[1], 10));
-    })();
-    if (!uuid) return;
+  const handleCompleteWorkout = useCallback((blockId: string, results: ScriptBlock["results"], editorResultId?: string, editorRunBlock?: Pick<ScriptBlock, "id" | "contentId">) => {
+    // Map the completed run back to its block + note + result id in one place
+    // (see workoutCompletion.ts): the result MUST record under the same id the
+    // query:table references, or the inline table renders empty.
+    const targets = resolveCompletionTargets({
+      blockId,
+      editorRunBlock,
+      blocks,
+      activeNoteId,
+      timerBlock,
+      activeRuntimeId,
+      editorResultId,
+      resolveNoteUuid,
+    });
+    if (!targets) return;
+    const { runBlock, noteId, resultId } = targets;
+
+    // Page-level runs (?autoStart / note Play button) bypass NoteEditor's own
+    // completion hook, so no query:table was inserted — do it here so the
+    // note still presents the run as a table.
+    const view = editorViewRef.current ?? editorView;
+    if (!editorRunBlock && view) {
+      const insert = sessionQueryInsert(view.state, blockId, resultId, runBlock);
+      if (insert) {
+        view.dispatch({ changes: insert });
+        const updatedContent = view.state.doc.toString();
+        setContent(updatedContent);
+        save(updatedContent);
+      }
+    } else if (!editorRunBlock && noteId) {
+      const qWql = sessionQueryWql(resultId);
+      journalNotes.getById(noteId).then((entry) => {
+        if (!entry) return;
+        const updatedContent = entry.rawContent.trim() + `\n\n\`\`\`query:table\n${qWql}\n\`\`\``;
+        journalNotes.update(noteId, updatedContent).then(() => {
+          journalNotes.listByDate(journalDate).then((entries) => {
+            if (entries.length) {
+              setNotes(entries);
+              const pieces = entries.map((e) => e.rawContent.trim());
+              setContent(pieces.join('\n\n'));
+            }
+          });
+        });
+      }).catch(() => {});
+    }
 
     playgroundRecorder.record({
       runBlock,
       blockId,
-      noteId: uuid,
-      resultId: activeRuntimeId || crypto.randomUUID(),
+      noteId,
+      resultId,
       data: results!,
       createdAt: results?.endTime || Date.now(),
     }).then((result) => {
-      // Surface the new result inline without waiting for a reload.
+      // Surface the new result inline without waiting for a reload. The query
+      // block inserted by the editor (#944/#945) is the results moment — no
+      // review overlay here.
       setAllResults(prev => [...prev, result]);
-      if (results?.logs?.length) {
-        const segments = getAnalyticsFromLogs(results.logs).segments;
-        setReviewSegments(segments);
-        setIsTimerOpen(false);
-        setIsReviewOpen(true);
-      }
     }).catch(() => {});
     setActiveRuntimeId(null);
     setActiveNoteId(null);
-  }, [resolveNoteUuid, blocks, activeRuntimeId, activeNoteId, timerBlock]);
+  }, [resolveNoteUuid, blocks, activeRuntimeId, activeNoteId, timerBlock, editorView, save]);
 
   useEffect(() => {
     let cancelled = false;
@@ -172,17 +200,6 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
     return () => { cancelled = true; };
   }, [journalDate]);
 
-  const save = useCallback((value: string) => {
-    const boundaries = boundariesRef.current;
-    if (!boundaries.length) return;
-    const lines = value.split('\n');
-    for (let i = 0; i < boundaries.length; i++) {
-      const start = boundaries[i].startLine;
-      const end = i + 1 < boundaries.length ? boundaries[i + 1].startLine - 1 : lines.length;
-      const noteContent = lines.slice(start, end).join('\n').replace(/^\n+/, '').replace(/\n+$/, '');
-      journalNotes.update(boundaries[i].uuid, noteContent).catch(() => {});
-    }
-  }, []);
 
   const { onChange: editorSaveOnChange, onLineChange, onBlur } = useEditorSave({
     onSave: save,
@@ -217,7 +234,6 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
             onBlocksChange={setBlocks}
             onCompleteWorkout={handleCompleteWorkout}
             onViewCreated={handleViewCreated}
-            extendedResults={allResults}
           />
         )}
       </div>
@@ -229,15 +245,10 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
             setActiveRuntimeId(null);
             setActiveNoteId(null);
           }}
-          onCompleteWorkout={handleCompleteWorkout}
+          onCompleteWorkout={(blockId, results) =>
+            handleCompleteWorkout(blockId, results, activeRuntimeId ?? undefined, undefined)
+          }
           autoStart
-        />
-      )}
-      {isReviewOpen && reviewSegments.length > 0 && (
-        <FullscreenReview
-          segments={reviewSegments}
-          onClose={handleCloseReview}
-          title="Workout Review"
         />
       )}
     </WorkbenchSessionProvider>

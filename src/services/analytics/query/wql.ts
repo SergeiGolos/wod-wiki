@@ -103,14 +103,37 @@ export interface ParsedFindQuery {
   error?: string;
 }
 
-export type AnyParsedQuery = ParsedQuery | ParsedFindQuery;
+export type AnyParsedQuery = ParsedQuery | ParsedFindQuery | ParsedRowsQuery;
 
 /** Type guard: true for content-discovery queries. */
 export function isFindQuery(parsed: AnyParsedQuery): parsed is ParsedFindQuery {
   return 'target' in parsed;
 }
 
+/** Type guard: true for rows queries. */
+export function isRowsQuery(parsed: AnyParsedQuery): parsed is ParsedRowsQuery {
+  return (parsed as ParsedRowsQuery).family === 'rows';
+}
+
 export interface SeriesPoint { ts: number; value: number }
+
+/**
+ * Result of parsing a rows query (`rows:{filters}` / `rows:segment{filters}`) —
+ * the third WQL family (ADR docs/adr/rows-query-plane.md, #949): raw
+ * output-statement rows re-derived from WorkoutResult logs, scoped by
+ * `result:` / `block:` / `note:`. Never aggregates — no by/rollup/where.
+ */
+export interface ParsedRowsQuery {
+  raw: string;
+  /** Family discriminator (the other families are told apart by 'target'/'agg'). */
+  family: 'rows';
+  /** Output-statement type narrowing from the optional target (`rows:segment{…}`); undefined = all types. */
+  outputType?: string;
+  filters: TagFilter[];
+  /** Time window over the workout end time: last 8w, last 4d. */
+  last?: { size: number; unit: 'd' | 'w' };
+  error?: string;
+}
 export interface Series { key: string; label: string; points: SeriesPoint[]; unit?: string }
 
 /** Aggregate head vocabulary is owned by src/parser/wql-vocabulary (#871). */
@@ -169,10 +192,76 @@ function parseJoinClause(where: string): { metric?: MetricPredicate; find?: Find
  * content path, everything else to analytics.
  */
 export function parseQuery(raw: string): AnyParsedQuery {
-  if (raw.trimStart().startsWith('find:')) {
+  const trimmed = raw.trimStart();
+  if (trimmed.startsWith('find:')) {
     return parseFindQuery(raw);
   }
+  if (/^rows(?=[:{]|\s|$)/.test(trimmed)) {
+    return parseRowsQuery(raw);
+  }
   return parseAnalyticsQuery(raw);
+}
+
+// ── Rows query parsing (#949) ────────────────────────────────────
+
+function cannotParseRows(text: string): string {
+  return `Cannot parse "${text}". Expected rows:{result:…|block:…|note:…} or rows:segment{…} last 8w`;
+}
+
+/**
+ * Parse a rows query. The head is JS-split (`rows` / `rows:<outputType>`);
+ * the `{filters}` half reuses the shared Lezer filter grammar by wrapping it
+ * in a synthetic find head — one filter syntax for all three families.
+ */
+function parseRowsQuery(raw: string): ParsedRowsQuery {
+  const suffixes = parseWqlSuffixes(raw);
+  const { where: whereText, last, groupBy, rollup, primaryText } = suffixes;
+  const result: ParsedRowsQuery = {
+    raw,
+    family: 'rows',
+    filters: [],
+    last: last ? { size: last.size, unit: last.unit } : undefined,
+  };
+  if (whereText || groupBy || rollup) {
+    result.error = `Rows queries return raw statements — no where / by / rollup. Got "${primaryText.trim()}"`;
+    return result;
+  }
+
+  const text = primaryText.trim();
+  const brace = text.indexOf('{');
+  const head = (brace === -1 ? text : text.slice(0, brace)).trim();
+  const filterText = brace === -1 ? '' : text.slice(brace).trim();
+
+  if (head === 'rows' || head === 'rows:') {
+    // Bare head (`rows:{…}`) — all output-statement types.
+  } else if (head.startsWith('rows:')) {
+    const target = head.slice('rows:'.length).trim();
+    if (!target || /\s/.test(target)) {
+      result.error = cannotParseRows(text);
+      return result;
+    }
+    result.outputType = target;
+  } else {
+    result.error = cannotParseRows(text);
+    return result;
+  }
+
+  if (filterText) {
+    if (!/^\{.*\}$/.test(filterText)) {
+      result.error = cannotParseRows(text);
+      return result;
+    }
+    const synthetic = `find:_${filterText}`;
+    const tree = wqlParser.parse(synthetic);
+    let syntaxError = false;
+    tree.iterate({ enter(node) { if (node.type.isError) syntaxError = true; } });
+    if (syntaxError) {
+      result.error = cannotParseRows(text);
+      return result;
+    }
+    result.filters = extractFilters(tree.topNode, synthetic);
+  }
+  return result;
 }
 
 /** Shared filter extraction from a Lezer Query top node. */

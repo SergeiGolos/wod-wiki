@@ -141,6 +141,7 @@ jobs:
   # deployed-preview e2e (inputs.run-e2e=false from main.yml).
   e2e:
     if: inputs.run-e2e
+    needs: [verify]
     runs-on: ubuntu-22.04
     outputs:
       e2e-status: ${{ steps.e2e.outcome }}
@@ -150,9 +151,15 @@ jobs:
       - name: Set up environment (Bun + caches + chromium)
         uses: ./.github/actions/setup-env
 
+      - name: Download playground dist (built by verify)
+        uses: actions/download-artifact@v7
+        with:
+          name: playground-dist
+          path: playground/dist/
+
       - name: Run live-app e2e
         id: e2e
-        run: bun x playwright test --config playwright.journal.config.ts
+        run: E2E_TARGET=preview bun x playwright test --config playwright.journal.config.ts
 
       - name: Upload e2e report
         uses: actions/upload-artifact@v7

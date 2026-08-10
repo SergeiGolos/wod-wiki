@@ -243,7 +243,6 @@ export function ScrollRunwaySection({
                     showLineNumbers={false}
                     enableOverlay={false}
                     enableInlineRuntime={false}
-                    forceFullscreenReview
                     className="h-full"
                   />
                   {slice.stage.toast && (

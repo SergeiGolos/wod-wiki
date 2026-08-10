@@ -9,7 +9,7 @@ import { describe, expect, it } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { parseQuery, isFindQuery } from '@/services/analytics/query';
+import { parseQuery, isFindQuery } from '@/services/analytics/query/wql';
 import { parseFrontmatter } from '@/lib/frontmatter';
 
 import { parseDashboardNote } from './parser';
@@ -22,54 +22,38 @@ describe('Dashboard Catalog seeds', () => {
   it('ships the six prebuilts from the prototype', () => {
     expect(seedFiles).toHaveLength(6);
   });
-
   for (const file of seedFiles) {
-    describe(file, () => {
+    it(`${file}: is valid dashboard note with parseable WQL and declared tokens`, () => {
       const raw = readFileSync(join(SEEDS_DIR, file), 'utf8');
       const { meta } = parseFrontmatter(raw);
       const { sections } = parseDashboardNote(raw);
       const doc = buildDashboardDocument(sections, meta);
 
-      it('is a dashboard note with a title', () => {
-        expect(doc.isDashboard).toBe(true);
-        expect(doc.title).toBeDefined();
-      });
+      expect(doc.isDashboard).toBe(true);
+      expect(doc.title).toBeDefined();
 
-      it('composes at least three widgets, all with titles', () => {
-        expect(doc.widgets.length).toBeGreaterThanOrEqual(3);
-        for (const widget of doc.widgets) {
-          expect(widget.title).toBeDefined();
+      expect(doc.widgets.length).toBeGreaterThanOrEqual(3);
+      for (const widget of doc.widgets) {
+        expect(widget.title).toBeDefined();
+        expect(isDashboardWidgetType(resolveWidgetType(widget.type))).toBe(true);
+
+        const { query } = splitWidgetBody(widget.body);
+        const parsed = parseQuery(query);
+        expect(parsed.error).toBeUndefined();
+        expect(isFindQuery(parsed)).toBe(false);
+      }
+
+      const declared = new Set(doc.tokens.map((t) => t.name));
+      for (const widget of doc.widgets) {
+        for (const ref of widget.query.matchAll(/\$([A-Za-z][\w-]*)/g)) {
+          expect(declared.has(ref[1])).toBe(true);
         }
-      });
-
-      it('uses only known widget types', () => {
-        for (const widget of doc.widgets) {
-          expect(isDashboardWidgetType(resolveWidgetType(widget.type))).toBe(true);
-        }
-      });
-
-      it('every widget body is parseable WQL (never a find: query)', () => {
-        for (const widget of doc.widgets) {
-          const { query } = splitWidgetBody(widget.body);
-          const parsed = parseQuery(query);
-          expect(parsed.error).toBeUndefined();
-          expect(isFindQuery(parsed)).toBe(false);
-        }
-      });
-
-      it('every $token referenced by a query is declared in frontmatter', () => {
-        const declared = new Set(doc.tokens.map((t) => t.name));
-        for (const widget of doc.widgets) {
-          for (const ref of widget.query.matchAll(/\$([A-Za-z][\w-]*)/g)) {
+        for (const param of widget.params) {
+          for (const ref of param.matchAll(/\$([A-Za-z][\w-]*)/g)) {
             expect(declared.has(ref[1])).toBe(true);
           }
-          for (const param of widget.params) {
-            for (const ref of param.matchAll(/\$([A-Za-z][\w-]*)/g)) {
-              expect(declared.has(ref[1])).toBe(true);
-            }
-          }
         }
-      });
+      }
     });
   }
 });

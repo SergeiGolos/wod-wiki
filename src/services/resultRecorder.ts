@@ -11,7 +11,7 @@ import { notePersistence } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';
 import type { ResultOrigin, WorkoutResult } from '@/types/storage';
 import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
-import { parseNoteId } from '../lib/noteIdentity';
+import { parseNoteId } from '@/lib/noteIdentity';
 
 /**
  * Writer port the Recorder needs.
@@ -39,8 +39,11 @@ export interface ResultWriter {
 }
 
 export interface RecordResultInput {
-  /** The block that was actually run — carries `contentId` + `content`. */
-  runBlock: ScriptBlock;
+  /** The block that was actually run — carries `contentId` + `content`.
+   * Optional: completion paths that cannot resolve the block (no editor
+   * section / stale session selection) fall back to `blockId` for identity,
+   * leaving `blockContentId` undefined rather than dropping the result. */
+  runBlock?: ScriptBlock | Pick<ScriptBlock, "id" | "contentId"> | null;
   /** Section position identity — which block in the note. */
   blockId: string;
   /** Canonical UUID of the owning Note. */
@@ -62,6 +65,25 @@ export interface RecordResultInput {
 export interface ResultRecorder {
   record(input: RecordResultInput): Promise<WorkoutResult>;
 }
+type ResultSavedListener = (result: WorkoutResult) => void;
+const resultSavedListeners = new Set<ResultSavedListener>();
+
+export function onResultSaved(listener: ResultSavedListener): () => void {
+  resultSavedListeners.add(listener);
+  return () => {
+    resultSavedListeners.delete(listener);
+  };
+}
+
+export function notifyResultSaved(result: WorkoutResult): void {
+  for (const listener of resultSavedListeners) {
+    try {
+      listener(result);
+    } catch (err) {
+      console.error('[resultRecorder] error in listener:', err);
+    }
+  }
+}
 
 /**
  * Build a Recorder over an injected writer. Tests pass a stub writer;
@@ -74,6 +96,8 @@ export function createResultRecorder(writer: ResultWriter): ResultRecorder {
       // The NoteSegment version is resolved at write time by the persistence
       // adapter (which owns content versioning) — no result pre-fetch needed.
       const resolvedOrigin = origin ?? (parseNoteId(noteId).kind === 'playground' ? 'playground' : 'journal');
+      const segmentId = runBlock?.id ?? blockId;
+      const blockContentId = runBlock?.contentId;
 
       // Delegate the write through the chosen writer (INotePersistence.mutateNote).
       // The writer routes through the adapter that backs it — IndexedDB-full for
@@ -84,8 +108,8 @@ export function createResultRecorder(writer: ResultWriter): ResultRecorder {
           workoutResult: {
             id: resultId,
             blockId,
-            blockContentId: runBlock.contentId,
-            segmentId: runBlock.id,
+            blockContentId,
+            segmentId,
             origin: resolvedOrigin,
             data,
             createdAt,
@@ -97,13 +121,14 @@ export function createResultRecorder(writer: ResultWriter): ResultRecorder {
       const result: WorkoutResult = {
         id: resultId,
         noteId,
-        segmentId: runBlock.id,
+        segmentId,
         blockId,
-        blockContentId: runBlock.contentId,
+        blockContentId,
         origin: resolvedOrigin,
         data,
         createdAt,
       };
+      notifyResultSaved(result);
       return result;
     },
   };

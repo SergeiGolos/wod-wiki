@@ -94,6 +94,12 @@ export class CalcEngine implements IRealtimeProcessor, ISummaryProcessor {
       if (discipline) effortTags.effortDiscipline = discipline;
       if (intensityTier) effortTags.effortIntensityTier = intensityTier;
     }
+    // Climb grade rides the annotation metadata too, so `calc.sends` facts
+    // persist a `grade` tag and WQL groups them `by {grade}`.
+    const climbGrade = [...output.metrics.rawMetrics].find((m) => m.type === 'climb-grade')?.value;
+    if (climbGrade && typeof climbGrade === 'object' && 'raw' in climbGrade) {
+      effortTags.grade = String((climbGrade as { raw: unknown }).raw);
+    }
 
     for (const def of this.segmentCalcs) {
       const ctx = this.makeContext(atoms);
@@ -444,6 +450,16 @@ function buildSegmentAtoms(output: IOutputStatement, lastEffortSlug?: string): A
   const resistance = amountOf(MetricType.Resistance);
   const effortData = extractEffortData(raw);
   const effortLabel = [...raw].reverse().find((m) => m.type === MetricType.Effort && typeof m.value === 'string');
+  // Climb send detection: a `climb-send-type` metric (onsight/flash/redpoint…)
+  // marks this segment as one completed send; the grade stars the fact row so
+  // WQL groups sends `by {grade}`. Metric type strings mirror ClimbMetricType
+  // (src/dialects/ClimbDialect) without a core→dialects dependency.
+  const climbSend = [...raw].some((m) => m.type === 'climb-send-type');
+  const climbGradeValue = [...raw].find((m) => m.type === 'climb-grade')?.value;
+  const climbGradeLabel =
+    climbGradeValue && typeof climbGradeValue === 'object' && 'raw' in climbGradeValue
+      ? String((climbGradeValue as { raw: unknown }).raw)
+      : undefined;
 
   return {
     resolveRef: (name) => {
@@ -452,6 +468,8 @@ function buildSegmentAtoms(output: IOutputStatement, lastEffortSlug?: string): A
         case 'elapsed': return elapsed === undefined ? ABSENT : num(elapsed, STREAM_ATOMS.elapsed.dim, 'ms');
         case 'distance': return distance === undefined ? ABSENT : num(distance.value, STREAM_ATOMS.distance.dim, distance.unit ?? 'm');
         case 'resistance': return resistance === undefined ? ABSENT : num(resistance.value, STREAM_ATOMS.resistance.dim, resistance.unit ?? 'kg');
+        case 'climbSend': return climbSend ? num(1, STREAM_ATOMS.reps.dim, 'count') : ABSENT;
+        case 'climbGrade': return climbGradeLabel ? str(climbGradeLabel) : ABSENT;
         case 'effort': {
           // Never absent: unresolved/never-seen effort resolves through the
           // effort table's default row (default MET, estimated) — the

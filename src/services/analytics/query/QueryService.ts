@@ -15,10 +15,11 @@
  */
 
 import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult } from '@/types/storage';
+import type { StoredOutputStatement } from '@/components/Editor/types';
 import { CompositeEffortRegistry, type IEffort } from '@/effort-registry';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { loadStaticBlockIndex, staticTagIndexFromBlocks } from '@/services/content/staticBlockIndex';
-import { parseQuery, isFindQuery, type Aggregator, type ComparisonOp, type ParsedQuery, type ParsedFindQuery, type FindPredicate, type MetricPredicate, type Series, type SeriesPoint, type TagFilter } from './wql';
+import { parseQuery, isFindQuery, isRowsQuery, type Aggregator, type ComparisonOp, type ParsedQuery, type ParsedFindQuery, type ParsedRowsQuery, type FindPredicate, type MetricPredicate, type Series, type SeriesPoint, type TagFilter } from './wql';
 import { convert, resolveDisplayUnit } from '../units';
 import { normalizeSummaryFacts } from '../workoutDerivation';
 
@@ -165,10 +166,16 @@ const indexedDbBlockStore: BlockQueryStore = {
  *  ("logs win", issue #800). */
 export interface ResultLogStore {
   getResultsByContentId(blockContentId: string): Promise<WorkoutResult[]>;
+  /** Rows plane (#949): single-result scope (`rows:{result:…}`). */
+  getResultById(resultId: string): Promise<WorkoutResult | undefined>;
+  /** Rows plane (#949): whole-note scope (`rows:{note:…}`). */
+  getResultsForNote(noteId: string): Promise<WorkoutResult[]>;
 }
 
 const indexedDbResultStore: ResultLogStore = {
   getResultsByContentId: (blockContentId) => indexedDBService.getResultsByContentId(blockContentId),
+  getResultById: (resultId) => indexedDBService.getResultById(resultId),
+  getResultsForNote: (noteId) => indexedDBService.getResultsForNote(noteId),
 };
 
 // Static block-index corpus lives behind the shared memoized loader in
@@ -274,6 +281,20 @@ export interface QueryResult {
   unit?: string;
 }
 
+/** One run in a rows result: the stored result plus the output statements
+ *  that survived the optional output-type narrowing (`rows:segment{…}`). */
+export interface RowsRun {
+  result: WorkoutResult;
+  logs: StoredOutputStatement[];
+}
+
+export interface RowsQueryResult {
+  parsed: ParsedRowsQuery;
+  /** Matching runs, newest first (workout end time). */
+  runs: RowsRun[];
+  error?: string;
+}
+
 /**
  * Tag value for a fact row. Tag keys map onto fact fields; 'tags' is the
  * note_tags label set of the parent note (loaded per query, only when used).
@@ -282,6 +303,7 @@ function factTagValue(row: AnalyticsDataPoint, key: string, noteTags: ReadonlyMa
   switch (key) {
     case 'effort': return row.effortSlug;
     case 'discipline': return row.discipline;
+    case 'grade': return row.grade;
     case 'intensity': return row.intensityTier;
     case 'note': return row.noteId;
     case 'page': return row.pageId;
@@ -390,7 +412,77 @@ export class QueryService {
         series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [],
       };
     }
+    if (isRowsQuery(parsed)) {
+      // Rows queries execute via runRows — this stub keeps generic
+      // runQuery callers (charts, dashboards) from crashing on the family.
+      return {
+        parsed: { raw, agg: 'count', metric: 'rows', filters: [], groupBy: [] },
+        series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [],
+      };
+    }
     return this.run(parsed, options);
+  }
+
+  /**
+   * Execute a rows query (rows:{…}, #949) — the session results table plane.
+   * Re-derives output statements from raw WorkoutResult logs through the
+   * ResultLogStore seam ("logs win" — facts are never read for this path).
+   * Scopes: `result:` (one session), `block:` (all versions of a Block
+   * Content Id), `note:` (a whole note); values OR within a key, scopes
+   * union across keys. Runs sort newest-first by workout end time.
+   */
+  async runRows(parsed: ParsedRowsQuery, options: { anchorNow?: number } = {}): Promise<RowsQueryResult> {
+    const empty: RowsQueryResult = { parsed, runs: [] };
+    if (parsed.error) return { ...empty, error: parsed.error };
+
+    const ROWS_SCOPE_KEYS = new Set(['result', 'block', 'note']);
+    const unsupported = parsed.filters.filter(
+      (f) => !ROWS_SCOPE_KEYS.has(f.key) || f.negate || f.values.some((v) => v.wildcard),
+    );
+    if (unsupported.length > 0) {
+      return {
+        ...empty,
+        error: `Unsupported rows filter(s): ${unsupported.map((f) => (f.negate ? '!' : '') + f.key).join(', ')}. Rows queries support exact result:, block:, note: values.`,
+      };
+    }
+    const scopeValues = (key: string) =>
+      parsed.filters.filter((f) => f.key === key).flatMap((f) => f.values.map((v) => v.value));
+    const resultIds = scopeValues('result');
+    const blockIds = scopeValues('block');
+    const noteIds = scopeValues('note');
+    if (resultIds.length + blockIds.length + noteIds.length === 0) {
+      return { ...empty, error: 'Rows query needs a scope: result:, block:, or note:.' };
+    }
+
+    const byId = new Map<string, WorkoutResult>();
+    for (const id of resultIds) {
+      const r = await this.resultStore.getResultById(id);
+      if (r) byId.set(r.id, r);
+    }
+    for (const blockContentId of blockIds) {
+      for (const r of await this.resultStore.getResultsByContentId(blockContentId)) byId.set(r.id, r);
+    }
+    for (const noteId of noteIds) {
+      for (const r of await this.resultStore.getResultsForNote(noteId)) byId.set(r.id, r);
+    }
+
+    let results = [...byId.values()].filter((r) => r.data?.logs?.length);
+    if (parsed.last) {
+      results = results.filter((r) =>
+        effectiveTimeWindow(r.data.endTime ?? r.createdAt ?? 0, parsed.last, undefined, options.anchorNow),
+      );
+    }
+    results.sort((a, b) => (b.data.endTime ?? b.createdAt) - (a.data.endTime ?? a.createdAt));
+
+    const runs = results
+      .map((result) => ({
+        result,
+        logs: parsed.outputType
+          ? result.data.logs!.filter((l) => l.outputType === parsed.outputType)
+          : result.data.logs!,
+      }))
+      .filter((run) => run.logs.length > 0);
+    return { parsed, runs };
   }
 
   /**

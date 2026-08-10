@@ -55,7 +55,7 @@ async function putResult(page: Page, row: Record<string, unknown>): Promise<void
 
 // ── Tests ───────────────────────────────────────────────────────────────────
 
-test.describe('Review Surface — /review/:runtimeId', () => {
+test.describe.skip('Review Surface — /review/:runtimeId (retired in #946 — rows query in explorer is the review now)', () => {
   const errors: string[] = [];
   test.setTimeout(120_000);
 

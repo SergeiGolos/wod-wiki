@@ -76,7 +76,7 @@ mock.module('../hooks/useTourScrollQuests', () => ({
   useTourScrollQuests: () => () => {},
 }))
 
-mock.module('../services/resultRecorder', () => ({
+mock.module('@/services/resultRecorder', () => ({
   playgroundRecorder: { record: async () => {} },
 }))
 
@@ -120,11 +120,13 @@ import { HomeTour } from './HomeTour'
 // ── IntersectionObserver stub — the test drives hero visibility ─────────────
 
 type IOCallback = (entries: Array<{ isIntersecting: boolean }>) => void
-let ioCallback: IOCallback | null = null
+let ioCallbacks: IOCallback[] = []
 
-function simulateHeroVisibility(visible: boolean) {
-  act(() => {
-    ioCallback?.([{ isIntersecting: visible }])
+async function simulateHeroVisibility(visible: boolean) {
+  await act(async () => {
+    for (const cb of ioCallbacks) {
+      cb([{ isIntersecting: visible } as IntersectionObserverEntry], {} as IntersectionObserver)
+    }
   })
 }
 
@@ -156,12 +158,12 @@ function seedShared(script: { content: string; by?: string }) {
 
 describe('HomeTour arrival & hero-reset contract', () => {
   beforeEach(() => {
-    ioCallback = null
+    ioCallbacks = []
     window.localStorage.clear()
 
     class MockIntersectionObserver {
       constructor(cb: IOCallback) {
-        ioCallback = cb
+        ioCallbacks.push(cb)
       }
       observe() {}
       unobserve() {}
@@ -252,11 +254,11 @@ describe('HomeTour arrival & hero-reset contract', () => {
     expect(heroEditor().value).toBe('MY EDITS')
 
     // Leaving the viewport alone does not reset.
-    simulateHeroVisibility(false)
+    await simulateHeroVisibility(false)
     expect(heroEditor().value).toBe('MY EDITS')
 
     // Re-entry resets, discarding the in-progress edits.
-    simulateHeroVisibility(true)
+    await simulateHeroVisibility(true)
     expect(heroEditor().value).toBe(WELCOME)
   })
 
@@ -267,7 +269,7 @@ describe('HomeTour arrival & hero-reset contract', () => {
     expect(heroEditor().value).toBe('MY EDITS')
 
     // The first observed entry is the arrival itself — not a re-entry.
-    simulateHeroVisibility(true)
+    await simulateHeroVisibility(true)
     expect(heroEditor().value).toBe('MY EDITS')
   })
 
@@ -277,8 +279,8 @@ describe('HomeTour arrival & hero-reset contract', () => {
     expect(heroEditor().value).toBe(SHARED)
 
     fireEvent.change(heroEditor(), { target: { value: 'MY EDITS' } })
-    simulateHeroVisibility(false)
-    simulateHeroVisibility(true)
+    await simulateHeroVisibility(false)
+    await simulateHeroVisibility(true)
     expect(heroEditor().value).toBe(SHARED)
   })
 

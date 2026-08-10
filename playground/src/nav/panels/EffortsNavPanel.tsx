@@ -18,7 +18,7 @@ import type { WorkoutResult } from '@/types/storage';
 import type { StoredOutputStatement } from '@/components/Editor/types';
 import { MetricType } from '@/core/models/Metric';
 import { journalEntryPath } from '../../lib/routes';
-import { parseNoteId } from '../../lib/noteIdentity';
+import { parseNoteId } from '@/lib/noteIdentity';
 import { formatDateMedium } from '@/lib/dateFormat';
 import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 

@@ -256,7 +256,7 @@ describe('workbenchSessionStore', () => {
     expect(provider.updated.length).toBe(1);
   });
 
-  it('completeWorkout calls mutateNote with analytics + emits a goToReview intent', async () => {
+  it('completeWorkout calls mutateNote with analytics (#946: no review intent)', async () => {
     const store = createWorkbenchSessionStore({
       nowProvider: now,
       notePersistence,
@@ -315,12 +315,70 @@ describe('workbenchSessionStore', () => {
     // mints it and passes it through.
     expect(call.mutation.workoutResult?.id).toBe(resultId);
 
-    expect(intents.length).toBe(1);
-    const intent = intents[0] as { type: string };
-    expect(intent.type).toBe('goToReview');
+    expect(intents.length).toBe(0);
 
     expect(store.getState().results.length).toBe(1);
     expect(store.getState().results[0]).toEqual(result);
+  });
+  it('completeWorkout records the editor-supplied block when selectedBlock is unset (inline run)', async () => {
+    const store = createWorkbenchSessionStore({
+      nowProvider: now,
+      notePersistence,
+      provider,
+      setTimeout: timer.setTimeoutFn,
+      clearTimeout: timer.clearTimeoutFn,
+      navigate: () => undefined,
+    });
+
+    const entry = makeEntry({ id: 'note-inline' });
+    notePersistence.seed(entry);
+    store.setState({ currentEntry: entry });
+    // Simulate an inline NoteEditor run: no selectedBlock is ever set.
+    expect(store.getState().selectedBlock).toBeNull();
+
+    const result: WorkoutResults = {
+      startTime: 1, endTime: 2, duration: 1, completed: true,
+    };
+    const resultId = await store.getState().completeWorkout(
+      result,
+      'run-editor-1',
+      { id: 'wod-5', contentId: 'bc-wod5' },
+    );
+    expect(resultId).toBe('run-editor-1');
+
+    const call = notePersistence.mutated.at(-1)!;
+    expect(call.mutation.workoutResult).toMatchObject({
+      id: 'run-editor-1',
+      blockId: 'wod-5',
+      blockContentId: 'bc-wod5',
+      segmentId: 'wod-5',
+    });
+  });
+  it('completeWorkout degrades to blockId identity instead of crashing when no block is resolvable', async () => {
+    const store = createWorkbenchSessionStore({
+      nowProvider: now,
+      notePersistence,
+      provider,
+      setTimeout: timer.setTimeoutFn,
+      clearTimeout: timer.clearTimeoutFn,
+      navigate: () => undefined,
+    });
+
+    const entry = makeEntry({ id: 'note-orphan' });
+    notePersistence.seed(entry);
+    store.setState({ currentEntry: entry });
+
+    const result: WorkoutResults = {
+      startTime: 1, endTime: 2, duration: 1, completed: true,
+    };
+    const resultId = await store.getState().completeWorkout(result, 'run-orphan-1');
+    expect(resultId).toBe('run-orphan-1');
+
+    const call = notePersistence.mutated.find(
+      (c) => (c.mutation.workoutResult?.id ?? '') === 'run-orphan-1',
+    )!;
+    expect(call.mutation.workoutResult?.blockContentId).toBeUndefined();
+    expect(call.mutation.workoutResult?.segmentId).toBe('');
   });
   it('loadEntry populates content + currentEntry', async () => {
     const store = createWorkbenchSessionStore({

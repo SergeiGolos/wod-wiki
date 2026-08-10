@@ -64,11 +64,12 @@ export function rollupFactId(metricKey: string, day: number): string {
   return `rollup:${metricKey}:${day}`;
 }
 
-/** Every WQL metric referenced by the store calcs (pre-fetch set). */
-function wqlMetrics(defs: CalculationDefinition[]): string[] {
-  const metrics = new Set<string>();
+/** Every WQL selection in the store calcs (pre-fetch set), keyed distinctly
+ *  by metric + filters + aggregator. */
+function wqlSelections(defs: CalculationDefinition[]): Extract<ExprNode, { kind: 'wql' }>[] {
+  const selections = new Map<string, Extract<ExprNode, { kind: 'wql' }>>();
   const walk = (node: ExprNode): void => {
-    if (node.kind === 'wql') metrics.add(node.metric);
+    if (node.kind === 'wql') selections.set(`${node.metric}|${node.filters ?? ''}|${node.aggregator}`, node);
     if (node.kind === 'call') node.args.forEach(walk);
     if (node.kind === 'binary') {
       walk(node.left);
@@ -83,21 +84,43 @@ function wqlMetrics(defs: CalculationDefinition[]): string[] {
       }
     }
   }
-  return [...metrics];
+  return [...selections.values()];
+}
+
+/** Minimal `key:value` filter over fact rows (discipline/effort/grain/origin).
+ *  Seed WQL filters are a raw brace string (`discipline:running,effort:run`); 
+ *  comma-separated, ANDed, single-value per key. */
+function matchesSelectionFilters(fact: AnalyticsDataPoint, filters: string | undefined): boolean {
+  if (!filters) return true;
+  for (const clause of filters.split(',')) {
+    const [key, value] = clause.split(':').map((s) => s.trim());
+    if (!key || !value) continue;
+    const actual =
+      key === 'discipline' ? fact.discipline
+      : key === 'effort' ? fact.effortSlug
+      : key === 'grain' ? fact.grain
+      : key === 'origin' ? fact.origin
+      : undefined;
+    if (actual !== value) return false;
+  }
+  return true;
 }
 
 /**
- * Resolve a grouped WQL selection to a series: facts for the metric
- * (excluding rollup rows), summed into LOCAL day buckets (parity with
- * workloadRollup), domain zero-filled from the first load day through
- * `throughDay` so trailing windows decay exactly like the reference math.
+ * Resolve a WQL selection to a series: facts for the metric (excluding rollup
+ * rows, filtered by the selection's braces), aggregated into LOCAL day
+ * buckets (sum by default; count for count: selections), domain zero-filled
+ * from the first load day through `throughDay` so trailing windows decay
+ * exactly like the reference math.
  */
-function selectionToSeries(facts: AnalyticsDataPoint[], throughDay: number): Val {
+function selectionToSeries(facts: AnalyticsDataPoint[], throughDay: number, wql?: { aggregator?: string; filters?: string }): Val {
   const loads = new Map<number, number>();
   for (const fact of facts) {
     if (fact.grain === 'rollup' || typeof fact.value !== 'number') continue;
+    if (!matchesSelectionFilters(fact, wql?.filters)) continue;
     const day = dayBucket(fact.timestamp);
-    loads.set(day, (loads.get(day) ?? 0) + fact.value);
+    const contribution = wql?.aggregator === 'count' ? 1 : fact.value;
+    loads.set(day, (loads.get(day) ?? 0) + contribution);
   }
   if (loads.size === 0) return { kind: 'series', points: new Map(), dim: DIM_ZERO, unit: 'AU' };
   const firstDay = Math.min(...loads.keys());
@@ -123,9 +146,12 @@ export async function runStoreRollup(
   for (const def of defs) registry.register(def);
 
   // Pre-fetch every WQL selection's facts, then evaluate synchronously.
-  const seriesByMetric = new Map<string, Val>();
-  for (const metric of wqlMetrics(defs)) {
-    seriesByMetric.set(metric, selectionToSeries(await store.getFactsByMetric(metric), throughDay));
+  const seriesBySelection = new Map<string, Val>();
+  for (const sel of wqlSelections(defs)) {
+    seriesBySelection.set(
+      `${sel.metric}|${sel.filters ?? ''}|${sel.aggregator}`,
+      selectionToSeries(await store.getFactsByMetric(sel.metric), throughDay, sel),
+    );
   }
 
   const desired: AnalyticsDataPoint[] = [];
@@ -142,14 +168,14 @@ export async function runStoreRollup(
         if (!node?.ast) return ABSENT;
         const value = evaluate(node.ast, {
           resolveRef: (name) => resolveNode(name),
-          resolveWql: (wql) => seriesByMetric.get(wql.metric) ?? ABSENT,
+          resolveWql: (wql) => seriesBySelection.get(`${wql.metric}|${wql.filters ?? ''}|${wql.aggregator}`) ?? ABSENT,
         });
         memo.set(nodeId, value);
         return value;
       };
       const ctx = {
         resolveRef: (name: string) => resolveNode(name),
-        resolveWql: (wql: Extract<ExprNode, { kind: 'wql' }>) => seriesByMetric.get(wql.metric) ?? ABSENT,
+        resolveWql: (wql: Extract<ExprNode, { kind: 'wql' }>) => seriesBySelection.get(`${wql.metric}|${wql.filters ?? ''}|${wql.aggregator}`) ?? ABSENT,
       };
       if (variant.whenAst && !truthy(evaluate(variant.whenAst, ctx))) continue;
 

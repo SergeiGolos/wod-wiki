@@ -138,6 +138,13 @@ The Datadog-flavored query language for cross-workout analytics:
 Parsed with a Lezer grammar (house pattern) and executed by the **Query Service**
 over the **Analytics Store**. Metric namespaces build on **Canonical Metric Keys**.
 _Avoid_: query string, analytics SQL.
+**Rows Query**:
+The third **WQL** family — `rows:{<tag filters>}` (optional output-type target:
+`rows:segment{…}`) — returning raw output-statement rows for one scope instead of
+aggregated series. Scoped by `result:` (one session), `block:` (all versions of a
+**Block Content Id**), or `note:` (a whole note). Backs the session results table:
+the per-round wide view the aggregate families cannot express.
+_Avoid_: logs query, raw query, segment dump.
 **Tag**:
 A `key:value` dimension carried on an **Analytics Store** fact row (`effort`,
 `discipline`, `note`, …) that **WQL** filters and groups by. Tags are query-time
@@ -266,9 +273,9 @@ _Avoid_: bridge (cast-specific legacy), effects hook (too generic).
 ### Identity & result recording
 
 **Note Identity (NoteRef)**:
-A typed, routable reference to a note — `{ kind: 'journal' | 'playground' | 'workout'; id; raw }`. A note's canonical storage identity is its **UUID** (`Note.id`); that UUID is what **Blocks**, **WorkoutResults**, and cross-note references point to. `raw` is the **Slug** — routing sugar resolved to the UUID on load, never the storage or join key. `parseNoteId` / `noteRefToPath` are the single home for the composite-id parse and the kind→route rule.
+A typed, routable reference to a note — `{ kind: 'journal' | 'playground' | 'workout'; id; raw }`. A note's canonical storage identity is its **UUID** (`Note.id`); that UUID is what **Blocks**, **WorkoutResults**, and cross-note references point to. `raw` is the **Slug** — routing sugar resolved to the UUID on load, never the storage or join key. `parseNoteId` / `noteRefToPath` are the single home for the composite-id parse and the kind→route rule — split at their natural seam: the parse (`parseNoteId`, `NoteRef`) is pure string projection and lives in the library; the route rule (`noteRefToPath`) needs the app route table and lives in the playground.
 _Avoid_: note id (overloaded), note ref (informal).
-`playground/src/lib/noteIdentity.ts` — `parseNoteId`, `noteRefToPath`.
+`src/lib/noteIdentity.ts` — `parseNoteId`, `NoteRef`, `NoteKind`. `playground/src/lib/noteIdentity.ts` — `noteRefToPath`.
 
 **Slug**:
 The routing-sugar string for a **Note** (`journal/2024-01-15`, a collection id) — what appears in the URL and what a user types. Distinct from the note's **UUID**: the slug resolves to the UUID on load and is never a storage or join key.
@@ -306,9 +313,9 @@ A bundled markdown directory of workout items under one slug
 _Avoid_: loader, bundle directory.
 
 **Result Recorder**:
-The single playground seam for persisting a **WorkoutResult**. Owns identity resolution (noteId from a **Note Identity**, blockContentId from the run block, sectionId resolved against the destination note's blocks) and the write — replacing the per-page ad-hoc `saveResult` / `mutateNote` calls that each re-derived identity from scratch. Built by `createResultRecorder(sink)` (testable with an in-memory sink); `playgroundRecorder` is the production instance over the **Storage** `results` store.
+The single seam for persisting a **WorkoutResult**. Owns identity resolution (noteId from a **Note Identity**, blockContentId from the run block, sectionId resolved against the destination note's blocks) and the write — replacing the per-page ad-hoc `saveResult` / `mutateNote` calls that each re-derived identity from scratch. Built by `createResultRecorder(sink)` (testable with an in-memory sink); `playgroundRecorder` is the production instance over the **Storage** `results` store. Lives in the library: its ports (`INotePersistence`, storage types) are library-level and the **Workbench Session** (also library) routes through it — playground is a consumer.
 _Avoid_: result service, result saver (too generic).
-`playground/src/services/resultRecorder.ts`.
+`src/services/resultRecorder.ts`.
 
 **WQL Composer Panel**:
 The Library's sticky search header (component `WqlComposerPanel`) that composes a WQL query from three categories of controls: (a) three **Source Tri-State Toggles** (Note / Session / Post), each cycling `neutral → include-only → hide → neutral` with **at most one source in `include-only` at a time**; (b) a free-text input that emits `{text:<q>}` substring filter; (c) a Datadog-style time-range selector (presets `last 1d / 3d / 1w / 2w / 4w / 12w / 26w / 52w` plus a **Custom** range). Plus an `+ Add filter` menu that emits additional WQL filter chips (catalog, tag, effort, discipline). The panel renders a live preview of the resulting WQL string. The hand-edited raw composer is a separate, debug-gated field; when visible (under `useDebugMode()`), it round-trips with the panel state — the WQL string is parsed back into the toggles, time range, and filter chips on every edit, and any toggle edit re-emits the string. Distinct from the Analytics Explorer's existing `parseQuery` editor — the panel is content-query-only.
@@ -434,7 +441,10 @@ _Avoid_: scroll hook, scroll spy (that's reading-zone geometry).
   (on close)`. The deployed-artifact e2e publishes its Playwright HTML
   report to `s3://<bucket>/<slug>/e2e-report/` — browsable at
   `https://<slug>.e2e.wod.wiki` and linked from the job's step summary and
-  the PR preview comment.
+  the PR preview comment. **Scoped to PRs whose base is `main`** — a
+  `main → prod` promotion PR is covered by CI – Main on the same SHA, and
+  its head-branch slug is `main`, so its preview would race (and destroy
+  would delete) the site job's `main/` S3 prefixes.
 - **Main pipeline** — `main.yml`. The one graph per merge:
   `verify (no e2e, no smoke build) → release (Pages + tag + smoke e2e)` and
   `verify → site (S3 deploy) → e2e (deployed-artifact e2e in
@@ -445,3 +455,55 @@ _Avoid_: scroll hook, scroll spy (that's reading-zone geometry).
   `index.html` references it, so tests never race a stale CloudFront cache.
 - npm publication is gated behind the `NPM_PUBLISH_ENABLED` repo var
   (WOD-436); the library build and its artifact exist only when it is set.
+
+## Packages (the 5-way split)
+
+The system decomposes into five packages whose dependency graph is one-way
+(no cross-domain cycles). Each seam is DAG-forced — the dependency direction
+pins what lives where, not taste. Companion execution map:
+[`docs/wayfinder/split-into-packages.md`](./docs/wayfinder/split-into-packages.md).
+
+- **wod-wiki-core** — the shared data vocabulary every other package depends on.
+  Owns the `Metric` model (`Metric`/`MetricType`/`Origin`/`MetricAction`),
+  `MetricContainer` + the **ownership** ledger/resolver it holds,
+  `CodeStatement`/`ICodeStatement`, `OutputStatement`/`IOutputStatement`,
+  `IMetricSource`, pure `TimeSpan`, and the persistence shapes
+  (`StoredOutputStatement` shape, `WorkoutResults`, `Note`, `WorkoutResult`,
+  `BlockIndexRow`, `AnalyticsDataPoint`). Type **shapes** only — the live→stored
+  converter (`toStoredOutputStatement`) stays in lang because it needs hint logic.
+  _Forcing_: ownership is pinned by `MetricContainer`; the shapes are read by lang
+  (derivation), wql (query), and playground (persistence) alike.
+- **wod-wiki-lang** — parse → compile → execute → analytics-generation. Owns the
+  Whiteboard grammar + parser pipeline, CodeMirror `whiteboard-script-language`,
+  the Dialect Stack + sport dialects + Unit Registry/fusion, the concrete metric
+  classes, the JIT compiler + execution stack + behaviors, and the analytics
+  engine + CalcEngine (generation runs inside execution turns via
+  `setAnalyticsEngine`). The **hint protocol** (`CONSUMED_HINTS`) and
+  `IAnalyticsEngine` are lang-internal — both emitter and consumer live here.
+  Keeps an **internal parse↔execute seam** (separate tests + storybook sections);
+  React hooks and the execution entry live behind a sub-export so pure-TS
+  consumers (lint, parse-output stories) don't drag them. Depends on core.
+- **wod-wiki-wql** — pure query over stored analytics facts. Owns the WQL grammar
+  + AST (`parseQuery`/`isFindQuery`/`isRowsQuery`), `wql-vocabulary`, CodeMirror
+  `wql-language`, `QueryService` over injectable store interfaces
+  (`FactQueryStore`/`NoteQueryStore`/`BlockQueryStore`/`EffortQueryStore`/
+  `ResultLogStore`), and rollup math. Does NOT depend on lang — it reads the fact
+  rows lang writes, through the store seam. Its calc-target vocabulary mirrors
+  lang's CalcEngine seeds; alignment is enforced by a cross-package test.
+  Depends on core.
+- **wod-wiki-sources** — the `markdown/` collections/feeds/efforts/dashboards data
+  + a parser-only lint CLI (validates fences via wod-wiki-lang) + the
+  collection→index build. Owns its own GitHub Pages deploy + CI, outside the
+  playground cycle. Depends on core, lang.
+- **playground** — the consumer UI: components, panels, hooks, persistence wiring
+  (incl. the derivation/replay caller), cast, app, stories. Pulls sources' index at
+  build time. Depends on core, lang, wql.
+
+**Dialect Registry** — when built (per
+[`dialect-block-alignment.md`](./docs/adr/dialect-block-alignment.md)), shaped as a
+**tag-identity registry** (tags + aliases + runnable flag) in core, with each
+package contributing its own override slice keyed off the tag (lang: analyzer +
+language + analytics processors; playground: editorExtensions). Preserves the ADR's
+single-source-of-truth without a package reaching across for another's concern.
+_Avoid_: god-descriptor (a single registry object importing every package's
+overrides — re-fragments under the split).

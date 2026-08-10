@@ -24,7 +24,7 @@ import {
 import { resolveSource } from '../canvas/canvasUtils'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { createJournalNoteFromWorkout } from '../services/journalWorkout'
-import { playgroundRecorder } from '../services/resultRecorder'
+import { playgroundRecorder } from '@/services/resultRecorder'
 import { NextEvent } from '@/runtime/events/NextEvent'
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
@@ -36,7 +36,6 @@ import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
 import { useRunStartedChallenge } from '../hooks/useRunStartedChallenge'
 import { useTourScrollQuests } from '../hooks/useTourScrollQuests'
 import { useIsMobile } from '../hooks/useIsMobile'
-import type { FullscreenState } from '../hooks/useCanvasRuntime'
 import {
   RingTargetsProvider,
   TourRing,
@@ -333,9 +332,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
     initialSource: initialContent,
     currentSource: heroDoc,
   })
-  const questFullscreen: FullscreenState =
-    session != null ? { kind: 'review', segments: session.segments, results: session.results } : null
-  useCompletionChallenge({ pageRoute: '/', quests, fullscreen: questFullscreen })
+  useCompletionChallenge({ pageRoute: '/', quests, completedResults: session?.results ?? null })
 
   const markStageViewed = useTourScrollQuests('/', quests)
   useEffect(() => {

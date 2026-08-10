@@ -152,10 +152,12 @@ describe('DashboardView', () => {
   });
 
   it('renders proposed metrics with a ProposedMetricBadge (#901)', async () => {
-    const doc = makeDocument([query('avg:calc.readiness{}', { widgetType: 'value' })]);
+    // calc.pmc is the only remaining proposed calc metric (the composite
+    // PMC series — ctl/atl/tsb ship individually instead, #905).
+    const doc = makeDocument([query('avg:calc.pmc{}', { widgetType: 'value' })]);
     render(<DashboardView document={doc} />);
     await waitFor(() => expect(screen.getByTestId('widget-proposed-metric')).toBeTruthy());
-    expect(screen.getByTestId('widget-proposed-metric').textContent).toContain('calc.readiness');
+    expect(screen.getByTestId('widget-proposed-metric').textContent).toContain('calc.pmc');
   });
 
   it('applies span classes from the fence suffix', async () => {

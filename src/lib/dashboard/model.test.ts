@@ -80,9 +80,9 @@ describe('isDashboardWidgetType', () => {
 
 describe('isProposedMetric', () => {
   it('identifies proposed calc.* metrics', () => {
-    expect(isProposedMetric('calc.readiness')).toBe(true);
-    expect(isProposedMetric('calc.mvcBw')).toBe(true);
-    expect(isProposedMetric('calc.hrv')).toBe(true);
+    // No wellness-capture path exists for these yet — they stay proposed
+    // until a capture surface lands.
+    expect(isProposedMetric('calc.pmc')).toBe(true);
   });
 
   it('returns false for supported calc.* metrics', () => {
@@ -93,9 +93,15 @@ describe('isProposedMetric', () => {
     expect(isProposedMetric('calc.ctl')).toBe(false);
     expect(isProposedMetric('calc.atl')).toBe(false);
     expect(isProposedMetric('calc.tsb')).toBe(false);
-    // The composite PMC series stays proposed — one scalar key per store
-    // calc (#905), so ctl/atl/tsb ship instead of calc.pmc.
-    expect(isProposedMetric('calc.pmc')).toBe(true);
+    expect(isProposedMetric('calc.soreness')).toBe(false);
+    expect(isProposedMetric('calc.sleep')).toBe(false);
+    expect(isProposedMetric('calc.hrv')).toBe(false);
+    expect(isProposedMetric('calc.readiness')).toBe(false);
+    expect(isProposedMetric('calc.mvcBw')).toBe(false);
+    expect(isProposedMetric('calc.ef')).toBe(false);
+    expect(isProposedMetric('calc.adherence')).toBe(false);
+    expect(isProposedMetric('calc.pct1rm')).toBe(false);
+    expect(isProposedMetric('calc.sends')).toBe(false);
   });
 
   it('returns false for standard non-calc metrics or empty', () => {

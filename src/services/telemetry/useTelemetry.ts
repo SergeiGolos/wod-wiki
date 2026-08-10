@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react';
-import { telemetry } from './index';
+import { telemetry } from './TelemetryService';
 
 /**
  * React seam over the telemetry singleton: `track` for components,

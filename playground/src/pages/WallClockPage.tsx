@@ -8,10 +8,10 @@
 
 import { useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { reviewPath } from '../lib/routes'
-import { parseNoteId, noteRefToPath } from '../lib/noteIdentity'
+import { parseNoteId } from '@/lib/noteIdentity'
+import { noteRefToPath } from '../lib/noteIdentity'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
-import { playgroundRecorder } from '../services/resultRecorder'
+import { playgroundRecorder } from '@/services/resultRecorder'
 import { pendingRuntimes } from '../runtimeStore'
 
 export function WallClockPage() {
@@ -38,7 +38,8 @@ export function WallClockPage() {
         createdAt: results.endTime || Date.now(),
       }).then(() => {
         if (results.completed) {
-          navigate(reviewPath(runtimeId), { replace: true })
+          // #946: the explorer with the session rows query is the review.
+          navigate(`/dashboard?q=${encodeURIComponent(`rows:{result:${runtimeId}}`)}`, { replace: true })
         }
       }).catch(() => {})
     },

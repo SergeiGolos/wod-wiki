@@ -158,7 +158,6 @@ export function RunwayMobile({ spec, wodFiles, theme, noteTitle, doc: controlled
                 showLineNumbers={false}
                 enableOverlay={false}
                 enableInlineRuntime={false}
-                forceFullscreenReview
                 className="h-full"
               />
             </MacOSChrome>

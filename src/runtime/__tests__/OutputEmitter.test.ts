@@ -286,6 +286,83 @@ describe('OutputEmitter — finalizeAnalytics', () => {
     });
 });
 
+// ── ephemeral live analytics ─────────────────────────────────────────────────
+
+describe('OutputEmitter — ephemeral live analytics', () => {
+    /** Build an engine that captures the live-emitter sink for manual firing. */
+    function makeCapturingEngine(finalizeReturn: IOutputStatement[] = []) {
+        let sink: ((outputs: IOutputStatement[]) => void) | null = null;
+        const engine: IAnalyticsEngine = {
+            addRealtimeProcessor: () => {},
+            addSummaryProcessor: () => {},
+            run: vi.fn().mockImplementation(o => o),
+            finalize: vi.fn().mockReturnValue(finalizeReturn),
+            setLiveOutputEmitter: (s) => { sink = s; },
+        };
+        return { engine, fire: (out: IOutputStatement[]) => (sink!)(out) };
+    }
+
+    it('live analytics snapshot is display-only and never buffered', () => {
+        const emitter = new OutputEmitter();
+        const { engine, fire } = makeCapturingEngine();
+        emitter.setAnalyticsEngine(engine);
+
+        const liveOutput = makeOutput('analytics');
+        fire([liveOutput]);
+
+        // Readable for live display...
+        expect(emitter.getLiveAnalytics()).toEqual([liveOutput]);
+        // ...but never reaches the persisted buffer.
+        expect(emitter.getAll()).toHaveLength(0);
+    });
+
+    it('finalize materializes only the final values and clears the snapshot', () => {
+        const emitter = new OutputEmitter();
+        const finalOutput = makeOutput('analytics');
+        const { engine, fire } = makeCapturingEngine([finalOutput]);
+        emitter.setAnalyticsEngine(engine);
+
+        fire([makeOutput('analytics')]); // a mid-session running-total snapshot
+        expect(emitter.getAll()).toHaveLength(0);
+
+        emitter.finalizeAnalytics();
+
+        expect(emitter.getAll()).toEqual([finalOutput]);
+        expect(emitter.getLiveAnalytics()).toHaveLength(0);
+    });
+
+    it('finalize persists the live snapshot when the engine reports no change', () => {
+        const emitter = new OutputEmitter();
+        // finalize() returns [] when projections are unchanged since the last
+        // live emission — the live snapshot then holds the final values.
+        const { engine, fire } = makeCapturingEngine([]);
+        emitter.setAnalyticsEngine(engine);
+
+        const liveOutput = makeOutput('analytics');
+        fire([liveOutput]);
+
+        const results = emitter.finalizeAnalytics();
+
+        expect(results).toEqual([liveOutput]);
+        expect(emitter.getAll()).toEqual([liveOutput]);
+    });
+
+    it('live analytics fan out to subscribers as a change signal', () => {
+        const emitter = new OutputEmitter();
+        const { engine, fire } = makeCapturingEngine();
+        emitter.setAnalyticsEngine(engine);
+
+        const received: IOutputStatement[] = [];
+        emitter.subscribe(o => received.push(o));
+
+        const a = makeOutput('analytics');
+        const b = makeOutput('analytics');
+        fire([a, b]);
+
+        expect(received).toEqual([a, b]);
+    });
+});
+
 // ── dispose ──────────────────────────────────────────────────────────────────
 
 describe('OutputEmitter — dispose', () => {

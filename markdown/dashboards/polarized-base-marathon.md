@@ -11,8 +11,7 @@ tags:
 Endurance prebuilt — training-load context from calc.ctl / calc.atl /
 calc.tsb (#905, EWMA over session load), the 80/20 intensity split, and
 ACWR. The composite PMC chart widget is deferred (widget library map); the
-three loads read as value widgets here. Efficiency factor is a proposed
-metric and renders as a labeled placeholder.
+three loads read as value widgets here.
 
 ## Fitness (CTL)
 42-day chronic load — is base fitness rising?
@@ -34,6 +33,9 @@ In the −10…−30 training pocket?
 ```query:value
 last:calc.tsb{}
 ```
+
+## Efficiency factor (calc.ef) is live: running pace ÷ captured avg HR
+(capture `hr: <bpm>` in a ```wellness fence on run days).
 
 ## Intensity distribution
 Actually 80/20 — or stuck in the grey zone?
@@ -67,5 +69,5 @@ max:totalDistance{discipline:running}
 More speed per unit of effort?
 
 ```query:value
-avg:calc.ef{discipline:running}
+avg:calc.ef{}
 ```

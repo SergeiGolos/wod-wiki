@@ -150,6 +150,10 @@ export interface NotePersistenceStorage {
   saveAnalyticsPoints(points: AnalyticsDataPoint[]): Promise<void>;
   /** Delete all fact rows for one result (replay/re-derivation cascade). */
   deleteAnalyticsPointsForResult?(resultId: string): Promise<void>;
+  /** Fact reads/writes for wellness capture (```wellness fences). Absent on
+   *  narrow test fakes — wellness capture skips when unavailable. */
+  getFactsByMetric?(metricKey: string): Promise<AnalyticsDataPoint[]>;
+  deleteAnalyticsPoints?(ids: string[]): Promise<void>;
 }
 
 export type { HistoryEntry, Attachment, AnalyticsDataPoint, WorkoutResult };

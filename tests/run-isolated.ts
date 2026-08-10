@@ -17,11 +17,21 @@
  */
 import { Glob } from 'bun';
 import { resolve } from 'path';
+import os from 'os';
 
 const args = process.argv.slice(2);
-const dir = args.find((a) => !a.startsWith('--')) ?? './playground/src';
-const preloadIdx = args.indexOf('--preload');
-const preload = preloadIdx >= 0 ? args[preloadIdx + 1] : './tests/unit-setup.ts';
+let preload = './tests/unit-setup.ts';
+let dir = '';
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--preload' && i + 1 < args.length) {
+    preload = args[i + 1];
+    i++;
+  } else if (!args[i].startsWith('--')) {
+    dir = args[i];
+  }
+}
+if (!dir) dir = './playground/src';
 
 const glob = new Glob('**/*.{test,spec}.{ts,tsx}');
 const files: string[] = [];
@@ -33,52 +43,75 @@ if (files.length === 0) {
   process.exit(1);
 }
 
-console.log(`Running ${files.length} test file(s) in isolated processes (preload: ${preload})\n`);
+const concurrency = Math.max(2, Math.min(16, os.cpus().length || 4));
+console.log(`Running ${files.length} test file(s) in isolated processes (${concurrency} parallel workers, preload: ${preload})\n`);
 
 let totalPass = 0;
 let totalFail = 0;
 let totalSkip = 0;
 const failedFiles: string[] = [];
-
 const countRe = /^\s*(\d+)\s+(pass|fail|skip)\s*$/;
 
-for (const file of files) {
-  const rel = file.replace(resolve(process.cwd()) + '/', '');
-  const proc = Bun.spawnSync(['bun', 'test', file, '--preload', preload], {
-    stdout: 'pipe',
-    stderr: 'pipe',
-    env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
-  });
+let fileIndex = 0;
+async function worker() {
+  while (fileIndex < files.length) {
+    const idx = fileIndex++;
+    const file = files[idx];
+    const rel = file.replace(resolve(process.cwd()) + '/', '');
+    const proc = Bun.spawn(['bun', 'test', file, '--preload', preload], {
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+    });
 
-  // Strip ANSI so the `N pass` / `N fail` summary lines parse reliably.
-  const raw = proc.stdout.toString() + proc.stderr.toString();
-  const out = raw.replace(/\x1b\[[0-9;]*m/g, '');
-  let pass = 0;
-  let fail = 0;
-  let skip = 0;
-  for (const line of out.split('\n')) {
-    const m = line.match(countRe);
-    if (!m) continue;
-    const n = Number(m[1]);
-    if (m[2] === 'pass') pass = n;
-    else if (m[2] === 'fail') fail = n;
-    else if (m[2] === 'skip') skip = n;
-  }
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<{ stdout: string; stderr: string; exitCode: number }>((res) => {
+      timeoutHandle = setTimeout(() => {
+        try { proc.kill(); } catch {}
+        res({ stdout: '', stderr: `Test timed out after 45 seconds: ${rel}`, exitCode: 1 });
+      }, 45_000);
+    });
 
-  totalPass += pass;
-  totalFail += fail;
-  totalSkip += skip;
+    const runPromise = Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ]).then(([stdout, stderr, exitCode]) => {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      return { stdout, stderr, exitCode };
+    });
 
-  const ok = proc.exitCode === 0 && fail === 0;
-  const status = ok ? '\x1b[32mPASS\x1b[0m' : '\x1b[31mFAIL\x1b[0m';
-  console.log(`${status}  ${rel}  (${pass} pass, ${fail} fail${skip ? `, ${skip} skip` : ''})`);
+    const { stdout, stderr, exitCode } = await Promise.race([runPromise, timeoutPromise]);
+    const raw = stdout + stderr;
+    const out = raw.replace(/\x1b\[[0-9;]*m/g, '');
+    let pass = 0;
+    let fail = 0;
+    let skip = 0;
+    for (const line of out.split('\n')) {
+      const m = line.match(countRe);
+      if (!m) continue;
+      const n = Number(m[1]);
+      if (m[2] === 'pass') pass = n;
+      else if (m[2] === 'fail') fail = n;
+      else if (m[2] === 'skip') skip = n;
+    }
 
-  if (!ok) {
-    failedFiles.push(rel);
-    // Surface the failing file's output so failures are debuggable in CI.
-    process.stdout.write(out.endsWith('\n') ? out : out + '\n');
+    totalPass += pass;
+    totalFail += fail;
+    totalSkip += skip;
+
+    const ok = exitCode === 0 && fail === 0;
+    const status = ok ? '\x1b[32mPASS\x1b[0m' : '\x1b[31mFAIL\x1b[0m';
+    console.log(`${status}  ${rel}  (${pass} pass, ${fail} fail${skip ? `, ${skip} skip` : ''})`);
+
+    if (!ok) {
+      failedFiles.push(rel);
+      process.stdout.write(out.endsWith('\n') ? out : out + '\n');
+    }
   }
 }
+
+await Promise.all(Array.from({ length: concurrency }, worker));
 
 console.log('\n' + '─'.repeat(60));
 console.log(`Totals: ${totalPass} pass, ${totalFail} fail, ${totalSkip} skip across ${files.length} files`);

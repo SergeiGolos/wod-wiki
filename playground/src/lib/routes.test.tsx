@@ -31,7 +31,6 @@ import {
   journalEntryAutoStartPath,
   workoutPath,
   runPath,
-  reviewPath,
   trackerPath,
   loadPath,
   buildPlaygroundLoadUrl,
@@ -42,7 +41,6 @@ import {
   isPlaygroundNotePath,
   isJournalEntryPath,
   isTrackerPath,
-  isReviewPath,
   isCollectionWorkoutPath,
 } from './routes'
 
@@ -214,10 +212,6 @@ describe('path builders', () => {
     expect(runPath('abc-123')).toBe('/run/abc-123')
   })
 
-  it('reviewPath encodes runtimeId', () => {
-    expect(reviewPath('abc-123')).toBe('/review/abc-123')
-  })
-
   it('trackerPath encodes runtimeId (legacy alias)', () => {
     expect(trackerPath('abc-123')).toBe('/tracker/abc-123')
   })
@@ -281,13 +275,6 @@ describe('route family helpers', () => {
     expect(isTrackerPath('/run/abc')).toBe(true)
     expect(isTrackerPath('/tracker')).toBe(false)
     expect(isTrackerPath('/run')).toBe(false)
-    expect(isTrackerPath('/review/abc')).toBe(false)
-  })
-
-  it('isReviewPath detects /review', () => {
-    expect(isReviewPath('/review/abc')).toBe(true)
-    expect(isReviewPath('/review')).toBe(false)
-    expect(isReviewPath('/run/abc')).toBe(false)
   })
 
   it('isCollectionWorkoutPath detects /collections/:c/:w', () => {
@@ -438,7 +425,6 @@ describe('ROUTE_PATTERNS', () => {
     expect(ROUTE_PATTERNS.collectionWorkout).toBe('/collections/:collection/:workout')
     expect(ROUTE_PATTERNS.tracker).toBe('/tracker/:runtimeId')
     expect(ROUTE_PATTERNS.run).toBe('/run/:runtimeId')
-    expect(ROUTE_PATTERNS.review).toBe('/review/:runtimeId')
     expect(ROUTE_PATTERNS.load).toBe('/load')
     expect(ROUTE_PATTERNS.loadJournal).toBe('/load/journal')
     expect(ROUTE_PATTERNS.loadJournalDate).toBe('/load/journal/:date')

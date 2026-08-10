@@ -9,10 +9,16 @@ tags:
 # Recovery & Readiness
 
 Recovery prebuilt — readiness, HRV, sleep, and subjective wellness against
-the objective load metrics that are already live (monotony, ACWR). The
-wellness metrics (calc.readiness, calc.hrv, calc.sleep, calc.soreness) are
-proposed — they render as labeled placeholders until wellness capture
-lands.
+objective load (monotony, ACWR). Capture the wellness inputs in a journaling
+tion ```wellness fence on a daily note:
+
+```wellness
+soreness: 7
+sleep: 7.5h
+hrv: 62
+```
+
+Readiness is the composite (soreness-inverted 40% / sleep 30% / HRV 30%).
 
 ## Readiness today
 Green-light for intensity?

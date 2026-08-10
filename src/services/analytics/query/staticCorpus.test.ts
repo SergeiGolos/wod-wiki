@@ -24,7 +24,7 @@ const emptyFacts: FactQueryStore = {
 };
 const emptyNotes: NoteQueryStore = { getAllNotes: async () => [], getNoteIdsForTag: async () => new Set() };
 const emptyBlocks: BlockQueryStore = { getAllBlocks: async () => [] };
-const emptyResults: ResultLogStore = { getResultsByContentId: async () => [] };
+const emptyResults: ResultLogStore = { getResultsByContentId: async () => [], getResultById: async () => undefined, getResultsForNote: async () => [] };
 
 const service = new QueryService(emptyFacts, emptyNotes, emptyBlocks, emptyResults);
 const run = (wql: string) => service.runFind(parseQuery(wql) as ParsedFindQuery);

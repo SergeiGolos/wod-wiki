@@ -93,7 +93,8 @@ export function WidgetProblemBadge({ message }: { message: string }) {
     </div>
   );
 }
-/** Badge for proposed calc.* metrics whose engine lands in #872+ (#901). */
+/** Badge for calc.* metrics not yet implemented in the engine — renders a
+ * labeled placeholder until the metric lands as a seed. */
 export function ProposedMetricBadge({ metric }: { metric: string }) {
   return (
     <div
@@ -101,7 +102,7 @@ export function ProposedMetricBadge({ metric }: { metric: string }) {
       className="h-full min-h-16 flex items-center justify-center rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 px-3 py-2 text-center text-xs text-amber-600 dark:text-amber-400"
     >
       <span>
-        proposed metric <span className="font-mono font-semibold">{metric}</span> — calculation engine lands in #872+
+        proposed metric <span className="font-mono font-semibold">{metric}</span> — not yet implemented
       </span>
     </div>
   );

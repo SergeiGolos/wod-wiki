@@ -42,6 +42,7 @@ import { smartIncrement } from "@/components/Editor/extensions/smart-increment";
 
 // Note editor extensions
 import { sectionField, SectionState, activeCursorSection, type EditorSection } from "@/components/Editor/extensions/section-state";
+import { sessionQueryInsert } from "@/components/Editor/extensions/sessionQueryBlock";
 import { previewDecorations } from "@/components/Editor/extensions/preview-decorations";
 import { embedPreviewDecorations } from "@/components/Editor/extensions/embed-preview";
 import { frontmatterPreview } from "@/components/Editor/extensions/frontmatter-preview";
@@ -61,17 +62,8 @@ import { lineIdsExtension } from "@/components/Editor/extensions/line-ids";
 
 import { createParser } from "@/parser/parserInstance";
 import type { INotePersistence } from "@/services/persistence";
-import { createFileDropHandler, deriveReviewSegments, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
+import { createFileDropHandler, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
 
-import {
-  wodResultsWidget,
-  wodResultsField,
-  updateSectionResults,
-  WOD_RESULT_CLICK_EVENT,
-  compactResultsMode,
-  noteIdFacet,
-  type WodResultClickDetail,
-} from "@/components/Editor/extensions/whiteboard-results-widget";
 import { OverlayTrack } from "@/components/organisms/editor/OverlayTrack";
 import { useOverlayWidthState } from "@/components/Editor/overlays/useOverlayWidthState";
 import type { OverlaySlotProps } from "@/components/organisms/editor/OverlayTrack";
@@ -81,10 +73,8 @@ import { WidgetCompanion } from "@/components/organisms/editor/WidgetCompanion";
 import type { WidgetRegistry } from "@/components/Editor/widgets/types";
 import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
 import { FullscreenTimer } from "@/components/organisms/review/FullscreenTimer";
-import { FullscreenReview } from "@/components/organisms/review/FullscreenReview";
 import { InlineCommandBar } from "@/components/organisms/editor/InlineCommandBar";
 import { EditorCastBridge } from "@/components/organisms/editor/EditorCastBridge";
-import type { Segment } from "@/core/models/AnalyticsModels";
 import { v7 as uuidv7 } from "uuid";
 import type { WorkoutResult } from "@/types/storage";
 
@@ -114,18 +104,21 @@ export interface NoteEditorProps {
   className?: string;
   /** Called when user triggers "Run" on a Whiteboard Script block */
   onStartWorkout?: (block: ScriptBlock) => void;
-  /** Called when a workout is completed with the results */
-  onCompleteWorkout?: (blockId: string, results: ScriptBlock["results"]) => void;
+  /** Called when a workout is completed with the results.
+   * `resultId` is the id the editor generated for the optimistic result and
+   * used in the inserted query:table block — persistence MUST reuse it (#944).
+   * `runBlock` is the section-derived identity (id + contentId) of the block
+   * that just completed, so results persist against the right block even when
+   * the session's selected block is stale or absent. */
+  onCompleteWorkout?: (blockId: string, results: ScriptBlock["results"], resultId?: string, runBlock?: Pick<ScriptBlock, "id" | "contentId">) => void;
   /** Called when Whiteboard Script blocks change */
   onBlocksChange?: (blocks: ScriptBlock[]) => void;
   /** Called when user triggers "Add to Plan" on a Whiteboard Script block */
   onAddToPlan?: (block: ScriptBlock) => void;
-  /** Called when user wants to review a specific result (for custom routing/popups) */
-  onOpenReview?: (result: WorkoutResult) => void;
-  /** In-memory results fallback (for non-persistent sessions) */
-  extendedResults?: WorkoutResult[];
   /** Note persistence seam used for result and attachment projections */
   notePersistence?: INotePersistence;
+  /** Optional in-memory workout results override */
+  results?: any[];
   /** Exposed EditorView ref */
   onViewCreated?: (view: EditorView) => void;
   /** Editor mode */
@@ -153,13 +146,6 @@ export interface NoteEditorProps {
    * route.  Set to false to restore the previous route-based behaviour.
    */
   enableInlineRuntime?: boolean;
-  /**
-   * When true, clicking a result row opens the fullscreen review overlay
-   * directly instead of expanding the inline AnalyticsScorecard + ReviewGrid.
-   * Used by canvas pages where the editor panel is too narrow for inline
-   * results. Default: false (inline expand, as on /playground and /journal).
-   */
-  forceFullscreenReview?: boolean;
   /**
    * Registry of custom widget components rendered inside ```widget:<name> blocks.
    * Keys are widget names (e.g. "hero"), values are React components.
@@ -195,8 +181,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   onCompleteWorkout,
   onBlocksChange,
   onAddToPlan,
-  onOpenReview,
-  extendedResults,
   notePersistence: providedNotePersistence,
   onViewCreated,
   mode = "edit",
@@ -208,12 +192,14 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   commands,
   hideDefaultCommands = false,
   enableInlineRuntime = true,
-  forceFullscreenReview = false,
   extensions: extraExtensions,
   widgetComponents,
   onButtonAction,
-  scrollToSectionId,
+  stickyTopOffset = 0,
+  hoverLine,
   activeSectionId: externalActiveSectionId,
+  scrollToSectionId,
+  results,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -243,8 +229,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   // Full-screen timer block: when set, the FullscreenTimer overlay is shown.
   const [fullscreenTimerBlock, setFullscreenTimerBlock] = useState<ScriptBlock | null>(null);
 
-  // Full-screen review segments: when set, the FullscreenReview overlay is shown.
-  const [fullscreenReviewSegments, setFullscreenReviewSegments] = useState<Segment[] | null>(null);
 
   // Whether the fullscreen timer should auto-start on mount
   const [autoStartFullscreen, setAutoStartFullscreen] = useState(false);
@@ -268,129 +252,43 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     }
   }, [enableInlineRuntime, handleRun]);
 
-  // Intercept workout completion: immediately push the new result into the CM6
-  // results field so the inline results bar updates without waiting for a DB
-  // round-trip, then forward to the parent's onCompleteWorkout callback.
+  // Intercept workout completion: insert a ```query:table block carrying the
+  // session-scoped rows query directly after the workout block (#944 — the
+  // query block replaces the old wodResultsField optimistic write; result data
+  // still persists via the parent's onCompleteWorkout). Placement is resolved
+  // live from sectionField (content-identity section lookup at insert time),
+  // so it survives edits above the block; inserting at exactly section.to
+  // stacks re-runs newest-first between the workout block and prior tables.
   const handleCompleteWorkout = useCallback(
     (blockId: string, results: ScriptBlock["results"]) => {
+      const resultId = uuidv7();
+      let runBlock: Pick<ScriptBlock, "id" | "contentId"> | undefined;
       if (results && viewRef.current) {
         const view = viewRef.current;
-        const now = results.endTime || Date.now();
-        // Read the section live from the editor state instead of the React
-        // `sections` closure — the callback is memoised on [noteId,
-        // onCompleteWorkout] so the closure value is stale (typically the
-        // initial empty array), which made every optimistic result land with
-        // `blockContentId: undefined` and render as hidden history instead of
-        // a visible result row.
-        const section = view.state.field(sectionField).sections.find(s => s.id === blockId);
-        const newResult = {
-          id: uuidv7(),
-          noteId: noteId ?? "",
-          blockContentId: section?.contentId,
-          data: results,
-          createdAt: now,
-        };
-
-        // Read existing results for this section and prepend the new one
-        // (most-recent first) before dispatching.
-        const existingMap = view.state.field(wodResultsField);
-        const prev = existingMap.get(blockId) ?? [];
-        view.dispatch({
-          effects: [
-            updateSectionResults.of({
-              sectionId: blockId,
-              results: [newResult, ...prev],
-            }),
-          ],
-        });
+        // Resolve the completed block's identity live from the editor state —
+        // the same section lookup the insert uses — so persistence records the
+        // result against the exact block that ran (contentId survives moves).
+        const section = view.state.field(sectionField).sections.find((s) => s.id === blockId);
+        if (section) runBlock = { id: section.id, contentId: section.contentId };
+        const insert = sessionQueryInsert(view.state, blockId, resultId, runBlock);
+        if (insert) {
+          // #945: the inserted table IS the results moment — reveal it inline,
+          // no overlay. Positions in scroll effects refer to the post-change doc.
+          const blockStart = insert.from + insert.insert.indexOf("```");
+          view.dispatch({
+            changes: insert,
+            effects: [EditorView.scrollIntoView(blockStart, { y: "start", yMargin: 96 })],
+          });
+          onChange?.(view.state.doc.toString());
+        }
       }
-      onCompleteWorkout?.(blockId, results);
+      onCompleteWorkout?.(blockId, results, resultId, runBlock);
     },
     [noteId, onCompleteWorkout],
   );
 
-  // Open the full-screen review.
-  const handleOpenReview = useCallback((segments: Segment[]) => {
-    setFullscreenReviewSegments(segments);
-  }, []);
-
-  // Close the full-screen review.
-  const handleReviewClose = useCallback(() => {
-    setFullscreenReviewSegments(null);
-  }, []);
-
   // Fetch workout results for all workout (time/log) sections and push them into the editor
   // via the results StateEffect so the inline results bar is visible.
-  useEffect(() => {
-    if (!viewRef.current) return;
-    const workoutSections = sections.filter(
-      (s) => s.type === "time" || s.type === "log"
-    );
-    if (workoutSections.length === 0) return;
-
-    for (const section of workoutSections) {
-      // 1. Priority: In-memory results from props (Static/Lesson Mode)
-      if (Array.isArray(extendedResults) && extendedResults.length > 0) {
-        const blockResults = extendedResults.filter(r =>
-          r.blockContentId === section.contentId || r.blockId === section.id
-        )
-        if (blockResults.length > 0) {
-          viewRef.current.dispatch({
-            effects: [updateSectionResults.of({ sectionId: section.id, results: blockResults })],
-          });
-          continue;
-        }
-      }
-
-      // 2. Fallback: Persistent storage (History/App Mode)
-      notePersistence
-        .getNote(noteId ?? "", {
-          projection: "history-detail",
-          resultSelection: {
-            mode: "all-for-section",
-            blockContentId: section.contentId!,
-          },
-        })
-        .then((entry) => {
-          const view = viewRef.current;
-          if (!view || !view.dom.isConnected) return;
-          const sorted = (entry.extendedResults ?? []).sort((a, b) => b.createdAt - a.createdAt);
-          view.dispatch({
-            effects: [
-              updateSectionResults.of({ sectionId: section.id, results: sorted }),
-            ],
-          });
-        })
-        .catch(() => {
-          // IndexedDB unavailable (e.g. Storybook) – silently ignore
-        });
-    }
-  }, [noteId, sections, extendedResults, notePersistence]);
-
-  // Listen for "Full Review" clicks fired by the inline results panel and
-  // open the full-screen review overlay if the result has detailed logs.
-  useEffect(() => {
-    const el = editorRef.current;
-    if (!el) return;
-
-    const handleResultClick = (e: Event) => {
-      const { result } = (e as CustomEvent<WodResultClickDetail>).detail;
-      
-      // If parent provided an onOpenReview handler, use it first
-      if (onOpenReview) {
-        onOpenReview(result);
-        return;
-      }
-
-      // Default behavior: show inline FullscreenReview overlay if logs exist
-      if (result?.data?.logs && result.data.logs.length > 0) {
-        handleOpenReview(deriveReviewSegments(result));
-      }
-    };
-
-    el.addEventListener(WOD_RESULT_CLICK_EVENT, handleResultClick);
-    return () => el.removeEventListener(WOD_RESULT_CLICK_EVENT, handleResultClick);
-  }, [handleOpenReview, onOpenReview]);
 
   // Build effective command list: use explicit commands if provided, otherwise
   // synthesize from legacy onStartWorkout / onAddToPlan for backward compat.
@@ -556,15 +454,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Line IDs for external navigation (IntersectionObserver, scroll)
       lineIdsExtension,
 
-      // Results bar widgets — shown after each workout block's closing fence
-      ...wodResultsWidget,
-
-      // Note identity for the results widget (cross-note lookup exclusion)
-      noteIdFacet.of(noteId),
-
-      // Compact results mode: result rows open fullscreen review on click
-      // instead of expanding inline (canvas pages with small editor panels)
-      ...(forceFullscreenReview ? [compactResultsMode.of(true)] : []),
 
       // Full-row widget block replacements (```widget:<name>``` sections)
       ...(widgetComponents && widgetComponents.size > 0
@@ -623,7 +512,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       noteId,
       notePersistence,
       onButtonAction,
-      forceFullscreenReview,
       extraExtensions,
     ]
   );
@@ -652,7 +540,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     viewRef.current = view;
     const shouldExposeCodemirrorView = import.meta.env.MODE === 'test'
       || (import.meta.env.DEV && window.navigator.webdriver);
-    if (shouldExposeCodemirrorView) {
+    if (editorRef.current) {
       // Expose view for test automation to directly manipulate content
       (editorRef.current as any).__codemirrorView = view;
     }
@@ -777,7 +665,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           cursorLine={cursorLine}
           docVersion={props.docVersion}
           commands={effectiveCommands}
-          extendedResults={extendedResults}
+          extendedResults={results}
           hoverLine={props.hoverLine}
           stickyTopOffset={props.stickyTopOffset}
           isPanelHovered={props.isPanelHovered}
@@ -846,13 +734,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           onClose={handleTimerClose}
           onCompleteWorkout={handleCompleteWorkout}
           autoStart={autoStartFullscreen}
-        />
-      )}
-
-      {fullscreenReviewSegments && (
-        <FullscreenReview
-          segments={fullscreenReviewSegments}
-          onClose={handleReviewClose}
         />
       )}
 

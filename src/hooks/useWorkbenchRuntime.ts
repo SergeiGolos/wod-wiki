@@ -15,7 +15,7 @@ import { wallClockNow } from '@/runtime/INowProvider';
 export const useWorkbenchRuntime = <T extends ScriptBlock | null = ScriptBlock | null>(
     _viewMode: string,
     _selectedBlock: T,
-    completeWorkout: (results: WorkoutResults) => void,
+    completeWorkout: (results: WorkoutResults, resultId?: string) => void,
     startWorkout: (block: ScriptBlock) => void
 ) => {
     const { runtime, initializeRuntime, disposeRuntime } = useRuntimeLifecycle();
