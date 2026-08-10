@@ -9,9 +9,7 @@ tags:
 # Benchmark PR Board
 
 CrossFit / Hyrox prebuilt — benchmark retests and work capacity. Tag
-benchmark notes `benchmark` and they land on the board; the retest-cadence
-columns from the prototype need per-benchmark scheduling (proposed) and
-render as placeholders where the metric is not live yet.
+benchmark notes `benchmark` and they land on the board.
 
 ## Benchmark scores
 Which benchmarks moved this quarter?
