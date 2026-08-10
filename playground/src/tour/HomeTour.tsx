@@ -24,7 +24,7 @@ import {
 import { resolveSource } from '../canvas/canvasUtils'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { createJournalNoteFromWorkout } from '../services/journalWorkout'
-import { playgroundRecorder } from '../services/resultRecorder'
+import { playgroundRecorder } from '@/services/resultRecorder'
 import { NextEvent } from '@/runtime/events/NextEvent'
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'

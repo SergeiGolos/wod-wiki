@@ -20,16 +20,17 @@ Domain vocabulary that applies repo-wide lives in the root
   (`IndexedDBNotePersistence`, `playgroundRecorder`).
 - **Cast / sender** — `playground/src/cast/` and the `getCastBackend()` factory
   (selected by `VITE_CAST_BACKEND`: `chromecast` / `local` / `auto`).
-- **Result recording** — `playground/src/services/resultRecorder.ts` is the
-  single playground seam for persisting a `WorkoutResult`. Owns identity
-  resolution (Note Identity, Block Content Id, Section Id).
+- **Result recording** — consumes the library `src/services/resultRecorder.ts`
+  (`playgroundRecorder`, wired to the `notePersistence` singleton): the single
+  seam for persisting a `WorkoutResult`. Owns identity resolution (Note
+  Identity, Block Content Id, Section Id).
 
 ## Key seams (this surface only)
 
 | Seam | File | Contract |
 |---|---|---|
-| Note identity | `playground/src/lib/noteIdentity.ts` | `parseNoteId` / `noteRefToPath` — single home for composite-id parse and kind→route rule. |
-| Result recorder | `playground/src/services/resultRecorder.ts` | `createResultRecorder(sink)` is testable with an in-memory sink; `playgroundRecorder` is the production instance. |
+| Note identity | `src/lib/noteIdentity.ts` (parse) + `playground/src/lib/noteIdentity.ts` (route) | `parseNoteId` / `NoteRef` live in the library (pure parse, shared with `src/`); `noteRefToPath` keeps the kind→route rule here (needs `./routes`). |
+| Result recorder | `src/services/resultRecorder.ts` (library) | `createResultRecorder(sink)` is testable with an in-memory sink; `playgroundRecorder` is the production instance. |
 | Cast backend | `playground/src/cast/getCastBackend.ts` | Reads `VITE_CAST_BACKEND`; returns `ChromecastBackend` or `LocalTabBackend`. |
 | Workbench session | `playground/src/state/workbenchSessionStore.ts` | The coherent editing-session state. Exercisable without React. |
 | Sticky page header | `src/panels/page-shells/StickyPageHeader.tsx` | The standard page header for every playground page: sticky title bar + actions + subheader slot (rendered once, doubles as the mobile sticky bar). Pages compose it directly (LibraryPage) or get it via the `CanvasPage` shell. Stacked sticky children position via `measureStickyBoundary` / `useStickyBoundaryOffset` (`src/panels/page-shells/stickyBoundary.ts`) — never hardcode `top` values. |

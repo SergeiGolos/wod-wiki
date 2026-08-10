@@ -116,7 +116,7 @@ describe('AnalyticsEngine', () => {
       engine.addSummaryProcessor(summary);
 
       const live: IOutputStatement[] = [];
-      engine.setLiveOutputEmitter((o) => live.push(o));
+      engine.setLiveOutputEmitter((batch) => live.push(...batch));
 
       engine.run(makeSegmentOutput('s1'));
       expect(live).toHaveLength(1);
@@ -166,7 +166,7 @@ describe('AnalyticsEngine', () => {
       engine.addSummaryProcessor(summary);
 
       const live: IOutputStatement[] = [];
-      engine.setLiveOutputEmitter((o) => live.push(o));
+      engine.setLiveOutputEmitter((batch) => live.push(...batch));
 
       // Several blocks popping at completion each trigger run(); aggregates
       // don't change between them, so only the first may emit.
@@ -194,7 +194,7 @@ describe('AnalyticsEngine', () => {
       engine.addSummaryProcessor(summary);
 
       const live: IOutputStatement[] = [];
-      engine.setLiveOutputEmitter((o) => live.push(o));
+      engine.setLiveOutputEmitter((batch) => live.push(...batch));
 
       engine.run(makeSegmentOutput('s1'));
       reps = 25;
@@ -349,7 +349,7 @@ describe('AnalyticsEngine', () => {
     it('emits a live analytics output after each segment', () => {
       const engine = new AnalyticsEngine();
       const emitted: IOutputStatement[] = [];
-      engine.setLiveOutputEmitter((o) => emitted.push(o));
+      engine.setLiveOutputEmitter((batch) => emitted.push(...batch));
 
       const summary: ISummaryProcessor = {
         id: 'live-sum',

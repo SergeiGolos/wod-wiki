@@ -303,6 +303,7 @@ function factTagValue(row: AnalyticsDataPoint, key: string, noteTags: ReadonlyMa
   switch (key) {
     case 'effort': return row.effortSlug;
     case 'discipline': return row.discipline;
+    case 'grade': return row.grade;
     case 'intensity': return row.intensityTier;
     case 'note': return row.noteId;
     case 'page': return row.pageId;

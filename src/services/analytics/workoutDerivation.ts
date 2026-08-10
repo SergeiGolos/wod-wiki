@@ -222,6 +222,7 @@ export function normalizeSummaryFacts(
     const effortSlug = metadataString(value.metadata, 'effortSlug');
     const discipline = metadataString(value.metadata, 'effortDiscipline');
     const intensityTier = metadataString(value.metadata, 'effortIntensityTier');
+    const grade = metadataString(value.metadata, 'grade');
 
     // Row key = metricKey + sorted group-tag pairs (spec §7.1:
     // `totalVolume:effort=thruster`). Grouped dims auto-tag; legacy
@@ -251,6 +252,7 @@ export function normalizeSummaryFacts(
       ...(effortSlug ? { effortSlug } : {}),
       ...(discipline ? { discipline } : {}),
       ...(intensityTier ? { intensityTier } : {}),
+      ...(grade ? { grade } : {}),
       timestamp: identity.workoutTimestamp ?? output.timeSpan.started ?? now,
       createdAt: now,
     });
@@ -293,6 +295,7 @@ export function normalizeAllMetrics(
       const effortSlug = metadataString(metric.metadata, 'effortSlug');
       const discipline = metadataString(metric.metadata, 'effortDiscipline');
       const intensityTier = metadataString(metric.metadata, 'effortIntensityTier');
+      const grade = metadataString(metric.metadata, 'grade');
 
       segmentFacts.push({
         id: `${identity.resultId}-seg${seq++}-${metricKey}-${now}`,
@@ -314,6 +317,7 @@ export function normalizeAllMetrics(
         ...(effortSlug ? { effortSlug } : {}),
         ...(discipline ? { discipline } : {}),
         ...(intensityTier ? { intensityTier } : {}),
+        ...(grade ? { grade } : {}),
         timestamp: identity.workoutTimestamp ?? output.timeSpan.started ?? now,
         createdAt: now,
       });

@@ -48,6 +48,13 @@ export const UNITS: Record<string, UnitDef> = {
   kcal: { dim: DIM_ENERGY, factor: 1000 },
   // dimensionless
   MET: { dim: DIM_ZERO, factor: 1 },
+  // resilience / score display units — DIM_ZERO keep the store-scope
+  // (dimensionless) series valid; 'count' is genuinely count-dimensioned
+  // (sends, sessions) so segment facts can carry it.
+  '%': { dim: DIM_ZERO, factor: 1 },
+  rating: { dim: DIM_ZERO, factor: 1 },
+  bpm: { dim: DIM_ZERO, factor: 1 },
+  count: { dim: DIM_COUNT, factor: 1 },
   // speed — base m/ms
   'm/s': { dim: [1, 0, -1, 0, 0], factor: 0.001 },
   'km/h': { dim: [1, 0, -1, 0, 0], factor: 1000 / 3_600_000 },

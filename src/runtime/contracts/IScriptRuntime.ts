@@ -110,6 +110,15 @@ export interface IScriptRuntime extends IRuntimeActionable {
      */
     getOutputStatements(): IOutputStatement[];
 
+
+    /**
+     * Ephemeral Tier-2 (running-total) snapshot for live display — the
+     * analytics engine's current projection set, replaced each segment.
+     * Display-only: never persisted to the output log. Optional because only
+     * a concrete runtime with a wired analytics engine produces it; consumers
+     * call it defensively (`runtime.getLiveAnalytics?.()`).
+     */
+    getLiveAnalytics?(): IOutputStatement[];
     /**
      * Add an output statement to the collection and notify subscribers.
      * Used by BehaviorContext to emit outputs at any lifecycle point.

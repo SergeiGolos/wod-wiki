@@ -10,16 +10,21 @@ export class AnalyticsEngine implements IAnalyticsEngine {
   private realtimeProcessors: IRealtimeProcessor[] = [];
   private summaryProcessors: ISummaryProcessor[] = [];
   private outputHistory: IOutputStatement[] = [];
-  /** Emits a live 'analytics' output per segment so the UI updates in real time. */
-  private _onLiveOutput?: (output: IOutputStatement) => void;
+  /** Emits a live 'analytics' snapshot per segment so the UI updates in real time. */
+  private _onLiveOutput?: (outputs: IOutputStatement[]) => void;
   /**
    * Signature of the last live projection emission. Used by finalize() to avoid
    * re-emitting the same projections at session end. Timestamps are ignored.
    */
   private _lastLiveProjectionSignature?: string;
 
-  /** Wire a sink for live analytics outputs (one per segment, as projections update). */
-  setLiveOutputEmitter(emit: (output: IOutputStatement) => void): void {
+  /**
+   * Wire a sink for live analytics outputs. The sink receives the FULL
+   * projection snapshot (a replaceable, ephemeral set) each time projections
+   * change — not appended one-at-a-time. The snapshot is display-only; it must
+   * not be persisted. Persistence happens once via {@link finalize}.
+   */
+  setLiveOutputEmitter(emit: (outputs: IOutputStatement[]) => void): void {
     this._onLiveOutput = emit;
   }
 
@@ -58,9 +63,7 @@ export class AnalyticsEngine implements IAnalyticsEngine {
         if (signature !== this._lastLiveProjectionSignature) {
           this._lastLiveProjectionSignature = signature;
           const liveOutputs = this._buildProjectionOutputs(projections, now);
-          for (const stmt of liveOutputs) {
-            this._onLiveOutput(stmt);
-          }
+          this._onLiveOutput(liveOutputs);
         }
       }
     }

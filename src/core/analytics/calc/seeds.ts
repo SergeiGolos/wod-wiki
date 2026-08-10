@@ -105,6 +105,39 @@ export const BUILTIN_CALCS: CalculationDefinition[] = [
     output: { nodeId: 'value', emitType: 'calc.e1rm', key: 'calc.e1rm', unit: 'auto', label: 'Estimated 1RM' },
   },
   {
+    // %1RM intensity — the Epley inverse: a set of N reps ≈ 100/(1+N/30)%
+    // of that set's projected e1RM. Independent of load history, so it needs
+    // no profile 1RM; the dashboard tracks intensity by `by {week}`.
+    id: 'pct1rm',
+    kind: 'output',
+    scope: 'segment',
+    fences: ['time', 'log'],
+    when: 'has(reps) and has(resistance) and reps > 0',
+    variants: [{
+      id: 'default', priority: 10, origin: 'analyzed',
+      nodes: {
+        repFactor: expr('repFactor', 'reps / 30', 'ratio'),
+        value: expr('value', '100 / (1 + repFactor)'),
+      },
+    }],
+    output: { nodeId: 'value', emitType: 'calc.pct1rm', key: 'calc.pct1rm', unit: '%', label: '%1RM Intensity' },
+  },
+  {
+    // Climbing sends — one counted unit per completed send (a segment whose
+    // ClimbDialect marked a climb-send-type). Metadata carries the grade so
+    // `count:calc.sends{} by {grade}` builds the pyramid.
+    id: 'climb-sends',
+    kind: 'output',
+    scope: 'segment',
+    fences: ['time', 'log'],
+    when: 'has(climbSend)',
+    variants: [{
+      id: 'default', priority: 10, origin: 'analyzed',
+      nodes: { value: expr('value', 'climbSend') },
+    }],
+    output: { nodeId: 'value', emitType: 'calc.sends', key: 'calc.sends', unit: 'count', label: 'Sends' },
+  },
+  {
     id: 'effort-rpe',
     kind: 'library',
     scope: 'segment',
@@ -459,5 +492,130 @@ export const STORE_CALCS: CalculationDefinition[] = [
       },
     }],
     output: { nodeId: 'value', key: 'calc.tsb', unit: 'AU', label: 'Training Stress Balance (TSB)' },
+  },
+  // ── Wellness metrics (user-captured ```wellness fences, #901 placeholders
+  // landed): the capture writes day-grain user facts under raw keys
+  // (soreness / sleep / hrv / weight / hang / hr / planned); these seeds
+  // publish the `calc.*` rollup rows the dashboards query. Passthroughs keep
+  // the calc.* = engine-published convention; composites derive from the
+  // captured series. The `x * (x / x)` masks suppress zero-filled days
+  // (0/0 drops the point) so unchecked days emit NO row instead of a
+  // misleading zero.
+  {
+    id: 'soreness',
+    kind: 'output',
+    scope: 'store',
+    fences: ['time', 'log'],
+    variants: [{
+      id: 'default', priority: 10, origin: 'user',
+      nodes: {
+        daily: { id: 'daily', kind: 'wql' as const, expression: 'avg:soreness{} by {day}' },
+        value: expr('value', 'daily * (daily / daily)'),
+      },
+    }],
+    output: { nodeId: 'value', key: 'calc.soreness', unit: 'rating', label: 'Soreness' },
+  },
+  {
+    id: 'sleep',
+    kind: 'output',
+    scope: 'store',
+    fences: ['time', 'log'],
+    variants: [{
+      id: 'default', priority: 10, origin: 'user',
+      nodes: {
+        daily: { id: 'daily', kind: 'wql' as const, expression: 'avg:sleep{} by {day}' },
+        value: expr('value', 'daily * (daily / daily)'),
+      },
+    }],
+    output: { nodeId: 'value', key: 'calc.sleep', unit: 'pts', label: 'Sleep (h)' },
+  },
+  {
+    id: 'hrv',
+    kind: 'output',
+    scope: 'store',
+    fences: ['time', 'log'],
+    variants: [{
+      id: 'default', priority: 10, origin: 'user',
+      nodes: {
+        daily: { id: 'daily', kind: 'wql' as const, expression: 'avg:hrv{} by {day}' },
+        value: expr('value', 'daily * (daily / daily)'),
+      },
+    }],
+    output: { nodeId: 'value', key: 'calc.hrv', unit: 'pts', label: 'HRV (ms)' },
+  },
+  {
+    // Readiness composite: soreness (inverted) 40%, sleep 30%, HRV 30%,
+    // normalized to ~0-100. Pure arithmetic over the captured day series —
+    // no clamp/min (those are scalar-only in the evaluator). Masks drop any
+    // day missing one of the three inputs.
+    id: 'readiness',
+    kind: 'output',
+    scope: 'store',
+    fences: ['time', 'log'],
+    variants: [{
+      id: 'default', priority: 10, origin: 'analyzed',
+      nodes: {
+        soreness: { id: 'soreness', kind: 'wql' as const, expression: 'avg:soreness{} by {day}' },
+        sleep: { id: 'sleep', kind: 'wql' as const, expression: 'avg:sleep{} by {day}' },
+        hrv: { id: 'hrv', kind: 'wql' as const, expression: 'avg:hrv{} by {day}' },
+        value: expr('value', '((10 - soreness) / 10 * 40 + sleep / 8 * 30 + hrv / 90 * 30) * (soreness / soreness) * (sleep / sleep) * (hrv / hrv)'),
+      },
+    }],
+    output: { nodeId: 'value', key: 'calc.readiness', unit: 'pts', label: 'Readiness' },
+  },
+  {
+    // Max-hang MVC as % of bodyweight — the hangboard benchmark. Captured
+    // `hang` (max hang added weight, kg) over `weight` (bodyweight, kg).
+    id: 'mvcBw',
+    kind: 'output',
+    scope: 'store',
+    fences: ['time', 'log'],
+    variants: [{
+      id: 'default', priority: 10, origin: 'analyzed',
+      nodes: {
+        hang: { id: 'hang', kind: 'wql' as const, expression: 'max:hang{} by {day}' },
+        weight: { id: 'weight', kind: 'wql' as const, expression: 'avg:weight{} by {day}' },
+        value: expr('value', 'hang / weight * 100'),
+      },
+    }],
+    output: { nodeId: 'value', key: 'calc.mvcBw', unit: '%', label: 'Max Hang %BW' },
+  },
+  {
+    // Efficiency factor — running pace per beat of captured average HR.
+    // pace (m/s) is cast to pts (§5.3 authoritative cast) so the ratio with
+    // HR type-checks; the value is a normalized efficiency score.
+    id: 'ef',
+    kind: 'output',
+    scope: 'store',
+    fences: ['time', 'log'],
+    variants: [{
+      id: 'default', priority: 10, origin: 'analyzed',
+      nodes: {
+        dist: { id: 'dist', kind: 'wql' as const, expression: 'sum:totalDistance{discipline:running} by {day}' },
+        elapsed: { id: 'elapsed', kind: 'wql' as const, expression: 'sum:elapsed{discipline:running} by {day}' },
+        hr: { id: 'hr', kind: 'wql' as const, expression: 'avg:hr{} by {day}' },
+        // pace m/s — elapsed facts are ms, so scale to seconds first.
+        pace: expr('pace', 'dist / (elapsed / 1000)', 'pts'),
+        value: expr('value', 'pace / hr * 100000', 'pts'),
+      },
+    }],
+    output: { nodeId: 'value', key: 'calc.ef', unit: 'pts', label: 'Efficiency Factor' },
+  },
+  {
+    // Plan adherence — completed sessions over planned sessions per day.
+    // `planned` is captured in wellness fences; sessions are counted facts.
+    id: 'adherence',
+    kind: 'output',
+    scope: 'store',
+    fences: ['time', 'log'],
+    variants: [{
+      id: 'default', priority: 10, origin: 'analyzed',
+      nodes: {
+        sessions: { id: 'sessions', kind: 'wql' as const, expression: 'count:sessionLoad{} by {day}' },
+        planned: { id: 'planned', kind: 'wql' as const, expression: 'avg:planned{} by {day}' },
+        value: expr('value', 'sessions / planned'),
+      },
+    }],
+    output: { nodeId: 'value', key: 'calc.adherence', unit: 'ratio', label: 'Plan Adherence' },
   },
 ];

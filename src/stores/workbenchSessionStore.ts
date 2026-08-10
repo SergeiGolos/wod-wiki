@@ -40,7 +40,7 @@ import type { INotePersistence } from '@/services/persistence';
 import { toNotebookTag } from '@/types/notebook';
 import { fileProcessor } from '@/hooks/useBrowserServices';
 import { loadStaticWorkbenchContent } from '@/app/workbench/workbenchProviders';
-import { createResultRecorder } from '../../playground/src/services/resultRecorder';
+import { createResultRecorder } from '@/services/resultRecorder';
 import type { HistoryEntry } from '@/types/history';
 import type { Attachment } from '@/types/storage';
 import { wallClockNow } from '@/runtime/INowProvider';

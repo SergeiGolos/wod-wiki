@@ -207,6 +207,12 @@ const ACCEPT_LIST: AcceptEntry[] = [
     used: 0,
   },
   {
+    id: 'pct1rm-annotation-new',
+    reason: '%1RM intensity (Epley inverse — 100/(1+reps/30)) is a new segment metric derived from logged sets; legacy never computed it.',
+    match: (d) => d.kind === 'annotation-only-composed' && d.where.startsWith('calc.pct1rm:'),
+    used: 0,
+  },
+  {
     id: 'per-exercise-volume-amount-shape',
     reason: '§10.10 — legacy per-exercise volume ignores {amount,units} resistance (workout-level accepts it); composed emits per-effort volume for both shapes.',
     match: (d) =>

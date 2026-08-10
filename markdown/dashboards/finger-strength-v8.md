@@ -10,23 +10,23 @@ tags:
 # Finger Strength → V8
 
 Climbing prebuilt — max-hang strength against a %BW goal, send pyramid,
-and tendon load. Max-hang MVC/BW (calc.mvcBw) and send counts
-(calc.sends) are proposed metrics — they render as labeled placeholders
-until the engine and capture paths land; the ring target is the
-$hangGoal token.
+and tendon load. calc.mvcBw = hang ÷ bodyweight, and calc.sends counts
+completed sends by grade. Capture a hang test / bodyweight in a
+```wellness fence (`hang: 30kg`, `weight: 80kg`) on strength days; the
+ring target is the frontmatter $hangGoal token.
 
 ## Max-hang goal
 Finger strength vs the benchmark cohort?
 
 ```query:goal-rings-2
-max:calc.mvcBw{tags:hangboard} / $hangGoal
+max:calc.mvcBw{} / $hangGoal
 ```
 
 ## Max-hang trend
 Is the strength block working? Retest every 4–8 weeks.
 
 ```query:timeseries-2
-last:calc.mvcBw{tags:hangboard} by {week}.rollup(1w)
+last:calc.mvcBw{} by {week}.rollup(1w)
 ```
 
 ## Grade pyramid

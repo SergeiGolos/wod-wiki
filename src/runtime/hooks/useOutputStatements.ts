@@ -108,6 +108,38 @@ export function useOutputStatements(runtime?: IScriptRuntime | null): OutputStat
 }
 
 /**
+ * Live Tier-2 (running-total) snapshot for display during an active session.
+ *
+ * Returns the analytics engine's current projection set — totals like total
+ * volume / distance / load, recomputed per segment. These values are ephemeral:
+ * they are shown live but never persisted; only the finalized values reach the
+ * records after the WOD completes. Reuses the output subscription as its change
+ * signal (the snapshot is replaced, not appended).
+ */
+export function useLiveAnalytics(runtime?: IScriptRuntime | null): IOutputStatement[] {
+  const contextRuntime = useScriptRuntime();
+  const resolvedRuntime = runtime !== undefined ? runtime : contextRuntime;
+
+  const [analytics, setAnalytics] = useState<IOutputStatement[]>(() =>
+    resolvedRuntime?.getLiveAnalytics?.() ?? [],
+  );
+
+  useEffect(() => {
+    if (!resolvedRuntime) {
+      setAnalytics([]);
+      return;
+    }
+    setAnalytics(resolvedRuntime.getLiveAnalytics?.() ?? []);
+    const unsubscribe = resolvedRuntime.subscribeToOutput?.(() => {
+      setAnalytics(resolvedRuntime.getLiveAnalytics?.() ?? []);
+    });
+    return unsubscribe;
+  }, [resolvedRuntime]);
+
+  return analytics;
+}
+
+/**
  * Hook to get a specific output by ID
  */
 export function useOutputStatement(

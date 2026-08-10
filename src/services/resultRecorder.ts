@@ -11,7 +11,7 @@ import { notePersistence } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';
 import type { ResultOrigin, WorkoutResult } from '@/types/storage';
 import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
-import { parseNoteId } from '../lib/noteIdentity';
+import { parseNoteId } from '@/lib/noteIdentity';
 
 /**
  * Writer port the Recorder needs.

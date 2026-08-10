@@ -76,7 +76,7 @@ mock.module('../hooks/useTourScrollQuests', () => ({
   useTourScrollQuests: () => () => {},
 }))
 
-mock.module('../services/resultRecorder', () => ({
+mock.module('@/services/resultRecorder', () => ({
   playgroundRecorder: { record: async () => {} },
 }))
 

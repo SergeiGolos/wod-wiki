@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { v7 as uuidv7 } from 'uuid'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
-import { playgroundRecorder } from '../services/resultRecorder'
+import { playgroundRecorder } from '@/services/resultRecorder'
 import type { RunButtonState } from '../components/molecules/SectionButtons'
 
 export type FullscreenState =

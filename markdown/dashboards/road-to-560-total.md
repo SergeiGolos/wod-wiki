@@ -14,8 +14,8 @@ tags:
 Strength prebuilt — tonnage, estimated 1RM, and per-lift goal rings. Ring
 targets are frontmatter tokens ($squatGoal / $benchGoal / $deadliftGoal);
 edit them as the meet approaches. e1RM derives from logged sets via
-calc.e1rm (#904); %1RM intensity waits on a profile 1RM (#898 fog) and
-renders as a labeled placeholder until then.
+calc.e1rm (#904), and %1RM intensity (calc.pct1rm) is the Epley-inverse %
+of each set's projected max.
 
 ## Squat goal
 How close to the target?

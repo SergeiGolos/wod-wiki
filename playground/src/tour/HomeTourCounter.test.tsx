@@ -55,7 +55,7 @@ mock.module('../hooks/useRunStartedChallenge', () => ({
   useRunStartedChallenge: () => {},
 }))
 
-mock.module('../services/resultRecorder', () => ({
+mock.module('@/services/resultRecorder', () => ({
   playgroundRecorder: { record: async () => {} },
 }))
 

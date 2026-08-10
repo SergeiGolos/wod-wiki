@@ -59,6 +59,13 @@ export class OutputEmitter {
     private _analyticsEngine: IAnalyticsEngine | null = null;
     /** Session-scoped latch: summary outputs are appended once per session. */
     private _analyticsFinalized = false;
+    /**
+     * Ephemeral Tier-2 (running-total) snapshot — display-only. Replaced
+     * wholesale on each segment; NEVER buffered into _outputStatements, so it
+     * never reaches the persisted log. Only finalizeAnalytics() materializes
+     * the final values into the records.
+     */
+    private _liveAnalytics: IOutputStatement[] = [];
 
     // Runtime dependencies wired once via attach() — the emission helpers read
     // these instead of taking clock/stack/script across the seam at every call.
@@ -150,17 +157,18 @@ export class OutputEmitter {
     hasListeners(): boolean {
         return this._outputListeners.size > 0;
     }
-
     setAnalyticsEngine(engine: IAnalyticsEngine): void {
         this._analyticsEngine = engine;
-        // Route live session-totals (one 'analytics' output per segment) through
-        // the output stream so the UI updates in real time without a tracker.
-        engine.setLiveOutputEmitter((o) => this.add(o));
+        // Route the live Tier-2 snapshot through emitLiveAnalytics — display-only,
+        // never buffered. Finals are materialized by finalizeAnalytics() below.
+        engine.setLiveOutputEmitter((outputs) => this.emitLiveAnalytics(outputs));
     }
 
     /**
-     * Flush the analytics engine's summary outputs after a workout ends.
-     * Summary statements bypass the enrichment chain (already fully processed).
+     * Flush the analytics engine's final summary outputs after a workout ends.
+     * Summary statements bypass the enrichment chain (already fully processed)
+     * and are the ONLY Tier-2 outputs that reach the persisted buffer — live
+     * running-total snapshots stay ephemeral ({@link emitLiveAnalytics}).
      */
     finalizeAnalytics(): IOutputStatement[] {
         if (!this._analyticsEngine) return [];
@@ -172,8 +180,12 @@ export class OutputEmitter {
         this._analyticsFinalized = true;
 
         const summaryOutputs = this._analyticsEngine.finalize();
+        // When finalize returns [] the projections were already emitted live and
+        // are unchanged — the live snapshot holds the final values. Materialize
+        // it so the records carry the finals even though live never buffered.
+        const finals = summaryOutputs.length > 0 ? summaryOutputs : this._liveAnalytics;
 
-        for (const output of summaryOutputs) {
+        for (const output of finals) {
             this._outputStatements.push(output);
             for (const listener of this._outputListeners) {
                 try {
@@ -184,13 +196,45 @@ export class OutputEmitter {
             }
         }
 
-        return summaryOutputs;
+        // The live snapshot has served its purpose; the finals now live in the
+        // persisted buffer. Clear it so post-finalize reads don't double-count.
+        this._liveAnalytics = [];
+
+        return finals;
+    }
+
+    /**
+     * Replace the ephemeral live-analytics snapshot and notify subscribers,
+     * WITHOUT buffering into the persisted output stream. Live Tier-2 totals
+     * (running totals per segment) are display-only; only {@link finalizeAnalytics}
+     * writes the final values into the records.
+     *
+     * Each projection output is still fanned out to listeners individually so
+     * reactive consumers (session store, cast bridge) update per-segment.
+     */
+    private emitLiveAnalytics(outputs: IOutputStatement[]): void {
+        this._liveAnalytics = outputs;
+        for (const output of outputs) {
+            for (const listener of this._outputListeners) {
+                try {
+                    listener(output);
+                } catch (err) {
+                    console.error('[OutputEmitter] Live analytics listener error:', err);
+                }
+            }
+        }
+    }
+
+    /** Ephemeral Tier-2 (running-total) snapshot for live display; never persisted. */
+    getLiveAnalytics(): IOutputStatement[] {
+        return [...this._liveAnalytics];
     }
 
     dispose(): void {
         this._outputStatements = [];
         this._outputListeners.clear();
         this._analyticsFinalized = false;
+        this._liveAnalytics = [];
     }
 
     // =========================================================================

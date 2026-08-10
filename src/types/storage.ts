@@ -233,6 +233,8 @@ export interface AnalyticsDataPoint {
     discipline?: string;
     /** V12 — qualitative intensity bucket of the resolved effort, when known. */
     intensityTier?: string;
+    /** Climb grade label for send facts (`calc.sends` groups `by {grade}`). */
+    grade?: string;
     segmentId: string;    // FK to NoteSegment.id (positional section id)
     segmentVersion: number;
     resultId: string;     // Link to raw WorkoutResult

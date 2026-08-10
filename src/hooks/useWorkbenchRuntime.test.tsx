@@ -144,14 +144,17 @@ describe('useWorkbenchRuntime', () => {
         const { OutputStatement } = await import('@/core/models/OutputStatement');
 
         const finalizeAnalytics = mock(() => []);
-        const liveOutput = new OutputStatement({
+        // Post-fix, getOutputStatements() holds finalized analytics only (live
+        // Tier-2 totals stay ephemeral). The partial-save path persists exactly
+        // what the buffer reports.
+        const persistedOutput = new OutputStatement({
             outputType: 'analytics',
             timeSpan: { started: 1, ended: 2 },
             sourceBlockKey: 'block-1',
             stackLevel: 0,
             metrics: MetricContainer.empty('seg-1')
         });
-        const getOutputStatements = mock(() => [liveOutput]);
+        const getOutputStatements = mock(() => [persistedOutput]);
         const mockRuntime = {
             tracker: { recordMetric: mock(() => { }) },
             setAnalyticsEngine: mock(() => { }),

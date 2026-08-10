@@ -2,19 +2,22 @@ import { afterEach, describe, expect, it, mock } from 'bun:test';
 import { cleanup, render, screen } from '@testing-library/react';
 
 mock.module('@/runtime/hooks/useOutputStatements', () => ({
-  useOutputStatements: () => ({
-    outputs: [{
-      outputType: 'analytics',
-      metrics: [
-        { type: 'label', image: 'totalLoad', value: 'totalLoad' },
-        { type: 'metric', image: '1200 kg', value: 1200, unit: 'kg' },
-        { type: 'label', image: 'calculated', value: 'calculated' },
-        { type: 'metric', image: '420 pts', value: 420, unit: 'pts' },
-        { type: 'label', image: 'custom_metric', value: 'custom_metric' },
-        { type: 'metric', image: 'Zone 2 ', value: 'Zone 2', unit: '' },
-      ],
-    }],
-  }),
+  // Live Tier-2 snapshot: one entry per projection (Label + value pair).
+  useLiveAnalytics: () => ([
+    { outputType: 'analytics', metrics: [
+      { type: 'label', image: 'totalLoad', value: 'totalLoad' },
+      { type: 'metric', image: '1200 kg', value: 1200, unit: 'kg' },
+    ]},
+    { outputType: 'analytics', metrics: [
+      { type: 'label', image: 'calculated', value: 'calculated' },
+      { type: 'metric', image: '420 pts', value: 420, unit: 'pts' },
+    ]},
+    { outputType: 'analytics', metrics: [
+      { type: 'label', image: 'custom_metric', value: 'custom_metric' },
+      { type: 'metric', image: 'Zone 2 ', value: 'Zone 2', unit: '' },
+    ]},
+  ]),
+  useOutputStatements: () => ({ outputs: [] }),
 }));
 
 const { MetricTrackerCard } = await import('./MetricTrackerCard');

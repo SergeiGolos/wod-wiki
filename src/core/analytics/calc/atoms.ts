@@ -28,6 +28,9 @@ export const STREAM_ATOMS: Record<string, StreamAtomDef> = {
   effortRpe: { dim: DIM_ZERO, metricType: 'effortRpe' },
   metMinutesEstimated: { dim: DIM_ZERO, metricType: 'metMinutesEstimated' },
   sessionRpe: { dim: DIM_ZERO, metricType: 'session-rpe' },
+  // Climb: send presence (count dim) + grade (dimensionless label).
+  climbSend: { dim: DIM_COUNT, metricType: 'climb-send-type', unit: 'count' },
+  climbGrade: { dim: DIM_ZERO, metricType: 'climb-grade' },
 };
 
 /** Engine-provided context nodes (both scopes, where meaningful). */

@@ -8,9 +8,10 @@
 
 import { useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { parseNoteId, noteRefToPath } from '../lib/noteIdentity'
+import { parseNoteId } from '@/lib/noteIdentity'
+import { noteRefToPath } from '../lib/noteIdentity'
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
-import { playgroundRecorder } from '../services/resultRecorder'
+import { playgroundRecorder } from '@/services/resultRecorder'
 import { pendingRuntimes } from '../runtimeStore'
 
 export function WallClockPage() {

@@ -4,7 +4,7 @@ import { EditorSelection } from '@codemirror/state';
 import type { ScriptBlock } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
 import { journalNotes } from '../services/journalNotes';
-import { playgroundRecorder } from '../services/resultRecorder';
+import { playgroundRecorder } from '@/services/resultRecorder';
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer';
 import { useSearchParams } from 'react-router-dom';
 import { pendingRuntimes } from '../runtimeStore';

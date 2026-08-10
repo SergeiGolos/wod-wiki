@@ -284,14 +284,19 @@ export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): Analyti
   const transformer = new AnalyticsTransformer();
   const allOutputs = runtime.getOutputStatements();
   // Filter for workout segments and analytics outputs — avoids 'load', 'system', 'event' outputs
-  // appearing in results and analytics graphs.
+  // appearing in results and analytics graphs. During a live session the persisted
+  // buffer holds no Tier-2 totals (they stay ephemeral), so fold in the live
+  // running-total snapshot for display. After finalize the finals are already in
+  // the buffer and the snapshot is empty, so this never double-counts.
   const outputs = allOutputs.filter(o =>
     o.outputType === 'segment' ||
     o.outputType === 'analytics' ||
     o.outputType === 'milestone'
   );
+  const liveAnalytics = runtime.getLiveAnalytics?.() ?? [];
+  const source = liveAnalytics.length > 0 ? [...outputs, ...liveAnalytics] : outputs;
   
-  const segments = transformer.fromOutputStatements(outputs);
+  const segments = transformer.fromOutputStatements(source);
 
   if (segments.length === 0) {
     return { segments: [], groups: [] };

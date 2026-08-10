@@ -66,8 +66,8 @@ describe('WQL Vocabulary Alignment (#871)', () => {
     for (const target of WQL_CALC_TARGETS) {
       expect(isProposedMetric(target)).toBe(false);
     }
-    expect(isProposedMetric('calc.readiness')).toBe(true);
-    expect(isProposedMetric('calc.mvcBw')).toBe(true);
+    // Only the PMC composite series stays proposed (one scalar key per store calc).
+    expect(isProposedMetric('calc.pmc')).toBe(true);
     expect(isProposedMetric('totalVolume')).toBe(false);
   });
 
