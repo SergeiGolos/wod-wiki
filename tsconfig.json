@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/lang" },
+    { "path": "packages/wql" },
+    { "path": "packages/engine" },
+    { "path": "packages/ui" },
+    { "path": "apps/storybook" }
+  ]
+}

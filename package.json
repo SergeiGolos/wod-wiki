@@ -1,0 +1,29 @@
+{
+  "name": "wod-wiki-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.3.14",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "bun run --filter '@wod-wiki/core' build && bun run --filter '@wod-wiki/lang' build && bun run --filter '@wod-wiki/wql' build && bun run --filter '@wod-wiki/engine' build && bun run --filter '@wod-wiki/ui' build && bun run --filter '@wod-wiki/storybook' build",
+    "clean": "bun run --filter '*' clean",
+    "typecheck": "bun run --filter '*' typecheck",
+    "lint": "eslint packages/*/src apps/*/src --ext .ts,.tsx",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "pack:all": "mkdir -p tarballs && for pkg in packages/*; do if [ -f \"$pkg/package.json\" ]; then (cd \"$pkg\" && npm pack --pack-destination ../../tarballs); fi; done"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.19",
+    "@typescript-eslint/eslint-plugin": "^8.24.1",
+    "@typescript-eslint/parser": "^8.24.1",
+    "eslint": "^8.57.1",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

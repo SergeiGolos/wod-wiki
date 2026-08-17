@@ -1,0 +1,25 @@
+{
+  "name": "@wod-wiki/storybook",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Storybook app placeholder'",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@wod-wiki/core": "workspace:*",
+    "@wod-wiki/lang": "workspace:*",
+    "@wod-wiki/wql": "workspace:*",
+    "@wod-wiki/engine": "workspace:*",
+    "@wod-wiki/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  }
+}
