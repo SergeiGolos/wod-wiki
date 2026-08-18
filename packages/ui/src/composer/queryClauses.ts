@@ -10,13 +10,13 @@
  *
  * Static option lists live here; dynamic typeahead data sources live in
  * ./suggestionSources (issue #831). All vocab is sourced from the canonical
- * modules (@wod-wiki/engine) — never hardcoded in the composer (decision #824).
+ * modules (@bitcobblers/wod-wiki-engine) — never hardcoded in the composer (decision #824).
  *
  * Supports freeform token slots, placeholder guidance, and keyboard navigation.
  */
 
 import { composerRegistry } from './ComposerRegistry';
-import { WQL_AGGREGATORS, WQL_COMPARISON_OPS, WQL_CALC_TARGETS, WQL_DISPLAY_UNITS, WQL_METRIC_AGGREGATES, WQL_METRIC_FAMILIES, WQL_ROLLUP_PERIODS, WQL_SOURCES, WQL_TAG_KEYS, WQL_VIRTUAL_DIMS, parseWqlSuffixes, splitAtWhere } from '@wod-wiki/wql';
+import { WQL_AGGREGATORS, WQL_COMPARISON_OPS, WQL_CALC_TARGETS, WQL_DISPLAY_UNITS, WQL_METRIC_AGGREGATES, WQL_METRIC_FAMILIES, WQL_ROLLUP_PERIODS, WQL_SOURCES, WQL_TAG_KEYS, WQL_VIRTUAL_DIMS, parseWqlSuffixes, splitAtWhere } from '@bitcobblers/wod-wiki-wql';
 
 export type ClauseType =
   | 'source'

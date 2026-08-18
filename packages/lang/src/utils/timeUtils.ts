@@ -1,4 +1,4 @@
-import { TimeSpan } from '@wod-wiki/core';
+import { TimeSpan } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Formats a **TimeStamp** (Date or epoch ms) into HH:MM:SS format.

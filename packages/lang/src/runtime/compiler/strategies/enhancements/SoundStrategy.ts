@@ -1,6 +1,6 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
-import { ICodeStatement } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
 
 // New aspect-based behaviors

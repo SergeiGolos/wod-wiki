@@ -1,20 +1,20 @@
 /**
- * Cross-package contract test: @wod-wiki/wql ↔ @wod-wiki/lang
+ * Cross-package contract test: @bitcobblers/wod-wiki-wql ↔ @bitcobblers/wod-wiki-lang
  *
  * Verifies alignment between WQL calculation targets (WQL_CALC_TARGETS)
- * and @wod-wiki/lang's calculation engine seeds (BUILTIN_CALCS + STORE_CALCS).
+ * and @bitcobblers/wod-wiki-lang's calculation engine seeds (BUILTIN_CALCS + STORE_CALCS).
  *
  * Requirements:
- * 1. Every calc.* output key registered in @wod-wiki/lang calculation seeds
+ * 1. Every calc.* output key registered in @bitcobblers/wod-wiki-lang calculation seeds
  *    must be present in WQL_CALC_TARGETS.
  * 2. WQL_CALC_TARGETS must accurately reflect all supported calc.* metrics.
  */
 
 import { describe, it, expect } from 'vitest';
-import { WQL_CALC_TARGETS, type WqlCalcTarget } from '@wod-wiki/wql';
-import { BUILTIN_CALCS, STORE_CALCS } from '@wod-wiki/lang';
+import { WQL_CALC_TARGETS, type WqlCalcTarget } from '@bitcobblers/wod-wiki-wql';
+import { BUILTIN_CALCS, STORE_CALCS } from '@bitcobblers/wod-wiki-lang';
 
-describe('contract: WQL calculation targets ↔ @wod-wiki/lang calculation seeds', () => {
+describe('contract: WQL calculation targets ↔ @bitcobblers/wod-wiki-lang calculation seeds', () => {
   it('aligns WQL_CALC_TARGETS with all calc.* outputs in BUILTIN_CALCS and STORE_CALCS', () => {
     const allDefs = [...BUILTIN_CALCS, ...STORE_CALCS];
 

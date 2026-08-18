@@ -1,5 +1,5 @@
 /**
- * @wod-wiki/lang
+ * @bitcobblers/wod-wiki-lang
  * Whiteboard Language parser, JIT compiler, runtime, and dialect execution.
  * Pure headless entry point — 0 DOM / React dependencies.
  */

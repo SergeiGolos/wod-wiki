@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { defineLanguagePack, registerLanguagePack, getRegisteredLanguagePacks, Metric, parseScript, parseQuery } from '../src/index';
 
-describe('@wod-wiki/engine', () => {
+describe('@bitcobblers/wod-wiki-engine', () => {
   it('re-exports core, lang, and wql symbols', () => {
     const metric = new Metric('reps', 'reps', 10);
     expect(metric.value).toBe(10);

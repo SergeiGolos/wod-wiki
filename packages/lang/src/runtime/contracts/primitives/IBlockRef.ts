@@ -1,4 +1,4 @@
-import type { BlockKey } from '@wod-wiki/core';
+import type { BlockKey } from '@bitcobblers/wod-wiki-core';
 import type { IBlockContext } from '../IBlockContext';
 import type { IMemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
 import type { MetricVisibility } from '../../memory/MetricVisibility';

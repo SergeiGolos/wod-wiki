@@ -1,6 +1,6 @@
-import { ICodeStatement } from '@wod-wiki/core';
-import { MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { metricPresentation } from '../../../metrics/presentation';
 import { hasHint, CONSUMED_HINTS } from '../../../metrics/hints';
 

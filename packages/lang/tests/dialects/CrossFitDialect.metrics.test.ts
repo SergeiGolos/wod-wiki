@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 import {
   parseWithDialect,
   rawMetricsOfType,

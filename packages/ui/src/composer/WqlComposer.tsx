@@ -26,7 +26,7 @@ import {
   pivotClauses,
   wqlToClauses,
 } from './queryClauses';
-import { parseQuery } from '@wod-wiki/wql';
+import { parseQuery } from '@bitcobblers/wod-wiki-wql';
 
 // ── Public API ───────────────────────────────────────────────────────────────
 

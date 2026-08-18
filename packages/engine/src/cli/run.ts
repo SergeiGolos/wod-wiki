@@ -19,12 +19,12 @@ import {
   toStoredOutputStatement,
   type INowProvider,
   frozenNow,
-} from '@wod-wiki/lang';
+} from '@bitcobblers/wod-wiki-lang';
 import type {
   StoredOutputStatement,
   WorkoutResults,
   IOutputStatement,
-} from '@wod-wiki/core';
+} from '@bitcobblers/wod-wiki-core';
 import { createIRFile, type WodWikiIRFile, type ExecutionLog } from '../ir';
 import { ParseSyntaxError } from './parse';
 

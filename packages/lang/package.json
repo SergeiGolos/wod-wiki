@@ -1,5 +1,5 @@
 {
-  "name": "@wod-wiki/lang",
+  "name": "@bitcobblers/wod-wiki-lang",
   "version": "0.1.0",
   "description": "Whiteboard Language parser, JIT compiler, runtime, and dialect execution",
   "type": "module",
@@ -26,7 +26,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@wod-wiki/core": "workspace:*",
+    "@bitcobblers/wod-wiki-core": "workspace:*",
     "uuid": "^11.1.0"
   },
   "peerDependencies": {

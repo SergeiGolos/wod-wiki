@@ -2,7 +2,7 @@
 // Promoted out of the removed runtime-test-bench subsystem because these
 // contracts are still used by production runtime surfaces.
 
-import type { MetricContainer } from '@wod-wiki/core';
+import type { MetricContainer } from '@bitcobblers/wod-wiki-core';
 
 export type ExecutionStatus =
   | 'idle'

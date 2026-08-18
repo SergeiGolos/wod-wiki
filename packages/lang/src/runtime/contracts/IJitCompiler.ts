@@ -1,4 +1,4 @@
-import type { ICodeStatement } from '@wod-wiki/core';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import type { IRuntimeBlock } from './IRuntimeBlock';
 import type { IRuntimeActionable } from './primitives/IRuntimeActionable';
 

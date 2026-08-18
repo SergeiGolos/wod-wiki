@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { type StoredOutputStatement, type Segment, MetricType } from '@wod-wiki/core';
-import { parseQuery, isRowsQuery, type RowsQueryResult, type RowsRun } from '@wod-wiki/wql';
+import { type StoredOutputStatement, type Segment, MetricType } from '@bitcobblers/wod-wiki-core';
+import { parseQuery, isRowsQuery, type RowsQueryResult, type RowsRun } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { RowsTable } from '../widgets/RowsTable';
 import { cn } from '../utils/cn';

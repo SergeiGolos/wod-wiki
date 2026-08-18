@@ -8,7 +8,7 @@ import { RepMetric } from '../../src/runtime/compiler/metrics/RepMetric';
 import { ResistanceMetric } from '../../src/runtime/compiler/metrics/ResistanceMetric';
 import { RoundsMetric } from '../../src/runtime/compiler/metrics/RoundsMetric';
 import { TextMetric } from '../../src/runtime/compiler/metrics/TextMetric';
-import { CodeMetadata } from '@wod-wiki/core';
+import { CodeMetadata } from '@bitcobblers/wod-wiki-core';
 
 describe('Fragment Origin Marking', () => {
     const mockMeta: CodeMetadata = {

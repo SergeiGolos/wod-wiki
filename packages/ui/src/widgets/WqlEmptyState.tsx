@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { QueryResult } from '@wod-wiki/wql';
+import type { QueryResult } from '@bitcobblers/wod-wiki-wql';
 
 export interface WqlEmptyStateProps {
   result: QueryResult | undefined;

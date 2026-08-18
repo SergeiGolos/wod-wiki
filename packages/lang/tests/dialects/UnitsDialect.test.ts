@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { UnitsDialect } from '../../src/dialects/UnitsDialect';
 import { UnitRegistry } from '../../src/metrics/units';
-import { MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { RepMetric } from '../../src/runtime/compiler/metrics/RepMetric';
 import { EffortMetric } from '../../src/runtime/compiler/metrics/EffortMetric';
-import { ICodeStatement } from '@wod-wiki/core';
-import { IMetric } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
+import { IMetric } from '@bitcobblers/wod-wiki-core';
 
 function makeStatement(metrics: IMetric[]): ICodeStatement {
   return {

@@ -1,4 +1,4 @@
-import type { DashboardToken } from '@wod-wiki/wql';
+import type { DashboardToken } from '@bitcobblers/wod-wiki-wql';
 import { cn } from '../utils/cn';
 
 export interface DashboardTokenControlsProps {

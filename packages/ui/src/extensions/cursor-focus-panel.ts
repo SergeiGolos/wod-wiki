@@ -6,8 +6,8 @@ import { StateField,
   RangeSetBuilder } from "@codemirror/state";
 import type { Extension } from "@codemirror/state";
 import { sectionField, type EditorSection } from "./section-state";
-import type { ICodeStatement, IMetric } from '@wod-wiki/core';
-import { createParser } from '@wod-wiki/lang';
+import type { ICodeStatement, IMetric } from '@bitcobblers/wod-wiki-core';
+import { createParser } from '@bitcobblers/wod-wiki-lang';
 
 export interface CursorFocusState {
   sectionId: string;

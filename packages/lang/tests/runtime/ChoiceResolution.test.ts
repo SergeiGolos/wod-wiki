@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { MetricContainer } from '@wod-wiki/core';
-import { MetricType, type IMetric } from '@wod-wiki/core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
+import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-core';
 import { ChoiceGroupMetric } from '../../src/runtime/compiler/metrics/ChoiceGroupMetric';
 import {
   findUnresolvedChoices,

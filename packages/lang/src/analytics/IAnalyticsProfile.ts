@@ -1,5 +1,5 @@
-import type { MetricType } from '@wod-wiki/core';
-import type { FenceDialect } from '@wod-wiki/core';
+import type { MetricType } from '@bitcobblers/wod-wiki-core';
+import type { FenceDialect } from '@bitcobblers/wod-wiki-core';
 import type { IRealtimeProcessor } from './IRealtimeProcessor';
 import type { ISummaryProcessor } from './ISummaryProcessor';
 import type { AnalyticsContext } from './AnalyticsContext';

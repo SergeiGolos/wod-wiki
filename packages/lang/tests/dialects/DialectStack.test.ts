@@ -6,10 +6,10 @@ import { DialectStack, createDialectStack, dialectStack } from '../../src/dialec
 import { UnitsDialect } from '../../src/dialects/UnitsDialect';
 import { CrossFitDialect } from '../../src/dialects/CrossFitDialect';
 import { ClimbDialect } from '../../src/dialects/ClimbDialect';
-import { IDialect, DialectAnalysis } from '@wod-wiki/core';
-import { ICodeStatement } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
-import { MetricType, IMetric } from '@wod-wiki/core';
+import { IDialect, DialectAnalysis } from '@bitcobblers/wod-wiki-core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
+import { MetricType, IMetric } from '@bitcobblers/wod-wiki-core';
 import { hintsToContainer, getHints, hasHint } from '../../src/metrics/hints';
 import { extractStatements, extractStatementsRaw } from '../../src/parser/lezer-mapper';
 import { whiteboardScriptLanguage } from '../../src/parser/whiteboard-script-language';

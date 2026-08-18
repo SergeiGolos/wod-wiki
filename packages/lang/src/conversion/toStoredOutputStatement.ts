@@ -4,7 +4,7 @@ import {
   type IOutputStatement,
   type StoredOutputStatement,
   type IMetric,
-} from '@wod-wiki/core';
+} from '@bitcobblers/wod-wiki-core';
 import { getHints } from '../metrics/hints';
 
 /**

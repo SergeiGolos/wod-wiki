@@ -1,4 +1,4 @@
-import { BlockKey } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
 import { IRuntimeAction } from './IRuntimeAction';
 import { IBlockContext } from './IBlockContext';
 import { IRuntimeBehavior } from './IRuntimeBehavior';

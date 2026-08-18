@@ -1,5 +1,5 @@
 export type FenceDialect = string;
-import type { MetricType } from '@wod-wiki/core';
+import type { MetricType } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Shared descriptor for all analytics processors.

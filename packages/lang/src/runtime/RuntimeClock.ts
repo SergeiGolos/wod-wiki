@@ -1,5 +1,5 @@
 import { IRuntimeClock } from './contracts/IRuntimeClock';
-import {  } from '@wod-wiki/core';
+import {  } from '@bitcobblers/wod-wiki-core';
 import { TimeSpan } from './models/TimeSpan';
 
 

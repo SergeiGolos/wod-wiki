@@ -1,8 +1,8 @@
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { MetricType, IMetric } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricType, IMetric } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 
 export interface LabelingConfig {
     mode?: 'clock' | 'timer' | 'countdown' | 'hidden';

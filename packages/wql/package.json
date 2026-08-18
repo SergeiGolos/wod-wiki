@@ -1,5 +1,5 @@
 {
-  "name": "@wod-wiki/wql",
+  "name": "@bitcobblers/wod-wiki-wql",
   "version": "0.1.0",
   "description": "Whiteboard Query Language (WQL) parser, AST, and QueryService",
   "type": "module",
@@ -21,7 +21,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@wod-wiki/core": "workspace:*"
+    "@bitcobblers/wod-wiki-core": "workspace:*"
   },
   "peerDependencies": {
     "@codemirror/autocomplete": "^6.0.0",
@@ -59,7 +59,7 @@
     "@lezer/generator": "^1.8.0",
     "@lezer/highlight": "^1.2.1",
     "@lezer/lr": "^1.4.2",
-    "@wod-wiki/lang": "workspace:*"
+    "@bitcobblers/wod-wiki-lang": "workspace:*"
   },
   "scripts": {
     "build": "tsup",

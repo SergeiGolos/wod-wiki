@@ -1,9 +1,9 @@
 /**
- * @wod-wiki/storybook
+ * @bitcobblers/wod-wiki-storybook
  * State-free Storybook workbench and golden fixture catalog.
  */
 
-import { CODEMIRROR_SINGLETON_DEPS } from '@wod-wiki/ui';
+import { CODEMIRROR_SINGLETON_DEPS } from '@bitcobblers/wod-wiki-ui';
 
 export function getStorybookConfig(): { dedupe: readonly string[] } {
   return {

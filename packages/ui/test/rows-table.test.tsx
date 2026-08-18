@@ -1,7 +1,7 @@
 import { describe, expect, it, afterEach  } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import type { Segment } from '@wod-wiki/core';
-import type { RowsQueryResult } from '@wod-wiki/wql';
+import type { Segment } from '@bitcobblers/wod-wiki-core';
+import type { RowsQueryResult } from '@bitcobblers/wod-wiki-wql';
 import { RowsTable } from '../src';
 
 afterEach(cleanup);

@@ -1,5 +1,5 @@
 /**
- * @wod-wiki/lang/react
+ * @bitcobblers/wod-wiki-lang/react
  * React hooks, context, and components for the Whiteboard Language runtime.
  */
 

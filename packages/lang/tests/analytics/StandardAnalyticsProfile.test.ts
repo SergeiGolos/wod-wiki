@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { StandardAnalyticsProfile, realtimeProcessorRegistry, summaryProcessorRegistry } from '../../src/analytics/StandardAnalyticsProfile';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 import type { AnalyticsProfileContext } from '../../src/analytics/IAnalyticsProfile';
 import type { IRealtimeProcessor } from '../../src/analytics/IRealtimeProcessor';
 import type { ISummaryProcessor } from '../../src/analytics/ISummaryProcessor';

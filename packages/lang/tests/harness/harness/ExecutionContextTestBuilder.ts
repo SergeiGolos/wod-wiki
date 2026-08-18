@@ -2,7 +2,7 @@ import { ExecutionContextTestHarness, HarnessConfig } from '../harness/Execution
 import { IRuntimeBlock } from '../../../src/runtime/contracts/IRuntimeBlock';
 import { IRuntimeBlockStrategy } from '../../../src/runtime/contracts/IRuntimeBlockStrategy';
 import { IEventHandler } from '../../../src/runtime/contracts/events/IEventHandler';
-import { ICodeStatement } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import { IScriptRuntime } from '../../../src/runtime/contracts/IScriptRuntime';
 
 /**

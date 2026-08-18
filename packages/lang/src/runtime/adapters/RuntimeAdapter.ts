@@ -2,7 +2,7 @@ import { IRuntimeAdapter, ExecutionSnapshot, RuntimeStackBlock, MemoryEntry, Mem
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IMemoryReference } from '../contracts/IMemoryReference';
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { searchStackMemory } from '../utils/MemoryUtils';
 
 /**

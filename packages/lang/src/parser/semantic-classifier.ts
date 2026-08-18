@@ -1,5 +1,5 @@
-import { ParsedCodeStatement } from '@wod-wiki/core';
-import { MetricType } from '@wod-wiki/core';
+import { ParsedCodeStatement } from '@bitcobblers/wod-wiki-core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 import { ActionMetric } from '../runtime/compiler/metrics/ActionMetric';
 import { DistanceMetric } from '../runtime/compiler/metrics/DistanceMetric';
 import { DurationMetric } from '../runtime/compiler/metrics/DurationMetric';

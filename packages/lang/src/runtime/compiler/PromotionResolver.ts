@@ -8,7 +8,7 @@
  */
 import type { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import type { IRuntimeContext } from '../contracts/IRuntimeContext';
-import type { IMetric } from '@wod-wiki/core';
+import type { IMetric } from '@bitcobblers/wod-wiki-core';
 import { isFragmentPromoter } from '../contracts/behaviors/IMetricPromoter';
 import type { IPromotionResolver, PromotionResolution } from './contracts/IPromotionResolver';
 

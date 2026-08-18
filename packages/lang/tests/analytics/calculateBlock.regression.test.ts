@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
-import { OutputStatement } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
+import { OutputStatement } from '@bitcobblers/wod-wiki-core';
 import {
   parseCalculateBlock,
   evaluateCalculateDefinitions,

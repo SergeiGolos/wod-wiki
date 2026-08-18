@@ -1,5 +1,5 @@
-import { IMetric, MetricType } from '@wod-wiki/core';
-import { ICodeStatement } from '@wod-wiki/core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import { UnitSet } from '../../metrics/units';
 import { EffortMetric } from "../../runtime/compiler/metrics/EffortMetric";
 import { metricForDimension, EMPTY_UNIT } from "../../runtime/compiler/metrics/dimensionFactory";

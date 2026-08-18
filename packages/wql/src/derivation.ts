@@ -2,7 +2,7 @@
  * Workout derivation helpers for WQL QueryService and cross-store joins.
  */
 
-import { MetricType, type AnalyticsDataPoint, type ResultOrigin } from '@wod-wiki/core';
+import { MetricType, type AnalyticsDataPoint, type ResultOrigin } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Map a summary projection name to its Canonical Metric Key — the one key two

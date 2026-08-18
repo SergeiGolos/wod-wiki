@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ICodeStatement, IMetric, MetricType, MetricContainer, MetricOrigin } from '@wod-wiki/core';
+import { ICodeStatement, IMetric, MetricType, MetricContainer, MetricOrigin } from '@bitcobblers/wod-wiki-core';
 import { CrossFitDialect } from '../../src/dialects/CrossFitDialect';
 import { CardioDialect } from '../../src/dialects/CardioDialect';
 import { YogaDialect } from '../../src/dialects/YogaDialect';

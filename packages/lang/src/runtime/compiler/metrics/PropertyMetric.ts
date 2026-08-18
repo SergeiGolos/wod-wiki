@@ -1,4 +1,4 @@
-import { IMetric, MetricOrigin, MetricType } from '@wod-wiki/core';
+import { IMetric, MetricOrigin, MetricType } from '@bitcobblers/wod-wiki-core';
 
 export interface PropertyMetricOptions {
   readonly type?: MetricType | string;

@@ -10,7 +10,7 @@ import {
 import { MemoryTag, MemoryLocation } from '../../src/runtime/memory/MemoryLocation';
 import { RuntimeBlock } from '../../src/runtime/RuntimeBlock';
 import { IScriptRuntime } from '../../src/runtime/contracts/IScriptRuntime';
-import { IMetric, MetricType } from '@wod-wiki/core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
 
 // ============================================================================
 // MetricVisibility classification tests

@@ -1,7 +1,7 @@
-import { BlockKey } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
 import { describe, it, expect } from 'vitest';
 import { apply, stubRuntime, makeStatement } from '../harness/harness/StrategyTestHarness';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 import { BlockBuilder } from '../../src/runtime/compiler/BlockBuilder';
 import { ChildrenStrategy } from '../../src/runtime/compiler/strategies/enhancements/ChildrenStrategy';
 import { ChildSelectionBehavior, MetricPromotionBehavior } from '../../src/runtime/behaviors';

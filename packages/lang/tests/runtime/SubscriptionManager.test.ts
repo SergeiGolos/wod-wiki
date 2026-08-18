@@ -3,7 +3,7 @@ import { SubscriptionManager } from '../../src/runtime/subscriptions/Subscriptio
 import { LocalRuntimeSubscription } from '../../src/runtime/subscriptions/LocalRuntimeSubscription';
 import { IRuntimeSubscription } from '../../src/runtime/contracts/IRuntimeSubscription';
 import { StackSnapshot } from '../../src/runtime/contracts/IRuntimeStack';
-import { IOutputStatement } from '@wod-wiki/core';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 import { IScriptRuntime } from '../../src/runtime/contracts/IScriptRuntime';
 
 // ── Minimal mock runtime for SubscriptionManager ────────────────────────────

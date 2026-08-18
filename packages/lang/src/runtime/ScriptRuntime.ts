@@ -11,7 +11,7 @@ import {
 import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
 import { AbortEventHandler } from './events/AbortEventHandler';
-import { IOutputStatement } from '@wod-wiki/core';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 import type { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IEvent } from './contracts/events/IEvent';
 import { ExecutionContext } from './ExecutionContext';

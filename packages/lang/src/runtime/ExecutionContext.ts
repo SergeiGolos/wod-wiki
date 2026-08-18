@@ -2,7 +2,7 @@ import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IRuntimeContext } from './contracts/IRuntimeContext';
 import { SnapshotClock } from './RuntimeClock';
-import { IOutputStatement } from '@wod-wiki/core';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 import { IEvent } from './contracts/events/IEvent';
 import { EmitSystemOutputAction } from './actions/stack/EmitSystemOutputAction';
 

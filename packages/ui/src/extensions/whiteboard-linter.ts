@@ -3,7 +3,7 @@ import type { Diagnostic } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { whiteboardScriptLanguage } from '@wod-wiki/lang';
+import { whiteboardScriptLanguage } from '@bitcobblers/wod-wiki-lang';
 import { sectionField } from "./section-state";
 
 export function findWorkoutErrors(content: string, offsetInDoc: number): Diagnostic[] {

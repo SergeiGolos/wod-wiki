@@ -1,5 +1,5 @@
 /**
- * @wod-wiki/core
+ * @bitcobblers/wod-wiki-core
  *
  * Shared data vocabulary and persistence shapes for Whiteboard Language & WQL engine.
  * Zero external runtime dependencies.

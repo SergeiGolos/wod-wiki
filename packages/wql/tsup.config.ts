@@ -14,7 +14,7 @@ export default defineConfig({
   treeshake: true,
   target: 'es2022',
   external: [
-    '@wod-wiki/core',
+    '@bitcobblers/wod-wiki-core',
     '@codemirror/state',
     '@codemirror/language',
     '@codemirror/autocomplete',

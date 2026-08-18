@@ -14,9 +14,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import { PromotionResolver } from '../../src/runtime/compiler/PromotionResolver';
-import { MetricType, IMetric, MetricOrigin } from '@wod-wiki/core';
+import { MetricType, IMetric, MetricOrigin } from '@bitcobblers/wod-wiki-core';
 import { MemoryLocation } from '../../src/runtime/memory/MemoryLocation';
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { IMetricPromoter } from '../../src/runtime/contracts/behaviors/IMetricPromoter';
 import type { IRuntimeBlock } from '../../src/runtime/contracts/IRuntimeBlock';
 import type { IScriptRuntime } from '../../src/runtime/contracts/IScriptRuntime';

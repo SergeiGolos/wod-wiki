@@ -5,7 +5,7 @@
  * diffed against these records; every intentional divergence is on the
  * signed accept-list in parity.test.ts.
  */
-import type { MetricOrigin } from '@wod-wiki/core';
+import type { MetricOrigin } from '@bitcobblers/wod-wiki-core';
 
 export interface GoldenAnnotation {
   segment: number;

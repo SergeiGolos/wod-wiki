@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Rewrite ui's '@wod-wiki/engine' imports into split-package imports.
+// Rewrite ui's '@bitcobblers/wod-wiki-engine' imports into split-package imports.
 const fs = require('fs');
 const path = require('path');
 

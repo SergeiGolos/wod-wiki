@@ -1,9 +1,9 @@
 import type { ScriptState } from '../script/ScriptState';
 import type { IRuntimeBlock } from '../../../src/runtime/contracts/IRuntimeBlock';
-import type { IMetric } from '@wod-wiki/core';
+import type { IMetric } from '@bitcobblers/wod-wiki-core';
 import type { RpcMessage, RpcStackUpdate, RpcEvent } from '../../../src/services/cast/rpc/RpcMessages';
 import type { RoundState, TimerState } from '../../../src/runtime/memory/MemoryTypes';
-import type { IOutputStatement, OutputStatementType } from '@wod-wiki/core';
+import type { IOutputStatement, OutputStatementType } from '@bitcobblers/wod-wiki-core';
 
 /** Snapshot read API rooted at a ScriptState. */
 export interface Assertions {

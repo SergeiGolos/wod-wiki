@@ -1,5 +1,5 @@
-import { MetricOrigin, MetricType, IMetric } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricOrigin, MetricType, IMetric } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { IRepSource } from '../contracts/behaviors/IRepSource';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';

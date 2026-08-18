@@ -2,7 +2,7 @@ import type { Dimension } from '../../../metrics/units';
 import { DistanceMetric } from './DistanceMetric';
 import { ResistanceMetric } from './ResistanceMetric';
 import { MeasuredMetric } from './MeasuredMetric';
-import type { IMetric } from '@wod-wiki/core';
+import type { IMetric } from '@bitcobblers/wod-wiki-core';
 
 /**
  * EMPTY_UNIT — the @N empty-unit sentinel.

@@ -8,7 +8,7 @@ import type { RuntimeError } from './IRuntimeError'
 import type { AnalyticsContext } from '../../analytics/AnalyticsContext'
 import type { INowProvider } from '../INowProvider'
 import type { RuntimeStackOptions } from './IRuntimeOptions'
-import type { IOutputStatement } from '@wod-wiki/core'
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-core'
 import type { IEvent } from './events/IEvent'
 
 /**

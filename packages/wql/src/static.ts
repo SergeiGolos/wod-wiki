@@ -1,4 +1,4 @@
-import type { BlockIndexRow, Note } from '@wod-wiki/core';
+import type { BlockIndexRow, Note } from '@bitcobblers/wod-wiki-core';
 import { extractFrontmatterTags } from './dashboard/frontmatter';
 
 /**

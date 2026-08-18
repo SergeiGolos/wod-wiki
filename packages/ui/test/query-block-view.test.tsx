@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach   } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
-import type { QueryResult } from '@wod-wiki/wql';
+import type { QueryResult } from '@bitcobblers/wod-wiki-wql';
 import { QueryBlockView, type QueryExecutor } from '../src';
 
 afterEach(cleanup);

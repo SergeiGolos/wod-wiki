@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useScriptRuntime } from '../context/RuntimeContext';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
-import { IOutputStatement } from '@wod-wiki/core';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Data structure returned by useOutputStatements hook

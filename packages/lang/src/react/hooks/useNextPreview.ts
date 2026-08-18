@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSnapshotBlocks } from './useStackSnapshot';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Result of the next-preview resolution.

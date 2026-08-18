@@ -1,4 +1,4 @@
-import { BlockKey } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
 import { IRuntimeBehavior } from '../../../src/runtime/contracts/IRuntimeBehavior';
 import { IRuntimeAction } from '../../../src/runtime/contracts';
 import { PopBlockAction } from '../../../src/runtime/actions/stack/PopBlockAction';
@@ -6,13 +6,13 @@ import { BlockLifecycleOptions, CompletionDecision, IRuntimeBlock } from '../../
 import { IScriptRuntime } from '../../../src/runtime/contracts';
 import type { IRuntimeActionable } from '../../../src/runtime/contracts/primitives/IRuntimeActionable';
 import { IBlockContext } from '../../../src/runtime/contracts';
-import { IMetric, MetricType } from '@wod-wiki/core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
 import { IMemoryReference, TypedMemoryReference } from '../../../src/runtime/contracts';
 import { MemoryTypeEnum } from '../../../src/runtime/models/MemoryTypeEnum';
 import { IAnchorValue } from '../../../src/runtime/contracts/IAnchorValue';
 import { IBehaviorContext, BehaviorEventType, BehaviorEventListener, SubscribeOptions, Unsubscribe } from '../../../src/runtime/contracts/IBehaviorContext';
 import { IRuntimeClock } from '../../../src/runtime/contracts/IRuntimeClock';
-import { OutputStatementType, OutputStatement } from '@wod-wiki/core';
+import { OutputStatementType, OutputStatement } from '@bitcobblers/wod-wiki-core';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from '../../../src/runtime/memory/MemoryLocation';
 import { IEventHandler } from '../../../src/runtime/contracts/events/IEventHandler';
 import { IEvent } from '../../../src/runtime/contracts/events/IEvent';

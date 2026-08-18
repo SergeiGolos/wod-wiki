@@ -1,5 +1,5 @@
-import { IDialect, DialectAnalysis } from '@wod-wiki/core';
-import { ICodeStatement } from '@wod-wiki/core';
+import { IDialect, DialectAnalysis } from '@bitcobblers/wod-wiki-core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import { UnitRegistry, UnitSet } from '../metrics/units';
 import { fuseUnits } from "./units/fuseUnits";
 

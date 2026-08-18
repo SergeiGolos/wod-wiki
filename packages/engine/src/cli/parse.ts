@@ -4,7 +4,7 @@
  * Parses Whiteboard Script source text and emits a versioned IR parse-tree envelope.
  */
 
-import { createParser, type IScript } from '@wod-wiki/lang';
+import { createParser, type IScript } from '@bitcobblers/wod-wiki-lang';
 import { createIRFile, buildStatementTree, type WodWikiIRFile, type StatementNode } from '../ir';
 
 export class ParseSyntaxError extends Error {

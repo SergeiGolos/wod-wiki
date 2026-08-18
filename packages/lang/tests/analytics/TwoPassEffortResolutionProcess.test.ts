@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TwoPassEffortResolutionProcess } from '../../src/analytics/TwoPassEffortResolutionProcess';
-import { OutputStatement } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
-import { MetricType } from '@wod-wiki/core';
+import { OutputStatement } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 import { MockEffortResolver } from '../harness/harness/MockEffortResolver';
 import { EFFORT_DATA_METRIC_TYPE, extractEffortData } from '../../src/analytics/effortResolution';
 import { fixtureRunning, fixtureRowing } from '../../src/effort-registry/fixtures';

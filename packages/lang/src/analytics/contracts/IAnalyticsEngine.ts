@@ -1,4 +1,4 @@
-import { IOutputStatement } from '@wod-wiki/core';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 import type { IRealtimeProcessor } from '../IRealtimeProcessor';
 import type { ISummaryProcessor } from '../ISummaryProcessor';
 

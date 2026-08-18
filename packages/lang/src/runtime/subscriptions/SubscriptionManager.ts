@@ -1,7 +1,7 @@
 import { IRuntimeSubscription } from '../contracts/IRuntimeSubscription';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { StackSnapshot } from '../contracts/IRuntimeStack';
-import { IOutputStatement } from '@wod-wiki/core';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 import { Unsubscribe } from '../contracts/IRuntimeStack';
 
 /**

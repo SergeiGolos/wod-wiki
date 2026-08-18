@@ -2,9 +2,9 @@ import { IEvent } from './events/IEvent';
 import { IRuntimeAction } from './IRuntimeAction';
 import type { IBlockRef } from './primitives/IBlockRef';
 import { IRuntimeClock } from './IRuntimeClock';
-import { IMetric } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
-import { OutputStatementType } from '@wod-wiki/core';
+import { IMetric } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
+import { OutputStatementType } from '@bitcobblers/wod-wiki-core';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 
 import { HandlerScope } from './events/IEventBus';

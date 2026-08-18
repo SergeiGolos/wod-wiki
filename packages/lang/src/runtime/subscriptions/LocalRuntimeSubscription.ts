@@ -1,6 +1,6 @@
 import { IRuntimeSubscription } from '../contracts/IRuntimeSubscription';
 import { StackSnapshot } from '../contracts/IRuntimeStack';
-import { IOutputStatement } from '@wod-wiki/core';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 
 /**
  * LocalRuntimeSubscription — a no-op subscription that simply receives

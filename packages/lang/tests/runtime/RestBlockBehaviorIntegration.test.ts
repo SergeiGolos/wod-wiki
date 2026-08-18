@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
 import { IScriptRuntime } from '../../src/runtime/contracts/IScriptRuntime';
-import { CodeStatement } from '@wod-wiki/core';
+import { CodeStatement } from '@bitcobblers/wod-wiki-core';
 import { hintMetric } from '../../src/metrics/hints';
 import { DurationMetric } from '../../src/runtime/compiler/metrics/DurationMetric';
 import { RoundsMetric } from '../../src/runtime/compiler/metrics/RoundsMetric';
@@ -12,7 +12,7 @@ import { GenericLoopStrategy } from '../../src/runtime/compiler/strategies/compo
 import { ChildrenStrategy } from '../../src/runtime/compiler/strategies/enhancements/ChildrenStrategy';
 import { SoundStrategy } from '../../src/runtime/compiler/strategies/enhancements/SoundStrategy';
 import { ReportOutputStrategy } from '../../src/runtime/compiler/strategies/enhancements/ReportOutputStrategy';
-import { CodeMetadata } from '@wod-wiki/core';
+import { CodeMetadata } from '@bitcobblers/wod-wiki-core';
 
 import {
     CountdownTimerBehavior,

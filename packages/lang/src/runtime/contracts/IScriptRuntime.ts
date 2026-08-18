@@ -3,7 +3,7 @@ import type { RuntimeError } from './IRuntimeError';
 import type { IEventBus } from './events/IEventBus';
 import type { IRuntimeStack, Unsubscribe, StackObserver } from './IRuntimeStack';
 import type { IRuntimeClock } from './IRuntimeClock';
-import type { IOutputStatement } from '@wod-wiki/core';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 import type { IRuntimeAction } from './IRuntimeAction';
 import type { IEvent } from './events/IEvent';
 import type { IAnalyticsEngine } from '../../analytics/contracts/IAnalyticsEngine';

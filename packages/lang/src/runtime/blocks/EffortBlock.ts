@@ -1,5 +1,5 @@
 
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { RuntimeBlock } from '../RuntimeBlock';
 import type { IRuntimeContext } from '../contracts/IRuntimeContext';

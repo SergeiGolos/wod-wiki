@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { MemoryType, MemoryValueOf, TimerState, RoundState, DisplayState } from '../../runtime/memory/MemoryTypes';
-import { IMetricSource } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { IMetricSource } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { formatDurationSmart } from '../../utils/formatTime';
 import { calculateDuration } from '../../utils/timeUtils';
 import { MemoryTag } from '../../runtime/memory/MemoryLocation';

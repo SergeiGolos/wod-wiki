@@ -1,11 +1,11 @@
 import { IRuntimeBlockStrategy } from '../../../src/runtime/contracts/IRuntimeBlockStrategy';
 import { BlockBuilder } from '../../../src/runtime/compiler/BlockBuilder';
-import { ICodeStatement } from '@wod-wiki/core';
-import { ParsedCodeStatement } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
+import { ParsedCodeStatement } from '@bitcobblers/wod-wiki-core';
 import { IScriptRuntime } from '../../../src/runtime/contracts/IScriptRuntime';
 import { IRuntimeBehavior } from '../../../src/runtime/contracts/IRuntimeBehavior';
-import { IMetric, MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { IRuntimeMemory } from '../../../src/runtime/contracts/IRuntimeMemory';
 import { IRuntimeClock } from '../../../src/runtime/contracts/IRuntimeClock';
 import { IEventBus } from '../../../src/runtime/contracts/events/IEventBus';

@@ -1,5 +1,5 @@
-import type { IOutputStatement } from '@wod-wiki/core';
-import type { IMetric } from '@wod-wiki/core';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-core';
+import type { IMetric } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Flatten all metrics from a collection of output statements into a single array.

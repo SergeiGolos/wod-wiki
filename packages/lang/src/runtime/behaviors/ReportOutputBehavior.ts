@@ -1,10 +1,10 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { RoundState, TimerState } from '../memory/MemoryTypes';
-import {  } from '@wod-wiki/core';
+import {  } from '@bitcobblers/wod-wiki-core';
 import { TimeSpan } from '../models/TimeSpan';
 import { readTimer } from '../time/TimerSpans';
 import { calculateElapsed } from '../time/calculateElapsed';

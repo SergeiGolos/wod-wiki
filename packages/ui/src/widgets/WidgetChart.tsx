@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import type { QueryResult } from '@wod-wiki/wql';
-import { isDashboardWidgetType, PLANNED_WIDGET_TYPES, resolveWidgetType, unknownWidgetTypeMessage } from '@wod-wiki/wql';
+import type { QueryResult } from '@bitcobblers/wod-wiki-wql';
+import { isDashboardWidgetType, PLANNED_WIDGET_TYPES, resolveWidgetType, unknownWidgetTypeMessage } from '@bitcobblers/wod-wiki-wql';
 import { QueryValue } from './QueryValue';
 import { WqlTimeseries } from './WqlTimeseries';
 import { WqlBars } from './WqlBars';

@@ -1,4 +1,4 @@
-import type { QueryResult, FindQueryResult, RowsQueryResult, RowsRun, ParsedQuery, ParsedFindQuery, ParsedRowsQuery, QueryOptions, FindOptions } from '@wod-wiki/wql';
+import type { QueryResult, FindQueryResult, RowsQueryResult, RowsRun, ParsedQuery, ParsedFindQuery, ParsedRowsQuery, QueryOptions, FindOptions } from '@bitcobblers/wod-wiki-wql';
 
 export interface QueryExecutor {
   runQuery(query: string, options?: QueryOptions): Promise<QueryResult>;

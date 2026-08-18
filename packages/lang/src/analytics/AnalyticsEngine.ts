@@ -1,9 +1,9 @@
 import { IAnalyticsEngine } from './contracts/IAnalyticsEngine';
 import type { IRealtimeProcessor } from './IRealtimeProcessor';
 import type { ISummaryProcessor } from './ISummaryProcessor';
-import { IOutputStatement, OutputStatement } from '@wod-wiki/core';
-import { MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { IOutputStatement, OutputStatement } from '@bitcobblers/wod-wiki-core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { ProjectionResult } from './ProjectionResult';
 
 export class AnalyticsEngine implements IAnalyticsEngine {

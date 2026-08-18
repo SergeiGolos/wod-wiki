@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { toStoredOutputStatement } from '../../src/conversion/toStoredOutputStatement';
-import { OutputStatement, MetricContainer, MetricType } from '@wod-wiki/core';
+import { OutputStatement, MetricContainer, MetricType } from '@bitcobblers/wod-wiki-core';
 import { hintMetric } from '../../src/metrics/hints';
 
 describe('toStoredOutputStatement', () => {

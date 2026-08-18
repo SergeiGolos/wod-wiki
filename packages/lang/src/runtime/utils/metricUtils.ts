@@ -7,8 +7,8 @@
  * - AnalyticsLayout (timeline/graphs)
  */
 
-import { IMetric, MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Extract a human-readable label from an array of metric.

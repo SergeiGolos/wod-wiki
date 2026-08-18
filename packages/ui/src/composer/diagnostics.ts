@@ -1,4 +1,4 @@
-import { parseQuery, type ParsedFindQuery, type ParsedQuery } from '@wod-wiki/wql';
+import { parseQuery, type ParsedFindQuery, type ParsedQuery } from '@bitcobblers/wod-wiki-wql';
 import { composerRegistry } from './ComposerRegistry';
 import { clausesToWql, type QueryClause } from './queryClauses';
 import type { AnyParsedQuery } from './useWqlStageCounts';

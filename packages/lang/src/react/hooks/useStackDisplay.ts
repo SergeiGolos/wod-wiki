@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { TimerState, ButtonConfig } from '../../runtime/memory/MemoryTypes';
-import { IMetricSource } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { IMetricSource } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 export type FragmentSourceStatus = 'pending' | 'active' | 'completed' | 'failed' | 'skipped';
 
 export interface FragmentSourceEntry {

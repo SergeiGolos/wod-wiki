@@ -1,7 +1,7 @@
-import { IDialect, DialectAnalysis } from '@wod-wiki/core';
-import { ICodeStatement } from '@wod-wiki/core';
-import { MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { IDialect, DialectAnalysis } from '@bitcobblers/wod-wiki-core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { hintsToContainer } from '../metrics/hints';
 
 /**

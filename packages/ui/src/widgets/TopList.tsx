@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { QueryResult } from '@wod-wiki/wql';
+import type { QueryResult } from '@bitcobblers/wod-wiki-wql';
 import { useChartShape } from './useChartShape';
 import { WqlEmptyState } from './WqlEmptyState';
 import { SERIES_COLORS } from './chartPalette';

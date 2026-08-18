@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { fuseUnitsInMetrics } from '../../src/dialects/units/fuseUnits';
 import { UnitRegistry } from '../../src/metrics/units';
-import { MetricType, IMetric } from '@wod-wiki/core';
+import { MetricType, IMetric } from '@bitcobblers/wod-wiki-core';
 import { RepMetric } from '../../src/runtime/compiler/metrics/RepMetric';
 import { EffortMetric } from '../../src/runtime/compiler/metrics/EffortMetric';
 import { ResistanceMetric } from '../../src/runtime/compiler/metrics/ResistanceMetric';
 import { ChoiceGroupMetric } from '../../src/runtime/compiler/metrics/ChoiceGroupMetric';
 import { fuseUnits } from '../../src/dialects/units/fuseUnits';
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 
 const std = UnitRegistry.standard();
 

@@ -1,10 +1,10 @@
 import { IRuntimeBlockStrategy } from '../../contracts/IRuntimeBlockStrategy';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
 import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
-import { ICodeStatement } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import { BlockBuilder } from '../BlockBuilder';
 import { SessionRootBlock, SessionRootConfig } from '../../blocks/SessionRootBlock';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 
 /**
  * SessionRootStrategy composes a SessionRootBlock for workout sessions.

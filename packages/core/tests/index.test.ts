@@ -27,7 +27,7 @@ import {
   type IMetricSource,
 } from '../src/index';
 
-describe('@wod-wiki/core public API', () => {
+describe('@bitcobblers/wod-wiki-core public API', () => {
   describe('Metric & MetricType', () => {
     it('creates a metric and resolves numeric value', () => {
       const reps = new Metric('pullups', 'reps', 21, 'reps', 'parsed', 'set');

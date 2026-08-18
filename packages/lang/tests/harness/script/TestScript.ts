@@ -4,7 +4,7 @@ import type { MockClock } from '../../../src/runtime/RuntimeClock';
 import type { StackSnapshot } from '../../../src/runtime/contracts/IRuntimeStack';
 import type { IRuntimeBlock } from '../../../src/runtime/contracts/IRuntimeBlock';
 import type { WhiteboardScript } from '../../../src/parser/WhiteboardScript';
-import type { IOutputStatement } from '@wod-wiki/core';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { EventBus } from '../../../src/runtime/events';

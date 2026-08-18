@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Edit3 } from 'lucide-react';
-import { type Segment } from '@wod-wiki/core';
-import { parseQuery, isFindQuery, isRowsQuery, splitWidgetBody, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage, type QueryResult, type FindQueryResult, type RowsQueryResult, type RowsRun } from '@wod-wiki/wql';
+import { type Segment } from '@bitcobblers/wod-wiki-core';
+import { parseQuery, isFindQuery, isRowsQuery, splitWidgetBody, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage, type QueryResult, type FindQueryResult, type RowsQueryResult, type RowsRun } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { RowsTable } from '../widgets/RowsTable';
 import { RowsResultsChrome } from './RowsResultsChrome';

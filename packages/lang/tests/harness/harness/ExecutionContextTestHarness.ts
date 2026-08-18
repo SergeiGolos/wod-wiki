@@ -1,5 +1,5 @@
 import { ScriptRuntime, ScriptRuntimeDependencies } from '../../../src/runtime/ScriptRuntime';
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { MockJitCompiler } from '../harness/MockJitCompiler';
 import { createMockClock } from '../../../src/runtime/RuntimeClock';
 import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
@@ -11,7 +11,7 @@ import { IRuntimeBlockStrategy } from '../../../src/runtime/contracts/IRuntimeBl
 import { IRuntimeClock } from '../../../src/runtime/contracts/IRuntimeClock';
 import { IRuntimeBlock } from '../../../src/runtime/contracts/IRuntimeBlock';
 import { IScriptRuntime } from '../../../src/runtime/contracts/IScriptRuntime';
-import { ICodeStatement } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import { StartWorkoutAction } from '../../../src/runtime/actions/stack/StartWorkoutAction';
 
 /**

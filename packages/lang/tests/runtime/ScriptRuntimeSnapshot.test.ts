@@ -5,7 +5,7 @@ import { RuntimeClock } from '../../src/runtime/RuntimeClock';
 import { EventBus } from '../../src/runtime/events/EventBus';
 import { WhiteboardScript } from '../../src/parser/WhiteboardScript';
 import { IJitCompiler } from '../../src/runtime/contracts/IJitCompiler';
-import { BlockKey } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
 import { IRuntimeBlock } from '../../src/runtime/contracts/IRuntimeBlock';
 import { StackSnapshot } from '../../src/runtime/contracts/IRuntimeStack';
 

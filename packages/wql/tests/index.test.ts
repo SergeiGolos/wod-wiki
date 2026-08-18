@@ -42,7 +42,7 @@ import {
   type DashboardDocument,
 } from '../src/index';
 
-describe('@wod-wiki/wql public surface', () => {
+describe('@bitcobblers/wod-wiki-wql public surface', () => {
   it('exports grammar, AST parser, and type guards', () => {
     expect(wqlParser).toBeDefined();
     const findAst = parseQuery('find:note{tags:pr} in journal last 8w');

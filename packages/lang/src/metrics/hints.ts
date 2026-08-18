@@ -1,5 +1,5 @@
-import { IMetric, MetricOrigin, MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { IMetric, MetricOrigin, MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Hint helpers + canonical hint vocabulary contract.

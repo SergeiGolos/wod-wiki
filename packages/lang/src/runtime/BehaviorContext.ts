@@ -4,11 +4,11 @@ import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
 import type { IRuntimeContext } from './contracts/IRuntimeContext';
-import { IMetric } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
-import { OutputStatement, OutputStatementType } from '@wod-wiki/core';
-import type { OutputStatementOptions } from '@wod-wiki/core';
-import {  } from '@wod-wiki/core';
+import { IMetric } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
+import { OutputStatement, OutputStatementType } from '@bitcobblers/wod-wiki-core';
+import type { OutputStatementOptions } from '@bitcobblers/wod-wiki-core';
+import {  } from '@bitcobblers/wod-wiki-core';
 import { TimeSpan } from './models/TimeSpan';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
 import {

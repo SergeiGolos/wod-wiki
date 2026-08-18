@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseScript, WhiteboardScript, ClimbMetricType } from '../src/index';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 
 describe('parseScript (Headless Lezer Parser Seam)', () => {
   it('parses empty or whitespace-only source into empty WhiteboardScript', () => {

@@ -14,11 +14,11 @@
  * template path, these tests will catch it.
  */
 import { describe, it, expect } from 'vitest';
-import { BlockKey } from '@wod-wiki/core';
-import { CodeStatement, ParsedCodeStatement } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
-import { MetricType, IMetric, MetricOrigin } from '@wod-wiki/core';
-import { CodeMetadata } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
+import { CodeStatement, ParsedCodeStatement } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
+import { MetricType, IMetric, MetricOrigin } from '@bitcobblers/wod-wiki-core';
+import { CodeMetadata } from '@bitcobblers/wod-wiki-core';
 import { BlockBuilder } from '../../src/runtime/compiler/BlockBuilder';
 import { compose } from '../../src/runtime/compiler/BlockTemplateComposer';
 import type { BlockTemplate } from '../../src/runtime/compiler/BlockTemplate';

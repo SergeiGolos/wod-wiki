@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { QueryService } from '../src/QueryService';
-import type { BlockIndexRow } from '@wod-wiki/core';
+import type { BlockIndexRow } from '@bitcobblers/wod-wiki-core';
 import type { ParsedFindQuery } from '../src/wql';
 
 function makeBlock(overrides: Partial<BlockIndexRow> = {}): BlockIndexRow {

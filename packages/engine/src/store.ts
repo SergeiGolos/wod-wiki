@@ -4,8 +4,8 @@
  *
  * Implements FactQueryStore contract without database or browser dependencies.
  */
-import type { AnalyticsDataPoint } from '@wod-wiki/core';
-import type { FactQueryStore } from '@wod-wiki/wql';
+import type { AnalyticsDataPoint } from '@bitcobblers/wod-wiki-core';
+import type { FactQueryStore } from '@bitcobblers/wod-wiki-wql';
 
 export function inMemoryFactStore(
   facts: readonly AnalyticsDataPoint[],

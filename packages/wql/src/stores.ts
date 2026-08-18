@@ -3,7 +3,7 @@
  * Zero database/storage dependencies — 100% pure abstractions.
  */
 
-import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult } from '@wod-wiki/core';
+import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult } from '@bitcobblers/wod-wiki-core';
 
 /** Store surface the Query Service needs for fact rows. */
 export interface FactQueryStore {

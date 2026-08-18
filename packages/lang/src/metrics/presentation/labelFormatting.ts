@@ -1,4 +1,4 @@
-import { type IMetric, MetricType } from '@wod-wiki/core';
+import { type IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
 import { formatDurationSmart } from '../../utils/formatTime';
 import type { MetricPresentationSurface } from './types';
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { hasHint } from '../../src/metrics/hints';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 import { DistanceMetric } from '../../src/runtime/compiler/metrics/DistanceMetric';
 import { DurationMetric } from '../../src/runtime/compiler/metrics/DurationMetric';
 import { EffortMetric } from '../../src/runtime/compiler/metrics/EffortMetric';

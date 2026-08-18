@@ -13,8 +13,8 @@ import {
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { markdown } from "@codemirror/lang-markdown";
-import { whiteboardScriptLanguage, whiteboardScript } from '@wod-wiki/lang';
-import { wql, wqlLanguage } from '@wod-wiki/wql';
+import { whiteboardScriptLanguage, whiteboardScript } from '@bitcobblers/wod-wiki-lang';
+import { wql, wqlLanguage } from '@bitcobblers/wod-wiki-wql';
 import { editorTheme } from "./theme";
 import { sectionField } from "./section-state";
 import { previewDecorations } from "./preview-decorations";

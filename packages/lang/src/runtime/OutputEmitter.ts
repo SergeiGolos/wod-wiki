@@ -1,8 +1,8 @@
-import { IOutputStatement, OutputStatement } from '@wod-wiki/core';
+import { IOutputStatement, OutputStatement } from '@bitcobblers/wod-wiki-core';
 import { IAnalyticsEngine } from '../analytics/contracts/IAnalyticsEngine';
-import { MetricContainer } from '@wod-wiki/core';
-import { IMetric, MetricType } from '@wod-wiki/core';
-import {  } from '@wod-wiki/core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
+import {  } from '@bitcobblers/wod-wiki-core';
 import { TimeSpan } from './models/TimeSpan';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { IRuntimeBlock } from './contracts/IRuntimeBlock';

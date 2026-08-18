@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AnalyticsDataPoint } from '@wod-wiki/core';
+import type { AnalyticsDataPoint } from '@bitcobblers/wod-wiki-core';
 import { QueryService, type FactQueryStore } from '../src/QueryService';
 
 const DAY = 86_400_000;

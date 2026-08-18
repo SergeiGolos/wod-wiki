@@ -1,5 +1,5 @@
-import { IMetric } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { IMetric } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { TimeSpan } from '../models/TimeSpan';
 
 /**

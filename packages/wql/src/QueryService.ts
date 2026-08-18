@@ -16,7 +16,7 @@
  * Fully inverted dependencies: zero IndexedDB/storage module-level imports.
  */
 
-import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult, StoredOutputStatement } from '@wod-wiki/core';
+import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult, StoredOutputStatement } from '@bitcobblers/wod-wiki-core';
 import {
   parseQuery,
   isFindQuery,

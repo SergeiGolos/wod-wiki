@@ -9,11 +9,11 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "bun run --filter '@wod-wiki/core' build && bun run --filter '@wod-wiki/lang' build && bun run --filter '@wod-wiki/wql' build && bun run --filter '@wod-wiki/engine' build && bun run --filter '@wod-wiki/ui' build && bun run --filter '@wod-wiki/storybook' build",
+    "build": "bun run --filter '@bitcobblers/wod-wiki-core' build && bun run --filter '@bitcobblers/wod-wiki-lang' build && bun run --filter '@bitcobblers/wod-wiki-wql' build && bun run --filter '@bitcobblers/wod-wiki-engine' build && bun run --filter '@bitcobblers/wod-wiki-ui' build && bun run --filter '@bitcobblers/wod-wiki-storybook' build",
     "clean": "bun run --filter '*' clean",
     "typecheck": "bun run --filter '*' typecheck",
     "lint": "eslint packages/*/src apps/*/src --ext .ts,.tsx",
-    "test": "vitest run && bun run --filter @wod-wiki/storybook test",
+    "test": "vitest run && bun run --filter @bitcobblers/wod-wiki-storybook test",
     "test:watch": "vitest",
     "pack:all": "mkdir -p tarballs && for pkg in packages/*; do if [ -f \"$pkg/package.json\" ]; then (cd \"$pkg\" && npm pack --pack-destination ../../tarballs); fi; done"
   },

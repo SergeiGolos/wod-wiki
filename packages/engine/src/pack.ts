@@ -6,13 +6,13 @@
  * into core tag identity, lang dialect stack, and analytics registries.
  */
 
-import type { IDialect } from '@wod-wiki/core';
-import type { IRealtimeProcessor, ISummaryProcessor } from '@wod-wiki/lang';
+import type { IDialect } from '@bitcobblers/wod-wiki-core';
+import type { IRealtimeProcessor, ISummaryProcessor } from '@bitcobblers/wod-wiki-lang';
 import {
   dialectRegistry,
   realtimeProcessorRegistry,
   summaryProcessorRegistry,
-} from '@wod-wiki/lang';
+} from '@bitcobblers/wod-wiki-lang';
 
 export interface LanguagePackIdentity {
   id?: string;

@@ -1,4 +1,4 @@
-import type { Series } from '@wod-wiki/wql';
+import type { Series } from '@bitcobblers/wod-wiki-wql';
 
 export interface MergedPoint {
   ts: number;

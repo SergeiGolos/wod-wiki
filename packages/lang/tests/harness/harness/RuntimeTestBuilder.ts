@@ -7,7 +7,7 @@ import { RuntimeStack } from '../../../src/runtime/RuntimeStack';
 import { EventBus } from '../../../src/runtime/events';
 import { createMockClock, type MockClock } from '../../../src/runtime/RuntimeClock';
 import { WhiteboardScript } from '../../../src/parser/WhiteboardScript';
-import { ICodeStatement } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 
 export interface RuntimeSnapshot {
   stackDepth: number;

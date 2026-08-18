@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { CrossFitDialect } from '../../src/dialects/CrossFitDialect';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
-import { ICodeStatement } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import { getHints } from '../../src/metrics/hints';
 
 describe('CrossFitDialect', () => {

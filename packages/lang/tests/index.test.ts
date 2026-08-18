@@ -24,9 +24,9 @@ import {
   TwoPassEffortResolutionProcess,
   CalculateBlockProcessor,
 } from '../src/index';
-import { OutputStatement, MetricContainer, MetricType } from '@wod-wiki/core';
+import { OutputStatement, MetricContainer, MetricType } from '@bitcobblers/wod-wiki-core';
 
-describe('@wod-wiki/lang exports and pipeline', () => {
+describe('@bitcobblers/wod-wiki-lang exports and pipeline', () => {
   it('parses Whiteboard Script source directly into AST', () => {
     const text = '21 pullups\n15 thrusters\n9 burpees';
     const parsed = parseScript(text, { dialect: 'wod' });

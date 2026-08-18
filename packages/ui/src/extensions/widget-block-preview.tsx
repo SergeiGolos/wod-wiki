@@ -16,7 +16,7 @@
  *   - sectionId: stable section identifier
  *
  * Ported from src/components/Editor/extensions/widget-block-preview.tsx during
- * the @wod-wiki/ui extraction (#968/#970). The edit affordances (pencil →
+ * the @bitcobblers/wod-wiki-ui extraction (#968/#970). The edit affordances (pencil →
  * textarea → Ctrl+Enter save / Escape undo, invalid-JSON error inlay) are part
  * of the public e2e contract (data-widget-section-id, widget-preview-surface,
  * widget-error-inlay, widget-markdown-editor) and must survive the move.

@@ -1,5 +1,5 @@
 import { IRuntimeBlock } from './contracts/IRuntimeBlock';
-import { BlockKey } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
 
 import { IRuntimeStack, StackListener, StackEvent } from './contracts/IRuntimeStack';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { staticNotesFromBlocks } from '../src/static';
-import type { BlockIndexRow } from '@wod-wiki/core';
+import type { BlockIndexRow } from '@bitcobblers/wod-wiki-core';
 
 function makeBlock(noteId: string, sourceId: string, overrides: Partial<BlockIndexRow> = {}): BlockIndexRow {
   return {

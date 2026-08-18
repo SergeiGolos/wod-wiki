@@ -1,4 +1,4 @@
-import { IMetric, MetricType, MetricOrigin } from '@wod-wiki/core';
+import { IMetric, MetricType, MetricOrigin } from '@bitcobblers/wod-wiki-core';
 import { Dimension } from '../../../metrics/units';
 
 /**

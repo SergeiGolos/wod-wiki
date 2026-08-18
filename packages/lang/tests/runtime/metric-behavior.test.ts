@@ -9,7 +9,7 @@ import { TotalMetric } from '../../src/runtime/compiler/metrics/TotalMetric';
 import { SystemTimeMetric } from '../../src/runtime/compiler/metrics/SystemTimeMetric';
 import { SoundMetric } from '../../src/runtime/compiler/metrics/SoundMetric';
 import { CurrentRoundMetric } from '../../src/runtime/compiler/metrics/CurrentRoundMetric';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 
 describe('Fragment behavior & metadata', () => {
   it('DurationMetric sets origin=parser for parser durations', () => {

@@ -2,7 +2,7 @@ import { JitCompiler } from '../../../src/runtime/compiler/JitCompiler';
 import { IRuntimeBlock } from '../../../src/runtime/contracts/IRuntimeBlock';
 import { IScriptRuntime } from '../../../src/runtime/contracts/IScriptRuntime';
 import { IRuntimeBlockStrategy } from '../../../src/runtime/contracts/IRuntimeBlockStrategy';
-import type { CodeStatement } from '@wod-wiki/core';
+import type { CodeStatement } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Record of a single compile() call for inspection in tests.

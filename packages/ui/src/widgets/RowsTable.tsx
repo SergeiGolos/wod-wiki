@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
-import type { Segment } from '@wod-wiki/core';
-import type { RowsQueryResult, RowsRun } from '@wod-wiki/wql';
-import { getAnalyticsFromLogs } from '@wod-wiki/lang';
+import type { Segment } from '@bitcobblers/wod-wiki-core';
+import type { RowsQueryResult, RowsRun } from '@bitcobblers/wod-wiki-wql';
+import { getAnalyticsFromLogs } from '@bitcobblers/wod-wiki-lang';
 
 export interface RowsTableProps {
   result: RowsQueryResult;

@@ -1,4 +1,4 @@
-import { BlockKey } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
 import { IRuntimeAction } from '../../../src/runtime/contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../../../src/runtime/contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions, CompletionDecision, IRuntimeBlock } from '../../../src/runtime/contracts/IRuntimeBlock';

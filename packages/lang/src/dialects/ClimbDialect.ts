@@ -1,7 +1,7 @@
-import { IDialect, DialectAnalysis } from '@wod-wiki/core';
-import { ICodeStatement } from '@wod-wiki/core';
-import { IMetric, MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { IDialect, DialectAnalysis } from '@bitcobblers/wod-wiki-core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { hintsToContainer } from '../metrics/hints';
 import { EMPTY_UNIT } from "../runtime/compiler/metrics/dimensionFactory";
 export const ClimbMetricType = {

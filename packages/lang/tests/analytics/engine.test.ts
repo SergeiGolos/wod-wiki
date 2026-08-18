@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { IMetric, MetricType } from '@wod-wiki/core';
-import { OutputStatement, IOutputStatement } from '@wod-wiki/core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
+import { OutputStatement, IOutputStatement } from '@bitcobblers/wod-wiki-core';
 import { createCalcEngine } from '../../src/analytics/calc/factory';
 import type { IEffort, IEffortResolver, ResolvedEffort } from '../../src/effort-registry/types';
 

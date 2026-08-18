@@ -1,7 +1,7 @@
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '../utils/cn';
-import { isFindQuery } from '@wod-wiki/wql';
+import { isFindQuery } from '@bitcobblers/wod-wiki-wql';
 import { summarizeAggregate, summarizeFind, type WqlDiagnostics } from './diagnostics';
 import type { WqlStageCounts } from './useWqlStageCounts';
 

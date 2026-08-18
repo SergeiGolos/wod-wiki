@@ -1,12 +1,12 @@
 
 
-import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '@wod-wiki/core';
+import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '@bitcobblers/wod-wiki-core';
 
-import { IMetric, MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { getHints } from '../metrics/hints';
-import { IOutputStatement } from '@wod-wiki/core';
-import type { StoredOutputStatement } from '@wod-wiki/core';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-core';
+import type { StoredOutputStatement } from '@bitcobblers/wod-wiki-core';
 import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
 import { INowProvider, wallClockNow } from '../runtime/INowProvider';
 

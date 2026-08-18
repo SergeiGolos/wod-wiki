@@ -1,6 +1,6 @@
 import { IRealtimeProcessor } from './IRealtimeProcessor';
-import { IOutputStatement } from '@wod-wiki/core';
-import { MetricType, MetricOrigin } from '@wod-wiki/core';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-core';
+import { MetricType, MetricOrigin } from '@bitcobblers/wod-wiki-core';
 import type { IEffortResolver, IEffort, ResolvedEffort } from '../effort-registry/types';
 import { EFFORT_DATA_METRIC_TYPE } from './effortResolution';
 

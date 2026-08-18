@@ -25,7 +25,7 @@
 import type { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import type { IEffortResolver } from '../../effort-registry/types';
 import { EFFORT_DATA_METRIC_TYPE } from '../../analytics/effortResolution';
-import type { IMetric, MetricType } from '@wod-wiki/core';
+import type { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
 import { IMemoryLocation, MemoryLocation } from '../memory/MemoryLocation';
 
 export interface EffortEnrichmentPassOptions {

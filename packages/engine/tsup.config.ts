@@ -14,8 +14,8 @@ export default defineConfig({
   treeshake: true,
   target: 'es2022',
   external: [
-    '@wod-wiki/core',
-    '@wod-wiki/lang',
-    '@wod-wiki/wql'
+    '@bitcobblers/wod-wiki-core',
+    '@bitcobblers/wod-wiki-lang',
+    '@bitcobblers/wod-wiki-wql'
   ]
 });

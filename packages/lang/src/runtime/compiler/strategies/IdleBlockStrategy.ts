@@ -1,9 +1,9 @@
 import { IRuntimeBlockStrategy } from '../../contracts/IRuntimeBlockStrategy';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
 import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
-import { ICodeStatement } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import { BlockContext } from '../../BlockContext';
-import { BlockKey } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
 import { RuntimeButton } from '../../models/MemoryModels';
 import { BlockBuilder } from '../BlockBuilder';
 

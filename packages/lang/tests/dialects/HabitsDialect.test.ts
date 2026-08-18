@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { HabitsDialect } from '../../src/dialects/HabitsDialect';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
-import { ICodeStatement } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import { getHints } from '../../src/metrics/hints';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 
 describe('HabitsDialect', () => {
   const dialect = new HabitsDialect();

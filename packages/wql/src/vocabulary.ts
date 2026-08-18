@@ -6,7 +6,7 @@
  * here (or from language.ts, which re-exports this module for editor
  * consumers) rather than hand-writing its own copy — issue #871.
  *
- * The calc registry's built-in calcs (@wod-wiki/lang's calc seeds)
+ * The calc registry's built-in calcs (@bitcobblers/wod-wiki-lang's calc seeds)
  * publish exactly the `calc.*` targets listed in WQL_CALC_TARGETS; keep the
  * two in sync. User-authored calcs extend this set at runtime.
  */
@@ -43,7 +43,7 @@ export type WqlVirtualDim = (typeof WQL_VIRTUAL_DIMS)[number];
  * calculation metric keys: source for the composer/CM6 typeahead (#871) and
  * the dashboard's known-vs-proposed gate (model.ts). Must
  * match the keys the calc engine registers in
- * @wod-wiki/lang seeds (`calc.e1rm`, `calc.metMinutes`,
+ * @bitcobblers/wod-wiki-lang seeds (`calc.e1rm`, `calc.metMinutes`,
  * `calc.acwr`, `calc.monotony`, `calc.strain`, `calc.ctl`, `calc.atl`,
  * `calc.tsb`, etc.). NOTE: `calc.pmc` (composite {ctl, atl, tsb} series) is
  * deliberately absent — the store calc model publishes one scalar key per

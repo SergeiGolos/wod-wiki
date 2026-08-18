@@ -1,4 +1,4 @@
-import { IMetric, MetricType, MetricOrigin } from '@wod-wiki/core';
+import { IMetric, MetricType, MetricOrigin } from '@bitcobblers/wod-wiki-core';
 
 export interface ActionMetricOptions {
   /** Original text inside the action fence (after the colon) */

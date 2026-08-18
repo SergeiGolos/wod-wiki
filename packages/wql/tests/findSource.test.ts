@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { QueryService } from '../src/QueryService';
 import { parseQuery, type ParsedFindQuery } from '../src/wql';
-import type { BlockIndexRow, Note } from '@wod-wiki/core';
+import type { BlockIndexRow, Note } from '@bitcobblers/wod-wiki-core';
 
 const TS = 1_700_000_000_000;
 

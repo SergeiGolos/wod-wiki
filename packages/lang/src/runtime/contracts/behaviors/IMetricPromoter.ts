@@ -1,4 +1,4 @@
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import type { IRuntimeContext } from "../IRuntimeContext";
 import type { IRuntimeBlock } from "../IRuntimeBlock";
 

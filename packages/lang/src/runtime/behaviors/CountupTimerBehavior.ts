@@ -1,7 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext, Unsubscribe } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IMetric, MetricType } from '@wod-wiki/core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
 import { TimerState } from '../memory/MemoryTypes';
 import { startSpan, closeCurrentSpan, openSpan, mutateTimerSpans } from '../time/TimerSpans';
 

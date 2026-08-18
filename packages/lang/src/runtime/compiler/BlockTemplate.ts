@@ -21,11 +21,11 @@
  * @see BlockTemplateComposer for the executor that materializes a
  * template onto a `BlockBuilder`.
  */
-import type { IMetric } from '@wod-wiki/core';
-import type { ICodeStatement } from '@wod-wiki/core';
+import type { IMetric } from '@bitcobblers/wod-wiki-core';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import type { IRuntimeContext } from '../contracts/IRuntimeContext';
 import type { IBlockContext } from '../contracts/IBlockContext';
-import type { BlockKey } from '@wod-wiki/core';
+import type { BlockKey } from '@bitcobblers/wod-wiki-core';
 import type { CountdownMode, CountdownTimerConfig } from '../behaviors/CountdownTimerBehavior';
 import type { RepeaterConfig } from './BlockBuilder';
 

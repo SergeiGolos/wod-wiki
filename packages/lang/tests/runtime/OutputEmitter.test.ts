@@ -16,12 +16,12 @@
  */
 import { describe, it, expect, vi , vi} from 'vitest';
 import { OutputEmitter } from '../../src/runtime/OutputEmitter';
-import { OutputStatement } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
-import { MetricType } from '@wod-wiki/core';
+import { OutputStatement } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 import { TimeSpan } from '../../src/runtime/models/TimeSpan';
-import { BlockKey } from '@wod-wiki/core';
-import type { IOutputStatement } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 import type { IRuntimeBlock } from '../../src/runtime/contracts/IRuntimeBlock';
 import type { IRuntimeClock } from '../../src/runtime/contracts/IRuntimeClock';
 import type { IRuntimeStack } from '../../src/runtime/contracts/IRuntimeStack';

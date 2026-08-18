@@ -1,4 +1,4 @@
-import type { IOutputStatement } from '@wod-wiki/core';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 import type { ProjectionResult } from './ProjectionResult';
 import type { IAnalyticsProcessorDescriptor } from './IAnalyticsProcessorDescriptor';
 

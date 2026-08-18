@@ -1,7 +1,7 @@
-import { ICodeStatement, ParseError } from '@wod-wiki/core';
+import { ICodeStatement, ParseError } from '@bitcobblers/wod-wiki-core';
 
 // Re-export ParseError for consumers
-export type { ParseError } from '@wod-wiki/core';
+export type { ParseError } from '@bitcobblers/wod-wiki-core';
 
 export interface IScript {
   source: string;

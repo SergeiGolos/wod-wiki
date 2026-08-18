@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { BlockBuilder } from '../../src/runtime/compiler/BlockBuilder';
-import { BlockKey } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
 import { BlockContext } from '../../src/runtime/BlockContext';
 import { IScriptRuntime } from '../../src/runtime/contracts/IScriptRuntime';
-import { IMetric, MetricType } from '@wod-wiki/core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Phase 4 Tests: Fragment Source Access from Blocks (List-Based Memory)

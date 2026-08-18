@@ -1,4 +1,4 @@
-import type { MetricContainer } from '@wod-wiki/core';
+import type { MetricContainer } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Describes a strategy for distributing metric across repeated block runs.

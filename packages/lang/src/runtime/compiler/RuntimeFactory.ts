@@ -24,7 +24,7 @@ import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
 import { WhiteboardScript } from '../../parser/WhiteboardScript';
-import type { ScriptBlock } from '@wod-wiki/core';
+import type { ScriptBlock } from '@bitcobblers/wod-wiki-core';
 import { RuntimeStackOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
 import type { INowProvider } from '../INowProvider';

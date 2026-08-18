@@ -1,7 +1,7 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
-import { MetricContainer } from '@wod-wiki/core';
-import { MetricType } from '@wod-wiki/core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 import { MemoryLocation } from '../../memory/MemoryLocation';
 
 /**

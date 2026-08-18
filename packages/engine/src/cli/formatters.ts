@@ -6,7 +6,7 @@
  */
 
 import type { WodWikiIRFile, StatementNode, ExecutionLog } from '../ir';
-import type { QueryResult, RowsQueryResult, FindQueryResult } from '@wod-wiki/wql';
+import type { QueryResult, RowsQueryResult, FindQueryResult } from '@bitcobblers/wod-wiki-wql';
 
 export type OutputFormat = 'json' | 'table' | 'csv';
 

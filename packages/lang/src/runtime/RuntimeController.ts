@@ -1,4 +1,4 @@
-import type { ScriptBlock } from '@wod-wiki/core';
+import type { ScriptBlock } from '@bitcobblers/wod-wiki-core';
 
 /**
  * RuntimeController — stable object passed via context to let bridge components

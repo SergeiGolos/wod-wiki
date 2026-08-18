@@ -1,4 +1,4 @@
-import { IMetric, MetricType, MetricOrigin } from '@wod-wiki/core';
+import { IMetric, MetricType, MetricOrigin } from '@bitcobblers/wod-wiki-core';
 
 export class ResistanceMetric implements IMetric {
   readonly value: { amount: number | undefined, unit: string };

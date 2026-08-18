@@ -2,7 +2,7 @@ import { StateEffect, StateField } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import type { DecorationSet } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
-import type { ScriptBlock } from '@wod-wiki/core';
+import type { ScriptBlock } from '@bitcobblers/wod-wiki-core';
 
 export interface RuntimePanelEntry {
   sectionId: string;

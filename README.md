@@ -4,15 +4,15 @@ Standalone Whiteboard Language & WQL engine multi-package Bun workspace.
 
 ## Packages
 
-- [`@wod-wiki/core`](./packages/core)
-- [`@wod-wiki/lang`](./packages/lang)
-- [`@wod-wiki/wql`](./packages/wql)
-- [`@wod-wiki/engine`](./packages/engine)
-- [`@wod-wiki/ui`](./packages/ui)
+- [`@bitcobblers/wod-wiki-core`](./packages/core)
+- [`@bitcobblers/wod-wiki-lang`](./packages/lang)
+- [`@bitcobblers/wod-wiki-wql`](./packages/wql)
+- [`@bitcobblers/wod-wiki-engine`](./packages/engine)
+- [`@bitcobblers/wod-wiki-ui`](./packages/ui)
 
 ## Applications
 
-- [`@wod-wiki/storybook`](./apps/storybook)
+- [`@bitcobblers/wod-wiki-storybook`](./apps/storybook)
 
 ## Commands
 

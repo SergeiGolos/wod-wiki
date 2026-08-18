@@ -1,5 +1,5 @@
 import { IRuntimeBlock } from './IRuntimeBlock';
-import { BlockKey } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
 
 export type StackEvent =
     | { type: 'push'; block: IRuntimeBlock; depth: number; blocks: readonly IRuntimeBlock[] }

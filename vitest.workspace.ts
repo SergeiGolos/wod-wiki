@@ -11,9 +11,9 @@ export default defineWorkspace([
     },
     resolve: {
       alias: {
-        '@wod-wiki/core': resolve(__dirname, 'packages/core/src'),
-        '@wod-wiki/lang': resolve(__dirname, 'packages/lang/src'),
-        '@wod-wiki/wql': resolve(__dirname, 'packages/wql/src'),
+        '@bitcobblers/wod-wiki-core': resolve(__dirname, 'packages/core/src'),
+        '@bitcobblers/wod-wiki-lang': resolve(__dirname, 'packages/lang/src'),
+        '@bitcobblers/wod-wiki-wql': resolve(__dirname, 'packages/wql/src'),
       },
     },
   },

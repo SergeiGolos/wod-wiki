@@ -17,7 +17,7 @@ import {
   METRIC_OPTIONS,
   UNIT_OPTIONS,
 } from './queryClauses';
-import { WQL_INTENSITY_TIERS } from '@wod-wiki/wql';
+import { WQL_INTENSITY_TIERS } from '@bitcobblers/wod-wiki-wql';
 
 export interface TokenSlotPillProps {
   clause: QueryClause;

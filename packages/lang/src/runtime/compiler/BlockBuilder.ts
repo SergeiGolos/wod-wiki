@@ -1,11 +1,11 @@
 import { IRuntimeBehavior } from "../contracts/IRuntimeBehavior";
 import { IBlockContext } from "../contracts/IBlockContext";
-import { BlockKey } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
 import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import { RuntimeBlock } from "../RuntimeBlock";
 import type { IRuntimeContext } from "../contracts/IRuntimeContext";
-import { IMetric, MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { MemoryLocation } from "../memory/MemoryLocation";
 import { RestBlock } from "../blocks/RestBlock";
 import { PushBlockAction } from "../actions/stack/PushBlockAction";

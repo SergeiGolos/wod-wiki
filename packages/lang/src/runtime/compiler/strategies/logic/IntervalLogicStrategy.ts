@@ -1,9 +1,9 @@
 import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy";
 import { BlockBuilder } from "../../BlockBuilder";
-import { ICodeStatement } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import type { IRuntimeContext } from "../../../contracts/IRuntimeContext";
-import { MetricType } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { DurationMetric } from "../../metrics/DurationMetric";
 import { RoundsMetric } from "../../metrics/RoundsMetric";
 import { hasHint, CONSUMED_HINTS } from '../../../../metrics/hints';

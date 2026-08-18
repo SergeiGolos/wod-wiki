@@ -49,9 +49,9 @@ const config: StorybookConfig = {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       '@': path.resolve(rootDir, 'src'),
-      '@wod-wiki/engine': path.resolve(rootDir, 'packages/engine/src/index.ts'),
-      '@wod-wiki/ui/extensions': path.resolve(rootDir, 'packages/ui/src/extensions/index.ts'),
-      '@wod-wiki/ui': path.resolve(rootDir, 'packages/ui/src/index.ts'),
+      '@bitcobblers/wod-wiki-engine': path.resolve(rootDir, 'packages/engine/src/index.ts'),
+      '@bitcobblers/wod-wiki-ui/extensions': path.resolve(rootDir, 'packages/ui/src/extensions/index.ts'),
+      '@bitcobblers/wod-wiki-ui': path.resolve(rootDir, 'packages/ui/src/index.ts'),
       react: path.resolve(rootDir, 'node_modules/react'),
       'react-dom': path.resolve(rootDir, 'node_modules/react-dom'),
     };

@@ -1,5 +1,5 @@
-import { IMetric, MetricType } from '@wod-wiki/core';
-import type { ICodeStatement } from '@wod-wiki/core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import { ChoiceGroupMetric } from './ChoiceGroupMetric';
 
 /**

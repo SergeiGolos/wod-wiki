@@ -1,5 +1,5 @@
-import type { ICodeStatement } from '@wod-wiki/core';
-import type { IDialect } from '@wod-wiki/core';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-core';
+import type { IDialect } from '@bitcobblers/wod-wiki-core';
 import { Registry } from '../registry/Registry';
 import { UnitsDialect } from './UnitsDialect';
 import { CrossFitDialect } from './CrossFitDialect';

@@ -1,11 +1,11 @@
 import { describe, it, expect, mock, beforeEach , vi} from 'vitest';
 import { AnalyticsEngine } from '../../src/analytics/AnalyticsEngine';
-import { IOutputStatement, OutputStatement } from '@wod-wiki/core';
-import { MetricContainer } from '@wod-wiki/core';
+import { IOutputStatement, OutputStatement } from '@bitcobblers/wod-wiki-core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import { IRealtimeProcessor } from '../../src/analytics/IRealtimeProcessor';
 import { ISummaryProcessor } from '../../src/analytics/ISummaryProcessor';
 import { ProjectionResult } from '../../src/analytics/ProjectionResult';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 
 function makeSegmentOutput(id: string, extraMetrics?: { type: MetricType; value: unknown }[]): IOutputStatement {
   const metrics = MetricContainer.empty(id);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { WorkoutResult, StoredOutputStatement } from '@wod-wiki/core';
+import type { WorkoutResult, StoredOutputStatement } from '@bitcobblers/wod-wiki-core';
 import { parseQuery, isRowsQuery } from '../src/wql';
 import { QueryService, type FactQueryStore, type NoteQueryStore, type BlockQueryStore, type EffortQueryStore, type ResultLogStore } from '../src/QueryService';
 

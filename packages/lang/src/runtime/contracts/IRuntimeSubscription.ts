@@ -1,5 +1,5 @@
 import { StackSnapshot } from './IRuntimeStack';
-import { IOutputStatement } from '@wod-wiki/core';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 
 /**
  * A subscription that receives runtime state updates.

@@ -1,5 +1,5 @@
 {
-  "name": "@wod-wiki/core",
+  "name": "@bitcobblers/wod-wiki-core",
   "version": "0.1.0",
   "description": "Shared data vocabulary for Whiteboard Language & WQL engine",
   "type": "module",

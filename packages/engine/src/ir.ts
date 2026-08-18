@@ -16,10 +16,10 @@ import type {
   WorkoutResult,
   StoredOutputStatement,
   WorkoutResults,
-} from '@wod-wiki/core';
-import { MetricType } from '@wod-wiki/core';
-import type { IScript, IEffort } from '@wod-wiki/lang';
-import { getHints } from '@wod-wiki/lang';
+} from '@bitcobblers/wod-wiki-core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
+import type { IScript, IEffort } from '@bitcobblers/wod-wiki-lang';
+import { getHints } from '@bitcobblers/wod-wiki-lang';
 
 export type IrKind =
   | 'fact-set'

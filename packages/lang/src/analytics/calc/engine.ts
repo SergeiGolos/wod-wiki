@@ -20,9 +20,9 @@
  * Store scope (Phase 3) lives in the rollup driver replacement (#877).
  */
 
-import type { IMetric, MetricOrigin } from '@wod-wiki/core';
-import { MetricType } from '@wod-wiki/core';
-import type { IOutputStatement } from '@wod-wiki/core';
+import type { IMetric, MetricOrigin } from '@bitcobblers/wod-wiki-core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 import type { IRealtimeProcessor } from '../IRealtimeProcessor';
 import type { ISummaryProcessor } from '../ISummaryProcessor';
 import type { ProjectionResult } from '../ProjectionResult';

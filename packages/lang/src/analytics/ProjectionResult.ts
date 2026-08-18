@@ -1,5 +1,5 @@
-import type { MetricOrigin, MetricType } from '@wod-wiki/core';
-import type { TimeSpan } from '@wod-wiki/core';
+import type { MetricOrigin, MetricType } from '@bitcobblers/wod-wiki-core';
+import type { TimeSpan } from '@bitcobblers/wod-wiki-core';
 
 /**
  * Generic result structure for projection engine calculations.

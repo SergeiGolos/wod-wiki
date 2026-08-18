@@ -1,5 +1,5 @@
 /**
- * @wod-wiki/wql
+ * @bitcobblers/wod-wiki-wql
  * Whiteboard Query Language (WQL) parser, AST, QueryService, vocabulary, and dashboard model.
  */
 

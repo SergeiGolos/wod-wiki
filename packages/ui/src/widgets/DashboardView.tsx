@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Edit3 } from 'lucide-react';
-import { isFindQuery, parseQuery, type QueryResult, defaultTokenValues, isDashboardWidgetType, resolveWidgetType, substituteTokens, unknownTokensMessage, unknownWidgetTypeMessage, type DashboardDocument, type DashboardWidget } from '@wod-wiki/wql';
+import { isFindQuery, parseQuery, type QueryResult, defaultTokenValues, isDashboardWidgetType, resolveWidgetType, substituteTokens, unknownTokensMessage, unknownWidgetTypeMessage, type DashboardDocument, type DashboardWidget } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { WidgetFrame } from './WidgetFrame';
 import { WidgetChart, WidgetProblemBadge } from './WidgetChart';

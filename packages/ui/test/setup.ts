@@ -1,5 +1,5 @@
 /**
- * @wod-wiki/ui vitest setup — jsdom does not ship ResizeObserver, which
+ * @bitcobblers/wod-wiki-ui vitest setup — jsdom does not ship ResizeObserver, which
  * recharts' ResponsiveContainer and CodeMirror viewport measurement expect.
  */
 class ResizeObserverStub {

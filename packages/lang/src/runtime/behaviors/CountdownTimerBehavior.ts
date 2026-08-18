@@ -2,7 +2,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext, Unsubscribe } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { TimerState, ChildrenStatusState, RoundState } from '../memory/MemoryTypes';
-import { IMetric, MetricType } from '@wod-wiki/core';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
 import { ClearChildrenAction } from '../actions/stack/ClearChildrenAction';
 import { calculateElapsed } from '../time/calculateElapsed';
 import { startSpan, closeCurrentSpan, openSpan, readTimer, mutateTimerSpans } from '../time/TimerSpans';

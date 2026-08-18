@@ -1,5 +1,5 @@
 /**
- * @wod-wiki/engine
+ * @bitcobblers/wod-wiki-engine
  *
  * Umbrella facade for the Whiteboard Language & WQL engine.
  * Re-exports the complete contract across core, lang, and wql packages,
@@ -7,7 +7,7 @@
  */
 
 // 1. Core Data Models & Persistence Shapes (#964)
-export * from '@wod-wiki/core';
+export * from '@bitcobblers/wod-wiki-core';
 
 // 2. Language Parser, Compiler, Dialects & Runtime (#965)
 export {
@@ -130,7 +130,7 @@ export {
   type IntensityTier,
   type EffortBaseAttributes,
   type EffortDerivation,
-} from '@wod-wiki/lang';
+} from '@bitcobblers/wod-wiki-lang';
 
 // 3. WQL Grammar, QueryService & Dashboard Model (#966)
 export {
@@ -209,7 +209,7 @@ export {
   type DashboardToken,
   type DashboardMeta,
   type QueryWidgetSuffix,
-} from '@wod-wiki/wql';
+} from '@bitcobblers/wod-wiki-wql';
 
 // 4. Language Pack API (#967)
 export {

@@ -1,4 +1,4 @@
-import { ICodeStatement } from '@wod-wiki/core';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import type { IRuntimeContext } from "./IRuntimeContext";
 import { BlockBuilder } from "../compiler/BlockBuilder";
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as engine from '../src/index';
 
-describe('@wod-wiki/engine re-exports', () => {
+describe('@bitcobblers/wod-wiki-engine re-exports', () => {
   it('re-exports core data models and shapes', () => {
     expect(engine.MetricType).toBeDefined();
     expect(engine.CodeStatement).toBeDefined();

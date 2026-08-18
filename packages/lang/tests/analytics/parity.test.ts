@@ -17,8 +17,8 @@
  * → metMinutes → sessionLoad → TIS.
  */
 import { describe, expect, it } from 'vitest';
-import { IMetric, MetricOrigin, MetricType } from '@wod-wiki/core';
-import { IOutputStatement, OutputStatement } from '@wod-wiki/core';
+import { IMetric, MetricOrigin, MetricType } from '@bitcobblers/wod-wiki-core';
+import { IOutputStatement, OutputStatement } from '@bitcobblers/wod-wiki-core';
 import { AnalyticsEngine } from '../../src/analytics/AnalyticsEngine';
 import { TwoPassEffortResolutionProcess } from '../../src/analytics/TwoPassEffortResolutionProcess';
 import { ProjectionResult } from '../../src/analytics/ProjectionResult';

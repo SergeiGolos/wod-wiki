@@ -9,7 +9,7 @@ import {
   LabelingBehavior,
   ButtonBehavior,
 } from '../../src/runtime/behaviors';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 
 describe('SessionRootStrategy', () => {
   const strategy = new SessionRootStrategy();

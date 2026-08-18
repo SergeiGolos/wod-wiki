@@ -11,7 +11,7 @@
  *
  * @see docs/architecture/time-terminology.md
  */
-import type { TimeSpan as TimeSpanShape } from '@wod-wiki/core';
+import type { TimeSpan as TimeSpanShape } from '@bitcobblers/wod-wiki-core';
 
 export class TimeSpan implements TimeSpanShape {
     constructor(

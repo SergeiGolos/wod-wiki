@@ -1,12 +1,12 @@
 /**
- * @wod-wiki/ui — Interactive UI package for Whiteboard Language & WQL
+ * @bitcobblers/wod-wiki-ui — Interactive UI package for Whiteboard Language & WQL
  *
  * Exports:
  * - 15 State-free WQL analytics widgets consuming IR QueryResult shapes
  * - Dashboard orchestrator (DashboardView) and query hooks (useAnalyticsQueries)
  * - Injected QueryExecutor and Storage contracts (0 IndexedDB / browser storage coupling)
  * - WQL Omni-Composer and diagnostics
- * - CodeMirror editor extensions (@wod-wiki/ui/extensions) and editorPreset
+ * - CodeMirror editor extensions (@bitcobblers/wod-wiki-ui/extensions) and editorPreset
  * - CODEMIRROR_SINGLETON_DEPS constant for consumer dedupe
  */
 

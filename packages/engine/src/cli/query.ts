@@ -24,11 +24,11 @@ import {
   type BlockQueryStore,
   type ResultLogStore,
   type EffortQueryStore,
-} from '@wod-wiki/wql';
-import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult } from '@wod-wiki/core';
-import type { WorkoutResults } from '@wod-wiki/core';
-import type { IEffort } from '@wod-wiki/lang';
-import { bundledEfforts } from '@wod-wiki/lang';
+} from '@bitcobblers/wod-wiki-wql';
+import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult } from '@bitcobblers/wod-wiki-core';
+import type { WorkoutResults } from '@bitcobblers/wod-wiki-core';
+import type { IEffort } from '@bitcobblers/wod-wiki-lang';
+import { bundledEfforts } from '@bitcobblers/wod-wiki-lang';
 import { createIRFile, isIRFile, type WodWikiIRFile, type ExecutionLog, type CorpusIRData } from '../ir';
 
 export class WqlSyntaxError extends Error {

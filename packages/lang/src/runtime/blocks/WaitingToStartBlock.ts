@@ -4,7 +4,7 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { BlockContext } from '../BlockContext';
-import { BlockKey } from '@wod-wiki/core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
 
 // Aspect-based behaviors
 import {

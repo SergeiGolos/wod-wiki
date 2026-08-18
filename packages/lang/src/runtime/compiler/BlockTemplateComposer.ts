@@ -26,12 +26,12 @@
  * }
  * ```
  */
-import type { ICodeStatement } from '@wod-wiki/core';
-import { BlockKey } from '@wod-wiki/core';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-core';
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
 import { BlockContext } from '../BlockContext';
 import { LabelComposer } from './utils/LabelComposer';
 import { PassthroughMetricDistributor } from '../impl/PassthroughMetricDistributor';
-import { MetricContainer } from '@wod-wiki/core';
+import { MetricContainer } from '@bitcobblers/wod-wiki-core';
 import type { BlockBuilder } from './BlockBuilder';
 import type { BlockTemplate } from './BlockTemplate';
 

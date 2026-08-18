@@ -1,6 +1,6 @@
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { TimerState } from '../memory/MemoryTypes';
-import {  } from '@wod-wiki/core';
+import {  } from '@bitcobblers/wod-wiki-core';
 import { TimeSpan } from '../models/TimeSpan';
 
 /**

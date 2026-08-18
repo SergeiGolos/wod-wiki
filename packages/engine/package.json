@@ -1,5 +1,5 @@
 {
-  "name": "@wod-wiki/engine",
+  "name": "@bitcobblers/wod-wiki-engine",
   "version": "0.1.0",
   "description": "Umbrella package for Whiteboard Language & WQL engine with CLI runner",
   "type": "module",
@@ -24,9 +24,9 @@
     "provenance": true
   },
   "dependencies": {
-    "@wod-wiki/core": "workspace:*",
-    "@wod-wiki/lang": "workspace:*",
-    "@wod-wiki/wql": "workspace:*"
+    "@bitcobblers/wod-wiki-core": "workspace:*",
+    "@bitcobblers/wod-wiki-lang": "workspace:*",
+    "@bitcobblers/wod-wiki-wql": "workspace:*"
   },
   "scripts": {
     "build": "tsup",

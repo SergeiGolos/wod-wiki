@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { apply, stmtWith, stubRuntime } from '../harness/harness/StrategyTestHarness';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 import { AmrapLogicStrategy } from '../../src/runtime/compiler/strategies/logic/AmrapLogicStrategy';
 import { CountdownTimerBehavior, LabelingBehavior, SoundCueBehavior, ChildSelectionBehavior } from '../../src/runtime/behaviors';
 

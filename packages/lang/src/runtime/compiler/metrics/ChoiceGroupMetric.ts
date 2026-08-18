@@ -1,4 +1,4 @@
-import { IMetric, MetricType, MetricOrigin } from '@wod-wiki/core';
+import { IMetric, MetricType, MetricOrigin } from '@bitcobblers/wod-wiki-core';
 
 /**
  * ChoiceGroupMetric — a pipe-separated OR expression preserved for pre-run resolution.

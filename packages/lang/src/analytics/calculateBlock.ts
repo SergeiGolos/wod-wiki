@@ -1,6 +1,6 @@
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 
-import type { IOutputStatement } from '@wod-wiki/core';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-core';
 import type { ISummaryProcessor } from './ISummaryProcessor';
 import type { ProjectionResult } from './ProjectionResult';
 

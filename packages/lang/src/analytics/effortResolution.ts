@@ -1,4 +1,4 @@
-import type { IMetric, MetricOrigin } from '@wod-wiki/core';
+import type { IMetric, MetricOrigin } from '@bitcobblers/wod-wiki-core';
 import { disciplineFactorFor } from '../effort-registry/disciplines';
 import type { IEffort, ResolvedEffort } from '../effort-registry/types';
 import { DEFAULT_RESOLVER_OPTIONS } from '../effort-registry/types';

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { apply, stmtWith, makeStatement, stubRuntime } from '../harness/harness/StrategyTestHarness';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 import { BlockBuilder } from '../../src/runtime/compiler/BlockBuilder';
 import { RoundsMetric } from '../../src/runtime/compiler/metrics/RoundsMetric';
 import { GenericLoopStrategy } from '../../src/runtime/compiler/strategies/components/GenericLoopStrategy';

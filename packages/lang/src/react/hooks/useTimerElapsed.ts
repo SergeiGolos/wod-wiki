@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useScriptRuntime } from '../context/RuntimeContext';
-import { TimeSpan } from '@wod-wiki/core';
+import { TimeSpan } from '@bitcobblers/wod-wiki-core';
 import { TimerState } from '../../runtime/memory/MemoryTypes';
 import { calculateDuration } from '../../utils/timeUtils';
 import { getRuntimeNowMs } from './runtimeNow';

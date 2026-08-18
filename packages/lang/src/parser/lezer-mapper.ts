@@ -1,5 +1,5 @@
 import type { Tree } from '@lezer/common';
-import type { ICodeStatement } from '@wod-wiki/core';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import { classifyStatements } from './semantic-classifier';
 import { extractSyntaxFacts } from './syntax-parser';
 import { dialectStack } from '../dialects/DialectStack';

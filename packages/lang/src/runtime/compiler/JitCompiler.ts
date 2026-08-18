@@ -1,7 +1,7 @@
 import type { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import type { IRuntimeContext } from "../contracts/IRuntimeContext";
 import type { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
-import type { ICodeStatement } from '@wod-wiki/core';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import { BlockBuilder } from "./BlockBuilder";
 import type { IJitCompiler } from "../contracts/IJitCompiler";
 import { PromotionResolver } from "./PromotionResolver";

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { RuntimeFactory } from '../../src/runtime/compiler/RuntimeFactory';
 import { createParser } from '../../src/parser/parserInstance';
 import type { ScriptBlock } from '../../src/components/Editor/types';
-import { MetricType } from '@wod-wiki/core';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
 
 describe('RuntimeFactory', () => {
   const factory = new RuntimeFactory(createParser());

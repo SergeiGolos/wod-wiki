@@ -6,7 +6,7 @@ import type { OutputStatementType } from '../models/OutputStatement';
  * round-trips. Class methods and non-serialisable fields (Set, Map,
  * MetricContainer instances) are intentionally excluded.
  *
- * The live->stored converter `toStoredOutputStatement` lives in `@wod-wiki/lang`
+ * The live->stored converter `toStoredOutputStatement` lives in `@bitcobblers/wod-wiki-lang`
  * because it requires the hint evaluation protocol.
  */
 export interface StoredOutputStatement {

@@ -1,5 +1,5 @@
 import { StateField, StateEffect, EditorState } from "@codemirror/state";
-import { parseQueryWidgetSuffix } from '@wod-wiki/wql';
+import { parseQueryWidgetSuffix } from '@bitcobblers/wod-wiki-wql';
 import { hashCode } from "../utils/cn";
 
 export type EditorDialect = "time" | "log";
