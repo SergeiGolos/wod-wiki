@@ -1,6 +1,6 @@
 {
   "name": "@bitcobblers/wod-wiki-storybook",
-  "version": "0.1.6",
+  "version": "0.1.8",
   "private": true,
   "description": "State-free Storybook workbench and golden fixture catalog for Whiteboard Language & WQL",
   "type": "module",
@@ -11,8 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@bitcobblers/wod-wiki-engine": "^0.1.6",
-    "@bitcobblers/wod-wiki-ui": "^0.1.6",
+    "@bitcobblers/wod-wiki-engine": "^0.1.8",
+    "@bitcobblers/wod-wiki-ui": "^0.1.8",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.10.4",
     "@codemirror/lang-markdown": "^6.5.0",

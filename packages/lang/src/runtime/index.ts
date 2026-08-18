@@ -25,3 +25,5 @@ export * from './blocks';
 export * from './services/runtimeServices';
 export * from './actions';
 export * from './adapters/RuntimeAdapter';
+export * from './subscriptions';
+export type { MemoryEntry, ExecutionSnapshot } from './types/executionSnapshot';
