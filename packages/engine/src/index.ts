@@ -28,6 +28,10 @@ export {
   RuntimeFactory,
   createCompiler,
   PRODUCTION_STRATEGIES,
+  findUnresolvedChoices,
+  isChoiceResolved,
+  writeChoiceSelection,
+  collapseUnresolvedChoices,
   type IRuntimeBlockStrategy,
   type RuntimeBlockOptions,
   // Dialect stack & Registries
@@ -143,6 +147,11 @@ export {
   outputNodeId,
   outputNodeIds,
   compoundName,
+  ABSENT,
+  truthy,
+  CONTEXT_ATOMS,
+  STREAM_ATOMS,
+  AGGREGATE_BUILTINS,
   // Conversions
   toStoredOutputStatement,
   // Pure Effort Registry

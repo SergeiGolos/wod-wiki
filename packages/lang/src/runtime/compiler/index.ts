@@ -5,3 +5,9 @@ export { JitCompiler } from './JitCompiler';
 export { RuntimeFactory } from './RuntimeFactory';
 export type { IRuntimeFactory } from './RuntimeFactory';
 export { RuntimeBuilder } from './RuntimeBuilder';
+export {
+  findUnresolvedChoices,
+  isChoiceResolved,
+  writeChoiceSelection,
+  collapseUnresolvedChoices,
+} from './metrics/ChoiceResolution';
