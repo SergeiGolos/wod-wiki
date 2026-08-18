@@ -43,6 +43,7 @@ import {
   WqlBars,
   TopList,
 } from '@bitcobblers/wod-wiki-ui';
+import { VERSION, GIT_SHA, BUILD_TIME } from './version';
 
 const meta: Meta = {
   title: 'Workbench/Language Workbench',
@@ -202,9 +203,12 @@ export function LanguageWorkbench() {
   const groupCount = result?.parsed.groupBy.length ?? 0;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2" data-testid="language-workbench">
-      {/* Parse lane */}
-      <section className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-3">
+    <div className="flex flex-col gap-3" data-testid="language-workbench">
+      <p className="text-xs text-muted-foreground" data-testid="workbench-version">
+        @bitcobblers/wod-wiki-engine {VERSION} · {GIT_SHA.slice(0, 7)} · built {BUILD_TIME.slice(0, 10)}
+      </p>
+      <div className="grid gap-4 md:grid-cols-2">
+        <section className="rounded-lg border border-border bg-card/30 p-3 flex flex-col gap-3">
         <header className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">Whiteboard Script — live parse</h3>
           <button
@@ -286,6 +290,7 @@ export function LanguageWorkbench() {
           </div>
         )}
       </section>
+      </div>
     </div>
   );
 }

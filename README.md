@@ -18,7 +18,9 @@ Standalone Whiteboard Language & WQL engine multi-package Bun workspace.
 
 ```bash
 bun install            # Install workspace dependencies
-bun run build          # Build all packages with tsup (dual ESM/CJS + d.ts)
+bun run build          # Build library packages with tsup (dual ESM/CJS + d.ts)
+bun storybook          # Start Storybook workbench on :6006
+bun storybook-build    # Build Storybook static site (apps/storybook/storybook-static)
 bun run typecheck      # Check TypeScript types across workspace
 bun run lint           # Run ESLint
 bun run test           # Run Vitest suite across all packages

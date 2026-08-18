@@ -12,7 +12,9 @@
     "version:stamp": "bun scripts/stamp-version.ts",
     "version:bump": "bun scripts/stamp-version.ts --bump",
     "version:prerelease": "bun scripts/stamp-version.ts --prerelease",
-    "build": "bun run --filter '@bitcobblers/wod-wiki-core' build && bun run --filter '@bitcobblers/wod-wiki-lang' build && bun run --filter '@bitcobblers/wod-wiki-wql' build && bun run --filter '@bitcobblers/wod-wiki-engine' build && bun run --filter '@bitcobblers/wod-wiki-ui' build && bun run --filter '@bitcobblers/wod-wiki-storybook' build",
+    "build": "bun run --filter '@bitcobblers/wod-wiki-core' build && bun run --filter '@bitcobblers/wod-wiki-lang' build && bun run --filter '@bitcobblers/wod-wiki-wql' build && bun run --filter '@bitcobblers/wod-wiki-engine' build && bun run --filter '@bitcobblers/wod-wiki-ui' build",
+    "storybook": "bun run --filter '@bitcobblers/wod-wiki-storybook' storybook",
+    "storybook-build": "bun run --filter '@bitcobblers/wod-wiki-storybook' build",
     "clean": "bun run --filter '*' clean",
     "typecheck": "bun run --filter '*' typecheck",
     "lint": "eslint packages/*/src apps/*/src --ext .ts,.tsx",
@@ -21,6 +23,7 @@
     "pack:all": "mkdir -p tarballs && for pkg in packages/*; do if [ -f \"$pkg/package.json\" ]; then (cd \"$pkg\" && npm pack --pack-destination ../../tarballs); fi; done"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20.17.19",
     "@types/react": "^19.2.18",

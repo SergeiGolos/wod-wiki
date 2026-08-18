@@ -13,9 +13,9 @@
       "require": "./dist/index.cjs"
     },
     "./extensions": {
-      "types": "./dist/extensions.d.ts",
-      "import": "./dist/extensions.mjs",
-      "require": "./dist/extensions.cjs"
+      "types": "./dist/extensions/index.d.ts",
+      "import": "./dist/extensions/index.mjs",
+      "require": "./dist/extensions/index.cjs"
     }
   },
   "files": [

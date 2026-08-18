@@ -94,7 +94,7 @@ export {
   type RuntimeBlock,
   type RuntimeController,
   type BlockContext,
-  type ExecutionContext,
+  ExecutionContext,
   type BehaviorContext,
   type INowProvider,
   wallClockNow,
@@ -361,14 +361,33 @@ export { VERSION, GIT_SHA, BUILD_TIME, SEMVER } from './version';
 export {
   // Stack actions
   StartWorkoutAction,
+  ErrorAction,
   PushBlockAction,
   PopBlockAction,
   // Compiler internals the app harnesses drive
   BlockBuilder,
   ChoiceGroupMetric,
-  // Public timer behaviors
+  // Public behaviors
   CountdownTimerBehavior,
   CountupTimerBehavior,
+  ButtonBehavior,
+  ChildSelectionBehavior,
+  ExitBehavior,
+  LabelingBehavior,
+  ReportOutputBehavior,
+  SoundCueBehavior,
+  // Compiler strategies (app-side harnesses + debug tooling)
+  SessionRootStrategy,
+  AmrapLogicStrategy,
+  IntervalLogicStrategy,
+  EffortFallbackStrategy,
+  GenericGroupStrategy,
+  GenericLoopStrategy,
+  GenericTimerStrategy,
+  ChildrenStrategy,
+  ReportOutputStrategy,
+  SoundStrategy,
+  RoundsMetric,
   // Runtime options
   DEFAULT_RUNTIME_OPTIONS,
   // Memory
@@ -381,7 +400,20 @@ export {
   // Hints
   hasHint,
   hintMetric,
+  // Time helpers
+  calculateElapsed,
+  // Effort analytics
+  EFFORT_DATA_METRIC_TYPE,
+  // Hint vocabulary
+  CONSUMED_HINT_KEYS,
 } from '@bitcobblers/wod-wiki-lang';
+
+export type {
+  RuntimeError,
+  IEffort,
+  AnalyticsProfileContext,
+} from '@bitcobblers/wod-wiki-lang';
+
 
 export type {
   // Runtime contracts

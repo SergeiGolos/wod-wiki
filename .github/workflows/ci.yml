@@ -1,5 +1,17 @@
 name: CI & Release
 
+# Pipeline layout (mirrors the wod-wiki playground pipeline shape):
+#   validate (lint / build / typecheck / test — packages + workbench unit tests)
+#     ├─ PR:   preview-version → storybook-preview (stamped -pr.N build → S3
+#     │        <slug>/storybook/ → PR comment) → storybook smoke vs the deploy
+#     │        → destroy (on close)
+#     └─ main: version (Conventional Commits) → tag → publish-npm
+#              storybook-release (stamped version build → S3 main/storybook/
+#              = story.wod.wiki) → storybook smoke vs the deploy
+#
+# The Storybook this repo builds is the canonical one (package-scope stories
+# only); wod-wiki no longer builds or deploys any Storybook (#970).
+
 on:
   push:
     branches: [main]
@@ -14,11 +26,13 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: storybook-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
@@ -44,21 +58,197 @@ jobs:
       - name: Lint
         run: bun run lint
 
-      - name: Build packages & Storybook
+      - name: Build packages
         run: bun run build
 
       - name: Typecheck
         run: bun run typecheck
 
-      - name: Test
+      - name: Test (packages + workbench)
         run: bun run test
 
-      - name: Upload Storybook build artifact
-        uses: actions/upload-artifact@v4
+  # ─────────────────────────────────────────────────────────────────────────
+  # PR previews: <slug>.story.wod.wiki
+  # ─────────────────────────────────────────────────────────────────────────
+
+  preview-meta:
+    name: Preview slug & version
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    outputs:
+      slug: ${{ steps.meta.outputs.slug }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
         with:
-          name: storybook-static
-          path: apps/storybook/storybook-static/
+          fetch-depth: 0
+
+      - name: Derive slug and preview version
+        id: meta
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          SLUG=$(echo "$BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
+
+          # Preview versions only append the -pr.N prerelease marker; the
+          # base comes from the latest release tag and is never bumped here.
+          LATEST_TAG=$(git for-each-ref refs/tags \
+            --sort=-v:refname \
+            --format '%(refname:short)' \
+            | grep -E '^v?[0-9]+\.[0-9]+(\.[0-9]+)?$' \
+            | head -1)
+          BASE="${LATEST_TAG#v}"
+          [ -n "$BASE" ] || BASE=$(node -p "require('./package.json').version")
+
+          VERSION="${BASE}-pr.${{ github.event.pull_request.number }}"
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  storybook-preview:
+    name: Deploy storybook preview
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: [validate, preview-meta]
+    environment: preview
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
+      CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile || bun install
+
+      - name: Stamp preview version
+        run: bun scripts/stamp-version.ts --version "${{ needs.preview-meta.outputs.version }}"
+
+      - name: Build Storybook
+        run: bun run storybook-build
+
+      - name: Deploy to S3
+        run: |
+          set -euo pipefail
+          PREFIX="${{ needs.preview-meta.outputs.slug }}/storybook/"
+          echo "Uploading Storybook to s3://$S3_BUCKET/$PREFIX"
+          aws s3 sync apps/storybook/storybook-static/ "s3://$S3_BUCKET/$PREFIX" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate" \
+            --exclude "*.map"
+
+      - name: Invalidate CloudFront (best-effort)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          PREFIX="/${{ needs.preview-meta.outputs.slug }}/*"
+          aws cloudfront create-invalidation \
+            --distribution-id "$CF_DISTRIBUTION_ID" \
+            --paths "$PREFIX" || echo "::warning::CloudFront invalidation failed; cache self-expires in 5 minutes."
+
+      - name: Post preview link
+        uses: actions/github-script@v7
+        env:
+          SLUG: ${{ needs.preview-meta.outputs.slug }}
+          VERSION: ${{ needs.preview-meta.outputs.version }}
+          PR: ${{ github.event.pull_request.number }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const slug = process.env.SLUG;
+            const version = process.env.VERSION;
+            const pr = process.env.PR;
+            const url = `https://${slug}.story.wod.wiki`;
+            const marker = `<!-- wod-wiki-engine-storybook-preview-${pr} -->`;
+            const body = `${marker}\n` +
+              `## 📚 Storybook preview deployed\n\n` +
+              `| Item | Value |\n| --- | --- |\n` +
+              `| PR | #${pr} |\n| Branch | \`${slug}\` |\n| Version | \`${version}\` |\n` +
+              `| Storybook | [${url}](${url}) |\n\n` +
+              `> Destroyed automatically when this PR is closed or merged.`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parseInt(pr),
+            });
+            const existing = comments.find((c) => c.user.type === 'Bot' && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: parseInt(pr), body,
+              });
+            }
+
+  storybook-preview-smoke:
+    name: Preview storybook smoke
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: [preview-meta, storybook-preview]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile || bun install
+
+      - name: Install Playwright browsers
+        run: bun x playwright install chromium
+
+      - name: Run deployed-storybook smoke
+        run: bun x playwright test --config playwright.storybook.config.ts
+        env:
+          CI: true
+          STORYBOOK_URL: https://${{ needs.preview-meta.outputs.slug }}.story.wod.wiki
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: storybook-smoke-report
+          path: playwright-report/
+          if-no-files-found: ignore
           retention-days: 7
+
+  destroy-preview:
+    name: Destroy storybook preview
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    permissions:
+      pull-requests: write
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
+      CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
+    steps:
+      - name: Delete S3 storybook prefix
+        run: |
+          set -euo pipefail
+          SLUG=$(echo "${{ github.event.pull_request.head.ref }}" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
+          aws s3 rm "s3://$S3_BUCKET/$SLUG/storybook/" --recursive
+          aws cloudfront create-invalidation \
+            --distribution-id "$CF_DISTRIBUTION_ID" \
+            --paths "/$SLUG/storybook/*" || true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Release: version → tag → npm publish + versioned Storybook deploy
+  # ─────────────────────────────────────────────────────────────────────────
 
   # Compute next {major}.{minor}.{build} version from Conventional Commits
   version:
@@ -153,14 +343,21 @@ jobs:
             }
 
             await github.rest.git.createRef({
-              owner,
-              repo,
+              owner, repo,
               ref: `refs/tags/${tag}`,
               sha,
             });
             core.info(`Created tag ${tag} at ${sha}.`);
         env:
           VERSION: ${{ needs.version.outputs.version }}
+
+  storybook-release:
+    name: Deploy versioned Storybook (story.wod.wiki)
+    needs: [version]
+    runs-on: ubuntu-latest
+    environment: preview
+    outputs:
+      version: ${{ needs.version.outputs.version }}
 
   publish-npm:
     name: Publish packages to npm
@@ -203,31 +400,91 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  deploy-pages:
-    name: Deploy Storybook to GitHub Pages
-    needs: [validate]
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+  storybook-release:
+    name: Deploy versioned Storybook (story.wod.wiki)
+    needs: [version]
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    environment: preview
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
+      CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
     steps:
-      - name: Download Storybook build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: storybook-static
-          path: ./storybook-static
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          enablement: true
+          bun-version: 1.3.14
 
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Install dependencies
+        run: bun install --frozen-lockfile || bun install
+
+      - name: Stamp version into the build
+        run: bun scripts/stamp-version.ts --version "${{ needs.version.outputs.version }}"
+
+      - name: Build Storybook
+        run: bun run storybook-build
+
+      - name: Deploy to S3 (story.wod.wiki)
+        run: |
+          set -euo pipefail
+          echo "Uploading Storybook @ ${{ needs.version.outputs.version }} to s3://$S3_BUCKET/main/storybook/"
+          aws s3 sync apps/storybook/storybook-static/ "s3://$S3_BUCKET/main/storybook/" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate" \
+            --exclude "*.map"
+
+      - name: Invalidate CloudFront (best-effort)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          aws cloudfront create-invalidation \
+            --distribution-id "$CF_DISTRIBUTION_ID" \
+            --paths "/main/storybook/*" || echo "::warning::CloudFront invalidation failed; cache self-expires in 5 minutes."
+
+  storybook-release-smoke:
+    name: Deployed storybook smoke
+    runs-on: ubuntu-latest
+    needs: [storybook-release]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          path: ./storybook-static
+          bun-version: 1.3.14
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Install dependencies
+        run: bun install --frozen-lockfile || bun install
+
+      - name: Install Playwright browsers
+        run: bun x playwright install chromium
+
+      - name: Run deployed-storybook smoke
+        run: bun x playwright test --config playwright.storybook.config.ts
+        env:
+          CI: true
+          STORYBOOK_URL: https://story.wod.wiki
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: storybook-smoke-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Write summary
+        if: always()
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## Storybook release
+
+          - Version: ${{ needs.storybook-release.outputs.version || needs.version.outputs.version }}
+          - URL: https://story.wod.wiki
+          EOF
