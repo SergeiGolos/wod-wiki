@@ -152,6 +152,8 @@ export {
   CONTEXT_ATOMS,
   STREAM_ATOMS,
   AGGREGATE_BUILTINS,
+  UNITS,
+  AUTHORITATIVE_CASTS,
   // Conversions
   toStoredOutputStatement,
   // Pure Effort Registry
