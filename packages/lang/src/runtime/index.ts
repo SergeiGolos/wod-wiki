@@ -24,3 +24,4 @@ export * from './utils';
 export * from './blocks';
 export * from './services/runtimeServices';
 export * from './actions';
+export * from './adapters/RuntimeAdapter';

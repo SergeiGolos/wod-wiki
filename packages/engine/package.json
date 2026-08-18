@@ -1,6 +1,6 @@
 {
   "name": "@bitcobblers/wod-wiki-engine",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Umbrella package for Whiteboard Language & WQL engine with CLI runner",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -23,9 +23,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@bitcobblers/wod-wiki-core": "^0.1.5",
-    "@bitcobblers/wod-wiki-lang": "^0.1.5",
-    "@bitcobblers/wod-wiki-wql": "^0.1.5"
+    "@bitcobblers/wod-wiki-core": "^0.1.6",
+    "@bitcobblers/wod-wiki-lang": "^0.1.6",
+    "@bitcobblers/wod-wiki-wql": "^0.1.6"
   },
   "scripts": {
     "build": "tsup",

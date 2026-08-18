@@ -1,6 +1,6 @@
 {
   "name": "@bitcobblers/wod-wiki-ui",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Interactive presentation, CodeMirror editor extensions, and WQL diagram widgets",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -25,9 +25,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@bitcobblers/wod-wiki-core": "^0.1.5",
-    "@bitcobblers/wod-wiki-lang": "^0.1.5",
-    "@bitcobblers/wod-wiki-wql": "^0.1.5",
+    "@bitcobblers/wod-wiki-core": "^0.1.6",
+    "@bitcobblers/wod-wiki-lang": "^0.1.6",
+    "@bitcobblers/wod-wiki-wql": "^0.1.6",
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.6.0",
     "@heroicons/react": "^2.2.0"

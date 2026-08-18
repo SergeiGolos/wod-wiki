@@ -102,6 +102,16 @@ export const useRuntimeExecution = (
     return unsubscribe;
   }, [runtime, status]);
 
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
+
   /**
    * Starts continuous execution at fixed 20ms tick rate
    */

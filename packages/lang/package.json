@@ -1,6 +1,6 @@
 {
   "name": "@bitcobblers/wod-wiki-lang",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Whiteboard Language parser, JIT compiler, runtime, and dialect execution",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -25,7 +25,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@bitcobblers/wod-wiki-core": "^0.1.5",
+    "@bitcobblers/wod-wiki-core": "^0.1.6",
     "uuid": "^11.1.0"
   },
   "peerDependencies": {
