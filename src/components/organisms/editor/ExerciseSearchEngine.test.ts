@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'bun:test';
 import { ExerciseSearchEngine } from '@/components/Editor/ExerciseSearchEngine';
 import { ExerciseIndexManager } from '@/components/Editor/ExerciseIndexManager';
-import type { ExercisePathIndex, ExerciseDataProvider } from '@bitcobblers/wod-wiki-engine';
+import type { ExerciseDataProvider } from '@/types/exercise-provider';
+import type { ExercisePathIndex } from '@/tools/ExercisePathIndexer';
 
 // Mock data
 const mockIndex: ExercisePathIndex = {

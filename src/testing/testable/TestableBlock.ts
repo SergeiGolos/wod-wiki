@@ -243,19 +243,19 @@ export class TestableBlock implements IRuntimeBlock {
 
   // ========== Block-Owned Memory ==========
 
-  pushMemory(location: import('../../runtime/memory/MemoryLocation').IMemoryLocation): void {
+  pushMemory(location: import('@bitcobblers/wod-wiki-engine').IMemoryLocation): void {
     this._wrapped.pushMemory(location);
   }
 
-  getMemoryByTag(tag: import('../../runtime/memory/MemoryLocation').MemoryTag): import('../../runtime/memory/MemoryLocation').IMemoryLocation[] {
+  getMemoryByTag(tag: import('@bitcobblers/wod-wiki-engine').MemoryTag): import('@bitcobblers/wod-wiki-engine').IMemoryLocation[] {
     return this._wrapped.getMemoryByTag(tag);
   }
 
-  getAllMemory(): import('../../runtime/memory/MemoryLocation').IMemoryLocation[] {
+  getAllMemory(): import('@bitcobblers/wod-wiki-engine').IMemoryLocation[] {
     return this._wrapped.getAllMemory();
   }
 
-  getMetricMemoryByVisibility(visibility: import('../../runtime/memory/MetricVisibility').MetricVisibility): import('../../runtime/memory/MemoryLocation').IMemoryLocation[] {
+  getMetricMemoryByVisibility(visibility: import('@bitcobblers/wod-wiki-engine').MetricVisibility): import('@bitcobblers/wod-wiki-engine').IMemoryLocation[] {
     return this._wrapped.getMetricMemoryByVisibility(visibility);
   }
 

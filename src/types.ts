@@ -1,10 +1,37 @@
 /**
  * Public type surface for package consumers.
  *
- * Core-only types stay in `./core/types`; runtime contracts are exported from
- * their canonical runtime modules so we do not duplicate those definitions
- * under `core/types`.
+ * The engine packages (@bitcobblers/wod-wiki-engine umbrella over
+ * core/lang/wql) own every runtime contract; this module preserves the
+ * historical `wod-wiki/types` re-export surface for app code.
  */
+import type {
+  IScriptRuntime,
+  IJitCompiler,
+  IRuntimeBlock,
+  BlockLifecycleOptions,
+  IRuntimeAction,
+  IRuntimeBehavior,
+  IRuntimeStack,
+  Unsubscribe,
+  StackSnapshot,
+  StackObserver,
+  IRuntimeClock,
+  IRuntimeBlockStrategy,
+  IBlockContext,
+  IMemoryReference,
+  IEvent,
+  IEventBus,
+  IEventHandler,
+  IRuntimeMemory,
+  TypedMemoryReference,
+  ScriptRuntime,
+  RuntimeBlock,
+  RuntimeMemory,
+  RuntimeStack,
+  JitCompiler,
+  BlockContext,
+} from '@bitcobblers/wod-wiki-engine';
 
 // Core domain types
 export type {
@@ -34,20 +61,17 @@ export type {
   IMemoryReference,
   IEvent,
   IEventBus,
-  TypedMemoryReference,
-} from './runtime/contracts';
-
-export type {
+  IEventHandler,
   IRuntimeMemory,
-  MemorySearchCriteria,
-} from './runtime/contracts/IRuntimeMemory';
-
-export type { IEventHandler } from './runtime/contracts/events/IEventHandler';
+  TypedMemoryReference,
+};
 
 // Runtime implementation instance types exposed historically via `wod-wiki/types`
-export type { ScriptRuntime } from './runtime/ScriptRuntime';
-export type { RuntimeBlock } from './runtime/RuntimeBlock';
-export type { RuntimeMemory } from './runtime/RuntimeMemory';
-export type { RuntimeStack } from './runtime/RuntimeStack';
-export type { JitCompiler } from './runtime/compiler/JitCompiler';
-export type { BlockContext } from './runtime/BlockContext';
+export type {
+  ScriptRuntime,
+  RuntimeBlock,
+  RuntimeMemory,
+  RuntimeStack,
+  JitCompiler,
+  BlockContext,
+};

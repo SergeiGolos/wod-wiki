@@ -28,9 +28,9 @@ try {
 
 // Verify configuration files exist
 const configFiles = [
-  'vitest.storybook.config.js',
-  '.storybook/main.mjs',
-  '.storybook/vitest.setup.js'
+  'playwright.journal.config.ts',
+  'playwright.smoke.config.ts',
+  'vite.config.ts',
 ];
 
 console.log('🔍 Verifying configuration files...');
@@ -43,6 +43,5 @@ for (const file of configFiles) {
 }
 
 console.log('\n🎉 Setup complete! You can now run:');
-console.log('  bun run test          # Run unit tests only');
-console.log('  bun run test:storybook # Run Storybook tests only');
-console.log('  bun run storybook     # Start Storybook dev server');
+console.log('  bun run test          # Run unit tests');
+console.log('  bun run dev:app       # Start the playground dev server');

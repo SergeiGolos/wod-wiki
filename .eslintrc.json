@@ -2,8 +2,7 @@
   "root": true,
   "parser": "@typescript-eslint/parser",
   "extends": [
-    "eslint:recommended",
-    "plugin:storybook/recommended"
+    "eslint:recommended"
   ],
   "rules": {
     "no-console": "warn",

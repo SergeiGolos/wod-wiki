@@ -8,20 +8,6 @@ loadDotenv({ path: resolve(__dirname, '../../.env.local'), override: true });
 const isCI = !!process.env.CI;
 
 /**
- * Base URL for the Storybook under test.
- *  1. E2E_STORYBOOK_URL — explicit override (any environment)
- *  2. CI — deployed Storybook (story.wod.wiki — not storybook.wod.wiki;
- *     the latter doesn't resolve and NXDOMAIN'd the release smoke suite).
- *  3. local — dev Storybook on :6006, HTTPS when .env.local provides certs
- */
-export function storybookBaseURL(): string {
-  if (process.env.E2E_STORYBOOK_URL) return process.env.E2E_STORYBOOK_URL;
-  if (isCI) return 'https://story.wod.wiki';
-  const protocol = process.env.HTTPS_CERT ? 'https' : 'http';
-  return `${protocol}://localhost:6006`;
-}
-
-/**
  * Base URL for the app under test.
  *  1. E2E_APP_URL — explicit override (any environment)
  *  2. CI — production
@@ -33,3 +19,4 @@ export function appBaseURL(): string {
   const httpsHost = process.env.HTTPS_HOST;
   return httpsHost ? `https://${httpsHost}:5173` : 'http://localhost:5173';
 }
+

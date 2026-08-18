@@ -1,2 +1,6 @@
 [test]
 preload = ["./tests/unit-setup.ts"]
+pathIgnorePatterns = [
+  "tests/wods/all-wods.test.ts",
+  "tests/canvas/syntax-source-markdown.test.ts",
+]

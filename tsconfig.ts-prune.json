@@ -20,12 +20,9 @@
     "types": ["bun-types", "vite/client"],
     "paths": {
       "@/*": ["./src/*"],
-      "@bitcobblers/wod-wiki-engine": ["./scripts/tsprune-stubs/engine.d.ts"],
-      "@bitcobblers/wod-wiki-core": ["./scripts/tsprune-stubs/engine.d.ts"],
-      "@bitcobblers/wod-wiki-lang": ["./scripts/tsprune-stubs/engine.d.ts"],
-      "@bitcobblers/wod-wiki-wql": ["./scripts/tsprune-stubs/engine.d.ts"],
-      "@bitcobblers/wod-wiki-ui": ["./scripts/tsprune-stubs/ui.d.ts"],
-      "@bitcobblers/wod-wiki-ui/*": ["./scripts/tsprune-stubs/ui.d.ts"]
+      "@bitcobblers/wod-wiki-engine": ["./node_modules/@bitcobblers/wod-wiki-engine/dist/index.d.ts"],
+      "@bitcobblers/wod-wiki-ui": ["./node_modules/@bitcobblers/wod-wiki-ui/dist/index.d.ts"],
+      "@bitcobblers/wod-wiki-ui/*": ["./node_modules/@bitcobblers/wod-wiki-ui/dist/*"]
     }
   },
   "include": ["src/**/*"],

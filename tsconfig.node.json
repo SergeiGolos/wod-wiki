@@ -14,7 +14,6 @@
     "vite.config.ts",
     "vitest.*.config.js",
     "vitest.*.config.ts",
-    ".storybook/**/*",
     "scripts/**/*",
     "setup-testing.js",
     "postcss.config.js",

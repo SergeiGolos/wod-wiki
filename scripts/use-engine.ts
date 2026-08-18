@@ -1,15 +1,13 @@
 // Dependency Manager for @bitcobblers/wod-wiki-* in wod-wiki
 /**
- * Supports 4 modes:
- *   1. "workspace" (or "local") -> Point dependencies in root, packages/*, apps/* to local workspace:*
- *   2. "npm" (or "release")     -> Install published npm packages (default: "^0.1.0" or specific semver)
- *   3. "link"                   -> Use bun link / npm link to link local built packages from sibling repo
- *   4. "tarballs"               -> Point to local .tar.gz / .tgz files (e.g. from engine pack:all)
+ * Supports 3 modes:
+ *   1. "npm" (or "release") -> Install published npm packages (default: "^0.1.0" or specific semver)
+ *   2. "link"               -> Use bun link to link local built packages from the sibling engine repo
+ *   3. "tarballs"           -> Point to local .tar.gz / .tgz files (e.g. from engine pack:all)
  *
  * Usage:
  *   bun scripts/use-engine.ts mode [args]
  *   bun scripts/use-engine.ts npm [--version 0.1.0]
- *   bun scripts/use-engine.ts workspace
  *   bun scripts/use-engine.ts link [--engine-dir ../wod-wiki-engine]
  *   bun scripts/use-engine.ts tarballs [--dir ../wod-wiki-engine/tarballs]
  */
@@ -33,19 +31,7 @@ const ALL_PACKAGES = [
 ];
 
 function getPackageJsonPaths(): string[] {
-  const list = [path.join(rootDir, 'package.json')];
-  for (const base of ['packages', 'apps']) {
-    const fullBase = path.join(rootDir, base);
-    if (fs.existsSync(fullBase)) {
-      for (const entry of fs.readdirSync(fullBase, { withFileTypes: true })) {
-        if (entry.isDirectory()) {
-          const p = path.join(fullBase, entry.name, 'package.json');
-          if (fs.existsSync(p)) list.push(p);
-        }
-      }
-    }
-  }
-  return list;
+  return [path.join(rootDir, 'package.json')];
 }
 
 function run(cmd: string, cwd = rootDir) {
@@ -89,29 +75,6 @@ switch (mode) {
     break;
   }
 
-  case 'workspace':
-  case 'local': {
-    console.log(`\x1b[32m[use-engine]\x1b[0m Switching to local workspace:* dependencies...`);
-
-    const pkgPaths = getPackageJsonPaths();
-    for (const pPath of pkgPaths) {
-      const pkg = JSON.parse(fs.readFileSync(pPath, 'utf-8'));
-      for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
-        if (pkg[depType]) {
-          for (const depName of Object.keys(pkg[depType])) {
-            if (depName.startsWith('@bitcobblers/wod-wiki-')) {
-              pkg[depType][depName] = 'workspace:*';
-            }
-          }
-        }
-      }
-      fs.writeFileSync(pPath, JSON.stringify(pkg, null, 2) + '\n');
-    }
-
-    run('bun install');
-    console.log(`\x1b[32m✔ Switched to workspace:* dependencies\x1b[0m`);
-    break;
-  }
 
   case 'link': {
     const defaultEngineDir = path.resolve(rootDir, '../wod-wiki-engine');
@@ -208,7 +171,6 @@ switch (mode) {
     }
     console.log(`\nAvailable modes:`);
     console.log(`  bun scripts/use-engine.ts npm [--version <semver>]`);
-    console.log(`  bun scripts/use-engine.ts workspace`);
     console.log(`  bun scripts/use-engine.ts link [--engine-dir <path>]`);
     console.log(`  bun scripts/use-engine.ts tarballs [--dir <path>]`);
     break;

@@ -1,10 +1,14 @@
 name: CI – Pull Request
 
 # The single PR pipeline. One job graph per PR update:
-#   verify (unit/story/coverage/build gate + journal e2e)
-#     → preview (deploy-shaped artifact → S3 + PR comment)
+#   verify (unit/coverage + deploy-shaped build gate — NO pre-deploy e2e)
+#     → preview (artifact → S3 + PR comment)
+#     → e2e (full live-app suite against the deployed preview — the single
+#       e2e phase; tests always run against exactly what was published)
 #     → destroy (on close)
+# Storybook previews live in the wod-wiki-engine repository's pipeline.
 # Concurrency: a new push cancels the previous run for the same PR.
+
 
 on:
   pull_request:
@@ -79,9 +83,10 @@ jobs:
     uses: ./.github/workflows/_verify.yml
     secrets: inherit
     with:
-      run-e2e: true
+      build-preview-artifact: true
       preview-base-path: /${{ needs.slug.outputs.slug }}/dist/
       app-version: ${{ needs.slug.outputs.preview-version }}
+
 
   # Preview deploy — downloads the deploy-shaped playground bundle the verify
   # job already built (no second playground build), adds receiver + storybook,
