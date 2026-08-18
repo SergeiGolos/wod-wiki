@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 
 export default defineWorkspace([
   'packages/*',
-  'apps/*',
   {
     test: {
       name: 'contract',

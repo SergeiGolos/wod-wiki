@@ -1,7 +1,3 @@
-/**
- * Canonical array of CodeMirror & Lezer singleton dependency package names.
- * Consuming applications (such as wod-wiki) import this directly into vite.config.ts resolve.dedupe.
- */
 export const CODEMIRROR_SINGLETON_DEPS = [
   '@codemirror/autocomplete',
   '@codemirror/commands',

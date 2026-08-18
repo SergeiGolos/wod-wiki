@@ -4,6 +4,7 @@ export * from './IAnalyticsProcessorDescriptor';
 export * from './IRealtimeProcessor';
 export * from './ISummaryProcessor';
 export * from './AnalyticsEngine';
+export * from './AnalyticsTransformer';
 export * from './StandardAnalyticsProfile';
 export * from './createAnalyticsEngineForBlock';
 export * from './TwoPassEffortResolutionProcess';

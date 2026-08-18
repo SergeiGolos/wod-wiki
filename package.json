@@ -13,17 +13,25 @@
     "clean": "bun run --filter '*' clean",
     "typecheck": "bun run --filter '*' typecheck",
     "lint": "eslint packages/*/src apps/*/src --ext .ts,.tsx",
-    "test": "vitest run",
+    "test": "vitest run && bun run --filter @wod-wiki/storybook test",
     "test:watch": "vitest",
     "pack:all": "mkdir -p tarballs && for pkg in packages/*; do if [ -f \"$pkg/package.json\" ]; then (cd \"$pkg\" && npm pack --pack-destination ../../tarballs); fi; done"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^20.17.19",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
     "@typescript-eslint/eslint-plugin": "^8.24.1",
     "@typescript-eslint/parser": "^8.24.1",
     "eslint": "^8.57.1",
+    "jsdom": "^30.0.1",
     "tsup": "^8.3.6",
     "typescript": "^5.7.3",
     "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   }
 }

@@ -1,37 +1,276 @@
 /**
  * @wod-wiki/engine
- * Umbrella re-export facade for Whiteboard Language & WQL engine.
+ *
+ * Umbrella facade for the Whiteboard Language & WQL engine.
+ * Re-exports the complete contract across core, lang, and wql packages,
+ * plus the Language Pack API and headless IR / store / CLI tooling.
  */
 
+// 1. Core Data Models & Persistence Shapes (#964)
 export * from '@wod-wiki/core';
-export * from '@wod-wiki/lang';
-export * from '@wod-wiki/wql';
+
+// 2. Language Parser, Compiler, Dialects & Runtime (#965)
 export {
-  EFFORT_DISCIPLINES,
-  DISCIPLINE_FACTORS,
-  disciplineFactorFor,
-  isEffortDiscipline,
-  type EffortDiscipline,
-  type IEffort,
+  // Parser
+  parseScript,
+  WhiteboardScript,
+  extractStatements,
+  strategyRegistry,
+  CONSUMED_HINTS,
+  createParser,
+  MdTimerRuntime,
+  type IScript,
+  // Compiler
+  JitCompiler,
+  RuntimeFactory,
+  createCompiler,
+  PRODUCTION_STRATEGIES,
+  type IRuntimeBlockStrategy,
+  type RuntimeBlockOptions,
+  // Dialect stack & Registries
+  DialectStack,
+  createDialectStack,
+  dialectStack,
+  dialectRegistry,
+  realtimeProcessorRegistry,
+  summaryProcessorRegistry,
+  Registry,
+  type IRealtimeProcessor,
+  type ISummaryProcessor,
+  // 7 Dialects
+  UnitsDialect,
+  CrossFitDialect,
+  WodDialect,
+  CardioDialect,
+  YogaDialect,
+  HabitsDialect,
+  ClimbDialect,
+  ClimbMetricType,
+  // Runtime
+  ScriptRuntime,
+  RuntimeStack,
+  RuntimeClock,
+  SnapshotClock,
+  createMockClock,
+  EventBus,
+  OutputEmitter,
+  RuntimeMemory,
+  type RuntimeBlock,
+  type RuntimeController,
+  type RuntimeLogger,
+  type BlockContext,
+  type ExecutionContext,
+  type BehaviorContext,
+  type INowProvider,
+  wallClockNow,
+  frozenNow,
+  // Events
+  NextEvent,
+  // Actions
+  StartSessionAction,
+  type StartSessionOptions,
+  // Analytics & Calc
+  AnalyticsEngine,
+  AnalyticsTransformer,
+  StandardAnalyticsProfile,
+  createAnalyticsEngineForBlock,
+  type TwoPassEffortResolutionProcess,
+  type AnalyticsContext,
+  getAnalyticsFromLogs,
+  getHints,
+  hintsToContainer,
+  extractMetrics,
+  parseCalculateBlock,
+  evaluateCalculateDefinitions,
+  type CalculateBlockProcessor,
+  createCalcEngine,
+  CalcEngine,
+  LookupRegistry,
+  CalculationRegistry,
+  parseExpression,
+  parseCalcLine,
+  evaluate,
+  DIM_ZERO,
+  DIM_TIME,
+  DIM_MASS,
+  DIM_LENGTH,
+  BUILTIN_CALCS,
+  STORE_CALCS,
+  type ILookupTable,
+  type CalcScope,
+  type CalcOrigin,
+  type CalcDefinition,
+  type IAnalyticsEngine,
+  type IAnalyticsProfile,
+  type IAnalyticsProcessorDescriptor,
+  type SegmentWithMetadata,
+  type AnalyticsResult,
+  // Conversions
+  toStoredOutputStatement,
+  // Pure Effort Registry
+  EffortResolver,
+  InMemoryEffortRegistry,
+  bundledEfforts,
+  BUNDLED_EFFORT_COUNT,
+  findBestFuzzyMatch,
+  normalizeForFuzzy,
+  isWithinThreshold,
+  levenshteinDistance,
+  DEFAULT_RESOLVER_OPTIONS,
+  DEFAULT_UNRESOLVED_EFFORT_MET,
+  EFFORT_REGISTRY_ORIGINS,
+  INTENSITY_TIERS,
+  type IEffortResolver,
+  type EffortResolverOptions,
+  type EffortResolutionOptions,
+  type ResolvedEffort,
+  type ResolvedEffortData,
+  type IEffortRegistry,
+  type EffortRegistrySource,
+  type IntensityTier,
+  type EffortBaseAttributes,
+  type EffortDerivation,
 } from '@wod-wiki/lang';
-export type { TimeSpan, IScript, FenceDialect } from '@wod-wiki/core';
 
-export interface LanguagePack {
-  name: string;
-  dialects?: string[];
-  version?: string;
-}
+// 3. WQL Grammar, QueryService & Dashboard Model (#966)
+export {
+  // QueryService
+  QueryService,
+  type FactQueryStore,
+  type NoteQueryStore,
+  type BlockQueryStore,
+  type EffortQueryStore,
+  type ResultLogStore,
+  type QueryServiceStores,
+  type QueryOptions,
+  type FindOptions,
+  type QueryResult,
+  type FindQueryResult,
+  type RowsQueryResult,
+  type RowsRun,
+  // Parser & AST
+  parseQuery,
+  isFindQuery,
+  isRowsQuery,
+  wqlParser,
+  wqlTerms,
+  wqlLanguage,
+  wql,
+  parseWqlSuffixes,
+  splitAtWhere,
+  type ParsedQuery,
+  type ParsedFindQuery,
+  type ParsedRowsQuery,
+  type AnyParsedQuery,
+  type Series,
+  type SeriesPoint,
+  type Aggregator,
+  type ComparisonOp,
+  type TagValue,
+  type TagFilter,
+  type MetricPredicate,
+  type FindPredicate,
+  // Vocabulary constants
+  WQL_AGGREGATORS,
+  WQL_COMPARISON_OPS,
+  WQL_DISPLAY_UNITS,
+  WQL_INTENSITY_TIERS,
+  WQL_METRIC_FAMILIES,
+  WQL_METRIC_AGGREGATES,
+  WQL_ROLLUP_PERIODS,
+  WQL_SOURCES,
+  WQL_TAG_KEYS,
+  WQL_VIRTUAL_DIMS,
+  WQL_CALC_TARGETS,
+  WQL_CONTENT_FILTER_KEYS,
+  WQL_FIND_TARGETS,
+  WQL_GRAINS,
+  WQL_KEYWORDS,
+  PLANNED_WIDGET_TYPES,
+  DASHBOARD_WIDGET_TYPES,
+  DASHBOARD_GRID_MAX_COLS,
+  DEFAULT_DASHBOARD_TITLE,
+  // Dashboard Model
+  buildDashboardDocument,
+  buildDashboardScaffold,
+  extractDashboardTokens,
+  defaultTokenValues,
+  substituteTokens,
+  unknownTokensMessage,
+  isDashboardWidgetType,
+  resolveWidgetType,
+  unknownWidgetTypeMessage,
+  dashboardSlug,
+  splitWidgetBody,
+  parseQueryWidgetSuffix,
+  isDashboardMeta,
+  type DashboardDocument,
+  type DashboardWidget,
+  type DashboardToken,
+  type DashboardMeta,
+  type QueryWidgetSuffix,
+} from '@wod-wiki/wql';
 
-const activePacks: Map<string, LanguagePack> = new Map();
+// 4. Language Pack API (#967)
+export {
+  defineLanguagePack,
+  registerLanguagePack,
+  unregisterLanguagePack,
+  listLanguagePacks,
+  getRegisteredLanguagePacks,
+  type LanguagePack,
+  type LanguagePackIdentity,
+  type LanguagePackLangSlice,
+  type LanguagePackUiSlice,
+} from './pack';
 
-export function defineLanguagePack(pack: LanguagePack): LanguagePack {
-  return pack;
-}
+// 5. In-Memory Store Seam (#967, #969)
+export { inMemoryFactStore } from './store';
 
-export function registerLanguagePack(pack: LanguagePack): void {
-  activePacks.set(pack.name, pack);
-}
+// 6. Universal JSON Intermediate Representation (#955, #967)
+export {
+  createIRFile,
+  isIRFile,
+  statementToNode,
+  buildStatementTree,
+  type IrKind,
+  type WodWikiIRFile,
+  type MetricNode,
+  type StatementNode,
+  type ExecutionLog,
+  type CorpusIRData,
+} from './ir';
 
-export function getRegisteredLanguagePacks(): LanguagePack[] {
-  return Array.from(activePacks.values());
-}
+// 7. CLI Runners & Formatters (#967)
+export {
+  runParse,
+  ParseSyntaxError,
+  type ParseOptions,
+} from './cli/parse';
+export {
+  runExecution,
+  buildWorkoutResults,
+  type RunOptions,
+} from './cli/run';
+export {
+  runQueryCli,
+  WqlSyntaxError,
+  loadQueryData,
+  type QueryCliOptions,
+} from './cli/query';
+export {
+  loadLanguagePack,
+  PackLoadError,
+} from './cli/loader';
+export {
+  cliMain,
+  parseCliArgs,
+  readStdin,
+  type CliParsedArgs,
+} from './cli/runner';
+export {
+  formatParseOutput,
+  formatExecutionOutput,
+  formatQueryOutput,
+  type OutputFormat,
+} from './cli/formatters';
