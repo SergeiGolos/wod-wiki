@@ -61,7 +61,6 @@ jobs:
           retention-days: 7
 
   # Compute next {major}.{minor}.{build} version from Conventional Commits
-  # exactly mirroring the wod-wiki version computation model
   version:
     name: Compute version
     runs-on: ubuntu-latest
@@ -221,6 +220,8 @@ jobs:
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
