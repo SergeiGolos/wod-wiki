@@ -119,6 +119,11 @@ export {
   createDialectStack,
 } from '@/dialects/DialectStack';
 
+export type {
+  IDialect,
+  DialectAnalysis,
+} from '@/core/models/Dialect';
+
 export { UnitsDialect } from '@/dialects/UnitsDialect';
 export { CrossFitDialect } from '@/dialects/CrossFitDialect';
 export { WodDialect } from '@/dialects/WodDialect';
@@ -176,6 +181,8 @@ export {
   isFindQuery,
   isRowsQuery,
 } from '@/services/analytics/query';
+
+export { inMemoryFactStore } from './store';
 
 export {
   wql,

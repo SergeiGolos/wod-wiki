@@ -21,25 +21,29 @@ import os from 'os';
 
 const args = process.argv.slice(2);
 let preload = './tests/unit-setup.ts';
-let dir = '';
+let dirs: string[] = [];
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--preload' && i + 1 < args.length) {
     preload = args[i + 1];
     i++;
   } else if (!args[i].startsWith('--')) {
-    dir = args[i];
+    dirs.push(args[i]);
   }
 }
-if (!dir) dir = './playground/src';
+if (dirs.length === 0) dirs = ['./playground/src'];
 
 const glob = new Glob('**/*.{test,spec}.{ts,tsx}');
-const files: string[] = [];
-for await (const f of glob.scan({ cwd: dir, absolute: true })) files.push(f);
-files.sort();
+const filesSet = new Set<string>();
+for (const targetDir of dirs) {
+  for await (const f of glob.scan({ cwd: targetDir, absolute: true })) {
+    filesSet.add(f);
+  }
+}
+const files = Array.from(filesSet).sort();
 
 if (files.length === 0) {
-  console.error(`No test files found under ${dir}`);
+  console.error(`No test files found under ${dirs.join(', ')}`);
   process.exit(1);
 }
 

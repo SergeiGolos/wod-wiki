@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../../src/*"],
+      "@wod-wiki/engine": ["../../packages/engine/src/index.ts"],
+      "@wod-wiki/ui": ["../../packages/ui/src/index.ts"],
+      "@wod-wiki/ui/*": ["../../packages/ui/src/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "stories/**/*.ts",
+    "stories/**/*.tsx",
+    ".storybook/**/*.ts",
+    ".storybook/**/*.tsx",
+    ".storybook/**/*.mjs",
+    "vitest.config.ts",
+    "vite.config.ts"
+  ]
+}

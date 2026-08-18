@@ -54,6 +54,8 @@
     "src/**/*.tsx",
     "packages/**/*.ts",
     "packages/**/*.tsx",
+    "apps/**/*.ts",
+    "apps/**/*.tsx",
     "playground/**/*.ts",
     "playground/**/*.tsx",
     "tests/**/*.ts",

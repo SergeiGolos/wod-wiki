@@ -27,7 +27,8 @@
     "url": "git+https://github.com/SergeiGolos/wod-wiki.git"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "postinstall": "node scripts/fix-codemirror-deps.cjs",
@@ -35,13 +36,15 @@
     "setup": "bun setup-testing.js",
     "generate:wql": "lezer-generator --typeScript src/grammar/wql.grammar -o src/grammar/wql.parser",
     "generate:static-index": "bun run scripts/generate-static-block-index.ts",
-    "test": "bun tests/run-isolated.ts ./src ./packages --preload ./tests/unit-setup.ts",
+    "test": "bun tests/run-isolated.ts ./src ./packages ./apps --preload ./tests/unit-setup.ts",
     "test:packages": "bun tests/run-isolated.ts ./packages --preload ./tests/unit-setup.ts",
+    "test:apps": "bun tests/run-isolated.ts ./apps --preload ./tests/unit-setup.ts",
     "test:components": "bun test tests --path-ignore-patterns='tests/wods/all-wods.test.ts' --path-ignore-patterns='tests/canvas/syntax-source-markdown.test.ts' --preload ./tests/setup.ts",
     "test:markdown": "bun test tests/wods/all-wods.test.ts tests/canvas/syntax-source-markdown.test.ts --preload ./tests/setup.ts",
     "test:all": "bun run test && bun run test:components",
     "test:coverage": "bun tests/run-isolated.ts ./src --preload ./tests/unit-setup.ts",
     "test:storybook": "bunx vitest run --config vitest.storybook.config.js",
+    "test:workbench": "bunx vitest run --root apps/storybook",
     "test:glob": "bunx vitest run --config vitest.glob.config.ts",
     "test:ui": "bun run test:storybook && bun run test:e2e",
     "test:playground": "bun tests/run-isolated.ts ./playground/src --preload ./tests/unit-setup.ts",
@@ -57,9 +60,9 @@
     "playground": "node node_modules/vite/bin/vite.js --config playground/vite.config.ts",
     "build": "bun run build-storybook",
     "storybook": "node scripts/storybook-start.mjs",
-    "storybook:debug": "set NODE_OPTIONS=--inspect=9229 && bun x storybook dev -p 6006",
+    "storybook:workbench": "bunx storybook dev --config-dir apps/storybook/.storybook -p 6006",
+    "build:workbench": "bunx storybook build --config-dir apps/storybook/.storybook --output-dir apps/storybook/storybook-static",
     "clean-storybook": "bun -e 'require(\"fs\").rmSync(\"storybook-static\", { recursive: true, force: true })'",
-    "prebuild-storybook": "bun run clean-storybook",
     "build-storybook": "NODE_OPTIONS=--max-old-space-size=4096 storybook build",
     "postbuild-storybook": "bun x vite build --config vite.receiver.config.ts",
     "analyze:deps": "bun x madge --extensions ts,tsx --ts-config tsconfig.json --exclude __tests__ --circular src/",
