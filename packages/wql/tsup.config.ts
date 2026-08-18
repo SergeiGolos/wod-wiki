@@ -19,6 +19,7 @@ export default defineConfig({
     '@codemirror/language',
     '@codemirror/autocomplete',
     '@lezer/common',
+    '@lezer/highlight',
     '@lezer/lr'
   ]
 });

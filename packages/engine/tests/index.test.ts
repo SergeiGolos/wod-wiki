@@ -9,8 +9,8 @@ describe('@wod-wiki/engine', () => {
     const script = parseScript('21 pullups');
     expect(script.statements.length).toBe(1);
 
-    const query = parseQuery('find pullups');
-    expect(query.target).toBe('pullups');
+    const query = parseQuery('find:pullups');
+    expect((query as any).target).toBe('pullups');
   });
 
   it('manages language packs', () => {

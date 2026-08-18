@@ -6,6 +6,15 @@
 export * from '@wod-wiki/core';
 export * from '@wod-wiki/lang';
 export * from '@wod-wiki/wql';
+export {
+  EFFORT_DISCIPLINES,
+  DISCIPLINE_FACTORS,
+  disciplineFactorFor,
+  isEffortDiscipline,
+  type EffortDiscipline,
+  type IEffort,
+} from '@wod-wiki/lang';
+export type { TimeSpan, IScript, FenceDialect } from '@wod-wiki/core';
 
 export interface LanguagePack {
   name: string;

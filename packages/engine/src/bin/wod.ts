@@ -4,7 +4,7 @@
  * Usage: wod <command> [options]
  */
 
-import { parseScript, ScriptRuntime } from '@wod-wiki/lang';
+import { parseScript, RuntimeFactory, JitCompiler } from '@wod-wiki/lang';
 import { parseQuery, QueryService } from '@wod-wiki/wql';
 
 async function main() {
@@ -33,9 +33,18 @@ Commands:
   if (command === 'run') {
     const input = args.slice(1).join(' ');
     const parsed = parseScript(input);
-    const runtime = new ScriptRuntime(parsed);
-    const result = runtime.execute();
-    console.log(JSON.stringify(result, null, 2));
+    const factory = new RuntimeFactory(new JitCompiler());
+    const runtime = factory.createRuntime({
+      id: 'cli-block',
+      startLine: 1,
+      endLine: parsed.statements.length,
+      content: input,
+      state: 'idle',
+      statements: parsed.statements,
+      version: 1,
+      createdAt: Date.now(),
+    });
+    console.log(JSON.stringify({ statements: parsed.statements, runtime: runtime ? 'initialized' : 'null' }, null, 2));
     process.exit(0);
   }
 
@@ -43,7 +52,7 @@ Commands:
     const query = args.slice(1).join(' ');
     const ast = parseQuery(query);
     const service = new QueryService();
-    const result = await service.executeQuery(query);
+    const result = await service.runQuery(query);
     console.log(JSON.stringify({ ast, result }, null, 2));
     process.exit(0);
   }

@@ -1,0 +1,99 @@
+import { IRuntimeAction } from '../../contracts/IRuntimeAction';
+import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
+import { MetricContainer } from '@wod-wiki/core';
+import { MetricType } from '@wod-wiki/core';
+import { MemoryLocation } from '../../memory/MemoryLocation';
+
+/**
+ * UpdateNextPreviewAction resolves the next child statement(s) and stores
+ * their metrics in the block's `metric:next` memory location.
+ *
+ * ## Purpose
+ *
+ * Behaviors (ChildRunnerBehavior) cannot access `runtime.script` directly —
+ * it's only available in `IRuntimeAction.do(runtime)`. This action bridges
+ * the gap: the behavior returns this action with statement IDs, and the
+ * action looks up the metrics and pushes them into block memory.
+ *
+ * ## Memory Contract
+ *
+ * - Tag: `metric:next`
+ * - Value: `MetricContainer` from the next statement(s) to be compiled
+ * - When `nextStatementIds` is empty, any existing `metric:next` memory
+ *   is cleared (updated to empty metric) to signal "no more children".
+ *
+ * ## Consumed By
+ *
+ * - `useNextPreview` hook → `LookaheadView` component
+ * - The UI walks the stack leaf-to-root and shows the deepest block's
+ *   `metric:next` as the "Up Next" preview.
+ */
+export class UpdateNextPreviewAction implements IRuntimeAction {
+    readonly type = 'update-next-preview';
+    readonly target?: string;
+    readonly payload?: unknown;
+
+    constructor(
+        private readonly blockKey: string,
+        private readonly nextStatementIds: number[]
+    ) {
+        this.target = blockKey;
+        this.payload = { nextStatementIds };
+    }
+
+    do(runtime: IRuntimeContext): IRuntimeAction[] {
+        // Find the block on the stack
+        const block = runtime.stack.blocks.find(
+            b => b.key.toString() === this.blockKey
+        );
+
+        if (!block) return [];
+
+        // Get existing metrics:next locations
+        const existingLocs = block.getMemoryByTag('metric:next');
+
+        if (this.nextStatementIds.length === 0) {
+            // Clear: update existing locations to empty, or do nothing if none exist
+            for (const loc of existingLocs) {
+                loc.update([]);
+            }
+            return [];
+        }
+
+        // Look up statement metrics from the script
+        const script = runtime.script;
+        if (!script) return [];
+
+        const metrics = MetricContainer.empty(this.blockKey);
+        for (const id of this.nextStatementIds) {
+            const statement = script.getId(id);
+            if (statement) {
+                metrics.merge(statement.metrics);
+            }
+        }
+
+        // Hint metrics are semantic markers (e.g. `behavior.*`, `workout.emom`),
+        // not display fragments — drop them so they never surface as "Up Next"
+        // badges (mirrors BlockBuilder.setFragments). This single choke point
+        // also covers the Chromecast receiver, which reads the same metric:next.
+        metrics.removeByType(MetricType.Hint);
+
+        if (metrics.length === 0) {
+            // No metric found — clear any existing preview
+            for (const loc of existingLocs) {
+                loc.update([]);
+            }
+            return [];
+        }
+
+        if (existingLocs.length > 0) {
+            // Update the first existing location
+            existingLocs[0].update(metrics);
+        } else {
+            // Push a new memory location
+            block.pushMemory(new MemoryLocation('metric:next', metrics));
+        }
+
+        return [];
+    }
+}
