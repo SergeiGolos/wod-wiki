@@ -2,7 +2,7 @@
  * @bitcobblers/wod-wiki-engine
  *
  * Umbrella facade for the Whiteboard Language & WQL engine.
- * Re-exports the complete contract across core, lang, and wql packages,
+ * Re-exports the complete contract across core, lang, lang/react, and wql packages,
  * plus the Language Pack API and headless IR / store / CLI tooling.
  */
 
@@ -20,6 +20,7 @@ export {
   createParser,
   MdTimerRuntime,
   type IScript,
+  whiteboardParser,
   // Compiler
   JitCompiler,
   RuntimeFactory,
@@ -132,7 +133,30 @@ export {
   type EffortDerivation,
 } from '@bitcobblers/wod-wiki-lang';
 
-// 3. WQL Grammar, QueryService & Dashboard Model (#966)
+// 3. React Runtime & Hooks (#965)
+export {
+  useScriptRuntime,
+  useTimerElapsed,
+  useOutputStatements,
+  useBlockMemory,
+  useRuntimeExecution,
+  useMemorySubscription,
+  useNextPreview,
+  useStackSnapshot,
+  useSnapshotBlocks,
+  useStackTimers,
+  usePrimaryTimer,
+  useSecondaryTimers,
+  useActiveControls,
+  useStackFragmentSources,
+  useStackDisplayRows,
+  ScriptRuntimeProvider,
+  type ScriptRuntimeProviderProps,
+  BlockTimerDisplay,
+  type BlockTimerDisplayProps,
+} from '@bitcobblers/wod-wiki-lang/react';
+
+// 4. WQL Grammar, QueryService & Dashboard Model (#966)
 export {
   // QueryService
   QueryService,
@@ -211,7 +235,7 @@ export {
   type QueryWidgetSuffix,
 } from '@bitcobblers/wod-wiki-wql';
 
-// 4. Language Pack API (#967)
+// 5. Language Pack API (#967)
 export {
   defineLanguagePack,
   registerLanguagePack,
@@ -224,10 +248,10 @@ export {
   type LanguagePackUiSlice,
 } from './pack';
 
-// 5. In-Memory Store Seam (#967, #969)
+// 6. In-Memory Store Seam (#967, #969)
 export { inMemoryFactStore } from './store';
 
-// 6. Universal JSON Intermediate Representation (#955, #967)
+// 7. Universal JSON Intermediate Representation (#955, #967)
 export {
   createIRFile,
   isIRFile,
@@ -241,7 +265,7 @@ export {
   type CorpusIRData,
 } from './ir';
 
-// 7. CLI Runners & Formatters (#967)
+// 8. CLI Runners & Formatters (#967)
 export {
   runParse,
   ParseSyntaxError,
@@ -275,5 +299,5 @@ export {
   type OutputFormat,
 } from './cli/formatters';
 
-// 8. Engine Version Info
+// 9. Engine Version Info
 export { VERSION, GIT_SHA, BUILD_TIME, SEMVER } from './version';
