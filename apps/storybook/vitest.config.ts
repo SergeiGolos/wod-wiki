@@ -36,6 +36,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(rootDir, 'src'),
       '@bitcobblers/wod-wiki-engine': path.resolve(rootDir, 'packages/engine/src/index.ts'),
+      '@bitcobblers/wod-wiki-ui/styles.css': path.resolve(rootDir, 'packages/ui/src/styles.css'),
       '@bitcobblers/wod-wiki-ui/extensions': path.resolve(rootDir, 'packages/ui/src/extensions/index.ts'),
       '@bitcobblers/wod-wiki-ui': path.resolve(rootDir, 'packages/ui/src/index.ts'),
       react: path.resolve(rootDir, 'node_modules/react'),
