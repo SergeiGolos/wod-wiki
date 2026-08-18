@@ -8,9 +8,9 @@
  * This loader is the single entry point — tests/dev-tools that need the
  * corpus eagerly can `await loadStaticBlockIndex()` themselves.
  */
-import type { BlockIndexRow } from '@/types/storage';
+import type { BlockIndexRow, Note } from '@/types/storage';
+import type { NoteQueryStore, BlockQueryStore } from '@bitcobblers/wod-wiki-engine';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
-
 let staticBlockIndexPromise: Promise<BlockIndexRow[]> | null = null;
 
 export function loadStaticBlockIndex(): Promise<BlockIndexRow[]> {
@@ -51,3 +51,61 @@ export function staticTagIndexFromBlocks(blocks: BlockIndexRow[]): Map<string, S
     }
     return index;
 }
+
+/**
+ * Pure projection of a block_index into static Notes — one Note per distinct
+ * noteId, with a `catalog` field set to `noteId.split('/')[0]`. The catalog is
+ * the directory the file lives under (e.g. `crossfit-girls` for collections,
+ * `crossfit-programming` for feeds) and is what the Library's panel uses to
+ * target the `+ Filter → Catalog` menu.
+ */
+export function staticNotesFromBlocks(blocks: BlockIndexRow[]): Note[] {
+    const map = new Map<string, Note>();
+    for (const block of blocks) {
+        if (!map.has(block.noteId)) {
+            map.set(block.noteId, {
+                id: block.noteId,
+                title: block.noteTitle,
+                createdAt: block.createdAt,
+                type: 'note',
+                sourceId: block.sourceId,
+                // Catalog: drop the `feeds/` wrapper for feed rows, then take the
+                // first path segment. For collections (`<dir>/<file>`) the first
+                // segment is the directory; for feeds (`feeds/<dir>/<date>/<file>`)
+                // it would be `feeds`, which is not the catalog id the panel wants.
+                catalog: (block.noteId.startsWith('feeds/') ? block.noteId.slice('feeds/'.length) : block.noteId).split('/')[0],
+            });
+        }
+    }
+    return Array.from(map.values());
+}
+
+let staticNotesPromise: Promise<Note[]> | null = null;
+export function loadStaticNotes(): Promise<Note[]> {
+    if (!staticNotesPromise) {
+        staticNotesPromise = loadStaticBlockIndex().then(staticNotesFromBlocks);
+    }
+    return staticNotesPromise;
+}
+
+let staticTagIndexPromise: Promise<Map<string, Set<string>>> | null = null;
+/**
+ * Memoized tag → noteIds index over the static corpus, derived lazily so
+ * the ~21k-row scan only runs when a `tags:` clause actually executes.
+ */
+export function loadStaticTagIndex(): Promise<Map<string, Set<string>>> {
+    if (!staticTagIndexPromise) {
+        staticTagIndexPromise = loadStaticBlockIndex().then(staticTagIndexFromBlocks);
+    }
+    return staticTagIndexPromise;
+}
+
+export const staticNoteStore: NoteQueryStore = {
+    getAllNotes: () => loadStaticNotes(),
+    getNoteIdsForTag: async (label) =>
+        (await loadStaticTagIndex()).get(label) ?? new Set<string>(),
+};
+
+export const staticBlockStore: BlockQueryStore = {
+    getAllBlocks: () => loadStaticBlockIndex(),
+};

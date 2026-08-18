@@ -17,7 +17,8 @@ import {
   type IEffort,
 } from '@bitcobblers/wod-wiki-engine';
 import { CompositeEffortRegistry } from '@/effort-registry';
-
+import { indexedDBService } from '@/services/db/IndexedDBService';
+import { staticNoteStore, staticBlockStore } from '@/services/content/staticBlockIndex';
 export const indexedDbFactStore: FactQueryStore = {
   getFactsByMetric: (metricKey: string) => indexedDBService.getFactsByMetric(metricKey),
   getFactsByTimeRange: (start: number, end: number) => indexedDBService.getFactsByTimeRange(start, end),
@@ -64,6 +65,8 @@ export function createQueryService(): QueryService {
     indexedDbBlockStore,
     indexedDbResultStore,
     new RegistryEffortStore(),
+    staticNoteStore,
+    staticBlockStore,
   );
 }
 
