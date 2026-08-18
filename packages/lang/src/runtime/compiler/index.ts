@@ -11,3 +11,7 @@ export {
   writeChoiceSelection,
   collapseUnresolvedChoices,
 } from './metrics/ChoiceResolution';
+// Public compiler building blocks (#970 cutover parity): app-side test
+// harnesses construct builders and metric classes directly.
+export { BlockBuilder } from './BlockBuilder';
+export { ChoiceGroupMetric } from './metrics/ChoiceGroupMetric';

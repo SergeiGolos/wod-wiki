@@ -353,3 +353,81 @@ export {
 
 // 9. Engine Version Info
 export { VERSION, GIT_SHA, BUILD_TIME, SEMVER } from './version';
+
+// ── Runtime integration surface (app-cutover parity, #970) ──────────────────
+// The playground app (wod-wiki) drives the runtime directly: it pushes stack
+// actions, subscribes to stack/output events, reads block memory, and builds
+// timer blocks with the public behaviors. Re-exported from @bitcobblers/wod-wiki-lang.
+export {
+  // Stack actions
+  StartWorkoutAction,
+  PushBlockAction,
+  PopBlockAction,
+  // Compiler internals the app harnesses drive
+  BlockBuilder,
+  ChoiceGroupMetric,
+  // Public timer behaviors
+  CountdownTimerBehavior,
+  CountupTimerBehavior,
+  // Runtime options
+  DEFAULT_RUNTIME_OPTIONS,
+  // Memory
+  MemoryLocation,
+  MemoryTypeEnum,
+  TypedMemoryReference,
+  getMetricVisibility,
+  // Time
+  getRuntimeNowMs,
+  // Hints
+  hasHint,
+  hintMetric,
+} from '@bitcobblers/wod-wiki-lang';
+
+export type {
+  // Runtime contracts
+  IRuntimeMemory,
+  IRuntimeEventProvider,
+  IAnchorValue,
+  IBehaviorContext,
+  BehaviorEventListener,
+  BehaviorEventType,
+  SubscribeOptions,
+  IRuntimeActionable,
+  InterceptMode,
+  TestableBlockConfig,
+  StackEvent,
+  StackListener,
+  StackObserver,
+  Unsubscribe,
+  RuntimeStackOptions,
+  BlockLifecycleOptions,
+  CompletionDecision,
+  IRuntimeBlock,
+  IRuntimeStack,
+  IRuntimeClock,
+  IEventBus,
+  EventCallback,
+  EventHandlerOptions,
+  IRuntimeAction,
+  IRuntimeBehavior,
+  IMemoryLocation,
+  IMemoryReference,
+  IJitCompiler,
+  IBlockContext,
+  IRuntimeFactory,
+  ScriptRuntimeDependencies,
+  OutputListener,
+  // Memory state shapes
+  MemoryTag,
+  TimerState,
+  RoundState,
+  ExecutionStatus,
+  MockClock,
+  // Analytics / calc authoring shapes
+  ProjectionResult,
+  CalculationDefinition,
+  DimVector,
+  ExprNode,
+  Val,
+  LineFormScope,
+} from '@bitcobblers/wod-wiki-lang';

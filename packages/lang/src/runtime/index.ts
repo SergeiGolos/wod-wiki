@@ -26,4 +26,8 @@ export * from './services/runtimeServices';
 export * from './actions';
 export * from './adapters/RuntimeAdapter';
 export * from './subscriptions';
-export type { MemoryEntry, ExecutionSnapshot } from './types/executionSnapshot';
+export type { MemoryEntry, ExecutionSnapshot, ExecutionStatus } from './types/executionSnapshot';
+
+// Timer behaviors are public API — app-level runtime tooling and tests
+// construct blocks with them directly (cutover parity #970).
+export { CountdownTimerBehavior, CountupTimerBehavior } from './behaviors';
