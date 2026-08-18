@@ -1,6 +1,6 @@
 {
   "name": "@bitcobblers/wod-wiki-core",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "description": "Shared data vocabulary for Whiteboard Language & WQL engine",
   "type": "module",
   "main": "./dist/index.cjs",
