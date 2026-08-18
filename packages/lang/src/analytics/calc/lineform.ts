@@ -56,7 +56,7 @@ export function compileLineForm(src: string, defaultScope?: LineFormScope): Comp
   let fences: string[] | undefined = defaultScope?.fences;
   let defWhen: string | undefined;
 
-  for (let raw of src.split(/\r?\n/)) {
+  for (const raw of src.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line || line.startsWith('#')) continue;
 

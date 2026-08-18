@@ -184,7 +184,7 @@ export function useActiveControls(): ButtonConfig[] {
 
     return useMemo(() => {
         const pinned: ButtonConfig[] = [];
-        let topButtons: ButtonConfig[] = [];
+        const topButtons: ButtonConfig[] = [];
 
         for (let i = 0; i < blocks.length; i++) {
             const controlsLocs = blocks[i].getMemoryByTag('controls');

@@ -61,7 +61,7 @@ function extractMetricsFromGroups(metricsGroups: IMetric[][]): Record<string, nu
   for (const f of flat) {
     if (f.value !== undefined && typeof f.value === 'number') {
       const key = resolveAnalyticsMetricKey(f);
-      let val = f.value;
+      const val = f.value;
       // Convert time-based metrics (except elapsed/total which are handled separately)
       // from milliseconds to seconds for consistency in the analytics data points.
       if (f.type === 'duration') {

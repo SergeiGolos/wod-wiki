@@ -11,11 +11,20 @@
     "sourceType": "module"
   },
   "plugins": [
-    "@typescript-eslint"
+    "@typescript-eslint",
+    "react-hooks"
   ],
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended"
+  ],
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    "coverage",
+    "storybook-static",
+    "*.cjs",
+    "*.mjs"
   ],
   "rules": {
     "@typescript-eslint/no-explicit-any": "warn",
@@ -25,13 +34,16 @@
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_"
       }
-    ]
-  },
-  "ignorePatterns": [
-    "dist",
-    "node_modules",
-    "coverage",
-    "*.cjs",
-    "*.mjs"
-  ]
+    ],
+    "@typescript-eslint/no-require-imports": "off",
+    "@typescript-eslint/no-this-alias": "off",
+    "@typescript-eslint/no-unsafe-function-type": "off",
+    "@typescript-eslint/no-empty-object-type": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "no-fallthrough": "warn",
+    "no-constant-condition": "warn",
+    "no-useless-escape": "warn"
+  }
 }
