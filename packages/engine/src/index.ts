@@ -21,6 +21,8 @@ export {
   MdTimerRuntime,
   type IScript,
   whiteboardParser,
+  whiteboardScriptLanguage,
+  whiteboardScript,
   // Compiler
   JitCompiler,
   RuntimeFactory,
@@ -136,6 +138,11 @@ export {
   type IAnalyticsProcessorDescriptor,
   type SegmentWithMetadata,
   type AnalyticsResult,
+  // Calc Authoring & Lineform (#824)
+  compileLineForm,
+  outputNodeId,
+  outputNodeIds,
+  compoundName,
   // Conversions
   toStoredOutputStatement,
   // Pure Effort Registry

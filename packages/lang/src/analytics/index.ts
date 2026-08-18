@@ -20,24 +20,5 @@ export {
   type CalculationDefinition as CalculateBlockDefinition,
 } from './calculateBlock';
 export * from './ProjectionResult';
-export * as calc from './calc';
-export {
-  createCalcEngine,
-  CalcEngine,
-  LookupRegistry,
-  CalculationRegistry,
-  parseExpression,
-  parseCalcLine,
-  evaluate,
-  DIM_ZERO,
-  DIM_TIME,
-  DIM_MASS,
-  DIM_LENGTH,
-  BUILTIN_CALCS,
-  STORE_CALCS,
-  type ILookupTable,
-  type CalcScope,
-  type CalcOrigin,
-  type CalculationDefinition as CalcDefinition,
-} from './calc';
+export * from './calc';
 export * from './rollup/workloadRollup';

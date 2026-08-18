@@ -1,12 +1,28 @@
 export * from './dimensions';
-export * from './units';
+export {
+  UNITS,
+  AUTHORITATIVE_CASTS,
+  type UnitDef as CalcUnitDef,
+  getUnit,
+  convertScalar,
+  composeMulUnit,
+  composeDivUnit,
+  CalcUnitError,
+} from './units';
 export * from './values';
 export * from './ast';
 export * from './parser';
 export * from './lineform';
 export * from './evaluator';
 export * from './check';
-export * from './types';
+export {
+  type CalculationDefinition as CalcDefinition,
+  type CalculationDefinition,
+  type CalcVariant,
+  type CalcNode,
+  type CalcScope,
+  type CalcOrigin,
+} from './types';
 export * from './lookup';
 export * from './tables';
 export * from './atoms';
