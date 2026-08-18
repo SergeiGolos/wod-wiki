@@ -85,9 +85,10 @@ jobs:
 
       - name: Derive slug and preview version
         id: meta
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
-          BRANCH="${{ github.head_ref }}"
-          SLUG=$(echo "$BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
+          SLUG=$(echo "$HEAD_REF" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
 
           # Preview versions only append the -pr.N prerelease marker; the
           # base comes from the latest release tag and is never bumped here.
@@ -238,9 +239,11 @@ jobs:
       CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
     steps:
       - name: Delete S3 storybook prefix
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
-          SLUG=$(echo "${{ github.event.pull_request.head.ref }}" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
+          SLUG=$(echo "$HEAD_REF" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
           aws s3 rm "s3://$S3_BUCKET/$SLUG/storybook/" --recursive
           aws cloudfront create-invalidation \
             --distribution-id "$CF_DISTRIBUTION_ID" \
@@ -351,14 +354,6 @@ jobs:
         env:
           VERSION: ${{ needs.version.outputs.version }}
 
-  storybook-release:
-    name: Deploy versioned Storybook (story.wod.wiki)
-    needs: [version]
-    runs-on: ubuntu-latest
-    environment: preview
-    outputs:
-      version: ${{ needs.version.outputs.version }}
-
   publish-npm:
     name: Publish packages to npm
     needs: [version, tag]
@@ -405,6 +400,8 @@ jobs:
     needs: [version]
     runs-on: ubuntu-latest
     environment: preview
+    outputs:
+      version: ${{ needs.version.outputs.version }}
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
