@@ -9,3 +9,4 @@ export * from './contracts';
 export * from './ownership';
 export * from './models';
 export * from './types';
+export * from './version';

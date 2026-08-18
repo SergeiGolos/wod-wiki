@@ -28,3 +28,6 @@ export * from './extensions';
 // ── 6. Utilities ──────────────────────────────────────────────────────────────
 export * from './utils/cn';
 export * from './utils/blockQueryPatcher';
+
+// ── 7. Version Metadata ───────────────────────────────────────────────────────
+export * from './version';

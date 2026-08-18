@@ -23,9 +23,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@bitcobblers/wod-wiki-core": "workspace:*",
-    "@bitcobblers/wod-wiki-lang": "workspace:*",
-    "@bitcobblers/wod-wiki-wql": "workspace:*"
+    "@bitcobblers/wod-wiki-core": "^0.1.0",
+    "@bitcobblers/wod-wiki-lang": "^0.1.0",
+    "@bitcobblers/wod-wiki-wql": "^0.1.0"
   },
   "scripts": {
     "build": "tsup",

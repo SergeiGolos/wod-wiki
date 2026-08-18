@@ -274,3 +274,6 @@ export {
   formatQueryOutput,
   type OutputFormat,
 } from './cli/formatters';
+
+// 8. Engine Version Info
+export { VERSION, GIT_SHA, BUILD_TIME, SEMVER } from './version';

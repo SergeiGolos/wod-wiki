@@ -33,3 +33,6 @@ export * from './QueryService';
 
 // 9. Dashboard Model, Parser, Scaffold & Frontmatter
 export * from './dashboard';
+
+// 10. Version info
+export * from './version';

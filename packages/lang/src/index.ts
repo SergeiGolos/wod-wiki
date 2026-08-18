@@ -28,3 +28,6 @@ export * from './analytics';
 
 // 8. Output statement conversion
 export * from './conversion';
+
+// 9. Version info
+export * from './version';
