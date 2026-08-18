@@ -13,7 +13,7 @@
  *  7. LongTitleTruncation — demonstrates text truncation
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ResultListItem } from '@/components/molecules/ResultListItem'
 
 // ─── Meta ─────────────────────────────────────────────────────────────────────

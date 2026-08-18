@@ -1,4 +1,5 @@
-import { type Extension, EditorState } from "@codemirror/state";
+import { EditorState } from "@codemirror/state";
+import type { Extension } from "@codemirror/state";
 import {
   EditorView,
   lineNumbers,
@@ -12,7 +13,7 @@ import {
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { markdown } from "@codemirror/lang-markdown";
-import { whiteboardScriptLanguage, whiteboardScript, wql, wqlLanguage } from "@wod-wiki/engine";
+import { whiteboardScriptLanguage, whiteboardScript, wql, wqlLanguage } from "@bitcobblers/wod-wiki-engine";
 import { editorTheme } from "./theme";
 import { sectionField } from "./section-state";
 import { previewDecorations } from "./preview-decorations";

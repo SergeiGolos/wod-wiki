@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { KeyboardEvent } from 'react';
 import { Plus, X, ChevronDown, Check } from 'lucide-react';
 import { cn } from '../utils/cn';
@@ -17,7 +17,7 @@ import {
   METRIC_OPTIONS,
   UNIT_OPTIONS,
 } from './queryClauses';
-import { WQL_INTENSITY_TIERS } from '@wod-wiki/engine';
+import { WQL_INTENSITY_TIERS } from '@bitcobblers/wod-wiki-engine';
 
 export interface TokenSlotPillProps {
   clause: QueryClause;
@@ -69,6 +69,7 @@ export function TokenSlotPill({
     <div className="relative inline-flex items-center">
       <div
         ref={pillRef}
+        data-testid={`token-slot-${clause.type}`}
         role="button"
         tabIndex={0}
         onClick={() => {
@@ -91,12 +92,13 @@ export function TokenSlotPill({
       >
         <span className="text-[10px] opacity-70">{meta.icon}</span>
         <span className="font-semibold text-[11px] opacity-90">{meta.label}:</span>
-        <span className={cn('truncate max-w-44', !hasValue && 'italic opacity-60')}>
+        <span data-testid={`token-slot-value-${clause.type}`} className={cn('truncate max-w-44', !hasValue && 'italic opacity-60')}>
           {hasValue ? clause.value : placeholderOverride || meta.placeholder}
         </span>
         {onRemove && !meta.required && (
           <button
             type="button"
+            data-testid={`token-slot-remove-${clause.type}`}
             onClick={(e) => {
               e.stopPropagation();
               onRemove();
@@ -187,64 +189,149 @@ export function ClausePopover({
   onClose: () => void;
   onChange: (patch: Partial<QueryClause>) => void;
 }) {
+  const meta = getClauseMeta(clause.type);
+  const isMulti = MULTI_VALUE_TYPES[clause.type] === true;
+  const selectedValues = isMulti
+    ? clause.value.split('|').map((v) => v.trim()).filter(Boolean)
+    : [];
+  // Multi-select slots open with an empty combobox; the current selection
+  // lives in the chip row, not in the input.
+  const [val, setVal] = useState(isMulti ? '' : clause.value);
+  const [highlightIdx, setHighlightIdx] = useState(0);
   const [filter, setFilter] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Focus the filter input when present; otherwise the popover itself so
+    // Up/Down + Enter keyboard selection works for target/scope/time slots.
+    if (inputRef.current) inputRef.current.focus();
+    else popoverRef.current?.focus();
+  }, []);
+
+  // Backdrop click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
   const { items: dynamicItems, loading, binding } = useSuggestions(clause.type);
   const staticItems = STATIC_OPTIONS[clause.type];
-  const items = staticItems || dynamicItems;
-  const isMulti = MULTI_VALUE_TYPES[clause.type] === true;
 
-  const currentValues = isMulti
-    ? clause.value.split('|').map((v) => v.trim()).filter(Boolean)
-    : [clause.value.trim()].filter(Boolean);
+  // A suggestion binding wins when registered; otherwise static vocab.
+  const items = binding
+    ? dynamicItems.map((s) => ({ value: s.value, label: s.label ?? s.value }))
+    : (staticItems ?? dynamicItems.map((s) => ({ value: s.value, label: s.label ?? s.value })));
 
-  const filteredItems = items.filter((i) =>
-    i.label?.toLowerCase().includes(filter.toLowerCase()) ||
-    i.value.toLowerCase().includes(filter.toLowerCase()),
-  );
+  // Free-text filter input: hidden for closed static selects (Up/Down cycles
+  // the full list), shown for metric/unit (typed values also accepted) and
+  // freetext/suggestion slots so typed values filter or enter verbatim.
+  const showFilterInput = !staticItems || clause.type === 'metric' || clause.type === 'unit';
 
-  const handleSelect = (val: string) => {
-    if (isMulti) {
-      const next = currentValues.includes(val)
-        ? currentValues.filter((v) => v !== val)
-        : [...currentValues, val];
-      onChange({ value: next.join('|') });
-    } else {
-      onChange({ value: val });
+  // Already-picked values leave the option list in multi-select mode.
+  const availableItems = isMulti
+    ? items.filter((item) => !selectedValues.includes(item.value))
+    : items;
+
+  const query = showFilterInput ? val : filter;
+  const filteredItems = showFilterInput
+    ? availableItems.filter((item) =>
+        item.value.toLowerCase().includes(query.toLowerCase())
+        || item.label.toLowerCase().includes(query.toLowerCase()))
+    : availableItems;
+
+  // Visible commit affordance for typed free text (#854).
+  const typedValue = query.trim();
+  const canCommitTyped =
+    showFilterInput &&
+    typedValue.length > 0 &&
+    (binding?.open ?? true) &&
+    !selectedValues.some((v) => v.toLowerCase() === typedValue.toLowerCase()) &&
+    !filteredItems.some((item) => item.value.toLowerCase() === typedValue.toLowerCase());
+
+  // Single-select slots hand the value up and the pill closes the popover;
+  // multi-select slots append to the OR-list, clear the combobox, and stay
+  // open for the next pick.
+  const commitValue = (value: string) => {
+    if (!isMulti) {
+      onChange({ value });
       onClose();
+      return;
     }
+    if (selectedValues.includes(value)) return;
+    onChange({ value: [...selectedValues, value].join('|') });
+    setVal('');
+    setFilter('');
+    setHighlightIdx(0);
+    inputRef.current?.focus();
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+  const removeValue = (value: string) => {
+    onChange({ value: selectedValues.filter((v) => v !== value).join('|') });
+  };
+
+  // Handled keys stop at the popover so an embedding container (the
+  // palette's result list, issue #834) doesn't also navigate/select.
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
       e.preventDefault();
-      if (filteredItems.length > 0) {
-        handleSelect(filteredItems[0].value);
-      } else if (filter.trim()) {
-        handleSelect(filter.trim());
+      e.stopPropagation();
+      setHighlightIdx((i) => Math.min(i + 1, Math.max(0, filteredItems.length - 1)));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      e.stopPropagation();
+      setHighlightIdx((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (filteredItems[highlightIdx]) {
+        commitValue(filteredItems[highlightIdx].value);
+      } else if (query.trim() && (binding?.open ?? true)) {
+        // Open slots accept user-typed values not present in the list (#831).
+        commitValue(query.trim());
       }
+    } else if (e.key === 'Backspace' && isMulti && query === '' && selectedValues.length > 0) {
+      // Standard combobox affordance: Backspace on an empty input pops the last chip.
+      e.preventDefault();
+      removeValue(selectedValues[selectedValues.length - 1]);
     } else if (e.key === 'Escape') {
+      e.stopPropagation();
       onClose();
     }
   };
 
   return (
     <div
+      ref={popoverRef}
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
       className="absolute left-0 top-full mt-1.5 w-64 p-2 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg z-50 flex flex-col gap-1.5"
-      data-testid="clause-popover"
+      data-testid={`clause-popover-${clause.type}`}
     >
-      <input
-        type="text"
-        autoFocus
-        value={filter}
-        onChange={(e) => setFilter(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={`Search ${clause.label}...`}
-        className="w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono focus:outline-none focus:border-primary"
-      />
-
-      {isMulti && currentValues.length > 0 && (
+      {showFilterInput ? (
+        <input
+          ref={inputRef}
+          type="text"
+          data-testid="wql-composer-input"
+          value={val}
+          onChange={(e) => {
+            setVal(e.target.value);
+            setHighlightIdx(0);
+          }}
+          placeholder={meta.placeholder ?? `Search ${clause.label}...`}
+          className="w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono focus:outline-none focus:border-primary"
+        />
+      ) : (
+        <input type="hidden" data-testid="wql-composer-input" value="" readOnly />
+      )}
+      {isMulti && selectedValues.length > 0 && (
         <div className="flex flex-wrap gap-1 py-1 border-b border-border/50">
-          {currentValues.map((v) => (
+          {selectedValues.map((v) => (
             <span
               key={v}
               className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-mono"
@@ -252,7 +339,7 @@ export function ClausePopover({
               {v}
               <button
                 type="button"
-                onClick={() => handleSelect(v)}
+                onClick={() => removeValue(v)}
                 className="hover:text-destructive"
               >
                 <X className="w-2.5 h-2.5" />
@@ -263,16 +350,30 @@ export function ClausePopover({
       )}
 
       <div className="max-h-44 overflow-y-auto flex flex-col gap-0.5">
-        {filteredItems.map((item) => {
-          const selected = currentValues.includes(item.value);
+        {canCommitTyped && (
+          <button
+            type="button"
+            onClick={() => commitValue(typedValue)}
+            className="flex items-center justify-between px-2 py-1 text-xs text-left rounded hover:bg-muted/60 transition-colors font-mono"
+            data-testid={`clause-commit-typed-${clause.type}`}
+          >
+            <span className="truncate">
+              Search for <span className="font-semibold">&ldquo;{typedValue}&rdquo;</span>
+            </span>
+            <span className="text-muted-foreground/60 ml-1 shrink-0">↵</span>
+          </button>
+        )}
+        {filteredItems.map((item, idx) => {
+          const selected = selectedValues.includes(item.value)
+            || (!isMulti && clause.value === item.value);
           return (
             <button
               key={item.value}
               type="button"
-              onClick={() => handleSelect(item.value)}
+              onClick={() => commitValue(item.value)}
               className={cn(
                 'flex items-center justify-between px-2 py-1 text-xs text-left rounded hover:bg-muted/60 transition-colors font-mono',
-                selected && 'bg-primary/10 text-primary font-medium',
+                idx === highlightIdx ? 'bg-primary/15 font-semibold text-primary' : selected && 'bg-primary/10 text-primary font-medium',
               )}
             >
               <span className="truncate">{item.label || item.value}</span>
@@ -281,14 +382,14 @@ export function ClausePopover({
           );
         })}
 
-        {filteredItems.length === 0 && (
+        {filteredItems.length === 0 && !canCommitTyped && (
           <div className="text-[11px] text-muted-foreground text-center py-2 italic">
             {emptyStateMessage({
               loading,
-              itemCount: items.length,
-              filter,
+              itemCount: availableItems.length,
+              filter: query,
               binding,
-              allSelected: isMulti && items.length > 0 && items.every((i) => currentValues.includes(i.value)),
+              allSelected: isMulti && items.length > 0 && availableItems.length === 0,
             })}
           </div>
         )}
@@ -338,19 +439,17 @@ export function AddFilterDropdown({
     (type) => !CLAUSE_META[type].required && !existingTypes.has(type),
   );
   const customAvailable = customSlots.filter((s) => !existingTypes.has(s.type));
-
   return (
     <div className="relative inline-flex items-center">
       <button
         type="button"
+        data-testid="add-filter-button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-mono text-muted-foreground border border-dashed border-border hover:text-foreground hover:bg-muted/50 transition-colors"
+        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-mono text-muted-foreground border border-dashed border-border hover:bg-muted/60 hover:text-foreground transition-colors cursor-pointer"
       >
         <Plus className="w-3 h-3" />
-        <span>Add Filter</span>
-        <ChevronDown className="w-3 h-3 ml-0.5 opacity-60" />
+        <span>Filter</span>
       </button>
-
       {open && (
         <div
           className="absolute left-0 top-full mt-1.5 w-48 p-1.5 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg z-50 flex flex-col gap-0.5 max-h-56 overflow-y-auto"

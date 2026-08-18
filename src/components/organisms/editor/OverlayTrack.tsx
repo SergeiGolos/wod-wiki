@@ -17,10 +17,10 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import type { EditorView } from "@codemirror/view";
-import type { SectionRect } from '@/components/Editor/extensions/section-geometry';
-import { sectionGeometry } from '@/components/Editor/extensions/section-geometry';
+import type { SectionRect } from '@bitcobblers/wod-wiki-ui/extensions';
+import { sectionGeometry } from '@bitcobblers/wod-wiki-ui/extensions';
 import type { SectionOverlayState } from "@/components/Editor/overlays/useOverlayWidthState";
-import type { EditorSectionType } from '@/components/Editor/extensions/section-state';
+import type { EditorSectionType } from '@bitcobblers/wod-wiki-ui/extensions';
 
 // ── Non-workout slot heights (px) ────────────────────────────────────────
 const SLOT_HEIGHT_INACTIVE: Partial<Record<EditorSectionType, number>> = {
@@ -88,10 +88,10 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
   // (bypassing React's render cycle) for smooth visual sync, and also update
   // scrollTop state (RAF-throttled) for stickyTopOffset calculations.
   const innerRef = useRef<HTMLDivElement>(null);
-  const [rects, setRects] = useState<SectionRect[]>([]);
+  const [rects, setRects] = useState<SectionRect[]>(() => view?.plugin(sectionGeometry)?.rects ?? []);
   const [scrollTop, setScrollTop] = useState(0);
   const [contentInsets, setContentInsets] = useState<{ left: number; right: number }>({ left: 0, right: 0 });
-  const [docVersion, setDocVersion] = useState(0);
+  const [docVersion, setDocVersion] = useState(() => view?.plugin(sectionGeometry)?.docVersion ?? 0);
   // 1-based doc line under the mouse pointer (undefined when outside)
   const [hoverLine, setHoverLine] = useState<number | undefined>(undefined);
   // sectionId whose panel the mouse is physically over (keeps panel pinned)
@@ -219,7 +219,8 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
     };
   }, [view]);
 
-  const visibleSlots = rects.filter((rect) => {
+  const currentRects = rects.length > 0 ? rects : (view?.plugin(sectionGeometry)?.rects ?? []);
+  const visibleSlots = currentRects.filter((rect) => {
     const state = widths.get(rect.sectionId);
     return state && state.effectiveWidth > 0;
   });

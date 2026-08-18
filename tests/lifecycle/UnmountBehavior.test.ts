@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { CountupTimerBehavior } from '@/runtime/behaviors';
+import { CountupTimerBehavior } from '@bitcobblers/wod-wiki-engine';
 
 describe('Unmount Lifecycle', () => {
     let harness: BehaviorTestHarness;

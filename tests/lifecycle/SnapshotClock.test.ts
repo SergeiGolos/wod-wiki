@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { SnapshotClock, RuntimeClock, createMockClock } from '@/runtime/RuntimeClock';
+import { SnapshotClock, RuntimeClock, createMockClock } from '@bitcobblers/wod-wiki-engine';
 
 describe('SnapshotClock', () => {
     describe('constructor and factory methods', () => {

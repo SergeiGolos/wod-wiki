@@ -10,7 +10,7 @@
  *  4. RunButton — primary action button with run icon
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ExternalLink, Copy, Play, Bookmark, Share2, Download, Maximize2 } from 'lucide-react';
 import { ButtonGroup } from '@/components/molecules/ButtonGroup';
 import type { INavActivation } from '@/nav/navTypes';

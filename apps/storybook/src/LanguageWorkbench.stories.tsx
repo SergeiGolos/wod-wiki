@@ -4,9 +4,9 @@
  * Interactive development workbench:
  *  - Sourced purely from golden IR fixture catalog (`multi-week-journal.json`);
  *  - In-memory FactQueryStore feeds QueryService through the state-free store seam;
- *  - Live CodeMirror WQL editor powered by `@wod-wiki/ui`'s `editorPreset({ dialect: 'wql' })`
+ *  - Live CodeMirror WQL editor powered by `@bitcobblers/wod-wiki-ui`'s `editorPreset({ dialect: 'wql' })`
  *    re-queries in real-time and updates state-free widgets;
- *  - Live CodeMirror Whiteboard editor powered by `@wod-wiki/ui`'s `editorPreset({ dialect: 'whiteboard' })`
+ *  - Live CodeMirror Whiteboard editor powered by `@bitcobblers/wod-wiki-ui`'s `editorPreset({ dialect: 'whiteboard' })`
  *    re-parses on keystrokes and updates statement count and hints;
  *  - Dynamic Language Pack registration at runtime via `registerLanguagePack()` without
  *    dev-server restarts.
@@ -34,7 +34,7 @@ import {
   type ICodeStatement,
   type DialectAnalysis,
   type LanguagePack,
-} from '@wod-wiki/engine';
+} from '@bitcobblers/wod-wiki-engine';
 import {
   editorPreset,
   WidgetFrame,
@@ -42,7 +42,7 @@ import {
   WqlTimeseries,
   WqlBars,
   TopList,
-} from '@wod-wiki/ui';
+} from '@bitcobblers/wod-wiki-ui';
 
 const meta: Meta = {
   title: 'Workbench/Language Workbench',
@@ -79,7 +79,7 @@ const demoPack: LanguagePack = defineLanguagePack({
   },
 });
 
-// ── Dual CodeMirror Mounting using @wod-wiki/ui editorPreset ───────────────
+// ── Dual CodeMirror Mounting using @bitcobblers/wod-wiki-ui editorPreset ───────────────
 
 function useCodeMirror(
   host: React.RefObject<HTMLDivElement | null>,

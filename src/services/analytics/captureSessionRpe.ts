@@ -6,7 +6,7 @@
  * SessionLoad) reflect the user's authoritative rating.
  */
 import type { StoredOutputStatement } from '@/components/Editor/types';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { IndexedDBNotePersistence } from '@/services/persistence/IndexedDBNotePersistence';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { NotePersistenceError, type NotePersistenceStorage } from '@/services/persistence/types';

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { routeRuntimeEventByName, routeRuntimeEvent } from '../eventRouter';
-import type { IEvent } from '@/runtime/contracts/events';
+import type { IEvent } from '@bitcobblers/wod-wiki-engine';
 
 const makeHandles = () => {
     const calls: string[] = [];

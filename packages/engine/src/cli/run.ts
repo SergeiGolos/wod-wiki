@@ -5,21 +5,21 @@
  * emitting a versioned execution-log IR envelope.
  */
 
-import { createParser } from '@/parser/parserInstance';
-import type { WhiteboardScript } from '@/parser/WhiteboardScript';
-import { createCompiler } from '@/runtime/services/runtimeServices';
-import { RuntimeStack } from '@/runtime/RuntimeStack';
-import { createMockClock } from '@/runtime/RuntimeClock';
-import { EventBus } from '@/runtime/events/EventBus';
-import { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import { StartSessionAction } from '@/runtime/actions/stack/StartSessionAction';
-import { NextEvent } from '@/runtime/events/NextEvent';
-import { createAnalyticsEngineForBlock } from '@/core/analytics/createAnalyticsEngineForBlock';
-import { toStoredOutputStatement, type StoredOutputStatement } from '@/components/Editor/types';
-import { buildWorkoutResults } from '@/app/editor/runtimeTimerModel';
-import type { INowProvider } from '@/runtime/INowProvider';
-import { frozenNow } from '@/runtime/INowProvider';
-import type { IOutputStatement } from '@/core/models/OutputStatement';
+import { createParser } from '../parser/parserInstance';
+import type { WhiteboardScript } from '../parser/WhiteboardScript';
+import { createCompiler } from '../runtime/services/runtimeServices';
+import { RuntimeStack } from '../runtime/RuntimeStack';
+import { createMockClock } from '../runtime/RuntimeClock';
+import { EventBus } from '../runtime/events/EventBus';
+import { ScriptRuntime } from '../runtime/ScriptRuntime';
+import { StartSessionAction } from '../runtime/actions/stack/StartSessionAction';
+import { NextEvent } from '../runtime/events/NextEvent';
+import { createAnalyticsEngineForBlock } from '../core/analytics/createAnalyticsEngineForBlock';
+import { toStoredOutputStatement, type StoredOutputStatement } from '../types';
+import { buildWorkoutResults } from '../app/editor/runtimeTimerModel';
+import type { INowProvider } from '../runtime/INowProvider';
+import { frozenNow } from '../runtime/INowProvider';
+import type { IOutputStatement } from '../core/models/OutputStatement';
 import { createIRFile, type WodWikiIRFile, type ExecutionLog } from '../ir';
 import { ParseSyntaxError } from './parse';
 

@@ -10,7 +10,7 @@
  */
 
 import React from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { PlaygroundNotePage } from '../../../playground/src/pages/PlaygroundNotePage';
 
 const meta: Meta<typeof PlaygroundNotePage> = {

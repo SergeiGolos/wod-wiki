@@ -8,7 +8,7 @@
  * back to the matching sample result below so the showcase never renders
  * blank — the sample data *is* the WQL vocabulary taught by example.
  */
-import type { QueryResult } from '@/services/analytics/query';
+import type { QueryResult } from '@bitcobblers/wod-wiki-engine';
 
 /** A named WQL query backing one showcase widget. */
 export interface AnalyticsQueryDef {

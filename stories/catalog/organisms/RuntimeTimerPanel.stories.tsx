@@ -10,7 +10,7 @@
  *  4. RoundsForTime — 5-round Fran rep scheme
  *  5. Expanded — expanded view with more details
  */
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/react-vite'
 import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
 import type { ScriptBlock } from '../../../src/components/Editor/types'
 

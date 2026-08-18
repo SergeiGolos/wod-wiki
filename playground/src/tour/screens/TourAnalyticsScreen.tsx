@@ -2,9 +2,9 @@ import React, { useMemo, useState } from 'react'
 import { ReviewGrid } from '@/components/organisms/review/ReviewGrid'
 import { useUserOverrides } from '@/components/organisms/review/useUserOverrides'
 import { AnalyticsScorecard } from '@/components/organisms/review/AnalyticsScorecard'
-import type { Segment } from '@/core/models/AnalyticsModels'
-import { MetricType } from '@/core/models/Metric'
-import type { ProjectionResult } from '@/core/analytics/ProjectionResult'
+import type { Segment } from '@bitcobblers/wod-wiki-engine'
+import { MetricType } from '@bitcobblers/wod-wiki-engine'
+import type { ProjectionResult } from '@bitcobblers/wod-wiki-engine'
 
 export interface TourAnalyticsScreenProps {
   segments: Segment[]

@@ -14,7 +14,7 @@ import {
   type RowsQueryResult,
   type Segment,
   type RowsRun,
-} from '@wod-wiki/engine';
+} from '@bitcobblers/wod-wiki-engine';
 import type { QueryExecutor } from '../contracts/query';
 import { RowsTable } from '../widgets/RowsTable';
 import { RowsResultsChrome } from './RowsResultsChrome';

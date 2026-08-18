@@ -7,7 +7,7 @@ import {
   type StoredOutputStatement,
   type Segment,
   MetricType,
-} from '@wod-wiki/engine';
+} from '@bitcobblers/wod-wiki-engine';
 import type { QueryExecutor } from '../contracts/query';
 import { RowsTable } from '../widgets/RowsTable';
 import { cn } from '../utils/cn';

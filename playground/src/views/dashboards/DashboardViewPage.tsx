@@ -12,7 +12,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { isFindQuery, queryService } from '@/services/analytics/query';
+import { queryService } from '@/services/queryService';
+import { isFindQuery } from '@bitcobblers/wod-wiki-engine';;
 import {
   WqlComposer,
   clausesToWql,
@@ -20,14 +21,14 @@ import {
   wqlToClauses,
   type QueryClause,
   type WqlExecutor,
-} from '@/components/organisms/wql-composer';
+} from '@bitcobblers/wod-wiki-ui';
 import {
   RangeSelector,
-  useAnalyticsRange,
   AnalyticsUnitPreference,
   useAnalyticsUnitPreference,
   DashboardView,
-} from '@/components/molecules/analytics';
+} from '@bitcobblers/wod-wiki-ui';
+import { useAnalyticsRange } from '../../hooks/useAnalyticsRange';
 import { journalNotes } from '../../services/journalNotes';
 import { dashboardNotes } from '../../services/dashboardNotes';
 import { parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';

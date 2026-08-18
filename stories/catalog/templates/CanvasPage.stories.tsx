@@ -12,7 +12,7 @@
  *  6. MobileViewport — mobile viewport (375 × 812)
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { CanvasPage } from '@/panels/page-shells/CanvasPage';
 import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import type { DocsSection } from '@/panels/page-shells/types';

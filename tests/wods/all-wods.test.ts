@@ -69,12 +69,8 @@ describe('WOD Integration Tests', () => {
                         const maxSteps = 500;
 
                         while ((await script.snapshot()).depth > 0 && safetyValve < maxSteps) {
+                            await script.tick(60 * 1000);
                             await script.next();
-
-                            if (safetyValve > 10 && safetyValve % 5 === 0) {
-                                await script.tick(24 * 60 * 60 * 1000); // 1 day
-                            }
-
                             safetyValve++;
                         }
 

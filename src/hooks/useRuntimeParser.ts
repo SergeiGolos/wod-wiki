@@ -9,14 +9,14 @@
  */
 
 import { useMemo } from 'react';
-import { createParser } from '@/parser/parserInstance';
-import type { MdTimerRuntime } from '@/parser/md-timer';
+import { createParser } from '@bitcobblers/wod-wiki-engine';
+import type { MdTimerRuntime } from '@bitcobblers/wod-wiki-engine';
 
 // ── Parser exports ────────────────────────────────────────────────────────
-export { createParser } from '@/parser/parserInstance';
-export { MdTimerRuntime } from '@/parser/md-timer';
-export { whiteboardScriptLanguage } from '@/parser/whiteboard-script-language';
-export { extractStatements } from '@/parser/lezer-mapper';
+export { createParser } from '@bitcobblers/wod-wiki-engine';
+export { MdTimerRuntime } from '@bitcobblers/wod-wiki-engine';
+export { whiteboardScriptLanguage } from '@bitcobblers/wod-wiki-engine';
+export { extractStatements } from '@bitcobblers/wod-wiki-engine';
 
 // ── React hook ────────────────────────────────────────────────────────────
 

@@ -5,7 +5,7 @@ import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
 import { TEST_IDS } from '@/testing/contracts/TestIdContract'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
-import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
+import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 import { useRingRef } from '../TourRing'
 
 export interface TourTimerScreenProps {

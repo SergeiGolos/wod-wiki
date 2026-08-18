@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @config "../tailwind.config.cjs";
+@source "../node_modules/@bitcobblers/wod-wiki-ui";
 
 @layer base {
   :root {

@@ -9,10 +9,10 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
+import type { Segment, AnalyticsGroup } from '@bitcobblers/wod-wiki-engine';
 import type { IScriptRuntime } from '@/hooks/useRuntimeTimer';
-import { MetricType, type IMetric } from '@/core/models/Metric';
-import type { ProjectionResult } from '@/core/analytics/ProjectionResult';
+import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-engine';
+import type { ProjectionResult } from '@bitcobblers/wod-wiki-engine';
 import { ReviewGrid } from './ReviewGrid';
 import { AnalyticsScorecard } from '@/components/organisms/review/AnalyticsScorecard';
 import { useDebugMode } from '@/contexts/DebugModeContext';

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ICodeStatement } from '@/core/models/CodeStatement';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import { MetricVisualizer } from '@/components/organisms/metrics';
 
 export interface StatementListProps {

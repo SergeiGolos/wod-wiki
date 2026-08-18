@@ -1,9 +1,6 @@
 import { readdir, stat, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { EditorState } from "@codemirror/state";
-import { syntaxTree } from "@codemirror/language";
-import { whiteboardScriptLanguage } from "../src/parser/whiteboard-script-language";
-
+import { createParser, whiteboardScriptLanguage } from "@bitcobblers/wod-wiki-engine";
 // Types
 interface LintError {
   blockIndex: number;
@@ -20,13 +17,13 @@ interface FileReport {
 /**
  * Extracts Whiteboard Script blocks from markdown content
  */
-function extractWhiteboardScriptBlocks(markdown: string): string[] {
-  const blocks: string[] = [];
-  const regex = /```time\n([\s\S]*?)```/g;
+function extractWhiteboardScriptBlocks(markdown: string): Array<{ content: string; dialect: string }> {
+  const blocks: Array<{ content: string; dialect: string }> = [];
+  const regex = /```(time|wod|climb|log|crossfit|cardio|yoga|habits)\n([\s\S]*?)```/g;
   let match;
 
   while ((match = regex.exec(markdown)) !== null) {
-    blocks.push(match[1]);
+    blocks.push({ dialect: match[1], content: match[2] });
   }
 
   return blocks;
@@ -35,37 +32,23 @@ function extractWhiteboardScriptBlocks(markdown: string): string[] {
 /**
  * Parses Whiteboard Script content and finds any syntax errors using the Lezer tree
  */
-function lintWhiteboardScript(content: string, blockIndex: number): LintError[] {
+function lintWhiteboardScript(content: string, blockIndex: number, dialect: string = "time"): LintError[] {
   if (!content.trim()) return [];
 
-  const doc = content.endsWith("\n") ? content : content + "\n";
-  const tempState = EditorState.create({
-    doc,
-    extensions: [whiteboardScriptLanguage],
-  });
-
-  const tree = syntaxTree(tempState);
+  const parser = createParser(dialect);
+  const script = parser.read(content, dialect);
   const errors: LintError[] = [];
 
-  tree.iterate({
-    enter(node) {
-      if (node.type.isError) {
-        // Extract the code snippet around the error for context
-        const startLineOffset = doc.lastIndexOf("\n", node.from - 1) + 1;
-        let endLineOffset = doc.indexOf("\n", node.to);
-        if (endLineOffset === -1) endLineOffset = doc.length;
-        
-        const codeSnippet = doc.slice(startLineOffset, endLineOffset).trim();
-
-        errors.push({
-          blockIndex,
-          from: node.from,
-          to: node.to,
-          codeSnippet: codeSnippet || "<empty line or invisible error>",
-        });
-      }
-    },
-  });
+  if (script.errors && script.errors.length > 0) {
+    for (const err of script.errors) {
+      errors.push({
+        blockIndex,
+        from: err.from ?? 0,
+        to: err.to ?? 0,
+        codeSnippet: err.message,
+      });
+    }
+  }
 
   return errors;
 }
@@ -120,13 +103,13 @@ async function generateReport(reports: FileReport[], totalFiles: number, outputP
 }
 
 async function main() {
-  const whiteboardScriptDir = join(process.cwd(), "wod");
+  const markdownDir = join(process.cwd(), "markdown");
   const reportPath = join(process.cwd(), "wod-lint-report.md");
   
-  console.log(`Scanning directory: ${whiteboardScriptDir}`);
+  console.log(`Scanning directory: ${markdownDir}`);
   
   try {
-    const mdFiles = await findMarkdownFiles(whiteboardScriptDir);
+    const mdFiles = await findMarkdownFiles(markdownDir);
     console.log(`Found ${mdFiles.length} markdown file(s). Linting...`);
     
     const fileReports: FileReport[] = [];
@@ -138,15 +121,14 @@ async function main() {
       
       let fileErrors: LintError[] = [];
       
-      whiteboardScriptBlocks.forEach((blockContent, index) => {
-        const errors = lintWhiteboardScript(blockContent, index);
+      whiteboardScriptBlocks.forEach((block, index) => {
+        const errors = lintWhiteboardScript(block.content, index, block.dialect);
         if (errors.length > 0) {
           fileErrors.push(...errors);
           totalErrors += errors.length;
         }
       });
       
-      // Calculate relative path for cleaner report
       const relativePath = filePath.replace(process.cwd() + "/", "");
       
       if (fileErrors.length > 0) {
@@ -154,9 +136,9 @@ async function main() {
           filePath: relativePath,
           errors: fileErrors,
         });
-        process.stdout.write("x"); // Progress indicator (error)
+        process.stdout.write("x");
       } else {
-        process.stdout.write("."); // Progress indicator (success)
+        process.stdout.write(".");
       }
     }
     
@@ -178,5 +160,4 @@ async function main() {
     process.exit(1);
   }
 }
-
 main();

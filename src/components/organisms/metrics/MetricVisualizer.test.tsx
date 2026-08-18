@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
-import type { IMetric, MetricType } from '@/core/models/Metric';
-import { ParseError } from '@/core';
+import type { IMetric, MetricType } from '@bitcobblers/wod-wiki-engine';
+import { ParseError } from '@bitcobblers/wod-wiki-engine';
 
 
 // These tests will FAIL initially because MetricVisualizer doesn't exist yet (TDD requirement)

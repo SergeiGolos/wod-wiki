@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
 import { ExecutionContextTestHarness } from '../ExecutionContextTestHarness';
 import { MockBlock } from '../MockBlock';
-import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
-import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
+import { IRuntimeAction } from '@bitcobblers/wod-wiki-engine';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
 
 describe('ExecutionContextTestHarness', () => {
   let harness: ExecutionContextTestHarness;

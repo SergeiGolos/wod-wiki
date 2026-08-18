@@ -6,7 +6,7 @@
  *  2. Variants — different toast variants
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
   Toast,
   ToastProvider,

@@ -9,8 +9,8 @@
  */
 
 import { useCallback, useEffect } from 'react';
-import { MetricType, type IMetric } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
+import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 import { useWorkbenchSession } from '@/stores/workbenchSessionStore'
 
 const STORAGE_KEY = 'wod-wiki:userOutputOverrides';

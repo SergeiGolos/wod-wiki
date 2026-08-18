@@ -1,16 +1,16 @@
-import { IRuntimeBlockStrategy } from '@/runtime/contracts/IRuntimeBlockStrategy';
-import { BlockBuilder } from '@/runtime/compiler/BlockBuilder';
-import { ICodeStatement } from '@/core/models/CodeStatement';
-import { ParsedCodeStatement } from '@/core/models/CodeStatement';
-import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import { IRuntimeBehavior } from '@/runtime/contracts/IRuntimeBehavior';
-import { IMetric, MetricType } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
-import { IRuntimeMemory } from '@/runtime/contracts/IRuntimeMemory';
-import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
-import { IEventBus } from '@/runtime/contracts/events/IEventBus';
-import { IRuntimeStack } from '@/runtime/contracts/IRuntimeStack';
-import { WhiteboardScript } from '@/parser/WhiteboardScript';
+import { IRuntimeBlockStrategy } from '@bitcobblers/wod-wiki-engine';
+import { BlockBuilder } from '@bitcobblers/wod-wiki-engine';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
+import { ParsedCodeStatement } from '@bitcobblers/wod-wiki-engine';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeBehavior } from '@bitcobblers/wod-wiki-engine';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeMemory } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeClock } from '@bitcobblers/wod-wiki-engine';
+import { IEventBus } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeStack } from '@bitcobblers/wod-wiki-engine';
+import { WhiteboardScript } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * Frozen view of a strategy application result.

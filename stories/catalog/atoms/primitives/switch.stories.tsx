@@ -6,7 +6,7 @@
  *  2. States — on/off and disabled
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
   SwitchGroup,
   SwitchField,

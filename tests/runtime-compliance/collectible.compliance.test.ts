@@ -12,7 +12,7 @@
 import { it, expect } from 'bun:test';
 import { describeCompliance, assertions } from '@/testing/script';
 import { currentBlockType, anySystemPopHasReason, blockDisplayMetrics } from '../helpers/compliance-helpers';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 // ===========================================================================
 // 🟡 Collectible Reps — ? Pushups

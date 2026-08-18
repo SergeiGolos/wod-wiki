@@ -8,7 +8,7 @@ import type {
   ParsedRowsQuery,
   QueryOptions,
   FindOptions,
-} from '@wod-wiki/engine';
+} from '@bitcobblers/wod-wiki-engine';
 
 export interface QueryExecutor {
   runQuery(query: string, options?: QueryOptions): Promise<QueryResult>;

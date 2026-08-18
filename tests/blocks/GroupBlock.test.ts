@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { ExitBehavior, LabelingBehavior } from '@/runtime/behaviors';
+import { ExitBehavior, LabelingBehavior } from '@bitcobblers/wod-wiki-engine';
 
 describe('GroupBlock', () => {
   let harness: BehaviorTestHarness;

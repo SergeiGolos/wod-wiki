@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ParsedQueryChips } from '../../../src/components/organisms/analytics/ParsedQueryChips';
 import type { ParsedQuery } from '../../../src/services/analytics/query';
 

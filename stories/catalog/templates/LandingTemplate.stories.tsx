@@ -10,7 +10,7 @@
  *  4. MobileViewport — mobile viewport
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { LandingTemplate } from '../../../playground/src/templates/LandingTemplate';
 
 const meta: Meta<typeof LandingTemplate> = {

@@ -1,4 +1,5 @@
-import { Extension, Facet } from "@codemirror/state";
+import { Facet } from "@codemirror/state";
+import type { Extension } from "@codemirror/state";
 import { EditorView, hoverTooltip, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 

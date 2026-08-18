@@ -11,7 +11,7 @@ import { render, screen, cleanup, fireEvent, act, waitFor, within } from '@testi
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
-import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
+import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 
 // ── Heavy / browser-only dependencies ───────────────────────────────────────
 

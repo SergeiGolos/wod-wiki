@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, Brush } from 'recharts';
 import { Zap, Activity, Wind, Gauge, Dumbbell, CheckSquare, Layers } from 'lucide-react';
-import { AnalyticsGroup, Segment, AnalyticsGraphConfig } from '../core/models/AnalyticsModels';
+import { AnalyticsGroup, Segment, AnalyticsGraphConfig } from '@bitcobblers/wod-wiki-engine';
 import { formatSecondsMMSS } from '../lib/formatTime';
 
 interface TimelineViewProps {

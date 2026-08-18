@@ -29,7 +29,7 @@ import {
   defaultExplorerClauses,
   type ExplorerQueryState,
 } from './useExplorerQueryState'
-import type { QueryClause } from '@/components/organisms/wql-composer'
+import type { QueryClause } from '@bitcobblers/wod-wiki-ui'
 
 afterEach(cleanup)
 

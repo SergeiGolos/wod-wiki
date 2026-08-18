@@ -2,13 +2,13 @@
  * Type definitions for markdown editor components
  */
 
-import { ICodeStatement } from '../../../core/models/CodeStatement';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import type { IScriptRuntime as ScriptRuntime } from '@/hooks/useRuntimeTimer';
 import type { MdTimerRuntime } from '@/hooks/useRuntimeParser';
-import { IMetric } from '../../../core/models/Metric';
-import { IOutputStatement, OutputStatementType } from '../../../core/models/OutputStatement';
-import { getHints } from '../../../core/metrics/hints';
-import type { ParseError } from '@/core';
+import { IMetric } from '@bitcobblers/wod-wiki-engine';
+import { IOutputStatement, OutputStatementType } from '@bitcobblers/wod-wiki-engine';
+import { getHints } from '@bitcobblers/wod-wiki-engine';
+import type { ParseError } from '@bitcobblers/wod-wiki-engine';
 import type { FenceDialect as FenceDialectType } from './section';
 export * from './section';
 export type { FenceDialect } from './section';
@@ -32,7 +32,7 @@ export type ScriptBlockState =
 /**
  * Parse error information - re-exported from core types
  */
-export type { ParseError } from '@/core';
+export type { ParseError } from '@bitcobblers/wod-wiki-engine';
 
 
 /**

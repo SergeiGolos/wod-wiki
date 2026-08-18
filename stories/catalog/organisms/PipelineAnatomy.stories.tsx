@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { PipelineAnatomy } from '../../../src/components/organisms/analytics/PipelineAnatomy';
 import type { ParsedQuery, QueryResult } from '../../../src/services/analytics/query';
 

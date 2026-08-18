@@ -1,0 +1,28 @@
+{
+  "name": "@bitcobblers/wod-wiki-engine",
+  "version": "0.6.0",
+  "description": "Headless Whiteboard Language and WQL engine umbrella package & unified wod CLI runner",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "bin": {
+    "wod": "./bin/wod.ts"
+  },
+  "files": [
+    "src",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "bun test"
+  },
+  "peerDependencies": {
+    "@codemirror/state": ">=6.0.0",
+    "@codemirror/language": ">=6.0.0",
+    "@lezer/common": ">=1.0.0",
+    "@lezer/lr": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.5"
+  }
+}

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { CountupTimerBehavior, ExitBehavior, LabelingBehavior } from '@/runtime/behaviors';
-import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
+import { CountupTimerBehavior, ExitBehavior, LabelingBehavior } from '@bitcobblers/wod-wiki-engine';
+import { PopBlockAction } from '@bitcobblers/wod-wiki-engine';
 
 describe('Block lifecycle edge cases', () => {
   let harness: BehaviorTestHarness;

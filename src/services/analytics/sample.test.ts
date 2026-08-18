@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import type { IndexedDBService } from '@/services/db/IndexedDBService';
-import { QueryService, type FactQueryStore } from '@/services/analytics/query';
+import { QueryService, type FactQueryStore } from '@bitcobblers/wod-wiki-engine';
 import { loadSampleData, purgeSampleData, hasSampleData, setSampleDataService } from '@/services/analytics/sample';
 import type { AnalyticsDataPoint, Note } from '@/types/storage';
 

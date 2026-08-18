@@ -1,17 +1,17 @@
 import { mock, Mock } from 'bun:test';
-import { IRuntimeBlock, BlockLifecycleOptions } from '@/runtime/contracts';
-import { IRuntimeAction } from '@/runtime/contracts';
-import { IScriptRuntime } from '@/runtime/contracts';
-import { IEvent } from '@/runtime/contracts/events';
-import { createMockClock } from '@/runtime/RuntimeClock';
-import { RuntimeMemory } from '@/runtime/RuntimeMemory';
-import { RuntimeStack } from '@/runtime/RuntimeStack';
-import { EventBus } from '@/runtime/events';
-import { TypedMemoryReference } from '@/runtime/contracts';
+import { IRuntimeBlock, BlockLifecycleOptions } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeAction } from '@bitcobblers/wod-wiki-engine';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { IEvent } from '@bitcobblers/wod-wiki-engine';
+import { createMockClock } from '@bitcobblers/wod-wiki-engine';
+import { RuntimeMemory } from '@bitcobblers/wod-wiki-engine';
+import { RuntimeStack } from '@bitcobblers/wod-wiki-engine';
+import { EventBus } from '@bitcobblers/wod-wiki-engine';
+import { TypedMemoryReference } from '@bitcobblers/wod-wiki-engine';
 import { MockBlock } from './MockBlock';
-import { PushBlockAction } from '@/runtime/actions/stack/PushBlockAction';
-import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
-import { StartWorkoutAction } from '@/runtime/actions/stack/StartWorkoutAction';
+import { PushBlockAction } from '@bitcobblers/wod-wiki-engine';
+import { PopBlockAction } from '@bitcobblers/wod-wiki-engine';
+import { StartWorkoutAction } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * Captured action for test assertions

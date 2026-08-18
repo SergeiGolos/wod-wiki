@@ -7,7 +7,7 @@
  *  3. Disabled — disabled input
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Input, InputGroup } from '@/components/atoms/primitives/input';
 import { Label } from '@/components/atoms/primitives/label';
 import { Search } from 'lucide-react';

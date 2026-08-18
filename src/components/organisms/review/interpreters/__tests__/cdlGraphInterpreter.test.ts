@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { extractGraphValue, buildGraphDataPoint } from '../cdlGraphInterpreter';
 import { makeGridRow, makeGridCell } from './test-helpers';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { ColumnDef } from '../../column-definition-language';
 
 describe('cdlGraphInterpreter', () => {

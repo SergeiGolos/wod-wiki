@@ -11,7 +11,7 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { Plus, X } from "lucide-react";
-import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
+import { sectionField, type EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
 import { parseFlatProperties, parseFrontmatterBody, serializeFrontmatter, extractYouTubeVideoId, detectUrlSubtype, type ParsedFrontmatter } from "@/lib/frontmatter";
 import { EFFORT_DISCIPLINES } from "@/effort-registry/disciplines";
 import { cn } from "@/lib/utils";

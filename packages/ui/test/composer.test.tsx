@@ -16,19 +16,23 @@ describe('WqlComposer and diagnostics suite', () => {
   it('compiles default clauses to WQL find query', () => {
     const clauses = defaultClauses();
     const wql = clausesToWql(clauses);
-    expect(wql).toBe('find:note in journal');
+    // Canonical contract: notes scope compiles `in all`, time clause rides along.
+    expect(wql).toBe('find:note in all last 2w');
   });
 
   it('compiles metrics clauses to aggregate WQL', () => {
     const clauses = defaultMetricsClauses();
     clauses[2].value = 'totalVolume';
     const wql = clausesToWql(clauses);
-    expect(wql).toBe('sum:totalVolume{}');
+    // Canonical contract: empty filter braces are omitted.
+    expect(wql).toBe('sum:totalVolume');
   });
 
   it('diagnoses valid and invalid clauses', () => {
     const valid = defaultClauses();
-    expect(diagnoseClauses(valid).valid).toBe(true);
+    const diag = diagnoseClauses(valid);
+    expect(diag.valid).toBe(true);
+    expect(diag.wql).toBe('find:note in all last 2w');
   });
 
   it('supports custom slot registration in ComposerRegistry', () => {

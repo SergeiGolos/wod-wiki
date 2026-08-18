@@ -8,7 +8,7 @@
  * measured from the RIGHT edge. 0 = no overlay, 100 = full-width overlay.
  */
 
-import type { EditorSectionType } from "../extensions/section-state";
+import type { EditorSectionType } from '@bitcobblers/wod-wiki-ui/extensions';
 
 // ── Types ────────────────────────────────────────────────────────────
 

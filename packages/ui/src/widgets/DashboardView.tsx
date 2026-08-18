@@ -12,7 +12,7 @@ import {
   unknownWidgetTypeMessage,
   type DashboardDocument,
   type DashboardWidget,
-} from '@wod-wiki/engine';
+} from '@bitcobblers/wod-wiki-engine';
 import type { QueryExecutor } from '../contracts/query';
 import { WidgetFrame } from './WidgetFrame';
 import { WidgetChart, WidgetProblemBadge } from './WidgetChart';

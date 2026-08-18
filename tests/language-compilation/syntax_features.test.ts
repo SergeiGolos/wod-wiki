@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
-import { MdTimerRuntime } from '../../src/parser/md-timer';
-import { MetricType } from '../../src/core/models/Metric';
-import { RoundsMetric } from '../../src/runtime/compiler/metrics/RoundsMetric';
+import { MdTimerRuntime } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import { RoundsMetric } from '@bitcobblers/wod-wiki-engine';
 
 describe('Syntax Features Regression Tests', () => {
   const parser = new MdTimerRuntime();

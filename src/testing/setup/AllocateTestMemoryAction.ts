@@ -5,7 +5,7 @@
  * Useful for simulating parent block memory that children should inherit.
  */
 
-import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
 import {
   ITestSetupAction,
   TestSetupActionJSON,

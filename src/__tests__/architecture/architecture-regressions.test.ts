@@ -161,12 +161,12 @@ describe('Architecture: Components layer boundary (WOD-225)', () => {
 describe('Architecture: Protected barrel files', () => {
   const barrelRules: Array<{ filePath: string; allowedExports: string[]; description: string }> = [
     {
-      filePath: 'src/runtime/compiler/metrics/index.ts',
+      filePath: 'packages/engine/src/runtime/compiler/metrics/index.ts',
       allowedExports: [],
       description: 'Keep the metrics barrel empty — metric classes are imported directly from their source files.',
     },
     {
-      filePath: 'src/runtime/events/index.ts',
+      filePath: 'packages/engine/src/runtime/events/index.ts',
       allowedExports: ['EventBus'],
       description: 'Keep the runtime events barrel limited to EventBus — other event types are imported directly.',
     },
@@ -196,33 +196,33 @@ describe('Architecture: Protected barrel files', () => {
 // ---------------------------------------------------------------------------
 
 describe('Architecture: Type consolidation boundary (WOD-226)', () => {
-  it('should have canonical core contracts in src/core/contracts/', () => {
-    const contractsDir = path.join(repoRoot, 'src', 'core', 'contracts');
+  it('should have canonical core contracts in packages/engine/src/core/contracts/', () => {
+    const contractsDir = path.join(repoRoot, 'packages', 'engine', 'src', 'core', 'contracts');
     expect(
       fs.existsSync(contractsDir),
-      'src/core/contracts/ directory must exist as canonical type location'
+      'packages/engine/src/core/contracts/ directory must exist as canonical type location'
     ).toBe(true);
 
     const files = fs.readdirSync(contractsDir).filter(f => f.endsWith('.ts'));
     expect(
       files.length,
-      'src/core/contracts/ should have at least one contract file'
+      'packages/engine/src/core/contracts/ should have at least one contract file'
     ).toBeGreaterThan(0);
   });
 
   it('should have IMetricContainer in core contracts (canonical location)', () => {
-    const metricContainerPath = path.join(repoRoot, 'src', 'core', 'contracts', 'IMetricContainer.ts');
+    const metricContainerPath = path.join(repoRoot, 'packages', 'engine', 'src', 'core', 'contracts', 'IMetricContainer.ts');
     expect(
       fs.existsSync(metricContainerPath),
-      'IMetricContainer should live in src/core/contracts/ as the canonical source'
+      'IMetricContainer should live in packages/engine/src/core/contracts/ as the canonical source'
     ).toBe(true);
   });
 
   it('should have IMetricSource in core contracts (canonical location)', () => {
-    const metricSourcePath = path.join(repoRoot, 'src', 'core', 'contracts', 'IMetricSource.ts');
+    const metricSourcePath = path.join(repoRoot, 'packages', 'engine', 'src', 'core', 'contracts', 'IMetricSource.ts');
     expect(
       fs.existsSync(metricSourcePath),
-      'IMetricSource should live in src/core/contracts/ as the canonical source'
+      'IMetricSource should live in packages/engine/src/core/contracts/ as the canonical source'
     ).toBe(true);
   });
 });
@@ -244,8 +244,7 @@ describe('Architecture: No duplicate type definitions across core and runtime', 
     it(`${typeName} should be defined in only one layer`, () => {
       const occurrences: string[] = [];
       for (const layer of ['core', 'runtime']) {
-        const layerDir = path.join(repoRoot, 'src', layer);
-        if (!fs.existsSync(layerDir)) continue;
+        const layerDir = path.join(repoRoot, 'packages', 'engine', 'src', layer);
         for (const filePath of walkDir(layerDir)) {
           const src = fs.readFileSync(filePath, 'utf8');
           // Match interface or type declarations (not just references)

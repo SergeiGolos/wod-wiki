@@ -15,7 +15,7 @@ function getAllFiles(dir: string): string[] {
   return files;
 }
 
-describe('@wod-wiki/ui zero backend coupling contract', () => {
+describe('@bitcobblers/wod-wiki-ui zero backend coupling contract', () => {
   const srcDir = join(import.meta.dir, '..', 'src');
   const files = getAllFiles(srcDir);
 

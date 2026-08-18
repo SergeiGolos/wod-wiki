@@ -2,6 +2,7 @@ import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import fs from 'fs';
+import { CODEMIRROR_SINGLETON_DEPS } from '@bitcobblers/wod-wiki-ui';
 
 const pkg = JSON.parse(fs.readFileSync(resolve(__dirname, '../package.json'), 'utf-8'));
 
@@ -15,20 +16,6 @@ const https = certFiles.length > 0 && keyFiles.length > 0
 
 const hmrHost = certFiles.length > 0 ? certFiles[0].replace('.crt', '') : undefined;
 
-const codemirrorSingletonDeps = [
-    '@codemirror/autocomplete',
-    '@codemirror/commands',
-    '@codemirror/lang-markdown',
-    '@codemirror/language',
-    '@codemirror/lint',
-    '@codemirror/search',
-    '@codemirror/state',
-    '@codemirror/view',
-    '@lezer/common',
-    '@lezer/highlight',
-    '@lezer/lr',
-    '@lezer/markdown',
-];
 
 // Dev plugin: intercept receiver URLs and serve the RPC version through Vite's
 // transform pipeline so that @vitejs/plugin-react injects its JSX preamble.
@@ -71,13 +58,15 @@ export default defineConfig({
     },
     plugins: [react(), receiverRedirectPlugin],
     resolve: {
-        dedupe: codemirrorSingletonDeps,
+        dedupe: ['react', 'react-dom', ...CODEMIRROR_SINGLETON_DEPS],
         alias: {
+            // `@/` -> ../src remains for app-internal imports; @wod-wiki/* packages
+            // resolve through the workspace node_modules + their exports maps
+            // (packages/engine, packages/ui) — see CODEMIRROR_SINGLETON_DEPS dedupe.
             '@': resolve(__dirname, '../src'),
         },
     },
     server: {
-        allowedHosts: true,
         host: '0.0.0.0',
         ...(https ? { https } : {}),
         hmr: hmrHost ? { host: hmrHost } : true,

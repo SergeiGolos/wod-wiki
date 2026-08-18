@@ -17,7 +17,7 @@ import {
   type ICodeStatement,
   type DialectAnalysis,
   type LanguagePack,
-} from '@wod-wiki/engine';
+} from '@bitcobblers/wod-wiki-engine';
 import { LanguageWorkbench } from '../src/LanguageWorkbench.stories';
 
 const DEMO_PACK_ID = 'demo-pack';

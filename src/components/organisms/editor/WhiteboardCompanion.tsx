@@ -16,10 +16,10 @@
 
 import React, { useMemo, useState, useCallback } from "react";
 import type { EditorView } from "@codemirror/view";
-import type { ICodeStatement } from "@/core/models/CodeStatement";
-import { MetricType } from "@/core/models/Metric";
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { MdTimerRuntime } from "@/hooks/useRuntimeParser";
-import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
+import { sectionField, type EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
 import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/dateFormat";
 import type { ScriptBlock, FenceDialect } from '@/components/Editor/types';
@@ -333,7 +333,7 @@ export interface WhiteboardCompanionProps {
   /** Document-space Y midpoint of cursor/hover line (for card centering). */
   lineDocY?: number;
   /** Section rect — used for card position clamping. */
-  rect: import('@/components/Editor/extensions/section-geometry').SectionRect;
+  rect: import('@bitcobblers/wod-wiki-ui/extensions').SectionRect;
   /** Increments on every document change — forces re-parse on content edits. */
   docVersion: number;
   /** Commands to display as action buttons. */

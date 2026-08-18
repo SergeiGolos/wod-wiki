@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { QueryResult } from '@wod-wiki/engine';
+import type { QueryResult } from '@bitcobblers/wod-wiki-engine';
 import type { QueryExecutor } from '../contracts/query';
 
 const DAY = 86_400_000;

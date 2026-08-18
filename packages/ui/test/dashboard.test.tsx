@@ -4,7 +4,7 @@ import {
   buildDashboardDocument,
   type DashboardDocument,
   type QueryResult,
-} from '@wod-wiki/engine';
+} from '@bitcobblers/wod-wiki-engine';
 import {
   DashboardView,
   type QueryExecutor,

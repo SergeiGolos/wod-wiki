@@ -36,13 +36,22 @@
       "@/*": [
         "./src/*"
       ],
-      "@wod-wiki/engine": [
+      "@bitcobblers/wod-wiki-engine": [
         "./packages/engine/src/index.ts"
       ],
-      "@wod-wiki/ui": [
+      "@bitcobblers/wod-wiki-core": [
+        "./packages/engine/src/index.ts"
+      ],
+      "@bitcobblers/wod-wiki-lang": [
+        "./packages/engine/src/index.ts"
+      ],
+      "@bitcobblers/wod-wiki-wql": [
+        "./packages/engine/src/index.ts"
+      ],
+      "@bitcobblers/wod-wiki-ui": [
         "./packages/ui/src/index.ts"
       ],
-      "@wod-wiki/ui/*": [
+      "@bitcobblers/wod-wiki-ui/*": [
         "./packages/ui/src/*"
       ]
     }

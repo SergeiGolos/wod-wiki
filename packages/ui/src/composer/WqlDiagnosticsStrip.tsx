@@ -1,7 +1,7 @@
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '../utils/cn';
-import { isFindQuery } from '@wod-wiki/engine';
+import { isFindQuery } from '@bitcobblers/wod-wiki-engine';
 import { summarizeAggregate, summarizeFind, type WqlDiagnostics } from './diagnostics';
 import type { WqlStageCounts } from './useWqlStageCounts';
 
@@ -14,10 +14,11 @@ export interface WqlDiagnosticsStripProps {
 }
 
 function SummaryChip({ label, value, testId }: { label: string; value: string; testId: string }) {
+  const legacyTestId = testId.startsWith('diag-') ? testId.replace('diag-', 'wql-') : testId;
   return (
     <span data-testid={testId} className="inline-flex items-center gap-1 whitespace-nowrap">
       <span className="opacity-60">{label}:</span>
-      <span className="font-semibold text-foreground">{value}</span>
+      <span data-testid={legacyTestId} className="font-semibold text-foreground">{value}</span>
     </span>
   );
 }
@@ -43,7 +44,7 @@ export function WqlDiagnosticsStrip({
       )}
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <div className="flex items-center gap-1.5 font-medium">
+        <div className="flex items-center gap-1.5 font-medium" data-testid="wql-validity-badge" data-valid={valid}>
           {valid ? (
             <>
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />

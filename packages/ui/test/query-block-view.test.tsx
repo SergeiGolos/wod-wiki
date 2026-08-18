@@ -1,6 +1,6 @@
 import { describe, expect, it, mock, afterEach } from 'bun:test';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
-import type { QueryResult } from '@wod-wiki/engine';
+import type { QueryResult } from '@bitcobblers/wod-wiki-engine';
 import { QueryBlockView, type QueryExecutor } from '../src';
 
 afterEach(cleanup);

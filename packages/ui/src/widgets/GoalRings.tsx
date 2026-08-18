@@ -1,4 +1,4 @@
-import type { QueryResult } from '@wod-wiki/engine';
+import type { QueryResult } from '@bitcobblers/wod-wiki-engine';
 import { WqlEmptyState } from './WqlEmptyState';
 
 export interface GoalRingsProps {

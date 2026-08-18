@@ -10,17 +10,17 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { AnalyticsEngine } from '@/core/analytics/AnalyticsEngine';
-import { StandardAnalyticsProfile } from '@/core/analytics/StandardAnalyticsProfile';
-import type { AnalyticsProfileContext } from '@/core/analytics/IAnalyticsProfile';
-import { TwoPassEffortResolutionProcess } from '@/core/analytics/TwoPassEffortResolutionProcess';
-import { createCalcEngine } from '@/core/analytics/calc/factory';
+import { AnalyticsEngine } from '@bitcobblers/wod-wiki-engine';
+import { StandardAnalyticsProfile } from '@bitcobblers/wod-wiki-engine';
+import type { AnalyticsProfileContext } from '@bitcobblers/wod-wiki-engine';
+import { TwoPassEffortResolutionProcess } from '@bitcobblers/wod-wiki-engine';
+import { createCalcEngine } from '@bitcobblers/wod-wiki-engine';
 import { MockEffortResolver } from '@/testing/harness/MockEffortResolver';
-import { OutputStatement } from '@/core/models/OutputStatement';
-import { MetricContainer } from '@/core/models/MetricContainer';
-import { MetricType } from '@/core/models/Metric';
-import { EFFORT_DATA_METRIC_TYPE } from '@/core/analytics/effortResolution';
-import type { IOutputStatement } from '@/core/models/OutputStatement';
+import { OutputStatement } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import { EFFORT_DATA_METRIC_TYPE } from '@bitcobblers/wod-wiki-engine';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
 import { fixtureRunning, fixtureRowing, fixtureBackSquat } from '@/effort-registry/fixtures';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ function makeSegment(
       type: m.type as MetricType,
       image: String(m.value),
       value: m.value,
-      origin: (m.origin ?? 'runtime') as import('@/core/models/Metric').MetricOrigin,
+      origin: (m.origin ?? 'runtime') as import('@bitcobblers/wod-wiki-engine').MetricOrigin,
       timestamp: new Date(0),
     });
   }

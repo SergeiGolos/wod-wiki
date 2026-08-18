@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { RawPointsTable } from '../../../src/components/organisms/analytics/RawPointsTable';
 import type { AnalyticsDataPoint } from '../../../src/types/storage';
 

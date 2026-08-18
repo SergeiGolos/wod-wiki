@@ -1,16 +1,16 @@
-import { IRuntimeBlock, BlockLifecycleOptions, CompletionDecision } from '@/runtime/contracts/IRuntimeBlock';
-import type { IRuntimeActionable } from '@/runtime/contracts/primitives/IRuntimeActionable';
-import { IBlockContext } from '@/runtime/contracts/IBlockContext';
-import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
-import { IRuntimeBehavior } from '@/runtime/contracts/IRuntimeBehavior';
-import { IMemoryLocation, MemoryTag } from '@/runtime/memory/MemoryLocation';
-import { TimerState } from '@/runtime/memory/MemoryTypes';
-import { MetricVisibility } from '@/runtime/memory/MetricVisibility';
-import { BlockKey } from '@/core/models/BlockKey';
-import { IMetric, MetricType } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
-import { TimeSpan } from '@/runtime/models/TimeSpan';
+import { IRuntimeBlock, BlockLifecycleOptions, CompletionDecision } from '@bitcobblers/wod-wiki-engine';
+import type { IRuntimeActionable } from '@bitcobblers/wod-wiki-engine';
+import { IBlockContext } from '@bitcobblers/wod-wiki-engine';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeAction } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeBehavior } from '@bitcobblers/wod-wiki-engine';
+import { IMemoryLocation, MemoryTag } from '@bitcobblers/wod-wiki-engine';
+import { TimerState } from '@bitcobblers/wod-wiki-engine';
+import { MetricVisibility } from '@bitcobblers/wod-wiki-engine';
+import { BlockKey } from '@bitcobblers/wod-wiki-engine';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import { TimeSpan } from '@bitcobblers/wod-wiki-engine';
 import type { SerializedBlock } from './RpcMessages';
 
 // ── ReactiveMemoryLocation ──────────────────────────────────────────────────

@@ -44,9 +44,9 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', ...codemirrorSingletonDeps],
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      '@wod-wiki/engine': path.resolve(__dirname, 'packages/engine/src/index.ts'),
-      '@wod-wiki/ui/extensions': path.resolve(__dirname, 'packages/ui/src/extensions/index.ts'),
-      '@wod-wiki/ui': path.resolve(__dirname, 'packages/ui/src/index.ts'),
+      '@bitcobblers/wod-wiki-engine': path.resolve(__dirname, 'packages/engine/src/index.ts'),
+      '@bitcobblers/wod-wiki-ui/extensions': path.resolve(__dirname, 'packages/ui/src/extensions/index.ts'),
+      '@bitcobblers/wod-wiki-ui': path.resolve(__dirname, 'packages/ui/src/index.ts'),
       react: path.resolve(process.cwd(), 'node_modules/react'),
       'react-dom': path.resolve(process.cwd(), 'node_modules/react-dom'),
     },

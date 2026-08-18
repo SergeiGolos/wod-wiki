@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-import { MdTimerRuntime } from '../../src/parser/md-timer'
+import { MdTimerRuntime } from '@bitcobblers/wod-wiki-engine'
 import { TestScript, assertions } from '@/testing/script'
 import { parseCanvasMarkdown, type ParsedCanvasPage, type PipelineStep } from '../../playground/src/canvas/parseCanvasMarkdown'
 

@@ -11,8 +11,8 @@
  * never silently passes a quest.
  */
 
-import { MetricType, type IMetric } from '@/core/models/Metric';
-import type { ICodeStatement } from '@/core/models/CodeStatement';
+import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-engine';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import type { ScriptBlock } from '@/components/Editor/types';
 
 export interface ValidationSchema {

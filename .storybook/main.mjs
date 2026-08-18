@@ -98,9 +98,9 @@ const config = {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       '@': path.resolve(process.cwd(), 'src'),
-      '@wod-wiki/engine': path.resolve(process.cwd(), 'packages/engine/src/index.ts'),
-      '@wod-wiki/ui/extensions': path.resolve(process.cwd(), 'packages/ui/src/extensions/index.ts'),
-      '@wod-wiki/ui': path.resolve(process.cwd(), 'packages/ui/src/index.ts'),
+      '@bitcobblers/wod-wiki-engine': path.resolve(process.cwd(), 'packages/engine/src/index.ts'),
+      '@bitcobblers/wod-wiki-ui/extensions': path.resolve(process.cwd(), 'packages/ui/src/extensions/index.ts'),
+      '@bitcobblers/wod-wiki-ui': path.resolve(process.cwd(), 'packages/ui/src/index.ts'),
       react: path.resolve(process.cwd(), 'node_modules/react'),
       'react-dom': path.resolve(process.cwd(), 'node_modules/react-dom'),
     };

@@ -14,7 +14,7 @@
  */
 
 import React, { useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { PlanPanel } from '@/panels/plan-panel';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 

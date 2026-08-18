@@ -5,7 +5,7 @@
  *  1. Default — complete card example
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
   Card,
   CardHeader,

@@ -8,7 +8,7 @@ import { useEffect, useRef } from 'react';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
-import { CalcScope } from '../../../core/analytics/calc/types';
+import { CalcScope } from '@bitcobblers/wod-wiki-engine';
 import { calcLineSupport } from './calcLineLanguage';
 import { calcCompletion } from './calcCompletion';
 

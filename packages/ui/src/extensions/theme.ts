@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import { Extension } from "@codemirror/state";
+import type { Extension } from "@codemirror/state";
 import { oneDark } from "@codemirror/theme-one-dark";
 
 export function editorTheme(isDark: boolean): Extension {

@@ -1,5 +1,5 @@
 import { ViewPlugin, ViewUpdate, EditorView } from "@codemirror/view";
-import { sectionField, EditorSection } from "./section-state";
+import { sectionField, type EditorSection } from "./section-state";
 
 export interface SectionRect {
   sectionId: string;
@@ -40,16 +40,22 @@ class SectionGeometryPlugin {
 
   private measure() {
     try {
-      const { sections } = this.view.state.field(sectionField);
-      const scrollRect = this.view.scrollDOM.getBoundingClientRect();
-      const scrollTop = this.view.scrollDOM.scrollTop;
-
+      const sectionState = this.view.state.field(sectionField, false);
+      const sections = sectionState?.sections ?? [];
+      const scrollRect = this.view.scrollDOM?.getBoundingClientRect ? this.view.scrollDOM.getBoundingClientRect() : { top: 0, left: 0, bottom: 0, right: 0 };
+      const scrollTop = this.view.scrollDOM?.scrollTop ?? 0;
       this.rects = sections.map((sec) => {
-        const fromCoords = this.view.coordsAtPos(sec.from);
-        const toCoords = this.view.coordsAtPos(sec.to);
+        let fromCoords = null;
+        let toCoords = null;
+        try {
+          fromCoords = this.view.coordsAtPos ? this.view.coordsAtPos(sec.from) : null;
+          toCoords = this.view.coordsAtPos ? this.view.coordsAtPos(sec.to) : null;
+        } catch {
+          // Layout reading is disallowed during EditorView updating phase
+        }
 
-        const top = fromCoords ? fromCoords.top - scrollRect.top + scrollTop : 0;
-        const bottom = toCoords ? toCoords.bottom - scrollRect.top + scrollTop : top;
+        const top = fromCoords ? fromCoords.top - (scrollRect?.top ?? 0) + scrollTop : 0;
+        const bottom = toCoords ? toCoords.bottom - (scrollRect?.top ?? 0) + scrollTop : top;
         const height = Math.max(bottom - top, 20);
 
         return {

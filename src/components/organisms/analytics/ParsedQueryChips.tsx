@@ -1,4 +1,4 @@
-import type { ParsedQuery } from '@/services/analytics/query';
+import type { ParsedQuery } from '@bitcobblers/wod-wiki-engine';
 import { cn } from '@/lib/utils';
 
 interface ChipProps {

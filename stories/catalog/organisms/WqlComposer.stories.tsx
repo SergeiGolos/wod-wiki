@@ -17,7 +17,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
   WqlComposer,
   composerRegistry,
@@ -27,10 +27,9 @@ import {
   type QueryClause,
   type WqlExecutor,
   type WqlValidationState,
-} from '../../../src/components/organisms/wql-composer';
-import type { AnyParsedQuery } from '../../../src/services/analytics/query/wql';
-import { isFindQuery } from '../../../src/services/analytics/query';
-import type { FindQueryResult, QueryResult } from '../../../src/services/analytics/query/QueryService';
+} from '@bitcobblers/wod-wiki-ui';
+import type { AnyParsedQuery, FindQueryResult, QueryResult } from '@bitcobblers/wod-wiki-engine';
+import { isFindQuery } from '@bitcobblers/wod-wiki-engine';
 
 const meta: Meta<typeof WqlComposer> = {
   title: 'Organisms/WqlComposer',

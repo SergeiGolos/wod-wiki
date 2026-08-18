@@ -11,10 +11,10 @@
  */
 
 import React from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Routes, Route } from 'react-router-dom';
 import { EffortDetailPage } from '../../../playground/src/pages/EffortDetailPage';
-import { EffortRegistryProvider } from '../../../playground/src/contexts/EffortRegistryContext'
+import { EffortRegistryProvider } from '../../../playground/src/contexts/EffortRegistryContext';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -51,36 +51,27 @@ type Story = StoryObj<typeof EffortDetailPage>;
 /** Default bundled effort with analytics placeholder. */
 export const BundledEffort: Story = {
   name: 'Bundled effort',
-  parameters: {
-    router: { initialEntries: ['/effort/rowing'] },
-  },
+  parameters: { layout: 'fullscreen', router: { initialEntries: ['/effort/rowing'] } },
   render: () => <EffortDetailShell />,
 };
 
 /** High-intensity effort with many aliases. */
 export const HighIntensityEffort: Story = {
   name: 'High-intensity effort',
-  parameters: {
-    router: { initialEntries: ['/effort/kettlebell-snatch'] },
-  },
+  parameters: { layout: 'fullscreen', router: { initialEntries: ['/effort/kettlebell-snatch'] } },
   render: () => <EffortDetailShell />,
 };
 
 /** Effort with URL modifiers — shows resolved tab and analytics placeholder. */
 export const WithModifiers: Story = {
   name: 'With modifiers (resolved tab)',
-  parameters: {
-    router: { initialEntries: ['/effort/rowing?met=1.2&discipline=running'] },
-  },
+  parameters: { layout: 'fullscreen', router: { initialEntries: ['/effort/rowing?met=1.2&discipline=running'] } },
   render: () => <EffortDetailShell />,
 };
 
 /** Mobile viewport — analytics section is hidden to reduce clutter. */
 export const Mobile: Story = {
   name: 'Mobile viewport',
-  parameters: {
-    viewport: { defaultViewport: 'mobile1' },
-    router: { initialEntries: ['/effort/rowing'] },
-  },
+  parameters: { layout: 'fullscreen', viewport: { defaultViewport: 'mobile1' }, router: { initialEntries: ['/effort/rowing'] } },
   render: () => <EffortDetailShell />,
 };

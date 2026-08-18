@@ -12,7 +12,7 @@
  */
 
 import React, { useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import type { ScriptBlock } from '@/components/Editor/types'
 

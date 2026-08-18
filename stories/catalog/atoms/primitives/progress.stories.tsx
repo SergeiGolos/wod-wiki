@@ -6,7 +6,7 @@
  *  2. Indeterminate — indeterminate progress
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Progress } from '@/components/atoms/primitives/progress';
 
 const meta: Meta<typeof Progress> = {

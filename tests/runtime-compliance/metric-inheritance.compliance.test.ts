@@ -18,8 +18,8 @@
 import { it, expect } from 'bun:test';
 import { describeCompliance } from '@/testing/script';
 import type { TestScript, ScriptState } from '@/testing/script';
-import { MetricType } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 
 // ---------------------------------------------------------------------------
 // Helpers

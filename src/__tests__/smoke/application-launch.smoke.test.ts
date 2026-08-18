@@ -13,20 +13,20 @@
 
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { DialectRegistry } from '../../services/DialectRegistry';
-import { JitCompiler } from '../../runtime/compiler/JitCompiler';
-import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { ExecutionContext } from '../../runtime/ExecutionContext';
-import { RuntimeStack } from '../../runtime/RuntimeStack';
-import { RuntimeClock } from '../../runtime/RuntimeClock';
-import { createParser } from '../../parser/parserInstance';
+import { JitCompiler } from '@bitcobblers/wod-wiki-engine';
+import { ScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { ExecutionContext } from '@bitcobblers/wod-wiki-engine';
+import { RuntimeStack } from '@bitcobblers/wod-wiki-engine';
+import { RuntimeClock } from '@bitcobblers/wod-wiki-engine';
+import { createParser } from '@bitcobblers/wod-wiki-engine';
 import { SimpleEventBus } from '../../services/events/SimpleEventBus';
 import { workbenchEventBus } from '../../services/WorkbenchEventBus';
-import { EventBus } from '../../runtime/events/EventBus';
-import type { IRuntimeBlockStrategy } from '../../runtime/contracts/IRuntimeBlockStrategy';
-import type { IDialect } from '../../core/models/Dialect';
-import { MetricContainer } from '../../core/models/MetricContainer';
-import type { WhiteboardScript } from '../../parser/WhiteboardScript';
-import { DEFAULT_RUNTIME_OPTIONS } from '../../runtime/contracts/IRuntimeOptions';
+import { EventBus } from '@bitcobblers/wod-wiki-engine';
+import type { IRuntimeBlockStrategy } from '@bitcobblers/wod-wiki-engine';
+import type { IDialect } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import type { WhiteboardScript } from '@bitcobblers/wod-wiki-engine';
+import { DEFAULT_RUNTIME_OPTIONS } from '@bitcobblers/wod-wiki-engine';
 
 // ---------------------------------------------------------------------------
 // Test Doubles

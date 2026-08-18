@@ -25,7 +25,7 @@ import {
   CLAUSE_META,
   defaultMetricsClauses,
   type QueryClause,
-} from '@/components/organisms/wql-composer'
+} from '@bitcobblers/wod-wiki-ui'
 
 export interface QueryToDashboardDialogProps {
   open: boolean

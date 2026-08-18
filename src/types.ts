@@ -11,10 +11,10 @@ export type {
   ICodeStatement,
   ParseError,
   TimeSpan,
-} from './core/types';
+} from '@bitcobblers/wod-wiki-engine';
 
 // Legacy alias preserved for existing `wod-wiki/types` consumers.
-export type { ICodeStatement as RuntimeCodeStatement } from './core/types/core';
+export type { ICodeStatement as RuntimeCodeStatement } from '@bitcobblers/wod-wiki-engine';
 
 // Canonical runtime contract types
 export type {

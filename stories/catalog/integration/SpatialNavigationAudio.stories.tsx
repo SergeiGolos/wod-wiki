@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
 import { audioService } from '@/services/AudioService';
 import { Button } from '@/components/atoms/primitives/button'

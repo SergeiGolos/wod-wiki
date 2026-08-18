@@ -1,5 +1,5 @@
 import { StateField, StateEffect, EditorState } from "@codemirror/state";
-import { parseQueryWidgetSuffix } from "@wod-wiki/engine";
+import { parseQueryWidgetSuffix } from "@bitcobblers/wod-wiki-engine";
 import { hashCode } from "../utils/cn";
 
 export type EditorDialect = "time" | "log";
@@ -99,10 +99,14 @@ interface ContentFenceMatch {
 function matchContentFence(trimmed: string): ContentFenceMatch | null {
   const match = trimmed.match(/^```\s*query(\S*)\s*$/i);
   if (!match) return null;
-  const suffix = match[1] ?? '';
-  const parsed = parseQueryWidgetSuffix(suffix);
+  const rawSuffix = match[1] ?? "";
+  // Bare ```query renders the default widget — no suffix to parse.
+  if (rawSuffix === "") return { kind: "query" };
+  // Strip the `:` separator before parsing the widget type/spans
+  // (`query:table-2-full` → suffix `table-2-full`).
+  const parsed = parseQueryWidgetSuffix(rawSuffix.replace(/^:/, ""));
   return {
-    kind: 'query',
+    kind: "query",
     widgetType: parsed.type,
     widgetError: parsed.error,
   };
@@ -266,6 +270,58 @@ function parseSections(state: EditorState): EditorSection[] {
       mdStartLine = lineNum;
       mdStartPos = lineNum <= state.doc.lines ? state.doc.line(lineNum).from : state.doc.length;
       continue;
+    }
+
+    // ── Frontmatter (--- delimiters) ──
+    // Rules (Jekyll / Hugo / YAML front matter convention):
+    //  1. The opening --- must be on line 1 OR preceded only by blank lines.
+    //  2. The line immediately after the opening --- must NOT be blank
+    //     (blank-after means it's a Markdown thematic break / hr, not YAML).
+    //  3. The block between the delimiters must contain at least one
+    //     "key: value" line so we don't treat empty --- --- pairs as frontmatter.
+    if (trimmed === "---") {
+      const lineCount = state.doc.lines;
+      const nextLineText = lineNum < lineCount ? state.doc.line(lineNum + 1).text.trim() : "";
+      if (nextLineText !== "") {
+        let foundClose = false;
+        let closeLine = lineNum;
+        let hasKeyValueLine = false;
+
+        for (let j = lineNum + 1; j <= lineCount; j++) {
+          const jTrimmed = state.doc.line(j).text.trim();
+          if (matchDialectFence(jTrimmed) || matchGenericFence(jTrimmed)) break;
+          if (jTrimmed === "---") {
+            closeLine = j;
+            foundClose = true;
+            break;
+          }
+          if (/^[A-Za-z_][\w-]*\s*:/.test(jTrimmed)) {
+            hasKeyValueLine = true;
+          }
+        }
+
+        if (foundClose && hasKeyValueLine) {
+          flushMarkdown(lineNum - 1, line.from);
+
+          const closeLineObj = state.doc.line(closeLine);
+          const content = state.doc.sliceString(line.from, closeLineObj.to);
+          sections.push({
+            id: generateSectionId("frontmatter", lineNum, content),
+            type: "frontmatter",
+            from: line.from,
+            to: closeLineObj.to,
+            startLine: lineNum,
+            endLine: closeLine,
+            contentFrom: line.to + 1,
+            contentTo: closeLineObj.from - 1,
+          });
+
+          lineNum = closeLine + 1;
+          mdStartLine = lineNum;
+          mdStartPos = lineNum <= lineCount ? state.doc.line(lineNum).from : state.doc.length;
+          continue;
+        }
+      }
     }
 
     if (currentMdLines.length === 0) {

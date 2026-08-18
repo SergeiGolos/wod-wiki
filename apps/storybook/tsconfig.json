@@ -4,9 +4,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["../../src/*"],
-      "@wod-wiki/engine": ["../../packages/engine/src/index.ts"],
-      "@wod-wiki/ui": ["../../packages/ui/src/index.ts"],
-      "@wod-wiki/ui/*": ["../../packages/ui/src/*"]
+      "@bitcobblers/wod-wiki-engine": ["../../packages/engine/src/index.ts"],
+      "@bitcobblers/wod-wiki-ui": ["../../packages/ui/src/index.ts"],
+      "@bitcobblers/wod-wiki-ui/*": ["../../packages/ui/src/*"]
     }
   },
   "include": [

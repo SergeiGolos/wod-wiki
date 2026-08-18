@@ -5,7 +5,7 @@
  *  1. Default — toaster with button to trigger toasts
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Toaster } from '@/components/atoms/primitives/toaster';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/atoms/primitives/button';

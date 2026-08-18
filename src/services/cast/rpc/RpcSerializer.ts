@@ -1,8 +1,8 @@
-import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
-import { IOutputStatement } from '@/core/models/OutputStatement';
-import { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
-import { IMetric } from '@/core/models/Metric';
-import { MemoryTag } from '@/runtime/memory/MemoryLocation';
+import { IRuntimeBlock } from '@bitcobblers/wod-wiki-engine';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
+import { StackSnapshot } from '@bitcobblers/wod-wiki-engine';
+import { IMetric } from '@bitcobblers/wod-wiki-engine';
+import { MemoryTag } from '@bitcobblers/wod-wiki-engine';
 import {
     SerializedBlock,
     SerializedTimer,

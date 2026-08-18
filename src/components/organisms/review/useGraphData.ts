@@ -10,8 +10,8 @@
  */
 
 import { useMemo } from 'react';
-import { MetricType } from '@/core/models/Metric';
-import type { AnalyticsGraphConfig } from '@/core/models/AnalyticsModels';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import type { AnalyticsGraphConfig } from '@bitcobblers/wod-wiki-engine';
 import type { GridRow } from './types';
 import type { ColumnDef, ComputeContext } from './column-definition-language';
 import { extractGraphValue } from './interpreters';

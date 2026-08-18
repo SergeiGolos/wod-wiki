@@ -16,7 +16,7 @@ import React, { useCallback, useRef, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import { formatSecondsMMSS, formatSecondsHHMMSS } from '@/lib/formatTime';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { GridRow } from '../types';
 import type {
   ColumnDef,

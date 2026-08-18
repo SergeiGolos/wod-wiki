@@ -32,9 +32,9 @@
  * page lifetime and `connect()` is called from the user's cast gesture.
  */
 
-import type { ICastSubscription } from '@/runtime/contracts/ICastSubscription';
-import type { IRuntimeEventProvider } from '@/runtime/contracts/IRuntimeEventProvider';
-import type { IRuntimeSubscription } from '@/runtime/contracts/IRuntimeSubscription';
+import type { ICastSubscription } from '@bitcobblers/wod-wiki-engine';
+import type { IRuntimeEventProvider } from '@bitcobblers/wod-wiki-engine';
+import type { IRuntimeSubscription } from '@bitcobblers/wod-wiki-engine';
 import { ChromecastEventProvider } from './ChromecastEventProvider';
 import { ChromecastRuntimeSubscription } from './ChromecastRuntimeSubscription';
 import { ClockSyncService } from './ClockSync';

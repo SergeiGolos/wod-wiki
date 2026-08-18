@@ -5,7 +5,7 @@
  * is defined once and reusable across every tier (atoms / molecules / organisms).
  */
 
-import { MetricType, type IMetric } from '@/core/models/Metric';
+import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-engine';
 import type { HistoryEntry } from '@/types/history';
 import type { Notebook } from '@/types/notebook';
 import type { ScriptCollection, ScriptCollectionItem } from '@/repositories/script-collections';

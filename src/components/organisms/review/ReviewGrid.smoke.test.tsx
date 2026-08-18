@@ -3,10 +3,10 @@ import { afterEach, describe, expect, it, mock, vi } from 'bun:test';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { ReviewGrid } from './ReviewGrid';
 import { DebugModeProvider } from '@/contexts/DebugModeContext';
-import type { Segment } from '@/core/models/AnalyticsModels';
-import type { AnalyticsGroup } from '@/core/models/AnalyticsModels';
-import { MetricType, type IMetric } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
+import type { Segment } from '@bitcobblers/wod-wiki-engine';
+import type { AnalyticsGroup } from '@bitcobblers/wod-wiki-engine';
+import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 mock.module('@/stores/workbenchSessionStore', () => {
   const overrides = new Map();
   return {

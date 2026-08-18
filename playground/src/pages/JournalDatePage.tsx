@@ -14,7 +14,7 @@ import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { WorkoutResult } from '@/types/storage';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
-import { sessionQueryInsert } from '@/components/Editor/extensions/sessionQueryBlock';
+import { sessionQueryInsert } from '@bitcobblers/wod-wiki-ui/extensions';
 import { resolveCompletionTargets } from '../lib/workoutCompletion';
 import { useEditorSave } from '../hooks/useEditorSave';
 

@@ -390,11 +390,42 @@ function readNestedSection(lines: string[], key: string): Record<string, unknown
  * Vite still resolves the literal pattern at build time.
  */
 function globEffortModules(): Record<string, string> {
-  return import.meta.glob('../../markdown/efforts/**/*.md', {
-    query: '?raw',
-    eager: true,
-    import: 'default',
-  }) as Record<string, string>;
+  try {
+    // Vite transforms this into an inline module map at build time. Call it
+    // directly — after the transform `import.meta.glob` is no longer a
+    // function, so a typeof guard would always take the fallback here.
+    // Relative to this file so it resolves identically under any Vite root
+    // (Storybook at the repo root, the playground app at playground/).
+    return (import.meta as any).glob('../../markdown/efforts/**/*.md', {
+      query: '?raw',
+      eager: true,
+      import: 'default',
+    }) as Record<string, string>;
+  } catch {
+    // Bun and Node do not provide Vite's import.meta.glob transform.
+  }
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const res: Record<string, string> = {};
+    const effortsDir = path.resolve(process.cwd(), 'markdown/efforts');
+    if (fs.existsSync(effortsDir)) {
+      const walk = (dir: string) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            walk(full);
+          } else if (entry.name.endsWith('.md')) {
+            res[full] = fs.readFileSync(full, 'utf8');
+          }
+        }
+      };
+      walk(effortsDir);
+    }
+    return res;
+  } catch {
+    return {};
+  }
 }
 
 /** Parse a single markdown file into an IEffort */

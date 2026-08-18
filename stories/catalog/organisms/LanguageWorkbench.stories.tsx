@@ -5,9 +5,9 @@
  *  - a golden IR fixture file (fact-set envelope) is the only data source;
  *  - an in-memory FactQueryStore feeds the QueryService through the same
  *    injectable seam production IndexedDB uses — zero backend state;
- *  - a live CodeMirror WQL editor powered by `@wod-wiki/ui`'s `editorPreset({ dialect: 'wql' })`
+ *  - a live CodeMirror WQL editor powered by `@bitcobblers/wod-wiki-ui`'s `editorPreset({ dialect: 'wql' })`
  *    re-runs the query in real-time and the dumb widgets re-render from the result;
- *  - a live CodeMirror Whiteboard editor powered by `@wod-wiki/ui`'s `editorPreset({ dialect: 'whiteboard' })`
+ *  - a live CodeMirror Whiteboard editor powered by `@bitcobblers/wod-wiki-ui`'s `editorPreset({ dialect: 'whiteboard' })`
  *    parses on every keystroke, and a demo Language Pack registers/unregisters at runtime
  *    via `registerLanguagePack()` without Storybook restarts.
  */
@@ -34,7 +34,7 @@ import {
   type ICodeStatement,
   type DialectAnalysis,
   type LanguagePack,
-} from '@wod-wiki/engine';
+} from '@bitcobblers/wod-wiki-engine';
 import {
   editorPreset,
   WidgetFrame,
@@ -42,7 +42,7 @@ import {
   WqlTimeseries,
   WqlBars,
   TopList,
-} from '@wod-wiki/ui';
+} from '@bitcobblers/wod-wiki-ui';
 
 const meta: Meta = {
   title: 'Organisms/Language Workbench',
@@ -79,7 +79,7 @@ const demoPack: LanguagePack = defineLanguagePack({
   },
 });
 
-// ── Dual CodeMirror Mounting using @wod-wiki/ui editorPreset ───────────────
+// ── Dual CodeMirror Mounting using @bitcobblers/wod-wiki-ui editorPreset ───────────────
 
 function useCodeMirror(
   host: React.RefObject<HTMLDivElement | null>,

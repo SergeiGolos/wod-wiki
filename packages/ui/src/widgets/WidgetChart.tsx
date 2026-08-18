@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
-import type { QueryResult } from '@wod-wiki/engine';
+import type { QueryResult } from '@bitcobblers/wod-wiki-engine';
 import {
   isDashboardWidgetType,
   PLANNED_WIDGET_TYPES,
   resolveWidgetType,
   unknownWidgetTypeMessage,
-} from '@wod-wiki/engine';
+} from '@bitcobblers/wod-wiki-engine';
 import { QueryValue } from './QueryValue';
 import { WqlTimeseries } from './WqlTimeseries';
 import { WqlBars } from './WqlBars';
@@ -84,6 +84,7 @@ export function WidgetProblemBadge({ message }: { message: string }) {
   return (
     <div
       role="alert"
+      data-testid="widget-problem"
       className="flex items-center justify-center h-full p-4 rounded-md border border-destructive/50 bg-destructive/10 text-destructive text-xs font-medium text-center"
     >
       {message}

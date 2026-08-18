@@ -9,10 +9,10 @@
  */
 
 import React from 'react';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { formatSecondsMMSS } from '@/lib/formatTime';
 import { getMetricIcon } from '@/views/runtime/metricColorMap';
-import { computeColumnLabel } from '@/core/metrics/presentation';
+import { computeColumnLabel } from '@bitcobblers/wod-wiki-engine';
 import type { ColumnDef, ColumnSetConfig, ColumnSetPreset } from './column-definition-language';
 import { renderMetricCell } from './interpreters';
 import { cn } from '@/lib/utils';

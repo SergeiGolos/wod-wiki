@@ -1,9 +1,8 @@
-import {
-  Decoration,
-  DecorationSet,
-  EditorView,
-} from "@codemirror/view";
-import { StateField, EditorState, Extension, RangeSetBuilder } from "@codemirror/state";
+import { Decoration,
+  EditorView } from "@codemirror/view";
+import type { DecorationSet } from "@codemirror/view";
+import { StateField, EditorState, RangeSetBuilder } from "@codemirror/state";
+import type { Extension } from "@codemirror/state";
 import { sectionField } from "./section-state";
 
 const fenceOpenDeco = Decoration.line({

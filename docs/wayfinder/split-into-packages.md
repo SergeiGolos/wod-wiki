@@ -5,6 +5,16 @@
 > GitHub issue labelled `wayfinder:<type>`. **Never resolve more than one ticket
 > per session.** Refer to tickets by name, never by id.
 
+> **⚠ ABSORBED (2026-08-15)** into GitHub wayfinder map
+> [**Wayfinder map: Extract Whiteboard Language & WQL engine into standalone wod-wiki-engine repository**](https://github.com/SergeiGolos/wod-wiki/issues/953)
+> under the **harmonized** topology: the `wod-wiki-packages` workspace this map
+> decided becomes the `wod-wiki-engine` repo, extended with `@bitcobblers/wod-wiki-ui`
+> (Storybook workbench) and an `@bitcobblers/wod-wiki-engine` umbrella re-export. All
+> Decisions below carry over unchanged (5-way DAG, no god-packages,
+> parse↔execute seam, `@wod-wiki/*` scope). Open tickets folded into the new
+> map: kernel consolidation → #961; CM-singleton research → folded into the
+> scaffold ticket #954. **Do not work tickets here — work the GitHub map.**
+
 ## Destination
 
 Split the `wod-wiki` monorepo into **five packages across three repos** with a one-way
@@ -62,8 +72,8 @@ canonical; this map is the execution scaffold.
   + `wod-wiki-sources` (own repo/CI/Pages) + `wod-wiki-playground` (this repo becomes the
   app). The 5-repo variant was rejected: 3 coordinated releases per core change + CM dedupe
   re-fragmented across published packages. Setup plan: `package-split-setup.md` (repo root).
-- **npm scope `@wod-wiki/*` (decided)** — `@wod-wiki/core`, `@wod-wiki/lang`,
-  `@wod-wiki/wql`, `@wod-wiki/sources-index` replace `@bitcobblers/whiteboard-lang` on the
+- **npm scope `@wod-wiki/*` (decided)** — `@bitcobblers/wod-wiki-core`, `@bitcobblers/wod-wiki-lang`,
+  `@bitcobblers/wod-wiki-wql`, `@wod-wiki/sources-index` replace `@bitcobblers/whiteboard-lang` on the
   next publish.
 
 ## Tickets
@@ -99,7 +109,7 @@ Status legend: `🔶 unblocked task` (frontier — take next) · `🟡 unblocked
   `vite.config.ts`, `playground/vite.config.ts`, `.storybook/main.mjs`, +
   `scripts/fix-codemirror-deps.cjs`. Inside the packages workspace the singleton is
   **solved by construction** (one node_modules). The remaining question is the
-  **playground seam**: playground composes `@wod-wiki/lang` + `@wod-wiki/wql` + its own
+  **playground seam**: playground composes `@bitcobblers/wod-wiki-lang` + `@bitcobblers/wod-wiki-wql` + its own
   CM — declare `@codemirror/*`/`@lezer/*` as **peerDependencies** in the published
   packages + hoist, and generalize the existing postinstall pattern? _Output:_ a short
   decision note (peer-deps + hoist recommended). _Blocks:_ lang + wql extraction, playground
@@ -182,7 +192,7 @@ against published packages.
 <!-- ruled beyond the destination; closed, never graduates -->
 
 - **Renaming the published npm package** (`@bitcobblers/whiteboard-lang` → per-package
-  names like `@wod-wiki/core`). A release/naming decision, separate effort; per-package
+  names like `@bitcobblers/wod-wiki-core`). A release/naming decision, separate effort; per-package
   `publishConfig` can be set during extraction without resolving the org name here.
 - **Refactoring the existing playground CI/CD graph** (`.github/workflows/*`). Orthogonal
   to the package split, though sources gets its own pipeline and playground's adapts —

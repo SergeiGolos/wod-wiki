@@ -1,6 +1,6 @@
-import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
+import type { IRuntimeBlock } from '@bitcobblers/wod-wiki-engine';
 import type { RpcMessage } from '@/services/cast/rpc/RpcMessages';
-import type { IOutputStatement } from '@/core/models/OutputStatement';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
 
 export interface ScriptState {
     /** Frozen stack at the moment of snapshot. */

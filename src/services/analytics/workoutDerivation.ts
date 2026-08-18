@@ -22,10 +22,10 @@
  *     fact rows and display: 'reps', 'distance', 'resistance', 'elapsed',
  *     'power', 'pace', 'totalVolume', 'tis', … (CONTEXT.md §Analytics).
  */
-import { createAnalyticsEngineForBlock } from '@/core/analytics/createAnalyticsEngineForBlock';
-import type { CalculationDefinition } from '@/core/analytics/calc/types';
-import { MetricType } from '@/core/models/Metric';
-import { OutputStatement, type IOutputStatement } from '@/core/models/OutputStatement';
+import { createAnalyticsEngineForBlock } from '@bitcobblers/wod-wiki-engine';
+import type { CalculationDefinition } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import { OutputStatement, type IOutputStatement } from '@bitcobblers/wod-wiki-engine';
 import type { IEffortResolver } from '@/effort-registry/types';
 import {
   toStoredOutputStatement,

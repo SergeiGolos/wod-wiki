@@ -7,7 +7,7 @@
 
 import { useMemo, useCallback } from 'react';
 import type { EffortRegistrySource } from '@/effort-registry';
-import { CLAUSE_META } from '@/components/organisms/wql-composer';
+import { CLAUSE_META } from '@bitcobblers/wod-wiki-ui';
 import { useEffortsComposerState } from './useEffortsComposerState';
 
 export interface EffortsQueryState {

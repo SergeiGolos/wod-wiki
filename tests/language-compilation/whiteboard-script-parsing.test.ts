@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
-import { WhiteboardScript } from '../../src/parser/WhiteboardScript';
-import { ICodeStatement } from '../../src/core/models/CodeStatement';
-import { CodeMetadata } from '../../src/core/models/CodeMetadata';
+import { WhiteboardScript } from '@bitcobblers/wod-wiki-engine';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
+import { CodeMetadata } from '@bitcobblers/wod-wiki-engine';
 
 describe('WhiteboardScript ID Type Consistency', () => {
   const mockMeta: CodeMetadata = {

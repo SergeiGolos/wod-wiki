@@ -4,8 +4,8 @@
  * Parses Whiteboard Script source text and emits a versioned IR parse-tree envelope.
  */
 
-import { createParser } from '@/parser/parserInstance';
-import type { WhiteboardScript } from '@/parser/WhiteboardScript';
+import { createParser } from '../parser/parserInstance';
+import type { WhiteboardScript } from '../parser/WhiteboardScript';
 import { createIRFile, buildStatementTree, type WodWikiIRFile, type StatementNode } from '../ir';
 
 export class ParseSyntaxError extends Error {

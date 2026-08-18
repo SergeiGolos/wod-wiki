@@ -6,7 +6,7 @@
  *  2. Disabled — disabled textarea
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Textarea } from '@/components/atoms/primitives/textarea';
 import { Label } from '@/components/atoms/primitives/label';
 

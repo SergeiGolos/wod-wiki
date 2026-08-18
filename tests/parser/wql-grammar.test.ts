@@ -14,7 +14,7 @@
  */
 import { describe, it, expect } from 'bun:test';
 import type { Tree } from '@lezer/common';
-import { parser } from '../../src/grammar/wql.parser';
+import { parser } from '@bitcobblers/wod-wiki-engine';
 
 const parse = (source: string): Tree => parser.parse(source);
 

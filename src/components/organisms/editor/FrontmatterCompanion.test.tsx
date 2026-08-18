@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'bun:test';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { EditorView } from '@codemirror/view';
 
-import type { EditorSection } from '@/components/Editor/extensions/section-state';
+import type { EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
 import { FrontmatterCompanion } from './FrontmatterCompanion';
 
 afterEach(() => {

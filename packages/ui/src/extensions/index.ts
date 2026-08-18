@@ -74,7 +74,10 @@ export {
 } from './query-block-preview';
 export {
   widgetBlockPreview,
+  toggleWidgetEdit,
+  editingWidgetsField,
   type WidgetRegistry,
-  type WidgetDefinition,
+  type WidgetProps,
+  type WidgetConfig,
 } from './widget-block-preview';
 export { editorPreset, type EditorPresetOptions } from './editorPreset';

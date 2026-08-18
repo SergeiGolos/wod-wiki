@@ -1,8 +1,9 @@
-import { Diagnostic, linter } from "@codemirror/lint";
+import { linter } from "@codemirror/lint";
+import type { Diagnostic } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { whiteboardScriptLanguage } from "@wod-wiki/engine";
+import { whiteboardScriptLanguage } from "@bitcobblers/wod-wiki-engine";
 import { sectionField } from "./section-state";
 
 export function findWorkoutErrors(content: string, offsetInDoc: number): Diagnostic[] {
@@ -36,7 +37,9 @@ export function findWorkoutErrors(content: string, offsetInDoc: number): Diagnos
 }
 
 export function workoutLintSource(view: EditorView): Diagnostic[] {
-  const { sections } = view.state.field(sectionField);
+  // The linter may run against states that don't include the section-state
+  // extension (e.g. standalone script editors) — nothing to lint then.
+  const { sections } = view.state.field(sectionField, false) ?? { sections: [] };
   const diagnostics: Diagnostic[] = [];
 
   for (const section of sections) {

@@ -1,20 +1,18 @@
-import {
-  Decoration,
-  DecorationSet,
-  EditorView,
-} from "@codemirror/view";
-import {
-  StateField,
+import { Decoration,
+  EditorView } from "@codemirror/view";
+import type { DecorationSet } from "@codemirror/view";
+import { StateField,
   EditorState,
-  Extension,
-  RangeSetBuilder,
-} from "@codemirror/state";
+  RangeSetBuilder } from "@codemirror/state";
+import type { Extension } from "@codemirror/state";
 import { sectionField, type EditorSection } from "./section-state";
-import type { ICodeStatement, IMetric } from "@wod-wiki/engine";
-import { extractStatements } from "@wod-wiki/engine";
+import type { ICodeStatement, IMetric } from "@bitcobblers/wod-wiki-engine";
+import { createParser } from "@bitcobblers/wod-wiki-engine";
 
 export interface CursorFocusState {
   sectionId: string;
+  section: EditorSection;
+  lineFrom: number;
   docLine: number;
   statementIndex: number;
   statement: ICodeStatement;
@@ -44,10 +42,9 @@ function parseStatements(
   if (section.contentFrom === undefined || section.contentTo === undefined) return null;
   const content = state.doc.sliceString(section.contentFrom, section.contentTo);
   try {
-    const tempState = EditorState.create({
-      doc: content.endsWith("\n") ? content : content + "\n",
-    });
-    return extractStatements(tempState, section.sport);
+    // Headless string parse — a bare EditorState carries no Lezer tree, so
+    // extractStatements() on one always yields zero statements.
+    return createParser().read(content, section.sport).statements as ICodeStatement[];
   } catch {
     return null;
   }
@@ -93,6 +90,8 @@ function buildDecorations(
         if (isCursorOnLine && !focus) {
           focus = {
             sectionId: section.id,
+            section,
+            lineFrom: line.from,
             docLine: lineNum,
             statementIndex: idx,
             statement: stmt,

@@ -7,7 +7,7 @@
  *  3. Sizes — all button sizes
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Button } from '@/components/atoms/primitives/button';
 
 const meta: Meta<typeof Button> = {

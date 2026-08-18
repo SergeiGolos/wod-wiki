@@ -10,7 +10,7 @@
  *  4. WithJournalEntries — list with journal entry summaries
  *  5. WithCreateEntry — list with create entry button
  */
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/react-vite'
 import { JournalDateScroll } from '../../../playground/src/views/queriable-list/JournalDateScroll'
 import type { FilteredListItem } from '../../../playground/src/views/queriable-list/types'
 import type { JournalEntrySummary } from '../../../playground/src/views/queriable-list/JournalDateScroll'

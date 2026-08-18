@@ -11,7 +11,7 @@
  */
 
 import { useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { CalendarDays, Play, Search } from 'lucide-react';
 import { CalendarSplitButton } from '@/components/molecules/CalendarSplitButton';
 import { FIXTURE_ENTRY_DATES } from '../_shared/fixtures';

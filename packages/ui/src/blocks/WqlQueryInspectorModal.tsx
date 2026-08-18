@@ -8,7 +8,7 @@ import {
   type QueryClause,
   type WqlExecutor,
 } from '../composer';
-import { isFindQuery } from '@wod-wiki/engine';
+import { isFindQuery } from '@bitcobblers/wod-wiki-engine';
 import type { QueryExecutor } from '../contracts/query';
 
 export interface WqlQueryInspectorModalProps {

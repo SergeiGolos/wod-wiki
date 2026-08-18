@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { type CollectionItem, type ChoiceCollectionItem, type ValueCollectionItem } from '@/hooks/useCollectionMetrics';
 import { cn } from '@/lib/utils';
 import { AlertCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';

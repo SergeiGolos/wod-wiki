@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { createParser } from '@/parser/parserInstance';
+import { createParser } from '@bitcobblers/wod-wiki-engine';
 import { WhiteboardScriptVisualizer } from '@/components/organisms/WhiteboardScriptVisualizer';
-import { VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
+import { VisualizerSize, VisualizerFilter } from '@bitcobblers/wod-wiki-engine';
 
 interface ParsedViewProps {
   scriptText: string;

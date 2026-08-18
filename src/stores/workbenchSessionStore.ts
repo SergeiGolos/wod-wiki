@@ -33,7 +33,7 @@ import type { IScriptRuntime, UseRuntimeExecutionReturn, SubscriptionManager } f
 import type { ScriptBlock, Section, WorkoutResults } from '@/components/Editor/types';
 import type { PanelLayoutState } from '@/panels/panel-system/types';
 import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
-import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
+import type { Segment, AnalyticsGroup } from '@bitcobblers/wod-wiki-engine';
 import { getAnalyticsFromLogs, getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer';
 import type { NoteLocator, GetNoteOptions } from '@/services/persistence';
 import type { INotePersistence } from '@/services/persistence';
@@ -43,11 +43,11 @@ import { loadStaticWorkbenchContent } from '@/app/workbench/workbenchProviders';
 import { createResultRecorder } from '@/services/resultRecorder';
 import type { HistoryEntry } from '@/types/history';
 import type { Attachment } from '@/types/storage';
-import { wallClockNow } from '@/runtime/INowProvider';
+import { wallClockNow } from '@bitcobblers/wod-wiki-engine';
 import { hashCode } from '@/lib/utils';
-import type { INowProvider } from '@/runtime/INowProvider';
-import { MetricContainer } from '@/core/models/MetricContainer';
-import type { IMetric } from '@/core/models/Metric';
+import type { INowProvider } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import type { IMetric } from '@bitcobblers/wod-wiki-engine';
 import { deriveWorkbenchDocumentState } from '@/app/workbench/workbenchDocumentModel';
 
 // ─── Shared route vocabulary (used by Workbench Session + Workbench Effect) ─

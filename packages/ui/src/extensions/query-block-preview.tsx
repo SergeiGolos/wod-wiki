@@ -1,15 +1,7 @@
-import {
-  Decoration,
-  EditorView,
-  WidgetType,
-  type DecorationSet,
-} from "@codemirror/view";
-import {
-  StateField,
-  RangeSetBuilder,
-  type Extension,
-  type EditorState,
-} from "@codemirror/state";
+import { Decoration, WidgetType, EditorView } from "@codemirror/view";
+import type { DecorationSet } from "@codemirror/view";
+import { StateField, RangeSetBuilder, EditorState } from "@codemirror/state";
+import type { Extension } from "@codemirror/state";
 import React from "react";
 // @ts-ignore
 import { createRoot } from "react-dom/client";

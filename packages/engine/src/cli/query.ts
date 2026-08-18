@@ -24,11 +24,11 @@ import {
   type BlockQueryStore,
   type ResultLogStore,
   type EffortQueryStore,
-} from '@/services/analytics/query';
-import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult } from '@/types/storage';
-import type { WorkoutResults } from '@/components/Editor/types';
-import type { IEffort } from '@/effort-registry';
-import { bundledEfforts } from '@/effort-registry/data/bundled-efforts';
+} from '../query';
+import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult } from '../types/storage';
+import type { WorkoutResults } from '../types';
+import type { IEffort } from '../effort-registry';
+import { bundledEfforts } from '../effort-registry/data/bundled-efforts';
 import { createIRFile, isIRFile, type WodWikiIRFile, type ExecutionLog, type CorpusIRData } from '../ir';
 
 export class WqlSyntaxError extends Error {

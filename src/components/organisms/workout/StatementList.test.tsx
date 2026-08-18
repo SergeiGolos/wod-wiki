@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 import { cleanup, render } from '@testing-library/react';
 import { StatementList } from './StatementList';
-import type { ICodeStatement } from '@/core/models/CodeStatement';
-import { MetricContainer } from '@/core/models/MetricContainer';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 
 describe('StatementList', () => {
   afterEach(() => {

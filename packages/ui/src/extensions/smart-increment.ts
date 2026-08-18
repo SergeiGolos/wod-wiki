@@ -1,5 +1,5 @@
 import { EditorView, keymap } from "@codemirror/view";
-import { Extension } from "@codemirror/state";
+import type { Extension } from "@codemirror/state";
 
 function parseTimeString(timeStr: string): [number, number, number, number] | null {
   const parts = timeStr.split(':');

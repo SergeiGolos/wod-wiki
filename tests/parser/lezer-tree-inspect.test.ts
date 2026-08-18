@@ -1,7 +1,7 @@
 import { describe, it } from 'bun:test';
 import { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { whiteboardScriptLanguage } from '@/parser/whiteboard-script-language';
+import { whiteboardScriptLanguage } from '@bitcobblers/wod-wiki-engine';
 
 function printTree(input: string): string {
     const doc = input.endsWith('\n') ? input : input + '\n';

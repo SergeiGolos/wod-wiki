@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 import { cleanup, render } from '@testing-library/react';
 import { MetricVisualizer } from './MetricVisualizer';
-import type { IMetric, MetricType } from '../../core/models/Metric';
+import type { IMetric, MetricType } from '@bitcobblers/wod-wiki-engine';
 
 function metric(type: string, value: unknown, image?: string): IMetric {
   return { type, value, image: image ?? String(value), origin: 'parser' } as IMetric;

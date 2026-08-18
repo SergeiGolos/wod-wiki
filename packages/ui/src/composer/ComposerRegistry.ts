@@ -49,6 +49,9 @@ export class ComposerRegistry {
   listSlots(): CustomSlotDefinition<any>[] {
     return this.cachedList;
   }
+  getAllSlots(): CustomSlotDefinition<any>[] {
+    return this.cachedList;
+  }
 
 
   subscribe(listener: () => void): () => void {

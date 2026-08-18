@@ -1,10 +1,9 @@
-import {
-  Decoration,
-  DecorationSet,
+import { Decoration,
   EditorView,
-  WidgetType,
-} from "@codemirror/view";
-import { StateField, EditorState, Extension, RangeSetBuilder } from "@codemirror/state";
+  WidgetType } from "@codemirror/view";
+import type { DecorationSet } from "@codemirror/view";
+import { StateField, EditorState, RangeSetBuilder } from "@codemirror/state";
+import type { Extension } from "@codemirror/state";
 import { sectionField, type EditorSection } from "./section-state";
 
 function isTableSeparator(line: string): boolean {

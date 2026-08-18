@@ -9,7 +9,7 @@
  *  3. EmptyCollection — empty collection with no workouts
  *  4. MixedCategoryItems — filtered view showing only matching category
  */
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/react-vite'
 import { CollectionWorkoutsList } from '../../../playground/src/views/queriable-list/CollectionWorkoutsList'
 import type { WorkoutItem } from '../../../playground/src/App'
 

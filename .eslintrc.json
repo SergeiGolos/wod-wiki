@@ -2,7 +2,8 @@
   "root": true,
   "parser": "@typescript-eslint/parser",
   "extends": [
-    "eslint:recommended"
+    "eslint:recommended",
+    "plugin:storybook/recommended"
   ],
   "rules": {
     "no-console": "warn",
@@ -26,24 +27,34 @@
   ],
   "overrides": [
     {
-      "files": ["src/components/**/*.ts", "src/components/**/*.tsx"],
+      "files": [
+        "src/components/**/*.ts",
+        "src/components/**/*.tsx"
+      ],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
               {
-                "group": ["**/runtime/**", "!**/views/runtime/**"],
+                "group": [
+                  "**/runtime/**",
+                  "!**/views/runtime/**"
+                ],
                 "allowTypeImports": true,
                 "message": "Do not import directly from runtime/ in components/. Import from @/hooks/useRuntimeTimer or @/hooks/useRuntimeParser instead."
               },
               {
-                "group": ["**/services/**"],
+                "group": [
+                  "**/services/**"
+                ],
                 "allowTypeImports": true,
                 "message": "Do not import directly from services/ in components/. Import from @/hooks/useWorkbenchServices or @/hooks/useCastSignaling instead."
               },
               {
-                "group": ["**/parser/**"],
+                "group": [
+                  "**/parser/**"
+                ],
                 "allowTypeImports": true,
                 "message": "Do not import directly from parser/ in components/. Import from @/hooks/useRuntimeParser instead."
               }

@@ -7,7 +7,7 @@
  *  1. Default — basic search input button
  *  2. InToolbar — search button within a toolbar context
  */
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/react-vite'
 import { NavSearchInput } from '@/components/molecules/NavSearchInput'
 
 const meta: Meta<typeof NavSearchInput> = {

@@ -19,9 +19,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom'
 import { usePaletteStore } from './palette-store'
 import type { PaletteItem, PaletteResponse } from './palette-types'
-import { CLAUSE_META, type WqlExecutor, type QueryClause } from '../wql-composer'
-import { isFindQuery } from '@/services/analytics/query'
-import type { FindQueryResult, QueryResult } from '@/services/analytics/query/QueryService'
+import { CLAUSE_META, type WqlExecutor, type QueryClause } from '@bitcobblers/wod-wiki-ui'
+import { isFindQuery } from '@bitcobblers/wod-wiki-engine'
+import type { FindQueryResult, QueryResult } from '@bitcobblers/wod-wiki-engine'
 
 import { PaletteShell } from './PaletteShell'
 

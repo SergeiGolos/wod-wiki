@@ -11,13 +11,13 @@
  */
 
 import { forwardRef } from 'react'
-import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext'
+import { ScriptRuntimeProvider } from '@bitcobblers/wod-wiki-engine'
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext'
 import { ReceiverStackPanel } from '@/panels/track-panel-chromecast'
 import { ReceiverTimerPanel } from '@/panels/wallclock-panel-chromecast'
 import { TimerDisplay, type TimerDisplayProps } from '@/panels/wallclock-panel'
-import type { IRuntimeEventProvider } from '@/runtime/contracts/IRuntimeEventProvider'
-import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
+import type { IRuntimeEventProvider } from '@bitcobblers/wod-wiki-engine'
+import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 
 export interface TourTvCardProps {
   /** The tour's live runtime; null before the timer stage has created it. */

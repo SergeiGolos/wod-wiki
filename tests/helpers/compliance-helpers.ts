@@ -9,12 +9,12 @@
  *   1. ScriptState-based (sync) — operate on a snapshot from TestScript.snapshot()
  *   2. TestScript-based (async) — operate on a live TestScript (snapshot internally)
  */
-import { MetricType, type Metric } from '@/core/models/Metric';
+import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-engine';
 import { assertions } from '@/testing/script';
 import type { ScriptState } from '@/testing/script';
 import type { TestScript } from '@/testing/script/TestScript';
-import type { RoundState, TimerState } from '@/runtime/memory/MemoryTypes';
-import { calculateElapsed } from '@/runtime/time/calculateElapsed';
+import type { RoundState, TimerState } from '@bitcobblers/wod-wiki-engine';
+import { calculateElapsed } from '@bitcobblers/wod-wiki-engine';
 
 // ═══════════════════════════════════════════════════════════════════
 // ScriptState helpers (sync — pass a snapshot)
@@ -30,7 +30,7 @@ export function currentBlockType(state: ScriptState): string | undefined {
 /**
  * Returns display metrics for the current top-of-stack block.
  */
-export function blockDisplayMetrics(state: ScriptState): Metric[] {
+export function blockDisplayMetrics(state: ScriptState): IMetric[] {
     const block = state.current;
     if (!block) return [];
     return block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics.toArray());

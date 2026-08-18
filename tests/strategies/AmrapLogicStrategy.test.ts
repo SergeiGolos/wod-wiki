@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
-import { AmrapLogicStrategy } from '@/runtime/compiler/strategies/logic/AmrapLogicStrategy';
-import { CountdownTimerBehavior, LabelingBehavior, SoundCueBehavior } from '@/runtime/behaviors';
+import { AmrapLogicStrategy } from '@bitcobblers/wod-wiki-engine';
+import { CountdownTimerBehavior, LabelingBehavior, SoundCueBehavior } from '@bitcobblers/wod-wiki-engine';
 
 describe('AmrapLogicStrategy', () => {
   it('should compile "10:00 AMRAP" to an AMRAP block', () => {

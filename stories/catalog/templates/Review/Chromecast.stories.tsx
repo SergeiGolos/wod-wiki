@@ -23,7 +23,7 @@
  */
 
 import React, { useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn } from 'storybook/test';
 import { cn } from '@/lib/utils';
 import { ReceiverReviewPanel } from '@/panels/review-panel-chromecast';

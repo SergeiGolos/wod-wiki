@@ -1,10 +1,9 @@
-import {
-  Decoration,
-  DecorationSet,
+import { Decoration,
   EditorView,
-  WidgetType,
-} from "@codemirror/view";
-import { EditorState, StateField, Extension, RangeSetBuilder } from "@codemirror/state";
+  WidgetType } from "@codemirror/view";
+import type { DecorationSet } from "@codemirror/view";
+import { EditorState, StateField, RangeSetBuilder } from "@codemirror/state";
+import type { Extension } from "@codemirror/state";
 import { sectionField } from "./section-state";
 
 class EmbedSpacerWidget extends WidgetType {

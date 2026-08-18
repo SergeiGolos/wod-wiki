@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { WallClockPage } from '../../../playground/src/pages/WallClockPage';
 
 const meta: Meta<typeof WallClockPage> = {

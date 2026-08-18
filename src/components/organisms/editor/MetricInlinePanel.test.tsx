@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test';
 import { cleanup, render, screen } from '@testing-library/react';
-import { MetricType } from '@/core/models/Metric';
-import type { IMetric } from '@/core/models/Metric';
-import type { ICodeStatement } from '@/core/models/CodeStatement';
-import type { EditorSection } from '@/components/Editor/extensions/section-state';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import type { IMetric } from '@bitcobblers/wod-wiki-engine';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
+import type { EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
 import type { EditorView } from '@codemirror/view';
 import type { EditorState } from '@codemirror/state';
 import { MetricInlinePanel } from './MetricInlinePanel';

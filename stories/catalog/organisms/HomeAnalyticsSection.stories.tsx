@@ -15,7 +15,7 @@
  * falls back per-widget to this sample when the store has no points.
  */
 import React from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
   HomeAnalyticsSection,
   TableTile,

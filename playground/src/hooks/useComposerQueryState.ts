@@ -26,8 +26,8 @@ import {
   clausesToWql,
   wqlToClauses,
   type QueryClause,
-} from '@/components/organisms/wql-composer'
-import { parseQuery } from '@/services/analytics/query/wql'
+} from '@bitcobblers/wod-wiki-ui'
+import { parseQuery } from '@bitcobblers/wod-wiki-engine'
 
 export interface ComposerQueryState {
   clauses: QueryClause[]

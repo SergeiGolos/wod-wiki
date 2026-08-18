@@ -1,12 +1,11 @@
-import {
-  Decoration,
-  DecorationSet,
+import { Decoration,
   EditorView,
   WidgetType,
   ViewPlugin,
-  ViewUpdate,
-} from "@codemirror/view";
-import { Extension, RangeSetBuilder } from "@codemirror/state";
+  ViewUpdate } from "@codemirror/view";
+import type { DecorationSet } from "@codemirror/view";
+import { RangeSetBuilder } from "@codemirror/state";
+import type { Extension } from "@codemirror/state";
 
 export type ButtonAction = (action: string, params: Record<string, string>) => void;
 

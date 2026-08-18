@@ -25,7 +25,7 @@
 
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Check, Dumbbell, Play, Timer, Trophy } from 'lucide-react'
 import { CanvasEditorPanel } from '../../../../playground/src/components/organisms/canvas/CanvasEditorPanel'
 

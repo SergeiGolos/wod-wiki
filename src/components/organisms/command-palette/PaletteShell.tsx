@@ -4,7 +4,7 @@ import { usePaletteStore } from './palette-store';
 import { CommandListView } from '@/components/molecules/CommandListView';
 import type { IListItem } from '@/components/molecules/types';
 import type { PaletteItem } from './palette-types';
-import { WqlComposer } from '../wql-composer';
+import { WqlComposer } from '@bitcobblers/wod-wiki-ui';
 
 /** Map a PaletteItem to the generic list view model. */
 function toListItem(item: PaletteItem): IListItem<PaletteItem> {

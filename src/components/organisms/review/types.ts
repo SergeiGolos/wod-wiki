@@ -5,9 +5,9 @@
  * and MetricType columns as the primary data axis.
  */
 
-import type { MetricType, MetricOrigin } from '@/core/models/Metric';
-import type { MetricContainer } from '@/core/models/MetricContainer';
-import type { OutputStatementType } from '@/core/models/OutputStatement';
+import type { MetricType, MetricOrigin } from '@bitcobblers/wod-wiki-engine';
+import type { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import type { OutputStatementType } from '@bitcobblers/wod-wiki-engine';
 
 // ─── Grid Row ──────────────────────────────────────────────────
 

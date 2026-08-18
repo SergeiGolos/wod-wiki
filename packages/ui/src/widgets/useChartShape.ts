@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { QueryResult } from '@wod-wiki/engine';
+import type { QueryResult } from '@bitcobblers/wod-wiki-engine';
 
 export type ChartShape =
   | { kind: 'error'; message: string }

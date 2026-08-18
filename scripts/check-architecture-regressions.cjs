@@ -19,26 +19,25 @@ const importPattern = /(?:import|export)\s+(?:type\s+)?[^'"\n]*?from\s*['"]([^'"
 const allowedCycleSignatures = [
   'components/Editor/types/index.ts -> components/Editor/types/section.ts',
   'components/Editor/types/index.ts -> components/Editor/utils/documentStructure.ts',
-  'parser/WhiteboardScript.ts -> core/index.ts -> core/types/index.ts -> core/types/core.ts',
-  'runtime/actions/stack/PushBlockAction.ts -> runtime/contracts/index.ts -> runtime/contracts/IRuntimeBlockStrategy.ts -> runtime/compiler/BlockBuilder.ts',
-  'runtime/actions/stack/PushBlockAction.ts -> runtime/contracts/index.ts -> runtime/contracts/IRuntimeBlockStrategy.ts -> runtime/compiler/BlockBuilder.ts -> runtime/behaviors/index.ts -> runtime/behaviors/ChildSelectionBehavior.ts -> runtime/actions/stack/CompileAndPushBlockAction.ts',
-  'runtime/actions/stack/PushBlockAction.ts -> runtime/contracts/index.ts -> runtime/contracts/IRuntimeBlockStrategy.ts -> runtime/compiler/BlockBuilder.ts -> runtime/behaviors/index.ts -> runtime/behaviors/ChildSelectionBehavior.ts -> runtime/actions/stack/PushRestBlockAction.ts',
-  'runtime/actions/stack/PushBlockAction.ts -> runtime/contracts/index.ts -> runtime/contracts/IRuntimeBlockStrategy.ts -> runtime/compiler/BlockBuilder.ts -> runtime/behaviors/index.ts -> runtime/behaviors/WaitingToStartInjectorBehavior.ts',
-  'runtime/behaviors/index.ts -> runtime/behaviors/ChildSelectionBehavior.ts -> runtime/actions/stack/PushRestBlockAction.ts -> runtime/blocks/RestBlock.ts',
-  'runtime/behaviors/index.ts -> runtime/behaviors/WaitingToStartInjectorBehavior.ts -> runtime/blocks/WaitingToStartBlock.ts',
-  'runtime/contracts/IRuntimeMemory.ts -> runtime/impl/TypedMemoryReference.ts',
-  'runtime/contracts/IScriptRuntime.ts -> runtime/actions/ErrorAction.ts',
-  'runtime/contracts/IScriptRuntime.ts -> runtime/contracts/IRuntimeOptions.ts -> runtime/contracts/ITestableBlockConfig.ts',
+  '../packages/engine/src/index.ts -> ../packages/engine/src/runtime/hooks/useBlockMemory.ts -> ../packages/engine/src/lib/timeUtils.ts',
+  '../packages/engine/src/runtime/actions/stack/PushBlockAction.ts -> ../packages/engine/src/runtime/contracts/index.ts -> ../packages/engine/src/runtime/contracts/IRuntimeBlockStrategy.ts -> ../packages/engine/src/runtime/compiler/BlockBuilder.ts',
+  '../packages/engine/src/runtime/actions/stack/PushBlockAction.ts -> ../packages/engine/src/runtime/contracts/index.ts -> ../packages/engine/src/runtime/contracts/IRuntimeBlockStrategy.ts -> ../packages/engine/src/runtime/compiler/BlockBuilder.ts -> ../packages/engine/src/runtime/behaviors/index.ts -> ../packages/engine/src/runtime/behaviors/ChildSelectionBehavior.ts -> ../packages/engine/src/runtime/actions/stack/CompileAndPushBlockAction.ts',
+  '../packages/engine/src/runtime/actions/stack/PushBlockAction.ts -> ../packages/engine/src/runtime/contracts/index.ts -> ../packages/engine/src/runtime/contracts/IRuntimeBlockStrategy.ts -> ../packages/engine/src/runtime/compiler/BlockBuilder.ts -> ../packages/engine/src/runtime/behaviors/index.ts -> ../packages/engine/src/runtime/behaviors/ChildSelectionBehavior.ts -> ../packages/engine/src/runtime/actions/stack/PushRestBlockAction.ts',
+  '../packages/engine/src/runtime/actions/stack/PushBlockAction.ts -> ../packages/engine/src/runtime/contracts/index.ts -> ../packages/engine/src/runtime/contracts/IRuntimeBlockStrategy.ts -> ../packages/engine/src/runtime/compiler/BlockBuilder.ts -> ../packages/engine/src/runtime/behaviors/index.ts -> ../packages/engine/src/runtime/behaviors/WaitingToStartInjectorBehavior.ts',
+  '../packages/engine/src/runtime/behaviors/index.ts -> ../packages/engine/src/runtime/behaviors/ChildSelectionBehavior.ts -> ../packages/engine/src/runtime/actions/stack/PushRestBlockAction.ts -> ../packages/engine/src/runtime/blocks/RestBlock.ts',
+  '../packages/engine/src/runtime/behaviors/index.ts -> ../packages/engine/src/runtime/behaviors/WaitingToStartInjectorBehavior.ts -> ../packages/engine/src/runtime/blocks/WaitingToStartBlock.ts',
+  '../packages/engine/src/runtime/contracts/IRuntimeMemory.ts -> ../packages/engine/src/runtime/impl/TypedMemoryReference.ts',
+  '../packages/engine/src/types/index.ts -> ../packages/engine/src/types/section.ts',
 ].sort();
 
 const barrelRules = [
   {
-    filePath: 'src/runtime/compiler/metrics/index.ts',
+    filePath: 'packages/engine/src/runtime/compiler/metrics/index.ts',
     allowedExports: [],
     description: 'Keep the metrics barrel empty so dead metric re-exports do not return.',
   },
   {
-    filePath: 'src/runtime/events/index.ts',
+    filePath: 'packages/engine/src/runtime/events/index.ts',
     allowedExports: ['EventBus'],
     description: 'Keep the runtime events barrel limited to the EventBus entry point.',
   },

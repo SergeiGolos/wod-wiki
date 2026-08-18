@@ -33,7 +33,7 @@ import {
 import type { IEffort } from '@/effort-registry/types';
 import type { ScriptBlock } from '@/components/Editor/types';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
-import { createParser } from '@/parser/parserInstance';
+import { createParser } from '@bitcobblers/wod-wiki-engine';
 import {
     normalizeAllMetrics,
     normalizeSummaryFacts,

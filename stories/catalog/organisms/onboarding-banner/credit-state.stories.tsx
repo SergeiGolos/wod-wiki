@@ -28,7 +28,7 @@
  * constraints these variations must conform to.
  */
 
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Check } from 'lucide-react'
 import { OnboardingBanner } from '../../../../playground/src/components/onboarding/OnboardingBanner'
 

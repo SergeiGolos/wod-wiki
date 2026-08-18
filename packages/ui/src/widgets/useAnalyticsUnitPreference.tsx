@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { cn } from '../utils/cn';
-import { parseQuery } from '@wod-wiki/engine';
+import { parseQuery } from '@bitcobblers/wod-wiki-engine';
 import type { AnalyticsQueryDef } from './useAnalyticsQueries';
 import type { StorageLike } from '../contracts/storage';
 

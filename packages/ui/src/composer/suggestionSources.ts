@@ -1,4 +1,4 @@
-import type { BlockIndexRow } from '@wod-wiki/engine';
+import type { BlockIndexRow } from '@bitcobblers/wod-wiki-engine';
 
 export interface SuggestionItem {
   value: string;

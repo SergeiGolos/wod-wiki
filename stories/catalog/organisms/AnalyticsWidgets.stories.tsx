@@ -4,8 +4,8 @@
  * Renders the WQL-driven dashboard widgets over sample QueryResult data.
  */
 import React from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
-import type { QueryResult } from '../../../src/services/analytics/query';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { QueryResult } from '@bitcobblers/wod-wiki-engine';
 import {
   WidgetFrame,
   QueryValue,
@@ -14,7 +14,7 @@ import {
   TopList,
   StackedBar,
   RangeSelector,
-} from '../../../src/components/molecules/analytics';
+} from '@bitcobblers/wod-wiki-ui';
 
 const meta: Meta = {
   title: 'Organisms/Analytics Widgets',

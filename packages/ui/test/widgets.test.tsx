@@ -1,6 +1,6 @@
 import { describe, expect, it, afterEach } from 'bun:test';
 import { cleanup, render, screen } from '@testing-library/react';
-import type { QueryResult } from '@wod-wiki/engine';
+import type { QueryResult } from '@bitcobblers/wod-wiki-engine';
 import {
   WidgetFrame,
   QueryValue,
@@ -66,7 +66,7 @@ function groupedResult(raw: string): QueryResult {
   };
 }
 
-describe('@wod-wiki/ui presentational widgets & IR consumer suite', () => {
+describe('@bitcobblers/wod-wiki-ui presentational widgets & IR consumer suite', () => {
   it('exports CODEMIRROR_SINGLETON_DEPS array containing essential codemirror and lezer packages', () => {
     expect(CODEMIRROR_SINGLETON_DEPS).toBeArray();
     expect(CODEMIRROR_SINGLETON_DEPS).toContain('@codemirror/state');

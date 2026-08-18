@@ -1,12 +1,14 @@
 import {
   autocompletion,
+  snippet,
+} from "@codemirror/autocomplete";
+import type {
   CompletionContext,
   CompletionResult,
   Completion,
-  snippet,
 } from "@codemirror/autocomplete";
 import { EditorView, keymap } from "@codemirror/view";
-import { Extension } from "@codemirror/state";
+import type { Extension } from "@codemirror/state";
 import { activeCursorSection } from "./section-state";
 
 const FENCE_TAGS: Completion[] = [

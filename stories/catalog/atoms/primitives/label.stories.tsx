@@ -6,7 +6,7 @@
  *  2. Required — label with required indicator
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Label } from '@/components/atoms/primitives/label';
 import { Input } from '@/components/atoms/primitives/input';
 

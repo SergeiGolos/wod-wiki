@@ -9,9 +9,9 @@
 import React from 'react';
 import { TimerDisplay } from '@/panels/wallclock-panel';
 import type { TimerDisplayProps } from '@/panels/wallclock-panel';
-import { useSnapshotBlocks } from '@/runtime/hooks/useStackSnapshot';
+import { useSnapshotBlocks } from '@bitcobblers/wod-wiki-engine';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
-import type { IRuntimeEventProvider } from '@/runtime/contracts/IRuntimeEventProvider';
+import type { IRuntimeEventProvider } from '@bitcobblers/wod-wiki-engine';
 
 export const ReceiverTimerPanel: React.FC<{
   eventProvider: IRuntimeEventProvider;

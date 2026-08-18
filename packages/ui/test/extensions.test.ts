@@ -8,7 +8,7 @@ import {
   editorTheme,
 } from '../src/extensions';
 
-describe('@wod-wiki/ui/extensions and editorPreset suite', () => {
+describe('@bitcobblers/wod-wiki-ui/extensions and editorPreset suite', () => {
   it('editorPreset(dialect) returns a functional extension array', () => {
     const preset = editorPreset('markdown');
     expect(preset).toBeArray();

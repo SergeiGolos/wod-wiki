@@ -1,6 +1,6 @@
 import { describe, expect, it, afterEach } from 'bun:test';
 import { cleanup, render, screen } from '@testing-library/react';
-import type { RowsQueryResult, Segment } from '@wod-wiki/engine';
+import type { RowsQueryResult, Segment } from '@bitcobblers/wod-wiki-engine';
 import { RowsTable } from '../src';
 
 afterEach(cleanup);

@@ -13,7 +13,7 @@
  */
 
 import React from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { WorkoutEditorPage } from '../../../../playground/src/pages/WorkoutEditorPage';
 import { WorkoutScenarioShell } from '../../_shared/WorkoutScenarioShell';
 

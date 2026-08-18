@@ -6,7 +6,7 @@
  */
 
 import type { WodWikiIRFile, StatementNode, ExecutionLog } from '../ir';
-import type { QueryResult, RowsQueryResult, FindQueryResult } from '@/services/analytics/query';
+import type { QueryResult, RowsQueryResult, FindQueryResult } from '../query';
 
 export type OutputFormat = 'json' | 'table' | 'csv';
 

@@ -22,13 +22,13 @@ import { useNavigate } from 'react-router-dom';
 import { PlusIcon, TriangleAlertIcon } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { Badge } from '@/components/atoms/primitives/badge';
-import { queryService } from '@/services/analytics/query';
-import { parseQuery, isFindQuery, type ParsedFindQuery } from '@/services/analytics/query/wql';
+import { queryService } from "@/services/queryService";
+import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine';;
 import {
   WqlComposer,
   clausesToWql,
   type WqlExecutor,
-} from '@/components/organisms/wql-composer';
+} from '@bitcobblers/wod-wiki-ui';
 import { StickyPageHeader } from '@/panels/page-shells';
 import type { IEffort } from '@/effort-registry';
 import { effortPath } from '../lib/routes';

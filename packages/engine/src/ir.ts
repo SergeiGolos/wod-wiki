@@ -7,15 +7,15 @@
  * versioned envelope safe for JSON round-trips.
  */
 
-import type { IMetric } from '@/core/models/Metric';
-import { MetricType } from '@/core/models/Metric';
-import type { ICodeStatement } from '@/core/models/CodeStatement';
-import type { WhiteboardScript } from '@/parser/WhiteboardScript';
-import { getHints } from '@/core/metrics/hints';
-import type { AnalyticsDataPoint, Note, NoteSegment, BlockIndexRow, WorkoutResult } from '@/types/storage';
-import type { StoredOutputStatement, WorkoutResults } from '@/components/Editor/types';
+import type { IMetric } from './core/models/Metric';
+import { MetricType } from './core/models/Metric';
+import type { ICodeStatement } from './core/models/CodeStatement';
+import type { IScript } from './parser/WhiteboardScript';
+import { getHints } from './core/metrics/hints';
+import type { AnalyticsDataPoint, Note, NoteSegment, BlockIndexRow, WorkoutResult } from './types/storage';
+import type { StoredOutputStatement, WorkoutResults } from './types';
 
-import type { IEffort } from '@/effort-registry';
+import type { IEffort } from './effort-registry';
 
 export type IrKind =
   | 'fact-set'
@@ -167,7 +167,7 @@ export function statementToNode(stmt: ICodeStatement, idMap: Map<number, ICodeSt
 /**
  * Builds a StatementNode tree from a parsed WhiteboardScript.
  */
-export function buildStatementTree(script: WhiteboardScript): StatementNode {
+export function buildStatementTree(script: IScript): StatementNode {
   const idMap = new Map(script.statements.map((s) => [s.id, s]));
   const topLevel = script.statements.filter((s) => s.parent === undefined || !idMap.has(s.parent));
 

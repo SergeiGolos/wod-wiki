@@ -6,7 +6,7 @@
  *  2. Variants — all badge variants
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Badge } from '@/components/atoms/primitives/badge';
 
 const meta: Meta<typeof Badge> = {

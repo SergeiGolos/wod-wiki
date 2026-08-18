@@ -11,7 +11,7 @@
  *  5. WithRichContent — sidebar layout with rich content
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { HomeIcon, BookOpenIcon, FolderIcon, MagnifyingGlassIcon, Cog6ToothIcon, BellIcon } from '@heroicons/react/20/solid';
 import { Dumbbell } from 'lucide-react';
 

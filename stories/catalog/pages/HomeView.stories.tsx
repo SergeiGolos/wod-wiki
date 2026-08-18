@@ -10,7 +10,7 @@
  *  4. Mobile — mobile viewport
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { HomeView } from '../../../playground/src/views/HomeView';
 import type { WorkoutItem } from '../../../playground/src/App';
 

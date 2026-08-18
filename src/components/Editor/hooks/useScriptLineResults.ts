@@ -11,9 +11,9 @@
 
 import { useMemo } from 'react';
 import type { WorkoutResult } from '@/types/storage';
-import type { IOutputStatement } from '@/core/models/OutputStatement';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
 import type { StoredOutputStatement } from '@/components/Editor/types';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 /** Summary of one result set's contribution for a specific line. */
 export interface LineResultEntry {

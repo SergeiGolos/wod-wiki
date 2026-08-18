@@ -544,8 +544,9 @@ describe('HomeTour', () => {
     })
 
     const editors = screen.getAllByTestId('mock-note-editor') as HTMLTextAreaElement[]
-    // The pick replaces the runway demo script…
-    expect(editors[1].value).toContain('Kettlebell Swings 24kg')
+    // The pick replaces the runway demo script with the preset's fence…
+    expect(editors[1].value).toContain('21-15-9')
+    expect(editors[1].value).toContain('Air Squats')
     // …and leaves the hero document untouched.
     expect(editors[0].value).toBe(heroValueBefore)
   })
@@ -592,7 +593,7 @@ describe('HomeTour', () => {
     })
     const wrapper = screen.getByTestId('tour-workout-choices')
     fireEvent.click(wrapper.querySelector('button')!)
-    const option = await screen.findByText('Heavy Triplet')
+    const option = await screen.findByText('Load & Resistance')
     await act(async () => {
       fireEvent.mouseDown(option)
       await Promise.resolve()

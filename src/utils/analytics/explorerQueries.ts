@@ -1,4 +1,4 @@
-import { parseQuery, type ParsedQuery, type QueryResult, type TagFilter } from '@/services/analytics/query';
+import { parseQuery, type ParsedQuery, type QueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
 
 export interface ExampleQuery {
   query: string;

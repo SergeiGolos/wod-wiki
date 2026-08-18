@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Button } from '@/components/atoms/primitives/button';
 import { ButtonLink } from '@/components/molecules/ButtonLink';
 import { ButtonGroup } from '@/components/molecules/ButtonGroup';

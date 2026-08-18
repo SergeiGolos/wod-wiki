@@ -5,7 +5,7 @@
  *  1. Default — basic select dropdown
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Select } from '@/components/atoms/primitives/select';
 import { Label } from '@/components/atoms/primitives/label';
 

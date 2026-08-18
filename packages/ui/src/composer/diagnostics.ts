@@ -2,12 +2,14 @@ import {
   parseQuery,
   type ParsedFindQuery,
   type ParsedQuery,
-} from '@wod-wiki/engine';
+} from '@bitcobblers/wod-wiki-engine';
 import { composerRegistry } from './ComposerRegistry';
 import { clausesToWql, type QueryClause } from './queryClauses';
 import type { AnyParsedQuery } from './useWqlStageCounts';
 export interface WqlDiagnostics {
   valid: boolean;
+  /** The composed WQL string for the current clause set. */
+  wql: string;
   ast: AnyParsedQuery;
   error?: string;
   offendingClauseId?: string;
@@ -70,6 +72,7 @@ export function diagnoseClauses(clauses: QueryClause[]): WqlDiagnostics {
     if (error) {
       return {
         valid: false,
+        wql: clausesToWql(clauses),
         ast: { raw: '', error } as any,
         error,
         offendingClauseId: clause.id,
@@ -83,6 +86,7 @@ export function diagnoseClauses(clauses: QueryClause[]): WqlDiagnostics {
   if (ast.error) {
     return {
       valid: false,
+      wql,
       ast,
       error: ast.error,
     };
@@ -90,6 +94,7 @@ export function diagnoseClauses(clauses: QueryClause[]): WqlDiagnostics {
 
   return {
     valid: true,
+    wql,
     ast,
   };
 }

@@ -11,7 +11,7 @@
  */
 
 import type { ColumnDef } from './column-definition-language';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 // ═══════════════════════════════════════════════════════════════
 // EXAMPLE 1: FIRST-PRESENT FALLBACK CHAIN

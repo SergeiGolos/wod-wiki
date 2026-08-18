@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { NavProvider } from '../../../playground/src/nav/NavContext';
 import { buildAppNavTree } from '../../../playground/src/nav/appNavTree';
 import { NavSidebar } from '../../../playground/src/nav/NavSidebar';

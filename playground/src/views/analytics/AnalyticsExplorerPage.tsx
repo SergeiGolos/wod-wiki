@@ -21,8 +21,9 @@
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Play, Save } from 'lucide-react';
-import { parseQuery, isFindQuery, isRowsQuery, queryService, type QueryResult, type RowsQueryResult } from '@/services/analytics/query';
-import { RowsTable } from '@/components/molecules/analytics/RowsTable';
+import { queryService } from '@/services/queryService';
+import { parseQuery, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult } from '@bitcobblers/wod-wiki-engine';;
+import { RowsTable } from '@bitcobblers/wod-wiki-ui';
 import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
 import { searchEntries } from '../../lib/entrySearch';
@@ -41,7 +42,7 @@ import {
   WqlTimeseries,
   useAnalyticsUnitPreference,
   getEffectiveAnalyticsUnit,
-} from '@/components/molecules/analytics';
+} from '@bitcobblers/wod-wiki-ui';
 import {
   ParsedQueryChips,
   PipelineAnatomy,
@@ -52,7 +53,7 @@ import {
   clausesToWql,
   setMetricClause,
   wqlToClauses,
-} from '@/components/organisms/wql-composer';
+} from '@bitcobblers/wod-wiki-ui';
 import { EXAMPLE_QUERIES } from '@/utils/analytics/explorerQueries';
 import { useExplorerVocabulary } from '@/utils/analytics/useExplorerVocabulary';
 import {

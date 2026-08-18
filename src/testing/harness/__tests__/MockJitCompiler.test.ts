@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { MockJitCompiler } from '../MockJitCompiler';
 import { MockBlock } from '../MockBlock';
-import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import { IMetric, MetricType } from '@/core/models/Metric';
-import { CodeMetadata } from '@/core/models/CodeMetadata';
-import { ICodeStatement } from '@/core/models/CodeStatement';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-engine';
+import { CodeMetadata } from '@bitcobblers/wod-wiki-engine';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * Simple test statement implementation for testing MockJitCompiler.

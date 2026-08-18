@@ -8,7 +8,7 @@
  * @see docs/adr/0011-column-definition-language.md
  */
 
-import type { MetricType } from '@/core/models/Metric';
+import type { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { GridRow, GridCell } from './types';
 
 // ─── Column Source ─────────────────────────────────────────────

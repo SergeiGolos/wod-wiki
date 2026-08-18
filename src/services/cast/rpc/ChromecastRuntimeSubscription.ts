@@ -1,6 +1,6 @@
-import { ICastSubscription } from '@/runtime/contracts/ICastSubscription';
-import { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
-import { IOutputStatement } from '@/core/models/OutputStatement';
+import { ICastSubscription } from '@bitcobblers/wod-wiki-engine';
+import { StackSnapshot } from '@bitcobblers/wod-wiki-engine';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
 import { IRpcTransport } from './IRpcTransport';
 import { serializeStackSnapshot, serializeOutput, serializeAnalyticsSummary } from './RpcSerializer';
 

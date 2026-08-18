@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { ColumnSet } from './ColumnSet';
 import {
   GRID_COLUMN_SET_CONFIG,

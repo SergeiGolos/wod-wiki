@@ -8,8 +8,8 @@
  */
 
 import React from 'react';
-import { ICodeStatement } from '../../core/models/CodeStatement';
-import { IMetric } from '../../core/models/Metric';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
+import { IMetric } from '@bitcobblers/wod-wiki-engine';
 import { MetricVisualizer } from '../../views/runtime/MetricVisualizer';
 import { cn } from '../../lib/utils';
 

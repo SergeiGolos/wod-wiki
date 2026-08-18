@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { isFindQuery, type ParsedQuery, type ParsedFindQuery, type ParsedRowsQuery } from '@wod-wiki/engine';
+import { isFindQuery, type ParsedQuery, type ParsedFindQuery, type ParsedRowsQuery } from '@bitcobblers/wod-wiki-engine';
 import type { FindQueryResult, QueryResult } from '../contracts/query';
 
 export type AnyParsedQuery = ParsedQuery | ParsedFindQuery | ParsedRowsQuery;

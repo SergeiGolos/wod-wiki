@@ -4,8 +4,8 @@
  *
  * Implements FactQueryStore contract without database or browser dependencies.
  */
-import type { AnalyticsDataPoint } from '@/types/storage';
-import type { FactQueryStore } from '@/services/analytics/query';
+import type { AnalyticsDataPoint } from './types/storage';
+import type { FactQueryStore } from './query';
 
 export function inMemoryFactStore(
   facts: readonly AnalyticsDataPoint[],

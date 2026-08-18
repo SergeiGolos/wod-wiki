@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
-import { MetricContainer } from '../core/models/MetricContainer';
-import { MetricType, IMetric } from '../core/models/Metric';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import { MetricType, IMetric } from '@bitcobblers/wod-wiki-engine';
 
 function makeMetric(type: MetricType, value: number, origin: 'parser' | 'runtime'): IMetric {
   return { type, value, origin, image: String(value) } as IMetric;
