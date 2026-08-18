@@ -30,14 +30,19 @@ function formatRunHeader(run: RowsRun): string {
   return `${date} — ${minutes}:${seconds}`;
 }
 
-export function RowsTable({
-  result,
-  renderRunHeaderExtra,
-}: {
+export interface RowsTableProps {
   result: RowsQueryResult;
   /** Optional per-run chrome rendered inside the section header (#948 RPE). */
   renderRunHeaderExtra?: (run: RowsRun) => ReactNode;
-}) {
+  /** Optional segment-grid renderer prop (decoupled from app ReviewGrid). */
+  renderSegments?: (segments: Segment[], run: RowsRun) => ReactNode;
+}
+
+export function RowsTable({
+  result,
+  renderRunHeaderExtra,
+  renderSegments,
+}: RowsTableProps) {
   const runs = useMemo(
     () =>
       result.runs.map((run) => ({
@@ -65,13 +70,17 @@ export function RowsTable({
               {renderRunHeaderExtra?.(run)}
             </div>
           )}
-          <ReviewGrid
-            runtime={null}
-            segments={segments}
-            selectedSegmentIds={NO_SELECTION}
-            onSelectSegment={NOOP_SELECT}
-            groups={[]}
-          />
+          {renderSegments ? (
+            renderSegments(segments, run)
+          ) : (
+            <ReviewGrid
+              runtime={null}
+              segments={segments}
+              selectedSegmentIds={NO_SELECTION}
+              onSelectSegment={NOOP_SELECT}
+              groups={[]}
+            />
+          )}
         </section>
       ))}
     </div>

@@ -10,11 +10,11 @@ order: 1
 Change the reps, distance, or load below — this is live.
 
 ```time
-21-15-9
-  Kettlebell Swings 24kg
-  400m Run
-  Deadlifts 225lb
-  *:30 Rest
+// Click Next to advance
+0:03 Countdown
+10 Pushups
+// Fast 3-second timer
+// Step-through execution
 ```
 
 > Press **Run** ↑ to start the WallClock.

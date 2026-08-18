@@ -19,6 +19,10 @@ import { DashboardTokenControls } from './DashboardTokenControls';
 export interface DashboardViewProps {
   /** Parsed dashboard note (buildDashboardDocument). */
   document: DashboardDocument;
+  /** Injected QueryExecutor for executing WQL queries (zero singleton coupling). */
+  executor?: {
+    runQuery(query: string, options?: any): Promise<QueryResult>;
+  };
   /** Current token values; defaults to each token's declared default. */
   tokenValues?: Record<string, string>;
   /** Present when the note is editable — control changes write back to frontmatter. */
@@ -54,6 +58,7 @@ function spanClass(widget: DashboardWidget): string {
  */
 export function DashboardView({
   document,
+  executor,
   tokenValues,
   onTokenChange,
   onEditQuery,
@@ -130,11 +135,12 @@ export function DashboardView({
         await ensureStoreRollupFacts().catch(() => undefined);
       }
 
+      const activeExecutor = executor ?? queryService;
       await Promise.all(
         runnable.map(async ({ widget, query }) => {
           try {
             next[widget.key] = {
-              result: await queryService.runQuery(query, { rangeStart, rangeEnd, preferredUnit }),
+              result: await activeExecutor.runQuery(query, { rangeStart, rangeEnd, preferredUnit }),
             };
           } catch (err) {
             next[widget.key] = { error: err instanceof Error ? err.message : String(err) };

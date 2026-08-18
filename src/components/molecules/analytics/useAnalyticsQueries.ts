@@ -20,6 +20,7 @@ export function useAnalyticsQueries(
   weeks: number,
   refreshKey = 0,
   preferredUnit?: string,
+  executor?: { runQuery(query: string, options?: any): Promise<QueryResult> },
 ): AnalyticsQueriesState {
   const [results, setResults] = useState<Record<string, QueryResult>>({});
   const [loading, setLoading] = useState(true);
@@ -38,10 +39,10 @@ export function useAnalyticsQueries(
       const consumesRollups = queries.some((q) => q.query.includes('calc.'));
       try {
         if (consumesRollups) await rollupReady;
+        const activeExecutor = executor ?? queryService;
         const settled = await Promise.all(
-          queries.map(async (q) => [q.key, await queryService.runQuery(q.query, { rangeStart, rangeEnd: now, preferredUnit })] as const),
+          queries.map(async (q) => [q.key, await activeExecutor.runQuery(q.query, { rangeStart, rangeEnd: now, preferredUnit })] as const),
         );
-        if (!cancelled) setResults(Object.fromEntries(settled));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -52,7 +53,7 @@ export function useAnalyticsQueries(
     return () => {
       cancelled = true;
     };
-  }, [queries, weeks, refreshKey, preferredUnit]);
+  }, [queries, weeks, refreshKey, preferredUnit, executor]);
 
   return { results, loading };
 }

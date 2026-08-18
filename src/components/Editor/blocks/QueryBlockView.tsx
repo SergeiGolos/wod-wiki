@@ -33,6 +33,14 @@ import { onResultSaved } from '@/services/resultRecorder';
 export interface QueryBlockViewProps {
   /** Raw text between the ```query fences — the WQL query string or block source. */
   query: string;
+  /** Injected QueryExecutor for executing WQL queries (zero singleton coupling). */
+  executor?: {
+    runQuery(query: string, options?: any): Promise<QueryResult>;
+    runFind(parsed: any, options?: any): Promise<FindQueryResult>;
+    runRows(parsed: any, options?: any): Promise<RowsQueryResult>;
+  };
+  /** Optional callback or subscription hook for when a result is saved, replacing hardcoded resultRecorder coupling. */
+  onResultSaved?: (callback: () => void) => (() => void) | void;
   /** Optional callback when query is saved via the inspector modal. */
   onSaveQuery?: (newQuery: string, queryIndex?: number) => void;
   /** Query index within parent block (default 0). */
@@ -49,6 +57,8 @@ export interface QueryBlockViewProps {
 
 export function QueryBlockView({
   query,
+  executor,
+  onResultSaved: onResultSavedProp,
   onSaveQuery,
   queryIndex = 0,
   readOnly = false,
@@ -80,10 +90,11 @@ export function QueryBlockView({
   // Bumped by the rows chrome after an RPE capture so the grid re-derives (#948).
   const [rowsRefreshKey, setRowsRefreshKey] = useState(0);
   useEffect(() => {
-    return onResultSaved(() => {
+    const subscribe = onResultSavedProp ?? onResultSaved;
+    return subscribe(() => {
       setRowsRefreshKey((k) => k + 1);
     });
-  }, []);
+  }, [onResultSavedProp]);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,8 +106,9 @@ export function QueryBlockView({
     if (parsed.error) return;
     if (widgetError || unknownType || missing.length > 0) return;
 
+    const activeExecutor = executor ?? queryService;
     if (isFindQuery(parsed)) {
-      void queryService
+      void activeExecutor
         .runFind(parsed)
         .then((res) => {
           if (!cancelled) setFindResult(res);
@@ -107,7 +119,7 @@ export function QueryBlockView({
     } else if (isRowsQuery(parsed)) {
       let retryTimer: number | NodeJS.Timeout | undefined;
       const executeRows = (attemptCount: number) => {
-        void queryService
+        void activeExecutor
           .runRows(parsed)
           .then((res) => {
             if (cancelled) return;
@@ -129,7 +141,7 @@ export function QueryBlockView({
         if (retryTimer) clearTimeout(retryTimer);
       };
     } else {
-      void queryService
+      void activeExecutor
         .runQuery(effectiveQuery)
         .then((res) => {
           if (!cancelled) setResult(res);

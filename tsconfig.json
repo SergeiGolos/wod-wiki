@@ -35,6 +35,15 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@wod-wiki/engine": [
+        "./packages/engine/src/index.ts"
+      ],
+      "@wod-wiki/ui": [
+        "./packages/ui/src/index.ts"
+      ],
+      "@wod-wiki/ui/*": [
+        "./packages/ui/src/*"
       ]
     }
   },
@@ -43,6 +52,8 @@
     "src/declarations.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
     "playground/**/*.ts",
     "playground/**/*.tsx",
     "tests/**/*.ts",

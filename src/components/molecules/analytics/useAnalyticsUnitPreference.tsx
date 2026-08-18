@@ -16,7 +16,18 @@ function notifyUnitChange() {
   for (const l of unitListeners) l();
 }
 
-function readStoredUnit(): AnalyticsUnit {
+export interface StorageLike {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+}
+
+function readStoredUnit(storage?: StorageLike): AnalyticsUnit {
+  if (storage) {
+    const stored = storage.getItem(ANALYTICS_UNIT_STORAGE_KEY);
+    return (VALID_UNITS as readonly string[]).includes(stored ?? '')
+      ? (stored as AnalyticsUnit)
+      : DEFAULT_ANALYTICS_UNIT;
+  }
   if (typeof window === 'undefined') return DEFAULT_ANALYTICS_UNIT;
   const stored = window.localStorage.getItem(ANALYTICS_UNIT_STORAGE_KEY);
   return (VALID_UNITS as readonly string[]).includes(stored ?? '')
@@ -28,26 +39,32 @@ function readStoredUnit(): AnalyticsUnit {
  * Read/write the analytics display-unit preference (kg or lb).
  * Syncs across tabs via the `storage` event.
  */
-export function useAnalyticsUnitPreference() {
-  const [unit, setUnitState] = useState<AnalyticsUnit>(readStoredUnit);
+export function useAnalyticsUnitPreference(customStorage?: StorageLike) {
+  const [unit, setUnitState] = useState<AnalyticsUnit>(() => readStoredUnit(customStorage));
 
   const setUnit = useCallback((next: AnalyticsUnit) => {
+    if (customStorage) {
+      customStorage.setItem(ANALYTICS_UNIT_STORAGE_KEY, next);
+      setUnitState(next);
+      notifyUnitChange();
+      return;
+    }
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(ANALYTICS_UNIT_STORAGE_KEY, next);
     setUnitState(next);
     notifyUnitChange();
-  }, []);
+  }, [customStorage]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const sync = () => setUnitState(readStoredUnit());
+    const sync = () => setUnitState(readStoredUnit(customStorage));
     unitListeners.add(sync);
     window.addEventListener('storage', sync);
     return () => {
       unitListeners.delete(sync);
       window.removeEventListener('storage', sync);
     };
-  }, []);
+  }, [customStorage]);
   return { unit, setUnit };
 }
 
