@@ -35,9 +35,9 @@ jobs:
         with:
           browsers: ''
 
-      # Build the library for better analysis accuracy
+      # Build the playground for better analysis accuracy
       - name: Build (for better analysis)
-        run: bun run build-library
+        run: bun run build:app
         continue-on-error: true
 
       - name: Perform CodeQL Analysis
