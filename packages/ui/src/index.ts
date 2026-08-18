@@ -8,6 +8,7 @@
  * - WQL Omni-Composer and diagnostics
  * - CodeMirror editor extensions (@bitcobblers/wod-wiki-ui/extensions) and editorPreset
  * - CODEMIRROR_SINGLETON_DEPS constant for consumer dedupe
+ * - Design tokens via `@bitcobblers/wod-wiki-ui/styles.css`
  */
 
 // ── 1. Contracts & Dedupe Constant ────────────────────────────────────────────

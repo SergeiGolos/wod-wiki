@@ -482,6 +482,6 @@ jobs:
           cat <<EOF >> "$GITHUB_STEP_SUMMARY"
           ## Storybook release
 
-          - Version: ${{ needs.storybook-release.outputs.version || needs.version.outputs.version }}
+          - Version: ${{ needs.storybook-release.outputs.version }}
           - URL: https://story.wod.wiki
           EOF

@@ -1,112 +1,11 @@
 @import "tailwindcss";
-@source "../../packages/ui/src";
+@import "@bitcobblers/wod-wiki-ui/styles.css";
 @source "./**";
 @source "../stories/**";
 
 @layer base {
-  :root {
-    /* ── Mineral — earth tones, light mode ───────────────────────────
-     * Inspired by geological survey palettes: slate, ochre, sienna,
-     * terracotta, mossy green. Muted saturation, warm-neutral base.
-     * ─────────────────────────────────────────────────────────────── */
-
-    /* Base surfaces */
-    --background: 40 20% 96%;          /* warm cream app shell */
-    --foreground: 30 16% 15%;          /* warm near-black */
-    --card: 40 38% 98%;                /* warm white focus surface */
-    --card-foreground: 30 16% 15%;
-    --popover: 38 32% 95%;
-    --popover-foreground: 30 16% 15%;
-
-    /* Primary — slate blue (time/duration hue) */
-    --primary: 212 32% 50%;            /* #5980a8 */
-    --primary-foreground: 40 38% 98%;
-
-    /* Secondary — soft blue tint */
-    --secondary: 212 22% 88%;
-    --secondary-foreground: 212 32% 32%;
-
-    /* Muted / neutral surfaces */
-    --muted: 38 18% 90%;               /* #ede9e2 */
-    --muted-foreground: 30 13% 45%;    /* #6a5f52 */
-
-    /* Accent — ochre (action hue) */
-    --accent: 46 42% 85%;
-    --accent-foreground: 46 52% 28%;
-
-    /* Semantic states */
-    --destructive: 0 34% 48%;          /* #a05858 terracotta */
-    --destructive-foreground: 0 0% 100%;
-    --success: 140 28% 42%;            /* #508860 moss green */
-    --success-foreground: 0 0% 100%;
-    --warning: 46 52% 37%;             /* #948030 ochre */
-    --warning-foreground: 0 0% 100%;
-
-    /* Chrome */
-    --border: 36 14% 76%;              /* #cdc5b8 */
-    --input: 36 14% 82%;
-    --ring: 212 32% 50%;
-    --radius: 1rem;
-
-    /* ── Metric tokens — 7 semantic colors ────────────────────────── */
-    --metric-time:       212 32% 50%;  /* #5980a8 slate blue */
-    --metric-rep:        30 46% 45%;   /* #a87040 raw sienna */
-    --metric-effort:     140 28% 42%;  /* #508860 moss green */
-    --metric-rounds:     270 26% 50%;  /* #7c62a0 slate violet */
-    --metric-distance:   180 36% 40%;  /* #408888 deep teal */
-    --metric-resistance: 0 34% 48%;    /* #a05858 terracotta */
-    --metric-action:     46 52% 37%;   /* #948030 ochre */
-  }
-
-  .dark {
-    /* ── Arctic Frost — Nord-inspired, dark mode ─────────────────────
-     * Cool polar night base, icy accents, vivid aurora highlights.
-     * ─────────────────────────────────────────────────────────────── */
-
-    /* Base surfaces */
-    --background: 220 16% 14%;         /* #1e222a dark slate */
-    --foreground: 220 14% 94%;         /* #eceff4 ice white */
-    --card: 220 16% 17%;               /* #242933 slightly elevated */
-    --card-foreground: 220 14% 94%;
-    --popover: 220 16% 16%;            /* #212630 */
-    --popover-foreground: 220 14% 94%;
-
-    /* Primary — ice blue */
-    --primary: 212 40% 64%;            /* #7da2cc frost blue */
-    --primary-foreground: 220 16% 12%;
-
-    /* Secondary — deep polar tint */
-    --secondary: 220 14% 24%;          /* #353b49 */
-    --secondary-foreground: 220 14% 90%;
-
-    /* Muted / neutral surfaces */
-    --muted: 220 14% 20%;              /* #2b303c */
-    --muted-foreground: 220 10% 60%;   /* #8f98a8 */
-
-    /* Accent — golden aurora */
-    --accent: 46 45% 65%;              /* #d8be75 */
-    --accent-foreground: 220 16% 12%;
-
-    /* Semantic states */
-    --destructive: 0 45% 62%;          /* #c96b6b aurora red */
-    --destructive-foreground: 220 16% 12%;
-    --success: 140 32% 58%;            /* #6fa882 aurora green */
-    --success-foreground: 220 16% 12%;
-    --warning: 46 55% 58%;             /* #d4b553 aurora yellow */
-    --warning-foreground: 220 16% 12%;
-
-    /* Chrome */
-    --border: 220 14% 26%;             /* #3a4150 */
-    --input: 220 14% 28%;
-    --ring: 212 40% 64%;
-
-    /* ── Metric tokens — dark variants ────────────────────────────── */
-    --metric-time:       212 40% 64%;  /* #7da2cc frost blue */
-    --metric-rep:        30 52% 60%;   /* #cc8a55 amber */
-    --metric-effort:     140 32% 58%;  /* #6fa882 aurora green */
-    --metric-rounds:     270 32% 66%;  /* #a084c8 aurora purple */
-    --metric-distance:   180 40% 55%;  /* #52a8a8 arctic teal */
-    --metric-resistance: 0 45% 62%;    /* #c96b6b aurora red */
-    --metric-action:     46 55% 58%;   /* #d4b553 aurora yellow */
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }

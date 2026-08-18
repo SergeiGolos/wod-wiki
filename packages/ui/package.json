@@ -6,6 +6,7 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "style": "./dist/styles.css",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -16,7 +17,8 @@
       "types": "./dist/extensions/index.d.ts",
       "import": "./dist/extensions/index.mjs",
       "require": "./dist/extensions/index.cjs"
-    }
+    },
+    "./styles.css": "./dist/styles.css"
   },
   "files": [
     "dist"
@@ -93,7 +95,7 @@
     }
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && cp src/styles.css dist/styles.css",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

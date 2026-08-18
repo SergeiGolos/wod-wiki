@@ -29,7 +29,7 @@ wod-wiki-engine/
 - **`@bitcobblers/wod-wiki-lang`**: Parser, JIT compiler, runtime, dialect execution, and analytics generation. Exposes headless `parseScript` over raw Lezer, and a `./react` sub-export (`@bitcobblers/wod-wiki-lang/react`) for React hooks and runtime contexts.
 - **`@bitcobblers/wod-wiki-wql`**: Pure query layer over stored analytics facts. Owns WQL grammar, AST parser, `QueryService` over injectable stores (`FactQueryStore`, `ResultLogStore`), and rollup math.
 - **`@bitcobblers/wod-wiki-engine`**: Umbrella re-export facade convenience package exporting core, lang, and wql, plus the `wod` Node CLI runner (`bin/wod.js`).
-- **`@bitcobblers/wod-wiki-ui`**: Interactive presentation, CodeMirror editor extensions (`editorPreset`), WQL diagram/table widgets, and `CODEMIRROR_SINGLETON_DEPS` dedupe helper.
+- **`@bitcobblers/wod-wiki-ui`**: Interactive presentation, CodeMirror editor extensions (`editorPreset`), WQL diagram/table widgets, `CODEMIRROR_SINGLETON_DEPS` dedupe helper, and design tokens at `@bitcobblers/wod-wiki-ui/styles.css`.
 
 ## Build & Release Tooling
 
