@@ -20,11 +20,13 @@ export interface TourEditorScreenProps {
   sharedBy?: string
   onResetShared?: () => void
   /**
-   * Opt in to ring-target registration (#884): the whole window under
-   * 'editor.window', the measured fenced-block region under
-   * 'editor.wodBlock', and the Run button under 'editor.runButton'. Only
-   * the runway window registers — the hero renders the same screen and
-   * must not hijack the ring.
+   * Opt in to ring-target registration (#884): the measured fenced-block
+   * region under 'editor.wodBlock' and the Run button under
+   * 'editor.runButton'. The window-level 'editor.window' target is
+   * registered by the RUNWAY (on the wrapper outside the window chrome)
+   * so the ring frames the whole window on top of it — only the runway
+   * window registers; the hero renders the same screen and must not
+   * hijack the ring.
    */
   withRingTargets?: boolean
 }
@@ -48,7 +50,6 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
   onResetShared,
   withRingTargets = false,
 }) => {
-  const windowRef = useRingRef('editor.window')
   const wodBlockRef = useRingRef('editor.wodBlock')
   const runButtonRef = useRingRef('editor.runButton')
   const bodyRef = useRef<HTMLDivElement | null>(null)
@@ -135,10 +136,7 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
     }
   }, [doc, withRingTargets, measure])
   return (
-    <div
-      ref={withRingTargets ? windowRef : undefined}
-      className="flex h-full flex-col bg-background text-left"
-    >
+    <div className="flex h-full flex-col bg-background text-left">
       <div
         className="flex items-center justify-between border-b border-border/70 px-3 py-1.5 shrink-0 bg-muted/10"
         data-testid="tour-editor-header"

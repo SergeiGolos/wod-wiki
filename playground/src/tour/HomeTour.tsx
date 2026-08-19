@@ -39,6 +39,7 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import {
   RingTargetsProvider,
   TourRing,
+  useRingRef,
 } from './TourRing'
 import { useScrollRunway, scrollRunwayTo } from '../canvas/useScrollRunway'
 import type { ScrollSlice } from '../canvas/scrollRunway'
@@ -196,8 +197,18 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
 
   const runwayRef = useRef<HTMLElement | null>(null)
   const analyticsSectionRef = useRef<HTMLDivElement | null>(null)
-  const canvasRef = useRef<HTMLDivElement | null>(null)
   const canvasInnerRef = useRef<HTMLDivElement | null>(null)
+  // The whole desktop tour window (the canvas wrapper OUTSIDE the MacOS
+  // chrome) is the 'editor.window' ring target — the ring frames it on
+  // top of the window, not as a layer inside the chrome body.
+  const editorWindowRef = useRingRef('editor.window')
+  // Stable identity: an inline arrow here would detach/reattach every
+  // render, and each attach bumps the registry version → re-render loop.
+  const canvasInnerRingRef = useCallback((el: HTMLDivElement | null) => {
+    canvasInnerRef.current = el
+    editorWindowRef(el)
+  }, [editorWindowRef])
+  const canvasRef = useRef<HTMLDivElement | null>(null)
   const tvCardRef = useRef<HTMLDivElement | null>(null)
   const toastRef = useRef<HTMLDivElement | null>(null)
 
@@ -940,7 +951,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
               className="relative aspect-[1200/720] w-[min(920px,calc(100vw-440px))] min-w-0 shrink"
             >
               <div
-                ref={canvasInnerRef}
+                ref={canvasInnerRingRef}
                 className="absolute inset-0"
               >
                 <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-x-2 top-2 bottom-2">

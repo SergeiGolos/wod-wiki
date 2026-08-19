@@ -39,7 +39,7 @@ import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
 import { CelebrationBridge } from './CelebrationBridge'
 import { ChapterHeroSection } from './ChapterHeroSection'
-import { TourRing } from './TourRing'
+import { TourRing, useRingRef } from './TourRing'
 
 /**
  * Scroll pacing per caption card: each card dwells in the reading zone for
@@ -140,6 +140,16 @@ export function TourMobileRunway({
   const cardRefs = useRef<Array<HTMLDivElement | null>>([])
 
   const windowCanvasRef = useRef<HTMLDivElement | null>(null)
+  // The whole pinned window (the canvas wrapper OUTSIDE the MacOS chrome)
+  // is the 'editor.window' ring target — same contract as the desktop
+  // tour: the ring frames the window on top of it.
+  const editorWindowRef = useRingRef('editor.window')
+  // Stable identity: an inline arrow here would detach/reattach every
+  // render, and each attach bumps the registry version → re-render loop.
+  const windowCanvasRingRef = useCallback((el: HTMLDivElement | null) => {
+    windowCanvasRef.current = el
+    editorWindowRef(el)
+  }, [editorWindowRef])
   // ── Stage detection ──
   // reached: the track top has hit the app header — nothing counts before.
   const reachedRef = useRef(false)
@@ -267,39 +277,45 @@ export function TourMobileRunway({
           className="sticky z-20 shrink-0 px-4 pt-2 pb-1"
           style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)` }}
         >
-          <MacOSChrome title={SCREEN_TITLES[screen]} className="h-full">
-            <div ref={windowCanvasRef} className="relative h-full">
-              <TourRing target={ringTarget} accent={stage?.accent ?? 'hsl(var(--metric-resistance))'} canvasRef={windowCanvasRef} />
-              <ScreenFade visible={screen === 'editor'}>
-                <TourEditorScreen
-                  doc={runwayDoc}
-                  onDocChange={onRunwayDocChange}
-                  onBlocksChange={onRunwayBlocksChange}
-                  onRun={onRunwayRun}
-                  onShare={onRunwayShare}
-                  onOpenInEditor={onRunwayOpenInEditor}
-                  theme={theme}
-                  sharedBy={sharedBy}
-                  onResetShared={onResetShared}
-                  withRingTargets
-                />
-              </ScreenFade>
-              {entered.timer && (
-                <ScreenFade visible={screen === 'timer'}>
-                  <TourTimerScreen
-                    key={timer.sessionKey}
-                    block={timer.block}
-                    autoStart={timer.autoStart}
-                    onClose={timer.onClose}
-                    onComplete={timer.onComplete}
-                    onRuntimeReady={timer.onRuntimeReady}
-                    onReset={timer.onReset}
-                    externalPause={timer.externalPause}
+          <div ref={windowCanvasRingRef} className="relative h-full">
+            {/* The ring canvas sits OUTSIDE MacOSChrome (its body is
+                overflow-hidden) so the ring overlays the whole window —
+                same layering as the desktop tour and the ```scroll
+                runways — instead of living as a layer inside it. */}
+            <MacOSChrome title={SCREEN_TITLES[screen]} className="h-full">
+              <div className="relative h-full">
+                <ScreenFade visible={screen === 'editor'}>
+                  <TourEditorScreen
+                    doc={runwayDoc}
+                    onDocChange={onRunwayDocChange}
+                    onBlocksChange={onRunwayBlocksChange}
+                    onRun={onRunwayRun}
+                    onShare={onRunwayShare}
+                    onOpenInEditor={onRunwayOpenInEditor}
+                    theme={theme}
+                    sharedBy={sharedBy}
+                    onResetShared={onResetShared}
+                    withRingTargets
                   />
                 </ScreenFade>
-              )}
-            </div>
-          </MacOSChrome>
+                {entered.timer && (
+                  <ScreenFade visible={screen === 'timer'}>
+                    <TourTimerScreen
+                      key={timer.sessionKey}
+                      block={timer.block}
+                      autoStart={timer.autoStart}
+                      onClose={timer.onClose}
+                      onComplete={timer.onComplete}
+                      onRuntimeReady={timer.onRuntimeReady}
+                      onReset={timer.onReset}
+                      externalPause={timer.externalPause}
+                    />
+                  </ScreenFade>
+                )}
+              </div>
+            </MacOSChrome>
+            <TourRing target={ringTarget} accent={stage?.accent ?? 'hsl(var(--metric-resistance))'} canvasRef={windowCanvasRef} />
+          </div>
         </div>
 
         {/* Caption cards scroll through the reading zone below the window. */}
