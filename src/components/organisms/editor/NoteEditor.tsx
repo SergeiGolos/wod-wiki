@@ -63,6 +63,7 @@ import { lineIdsExtension } from '@bitcobblers/wod-wiki-ui/extensions';
 import { createParser } from '@bitcobblers/wod-wiki-engine';
 import type { INotePersistence } from "@/services/persistence";
 import { createFileDropHandler, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
+import { metricMarkTheme } from "@/app/editor/metricMarkTheme";
 
 import { OverlayTrack } from "@/components/organisms/editor/OverlayTrack";
 import { useOverlayWidthState } from "@/components/Editor/overlays/useOverlayWidthState";
@@ -447,8 +448,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
       // Inline metric hover tooltip
 
-      // Cursor focus: mark decorations + focus state for MetricInlinePanel
+      // Cursor focus: mark decorations + focus state for MetricInlinePanel.
+      // metricMarkTheme styles the cm-metric-* marks the extension emits.
       cursorFocusExtension,
+      metricMarkTheme,
 
       // Unified gutter: lint diagnostics + runtime highlights in one column
       ...gutterUnified,
