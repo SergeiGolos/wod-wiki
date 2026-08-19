@@ -140,7 +140,7 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
       className="flex h-full flex-col bg-background text-left"
     >
       <div
-        className="flex items-center justify-between border-b border-border px-3 py-2"
+        className="flex items-center justify-between border-b border-border/70 px-3 py-1.5 shrink-0 bg-muted/10"
         data-testid="tour-editor-header"
       >
         <div className="flex items-center gap-2">
@@ -152,27 +152,27 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
               type="button"
               title="Reset to welcome-1.md"
               onClick={onResetShared}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
             >
-              <RotateCcw size={11} />
+              <RotateCcw size={10} />
               Reset
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             title="Copy share link"
             onClick={onShare}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            <Share2 size={16} />
+            <Share2 size={13} />
           </button>
           <button
             type="button"
             title="Open in journal"
             onClick={onOpenInEditor}
-            className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-muted/50"
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-muted/50"
           >
             Open in editor →
           </button>
@@ -181,9 +181,9 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
             type="button"
             title="Start the WallClock"
             onClick={onRun}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            <Play size={14} fill="currentColor" />
+            <Play size={11} fill="currentColor" />
             Run
           </button>
         </div>

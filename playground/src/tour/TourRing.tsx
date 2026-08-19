@@ -86,7 +86,7 @@ export interface TourRingProps {
   target?: { key: RingTargetKey; tag?: string } | null
   accent: string
   canvasRef: React.RefObject<HTMLElement | null>
-  /** Set to true when measuring an unscaled window (e.g. mobile runway). */
+  /** Set to false only when measuring inside a scaled virtual canvas. Defaults to true. */
   unscaled?: boolean
 }
 
@@ -97,7 +97,7 @@ interface RingBox {
   h: number
 }
 
-export function TourRing({ target, accent, canvasRef, unscaled }: TourRingProps) {
+export function TourRing({ target, accent, canvasRef, unscaled = true }: TourRingProps) {
   const { registry, version } = useRingTargets()
   const [box, setBox] = useState<RingBox | null>(null)
   const targetKey = target?.key ?? null
@@ -145,19 +145,18 @@ export function TourRing({ target, accent, canvasRef, unscaled }: TourRingProps)
   return (
     <div
       data-testid="tour-ring"
-      className="pointer-events-none absolute z-30 rounded-lg border-2 transition-all duration-500 ease-out"
+      className="pointer-events-none absolute z-30 rounded-2xl transition-all duration-500 ease-out"
       style={{
         left: box.x - pad,
         top: box.y - pad,
         width: box.w + pad * 2,
         height: box.h + pad * 2,
-        borderColor: accent,
-        boxShadow: `0 0 0 4px color-mix(in srgb, ${accent} 16%, transparent), 0 0 28px color-mix(in srgb, ${accent} 38%, transparent)`,
+        boxShadow: `0 0 0 2px ${accent}`,
       }}
     >
       {target.tag && (
         <span
-          className="absolute -top-0.5 -right-0.5 rounded-bl-md px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-white"
+          className="absolute -top-3 left-4 rounded-full px-2.5 py-1 font-mono text-[10px] tracking-[0.06em] text-background"
           style={{ background: accent }}
         >
           {target.tag}

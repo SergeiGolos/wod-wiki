@@ -779,21 +779,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     </div>
   )
 
-  // ── Canvas scaling (desktop only) ──
-  const scaleRef = useRef(1)
-  useEffect(() => {
-    const canvas = canvasRef.current
-    const inner = canvasInnerRef.current
-    if (!canvas || !inner) return
-    const fit = () => {
-      scaleRef.current = canvas.clientWidth / TOUR_CANVAS_WIDTH
-      inner.style.transform = `scale(${scaleRef.current})`
-    }
-    fit()
-    window.addEventListener('resize', fit)
-    return () => window.removeEventListener('resize', fit)
-  }, [])
-
   // ── Imperative scrub: TV parallax + toast ──
   useEffect(() => {
     return subscribe((s: ScrollSlice) => {
@@ -958,8 +943,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
             >
               <div
                 ref={canvasInnerRef}
-                className="absolute top-0 left-0 origin-top-left will-change-transform"
-                style={{ width: TOUR_CANVAS_WIDTH, height: TOUR_CANVAS_HEIGHT }}
+                className="absolute inset-0"
               >
                 <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-x-2 top-2 bottom-2">
                   <div className="relative h-full">

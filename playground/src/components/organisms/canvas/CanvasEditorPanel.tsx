@@ -76,10 +76,10 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
   return (
     <div
-      className="lg:hidden sticky z-20 shrink-0 px-4 pt-[2px] pb-1"
+      className="lg:hidden sticky z-20 shrink-0 px-4 pt-2 pb-1"
       style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)` }}
     >
-      <div className="flex flex-col gap-2" style={{ height: '100%' }}>
+      <div className="flex flex-col gap-2 h-full">
         <div className="flex-1 min-h-0">{chrome}</div>
         {buttons}
       </div>

@@ -5,8 +5,8 @@
  * NoteEditor so a visitor can edit, run, share, or open the demo in the
  * journal without scrolling.
  */
-
 import { TourEditorScreen } from './screens/TourEditorScreen'
+import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import { TOUR_ACCENTS } from './tourConstants'
 import type { ScriptBlock } from '@/components/Editor/types'
 
@@ -90,7 +90,7 @@ export function TourHero({
     >
       <TourHeroHeading />
       <div className="mt-6 w-full max-w-2xl text-left">
-        <div className="h-[min(420px,50vh)] overflow-hidden rounded-xl border border-border shadow-lg">
+        <MacOSChrome title="welcome-1.md" className="h-[min(460px,52vh)] shadow-2xl">
           <TourEditorScreen
             doc={doc}
             onDocChange={onDocChange}
@@ -102,7 +102,7 @@ export function TourHero({
             sharedBy={sharedBy}
             onResetShared={onResetShared}
           />
-        </div>
+        </MacOSChrome>
       </div>
     </section>
   )

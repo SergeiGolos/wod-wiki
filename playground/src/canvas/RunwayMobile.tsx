@@ -119,8 +119,8 @@ export function RunwayMobile({ spec, wodFiles, theme, noteTitle, doc: controlled
     <section className={className} data-testid="runway-mobile">
       <div className="relative">
         {/* Pinned window — sticks under the nav, releases after the last card. */}
-        <div className="sticky z-20 px-4 pt-3" style={{ top: MOBILE_STICKY_TOP }}>
-          <div className="relative h-[46vh]">
+        <div className="sticky z-20 px-4 pt-2 pb-1" style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)` }}>
+          <div className="relative h-full">
             <EditorWindow
               title={noteTitle ?? 'note.md'}
               noteId="canvas:runway-mobile"
@@ -130,7 +130,7 @@ export function RunwayMobile({ spec, wodFiles, theme, noteTitle, doc: controlled
               theme={theme}
               readonly
               run={onRun ? { onRun } : undefined}
-              className="absolute inset-0"
+              className="h-full"
             />
             {slice.ring && <ScrollRing tag={slice.ring.tag} accent={accent} />}
           </div>

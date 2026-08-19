@@ -264,7 +264,7 @@ export function TourMobileRunway({
       <div ref={trackRef} data-testid="tour-mobile-runway-track" className="relative">
         <div
           data-testid="tour-mobile-runway-window"
-          className="sticky z-20 shrink-0 px-4 pt-[2px] pb-1"
+          className="sticky z-20 shrink-0 px-4 pt-2 pb-1"
           style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)` }}
         >
           <MacOSChrome title={SCREEN_TITLES[screen]} className="h-full">
