@@ -15,14 +15,13 @@
  */
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { ScrollSpec } from './parseCanvasMarkdown'
-import { MOBILE_BREAKPOINT_PX } from './canvasUtils'
-import { useMediaQuery } from '../hooks/useMediaQuery'
+import { useCanvasFormFactor, type CanvasFormFactor } from './useCanvasFormFactor'
 import { ScrollRunwaySection } from './ScrollRunwaySection'
 import { RunwayMobile } from './RunwayMobile'
 import { RunwayReduced } from './RunwayReduced'
 
 /** The three Form Factor presentations the adapter swaps across. */
-export type RunwayFormFactor = 'desktop' | 'mobile' | 'reduced'
+export type RunwayFormFactor = CanvasFormFactor
 
 /**
  * Detect the current Form Factor: reduced-motion wins, then the mobile
@@ -31,9 +30,7 @@ export type RunwayFormFactor = 'desktop' | 'mobile' | 'reduced'
  * home chapter tour) can rely on detection.
  */
 export function useRunwayFormFactor(): RunwayFormFactor {
-  const reduced = useMediaQuery('(prefers-reduced-motion: reduce)')
-  const mobile = useMediaQuery(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`)
-  return reduced ? 'reduced' : mobile ? 'mobile' : 'desktop'
+  return useCanvasFormFactor()
 }
 
 export interface RunwayAdapterProps {
