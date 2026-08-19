@@ -60,7 +60,7 @@ import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { CelebrationBridge } from './CelebrationBridge'
 import { ChapterScrollTour } from './ChapterScrollTour'
-import { HomeAnalyticsSection } from './HomeAnalyticsSection'
+import { HomeAnalyticsRunway } from './HomeAnalyticsRunway'
 import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
@@ -420,24 +420,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     markStageViewed(mobileStage.id)
   }, [isMobile, interactive, mobileStage, markStageViewed])
 
-  // The analytics story is now the WQL-elements showcase section (#938), not a
-  // runway stage — completing its quest fires when the showcase scrolls into
-  // view, on any form factor (it is one static section, no scroll driver).
-  useEffect(() => {
-    const el = analyticsSectionRef.current
-    if (!el || typeof IntersectionObserver === 'undefined') return
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          markStageViewed('analytics')
-          io.disconnect()
-        }
-      },
-      { rootMargin: '-30% 0px' },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [markStageViewed])
+  // The analytics story is the WQL runway (#938 → scroll-driven); its own
+  // enter-view IO (inside HomeAnalyticsRunway) fires the quest on every
+  // form factor — this component only supplies the callback.
+  const markAnalyticsViewed = useCallback(() => markStageViewed('analytics'), [markStageViewed])
 
   // The qs-tour-timer interaction quest validates on a *visitor-initiated* run.
   // Driven from the Run click (startRun), not the runtime 'running' status: the
@@ -886,6 +872,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
           }}
           heroRef={heroRef}
           apiRef={mobileRunwayApiRef}
+          analyticsSectionRef={analyticsSectionRef}
+          onAnalyticsEnterView={markAnalyticsViewed}
         />
 
         {/* Spec §2: runs from the hero demo go fullscreen on every form factor. */}
@@ -1015,11 +1003,14 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
         </div>
       </section>
 
-      {/* WQL-elements analytics showcase (#938) — replaces the runway's
-          single-workout session-review stages with the query vocabulary and
-          the presentations it drives. */}
+      {/* Analytics story as a scroll runway — the WQL vocabulary and the
+          presentations it drives, staged with ring highlights. The wrapper
+          div keeps the quest-click scrollIntoView anchor stable. */}
       <div ref={analyticsSectionRef}>
-        <HomeAnalyticsSection />
+        <HomeAnalyticsRunway
+          sectionRef={analyticsSectionRef}
+          onEnterView={markAnalyticsViewed}
+        />
       </div>
 
       <CelebrationBridge chapters={chapters} />

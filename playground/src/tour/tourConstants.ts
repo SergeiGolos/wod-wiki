@@ -31,6 +31,10 @@ export type RingTargetKey =
   | 'timer.floor'
   | 'timer.nextButton'
   | 'timer.castButton'
+  | 'analytics.vocab'
+  | 'analytics.table'
+  | 'analytics.graphs'
+  | 'analytics.dashboard'
 
 /** Metric-token accents (light + dark safe — tokens flip with the theme). */
 export const TOUR_ACCENTS = {

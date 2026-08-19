@@ -40,6 +40,10 @@ export function RingTargetsProvider({ children }: { children: ReactNode }) {
     'timer.floor': null,
     'timer.nextButton': null,
     'timer.castButton': null,
+    'analytics.vocab': null,
+    'analytics.table': null,
+    'analytics.graphs': null,
+    'analytics.dashboard': null,
   })
   const [version, setVersion] = useState(0)
 

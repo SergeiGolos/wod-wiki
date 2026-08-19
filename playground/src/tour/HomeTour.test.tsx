@@ -610,15 +610,19 @@ describe('HomeTour', () => {
 
     // slice.ring must reach TourRing as { key, tag } — passing the key string
     // alone silences the ring (regression: desktop ring vanished after the
-    // useScrollRunway migration because nothing asserted it).
-    const ring = await screen.findByTestId('tour-ring')
-    expect(ring.textContent).toContain('Line Metrics')
+    // useScrollRunway migration because nothing asserted it). The analytics
+    // runway renders its own ring, so assert across all of them.
+    let rings = await screen.findAllByTestId('tour-ring')
+    expect(rings.some((r) => r.textContent?.includes('Line Metrics'))).toBe(true)
 
     await act(async () => {
       setTestTourProgress(0.50)
       await Promise.resolve()
     })
-    await waitFor(() => expect(ring.textContent).toContain('WallClock'))
+    await waitFor(() => {
+      rings = screen.getAllByTestId('tour-ring')
+      expect(rings.some((r) => r.textContent?.includes('WallClock'))).toBe(true)
+    })
   })
 
   it('restarts the run from the timer header Reset button (#885)', async () => {

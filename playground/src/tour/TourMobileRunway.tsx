@@ -30,7 +30,7 @@ import {
 import { TourHero } from './TourHero'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
-import { HomeAnalyticsSection } from './HomeAnalyticsSection'
+import { HomeAnalyticsRunway } from './HomeAnalyticsRunway'
 import { TOUR_CAPTIONS, CaptionBody } from './TourCaptions'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { LearnProgressOverview } from './TourLearnSection'
@@ -104,8 +104,11 @@ export interface TourMobileRunwayProps {
   heroRef: React.Ref<HTMLDivElement>
   /** Imperative escape hatch for quest clicks / completion auto-slide. */
   apiRef: React.MutableRefObject<TourMobileRunwayApi | null>
+  /** Anchor for the analytics quest-click scrollIntoView (#938 runway). */
+  analyticsSectionRef?: React.Ref<HTMLElement>
+  /** Fires when the analytics runway enters view (quest completion). */
+  onAnalyticsEnterView?: () => void
 }
-
 export function TourMobileRunway({
   theme,
   quests,
@@ -135,6 +138,8 @@ export function TourMobileRunway({
   timer,
   heroRef,
   apiRef,
+  analyticsSectionRef,
+  onAnalyticsEnterView,
 }: TourMobileRunwayProps) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const cardRefs = useRef<Array<HTMLDivElement | null>>([])
@@ -343,12 +348,9 @@ export function TourMobileRunway({
         </div>
       </div>
 
-      {/* WQL-elements analytics showcase (#938) — one static section; the
-          tile grid stacks to a single column on mobile. */}
-      <HomeAnalyticsSection />
-
-      <CelebrationBridge chapters={chapters} />
-
+      {/* Analytics story as a scroll runway (#938 → scroll-driven): pinned
+          presentation window + caption cards, ring-highlighted. */}
+      <HomeAnalyticsRunway variant="mobile" sectionRef={analyticsSectionRef} onEnterView={onAnalyticsEnterView} />
       {/* Six Syntax Chapter Heroes */}
       {chapters
         .filter((c) => c.id !== 'home-tour')
