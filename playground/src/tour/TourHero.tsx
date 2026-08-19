@@ -7,7 +7,7 @@
  */
 
 import { TourEditorScreen } from './screens/TourEditorScreen'
-import { TOUR_ACCENTS } from './tourStages'
+import { TOUR_ACCENTS } from './tourConstants'
 import type { ScriptBlock } from '@/components/Editor/types'
 
 const ROWS: Array<{ before?: string; accentText: string; after?: string; accent: string }> = [

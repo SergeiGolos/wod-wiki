@@ -19,8 +19,8 @@ export interface ScrollSlice {
   stage: ScrollStage
   /** Local progress within the stage, 0..1. */
   t: number
-  /** Resolved ring target (tag optional) — null when the stage has none. */
-  ring: { tag?: string } | null
+  /** Resolved ring target (key / tag optional) — null when the stage has none. */
+  ring: { key?: string; tag?: string } | null
 }
 
 /**
@@ -42,6 +42,6 @@ export function resolveScrollStage(progress: number, stages: ScrollStage[]): Scr
   const stage = clamped[index]
   const span = stage.end - stage.start
   const t = span > 0 ? clamp01((p - stage.start) / span) : 0
-  const ring = stage.ring ? { tag: stage.ring === true ? undefined : stage.ring.tag } : null
+  const ring = stage.ring ? { tag: stage.ring === true ? undefined : stage.ring.tag, key: stage.ring === true ? undefined : stage.ring.key } : null
   return { index, stage, t, ring }
 }

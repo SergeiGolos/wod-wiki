@@ -19,8 +19,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { RingTargetKey } from './tourStages'
-import { TOUR_CANVAS_WIDTH } from './tourStages'
+import type { RingTargetKey } from './tourConstants'
+import { TOUR_CANVAS_WIDTH } from './tourConstants'
 
 // ── Registry ────────────────────────────────────────────────────────────────
 

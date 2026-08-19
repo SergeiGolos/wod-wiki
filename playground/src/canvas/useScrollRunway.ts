@@ -25,12 +25,49 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { resolveScrollStage, type ScrollSlice } from './scrollRunway'
 import type { ScrollStage } from './parseCanvasMarkdown'
-
 export type ScrollRunwaySubscriber = (slice: ScrollSlice, progress: number) => void
+
+/**
+ * Nearest scrollable ancestor (the app shell scrolls a container div, not
+ * window). Falls back to the document scrolling element.
+ */
+export function getScrollParent(el: HTMLElement): HTMLElement | typeof window {
+  let node: HTMLElement | null = el.parentElement
+  while (node) {
+    const style = window.getComputedStyle(node)
+    const overflowY = style.overflowY
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      return node
+    }
+    node = node.parentElement
+  }
+  return window
+}
+
+/**
+ * Scroll the runway's scroll container so runway progress lands on
+ * `progress` (0..1).
+ */
+export function scrollRunwayTo(el: HTMLElement, progress: number, behavior: ScrollBehavior = 'smooth') {
+  const scroller = getScrollParent(el)
+  const total = el.offsetHeight - window.innerHeight
+  if (total <= 0) return
+  if (scroller instanceof HTMLElement) {
+    const top = el.offsetTop
+    scroller.scrollTo({ top: top + progress * total, behavior })
+    return
+  }
+  const top = el.getBoundingClientRect().top + window.scrollY
+  window.scrollTo({ top: top + progress * total, behavior })
+}
 
 export interface UseScrollRunwayResult {
   /** Discrete stage state for React rendering. */
   slice: ScrollSlice
+  /** Raw runway progress 0..1 (state — updates with slice only). */
+  progress: number
+  /** True once the runway top has reached the viewport top (scrolled past hero). */
+  runwayReached: boolean
   /** Subscribe to per-frame scrub updates. Returns unsubscribe. */
   subscribe: (cb: ScrollRunwaySubscriber) => () => void
   /** Force a re-sync from current scroll position (e.g. after exiting playground mode). */
@@ -43,6 +80,7 @@ export function useScrollRunway(
   stages: ScrollStage[],
 ): UseScrollRunwayResult {
   const [slice, setSlice] = useState<ScrollSlice>(() => resolveScrollStage(0, stages))
+  const [runwayReached, setRunwayReached] = useState(false)
   const progressRef = useRef(0)
   const sliceRef = useRef(slice)
   const subscribersRef = useRef(new Set<ScrollRunwaySubscriber>())
@@ -59,7 +97,7 @@ export function useScrollRunway(
     sliceRef.current = next
     progressRef.current = progress
     // Discrete updates → React
-    if (prev.index !== next.index) {
+    if (prev.index !== next.index || prev.ring?.key !== next.ring?.key) {
       setSlice(next)
     }
     // Imperative scrub subscribers
@@ -75,6 +113,7 @@ export function useScrollRunway(
     const total = rect.height - window.innerHeight
     if (total <= 0) return
     const progress = Math.max(0, Math.min(1, -rect.top / total))
+    setRunwayReached(rect.top <= 0)
     emit(resolveScrollStage(progress, stagesRef.current), progress)
   }, [runwayRef, emit])
 
@@ -109,5 +148,5 @@ export function useScrollRunway(
     measure()
   }, [measure])
 
-  return { slice, subscribe, resync }
+  return { slice, progress: progressRef.current, runwayReached, subscribe, resync }
 }

@@ -94,8 +94,8 @@ mock.module('../hooks/useIsMobile', () => ({
 
 // Scroll driver held at the first editor stage; subscribers never fire so the
 // typewriter scrub does not clobber the doc under test.
-mock.module('./useTourScroll', () => ({
-  useTourScroll: () => ({
+mock.module('../canvas/useScrollRunway', () => ({
+  useScrollRunway: () => ({
     slice: {
       index: 0,
       stage: {

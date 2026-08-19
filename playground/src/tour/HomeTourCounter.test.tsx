@@ -123,11 +123,11 @@ function setTestRunwayReached(reached: boolean) {
   store.listeners.forEach((cb) => cb())
 }
 
-mock.module('./useTourScroll', () => {
+mock.module('../canvas/useScrollRunway', () => {
   const React = require('react')
 
   return {
-    useTourScroll: () => {
+    useScrollRunway: () => {
       const [, force] = React.useReducer((n: number) => n + 1, 0)
       React.useEffect(() => {
         store.listeners.add(force)

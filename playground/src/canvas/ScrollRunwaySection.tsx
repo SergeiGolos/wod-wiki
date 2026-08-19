@@ -14,9 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Play } from 'lucide-react'
-import { MacOSChrome } from '../components/atoms/MacOSChrome'
-import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
+import { EditorWindow } from '../components/organisms/editor/EditorWindow'
 import type { ScriptBlock } from '@/components/Editor/types'
 import {
   type ScrollSpec,
@@ -169,15 +167,6 @@ export function ScrollRunwaySection({
     })
   }, [subscribe, stages])
 
-  const handleBlocksChange = useCallback((blocks: ScriptBlock[]) => {
-    blocksRef.current = blocks
-    onBlocksChange?.(blocks)
-  }, [onBlocksChange])
-
-  const handleRun = useCallback(() => {
-    onRun?.(doc, blocksRef.current[0] ?? null)
-  }, [onRun, doc])
-
   const activeAccent = slice.stage.accent ?? 'hsl(var(--foreground))'
 
   return (
@@ -215,41 +204,20 @@ export function ScrollRunwaySection({
           <div className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 items-center justify-center gap-[clamp(24px,3.5vw,56px)] px-6 pb-5 max-lg:flex-col max-lg:justify-start lg:px-12">
             {/* editor canvas */}
             <div className="relative aspect-[1200/720] w-[min(920px,calc(100%-400px))] max-w-full flex-none max-lg:aspect-auto max-lg:h-[50vh] max-lg:w-full">
-              <MacOSChrome
-                title={noteTitle}
+              <EditorWindow
+                title={noteTitle ?? ''}
+                noteId="canvas:scroll-runway"
+                doc={doc}
+                onDocChange={setDoc}
+                onBlocksChange={onBlocksChange}
+                theme={theme}
+                run={onRun ? { onRun } : undefined}
                 className="absolute inset-x-2 top-2 bottom-2"
-                headerActions={
-                  onRun ? (
-                    <button
-                      type="button"
-                      title="Run the workout"
-                      onClick={handleRun}
-                      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                    >
-                      <Play size={11} fill="currentColor" />
-                      Run
-                    </button>
-                  ) : undefined
-                }
               >
-                <div className="relative h-full">
-                  <NoteEditor
-                    noteId="canvas:scroll-runway"
-                    value={doc}
-                    onChange={setDoc}
-                    onBlocksChange={handleBlocksChange}
-                    theme={theme}
-                    readonly={false}
-                    showLineNumbers={false}
-                    enableOverlay={false}
-                    enableInlineRuntime={false}
-                    className="h-full"
-                  />
-                  {slice.stage.toast && (
-                    <ScrollToast ref={toastRef} text={slice.stage.toast} accent={activeAccent} />
-                  )}
-                </div>
-              </MacOSChrome>
+                {slice.stage.toast && (
+                  <ScrollToast ref={toastRef} text={slice.stage.toast} accent={activeAccent} />
+                )}
+              </EditorWindow>
               {slice.ring && !interactive && (
                 <ScrollRing tag={slice.ring.tag} accent={activeAccent} />
               )}

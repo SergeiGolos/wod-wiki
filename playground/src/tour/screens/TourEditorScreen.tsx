@@ -1,5 +1,6 @@
-import React, { useLayoutEffect, useRef, useState } from 'react'
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Play, RotateCcw, Share2 } from 'lucide-react'
+import type { EditorView } from '@codemirror/view'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { useRingRef } from '../TourRing'
@@ -51,8 +52,8 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
   const wodBlockRef = useRingRef('editor.wodBlock')
   const runButtonRef = useRingRef('editor.runButton')
   const bodyRef = useRef<HTMLDivElement | null>(null)
+  const viewRef = useRef<EditorView | null>(null)
   const [blockBox, setBlockBox] = useState<BlockBox | null>(null)
-
   // Card 2 highlight (#884): measure the styled fence lines
   // (.cm-wod-fence-open … .cm-wod-fence-close, drawn by previewDecorations)
   // and register an invisible proxy over exactly that region. Presets are
@@ -62,15 +63,46 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
     const body = bodyRef.current
     if (!body) return
     const measure = () => {
+      const view = viewRef.current
+      const body = bodyRef.current
+      if (!body) return
+
+      if (view) {
+        try {
+          const doc = view.state.doc
+          let openPos = -1
+          let closePos = -1
+          for (let i = 1; i <= doc.lines; i++) {
+            const text = doc.line(i).text
+            if (text.startsWith('```time') || text.startsWith('```wod') || text.startsWith('```log')) {
+              openPos = doc.line(i).from
+            } else if (openPos !== -1 && text.startsWith('```')) {
+              closePos = doc.line(i).from
+              break
+            }
+          }
+          if (openPos !== -1 && closePos !== -1) {
+            const topBlock = view.lineBlockAt(openPos)
+            const bottomBlock = view.lineBlockAt(closePos)
+            setBlockBox({
+              top: topBlock.top,
+              left: 0,
+              width: view.dom.offsetWidth || body.offsetWidth,
+              height: (bottomBlock.top + bottomBlock.height) - topBlock.top,
+            })
+            return
+          }
+        } catch {
+          // fallback to DOM if line blocks not yet initialized
+        }
+      }
+
       const open = body.querySelector('.cm-wod-fence-open')
       const close = body.querySelector('.cm-wod-fence-close')
       if (!open || !close) {
         setBlockBox(null)
         return
       }
-      // getBoundingClientRect is post-transform; the proxy is positioned in
-      // the canvas's pre-scale coordinate space, so divide the scale back out
-      // (same convention as TourRing).
       const bodyRect = body.getBoundingClientRect()
       const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
       const openRect = open.getBoundingClientRect()
@@ -159,6 +191,10 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
           value={doc}
           onChange={onDocChange}
           onBlocksChange={onBlocksChange}
+          onViewCreated={(view) => {
+            viewRef.current = view
+            if (withRingTargets) measure()
+          }}
           theme={theme}
           readonly={false}
           showLineNumbers={false}

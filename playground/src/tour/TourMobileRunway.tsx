@@ -26,7 +26,7 @@ import {
   type TourScreen,
   type TourStage,
   type TourStageId,
-} from './tourStages'
+} from './tourConstants'
 import { TourHero } from './TourHero'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'

@@ -40,18 +40,19 @@ import {
   RingTargetsProvider,
   TourRing,
 } from './TourRing'
-import { useTourScroll, scrollRunwayTo } from './useTourScroll'
+import { useScrollRunway, scrollRunwayTo } from '../canvas/useScrollRunway'
+import type { ScrollSlice } from '../canvas/scrollRunway'
+import type { ScrollSpec, ScrollStage } from '../canvas/parseCanvasMarkdown'
 import {
   SCREEN_TITLES,
   TOUR_CANVAS_HEIGHT,
   TOUR_CANVAS_WIDTH,
   TOUR_RUNWAY_HEIGHT,
-  TOUR_STAGES,
+  TOUR_ACCENTS,
   type TourScreen,
-  type TourStage,
   type TourStageId,
-  type TourStageSlice,
-} from './tourStages'
+  type RingTargetKey,
+} from './tourConstants'
 import { TourHero } from './TourHero'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourCaptions, buildAdventureScript } from './TourCaptions'
@@ -86,11 +87,74 @@ const fmtClock = (ms: number) => {
 const HOME_DEMO_SOURCE = 'wods/examples/home/welcome-1.md'
 
 /** Home quest id → the tour stage that demonstrates it. */
-const HOME_QUEST_STAGE: Record<string, TourStageId> = {
+const HOME_QUEST_STAGE: Record<string, string> = {
   'qs-tour-timer': 'timer-wallclock',
   'qs-edit': 'timer-wallclock',
   'qs-run': 'timer-wallclock',
 }
+
+const DEFAULT_HOME_STAGES: ScrollStage[] = [
+  {
+    id: 'editor-blank',
+    range: [0.0, 0.15],
+    screen: 'editor',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Blank Page & Typeahead',
+    source: HOME_DEMO_SOURCE,
+    caption: 'Start with a Blank Page. Freeform entry & WOD fences.',
+    ring: { key: 'editor.window', tag: 'Live Editor' },
+  },
+  {
+    id: 'editor-metrics',
+    range: [0.15, 0.30],
+    screen: 'editor',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Every Line Collects Metrics',
+    source: HOME_DEMO_SOURCE,
+    caption: 'Every Line Collects Metrics. Reps, distance & load.',
+    ring: { key: 'editor.wodBlock', tag: 'Line Metrics' },
+  },
+  {
+    id: 'editor-run',
+    range: [0.30, 0.45],
+    screen: 'editor',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Press Run to Start',
+    source: HOME_DEMO_SOURCE,
+    caption: 'Press Run to Execute. Launch the working clock.',
+    ring: { key: 'editor.runButton', tag: 'Run Button' },
+  },
+  {
+    id: 'timer-wallclock',
+    range: [0.45, 0.58],
+    screen: 'timer',
+    accent: TOUR_ACCENTS.timer,
+    label: 'What Happens When It Runs',
+    source: HOME_DEMO_SOURCE,
+    caption: 'What Happens When It Runs. The script becomes the clock.',
+    ring: { key: 'timer.floor', tag: 'WallClock' },
+  },
+  {
+    id: 'timer-next',
+    range: [0.58, 0.68],
+    screen: 'timer',
+    accent: TOUR_ACCENTS.timer,
+    label: 'Advance Rounds with Next',
+    source: HOME_DEMO_SOURCE,
+    caption: 'Next Advances the Workout. Every click locks a time.',
+    ring: { key: 'timer.nextButton', tag: 'Next Button' },
+  },
+  {
+    id: 'timer-cast',
+    range: [0.68, 1.0],
+    screen: 'timer',
+    accent: TOUR_ACCENTS.timer,
+    label: 'Cast to the Big Screen',
+    source: HOME_DEMO_SOURCE,
+    caption: 'Cast to the Big Screen. Real-time mirror for the gym floor.',
+    ring: { key: 'timer.castButton', tag: 'Cast' },
+  },
+]
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
@@ -117,13 +181,16 @@ export interface HomeTourProps {
   chapters: Chapter[]
   /** Cross-page quest id → label, collected from every canvas route. */
   questLabels?: Record<string, string>
+  /** Main tour ```scroll runway spec. */
+  scroll?: ScrollSpec | null
   /** The ```scroll:chapters runway spec (six chapter stages) from the home canvas markdown. */
   chapterScroll?: ScrollSpec
 }
 
 // ── Inner (needs RingTargetsContext) ──────────────────────────────────────────
 
-function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapterScroll }: HomeTourProps) {
+function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll, chapterScroll }: HomeTourProps) {
+  const stages = scroll?.stages ?? DEFAULT_HOME_STAGES
   const isMobile = useIsMobile()
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const telemetry = useTelemetry()
@@ -178,19 +245,18 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
   const [interactive, setInteractive] = useState<'timer' | 'analytics' | null>(null)
 
   // ── Mobile runway stage (card-visibility driven; inert on desktop) ──
-  const [mobileStage, setMobileStage] = useState<TourStage | null>(null)
+  const [mobileStage, setMobileStage] = useState<ScrollStage | null>(null)
   const mobileRunwayApiRef = useRef<TourMobileRunwayApi | null>(null)
   const isMobileRef = useRef(isMobile)
   isMobileRef.current = isMobile
-  const mobileStageRef = useRef<TourStage | null>(null)
+  const mobileStageRef = useRef<ScrollStage | null>(null)
   mobileStageRef.current = mobileStage
-  const handleMobileStageChange = useCallback((stage: TourStage) => setMobileStage(stage), [])
+  const handleMobileStageChange = useCallback((stage: any) => setMobileStage(stage), [])
 
   // ── Scroll driver ──
-  const { slice, subscribe, resync, runwayReached } = useTourScroll(runwayRef, interactive !== null)
+  const { slice, subscribe, resync, runwayReached } = useScrollRunway(runwayRef, interactive !== null, stages)
 
-  const activeScreen: TourScreen = interactive ?? slice.stage.screen
-
+  const activeScreen: TourScreen = interactive ?? (slice.stage.screen as TourScreen | undefined) ?? 'editor'
   // ── Lazy screen mounting (mounted once entered, kept alive after) ──
   const [entered, setEntered] = useState<Record<TourScreen, boolean>>({
     editor: true,
@@ -282,8 +348,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
   const prevInTimerStageRef = useRef(inTimerStage)
   // Screen at completion time — read inside handleTimerComplete (stable
   // callback) to decide whether a scroll-mode completion should auto-slide.
-  const stageScreenRef = useRef<TourScreen>(slice.stage.screen)
-  stageScreenRef.current = slice.stage.screen
+  const stageScreenRef = useRef<TourScreen>((slice.stage.screen as TourScreen | undefined) ?? 'editor')
+  stageScreenRef.current = (slice.stage.screen as TourScreen | undefined) ?? 'editor'
 
   useEffect(() => {
     if (inTimerStage && !prevInTimerStageRef.current) {
@@ -398,9 +464,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
     }
     const el = runwayRef.current
     if (!el) return
-    const stage = TOUR_STAGES.find((s) => s.id === stageId)
-    if (stage) scrollRunwayTo(el, Math.min(stage.start + 0.02, stage.end - 0.005))
-  }, [])
+    const stage = stages.find((s) => s.id === stageId)
+    if (stage) scrollRunwayTo(el, Math.min(stage.range[0] + 0.02, stage.range[1] - 0.005))
+  }, [stages])
 
   // ── Hero interactions (self-contained editor context) ──
   const handleHeroDocChange = useCallback(
@@ -731,11 +797,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
 
   // ── Imperative scrub: TV parallax + toast ──
   useEffect(() => {
-    return subscribe((s: TourStageSlice) => {
+    return subscribe((s: ScrollSlice) => {
       const tv = tvCardRef.current
       if (tv) {
         if (s.stage.id === 'timer-cast') {
-          const k = clamp01((s.t - 0.1) / 0.5)
+          const k = clamp01((s.t - 0.2) / 0.5)
           const e = 1 - Math.pow(1 - k, 2)
           tv.style.opacity = String(k)
           tv.style.transform = `translateY(${lerp(90, 0, e)}px)`
@@ -746,7 +812,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
 
       const toast = toastRef.current
       if (toast) {
-        if (s.index === TOUR_STAGES.length - 1) {
+        if (s.index === stages.length - 1) {
           const tIn = clamp01((s.t - 0.04) / 0.2)
           const tOut = clamp01((s.t - 0.7) / 0.2)
           toast.style.opacity = String(Math.max(0, tIn - tOut))
@@ -756,7 +822,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
         }
       }
     })
-  }, [subscribe])
+  }, [subscribe, stages.length])
 
   // ── Reduced-motion stack (flat cards — sticky scroll is opted out) ──
   if (prefersReducedMotion) {
@@ -863,7 +929,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
               {interactive ? 'Playground mode' : slice.stage.label}
             </div>
             <div className="flex items-center gap-1.5">
-              {TOUR_STAGES.map((seg, i) => {
+              {stages.map((seg, i) => {
                 const live = slice.index === i
                 const done = slice.index > i
                 return (
@@ -873,7 +939,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
                     style={{
                       width: live ? 30 : 10,
                       background: live
-                        ? seg.accent
+                        ? (seg.accent ?? TOUR_ACCENTS.editor)
                         : done
                           ? 'hsl(var(--foreground))'
                           : 'hsl(var(--foreground) / 0.15)',
@@ -947,7 +1013,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
                     the clock and the Stop/Pause/Next controls. */}
                 <TourTvCard ref={tvCardRef} runtime={tourRuntime} />
 
-                <TourRing target={interactive ? null : slice.ring} accent={slice.stage.accent} canvasRef={canvasInnerRef} />
+                <TourRing target={interactive ? null : (slice.ring?.key as RingTargetKey | null | undefined)} accent={slice.stage.accent ?? TOUR_ACCENTS.editor} canvasRef={canvasInnerRef} />
               </div>
             </div>
 

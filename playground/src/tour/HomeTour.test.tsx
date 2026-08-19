@@ -208,7 +208,7 @@ function makeSlice(progress: number): TestSlice {
   }
 }
 
-mock.module('./useTourScroll', () => {
+mock.module('../canvas/useScrollRunway', () => {
   const React = require('react')
   const store: { slice: TestSlice; listeners: Set<() => void> } = {
     slice: makeSlice(0.50),
@@ -229,7 +229,7 @@ mock.module('./useTourScroll', () => {
   control.setTestTourProgress = setTestTourProgress
 
   return {
-    useTourScroll: () => {
+    useScrollRunway: () => {
       const [, force] = React.useReducer((n: number) => n + 1, 0)
       React.useEffect(() => {
         store.listeners.add(force)

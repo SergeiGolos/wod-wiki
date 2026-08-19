@@ -16,7 +16,7 @@ import {
   ComboboxLabel,
   ComboboxOption,
 } from '@/components/atoms/primitives/combobox'
-import { TOUR_ACCENTS, type TourStageId } from './tourStages'
+import { TOUR_ACCENTS, type TourStageId } from './tourConstants'
 import { telemetry, HOME_EVENTS, type HomeEventName } from '@/services/telemetry'
 
 export interface TourCaptionAction {

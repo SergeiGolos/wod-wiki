@@ -211,14 +211,18 @@ export interface ScrollStage {
   id: string
   /** [start, end) runway progress, like TourStage. */
   range: [number, number]
+  /** Screen visible during this stage (e.g. 'editor' | 'timer' | 'analytics'). */
+  screen?: 'editor' | 'timer' | 'analytics'
+  /** Stage-bar label. */
+  label?: string
   /** wods/examples path; resolved via resolveSource. */
   source?: string
   /** Prose for the cross-fading caption column. */
   caption?: string
   /** CSS color; default hsl(var(--foreground)). */
   accent?: string
-  /** Highlight the editor this stage (single target, v1). */
-  ring?: { tag?: string } | true
+  /** Highlight the editor or a target element this stage. */
+  ring?: { key?: string; tag?: string } | true
   /** Transient message at stage open. */
   toast?: string
   /** Quest id fired on stage entry. */
@@ -583,6 +587,7 @@ function parseScrollStages(lines: string[]): ScrollStage[] {
 
     if (nested === 'ring') {
       if (key === 'tag' && cur.ring && cur.ring !== true) cur.ring.tag = unquote(value)
+      if (key === 'key' && cur.ring && cur.ring !== true) cur.ring.key = unquote(value)
       continue
     }
     if (nested === 'effects' && curEffect) {
@@ -605,6 +610,10 @@ function parseScrollStages(lines: string[]): ScrollStage[] {
         if (pair) cur.range = pair
         break
       }
+      case 'screen':
+        if (value === 'editor' || value === 'timer' || value === 'analytics') cur.screen = value
+        break
+      case 'label': cur.label = unquote(value); break
       case 'source': cur.source = unquote(value); break
       case 'caption': cur.caption = unquote(value); break
       case 'accent': cur.accent = unquote(value); break

@@ -9,7 +9,7 @@ import { render, screen, cleanup, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
 import type { TourMobileRunwayProps } from './TourMobileRunway'
-import type { TourStage } from './tourStages'
+import type { TourStage } from './tourConstants'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { MOBILE_STICKY_TOP } from '../canvas/canvasUtils'
 

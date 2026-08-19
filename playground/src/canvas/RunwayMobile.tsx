@@ -12,16 +12,14 @@
  * tour-coupled `TourMobileRunway` pattern. Validated in the /proto/runway-adapter
  * prototype.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Play } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { ScrollSpec } from './parseCanvasMarkdown'
 import { resolveSource, MOBILE_STICKY_TOP } from './canvasUtils'
 import { resolveScrollStage } from './scrollRunway'
 import { ScrollRing } from './ScrollRing'
 import { CanvasProse } from './CanvasProse'
-import { MacOSChrome } from '../components/atoms/MacOSChrome'
-import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
+import { EditorWindow } from '../components/organisms/editor/EditorWindow'
 
 export interface RunwayMobileProps {
   spec: ScrollSpec
@@ -98,7 +96,6 @@ export function RunwayMobile({ spec, wodFiles, theme, noteTitle, doc: controlled
   const [internalDoc, setInternalDoc] = useState(source)
   const doc = controlledDoc ?? internalDoc
   const setDoc = onDocChange ?? setInternalDoc
-  const blocksRef = useRef<ScriptBlock[]>([])
   useEffect(() => {
     // Sourceless stage: HOLD the previous editor content (the desktop typewriter
     // contract — "stages without a source hold the previous editor content"),
@@ -115,13 +112,6 @@ export function RunwayMobile({ spec, wodFiles, theme, noteTitle, doc: controlled
     return () => window.clearInterval(id)
   }, [source, setDoc])
 
-  const handleBlocksChange = useCallback(
-    (blocks: ScriptBlock[]) => {
-      blocksRef.current = blocks
-      onBlocksChange?.(blocks)
-    },
-    [onBlocksChange],
-  )
 
   const accent = slice.stage.accent ?? 'hsl(var(--foreground))'
 
@@ -131,36 +121,17 @@ export function RunwayMobile({ spec, wodFiles, theme, noteTitle, doc: controlled
         {/* Pinned window — sticks under the nav, releases after the last card. */}
         <div className="sticky z-20 px-4 pt-3" style={{ top: MOBILE_STICKY_TOP }}>
           <div className="relative h-[46vh]">
-            <MacOSChrome
+            <EditorWindow
               title={noteTitle ?? 'note.md'}
+              noteId="canvas:runway-mobile"
+              doc={doc}
+              onDocChange={setDoc}
+              onBlocksChange={onBlocksChange}
+              theme={theme}
+              readonly
+              run={onRun ? { onRun } : undefined}
               className="absolute inset-0"
-              headerActions={
-                onRun ? (
-                  <button
-                    type="button"
-                    title="Run the workout"
-                    onClick={() => onRun(doc, blocksRef.current[0] ?? null)}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                  >
-                    <Play size={11} fill="currentColor" />
-                    Run
-                  </button>
-                ) : undefined
-              }
-            >
-              <NoteEditor
-                noteId="canvas:runway-mobile"
-                value={doc}
-                onChange={setDoc}
-                onBlocksChange={handleBlocksChange}
-                theme={theme}
-                readonly
-                showLineNumbers={false}
-                enableOverlay={false}
-                enableInlineRuntime={false}
-                className="h-full"
-              />
-            </MacOSChrome>
+            />
             {slice.ring && <ScrollRing tag={slice.ring.tag} accent={accent} />}
           </div>
         </div>
