@@ -30,7 +30,7 @@ import {
 import { TourHero } from './TourHero'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
-import { HomeAnalyticsRunway } from './HomeAnalyticsRunway'
+import { TourAnalyticsShowcaseScreen } from './screens/TourAnalyticsShowcaseScreen'
 import { TOUR_CAPTIONS, CaptionBody } from './TourCaptions'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { LearnProgressOverview } from './TourLearnSection'
@@ -104,10 +104,6 @@ export interface TourMobileRunwayProps {
   heroRef: React.Ref<HTMLDivElement>
   /** Imperative escape hatch for quest clicks / completion auto-slide. */
   apiRef: React.MutableRefObject<TourMobileRunwayApi | null>
-  /** Anchor for the analytics quest-click scrollIntoView (#938 runway). */
-  analyticsSectionRef?: React.Ref<HTMLElement>
-  /** Fires when the analytics runway enters view (quest completion). */
-  onAnalyticsEnterView?: () => void
 }
 export function TourMobileRunway({
   theme,
@@ -138,8 +134,6 @@ export function TourMobileRunway({
   timer,
   heroRef,
   apiRef,
-  analyticsSectionRef,
-  onAnalyticsEnterView,
 }: TourMobileRunwayProps) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const cardRefs = useRef<Array<HTMLDivElement | null>>([])
@@ -272,21 +266,15 @@ export function TourMobileRunway({
         />
       </div>
 
-      <TourShortCircuitStrip />
-
       {/* Runway: the sticky parent spans window + cards, so the window
           releases right after the last caption card. */}
       <div ref={trackRef} data-testid="tour-mobile-runway-track" className="relative">
         <div
           data-testid="tour-mobile-runway-window"
-          className="sticky z-20 shrink-0 px-4 pt-2 pb-1"
-          style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)` }}
+          className={`sticky z-20 shrink-0 px-4 pt-2 pb-1 ${screen === 'analytics' ? 'min-h-[26rem]' : ''}`}
+          style={{ top: `${MOBILE_STICKY_TOP}px`, height: screen === 'analytics' ? 'min(72vh, 42rem)' : `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)` }}
         >
           <div ref={windowCanvasRingRef} className="relative h-full">
-            {/* The ring canvas sits OUTSIDE MacOSChrome (its body is
-                overflow-hidden) so the ring overlays the whole window —
-                same layering as the desktop tour and the ```scroll
-                runways — instead of living as a layer inside it. */}
             <MacOSChrome title={SCREEN_TITLES[screen]} className="h-full">
               <div className="relative h-full">
                 <ScreenFade visible={screen === 'editor'}>
@@ -317,6 +305,11 @@ export function TourMobileRunway({
                     />
                   </ScreenFade>
                 )}
+                {entered.analytics && (
+                  <ScreenFade visible={screen === 'analytics'}>
+                    <TourAnalyticsShowcaseScreen activeStageId={stage?.id ?? 'wql-idea'} />
+                  </ScreenFade>
+                )}
               </div>
             </MacOSChrome>
             <TourRing target={ringTarget} accent={stage?.accent ?? 'hsl(var(--metric-resistance))'} canvasRef={windowCanvasRef} />
@@ -328,29 +321,18 @@ export function TourMobileRunway({
           {TOUR_CAPTIONS.map((cap, i) => (
             <div
               key={cap.id}
-              ref={(el) => {
-                cardRefs.current[i] = el
-              }}
+              ref={(el) => { cardRefs.current[i] = el }}
               data-testid={`tour-mobile-card-${cap.id}`}
               className="flex items-center justify-center px-6 py-8"
-              style={{
-                minHeight: CARD_SLOT_MIN_HEIGHT,
-                // Land scrollToStage arrivals just below the pinned window
-                // (window bottom ≈ 50vh + MOBILE_STICKY_TOP / 2).
-                scrollMarginTop: `calc(50vh + ${MOBILE_STICKY_TOP / 2}px + 12px)`,
-              }}
+              style={{ minHeight: CARD_SLOT_MIN_HEIGHT, scrollMarginTop: `calc(50vh + ${MOBILE_STICKY_TOP / 2}px + 12px)` }}
             >
               <article className="w-full max-w-xl rounded-2xl border border-border bg-card p-6">
                 <CaptionBody cap={cap} onChoice={onChoice} />
               </article>
             </div>
           ))}
-        </div>
       </div>
-
-      {/* Analytics story as a scroll runway (#938 → scroll-driven): pinned
-          presentation window + caption cards, ring-highlighted. */}
-      <HomeAnalyticsRunway variant="mobile" sectionRef={analyticsSectionRef} onEnterView={onAnalyticsEnterView} />
+      </div>
       {/* Six Syntax Chapter Heroes */}
       {chapters
         .filter((c) => c.id !== 'home-tour')

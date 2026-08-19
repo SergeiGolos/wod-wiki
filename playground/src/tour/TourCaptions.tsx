@@ -205,6 +205,71 @@ export const TOUR_CAPTIONS: TourCaption[] = [
       },
     ],
   },
+  {
+    id: 'wql-idea',
+    num: '03a / 03 — Query what you just did',
+    title: (
+      <>
+        Query what you just did.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Every result is one query away.</em>
+      </>
+    ),
+    body: 'WQL turns your journal into queryable facts — pick an aggregator and a metric, filter by tag, group by a dimension, roll up over time. The same elements drive every presentation in this window.',
+    foot: 'aggregator · metric · filter · dimension · rollup',
+    accent: TOUR_ACCENTS.analytics,
+  },
+  {
+    id: 'wql-table',
+    num: '03b / 03 — Read it as a list',
+    title: (
+      <>
+        Read it as a list.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>One query, one ranked table.</em>
+      </>
+    ),
+    body: 'One aggregator, one metric, one dimension: sum total reps grouped by effort becomes a ranked table the moment the workout is logged. The chips above the widget are the parsed query — the vocabulary, front and center.',
+    foot: 'sum:totalReps{} by {effort} · parsed-query chips',
+    accent: TOUR_ACCENTS.analytics,
+  },
+  {
+    id: 'wql-graphs',
+    num: '03c / 03 — See it as trends',
+    title: (
+      <>
+        See it as trends.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>A graph is a rollup away.</em>
+      </>
+    ),
+    body: 'Roll the same facts up by week and they become a timeseries — is tonnage rising, is training polarized? A graph is not a feature you enable; it is a rollup away.',
+    foot: 'rollup(1w) · timeseries · stacked intensity',
+    accent: TOUR_ACCENTS.analytics,
+  },
+  {
+    id: 'wql-dashboard',
+    num: '03d / 03 — Compose a dashboard',
+    title: (
+      <>
+        Compose a dashboard.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>N queries on one screen.</em>
+      </>
+    ),
+    body: 'A dashboard is just N queries on one screen. Mix values, lists, and graphs — each tile its own WQL statement, exactly like the DashboardView you get in the app.',
+    foot: 'multi-query tiles · mirrors DashboardView',
+    accent: TOUR_ACCENTS.analytics,
+  },
+  {
+    id: 'wql-live',
+    num: '03e / 03 — It’s your data',
+    title: (
+      <>
+        It’s your data.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Query anything, your way.</em>
+      </>
+    ),
+    body: 'Every widget here executes against your live journal — these are the sample answers until you have logged work of your own. Open the Dashboards tab to query anything, your way.',
+    foot: 'live journal queries · sample fallback',
+    accent: TOUR_ACCENTS.analytics,
+  },
 ]
 
 export interface TourCaptionsProps {

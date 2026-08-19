@@ -57,10 +57,10 @@ import { TourCaptions, buildAdventureScript } from './TourCaptions'
 import { TourTvCard } from './TourTvCard'
 import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
+import { TourAnalyticsShowcaseScreen } from './screens/TourAnalyticsShowcaseScreen'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { CelebrationBridge } from './CelebrationBridge'
 import { ChapterScrollTour } from './ChapterScrollTour'
-import { HomeAnalyticsRunway } from './HomeAnalyticsRunway'
 import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
@@ -89,12 +89,13 @@ const HOME_QUEST_STAGE: Record<string, string> = {
   'qs-tour-timer': 'timer-wallclock',
   'qs-edit': 'timer-wallclock',
   'qs-run': 'timer-wallclock',
+  'qs-tour-analytics': 'wql-idea',
 }
 
 const DEFAULT_HOME_STAGES: ScrollStage[] = [
   {
     id: 'editor-blank',
-    range: [0.0, 0.15],
+    range: [0.0, 0.12],
     screen: 'editor',
     accent: TOUR_ACCENTS.editor,
     label: 'Blank Page & Typeahead',
@@ -104,7 +105,7 @@ const DEFAULT_HOME_STAGES: ScrollStage[] = [
   },
   {
     id: 'editor-metrics',
-    range: [0.15, 0.30],
+    range: [0.12, 0.24],
     screen: 'editor',
     accent: TOUR_ACCENTS.editor,
     label: 'Every Line Collects Metrics',
@@ -114,7 +115,7 @@ const DEFAULT_HOME_STAGES: ScrollStage[] = [
   },
   {
     id: 'editor-run',
-    range: [0.30, 0.45],
+    range: [0.24, 0.36],
     screen: 'editor',
     accent: TOUR_ACCENTS.editor,
     label: 'Press Run to Start',
@@ -124,7 +125,7 @@ const DEFAULT_HOME_STAGES: ScrollStage[] = [
   },
   {
     id: 'timer-wallclock',
-    range: [0.45, 0.58],
+    range: [0.36, 0.47],
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
     label: 'What Happens When It Runs',
@@ -134,7 +135,7 @@ const DEFAULT_HOME_STAGES: ScrollStage[] = [
   },
   {
     id: 'timer-next',
-    range: [0.58, 0.68],
+    range: [0.47, 0.57],
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
     label: 'Advance Rounds with Next',
@@ -144,13 +145,57 @@ const DEFAULT_HOME_STAGES: ScrollStage[] = [
   },
   {
     id: 'timer-cast',
-    range: [0.68, 1.0],
+    range: [0.57, 0.65],
     screen: 'timer',
     accent: TOUR_ACCENTS.timer,
     label: 'Cast to the Big Screen',
     source: HOME_DEMO_SOURCE,
     caption: 'Cast to the Big Screen. Real-time mirror for the gym floor.',
     ring: { key: 'timer.castButton', tag: 'Cast' },
+  },
+  {
+    id: 'wql-idea',
+    range: [0.65, 0.72],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: 'Query what you just did',
+    caption: 'Query what you just did. Every result is one query away.',
+    ring: { key: 'analytics.vocab', tag: 'WQL elements' },
+  },
+  {
+    id: 'wql-table',
+    range: [0.72, 0.79],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: 'Read it as a list',
+    caption: 'Read it as a list. One aggregator, one metric, one dimension.',
+    ring: { key: 'analytics.table', tag: 'Table list' },
+  },
+  {
+    id: 'wql-graphs',
+    range: [0.79, 0.86],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: 'See it as trends',
+    caption: 'See it as trends. A graph is a rollup away.',
+    ring: { key: 'analytics.graphs', tag: 'Graphs' },
+  },
+  {
+    id: 'wql-dashboard',
+    range: [0.86, 0.93],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: 'Compose a dashboard',
+    caption: 'Compose a dashboard. N queries on one screen.',
+    ring: { key: 'analytics.dashboard', tag: 'Dashboard' },
+  },
+  {
+    id: 'wql-live',
+    range: [0.93, 1.0],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: "It's your data",
+    caption: "It's your data. Open the Dashboards tab to query anything, your way.",
   },
 ]
 
@@ -196,7 +241,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
   const navigate = useNavigate()
 
   const runwayRef = useRef<HTMLElement | null>(null)
-  const analyticsSectionRef = useRef<HTMLDivElement | null>(null)
   const canvasInnerRef = useRef<HTMLDivElement | null>(null)
   // The whole desktop tour window (the canvas wrapper OUTSIDE the MacOS
   // chrome) is the 'editor.window' ring target — the ring frames it on
@@ -397,9 +441,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     return () => window.clearInterval(id)
   }, [activeScreen])
 
-  // ── Quests (preserved from the markdown-driven home) ──
-  // qs-edit validates on edits to the HERO demo ("Change the workout"), not
-  // the scripted runway typeahead.
   useQuickStartAutoComplete({
     pageRoute: '/',
     quests,
@@ -420,13 +461,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     markStageViewed(mobileStage.id)
   }, [isMobile, interactive, mobileStage, markStageViewed])
 
-  // The analytics story is the WQL runway (#938 → scroll-driven); its own
-  // enter-view IO (inside HomeAnalyticsRunway) fires the quest on every
-  // form factor — this component only supplies the callback.
-  const markAnalyticsViewed = useCallback(() => markStageViewed('analytics'), [markStageViewed])
+  // Analytics is the final screen in the canonical runway; quest navigation
+  // targets the same sticky runway rather than a second scroll driver.
 
   // The qs-tour-timer interaction quest validates on a *visitor-initiated* run.
-  // Driven from the Run click (startRun), not the runtime 'running' status: the
   // ambient scroll demo intentionally auto-runs, and must never validate the
   // quest (production builds fired the runtime callback on load).
   const [demoRunning, setDemoRunning] = useState(false)
@@ -444,12 +482,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
   useRunStartedChallenge({ pageRoute: '/', quests: tourRunQuests, running: demoRunning })
 
   const handleHomeQuestClick = useCallback((questId: string) => {
-    // The analytics story is now the WQL-elements showcase section (#938), not
-    // a runway stage — scroll straight to it.
-    if (questId === 'qs-tour-analytics') {
-      analyticsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      return
-    }
     const stageId = HOME_QUEST_STAGE[questId]
     if (!stageId) return
     if (mobileRunwayApiRef.current) {
@@ -650,10 +682,12 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
 
       if (!wasPlaygroundRun) {
         // Scroll-mode completion (#885): clicking Next through to the end of
-        // the run carries the visitor to the WQL analytics showcase (#938) —
-        // the session-review runway cards it used to auto-slide to are gone.
+        // the run slides the shared window into the WQL analytics beats —
+        // the first analytics stage of the canonical runway.
         if (results.completed) {
-          analyticsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          const el = runwayRef.current
+          const first = stages.find((s) => s.screen === 'analytics')
+          if (el && first) scrollRunwayTo(el, Math.min(first.range[0] + 0.01, first.range[1] - 0.005))
         }
         return
       }
@@ -688,7 +722,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
         setLogState('failed')
       })
     },
-    [],
+    [stages],
   )
 
   const handleTimerClose = useCallback(() => {
@@ -872,8 +906,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
           }}
           heroRef={heroRef}
           apiRef={mobileRunwayApiRef}
-          analyticsSectionRef={analyticsSectionRef}
-          onAnalyticsEnterView={markAnalyticsViewed}
         />
 
         {/* Spec §2: runs from the hero demo go fullscreen on every form factor. */}
@@ -936,12 +968,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
             {/* canvas */}
             <div
               ref={canvasRef}
-              className="relative aspect-[1200/720] w-[min(920px,calc(100vw-440px))] min-w-0 shrink"
+              data-screen={activeScreen}
+              className={`relative min-w-0 shrink ${activeScreen === 'analytics' ? 'h-[min(720px,calc(100vh-180px))] w-[min(1040px,calc(100vw-400px))]' : 'aspect-[1200/720] w-[min(920px,calc(100vw-440px))]'}`}
             >
-              <div
-                ref={canvasInnerRingRef}
-                className="absolute inset-0"
-              >
+              <div ref={canvasInnerRingRef} className="absolute inset-0 transition-[width,height] duration-300">
                 <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-x-2 top-2 bottom-2">
                   <div className="relative h-full">
                     {interactive === null && entered.editor && (
@@ -974,7 +1004,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
                         />
                       </Screen>
                     )}
-
+                    {interactive === null && entered.analytics && (
+                      <Screen visible={activeScreen === 'analytics'}>
+                        <TourAnalyticsShowcaseScreen activeStageId={slice.stage.id} />
+                      </Screen>
+                    )}
                     {/* stop toast mirrors the ambient scroll-mode runtime finishing. */}
                     <div
                       ref={toastRef}
@@ -1003,16 +1037,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
         </div>
       </section>
 
-      {/* Analytics story as a scroll runway — the WQL vocabulary and the
-          presentations it drives, staged with ring highlights. The wrapper
-          div keeps the quest-click scrollIntoView anchor stable. */}
-      <div ref={analyticsSectionRef}>
-        <HomeAnalyticsRunway
-          sectionRef={analyticsSectionRef}
-          onEnterView={markAnalyticsViewed}
-        />
-      </div>
-
+      {/* Analytics shares the canonical editor/timer sticky runway. */}
       <CelebrationBridge chapters={chapters} />
 
       {/* Six Syntax Chapters — markdown ```scroll:chapters runway (same format as the hero) */}

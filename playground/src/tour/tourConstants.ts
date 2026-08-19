@@ -15,7 +15,11 @@ export type TourStageId =
   | 'timer-wallclock'
   | 'timer-next'
   | 'timer-cast'
-  | 'editor'
+  | 'wql-idea'
+  | 'wql-table'
+  | 'wql-graphs'
+  | 'wql-dashboard'
+  | 'wql-live'
   | 'timer'
   | 'analytics'
 
@@ -61,15 +65,20 @@ export const TOUR_STAGES: TourStage[] = [
   { id: 'timer-wallclock', screen: 'timer', accent: TOUR_ACCENTS.timer, label: 'What Happens When It Runs', ringA: 'timer.floor', tagA: 'WallClock' },
   { id: 'timer-next', screen: 'timer', accent: TOUR_ACCENTS.timer, label: 'Advance Rounds with Next', ringA: 'timer.nextButton', tagA: 'Next Button' },
   { id: 'timer-cast', screen: 'timer', accent: TOUR_ACCENTS.timer, label: 'Cast to the Big Screen', ringA: 'timer.castButton', tagA: 'Cast' },
+  { id: 'wql-idea', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: 'Query what you just did', ringA: 'analytics.vocab', tagA: 'WQL elements' },
+  { id: 'wql-table', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: 'Read it as a list', ringA: 'analytics.table', tagA: 'Table list' },
+  { id: 'wql-graphs', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: 'See it as trends', ringA: 'analytics.graphs', tagA: 'Graphs' },
+  { id: 'wql-dashboard', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: 'Compose a dashboard', ringA: 'analytics.dashboard', tagA: 'Dashboard' },
+  { id: 'wql-live', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: "It's your data" },
 ]
 
 /** Window-chrome title shown while each screen is active. */
 export const SCREEN_TITLES: Record<TourScreen, string> = {
   editor: 'WOD Editor & Autocomplete',
   timer: 'WallClock',
-  analytics: 'Session Review',
+  analytics: 'WQL Analytics',
 }
 
-/** Runway height — matches the POC's deliberate scroll pace. */
-export const TOUR_RUNWAY_HEIGHT = '860vh'
+/** Runway height — 11 stages: editor → timer → the five WQL analytics beats. */
+export const TOUR_RUNWAY_HEIGHT = '1300vh'
 

@@ -194,17 +194,49 @@ function makeSlice(progress: number): TestSlice {
       ring: { key: 'timer.nextButton', tag: 'Next Button' },
     }
   }
-  const t = (progress - 0.68) / 0.32
+  if (progress < 0.72) {
+    const t = (progress - 0.68) / 0.04
+    return {
+      index: 6,
+      stage: {
+        id: 'wql-idea',
+        screen: 'analytics',
+        accent: 'hsl(var(--metric-rounds))',
+        label: 'Query what you just did',
+      },
+      t,
+      ring: { key: 'analytics.vocab', tag: 'WQL elements' },
+    }
+  }
+  if (progress < 0.79) {
+    return {
+      index: 7,
+      stage: { id: 'wql-table', screen: 'analytics', accent: 'hsl(var(--metric-rounds))', label: 'Read it as a list' },
+      t: (progress - 0.72) / 0.07,
+      ring: { key: 'analytics.table', tag: 'Table list' },
+    }
+  }
+  if (progress < 0.86) {
+    return {
+      index: 8,
+      stage: { id: 'wql-graphs', screen: 'analytics', accent: 'hsl(var(--metric-rounds))', label: 'See it as trends' },
+      t: (progress - 0.79) / 0.07,
+      ring: { key: 'analytics.graphs', tag: 'Graphs' },
+    }
+  }
+  if (progress < 0.93) {
+    return {
+      index: 9,
+      stage: { id: 'wql-dashboard', screen: 'analytics', accent: 'hsl(var(--metric-rounds))', label: 'Compose a dashboard' },
+      t: (progress - 0.86) / 0.07,
+      ring: { key: 'analytics.dashboard', tag: 'Dashboard' },
+    }
+  }
   return {
-    index: 5,
-    stage: {
-      id: 'timer-cast',
-      screen: 'timer',
-      accent: 'hsl(var(--metric-effort))',
-      label: 'Cast to the Big Screen',
-    },
-    t,
-    ring: { key: 'timer.castButton', tag: 'Cast' },
+    index: 10,
+    stage: { id: 'wql-live', screen: 'analytics', accent: 'hsl(var(--metric-rounds))', label: "It's your data" },
+    t: (progress - 0.93) / 0.07,
+    ring: null,
   }
 }
 
@@ -409,8 +441,14 @@ describe('HomeTour', () => {
     const behaviorsLink = await screen.findByRole('link', { name: /Read the behaviors explainer/i })
     expect(behaviorsLink.getAttribute('href')).toBe('/guide/behaviors')
 
-    // The analytics runway cards are gone; the showcase section sits below the runway.
-    expect(screen.queryByTestId('home-analytics-section')).toBeTruthy()
+    // The standalone analytics section is gone; the WQL showcase renders
+    // inside the shared runway window once the analytics beats are entered.
+    expect(screen.queryByTestId('home-analytics-section')).toBeNull()
+    await act(async () => {
+      setTestTourProgress(0.68)
+      await Promise.resolve()
+    })
+    expect(await screen.findByTestId('tour-analytics-showcase')).toBeTruthy()
 
     expect(screen.queryByRole('link', { name: /Run a pre-filled query/i })).toBeNull()
     expect(screen.queryByRole('link', { name: /Open the dashboard/i })).toBeNull()
@@ -689,8 +727,8 @@ describe('HomeTour', () => {
         timerPanelControl().fireTimerComplete?.(completedResults())
         await Promise.resolve()
       })
-      expect(scrollIntoViewSpy).toHaveBeenCalled()
-      expect(scrollRunwayToCallCount()).toBe(0)
+      expect(scrollIntoViewSpy).not.toHaveBeenCalled()
+      expect(scrollRunwayToCallCount()).toBe(1)
     } finally {
       Element.prototype.scrollIntoView = originalScrollIntoView
     }
@@ -720,8 +758,8 @@ describe('HomeTour', () => {
         timerPanelControl().fireTimerComplete?.(completedResults())
         await Promise.resolve()
       })
-      expect(scrollIntoViewSpy).toHaveBeenCalled()
-      expect(scrollRunwayToCallCount()).toBe(0)
+      expect(scrollIntoViewSpy).not.toHaveBeenCalled()
+      expect(scrollRunwayToCallCount()).toBe(1)
     } finally {
       Element.prototype.scrollIntoView = originalScrollIntoView
     }
