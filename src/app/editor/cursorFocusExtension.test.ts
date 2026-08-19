@@ -4,7 +4,6 @@ import { sectionField } from "@bitcobblers/wod-wiki-ui/extensions";
 import {
   cursorFocusExtension,
   getCursorFocusState,
-  renderPanelContent,
 } from "./cursorFocusExtension";
 import { MetricType } from "@bitcobblers/wod-wiki-engine";
 
@@ -90,10 +89,11 @@ describe("cursorFocusExtension", () => {
     expect(dimDurationMark?.cls).toBe("cm-metric-underline-duration-dim");
   });
 
-  it("renders closing-fence panel content with metric pills", () => {
+  it("updates focus state when cursor moves between lines", () => {
     const doc = [
       "```time",
       "10 Pushups",
+      "20m Row",
       "```",
     ].join("\n");
 
@@ -102,21 +102,20 @@ describe("cursorFocusExtension", () => {
       extensions: [sectionField, cursorFocusExtension],
     });
 
-    const activeState = state.update({
+    const pushupsState = state.update({
       selection: { anchor: doc.indexOf("Pushups") },
     }).state;
 
-    const focus = getCursorFocusState(activeState);
-    expect(focus?.statement).toBeDefined();
+    const pushupsFocus = getCursorFocusState(pushupsState);
+    expect(pushupsFocus?.statement).toBeDefined();
+    expect(pushupsFocus?.focusedMetric?.type).toBe(MetricType.Effort);
 
-    const panelEl = renderPanelContent(focus?.statement ?? null, MetricType.Effort);
-    expect(panelEl.className).toBe("cm-wod-metric-panel");
-    expect(panelEl.textContent).toContain("Reps");
-    expect(panelEl.textContent).toContain("Exercise");
-  });
+    const rowState = state.update({
+      selection: { anchor: doc.indexOf("20m") },
+    }).state;
 
-  it("handles empty or null statement in renderPanelContent", () => {
-    const emptyPanel = renderPanelContent(null, null);
-    expect(emptyPanel.querySelector(".cm-wod-metric-panel__empty")).toBeDefined();
+    const rowFocus = getCursorFocusState(rowState);
+    expect(rowFocus?.statement).toBeDefined();
+    expect(rowFocus?.focusedMetric?.type).toBe(MetricType.Distance);
   });
 });
