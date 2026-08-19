@@ -1,28 +1,28 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 
-import { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import { JitCompiler } from '@/runtime/compiler/JitCompiler';
-import { RuntimeStack } from '@/runtime/RuntimeStack';
-import { EventBus } from '@/runtime/events';
-import { createMockClock } from '@/runtime/RuntimeClock';
+import { ScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { JitCompiler } from '@bitcobblers/wod-wiki-engine';
+import { RuntimeStack } from '@bitcobblers/wod-wiki-engine';
+import { EventBus } from '@bitcobblers/wod-wiki-engine';
+import { createMockClock } from '@bitcobblers/wod-wiki-engine';
 
 import { ChromecastRuntimeSubscription } from '@/services/cast/rpc/ChromecastRuntimeSubscription';
 import { routeRuntimeEventByName, type RuntimeEventHandles } from '@/services/cast/rpc/eventRouter';
 import type { RpcEvent, RpcStackUpdate } from '@/services/cast/rpc/RpcMessages';
-import type { IEvent } from '@/runtime/contracts/events';
+import type { IEvent } from '@bitcobblers/wod-wiki-engine';
 
 import { FakeRpcTransport, connectPair } from '@/testing/transport';
 
-import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
-import { GenericLoopStrategy } from '@/runtime/compiler/strategies/components/GenericLoopStrategy';
-import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
-import { ReportOutputStrategy } from '@/runtime/compiler/strategies/enhancements/ReportOutputStrategy';
-import { SoundStrategy } from '@/runtime/compiler/strategies/enhancements/SoundStrategy';
-import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
+import { GenericTimerStrategy } from '@bitcobblers/wod-wiki-engine';
+import { GenericLoopStrategy } from '@bitcobblers/wod-wiki-engine';
+import { ChildrenStrategy } from '@bitcobblers/wod-wiki-engine';
+import { ReportOutputStrategy } from '@bitcobblers/wod-wiki-engine';
+import { SoundStrategy } from '@bitcobblers/wod-wiki-engine';
+import { EffortFallbackStrategy } from '@bitcobblers/wod-wiki-engine';
 
-import { StartSessionAction } from '@/runtime/actions/stack/StartSessionAction';
-import { NextEvent } from '@/runtime/events/NextEvent';
-import { createParser } from '@/parser/parserInstance';
+import { StartSessionAction } from '@bitcobblers/wod-wiki-engine';
+import { NextEvent } from '@bitcobblers/wod-wiki-engine';
+import { createParser } from '@bitcobblers/wod-wiki-engine';
 
 // ── BrowserEventProxy — maps RpcEvent names to runtime.handle() calls ────────
 // Headless analog of CastButtonRpc's switch statement. The decision logic

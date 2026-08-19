@@ -37,30 +37,30 @@ import { completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirro
 import { lintKeymap } from "@codemirror/lint";
 import { markdown } from "@codemirror/lang-markdown";
 
-import { editorTheme } from "@/components/Editor/extensions/theme";
-import { smartIncrement } from "@/components/Editor/extensions/smart-increment";
+import { editorTheme } from '@bitcobblers/wod-wiki-ui/extensions';
+import { smartIncrement } from '@bitcobblers/wod-wiki-ui/extensions';
 
 // Note editor extensions
-import { sectionField, SectionState, activeCursorSection, type EditorSection } from "@/components/Editor/extensions/section-state";
-import { sessionQueryInsert } from "@/components/Editor/extensions/sessionQueryBlock";
-import { previewDecorations } from "@/components/Editor/extensions/preview-decorations";
-import { embedPreviewDecorations } from "@/components/Editor/extensions/embed-preview";
-import { frontmatterPreview } from "@/components/Editor/extensions/frontmatter-preview";
-import { markdownTablePreview } from "@/components/Editor/extensions/markdown-tables";
-import { markdownSyntaxHiding } from "@/components/Editor/extensions/markdown-syntax-hiding";
-import { wodLinter } from "@/components/Editor/extensions/whiteboard-linter";
-import { wodAutocompletion, wodEditorKeymap, wodAutoWrap } from "@/components/Editor/extensions/whiteboard-autocomplete";
-import { wodOverlayPanel } from "@/components/Editor/extensions/whiteboard-overlay";
-import { widgetBlockPreview } from "@/components/Editor/extensions/widget-block-preview";
-import { queryBlockPreview } from "@/components/Editor/extensions/query-block-preview";
-import { inlineButtonDecoration, type ButtonAction } from "@/components/Editor/extensions/inline-button-decoration";
-import { sectionGeometry } from "@/components/Editor/extensions/section-geometry";
-import { linkOpen } from "@/components/Editor/extensions/link-open";
-import { gutterUnified } from "@/components/Editor/extensions/gutter-unified";
-import { cursorFocusExtension, getCursorFocusState } from "@/components/Editor/extensions/cursor-focus-panel";
-import { lineIdsExtension } from "@/components/Editor/extensions/line-ids";
+import { sectionField, SectionState, activeCursorSection, type EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
+import { sessionQueryInsert } from '@bitcobblers/wod-wiki-ui/extensions';
+import { previewDecorations } from '@bitcobblers/wod-wiki-ui/extensions';
+import { embedPreviewDecorations } from '@bitcobblers/wod-wiki-ui/extensions';
+import { frontmatterPreview } from '@bitcobblers/wod-wiki-ui/extensions';
+import { markdownTablePreview } from '@bitcobblers/wod-wiki-ui/extensions';
+import { markdownSyntaxHiding } from '@bitcobblers/wod-wiki-ui/extensions';
+import { wodLinter } from '@bitcobblers/wod-wiki-ui/extensions';
+import { wodAutocompletion, wodEditorKeymap, wodAutoWrap } from '@bitcobblers/wod-wiki-ui/extensions';
+import { wodOverlayPanel } from '@bitcobblers/wod-wiki-ui/extensions';
+import { widgetBlockPreview } from '@bitcobblers/wod-wiki-ui/extensions';
+import { queryBlockPreview } from '@bitcobblers/wod-wiki-ui/extensions';
+import { inlineButtonDecoration, type ButtonAction } from '@bitcobblers/wod-wiki-ui/extensions';
+import { sectionGeometry } from '@bitcobblers/wod-wiki-ui/extensions';
+import { linkOpen } from '@bitcobblers/wod-wiki-ui/extensions';
+import { gutterUnified } from '@bitcobblers/wod-wiki-ui/extensions';
+import { cursorFocusExtension, getCursorFocusState } from '@bitcobblers/wod-wiki-ui/extensions';
+import { lineIdsExtension } from '@bitcobblers/wod-wiki-ui/extensions';
 
-import { createParser } from "@/parser/parserInstance";
+import { createParser } from '@bitcobblers/wod-wiki-engine';
 import type { INotePersistence } from "@/services/persistence";
 import { createFileDropHandler, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
 
@@ -75,6 +75,7 @@ import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
 import { FullscreenTimer } from "@/components/organisms/review/FullscreenTimer";
 import { InlineCommandBar } from "@/components/organisms/editor/InlineCommandBar";
 import { EditorCastBridge } from "@/components/organisms/editor/EditorCastBridge";
+import { MetricInlinePanel } from "@/components/organisms/editor/MetricInlinePanel";
 import { v7 as uuidv7 } from "uuid";
 import type { WorkoutResult } from "@/types/storage";
 
@@ -226,6 +227,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const effectiveActiveSectionId = externalActiveSectionId ?? cursorSectionId;
   const overlayState = useOverlayWidthState(sections, effectiveActiveSectionId);
 
+  const [viewInstance, setViewInstance] = useState<EditorView | null>(null);
   // Full-screen timer block: when set, the FullscreenTimer overlay is shown.
   const [fullscreenTimerBlock, setFullscreenTimerBlock] = useState<ScriptBlock | null>(null);
 
@@ -538,6 +540,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     });
 
     viewRef.current = view;
+    setViewInstance(view);
     const shouldExposeCodemirrorView = import.meta.env.MODE === 'test'
       || (import.meta.env.DEV && window.navigator.webdriver);
     if (editorRef.current) {
@@ -564,6 +567,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       if (editorRef.current) {
         delete (editorRef.current as any).__codemirrorView;
       }
+      setViewInstance(null);
       view.destroy();
     };
   }, []); // Mount only
@@ -714,7 +718,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     >
       {enableOverlay && (
         <OverlayTrack
-          view={viewRef.current}
+          view={viewInstance ?? viewRef.current}
           widths={overlayState.widths}
           activeSectionId={effectiveActiveSectionId}
           renderSlot={renderSlot}
@@ -723,14 +727,21 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       )}
       {!enableOverlay && effectiveCommands.length > 0 && (
         <InlineCommandBar
-          view={viewRef.current}
+          view={viewInstance ?? viewRef.current}
           commands={effectiveCommands}
         />
       )}
+      {/* Cursor-focus metric panel — fixed-position chip row below the
+          cursor line inside WOD blocks (ADR-0009). Rendered regardless of
+          enableOverlay: it anchors to the cursor, not a section slot. */}
+      <MetricInlinePanel
+        view={viewInstance ?? viewRef.current}
+        cursorVersion={cursorLine}
+      />
       {fullscreenTimerBlock && viewRef.current && (
         <FullscreenTimer
           block={fullscreenTimerBlock}
-          view={viewRef.current}
+          view={viewInstance ?? viewRef.current}
           onClose={handleTimerClose}
           onCompleteWorkout={handleCompleteWorkout}
           autoStart={autoStartFullscreen}
@@ -740,7 +751,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       <EditorCastBridge
         sections={sections}
         isRuntimeActive={fullscreenTimerBlock !== null}
-        editorState={viewRef.current?.state ?? null}
+        editorState={(viewInstance ?? viewRef.current)?.state ?? null}
         onSelectBlock={handleCastSelectBlock}
       />
 

@@ -1,13 +1,16 @@
 name: CI – Main
 
 # The single main-branch pipeline. One job graph per push:
-#   verify (unit/story/coverage — no e2e, no smoke build)
+#   verify (unit/coverage — playground build gate skipped; e2e runs post-deploy)
 #     → version (Conventional Commits bump → tag X.Y.Z; the release marker
 #       the protected prod branch later publishes from)
 #     → site (S3 build → deploy → deployed-artifact e2e)
 # Publishing (GitHub Pages + npm + GitHub release) does NOT happen here —
 # it runs on push to the protected `prod` branch (prod.yml), which deploys
 # exactly the version tagged by this pipeline.
+# Storybook is NOT built or deployed here — the wod-wiki-engine repository
+# owns the Storybook (unit tests, versioned build, story.wod.wiki deploy and
+# PR previews). This pipeline ships the playground only.
 # If the computed tag already exists at this commit SHA the tag step is a
 # no-op (idempotent). If it exists at a different SHA the tag job fails.
 
@@ -29,10 +32,10 @@ jobs:
     uses: ./.github/workflows/_verify.yml
     secrets: inherit
     with:
-      # No journal e2e and no smoke build on main — the site job's
-      # deployed-artifact e2e is the single merge-time e2e, and the site
-      # job builds the playground for real.
-      run-e2e: false
+      # No build gate on main — the site job builds the playground for real;
+      # e2e runs once, post-deploy, against the published artifact.
+      build-preview-artifact: false
+
 
   # Compute the next {major}.{minor}.{build} version from Conventional
   # Commits and tag it. The tag is the single source of truth the prod
@@ -115,8 +118,6 @@ jobs:
           VITE_BASE_PATH="/main/dist/" \
             bun x vite build --config vite.receiver.config.ts
 
-      - name: Build Storybook
-        run: bun run build-storybook
 
       - name: Compute build fingerprint
         id: fingerprint
@@ -133,14 +134,7 @@ jobs:
             --cache-control "max-age=300, must-revalidate" \
             --exclude "*.map"
 
-      - name: Deploy Storybook (story.wod.wiki)
-        run: |
-          set -euo pipefail
-          echo "Uploading Storybook to s3://$S3_BUCKET/main/storybook/"
-          aws s3 sync ./storybook-static/ "s3://$S3_BUCKET/main/storybook/" \
-            --delete \
-            --cache-control "max-age=300, must-revalidate" \
-            --exclude "*.map"
+
 
       - name: Invalidate CloudFront cache (best-effort)
         continue-on-error: true
@@ -180,7 +174,7 @@ jobs:
           | Verify | — | ${{ needs.verify.result }} |
           | Version tag | ${{ needs.version.outputs.version }} | ${{ needs.tag.result }} |
           | Playground | https://main.preview.wod.wiki | ${{ needs.site.result }} |
-          | Storybook | https://story.wod.wiki | ${{ needs.site.result }} |
+          | Storybook | https://story.wod.wiki | wod-wiki-engine pipeline |
           | E2E report | https://e2e.wod.wiki | ${{ needs.e2e.outputs.outcome }} |
 
           > E2E: ${{ needs.e2e.outputs.tests }} tests, ${{ needs.e2e.outputs.failures }} failures.

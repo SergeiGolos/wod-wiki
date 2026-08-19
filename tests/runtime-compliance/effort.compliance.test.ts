@@ -24,7 +24,7 @@
  */
 import { it, expect } from 'bun:test';
 import { describeCompliance, assertions } from '@/testing/script';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 import { currentBlockType, blockHasDisplayMetric, blockDisplayMetrics, stackHasMetric, anyOutputHasMetric, anySystemPopHasReason } from '../helpers/compliance-helpers';
 

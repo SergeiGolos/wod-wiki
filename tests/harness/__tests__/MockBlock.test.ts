@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'bun:test';
 import { MockBlock } from '../index';
-import { IRuntimeBehavior } from '@/runtime/contracts';
+import { IRuntimeBehavior } from '@bitcobblers/wod-wiki-engine';
 
 describe('MockBlock', () => {
   it('should initialize with minimal configuration', () => {

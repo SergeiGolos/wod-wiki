@@ -1,43 +1,31 @@
 import { defineConfig, devices } from '@playwright/test';
-import { appBaseURL, storybookBaseURL } from './e2e/utils/url-helpers';
+import { appBaseURL } from './e2e/utils/url-helpers';
 
 /**
  * Playwright configuration for smoketests.
  *
- * Targets:
- *  - CI:  the deployed app (https://wod.wiki) and deployed Storybook
- *         (https://story.wod.wiki). No local servers are started.
- *  - Local: the Vite dev app and dev Storybook, started automatically
- *         (existing instances are reused).
- *  - E2E_APP_URL / E2E_STORYBOOK_URL override either target explicitly.
+ * Targets the deployed playground app only:
+ *  - CI:  https://wod.wiki. No local servers are started.
+ *  - Local: the Vite dev app, started automatically (existing instances reused).
+ *  - E2E_APP_URL overrides the target explicitly.
+ *
+ * Storybook smoke coverage lives in the wod-wiki-engine repository against
+ * its own deployed Storybook.
  *
  * Run with: bun x playwright test --config playwright.smoke.config.ts
  */
 const isCI = !!process.env.CI;
 const appURL = appBaseURL();
-const storybookURL = storybookBaseURL();
 
-// Only spin up local servers for targets that resolve to localhost.
-const webServers = [
-  ...(!isCI && !process.env.E2E_APP_URL
-    ? [{
-        command: 'bun run dev:app',
-        url: appURL,
-        ignoreHTTPSErrors: true, // self-signed / Tailscale certs locally
-        reuseExistingServer: true,
-        timeout: 60 * 1000,
-      }]
-    : []),
-  ...(!isCI && !process.env.E2E_STORYBOOK_URL
-    ? [{
-        command: 'bun run storybook',
-        url: storybookURL,
-        ignoreHTTPSErrors: true, // self-signed / Tailscale certs locally
-        reuseExistingServer: true,
-        timeout: 120 * 1000,
-      }]
-    : []),
-];
+const webServer = !isCI && !process.env.E2E_APP_URL
+  ? {
+      command: 'bun run dev:app',
+      url: appURL,
+      ignoreHTTPSErrors: true, // self-signed / Tailscale certs locally
+      reuseExistingServer: true,
+      timeout: 60 * 1000,
+    }
+  : undefined;
 
 export default defineConfig({
   testDir: './e2e/smoke',
@@ -67,5 +55,5 @@ export default defineConfig({
     },
   ],
 
-  webServer: webServers.length > 0 ? webServers : undefined,
+  webServer,
 });

@@ -16,8 +16,8 @@
  * Invalid WQL (parse error or non-find query) resolves to an empty list;
  * callers surface the error separately via their own parse.
  */
-import { queryService } from '@/services/analytics/query'
-import { parseQuery, isFindQuery } from '@/services/analytics/query/wql'
+import { queryService } from '@/services/queryService';
+import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';
 import type { Note } from '@/types/storage'
 import { toEntry, blockToEntry, noteFromBlock, type Entry } from './entryMapper'
 

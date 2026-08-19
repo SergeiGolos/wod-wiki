@@ -5,7 +5,7 @@ import { Badge } from '@/components/atoms/primitives/badge';
 import { Progress } from '@/components/atoms/primitives/progress';
 import { Label } from '@/components/atoms/primitives/label';
 import { PlayIcon, PauseIcon, SquareIcon } from '@phosphor-icons/react';
-import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
+import { useTimerElapsed } from '@bitcobblers/wod-wiki-engine';
 import { cn } from '@/lib/utils';
 
 interface ClockAnchorProps {

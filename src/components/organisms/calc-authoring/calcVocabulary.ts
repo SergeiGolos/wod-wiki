@@ -7,9 +7,9 @@
  * No editor dependencies — pure data + helpers (unit-testable).
  */
 
-import { CONTEXT_ATOMS, STREAM_ATOMS, AGGREGATE_BUILTINS } from '../../../core/analytics/calc/atoms';
-import { UNITS } from '../../../core/analytics/calc/units';
-import { DimVector } from '../../../core/analytics/calc/dimensions';
+import { CONTEXT_ATOMS, STREAM_ATOMS, AGGREGATE_BUILTINS } from '@bitcobblers/wod-wiki-engine';
+import { UNITS } from '@bitcobblers/wod-wiki-engine';
+import { DimVector } from '@bitcobblers/wod-wiki-engine';
 
 /** Scope keywords (highlighting). */
 export const SCOPE_WORDS = ['segment', 'workout', 'store'] as const;

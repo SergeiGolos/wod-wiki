@@ -14,11 +14,11 @@
  *     QueryService — labeled a fixture here, as in the prototype).
  */
 
-import { createAnalyticsEngineForBlock } from '@/core/analytics/createAnalyticsEngineForBlock';
-import { OutputStatement, IOutputStatement } from '@/core/models/OutputStatement';
+import { createAnalyticsEngineForBlock } from '@bitcobblers/wod-wiki-engine';
+import { OutputStatement, IOutputStatement } from '@bitcobblers/wod-wiki-engine';
 import { ScriptBlock, StoredOutputStatement } from '@/components/Editor/types';
-import type { CalculationDefinition, CalcScope } from '@/core/analytics/calc/types';
-import { outputNodeId } from '@/core/analytics/calc/lineform';
+import type { CalculationDefinition, CalcScope } from '@bitcobblers/wod-wiki-engine';
+import { outputNodeId } from '@bitcobblers/wod-wiki-engine';
 
 export interface PreviewRequest {
   logs: StoredOutputStatement[];

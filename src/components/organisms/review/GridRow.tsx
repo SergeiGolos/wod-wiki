@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { GridRow as GridRowData } from './types';
 import type { ColumnDef } from './column-definition-language';
 import { UnifiedCellRenderer } from './interpreters/cdlCellRenderer';

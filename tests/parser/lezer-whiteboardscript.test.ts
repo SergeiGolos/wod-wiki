@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'bun:test';
 import { EditorState } from "@codemirror/state";
-import { whiteboardScriptLanguage } from "../../src/parser/whiteboard-script-language";
-import { extractStatements } from "../../src/parser/lezer-mapper";
-import { MetricType } from "../../src/core/models/Metric";
-import { hasHint } from "../../src/core/metrics/hints";
+import { whiteboardScriptLanguage } from '@bitcobblers/wod-wiki-engine';
+import { extractStatements } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import { hasHint } from '@bitcobblers/wod-wiki-engine';
 
 describe('Lezer WhiteboardScript Parser', () => {
   const parse = (code: string) => {

@@ -8,12 +8,12 @@
  */
 import { describe, it, expect } from 'bun:test';
 import { parse } from '../helpers/parser-test-utils';
-import { MetricType } from '@/core/models/Metric';
-import { UnitsDialect } from '@/dialects/UnitsDialect';
-import { CardioDialect } from '@/dialects/CardioDialect';
-import { FenceDialect } from '@/dialects/FenceDialect';
-import { CrossFitDialect } from '@/dialects/CrossFitDialect';
-import { YogaDialect } from '@/dialects/YogaDialect';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import { UnitsDialect } from '@bitcobblers/wod-wiki-engine';
+import { CardioDialect } from '@bitcobblers/wod-wiki-engine';
+import { FenceDialect } from '@bitcobblers/wod-wiki-engine';
+import { CrossFitDialect } from '@bitcobblers/wod-wiki-engine';
+import { YogaDialect } from '@bitcobblers/wod-wiki-engine';
 
 // ── Full Stack ────────────────────────────────────────────────────
 

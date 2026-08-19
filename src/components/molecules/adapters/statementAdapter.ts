@@ -1,4 +1,4 @@
-import type { ICodeStatement } from '@/core/models/CodeStatement';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import type { IListItem } from '../types';
 
 export function statementToListItem(

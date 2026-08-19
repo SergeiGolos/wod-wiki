@@ -7,7 +7,13 @@
  */
 import { describe, expect, it } from 'bun:test';
 import type { BlockIndexRow } from '@/types/storage';
-import { feedDateToCreatedAt, staticTagIndexFromBlocks } from './staticBlockIndex';
+import {
+  feedDateToCreatedAt,
+  staticTagIndexFromBlocks,
+  staticNotesFromBlocks,
+  staticNoteStore,
+  staticBlockStore,
+} from './staticBlockIndex';
 
 function blockRow(partial: Partial<BlockIndexRow>): BlockIndexRow {
   return {
@@ -62,5 +68,59 @@ describe('staticTagIndexFromBlocks', () => {
 
   it('returns an empty index when no frontmatter rows carry tags', () => {
     expect(staticTagIndexFromBlocks([blockRow({})]).size).toBe(0);
+  });
+});
+
+describe('staticNotesFromBlocks', () => {
+  it('synthesizes distinct Notes with catalog from block rows', () => {
+    const blocks = [
+      blockRow({
+        noteId: 'crossfit-girls/fran',
+        noteTitle: 'Fran',
+        sourceId: 'collection:crossfit-girls/fran',
+        createdAt: 0,
+      }),
+      blockRow({
+        noteId: 'crossfit-girls/fran',
+        noteTitle: 'Fran',
+        sourceId: 'collection:crossfit-girls/fran',
+        segmentId: 'sec-2',
+      }),
+      blockRow({
+        noteId: 'feeds/dan-john/2026-01-12/day-01',
+        noteTitle: 'Day 01',
+        sourceId: 'feed:feeds/dan-john/2026-01-12/day-01',
+        createdAt: 1768176000000,
+      }),
+    ];
+    const notes = staticNotesFromBlocks(blocks);
+    expect(notes.length).toBe(2);
+    expect(notes[0]).toEqual({
+      id: 'crossfit-girls/fran',
+      title: 'Fran',
+      createdAt: 0,
+      type: 'note',
+      sourceId: 'collection:crossfit-girls/fran',
+      catalog: 'crossfit-girls',
+    });
+    expect(notes[1]).toEqual({
+      id: 'feeds/dan-john/2026-01-12/day-01',
+      title: 'Day 01',
+      createdAt: 1768176000000,
+      type: 'note',
+      sourceId: 'feed:feeds/dan-john/2026-01-12/day-01',
+      catalog: 'dan-john',
+    });
+  });
+});
+
+describe('static stores', () => {
+  it('loads static notes and blocks from generated static corpus', async () => {
+    const notes = await staticNoteStore.getAllNotes();
+    const blocks = await staticBlockStore.getAllBlocks();
+    expect(notes.length).toBeGreaterThan(0);
+    expect(blocks.length).toBeGreaterThan(0);
+    expect(notes.some(n => n.sourceId?.startsWith('collection:'))).toBe(true);
+    expect(notes.some(n => n.sourceId?.startsWith('feed:'))).toBe(true);
   });
 });

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { getOutputsForHistoryBlock } from '@/components/atoms/VisualStateComponents';
-import { OutputStatement, OutputStatementType } from '@/core/models/OutputStatement';
-import { TimeSpan } from '@/runtime/models/TimeSpan';
+import { OutputStatement, OutputStatementType } from '@bitcobblers/wod-wiki-engine';
+import { TimeSpan } from '@bitcobblers/wod-wiki-engine';
 
 function makeOutput(type: OutputStatementType, stackLevel: number): OutputStatement {
     return new OutputStatement({

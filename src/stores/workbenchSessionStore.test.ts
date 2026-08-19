@@ -9,8 +9,8 @@
 
 import { describe, expect, it, beforeEach } from 'bun:test';
 import { createWorkbenchSessionStore } from './workbenchSessionStore';
-import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import type { INowProvider } from '@/runtime/INowProvider';
+import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import type { INowProvider } from '@bitcobblers/wod-wiki-engine';
 import type { INotePersistence } from '@/services/persistence';
 import type { CreateNoteInput, NoteMutation, NoteLocator, GetNoteOptions } from '@/services/persistence';
 import type { HistoryEntry } from '@/types/history';

@@ -10,8 +10,9 @@
  * terms so they keep matching while the user composes.
  */
 import type { PaletteDataSource, PaletteItem } from '@/components/organisms/command-palette/palette-types';
-import { parseQuery, isFindQuery, queryService } from '@/services/analytics/query';
-import { CLAUSE_META, type QueryClause, type WqlExecutor } from '@/components/organisms/wql-composer';
+import { queryService } from '@/services/queryService';
+import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';;
+import { CLAUSE_META, type QueryClause, type WqlExecutor } from '@bitcobblers/wod-wiki-ui';
 import { entryOpenHref } from '../lib/entryActions';
 import { searchEntries } from '../lib/entrySearch';
 import type { Entry, EntryKind } from '../lib/entryMapper';

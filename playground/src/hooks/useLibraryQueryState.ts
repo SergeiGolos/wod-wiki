@@ -12,7 +12,7 @@
 import {
   CLAUSE_META,
   type QueryClause,
-} from '@/components/organisms/wql-composer'
+} from '@bitcobblers/wod-wiki-ui'
 import { useComposerQueryState, type ComposerQueryState } from './useComposerQueryState'
 
 export type LibraryQueryState = ComposerQueryState

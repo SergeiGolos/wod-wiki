@@ -5,7 +5,7 @@ import type { ScriptBlock, WorkoutResults } from "@/components/Editor/types";
 import { ReviewGrid } from "@/components/organisms/review/ReviewGrid";
 import { useDebugMode } from "@/contexts/DebugModeContext";
 import { getAnalyticsFromLogs } from "@/hooks/useWorkbenchServices";
-import type { Segment } from "@/core/models/AnalyticsModels";
+import type { Segment } from '@bitcobblers/wod-wiki-engine';
 import { FocusedDialog } from "@/components/molecules/FocusedDialog";
 import { CastButtonRpc } from "@/components/organisms/cast/CastButtonRpc";
 import { AudioToggle } from "@/components/atoms/AudioToggle";

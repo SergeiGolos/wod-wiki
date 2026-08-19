@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'bun:test';
 import { DialectRegistry } from '../DialectRegistry';
-import { IDialect, DialectAnalysis } from '../../core/models/Dialect';
-import { ICodeStatement } from '../../core/models/CodeStatement';
-import { MetricType } from '../../core/models/Metric';
-import { MetricContainer } from '../../core/models/MetricContainer';
-import { getHints, hasHint, hintsToContainer } from '../../core/metrics/hints';
+import { IDialect, DialectAnalysis } from '@bitcobblers/wod-wiki-engine';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import { getHints, hasHint, hintsToContainer } from '@bitcobblers/wod-wiki-engine';
 
 // Mock dialect for testing — emits hint markers as metrics.
 const createMockDialect = (id: string, hints: string[] = []): IDialect => ({

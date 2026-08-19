@@ -43,8 +43,8 @@ import { workbenchEventBus } from '@/hooks/useBrowserServices';
 import { getWorkbenchDocumentTitle } from '@/app/workbench/workbenchEntryLoader';
 import { WorkbenchCastBridge } from '@/components/organisms/cast/WorkbenchCastBridge';
 import { useScreenMode } from '@/panels/panel-system/useScreenMode';
-import { MetricType } from '@/core/models/Metric';
-import type { ProjectionResult } from '@/core/analytics/ProjectionResult';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import type { ProjectionResult } from '@bitcobblers/wod-wiki-engine';
 import { WorkbenchHeader } from '@/components/organisms/workbench/WorkbenchHeader';
 import { WorkbenchTemplate } from '@/templates';
 import type { Attachment } from '@/types/storage';
@@ -55,7 +55,7 @@ const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0
 import { PlanPanel } from '@/panels/plan-panel';
 import { TimerScreen } from '@/panels/track-panel';
 import { ResultsView } from '@/components/organisms/review/review-grid-index';
-import type { Segment } from '@/core/models/AnalyticsModels';
+import type { Segment } from '@bitcobblers/wod-wiki-engine';
 
 export interface WorkbenchProps extends Omit<NoteEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange' | 'mode'> {
   initialContent?: string;

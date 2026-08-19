@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { IRuntimeAction } from '@/runtime/contracts';
-import { IScriptRuntime } from '@/runtime/contracts';
+import { IRuntimeAction } from '@bitcobblers/wod-wiki-engine';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
 
 // Mock Action for testing
 class TestAction implements IRuntimeAction {

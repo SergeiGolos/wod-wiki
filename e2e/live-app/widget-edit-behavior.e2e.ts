@@ -44,6 +44,7 @@ async function gotoWidgetNote(page: Page): Promise<void> {
     title: WIDGET_NOTE_ID,
   });
   await page.goto(`/playground/${WIDGET_NOTE_ID}`, { waitUntil: 'domcontentloaded' });
+  await moveCursorOutOfWidget(page);
 }
 
 test.describe('Widget edit behavior', () => {
@@ -90,6 +91,7 @@ test.describe('Widget edit behavior', () => {
           .poll(() => getNoteContentByRouteId(page, `playground/${WIDGET_NOTE_ID}`), { timeout: 10_000 })
           .toContain('Updated');
         await page.reload({ waitUntil: 'domcontentloaded' });
+        await moveCursorOutOfWidget(page);
         await expect(widgetBlock.locator('[data-testid="widget-preview-surface"]')).toContainText('Updated');
         expect(consoleErrors).toEqual([]);
       });

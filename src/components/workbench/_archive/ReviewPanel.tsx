@@ -2,8 +2,8 @@ import React, { useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { TimerIndexPanel } from '../../organisms/layout/TimerIndexPanel';
 import { TimelineView } from '../../../timeline/TimelineView';
-import { Segment, AnalyticsGroup } from '../../../core/models/AnalyticsModels';
-import { IScriptRuntime } from '../../../runtime/contracts/IScriptRuntime';
+import { Segment, AnalyticsGroup } from '@bitcobblers/wod-wiki-engine';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
 
 export interface ReviewPanelProps {
   runtime: IScriptRuntime | null;

@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestHarness } from '@/testing/harness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { SessionRootStrategy } from '@/runtime/compiler/strategies/SessionRootStrategy';
-import { ChildSelectionBehavior } from '@/runtime/behaviors';
-import { PushBlockAction } from '@/runtime/actions/stack/PushBlockAction';
-import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
+import { SessionRootStrategy } from '@bitcobblers/wod-wiki-engine';
+import { ChildSelectionBehavior } from '@bitcobblers/wod-wiki-engine';
+import { PushBlockAction } from '@bitcobblers/wod-wiki-engine';
+import { PopBlockAction } from '@bitcobblers/wod-wiki-engine';
 
 describe('RootBlock Integration: Complete Workout', () => {
     let harness: ExecutionContextTestHarness;

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { ProxyBlock } from '../ProxyBlock';
 import { SerializedBlock, SerializedTimer } from '../RpcMessages';
-import { IMetric } from '@/core/models/Metric';
+import { IMetric } from '@bitcobblers/wod-wiki-engine';
 
 function createSerializedBlock(overrides?: Partial<SerializedBlock>): SerializedBlock {
     return {

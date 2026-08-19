@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { IOutputStatement } from '../../core/models/OutputStatement';
-import { MetricType } from '@/core/models/Metric';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { cn } from '@/lib/utils';
 import { Clock, CheckCircle2, ListTree, Timer, Table2 } from 'lucide-react';
 import { useTimerElapsed, useRoundDisplay, useScriptRuntime, useNextPreview } from '@/hooks/useRuntimeTimer';
 import type { IScriptRuntime, IRuntimeBlock, MetricVisibility } from '@/hooks/useRuntimeTimer';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import { MetricSourceRow } from '@/components/molecules/MetricSourceRow';
-import { MetricContainer } from '@/core/models/MetricContainer';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 import { VisibilityBadge } from './VisibilityBadge';
 import { useDebugMode } from '@/contexts/DebugModeContext';
 import { BlockDebugDialog } from '@/components/organisms/track/BlockDebugDialog';

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { noteToMarkdown } from './NoteMarkdownSerializer';
-import { frozenNow } from '@/runtime/INowProvider';
+import { frozenNow } from '@bitcobblers/wod-wiki-engine';
 import type { HistoryEntry } from '@/types/history';
 
 describe('noteToMarkdown', () => {

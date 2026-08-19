@@ -5,7 +5,7 @@
  * Useful for setting up block state before testing lifecycle operations.
  */
 
-import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
 import {
   ITestSetupAction,
   TestSetupActionJSON,

@@ -11,8 +11,8 @@
 import { afterAll, afterEach, describe, expect, it, mock, type Mock } from 'bun:test'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { parseQuery } from '@/services/analytics/query/wql'
-import type { FindQueryResult } from '@/services/analytics/query/QueryService'
+import { parseQuery } from '@bitcobblers/wod-wiki-engine'
+import type { FindQueryResult } from '@bitcobblers/wod-wiki-engine'
 import type { Note } from '@/types/storage'
 import { formatDateHeader } from '../../lib/dateFormat'
 
@@ -41,7 +41,7 @@ globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof 
 // this bun process — partial mocks leak process-wide (the same failure mode
 // tests/helpers/repair-react-router-dom.ts repairs for react-router-dom).
 
-import * as realQuery from '@/services/analytics/query'
+import * as realQuery from '@bitcobblers/wod-wiki-engine'
 import * as realJournalNotes from '../../services/journalNotes'
 
 const FEED_NOTE: Note = {
@@ -55,8 +55,7 @@ const FEED_NOTE: Note = {
 
 let runFindImpl: (parsed: { raw?: string }) => Promise<FindQueryResult>
 
-mock.module('@/services/analytics/query', () => ({
-  ...realQuery,
+mock.module('@/services/queryService', () => ({
   queryService: {
     runFind: mock((parsed: { raw?: string }) => runFindImpl(parsed)),
   },
@@ -278,7 +277,9 @@ describe('LibraryPage', () => {
     // Group counts reflect the FULL result set, not the rendered batch.
     expect(screen.getByTestId('library-group-count').textContent).toBe('250')
 
-    // Sentinel approaches → the rest render.
+    // Sentinel approaches → the rest render. The observer is created in a
+    // passive effect that may flush after the 200-row commit — await it.
+    await waitFor(() => expect(MockIntersectionObserver.instances.length).toBeGreaterThan(0))
     act(() => MockIntersectionObserver.instances[MockIntersectionObserver.instances.length - 1]!.trigger())
     await waitFor(() => expect(screen.getAllByTestId('library-row-post')).toHaveLength(250))
     expect(screen.queryByTestId('library-load-more')).toBeNull()

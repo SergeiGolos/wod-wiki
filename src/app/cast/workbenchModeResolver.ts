@@ -1,8 +1,8 @@
 import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
 import type { ScriptBlock } from '@/components/Editor/types';
-import type { Segment } from '@/core/models/AnalyticsModels';
+import type { Segment } from '@bitcobblers/wod-wiki-engine';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
-import type { ExecutionStatus } from '@/runtime/hooks/useRuntimeExecution';
+import type { ExecutionStatus } from '@bitcobblers/wod-wiki-engine';
 import type { RpcWorkbenchUpdate } from '@/services/cast/rpc/RpcMessages';
 import { buildPreviewProjection, buildReviewProjection } from './workbenchProjection';
 

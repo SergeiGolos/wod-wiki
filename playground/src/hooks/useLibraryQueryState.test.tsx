@@ -24,7 +24,7 @@ import {
   defaultLibraryClauses,
   type LibraryQueryState,
 } from './useLibraryQueryState'
-import type { QueryClause } from '@/components/organisms/wql-composer'
+import type { QueryClause } from '@bitcobblers/wod-wiki-ui'
 
 afterEach(cleanup)
 

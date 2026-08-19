@@ -31,8 +31,8 @@
  */
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { CalendarIcon, ChevronDownIcon, ChevronRightIcon, FolderIcon, TriangleAlertIcon } from 'lucide-react'
-import { queryService } from '@/services/analytics/query'
-import { parseQuery, isFindQuery, type ParsedFindQuery } from '@/services/analytics/query/wql'
+import { queryService } from '@/services/queryService';
+import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine';
 import {
   WqlComposer,
   clauseToWql,
@@ -41,7 +41,7 @@ import {
   pivotClauses,
   CLAUSE_META,
   type WqlExecutor,
-} from '@/components/organisms/wql-composer'
+} from '@bitcobblers/wod-wiki-ui'
 import { type Entry } from '../../lib/entryMapper'
 import { groupEntriesByDate } from '../../lib/entryGrouping'
 import { searchEntries } from '../../lib/entrySearch'

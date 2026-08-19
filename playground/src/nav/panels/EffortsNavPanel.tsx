@@ -16,7 +16,7 @@ import { useEffortRegistry } from '../../contexts/EffortRegistryContext';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { WorkoutResult } from '@/types/storage';
 import type { StoredOutputStatement } from '@/components/Editor/types';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { journalEntryPath } from '../../lib/routes';
 import { parseNoteId } from '@/lib/noteIdentity';
 import { formatDateMedium } from '@/lib/dateFormat';

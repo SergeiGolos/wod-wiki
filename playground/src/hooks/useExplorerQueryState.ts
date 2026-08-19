@@ -35,7 +35,7 @@ import {
   defaultMetricsClauses,
   wqlToClauses,
   type QueryClause,
-} from '@/components/organisms/wql-composer'
+} from '@bitcobblers/wod-wiki-ui'
 
 /** Range options offered by the explorer UI (single source for the domain). */
 export const EXPLORER_RANGE_OPTIONS = [4, 8, 16] as const

@@ -1,5 +1,5 @@
 // Hint vocabulary (Tier 3 §3.2)
-export { CONSUMED_HINTS, CONSUMED_HINT_KEYS, hintMetric, hasHint, getHints, hintsToContainer } from './core/metrics/hints';
+export { CONSUMED_HINTS, CONSUMED_HINT_KEYS, hintMetric, hasHint, getHints, hintsToContainer } from '@bitcobblers/wod-wiki-engine';
 /**
  * Core Entry Point for WOD Wiki
  * 
@@ -13,60 +13,60 @@ export { CONSUMED_HINTS, CONSUMED_HINT_KEYS, hintMetric, hasHint, getHints, hint
  */
 
 // Core classes
-export { WhiteboardScript } from './parser/WhiteboardScript';
-export { BlockKey } from './core/models/BlockKey';
-export { Duration, SpanDuration } from './core/models/Duration';
-export { CodeStatement } from './core/models/CodeStatement';
-export { OutputStatement } from './core/models/OutputStatement';
-export type { IOutputStatement } from './core/models/OutputStatement';
-export type { CodeMetadata } from './core/models/CodeMetadata';
+export { WhiteboardScript } from '@bitcobblers/wod-wiki-engine';
+export { BlockKey } from '@bitcobblers/wod-wiki-engine';
+export { Duration, SpanDuration } from '@bitcobblers/wod-wiki-engine';
+export { CodeStatement } from '@bitcobblers/wod-wiki-engine';
+export { OutputStatement } from '@bitcobblers/wod-wiki-engine';
+export type { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
+export type { CodeMetadata } from '@bitcobblers/wod-wiki-engine';
 
 // Parser
-export { createParser } from './parser/parserInstance';
+export { createParser } from '@bitcobblers/wod-wiki-engine';
 
 // Runtime engine
-export { ScriptRuntime } from './runtime/ScriptRuntime';
-export { JitCompiler } from './runtime/compiler/JitCompiler';
-export { RuntimeStack } from './runtime/RuntimeStack';
-export { RuntimeMemory } from './runtime/RuntimeMemory';
-export { RuntimeBlock } from './runtime/RuntimeBlock';
-export { BlockContext } from './runtime/BlockContext';
+export { ScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+export { JitCompiler } from '@bitcobblers/wod-wiki-engine';
+export { RuntimeStack } from '@bitcobblers/wod-wiki-engine';
+export { RuntimeMemory } from '@bitcobblers/wod-wiki-engine';
+export { RuntimeBlock } from '@bitcobblers/wod-wiki-engine';
+export { BlockContext } from '@bitcobblers/wod-wiki-engine';
 
 // Runtime interfaces
-export type { IScriptRuntime } from './runtime/contracts/IScriptRuntime';
-export type { IRuntimeBlock } from './runtime/contracts/IRuntimeBlock';
-export type { IRuntimeAction } from './runtime/contracts/IRuntimeAction';
-export type { IRuntimeMemory } from './runtime/contracts/IRuntimeMemory';
-export type { IRuntimeBlockStrategy } from './runtime/contracts/IRuntimeBlockStrategy';
-export type { IMemoryReference } from './runtime/contracts/IMemoryReference';
-export { TypedMemoryReference } from './runtime/impl/TypedMemoryReference';
-export type { IEvent } from './runtime/contracts/events/IEvent';
-export type { IEventHandler } from './runtime/contracts/events/IEventHandler';
+export type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+export type { IRuntimeBlock } from '@bitcobblers/wod-wiki-engine';
+export type { IRuntimeAction } from '@bitcobblers/wod-wiki-engine';
+export type { IRuntimeMemory } from '@bitcobblers/wod-wiki-engine';
+export type { IRuntimeBlockStrategy } from '@bitcobblers/wod-wiki-engine';
+export type { IMemoryReference } from '@bitcobblers/wod-wiki-engine';
+export { TypedMemoryReference } from '@bitcobblers/wod-wiki-engine';
+export type { IEvent } from '@bitcobblers/wod-wiki-engine';
+export type { IEventHandler } from '@bitcobblers/wod-wiki-engine';
 
-export type { IBlockContext } from './runtime/contracts/IBlockContext';
+export type { IBlockContext } from '@bitcobblers/wod-wiki-engine';
 
 // Runtime actions
-export * from './runtime/actions/stack/PushBlockAction';
-export { ErrorAction } from './runtime/actions/ErrorAction';
-export type { RuntimeError } from './runtime/actions/ErrorAction';
+export * from '@bitcobblers/wod-wiki-engine';
+export { ErrorAction } from '@bitcobblers/wod-wiki-engine';
+export type { RuntimeError } from '@bitcobblers/wod-wiki-engine';
 
 // Runtime behaviors - export new aspect-based behaviors
-export * from './runtime/behaviors';
+export * from '@bitcobblers/wod-wiki-engine';
 
 // Runtime blocks
-export * from './runtime/blocks/EffortBlock';
-export * from './runtime/blocks/SessionRootBlock';
-export * from './runtime/blocks/WaitingToStartBlock';
-export * from './runtime/blocks/RestBlock';
+export * from '@bitcobblers/wod-wiki-engine';
+export * from '@bitcobblers/wod-wiki-engine';
+export * from '@bitcobblers/wod-wiki-engine';
+export * from '@bitcobblers/wod-wiki-engine';
 
 // Extension registries (Tier 3 §3.4)
-export { dialectRegistry } from './dialects/DialectStack';
-export type { IDialect, DialectAnalysis } from './core/models/Dialect';
-export { strategyRegistry } from './runtime/services/runtimeServices';
-export { realtimeProcessorRegistry, summaryProcessorRegistry } from './core/analytics/StandardAnalyticsProfile';
-export type { IRealtimeProcessor } from './core/analytics/IRealtimeProcessor';
-export type { ISummaryProcessor } from './core/analytics/ISummaryProcessor';
-export type { IAnalyticsProcessorDescriptor } from './core/analytics/IAnalyticsProcessorDescriptor';
+export { dialectRegistry } from '@bitcobblers/wod-wiki-engine';
+export type { IDialect, DialectAnalysis } from '@bitcobblers/wod-wiki-engine';
+export { strategyRegistry } from '@bitcobblers/wod-wiki-engine';
+export { realtimeProcessorRegistry, summaryProcessorRegistry } from '@bitcobblers/wod-wiki-engine';
+export type { IRealtimeProcessor } from '@bitcobblers/wod-wiki-engine';
+export type { ISummaryProcessor } from '@bitcobblers/wod-wiki-engine';
+export type { IAnalyticsProcessorDescriptor } from '@bitcobblers/wod-wiki-engine';
 
 // Effort registry (Tier 3 §3.4)
 export { CompositeEffortRegistry, InMemoryEffortRegistry, IndexedDBEffortRegistry } from './effort-registry';
@@ -75,24 +75,24 @@ export { bundledEfforts, BUNDLED_EFFORT_COUNT } from './effort-registry/data/bun
 export type { IEffort, IEffortRegistry, IEffortResolver, ResolvedEffort } from './effort-registry';
 
 // Registries
-export { Registry } from './core/Registry';
+export { Registry } from '@bitcobblers/wod-wiki-engine';
 // Fragments
-export * from './runtime/compiler/metrics/RoundsMetric';
-export * from './runtime/compiler/metrics/RepMetric';
-export * from './runtime/compiler/metrics/EffortMetric';
-export * from './runtime/compiler/metrics/DistanceMetric';
-export * from './runtime/compiler/metrics/ResistanceMetric';
-export * from './runtime/compiler/metrics/ActionMetric';
-export * from './runtime/compiler/metrics/IncrementMetric';
-export * from './runtime/compiler/metrics/GroupMetric';
-export * from './runtime/compiler/metrics/TextMetric';
+export * from '@bitcobblers/wod-wiki-engine';
+export * from '@bitcobblers/wod-wiki-engine';
+export * from '@bitcobblers/wod-wiki-engine';
+export * from '@bitcobblers/wod-wiki-engine';
+export * from '@bitcobblers/wod-wiki-engine';
+export * from '@bitcobblers/wod-wiki-engine';
+export * from '@bitcobblers/wod-wiki-engine';
+export * from '@bitcobblers/wod-wiki-engine';
+export * from '@bitcobblers/wod-wiki-engine';
 
 // Fragment types
-export { MetricType } from './core/models/Metric';
-export type { IMetric } from './core/models/Metric';
+export { MetricType } from '@bitcobblers/wod-wiki-engine';
+export type { IMetric } from '@bitcobblers/wod-wiki-engine';
 
 // Fragment contracts & utilities
-export type { IMetricSource, MetricFilter } from './core/contracts/IMetricSource';
+export type { IMetricSource, MetricFilter } from '@bitcobblers/wod-wiki-engine';
 export type {
   MetricOwnershipLayer,
   MetricOwnershipLedger,
@@ -100,7 +100,7 @@ export type {
   MetricOwnershipQuery,
   MetricOwnershipResolvedContribution,
   MetricOwnershipTypeExplanation,
-} from './core/metrics/ownership';
+} from '@bitcobblers/wod-wiki-engine';
 export {
   METRIC_OWNERSHIP_LAYER_CHAIN,
   LEGACY_ORIGIN_TO_OWNERSHIP_LAYER,
@@ -108,5 +108,5 @@ export {
   getMetricOwnershipLayer,
   OwnershipResolver,
   ownershipRank,
-} from './core/metrics/ownership';
-export type { IMetricOwnershipResolver } from './core/contracts/IMetricOwnershipResolver';
+} from '@bitcobblers/wod-wiki-engine';
+export type { IMetricOwnershipResolver } from '@bitcobblers/wod-wiki-engine';

@@ -1,7 +1,7 @@
 import React from 'react';
-import { useScriptRuntime } from '@/runtime/context/RuntimeContext';
+import { useScriptRuntime } from '@bitcobblers/wod-wiki-engine';
 import { RuntimeStackView, LookaheadView } from '@/components/atoms/VisualStateComponents';
-import { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
+import { useOutputStatements } from '@bitcobblers/wod-wiki-engine';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/primitives/card';
 import { useDebugMode } from '@/contexts/DebugModeContext';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';

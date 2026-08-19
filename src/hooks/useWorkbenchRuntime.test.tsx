@@ -4,8 +4,8 @@ import { act, renderHook } from '@testing-library/react';
 
 import { RuntimeLifecycleContext } from '@/contexts/RuntimeLifecycleContext';
 import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
-import { MetricContainer } from '@/core/models/MetricContainer';
-import { MetricType } from '@/core/models/Metric';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 // Preserve all original exports while overriding audioService for this test.
 const originalUseBrowserServices = await import('@/hooks/useBrowserServices');
 
@@ -141,7 +141,7 @@ describe('useWorkbenchRuntime', () => {
 
     it('finalizes analytics and persists logs on the unmount partial-save path', async () => {
         const { useWorkbenchRuntime } = await import('./useWorkbenchRuntime');
-        const { OutputStatement } = await import('@/core/models/OutputStatement');
+        const { OutputStatement } = await import('@bitcobblers/wod-wiki-engine');
 
         const finalizeAnalytics = mock(() => []);
         // Post-fix, getOutputStatements() holds finalized analytics only (live
@@ -167,7 +167,7 @@ describe('useWorkbenchRuntime', () => {
 
         const lifecycle = {
             // Structural mock — only the surface the hook touches.
-            runtime: mockRuntime as unknown as import('@/runtime/ScriptRuntime').ScriptRuntime,
+            runtime: mockRuntime as unknown as import('@bitcobblers/wod-wiki-engine').ScriptRuntime,
             isInitializing: false,
             error: null,
             initializeRuntime: mock(() => { }),

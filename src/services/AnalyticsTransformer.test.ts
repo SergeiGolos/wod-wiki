@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'bun:test';
 import { getAnalyticsFromRuntime, getAnalyticsFromLogs, AnalyticsTransformer, SegmentWithMetadata } from './AnalyticsTransformer';
-import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
-import { TimeSpan } from '../runtime/models/TimeSpan';
-import { IOutputStatement, OutputStatementType } from '../core/models/OutputStatement';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { TimeSpan } from '@bitcobblers/wod-wiki-engine';
+import { IOutputStatement, OutputStatementType } from '@bitcobblers/wod-wiki-engine';
 import type { StoredOutputStatement } from '../components/Editor/types';
-import { MetricType, IMetric } from '../core/models/Metric';
-import { hintMetric } from '../core/metrics/hints';
+import { MetricType, IMetric } from '@bitcobblers/wod-wiki-engine';
+import { hintMetric } from '@bitcobblers/wod-wiki-engine';
 
 // Helper to create mock output statements. Generic so tests can type the
 // result as the plain stored shape (getAnalyticsFromLogs input) or the live

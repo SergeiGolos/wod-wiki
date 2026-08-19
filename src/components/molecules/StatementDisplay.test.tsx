@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import { StatementDisplay, BlockDisplay, MetricList } from './StatementDisplay';
-import type { ICodeStatement } from '@/core/models/CodeStatement';
-import type { IMetric } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
+import type { IMetric } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 
 describe('StatementDisplay', () => {
   afterEach(() => {

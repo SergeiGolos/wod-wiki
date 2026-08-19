@@ -13,9 +13,9 @@
  */
 
 import { useMemo } from 'react';
-import { MetricType, type IMetric } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
-import type { Segment } from '@/core/models/AnalyticsModels';
+import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import type { Segment } from '@bitcobblers/wod-wiki-engine';
 import type {
   GridRow,
   GridCell,

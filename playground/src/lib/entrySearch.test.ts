@@ -6,10 +6,10 @@
  */
 import { describe, expect, it, mock } from 'bun:test'
 
-import * as realQuery from '@/services/analytics/query'
-import type { FindQueryResult } from '@/services/analytics/query/QueryService'
+import * as realQuery from '@bitcobblers/wod-wiki-engine'
+import type { FindQueryResult } from '@bitcobblers/wod-wiki-engine'
 import type { BlockIndexRow } from '@/types/storage'
-import { parseQuery, type ParsedFindQuery } from '@/services/analytics/query/wql'
+import { parseQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine'
 
 function makeBlock(i: number, createdAt = i): BlockIndexRow {
   return {
@@ -29,8 +29,7 @@ function makeBlock(i: number, createdAt = i): BlockIndexRow {
 
 let runFindImpl: (parsed: ParsedFindQuery) => Promise<FindQueryResult>
 
-mock.module('@/services/analytics/query', () => ({
-  ...realQuery,
+mock.module('@/services/queryService', () => ({
   queryService: {
     runFind: mock((parsed: ParsedFindQuery) => runFindImpl(parsed)),
   },

@@ -11,7 +11,7 @@
  * A `q` that already parses as WQL is used as-is; one that doesn't and isn't
  * plain text surfaces the shared rejection banner.
  */
-import { CLAUSE_META, type QueryClause } from '@/components/organisms/wql-composer'
+import { CLAUSE_META, type QueryClause } from '@bitcobblers/wod-wiki-ui'
 import { useComposerQueryState, type ComposerQueryState } from './useComposerQueryState'
 
 export type EffortsComposerState = ComposerQueryState

@@ -18,10 +18,10 @@
  */
 import { describe, it, expect, afterEach } from 'bun:test';
 import { parseFromScript } from '../helpers/parser-test-utils';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { TestScript, assertions } from '@/testing/script';
-import { createParser } from '@/parser/parserInstance';
-import type { WhiteboardScript } from '@/parser/WhiteboardScript';
+import { createParser } from '@bitcobblers/wod-wiki-engine';
+import type { WhiteboardScript } from '@bitcobblers/wod-wiki-engine';
 
 function parseScript(text: string): WhiteboardScript {
     return createParser().read(text) as WhiteboardScript;

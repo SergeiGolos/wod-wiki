@@ -6,7 +6,7 @@
  */
 
 import { useMemo } from 'react';
-import { CalcScope } from '../../../core/analytics/calc/types';
+import { CalcScope } from '@bitcobblers/wod-wiki-engine';
 import { CalcAnalysis } from './calcDiagnostics';
 import { runCalcPreview } from './calcPreview';
 import { previewWorkoutLogs, previewBlock } from './previewWorkout';

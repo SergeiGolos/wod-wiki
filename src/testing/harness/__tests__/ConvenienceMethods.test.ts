@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestBuilder } from '../ExecutionContextTestBuilder';
 import { ExecutionContextTestHarness } from '../ExecutionContextTestHarness';
 import { MockBlock } from '../MockBlock';
-import { IEventHandler } from '@/runtime/contracts/events/IEventHandler';
+import { IEventHandler } from '@bitcobblers/wod-wiki-engine';
 
 describe('ExecutionContextTestHarness Convenience Methods', () => {
   let harness: ExecutionContextTestHarness;

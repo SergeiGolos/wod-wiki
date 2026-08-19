@@ -20,7 +20,8 @@
  * sample so the showcase always teaches by example.
  */
 import { useEffect, useState, type ReactNode } from 'react';
-import { queryService, type ParsedQuery, type QueryResult } from '@/services/analytics/query';
+import { queryService } from '@/services/queryService';
+import { type ParsedQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';;
 import {
   WidgetFrame,
   QueryValue,
@@ -28,17 +29,9 @@ import {
   WqlTable,
   TopList,
   StackedBar,
-} from '@/components/molecules/analytics';
+} from '@bitcobblers/wod-wiki-ui';
 import { ParsedQueryChips } from '@/components/organisms/analytics';
-import {
-  WQL_AGGREGATORS,
-  WQL_METRIC_AGGREGATES,
-  WQL_METRIC_FAMILIES,
-  WQL_TAG_KEYS,
-  WQL_VIRTUAL_DIMS,
-  WQL_INTENSITY_TIERS,
-  WQL_ROLLUP_PERIODS,
-} from '@/parser/wql-vocabulary';
+import { WQL_AGGREGATORS, WQL_METRIC_AGGREGATES, WQL_METRIC_FAMILIES, WQL_TAG_KEYS, WQL_VIRTUAL_DIMS, WQL_INTENSITY_TIERS, WQL_ROLLUP_PERIODS } from '@bitcobblers/wod-wiki-engine';;
 import {
   HOME_ANALYTICS_QUERIES,
   HOME_ANALYTICS_WEEKS,

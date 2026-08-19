@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { CountupTimerBehavior, ExitBehavior, LabelingBehavior } from '@/runtime/behaviors';
+import { CountupTimerBehavior, ExitBehavior, LabelingBehavior } from '@bitcobblers/wod-wiki-engine';
 
 describe('EffortBlock (simulated with MockBlock)', () => {
   let harness: BehaviorTestHarness;

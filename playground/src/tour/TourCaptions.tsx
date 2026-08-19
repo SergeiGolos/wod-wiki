@@ -36,23 +36,23 @@ export interface TourCaptionChoice {
 export const WORKOUT_PRESETS: TourCaptionChoice[] = [
   {
     label: '21-15-9 Rep Scaling',
-    detail: '24kg Swings · 400m Run · 225lb Deadlifts',
-    wod: '```time\n21-15-9\n  Kettlebell Swings 24kg\n  400m Run\n  Deadlifts 225lb\n  *:30 Rest\n```',
+    detail: 'Air Squats · Pushups',
+    wod: '```time\n21-15-9\n  Air Squats\n  Pushups\n  // Rep scheme scaling\n  // Step through reps\n```',
   },
   {
-    label: 'Bodyweight & Distance',
-    detail: '20 Air Squats · 200m Run · 15 Push-ups',
-    wod: '```time\n(4 Rounds)\n  20 Air Squats\n  200m Run\n  15 Push-ups\n  *:45 Rest\n```',
+    label: 'Required Rest',
+    detail: '3 Rounds · 10 Burpees · *:30 Rest',
+    wod: '```time\n(3 Rounds)\n  10 Burpees\n  *:30 Rest\n  // Forced rest timer\n  // Locks time split\n```',
   },
   {
-    label: 'Heavy Triplet',
-    detail: '5 Back Squats 185lb · 100m Carry 50lb · 10 Ring Dips',
-    wod: '```time\n(5 Sets)\n  5 Barbell Back Squats 185lb\n  100m Farmer Carry 50lb\n  10 Ring Dips\n  *:30 Rest\n```',
+    label: 'Timed Distance',
+    detail: '5:00 Run 400m · *:45 Rest',
+    wod: '```time\n5:00 Run 400m\n*:45 Rest\n// Fixed time window\n// Distance & rest timer\n// Track meter pace\n```',
   },
   {
-    label: 'Load & Carry Ladder',
-    detail: '12 Front Squats 65kg · 100m Carry 30kg · 20 Box Jumps',
-    wod: '```time\n(4 Sets)\n  12 Front Squats 65kg\n  100m Sandbag Carry 30kg\n  20 Box Jumps\n  *:45 Rest\n```',
+    label: 'Load & Resistance',
+    detail: '5 Sets · 5 Back Squat 185lb · *1:00 Rest',
+    wod: '```time\n(5 Sets)\n  5 Back Squat 185lb\n  *1:00 Rest\n  // Barbell resistance\n  // Rest between sets\n```',
   },
 ]
 

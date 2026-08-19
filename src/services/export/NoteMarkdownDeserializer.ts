@@ -1,4 +1,4 @@
-import { type INowProvider, wallClockNow } from '@/runtime/INowProvider';
+import { type INowProvider, wallClockNow } from '@bitcobblers/wod-wiki-engine';
 import type { HistoryEntry } from '@/types/history';
 
 /**

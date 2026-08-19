@@ -1,10 +1,14 @@
 name: CI – Pull Request
 
 # The single PR pipeline. One job graph per PR update:
-#   verify (unit/story/coverage/build gate + journal e2e)
-#     → preview (deploy-shaped artifact → S3 + PR comment)
+#   verify (unit/coverage + deploy-shaped build gate — NO pre-deploy e2e)
+#     → preview (artifact → S3 + PR comment)
+#     → e2e (full live-app suite against the deployed preview — the single
+#       e2e phase; tests always run against exactly what was published)
 #     → destroy (on close)
+# Storybook previews live in the wod-wiki-engine repository's pipeline.
 # Concurrency: a new push cancels the previous run for the same PR.
+
 
 on:
   pull_request:
@@ -44,8 +48,9 @@ jobs:
 
       - name: Derive branch slug
         id: slug
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
-          BRANCH="${{ github.head_ref || github.ref_name }}"
           SLUG=$(echo "$BRANCH" | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\+//;s/-\+$//' | tr '[:upper:]' '[:lower:]')
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
 
@@ -79,13 +84,14 @@ jobs:
     uses: ./.github/workflows/_verify.yml
     secrets: inherit
     with:
-      run-e2e: true
+      build-preview-artifact: true
       preview-base-path: /${{ needs.slug.outputs.slug }}/dist/
       app-version: ${{ needs.slug.outputs.preview-version }}
 
+
   # Preview deploy — downloads the deploy-shaped playground bundle the verify
-  # job already built (no second playground build), adds receiver + storybook,
-  # and syncs everything to S3 in one job.
+  # job already built (no second playground build), adds the receiver build,
+  # and syncs to S3 in one job. Storybook previews are the engine repo's.
   preview:
     name: Deploy preview
     runs-on: ubuntu-22.04
@@ -131,8 +137,6 @@ jobs:
           VITE_BASE_PATH="/${{ env.BRANCH_SLUG }}/dist/" \
             bun x vite build --config vite.receiver.config.ts
 
-      - name: Build Storybook
-        run: bun run build-storybook
 
       - name: Deploy playground to S3
         run: |
@@ -144,15 +148,7 @@ jobs:
             --cache-control "max-age=300, must-revalidate" \
             --exclude "*.map"
 
-      - name: Deploy Storybook to S3
-        run: |
-          set -euo pipefail
-          PREFIX="${{ env.BRANCH_SLUG }}/storybook/"
-          echo "Uploading Storybook to s3://$S3_BUCKET/$PREFIX"
-          aws s3 sync ./storybook-static/ "s3://$S3_BUCKET/$PREFIX" \
-            --delete \
-            --cache-control "max-age=300, must-revalidate" \
-            --exclude "*.map"
+
 
       - name: Create CloudFront invalidation (best-effort)
         continue-on-error: true
@@ -176,7 +172,6 @@ jobs:
             const pr = process.env.PR_NUMBER;
             const version = process.env.PREVIEW_VERSION;
             const previewUrl = `https://${slug}.preview.wod.wiki`;
-            const storybookUrl = `https://${slug}.story.wod.wiki`;
             const e2eUrl = `https://${slug}.e2e.wod.wiki`;
             const marker = `<!-- wod-wiki-preview-${pr} -->`;
             const body = `${marker}\n` +
@@ -187,9 +182,8 @@ jobs:
               `| Branch | \`${slug}\` |\n` +
               `| Version | \`${version}\` |\n` +
               `| Preview | [${previewUrl}](${previewUrl}) |\n` +
-              `| Storybook | [${storybookUrl}](${storybookUrl}) |\n` +
               `| E2E report | [${e2eUrl}](${e2eUrl}) (after the Preview E2E job runs) |\n\n` +
-              `> Build and deploy powered by AWS S3 + CloudFront. ` +
+              `> Build and deploy powered by AWS S3 + CloudFront. Storybook preview: wod-wiki-engine pipeline. ` +
               `Destroyed automatically when this PR is closed or merged.`;
 
             const { data: comments } = await github.rest.issues.listComments({
@@ -246,7 +240,6 @@ jobs:
         env:
           VERIFY_RESULT: ${{ needs.verify.result }}
           UNIT_STATUS: ${{ needs.verify.outputs.unit-status }}
-          STORY_STATUS: ${{ needs.verify.outputs.story-status }}
           COVERAGE_STATUS: ${{ needs.verify.outputs.coverage-status }}
           BUILD_STATUS: ${{ needs.verify.outputs.build-status }}
         with:
@@ -262,7 +255,6 @@ jobs:
             const statuses = {
               overall: process.env.VERIFY_RESULT,
               unit: process.env.UNIT_STATUS || 'skipped',
-              story: process.env.STORY_STATUS || 'skipped',
               coverage: process.env.COVERAGE_STATUS || 'skipped',
               build: process.env.BUILD_STATUS || 'skipped',
             };
@@ -272,7 +264,7 @@ jobs:
               : '## ⚠️ PR verification needs attention';
 
             const marker = '<!-- wod-wiki-pr-verification -->';
-            const body = `${marker}\n${headline}\n\n| Check | Status |\n| --- | --- |\n| Unit tests | ${statusIcon(statuses.unit)} ${statuses.unit} |\n| Story tests | ${statusIcon(statuses.story)} ${statuses.story} |\n| Coverage | ${statusIcon(statuses.coverage)} ${statuses.coverage} |\n| Playground build | ${statusIcon(statuses.build)} ${statuses.build} |\n\n- Actions run: [View run](${runUrl})\n- Coverage artifact: [Artifacts](${runUrl}#artifacts)`;
+            const body = `${marker}\n${headline}\n\n| Check | Status |\n| --- | --- |\n| Unit tests | ${statusIcon(statuses.unit)} ${statuses.unit} |\n| Coverage | ${statusIcon(statuses.coverage)} ${statuses.coverage} |\n| Playground build | ${statusIcon(statuses.build)} ${statuses.build} |\n\n- Actions run: [View run](${runUrl})\n- Coverage artifact: [Artifacts](${runUrl}#artifacts)`;
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,

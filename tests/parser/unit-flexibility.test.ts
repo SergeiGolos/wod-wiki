@@ -1,6 +1,6 @@
 import { describe, it } from 'bun:test';
-import { createParser } from '@/parser/parserInstance';
-import { MetricType } from '@/core/models/Metric';
+import { createParser } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 function parseMetrics(input: string) {
     const script = createParser().read(input) as any;

@@ -5,7 +5,7 @@
  * This is commonly needed to test mid-execution scenarios.
  */
 
-import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
 import {
   ITestSetupAction,
   TestSetupActionJSON,

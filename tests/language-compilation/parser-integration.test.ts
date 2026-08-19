@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { MdTimerRuntime } from '../../src/parser/md-timer';
+import { MdTimerRuntime } from '@bitcobblers/wod-wiki-engine';
 
 describe('T076: Parse Code to Whiteboard Script', () => {
   let parser: MdTimerRuntime;

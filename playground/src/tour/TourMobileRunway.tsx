@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MOBILE_STICKY_TOP } from '../canvas/canvasUtils'
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
-import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
+import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import type { Quest } from '../hooks/usePageQuests'
 import type { Chapter } from '../canvas/parseCanvasMarkdown'

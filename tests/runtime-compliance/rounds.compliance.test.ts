@@ -12,7 +12,7 @@
  */
 import { describe, it, expect } from 'bun:test';
 import { TestScript, assertions, describeCompliance } from '@/testing/script';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { getRoundState, blockDisplayMetrics } from '../helpers/compliance-helpers';
 
 // ===========================================================================

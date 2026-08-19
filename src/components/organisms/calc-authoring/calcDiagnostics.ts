@@ -13,13 +13,13 @@
  * Pure logic, no DOM — unit-testable.
  */
 
-import { DimVector, DIM_ZERO, compoundName } from '../../../core/analytics/calc/dimensions';
-import { CalculationRegistry } from '../../../core/analytics/calc/registry';
-import { LookupRegistry, ILookupTable } from '../../../core/analytics/calc/lookup';
-import { BUILTIN_CALCS, STORE_CALCS } from '../../../core/analytics/calc/seeds';
-import { compileLineForm } from '../../../core/analytics/calc/lineform';
-import { CalculationDefinition, CalcScope } from '../../../core/analytics/calc/types';
-import { outputNodeId } from '../../../core/analytics/calc/lineform';
+import { DimVector, DIM_ZERO, compoundName } from '@bitcobblers/wod-wiki-engine';
+import { CalculationRegistry } from '@bitcobblers/wod-wiki-engine';
+import { LookupRegistry, ILookupTable } from '@bitcobblers/wod-wiki-engine';
+import { BUILTIN_CALCS, STORE_CALCS } from '@bitcobblers/wod-wiki-engine';
+import { compileLineForm } from '@bitcobblers/wod-wiki-engine';
+import { CalculationDefinition, CalcScope } from '@bitcobblers/wod-wiki-engine';
+import { outputNodeId } from '@bitcobblers/wod-wiki-engine';
 
 export interface CalcDiagnostic {
   severity: 'error' | 'warning';

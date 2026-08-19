@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'bun:test';
 import { TestScript } from '@/testing/script';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 describe('Rep-Scheme Inheritance', () => {
     let script: TestScript;

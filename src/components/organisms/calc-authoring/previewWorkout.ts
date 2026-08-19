@@ -8,9 +8,9 @@
  * `logs`/`block` props; this fixture keeps the surface self-sufficient.
  */
 
-import { OutputStatement } from '@/core/models/OutputStatement';
+import { OutputStatement } from '@bitcobblers/wod-wiki-engine';
 import { toStoredOutputStatement, ScriptBlock, StoredOutputStatement } from '@/components/Editor/types';
-import type { IMetric } from '@/core/models/Metric';
+import type { IMetric } from '@bitcobblers/wod-wiki-engine';
 
 interface SegSpec {
   label: string;

@@ -7,14 +7,14 @@
  * "production runtime factory" entry point used by `Workbench.tsx`,
  * `runtimeTimerModel.ts`, and `RuntimeLifecycleProvider`.
  */
-export { createCompiler, PRODUCTION_STRATEGIES } from '@/runtime/services/runtimeServices';
-export { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
-export type { IRuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
+export { createCompiler, PRODUCTION_STRATEGIES } from '@bitcobblers/wod-wiki-engine';
+export { RuntimeFactory } from '@bitcobblers/wod-wiki-engine';
+export type { IRuntimeFactory } from '@bitcobblers/wod-wiki-engine';
 
-import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
-import { createCompiler } from '@/runtime/services/runtimeServices';
-import type { INowProvider } from '@/runtime/INowProvider';
-import { wallClockNow } from '@/runtime/INowProvider';
+import { RuntimeFactory } from '@bitcobblers/wod-wiki-engine';
+import { createCompiler } from '@bitcobblers/wod-wiki-engine';
+import type { INowProvider } from '@bitcobblers/wod-wiki-engine';
+import { wallClockNow } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * e2e fast-clock hook (see e2e/utils/fastClock.ts): when the page installs

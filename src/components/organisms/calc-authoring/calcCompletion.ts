@@ -9,7 +9,7 @@
  */
 
 import { CompletionContext, CompletionResult, autocompletion } from '@codemirror/autocomplete';
-import { CalcScope } from '../../../core/analytics/calc/types';
+import { CalcScope } from '@bitcobblers/wod-wiki-engine';
 import {
   FUNCTION_NAMES,
   LOOKUP_TABLES,

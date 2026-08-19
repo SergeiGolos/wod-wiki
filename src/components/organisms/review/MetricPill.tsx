@@ -7,8 +7,8 @@
  */
 
 import React, { useMemo } from 'react';
-import { type IMetric } from '@/core/models/Metric';
-import { metricPresentation } from '@/core/metrics/presentation';
+import { type IMetric } from '@bitcobblers/wod-wiki-engine';
+import { metricPresentation } from '@bitcobblers/wod-wiki-engine';
 import { themeToken } from '@/components/metrics/presentation';
 
 interface MetricPillProps {

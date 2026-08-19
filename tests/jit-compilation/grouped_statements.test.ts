@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'bun:test';
-import { MdTimerRuntime } from '../../src/parser/md-timer';
-import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
-import { EffortFallbackStrategy } from '../../src/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
-import { ChildrenStrategy } from '../../src/runtime/compiler/strategies/enhancements/ChildrenStrategy';
-import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/components/GenericGroupStrategy';
-import { IScriptRuntime } from '../../src/runtime/contracts/IScriptRuntime';
-import { MetricType } from '../../src/core/models/Metric';
-import { createMockClock } from '../../src/runtime/RuntimeClock';
-import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
-import { RuntimeStack } from '../../src/runtime/RuntimeStack';
-import { EventBus } from '../../src/runtime/events/EventBus';
+import { MdTimerRuntime } from '@bitcobblers/wod-wiki-engine';
+import { JitCompiler } from '@bitcobblers/wod-wiki-engine';
+import { EffortFallbackStrategy } from '@bitcobblers/wod-wiki-engine';
+import { ChildrenStrategy } from '@bitcobblers/wod-wiki-engine';
+import { GenericGroupStrategy } from '@bitcobblers/wod-wiki-engine';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import { createMockClock } from '@bitcobblers/wod-wiki-engine';
+import { ScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { RuntimeStack } from '@bitcobblers/wod-wiki-engine';
+import { EventBus } from '@bitcobblers/wod-wiki-engine';
 
 describe('Grouped Statements Compilation', () => {
     const parser = new MdTimerRuntime();

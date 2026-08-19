@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestHarness } from '@/testing/harness';
-import { SessionRootStrategy } from '@/runtime/compiler/strategies/SessionRootStrategy';
+import { SessionRootStrategy } from '@bitcobblers/wod-wiki-engine';
 import {
     CountupTimerBehavior,
     ChildSelectionBehavior,
     LabelingBehavior,
     ButtonBehavior,
     ReportOutputBehavior
-} from '@/runtime/behaviors';
+} from '@bitcobblers/wod-wiki-engine';
 
 describe('RootBlock Behavior Composition', () => {
     let harness: ExecutionContextTestHarness;

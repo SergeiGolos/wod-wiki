@@ -3,7 +3,7 @@
 export * from '@/views/runtime/MetricVisualizer';
 
 export { metricColorMap, getMetricColorClasses, getMetricIcon } from '@/views/runtime/metricColorMap';
-export { MetricType } from '@/core/models/Metric';
+export { MetricType } from '@bitcobblers/wod-wiki-engine';
 export type { FragmentColorMap } from '@/views/runtime/metricColorMap';
 
 export type { ParseError } from '@/views/runtime/types';
@@ -21,4 +21,4 @@ export {
     type DisplayStatus,
     type VisualizerSize,
     type VisualizerFilter,
-} from '@/core/models/DisplayItem';
+} from '@bitcobblers/wod-wiki-engine';

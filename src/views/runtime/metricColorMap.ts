@@ -1,7 +1,7 @@
 // Fragment visual styling utilities for visualization
 // Contains both color mapping and icon mapping for metrics types
 
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 // Re-export the canonical enum so callers can import MetricType from either location.
 export type { MetricType };

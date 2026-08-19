@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { IRuntimeBehavior, IRuntimeBlock, IRuntimeClock, IRuntimeAction } from '@/runtime/contracts';
+import { IRuntimeBehavior, IRuntimeBlock, IRuntimeClock, IRuntimeAction } from '@bitcobblers/wod-wiki-engine';
 
 class TriggerCompleteBehavior implements IRuntimeBehavior {
     onNext(block: IRuntimeBlock, _clock: IRuntimeClock): IRuntimeAction[] {

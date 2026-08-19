@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
-import { IntervalLogicStrategy } from '@/runtime/compiler/strategies/logic/IntervalLogicStrategy';
-import { CountdownTimerBehavior, SoundCueBehavior } from '@/runtime/behaviors';
+import { IntervalLogicStrategy } from '@bitcobblers/wod-wiki-engine';
+import { CountdownTimerBehavior, SoundCueBehavior } from '@bitcobblers/wod-wiki-engine';
 
 describe('IntervalLogicStrategy', () => {
   it('should compile "1:00 EMOM 10" to an Interval block', () => {
