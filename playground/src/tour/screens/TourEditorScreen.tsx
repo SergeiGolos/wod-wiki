@@ -58,62 +58,65 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
   // (.cm-wod-fence-open … .cm-wod-fence-close, drawn by previewDecorations)
   // and register an invisible proxy over exactly that region. Presets are
   // line-aligned so this box is identical for every adventure pick.
+  const measure = useCallback(() => {
+    if (!withRingTargets) return
+    const view = viewRef.current
+    const body = bodyRef.current
+    if (!body) return
+
+    if (view) {
+      try {
+        const doc = view.state.doc
+        let openPos = -1
+        let closePos = -1
+        for (let i = 1; i <= doc.lines; i++) {
+          const text = doc.line(i).text
+          if (text.startsWith('```time') || text.startsWith('```wod') || text.startsWith('```log')) {
+            openPos = doc.line(i).from
+          } else if (openPos !== -1 && text.startsWith('```')) {
+            closePos = doc.line(i).from
+            break
+          }
+        }
+        if (openPos !== -1 && closePos !== -1) {
+          const topBlock = view.lineBlockAt(openPos)
+          const bottomBlock = view.lineBlockAt(closePos)
+          setBlockBox({
+            top: topBlock.top,
+            left: 0,
+            width: view.dom.offsetWidth || body.offsetWidth,
+            height: (bottomBlock.top + bottomBlock.height) - topBlock.top,
+          })
+          return
+        }
+      } catch {
+        // fallback to DOM if line blocks not yet initialized
+      }
+    }
+
+    const open = body.querySelector('.cm-wod-fence-open')
+    const close = body.querySelector('.cm-wod-fence-close')
+    if (!open || !close) {
+      setBlockBox(null)
+      return
+    }
+    const bodyRect = body.getBoundingClientRect()
+    const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
+    const openRect = open.getBoundingClientRect()
+    const closeRect = close.getBoundingClientRect()
+    setBlockBox({
+      top: (openRect.top - bodyRect.top) / scale,
+      left: (Math.min(openRect.left, closeRect.left) - bodyRect.left) / scale,
+      width: (Math.max(openRect.right, closeRect.right) - Math.min(openRect.left, closeRect.left)) / scale,
+      height: (closeRect.bottom - openRect.top) / scale,
+    })
+  }, [withRingTargets])
+
   useLayoutEffect(() => {
     if (!withRingTargets) return
     const body = bodyRef.current
     if (!body) return
-    const measure = () => {
-      const view = viewRef.current
-      const body = bodyRef.current
-      if (!body) return
 
-      if (view) {
-        try {
-          const doc = view.state.doc
-          let openPos = -1
-          let closePos = -1
-          for (let i = 1; i <= doc.lines; i++) {
-            const text = doc.line(i).text
-            if (text.startsWith('```time') || text.startsWith('```wod') || text.startsWith('```log')) {
-              openPos = doc.line(i).from
-            } else if (openPos !== -1 && text.startsWith('```')) {
-              closePos = doc.line(i).from
-              break
-            }
-          }
-          if (openPos !== -1 && closePos !== -1) {
-            const topBlock = view.lineBlockAt(openPos)
-            const bottomBlock = view.lineBlockAt(closePos)
-            setBlockBox({
-              top: topBlock.top,
-              left: 0,
-              width: view.dom.offsetWidth || body.offsetWidth,
-              height: (bottomBlock.top + bottomBlock.height) - topBlock.top,
-            })
-            return
-          }
-        } catch {
-          // fallback to DOM if line blocks not yet initialized
-        }
-      }
-
-      const open = body.querySelector('.cm-wod-fence-open')
-      const close = body.querySelector('.cm-wod-fence-close')
-      if (!open || !close) {
-        setBlockBox(null)
-        return
-      }
-      const bodyRect = body.getBoundingClientRect()
-      const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
-      const openRect = open.getBoundingClientRect()
-      const closeRect = close.getBoundingClientRect()
-      setBlockBox({
-        top: (openRect.top - bodyRect.top) / scale,
-        left: (Math.min(openRect.left, closeRect.left) - bodyRect.left) / scale,
-        width: (Math.max(openRect.right, closeRect.right) - Math.min(openRect.left, closeRect.left)) / scale,
-        height: (closeRect.bottom - openRect.top) / scale,
-      })
-    }
     measure()
     // Re-measure after CM decorates/fonts settle and on container resizes.
     const t1 = window.setTimeout(measure, 120)
@@ -130,7 +133,7 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
       ro?.disconnect()
       window.removeEventListener('resize', measure)
     }
-  }, [doc, withRingTargets])
+  }, [doc, withRingTargets, measure])
   return (
     <div
       ref={withRingTargets ? windowRef : undefined}
