@@ -30,7 +30,7 @@ import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import type { Segment } from '@bitcobblers/wod-wiki-engine'
 import type { Quest } from '../hooks/usePageQuests'
-import type { Chapter, ScrollSpec } from '../canvas/parseCanvasMarkdown'
+import type { Chapter, ScrollSpec, ScrollStage } from '../canvas/parseCanvasMarkdown'
 import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
 import { useRunStartedChallenge } from '../hooks/useRunStartedChallenge'
@@ -42,7 +42,6 @@ import {
 } from './TourRing'
 import { useScrollRunway, scrollRunwayTo } from '../canvas/useScrollRunway'
 import type { ScrollSlice } from '../canvas/scrollRunway'
-import type { ScrollSpec, ScrollStage } from '../canvas/parseCanvasMarkdown'
 import {
   SCREEN_TITLES,
   TOUR_CANVAS_HEIGHT,
