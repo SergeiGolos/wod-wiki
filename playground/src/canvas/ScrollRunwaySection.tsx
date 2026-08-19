@@ -21,7 +21,7 @@ import {
   type ScrollStage,
 } from './parseCanvasMarkdown'
 import { resolveSource } from './canvasUtils'
-import { clamp01, lerp, quadOut } from './scrollRunway'
+import { clamp01, isStageTextLoaded, lerp, quadOut } from './scrollRunway'
 import { useScrollRunway } from './useScrollRunway'
 import { useScrollTypewriter } from './useScrollTypewriter'
 import { ScrollCaption } from './ScrollCaption'
@@ -109,6 +109,10 @@ export function ScrollRunwaySection({
   })
 
   const stageId = slice.stage.id
+  // Focus follows load: the ring waits for the stage's full script — both
+  // for the typewriter's completion and for auto-loaded (instant) text —
+  // so it never frames lines that are still being written.
+  const stageTextLoaded = isStageTextLoaded(sourcesByStageId[stageId] ?? '', doc)
   useEffect(() => {
     if (!interactive && runwayVisible) onStageEnter?.(stageId)
   }, [interactive, stageId, runwayVisible, onStageEnter])
@@ -218,8 +222,8 @@ export function ScrollRunwaySection({
                   <ScrollToast ref={toastRef} text={slice.stage.toast} accent={activeAccent} />
                 )}
               </EditorWindow>
-              {slice.ring && !interactive && (
-                <ScrollRing tag={slice.ring.tag} accent={activeAccent} />
+              {slice.ring && !interactive && stageTextLoaded && (
+                <ScrollRing tag={slice.ring.tag} accent={activeAccent} lines={slice.ring.lines} />
               )}
             </div>
 

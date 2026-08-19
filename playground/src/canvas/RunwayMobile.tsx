@@ -16,7 +16,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ScriptBlock } from '@/components/Editor/types'
 import type { ScrollSpec } from './parseCanvasMarkdown'
 import { resolveSource, MOBILE_STICKY_TOP } from './canvasUtils'
-import { resolveScrollStage } from './scrollRunway'
+import { isStageTextLoaded, resolveScrollStage } from './scrollRunway'
 import { ScrollRing } from './ScrollRing'
 import { CanvasProse } from './CanvasProse'
 import { EditorWindow } from '../components/organisms/editor/EditorWindow'
@@ -113,6 +113,9 @@ export function RunwayMobile({ spec, wodFiles, theme, noteTitle, doc: controlled
   }, [source, setDoc])
 
 
+  // Focus follows load: the ring waits for the stage's auto-play typing to
+  // finish (or for held content on sourceless stages) before framing lines.
+  const stageTextLoaded = isStageTextLoaded(source, doc)
   const accent = slice.stage.accent ?? 'hsl(var(--foreground))'
 
   return (
@@ -132,7 +135,9 @@ export function RunwayMobile({ spec, wodFiles, theme, noteTitle, doc: controlled
               run={onRun ? { onRun } : undefined}
               className="h-full"
             />
-            {slice.ring && <ScrollRing tag={slice.ring.tag} accent={accent} />}
+            {slice.ring && stageTextLoaded && (
+              <ScrollRing tag={slice.ring.tag} accent={accent} lines={slice.ring.lines} />
+            )}
           </div>
         </div>
 

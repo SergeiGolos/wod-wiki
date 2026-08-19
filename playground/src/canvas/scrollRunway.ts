@@ -19,8 +19,19 @@ export interface ScrollSlice {
   stage: ScrollStage
   /** Local progress within the stage, 0..1. */
   t: number
-  /** Resolved ring target (key / tag optional) — null when the stage has none. */
-  ring: { key?: string; tag?: string } | null
+  /** Resolved ring target (key / tag / lines optional) — null when the stage has none. */
+  ring: { key?: string; tag?: string; lines?: [number, number] } | null
+}
+
+/**
+ * A stage's text is loaded when the editor holds its full script: the
+ * typewriter's completion point, immediate for auto-loaded text (stage 0
+ * types instantly) and for sourceless stages (which hold the previous
+ * content). Focus visuals (the ring) wait for this so they never frame
+ * lines that are still being written.
+ */
+export function isStageTextLoaded(script: string, doc: string): boolean {
+  return script === '' || doc === script
 }
 
 /**
@@ -42,6 +53,12 @@ export function resolveScrollStage(progress: number, stages: ScrollStage[]): Scr
   const stage = clamped[index]
   const span = stage.end - stage.start
   const t = span > 0 ? clamp01((p - stage.start) / span) : 0
-  const ring = stage.ring ? { tag: stage.ring === true ? undefined : stage.ring.tag, key: stage.ring === true ? undefined : stage.ring.key } : null
+  const ring = stage.ring
+    ? {
+        tag: stage.ring === true ? undefined : stage.ring.tag,
+        key: stage.ring === true ? undefined : stage.ring.key,
+        lines: stage.ring === true ? undefined : stage.ring.lines,
+      }
+    : null
   return { index, stage, t, ring }
 }
