@@ -269,7 +269,7 @@ export function TourMobileRunway({
         >
           <MacOSChrome title={SCREEN_TITLES[screen]} className="h-full">
             <div ref={windowCanvasRef} className="relative h-full">
-              <TourRing target={ringTarget} accent={stage?.accent ?? 'hsl(var(--metric-resistance))'} canvasRef={windowCanvasRef} unscaled />
+              <TourRing target={ringTarget} accent={stage?.accent ?? 'hsl(var(--metric-resistance))'} canvasRef={windowCanvasRef} />
               <ScreenFade visible={screen === 'editor'}>
                 <TourEditorScreen
                   doc={runwayDoc}

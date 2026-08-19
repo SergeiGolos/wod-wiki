@@ -601,6 +601,26 @@ describe('HomeTour', () => {
     expect(screen.getAllByTestId('tour-wod-block-region')).toHaveLength(1)
   })
 
+  it('renders the gliding ring with the active stage tag (ring target shape)', async () => {
+    await renderHomeTour()
+    await act(async () => {
+      setTestTourProgress(0.20)
+      await Promise.resolve()
+    })
+
+    // slice.ring must reach TourRing as { key, tag } — passing the key string
+    // alone silences the ring (regression: desktop ring vanished after the
+    // useScrollRunway migration because nothing asserted it).
+    const ring = await screen.findByTestId('tour-ring')
+    expect(ring.textContent).toContain('Line Metrics')
+
+    await act(async () => {
+      setTestTourProgress(0.50)
+      await Promise.resolve()
+    })
+    await waitFor(() => expect(ring.textContent).toContain('WallClock'))
+  })
+
   it('restarts the run from the timer header Reset button (#885)', async () => {
     await renderHomeTour()
     await act(async () => {

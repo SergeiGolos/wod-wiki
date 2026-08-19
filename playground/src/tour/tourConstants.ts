@@ -69,6 +69,3 @@ export const SCREEN_TITLES: Record<TourScreen, string> = {
 /** Runway height — matches the POC's deliberate scroll pace. */
 export const TOUR_RUNWAY_HEIGHT = '860vh'
 
-/** Fixed design size of the tour canvas; scaled by transform to fit. */
-export const TOUR_CANVAS_WIDTH = 1200
-export const TOUR_CANVAS_HEIGHT = 720

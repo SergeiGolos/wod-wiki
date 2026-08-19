@@ -2,12 +2,9 @@
  * TourRing.tsx — the single gliding highlight ring + target registry.
  *
  * Screens register wrapper elements under RingTargetKeys; the ring measures
- * the active target relative to the (scaled) canvas and positions itself
- * with a CSS transition — position changes are discrete (stage/beat
- * boundaries), never per-frame layout thrash.
- *
- * The ring renders inside the fixed 1200×720 canvas coordinate space, so
- * measured rects are divided by the current canvas scale.
+ * the active target relative to its canvas and positions itself with a CSS
+ * transition — position changes are discrete (stage/beat boundaries), never
+ * per-frame layout thrash.
  */
 
 import {
@@ -20,7 +17,6 @@ import {
   type ReactNode,
 } from 'react'
 import type { RingTargetKey } from './tourConstants'
-import { TOUR_CANVAS_WIDTH } from './tourConstants'
 
 // ── Registry ────────────────────────────────────────────────────────────────
 
@@ -86,8 +82,6 @@ export interface TourRingProps {
   target?: { key: RingTargetKey; tag?: string } | null
   accent: string
   canvasRef: React.RefObject<HTMLElement | null>
-  /** Set to false only when measuring inside a scaled virtual canvas. Defaults to true. */
-  unscaled?: boolean
 }
 
 interface RingBox {
@@ -97,7 +91,7 @@ interface RingBox {
   h: number
 }
 
-export function TourRing({ target, accent, canvasRef, unscaled = true }: TourRingProps) {
+export function TourRing({ target, accent, canvasRef }: TourRingProps) {
   const { registry, version } = useRingTargets()
   const [box, setBox] = useState<RingBox | null>(null)
   const targetKey = target?.key ?? null
@@ -116,15 +110,14 @@ export function TourRing({ target, accent, canvasRef, unscaled = true }: TourRin
       }
       const elRect = el.getBoundingClientRect()
       const canvasRect = canvas.getBoundingClientRect()
-      const scale = unscaled ? 1 : canvasRect.width / TOUR_CANVAS_WIDTH || 1
-      // Round to whole canvas px: during a resize drag the subpixel noise
+      // Round to whole px: during a resize drag the subpixel noise
       // would otherwise restart the 500ms position transition every event
       // and the ring would smear/shimmer instead of staying glued.
       setBox({
-        x: Math.round((elRect.left - canvasRect.left) / scale),
-        y: Math.round((elRect.top - canvasRect.top) / scale),
-        w: Math.round(elRect.width / scale),
-        h: Math.round(elRect.height / scale),
+        x: Math.round(elRect.left - canvasRect.left),
+        y: Math.round(elRect.top - canvasRect.top),
+        w: Math.round(elRect.width),
+        h: Math.round(elRect.height),
       })
     }
     measure()

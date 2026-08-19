@@ -44,8 +44,6 @@ import { useScrollRunway, scrollRunwayTo } from '../canvas/useScrollRunway'
 import type { ScrollSlice } from '../canvas/scrollRunway'
 import {
   SCREEN_TITLES,
-  TOUR_CANVAS_HEIGHT,
-  TOUR_CANVAS_WIDTH,
   TOUR_RUNWAY_HEIGHT,
   TOUR_ACCENTS,
   type TourScreen,
@@ -996,7 +994,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
                     the clock and the Stop/Pause/Next controls. */}
                 <TourTvCard ref={tvCardRef} runtime={tourRuntime} />
 
-                <TourRing target={interactive ? null : (slice.ring?.key as RingTargetKey | null | undefined)} accent={slice.stage.accent ?? TOUR_ACCENTS.editor} canvasRef={canvasInnerRef} />
+                <TourRing target={interactive || !slice.ring?.key ? null : { key: slice.ring.key as RingTargetKey, tag: slice.ring.tag }} accent={slice.stage.accent ?? TOUR_ACCENTS.editor} canvasRef={canvasInnerRef} />
               </div>
             </div>
 
