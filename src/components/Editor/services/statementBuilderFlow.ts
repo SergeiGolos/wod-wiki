@@ -11,7 +11,7 @@
 import React from 'react';
 import { usePaletteStore } from '@/components/organisms/command-palette/palette-store';
 import { segmentSource, type SegmentType } from '@/components/organisms/command-palette/segmentSources';
-import type { CursorFocusState } from '@bitcobblers/wod-wiki-ui/extensions';
+import type { CursorFocusState } from '@/app/editor/cursorFocusExtension';
 import type { EditorView } from '@codemirror/view';
 
 // ── Segment header ────────────────────────────────────────────────────────

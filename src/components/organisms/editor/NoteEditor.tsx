@@ -57,13 +57,12 @@ import { inlineButtonDecoration, type ButtonAction } from '@bitcobblers/wod-wiki
 import { sectionGeometry } from '@bitcobblers/wod-wiki-ui/extensions';
 import { linkOpen } from '@bitcobblers/wod-wiki-ui/extensions';
 import { gutterUnified } from '@bitcobblers/wod-wiki-ui/extensions';
-import { cursorFocusExtension, getCursorFocusState } from '@bitcobblers/wod-wiki-ui/extensions';
 import { lineIdsExtension } from '@bitcobblers/wod-wiki-ui/extensions';
+import { cursorFocusExtension, getCursorFocusState } from "@/app/editor/cursorFocusExtension";
 
 import { createParser } from '@bitcobblers/wod-wiki-engine';
 import type { INotePersistence } from "@/services/persistence";
 import { createFileDropHandler, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
-import { metricMarkTheme } from "@/app/editor/metricMarkTheme";
 
 import { OverlayTrack } from "@/components/organisms/editor/OverlayTrack";
 import { useOverlayWidthState } from "@/components/Editor/overlays/useOverlayWidthState";
@@ -448,10 +447,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
       // Inline metric hover tooltip
 
-      // Cursor focus: mark decorations + focus state for MetricInlinePanel.
-      // metricMarkTheme styles the cm-metric-* marks the extension emits.
+      // Cursor focus: token-level metric highlighting, closing-fence widget, and cursor state
       cursorFocusExtension,
-      metricMarkTheme,
 
       // Unified gutter: lint diagnostics + runtime highlights in one column
       ...gutterUnified,

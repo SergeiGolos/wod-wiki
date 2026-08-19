@@ -21,7 +21,7 @@ import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { IMetric } from '@bitcobblers/wod-wiki-engine';
 import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import type { EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
-import { getCursorFocusState } from '@bitcobblers/wod-wiki-ui/extensions';
+import { getCursorFocusState } from '@/app/editor/cursorFocusExtension';
 import { cn } from "@/lib/utils";
 import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
 
