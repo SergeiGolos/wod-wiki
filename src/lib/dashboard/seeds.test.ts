@@ -9,7 +9,7 @@ import { describe, expect, it } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { parseQuery, isFindQuery } from '@/services/analytics/query/wql';
+import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';
 import { parseFrontmatter } from '@/lib/frontmatter';
 
 import { parseDashboardNote } from './parser';

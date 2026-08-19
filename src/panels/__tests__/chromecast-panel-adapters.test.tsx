@@ -1,6 +1,7 @@
 import React from 'react';
 import { afterEach, describe, expect, it, mock } from 'bun:test';
 import { cleanup, render, screen } from '@testing-library/react';
+import * as realEngine from '@bitcobblers/wod-wiki-engine';
 
 let capturedTimerDisplayProps: any;
 
@@ -13,7 +14,8 @@ mock.module('@/panels/visual-state-panel', () => ({
   VisualStatePanel: () => <div data-testid="visual-state-panel" />,
 }));
 
-mock.module('@/runtime/hooks/useStackSnapshot', () => ({
+mock.module('@bitcobblers/wod-wiki-engine', () => ({
+  ...realEngine,
   useSnapshotBlocks: () => [{ key: { toString: () => 'block-1' } }],
 }));
 

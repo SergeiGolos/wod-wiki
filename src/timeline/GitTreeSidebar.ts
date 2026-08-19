@@ -4,7 +4,7 @@
  * Segment types used in analytics history.
  */
 
-import type { MetricContainer } from '../core/models/MetricContainer';
+import type { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 
 export interface Segment {
   id: number;

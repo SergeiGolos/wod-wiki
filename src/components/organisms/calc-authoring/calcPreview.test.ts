@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { runCalcPreview } from './calcPreview';
-import { compileLineForm } from '../../../core/analytics/calc/lineform';
+import { compileLineForm } from '@bitcobblers/wod-wiki-engine';
 import { previewWorkoutLogs, previewBlock } from './previewWorkout';
 
 const def = (src: string, scope: 'segment' | 'workout' | 'store') =>

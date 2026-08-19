@@ -8,7 +8,7 @@
  * regressions, not micro-optimize.
  */
 import { describe, it, expect } from 'bun:test';
-import { createParser } from '@/parser/parserInstance';
+import { createParser } from '@bitcobblers/wod-wiki-engine';
 import { ALL_DIALECTS } from '../helpers/parser-test-utils';
 import { DialectRegistry } from '@/services/DialectRegistry';
 

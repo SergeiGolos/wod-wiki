@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { IRuntimeAction } from '@/runtime/contracts';
-import { IScriptRuntime } from '@/runtime/contracts';
-import { BlockLifecycleOptions } from '@/runtime/contracts';
+import { IRuntimeAction } from '@bitcobblers/wod-wiki-engine';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { BlockLifecycleOptions } from '@bitcobblers/wod-wiki-engine';
 
 // We can test lifecycle methods by observing when behaviors are called
 // Since we are using MockBlock, we can spy on behaviors,

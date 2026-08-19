@@ -1,10 +1,10 @@
-import { createParser } from '@/parser/parserInstance';
+import { createParser } from '@bitcobblers/wod-wiki-engine';
 import { runtimeFactory } from '@/hooks/useRuntimeFactory';
 import type { IScriptRuntime } from '@/hooks/useRuntimeTimer';
-import type { IOutputStatement } from '@/core/models/OutputStatement';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
 import { toStoredOutputStatement } from '@/components/Editor/types';
-import type { INowProvider } from '@/runtime/INowProvider';
+import type { INowProvider } from '@bitcobblers/wod-wiki-engine';
 
 const factory = runtimeFactory;
 

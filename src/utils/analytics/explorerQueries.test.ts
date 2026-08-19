@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { parseQuery as _pq, type ParsedQuery, type QueryResult } from '@/services/analytics/query';
+import { parseQuery as _pq, type ParsedQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';
 import {
   addFilterToQuery,
   EXAMPLE_QUERIES,

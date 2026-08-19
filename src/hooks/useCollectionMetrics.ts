@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import { MetricType, type IMetric } from '@/core/models/Metric';
-import { type Segment } from '@/core/models/AnalyticsModels';
-import { MetricContainer } from '@/core/models/MetricContainer';
-import type { WhiteboardScript } from '@/parser/WhiteboardScript';
-import { ChoiceGroupMetric } from '@/runtime/compiler/metrics/ChoiceGroupMetric';
-import { writeChoiceSelection } from '@/runtime/compiler/metrics/ChoiceResolution';
+import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-engine';
+import { type Segment } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import type { WhiteboardScript } from '@bitcobblers/wod-wiki-engine';
+import { ChoiceGroupMetric } from '@bitcobblers/wod-wiki-engine';
+import { writeChoiceSelection } from '@bitcobblers/wod-wiki-engine';
 
 /** A hinted metric that requires a free-text/numeric value from the user. */
 export interface ValueCollectionItem {

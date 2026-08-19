@@ -13,9 +13,9 @@
  */
 import { describe, expect, it, mock } from 'bun:test'
 
-import * as realQuery from '@/services/analytics/query'
-import { parseQuery } from '@/services/analytics/query/wql'
-import type { FindQueryResult } from '@/services/analytics/query/QueryService'
+import * as realQuery from '@bitcobblers/wod-wiki-engine'
+import { parseQuery } from '@bitcobblers/wod-wiki-engine'
+import type { FindQueryResult } from '@bitcobblers/wod-wiki-engine'
 import type { BlockIndexRow, Note } from '@/types/storage'
 import type { Entry } from '../lib/entryMapper'
 
@@ -24,8 +24,7 @@ import type { Entry } from '../lib/entryMapper'
 let runFindCalls: Array<{ raw?: string; target?: string }>
 let runFindImpl: (parsed: { raw?: string; target?: string }) => Promise<FindQueryResult>
 
-mock.module('@/services/analytics/query', () => ({
-  ...realQuery,
+mock.module('@/services/queryService', () => ({
   queryService: {
     runFind: mock((parsed: { raw?: string; target?: string }) => {
       runFindCalls.push(parsed)
@@ -34,7 +33,7 @@ mock.module('@/services/analytics/query', () => ({
   },
 }))
 
-import { clausesToWql } from '@/components/organisms/wql-composer'
+import { clausesToWql } from '@bitcobblers/wod-wiki-ui'
 import {
   wqlSearchSource,
   paletteTextFromWql,

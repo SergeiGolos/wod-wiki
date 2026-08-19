@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'bun:test';
 import { ExecutionContextTestBuilder } from '../ExecutionContextTestBuilder';
 import { MockBlock } from '../MockBlock';
-import { IEventHandler } from '@/runtime/contracts/events/IEventHandler';
-import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
+import { IEventHandler } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeAction } from '@bitcobblers/wod-wiki-engine';
 
 describe('ExecutionContextTestBuilder', () => {
   describe('Basic Configuration', () => {

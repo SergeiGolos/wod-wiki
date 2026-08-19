@@ -6,7 +6,7 @@
  */
 
 import type React from 'react';
-import type { IRuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
+import type { IRuntimeFactory } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * Section layout variants for page shells.

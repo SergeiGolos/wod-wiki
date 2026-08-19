@@ -14,10 +14,9 @@
  * Options:
  *   --no-emulator     Skip starting the Android TV emulator
  *   --avd <name>      Specify the AVD name to use (default: tv_api_33)
- *   --web-only        Run only Storybook + Relay Server (no TV app)
- * 
+ *   --web-only        Run only the Relay Server (no TV app)
+ *
  * Debug Ports:
- *   - Storybook: Use `bun run storybook:debug` for --inspect=9229
  *   - Relay Server: Add NODE_OPTIONS=--inspect=9230 when debugging
  *   - TV App: Use React Native Debugger / Flipper via Metro bundler
  */
@@ -221,7 +220,6 @@ async function main() {
   }
   console.log('');
   console.log(`${colors.bright}Debug Ports:${colors.reset}`);
-  console.log(`  ${colors.cyan}▸ Storybook Debug:${colors.reset}      Use 'bun run storybook:debug' for --inspect=9229`);
   console.log(`  ${colors.cyan}▸ Relay Server Debug:${colors.reset}   Add NODE_OPTIONS=--inspect=9230`);
   if (!options.webOnly) {
     console.log(`  ${colors.cyan}▸ TV App Debug:${colors.reset}         React Native Debugger / Flipper via Metro`);
@@ -234,7 +232,6 @@ async function main() {
   // Note: Service configurations are hardcoded and not user-controllable.
   // The only user input (AVD name) is validated in parseArgs().
   const services = [
-    { name: 'storybook', command: 'bun run storybook', color: 'green' },
     { name: 'relay', command: 'bun run dev', cwd: 'server', color: 'yellow' },
   ];
 

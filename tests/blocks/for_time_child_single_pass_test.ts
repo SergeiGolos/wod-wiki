@@ -1,10 +1,10 @@
 
 import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
-import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
-import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
-import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
-import { ICodeStatement } from '@/core/models/CodeStatement';
+import { GenericTimerStrategy } from '@bitcobblers/wod-wiki-engine';
+import { ChildrenStrategy } from '@bitcobblers/wod-wiki-engine';
+import { EffortFallbackStrategy } from '@bitcobblers/wod-wiki-engine';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 
 describe('For Time Child Single Pass Test', () => {
     it('should run children only once for For Time (Unbound Timer)', () => {

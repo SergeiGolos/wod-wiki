@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { IMetric } from '../../core/models/Metric';
+import { IMetric } from '@bitcobblers/wod-wiki-engine';
 import { presentThemedGroup } from '@/components/metrics/presentation';
 import { cn } from '../../lib/utils';
-import { VisualizerSize, VisualizerFilter } from '../../core/models/DisplayItem';
+import { VisualizerSize, VisualizerFilter } from '@bitcobblers/wod-wiki-engine';
 import type { ParseError } from './types';
 
 export interface MetricVisualizerProps {

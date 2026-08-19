@@ -10,22 +10,22 @@
  *   import { parse } from '../helpers/parser-test-utils';
  *   parse('10 Pullups').roots()[0].hasMetric(MetricType.Rep);
  */
-import { createParser } from '@/parser/parserInstance';
-import { WhiteboardScript, type IScript } from '@/parser/WhiteboardScript';
-import { ICodeStatement } from '@/core/models/CodeStatement';
-import { IMetric, MetricType } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
-import { IDialect } from '@/core/models/Dialect';
+import { createParser } from '@bitcobblers/wod-wiki-engine';
+import { WhiteboardScript, type IScript } from '@bitcobblers/wod-wiki-engine';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import { IDialect } from '@bitcobblers/wod-wiki-engine';
 import { DialectRegistry } from '@/services/DialectRegistry';
-import { getHints, hasHint } from '@/core/metrics/hints';
+import { getHints, hasHint } from '@bitcobblers/wod-wiki-engine';
 
-import { UnitsDialect } from '@/dialects/UnitsDialect';
-import { CrossFitDialect } from '@/dialects/CrossFitDialect';
-import { WodDialect } from '@/dialects/WodDialect';
-import { CardioDialect } from '@/dialects/CardioDialect';
-import { YogaDialect } from '@/dialects/YogaDialect';
-import { HabitsDialect } from '@/dialects/HabitsDialect';
-import { ClimbDialect } from '@/dialects/ClimbDialect';
+import { UnitsDialect } from '@bitcobblers/wod-wiki-engine';
+import { CrossFitDialect } from '@bitcobblers/wod-wiki-engine';
+import { WodDialect } from '@bitcobblers/wod-wiki-engine';
+import { CardioDialect } from '@bitcobblers/wod-wiki-engine';
+import { YogaDialect } from '@bitcobblers/wod-wiki-engine';
+import { HabitsDialect } from '@bitcobblers/wod-wiki-engine';
+import { ClimbDialect } from '@bitcobblers/wod-wiki-engine';
 
 // ── Dialect presets ───────────────────────────────────────────────
 

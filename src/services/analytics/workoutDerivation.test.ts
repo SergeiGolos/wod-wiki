@@ -23,7 +23,7 @@ import {
 } from './workoutDerivation';
 import type { ScriptBlock, StoredOutputStatement } from '@/components/Editor/types';
 import type { WorkoutResult } from '@/types/storage';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 const T0 = 1_700_000_000_000;
 

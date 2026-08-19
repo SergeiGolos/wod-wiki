@@ -1,6 +1,6 @@
 import { ChevronRight } from 'lucide-react';
-import type { QueryResult } from '@/services/analytics/query';
-import { SERIES_COLORS } from '@/components/molecules/analytics/chartPalette';
+import type { QueryResult } from '@bitcobblers/wod-wiki-engine';
+import { SERIES_COLORS } from '@bitcobblers/wod-wiki-ui';
 
 interface Stage {
   n: number;

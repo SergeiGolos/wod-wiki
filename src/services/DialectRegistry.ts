@@ -1,5 +1,5 @@
-import { ICodeStatement } from "../core/models/CodeStatement";
-import { IDialect, DialectAnalysis } from "../core/models/Dialect";
+import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
+import { IDialect, DialectAnalysis } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * Registry service for managing and processing dialects.

@@ -15,15 +15,15 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { AnalyticsEngine } from '@/core/analytics/AnalyticsEngine';
-import { StandardAnalyticsProfile } from '@/core/analytics/StandardAnalyticsProfile';
-import type { AnalyticsProfileContext } from '@/core/analytics/IAnalyticsProfile';
-import { IRealtimeProcessor } from '@/core/analytics/IRealtimeProcessor';
-import { ISummaryProcessor } from '@/core/analytics/ISummaryProcessor';
-import { ProjectionResult } from '@/core/analytics/ProjectionResult';
-import { IOutputStatement, OutputStatement } from '@/core/models/OutputStatement';
-import { MetricContainer } from '@/core/models/MetricContainer';
-import { MetricType } from '@/core/models/Metric';
+import { AnalyticsEngine } from '@bitcobblers/wod-wiki-engine';
+import { StandardAnalyticsProfile } from '@bitcobblers/wod-wiki-engine';
+import type { AnalyticsProfileContext } from '@bitcobblers/wod-wiki-engine';
+import { IRealtimeProcessor } from '@bitcobblers/wod-wiki-engine';
+import { ISummaryProcessor } from '@bitcobblers/wod-wiki-engine';
+import { ProjectionResult } from '@bitcobblers/wod-wiki-engine';
+import { IOutputStatement, OutputStatement } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { MockEffortResolver } from '@/testing/harness/MockEffortResolver';
 
 // ─── helpers ────────────────────────────────────────────────────────────────

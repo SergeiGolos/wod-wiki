@@ -1,6 +1,6 @@
 
-import { OutputStatement } from '../src/core/models/OutputStatement';
-import { TimeSpan } from '../src/runtime/models/TimeSpan';
+import { OutputStatement } from '@bitcobblers/wod-wiki-engine';
+import { TimeSpan } from '@bitcobblers/wod-wiki-engine';
 
 const now = Date.now();
 const timeSpan = new TimeSpan(now, now + 5000);

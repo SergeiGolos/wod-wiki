@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
-import type { IEvent } from '@/runtime/contracts/events/IEvent';
-import type { IRuntimeEventProvider } from '@/runtime/contracts/IRuntimeEventProvider';
-import type { IRuntimeSubscription } from '@/runtime/contracts/IRuntimeSubscription';
+import type { IEvent } from '@bitcobblers/wod-wiki-engine';
+import type { IRuntimeEventProvider } from '@bitcobblers/wod-wiki-engine';
+import type { IRuntimeSubscription } from '@bitcobblers/wod-wiki-engine';
 import type { IRpcTransport, RpcUnsubscribe } from '../IRpcTransport';
 import type { ClockSyncService } from '../ClockSync';
 import {

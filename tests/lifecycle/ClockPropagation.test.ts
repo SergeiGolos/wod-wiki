@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { SnapshotClock, createMockClock } from '@/runtime/RuntimeClock';
+import { SnapshotClock, createMockClock } from '@bitcobblers/wod-wiki-engine';
 import { BehaviorTestHarness, MockBlock } from '../harness';
-import { IRuntimeBehavior } from '@/runtime/contracts/IRuntimeBehavior';
-import { IBehaviorContext } from '@/runtime/contracts/IBehaviorContext';
-import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
+import { IRuntimeBehavior } from '@bitcobblers/wod-wiki-engine';
+import { IBehaviorContext } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeAction } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * Test behavior that captures the clock.now value on each lifecycle method.

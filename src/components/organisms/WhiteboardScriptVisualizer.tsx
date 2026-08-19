@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
-import { ICodeStatement } from '@/core/models/CodeStatement';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import { MetricSourceList } from './metrics/MetricSourceList';
 import { FragmentSourceEntry, FragmentSourceStatus } from '@/components/molecules/MetricSourceRow';
-import { IMetricSource } from '@/core/contracts/IMetricSource';
-import { MetricType } from '@/core/models/Metric';
-import { VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
+import { IMetricSource } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import { VisualizerSize, VisualizerFilter } from '@bitcobblers/wod-wiki-engine';
 
 export interface WhiteboardScriptVisualizerProps {
   statements: ICodeStatement[];

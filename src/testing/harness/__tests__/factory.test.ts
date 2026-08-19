@@ -7,8 +7,8 @@ import {
   createEventTestHarness
 } from '../factory';
 import { ExecutionContextTestHarness } from '../ExecutionContextTestHarness';
-import { IRuntimeBehavior } from '@/runtime/contracts/IRuntimeBehavior';
-import { IEventHandler } from '@/runtime/contracts/events/IEventHandler';
+import { IRuntimeBehavior } from '@bitcobblers/wod-wiki-engine';
+import { IEventHandler } from '@bitcobblers/wod-wiki-engine';
 
 // Simple mock behavior for testing
 class MockBehavior implements IRuntimeBehavior {

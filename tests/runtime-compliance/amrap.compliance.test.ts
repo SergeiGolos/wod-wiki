@@ -13,7 +13,7 @@ import { describeCompliance, assertions } from '@/testing/script';
 import type { TestScript } from '@/testing/script/TestScript';
 import type { ScriptState } from '@/testing/script';
 import { getRoundState, anyOutputHasMetric } from '../helpers/compliance-helpers';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 // ===========================================================================
 // 🟢 Classic AMRAP — "Cindy"

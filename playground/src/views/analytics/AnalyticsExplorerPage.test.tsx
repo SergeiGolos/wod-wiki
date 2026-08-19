@@ -7,7 +7,7 @@ import '../../../../tests/helpers/repair-react-router-dom';
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
-import { isFindQuery, parseQuery, type FindQueryResult, type ParsedFindQuery, type QueryResult, type ParsedQuery } from '@/services/analytics/query';
+import { isFindQuery, parseQuery, type FindQueryResult, type ParsedFindQuery, type QueryResult, type ParsedQuery } from '@bitcobblers/wod-wiki-engine';
 
 function resultOf(raw: string): QueryResult {
   return {
@@ -54,21 +54,16 @@ let runQueryImpl = async (raw: string) => resultOf(raw);
 let runFindCalls: string[] = [];
 let runFindImpl = async (raw: string) => findResultOf(raw);
 
-mock.module('@/services/analytics/query', () => ({
-  parseQuery,
-  isFindQuery,
-  QueryService: class {},
+mock.module('@/services/queryService', () => ({
   queryService: {
     runQuery: mock(async (raw: string, options?: unknown) => {
       runQueryCalls.push({ raw, hasOptions: options !== undefined });
       return runQueryImpl(raw);
     }),
-    runFind: mock(async (ast: ParsedFindQuery) => {
-      runFindCalls.push(ast.raw);
-      return runFindImpl(ast.raw);
+    runFind: mock(async (parsed: { raw?: string }) => {
+      runFindCalls.push(parsed.raw ?? '');
+      return runFindImpl(parsed.raw ?? '');
     }),
-    run: mock(async () => resultOf('sum:totalVolume{}')),
-    getFactsByTimeRange: mock(async () => []),
   },
 }));
 

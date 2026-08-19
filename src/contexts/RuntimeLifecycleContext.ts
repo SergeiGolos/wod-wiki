@@ -5,7 +5,7 @@
  * creation, initialization, disposal, and error tracking.
  * 
  * For simple runtime injection (passing a pre-created IScriptRuntime to children),
- * use ScriptRuntimeContext from '@/runtime/context/RuntimeContext' instead.
+ * use ScriptRuntimeContext from '@bitcobblers/wod-wiki-engine' instead.
  */
 
 import { createContext } from 'react';

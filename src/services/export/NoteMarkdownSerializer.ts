@@ -1,4 +1,4 @@
-import type { INowProvider } from '@/runtime/INowProvider';
+import type { INowProvider } from '@bitcobblers/wod-wiki-engine';
 import type { HistoryEntry } from '@/types/history';
 
 export function noteToMarkdown(entry: HistoryEntry, clock?: INowProvider): string {

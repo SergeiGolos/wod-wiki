@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'bun:test';
 import { parse } from '../helpers/parser-test-utils';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 describe('🟢 Parser: Countdown Timer', () => {
     it('"5:00 Run" → Duration + Effort', () => {

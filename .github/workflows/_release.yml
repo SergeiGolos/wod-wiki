@@ -71,29 +71,6 @@ jobs:
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://wod.wiki/api' }}
           VITE_CAST_APP_ID: ${{ vars.VITE_CAST_APP_ID }}
 
-      # Library build + npm publication chain — gated behind the
-      # NPM_PUBLISH_ENABLED repo var (WOD-436 disabled npm publication;
-      # without it the library build and its artifact have no consumer).
-      - name: Set up Node.js for npm publication
-        if: vars.NPM_PUBLISH_ENABLED == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
-
-      - name: Build library
-        if: vars.NPM_PUBLISH_ENABLED == 'true'
-        run: bun run build-library
-
-      - name: Upload library artifact
-        if: vars.NPM_PUBLISH_ENABLED == 'true'
-        uses: actions/upload-artifact@v7
-        with:
-          name: library-dist
-          path: dist/
-          if-no-files-found: error
-          retention-days: 14
-
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
@@ -112,7 +89,6 @@ jobs:
         env:
           CI: true
           E2E_APP_URL: https://wod.wiki
-          E2E_STORYBOOK_URL: https://story.wod.wiki
 
       - name: Collect smoke test stats
         id: smoke_stats
@@ -208,66 +184,15 @@ jobs:
               });
             }
 
-      - name: Validate npm publication prerequisites
-        if: vars.NPM_PUBLISH_ENABLED == 'true'
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-
-          if (!pkg.name || typeof pkg.name !== 'string') {
-            throw new Error('package.json must define a publishable package name.');
-          }
-
-          if (!pkg.version || typeof pkg.version !== 'string') {
-            throw new Error('package.json must define a publishable version.');
-          }
-
-          if (pkg.private) {
-            throw new Error('package.json#private=true blocks npm publication.');
-          }
-
-          console.log(`Preparing npm publish for ${pkg.name}@${pkg.version}`);
-          NODE
-
-          if [ -z "${NPM_TOKEN}" ]; then
-            echo "NPM_TOKEN secret is required for release publication." >&2
-            exit 1
-          fi
-
-      - name: Publish package to npm (idempotent)
-        if: vars.NPM_PUBLISH_ENABLED == 'true'
-        id: npm_publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          NAME=$(node -p "require('./package.json').name")
-          VERSION=$(node -p "require('./package.json').version")
-
-          if npm view "${NAME}@${VERSION}" version >/dev/null 2>&1; then
-            echo "published=false" >> "$GITHUB_OUTPUT"
-            echo "published_version=${VERSION}" >> "$GITHUB_OUTPUT"
-            echo "Package ${NAME}@${VERSION} already exists on npm; skipping publish."
-            exit 0
-          fi
-
-          npm publish --provenance --access public
-          echo "published=true" >> "$GITHUB_OUTPUT"
-          echo "published_version=${VERSION}" >> "$GITHUB_OUTPUT"
-
       - name: Write release summary
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          PACKAGE_NAME=$(node -p "require('./package.json').name")
           cat <<EOF >> "$GITHUB_STEP_SUMMARY"
           ## Release summary
 
           - Released version: $VERSION
           - Pages URL: ${{ steps.deployment.outputs.page_url }}
-          - Package name: ${PACKAGE_NAME}
-          - npm publish: temporarily disabled (see WOD-436)
+          - Packages: published by the wod-wiki-engine repository pipeline
 
           ### Smoke tests
 
@@ -276,3 +201,4 @@ jobs:
           - Failures: ${{ steps.smoke_stats.outputs.failures }}
           - Skipped: ${{ steps.smoke_stats.outputs.skipped }}
           EOF
+

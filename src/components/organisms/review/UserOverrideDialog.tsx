@@ -13,7 +13,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { MetricType, type IMetric } from '@/core/models/Metric';
+import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-engine';
 import { getMetricColorClasses, getMetricIcon } from '@/views/runtime/metricColorMap';
 
 // ─── Props ─────────────────────────────────────────────────────

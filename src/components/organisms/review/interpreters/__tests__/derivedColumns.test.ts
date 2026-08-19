@@ -21,7 +21,7 @@ import {
 import { extractGraphValue } from '../cdlGraphInterpreter';
 import { ColumnSet } from '../../ColumnSet';
 import { makeGridRow, makeGridCell } from './test-helpers';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { ColumnDef, ComputeContext } from '../../column-definition-language';
 import type { GridRow } from '../../types';
 

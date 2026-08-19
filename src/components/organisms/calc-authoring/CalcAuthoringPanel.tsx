@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { CalcScope } from '../../../core/analytics/calc/types';
+import { CalcScope } from '@bitcobblers/wod-wiki-engine';
 import { analyzeCalcLine } from './calcDiagnostics';
 import { CalcLineEditor } from './CalcLineEditor';
 import { CalcDiagnosticsStrip } from './CalcDiagnosticsStrip';

@@ -103,15 +103,15 @@ stages:
   - id: dialects
     range: [0.666, 0.833]
     screen: editor
-    source: wods/examples/syntax/dialect-wod.md
+    source: wods/examples/syntax/dialect-climb-bouldering.md
     caption: "Dialects. Run, climb, strength — dialect tags that specialize a block."
     ring:
       tag: Dialects example
   - id: complex
     range: [0.833, 1.0]
     screen: editor
-    source: wods/examples/syntax/complex-nested-protocols.md
-    caption: "Complex Workouts. AMRAPs into strength ladders — composing richer workout shapes."
+    source: wods/examples/syntax/complex-swimming.md
+    caption: "Complex Workouts. Multi-set swimming intervals with rest recovery."
     ring:
       tag: Complex example
 ```

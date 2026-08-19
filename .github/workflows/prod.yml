@@ -26,9 +26,9 @@ jobs:
     uses: ./.github/workflows/_verify.yml
     secrets: inherit
     with:
-      # No journal e2e and no smoke build — the release job builds the
-      # playground for real and smoke-tests the deployed Pages artifact.
-      run-e2e: false
+      # No build gate on prod — the release job builds the playground
+      # for real and smoke-tests the deployed Pages artifact.
+      build-preview-artifact: false
 
   release:
     needs: [verify]

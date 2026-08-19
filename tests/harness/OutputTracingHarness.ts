@@ -7,9 +7,9 @@
  *
  * @see docs/planning-output-statements/index.md
  */
-import { IOutputStatement, OutputStatementType } from '@/core/models/OutputStatement';
-import { IMetric, MetricType } from '@/core/models/Metric';
-import { ScriptRuntime } from '@/runtime/ScriptRuntime';
+import { IOutputStatement, OutputStatementType } from '@bitcobblers/wod-wiki-engine';
+import { IMetric, MetricType } from '@bitcobblers/wod-wiki-engine';
+import { ScriptRuntime } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * Simplified output record for assertion comparisons.

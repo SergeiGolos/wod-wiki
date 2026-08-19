@@ -1,6 +1,6 @@
-import type { IMetric } from '@/core/models/Metric';
-import { metricPresentation } from '@/core/metrics/presentation';
-import type { MetricPresentationToken, MetricPresentationSurface } from '@/core/metrics/presentation';
+import type { IMetric } from '@bitcobblers/wod-wiki-engine';
+import { metricPresentation } from '@bitcobblers/wod-wiki-engine';
+import type { MetricPresentationToken, MetricPresentationSurface } from '@bitcobblers/wod-wiki-engine';
 import { getMetricColorClasses, getMetricIcon } from '@/views/runtime/metricColorMap';
 
 export interface ThemedMetricPresentationToken extends MetricPresentationToken {

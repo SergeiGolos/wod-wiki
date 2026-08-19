@@ -10,7 +10,7 @@
 
 import type { ReactNode } from 'react';
 import { RuntimeLifecycleProvider } from '@/contexts/RuntimeLifecycleProvider';
-import type { IRuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
+import type { IRuntimeFactory } from '@bitcobblers/wod-wiki-engine';
 
 export interface ScopedRuntimeProviderProps {
   /** Runtime factory — creates isolated runtime instances */

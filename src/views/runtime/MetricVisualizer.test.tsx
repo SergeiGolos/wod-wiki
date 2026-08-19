@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 import { cleanup, render } from '@testing-library/react';
 import { MetricVisualizer } from './MetricVisualizer';
-import type { IMetric } from '../../core/models/Metric';
+import type { IMetric } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * UX-05 regression coverage: `// ...` comment lines must render visually

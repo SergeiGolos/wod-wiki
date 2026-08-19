@@ -18,14 +18,14 @@
 
 import type { AnalyticsDataPoint } from '@/types/storage';
 import { indexedDBService } from '@/services/db/IndexedDBService';
-import { evaluate } from '@/core/analytics/calc/evaluator';
-import { LookupRegistry } from '@/core/analytics/calc/lookup';
-import { CalculationRegistry } from '@/core/analytics/calc/registry';
-import { STORE_CALCS } from '@/core/analytics/calc/seeds';
-import type { CalculationDefinition } from '@/core/analytics/calc/types';
-import type { ExprNode } from '@/core/analytics/calc/ast';
-import { DIM_ZERO } from '@/core/analytics/calc/dimensions';
-import { ABSENT, truthy, Val } from '@/core/analytics/calc/values';
+import { evaluate } from '@bitcobblers/wod-wiki-engine';
+import { LookupRegistry } from '@bitcobblers/wod-wiki-engine';
+import { CalculationRegistry } from '@bitcobblers/wod-wiki-engine';
+import { STORE_CALCS } from '@bitcobblers/wod-wiki-engine';
+import type { CalculationDefinition } from '@bitcobblers/wod-wiki-engine';
+import type { ExprNode } from '@bitcobblers/wod-wiki-engine';
+import { DIM_ZERO } from '@bitcobblers/wod-wiki-engine';
+import { ABSENT, truthy, Val } from '@bitcobblers/wod-wiki-engine';
 import { DAY, dayBucket } from './workloadRollup';
 
 /** Store surface the rollup evaluation needs — injectable for tests. */

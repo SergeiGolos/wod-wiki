@@ -9,11 +9,11 @@
  */
 
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import type { MetricType } from '@/core/models/Metric';
+import type { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { GridSortConfig, SortDirection } from './types';
 import type { ColumnDef } from './column-definition-language';
 import { getMetricIcon } from '@/views/runtime/metricColorMap';
-import { metricPresentation } from '@/core/metrics/presentation';
+import { metricPresentation } from '@bitcobblers/wod-wiki-engine';
 import { getGridAddColumnMinWidth, getGridColumnMinWidth } from './gridWidthPolicy';
 
 interface GridHeaderProps {

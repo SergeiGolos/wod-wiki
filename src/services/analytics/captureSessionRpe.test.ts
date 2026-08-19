@@ -14,7 +14,7 @@ import { describe, expect, it } from 'bun:test';
 
 import { captureSessionRpe } from './captureSessionRpe';
 import { IndexedDBNotePersistence } from '@/services/persistence/IndexedDBNotePersistence';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { NotePersistenceStorage, AnalyticsDataPoint } from '@/services/persistence/types';
 import type { NoteSegment, WorkoutResult } from '@/types/storage';
 import type { StoredOutputStatement } from '@/components/Editor/types';

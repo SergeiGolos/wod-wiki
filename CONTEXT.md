@@ -199,6 +199,18 @@ Each Block Dialect declares its own fence tags and aliases (`wod` → `wod`,
 the parser treats as runnable — there is no closed enum of dialects.
 _Avoid_: fence flavor, language tag, code-language.
 
+**Language Pack**:
+The consumer-facing authoring unit for extending the engine: one
+`defineLanguagePack` declaration that fans out into per-package registry
+slices — tag identity (tags + aliases + `runnable`) in core, analyzer +
+analytics processors in lang, editor extensions in ui. The umbrella
+`@bitcobblers/wod-wiki-engine`'s `registerLanguagePack` performs the fan-out in one call;
+granular consumers register slices per package directly. A pack **overrides,
+never replaces** — the base **Dialect Stack**, shared grammar, and default
+analytics always run underneath. Internal axes (**Block Dialect**,
+**Dialect**, **Dialect Stack**) are unchanged; a pack composes them.
+_Avoid_: plugin bundle, extension pack, dialect pack.
+
 **Dialect**:
 A composable analyzer (`IDialect`) that recognizes a domain's patterns (CrossFit,
 Cardio, Yoga…), contributes a **Unit** set, and emits **Hint** markers plus
@@ -456,14 +468,15 @@ _Avoid_: scroll hook, scroll spy (that's reading-zone geometry).
 - npm publication is gated behind the `NPM_PUBLISH_ENABLED` repo var
   (WOD-436); the library build and its artifact exist only when it is set.
 
-## Packages (the 5-way split)
+## Packages (the harmonized split)
 
-The system decomposes into five packages whose dependency graph is one-way
-(no cross-domain cycles). Each seam is DAG-forced — the dependency direction
-pins what lives where, not taste. Companion execution map:
-[`docs/wayfinder/split-into-packages.md`](./docs/wayfinder/split-into-packages.md).
+The engine and query layer decomposes into five packages hosted within the
+`wod-wiki-engine` workspace repository, publishing to the `@wod-wiki/*` npm scope with
+a strict one-way DAG. Companion execution map:
+[Wayfinder map #953](https://github.com/SergeiGolos/wod-wiki/issues/953) (absorbing
+[`docs/wayfinder/split-into-packages.md`](./docs/wayfinder/split-into-packages.md)).
 
-- **wod-wiki-core** — the shared data vocabulary every other package depends on.
+- **@bitcobblers/wod-wiki-core** — the shared data vocabulary every other package depends on.
   Owns the `Metric` model (`Metric`/`MetricType`/`Origin`/`MetricAction`),
   `MetricContainer` + the **ownership** ledger/resolver it holds,
   `CodeStatement`/`ICodeStatement`, `OutputStatement`/`IOutputStatement`,
@@ -472,38 +485,71 @@ pins what lives where, not taste. Companion execution map:
   `BlockIndexRow`, `AnalyticsDataPoint`). Type **shapes** only — the live→stored
   converter (`toStoredOutputStatement`) stays in lang because it needs hint logic.
   _Forcing_: ownership is pinned by `MetricContainer`; the shapes are read by lang
-  (derivation), wql (query), and playground (persistence) alike.
-- **wod-wiki-lang** — parse → compile → execute → analytics-generation. Owns the
+  (derivation), wql (query), and consumer persistence alike.
+- **@bitcobblers/wod-wiki-lang** — parse → compile → execute → analytics-generation. Owns the
   Whiteboard grammar + parser pipeline, CodeMirror `whiteboard-script-language`,
   the Dialect Stack + sport dialects + Unit Registry/fusion, the concrete metric
   classes, the JIT compiler + execution stack + behaviors, and the analytics
   engine + CalcEngine (generation runs inside execution turns via
   `setAnalyticsEngine`). The **hint protocol** (`CONSUMED_HINTS`) and
-  `IAnalyticsEngine` are lang-internal — both emitter and consumer live here.
-  Keeps an **internal parse↔execute seam** (separate tests + storybook sections);
-  React hooks and the execution entry live behind a sub-export so pure-TS
-  consumers (lint, parse-output stories) don't drag them. Depends on core.
-- **wod-wiki-wql** — pure query over stored analytics facts. Owns the WQL grammar
+  `IAnalyticsEngine` are lang-internal. Exposes a headless string-in parse seam over
+  raw Lezer; React hooks and the execution entry live behind a sub-export (e.g.
+  `@bitcobblers/wod-wiki-lang/react`) so pure-TS/CLI consumers don't drag React. Depends on core.
+- **@bitcobblers/wod-wiki-wql** — pure query over stored analytics facts. Owns the WQL grammar
   + AST (`parseQuery`/`isFindQuery`/`isRowsQuery`), `wql-vocabulary`, CodeMirror
   `wql-language`, `QueryService` over injectable store interfaces
   (`FactQueryStore`/`NoteQueryStore`/`BlockQueryStore`/`EffortQueryStore`/
-  `ResultLogStore`), and rollup math. Does NOT depend on lang — it reads the fact
-  rows lang writes, through the store seam. Its calc-target vocabulary mirrors
-  lang's CalcEngine seeds; alignment is enforced by a cross-package test.
-  Depends on core.
-- **wod-wiki-sources** — the `markdown/` collections/feeds/efforts/dashboards data
-  + a parser-only lint CLI (validates fences via wod-wiki-lang) + the
-  collection→index build. Owns its own GitHub Pages deploy + CI, outside the
-  playground cycle. Depends on core, lang.
-- **playground** — the consumer UI: components, panels, hooks, persistence wiring
-  (incl. the derivation/replay caller), cast, app, stories. Pulls sources' index at
-  build time. Depends on core, lang, wql.
+  `ResultLogStore`), and rollup math. Does NOT depend on lang — it reads fact rows
+  through the store seam. Its calc-target vocabulary mirrors lang's CalcEngine seeds;
+  alignment is enforced by a cross-package test. Depends on core.
+- **@bitcobblers/wod-wiki-engine** — umbrella re-export facade convenience package. Re-exports
+  core + lang + wql + Node CLI runner (`wod-run` / `wod-wql`) for consumers that prefer
+  a single dependency.
+- **@bitcobblers/wod-wiki-ui** — interactive presentation and widgets. Owns the CodeMirror editor
+  extensions (syntax highlighting, linting, autocomplete, widget previews), WQL
+  diagram & table React components driven by JSON IR datasets, and the state-free
+  Storybook development workbench (`apps/storybook`). Depends on core, lang, wql.
+- **wod-wiki-sources** (separate repo) — the `markdown/` collections/feeds/efforts/dashboards
+  data + a parser-only lint CLI (validates fences via `@bitcobblers/wod-wiki-lang`) + the
+  collection→index build. Owns its own GitHub Pages deploy + CI. Depends on core, lang.
+- **wod-wiki** (app repo) — the consumer application: UI routes, full canvas composers,
+  workbench session, storage & IndexedDB persistence, cast, and e2e test suite.
+  Consumes the `@wod-wiki/*` npm packages.
 
-**Dialect Registry** — when built (per
-[`dialect-block-alignment.md`](./docs/adr/dialect-block-alignment.md)), shaped as a
+**Dialect Registry** — shaped per
+[`dialect-block-alignment.md`](./docs/adr/dialect-block-alignment.md) as a
 **tag-identity registry** (tags + aliases + runnable flag) in core, with each
 package contributing its own override slice keyed off the tag (lang: analyzer +
-language + analytics processors; playground: editorExtensions). Preserves the ADR's
+language + analytics processors; ui: editorExtensions). Preserves the ADR's
 single-source-of-truth without a package reaching across for another's concern.
+Consumers author extensions as **Language Packs** —
+[`language-pack-api.md`](./docs/adr/language-pack-api.md) fixes the factory
+and the umbrella registration mechanics.
 _Avoid_: god-descriptor (a single registry object importing every package's
 overrides — re-fragments under the split).
+
+### Engine Workspace Topology & Tooling
+
+The `wod-wiki-engine` workspace repository hosts five packages and one application:
+
+```
+wod-wiki-engine/
+├── package.json              # root workspace config & scripts
+├── tsconfig.base.json        # strict shared TypeScript base config (ES2022)
+├── vitest.workspace.ts       # workspace test runner configuration
+├── packages/
+│   ├── core/                 # @bitcobblers/wod-wiki-core (shapes, MetricContainer, ownership)
+│   ├── lang/                 # @bitcobblers/wod-wiki-lang (parser, runtime, dialects, calc)
+│   ├── wql/                  # @bitcobblers/wod-wiki-wql (WQL grammar, QueryService)
+│   ├── engine/               # @bitcobblers/wod-wiki-engine (umbrella re-export + Node CLI runner)
+│   └── ui/                   # @bitcobblers/wod-wiki-ui (CodeMirror extensions, WQL charts/tables)
+├── apps/
+│   └── storybook/            # Storybook workbench (in-memory fixtures)
+└── .github/
+    └── workflows/
+        └── ci.yml            # CI validation & GitHub Packages release
+```
+
+- **Build Tooling**: `tsup` dual ESM (`.mjs`) + CJS (`.cjs`) + `.d.ts` declaration maps with sourcemaps.
+- **CodeMirror / Lezer Peer-Dep Contract**: `@bitcobblers/wod-wiki-lang`, `@bitcobblers/wod-wiki-wql`, and `@bitcobblers/wod-wiki-ui` declare `@codemirror/*` and `@lezer/*` as optional `peerDependencies`. `@bitcobblers/wod-wiki-ui` exports `CODEMIRROR_SINGLETON_DEPS` array for host deduplication in `vite.config.ts`.
+- **Interim Consumption Channel**: Scoped to `@wod-wiki/*` with automated GitHub Packages release (`npm.pkg.github.com/@SergeiGolos`) and `pack:all` tarball outputs for offline local consumption.

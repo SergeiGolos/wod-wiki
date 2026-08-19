@@ -14,7 +14,7 @@ import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/atoms/Dialog';
 import { cn } from '@/lib/utils';
 import type { IRuntimeBlock, IScriptRuntime } from '@/hooks/useRuntimeTimer';
-import type { ICodeStatement } from '@/core/models/CodeStatement';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import { MetricSourceRow } from '@/components/molecules/MetricSourceRow'
 
 export interface BlockDebugDialogProps {

@@ -9,7 +9,7 @@ import { describe, it, expect } from 'bun:test';
 import { ColumnSet } from './ColumnSet';
 import type { ColumnSetContext } from './ColumnSet';
 import type { ColumnDef, ColumnSetConfig } from './column-definition-language';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { makeGridRow, makeGridCell } from './interpreters/__tests__/test-helpers';
 import type { GridRow } from './types';
 

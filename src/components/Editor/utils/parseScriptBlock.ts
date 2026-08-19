@@ -4,7 +4,7 @@
 
 import { EditorState } from "@codemirror/state";
 import { whiteboardScriptLanguage, extractStatements } from "@/hooks/useRuntimeParser";
-import type { ICodeStatement } from '../../../core/models/CodeStatement';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import type { ParseError } from '../types';
 
 /**

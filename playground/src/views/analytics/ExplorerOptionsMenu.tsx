@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EXPLORER_RANGE_OPTIONS, type ExplorerRangeWeeks } from '../../hooks/useExplorerQueryState'
-import { useAnalyticsUnitPreference } from '@/components/molecules/analytics'
+import { useAnalyticsUnitPreference } from '@bitcobblers/wod-wiki-ui'
 
 export interface ExplorerOptionsMenuProps {
   /** Active analytics range in weeks. */

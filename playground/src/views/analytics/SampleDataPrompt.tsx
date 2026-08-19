@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { WqlEmptyState } from '@/components/molecules/analytics';
+import { WqlEmptyState } from '@bitcobblers/wod-wiki-ui';
 import { hasSampleData, loadSampleData, purgeSampleData } from '@/services/analytics/sample';
-import type { QueryResult } from '@/services/analytics/query';
+import type { QueryResult } from '@bitcobblers/wod-wiki-engine';
 
 interface SampleDataPromptProps {
   result?: QueryResult;

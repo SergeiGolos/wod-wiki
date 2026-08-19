@@ -7,12 +7,12 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { MetricType, type IMetric } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
-import { CodeMetadata } from '@/core/models/CodeMetadata';
-import type { ICodeStatement } from '@/core/models/CodeStatement';
-import { ParsedCodeStatement } from '@/core/models/CodeStatement';
-import { createParser } from '@/parser/parserInstance';
+import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import { CodeMetadata } from '@bitcobblers/wod-wiki-engine';
+import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
+import { ParsedCodeStatement } from '@bitcobblers/wod-wiki-engine';
+import { createParser } from '@bitcobblers/wod-wiki-engine';
 import {
   validateAllQuests,
   validateScriptBlock,

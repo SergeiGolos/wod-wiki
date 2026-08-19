@@ -151,7 +151,7 @@ test.describe(`App Smoketests — ${appBaseURL()}`, () => {
 
     // The SPA fallback restores the deep link and the explorer mounts.
     await expect(page.getByText('Metric Explorer').first()).toBeVisible({ timeout: 5000 });
-    // The query survived the redirect round-trip.
-    expect(page.url()).toContain('/analytics/explorer');
+    // The query survived the redirect round-trip to /dashboard.
+    expect(page.url()).toContain('/dashboard?q=');
   });
 });

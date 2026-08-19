@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { parseMarkdownToEntry, createNoteFromMarkdown } from './NoteMarkdownDeserializer';
-import { frozenNow } from '@/runtime/INowProvider';
+import { frozenNow } from '@bitcobblers/wod-wiki-engine';
 
 describe('parseMarkdownToEntry', () => {
   it('parses valid exported markdown with metadata', () => {

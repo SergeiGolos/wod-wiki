@@ -1,6 +1,6 @@
 // Test to verify statement IDs use line numbers (not character offsets)
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { MdTimerRuntime } from '../../src/parser/md-timer';
+import { MdTimerRuntime } from '@bitcobblers/wod-wiki-engine';
 
 describe('Statement ID Line Number Verification', () => {
   let runtime: MdTimerRuntime;

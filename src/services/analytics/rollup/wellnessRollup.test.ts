@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from 'bun:test';
 import type { AnalyticsDataPoint } from '@/types/storage';
-import { QueryService, type FactQueryStore } from '@/services/analytics/query';
+import { QueryService, type FactQueryStore } from '@bitcobblers/wod-wiki-engine';
 import { DAY, dayBucket, runStoreRollup, type StoreRollupStore } from '@/services/analytics/rollup';
 import { wellnessFactsForNote } from '@/services/analytics/wellness';
 

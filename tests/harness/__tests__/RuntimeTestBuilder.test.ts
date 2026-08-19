@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
-import { IRuntimeBlockStrategy } from '@/runtime/contracts';
+import { IRuntimeBlockStrategy } from '@bitcobblers/wod-wiki-engine';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { BlockBuilder } from '@/runtime/compiler/BlockBuilder';
-import { BlockContext } from '@/runtime/BlockContext';
-import { BlockKey } from '@/core/models/BlockKey';
+import { BlockBuilder } from '@bitcobblers/wod-wiki-engine';
+import { BlockContext } from '@bitcobblers/wod-wiki-engine';
+import { BlockKey } from '@bitcobblers/wod-wiki-engine';
 
 // Mock strategy for testing
 class MockStrategy implements IRuntimeBlockStrategy {

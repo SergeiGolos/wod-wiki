@@ -6,7 +6,7 @@ import {
 } from '../cdlCellRenderer';
 import { elapsedTotalColumn, indexColumn, outputTypeColumn } from '../../cdlColumnDefinitions';
 import { makeGridRow, makeGridCell } from './test-helpers';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { ColumnDef } from '../../column-definition-language';
 
 // ─── Helpers ───────────────────────────────────────────────────

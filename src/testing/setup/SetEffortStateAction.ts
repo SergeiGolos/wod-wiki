@@ -5,7 +5,7 @@
  * Commonly used to test effort blocks at various completion stages.
  */
 
-import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
 import {
   ITestSetupAction,
   TestSetupActionJSON,

@@ -10,10 +10,10 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
+import type { Segment, AnalyticsGroup } from '@bitcobblers/wod-wiki-engine';
 import type { IScriptRuntime } from '@/hooks/useRuntimeTimer';
-import { MetricType, type IMetric } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
+import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 import type { GridSortConfig, GridFilterConfig, SortDirection } from './types';
 import { useGridData } from './useGridData';
 import { getPreset } from './gridPresets';

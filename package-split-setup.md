@@ -32,7 +32,7 @@ singleton across 3 releases.
 
 ## Setup decisions — secondary (DECIDED)
 
-- **npm scope:** `@wod-wiki/*` — `@wod-wiki/core`, `@wod-wiki/lang`, `@wod-wiki/wql`,
+- **npm scope:** `@wod-wiki/*` — `@bitcobblers/wod-wiki-core`, `@bitcobblers/wod-wiki-lang`, `@bitcobblers/wod-wiki-wql`,
   `@wod-wiki/sources-index` (replaces `@bitcobblers/whiteboard-lang` on the next publish).
 - **Sources → playground index transport:** publish `@wod-wiki/sources-index` (npm,
   recommended default) vs HTTP-fetch the JSON from sources' GitHub Pages at playground build

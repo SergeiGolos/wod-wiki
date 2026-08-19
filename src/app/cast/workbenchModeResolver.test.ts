@@ -13,7 +13,7 @@ const makeState = (overrides: Partial<import('./workbenchModeResolver').Workbenc
   ...overrides,
 });
 
-const makeSegment = (overrides: Partial<import('@/core/models/AnalyticsModels').Segment> = {}): import('@/core/models/AnalyticsModels').Segment => ({
+const makeSegment = (overrides: Partial<import('@bitcobblers/wod-wiki-engine').Segment> = {}): import('@bitcobblers/wod-wiki-engine').Segment => ({
   id: 1,
   name: 'Run',
   type: 'segment',

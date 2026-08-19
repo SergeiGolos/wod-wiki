@@ -6,8 +6,8 @@
  */
 import { describe, it } from 'bun:test';
 import { parse } from '../helpers/parser-test-utils';
-import { MetricType } from '@/core/models/Metric';
-import { CardioDialect } from '@/dialects/CardioDialect';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import { CardioDialect } from '@bitcobblers/wod-wiki-engine';
 
 describe('🟢 Parser: FenceDialect Hints', () => {
     it('"Strength" → workout.strength + domain.wod hints', () => {

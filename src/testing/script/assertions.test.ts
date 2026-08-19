@@ -2,8 +2,8 @@ import { describe, it, expect } from 'bun:test';
 import { assertions, expectAll } from './assertions';
 import type { ScriptState } from './ScriptState';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { MemoryLocation } from '@/runtime/memory/MemoryLocation';
-import { MetricType } from '@/core/models/Metric';
+import { MemoryLocation } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { RpcStackUpdate, RpcEvent } from '@/services/cast/rpc/RpcMessages';
 
 function makeState(partial: Partial<ScriptState> = {}): ScriptState {

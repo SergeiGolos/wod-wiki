@@ -14,7 +14,7 @@
  * has no React, no zustand, no runtime — just a `switch`.
  */
 
-import type { IEvent } from '@/runtime/contracts/events';
+import type { IEvent } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * The four runtime-side actions the cast receiver can trigger from the TV.

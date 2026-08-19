@@ -3,8 +3,8 @@
  */
 
 import type { GridRow, GridCell } from '../../types';
-import { MetricType } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 
 export function makeGridCell(metrics: { type: MetricType; value: unknown; image?: string; origin?: string }[]): GridCell {
   let container = MetricContainer.empty(metrics[0]?.type ?? MetricType.Text);

@@ -14,7 +14,7 @@ import {
 } from '@/services/analytics/workoutDerivation';
 import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 import { captureWellnessFacts } from '@/services/analytics/wellness';
-import { createParser } from '@/parser/parserInstance';
+import { createParser } from '@bitcobblers/wod-wiki-engine';
 import type { ScriptBlock } from '@/components/Editor/types';
 import {
   NotePersistenceError,

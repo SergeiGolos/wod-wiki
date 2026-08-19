@@ -1,5 +1,5 @@
-import { IMetric } from '@/core/models/Metric';
-import { MemoryTag } from '@/runtime/memory/MemoryLocation';
+import { IMetric } from '@bitcobblers/wod-wiki-engine';
+import { MemoryTag } from '@bitcobblers/wod-wiki-engine';
 
 // ============================================================================
 // Serialized Block — lightweight representation of an IRuntimeBlock

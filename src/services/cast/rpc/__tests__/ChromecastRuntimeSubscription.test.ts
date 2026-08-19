@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { ChromecastRuntimeSubscription } from '../ChromecastRuntimeSubscription';
 import { IRpcTransport, RpcUnsubscribe } from '../IRpcTransport';
 import { RpcMessage, RpcStackUpdate, RpcOutputStatement } from '../RpcMessages';
-import { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
-import { IOutputStatement } from '@/core/models/OutputStatement';
-import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
-import { BlockKey } from '@/core/models/BlockKey';
+import { StackSnapshot } from '@bitcobblers/wod-wiki-engine';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeBlock } from '@bitcobblers/wod-wiki-engine';
+import { BlockKey } from '@bitcobblers/wod-wiki-engine';
 
 // ── Mock Transport ──────────────────────────────────────────────────────────
 

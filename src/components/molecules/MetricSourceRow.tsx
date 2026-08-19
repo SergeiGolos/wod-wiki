@@ -15,11 +15,11 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { MetricVisualizer } from '../../views/runtime/MetricVisualizer';
-import { IMetricSource } from '@/core/contracts/IMetricSource';
-import { IMetric } from '@/core/models/Metric';
-import { MetricContainer } from '@/core/models/MetricContainer';
-import { VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
-import { metricPresentation } from '@/core/metrics/presentation';
+import { IMetricSource } from '@bitcobblers/wod-wiki-engine';
+import { IMetric } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import { VisualizerSize, VisualizerFilter } from '@bitcobblers/wod-wiki-engine';
+import { metricPresentation } from '@bitcobblers/wod-wiki-engine';
 
 export type FragmentSourceStatus = 'pending' | 'active' | 'completed' | 'failed' | 'skipped';
 

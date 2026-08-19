@@ -1,6 +1,6 @@
-import { IRuntimeEventProvider } from '@/runtime/contracts/IRuntimeEventProvider';
-import { IEvent } from '@/runtime/contracts/events/IEvent';
-import { Unsubscribe } from '@/runtime/contracts/IRuntimeStack';
+import { IRuntimeEventProvider } from '@bitcobblers/wod-wiki-engine';
+import { IEvent } from '@bitcobblers/wod-wiki-engine';
+import { Unsubscribe } from '@bitcobblers/wod-wiki-engine';
 import { IRpcTransport } from './IRpcTransport';
 import type { RpcMessage } from './RpcMessages';
 

@@ -24,7 +24,7 @@ import { useNextPreview, usePrimaryTimer, useStackTimers, useStackDisplayRows, u
 import { useWorkbenchSession } from '@/stores/workbenchSessionStore';
 import { calculateDuration } from '@/lib/timeUtils';
 import { formatTimeMMSS } from '@/lib/formatTime';
-import { metricPresentation } from '@/core/metrics/presentation';
+import { metricPresentation } from '@bitcobblers/wod-wiki-engine';
 import { cn } from '@/lib/utils';
 
 // ── Variant plumbing ─────────────────────────────────────────────────────

@@ -13,15 +13,15 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import type { FindQueryResult } from '@/services/analytics/query/QueryService'
-import { parseQuery } from '@/services/analytics/query/wql'
+import type { FindQueryResult } from '@bitcobblers/wod-wiki-engine'
+import { parseQuery } from '@bitcobblers/wod-wiki-engine'
 import type { IEffort } from '@/effort-registry'
 
 // Mocks spread the real modules (imported statically above, before the
 // mock.module calls) so unlisted exports stay real for every file sharing
 // this bun process — partial mocks leak process-wide.
 
-import * as realQuery from '@/services/analytics/query'
+import * as realQuery from '@bitcobblers/wod-wiki-engine'
 
 function makeEffort(overrides: Partial<IEffort> = {}): IEffort {
   return {
@@ -40,8 +40,7 @@ const FRAN = makeEffort({ id: 'e-2', slug: 'fran', label: 'Fran', baseAttributes
 
 let runFindImpl: (parsed: { raw?: string }) => Promise<FindQueryResult>
 
-mock.module('@/services/analytics/query', () => ({
-  ...realQuery,
+mock.module('@/services/queryService', () => ({
   queryService: {
     runFind: mock((parsed: { raw?: string }) => runFindImpl(parsed)),
     runQuery: mock(async () => ({ series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [] })),

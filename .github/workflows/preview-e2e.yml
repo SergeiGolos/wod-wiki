@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       preview-url:
-        description: Preview base URL to test
+        description: Deployed playground base URL to test
         required: false
         type: string
         default: https://preview.wod.wiki
@@ -30,7 +30,7 @@ on:
   workflow_dispatch:
     inputs:
       preview-url:
-        description: Preview base URL to test
+        description: Deployed playground base URL to test
         required: false
         default: https://preview.wod.wiki
       build-hash:
@@ -59,10 +59,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up environment (Bun + caches + all browsers)
+      - name: Set up environment (Bun + caches + chromium)
         uses: ./.github/actions/setup-env
-        with:
-          browsers: 'all'
 
       # S3 sync is immediate but CloudFront may serve the previous build for
       # up to 5 minutes (max-age=300), and invalidation is best-effort. Wait
@@ -91,19 +89,21 @@ jobs:
           echo "::error::preview at $url did not serve build main-$BUILD_HASH.js after 7.5 minutes"
           exit 1
 
-      - name: Run preview E2E
+      # The full live-app journal suite against the deployed artifact — the
+      # single e2e phase (E2E_APP_URL remote mode; no local server started).
+      - name: Run live-app e2e against the deploy
         id: preview_e2e
-        run: bun x playwright test --config playwright.preview.config.ts
+        run: bun x playwright test --config playwright.journal.config.ts
         env:
           CI: true
-          PLAYWRIGHT_BASE_URL: ${{ inputs.preview-url || 'https://preview.wod.wiki' }}
+          E2E_APP_URL: ${{ inputs.preview-url || 'https://preview.wod.wiki' }}
 
       - name: Collect preview E2E stats
         id: preview_stats
         if: always()
         run: |
           set -euo pipefail
-          report="test-results/preview-e2e-junit.xml"
+          report="test-results/live-e2e-junit.xml"
           extract_attr() {
             local attr="$1"
             local file="$2"
@@ -171,9 +171,9 @@ jobs:
             fi
           fi
           cat <<EOF >> "$GITHUB_STEP_SUMMARY"
-          ## Preview E2E summary
+          ## Live-app e2e against the deploy
 
-          - Preview URL: ${{ inputs.preview-url || 'https://preview.wod.wiki' }}
+          - Deploy URL: ${{ inputs.preview-url || 'https://preview.wod.wiki' }}
           - Playwright outcome: ${{ steps.preview_e2e.outcome }}
           - Tests: ${{ steps.preview_stats.outputs.tests }}
           - Failures: ${{ steps.preview_stats.outputs.failures }}

@@ -14,7 +14,7 @@
 
 import type { HistoryEntry } from '@/types/history';
 import type { IContentProvider } from '@/types/content-provider';
-import { wallClockNow } from '@/runtime/INowProvider';
+import { wallClockNow } from '@bitcobblers/wod-wiki-engine';
 import JSZip from 'jszip';
 
 import { statementsToCSV, resultsToCSV } from './export/NoteCsvFormatter';

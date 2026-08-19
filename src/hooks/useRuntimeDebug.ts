@@ -11,17 +11,17 @@
 import { useState } from 'react';
 
 // ── Debug utilities ───────────────────────────────────────────────────────
-export { RuntimeLogger } from '@/runtime/RuntimeLogger';
-export { RuntimeAdapter } from '@/runtime/adapters/RuntimeAdapter';
-export type { MemoryEntry } from '@/runtime/types/executionSnapshot';
+export { RuntimeLogger } from '@bitcobblers/wod-wiki-engine';
+export { RuntimeAdapter } from '@bitcobblers/wod-wiki-engine';
+export type { MemoryEntry } from '@bitcobblers/wod-wiki-engine';
 
 // ── Types ─────────────────────────────────────────────────────────────────
-export type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-export type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
+export type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+export type { IRuntimeBlock } from '@bitcobblers/wod-wiki-engine';
 
 // ── React hook ────────────────────────────────────────────────────────────
 
-import { RuntimeLogger } from '@/runtime/RuntimeLogger';
+import { RuntimeLogger } from '@bitcobblers/wod-wiki-engine';
 
 export interface UseRuntimeDebugReturn {
   /** Whether debug mode logging is currently enabled */

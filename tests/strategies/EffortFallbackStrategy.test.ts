@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
-import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
-import { CountupTimerBehavior, ExitBehavior } from '@/runtime/behaviors';
+import { EffortFallbackStrategy } from '@bitcobblers/wod-wiki-engine';
+import { CountupTimerBehavior, ExitBehavior } from '@bitcobblers/wod-wiki-engine';
 
 describe('EffortFallbackStrategy', () => {
   it('should compile "Run" to an Effort block', () => {

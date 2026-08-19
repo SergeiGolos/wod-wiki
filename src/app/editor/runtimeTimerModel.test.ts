@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { MetricContainer } from '@/core/models/MetricContainer';
-import { MetricType } from '@/core/models/Metric';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { buildWorkoutResults, countSegmentOutputs, prepareRuntimeBlock } from './runtimeTimerModel';
-import { frozenNow } from '@/runtime/INowProvider';
+import { frozenNow } from '@bitcobblers/wod-wiki-engine';
 import type { ScriptBlock } from '@/components/Editor/types';
 
 function makeBlock(content: string): ScriptBlock {

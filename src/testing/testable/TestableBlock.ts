@@ -1,14 +1,14 @@
-import { BlockKey } from '../../core/models/BlockKey';
-import { IRuntimeAction } from '../../runtime/contracts/IRuntimeAction';
-import { IRuntimeBehavior } from '../../runtime/contracts/IRuntimeBehavior';
-import { BlockLifecycleOptions, CompletionDecision, IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
-import type { IRuntimeActionable } from '../../runtime/contracts/primitives/IRuntimeActionable';
-import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
-import { IBlockContext } from '../../runtime/contracts/IBlockContext';
-import type { InterceptMode, TestableBlockConfig } from '../../runtime/contracts/ITestableBlockConfig';
+import { BlockKey } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeAction } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeBehavior } from '@bitcobblers/wod-wiki-engine';
+import { BlockLifecycleOptions, CompletionDecision, IRuntimeBlock } from '@bitcobblers/wod-wiki-engine';
+import type { IRuntimeActionable } from '@bitcobblers/wod-wiki-engine';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { IBlockContext } from '@bitcobblers/wod-wiki-engine';
+import type { InterceptMode, TestableBlockConfig } from '@bitcobblers/wod-wiki-engine';
 
 // Re-export so existing consumers of this module continue to work
-export type { InterceptMode, TestableBlockConfig } from '../../runtime/contracts/ITestableBlockConfig';
+export type { InterceptMode, TestableBlockConfig } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * Recorded method call for inspection
@@ -243,19 +243,19 @@ export class TestableBlock implements IRuntimeBlock {
 
   // ========== Block-Owned Memory ==========
 
-  pushMemory(location: import('../../runtime/memory/MemoryLocation').IMemoryLocation): void {
+  pushMemory(location: import('@bitcobblers/wod-wiki-engine').IMemoryLocation): void {
     this._wrapped.pushMemory(location);
   }
 
-  getMemoryByTag(tag: import('../../runtime/memory/MemoryLocation').MemoryTag): import('../../runtime/memory/MemoryLocation').IMemoryLocation[] {
+  getMemoryByTag(tag: import('@bitcobblers/wod-wiki-engine').MemoryTag): import('@bitcobblers/wod-wiki-engine').IMemoryLocation[] {
     return this._wrapped.getMemoryByTag(tag);
   }
 
-  getAllMemory(): import('../../runtime/memory/MemoryLocation').IMemoryLocation[] {
+  getAllMemory(): import('@bitcobblers/wod-wiki-engine').IMemoryLocation[] {
     return this._wrapped.getAllMemory();
   }
 
-  getMetricMemoryByVisibility(visibility: import('../../runtime/memory/MetricVisibility').MetricVisibility): import('../../runtime/memory/MemoryLocation').IMemoryLocation[] {
+  getMetricMemoryByVisibility(visibility: import('@bitcobblers/wod-wiki-engine').MetricVisibility): import('@bitcobblers/wod-wiki-engine').IMemoryLocation[] {
     return this._wrapped.getMetricMemoryByVisibility(visibility);
   }
 

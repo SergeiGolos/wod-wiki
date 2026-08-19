@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { ChromecastEventProvider } from '../ChromecastEventProvider';
 import { IRpcTransport, RpcUnsubscribe } from '../IRpcTransport';
 import { RpcMessage, RpcEvent } from '../RpcMessages';
-import { IEvent } from '@/runtime/contracts/events/IEvent';
+import { IEvent } from '@bitcobblers/wod-wiki-engine';
 
 // ── Mock Transport ──────────────────────────────────────────────────────────
 

@@ -11,8 +11,8 @@
  */
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { compileLineForm, LineFormScope } from '@/core/analytics/calc/lineform';
-import { CalculationDefinition } from '@/core/analytics/calc/types';
+import { compileLineForm, LineFormScope } from '@bitcobblers/wod-wiki-engine';
+import { CalculationDefinition } from '@bitcobblers/wod-wiki-engine';
 
 const DB_NAME = 'wodwiki-user-calcs';
 const DB_VERSION = 1;

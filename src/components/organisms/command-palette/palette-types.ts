@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { QueryClause, WqlExecutor } from '../wql-composer';
+import type { QueryClause, WqlExecutor } from '@bitcobblers/wod-wiki-ui';
 
 /**
  * WQL mode for the palette (issue #834, decision #828): the plain text input

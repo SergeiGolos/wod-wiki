@@ -7,7 +7,7 @@ import { audioService } from '@/hooks/useBrowserServices';
 import type { WorkoutEvent } from '@/hooks/useBrowserServices';
 import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
 import { toStoredOutputStatement } from '@/components/Editor/types';
-import { wallClockNow } from '@/runtime/INowProvider';
+import { wallClockNow } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * Hook to encapsulate Workbench runtime logic.

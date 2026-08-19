@@ -23,7 +23,7 @@ import { ChromecastProxyRuntime } from '@/services/cast/rpc/ChromecastProxyRunti
 import type { WorkbenchDisplayState } from '@/services/cast/rpc/ChromecastProxyRuntime';
 import { createReceiverSession, type ReceiverSessionHandle } from '@/services/cast/rpc/ReceiverSessionManager';
 import type { IRpcTransport } from '@/services/cast/rpc/IRpcTransport';
-import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
+import { ScriptRuntimeProvider } from '@bitcobblers/wod-wiki-engine';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { ReceiverStackPanel } from '@/panels/track-panel-chromecast';
 import { ReceiverTimerPanel } from '@/panels/wallclock-panel-chromecast';

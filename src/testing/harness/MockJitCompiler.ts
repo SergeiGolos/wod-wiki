@@ -1,8 +1,8 @@
-import { JitCompiler } from '@/runtime/compiler/JitCompiler';
-import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
-import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import { IRuntimeBlockStrategy } from '@/runtime/contracts/IRuntimeBlockStrategy';
-import type { CodeStatement } from '@/core/models/CodeStatement';
+import { JitCompiler } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeBlock } from '@bitcobblers/wod-wiki-engine';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeBlockStrategy } from '@bitcobblers/wod-wiki-engine';
+import type { CodeStatement } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * Record of a single compile() call for inspection in tests.

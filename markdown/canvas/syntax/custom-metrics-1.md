@@ -6,7 +6,5 @@ section: custom-metrics
 order: 1
 ---
 ```time
-(5 Sets)
-  5 Back Squat 225lb {"intensity": 80}
-  *2:00 Rest
+5 Back Squat 225lb {"intensity": 80}
 ```

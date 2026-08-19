@@ -1,5 +1,5 @@
 import React from 'react';
-import { type ProjectionResult } from '@/core/analytics/ProjectionResult';
+import { type ProjectionResult } from '@bitcobblers/wod-wiki-engine';
 import { cn } from '@/lib/utils';
 
 interface AnalyticsScorecardProps {

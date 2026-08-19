@@ -14,7 +14,7 @@
 import { describe, it, expect } from 'bun:test';
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer';
 import type { StoredOutputStatement } from '@/components/Editor/types';
-import { MetricType } from '@/core/models/Metric';
+import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
 // ─── fixture ────────────────────────────────────────────────────────────────
 

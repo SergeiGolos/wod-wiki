@@ -11,8 +11,8 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import type { EditorView } from "@codemirror/view";
-import { sectionField, type EditorSection } from '@/components/Editor/extensions/section-state';
-import { sectionGeometry as sectionGeometryPlugin, type SectionRect } from '@/components/Editor/extensions/section-geometry';
+import { sectionField, type EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
+import { sectionGeometry as sectionGeometryPlugin, type SectionRect } from '@bitcobblers/wod-wiki-ui/extensions';
 import { commandsForAffordance, type ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
 import type { ScriptBlock, FenceDialect } from '@/components/Editor/types';
 import { runAffordance } from '@/components/Editor/types/section';
@@ -181,7 +181,7 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
   view,
   commands,
 }) => {
-  const [rects, setRects] = useState<SectionRect[]>([]);
+  const [rects, setRects] = useState<SectionRect[]>(() => view?.plugin(sectionGeometryPlugin)?.rects ?? []);
   const [scrollTop, setScrollTop] = useState(0);
 
   // Subscribe to geometry changes from the CM6 plugin
@@ -191,12 +191,10 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
     const plugin = view.plugin(sectionGeometryPlugin);
     if (!plugin) return;
 
-    // addListener delivers current rects immediately and returns an unsubscribe fn
-    // Second arg (docVersion) is unused here — only rects are needed.
+    setRects([...plugin.rects]);
     const unsubscribe = plugin.addListener((newRects: SectionRect[]) =>
       setRects([...newRects]),
     );
-    return unsubscribe;
   }, [view]);
 
   // Track cm-scroller scroll to compensate rect.top (document-space) for scroll offset.
@@ -219,17 +217,15 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
       scroller.removeEventListener('scroll', onScroll);
     };
   }, [view]);
-
-  if (!view || commands.length === 0) return null;
+  const plugin = view ? view.plugin(sectionGeometryPlugin) : null;
+  const currentRects = rects.length > 0 ? rects : (plugin?.rects ?? []);
 
   // Only render for workout (time/log) sections
-  const workoutRects = rects.filter(
+  const workoutRects = currentRects.filter(
     (r) => r.type === "time" || r.type === "log"
   );
 
   if (workoutRects.length === 0) return null;
-
-  // Look up sections from the view state for block data
   const { sections } = view.state.field(sectionField);
   const sectionMap = new Map(sections.map((s) => [s.id, s]));
 
@@ -240,12 +236,9 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
         if (!section) return null;
 
         const block = buildScriptBlock(view, section);
-        // Per-block gating (#891/#894): log sections get the Log command in
-        // place of Play; AddToToday/Schedule are withheld.
         const affordance = runAffordance(section.type);
         const visibleCommands = commandsForAffordance(commands, affordance);
         if (visibleCommands.length === 0) return null;
-
         return (
           <div
             key={rect.sectionId}

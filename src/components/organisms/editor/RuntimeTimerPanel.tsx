@@ -31,8 +31,8 @@ import { getActiveCastTransport, onCastTransportChange } from "@/services/cast/c
 import type { IRpcTransport } from "@/services/cast/rpc/IRpcTransport";
 import { ChromecastRuntimeSubscription } from "@/services/cast/rpc/ChromecastRuntimeSubscription";
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
-import type { IOutputStatement } from "@/core/models/OutputStatement";
-import { dispatchGutterHighlights } from '@/components/Editor/extensions/gutter-unified';
+import type { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
+import { dispatchGutterHighlights } from '@bitcobblers/wod-wiki-ui/extensions';
 import { buildCompletedRuntimeProjection } from "@/app/cast/workbenchProjection";
 import { useUserOverrides } from '@/components/organisms/review/useUserOverrides';
 import { buildWorkoutResults, countSegmentOutputs, createRuntimeForBlock, prepareRuntimeBlock } from "@/app/editor/runtimeTimerModel";

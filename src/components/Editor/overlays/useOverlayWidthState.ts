@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useReducer, useMemo } from "react";
-import type { EditorSection, EditorSectionType } from "../extensions/section-state";
+import type { EditorSection, EditorSectionType } from '@bitcobblers/wod-wiki-ui/extensions';
 import {
   computeOverlayWidth,
   DEFAULT_OVERLAY_WIDTHS,

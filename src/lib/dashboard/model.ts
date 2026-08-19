@@ -12,7 +12,7 @@
  * extensions, the inline block renderer, and the dashboard route all share it.
  */
 
-import { WQL_CALC_TARGETS } from '@/parser/wql-vocabulary';
+import { WQL_CALC_TARGETS } from '@bitcobblers/wod-wiki-engine';
 
 // ── Widget types ───────────────────────────────────────────────────────────
 

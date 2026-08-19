@@ -1,8 +1,8 @@
 // src/types/cast/messages.ts
 
 import { IDisplayStackState as ImportedDisplayStackState, ITimerDisplayEntry as ImportedTimerDisplayEntry, IDisplayCardEntry as ImportedDisplayCardEntry } from '@/clock/types/DisplayTypes';
-import type { IMetric } from '@/core/models/Metric';
-import { IOutputStatement } from '@/core/models/OutputStatement';
+import type { IMetric } from '@bitcobblers/wod-wiki-engine';
+import { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
 
 // Re-export for backward compatibility
 export type ExecutionRecord = IOutputStatement;

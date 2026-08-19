@@ -1,18 +1,18 @@
-import { ScriptRuntime, ScriptRuntimeDependencies } from '@/runtime/ScriptRuntime';
-import { MetricContainer } from '@/core/models/MetricContainer';
+import { ScriptRuntime, ScriptRuntimeDependencies } from '@bitcobblers/wod-wiki-engine';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 import { MockJitCompiler } from './MockJitCompiler';
-import { createMockClock } from '@/runtime/RuntimeClock';
-import { RuntimeStack } from '@/runtime/RuntimeStack';
-import { EventBus } from '@/runtime/events/EventBus';
-import { WhiteboardScript } from '@/parser/WhiteboardScript';
-import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
-import { IEvent } from '@/runtime/contracts/events/IEvent';
-import { IRuntimeBlockStrategy } from '@/runtime/contracts/IRuntimeBlockStrategy';
-import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
-import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
-import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import { ICodeStatement } from '@/core';
-import { StartWorkoutAction } from '@/runtime/actions/stack/StartWorkoutAction';
+import { createMockClock } from '@bitcobblers/wod-wiki-engine';
+import { RuntimeStack } from '@bitcobblers/wod-wiki-engine';
+import { EventBus } from '@bitcobblers/wod-wiki-engine';
+import { WhiteboardScript } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeAction } from '@bitcobblers/wod-wiki-engine';
+import { IEvent } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeBlockStrategy } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeClock } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeBlock } from '@bitcobblers/wod-wiki-engine';
+import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
+import { StartWorkoutAction } from '@bitcobblers/wod-wiki-engine';
 
 /**
  * Helper function to create a minimal mock statement for testing.
