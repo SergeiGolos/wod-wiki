@@ -453,18 +453,16 @@ _Avoid_: scroll hook, scroll spy (that's reading-zone geometry).
   (on close)`. The deployed-artifact e2e publishes its Playwright HTML
   report to `s3://<bucket>/<slug>/e2e-report/` — browsable at
   `https://<slug>.e2e.wod.wiki` and linked from the job's step summary and
-  the PR preview comment. **Scoped to PRs whose base is `main`** — a
-  `main → prod` promotion PR is covered by CI – Main on the same SHA, and
-  its head-branch slug is `main`, so its preview would race (and destroy
-  would delete) the site job's `main/` S3 prefixes.
+  the PR preview comment. **Scoped to PRs whose base is `main`** — production
+  publication occurs after merge through the main pipeline.
 - **Main pipeline** — `main.yml`. The one graph per merge:
-  `verify (no e2e, no smoke build) → release (Pages + tag + smoke e2e)` and
-  `verify → site (S3 deploy) → e2e (deployed-artifact e2e in
-  `preview-e2e.yml`, gated on the site's **build fingerprint**)`. Exactly
-  one e2e run (deployed-artifact).
+  `verify (no preview build) → release (Pages + tag + GitHub release + smoke
+  e2e against https://wod.wiki)`. Main does not deploy an S3 preview.
+- **Preview isolation** — PR branches own their S3 slug and are destroyed on
+  close; no production workflow is reachable from a pull-request event.
 - **Build fingerprint** — the hashed entry-bundle name (`main-<hash>.js`)
-  emitted by a build job. The deployed-artifact e2e waits until the live
-  `index.html` references it, so tests never race a stale CloudFront cache.
+  emitted by a PR preview build. The deployed-artifact e2e waits until the
+  live `index.html` references it, so tests never race a stale CloudFront cache.
 - npm publication is gated behind the `NPM_PUBLISH_ENABLED` repo var
   (WOD-436); the library build and its artifact exist only when it is set.
 

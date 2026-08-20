@@ -1,18 +1,9 @@
-name: CI – Main
+name: Release – Main
 
-# The single main-branch pipeline. One job graph per push:
-#   verify (unit/coverage — playground build gate skipped; e2e runs post-deploy)
-#     → version (Conventional Commits bump → tag X.Y.Z; the release marker
-#       the protected prod branch later publishes from)
-#     → site (S3 build → deploy → deployed-artifact e2e)
-# Publishing (GitHub Pages + npm + GitHub release) does NOT happen here —
-# it runs on push to the protected `prod` branch (prod.yml), which deploys
-# exactly the version tagged by this pipeline.
-# Storybook is NOT built or deployed here — the wod-wiki-engine repository
-# owns the Storybook (unit tests, versioned build, story.wod.wiki deploy and
-# PR previews). This pipeline ships the playground only.
-# If the computed tag already exists at this commit SHA the tag step is a
-# no-op (idempotent). If it exists at a different SHA the tag job fails.
+# The main-branch pipeline. Pull requests use pull-request.yml for isolated
+# previews; a successful push to main publishes the production Pages artifact.
+# Every push computes a version, deploys wod.wiki, creates the matching GitHub
+# release, and smoke-tests the live site.
 
 on:
   push:
@@ -32,150 +23,27 @@ jobs:
     uses: ./.github/workflows/_verify.yml
     secrets: inherit
     with:
-      # No build gate on main — the site job builds the playground for real;
-      # e2e runs once, post-deploy, against the published artifact.
       build-preview-artifact: false
 
-
-  # Compute the next {major}.{minor}.{build} version from Conventional
-  # Commits and tag it. The tag is the single source of truth the prod
-  # branch publishes (Pages + npm + GitHub release) on merge.
-  version:
+  release:
     needs: [verify]
     if: needs.verify.result == 'success'
-    uses: ./.github/workflows/_version.yml
-
-  tag:
-    name: Tag version
-    runs-on: ubuntu-22.04
-    needs: [version]
-    steps:
-      - name: Create version tag
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const tag = process.env.VERSION;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const sha = context.sha;
-
-            try {
-              const ref = await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
-              if (ref.data.object.sha === sha) {
-                core.info(`Tag ${tag} already exists at this SHA; nothing to do.`);
-                return;
-              }
-              core.setFailed(
-                `Tag ${tag} already exists at ${ref.data.object.sha}, expected ${sha}. ` +
-                `Refusing to move an existing release marker.`
-              );
-              return;
-            } catch (error) {
-              if (error.status !== 404) {
-                throw error;
-              }
-            }
-
-            await github.rest.git.createRef({
-              owner,
-              repo,
-              ref: `refs/tags/${tag}`,
-              sha,
-            });
-            core.info(`Created tag ${tag} at ${sha}.`);
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-
-  # Deployed-artifact check: build the S3-shaped playground + receiver +
-  # storybook once, sync to S3, then run the deployed-preview e2e against
-  # exactly this build (build-hash freshness gate in preview-e2e.yml).
-  site:
-    name: Deploy main site
-    runs-on: ubuntu-22.04
-    needs: [verify, version]
-    outputs:
-      bundle-hash: ${{ steps.fingerprint.outputs.hash }}
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: us-east-1
-      S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
-      CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up environment (Bun + caches, no browsers)
-        uses: ./.github/actions/setup-env
-        with:
-          browsers: ''
-
-      - name: Build playground
-        env:
-          VITE_BASE_PATH: /main/dist/
-          VITE_APP_VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          bun run build:app
-          VITE_BASE_PATH="/main/dist/" \
-            bun x vite build --config vite.receiver.config.ts
-
-
-      - name: Compute build fingerprint
-        id: fingerprint
-        run: |
-          HASH=$(ls playground/dist/assets/main-*.js | head -n1 | sed -E 's/.*main-([^.]+)\.js/\1/')
-          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
-
-      - name: Deploy playground (main.preview.wod.wiki)
-        run: |
-          set -euo pipefail
-          echo "Uploading playground to s3://$S3_BUCKET/main/dist/"
-          aws s3 sync playground/dist/ "s3://$S3_BUCKET/main/dist/" \
-            --delete \
-            --cache-control "max-age=300, must-revalidate" \
-            --exclude "*.map"
-
-
-
-      - name: Invalidate CloudFront cache (best-effort)
-        continue-on-error: true
-        run: |
-          set -uo pipefail
-          if aws cloudfront create-invalidation \
-               --distribution-id "$CF_DISTRIBUTION_ID" \
-               --paths "/main/*"; then
-            echo "CloudFront invalidation submitted for /main/*"
-          else
-            echo "::warning::CloudFront invalidation failed; S3 sync succeeded and cache will refresh within 5 minutes via max-age."
-          fi
-
-  e2e:
-    name: Deployed-artifact E2E
-    needs: [site]
-    uses: ./.github/workflows/preview-e2e.yml
+    uses: ./.github/workflows/_release.yml
     secrets: inherit
-    with:
-      preview-url: https://main.preview.wod.wiki
-      branch-slug: main
-      build-hash: ${{ needs.site.outputs.bundle-hash }}
 
   summary:
-    name: Deploy summary
+    name: Release summary
     runs-on: ubuntu-22.04
     if: always()
-    needs: [verify, version, tag, site, e2e]
+    needs: [verify, release]
     steps:
       - name: Write summary
         run: |
           cat <<EOF >> "$GITHUB_STEP_SUMMARY"
-          ## Main pipeline
+          ## Main production pipeline
 
           | Target | URL | Status |
           | --- | --- | --- |
           | Verify | — | ${{ needs.verify.result }} |
-          | Version tag | ${{ needs.version.outputs.version }} | ${{ needs.tag.result }} |
-          | Playground | https://main.preview.wod.wiki | ${{ needs.site.result }} |
-          | Storybook | https://story.wod.wiki | wod-wiki-engine pipeline |
-          | E2E report | https://e2e.wod.wiki | ${{ needs.e2e.outputs.outcome }} |
-
-          > E2E: ${{ needs.e2e.outputs.tests }} tests, ${{ needs.e2e.outputs.failures }} failures.
+          | Production release | https://wod.wiki | ${{ needs.release.result }} |
           EOF
