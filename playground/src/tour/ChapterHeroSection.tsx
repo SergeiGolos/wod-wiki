@@ -32,7 +32,6 @@ export interface ChapterHeroSectionProps {
   /** Chapter Run: opens the playground with this chapter's parsed block + doc. */
   onRun?: (chapterId: string, block: ScriptBlock | null, doc: string) => void
   onShare?: (doc: string) => void
-  onOpenInEditor?: (doc: string) => void
   className?: string
 }
 
@@ -56,7 +55,6 @@ export function ChapterHeroSection({
   questLabels = {},
   onRun,
   onShare,
-  onOpenInEditor,
   className,
 }: ChapterHeroSectionProps) {
   // Mount-once (#dogfood: fast scroll-jumps churned CodeMirror mount/unmount
@@ -124,7 +122,6 @@ export function ChapterHeroSection({
             }}
             onRun={handleRun}
             onShare={() => onShare?.(doc)}
-            onOpenInEditor={() => onOpenInEditor?.(doc)}
             theme={theme}
           />
         ) : (

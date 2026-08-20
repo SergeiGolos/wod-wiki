@@ -20,7 +20,6 @@ export interface TourMobileStackProps {
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
   onShare: () => void
-  onOpenInEditor: () => void
   /** Choose-your-own-adventure workout choice from the editor-blank caption card. */
   onChoice?: (wod: string) => void
   /** Shared-script attribution + reset, forwarded to the hero editor (#882). */
@@ -42,7 +41,6 @@ export function TourMobileStack(props: TourMobileStackProps) {
         onBlocksChange={props.onBlocksChange}
         onRun={props.onRun}
         onShare={props.onShare}
-        onOpenInEditor={props.onOpenInEditor}
         sharedBy={props.sharedBy}
         onResetShared={props.onResetShared}
       />

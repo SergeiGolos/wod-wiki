@@ -52,7 +52,6 @@ const baseProps = {
   onBlocksChange: () => {},
   onRun: () => {},
   onShare: () => {},
-  onOpenInEditor: () => {},
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────

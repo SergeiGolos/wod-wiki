@@ -19,6 +19,7 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
     value?: string
     onChange?: (value: string) => void
     onBlocksChange?: (blocks: ScriptBlock[]) => void
+    onStartWorkout?: (block: ScriptBlock) => void
   }) => {
     const React = require('react')
     React.useEffect(() => {
@@ -32,6 +33,9 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
           value={props.value ?? ''}
           onChange={(e) => props.onChange?.(e.target.value)}
         />
+        {props.onStartWorkout && (
+          <button onClick={() => props.onStartWorkout?.({ id: 'block-1' } as any)}>Run</button>
+        )}
         {/* Stand-ins for previewDecorations' styled fence lines, which the
             card-2 block highlight measures (#884). */}
         {(props.value ?? '').includes('```') && (
@@ -605,11 +609,8 @@ describe('HomeTour', () => {
     expect(
       within(captions).getByRole('combobox', { name: /load a workout into the demo/i }),
     ).toBeTruthy()
-    // …and never in an editor window header (#883) — hero and runway alike.
-    for (const header of screen.getAllByTestId('tour-editor-header')) {
-      expect(within(header).queryByRole('combobox')).toBeNull()
-      expect(within(header).queryByTestId('tour-workout-choices')).toBeNull()
-    }
+    // …and never in an editor window (#883) — no sub-bar header exists.
+    expect(screen.queryByTestId('tour-editor-header')).toBeNull()
   })
 
   it('registers the fenced-block highlight region only in the runway window (#884)', async () => {

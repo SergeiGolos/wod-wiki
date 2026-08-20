@@ -8,7 +8,7 @@ windows onto different stages of that flow.
 ```
    PLAN ───────────────► TRACK ──────────────► ANALYZE
    write / browse        run on the clock      review & chart
-   editor, collections   wallclock / run         review grid, journal trends
+   editor, collections   clock / run           review grid, journal trends
    efforts, plan, feeds  (live timer)          analytics metrics
         ▲                                            │
         └──────────────── journal history ◄──────────┘

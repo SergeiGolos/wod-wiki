@@ -20,17 +20,23 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
     value?: string
     onChange?: (value: string) => void
     onBlocksChange?: (blocks: ScriptBlock[]) => void
+    onStartWorkout?: (block: ScriptBlock) => void
   }) => {
     const React = require('react')
     React.useEffect(() => {
       props.onBlocksChange?.([{ id: 'block-1', type: 'Timer' } as unknown as ScriptBlock])
     }, [])
     return (
-      <textarea
-        data-testid="mock-note-editor"
-        value={props.value ?? ''}
-        onChange={(e) => props.onChange?.(e.target.value)}
-      />
+      <div>
+        <textarea
+          data-testid="mock-note-editor"
+          value={props.value ?? ''}
+          onChange={(e) => props.onChange?.(e.target.value)}
+        />
+        {props.onStartWorkout && (
+          <button onClick={() => props.onStartWorkout?.({ id: 'block-1' } as any)}>Run</button>
+        )}
+      </div>
     )
   },
 }))

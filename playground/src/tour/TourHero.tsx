@@ -24,8 +24,7 @@ export interface TourHeroProps {
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
   onShare: () => void
-  onOpenInEditor: () => void
-  /** Shared-script attribution + reset, forwarded to the editor screen (#882). */
+  /** Shared-script attribution + reset (#882). */
   sharedBy?: string
   onResetShared?: () => void
 }
@@ -79,7 +78,6 @@ export function TourHero({
   onBlocksChange,
   onRun,
   onShare,
-  onOpenInEditor,
   sharedBy,
   onResetShared,
 }: TourHeroProps) {
@@ -90,17 +88,19 @@ export function TourHero({
     >
       <TourHeroHeading />
       <div className="mt-6 w-full max-w-2xl text-left">
-        <MacOSChrome title="welcome-1.md" className="h-[min(460px,52vh)] shadow-2xl">
+        <MacOSChrome
+          title="welcome-1.md"
+          subtitle={sharedBy ? `shared by: ${sharedBy}` : undefined}
+          onReset={sharedBy && onResetShared ? onResetShared : undefined}
+          className="h-[min(460px,52vh)] shadow-2xl"
+        >
           <TourEditorScreen
             doc={doc}
             onDocChange={onDocChange}
             onBlocksChange={onBlocksChange}
             onRun={onRun}
             onShare={onShare}
-            onOpenInEditor={onOpenInEditor}
             theme={theme}
-            sharedBy={sharedBy}
-            onResetShared={onResetShared}
           />
         </MacOSChrome>
       </div>

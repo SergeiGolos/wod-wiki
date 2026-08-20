@@ -35,7 +35,7 @@ stages:
     accent: hsl(var(--metric-resistance))
     label: Press Run to Start
     source: wods/examples/home/welcome-1.md
-    caption: "Press Run to Execute. Launch the working clock. Click Run in the editor header (or keep scrolling) to launch the Clock timer and watch the script turn into an active workout."
+    caption: "Press Run to Execute. Launch the working clock. Click Run on the workout block (or keep scrolling) to launch the Clock timer and watch the script turn into an active workout."
     ring:
       key: editor.runButton
       tag: Run Button

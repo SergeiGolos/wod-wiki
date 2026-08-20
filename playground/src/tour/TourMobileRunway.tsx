@@ -69,10 +69,9 @@ export interface TourMobileRunwayProps {
   quests: Quest[]
   chapters: Chapter[]
   questLabels?: Record<string, string>
-  /** Chapter hero run/share/open — forwarded to each ChapterHeroSection. */
+  /** Chapter hero run/share — forwarded to each ChapterHeroSection. */
   onChapterRun?: (chapterId: string, block: ScriptBlock | null, doc: string) => void
   onChapterShare?: (doc: string) => void
-  onChapterOpenInEditor?: (doc: string) => void
   onHomeQuestClick?: (questId: string) => void
   /** Hero editor context — the live welcome-1.md editor at the top of the
    *  page (editable, runnable), matching the desktop hero. */
@@ -81,7 +80,6 @@ export interface TourMobileRunwayProps {
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
   onShare: () => void
-  onOpenInEditor: () => void
   /** Runway editor context — the pinned demo window (editor → timer →
    *  analytics), independent of the hero like the desktop runway. */
   runwayDoc: string
@@ -89,7 +87,6 @@ export interface TourMobileRunwayProps {
   onRunwayBlocksChange: (blocks: ScriptBlock[]) => void
   onRunwayRun: () => void
   onRunwayShare: () => void
-  onRunwayOpenInEditor: () => void
   /** Shared-script attribution + reset, forwarded to the editor (#882). */
   sharedBy?: string
   onResetShared?: () => void
@@ -112,20 +109,17 @@ export function TourMobileRunway({
   questLabels,
   onChapterRun,
   onChapterShare,
-  onChapterOpenInEditor,
   onHomeQuestClick,
   doc,
   onDocChange,
   onBlocksChange,
   onRun,
   onShare,
-  onOpenInEditor,
   runwayDoc,
   onRunwayDocChange,
   onRunwayBlocksChange,
   onRunwayRun,
   onRunwayShare,
-  onRunwayOpenInEditor,
   sharedBy,
   onResetShared,
   onChoice,
@@ -260,7 +254,6 @@ export function TourMobileRunway({
           onBlocksChange={onBlocksChange}
           onRun={onRun}
           onShare={onShare}
-          onOpenInEditor={onOpenInEditor}
           sharedBy={sharedBy}
           onResetShared={onResetShared}
         />
@@ -284,10 +277,7 @@ export function TourMobileRunway({
                     onBlocksChange={onRunwayBlocksChange}
                     onRun={onRunwayRun}
                     onShare={onRunwayShare}
-                    onOpenInEditor={onRunwayOpenInEditor}
                     theme={theme}
-                    sharedBy={sharedBy}
-                    onResetShared={onResetShared}
                     withRingTargets
                   />
                 </ScreenFade>
@@ -346,7 +336,6 @@ export function TourMobileRunway({
             questLabels={questLabels}
             onRun={onChapterRun}
             onShare={onChapterShare}
-            onOpenInEditor={onChapterOpenInEditor}
           />
         ))}
 
