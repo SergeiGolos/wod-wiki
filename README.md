@@ -118,7 +118,7 @@ The app is a continuous loop. The same metric flows through every phase.
 - **Feeds** (`/feeds`) — date-indexed streams of sessions.
 
 ### 2. TRACK — execute on the clock
-- **WallClock / Run** (`/run/:runtimeId`) — the JIT-compiled blocks run on the runtime
+- **Clock / Run** (`/run/:runtimeId`) — the JIT-compiled blocks run on the runtime
   clock: timers count, rounds advance, sound cues fire, and you log actual
   reps/load/RPE. Each segment emits results recorded as `runtime`/`user` metrics.
 

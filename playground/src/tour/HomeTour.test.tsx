@@ -177,7 +177,7 @@ function makeSlice(progress: number): TestSlice {
         label: 'What Happens When It Runs',
       },
       t,
-      ring: { key: 'timer.floor', tag: 'WallClock' },
+      ring: { key: 'timer.floor', tag: 'Clock' },
     }
   }
   if (progress < 0.68) {
@@ -327,7 +327,7 @@ const wodFiles: Record<string, string> = {
   // Real welcome-1.md scaffold (frontmatter stripped): the fence sits on
   // lines 5–11, line-aligned with every adventure preset (#884).
   '../../markdown/canvas/home/welcome-1.md':
-    '# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\n```time\n21-15-9\n  Kettlebell Swings 24kg\n  400m Run\n  Deadlifts 225lb\n  *:30 Rest\n```\n\n> Press **Run** ↑ to start the WallClock.\n',
+    '# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\n```time\n21-15-9\n  Kettlebell Swings 24kg\n  400m Run\n  Deadlifts 225lb\n  *:30 Rest\n```\n\n> Press **Run** ↑ to start the Clock.\n',
 }
 
 const homeQuests: Quest[] = [
@@ -495,7 +495,7 @@ describe('HomeTour', () => {
     fireEvent.click(behaviorsLink)
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.behaviorsOpened)
   })
-  it('desktop hero Run mounts the fullscreen overlay with WallClock and exit pill', async () => {
+  it('desktop hero Run mounts the fullscreen overlay with Clock and exit pill', async () => {
     await renderHomeTour()
     const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
     await act(async () => {
@@ -507,7 +507,7 @@ describe('HomeTour', () => {
     const overlay = await screen.findByTestId('tour-playground-overlay')
     expect(overlay).toBeTruthy()
 
-    // The mocked RuntimeTimerPanel (WallClock) renders inside the overlay.
+    // The mocked RuntimeTimerPanel (Clock) renders inside the overlay.
     expect(overlay.querySelector('[data-testid="mock-timer-panel"]')).toBeTruthy()
 
     // Exit pill returns to the tour.
@@ -659,7 +659,7 @@ describe('HomeTour', () => {
     })
     await waitFor(() => {
       rings = screen.getAllByTestId('tour-ring')
-      expect(rings.some((r) => r.textContent?.includes('WallClock'))).toBe(true)
+      expect(rings.some((r) => r.textContent?.includes('Clock'))).toBe(true)
     })
   })
 

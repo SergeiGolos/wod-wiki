@@ -131,7 +131,7 @@ const DEFAULT_HOME_STAGES: ScrollStage[] = [
     label: 'What Happens When It Runs',
     source: HOME_DEMO_SOURCE,
     caption: 'What Happens When It Runs. The script becomes the clock.',
-    ring: { key: 'timer.floor', tag: 'WallClock' },
+    ring: { key: 'timer.floor', tag: 'Clock' },
   },
   {
     id: 'timer-next',

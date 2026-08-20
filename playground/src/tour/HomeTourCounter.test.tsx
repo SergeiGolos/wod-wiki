@@ -107,7 +107,7 @@ function makeSlice(): TestSlice {
       label: 'What Happens When It Runs',
     },
     t: 0,
-    ring: { key: 'timer.floor', tag: 'WallClock' },
+    ring: { key: 'timer.floor', tag: 'Clock' },
   }
 }
 

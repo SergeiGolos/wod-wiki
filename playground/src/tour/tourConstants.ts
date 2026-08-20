@@ -62,7 +62,7 @@ export const TOUR_STAGES: TourStage[] = [
   { id: 'editor-blank', screen: 'editor', accent: TOUR_ACCENTS.editor, label: 'Blank Page & Typeahead', ringA: 'editor.window', tagA: 'Live Editor' },
   { id: 'editor-metrics', screen: 'editor', accent: TOUR_ACCENTS.editor, label: 'Every Line Collects Metrics', ringA: 'editor.wodBlock', tagA: 'Line Metrics' },
   { id: 'editor-run', screen: 'editor', accent: TOUR_ACCENTS.editor, label: 'Press Run to Start', ringA: 'editor.runButton', tagA: 'Run Button' },
-  { id: 'timer-wallclock', screen: 'timer', accent: TOUR_ACCENTS.timer, label: 'What Happens When It Runs', ringA: 'timer.floor', tagA: 'WallClock' },
+  { id: 'timer-wallclock', screen: 'timer', accent: TOUR_ACCENTS.timer, label: 'What Happens When It Runs', ringA: 'timer.floor', tagA: 'Clock' },
   { id: 'timer-next', screen: 'timer', accent: TOUR_ACCENTS.timer, label: 'Advance Rounds with Next', ringA: 'timer.nextButton', tagA: 'Next Button' },
   { id: 'timer-cast', screen: 'timer', accent: TOUR_ACCENTS.timer, label: 'Cast to the Big Screen', ringA: 'timer.castButton', tagA: 'Cast' },
   { id: 'wql-idea', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: 'Query what you just did', ringA: 'analytics.vocab', tagA: 'WQL elements' },
@@ -75,7 +75,7 @@ export const TOUR_STAGES: TourStage[] = [
 /** Window-chrome title shown while each screen is active. */
 export const SCREEN_TITLES: Record<TourScreen, string> = {
   editor: 'WOD Editor & Autocomplete',
-  timer: 'WallClock',
+  timer: 'Clock',
   analytics: 'WQL Analytics',
 }
 

@@ -289,7 +289,7 @@ describe('TourMobileRunway', () => {
     })
 
     expect(screen.getByTestId('mock-timer-panel')).toBeTruthy()
-    expect(screen.getByTestId('tour-mobile-runway-window').textContent).toContain('WallClock')
+    expect(screen.getByTestId('tour-mobile-runway-window').textContent).toContain('Clock')
   })
 
   it('keeps the editor mounted across stage swaps so edits survive', async () => {

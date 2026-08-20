@@ -35,7 +35,7 @@ stages:
     accent: hsl(var(--metric-resistance))
     label: Press Run to Start
     source: wods/examples/home/welcome-1.md
-    caption: "Press Run to Execute. Launch the working clock. Click Run in the editor header (or keep scrolling) to launch the WallClock timer and watch the script turn into an active workout."
+    caption: "Press Run to Execute. Launch the working clock. Click Run in the editor header (or keep scrolling) to launch the Clock timer and watch the script turn into an active workout."
     ring:
       key: editor.runButton
       tag: Run Button
@@ -45,10 +45,10 @@ stages:
     accent: hsl(var(--metric-effort))
     label: What Happens When It Runs
     source: wods/examples/home/welcome-1.md
-    caption: "What Happens When It Runs. The script becomes the clock. The WallClock runs your exact script — stepping through reps, distance, and load lines at your own pace without forced countdown caps."
+    caption: "What Happens When It Runs. The script becomes the clock. The Clock runs your exact script — stepping through reps, distance, and load lines at your own pace without forced countdown caps."
     ring:
       key: timer.floor
-      tag: WallClock
+      tag: Clock
   - id: timer-next
     range: [0.47, 0.57]
     screen: timer
@@ -65,7 +65,7 @@ stages:
     accent: hsl(var(--metric-effort))
     label: Cast to the Big Screen
     source: wods/examples/home/welcome-1.md
-    caption: "Cast to the Big Screen. Real-time mirror for the gym floor. Stream the WallClock to Chromecast or a shared screen — live rep counters and timers update in real time."
+    caption: "Cast to the Big Screen. Real-time mirror for the gym floor. Stream the Clock to Chromecast or a shared screen — live rep counters and timers update in real time."
     ring:
       key: timer.castButton
       tag: Cast
@@ -228,7 +228,7 @@ desc: You landed on the playground dashboard.
 ```quest
 id: qs-tour-timer
 label: See the timer run it
-desc: Let the demo timer reach a running state in the WallClock stage.
+desc: Let the demo timer reach a running state in the Clock stage.
 validation:
   type: run-started
 ```

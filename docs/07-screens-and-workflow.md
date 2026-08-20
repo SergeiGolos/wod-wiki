@@ -35,7 +35,7 @@ store, parsed into a `CodeStatement` tree of `parser`-origin metrics.
 
 | Screen | Route | What it does |
 |--------|-------|--------------|
-| **WallClock / Run** | `/run/:runtimeId`, `/tracker/:runtimeId` | The live execution screen. The JIT-compiled blocks run on the `RuntimeClock`; timers count, rounds advance, sound cues fire, and you log actual reps/load/RPE. |
+| **Clock / Run** | `/run/:runtimeId`, `/tracker/:runtimeId` | The live execution screen. The JIT-compiled blocks run on the `RuntimeClock`; timers count, rounds advance, sound cues fire, and you log actual reps/load/RPE. |
 
 During tracking the runtime emits **OutputStatements** carrying `runtime`-origin
 metrics (spans, elapsed, total, current round) plus any `user`-origin metrics you

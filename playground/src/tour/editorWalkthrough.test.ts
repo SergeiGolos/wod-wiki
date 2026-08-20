@@ -57,7 +57,7 @@ describe('line-aligned adventure scaffolding (#884)', () => {
       // Identical header/footer scaffolding across presets.
       expect(lines[0]).toBe('# 👋 Edit Me')
       expect(lines[2]).toBe('Change the reps, distance, or load below — this is live.')
-      expect(lines[close + 1]).toBe('> Press **Run** ↑ to start the WallClock.')
+      expect(lines[close + 1]).toBe('> Press **Run** ↑ to start the Clock.')
     }
   })
 
@@ -71,6 +71,6 @@ describe('line-aligned adventure scaffolding (#884)', () => {
     expect(lines[2]).toBe('Change the reps, distance, or load below — this is live.')
     expect(lines[open - 1]).toBe('```time')
     expect(lines[close - 1]).toBe('```')
-    expect(lines[close + 1]).toBe('> Press **Run** ↑ to start the WallClock.')
+    expect(lines[close + 1]).toBe('> Press **Run** ↑ to start the Clock.')
   })
 })

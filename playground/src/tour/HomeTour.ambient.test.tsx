@@ -165,7 +165,7 @@ function makeSlice(progress: number): TestSlice {
         label: 'What Happens When It Runs',
       },
       t,
-      ring: { key: 'timer.floor', tag: 'WallClock' },
+      ring: { key: 'timer.floor', tag: 'Clock' },
     }
   }
   if (progress < 0.5) {
