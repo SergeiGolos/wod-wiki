@@ -2,12 +2,9 @@
  * TourRing.tsx — the single gliding highlight ring + target registry.
  *
  * Screens register wrapper elements under RingTargetKeys; the ring measures
- * the active target relative to the (scaled) canvas and positions itself
- * with a CSS transition — position changes are discrete (stage/beat
- * boundaries), never per-frame layout thrash.
- *
- * The ring renders inside the fixed 1200×720 canvas coordinate space, so
- * measured rects are divided by the current canvas scale.
+ * the active target relative to its canvas and positions itself with a CSS
+ * transition — position changes are discrete (stage/beat boundaries), never
+ * per-frame layout thrash.
  */
 
 import {
@@ -19,8 +16,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { RingTargetKey } from './tourStages'
-import { TOUR_CANVAS_WIDTH } from './tourStages'
+import type { RingTargetKey } from './tourConstants'
 
 // ── Registry ────────────────────────────────────────────────────────────────
 
@@ -44,6 +40,10 @@ export function RingTargetsProvider({ children }: { children: ReactNode }) {
     'timer.floor': null,
     'timer.nextButton': null,
     'timer.castButton': null,
+    'analytics.vocab': null,
+    'analytics.table': null,
+    'analytics.graphs': null,
+    'analytics.dashboard': null,
   })
   const [version, setVersion] = useState(0)
 
@@ -86,8 +86,6 @@ export interface TourRingProps {
   target?: { key: RingTargetKey; tag?: string } | null
   accent: string
   canvasRef: React.RefObject<HTMLElement | null>
-  /** Set to true when measuring an unscaled window (e.g. mobile runway). */
-  unscaled?: boolean
 }
 
 interface RingBox {
@@ -97,7 +95,7 @@ interface RingBox {
   h: number
 }
 
-export function TourRing({ target, accent, canvasRef, unscaled }: TourRingProps) {
+export function TourRing({ target, accent, canvasRef }: TourRingProps) {
   const { registry, version } = useRingTargets()
   const [box, setBox] = useState<RingBox | null>(null)
   const targetKey = target?.key ?? null
@@ -116,15 +114,14 @@ export function TourRing({ target, accent, canvasRef, unscaled }: TourRingProps)
       }
       const elRect = el.getBoundingClientRect()
       const canvasRect = canvas.getBoundingClientRect()
-      const scale = unscaled ? 1 : canvasRect.width / TOUR_CANVAS_WIDTH || 1
-      // Round to whole canvas px: during a resize drag the subpixel noise
+      // Round to whole px: during a resize drag the subpixel noise
       // would otherwise restart the 500ms position transition every event
       // and the ring would smear/shimmer instead of staying glued.
       setBox({
-        x: Math.round((elRect.left - canvasRect.left) / scale),
-        y: Math.round((elRect.top - canvasRect.top) / scale),
-        w: Math.round(elRect.width / scale),
-        h: Math.round(elRect.height / scale),
+        x: Math.round(elRect.left - canvasRect.left),
+        y: Math.round(elRect.top - canvasRect.top),
+        w: Math.round(elRect.width),
+        h: Math.round(elRect.height),
       })
     }
     measure()
@@ -145,19 +142,18 @@ export function TourRing({ target, accent, canvasRef, unscaled }: TourRingProps)
   return (
     <div
       data-testid="tour-ring"
-      className="pointer-events-none absolute z-30 rounded-lg border-2 transition-all duration-500 ease-out"
+      className="pointer-events-none absolute z-30 rounded-2xl transition-all duration-500 ease-out"
       style={{
         left: box.x - pad,
         top: box.y - pad,
         width: box.w + pad * 2,
         height: box.h + pad * 2,
-        borderColor: accent,
-        boxShadow: `0 0 0 4px color-mix(in srgb, ${accent} 16%, transparent), 0 0 28px color-mix(in srgb, ${accent} 38%, transparent)`,
+        boxShadow: `0 0 0 2px ${accent}`,
       }}
     >
       {target.tag && (
         <span
-          className="absolute -top-0.5 -right-0.5 rounded-bl-md px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-white"
+          className="absolute -top-3 left-4 rounded-full px-2.5 py-1 font-mono text-[10px] tracking-[0.06em] text-background"
           style={{ background: accent }}
         >
           {target.tag}

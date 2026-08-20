@@ -9,7 +9,7 @@ import { render, screen, cleanup, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
 import type { TourMobileRunwayProps } from './TourMobileRunway'
-import type { TourStage } from './tourStages'
+import type { TourStage } from './tourConstants'
 import type { ScriptBlock } from '@/components/Editor/types'
 import { MOBILE_STICKY_TOP } from '../canvas/canvasUtils'
 
@@ -117,8 +117,12 @@ const installIO = () => {
   ;(globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver =
     MockIntersectionObserver
 }
+// The tour card driver's rootMargin — pinned exactly, because sibling
+// observers (e.g. the analytics runway's enter-view IO) share the -30%
+// bottom margin and would otherwise match a suffix selector.
+const readingZoneTop = () => Math.round(window.innerHeight / 2 + MOBILE_STICKY_TOP / 2)
 const cardObserver = () =>
-  MockIntersectionObserver.instances.find((o) => o.rootMargin.endsWith('-30% 0px'))
+  MockIntersectionObserver.instances.find((o) => o.rootMargin.startsWith(`-${readingZoneTop()}px`))
 const reachedObserver = () =>
   MockIntersectionObserver.instances.find((o) => o.rootMargin.startsWith(`-${MOBILE_STICKY_TOP + 1}px`))
 

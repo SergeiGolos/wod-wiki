@@ -211,14 +211,19 @@ export interface ScrollStage {
   id: string
   /** [start, end) runway progress, like TourStage. */
   range: [number, number]
+  /** Screen visible during this stage (e.g. 'editor' | 'timer' | 'analytics'). */
+  screen?: 'editor' | 'timer' | 'analytics'
+  /** Stage-bar label. */
+  label?: string
   /** wods/examples path; resolved via resolveSource. */
   source?: string
   /** Prose for the cross-fading caption column. */
   caption?: string
   /** CSS color; default hsl(var(--foreground)). */
   accent?: string
-  /** Highlight the editor this stage (single target, v1). */
-  ring?: { tag?: string } | true
+  /** Highlight the editor or a target element this stage. `lines` focuses a
+   *  1-based inclusive set of doc lines instead of the whole panel. */
+  ring?: { key?: string; tag?: string; lines?: [number, number] } | true
   /** Transient message at stage open. */
   toast?: string
   /** Quest id fired on stage entry. */
@@ -582,7 +587,18 @@ function parseScrollStages(lines: string[]): ScrollStage[] {
     const value = kv[2].trim()
 
     if (nested === 'ring') {
-      if (key === 'tag' && cur.ring && cur.ring !== true) cur.ring.tag = unquote(value)
+      if (cur.ring && cur.ring !== true) {
+        if (key === 'tag') cur.ring.tag = unquote(value)
+        if (key === 'key') cur.ring.key = unquote(value)
+        if (key === 'lines') {
+          const pair = parseNumberPair(value)
+          if (pair) {
+            const a = Math.max(1, Math.round(pair[0]))
+            const b = Math.max(1, Math.round(pair[1]))
+            cur.ring.lines = [Math.min(a, b), Math.max(a, b)]
+          }
+        }
+      }
       continue
     }
     if (nested === 'effects' && curEffect) {
@@ -605,6 +621,10 @@ function parseScrollStages(lines: string[]): ScrollStage[] {
         if (pair) cur.range = pair
         break
       }
+      case 'screen':
+        if (value === 'editor' || value === 'timer' || value === 'analytics') cur.screen = value
+        break
+      case 'label': cur.label = unquote(value); break
       case 'source': cur.source = unquote(value); break
       case 'caption': cur.caption = unquote(value); break
       case 'accent': cur.accent = unquote(value); break

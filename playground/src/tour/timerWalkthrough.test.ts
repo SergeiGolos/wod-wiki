@@ -13,46 +13,53 @@
  */
 
 import { describe, expect, it } from 'bun:test'
+import { readFileSync } from 'node:fs'
 import { TOUR_CAPTIONS } from './TourCaptions'
-import { TOUR_STAGES } from './tourStages'
+import { parseCanvasMarkdown } from '../canvas/parseCanvasMarkdown'
+
+const homeMarkdown = readFileSync(new URL('../../../markdown/canvas/home/README.md', import.meta.url), 'utf8')
+const homePage = parseCanvasMarkdown(homeMarkdown)
+const stages = homePage?.scroll?.stages ?? []
 
 const stage = (id: string) => {
-  const s = TOUR_STAGES.find((s) => s.id === id)
+  const s = stages.find((s) => s.id === id)
   if (!s) throw new Error(`stage ${id} missing`)
   return s
 }
 
 describe('timer walkthrough card ring targets (#885)', () => {
   it('card 1 highlights the whole timer view', () => {
-    expect(stage('timer-wallclock').ringA).toBe('timer.floor')
+    expect((stage('timer-wallclock').ring as any)?.key).toBe('timer.floor')
   })
 
   it('card 2 highlights the Next button', () => {
-    expect(stage('timer-next').ringA).toBe('timer.nextButton')
+    expect((stage('timer-next').ring as any)?.key).toBe('timer.nextButton')
   })
 
   it('card 3 highlights the timer header cast button', () => {
-    expect(stage('timer-cast').ringA).toBe('timer.castButton')
+    expect((stage('timer-cast').ring as any)?.key).toBe('timer.castButton')
   })
 })
 
 describe('timer walkthrough card order (#885)', () => {
-  it('runs exactly three timer cards after the editor cards and ends the runway', () => {
-    const timerStages = TOUR_STAGES.filter((s) => s.screen === 'timer')
+  it('runs exactly three timer cards after the editor cards, before the WQL analytics beats', () => {
+    const timerStages = stages.filter((s) => s.screen === 'timer')
     expect(timerStages.map((s) => s.id)).toEqual(['timer-wallclock', 'timer-next', 'timer-cast'])
 
-    const ids = TOUR_STAGES.map((s) => s.id)
+    const ids = stages.map((s) => s.id)
     expect(ids.indexOf('timer-wallclock')).toBeGreaterThan(ids.indexOf('editor-run'))
-    expect(ids.indexOf('timer-cast')).toBe(ids.length - 1)
+    expect(ids.indexOf('timer-cast')).toBeLessThan(ids.indexOf('wql-idea'))
+    expect(ids[ids.length - 1]).toBe('wql-live')
   })
 
   it('the Chromecast broadcast card is its own slide again, after Next', () => {
-    const ids = TOUR_STAGES.map((s) => s.id)
+    const ids = stages.map((s) => s.id)
     expect(ids.indexOf('timer-cast')).toBeGreaterThan(ids.indexOf('timer-next'))
     expect(TOUR_CAPTIONS.some((c) => c.id === 'timer-cast')).toBe(true)
-    // Stage ranges stay contiguous and ordered; cast is the final slide.
-    expect(stage('timer-cast').start).toBe(stage('timer-next').end)
-    expect(stage('timer-cast').end).toBe(1.0)
+    // Stage ranges stay contiguous and ordered; the WQL beats close the runway.
+    expect(stage('timer-cast').range[0]).toBe(stage('timer-next').range[1])
+    expect(stage('timer-cast').range[1]).toBe(stage('wql-idea').range[0])
+    expect(stage('wql-live').range[1]).toBe(1.0)
   })
 })
 

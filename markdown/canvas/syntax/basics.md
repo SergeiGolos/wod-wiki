@@ -53,6 +53,7 @@ stages:
     quest: basics-movement
     ring:
       tag: "```time"
+      lines: [1, 1]
   - id: three-rules
     range: [0.16, 0.34]
     source: wods/examples/syntax/core-rules.md
@@ -78,6 +79,7 @@ stages:
     caption: Wrap non-movement instructions in square brackets — `[Setup Barbell]` appears in the timer as a cue card. Prefix a line with `//` for a passive coach annotation that never affects the timer.
     ring:
       tag: "[Setup]"
+      lines: [2, 4]
   - id: next
     range: [0.88, 1.0]
     caption: You know the core syntax. Continue below for the full structure guide — or keep playing in the editor above.

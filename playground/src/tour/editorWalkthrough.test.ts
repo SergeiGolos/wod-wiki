@@ -18,25 +18,29 @@ import {
   WORKOUT_PRESETS,
   buildAdventureScript,
 } from './TourCaptions'
-import { TOUR_STAGES } from './tourStages'
+import { parseCanvasMarkdown } from '../canvas/parseCanvasMarkdown'
+
+const homeMarkdown = readFileSync(new URL('../../../markdown/canvas/home/README.md', import.meta.url), 'utf8')
+const homePage = parseCanvasMarkdown(homeMarkdown)
+const stages = homePage?.scroll?.stages ?? []
 
 const stage = (id: string) => {
-  const s = TOUR_STAGES.find((s) => s.id === id)
+  const s = stages.find((s) => s.id === id)
   if (!s) throw new Error(`stage ${id} missing`)
   return s
 }
 
 describe('editor walkthrough card ring targets (#884)', () => {
   it('card 1 highlights the whole editor window', () => {
-    expect(stage('editor-blank').ringA).toBe('editor.window')
+    expect((stage('editor-blank').ring as any)?.key).toBe('editor.window')
   })
 
   it('card 2 highlights only the fenced block', () => {
-    expect(stage('editor-metrics').ringA).toBe('editor.wodBlock')
+    expect((stage('editor-metrics').ring as any)?.key).toBe('editor.wodBlock')
   })
 
   it('card 3 highlights the Run button', () => {
-    expect(stage('editor-run').ringA).toBe('editor.runButton')
+    expect((stage('editor-run').ring as any)?.key).toBe('editor.runButton')
   })
 })
 

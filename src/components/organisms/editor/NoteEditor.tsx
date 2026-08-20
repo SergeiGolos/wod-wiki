@@ -57,8 +57,8 @@ import { inlineButtonDecoration, type ButtonAction } from '@bitcobblers/wod-wiki
 import { sectionGeometry } from '@bitcobblers/wod-wiki-ui/extensions';
 import { linkOpen } from '@bitcobblers/wod-wiki-ui/extensions';
 import { gutterUnified } from '@bitcobblers/wod-wiki-ui/extensions';
-import { cursorFocusExtension, getCursorFocusState } from '@bitcobblers/wod-wiki-ui/extensions';
 import { lineIdsExtension } from '@bitcobblers/wod-wiki-ui/extensions';
+import { cursorFocusExtension, getCursorFocusState } from "@/app/editor/cursorFocusExtension";
 
 import { createParser } from '@bitcobblers/wod-wiki-engine';
 import type { INotePersistence } from "@/services/persistence";
@@ -447,7 +447,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
       // Inline metric hover tooltip
 
-      // Cursor focus: mark decorations + focus state for MetricInlinePanel
+      // Cursor focus: token-level metric highlighting, closing-fence widget, and cursor state
       cursorFocusExtension,
 
       // Unified gutter: lint diagnostics + runtime highlights in one column

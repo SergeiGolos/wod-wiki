@@ -30,7 +30,7 @@ import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import type { Segment } from '@bitcobblers/wod-wiki-engine'
 import type { Quest } from '../hooks/usePageQuests'
-import type { Chapter, ScrollSpec } from '../canvas/parseCanvasMarkdown'
+import type { Chapter, ScrollSpec, ScrollStage } from '../canvas/parseCanvasMarkdown'
 import { useQuickStartAutoComplete } from '../hooks/useQuickStartAutoComplete'
 import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
 import { useRunStartedChallenge } from '../hooks/useRunStartedChallenge'
@@ -39,29 +39,28 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import {
   RingTargetsProvider,
   TourRing,
+  useRingRef,
 } from './TourRing'
-import { useTourScroll, scrollRunwayTo } from './useTourScroll'
+import { useScrollRunway, scrollRunwayTo } from '../canvas/useScrollRunway'
+import type { ScrollSlice } from '../canvas/scrollRunway'
 import {
   SCREEN_TITLES,
-  TOUR_CANVAS_HEIGHT,
-  TOUR_CANVAS_WIDTH,
   TOUR_RUNWAY_HEIGHT,
-  TOUR_STAGES,
+  TOUR_ACCENTS,
   type TourScreen,
-  type TourStage,
   type TourStageId,
-  type TourStageSlice,
-} from './tourStages'
+  type RingTargetKey,
+} from './tourConstants'
 import { TourHero } from './TourHero'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourCaptions, buildAdventureScript } from './TourCaptions'
 import { TourTvCard } from './TourTvCard'
 import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
+import { TourAnalyticsShowcaseScreen } from './screens/TourAnalyticsShowcaseScreen'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { CelebrationBridge } from './CelebrationBridge'
 import { ChapterScrollTour } from './ChapterScrollTour'
-import { HomeAnalyticsSection } from './HomeAnalyticsSection'
 import { TourRegistrySection } from './TourRegistrySection'
 import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
@@ -86,11 +85,119 @@ const fmtClock = (ms: number) => {
 const HOME_DEMO_SOURCE = 'wods/examples/home/welcome-1.md'
 
 /** Home quest id → the tour stage that demonstrates it. */
-const HOME_QUEST_STAGE: Record<string, TourStageId> = {
+const HOME_QUEST_STAGE: Record<string, string> = {
   'qs-tour-timer': 'timer-wallclock',
   'qs-edit': 'timer-wallclock',
   'qs-run': 'timer-wallclock',
+  'qs-tour-analytics': 'wql-idea',
 }
+
+const DEFAULT_HOME_STAGES: ScrollStage[] = [
+  {
+    id: 'editor-blank',
+    range: [0.0, 0.12],
+    screen: 'editor',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Blank Page & Typeahead',
+    source: HOME_DEMO_SOURCE,
+    caption: 'Start with a Blank Page. Freeform entry & WOD fences.',
+    ring: { key: 'editor.window', tag: 'Live Editor' },
+  },
+  {
+    id: 'editor-metrics',
+    range: [0.12, 0.24],
+    screen: 'editor',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Every Line Collects Metrics',
+    source: HOME_DEMO_SOURCE,
+    caption: 'Every Line Collects Metrics. Reps, distance & load.',
+    ring: { key: 'editor.wodBlock', tag: 'Line Metrics' },
+  },
+  {
+    id: 'editor-run',
+    range: [0.24, 0.36],
+    screen: 'editor',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Press Run to Start',
+    source: HOME_DEMO_SOURCE,
+    caption: 'Press Run to Execute. Launch the working clock.',
+    ring: { key: 'editor.runButton', tag: 'Run Button' },
+  },
+  {
+    id: 'timer-wallclock',
+    range: [0.36, 0.47],
+    screen: 'timer',
+    accent: TOUR_ACCENTS.timer,
+    label: 'What Happens When It Runs',
+    source: HOME_DEMO_SOURCE,
+    caption: 'What Happens When It Runs. The script becomes the clock.',
+    ring: { key: 'timer.floor', tag: 'WallClock' },
+  },
+  {
+    id: 'timer-next',
+    range: [0.47, 0.57],
+    screen: 'timer',
+    accent: TOUR_ACCENTS.timer,
+    label: 'Advance Rounds with Next',
+    source: HOME_DEMO_SOURCE,
+    caption: 'Next Advances the Workout. Every click locks a time.',
+    ring: { key: 'timer.nextButton', tag: 'Next Button' },
+  },
+  {
+    id: 'timer-cast',
+    range: [0.57, 0.65],
+    screen: 'timer',
+    accent: TOUR_ACCENTS.timer,
+    label: 'Cast to the Big Screen',
+    source: HOME_DEMO_SOURCE,
+    caption: 'Cast to the Big Screen. Real-time mirror for the gym floor.',
+    ring: { key: 'timer.castButton', tag: 'Cast' },
+  },
+  {
+    id: 'wql-idea',
+    range: [0.65, 0.72],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: 'Query what you just did',
+    caption: 'Query what you just did. Every result is one query away.',
+    ring: { key: 'analytics.vocab', tag: 'WQL elements' },
+  },
+  {
+    id: 'wql-table',
+    range: [0.72, 0.79],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: 'Read it as a list',
+    caption: 'Read it as a list. One aggregator, one metric, one dimension.',
+    ring: { key: 'analytics.table', tag: 'Table list' },
+  },
+  {
+    id: 'wql-graphs',
+    range: [0.79, 0.86],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: 'See it as trends',
+    caption: 'See it as trends. A graph is a rollup away.',
+    ring: { key: 'analytics.graphs', tag: 'Graphs' },
+  },
+  {
+    id: 'wql-dashboard',
+    range: [0.86, 0.93],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: 'Compose a dashboard',
+    caption: 'Compose a dashboard. N queries on one screen.',
+    ring: { key: 'analytics.dashboard', tag: 'Dashboard' },
+  },
+  {
+    id: 'wql-live',
+    range: [0.93, 1.0],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: "It's your data",
+    caption: "It's your data. Open the Dashboards tab to query anything, your way.",
+  },
+]
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
@@ -117,13 +224,16 @@ export interface HomeTourProps {
   chapters: Chapter[]
   /** Cross-page quest id → label, collected from every canvas route. */
   questLabels?: Record<string, string>
+  /** Main tour ```scroll runway spec. */
+  scroll?: ScrollSpec | null
   /** The ```scroll:chapters runway spec (six chapter stages) from the home canvas markdown. */
   chapterScroll?: ScrollSpec
 }
 
 // ── Inner (needs RingTargetsContext) ──────────────────────────────────────────
 
-function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapterScroll }: HomeTourProps) {
+function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll, chapterScroll }: HomeTourProps) {
+  const stages = scroll?.stages ?? DEFAULT_HOME_STAGES
   const isMobile = useIsMobile()
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const telemetry = useTelemetry()
@@ -131,9 +241,18 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
   const navigate = useNavigate()
 
   const runwayRef = useRef<HTMLElement | null>(null)
-  const analyticsSectionRef = useRef<HTMLDivElement | null>(null)
-  const canvasRef = useRef<HTMLDivElement | null>(null)
   const canvasInnerRef = useRef<HTMLDivElement | null>(null)
+  // The whole desktop tour window (the canvas wrapper OUTSIDE the MacOS
+  // chrome) is the 'editor.window' ring target — the ring frames it on
+  // top of the window, not as a layer inside the chrome body.
+  const editorWindowRef = useRingRef('editor.window')
+  // Stable identity: an inline arrow here would detach/reattach every
+  // render, and each attach bumps the registry version → re-render loop.
+  const canvasInnerRingRef = useCallback((el: HTMLDivElement | null) => {
+    canvasInnerRef.current = el
+    editorWindowRef(el)
+  }, [editorWindowRef])
+  const canvasRef = useRef<HTMLDivElement | null>(null)
   const tvCardRef = useRef<HTMLDivElement | null>(null)
   const toastRef = useRef<HTMLDivElement | null>(null)
 
@@ -178,19 +297,18 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
   const [interactive, setInteractive] = useState<'timer' | 'analytics' | null>(null)
 
   // ── Mobile runway stage (card-visibility driven; inert on desktop) ──
-  const [mobileStage, setMobileStage] = useState<TourStage | null>(null)
+  const [mobileStage, setMobileStage] = useState<ScrollStage | null>(null)
   const mobileRunwayApiRef = useRef<TourMobileRunwayApi | null>(null)
   const isMobileRef = useRef(isMobile)
   isMobileRef.current = isMobile
-  const mobileStageRef = useRef<TourStage | null>(null)
+  const mobileStageRef = useRef<ScrollStage | null>(null)
   mobileStageRef.current = mobileStage
-  const handleMobileStageChange = useCallback((stage: TourStage) => setMobileStage(stage), [])
+  const handleMobileStageChange = useCallback((stage: any) => setMobileStage(stage), [])
 
   // ── Scroll driver ──
-  const { slice, subscribe, resync, runwayReached } = useTourScroll(runwayRef, interactive !== null)
+  const { slice, subscribe, resync, runwayReached } = useScrollRunway(runwayRef, interactive !== null, stages)
 
-  const activeScreen: TourScreen = interactive ?? slice.stage.screen
-
+  const activeScreen: TourScreen = interactive ?? (slice.stage.screen as TourScreen | undefined) ?? 'editor'
   // ── Lazy screen mounting (mounted once entered, kept alive after) ──
   const [entered, setEntered] = useState<Record<TourScreen, boolean>>({
     editor: true,
@@ -282,8 +400,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
   const prevInTimerStageRef = useRef(inTimerStage)
   // Screen at completion time — read inside handleTimerComplete (stable
   // callback) to decide whether a scroll-mode completion should auto-slide.
-  const stageScreenRef = useRef<TourScreen>(slice.stage.screen)
-  stageScreenRef.current = slice.stage.screen
+  const stageScreenRef = useRef<TourScreen>((slice.stage.screen as TourScreen | undefined) ?? 'editor')
+  stageScreenRef.current = (slice.stage.screen as TourScreen | undefined) ?? 'editor'
 
   useEffect(() => {
     if (inTimerStage && !prevInTimerStageRef.current) {
@@ -323,9 +441,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
     return () => window.clearInterval(id)
   }, [activeScreen])
 
-  // ── Quests (preserved from the markdown-driven home) ──
-  // qs-edit validates on edits to the HERO demo ("Change the workout"), not
-  // the scripted runway typeahead.
   useQuickStartAutoComplete({
     pageRoute: '/',
     quests,
@@ -346,27 +461,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
     markStageViewed(mobileStage.id)
   }, [isMobile, interactive, mobileStage, markStageViewed])
 
-  // The analytics story is now the WQL-elements showcase section (#938), not a
-  // runway stage — completing its quest fires when the showcase scrolls into
-  // view, on any form factor (it is one static section, no scroll driver).
-  useEffect(() => {
-    const el = analyticsSectionRef.current
-    if (!el || typeof IntersectionObserver === 'undefined') return
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          markStageViewed('analytics')
-          io.disconnect()
-        }
-      },
-      { rootMargin: '-30% 0px' },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [markStageViewed])
+  // Analytics is the final screen in the canonical runway; quest navigation
+  // targets the same sticky runway rather than a second scroll driver.
 
   // The qs-tour-timer interaction quest validates on a *visitor-initiated* run.
-  // Driven from the Run click (startRun), not the runtime 'running' status: the
   // ambient scroll demo intentionally auto-runs, and must never validate the
   // quest (production builds fired the runtime callback on load).
   const [demoRunning, setDemoRunning] = useState(false)
@@ -384,12 +482,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
   useRunStartedChallenge({ pageRoute: '/', quests: tourRunQuests, running: demoRunning })
 
   const handleHomeQuestClick = useCallback((questId: string) => {
-    // The analytics story is now the WQL-elements showcase section (#938), not
-    // a runway stage — scroll straight to it.
-    if (questId === 'qs-tour-analytics') {
-      analyticsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      return
-    }
     const stageId = HOME_QUEST_STAGE[questId]
     if (!stageId) return
     if (mobileRunwayApiRef.current) {
@@ -398,9 +490,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
     }
     const el = runwayRef.current
     if (!el) return
-    const stage = TOUR_STAGES.find((s) => s.id === stageId)
-    if (stage) scrollRunwayTo(el, Math.min(stage.start + 0.02, stage.end - 0.005))
-  }, [])
+    const stage = stages.find((s) => s.id === stageId)
+    if (stage) scrollRunwayTo(el, Math.min(stage.range[0] + 0.02, stage.range[1] - 0.005))
+  }, [stages])
 
   // ── Hero interactions (self-contained editor context) ──
   const handleHeroDocChange = useCallback(
@@ -590,10 +682,12 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
 
       if (!wasPlaygroundRun) {
         // Scroll-mode completion (#885): clicking Next through to the end of
-        // the run carries the visitor to the WQL analytics showcase (#938) —
-        // the session-review runway cards it used to auto-slide to are gone.
+        // the run slides the shared window into the WQL analytics beats —
+        // the first analytics stage of the canonical runway.
         if (results.completed) {
-          analyticsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          const el = runwayRef.current
+          const first = stages.find((s) => s.screen === 'analytics')
+          if (el && first) scrollRunwayTo(el, Math.min(first.range[0] + 0.01, first.range[1] - 0.005))
         }
         return
       }
@@ -628,7 +722,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
         setLogState('failed')
       })
     },
-    [],
+    [stages],
   )
 
   const handleTimerClose = useCallback(() => {
@@ -714,28 +808,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
     </div>
   )
 
-  // ── Canvas scaling (desktop only) ──
-  const scaleRef = useRef(1)
-  useEffect(() => {
-    const canvas = canvasRef.current
-    const inner = canvasInnerRef.current
-    if (!canvas || !inner) return
-    const fit = () => {
-      scaleRef.current = canvas.clientWidth / TOUR_CANVAS_WIDTH
-      inner.style.transform = `scale(${scaleRef.current})`
-    }
-    fit()
-    window.addEventListener('resize', fit)
-    return () => window.removeEventListener('resize', fit)
-  }, [])
-
   // ── Imperative scrub: TV parallax + toast ──
   useEffect(() => {
-    return subscribe((s: TourStageSlice) => {
+    return subscribe((s: ScrollSlice) => {
       const tv = tvCardRef.current
       if (tv) {
         if (s.stage.id === 'timer-cast') {
-          const k = clamp01((s.t - 0.1) / 0.5)
+          const k = clamp01((s.t - 0.2) / 0.5)
           const e = 1 - Math.pow(1 - k, 2)
           tv.style.opacity = String(k)
           tv.style.transform = `translateY(${lerp(90, 0, e)}px)`
@@ -746,7 +825,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
 
       const toast = toastRef.current
       if (toast) {
-        if (s.index === TOUR_STAGES.length - 1) {
+        if (s.index === stages.length - 1) {
           const tIn = clamp01((s.t - 0.04) / 0.2)
           const tOut = clamp01((s.t - 0.7) / 0.2)
           toast.style.opacity = String(Math.max(0, tIn - tOut))
@@ -756,7 +835,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
         }
       }
     })
-  }, [subscribe])
+  }, [subscribe, stages.length])
 
   // ── Reduced-motion stack (flat cards — sticky scroll is opted out) ──
   if (prefersReducedMotion) {
@@ -863,7 +942,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
               {interactive ? 'Playground mode' : slice.stage.label}
             </div>
             <div className="flex items-center gap-1.5">
-              {TOUR_STAGES.map((seg, i) => {
+              {stages.map((seg, i) => {
                 const live = slice.index === i
                 const done = slice.index > i
                 return (
@@ -873,7 +952,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
                     style={{
                       width: live ? 30 : 10,
                       background: live
-                        ? seg.accent
+                        ? (seg.accent ?? TOUR_ACCENTS.editor)
                         : done
                           ? 'hsl(var(--foreground))'
                           : 'hsl(var(--foreground) / 0.15)',
@@ -889,13 +968,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
             {/* canvas */}
             <div
               ref={canvasRef}
-              className="relative aspect-[1200/720] w-[min(920px,calc(100vw-440px))] min-w-0 shrink"
+              data-screen={activeScreen}
+              className={`relative min-w-0 shrink ${activeScreen === 'analytics' ? 'h-[min(720px,calc(100vh-180px))] w-[min(1040px,calc(100vw-400px))]' : 'aspect-[1200/720] w-[min(920px,calc(100vw-440px))]'}`}
             >
-              <div
-                ref={canvasInnerRef}
-                className="absolute top-0 left-0 origin-top-left will-change-transform"
-                style={{ width: TOUR_CANVAS_WIDTH, height: TOUR_CANVAS_HEIGHT }}
-              >
+              <div ref={canvasInnerRingRef} className="absolute inset-0 transition-[width,height] duration-300">
                 <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-x-2 top-2 bottom-2">
                   <div className="relative h-full">
                     {interactive === null && entered.editor && (
@@ -928,7 +1004,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
                         />
                       </Screen>
                     )}
-
+                    {interactive === null && entered.analytics && (
+                      <Screen visible={activeScreen === 'analytics'}>
+                        <TourAnalyticsShowcaseScreen activeStageId={slice.stage.id} />
+                      </Screen>
+                    )}
                     {/* stop toast mirrors the ambient scroll-mode runtime finishing. */}
                     <div
                       ref={toastRef}
@@ -947,7 +1027,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
                     the clock and the Stop/Pause/Next controls. */}
                 <TourTvCard ref={tvCardRef} runtime={tourRuntime} />
 
-                <TourRing target={interactive ? null : slice.ring} accent={slice.stage.accent} canvasRef={canvasInnerRef} />
+                <TourRing target={interactive || !slice.ring?.key ? null : { key: slice.ring.key as RingTargetKey, tag: slice.ring.tag }} accent={slice.stage.accent ?? TOUR_ACCENTS.editor} canvasRef={canvasInnerRef} />
               </div>
             </div>
 
@@ -957,13 +1037,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, chapter
         </div>
       </section>
 
-      {/* WQL-elements analytics showcase (#938) — replaces the runway's
-          single-workout session-review stages with the query vocabulary and
-          the presentations it drives. */}
-      <div ref={analyticsSectionRef}>
-        <HomeAnalyticsSection />
-      </div>
-
+      {/* Analytics shares the canonical editor/timer sticky runway. */}
       <CelebrationBridge chapters={chapters} />
 
       {/* Six Syntax Chapters — markdown ```scroll:chapters runway (same format as the hero) */}

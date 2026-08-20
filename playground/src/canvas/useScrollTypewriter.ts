@@ -6,8 +6,10 @@
  * stage owns a script (its resolved `source`), and crossing a stage
  * boundary rewinds — the new stage's source types in from scratch
  * (per-stage restart: one concept per stage). Within a stage the char
- * count follows quadOut(local t) over the whole stage for a calmer feel
- * than the tour's linear window.
+ * count follows quadOut over TYPEWRITER_WINDOW of the local t — the
+ * script is fully written a quarter of the way through the stage, and
+ * the remaining span holds the complete text (a reading pause with the
+ * caption) before the next stage boundary starts the next script.
  *
  * Stages without a source hold the previous editor content. Divergence
  * detection is copied verbatim from the tour: an edit that is neither
@@ -17,6 +19,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { clamp01, quadOut, type ScrollSlice } from './scrollRunway'
+
+/**
+ * Fraction of a stage's local scroll span the typewriter types over.
+ * At t >= TYPEWRITER_WINDOW the script is complete and holds.
+ */
+export const TYPEWRITER_WINDOW = 0.25
 
 export interface UseScrollTypewriterArgs {
   /** Stage id → resolved script (resolveSource output), pre-resolved. */
@@ -110,7 +118,9 @@ export function useScrollTypewriter({
       const chars =
         slice.index === 0
           ? script.length
-          : Math.floor(quadOut(clamp01(slice.t)) * script.length)
+          : Math.floor(
+              quadOut(clamp01(slice.t / TYPEWRITER_WINDOW)) * script.length,
+            )
       const target = script.slice(0, chars)
       const currentDoc = docRef.current
 

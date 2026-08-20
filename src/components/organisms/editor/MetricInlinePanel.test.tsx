@@ -34,8 +34,11 @@ function makeSection(): EditorSection {
 function createMockView() {
   return {
     coordsAtPos: () => ({ bottom: 100, left: 0 }),
+    dom: {
+      getBoundingClientRect: () => ({ top: 0, left: 0, width: 500, height: 200 }),
+    },
     contentDOM: {
-      getBoundingClientRect: () => ({ left: 0, width: 500 }),
+      getBoundingClientRect: () => ({ top: 0, left: 0, width: 500 }),
     },
     state: {} as unknown as EditorState,
   };

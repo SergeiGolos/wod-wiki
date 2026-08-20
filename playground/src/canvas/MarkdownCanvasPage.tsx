@@ -37,7 +37,7 @@ import type { ScriptBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { executeNavAction, pipelineStepToNavAction, type NavActionDeps } from '../nav/navTypes'
 import { notePersistence } from '@/services/persistence'
-
+import { useStickyBoundaryOffset } from '@/panels/page-shells'
 export interface MarkdownCanvasPageProps {
   page: ParsedCanvasPage
   wodFiles: Record<string, string>
@@ -257,31 +257,13 @@ export function MarkdownCanvasPage({
   const depsRef = useRef(deps)
   depsRef.current = deps
 
-  // Scroll tracking rootMargin calculation
-  const [activeScrollRootMargin, setActiveScrollRootMargin] = useState(`-${STICKY_NAV_HEIGHT}px 0px -30% 0px`)
-
-  useEffect(() => {
-    const updateRootMargin = () => {
-      const isMobileViewport = window.innerWidth < 1024
-      const hasStickyMobilePanel = !!document.querySelector('.lg\\:hidden.sticky')
-      
-      if (isMobileViewport && hasStickyMobilePanel) {
-        const viewportHeight = window.innerHeight
-        const topOffset = Math.round((viewportHeight / 2) + (MOBILE_STICKY_TOP / 2))
-        setActiveScrollRootMargin(`-${topOffset}px 0px -30% 0px`)
-      } else {
-        setActiveScrollRootMargin(`-${STICKY_NAV_HEIGHT}px 0px -30% 0px`)
-      }
-    }
-    
-    updateRootMargin()
-    window.addEventListener('resize', updateRootMargin)
-    const timer = setTimeout(updateRootMargin, 150)
-    return () => {
-      window.removeEventListener('resize', updateRootMargin)
-      clearTimeout(timer)
-    }
-  }, [contentSections])
+  // The sticky boundary measures the actual visible panel/header stack. This
+  // keeps section tracking correct when the editor frame becomes content-sized.
+  const stickyViewportOffset = useStickyBoundaryOffset(STICKY_NAV_HEIGHT)
+  const activeScrollRootMargin = useMemo(
+    () => `-${stickyViewportOffset}px 0px -30% 0px`,
+    [stickyViewportOffset],
+  )
 
   // Scroll tracking
   const hasUserScrolledRef = useRef(false)
@@ -317,24 +299,13 @@ export function MarkdownCanvasPage({
       const el = document.querySelector(`[data-section-id="${headingParam}"]`)
       if (!el) return
       
-      const isMobileViewport = window.innerWidth < 1024
-      const hasStickyMobilePanel = !!document.querySelector('.lg\\:hidden.sticky')
-      
-      let offset = STICKY_NAV_HEIGHT
-      if (isMobileViewport) {
-        if (hasStickyMobilePanel) {
-          const viewportHeight = window.innerHeight
-          offset = (viewportHeight / 2) + (MOBILE_STICKY_TOP / 2) + 8
-        } else {
-          offset = MOBILE_STICKY_TOP + 10
-        }
-      }
-      
+      const offset = stickyViewportOffset + 8
       const top = (el as HTMLElement).getBoundingClientRect().top + window.scrollY - offset
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
     })
-  }, [contentSections, headingParam])
+  }, [contentSections, headingParam, stickyViewportOffset])
 
+  // Collection query scroll
   // Collection query scroll
   const previousCollectionQueryRef = useRef(collectionQuery)
   useEffect(() => {
@@ -347,25 +318,12 @@ export function MarkdownCanvasPage({
     if (nextQuery && nextQuery !== previousQuery) {
       const listElement = document.getElementById('collection-workouts')
       if (listElement) {
-        const isMobileViewport = window.innerWidth < 1024
-        const hasStickyMobilePanel = !!document.querySelector('.lg\\:hidden.sticky')
-        
-        let offset = STICKY_NAV_HEIGHT
-        if (isMobileViewport) {
-          if (hasStickyMobilePanel) {
-            const viewportHeight = window.innerHeight
-            offset = (viewportHeight / 2) + (MOBILE_STICKY_TOP / 2) + 8
-          } else {
-            offset = MOBILE_STICKY_TOP + 10
-          }
-        }
-        
-        const top = listElement.getBoundingClientRect().top + window.scrollY - offset
-        window.scrollTo({ top, behavior: 'smooth' })
+        const top = listElement.getBoundingClientRect().top + window.scrollY - stickyViewportOffset - 8
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
       }
     }
     previousCollectionQueryRef.current = collectionQuery
-  }, [collectionQuery, isCollection])
+  }, [collectionQuery, isCollection, stickyViewportOffset])
 
   // Panel actions ready
   const onPanelActionsReadyRef = useRef(onPanelActionsReady)
@@ -430,21 +388,6 @@ export function MarkdownCanvasPage({
     },
     [],
   )
-  const panelContent = (
-    <CanvasPanelContent
-      editorSource={editorSource}
-      editorOpacity={editorOpacity}
-      activeOriginalSource={activeOriginalSource}
-      handleEditorChange={handleEditorChange}
-      resetActiveSource={resetActiveSource}
-      canvasNoteId={canvasNoteId}
-      theme={theme}
-      commands={canvasCommands}
-      activeSectionId={activeSectionId}
-      onBlocksChange={handleBlocksChange}
-      onViewCreated={setEditorView}
-    />
-  )
 
 
   // Goal Gradient (ADR-0010): the home page gets an onboarding credit/progress
@@ -470,31 +413,50 @@ export function MarkdownCanvasPage({
 
   const activeHeaderActions = panelHeaderActions
 
+  const panelContent = (
+    <CanvasPanelContent
+      editorSource={editorSource}
+      editorOpacity={editorOpacity}
+      activeOriginalSource={activeOriginalSource}
+      handleEditorChange={handleEditorChange}
+      resetActiveSource={resetActiveSource}
+      canvasNoteId={canvasNoteId}
+      theme={theme}
+      commands={canvasCommands}
+      activeSectionId={activeSectionId}
+      onBlocksChange={handleBlocksChange}
+      onViewCreated={setEditorView}
+      panelTitle={panelTitle}
+      panelSubtitle={panelSubtitle}
+      panelThemeClass={activePanelTheme.panel}
+      headerActions={activeHeaderActions}
+      onRun={(_doc, block) => {
+        if (block) runtime.setFullscreen({ kind: 'timer', block, results: null })
+      }}
+    />
+  )
+
   const desktopPanel = viewDef && (
     <CanvasEditorPanel
       variant="desktop"
-      panelTitle={panelTitle}
-      panelSubtitle={panelSubtitle}
       panelContent={panelContent}
-      panelThemeClass={activePanelTheme.panel}
-      headerActions={activeHeaderActions}
+      viewDefButtons={viewDef.buttons}
       runState={runtime.runState}
       deps={deps}
       width={editorWidth}
+      source={editorSource}
     />
   )
 
   const mobilePanel = viewDef && (
     <CanvasEditorPanel
       variant="mobile"
-      panelTitle={panelTitle}
-      panelSubtitle={panelSubtitle}
       panelContent={panelContent}
-      panelThemeClass={activePanelTheme.panel}
-      headerActions={activeHeaderActions}
       viewDefButtons={viewDef.buttons}
       runState={runtime.runState}
       deps={deps}
+      width={editorWidth}
+      source={editorSource}
     />
   )
 

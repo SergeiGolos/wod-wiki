@@ -622,6 +622,31 @@ Body prose.
       expect(getSectionProse(page!.sections[1])).not.toContain('stages:')
     })
 
+    it('parses ring lines (normalized, 1-based) alongside tag/key', () => {
+      const page = parseCanvasMarkdown(`---
+template: canvas
+route: /guide/scroll
+---
+
+\`\`\`scroll
+stages:
+  - id: one
+    range: [0, 0.5]
+    ring:
+      tag: "\`\`\`time"
+      lines: [2, 4]
+  - id: two
+    range: [0.5, 1]
+    ring:
+      lines: [3, 1]
+\`\`\`
+`)
+
+      expect(page?.scroll?.stages[0]?.ring).toEqual({ tag: '```time', lines: [2, 4] })
+      // Inverted pair is normalized to ascending, clamped to line 1+.
+      expect(page?.scroll?.stages[1]?.ring).toEqual({ lines: [1, 3] })
+    })
+
     it('captures a named scroll block into namedScrolls alongside the primary', () => {
       const page = parseCanvasMarkdown(`---
 template: canvas
