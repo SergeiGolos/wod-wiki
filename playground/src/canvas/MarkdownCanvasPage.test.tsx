@@ -3,6 +3,13 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { useEffect } from 'react'
 
 import type { NoteEditorProps } from '@/components/organisms/editor/NoteEditor'
+import type { HistoryEntry } from '@/types/history'
+import type {
+  INotePersistence,
+  NoteLocator,
+  NoteMutation,
+  NoteQuery,
+} from '@/services/persistence'
 import type { WorkoutResult } from '@/types/storage'
 
 import type { PanelActions } from './MarkdownCanvasPage'
@@ -43,32 +50,59 @@ mock.module('nuqs', () => ({
   parseAsStringEnum: () => ({ withDefault: () => 'all' }),
 }))
 
-mock.module('@/services/persistence', () => ({
-  notePersistence: {
-    listNotes: async ({ ids }: { ids?: string[] }) => {
-      if (!ids || ids.length === 0) return []
-      return ids.map(id => ({
-        id,
-        title: id,
-        rawContent: '',
-        tags: [],
-        createdAt: 0,
-        updatedAt: 0,
-        schemaVersion: 1,
-        extendedResults: storedResults.filter(r => r.noteId === id),
-      }))
-    },
-    mutateNote: async (locator: unknown, mutation: { workoutResult?: any }) => {
-      if (mutation.workoutResult) {
-        const result = mutation.workoutResult
-        const noteId = typeof locator === 'string' ? locator : (locator as any)?.id ?? 'canvas:home'
-        const saved = { ...result, noteId, segmentId: result.sectionId }
-        saveResultCalls.push(saved)
-        storedResults.unshift(saved)
-      }
-      return {}
-    },
+// The canvas page pulls in the workbench runtime via `@/panels/page-shells`
+// (useStickyBoundaryOffset), whose providers call createNotePersistence —
+// the mock must export it or ESM linking against the mock fails.
+const fakeNotePersistence: INotePersistence = {
+  async createNote() {
+    return fakeEntry('created')
   },
+  async getNote(locator: NoteLocator) {
+    return fakeEntry(typeof locator === 'string' ? locator : locator.id)
+  },
+  async listNotes(query: NoteQuery = {}) {
+    const ids = query.ids ?? []
+    if (ids.length === 0) return []
+    return ids.map(id => ({
+      ...fakeEntry(id),
+      extendedResults: storedResults.filter(r => r.noteId === id),
+    }))
+  },
+  async mutateNote(locator: NoteLocator, mutation: NoteMutation) {
+    const workoutResult = mutation.workoutResult
+    if (workoutResult) {
+      const noteId = typeof locator === 'string' ? locator : locator.id
+      const saved: WorkoutResult = {
+        ...workoutResult,
+        id: workoutResult.id ?? crypto.randomUUID(),
+        createdAt: workoutResult.createdAt ?? 0,
+        noteId,
+        segmentId: workoutResult.segmentId ?? noteId,
+      }
+      saveResultCalls.push(saved)
+      storedResults.unshift(saved)
+    }
+    return fakeEntry(typeof locator === 'string' ? locator : locator.id)
+  },
+  async deleteNote() {},
+}
+
+function fakeEntry(id: string): HistoryEntry {
+  return {
+    id,
+    title: id,
+    createdAt: 0,
+    updatedAt: 0,
+    targetDate: 0,
+    rawContent: '',
+    tags: [],
+    schemaVersion: 1,
+  }
+}
+
+mock.module('@/services/persistence', () => ({
+  createNotePersistence: () => fakeNotePersistence,
+  notePersistence: fakeNotePersistence,
 }))
 
 mock.module('@/components/organisms/editor/NoteEditor', () => ({
@@ -117,8 +151,13 @@ mock.module('@/components/organisms/review/ReviewGrid', () => ({
   ReviewGrid: () => <div data-testid="review-grid" />,
 }))
 mock.module('@/services/AnalyticsTransformer', () => ({
+  getAnalyticsFromRuntime: () => ({
+    segments: [{ id: 1, label: 'segment-1' }],
+    groups: [],
+  }),
   getAnalyticsFromLogs: () => ({
     segments: [{ id: 1, label: 'segment-1' }],
+    groups: [],
   }),
 }))
 
@@ -130,7 +169,6 @@ mock.module('../components/atoms/MacOSChrome', () => ({
     </div>
   ),
 }))
-
 
 mock.module('./CanvasProse', () => ({
   CanvasProse: ({ prose }: { prose: string }) => <div>{prose}</div>,

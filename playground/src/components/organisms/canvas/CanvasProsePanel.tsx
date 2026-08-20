@@ -88,7 +88,7 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
   mobilePanel,
   desktopPanel,
   stickyAlign = 'right',
-  editorWidth = '60%',
+  editorWidth = '50%',
   contentSections,
   isCollection,
   collectionSlug,
@@ -132,20 +132,10 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
     onScrollToSection,
   }
 
-  // Dynamic width for prose in the split view on desktop viewports.
-  const [proseWidthStyle, setProseWidthStyle] = React.useState<React.CSSProperties | undefined>(undefined)
-  React.useEffect(() => {
-    if (!hasSplit) {
-      setProseWidthStyle(undefined)
-      return
-    }
-    const update = () => {
-      setProseWidthStyle(window.innerWidth >= 1024 ? { width: `calc(100% - ${editorWidth})` } : undefined)
-    }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [hasSplit, editorWidth])
+  // CSS owns arrangement; no viewport listener or DOM measurement is needed.
+  const proseWidthStyle: React.CSSProperties = hasSplit
+    ? { width: `calc(100% - ${editorWidth})`, flexBasis: `calc(100% - ${editorWidth})`, maxWidth: `calc(100% - ${editorWidth})` }
+    : {}
 
   const collectionList = isCollection && !hasWorkoutsTag && collectionSlug && workoutItems ? (
     <div id="collection-workouts" className="border-b border-border/50 bg-card">
@@ -170,7 +160,7 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
         {preSections.map((section, idx) => renderSection(section, idx, renderArgs))}
         <div className="lg:flex">
           {stickyAlign === 'left' && desktopPanel}
-          <div className="w-full min-w-0" style={{ ...proseWidthStyle, flexBasis: proseWidthStyle?.width, maxWidth: proseWidthStyle?.width }}>
+          <div className="w-full min-w-0" style={proseWidthStyle}>
             {mobilePanel}
             {postSections.map((section, idx) => renderSection(section, idx, renderArgs))}
             {collectionList}
@@ -186,7 +176,7 @@ export const CanvasProsePanel: React.FC<CanvasProsePanelProps> = ({
       {mobilePanel}
       <div className="lg:flex">
         {stickyAlign === 'left' && desktopPanel}
-        <div className="w-full min-w-0" style={{ ...proseWidthStyle, flexBasis: proseWidthStyle?.width, maxWidth: proseWidthStyle?.width }}>
+        <div className="w-full min-w-0" style={proseWidthStyle}>
           {heroSlot}
           {contentSections.map((section, idx) => renderSection(section, idx, renderArgs))}
           {collectionList}

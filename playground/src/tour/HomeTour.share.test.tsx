@@ -86,9 +86,9 @@ mock.module('../hooks/useIsMobile', () => ({
   useIsMobile: () => false,
 }))
 
-mock.module('./useTourScroll', () => {
+mock.module('../canvas/useScrollRunway', () => {
   return {
-    useTourScroll: () => ({
+    useScrollRunway: () => ({
       slice: {
         index: 0,
         stage: {

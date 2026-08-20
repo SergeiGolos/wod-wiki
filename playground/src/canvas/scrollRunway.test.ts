@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-
-import { resolveScrollStage, clamp01, lerp, quadOut } from './scrollRunway'
+import { resolveScrollStage, isStageTextLoaded, clamp01, lerp, quadOut } from './scrollRunway'
 import type { ScrollStage } from './parseCanvasMarkdown'
 
 const STAGES: ScrollStage[] = [
@@ -41,10 +40,22 @@ describe('resolveScrollStage', () => {
     expect(slice.t).toBe(0)
   })
 
-  it('resolves ring from { tag } and from true', () => {
+  it('resolves ring from { tag } and from true, passing lines through', () => {
+    const withLines: ScrollStage[] = [
+      { id: 'l', range: [0, 1], ring: { tag: '```time', lines: [2, 4] } },
+    ]
     expect(resolveScrollStage(0.1, STAGES).ring).toEqual({ tag: '```time' })
     expect(resolveScrollStage(0.5, STAGES).ring).toEqual({ tag: undefined })
     expect(resolveScrollStage(0.9, STAGES).ring).toBeNull()
+    expect(resolveScrollStage(0.5, withLines).ring).toEqual({ tag: '```time', lines: [2, 4] })
+  })
+
+  it('isStageTextLoaded — full script, partial typing, sourceless hold', () => {
+    const script = '```time\nPushups\n```'
+    expect(isStageTextLoaded(script, script)).toBe(true)
+    expect(isStageTextLoaded(script, '```time')).toBe(false)
+    // Sourceless stages hold the previous content — always loaded.
+    expect(isStageTextLoaded('', 'anything')).toBe(true)
   })
 
   it('clamps inverted / out-of-bounds ranges instead of failing', () => {

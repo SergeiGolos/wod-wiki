@@ -397,6 +397,14 @@ flowing prose on desktop, stacked on mobile. Distinct from a **Demo Runway**,
 which is scripted, not edited.
 _Avoid_: editor panel, canvas panel, split pane.
 
+**Editor Window**:
+The consolidated presentation module (`EditorWindow`) encapsulating macOS-style
+chrome, demo-preset Whiteboard code editing, block change tracking, and title-bar
+Run action. Used by both **Demo Runway** presentations (desktop slide / mobile
+pinned) and **Working-Editor Panel** to present consistent syntax-formatted code
+windows across surfaces.
+_Avoid_: code window, chrome editor, snippet box.
+
 **Content Section**:
 A flowed (non-sticky) **Page Block**: prose, chapters, analytics, buttons, hero.
 Renders inline in document order between sticky blocks.

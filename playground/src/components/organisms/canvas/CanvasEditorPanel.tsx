@@ -1,13 +1,11 @@
 import React from 'react'
-import { cn } from '@/lib/utils'
-import { MacOSChrome } from '../../atoms/MacOSChrome'
 import { ViewPanelButtons } from '../../molecules/ViewPanelButtons'
 import type { RunButtonState } from '../../molecules/SectionButtons'
 import type { NavActionDeps } from '../../../nav/navTypes'
 import { buttonToActivation } from '../../../nav/navTypes'
 import type { PipelineStep, OpenMode } from '../../../canvas/parseCanvasMarkdown'
 import { STICKY_NAV_HEIGHT, MOBILE_STICKY_TOP } from '../../../canvas/canvasUtils'
-
+import { getCanvasLayoutVariables, getEditorPreferredHeight, resolveCanvasLayout } from '../../../canvas/canvasLayout'
 interface CanvasEditorPanelProps {
   variant: 'desktop' | 'mobile'
   panelTitle: string
@@ -20,6 +18,7 @@ interface CanvasEditorPanelProps {
   runState?: RunButtonState
   deps: NavActionDeps
   width?: string
+  source?: string
 }
 
 export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
@@ -34,17 +33,9 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   runState,
   deps,
   width,
+  source = '',
 }) => {
-  const chrome = (
-    <MacOSChrome
-      title={panelTitle}
-      subtitle={panelSubtitle}
-      headerActions={headerActions}
-      className={cn('transition-colors duration-300', panelThemeClass)}
-    >
-      {panelContent}
-    </MacOSChrome>
-  )
+  const chrome = panelContent
 
   const buttons = showPanelButtons && viewDefButtons && viewDefButtons.length > 0 ? (
     <ViewPanelButtons
@@ -61,11 +52,12 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         style={{
           top: `${STICKY_NAV_HEIGHT}px`,
           height: `calc(100vh - ${STICKY_NAV_HEIGHT}px)`,
-          width: width || '60%',
+          width: 'clamp(var(--canvas-editor-min-width), var(--canvas-editor-width), var(--canvas-editor-max-width))',
+          ...getCanvasLayoutVariables(resolveCanvasLayout(width), source),
         }}
       >
         <div className="flex-1 min-h-0 flex flex-col justify-center py-4">
-          <div className="max-h-[72vh] min-h-[400px] h-full flex flex-col">
+          <div className="h-[min(var(--canvas-editor-preferred-height),var(--canvas-editor-max-height))] min-h-[var(--canvas-editor-min-height)] max-h-[var(--canvas-editor-max-height)] flex flex-col w-full">
             {chrome}
           </div>
         </div>
@@ -76,10 +68,16 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
   return (
     <div
-      className="lg:hidden sticky z-20 shrink-0 px-4 pt-[2px] pb-1"
-      style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)` }}
+      className="lg:hidden sticky z-20 shrink-0 px-4 pt-2 pb-1"
+      data-page-sticky-boundary="true"
+      style={{
+        top: `${MOBILE_STICKY_TOP}px`,
+        height: `min(var(--canvas-editor-preferred-height), calc(100dvh - ${MOBILE_STICKY_TOP}px - 1rem))`,
+        minHeight: '18rem',
+        '--canvas-editor-preferred-height': getEditorPreferredHeight(source),
+      } as React.CSSProperties}
     >
-      <div className="flex flex-col gap-2" style={{ height: '100%' }}>
+      <div className="flex flex-col gap-2 h-full">
         <div className="flex-1 min-h-0">{chrome}</div>
         {buttons}
       </div>

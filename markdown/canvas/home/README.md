@@ -5,66 +5,112 @@ route: /
 type: home
 ---
 ```scroll
-runway: 860vh
+runway: 1300vh
 screen: editor
 typewriter: true
 stages:
   - id: editor-blank
-    range: [0.0, 0.15]
+    range: [0.0, 0.12]
     screen: editor
+    accent: hsl(var(--metric-resistance))
+    label: Blank Page & Typeahead
     source: wods/examples/home/welcome-1.md
     caption: "Start with a Blank Page. Freeform entry & WOD fences. WOD Wiki notes are freeform Markdown. To get live timer execution and metric tracking, open a fenced block with triple backticks — ```time for workouts or ```wql for queries."
     ring:
       key: editor.window
       tag: "Live Editor"
   - id: editor-metrics
-    range: [0.15, 0.30]
+    range: [0.12, 0.24]
     screen: editor
+    accent: hsl(var(--metric-resistance))
+    label: Every Line Collects Metrics
     source: wods/examples/home/welcome-1.md
     caption: "Every Line Collects Metrics. Reps, distance & load. Each line defines the metric types the runtime will collect: rep counts (15 Swings), distance (400m Run), load resistance (24kg, 225lb), and timed rest (*:30 Rest)."
     ring:
       key: editor.wodBlock
       tag: Line Metrics
   - id: editor-run
-    range: [0.30, 0.45]
+    range: [0.24, 0.36]
     screen: editor
+    accent: hsl(var(--metric-resistance))
+    label: Press Run to Start
     source: wods/examples/home/welcome-1.md
     caption: "Press Run to Execute. Launch the working clock. Click Run in the editor header (or keep scrolling) to launch the WallClock timer and watch the script turn into an active workout."
     ring:
       key: editor.runButton
       tag: Run Button
   - id: timer-wallclock
-    range: [0.45, 0.60]
+    range: [0.36, 0.47]
     screen: timer
+    accent: hsl(var(--metric-effort))
+    label: What Happens When It Runs
     source: wods/examples/home/welcome-1.md
     caption: "What Happens When It Runs. The script becomes the clock. The WallClock runs your exact script — stepping through reps, distance, and load lines at your own pace without forced countdown caps."
     ring:
       key: timer.floor
       tag: WallClock
   - id: timer-next
-    range: [0.60, 0.72]
+    range: [0.47, 0.57]
     screen: timer
+    accent: hsl(var(--metric-effort))
+    label: Advance Rounds with Next
     source: wods/examples/home/welcome-1.md
     caption: "Next Advances the Workout. Every click locks a time. Click Next to advance to the next movement or round — each click locks the elapsed time into the collected metrics as a split; completing the run slides straight into the analytics."
     ring:
       key: timer.nextButton
       tag: Next Button
-  - id: analytics-scorecard
-    range: [0.72, 0.86]
-    screen: analytics
+  - id: timer-cast
+    range: [0.57, 0.65]
+    screen: timer
+    accent: hsl(var(--metric-effort))
+    label: Cast to the Big Screen
     source: wods/examples/home/welcome-1.md
-    caption: "Explore Your Data. Query what you just did. Total reps, total distance (meters), and load volume collected from this workout are calculated and written straight into your journal."
+    caption: "Cast to the Big Screen. Real-time mirror for the gym floor. Stream the WallClock to Chromecast or a shared screen — live rep counters and timers update in real time."
     ring:
-      key: analytics.scorecard
-      tag: Scorecard
-  - id: analytics-grid
-    range: [0.86, 1.00]
+      key: timer.castButton
+      tag: Cast
+  - id: wql-idea
+    range: [0.65, 0.72]
     screen: analytics
-    source: wods/examples/home/welcome-1.md
-    caption: "Session Log & Review. Analyze every set and split. Drill into individual rounds, distance splits, load overrides, and WQL metrics collected during execution."
+    accent: hsl(var(--metric-rounds))
+    label: Query what you just did
+    caption: "Query what you just did. Every result is one query away. WQL turns your journal into queryable facts — pick an aggregator and a metric, filter by tag, group by a dimension, roll up over time. The same elements drive every presentation in this window."
     ring:
-      key: analytics.grid
-      tag: Review Grid
+      key: analytics.vocab
+      tag: "WQL elements"
+  - id: wql-table
+    range: [0.72, 0.79]
+    screen: analytics
+    accent: hsl(var(--metric-rounds))
+    label: Read it as a list
+    caption: "Read it as a list. One aggregator, one metric, one dimension: sum total reps grouped by effort becomes a ranked table the moment the workout is logged. The chips above the widget are the parsed query — the vocabulary, front and center."
+    ring:
+      key: analytics.table
+      tag: Table list
+  - id: wql-graphs
+    range: [0.79, 0.86]
+    screen: analytics
+    accent: hsl(var(--metric-rounds))
+    label: See it as trends
+    caption: "See it as trends. Roll the same facts up by week and they become a timeseries — is tonnage rising, is training polarized? A graph is not a feature you enable; it is a rollup away."
+    ring:
+      key: analytics.graphs
+      tag: Graphs
+  - id: wql-dashboard
+    range: [0.86, 0.93]
+    screen: analytics
+    accent: hsl(var(--metric-rounds))
+    label: Compose a dashboard
+    caption: "Compose a dashboard. A dashboard is just N queries on one screen. Mix values, lists, and graphs — each tile its own WQL statement, exactly like the DashboardView you get in the app."
+    ring:
+      key: analytics.dashboard
+      tag: Dashboard
+  - id: wql-live
+    range: [0.93, 1.00]
+    screen: analytics
+    accent: hsl(var(--metric-rounds))
+    label: It's your data
+    caption: "It's your data. Every widget here executes against your live journal — these are the sample answers until you have logged work of your own. Open the Dashboards tab to query anything, your way."
 ```
 
 ```scroll:chapters

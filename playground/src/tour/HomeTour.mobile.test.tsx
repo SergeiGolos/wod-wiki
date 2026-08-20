@@ -91,8 +91,8 @@ mock.module('../hooks/useIsMobile', () => ({
 }))
 
 // Desktop scroll driver held inert — the branch contract doesn't scroll.
-mock.module('./useTourScroll', () => ({
-  useTourScroll: () => ({
+mock.module('../canvas/useScrollRunway', () => ({
+  useScrollRunway: () => ({
     slice: {
       index: 0,
       stage: {

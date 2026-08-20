@@ -26,11 +26,11 @@ import {
   type TourScreen,
   type TourStage,
   type TourStageId,
-} from './tourStages'
+} from './tourConstants'
 import { TourHero } from './TourHero'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
-import { HomeAnalyticsSection } from './HomeAnalyticsSection'
+import { TourAnalyticsShowcaseScreen } from './screens/TourAnalyticsShowcaseScreen'
 import { TOUR_CAPTIONS, CaptionBody } from './TourCaptions'
 import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { LearnProgressOverview } from './TourLearnSection'
@@ -39,7 +39,7 @@ import { TourReferenceSection } from './TourReferenceSection'
 import { TelemetryConsentFooter } from './TelemetryConsentFooter'
 import { CelebrationBridge } from './CelebrationBridge'
 import { ChapterHeroSection } from './ChapterHeroSection'
-import { TourRing } from './TourRing'
+import { TourRing, useRingRef } from './TourRing'
 
 /**
  * Scroll pacing per caption card: each card dwells in the reading zone for
@@ -105,7 +105,6 @@ export interface TourMobileRunwayProps {
   /** Imperative escape hatch for quest clicks / completion auto-slide. */
   apiRef: React.MutableRefObject<TourMobileRunwayApi | null>
 }
-
 export function TourMobileRunway({
   theme,
   quests,
@@ -140,6 +139,16 @@ export function TourMobileRunway({
   const cardRefs = useRef<Array<HTMLDivElement | null>>([])
 
   const windowCanvasRef = useRef<HTMLDivElement | null>(null)
+  // The whole pinned window (the canvas wrapper OUTSIDE the MacOS chrome)
+  // is the 'editor.window' ring target — same contract as the desktop
+  // tour: the ring frames the window on top of it.
+  const editorWindowRef = useRingRef('editor.window')
+  // Stable identity: an inline arrow here would detach/reattach every
+  // render, and each attach bumps the registry version → re-render loop.
+  const windowCanvasRingRef = useCallback((el: HTMLDivElement | null) => {
+    windowCanvasRef.current = el
+    editorWindowRef(el)
+  }, [editorWindowRef])
   // ── Stage detection ──
   // reached: the track top has hit the app header — nothing counts before.
   const reachedRef = useRef(false)
@@ -257,49 +266,54 @@ export function TourMobileRunway({
         />
       </div>
 
-      <TourShortCircuitStrip />
-
       {/* Runway: the sticky parent spans window + cards, so the window
           releases right after the last caption card. */}
       <div ref={trackRef} data-testid="tour-mobile-runway-track" className="relative">
         <div
           data-testid="tour-mobile-runway-window"
-          className="sticky z-20 shrink-0 px-4 pt-[2px] pb-1"
-          style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)` }}
+          className={`sticky z-20 shrink-0 px-4 pt-2 pb-1 ${screen === 'analytics' ? 'min-h-[26rem]' : ''}`}
+          style={{ top: `${MOBILE_STICKY_TOP}px`, height: screen === 'analytics' ? 'min(72vh, 42rem)' : `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)` }}
         >
-          <MacOSChrome title={SCREEN_TITLES[screen]} className="h-full">
-            <div ref={windowCanvasRef} className="relative h-full">
-              <TourRing target={ringTarget} accent={stage?.accent ?? 'hsl(var(--metric-resistance))'} canvasRef={windowCanvasRef} unscaled />
-              <ScreenFade visible={screen === 'editor'}>
-                <TourEditorScreen
-                  doc={runwayDoc}
-                  onDocChange={onRunwayDocChange}
-                  onBlocksChange={onRunwayBlocksChange}
-                  onRun={onRunwayRun}
-                  onShare={onRunwayShare}
-                  onOpenInEditor={onRunwayOpenInEditor}
-                  theme={theme}
-                  sharedBy={sharedBy}
-                  onResetShared={onResetShared}
-                  withRingTargets
-                />
-              </ScreenFade>
-              {entered.timer && (
-                <ScreenFade visible={screen === 'timer'}>
-                  <TourTimerScreen
-                    key={timer.sessionKey}
-                    block={timer.block}
-                    autoStart={timer.autoStart}
-                    onClose={timer.onClose}
-                    onComplete={timer.onComplete}
-                    onRuntimeReady={timer.onRuntimeReady}
-                    onReset={timer.onReset}
-                    externalPause={timer.externalPause}
+          <div ref={windowCanvasRingRef} className="relative h-full">
+            <MacOSChrome title={SCREEN_TITLES[screen]} className="h-full">
+              <div className="relative h-full">
+                <ScreenFade visible={screen === 'editor'}>
+                  <TourEditorScreen
+                    doc={runwayDoc}
+                    onDocChange={onRunwayDocChange}
+                    onBlocksChange={onRunwayBlocksChange}
+                    onRun={onRunwayRun}
+                    onShare={onRunwayShare}
+                    onOpenInEditor={onRunwayOpenInEditor}
+                    theme={theme}
+                    sharedBy={sharedBy}
+                    onResetShared={onResetShared}
+                    withRingTargets
                   />
                 </ScreenFade>
-              )}
-            </div>
-          </MacOSChrome>
+                {entered.timer && (
+                  <ScreenFade visible={screen === 'timer'}>
+                    <TourTimerScreen
+                      key={timer.sessionKey}
+                      block={timer.block}
+                      autoStart={timer.autoStart}
+                      onClose={timer.onClose}
+                      onComplete={timer.onComplete}
+                      onRuntimeReady={timer.onRuntimeReady}
+                      onReset={timer.onReset}
+                      externalPause={timer.externalPause}
+                    />
+                  </ScreenFade>
+                )}
+                {entered.analytics && (
+                  <ScreenFade visible={screen === 'analytics'}>
+                    <TourAnalyticsShowcaseScreen activeStageId={stage?.id ?? 'wql-idea'} />
+                  </ScreenFade>
+                )}
+              </div>
+            </MacOSChrome>
+            <TourRing target={ringTarget} accent={stage?.accent ?? 'hsl(var(--metric-resistance))'} canvasRef={windowCanvasRef} />
+          </div>
         </div>
 
         {/* Caption cards scroll through the reading zone below the window. */}
@@ -307,32 +321,18 @@ export function TourMobileRunway({
           {TOUR_CAPTIONS.map((cap, i) => (
             <div
               key={cap.id}
-              ref={(el) => {
-                cardRefs.current[i] = el
-              }}
+              ref={(el) => { cardRefs.current[i] = el }}
               data-testid={`tour-mobile-card-${cap.id}`}
               className="flex items-center justify-center px-6 py-8"
-              style={{
-                minHeight: CARD_SLOT_MIN_HEIGHT,
-                // Land scrollToStage arrivals just below the pinned window
-                // (window bottom ≈ 50vh + MOBILE_STICKY_TOP / 2).
-                scrollMarginTop: `calc(50vh + ${MOBILE_STICKY_TOP / 2}px + 12px)`,
-              }}
+              style={{ minHeight: CARD_SLOT_MIN_HEIGHT, scrollMarginTop: `calc(50vh + ${MOBILE_STICKY_TOP / 2}px + 12px)` }}
             >
               <article className="w-full max-w-xl rounded-2xl border border-border bg-card p-6">
                 <CaptionBody cap={cap} onChoice={onChoice} />
               </article>
             </div>
           ))}
-        </div>
       </div>
-
-      {/* WQL-elements analytics showcase (#938) — one static section; the
-          tile grid stacks to a single column on mobile. */}
-      <HomeAnalyticsSection />
-
-      <CelebrationBridge chapters={chapters} />
-
+      </div>
       {/* Six Syntax Chapter Heroes */}
       {chapters
         .filter((c) => c.id !== 'home-tour')

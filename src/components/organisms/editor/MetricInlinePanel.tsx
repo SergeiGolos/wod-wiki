@@ -21,7 +21,7 @@ import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { IMetric } from '@bitcobblers/wod-wiki-engine';
 import type { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import type { EditorSection } from '@bitcobblers/wod-wiki-ui/extensions';
-import { getCursorFocusState } from '@bitcobblers/wod-wiki-ui/extensions';
+import { getCursorFocusState } from '@/app/editor/cursorFocusExtension';
 import { cn } from "@/lib/utils";
 import type { ScriptCommand } from "@/components/Editor/overlays/ScriptCommand";
 
@@ -127,10 +127,11 @@ function computePosition(
   try {
     const coords = view.coordsAtPos(lineFrom);
     if (!coords) return null;
-    const contentRect = view.contentDOM.getBoundingClientRect();
+    const editorRect = view.dom?.getBoundingClientRect?.() ?? { top: 0, left: 0 };
+    const contentRect = view.contentDOM?.getBoundingClientRect?.() ?? { left: 0, width: 0 };
     return {
-      top: coords.bottom + 2,   // 2px gap below the line
-      left: contentRect.left,
+      top: coords.bottom - editorRect.top + 2,   // 2px gap below the line relative to editor top
+      left: contentRect.left - editorRect.left,  // relative to editor left (accounting for gutter)
       width: contentRect.width,
     };
   } catch {
@@ -215,7 +216,7 @@ export const MetricInlinePanel: React.FC<MetricInlinePanelProps> = ({
       ref={panelRef}
       className={cn(
         "cm-metric-inline-panel",
-        "fixed z-50 pointer-events-none",
+        "absolute z-50 pointer-events-none",
         "flex items-center gap-2 px-3 py-1.5",
         "bg-background/90 border border-border/50 shadow-sm rounded-b-md",
         "backdrop-blur-sm",
