@@ -11,11 +11,11 @@ export interface SectionRect {
 }
 
 export type GeometryListener = (rects: SectionRect[], docVersion: number) => void;
-
 class SectionGeometryPlugin {
   rects: SectionRect[] = [];
   docVersion: number = 0;
   private listeners: Set<GeometryListener> = new Set();
+  private pendingNotify: number | null = null;
 
   constructor(private view: EditorView) {
     this.measure();
@@ -25,7 +25,7 @@ class SectionGeometryPlugin {
     if (update.docChanged) {
       this.docVersion++;
     }
-    if (update.docChanged || update.viewportChanged || update.geometryChanged) {
+    if (update.docChanged || update.geometryChanged) {
       this.measure();
     }
   }
@@ -42,20 +42,24 @@ class SectionGeometryPlugin {
     try {
       const sectionState = this.view.state.field(sectionField, false);
       const sections = sectionState?.sections ?? [];
-      const scrollRect = this.view.scrollDOM?.getBoundingClientRect ? this.view.scrollDOM.getBoundingClientRect() : { top: 0, left: 0, bottom: 0, right: 0 };
-      const scrollTop = this.view.scrollDOM?.scrollTop ?? 0;
+      const docLength = this.view.state.doc.length;
+
       this.rects = sections.map((sec) => {
-        let fromCoords = null;
-        let toCoords = null;
+        const from = Math.max(0, Math.min(sec.from, docLength));
+        const to = Math.max(0, Math.min(sec.to, docLength));
+
+        let top = 0;
+        let bottom = 20;
+
         try {
-          fromCoords = this.view.coordsAtPos ? this.view.coordsAtPos(sec.from) : null;
-          toCoords = this.view.coordsAtPos ? this.view.coordsAtPos(sec.to) : null;
+          const topBlock = this.view.lineBlockAt(from);
+          const bottomBlock = this.view.lineBlockAt(to);
+          top = topBlock.top;
+          bottom = bottomBlock.top + bottomBlock.height;
         } catch {
-          // Layout reading is disallowed during EditorView updating phase
+          // lineBlockAt fallback
         }
 
-        const top = fromCoords ? fromCoords.top - (scrollRect?.top ?? 0) + scrollTop : 0;
-        const bottom = toCoords ? toCoords.bottom - (scrollRect?.top ?? 0) + scrollTop : top;
         const height = Math.max(bottom - top, 20);
 
         return {
@@ -70,17 +74,30 @@ class SectionGeometryPlugin {
 
       this.notify();
     } catch {
-      // Best-effort viewport measurement
+      // Best-effort measurement
     }
   }
 
   private notify() {
-    for (const listener of this.listeners) {
-      listener(this.rects, this.docVersion);
+    if (typeof requestAnimationFrame === 'function') {
+      if (this.pendingNotify !== null) return;
+      this.pendingNotify = requestAnimationFrame(() => {
+        this.pendingNotify = null;
+        for (const listener of this.listeners) {
+          listener(this.rects, this.docVersion);
+        }
+      });
+    } else {
+      for (const listener of this.listeners) {
+        listener(this.rects, this.docVersion);
+      }
     }
   }
 
   destroy() {
+    if (this.pendingNotify !== null && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this.pendingNotify);
+    }
     this.listeners.clear();
   }
 }

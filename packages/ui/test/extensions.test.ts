@@ -3,10 +3,12 @@ import { EditorState } from '@codemirror/state';
 import {
   editorPreset,
   sectionField,
+  sectionGeometry,
   linkOpen,
   navigationFacet,
   editorTheme,
 } from '../src/extensions';
+import { EditorView } from '@codemirror/view';
 
 describe('@bitcobblers/wod-wiki-ui/extensions and editorPreset suite', () => {
   it('editorPreset(dialect) returns a functional extension array', () => {
@@ -59,5 +61,27 @@ describe('@bitcobblers/wod-wiki-ui/extensions and editorPreset suite', () => {
     const lightTheme = editorTheme(false);
     expect(darkTheme).toBeDefined();
     expect(lightTheme).toBeDefined();
+  });
+
+  it('sectionGeometry computes non-zero document-space top for later sections', () => {
+    const state = EditorState.create({
+      doc: '# Header\n\n```time\n10:00 Run\n```\n',
+      extensions: [sectionField, sectionGeometry],
+    });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+
+    const plugin = view.plugin(sectionGeometry);
+    expect(plugin).toBeDefined();
+    expect(plugin?.rects.length).toBeGreaterThanOrEqual(2);
+
+    const timeRect = plugin?.rects.find((r) => r.type === 'time');
+    expect(timeRect).toBeDefined();
+    expect(timeRect?.top).toBeGreaterThan(0);
+
+    view.destroy();
+    container.remove();
   });
 });
