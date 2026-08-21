@@ -29,17 +29,23 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
     value?: string
     onChange?: (value: string) => void
     onBlocksChange?: (blocks: ScriptBlock[]) => void
+    onStartWorkout?: (block: ScriptBlock) => void
   }) => {
     const React = require('react')
     React.useEffect(() => {
       props.onBlocksChange?.([{ id: 'block-1', type: 'Timer' } as unknown as ScriptBlock])
     }, [])
     return (
-      <textarea
-        data-testid="mock-note-editor"
-        value={props.value ?? ''}
-        onChange={(e) => props.onChange?.(e.target.value)}
-      />
+      <div>
+        <textarea
+          data-testid="mock-note-editor"
+          value={props.value ?? ''}
+          onChange={(e) => props.onChange?.(e.target.value)}
+        />
+        {props.onStartWorkout && (
+          <button onClick={() => props.onStartWorkout?.({ id: 'block-1' } as any)}>Run</button>
+        )}
+      </div>
     )
   },
 }))
@@ -216,14 +222,14 @@ describe('HomeTour arrival & hero-reset contract', () => {
   it('loads welcome-1.md into the hero editor when no shared script is stored', async () => {
     await renderHomeTour()
     expect(heroEditor().value).toBe(WELCOME)
-    expect(screen.getAllByText('Home / Notes / welcome-1.md').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Home / Notes / welcome-1.md')).toBeNull()
   })
 
   it('shows the stored shared script with a "shared by" attribution', async () => {
     seedShared({ content: SHARED, by: 'serge' })
     await renderHomeTour()
     expect(heroEditor().value).toBe(SHARED)
-    expect(screen.getAllByText('shared by: serge').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/shared by: serge/).length).toBeGreaterThan(0)
     expect(screen.queryByText('Home / Notes / welcome-1.md')).toBeNull()
   })
 
@@ -231,7 +237,7 @@ describe('HomeTour arrival & hero-reset contract', () => {
     seedShared({ content: SHARED })
     await renderHomeTour()
     expect(heroEditor().value).toBe(SHARED)
-    expect(screen.getAllByText('shared by: anonymous').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/shared by: anonymous/).length).toBeGreaterThan(0)
   })
 
   it('restores welcome-1.md and clears the stored script when Reset is clicked', async () => {
@@ -239,12 +245,12 @@ describe('HomeTour arrival & hero-reset contract', () => {
     await renderHomeTour()
     expect(heroEditor().value).toBe(SHARED)
 
-    const resetButton = screen.getAllByTitle('Reset to welcome-1.md')[0]
+    const resetButton = screen.getAllByTitle('Reset')[0]
     fireEvent.click(resetButton)
 
     expect(heroEditor().value).toBe(WELCOME)
     expect(window.localStorage.getItem(SHARED_KEY)).toBeNull()
-    expect(screen.getAllByText('Home / Notes / welcome-1.md').length).toBeGreaterThan(0)
+    expect(screen.queryByText(/shared by/)).toBeNull()
   })
 
   it('resets the editor to the initial content when the hero re-enters the viewport', async () => {

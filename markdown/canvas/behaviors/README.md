@@ -18,7 +18,7 @@ Writing a workout is three steps away from running it:
 1. **Script** — your Markdown note with `wod` fences.
 2. **Parse** — the Lezer grammar turns each line into a statement of metrics.
 3. **Compile** — the JIT compiler matches statements to behaviors and lays them out on a timeline.
-4. **Track** — the WallClock runtime steps through that timeline, counting, prompting, and logging.
+4. **Track** — the Clock runtime steps through that timeline, counting, prompting, and logging.
 
 A `wod` block becomes a list of **Statements**. A header such as `(3 Rounds)` or `AMRAP 10` becomes a timer or round behavior. A modifier such as `:?` or `?lb` becomes a capture behavior that asks you for feedback during or after the workout.
 

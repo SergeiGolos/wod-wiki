@@ -24,8 +24,7 @@ export interface TourHeroProps {
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
   onShare: () => void
-  onOpenInEditor: () => void
-  /** Shared-script attribution + reset, forwarded to the editor screen (#882). */
+  /** Shared-script attribution + reset (#882). */
   sharedBy?: string
   onResetShared?: () => void
 }
@@ -57,7 +56,7 @@ export function TourHeroHeading() {
       </h1>
       <p className="mt-4 max-w-xl text-[clamp(14px,1.2vw,16px)] leading-[1.6] text-muted-foreground">
         WOD Wiki compiles a <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.86em]">```time</code> block
-        into a live WallClock timer, then logs every round straight back to your training
+        into a live Clock timer, then logs every round straight back to your training
         journal — one file, one loop, no app-switching.
       </p>
 
@@ -79,7 +78,6 @@ export function TourHero({
   onBlocksChange,
   onRun,
   onShare,
-  onOpenInEditor,
   sharedBy,
   onResetShared,
 }: TourHeroProps) {
@@ -90,17 +88,19 @@ export function TourHero({
     >
       <TourHeroHeading />
       <div className="mt-6 w-full max-w-2xl text-left">
-        <MacOSChrome title="welcome-1.md" className="h-[min(460px,52vh)] shadow-2xl">
+        <MacOSChrome
+          title="welcome-1.md"
+          subtitle={sharedBy ? `shared by: ${sharedBy}` : undefined}
+          onReset={sharedBy && onResetShared ? onResetShared : undefined}
+          className="h-[min(460px,52vh)] shadow-2xl"
+        >
           <TourEditorScreen
             doc={doc}
             onDocChange={onDocChange}
             onBlocksChange={onBlocksChange}
             onRun={onRun}
             onShare={onShare}
-            onOpenInEditor={onOpenInEditor}
             theme={theme}
-            sharedBy={sharedBy}
-            onResetShared={onResetShared}
           />
         </MacOSChrome>
       </div>

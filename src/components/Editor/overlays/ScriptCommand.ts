@@ -48,10 +48,14 @@ export interface ScriptCommand {
    * component (`<Play className="h-3 w-3 fill-current" />`) or an emoji string.
    */
   icon: React.ReactNode;
+  /** Icon to show on the button after onClick completes (e.g. a checkmark) */
+  successIcon?: React.ReactNode;
+  /** When true, hide the text label on screen and render as an icon-only button */
+  iconOnly?: boolean;
   /** Use filled primary styling instead of secondary outline.  Default: false */
   primary?: boolean;
   /** Called with the resolved ScriptBlock when the user clicks the button */
-  onClick: (block: ScriptBlock) => void;
+  onClick: (block: ScriptBlock) => Promise<void> | void;
   /**
    * Optional split-button secondary action (e.g. copy to clipboard).
    * When provided, the button renders as a split pill with a divider separating

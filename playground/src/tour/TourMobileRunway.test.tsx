@@ -140,13 +140,11 @@ function makeProps(overrides: Partial<TourMobileRunwayProps> = {}): TourMobileRu
     onBlocksChange: () => {},
     onRun: () => {},
     onShare: () => {},
-    onOpenInEditor: () => {},
     runwayDoc: 'AMRAP 10\n  10 Pull-ups\n',
     onRunwayDocChange: () => {},
     onRunwayBlocksChange: () => {},
     onRunwayRun: () => {},
     onRunwayShare: () => {},
-    onRunwayOpenInEditor: () => {},
     onChoice: () => {},
     entered: { editor: true, timer: false, analytics: false },
     onStageChange: () => {},
@@ -289,7 +287,7 @@ describe('TourMobileRunway', () => {
     })
 
     expect(screen.getByTestId('mock-timer-panel')).toBeTruthy()
-    expect(screen.getByTestId('tour-mobile-runway-window').textContent).toContain('WallClock')
+    expect(screen.getByTestId('tour-mobile-runway-window').textContent).toContain('Clock')
   })
 
   it('keeps the editor mounted across stage swaps so edits survive', async () => {

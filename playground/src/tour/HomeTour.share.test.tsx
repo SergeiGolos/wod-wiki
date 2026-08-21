@@ -98,7 +98,7 @@ mock.module('../canvas/useScrollRunway', () => {
           label: 'What Happens When It Runs',
         },
         t: 0.1,
-        ring: { key: 'timer.floor', tag: 'WallClock' },
+        ring: { key: 'timer.floor', tag: 'Clock' },
       },
       progress: 0,
       subscribe: () => () => {},

@@ -65,7 +65,7 @@ export const WORKOUT_PRESETS: TourCaptionChoice[] = [
 export const ADVENTURE_FENCE_LINES = { open: 5, close: 11 } as const
 
 export function buildAdventureScript(wod: string): string {
-  return `# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\n${wod}\n\n> Press **Run** ↑ to start the WallClock.\n`
+  return `# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\n${wod}\n\n> Press **Run** ↑ to start the Clock.\n`
 }
 
 export interface TourCaption {
@@ -134,8 +134,8 @@ export const TOUR_CAPTIONS: TourCaption[] = [
         <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Launch the step-through clock.</em>
       </>
     ),
-    body: 'Click Run in the editor top bar to execute the block — the step-through WallClock launches and every line starts generating collected metrics.',
-    foot: 'Run button · step-through WallClock · untimed rounds',
+    body: 'Click Run in the editor top bar to execute the block — the step-through Clock launches and every line starts generating collected metrics.',
+    foot: 'Run button · step-through Clock · untimed rounds',
     accent: TOUR_ACCENTS.editor,
     actions: [
       {
@@ -154,8 +154,8 @@ export const TOUR_CAPTIONS: TourCaption[] = [
         <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>The script becomes the clock.</em>
       </>
     ),
-    body: 'The WallClock runs your exact 21-15-9 script — stepping through reps, distance, and load lines at your own pace without forced time limits.',
-    foot: 'WallClock · 21-15-9 step-through · live metric capture',
+    body: 'The Clock runs your exact 21-15-9 script — stepping through reps, distance, and load lines at your own pace without forced time limits.',
+    foot: 'Clock · 21-15-9 step-through · live metric capture',
     accent: TOUR_ACCENTS.timer,
     actions: [
       {

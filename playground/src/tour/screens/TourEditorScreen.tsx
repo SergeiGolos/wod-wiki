@@ -1,32 +1,25 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
-import { Play, RotateCcw, Share2 } from 'lucide-react'
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Play, Copy, Check, Share2 } from 'lucide-react'
 import type { EditorView } from '@codemirror/view'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import type { ScriptBlock } from '@/components/Editor/types'
+import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
+import { shareBlock } from '../../services/openInPlayground'
 import { useRingRef } from '../TourRing'
+import { TEST_IDS } from '@/testing/contracts/TestIdContract'
 export interface TourEditorScreenProps {
   doc: string
   onDocChange: (next: string) => void
   onBlocksChange: (blocks: ScriptBlock[]) => void
+  /** Starts the fullscreen playground bound to this editor's first block. */
   onRun: () => void
+  /** Copies a /load?z= share link for the current doc (#882). */
   onShare: () => void
-  onOpenInEditor: () => void
   theme: string
-  /**
-   * Set when the demo is a shared script (#882): the header reads
-   * `shared by: {sharedBy}` instead of the welcome-1.md path, and a Reset
-   * button clears the stored script back to the default.
-   */
-  sharedBy?: string
-  onResetShared?: () => void
   /**
    * Opt in to ring-target registration (#884): the measured fenced-block
    * region under 'editor.wodBlock' and the Run button under
-   * 'editor.runButton'. The window-level 'editor.window' target is
-   * registered by the RUNWAY (on the wrapper outside the window chrome)
-   * so the ring frames the whole window on top of it — only the runway
-   * window registers; the hero renders the same screen and must not
-   * hijack the ring.
+   * 'editor.runButton'.
    */
   withRingTargets?: boolean
 }
@@ -44,10 +37,7 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
   onBlocksChange,
   onRun,
   onShare,
-  onOpenInEditor,
   theme,
-  sharedBy,
-  onResetShared,
   withRingTargets = false,
 }) => {
   const wodBlockRef = useRingRef('editor.wodBlock')
@@ -55,6 +45,7 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
   const bodyRef = useRef<HTMLDivElement | null>(null)
   const viewRef = useRef<EditorView | null>(null)
   const [blockBox, setBlockBox] = useState<BlockBox | null>(null)
+  const [runBox, setRunBox] = useState<BlockBox | null>(null)
   // Card 2 highlight (#884): measure the styled fence lines
   // (.cm-wod-fence-open … .cm-wod-fence-close, drawn by previewDecorations)
   // and register an invisible proxy over exactly that region. Presets are
@@ -65,6 +56,7 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
     const body = bodyRef.current
     if (!body) return
 
+    let calculatedBlockBox: BlockBox | null = null
     if (view) {
       try {
         const doc = view.state.doc
@@ -82,35 +74,51 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
         if (openPos !== -1 && closePos !== -1) {
           const topBlock = view.lineBlockAt(openPos)
           const bottomBlock = view.lineBlockAt(closePos)
-          setBlockBox({
+          calculatedBlockBox = {
             top: topBlock.top,
             left: 0,
             width: view.dom.offsetWidth || body.offsetWidth,
             height: (bottomBlock.top + bottomBlock.height) - topBlock.top,
-          })
-          return
+          }
         }
       } catch {
         // fallback to DOM if line blocks not yet initialized
       }
     }
 
-    const open = body.querySelector('.cm-wod-fence-open')
-    const close = body.querySelector('.cm-wod-fence-close')
-    if (!open || !close) {
-      setBlockBox(null)
-      return
+    if (!calculatedBlockBox) {
+      const open = body.querySelector('.cm-wod-fence-open')
+      const close = body.querySelector('.cm-wod-fence-close')
+      if (open && close) {
+        const bodyRect = body.getBoundingClientRect()
+        const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
+        const openRect = open.getBoundingClientRect()
+        const closeRect = close.getBoundingClientRect()
+        calculatedBlockBox = {
+          top: (openRect.top - bodyRect.top) / scale,
+          left: (Math.min(openRect.left, closeRect.left) - bodyRect.left) / scale,
+          width: (Math.max(openRect.right, closeRect.right) - Math.min(openRect.left, closeRect.left)) / scale,
+          height: (closeRect.bottom - openRect.top) / scale,
+        }
+      }
     }
-    const bodyRect = body.getBoundingClientRect()
-    const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
-    const openRect = open.getBoundingClientRect()
-    const closeRect = close.getBoundingClientRect()
-    setBlockBox({
-      top: (openRect.top - bodyRect.top) / scale,
-      left: (Math.min(openRect.left, closeRect.left) - bodyRect.left) / scale,
-      width: (Math.max(openRect.right, closeRect.right) - Math.min(openRect.left, closeRect.left)) / scale,
-      height: (closeRect.bottom - openRect.top) / scale,
-    })
+    setBlockBox(calculatedBlockBox)
+
+    // Measure the Run pill rendered on the workout block by InlineCommandBar
+    const runPill = body.querySelector(`[data-testid="${TEST_IDS.EDITOR_START_WORKOUT}"]`) ?? body.querySelector('button[title="Run"]')
+    if (runPill) {
+      const bodyRect = body.getBoundingClientRect()
+      const pillRect = runPill.getBoundingClientRect()
+      const scale = body.offsetWidth ? bodyRect.width / body.offsetWidth : 1
+      setRunBox({
+        top: (pillRect.top - bodyRect.top) / scale,
+        left: (pillRect.left - bodyRect.left) / scale,
+        width: pillRect.width / scale,
+        height: pillRect.height / scale,
+      })
+    } else {
+      setRunBox(null)
+    }
   }, [withRingTargets])
 
   useLayoutEffect(() => {
@@ -135,63 +143,40 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
       window.removeEventListener('resize', measure)
     }
   }, [doc, withRingTargets, measure])
+  const handleStartWorkout = useCallback(() => {
+    onRun()
+  }, [onRun])
+
+  const commands = useMemo<ScriptCommand[]>(() => [
+    {
+      id: 'run',
+      label: 'Run',
+      icon: <Play className="h-3 w-3 fill-current" />,
+      primary: true,
+      onClick: handleStartWorkout,
+    },
+    {
+      id: 'copy',
+      label: 'Copy link',
+      icon: <Copy className="h-3 w-3" />,
+      successIcon: <Check className="h-3 w-3 text-emerald-500" />,
+      iconOnly: true,
+      onClick: (block) => {
+        shareBlock(block)
+      },
+    },
+  ], [handleStartWorkout])
+
   return (
-    <div className="flex h-full flex-col bg-background text-left">
-      <div
-        className="flex items-center justify-between border-b border-border/70 px-3 py-1.5 shrink-0 bg-muted/10"
-        data-testid="tour-editor-header"
-      >
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            {sharedBy ? `shared by: ${sharedBy}` : 'Home / Notes / welcome-1.md'}
-          </span>
-          {sharedBy && onResetShared && (
-            <button
-              type="button"
-              title="Reset to welcome-1.md"
-              onClick={onResetShared}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            >
-              <RotateCcw size={10} />
-              Reset
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            title="Copy share link"
-            onClick={onShare}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <Share2 size={13} />
-          </button>
-          <button
-            type="button"
-            title="Open in journal"
-            onClick={onOpenInEditor}
-            className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-muted/50"
-          >
-            Open in editor →
-          </button>
-          <button
-            ref={withRingTargets ? runButtonRef : undefined}
-            type="button"
-            title="Start the WallClock"
-            onClick={onRun}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <Play size={11} fill="currentColor" />
-            Run
-          </button>
-        </div>
-      </div>
-      <div ref={bodyRef} className="flex-1 min-h-0 relative">
+    <div className="relative flex h-full flex-col bg-background text-left">
+      <div ref={bodyRef} className="relative flex-1 min-h-0">
         <NoteEditor
           noteId="canvas:home"
           value={doc}
           onChange={onDocChange}
           onBlocksChange={onBlocksChange}
+          onStartWorkout={handleStartWorkout}
+          commands={commands}
           onViewCreated={(view) => {
             viewRef.current = view
             if (withRingTargets) measure()
@@ -217,6 +202,30 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
             }}
           />
         )}
+        {withRingTargets && runBox && (
+          <div
+            ref={runButtonRef}
+            data-testid="tour-run-button-region"
+            aria-hidden
+            className="pointer-events-none absolute"
+            style={{
+              top: runBox.top,
+              left: runBox.left,
+              width: runBox.width,
+              height: runBox.height,
+            }}
+          />
+        )}
+        <div className="absolute bottom-2.5 right-3 z-20">
+          <button
+            type="button"
+            title="Copy share link"
+            onClick={onShare}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/60 bg-background/80 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:border-primary/40 hover:text-foreground"
+          >
+            <Share2 size={13} />
+          </button>
+        </div>
       </div>
     </div>
   )

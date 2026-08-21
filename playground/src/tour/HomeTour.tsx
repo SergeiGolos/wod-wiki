@@ -11,7 +11,6 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import { encodeZip } from '../services/encodeZip'
 import {
@@ -23,7 +22,6 @@ import {
 } from '../services/homeSharedScript'
 import { resolveSource } from '../canvas/canvasUtils'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
-import { createJournalNoteFromWorkout } from '../services/journalWorkout'
 import { playgroundRecorder } from '@/services/resultRecorder'
 import { NextEvent } from '@bitcobblers/wod-wiki-engine'
 import type { IScriptRuntime } from '@bitcobblers/wod-wiki-engine'
@@ -67,8 +65,6 @@ import { TelemetryConsentFooter } from './TelemetryConsentFooter'
 import { TourMobileStack } from './TourMobileStack'
 import { TourMobileRunway, type TourMobileRunwayApi } from './TourMobileRunway'
 import { HOME_EVENTS, useTelemetry } from '@/services/telemetry'
-import { journalNotePath } from '../lib/routes'
-import { getTodayDateKey } from '../services/dateUtils'
 import { toast } from '@/hooks/use-toast'
 import type { ReactNode } from 'react'
 
@@ -131,7 +127,7 @@ const DEFAULT_HOME_STAGES: ScrollStage[] = [
     label: 'What Happens When It Runs',
     source: HOME_DEMO_SOURCE,
     caption: 'What Happens When It Runs. The script becomes the clock.',
-    ring: { key: 'timer.floor', tag: 'WallClock' },
+    ring: { key: 'timer.floor', tag: 'Clock' },
   },
   {
     id: 'timer-next',
@@ -238,7 +234,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const telemetry = useTelemetry()
   const track = telemetry?.track
-  const navigate = useNavigate()
 
   const runwayRef = useRef<HTMLElement | null>(null)
   const canvasInnerRef = useRef<HTMLDivElement | null>(null)
@@ -620,31 +615,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     void shareDoc(runwayDocRef.current)
   }, [shareDoc])
 
-  const openInEditor = useCallback(
-    async (content: string) => {
-      track?.(HOME_EVENTS.demoOpened)
-      const today = getTodayDateKey()
-      const note = await createJournalNoteFromWorkout({
-        workoutName: 'Welcome workout',
-        category: 'home',
-        sourceNoteLabel: 'welcome-1.md',
-        sourceNotePath: '/',
-        wodContent: content,
-      })
-      navigate(journalNotePath(today, note.id))
-    },
-    [navigate, track],
-  )
-
-  const handleHeroOpenInEditor = useCallback(() => {
-    void openInEditor(heroDocRef.current)
-  }, [openInEditor])
-
-  const handleRunwayOpenInEditor = useCallback(() => {
-    void openInEditor(runwayDocRef.current)
-  }, [openInEditor])
-
-  // Chapter heroes (#926): run/share/open use the chapter's own example doc.
+  // Chapter heroes (#926): run/share use the chapter's own example doc.
   const handleChapterRun = useCallback(
     (_chapterId: string, block: ScriptBlock | null, doc: string) => {
       track?.(HOME_EVENTS.chapterExampleRun, { chapter: _chapterId })
@@ -653,7 +624,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     [startChapterRun, track],
   )
   const handleChapterShare = useCallback((doc: string) => void shareDoc(doc), [shareDoc])
-  const handleChapterOpenInEditor = useCallback((doc: string) => void openInEditor(doc), [openInEditor])
 
   const handleHeroBlocksChange = useCallback((blocks: ScriptBlock[]) => {
     heroBlocksRef.current = blocks
@@ -852,7 +822,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
           onBlocksChange={handleHeroBlocksChange}
           onRun={handleHeroRun}
           onShare={handleHeroShare}
-          onOpenInEditor={handleHeroOpenInEditor}
           onChoice={handleWorkoutChoice}
           sharedBy={sharedBy}
           onResetShared={handleClearShared}
@@ -875,20 +844,17 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
           questLabels={questLabels}
           onChapterRun={handleChapterRun}
           onChapterShare={handleChapterShare}
-          onChapterOpenInEditor={handleChapterOpenInEditor}
           onHomeQuestClick={handleHomeQuestClick}
           doc={heroDoc}
           onDocChange={handleHeroDocChange}
           onBlocksChange={handleHeroBlocksChange}
           onRun={handleHeroRun}
           onShare={handleHeroShare}
-          onOpenInEditor={handleHeroOpenInEditor}
           runwayDoc={runwayDoc}
           onRunwayDocChange={handleRunwayDocChange}
           onRunwayBlocksChange={handleRunwayBlocksChange}
           onRunwayRun={handleRunwayRun}
           onRunwayShare={handleRunwayShare}
-          onRunwayOpenInEditor={handleRunwayOpenInEditor}
           sharedBy={sharedBy}
           onResetShared={handleClearShared}
           onChoice={handleWorkoutChoice}
@@ -924,7 +890,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
           onBlocksChange={handleHeroBlocksChange}
           onRun={handleHeroRun}
           onShare={handleHeroShare}
-          onOpenInEditor={handleHeroOpenInEditor}
           sharedBy={sharedBy}
           onResetShared={handleClearShared}
         />
@@ -982,10 +947,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
                           onBlocksChange={handleRunwayBlocksChange}
                           onRun={handleRunwayRun}
                           onShare={handleRunwayShare}
-                          onOpenInEditor={handleRunwayOpenInEditor}
                           theme={theme}
-                          sharedBy={sharedBy}
-                          onResetShared={handleClearShared}
                           withRingTargets
                         />
                       </Screen>
