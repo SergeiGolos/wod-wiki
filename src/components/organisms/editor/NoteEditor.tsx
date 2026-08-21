@@ -62,6 +62,8 @@ import { cursorFocusExtension, getCursorFocusState } from "@/app/editor/cursorFo
 
 import { createParser } from '@bitcobblers/wod-wiki-engine';
 import type { INotePersistence } from "@/services/persistence";
+import { queryService } from "@/services/queryService";
+import { onResultSaved } from "@/services/resultRecorder";
 import { createFileDropHandler, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
 
 import { OverlayTrack } from "@/components/organisms/editor/OverlayTrack";
@@ -462,8 +464,12 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         ? [widgetBlockPreview(widgetComponents)]
         : []),
 
-      // Inline ```query blocks — live WQL results (#801, widget suffixes #899)
-      queryBlockPreview(),
+      // Inline ```query blocks — live WQL results (#801, widget suffixes #899).
+      // The executor is the IndexedDB-wired QueryService singleton and
+      // onResultSaved re-runs rows:{result:…} blocks when a workout result
+      // lands — without either, every query block spins "Loading…" forever
+      // (the UI package is store-free; the app owns persistence).
+      queryBlockPreview({ executor: queryService, onResultSaved }),
 
       // Inline button decorations ([Label]{.button action=...})
       ...(onButtonAction ? [inlineButtonDecoration(onButtonAction)] : []),
