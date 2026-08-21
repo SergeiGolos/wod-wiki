@@ -1,11 +1,12 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
-import { Share2 } from 'lucide-react'
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Play, Copy, Check, Share2 } from 'lucide-react'
 import type { EditorView } from '@codemirror/view'
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import type { ScriptBlock } from '@/components/Editor/types'
+import type { ScriptCommand } from '@/components/Editor/overlays/ScriptCommand'
+import { shareBlock } from '../../services/openInPlayground'
 import { useRingRef } from '../TourRing'
 import { TEST_IDS } from '@/testing/contracts/TestIdContract'
-
 export interface TourEditorScreenProps {
   doc: string
   onDocChange: (next: string) => void
@@ -146,6 +147,26 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
     onRun()
   }, [onRun])
 
+  const commands = useMemo<ScriptCommand[]>(() => [
+    {
+      id: 'run',
+      label: 'Run',
+      icon: <Play className="h-3 w-3 fill-current" />,
+      primary: true,
+      onClick: handleStartWorkout,
+    },
+    {
+      id: 'copy',
+      label: 'Copy link',
+      icon: <Copy className="h-3 w-3" />,
+      successIcon: <Check className="h-3 w-3 text-emerald-500" />,
+      iconOnly: true,
+      onClick: (block) => {
+        shareBlock(block)
+      },
+    },
+  ], [handleStartWorkout])
+
   return (
     <div className="relative flex h-full flex-col bg-background text-left">
       <div ref={bodyRef} className="relative flex-1 min-h-0">
@@ -155,6 +176,7 @@ export const TourEditorScreen: React.FC<TourEditorScreenProps> = ({
           onChange={onDocChange}
           onBlocksChange={onBlocksChange}
           onStartWorkout={handleStartWorkout}
+          commands={commands}
           onViewCreated={(view) => {
             viewRef.current = view
             if (withRingTargets) measure()

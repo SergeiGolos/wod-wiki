@@ -75,6 +75,7 @@ const CommandPill: React.FC<{
   block: ScriptBlock;
 }> = ({ cmd, block }) => {
   const [splitOk, setSplitOk] = useState(false);
+  const [actionOk, setActionOk] = useState(false);
 
   const handleSplitAction = useCallback(async () => {
     if (!cmd.onSplitClick || splitOk) return;
@@ -83,7 +84,19 @@ const CommandPill: React.FC<{
     setTimeout(() => setSplitOk(false), 1500);
   }, [cmd, block, splitOk]);
 
-  const PrimaryIcon = useMemo(() => wrapNodeAsIcon(cmd.icon), [cmd.icon]);
+  const handleAction = useCallback(async () => {
+    if (actionOk) return;
+    await cmd.onClick(block);
+    if (cmd.successIcon) {
+      setActionOk(true);
+      setTimeout(() => setActionOk(false), 1500);
+    }
+  }, [cmd, block, actionOk]);
+
+  const PrimaryIcon = useMemo(
+    () => wrapNodeAsIcon(actionOk ? (cmd.successIcon ?? cmd.icon) : cmd.icon),
+    [cmd.icon, cmd.successIcon, actionOk],
+  );
   const SplitIcon = useMemo(
     () =>
       splitOk
@@ -97,9 +110,9 @@ const CommandPill: React.FC<{
       id: cmd.id,
       label: cmd.label,
       icon: PrimaryIcon,
-      action: { type: "call", handler: () => cmd.onClick(block) },
+      action: { type: "call", handler: () => handleAction() },
     }),
-    [cmd, block, PrimaryIcon],
+    [cmd.id, cmd.label, PrimaryIcon, handleAction],
   );
 
   const secondaryActivation = useMemo<INavActivation>(
@@ -119,25 +132,29 @@ const CommandPill: React.FC<{
 
   // Standalone button — no split action
   if (!cmd.onSplitClick) {
+    const currentIcon = actionOk ? (cmd.successIcon ?? cmd.icon) : cmd.icon;
     return (
       <Button
         variant={cmd.primary ? "default" : "secondary"}
         className={cn(
-          "h-11 w-11 rounded-full p-0 text-[10px] font-medium shadow-sm gap-0 sm:h-auto sm:min-h-[44px] sm:w-auto sm:gap-1 sm:rounded-sm sm:px-2 sm:py-0.5",
+          cmd.iconOnly
+            ? "h-11 w-11 rounded-full p-0 sm:h-auto sm:min-h-[44px] sm:min-w-[44px] sm:w-auto sm:rounded-sm sm:px-1.5 sm:py-0.5 text-[10px] font-medium shadow-sm"
+            : "h-11 w-11 rounded-full p-0 text-[10px] font-medium shadow-sm gap-0 sm:h-auto sm:min-h-[44px] sm:w-auto sm:gap-1 sm:rounded-sm sm:px-2 sm:py-0.5",
           !cmd.primary && "border border-border/50",
+          actionOk && "text-emerald-600 bg-emerald-500/15 dark:text-emerald-400 dark:bg-emerald-500/20 border-emerald-500/30",
         )}
         title={cmd.label}
         aria-label={cmd.label}
         data-testid={cmd.id === 'run' ? TEST_IDS.EDITOR_START_WORKOUT : undefined}
         onClick={(e) => {
           stopEvent(e);
-          cmd.onClick(block);
+          handleAction();
         }}
         onMouseDown={stopEvent}
         onPointerDown={stopEvent}
       >
-        <span className="flex items-center justify-center size-4 sm:size-3">{cmd.icon}</span>
-        <span className="sr-only sm:not-sr-only sm:inline">{cmd.label}</span>
+        <span className="flex items-center justify-center size-4 sm:size-3">{currentIcon}</span>
+        {!cmd.iconOnly && <span className="sr-only sm:not-sr-only sm:inline">{cmd.label}</span>}
       </Button>
     );
   }

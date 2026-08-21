@@ -2,7 +2,21 @@ import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import fs from 'fs';
-import { CODEMIRROR_SINGLETON_DEPS } from '@bitcobblers/wod-wiki-ui';
+const CODEMIRROR_SINGLETON_DEPS = [
+  '@codemirror/autocomplete',
+  '@codemirror/commands',
+  '@codemirror/lang-markdown',
+  '@codemirror/language',
+  '@codemirror/lint',
+  '@codemirror/search',
+  '@codemirror/state',
+  '@codemirror/theme-one-dark',
+  '@codemirror/view',
+  '@lezer/common',
+  '@lezer/highlight',
+  '@lezer/lr',
+  '@lezer/markdown',
+];
 
 const pkg = JSON.parse(fs.readFileSync(resolve(__dirname, '../package.json'), 'utf-8'));
 
@@ -10,7 +24,7 @@ const pkg = JSON.parse(fs.readFileSync(resolve(__dirname, '../package.json'), 'u
 const projectRoot = resolve(__dirname, '..');
 const certFiles = fs.readdirSync(projectRoot).filter(f => f.endsWith('.ts.net.crt'));
 const keyFiles = fs.readdirSync(projectRoot).filter(f => f.endsWith('.ts.net.key'));
-const https = certFiles.length > 0 && keyFiles.length > 0
+const https = !process.env.VITE_NO_HTTPS && certFiles.length > 0 && keyFiles.length > 0
     ? { cert: fs.readFileSync(resolve(projectRoot, certFiles[0])), key: fs.readFileSync(resolve(projectRoot, keyFiles[0])) }
     : undefined;
 
