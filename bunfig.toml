@@ -1,0 +1,7 @@
+[test]
+# Mirror of vitest.workspace.ts scope: packages/* + tests/contract. The
+# storybook app suite (apps/storybook) runs its own vitest config
+# (`bun run --filter @bitcobblers/wod-wiki-storybook test`) with
+# @testing-library/jest-dom matchers root bun test does not install.
+preload = ["./test/bun-setup.ts"]
+pathIgnorePatterns = ["apps"]
