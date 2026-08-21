@@ -5,8 +5,11 @@
     "": {
       "name": "@bitcobblers/whiteboard-lang",
       "dependencies": {
-        "@bitcobblers/wod-wiki-engine": "^0.5.28",
-        "@bitcobblers/wod-wiki-ui": "^0.5.28",
+        "@bitcobblers/wod-wiki-core": "^0.5.30",
+        "@bitcobblers/wod-wiki-engine": "^0.5.30",
+        "@bitcobblers/wod-wiki-lang": "^0.5.30",
+        "@bitcobblers/wod-wiki-ui": "^0.5.30",
+        "@bitcobblers/wod-wiki-wql": "^0.5.30",
         "@codemirror/autocomplete": "^6.20.3",
         "@codemirror/commands": "^6.10.4",
         "@codemirror/lang-markdown": "^6.5.0",
@@ -159,15 +162,15 @@
 
     "@bcoe/v8-coverage": ["@bcoe/v8-coverage@1.0.2", "", {}, ""],
 
-    "@bitcobblers/wod-wiki-core": ["@bitcobblers/wod-wiki-core@0.5.28", "", {}, "sha512-twylx1wxLL2AncvL7Alk3hYGUlp81cuMWh1NabLO+ihfB6DMThStojAvYi0dy5cc1qE4VeDYhtu9XnVfkbmTrw=="],
+    "@bitcobblers/wod-wiki-core": ["@bitcobblers/wod-wiki-core@0.5.30", "", {}, "sha512-CpvT83Hq9krc0gkgFKi487VVtdnmRIOsrq2UGNQAXj5HkHHrRrvUZsI44im2jFWdxxqumobXMgCroJ25uSX2Ww=="],
 
-    "@bitcobblers/wod-wiki-engine": ["@bitcobblers/wod-wiki-engine@0.5.28", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.5.28", "@bitcobblers/wod-wiki-lang": "^0.5.28", "@bitcobblers/wod-wiki-wql": "^0.5.28" }, "bin": { "wod": "dist/bin/wod.mjs" } }, "sha512-ZhPpddhJKl3Yhe6D2bQ6mpoYZV5KXuQFmSAga6sbb+r/eGrwwNsrokxsCw/qyAP2L5Dvf1Yl+294XQYmXT4LPw=="],
+    "@bitcobblers/wod-wiki-engine": ["@bitcobblers/wod-wiki-engine@0.5.30", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.5.30", "@bitcobblers/wod-wiki-lang": "^0.5.30", "@bitcobblers/wod-wiki-wql": "^0.5.30" }, "bin": { "wod": "dist/bin/wod.mjs" } }, "sha512-uuRpj1XeLUlamhOcD4Y1N96Fssd0fwN9izLrRWN8u8dZ4cuuJcjEHVLWsH/aCTzR5Id4K8qPJ6XwcNKcY3++cw=="],
 
-    "@bitcobblers/wod-wiki-lang": ["@bitcobblers/wod-wiki-lang@0.5.28", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.5.28", "uuid": "^11.1.0" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/lr": "^1.0.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/lr", "react", "react-dom"] }, "sha512-3gyHfQeUZUhq246PcdKt3WQ6MAKDHNPNBFxQsXGCxJvGchDTSbZA4WtL/+eDCf6eL1YoAjAFv8BqOd0jh9XP8A=="],
+    "@bitcobblers/wod-wiki-lang": ["@bitcobblers/wod-wiki-lang@0.5.30", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.5.30", "uuid": "^11.1.0" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/lr": "^1.0.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/lr", "react", "react-dom"] }, "sha512-ndydQJ0rFOWrzVM+gh82GHa0GaK747eUsMFsAzyQHzuYvn0BGNDe4mXBFnfqIRqWORfM0wCAhUTYBHr5VxkYPw=="],
 
-    "@bitcobblers/wod-wiki-ui": ["@bitcobblers/wod-wiki-ui@0.5.28", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.5.28", "@bitcobblers/wod-wiki-lang": "^0.5.28", "@bitcobblers/wod-wiki-wql": "^0.5.28", "@heroicons/react": "^2.2.0", "clsx": "^2.1.1", "tailwind-merge": "^3.6.0" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/commands": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/lint": "^6.0.0", "@codemirror/search": "^6.0.0", "@codemirror/state": "^6.0.0", "@codemirror/view": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0", "lucide-react": ">=0.300.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "recharts": ">=2.10.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/commands", "@codemirror/language", "@codemirror/lint", "@codemirror/search", "@codemirror/state", "@codemirror/view", "@lezer/common", "@lezer/highlight", "@lezer/lr", "lucide-react", "react", "react-dom", "recharts"] }, "sha512-RVWrAj/SuS2vYan/LG7PXZYNRu3cJwrjppudO7Nb26u9eV4r+hyGzqD2DCn0eUTRh5OWlCCJjqvgdn1+dpMYvA=="],
+    "@bitcobblers/wod-wiki-ui": ["@bitcobblers/wod-wiki-ui@0.5.30", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.5.30", "@bitcobblers/wod-wiki-lang": "^0.5.30", "@bitcobblers/wod-wiki-wql": "^0.5.30", "@heroicons/react": "^2.2.0", "clsx": "^2.1.1", "tailwind-merge": "^3.6.0" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/commands": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/lint": "^6.0.0", "@codemirror/search": "^6.0.0", "@codemirror/state": "^6.0.0", "@codemirror/view": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0", "lucide-react": ">=0.300.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "recharts": ">=2.10.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/commands", "@codemirror/language", "@codemirror/lint", "@codemirror/search", "@codemirror/state", "@codemirror/view", "@lezer/common", "@lezer/highlight", "@lezer/lr", "lucide-react", "react", "react-dom", "recharts"] }, "sha512-vhAqhlDPzK1yNXwHkU/AXSe/ZSXko6Eo1jT9qZ5UGXdX52zDi77i0Ph5wvz9z1r1cuCXcthSI0XwrGlAozKyRQ=="],
 
-    "@bitcobblers/wod-wiki-wql": ["@bitcobblers/wod-wiki-wql@0.5.28", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.5.28" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/highlight", "@lezer/lr"] }, "sha512-tQMOyML5Nerm6HrHIWaxc7g2qs2ngi70Lsdnhy4sSqo9IaQms969GgCIZbHfEuvH+2F+XAFx3gAUSjyhe5gxSw=="],
+    "@bitcobblers/wod-wiki-wql": ["@bitcobblers/wod-wiki-wql@0.5.30", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.5.30" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/highlight", "@lezer/lr"] }, "sha512-owAzJki+UAq8VN64EAhz6J2p9QIZ5PiGDyXBoXeHZBFTmonBKioQLR2r8ebq1i4xKsn662jc8b5EPoYDp3DK4Q=="],
 
     "@blazediff/core": ["@blazediff/core@1.9.1", "", {}, "sha512-ehg3jIkYKulZh+8om/O25vkvSsXXwC+skXmyA87FFx6A/45eqOkZsBltMw/TVteb0mloiGT8oGRTcjRAz66zaA=="],
 
