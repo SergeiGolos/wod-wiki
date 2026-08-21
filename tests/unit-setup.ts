@@ -2,14 +2,52 @@ import { vi } from 'bun:test';
 import { mock } from 'bun:test';
 import { JSDOM } from 'jsdom';
 
-// ── IndexedDB polyfill ──────────────────────────────────────────────────────
-// jsdom does not implement IndexedDB. Several modules construct an IndexedDB
-// singleton at import time (e.g. `@/services/db/IndexedDBService` calls
-// `openDB(...)` in its constructor), which throws `ReferenceError: indexedDB is
-// not defined` and surfaces as an unhandled rejection between tests. Registering
-// fake-indexeddb's globals gives those modules a real in-memory backing store.
-import 'fake-indexeddb/auto';
+// ── JSDOM setup ─────────────────────────────────────────────────────────────
+// MUST run before any module imports so React and other DOM-sensitive packages
+// initialize with window/document present.
+if (!(globalThis as any).window || !globalThis.document) {
+  const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/' });
 
+  (globalThis as any).window = dom.window as any;
+  (globalThis as any).document = dom.window.document as any;
+  (globalThis as any).navigator = dom.window.navigator as any;
+  (globalThis as any).location = dom.window.location as any;
+
+  // Monaco checks these clipboard APIs; jsdom doesn't implement them.
+  if (!(globalThis.document as any).queryCommandSupported) {
+    (globalThis.document as any).queryCommandSupported = () => false;
+  }
+  if (!(globalThis.document as any).execCommand) {
+    (globalThis.document as any).execCommand = () => false;
+  }
+
+  // Make common DOM globals available at global scope (e.g. UIEvent for monaco).
+  for (const key of Object.getOwnPropertyNames(dom.window)) {
+    if (!(key in globalThis)) {
+      Object.defineProperty(globalThis, key, {
+        value: (dom.window as any)[key],
+        configurable: true,
+        enumerable: false,
+        writable: true,
+      });
+    }
+  }
+
+  // Polyfill requestAnimationFrame/cancelAnimationFrame for animation-based hooks
+  if (!(globalThis as any).requestAnimationFrame) {
+    (globalThis as any).requestAnimationFrame = (callback: FrameRequestCallback): number => {
+      return setTimeout(() => callback(Date.now()), 16) as unknown as number;
+    };
+  }
+  if (!(globalThis as any).cancelAnimationFrame) {
+    (globalThis as any).cancelAnimationFrame = (id: number): void => {
+      clearTimeout(id);
+    };
+  }
+}
+
+// ── IndexedDB polyfill ──────────────────────────────────────────────────────
+import 'fake-indexeddb/auto';
 // ── Pre-mock Vite-specific modules ──────────────────────────────────────────
 // These modules use `import.meta.glob` which is only available in Vite builds.
 // Registering stubs here prevents the "import.meta.glob is not a function"
@@ -78,48 +116,6 @@ mock.module('@/repositories/effort-markdown', () => ({
   getEffortMarkdown: (_slug: string) => null,
 }));
 
-// Some src/ tests import browser-only libraries (e.g. monaco-editor, react-dom)
-// that assume `window` and `document` exist at module-evaluation time.
-if (!(globalThis as any).window || !globalThis.document) {
-  const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/' });
-
-  (globalThis as any).window = dom.window as any;
-  (globalThis as any).document = dom.window.document as any;
-  (globalThis as any).navigator = dom.window.navigator as any;
-  (globalThis as any).location = dom.window.location as any;
-
-  // Monaco checks these clipboard APIs; jsdom doesn't implement them.
-  if (!(globalThis.document as any).queryCommandSupported) {
-    (globalThis.document as any).queryCommandSupported = () => false;
-  }
-  if (!(globalThis.document as any).execCommand) {
-    (globalThis.document as any).execCommand = () => false;
-  }
-
-  // Make common DOM globals available at global scope (e.g. UIEvent for monaco).
-  for (const key of Object.getOwnPropertyNames(dom.window)) {
-    if (!(key in globalThis)) {
-      Object.defineProperty(globalThis, key, {
-        value: (dom.window as any)[key],
-        configurable: true,
-        enumerable: false,
-        writable: true,
-      });
-    }
-  }
-
-  // Polyfill requestAnimationFrame/cancelAnimationFrame for animation-based hooks
-  if (!(globalThis as any).requestAnimationFrame) {
-    (globalThis as any).requestAnimationFrame = (callback: FrameRequestCallback): number => {
-      return setTimeout(() => callback(Date.now()), 16) as unknown as number;
-    };
-  }
-  if (!(globalThis as any).cancelAnimationFrame) {
-    (globalThis as any).cancelAnimationFrame = (id: number): void => {
-      clearTimeout(id);
-    };
-  }
-}
 
 // Provide vi.mocked helper for compatibility across tests
 if (!(vi as any).mocked) {

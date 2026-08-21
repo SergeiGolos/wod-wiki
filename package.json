@@ -42,11 +42,11 @@
     "deps:engine:tarballs": "bun scripts/use-engine.ts tarballs"
   },
   "dependencies": {
-    "@bitcobblers/wod-wiki-core": "^0.5.30",
-    "@bitcobblers/wod-wiki-engine": "^0.5.30",
-    "@bitcobblers/wod-wiki-lang": "^0.5.30",
-    "@bitcobblers/wod-wiki-ui": "^0.5.30",
-    "@bitcobblers/wod-wiki-wql": "^0.5.30",
+    "@bitcobblers/wod-wiki-core": "^0.6.32",
+    "@bitcobblers/wod-wiki-engine": "^0.6.32",
+    "@bitcobblers/wod-wiki-lang": "^0.6.32",
+    "@bitcobblers/wod-wiki-ui": "^0.6.32",
+    "@bitcobblers/wod-wiki-wql": "^0.6.32",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.11.0",
     "@codemirror/lang-markdown": "^6.5.2",
@@ -84,8 +84,8 @@
     "zustand": "^5.0.15"
   },
   "peerDependencies": {
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "peerDependenciesMeta": {},
   "optionalDependencies": {
@@ -135,6 +135,8 @@
     "vitest": "^4.1.11"
   },
   "resolutions": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.6",
     "@codemirror/language": "^6.12.4",
