@@ -23,19 +23,19 @@
     "pack:all": "mkdir -p tarballs && for pkg in packages/*; do if [ -f \"$pkg/package.json\" ]; then (cd \"$pkg\" && npm pack --pack-destination ../../tarballs); fi; done"
   },
   "devDependencies": {
-    "@playwright/test": "^1.56.1",
+    "@playwright/test": "^1.62.1",
     "@testing-library/react": "^16.3.2",
-    "@types/node": "^20.17.19",
+    "@types/node": "^20.19.43",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
-    "@typescript-eslint/eslint-plugin": "^8.24.1",
-    "@typescript-eslint/parser": "^8.24.1",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
+    "@typescript-eslint/parser": "^8.67.0",
     "eslint": "^8.57.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^30.0.1",
-    "tsup": "^8.3.6",
-    "typescript": "^5.7.3",
-    "vitest": "^2.1.8"
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
   },
   "dependencies": {
     "react": "^19.2.8",

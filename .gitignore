@@ -9,3 +9,6 @@ tarballs
 storybook-static
 .env
 .env.local
+bun.lock
+test-results/
+playwright-report/
