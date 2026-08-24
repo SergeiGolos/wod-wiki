@@ -10,7 +10,7 @@
  *   segments    — versioned content (replaces scripts + section_history)
  *   results     — workout execution logs
  *   attachments — external temporal blobs (HR / GPS)
- *   analytics   — de-normalized metric data points
+ *   events      — unified event store (V16; replaces the legacy analytics store)
  *
  * V6 — by-content / by-block indexes for cross-note result aggregation
  *      (cross-note-result-aggregation ADR).
@@ -27,9 +27,10 @@ import {
     Tag,
     WorkoutResult,
     Attachment,
-    AnalyticsDataPoint,
+    UnifiedEventRecord,
     SegmentDataType,
 } from '../../types/storage';
+import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 import type { IEffort } from '@/effort-registry/types';
 import type { ScriptBlock } from '@/components/Editor/types';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
@@ -38,6 +39,7 @@ import {
     normalizeAllMetrics,
     normalizeSummaryFacts,
     replayResultAnalytics,
+    type LegacyFactRow,
 } from '@/services/analytics/workoutDerivation';
 
 // ---------------------------------------------------------------------------
@@ -102,9 +104,15 @@ export interface WodWikiDB extends DBSchema {
         value: Attachment;
         indexes: { 'by-note': string; 'by-time': number; 'by-page': string; 'by-result': string };
     };
+    /**
+     * LEGACY — deleted by the V16 upgrade (unified event store, tickets
+     * 002–004). The entry stays in the schema type because the V10–V13
+     * upgrade backfills still write through it on the way up to V16; no
+     * runtime code may touch it after the upgrade completes.
+     */
     analytics: {
         key: string;
-        value: AnalyticsDataPoint;
+        value: LegacyFactRow;
         indexes: {
             'by-type': string; // the row's metric key (field is `type`)
             'by-segment': string;
@@ -118,6 +126,25 @@ export interface WodWikiDB extends DBSchema {
             'by-discipline': string; // V10 — discipline
             'by-timestamp': number;  // V12 — canonical workout time; IDBKeyRange time scans
             'by-value': [string, number]; // V13 — compound [type, value]; IDBKeyRange threshold scans
+        };
+    };
+    /**
+     * V16 — THE single store for all workout data (unified event store).
+     * Event rows (grain 'event') are appended per statement during a run;
+     * summary rows (grain 'summary') are finalize-owned (engine-authored)
+     * or reconcile-owned (user-authored wellness). Six indexes per ticket
+     * 002/003 — `by-metric` deliberately absent (scan beats it, ticket 001).
+     */
+    events: {
+        key: string;
+        value: UnifiedEventRecord;
+        indexes: {
+            'by-timestamp': number;              // the one proven culling index
+            'by-result-grain': [string, string]; // finalize clear, per-result fetch, orphan GC
+            'by-content-grain': [string, string];// blockContentId join hot path
+            'by-effort': string;
+            'by-outputType': string;
+            'by-grain': string;
         };
     };
     efforts: {
@@ -135,7 +162,7 @@ export interface WodWikiDB extends DBSchema {
         };
     };
 }
-const DB_VERSION = 15; // V15 — fence-tag cutover: rewrite legacy ```wod/plan/whiteboard to ```time (#893)
+const DB_VERSION = 16; // V16 — unified event store: +events, −analytics, re-derive from logs (tickets 002–004)
 const DB_NAME = 'wodwiki-db';
 
 type V10Tx = IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'versionchange'>;
@@ -635,6 +662,104 @@ export async function backfillV15(tx: V10Tx): Promise<void> {
         `[IndexedDBService] V15 backfill: ${rewritten}/${allSegments.length} segment rows rewritten to \`\`\`time fences`,
     );
 }
+/**
+ * V16 backfill — unified event store (tickets 002–004). Runs inside the
+ * upgrade transaction when 0 < oldVersion < 16.
+ *
+ * Doctrine (V10/V12/V13): logs win; fact rows were a disposable index. The
+ * old `analytics` rows are NEVER copied — event rows are re-derived 1:1
+ * from `results.data.logs` (engine `toEventRows`), summary rows re-derived
+ * once via `toSummaryEventRows` (deterministic content keys; legacy
+ * name-derived keys re-resolved, not carried forward). Segment/rollup-grain
+ * fact rows die with the old store.
+ *
+ * Replay seam (V12 doctrine verbatim): results whose Tier-2 logs predate the
+ * summary processors are replayed headlessly so re-derived rows carry effort
+ * metadata; failure falls back to the stored logs, then to skipping the
+ * result — logs remain untouched either way.
+ *
+ * `deleteObjectStore('analytics')` runs in the upgrade callback after this
+ * returns. The versionchange tx is atomic — a crash aborts everything and
+ * the next open retries from scratch.
+ *
+ * Exported for integration tests; production callers should only ever be the
+ * upgrade callback below.
+ */
+export async function backfillV16(tx: V10Tx): Promise<void> {
+    const resultsStore = tx.objectStore('results');
+    const segmentsStore = tx.objectStore('segments');
+    const eventsStore = tx.objectStore('events');
+
+    const results = await resultsStore.getAll();
+    const allSegments = await segmentsStore.getAll();
+
+    // Segment lookup mirrors backfillV12: pinned incarnation first, latest
+    // version as fallback for rows recorded before segmentVersion was stamped.
+    const segmentByKey = new Map<string, NoteSegment>();
+    const latestSegmentById = new Map<string, NoteSegment>();
+    for (const segment of allSegments) {
+        segmentByKey.set(`${segment.id}:${segment.version}`, segment);
+        const current = latestSegmentById.get(segment.id);
+        if (!current || segment.version > current.version) latestSegmentById.set(segment.id, segment);
+    }
+
+    let replayed = 0;
+    let fromStoredLogs = 0;
+    let withoutLogs = 0;
+    let eventRows = 0;
+    let summaryRows = 0;
+    for (const result of results) {
+        const storedLogs = result.data?.logs ?? [];
+        if (storedLogs.length === 0) {
+            withoutLogs++;
+            continue;
+        }
+        const identity = {
+            noteId: result.noteId,
+            resultId: result.id,
+            segmentId: result.segmentId,
+            segmentVersion: result.segmentVersion,
+            blockContentId: result.blockContentId,
+            origin: result.origin,
+            pageId: result.pageId,
+            workoutTimestamp: result.createdAt,
+        };
+
+        let logs = storedLogs;
+        try {
+            const segment = result.segmentId
+                ? (result.segmentVersion != null
+                    ? segmentByKey.get(`${result.segmentId}:${result.segmentVersion}`)
+                    : undefined) ?? latestSegmentById.get(result.segmentId)
+                : undefined;
+            const scriptBlock = segment?.data as ScriptBlock | null | undefined;
+            if (!scriptBlock) throw new Error('no recoverable segment context');
+            const block = scriptBlock.statements?.length
+                ? scriptBlock
+                : { ...scriptBlock, statements: createParser().read(scriptBlock.content, scriptBlock.sport).statements };
+            logs = replayResultAnalytics(result, block);
+            if (logs !== storedLogs) {
+                await resultsStore.put({ ...result, data: { ...result.data, logs } });
+            }
+            replayed++;
+        } catch (err) {
+            console.warn(`[IndexedDBService] V16 replay failed for result ${result.id}; deriving from stored logs`, err);
+            fromStoredLogs++;
+        }
+
+        const events = toEventRows(logs, identity);
+        const summaries = toSummaryEventRows(logs, identity);
+        for (const row of events) await eventsStore.put(row);
+        for (const row of summaries) await eventsStore.put(row);
+        eventRows += events.length;
+        summaryRows += summaries.length;
+    }
+
+    console.info(
+        `[IndexedDBService] V16 backfill: ${replayed} results replayed, ${fromStoredLogs} derived from stored logs, ` +
+        `${withoutLogs} without logs, ${eventRows} event rows + ${summaryRows} summary rows written`,
+    );
+}
 
 export class IndexedDBService {
     private _dbPromise: Promise<IDBPDatabase<WodWikiDB>> | null = null;
@@ -727,19 +852,32 @@ export class IndexedDBService {
                     store.createIndex('by-time', 'createdAt');
                 }
 
-                // ---- Analytics ----
-                if (!db.objectStoreNames.contains('analytics')) {
+                // ---- Analytics (LEGACY — V16 deletes this store; created only
+                // so the V10–V13 upgrade backfills have somewhere to write on
+                // the way up. Never created for V16+ installs.) ----
+                if (oldVersion < 16 && !db.objectStoreNames.contains('analytics')) {
                     const store = db.createObjectStore('analytics', { keyPath: 'id' });
                     store.createIndex('by-type', 'metricType');
                     store.createIndex('by-segment', 'segmentId');
                     store.createIndex('by-result', 'resultId');
                 }
-                {
+                if (db.objectStoreNames.contains('analytics')) {
                     // V6 — by-content, idempotent for fresh creation AND upgrades.
                     const analytics = tx.objectStore('analytics');
                     if (!analytics.indexNames.contains('by-content')) {
                         analytics.createIndex('by-content', 'blockContentId');
                     }
+                }
+
+                // ---- Events (V16 — unified event store) ----
+                if (!db.objectStoreNames.contains('events')) {
+                    const store = db.createObjectStore('events', { keyPath: 'id' });
+                    store.createIndex('by-timestamp', 'timestamp');
+                    store.createIndex('by-result-grain', ['resultId', 'grain']);
+                    store.createIndex('by-content-grain', ['blockContentId', 'grain']);
+                    store.createIndex('by-effort', 'effortSlug');
+                    store.createIndex('by-outputType', 'outputType');
+                    store.createIndex('by-grain', 'grain');
                 }
 
                 // ---- Efforts ----
@@ -792,16 +930,20 @@ export class IndexedDBService {
                 ensureIndex('results', 'by-origin', 'origin');
                 ensureIndex('attachments', 'by-page', 'pageId');
                 ensureIndex('attachments', 'by-result', 'resultId');
-                ensureIndex('analytics', 'by-page', 'pageId');
-                ensureIndex('analytics', 'by-origin', 'origin');
-                ensureIndex('analytics', 'by-metric', 'metricKey');
-                ensureIndex('analytics', 'by-effort', 'effortSlug');
-                ensureIndex('analytics', 'by-grain', 'grain');
-                ensureIndex('analytics', 'by-discipline', 'discipline');
-                // V12 — canonical workout time range scans.
-                ensureIndex('analytics', 'by-timestamp', 'timestamp');
-                // V13 — compound [type, value] for IDBKeyRange threshold scans.
-                ensureIndex('analytics', 'by-value', ['type', 'value']);
+                // Legacy analytics indexes — only while the store still exists
+                // (pre-V16 upgrade paths); V16 deletes the store below.
+                if (db.objectStoreNames.contains('analytics')) {
+                    ensureIndex('analytics', 'by-page', 'pageId');
+                    ensureIndex('analytics', 'by-origin', 'origin');
+                    ensureIndex('analytics', 'by-metric', 'metricKey');
+                    ensureIndex('analytics', 'by-effort', 'effortSlug');
+                    ensureIndex('analytics', 'by-grain', 'grain');
+                    ensureIndex('analytics', 'by-discipline', 'discipline');
+                    // V12 — canonical workout time range scans.
+                    ensureIndex('analytics', 'by-timestamp', 'timestamp');
+                    // V13 — compound [type, value] for IDBKeyRange threshold scans.
+                    ensureIndex('analytics', 'by-value', ['type', 'value']);
+                }
 
                 // ---- V10 backfills (upgrade from < 10 only) ----
                 if (oldVersion < 10) {
@@ -848,6 +990,13 @@ export class IndexedDBService {
                 if (oldVersion > 0 && oldVersion < 15) {
                     await backfillV15(tx);
                 }
+                // ---- V16: unified event store — re-derive from logs, drop analytics ----
+                if (oldVersion > 0 && oldVersion < 16) {
+                    await backfillV16(tx);
+                }
+                if (db.objectStoreNames.contains('analytics')) {
+                    db.deleteObjectStore('analytics');
+                }
             },
             // Another tab is waiting on a schema upgrade this connection
             // blocks. Surface it — without a `blocked` handler this is
@@ -877,7 +1026,19 @@ export class IndexedDBService {
             },
         });
         opening.then(
-          () => console.info(`[IndexedDBService] ${DB_NAME} v${DB_VERSION} open`),
+          () => {
+            console.info(`[IndexedDBService] ${DB_NAME} v${DB_VERSION} open`);
+            // Daily GC (ticket 005): sweep in-progress results older than 30
+            // days. Fire-and-forget — GC failure must never block the open.
+            const GC_KEY = 'wodwiki.gc.inProgress.lastRun';
+            const today = new Date().toISOString().slice(0, 10);
+            if (typeof localStorage !== 'undefined' && localStorage.getItem(GC_KEY) !== today) {
+                localStorage.setItem(GC_KEY, today);
+                this.sweepStaleInProgressResults().catch((err) =>
+                    console.warn('[IndexedDBService] in-progress GC failed', err),
+                );
+            }
+          },
           (err) => console.warn(`[IndexedDBService] ${DB_NAME} open failed`, err),
         );
         return opening;
@@ -912,7 +1073,7 @@ export class IndexedDBService {
      * delete request is not blocked, then issues `deleteDatabase`.
      *
      * Used by the "Reset & Clear Cache" action to wipe every object store
-     * (notes, segments, results, attachments, analytics, efforts, page, tags,
+     * (notes, segments, results, attachments, events, efforts, page, tags,
      * note_tags) in one shot rather than clearing stores piecemeal.
      *
      * After this resolves the singleton's cached connection is closed and the
@@ -998,18 +1159,123 @@ export class IndexedDBService {
         return (await this.dbPromise).getAllFromIndex('results', 'by-page', pageId);
     }
 
-    async getAnalyticsForPage(pageId: string): Promise<AnalyticsDataPoint[]> {
-        return (await this.dbPromise).getAllFromIndex('analytics', 'by-page', pageId);
+    // =======================================================================
+    // Events (V16 — unified event store; implements the engine's
+    // UnifiedEventStore contract, tickets 003/005)
+    // =======================================================================
+
+    /** Windowed fetch — the one proven culling index (ticket 001/003). */
+    async getEventsByTimeRange(start: number, end: number): Promise<UnifiedEventRecord[]> {
+        return (await this.dbPromise).getAllFromIndex('events', 'by-timestamp', IDBKeyRange.bound(start, end));
     }
 
-    /** V12 — Query Service SELECT leg: every fact row for one Canonical Metric Key. */
-    async getFactsByMetric(metricKey: string): Promise<AnalyticsDataPoint[]> {
-        return (await this.dbPromise).getAllFromIndex('analytics', 'by-metric', metricKey);
+    /** Per-result fetch (rows:{result:…}, re-finalize, orphan inspection). */
+    async getEventsByResult(resultId: string): Promise<UnifiedEventRecord[]> {
+        return (await this.dbPromise).getAllFromIndex(
+            'events', 'by-result-grain', IDBKeyRange.bound([resultId, ''], [resultId, []]),
+        );
     }
 
-    /** V12 — Query Service SELECT leg: fact rows in a canonical-time window. */
-    async getFactsByTimeRange(start: number, end: number): Promise<AnalyticsDataPoint[]> {
-        return (await this.dbPromise).getAllFromIndex('analytics', 'by-timestamp', IDBKeyRange.bound(start, end));
+    /** Note-scoped fetch (rows:{note:…}) — join through the results store;
+     *  the events schema has no by-note index (ticket 002: six indexes only). */
+    async getEventsForNote(noteId: string): Promise<UnifiedEventRecord[]> {
+        const resultIds = (await this.getResultsForNote(noteId)).map((r) => r.id);
+        // Wellness rows live under the synthetic per-note resultId (ticket 005).
+        resultIds.push(`wellness:${noteId}`);
+        const batches = await Promise.all(resultIds.map((id) => this.getEventsByResult(id)));
+        return batches.flat();
+    }
+
+    /** Content-scoped fetch — the cross-store join hot path (indexed). */
+    async getEventsByContent(blockContentId: string): Promise<UnifiedEventRecord[]> {
+        return (await this.dbPromise).getAllFromIndex(
+            'events', 'by-content-grain', IDBKeyRange.bound([blockContentId, ''], [blockContentId, []]),
+        );
+    }
+
+    /** Full scan — all-time SELECT leg (ticket 001: scan beats non-selective indexes). */
+    async scanAll(): Promise<UnifiedEventRecord[]> {
+        return (await this.dbPromise).getAll('events');
+    }
+
+    /** Append event rows (per-statement flush; wellness reconcile upserts). */
+    async appendEvents(rows: UnifiedEventRecord[]): Promise<void> {
+        if (rows.length === 0) return;
+        const db = await this.dbPromise;
+        const tx = db.transaction('events', 'readwrite');
+        for (const row of rows) {
+            await tx.store.put(row);
+        }
+        await tx.done;
+    }
+
+    /**
+     * Atomic finalize (tickets 002/005): clear the result's ENGINE-AUTHORED
+     * summaries and write the finals in one transaction. User-authored rows
+     * (origin 'user' — wellness) are reconcile-owned and survive; matches the
+     * engine's inMemoryEventStore semantics. Deterministic summary ids make
+     * re-finalize idempotent.
+     */
+    async finalizeSummaries(resultId: string, rows: UnifiedEventRecord[]): Promise<void> {
+        const db = await this.dbPromise;
+        const tx = db.transaction('events', 'readwrite');
+        const index = tx.store.index('by-result-grain');
+        for await (const cursor of index.iterate(IDBKeyRange.only([resultId, 'summary']))) {
+            if (cursor.value.origin !== 'user') {
+                await cursor.delete();
+            }
+        }
+        for (const row of rows) {
+            await tx.store.put(row);
+        }
+        await tx.done;
+    }
+
+    /** Reconcile deletes (wellness note-save) + GC sweeps. */
+    async deleteEvents(ids: string[]): Promise<void> {
+        if (ids.length === 0) return;
+        const db = await this.dbPromise;
+        const tx = db.transaction('events', 'readwrite');
+        for (const id of ids) {
+            await tx.store.delete(id);
+        }
+        await tx.done;
+    }
+
+    /** Delete every event row of one result (note-delete cascade). */
+    private async deleteEventsForResultTx(
+        tx: IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'readwrite'>,
+        resultId: string,
+    ): Promise<void> {
+        const index = tx.objectStore('events').index('by-result-grain');
+        for await (const cursor of index.iterate(IDBKeyRange.bound([resultId, ''], [resultId, []]))) {
+            await cursor.delete();
+        }
+    }
+
+    /**
+     * GC (ticket 005, decision 5): sweep in-progress results older than 30
+     * days — crash orphans from the streaming write path — together with
+     * their event rows. Completed results are never touched.
+     */
+    async sweepStaleInProgressResults(now: number = Date.now()): Promise<number> {
+        const cutoff = now - 30 * 86_400_000;
+        const db = await this.dbPromise;
+        const tx = db.transaction(['results', 'events'], 'readwrite');
+        let swept = 0;
+        for await (const cursor of tx.objectStore('results')) {
+            const result = cursor.value;
+            if (result.status === 'in-progress' && result.createdAt < cutoff) {
+                await this.deleteEventsForResultTx(tx, result.id);
+                await cursor.delete();
+                swept++;
+            }
+        }
+        await tx.done;
+        if (swept > 0) {
+            console.info(`[IndexedDBService] GC: swept ${swept} stale in-progress result(s)`);
+        }
+        return swept;
     }
 
     // ======================================================================
@@ -1093,7 +1359,7 @@ export class IndexedDBService {
     async deleteNote(id: string): Promise<void> {
         const db = await this.dbPromise;
         const tx = db.transaction(
-            ['notes', 'segments', 'results', 'attachments', 'analytics', 'note_tags'],
+            ['notes', 'segments', 'results', 'attachments', 'events', 'note_tags'],
             'readwrite',
         );
 
@@ -1130,15 +1396,12 @@ export class IndexedDBService {
             attCursor = await attCursor.continue();
         }
 
-        const anaStore = tx.objectStore('analytics');
+        const eventsTx = tx as IDBPTransaction<WodWikiDB, StoreNames<WodWikiDB>[], 'readwrite'>;
         for (const resultId of deletedResultIds) {
-            let anaCursor = await anaStore.index('by-result').openCursor(IDBKeyRange.only(resultId));
-            while (anaCursor) {
-                await anaCursor.delete();
-                anaCursor = await anaCursor.continue();
-            }
+            await this.deleteEventsForResultTx(eventsTx, resultId);
         }
-
+        // Wellness rows live under the synthetic per-note resultId (ticket 005).
+        await this.deleteEventsForResultTx(eventsTx, `wellness:${id}`);
         await tx.done;
     }
 
@@ -1188,7 +1451,7 @@ export class IndexedDBService {
         };
 
         const db = await this.dbPromise;
-        const tx = db.transaction(['notes', 'segments', 'results', 'attachments', 'analytics'], 'readwrite');
+        const tx = db.transaction(['notes', 'segments', 'results', 'attachments', 'events'], 'readwrite');
         const migratedExisting = await tx.objectStore('notes').index('by-slug').get(oldId);
         if (migratedExisting) {
             await tx.done;
@@ -1207,21 +1470,30 @@ export class IndexedDBService {
             }
         }
 
-        // Re-key analytics: there's no by-note index, so join through results.
+        // Re-key events: no by-note index (six-index schema), so join through results.
         const oldResultIds = new Set<string>();
         let resCursor = await tx.objectStore('results').index('by-note').openCursor(IDBKeyRange.only(oldId));
         while (resCursor) {
             oldResultIds.add(resCursor.value.id);
             resCursor = await resCursor.continue();
         }
+        oldResultIds.add(`wellness:${oldId}`); // synthetic wellness resultId (ticket 005)
         for (const resultId of oldResultIds) {
-            let anaCursor = await tx.objectStore('analytics').index('by-result').openCursor(IDBKeyRange.only(resultId));
-            while (anaCursor) {
-                await anaCursor.update({ ...anaCursor.value, noteId: newId });
-                anaCursor = await anaCursor.continue();
+            const idx = tx.objectStore('events').index('by-result-grain');
+            let evCursor = await idx.openCursor(IDBKeyRange.bound([resultId, ''], [resultId, []]));
+            while (evCursor) {
+                const row = evCursor.value;
+                await evCursor.delete();
+                // Re-key: noteId changes; wellness ids embed the noteId too.
+                await tx.objectStore('events').put({
+                    ...row,
+                    id: row.id.split(`wellness:${oldId}`).join(`wellness:${newId}`),
+                    noteId: newId,
+                    ...(row.resultId === `wellness:${oldId}` ? { resultId: `wellness:${newId}` } : {}),
+                });
+                evCursor = await evCursor.continue();
             }
         }
-
         await tx.objectStore('notes').delete(oldId);
         await tx.done;
         return newId;
@@ -1332,52 +1604,6 @@ export class IndexedDBService {
 
     async deleteAttachment(id: string): Promise<void> {
         return (await this.dbPromise).delete('attachments', id);
-    }
-
-    // =======================================================================
-    // Analytics
-    // =======================================================================
-
-    async saveAnalyticsPoints(points: AnalyticsDataPoint[]): Promise<void> {
-        const db = await this.dbPromise;
-        const tx = db.transaction('analytics', 'readwrite');
-        const store = tx.objectStore('analytics');
-        for (const pt of points) {
-            await store.put(pt);
-        }
-        await tx.done;
-    }
-
-    /** V6 — cross-workout trend queries. */
-    async getAnalyticsByContentId(blockContentId: string): Promise<AnalyticsDataPoint[]> {
-        return (await this.dbPromise).getAllFromIndex('analytics', 'by-content', blockContentId);
-    }
-
-    /** Delete all fact rows for one result (replay/re-derivation cascade). */
-    async deleteAnalyticsPointsForResult(resultId: string): Promise<void> {
-        const db = await this.dbPromise;
-        const tx = db.transaction('analytics', 'readwrite');
-        const index = tx.store.index('by-result');
-        for await (const cursor of index.iterate(resultId)) {
-            await cursor.delete();
-        }
-        await tx.done;
-    }
-
-    /** Delete fact rows by id (rollup driver stale-window sweep). */
-    async deleteAnalyticsPoints(ids: string[]): Promise<void> {
-        if (ids.length === 0) return;
-        const db = await this.dbPromise;
-        const tx = db.transaction('analytics', 'readwrite');
-        for (const id of ids) {
-            await tx.store.delete(id);
-        }
-        await tx.done;
-    }
-
-    /** Full analytics scan — used by maintenance operations that cannot join through a narrower index. */
-    async getAllAnalytics(): Promise<AnalyticsDataPoint[]> {
-        return (await this.dbPromise).getAll('analytics');
     }
 
     // =======================================================================

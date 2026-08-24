@@ -114,7 +114,7 @@ export function createResultRecorder(writer: ResultWriter): ResultRecorder {
             data,
             createdAt,
           },
-          noteType: resolvedOrigin,
+          noteType: resolvedOrigin === 'user' ? 'journal' : resolvedOrigin, // ResultOrigin widened with 'user' (0.6.36); note kinds never carry it
         },
       );
 

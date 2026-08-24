@@ -1,5 +1,6 @@
-import type { AnalyticsDataPoint } from '@/types/storage';
+import type { AnalyticsDataPoint, UnifiedEventRecord } from '@/types/storage';
 import { indexedDBService } from '@/services/db/IndexedDBService';
+import { projectEventToFacts } from '@bitcobblers/wod-wiki-wql';
 import { getMetricDirection, isBetterValue } from './directionOfBetter';
 
 export interface PRMetricStatus {
@@ -14,8 +15,8 @@ export interface PRMetricStatus {
 }
 
 export interface PRDetectionOptions {
-  factsStore?: {
-    getAnalyticsByContentId: (blockContentId: string) => Promise<AnalyticsDataPoint[]>;
+  eventsStore?: {
+    getEventsByContent: (blockContentId: string) => Promise<UnifiedEventRecord[]>;
   };
 }
 
@@ -24,8 +25,11 @@ export async function detectPRsForWorkoutResult(
   targetResultId: string,
   options?: PRDetectionOptions,
 ): Promise<PRMetricStatus[]> {
-  const store = options?.factsStore ?? indexedDBService;
-  const facts = await store.getAnalyticsByContentId(blockContentId);
+  const store = options?.eventsStore ?? indexedDBService;
+  const events = await store.getEventsByContent(blockContentId);
+  const facts = events
+    .filter((event) => event.grain === 'summary')
+    .flatMap(projectEventToFacts);
 
   // Group facts by metric key
   const factsByMetric = new Map<string, AnalyticsDataPoint[]>();

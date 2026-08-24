@@ -9,12 +9,12 @@ import type { Attachment, Note, WorkoutResult } from '@/types/storage';
 import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
 import {
-  normalizeAllMetrics,
   replayResultAnalytics,
 } from '@/services/analytics/workoutDerivation';
-import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 import { captureWellnessFacts } from '@/services/analytics/wellness';
+import type { WellnessEventStore } from '@/services/analytics/wellness';
 import { createParser } from '@bitcobblers/wod-wiki-engine';
+import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 import type { ScriptBlock } from '@/components/Editor/types';
 import {
   NotePersistenceError,
@@ -174,28 +174,26 @@ export class IndexedDBNotePersistence implements INotePersistence {
     // user facts (soreness/sleep/hrv/weight/hang/hr/planned) — the raw inputs
     // the wellness `calc.*` seeds derive from. Reconciles on every save:
     // changed values upsert in place, removed keys delete their rows.
-    if (mutation.rawContent !== undefined && this.storage.getFactsByMetric && this.storage.deleteAnalyticsPoints) {
+    if (mutation.rawContent !== undefined && this.storage.appendEvents && this.storage.deleteEvents && this.storage.getEventsForNote) {
       // Journal day comes from the entry's targetDate (calendar page); other
       // notes stamp the current day.
       const entry = await this.contentProvider.getEntry(note.id).catch(() => null);
-      await captureWellnessFacts(note.id, mutation.rawContent, this.storage as import('@/services/analytics/wellness').WellnessFactStore, {
+      await captureWellnessFacts(note.id, mutation.rawContent, this.storage as WellnessEventStore, {
         targetDate: entry?.targetDate,
       }).catch(() => undefined);
-      // Store-scope wellness seeds (calc.soreness etc.) recompute eagerly.
-      void ensureStoreRollupFacts().catch(() => undefined);
     }
 
     // Summary facts: extracted from Tier-2 ('analytics') outputs already in
     // the result's logs — no separate analytics channel (CONTEXT.md 2026-07-20).
     const resultLogs = mutation.workoutResult?.data.logs;
-    if (resultId && resultLogs?.length) {
+    if (resultId && resultLogs?.length && this.storage.appendEvents && this.storage.finalizeSummaries) {
       // Resolve AFTER updateEntry so a same-mutation content edit is reflected
-      // in the segment version stamped on fact rows.
+      // in the segment version stamped on event rows.
       const segmentId = mutation.workoutResult?.segmentId;
       const segmentVersion = segmentId
         ? (await this.storage.getLatestSegmentVersion(segmentId))?.version
         : undefined;
-      const points = normalizeAllMetrics(resultLogs, {
+      const identity = {
         noteId: note.id,
         resultId,
         segmentId,
@@ -204,16 +202,17 @@ export class IndexedDBNotePersistence implements INotePersistence {
         origin: mutation.workoutResult?.origin,
         pageId: note.pageId,
         // Canonical workout time — mirrors updateEntry's result createdAt
-        // (resultData.endTime || now), so fact rows and the result agree.
+        // (resultData.endTime || now), so event rows and the result agree.
         workoutTimestamp: mutation.workoutResult?.data.endTime ?? Date.now(),
-      });
-      if (points.length > 0) {
-        // Non-load-bearing: WorkoutResult.data.logs is the authoritative source.
-        await this.storage.saveAnalyticsPoints(points);
-        // Eager-at-finalize (#877): store-scope rollups recompute as soon as
-        // new summary facts land — no lazy driver on surface open. Fire and
-        // forget: rollup rows are disposable and recompute on the next run.
-        void ensureStoreRollupFacts().catch(() => undefined);
+      };
+      // Non-load-bearing (ticket 005): WorkoutResult.data.logs is canonical;
+      // event rows are the derived queryable projection. Failures are logged,
+      // never fatal — rows are re-derivable by re-finalize or bulk re-derive.
+      try {
+        await this.storage.appendEvents(toEventRows(resultLogs, identity));
+        await this.storage.finalizeSummaries(resultId, toSummaryEventRows(resultLogs, identity));
+      } catch (err) {
+        console.warn(`[IndexedDBNotePersistence] event projection failed for result ${resultId}`, err);
       }
     }
 
@@ -301,23 +300,27 @@ export class IndexedDBNotePersistence implements INotePersistence {
     };
     await this.storage.saveResult(updated);
 
-    // Re-normalize summary facts from the canonical derived logs (single
-    // derivation policy — the fact table must agree with data.logs).
-    if (this.storage.deleteAnalyticsPointsForResult) {
-      await this.storage.deleteAnalyticsPointsForResult(result.id);
-    }
-    const points = normalizeAllMetrics(derivedLogs, {
-      noteId: updated.noteId,
-      resultId: result.id,
-      segmentId: updated.segmentId,
-      segmentVersion: updated.segmentVersion,
-      blockContentId: updated.blockContentId,
-      origin: updated.origin,
-      pageId: updated.pageId,
-      workoutTimestamp: updated.createdAt,
-    });
-    if (points.length > 0) {
-      await this.storage.saveAnalyticsPoints(points);
+    // Re-derive the event projection from the canonical derived logs (single
+    // derivation policy — the event store must agree with data.logs).
+    // finalizeSummaries clears engine-authored summaries and rewrites finals
+    // atomically; appendEvents re-puts the deterministic event rows.
+    if (this.storage.appendEvents && this.storage.finalizeSummaries) {
+      const identity = {
+        noteId: updated.noteId,
+        resultId: result.id,
+        segmentId: updated.segmentId,
+        segmentVersion: updated.segmentVersion,
+        blockContentId: updated.blockContentId,
+        origin: updated.origin,
+        pageId: updated.pageId,
+        workoutTimestamp: updated.createdAt,
+      };
+      try {
+        await this.storage.appendEvents(toEventRows(derivedLogs, identity));
+        await this.storage.finalizeSummaries(result.id, toSummaryEventRows(derivedLogs, identity));
+      } catch (err) {
+        console.warn(`[IndexedDBNotePersistence] event re-derivation failed for result ${result.id}`, err);
+      }
     }
 
     return updated;

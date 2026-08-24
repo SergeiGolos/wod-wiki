@@ -315,12 +315,12 @@ export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): Analyti
  * the source of truth; call this function to obtain Segment[] for display,
  * review grids, or trend summaries.
  *
- * Relationship to the analytics IDB store:
- *   The `analytics` IndexedDB store holds AnalyticsDataPoint[] summary fact
- *   rows written by normalizeSummaryFacts() from Tier-2 outputs in data.logs.
- *   They are NOT required for any current display feature. If they disagree
- *   with logs, logs win. Use this function — not the analytics store — to
- *   obtain segment data for display.
+ * Relationship to the events IDB store (V16 unified event store):
+ *   The `events` store holds UnifiedEventRecord rows derived from data.logs
+ *   (event rows 1:1 per statement; summary rows written at finalize). They are
+ *   NOT required for any current display feature. If they disagree with logs,
+ *   logs win. Use this function — not the events store — to obtain segment
+ *   data for display.
  *
  * @param outputs - StoredOutputStatement[] from WorkoutResult.data.logs
  * @param workoutStartTime - Optional workout start timestamp (ms). Used to

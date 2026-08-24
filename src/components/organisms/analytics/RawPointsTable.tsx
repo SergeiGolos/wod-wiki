@@ -49,9 +49,10 @@ export function RawPointsTable({ matched, displayUnit }: RawPointsTableProps) {
             <tbody>
               {matched.slice(0, 12).map((p) => {
                 const originalUnit = p.unit ?? p.metricUnit;
+                const numericValue = typeof p.value === 'number' ? p.value : undefined;
                 const converted =
-                  displayUnit && originalUnit && getUnitFamily(originalUnit) === getUnitFamily(displayUnit)
-                    ? convert(p.value as number, originalUnit, displayUnit)
+                  displayUnit && numericValue !== undefined && originalUnit && getUnitFamily(originalUnit) === getUnitFamily(displayUnit)
+                    ? convert(numericValue, originalUnit, displayUnit)
                     : undefined;
                 return (
                   <tr key={p.id} className="border-b border-border/40">
@@ -60,7 +61,7 @@ export function RawPointsTable({ matched, displayUnit }: RawPointsTableProps) {
                     </td>
                     <td className="py-1.5 pr-4 text-primary whitespace-nowrap">{p.metricKey}</td>
                     <td className="py-1.5 pr-4 tabular-nums">
-                      {p.value}
+                      {String(p.value)}
                       {originalUnit ? ` ${originalUnit}` : ''}
                       {converted !== undefined && originalUnit !== displayUnit
                         ? ` → ${converted.toLocaleString()} ${displayUnit}`

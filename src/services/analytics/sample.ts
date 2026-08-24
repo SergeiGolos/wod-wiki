@@ -1,17 +1,21 @@
 /**
  * Sample analytics dataset (PRD #767 §5).
  *
- * Persistence mechanism: summary-grain AnalyticsDataPoint rows written directly
- * to the `analytics` store, each backed by a Note tagged `sample` in the
- * `note_tags` store. This avoids building synthetic WorkoutResult logs and
- * NoteSegments because QueryService and the Dashboard only read fact rows and
- * note_tags — they never join through results/segments.
+ * Persistence mechanism: each session is written as a WorkoutResult with
+ * synthetic runtime logs, then flushed to the unified event store via
+ * `appendEvents(toEventRows(...))` + `finalizeSummaries(resultId,
+ * toSummaryEventRows(...))`. Every session is backed by a Note tagged `sample`
+ * in the `note_tags` store.
  *
  * Purge-by-marker uses the shared `sample` tag: all sample notes are found
- * through the `note_tags.by-tag` index, their dependent fact rows are swept
- * from `analytics` by `noteId`, and the notes themselves are removed. Rows
- * not linked to a sample-tagged note are never touched.
+ * through the `note_tags.by-tag` index, and `deleteNote` cascades to their
+ * dependent result/event rows. Rows not linked to a sample-tagged note are
+ * never touched.
  */
+import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
+import type { StoredOutputStatement } from '@/components/Editor/types';
+import type { WorkoutResult } from '@/types/storage';
 import { indexedDBService, type IndexedDBService } from '@/services/db/IndexedDBService';
 
 /**
@@ -25,7 +29,7 @@ let service: IndexedDBService = indexedDBService;
 export function setSampleDataService(instance: IndexedDBService): void {
   service = instance;
 }
-import type { AnalyticsDataPoint, Note } from '@/types/storage';
+import type { Note } from '@/types/storage';
 
 const SAMPLE_TAG = 'sample';
 
@@ -238,200 +242,94 @@ function generateSessions(now: number): SampleSession[] {
   return sessions.sort((a, b) => a.timestamp - b.timestamp);
 }
 
-function buildSessionFacts(session: SampleSession): AnalyticsDataPoint[] {
-  const createdAt = Date.now();
-  const baseId = `sample-${session.noteId}`;
-  const resultId = `${baseId}-result`;
+function buildSessionLogs(session: SampleSession): StoredOutputStatement[] {
+  const startedAt = session.timestamp;
   const sessionIntensity = SESSION_INTENSITY[session.workoutType];
-  const baseIdentity = {
-    noteId: session.noteId,
-    resultId,
-    segmentId: 'sample-segment',
-    segmentVersion: 1,
-    blockContentId: `sample-content-${session.workoutType}`,
-    origin: 'journal' as const,
-    intensityTier: sessionIntensity,
-  };
-
   const totalReps = session.movements.reduce((sum, m) => sum + m.reps, 0);
   const totalVolume = session.movements.reduce((sum, m) => sum + m.reps * m.loadLbs, 0);
   const totalTis = session.movements.reduce((sum, m) => sum + m.tisSeconds, 0);
   const totalDistance = session.movements.reduce((sum, m) => sum + (m.distanceMeters ?? 0), 0);
   const sessionLoad = round1(totalVolume / 100 + totalReps + session.durationSeconds / 10);
 
-  const facts: AnalyticsDataPoint[] = [
-    {
-      id: `${baseId}-elapsed`,
-      ...baseIdentity,
-      grain: 'summary',
-      type: 'elapsed',
-      metricKey: 'elapsed',
-      value: session.durationSeconds,
-      unit: 's',
-      label: 'Elapsed time',
-      metricLabel: 'Elapsed time',
-      metricUnit: 's',
-      timestamp: session.timestamp,
-      createdAt,
-    },
-    {
-      id: `${baseId}-totalReps`,
-      ...baseIdentity,
-      grain: 'summary',
-      type: 'totalReps',
-      metricKey: 'totalReps',
-      value: totalReps,
-      unit: 'reps',
-      label: 'Total reps',
-      metricLabel: 'Total reps',
-      metricUnit: 'reps',
-      timestamp: session.timestamp,
-      createdAt,
-    },
-    {
-      id: `${baseId}-tis`,
-      ...baseIdentity,
-      grain: 'summary',
-      type: 'tis',
-      metricKey: 'tis',
-      value: round1(totalTis),
-      unit: 's',
-      label: 'Time in motion',
-      metricLabel: 'Time in motion',
-      metricUnit: 's',
-      timestamp: session.timestamp,
-      createdAt,
-    },
-  ];
+  const logs: StoredOutputStatement[] = [];
 
+  const push = (
+    label: string,
+    value: number,
+    unit: string,
+    canonicalKey: string,
+    tags?: { effortSlug?: string; discipline?: string; intensityTier?: string },
+  ) => {
+    const metadata: Record<string, unknown> = { canonicalKey };
+    if (tags?.effortSlug) metadata.effortSlug = tags.effortSlug;
+    if (tags?.discipline) metadata.effortDiscipline = tags.discipline;
+    if (tags?.intensityTier) metadata.effortIntensityTier = tags.intensityTier;
+
+    const output: StoredOutputStatement = {
+      id: logs.length,
+      outputType: 'analytics',
+      timeSpan: { started: startedAt },
+      metrics: [
+        { type: MetricType.Label, value: label, origin: 'analyzed' },
+        { type: MetricType.Metric, value, unit, metadata, origin: 'analyzed' },
+      ],
+      sourceBlockKey: '',
+      stackLevel: 0,
+    };
+    logs.push(output);
+  };
+
+  push('Elapsed time', session.durationSeconds, 's', 'elapsed', { intensityTier: sessionIntensity });
+  push('Total reps', totalReps, 'reps', 'totalReps', { intensityTier: sessionIntensity });
+  push('Time in motion', round1(totalTis), 's', 'tis', { intensityTier: sessionIntensity });
   if (totalVolume > 0) {
-    facts.push({
-      id: `${baseId}-totalVolume`,
-      ...baseIdentity,
-      grain: 'summary',
-      type: 'totalVolume',
-      metricKey: 'totalVolume',
-      value: round1(totalVolume),
-      unit: 'lb',
-      label: 'Total volume',
-      metricLabel: 'Total volume',
-      metricUnit: 'lb',
-      timestamp: session.timestamp,
-      createdAt,
-    });
+    push('Total volume', round1(totalVolume), 'lb', 'totalVolume', { intensityTier: sessionIntensity });
   }
-
   if (totalDistance > 0) {
     const distanceDiscipline = session.movements.find((m) => m.distanceMeters && m.distanceMeters > 0)?.discipline;
-    facts.push({
-      id: `${baseId}-totalDistance`,
-      ...baseIdentity,
-      grain: 'summary',
-      type: 'totalDistance',
-      metricKey: 'totalDistance',
-      value: round1(totalDistance),
-      unit: 'm',
-      label: 'Total distance',
-      metricLabel: 'Total distance',
-      metricUnit: 'm',
-      discipline: distanceDiscipline,
-      timestamp: session.timestamp,
-      createdAt,
-    });
+    push('Total distance', round1(totalDistance), 'm', 'totalDistance', { discipline: distanceDiscipline, intensityTier: sessionIntensity });
   }
+  push('Session load', sessionLoad, 'AU', 'sessionLoad', { intensityTier: sessionIntensity });
 
-  facts.push({
-    id: `${baseId}-sessionLoad`,
-    ...baseIdentity,
-    grain: 'summary',
-    type: 'sessionLoad',
-    metricKey: 'sessionLoad',
-    value: sessionLoad,
-    unit: 'AU',
-    label: 'Session load',
-    metricLabel: 'Session load',
-    metricUnit: 'AU',
-    timestamp: session.timestamp,
-    createdAt,
-  });
-
-  // Per-effort facts for `by {effort}` / `by {discipline}` queries.
+  // Per-effort outputs for `by {effort}` / `by {discipline}` queries.
   for (const m of session.movements) {
     const movementVolume = m.reps * m.loadLbs;
     const movementIntensity = INTENSITY_BY_EFFORT[m.effortSlug] ?? 'moderate';
-    facts.push({
-      id: `${baseId}-totalReps-${m.effortSlug}`,
-      ...baseIdentity,
-      grain: 'summary',
-      type: 'totalReps',
-      metricKey: 'totalReps',
-      value: m.reps,
-      unit: 'reps',
-      label: 'Total reps',
-      metricLabel: 'Total reps',
-      metricUnit: 'reps',
-      effortSlug: m.effortSlug,
-      discipline: m.discipline,
-      intensityTier: movementIntensity,
-      timestamp: session.timestamp,
-      createdAt,
-    });
-    facts.push({
-      id: `${baseId}-tis-${m.effortSlug}`,
-      ...baseIdentity,
-      grain: 'summary',
-      type: 'tis',
-      metricKey: 'tis',
-      value: m.tisSeconds,
-      unit: 's',
-      label: 'Time in motion',
-      metricLabel: 'Time in motion',
-      metricUnit: 's',
-      effortSlug: m.effortSlug,
-      discipline: m.discipline,
-      intensityTier: movementIntensity,
-      timestamp: session.timestamp,
-      createdAt,
-    });
+    const tags = { effortSlug: m.effortSlug, discipline: m.discipline, intensityTier: movementIntensity };
+    push('Total reps', m.reps, 'reps', 'totalReps', tags);
+    push('Time in motion', m.tisSeconds, 's', 'tis', tags);
     if (movementVolume > 0) {
-      facts.push({
-        id: `${baseId}-totalVolume-${m.effortSlug}`,
-        ...baseIdentity,
-        grain: 'summary',
-        type: 'totalVolume',
-        metricKey: 'totalVolume',
-        value: round1(movementVolume),
-        unit: 'lb',
-        label: 'Total volume',
-        metricLabel: 'Total volume',
-        metricUnit: 'lb',
-        effortSlug: m.effortSlug,
-        discipline: m.discipline,
-        intensityTier: movementIntensity,
-        timestamp: session.timestamp,
-        createdAt,
-      });
+      push('Total volume', round1(movementVolume), 'lb', 'totalVolume', tags);
     }
-    facts.push({
-      id: `${baseId}-sessionLoad-${m.effortSlug}`,
-      ...baseIdentity,
-      grain: 'summary',
-      type: 'sessionLoad',
-      metricKey: 'sessionLoad',
-      value: round1(movementVolume / 100 + m.reps + m.tisSeconds / 10),
-      unit: 'AU',
-      label: 'Session load',
-      metricLabel: 'Session load',
-      metricUnit: 'AU',
-      effortSlug: m.effortSlug,
-      discipline: m.discipline,
-      intensityTier: movementIntensity,
-      timestamp: session.timestamp,
-      createdAt,
-    });
+    push('Session load', round1(movementVolume / 100 + m.reps + m.tisSeconds / 10), 'AU', 'sessionLoad', tags);
   }
 
-  return facts;
+  return logs;
+}
+
+function buildSampleResult(session: SampleSession, logs: StoredOutputStatement[]): WorkoutResult {
+  const baseId = `sample-${session.noteId}`;
+  const resultId = `${baseId}-result`;
+  const startTime = session.timestamp;
+  const endTime = startTime + session.durationSeconds * 1000;
+
+  return {
+    id: resultId,
+    noteId: session.noteId,
+    segmentId: 'sample-segment',
+    segmentVersion: 1,
+    blockContentId: `sample-content-${session.workoutType}`,
+    origin: 'journal',
+    status: 'completed',
+    createdAt: Date.now(),
+    data: {
+      startTime,
+      endTime,
+      duration: session.durationSeconds * 1000,
+      completed: true,
+      logs,
+    },
+  };
 }
 
 async function getSampleTagId(): Promise<string | undefined> {
@@ -446,14 +344,16 @@ async function getSampleNoteIds(): Promise<string[]> {
 
 export async function hasSampleData(): Promise<boolean> {
   const noteIds = await getSampleNoteIds();
-  return noteIds.length > 0;
+  if (noteIds.length === 0) return false;
+  const events = await service.scanAll();
+  return events.some((event) => noteIds.includes(event.noteId));
 }
 
 export async function loadSampleData(): Promise<{ facts: number }> {
   if (await hasSampleData()) {
     const noteIds = await getSampleNoteIds();
-    const all = await service.getAllAnalytics();
-    return { facts: all.filter((f) => noteIds.includes(f.noteId)).length };
+    const events = await service.scanAll();
+    return { facts: events.filter((event) => event.grain === 'summary' && noteIds.includes(event.noteId)).length };
   }
 
   const now = Date.now();
@@ -470,9 +370,24 @@ export async function loadSampleData(): Promise<{ facts: number }> {
     await service.saveNote(note);
     await service.setNoteTags(session.noteId, [SAMPLE_TAG]);
 
-    const facts = buildSessionFacts(session);
-    await service.saveAnalyticsPoints(facts);
-    factsWritten += facts.length;
+    const logs = buildSessionLogs(session);
+    const result = buildSampleResult(session, logs);
+    const identity = {
+      noteId: session.noteId,
+      resultId: result.id,
+      segmentId: result.segmentId,
+      segmentVersion: result.segmentVersion,
+      blockContentId: result.blockContentId,
+      origin: result.origin,
+      pageId: result.pageId,
+      workoutTimestamp: session.timestamp,
+    };
+
+    await service.saveResult(result);
+    await service.appendEvents(toEventRows(logs, identity));
+    const summaries = toSummaryEventRows(logs, identity);
+    await service.finalizeSummaries(result.id, summaries);
+    factsWritten += summaries.length;
   }
 
   return { facts: factsWritten };
@@ -483,17 +398,9 @@ export async function purgeSampleData(): Promise<void> {
   if (noteIds.length === 0) return;
 
   // Delete each sample note. This cascades to note_tags, segments, results,
-  // attachments, and analytics-by-result via IndexedDBService.deleteNote.
+  // attachments, and the unified event store via IndexedDBService.deleteNote.
   for (const noteId of noteIds) {
     await service.deleteNote(noteId);
-  }
-
-  // Because we wrote summary facts directly without backing results, also
-  // sweep any remaining analytics rows whose noteId matches a sample note.
-  const all = await service.getAllAnalytics();
-  const toDelete = all.filter((f) => noteIds.includes(f.noteId)).map((f) => f.id);
-  if (toDelete.length > 0) {
-    await service.deleteAnalyticsPoints(toDelete);
   }
 
   // Drop the shared sample tag if nothing links to it anymore.

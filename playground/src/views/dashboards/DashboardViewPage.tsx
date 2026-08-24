@@ -28,7 +28,6 @@ import {
   useAnalyticsUnitPreference,
   DashboardView,
 } from '@bitcobblers/wod-wiki-ui';
-import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 import { useAnalyticsRange } from '../../hooks/useAnalyticsRange';
 import { journalNotes } from '../../services/journalNotes';
 import { dashboardNotes } from '../../services/dashboardNotes';
@@ -160,7 +159,6 @@ export function DashboardViewPage() {
           <DashboardView
             document={document}
             executor={queryService}
-            onEnsureRollupFacts={async () => { await ensureStoreRollupFacts(); }}
             onTokenChange={source.editable ? handleTokenChange : undefined}
             onEditQuery={source.editable ? openEditor : undefined}
             rangeStart={Date.now() - weeks * 7 * 86400000}

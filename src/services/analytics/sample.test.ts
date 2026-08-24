@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+import { QueryService, type UnifiedEventStore, type NoteQueryStore } from '@bitcobblers/wod-wiki-wql';
+import { factRowsToEventRows } from '@bitcobblers/wod-wiki-engine';
 import type { IndexedDBService } from '@/services/db/IndexedDBService';
-import { QueryService, type FactQueryStore } from '@bitcobblers/wod-wiki-engine';
 import { loadSampleData, purgeSampleData, hasSampleData, setSampleDataService } from '@/services/analytics/sample';
 import type { AnalyticsDataPoint, Note } from '@/types/storage';
 
@@ -12,12 +13,16 @@ const { IndexedDBService: RealIndexedDBService } = await import('@/services/db/I
 const service: IndexedDBService = new RealIndexedDBService();
 setSampleDataService(service);
 
-function factStore(serviceInstance: IndexedDBService): FactQueryStore {
+function noteStore(serviceInstance: IndexedDBService): NoteQueryStore {
   return {
-    getFactsByMetric: (metricKey) => serviceInstance.getFactsByMetric(metricKey),
-    getFactsByTimeRange: (start, end) => serviceInstance.getFactsByTimeRange(start, end),
+    getAllNotes: () => serviceInstance.getAllNotes(),
+    getNoteIdsForTag: async (label) => new Set((await serviceInstance.getNotesForTag(label)).map(n => n.id)),
     getNoteTagLabels: async (noteId) => (await serviceInstance.getTagsForNote(noteId)).map(tag => tag.label),
   };
+}
+
+function queryService(serviceInstance: IndexedDBService) {
+  return new QueryService({ eventStore: serviceInstance as UnifiedEventStore, noteStore: noteStore(serviceInstance) });
 }
 
 describe('sample analytics dataset', () => {
@@ -30,7 +35,7 @@ describe('sample analytics dataset', () => {
 
     expect(await hasSampleData()).toBe(true);
 
-    const query = new QueryService(factStore(service));
+    const query = queryService(service);
     const thrusterReps = await query.runQuery('sum:totalReps{effort:thruster}');
     expect(thrusterReps.scalar).toBeGreaterThan(0);
     expect(thrusterReps.stages.selected).toBeGreaterThan(0);
@@ -40,7 +45,7 @@ describe('sample analytics dataset', () => {
   });
 
   it('includes intensity tiers on load and volume facts', async () => {
-    const query = new QueryService(factStore(service));
+    const query = queryService(service);
     const intensity = await query.runQuery('sum:sessionLoad{} by {intensity}.rollup(1w)');
 
     expect(intensity.series.length).toBeGreaterThan(0);
@@ -56,11 +61,11 @@ describe('sample analytics dataset', () => {
   });
 
   it('includes distance facts for rowing and running disciplines', async () => {
-    const query = new QueryService(factStore(service));
+    const query = queryService(service);
     const distance = await query.runQuery('sum:totalDistance{} by {discipline}');
 
     expect(distance.series.length).toBeGreaterThan(0);
-    expect(distance.series.some((s) => s.points.reduce((a, p) => a + p.value, 0) > 0)).toBe(true);
+    expect(distance.series.some((s) => s.points.reduce((a, p) => a + (p.value as number), 0) > 0)).toBe(true);
 
     const disciplines = distance.series.map((s) => s.label);
     expect(disciplines).toContain('rowing');
@@ -72,13 +77,13 @@ describe('sample analytics dataset', () => {
     const second = await loadSampleData();
     expect(second.facts).toBe(first.facts);
 
-    const all = await service.getAllAnalytics();
-    const sampleFacts = all.filter((f) => f.noteId.startsWith('sample-'));
-    expect(sampleFacts).toHaveLength(first.facts);
+    const events = await service.scanAll();
+    const sampleEvents = events.filter((event) => event.noteId.startsWith('sample-') && event.grain === 'summary');
+    expect(sampleEvents).toHaveLength(first.facts);
   });
 
   it('purges exactly the sample rows and leaves user rows untouched', async () => {
-    // Seed a user-owned fact row and tag it distinctly.
+    // Seed a user-owned event row and tag it distinctly.
     const userNoteId = `user-${crypto.randomUUID()}`;
     const userNote: Note = {
       id: userNoteId,
@@ -104,18 +109,19 @@ describe('sample analytics dataset', () => {
       timestamp: Date.now(),
       createdAt: Date.now(),
     };
-    await service.saveAnalyticsPoints([userFact]);
+    await service.appendEvents(factRowsToEventRows([userFact]));
 
     await purgeSampleData();
 
     expect(await hasSampleData()).toBe(false);
 
-    const all = await service.getAllAnalytics();
-    const sampleFacts = all.filter((f) => f.noteId.startsWith('sample-'));
-    expect(sampleFacts).toHaveLength(0);
+    const events = await service.scanAll();
+    const sampleEvents = events.filter((event) => event.noteId.startsWith('sample-'));
+    expect(sampleEvents).toHaveLength(0);
 
-    const userFacts = await service.getFactsByMetric('totalReps');
-    expect(userFacts.some((f) => f.noteId === userNoteId)).toBe(true);
+    const allEvents = await service.scanAll();
+    const userEvents = allEvents.filter((event) => event.noteId === userNoteId);
+    expect(userEvents.length).toBeGreaterThan(0);
 
     const userTags = await service.getTagsForNote(userNoteId);
     expect(userTags.map(t => t.label)).toContain('user-data');

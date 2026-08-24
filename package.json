@@ -42,11 +42,11 @@
     "deps:engine:tarballs": "bun scripts/use-engine.ts tarballs"
   },
   "dependencies": {
-    "@bitcobblers/wod-wiki-core": "^0.6.32",
-    "@bitcobblers/wod-wiki-engine": "^0.6.32",
-    "@bitcobblers/wod-wiki-lang": "^0.6.32",
-    "@bitcobblers/wod-wiki-ui": "^0.6.32",
-    "@bitcobblers/wod-wiki-wql": "^0.6.32",
+    "@bitcobblers/wod-wiki-core": "^0.6.36",
+    "@bitcobblers/wod-wiki-engine": "^0.6.36",
+    "@bitcobblers/wod-wiki-lang": "^0.6.36",
+    "@bitcobblers/wod-wiki-ui": "^0.6.36",
+    "@bitcobblers/wod-wiki-wql": "^0.6.36",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.11.0",
     "@codemirror/lang-markdown": "^6.5.2",

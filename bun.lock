@@ -5,11 +5,11 @@
     "": {
       "name": "@bitcobblers/whiteboard-lang",
       "dependencies": {
-        "@bitcobblers/wod-wiki-core": "^0.6.32",
-        "@bitcobblers/wod-wiki-engine": "^0.6.32",
-        "@bitcobblers/wod-wiki-lang": "^0.6.32",
-        "@bitcobblers/wod-wiki-ui": "^0.6.32",
-        "@bitcobblers/wod-wiki-wql": "^0.6.32",
+        "@bitcobblers/wod-wiki-core": "^0.6.36",
+        "@bitcobblers/wod-wiki-engine": "^0.6.36",
+        "@bitcobblers/wod-wiki-lang": "^0.6.36",
+        "@bitcobblers/wod-wiki-ui": "^0.6.36",
+        "@bitcobblers/wod-wiki-wql": "^0.6.36",
         "@codemirror/autocomplete": "^6.20.3",
         "@codemirror/commands": "^6.11.0",
         "@codemirror/lang-markdown": "^6.5.2",
@@ -164,15 +164,15 @@
 
     "@bcoe/v8-coverage": ["@bcoe/v8-coverage@1.0.2", "", {}, ""],
 
-    "@bitcobblers/wod-wiki-core": ["@bitcobblers/wod-wiki-core@0.6.32", "", {}, "sha512-ZA9zcwTvbORqvywG+kucjsjVqXRJ9Hw8y97DaKw/7IhPhh7Nhdhl9Z2qBsn4jho7NJn6jp77Ft+pVMFspfng+A=="],
+    "@bitcobblers/wod-wiki-core": ["@bitcobblers/wod-wiki-core@0.6.36", "", {}, "sha512-Q1PqVwV9w+Pge0N8CKqUyFqf4edDXlkP5ICcBElBJeY0JFR/LUNxJQjMjvpUn8wLNMQuGESN5PmG3LJC+17mTQ=="],
 
-    "@bitcobblers/wod-wiki-engine": ["@bitcobblers/wod-wiki-engine@0.6.32", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.6.32", "@bitcobblers/wod-wiki-lang": "^0.6.32", "@bitcobblers/wod-wiki-wql": "^0.6.32" }, "bin": { "wod": "dist/bin/wod.mjs" } }, "sha512-pX5n90FUHwJAV2jrnYjuJj7L09LZ4J2hqw2HXPeuVpFETE/aCX3CUHzIHgVWGXcChpSb/CtGVzuHFOCemrw2zQ=="],
+    "@bitcobblers/wod-wiki-engine": ["@bitcobblers/wod-wiki-engine@0.6.36", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.6.36", "@bitcobblers/wod-wiki-lang": "^0.6.36", "@bitcobblers/wod-wiki-wql": "^0.6.36" }, "bin": { "wod": "dist/bin/wod.mjs" } }, "sha512-I5JSQxMVMarrj7zaXtg9HqOl5Mb0N+rzhADISMHLfbpCjfAoKV6J/YzaT1ebR0ZQa2Mtg0ppRBmAdzuMykcm9Q=="],
 
-    "@bitcobblers/wod-wiki-lang": ["@bitcobblers/wod-wiki-lang@0.6.32", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.6.32", "uuid": "^11.1.0" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/lr": "^1.0.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/lr", "react", "react-dom"] }, "sha512-cr52h1mVS4npJ+QwD2Gf8wv9g5qvt58jlcwvXGLmXnXk5oVZ8C3UoUww7V1nJw3GFmJENCCe5tWs3qvc8WvkpA=="],
+    "@bitcobblers/wod-wiki-lang": ["@bitcobblers/wod-wiki-lang@0.6.36", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.6.36", "uuid": "^11.1.0" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/lr": "^1.0.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/lr", "react", "react-dom"] }, "sha512-AH4n+s/nDVizf/rxEpFuZK+bQw1iVOjseYPB9YlrWbx3qjV9PoBHI5X/HHugyDdFj4tsZGVHg7czL7lDmiBRsw=="],
 
-    "@bitcobblers/wod-wiki-ui": ["@bitcobblers/wod-wiki-ui@0.6.32", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.6.32", "@bitcobblers/wod-wiki-lang": "^0.6.32", "@bitcobblers/wod-wiki-wql": "^0.6.32", "@heroicons/react": "^2.2.0", "clsx": "^2.1.1", "tailwind-merge": "^3.6.0" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/commands": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/lint": "^6.0.0", "@codemirror/search": "^6.0.0", "@codemirror/state": "^6.0.0", "@codemirror/view": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0", "lucide-react": ">=0.300.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "recharts": ">=2.10.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/commands", "@codemirror/language", "@codemirror/lint", "@codemirror/search", "@codemirror/state", "@codemirror/view", "@lezer/common", "@lezer/highlight", "@lezer/lr", "lucide-react", "react", "react-dom", "recharts"] }, "sha512-5T7z6W2dhW7ifUErWcLD5lKtbPxoNADLfjT60Ax62H5fGcW2d+DdZrzXEDHMmNHABe9lqNFAPyqPNCRAlZq3lg=="],
+    "@bitcobblers/wod-wiki-ui": ["@bitcobblers/wod-wiki-ui@0.6.36", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.6.36", "@bitcobblers/wod-wiki-lang": "^0.6.36", "@bitcobblers/wod-wiki-wql": "^0.6.36", "@heroicons/react": "^2.2.0", "clsx": "^2.1.1", "tailwind-merge": "^3.6.0" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/commands": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/lint": "^6.0.0", "@codemirror/search": "^6.0.0", "@codemirror/state": "^6.0.0", "@codemirror/view": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0", "lucide-react": ">=0.300.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "recharts": ">=2.10.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/commands", "@codemirror/language", "@codemirror/lint", "@codemirror/search", "@codemirror/state", "@codemirror/view", "@lezer/common", "@lezer/highlight", "@lezer/lr", "lucide-react", "react", "react-dom", "recharts"] }, "sha512-I1nfilfkovBry4zPzj5M8mo4EmKJMpwbcQMyivB+iSg755JOyiqI/ndf8JVf25P83RB624FnH+qK6PWALPJp8A=="],
 
-    "@bitcobblers/wod-wiki-wql": ["@bitcobblers/wod-wiki-wql@0.6.32", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.6.32" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/highlight", "@lezer/lr"] }, "sha512-Iu6QDjM2VDaXOxQlY4NG5V8kElLzyqQO9sPD+1OF9DSnSVQHpQVwdwIOVsg+eUGzZnM5cR5SCt+0jeQBAgxiow=="],
+    "@bitcobblers/wod-wiki-wql": ["@bitcobblers/wod-wiki-wql@0.6.36", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.6.36" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/highlight", "@lezer/lr"] }, "sha512-X3iWKtvVuW06ARnN18kkYKn2p6fhmbKz9CQ6imKuwnBSTTkTQr0CvgGRp31TFobJkIpnmqQlfHxu0CX/VfUxTg=="],
 
     "@blazediff/core": ["@blazediff/core@1.9.1", "", {}, "sha512-ehg3jIkYKulZh+8om/O25vkvSsXXwC+skXmyA87FFx6A/45eqOkZsBltMw/TVteb0mloiGT8oGRTcjRAz66zaA=="],
 

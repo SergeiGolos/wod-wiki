@@ -17,14 +17,13 @@
  *
  * Run dispatch is unchanged: find queries go through `queryService.runFind`,
  * analytics queries through `queryService.runQuery` with range/unit options
- * (plus the lazy rollup driver for calc.* metrics).
+ * (calc.* metrics resolve directly against the unified event store).
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Play, Save } from 'lucide-react';
 import { queryService } from '@/services/queryService';
 import { parseQuery, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult } from '@bitcobblers/wod-wiki-engine';;
 import { RowsTable } from '@bitcobblers/wod-wiki-ui';
-import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
 import { searchEntries } from '../../lib/entrySearch';
 import { groupEntriesByDate } from '../../lib/entryGrouping';
@@ -200,12 +199,6 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   const [anatomyOpen, setAnatomyOpen] = useState(false);
   const [recordsOpen, setRecordsOpen] = useState(false);
 
-  // Lazy rollup driver (CONTEXT.md 'Rollup Fact'): analytics-surface open
-  // recomputes missing/stale ACWR/monotony/strain windows; no scheduler.
-  useEffect(() => {
-    void ensureStoreRollupFacts().catch(() => undefined);
-  }, []);
-
   useEffect(() => {
     let cancelled = false;
 
@@ -247,15 +240,13 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
         .catch(() => { if (!cancelled) setRowsResult(undefined); })
         .finally(() => { if (!cancelled) setLoading(false); });
     } else {
-      // Analytics query — existing chart pipeline
+      // Analytics query — resolves directly against the unified event store.
       setRowsResult(undefined);
       setEntries(undefined);
       setEfforts(undefined);
       const now = Date.now();
       const rangeStart = now - activeWeeks * 7 * DAY;
-      const rollupReady = ensureStoreRollupFacts().catch(() => undefined);
-      (submitted.includes('calc.') ? rollupReady : Promise.resolve())
-        .then(() => queryService.runQuery(submitted, { rangeStart, rangeEnd: now, preferredUnit }))
+      queryService.runQuery(submitted, { rangeStart, rangeEnd: now, preferredUnit })
         .then((r) => { if (!cancelled) setResult(r); })
         .catch(() => { if (!cancelled) setResult(undefined); })
         .finally(() => { if (!cancelled) setLoading(false); });

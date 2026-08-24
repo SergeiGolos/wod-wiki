@@ -11,8 +11,8 @@ packages/wql/src/
 ├── wql.ts                   ← parseQuery + AST types + semantic validation
 ├── vocabulary.ts            ← the single dictionary (aggregators, keys, dims, targets)
 ├── QueryService.ts          ← the executor (pure, stores injected)
-├── stores.ts                ← FactQueryStore / NoteQueryStore / BlockQueryStore / …
-├── derivation.ts            ← logs → summary fact rows (normalizeSummaryFacts)
+├── stores.ts                ← UnifiedEventStore / NoteQueryStore / BlockQueryStore / EffortQueryStore
+├── derivation.ts            ← logs → event rows + summary rows (toEventRows / toSummaryEventRows / projectEventToFacts)
 ├── static.ts                ← static-corpus projections (collections/feeds)
 ├── units.ts                 ← kg↔lb, m↔km conversion
 ├── dashboard/               ← dashboard note model, tokens, scaffold
@@ -38,12 +38,13 @@ Two design principles govern everything below:
 
 ```text
 WorkoutResult.data.logs (authoritative)
-        │  normalizeSummaryFacts()
+        │  toEventRows() + toSummaryEventRows()
         ▼
-Analytics Store (facts: summary / segment / rollup grains)
-        │
+Events Store (UnifiedEventRecord: grain 'event' | 'summary')
+        │  projectEventToFacts() folds rows to flat facts at read
         ▼
-QueryService — SELECT → BUCKET → GROUP → AGGREGATE
+QueryService — SELECT → BUCKET → GROUP → AGGREGATE (window-first hybrid:
+                   by-timestamp when windowed, full scan otherwise; by-metric never used)
         │
         ▼
 QueryResult { series, scalar, matched } → widgets/tables (dumb consumers)
@@ -102,7 +103,7 @@ rows:{note:note-uuid} last 4w
 
 - Scope filters are exactly `result:`, `block:`, or `note:` (exact values only — no negation, no wildcards).
 - Rows **never aggregate**: `by`, `.rollup`, and `where` are rejected with a loud error.
-- Rows re-derive output statements from raw `WorkoutResult` logs through `ResultLogStore` — they never touch the fact store.
+- Rows read event rows directly from the unified store (`rows:{result:…}` / `rows:{note:…}`) — no WorkoutResult blob parsing; outputType narrowing hits the promoted column.
 
 ### 2.4 Filter semantics
 
@@ -309,10 +310,10 @@ Find is naive in-memory filtering at personal-journal scale: scope-select (journ
 Facts are `AnalyticsDataPoint` rows (`@bitcobblers/wod-wiki-core`):
 
 ```typescript
-interface AnalyticsDataPoint {
+interface AnalyticsDataPoint {   // flat fact currency — projected from event rows, never stored
   id: string;
   noteId: string;  blockContentId?: string;  resultId: string;
-  grain?: 'segment' | 'summary' | 'rollup';
+  grain?: 'event' | 'summary';
   metricKey?: string;  metricLabel?: string;  metricUnit?: string;
   value: unknown;  unit?: string;
   effortSlug?: string;  discipline?: string;  intensityTier?: string;  grade?: string;
@@ -323,11 +324,11 @@ interface AnalyticsDataPoint {
 }
 ```
 
-**Three grains** (`WQL_GRAINS`):
+**Two grains** (`WQL_GRAINS`):
 
-- `summary` — Tier-2 workout-level aggregates, one row per result × canonical key × sorted group tags (`totalVolume:effort=thruster`). Keep-last dedupe within a result.
-- `segment` — per-segment numeric metrics, denormalized for indexed threshold filters.
-- `rollup` — windowed facts (ACWR, monotony, strain) computed lazily on analytics-surface open; recompute-on-open only, no scheduler.
+- `summary` — workout-level aggregates, one row per result × canonical key × sorted group tags. Engine-authored summaries are finalize-owned; user-authored (wellness, origin 'user') are reconcile-owned.
+- `event` — one row per output statement (the old 'segment' grain renamed).
+- `rollup` is RETIRED (parse-time error) — rollups are read-time math via the `.rollup` suffix, never stored.
 
 **Normalization** (`derivation.ts`): `normalizeSummaryFacts` scans a result's logs for `outputType: 'analytics'` statements, reads the `Label` metric as the projection name and the numeric value metric, and emits fact rows. The **Canonical Metric Key** comes from the processor's `metadata.canonicalKey` when present (composed calcs), else is derived from the projection name (`'Total Volume' → 'totalVolume'`). Summary processors hang `effortSlug` / `effortDiscipline` / `effortIntensityTier` / `groupTags` on the value metric's `metadata` — pure data that survives the stored-logs round trip.
 
@@ -397,22 +398,25 @@ max:resistance{discipline:strength} by {effort}
 ## 9. Store seams (dependency inversion)
 
 ```typescript
-interface FactQueryStore {
-  getFactsByMetric(metricKey: string): Promise<AnalyticsDataPoint[]>;
-  getFactsByTimeRange(start: number, end: number): Promise<AnalyticsDataPoint[]>;
-  getNoteTagLabels(noteId: string): Promise<string[]>;
+interface UnifiedEventStore {
+  // reads (all return UnifiedEventRecord[])
+  getEventsByTimeRange(start, end): Promise<…>;   // windowed — by-timestamp index
+  getEventsByResult(resultId): Promise<…>;        // by-result-grain index
+  getEventsForNote(noteId): Promise<…>;           // join through results store
+  getEventsByContent(blockContentId): Promise<…>; // by-content-grain index (join hot path)
+  scanAll(): Promise<…>;                          // all-time SELECT leg
+  // writes (write-path lifecycle owns these)
+  appendEvents(rows): Promise<void>;               // per-statement flush / wellness upserts
+  finalizeSummaries(resultId, rows): Promise<void>;// atomic: clear engine-authored summaries + write finals
+  deleteEvents(ids): Promise<void>;                // wellness reconcile + GC sweeps
 }
-interface NoteQueryStore   { getAllNotes(): Promise<Note[]>; getNoteIdsForTag(label): Promise<Set<string>>; }
+interface NoteQueryStore   { getAllNotes(): Promise<Note[]>; getNoteIdsForTag(label): Promise<Set<string>>;
+                             getNoteTagLabels(noteId): Promise<string[]>; }  // moved from the retired FactQueryStore
 interface BlockQueryStore  { getAllBlocks(): Promise<BlockIndexRow[]>; }
 interface EffortQueryStore { getAllEfforts(): Promise<IEffort[]>; }
-interface ResultLogStore {
-  getResultsByContentId(blockContentId: string): Promise<WorkoutResult[]>;
-  getResultById(resultId: string): Promise<WorkoutResult | undefined>;
-  getResultsForNote(noteId: string): Promise<WorkoutResult[]>;
-}
 ```
 
-The app implements these over IndexedDB; tests and the CLI use `inMemoryFactStore` from `@bitcobblers/wod-wiki-engine`. Any missing store defaults to an empty implementation, so partial wiring degrades to empty results rather than crashes.
+The app implements these over IndexedDB (V16 `events` store, six indexes); tests and the CLI use `inMemoryEventStore` / `inMemoryEventStoreFromFacts` from `@bitcobblers/wod-wiki-engine`. Any missing store defaults to an empty implementation, so partial wiring degrades to empty results rather than crashes.
 
 ## 10. Errors and edge cases
 

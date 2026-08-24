@@ -4,10 +4,10 @@
  *
  * Stores wiped, in order:
  *  1. IndexedDB `wodwiki-db` — the single durable store (notes, segments,
- *     results, attachments, analytics, efforts, page, tags, note_tags). The
+ *     results, attachments, events, efforts, page, tags, note_tags). The
  *     service closes its connection before issuing `deleteDatabase`, so the
  *     request is not blocked. The next page load reopens a fresh DB: the
- *     `IndexedDBService` constructor runs `openDB` at DB_VERSION 12 and the
+ *     `IndexedDBService` constructor runs `openDB` at the current DB_VERSION and the
  *     `upgrade` callback fires from version 0, recreating the full schema.
  *  2. localStorage — theme, audio, debug flag, onboarding flags, profile
  *     (wodwiki.profile.v1, wodwiki.profileInitialized.v1), and the V4

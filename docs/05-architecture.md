@@ -132,7 +132,7 @@ Performance targets:
 | Behavior | `IRuntimeBehavior` | Implement lifecycle hooks and attach via strategy |
 | Analytics realtime | `IRealtimeProcessor` | Derive per-segment metrics during execution |
 | Analytics summary | `ISummaryProcessor` | Derive session-level metrics after execution |
-| Query store | `FactQueryStore`, `ResultLogStore`, etc. | Provide your own backend |
+| Query store | `UnifiedEventStore`, `NoteQueryStore`, etc. | Provide your own backend |
 | Storage adapter | `IStorage` | IndexedDB, in-memory, or remote |
 | Language pack | `defineLanguagePack` | Bundle dialect + editor + analytics slices |
 

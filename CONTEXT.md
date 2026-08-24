@@ -501,11 +501,13 @@ a strict one-way DAG. Companion execution map:
   `IAnalyticsEngine` are lang-internal. Exposes a headless string-in parse seam over
   raw Lezer; React hooks and the execution entry live behind a sub-export (e.g.
   `@bitcobblers/wod-wiki-lang/react`) so pure-TS/CLI consumers don't drag React. Depends on core.
-- **@bitcobblers/wod-wiki-wql** — pure query over stored analytics facts. Owns the WQL grammar
+- **@bitcobblers/wod-wiki-wql** — pure query over the unified event store. Owns the WQL grammar
   + AST (`parseQuery`/`isFindQuery`/`isRowsQuery`), `wql-vocabulary`, CodeMirror
   `wql-language`, `QueryService` over injectable store interfaces
-  (`FactQueryStore`/`NoteQueryStore`/`BlockQueryStore`/`EffortQueryStore`/
-  `ResultLogStore`), and rollup math. Does NOT depend on lang — it reads fact rows
+  (`UnifiedEventStore` + content plane `NoteQueryStore`/`BlockQueryStore`/
+  `EffortQueryStore`), and the logs↔events derivation helpers (`toEventRows`/
+  `toSummaryEventRows`/`projectEventToFacts`), and rollup math. Does NOT depend on lang — it reads event rows
+  (UnifiedEventRecord, grain 'event' | 'summary')
   through the store seam. Its calc-target vocabulary mirrors lang's CalcEngine seeds;
   alignment is enforced by a cross-package test. Depends on core.
 - **@bitcobblers/wod-wiki-engine** — umbrella re-export facade convenience package. Re-exports

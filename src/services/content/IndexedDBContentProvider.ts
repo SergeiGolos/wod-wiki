@@ -505,6 +505,10 @@ export class IndexedDBContentProvider implements IContentProvider {
                 version: patch.version,
                 origin: patch.origin,
                 data: resultData,
+                // V16 write-path lifecycle (ticket 005): completion writes are
+                // 'completed'; unmount partial saves (completed === false) are
+                // 'in-progress' — swept by the 30-day GC if never finalized.
+                status: resultData.completed === false ? 'in-progress' : 'completed',
                 createdAt: resultData.endTime || now
             };
             await this.db.saveResult(newResult);
