@@ -51,3 +51,9 @@ describe('WQL Vocabulary Alignment', () => {
     expect(WQL_SOURCES.length).toBeGreaterThan(0);
   });
 });
+
+describe('grain vocabulary — unified pair (ticket 003)', () => {
+  it('offers exactly summary | event; rollup is retired', () => {
+    expect([...WQL_GRAINS]).toEqual(['summary', 'event']);
+  });
+});

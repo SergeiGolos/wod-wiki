@@ -23,10 +23,18 @@ const efforts: IEffort[] = [
 function makeService(): QueryService {
   const effortStore: EffortQueryStore = { getAllEfforts: async () => efforts };
   return new QueryService(
-    { getFactsByMetric: async () => [], getFactsByTimeRange: async () => [], getNoteTagLabels: async () => [] },
-    { getAllNotes: async () => [], getNoteIdsForTag: async () => new Set<string>() },
+    {
+      getEventsByTimeRange: async () => [],
+      getEventsByResult: async () => [],
+      getEventsForNote: async () => [],
+      getEventsByContent: async () => [],
+      scanAll: async () => [],
+      appendEvents: async () => {},
+      finalizeSummaries: async () => {},
+      deleteEvents: async () => {},
+    },
+    { getAllNotes: async () => [], getNoteIdsForTag: async () => new Set<string>(), getNoteTagLabels: async () => [] },
     { getAllBlocks: async () => [] },
-    undefined,
     effortStore,
   );
 }

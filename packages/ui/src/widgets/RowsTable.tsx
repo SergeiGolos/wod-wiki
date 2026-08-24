@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
-import type { Segment } from '@bitcobblers/wod-wiki-core';
+import type { Segment, StoredOutputStatement } from '@bitcobblers/wod-wiki-core';
 import type { RowsQueryResult, RowsRun } from '@bitcobblers/wod-wiki-wql';
 import { getAnalyticsFromLogs } from '@bitcobblers/wod-wiki-lang';
 
@@ -12,14 +12,8 @@ export interface RowsTableProps {
 }
 
 function formatRunHeader(run: RowsRun): string {
-  const end = run.result.data.endTime ?? run.result.createdAt;
-  const date = new Date(end).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  const durationMs = run.result.data.duration;
-  if (!durationMs) return date;
-  const totalSeconds = Math.round(durationMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = String(totalSeconds % 60).padStart(2, '0');
-  return `${date} — ${minutes}:${seconds}`;
+  const date = new Date(run.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return date;
 }
 
 function PlainSegmentList({ segments }: { segments: Segment[] }) {
@@ -69,10 +63,16 @@ export function RowsTable({
 }: RowsTableProps) {
   const runs = useMemo(
     () =>
-      result.runs.map((run) => ({
-        run,
-        segments: getAnalyticsFromLogs(run.logs, run.result.data.startTime).segments as Segment[],
-      })),
+      result.runs.map((run) => {
+        // Event rows are the promoted statement snapshots — structurally the
+        // stored-statement shape the analytics reader walks.
+        const statements = run.events as unknown as StoredOutputStatement[];
+        const startTime = run.events[0]?.timeSpan?.started ?? run.timestamp;
+        return {
+          run,
+          segments: getAnalyticsFromLogs(statements, startTime).segments as Segment[],
+        };
+      }),
     [result],
   );
 
@@ -87,7 +87,7 @@ export function RowsTable({
   return (
     <div className="flex flex-col gap-4">
       {runs.map(({ run, segments }) => (
-        <section key={run.result.id}>
+        <section key={run.resultId}>
           {runs.length > 1 && (
             <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-muted-foreground px-2 py-1.5 bg-muted/40 rounded-t-md border-b border-border/60">
               <span>{formatRunHeader(run)}</span>

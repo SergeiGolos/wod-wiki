@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { AnalyticsDataPoint } from '@bitcobblers/wod-wiki-core';
-import { QueryService, type FactQueryStore } from '../src/QueryService';
+import type { UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
+import { QueryService, type NoteQueryStore, type UnifiedEventStore } from '../src/QueryService';
 
 const DAY = 86_400_000;
 const WEEK = 7 * DAY;
@@ -8,27 +8,45 @@ const day0 = Math.floor(1_700_000_000_000 / DAY) * DAY;
 const HOUR = 3_600_000;
 
 let seq = 0;
+interface SummaryExtra {
+  noteId?: string;
+  unit?: string;
+  effortSlug?: string;
+  discipline?: string;
+  intensityTier?: string;
+  blockContentId?: string;
+}
+
+/** A finalize-written summary row — the stored shape the SELECT leg reads. */
 function fact(
   metricKey: string,
   value: number,
   timestamp: number,
-  extra: Partial<AnalyticsDataPoint> = {},
-): AnalyticsDataPoint {
+  extra: SummaryExtra = {},
+): UnifiedEventRecord {
   seq += 1;
+  const { unit, effortSlug, discipline, intensityTier, ...identity } = extra;
   return {
-    id: `f${seq}`,
+    id: `r${seq}:summary:${metricKey}`,
+    resultId: `r${seq}`,
     noteId: 'note-fran',
     grain: 'summary',
+    outputType: 'analytics',
     segmentId: 's1',
     segmentVersion: 1,
-    resultId: `r${seq}`,
-    type: metricKey,
-    metricKey,
-    value,
-    label: metricKey,
     timestamp,
-    createdAt: timestamp,
-    ...extra,
+    ...identity,
+    metrics: [{
+      type: metricKey,
+      value,
+      ...(unit ? { unit } : {}),
+      metadata: {
+        canonicalKey: metricKey,
+        ...(effortSlug ? { effortSlug } : {}),
+        ...(discipline ? { effortDiscipline: discipline } : {}),
+        ...(intensityTier ? { effortIntensityTier: intensityTier } : {}),
+      },
+    }],
   };
 }
 
@@ -45,23 +63,34 @@ const NOTE_TAGS: Record<string, string[]> = {
 };
 
 interface StoreSpy {
-  store: FactQueryStore;
+  store: UnifiedEventStore;
+  noteStore: NoteQueryStore;
   calls: string[];
 }
 
-function makeStore(facts: AnalyticsDataPoint[] = FACTS): StoreSpy {
+function makeStore(rows: UnifiedEventRecord[] = FACTS): StoreSpy {
   const calls: string[] = [];
   return {
     calls,
     store: {
-      getFactsByMetric: async (metricKey) => {
-        calls.push(`by-metric:${metricKey}`);
-        return facts.filter(row => row.metricKey === metricKey);
-      },
-      getFactsByTimeRange: async (start, end) => {
+      getEventsByTimeRange: async (start, end) => {
         calls.push(`by-timestamp:${start}-${end}`);
-        return facts.filter(row => row.timestamp >= start && row.timestamp <= end);
+        return rows.filter(row => row.timestamp >= start && row.timestamp <= end);
       },
+      getEventsByResult: async (resultId) => rows.filter(row => row.resultId === resultId),
+      getEventsForNote: async (noteId) => rows.filter(row => row.noteId === noteId),
+      getEventsByContent: async (blockContentId) => rows.filter(row => row.blockContentId === blockContentId),
+      scanAll: async () => {
+        calls.push('scan-all');
+        return rows;
+      },
+      appendEvents: async () => {},
+      finalizeSummaries: async () => {},
+      deleteEvents: async () => {},
+    },
+    noteStore: {
+      getAllNotes: async () => [],
+      getNoteIdsForTag: async () => new Set<string>(),
       getNoteTagLabels: async (noteId) => {
         calls.push(`tags:${noteId}`);
         return NOTE_TAGS[noteId] ?? [];
@@ -71,22 +100,21 @@ function makeStore(facts: AnalyticsDataPoint[] = FACTS): StoreSpy {
 }
 
 describe('QueryService', () => {
-  it('SELECTs index-first: by-metric always, by-timestamp only with a range', async () => {
-    const { store, calls } = makeStore();
-    const service = new QueryService(store);
+  it('SELECTs window-first: scans all-time, fetches by-timestamp only with a range', async () => {
+    const { store, noteStore, calls } = makeStore();
+    const service = new QueryService({ eventStore: store, noteStore });
 
     await service.runQuery('sum:totalVolume{}');
-    expect(calls).toEqual(['by-metric:totalVolume']);
+    expect(calls).toEqual(['scan-all']);
 
     calls.length = 0;
     await service.runQuery('sum:totalVolume{}', { rangeStart: day0, rangeEnd: day0 + 4 * DAY });
-    expect(calls[0]).toBe('by-metric:totalVolume');
-    expect(calls[1]).toBe(`by-timestamp:${day0}-${day0 + 4 * DAY}`);
+    expect(calls).toEqual([`by-timestamp:${day0}-${day0 + 4 * DAY}`]);
   });
 
-  it('intersects the two index legs by row id', async () => {
-    const { store } = makeStore();
-    const service = new QueryService(store);
+  it('windows the SELECT through the by-timestamp leg alone', async () => {
+    const { store, noteStore } = makeStore();
+    const service = new QueryService({ eventStore: store, noteStore });
     const result = await service.runQuery('sum:totalVolume{}', {
       rangeStart: day0 + 1 * DAY,
       rangeEnd: day0 + 4 * DAY,
@@ -141,7 +169,8 @@ describe('QueryService', () => {
   });
 
   it('resolves multi-value tags against the note_tags set', async () => {
-    const service = new QueryService(makeStore().store);
+    const { store, noteStore } = makeStore();
+    const service = new QueryService({ eventStore: store, noteStore });
 
     const result = await service.runQuery('sum:totalVolume{tags:crossfit|rowing}');
     expect(result.scalar).toBe(6500);
@@ -149,8 +178,8 @@ describe('QueryService', () => {
   });
 
   it("resolves the 'tags' dimension through note_tags, loaded once per note", async () => {
-    const { store, calls } = makeStore();
-    const service = new QueryService(store);
+    const { store, noteStore, calls } = makeStore();
+    const service = new QueryService({ eventStore: store, noteStore });
 
     const result = await service.runQuery('sum:totalVolume{tags:crossfit}');
     expect(result.scalar).toBe(6000);

@@ -212,11 +212,10 @@ export {
 export {
   // QueryService
   QueryService,
-  type FactQueryStore,
+  type UnifiedEventStore,
   type NoteQueryStore,
   type BlockQueryStore,
   type EffortQueryStore,
-  type ResultLogStore,
   type QueryServiceStores,
   type QueryOptions,
   type FindOptions,
@@ -301,7 +300,7 @@ export {
 } from './pack';
 
 // 6. In-Memory Store Seam (#967, #969)
-export { inMemoryFactStore } from './store';
+export { factRowsToEventRows, inMemoryEventStore, inMemoryEventStoreFromFacts, inMemoryFactStore } from './store';
 
 // 7. Universal JSON Intermediate Representation (#955, #967)
 export {

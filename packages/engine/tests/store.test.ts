@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { inMemoryFactStore, QueryService } from '../src/index';
+import { inMemoryEventStoreFromFacts, QueryService } from '../src/index';
 import type { AnalyticsDataPoint } from '../src/index';
 
-describe('inMemoryFactStore', () => {
+describe('inMemoryEventStore (from legacy fact fixtures)', () => {
   const sampleFacts: AnalyticsDataPoint[] = [
     {
       id: 'fact-1',
@@ -63,41 +63,32 @@ describe('inMemoryFactStore', () => {
     },
   ];
 
-  const noteTags = {
-    'note-1': ['benchmark', 'fran'],
-    'note-2': ['strength'],
-  };
 
-  it('filters facts by metric key', async () => {
-    const store = inMemoryFactStore(sampleFacts, noteTags);
-    const volumeFacts = await store.getFactsByMetric('totalVolume');
-    expect(volumeFacts).toHaveLength(2);
-    expect(volumeFacts[0].value).toBe(1500);
-    expect(volumeFacts[1].value).toBe(2500);
+  it('projects facts through the event seam when queried by metric', async () => {
+    const store = inMemoryEventStoreFromFacts(sampleFacts);
+    const service = new QueryService(store);
 
-    const tisFacts = await store.getFactsByMetric('tis');
-    expect(tisFacts).toHaveLength(1);
-    expect(tisFacts[0].value).toBe(45);
+    const allFacts = await service.getFactsByTimeRange(0, 10_000);
+    const volume = allFacts.filter((f) => f.metricKey === 'totalVolume');
+    expect(volume).toHaveLength(2);
+    expect(volume[0].value).toBe(1500);
+    expect(volume[1].value).toBe(2500);
+
+    const tis = allFacts.filter((f) => f.metricKey === 'tis');
+    expect(tis).toHaveLength(1);
+    expect(tis[0].value).toBe(45);
   });
 
-  it('filters facts by time range', async () => {
-    const store = inMemoryFactStore(sampleFacts, noteTags);
-    const inRange = await store.getFactsByTimeRange(1500, 2500);
+  it('windows facts by time range through the event seam', async () => {
+    const store = inMemoryEventStoreFromFacts(sampleFacts);
+    const service = new QueryService(store);
+    const inRange = await service.getFactsByTimeRange(1500, 2500);
     expect(inRange).toHaveLength(1);
-    expect(inRange[0].id).toBe('fact-2');
-  });
-
-  it('returns note tags for note ID', async () => {
-    const store = inMemoryFactStore(sampleFacts, noteTags);
-    const tags = await store.getNoteTagLabels('note-1');
-    expect(tags).toEqual(['benchmark', 'fran']);
-
-    const emptyTags = await store.getNoteTagLabels('unknown-note');
-    expect(emptyTags).toEqual([]);
+    expect(inRange[0].id).toBe('fact:res-2:totalVolume:1:0');
   });
 
   it('integrates seamlessly with QueryService for WQL execution', async () => {
-    const store = inMemoryFactStore(sampleFacts, noteTags);
+    const store = inMemoryEventStoreFromFacts(sampleFacts);
     const service = new QueryService(store);
 
     const result = await service.runQuery('sum:totalVolume{}');

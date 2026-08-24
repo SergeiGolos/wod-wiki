@@ -256,8 +256,20 @@ function parseRowsQuery(raw: string): ParsedRowsQuery {
       return result;
     }
     result.filters = extractFilters(tree.topNode, synthetic);
+    const grainError = retiredGrainRollup(result.filters);
+    if (grainError) { result.error = grainError; return result; }
   }
   return result;
+}
+
+/** Ticket 003: grain:rollup is retired — rollup grains are never stored
+ *  under the unified model; they are computed at read time via the
+ *  .rollup suffix. The tag would silently match zero rows. */
+function retiredGrainRollup(filters: TagFilter[]): string | undefined {
+  if (filters.some(f => f.key === 'grain' && f.values.some(v => v.value === 'rollup'))) {
+    return 'grain:rollup is retired — rollup grains are never stored; compute them with the .rollup suffix';
+  }
+  return undefined;
 }
 
 /** Shared filter extraction from a Lezer Query top node. */
@@ -346,6 +358,8 @@ function parseAnalyticsQuery(raw: string): ParsedQuery {
   base.metric = text.slice(metricNode.from, metricNode.to);
 
   base.filters = extractFilters(query, text);
+  const grainError = retiredGrainRollup(base.filters);
+  if (grainError) { base.error = grainError; return base; }
   if (whereText) {
     const join = parseJoinClause(whereText);
     if (join.error) {
@@ -406,6 +420,8 @@ function parseFindQuery(raw: string): ParsedFindQuery {
 
   result.target = text.slice(metricNode.from, metricNode.to);
   result.filters = extractFilters(query, text);
+  const findGrainError = retiredGrainRollup(result.filters);
+  if (findGrainError) { result.error = findGrainError; return result; }
 
   if (whereText) {
     const join = parseJoinClause(whereText);

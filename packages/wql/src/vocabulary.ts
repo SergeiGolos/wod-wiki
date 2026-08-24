@@ -78,7 +78,10 @@ export type WqlCalcTarget = (typeof WQL_CALC_TARGETS)[number];
 export const WQL_INTENSITY_TIERS = ['low', 'moderate', 'high'] as const;
 export type WqlIntensityTier = (typeof WQL_INTENSITY_TIERS)[number];
 
-export const WQL_GRAINS = ['segment', 'summary', 'rollup'] as const;
+/** Unified store grains (ticket 003): 'summary' | 'event'. The legacy
+ *  'segment' grain was renamed to 'event' (ticket 002); 'rollup' is retired —
+ *  rollups are computed at read time via the .rollup suffix, never stored. */
+export const WQL_GRAINS = ['summary', 'event'] as const;
 export type WqlGrain = (typeof WQL_GRAINS)[number];
 
 /** Content-discovery query targets (find:<target>). */
