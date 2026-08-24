@@ -300,7 +300,7 @@ export {
 } from './pack';
 
 // 6. In-Memory Store Seam (#967, #969)
-export { factRowsToEventRows, inMemoryEventStore, inMemoryEventStoreFromFacts } from './store';
+export { factRowsToEventRows, inMemoryEventStore, inMemoryEventStoreFromFacts, inMemoryFactStore } from './store';
 
 // 7. Universal JSON Intermediate Representation (#955, #967)
 export {

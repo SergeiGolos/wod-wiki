@@ -78,3 +78,6 @@ export function inMemoryEventStore(events: readonly UnifiedEventRecord[]): Unifi
 export function inMemoryEventStoreFromFacts(facts: readonly AnalyticsDataPoint[]): UnifiedEventStore {
   return inMemoryEventStore(factRowsToEventRows(facts));
 }
+
+/** Backward-compatible alias for inMemoryEventStoreFromFacts. */
+export const inMemoryFactStore = inMemoryEventStoreFromFacts;

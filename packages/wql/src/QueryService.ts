@@ -675,7 +675,7 @@ export class QueryService {
     const eventRows = windowed
       ? await this.store.getEventsByTimeRange(start, end)
       : await this.store.scanAll();
-    let candidates = eventRows
+    const candidates = eventRows
       .flatMap(projectEventToFacts)
       .filter(row => row.metricKey === parsed.metric);
 
