@@ -103,7 +103,7 @@ export interface BlockIndexRow {
 // ---------------------------------------------------------------------------
 // WorkoutResult — execution log
 // ---------------------------------------------------------------------------
-export type ResultOrigin = 'journal' | 'playground';
+export type ResultOrigin = 'journal' | 'playground' | 'user';
 
 export interface WorkoutResult {
   id: string;
@@ -152,6 +152,7 @@ export interface AnalyticsDataPoint {
   pageId?: string;
   grain?: 'event' | 'summary';
   effortSlug?: string;
+  discipline?: string;
   intensityTier?: string;
   grade?: string;
   segmentId: string;
