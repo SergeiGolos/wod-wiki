@@ -851,6 +851,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
       <div data-testid="home-tour">
         <TourMobileStack
           theme={theme}
+          wodFiles={wodFiles}
           quests={quests}
           chapters={chapters}
           questLabels={questLabels}
@@ -877,6 +878,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
       <div data-testid="home-tour">
         <TourMobileRunway
           theme={theme}
+          wodFiles={wodFiles}
           quests={quests}
           chapters={chapters}
           questLabels={questLabels}
@@ -1064,7 +1066,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
 }
 
 /** Static half-viewport header introducing a tagged runway section. */
-function TaglineHeader({
+export function TaglineHeader({
   index,
   before,
   accentText,

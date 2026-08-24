@@ -212,10 +212,10 @@ describe('TourMobileRunway', () => {
     await renderRunway()
 
     // The pinned window holds the live runway editor; the hero editor also
-    // mounts at the top of the page (two editor contexts, like desktop).
+    // mounts at the top of the page, plus the shared chapter picker editor below.
     const window_ = screen.getByTestId('tour-mobile-runway-window')
     expect(window_.textContent).toContain('WOD Editor & Autocomplete')
-    expect(screen.getAllByTestId('mock-note-editor')).toHaveLength(2)
+    expect(screen.getAllByTestId('mock-note-editor')).toHaveLength(3)
 
     for (const stageId of [
       'editor-blank',
