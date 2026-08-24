@@ -82,7 +82,7 @@ describe('Next-tutorial caption copy (#885)', () => {
   it('prompts clicks and promises the completion auto-advance', () => {
     const body = caption!.body.toLowerCase()
     expect(body).toContain('click')
-    expect(body).toContain('analytics')
+    expect(body).toContain('data')
   })
 })
 

@@ -16,7 +16,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryState } from 'nuqs';
 import { playgroundPath, ROUTE_PATTERNS } from '../lib/routes';
 import { decodeZip } from '../services/decodeZip';
-import { saveHomeShared } from '../services/homeSharedScript';
+import { buildSharedScript, saveHomeShared } from '../services/homeSharedScript';
 import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay';
 import { playgroundContent, pageId } from '../services/playgroundContent';
 
@@ -39,7 +39,7 @@ export function useZipProcessor() {
         try {
           const content = await decodeZip(zParam);
           if (cancelled) return;
-          saveHomeShared({ content, by: byParam ?? undefined });
+          saveHomeShared({ content: buildSharedScript(content, byParam ?? undefined), by: byParam ?? undefined });
         } catch (err) {
           console.error('Failed to decode zip:', err);
         }

@@ -150,5 +150,6 @@
     "@lezer/highlight": "^1.2.3",
     "@lezer/lr": "^1.4.10",
     "@lezer/markdown": "^1.6.3"
-  }
+  },
+  "allowScripts": {}
 }

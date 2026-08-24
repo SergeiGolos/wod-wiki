@@ -1,17 +1,21 @@
 /**
- * HomeTour.tsx — the redesigned home page: hero + strip + learn + sticky
- * Timer/Analytics runway + registry + reference.
+ * HomeTour.tsx — the redesigned home page: hero + jump section + four tagged
+ * walkthrough sections (Write it in Markdown / Run it as a Timer / Own the
+ * Metrics / Explore your analytics) + the Learn-the-Language chapter picker.
  *
- * The hero embeds the live welcome-1.md demo in its own self-contained editor
- * context (doc + blocks + runtime), independent of the runway scroll demo.
- * Pressing Run in either editor opens the fullscreen playground (real
- * runtime; Stop → real analytics; ✕ / hint pill returns) without scrolling
- * the page. The runway window keeps its own runtime context, scrubbed by and
- * aligned with the tour stages.
+ * Each tagged section owns a sticky mini-runway (TourSectionRunway) driven by
+ * its own scroll progress over a partition of the canonical ```scroll spec;
+ * the metrics explainer section is code-declared (it has no markdown source).
+ *
+ * Preserved contracts:
+ *  - Arrival (#882): /load?z= shared script replaces welcome-1.md in the hero.
+ *  - quick-start quests (qs-arrive / qs-edit / qs-run) plus scroll quests
+ *    fired as each tour stage scrolls into view
+ *  - ChallengeHeaderBadge on '/' (mounted by App.tsx) — home quests only
+ *  - Runs from the hero demo go fullscreen on every form factor
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import { encodeZip } from '../services/encodeZip'
 import {
   clearHomeShared,
@@ -34,49 +38,49 @@ import { useCompletionChallenge } from '../hooks/useCompletionChallenge'
 import { useRunStartedChallenge } from '../hooks/useRunStartedChallenge'
 import { useTourScrollQuests } from '../hooks/useTourScrollQuests'
 import { useIsMobile } from '../hooks/useIsMobile'
-import {
-  RingTargetsProvider,
-  TourRing,
-  useRingRef,
-} from './TourRing'
-import { useScrollRunway, scrollRunwayTo } from '../canvas/useScrollRunway'
-import type { ScrollSlice } from '../canvas/scrollRunway'
-import {
-  SCREEN_TITLES,
-  TOUR_RUNWAY_HEIGHT,
-  TOUR_ACCENTS,
-  type TourScreen,
-  type TourStageId,
-  type RingTargetKey,
-} from './tourConstants'
+import { RingTargetsProvider } from './TourRing'
+import { TOUR_ACCENTS, type TourScreen, type TourStageId } from './tourConstants'
 import { TourHero } from './TourHero'
-import { TourEditorScreen } from './screens/TourEditorScreen'
-import { TourCaptions, buildAdventureScript } from './TourCaptions'
-import { TourTvCard } from './TourTvCard'
-import { TourTimerScreen } from './screens/TourTimerScreen'
-import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
-import { TourAnalyticsShowcaseScreen } from './screens/TourAnalyticsShowcaseScreen'
-import { TourShortCircuitStrip } from './TourShortCircuitStrip'
+import {
+  buildAdventureScript,
+  TOUR_CAPTIONS,
+  type TourCaption,
+} from './TourCaptions'
+import {
+  TourSectionRunway,
+  type TourSectionRunwayApi,
+} from './TourSectionRunway'
+import { TourJumpSection } from './TourJumpSection'
 import { CelebrationBridge } from './CelebrationBridge'
-import { ChapterScrollTour } from './ChapterScrollTour'
-import { TourRegistrySection } from './TourRegistrySection'
-import { TourReferenceSection } from './TourReferenceSection'
-import { TelemetryConsentFooter } from './TelemetryConsentFooter'
+import { TourChapterPicker } from './TourChapterPicker'
 import { TourMobileStack } from './TourMobileStack'
 import { TourMobileRunway, type TourMobileRunwayApi } from './TourMobileRunway'
 import { HOME_EVENTS, useTelemetry } from '@/services/telemetry'
 import { toast } from '@/hooks/use-toast'
-import type { ReactNode } from 'react'
+import { TourAnalyticsScreen } from './screens/TourAnalyticsScreen'
+import { TourTimerScreen } from './screens/TourTimerScreen'
+import { createJournalNoteFromWorkout } from '../services/journalWorkout'
+
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false,
+  )
+  useEffect(() => {
+    const mql = window.matchMedia(query)
+    const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
+    mql.addEventListener('change', handler)
+    setMatches(mql.matches)
+    return () => mql.removeEventListener('change', handler)
+  }, [query])
+  return matches
+}
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const fmtClock = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000))
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
-
 
 const HOME_DEMO_SOURCE = 'wods/examples/home/welcome-1.md'
 
@@ -86,6 +90,28 @@ const HOME_QUEST_STAGE: Record<string, string> = {
   'qs-edit': 'timer-wallclock',
   'qs-run': 'timer-wallclock',
   'qs-tour-analytics': 'wql-idea',
+}
+
+/** Stage groups of the canonical runway, in tagline order. */
+const SECTION_ORDER = ['write', 'run', 'own', 'explore'] as const
+type SectionId = (typeof SECTION_ORDER)[number]
+
+/**
+ * Renormalize a partition of stages onto [0, 1] so each section's driver
+ * resolves its own progress independently.
+ */
+function renormalize(stages: ScrollStage[]): ScrollStage[] {
+  if (stages.length === 0) return stages
+  const first = stages[0]!.range[0]
+  const last = stages[stages.length - 1]!.range[1]
+  const span = last - first
+  return stages.map((s) => ({
+    ...s,
+    range: [
+      span > 0 ? (s.range[0] - first) / span : 0,
+      span > 0 ? (s.range[1] - first) / span : 1,
+    ] as [number, number],
+  }))
 }
 
 const DEFAULT_HOME_STAGES: ScrollStage[] = [
@@ -195,18 +221,42 @@ const DEFAULT_HOME_STAGES: ScrollStage[] = [
   },
 ]
 
-function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia(query).matches : false,
+/** Code-declared stages for the Own-the-Metrics explainer (no md source). */
+const OWN_METRICS_STAGES: ScrollStage[] = [
+  {
+    id: 'metrics-e',
+    range: [0.0, 0.34],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.timer,
+    label: 'Everything is an effort',
+    caption: 'Every line tracks an effort from the movement registry.',
+    ring: { key: 'metrics.efforts', tag: 'Efforts' },
+  },
+  {
+    id: 'metrics-d',
+    range: [0.34, 0.67],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.editor,
+    label: 'Measures ride along',
+    caption: 'Reps, load, distance, timed rest — typed micro data points.',
+    ring: { key: 'metrics.data', tag: 'Measures' },
+  },
+  {
+    id: 'metrics-c',
+    range: [0.67, 1.0],
+    screen: 'analytics',
+    accent: TOUR_ACCENTS.analytics,
+    label: 'They compound',
+    caption: 'Efforts × measures compound into queryable analytics facts.',
+    ring: { key: 'metrics.compound', tag: 'Your data' },
+  },
+]
+
+function captionsForStages(stages: ScrollStage[]): TourCaption[] {
+  const byId: Record<string, TourCaption> = Object.fromEntries(
+    TOUR_CAPTIONS.map((c) => [c.id as string, c]),
   )
-  useEffect(() => {
-    const mql = window.matchMedia(query)
-    const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
-    mql.addEventListener('change', handler)
-    setMatches(mql.matches)
-    return () => mql.removeEventListener('change', handler)
-  }, [query])
-  return matches
+  return stages.map((s) => byId[s.id]).filter((c): c is TourCaption => !!c)
 }
 
 // ── Props ───────────────────────────────────────────────────────────────────
@@ -220,48 +270,28 @@ export interface HomeTourProps {
   chapters: Chapter[]
   /** Cross-page quest id → label, collected from every canvas route. */
   questLabels?: Record<string, string>
-  /** Main tour ```scroll runway spec. */
+  /** Main tour ```scroll runway spec (partitioned across the four sections). */
   scroll?: ScrollSpec | null
-  /** The ```scroll:chapters runway spec (six chapter stages) from the home canvas markdown. */
-  chapterScroll?: ScrollSpec
 }
 
 // ── Inner (needs RingTargetsContext) ──────────────────────────────────────────
 
-function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll, chapterScroll }: HomeTourProps) {
-  const stages = scroll?.stages ?? DEFAULT_HOME_STAGES
+function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll }: HomeTourProps) {
   const isMobile = useIsMobile()
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const telemetry = useTelemetry()
   const track = telemetry?.track
 
-  const runwayRef = useRef<HTMLElement | null>(null)
-  const canvasInnerRef = useRef<HTMLDivElement | null>(null)
-  // The whole desktop tour window (the canvas wrapper OUTSIDE the MacOS
-  // chrome) is the 'editor.window' ring target — the ring frames it on
-  // top of the window, not as a layer inside the chrome body.
-  const editorWindowRef = useRingRef('editor.window')
-  // Stable identity: an inline arrow here would detach/reattach every
-  // render, and each attach bumps the registry version → re-render loop.
-  const canvasInnerRingRef = useCallback((el: HTMLDivElement | null) => {
-    canvasInnerRef.current = el
-    editorWindowRef(el)
-  }, [editorWindowRef])
-  const canvasRef = useRef<HTMLDivElement | null>(null)
-  const tvCardRef = useRef<HTMLDivElement | null>(null)
-  const toastRef = useRef<HTMLDivElement | null>(null)
-
   // ── Editor documents ──
   // Arrival contract (#882): the initial load content is the shared script
-  // stored by /load?z= when present, else welcome-1.md.
+  // stored by /load?z= when present, else welcome-1.md (bare markdown).
   //
   // Two independent editor contexts:
   //  - HERO: self-contained — its own doc, blocks, and runtime session. It is
-  //    never touched by the scroll driver; pressing Run opens the fullscreen
+  //    never touched by the scroll drivers; pressing Run opens the fullscreen
   //    playground without scrolling the page.
-  //  - RUNWAY: the ambient scroll-demo window — typewriter-scrubbed by the
-  //    tour stages, shares its runtime with the Timer/Analytics stages and
-  //    the TV card.
+  //  - RUNWAY: the ambient scroll-demo window in the write section — shares
+  //    its doc/blocks with the Timer section's ambient run and the TV card.
   const welcomeScript = useMemo(() => resolveSource(HOME_DEMO_SOURCE, wodFiles), [wodFiles])
   const [sharedScript, setSharedScript] = useState<HomeSharedScript | null>(() => loadHomeShared())
   const initialContent = sharedScript?.content ?? welcomeScript
@@ -283,9 +313,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
   const runwayBlocksRef = useRef<ScriptBlock[]>([])
   const runwayEditedRecordedRef = useRef(false)
 
-  // Runway runtime — owned by the scroll-mode Timer stage; feeds the TV card
-  // and the ambient analytics rollup. Never the playground runtime.
-  const runwayRuntimeRef = useRef<IScriptRuntime | null>(null)
+  // Runway runtime — owned by the run section's Timer stage; feeds the TV card.
+  // Never the playground runtime.
   const [tourRuntime, setTourRuntime] = useState<IScriptRuntime | null>(null)
 
   // ── Playground mode ──
@@ -294,33 +323,86 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
   // ── Mobile runway stage (card-visibility driven; inert on desktop) ──
   const [mobileStage, setMobileStage] = useState<ScrollStage | null>(null)
   const mobileRunwayApiRef = useRef<TourMobileRunwayApi | null>(null)
-  const isMobileRef = useRef(isMobile)
-  isMobileRef.current = isMobile
-  const mobileStageRef = useRef<ScrollStage | null>(null)
-  mobileStageRef.current = mobileStage
-  const handleMobileStageChange = useCallback((stage: any) => setMobileStage(stage), [])
+  const handleMobileStageChange = useCallback(
+    (stage: { id: string; screen: string }) => setMobileStage(stage as ScrollStage),
+    [],
+  )
 
-  // ── Scroll driver ──
-  const { slice, subscribe, resync, runwayReached } = useScrollRunway(runwayRef, interactive !== null, stages)
+  // ── Canonical runway partitioned across the four tagged sections ──
+  const canonicalStages = useMemo(() => scroll?.stages ?? DEFAULT_HOME_STAGES, [scroll])
+  const sectionStages = useMemo<Record<SectionId, ScrollStage[]>>(() => ({
+    write: renormalize(canonicalStages.filter((s) => s.screen === 'editor')),
+    run: renormalize(canonicalStages.filter((s) => s.screen === 'timer')),
+    // Own is code-declared only; markdown never contributes metrics-* stages,
+    // but stay defensive about the partition boundary.
+    own: OWN_METRICS_STAGES,
+    explore: renormalize(
+      canonicalStages.filter((s) => s.screen === 'analytics' && !s.id.startsWith('metrics-')),
+    ),
+  }), [canonicalStages])
+  const sectionCaptions = useMemo<Record<SectionId, TourCaption[]>>(() => ({
+    write: captionsForStages(sectionStages.write),
+    run: captionsForStages(sectionStages.run),
+    own: captionsForStages(sectionStages.own),
+    explore: captionsForStages(sectionStages.explore),
+  }), [sectionStages])
 
-  const activeScreen: TourScreen = interactive ?? (slice.stage.screen as TourScreen | undefined) ?? 'editor'
-  // ── Lazy screen mounting (mounted once entered, kept alive after) ──
+  const writeApiRef = useRef<TourSectionRunwayApi | null>(null)
+  const runApiRef = useRef<TourSectionRunwayApi | null>(null)
+  const ownApiRef = useRef<TourSectionRunwayApi | null>(null)
+  const exploreApiRef = useRef<TourSectionRunwayApi | null>(null)
+  const sectionApis: Record<SectionId, React.MutableRefObject<TourSectionRunwayApi | null>> = {
+    write: writeApiRef,
+    run: runApiRef,
+    own: ownApiRef,
+    explore: exploreApiRef,
+  }
+
+  const [runInView, setRunInView] = useState(true)
+  const handleRunViewport = useCallback((inView: boolean) => setRunInView(inView), [])
+  const [activeStages, setActiveStages] = useState<Partial<Record<SectionId, string>>>({})
+  const activeStagesRef = useRef(activeStages)
+  activeStagesRef.current = activeStages
+  const interactiveRef = useRef(interactive)
+  interactiveRef.current = interactive
+  const handleActiveStage = useCallback(
+    (section: SectionId) => (stageId: string) => {
+      setActiveStages((prev) => (prev[section] === stageId ? prev : { ...prev, [section]: stageId }))
+      if (!interactiveRef.current) markStageViewedRef.current?.(stageId as TourStageId)
+    },
+    [],
+  )
+
+  // Stable per-section callbacks: the section runways notify on stage change
+  // and must not observe a fresh closure every render.
+  const stageHandlers = useMemo(
+    () => ({
+      write: handleActiveStage('write'),
+      run: handleActiveStage('run'),
+      own: handleActiveStage('own'),
+      explore: handleActiveStage('explore'),
+    }),
+    [handleActiveStage],
+  )
+
+  // ── Lazy screen mounting (fullscreen overlay panes) ──
   const [entered, setEntered] = useState<Record<TourScreen, boolean>>({
     editor: true,
     timer: false,
     analytics: false,
+    metrics: false,
   })
   const timerAutoStartRef = useRef(false)
 
   useEffect(() => {
-    setEntered((prev) => (prev[activeScreen] ? prev : { ...prev, [activeScreen]: true }))
-    if (activeScreen === 'timer') timerAutoStartRef.current = true
-  }, [activeScreen])
-  // Mobile runway drives `entered` from the reported stage (the desktop
-  // driver keys off the scroll-resolved activeScreen).
+    setEntered((prev) => (prev[pane] ? prev : { ...prev, [pane]: true }))
+    if (pane === 'timer') timerAutoStartRef.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interactive])
+
   useEffect(() => {
     if (!isMobile || !mobileStage) return
-    setEntered((prev) => (prev[mobileStage.screen] ? prev : { ...prev, [mobileStage.screen]: true }))
+    setEntered((prev) => (prev[mobileStage.screen as 'editor' | 'timer' | 'analytics'] ? prev : { ...prev, [mobileStage.screen as 'editor' | 'timer' | 'analytics']: true }))
     if (mobileStage.screen === 'timer') timerAutoStartRef.current = true
   }, [isMobile, mobileStage])
 
@@ -332,12 +414,15 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
   // editor the visitor pressed Run in.
   const playgroundSourceRef = useRef<'hero' | 'runway' | 'chapter'>('hero')
   const playgroundBlockRef = useRef<ScriptBlock | null>(null)
+  // Scroll-stage ids arrive as plain strings from the markdown spec; the
+  // quest hook keys on the constants union.
   /** Doc for the most recently run chapter example (journal logging). */
-  const chapterRunDocRef = useRef<string>('')
-  const interactiveRef = useRef(interactive)
-  interactiveRef.current = interactive
+  const markStageViewedRef = useRef<(id: TourStageId) => void>(() => {})
+  const chapterRunDocRef = useRef('')
+  const pane: 'editor' | 'timer' | 'analytics' =
+    interactive === 'analytics' ? 'analytics' : interactive === 'timer' ? 'timer' : 'editor'
 
-  // ── Session key for resetting playground timer when scrolling into timer stage ──
+  // ── Session key for resetting playground timer between sessions ──
   const [timerSessionKey, setTimerSessionKey] = useState(0)
 
   const startNewSession = useCallback(() => {
@@ -345,10 +430,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     timerStartedAtRef.current = Date.now()
     setSession(null)
     setLogState(null)
-    runwayRuntimeRef.current = null
     setTourRuntime(null)
     // NOTE: playgroundBlockRef is deliberately kept — startNewSession also
-    // fires from the inTimerStage effect right after a Run click, and the
+    // fires from the in-timer-stage effect right after a Run click, and the
     // fullscreen overlay still needs the block it was launched with.
   }, [])
 
@@ -391,13 +475,24 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     startNewSession()
   }, [welcomeScript, startNewSession])
 
-  const inTimerStage = (interactive === null && runwayReached && slice.stage.screen === 'timer') || interactive === 'timer' || (isMobile && mobileStage?.screen === 'timer')
+  // Entering the run section's timer stages restarts the ambient session —
+  // mirrors the old single-driver inTimerStage contract. Leaving the section's
+  // viewport (next header covering the sticky window) releases it.
+  const runStageId = activeStages.run
+  const inTimerStage =
+    (interactive === null && runInView && runStageId != null && runStageId.startsWith('timer-')) ||
+    interactive === 'timer' ||
+    (isMobile && mobileStage?.screen === 'timer')
+  const [everInTimer, setEverInTimer] = useState(false)
+  useEffect(() => {
+    if (inTimerStage) {
+      setEverInTimer(true)
+      // Ambient gate-pop: arriving at the run section's timer stages arms
+      // auto-start so the Ready-to-Start gate advances on its own.
+      timerAutoStartRef.current = true
+    }
+  }, [inTimerStage])
   const prevInTimerStageRef = useRef(inTimerStage)
-  // Screen at completion time — read inside handleTimerComplete (stable
-  // callback) to decide whether a scroll-mode completion should auto-slide.
-  const stageScreenRef = useRef<TourScreen>((slice.stage.screen as TourScreen | undefined) ?? 'editor')
-  stageScreenRef.current = (slice.stage.screen as TourScreen | undefined) ?? 'editor'
-
   useEffect(() => {
     if (inTimerStage && !prevInTimerStageRef.current) {
       startNewSession()
@@ -405,17 +500,21 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     prevInTimerStageRef.current = inTimerStage
   }, [inTimerStage, startNewSession])
 
-  // Typeahead scrub: during slide 1 (editor-blank), chars type in over local t (0..0.5).
-  // Leaving the slide resets the edit-divergence guard so scrolling back retypes from blank.
-  // Scrub drives the RUNWAY window only — the hero editor is never touched.
+  // Scroll-out stop: leaving the run section halts the ambient runtime WITHOUT
+  // resetting it — later sections keep the run's data.
+  const scrollOutPause = interactive === null && everInTimer && !runInView
+
+  // Typeahead scrub: the write section's editor window snaps back to the
+  // selected script whenever the visitor hasn't diverged from it.
   useEffect(() => {
-    return subscribe(() => {
+    return writeApiRef.current?.subscribe(() => {
       if (runwayEditedRecordedRef.current || interactiveRef.current !== null) return
       if (runwayDocRef.current !== selectedScript) {
         setRunwayDoc(selectedScript)
       }
     })
-  }, [subscribe, selectedScript])
+  }, [selectedScript])
+
   const analyticsSegments = session?.segments ?? []
   const analyticsTitle =
     logState === 'logging'
@@ -424,17 +523,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
         ? 'Session Review · not saved to journal'
         : 'Journal / today · logged from timer'
 
-  // ── TV card clock (mirrors the real session start) ──
+  // Session start marker for ambient resets (the TV card reads the live
+  // runtime, so no separate elapsed ticker is needed).
   const timerStartedAtRef = useRef<number | null>(null)
-  const [tvElapsed, setTvElapsed] = useState('00:00')
-  useEffect(() => {
-    if (activeScreen !== 'timer') return
-    if (timerStartedAtRef.current == null) timerStartedAtRef.current = Date.now()
-    const tick = () => setTvElapsed(fmtClock(Date.now() - (timerStartedAtRef.current ?? Date.now())))
-    tick()
-    const id = window.setInterval(tick, 1000)
-    return () => window.clearInterval(id)
-  }, [activeScreen])
 
   useQuickStartAutoComplete({
     pageRoute: '/',
@@ -445,19 +536,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
   useCompletionChallenge({ pageRoute: '/', quests, completedResults: session?.results ?? null })
 
   const markStageViewed = useTourScrollQuests('/', quests)
-  useEffect(() => {
-    // Only mark a scroll stage once the runway has actually entered the
-    // viewport. At fresh load the hero is still visible (runwayReached is
-    // false), so the first tour stage is not prematurely counted.
-    if (interactive === null && runwayReached) markStageViewed(slice.stage.id)
-  }, [interactive, slice.stage.id, markStageViewed, runwayReached])
-  useEffect(() => {
-    if (!isMobile || interactive !== null || !mobileStage) return
-    markStageViewed(mobileStage.id)
-  }, [isMobile, interactive, mobileStage, markStageViewed])
-
-  // Analytics is the final screen in the canonical runway; quest navigation
-  // targets the same sticky runway rather than a second scroll driver.
+  markStageViewedRef.current = markStageViewed
 
   // The qs-tour-timer interaction quest validates on a *visitor-initiated* run.
   // ambient scroll demo intentionally auto-runs, and must never validate the
@@ -465,29 +544,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
   const [demoRunning, setDemoRunning] = useState(false)
   // Per-chapter scoping (#919): the global run-started hook handles only the
   // home-tour's own run quest (qs-tour-timer). Each chapter's `<chapter>-run`
-  // lead quest is completed by its own ChapterHeroSection on that chapter's Run.
-  const chapterLeadQuestIds = useMemo(
-    () => new Set(chapters.filter((c) => c.id !== 'home-tour').map((c) => `${c.id}-run`)),
-    [chapters],
-  )
-  const tourRunQuests = useMemo(
-    () => quests.filter((q) => !chapterLeadQuestIds.has(q.id)),
-    [quests, chapterLeadQuestIds],
-  )
-  useRunStartedChallenge({ pageRoute: '/', quests: tourRunQuests, running: demoRunning })
-
-  const handleHomeQuestClick = useCallback((questId: string) => {
-    const stageId = HOME_QUEST_STAGE[questId]
-    if (!stageId) return
-    if (mobileRunwayApiRef.current) {
-      mobileRunwayApiRef.current.scrollToStage(stageId)
-      return
-    }
-    const el = runwayRef.current
-    if (!el) return
-    const stage = stages.find((s) => s.id === stageId)
-    if (stage) scrollRunwayTo(el, Math.min(stage.range[0] + 0.02, stage.range[1] - 0.005))
-  }, [stages])
+  // lead quest is completed by the chapter picker's Run.
+  useRunStartedChallenge({ pageRoute: '/', quests, running: demoRunning })
 
   // ── Hero interactions (self-contained editor context) ──
   const handleHeroDocChange = useCallback(
@@ -525,7 +583,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
       setRunwayDoc(next)
       track?.(HOME_EVENTS.demoEdited)
     },
-    [startNewSession, slice.stage.id, slice.t, track],
+    [startNewSession, track],
   )
 
   // Run opens the fullscreen playground bound to the editor context the Run
@@ -549,8 +607,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
 
   // Chapter example run — scoped per chapter (#919): opens the playground
   // bound to the chapter's own block WITHOUT firing the global run-started
-  // hook (setDemoRunning), so it completes only this chapter's lead quest
-  // (handled by ChapterHeroSection's own markComplete).
+  // hook (setDemoRunning), so it completes only this chapter's lead quest.
   const startChapterRun = useCallback(
     (block: ScriptBlock | null, doc: string) => {
       if (!block) return
@@ -615,7 +672,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     void shareDoc(runwayDocRef.current)
   }, [shareDoc])
 
-  // Chapter heroes (#926): run/share use the chapter's own example doc.
+  // Chapter picker run/share (#926): use the chapter's own example doc.
   const handleChapterRun = useCallback(
     (_chapterId: string, block: ScriptBlock | null, doc: string) => {
       track?.(HOME_EVENTS.chapterExampleRun, { chapter: _chapterId })
@@ -633,14 +690,13 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     runwayBlocksRef.current = blocks
   }, [])
 
-  const exitPlayground = useCallback(() => setInteractive(null), [])
-
-  useEffect(() => {
-    if (interactive === null) {
-      const id = requestAnimationFrame(resync)
-      return () => cancelAnimationFrame(id)
-    }
-  }, [interactive, resync])
+  const exitPlayground = useCallback(() => {
+    setInteractive(null)
+    // Re-sync every section driver against the restored scroll position.
+    requestAnimationFrame(() => {
+      for (const section of SECTION_ORDER) sectionApis[section].current?.resync?.()
+    })
+  }, [sectionApis])
 
   const handleTimerComplete = useCallback(
     (_blockId: string, results: WorkoutResults) => {
@@ -651,13 +707,11 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
       setInteractive((mode) => (mode === 'timer' ? 'analytics' : mode))
 
       if (!wasPlaygroundRun) {
-        // Scroll-mode completion (#885): clicking Next through to the end of
-        // the run slides the shared window into the WQL analytics beats —
-        // the first analytics stage of the canonical runway.
+        // Scroll-mode completion: finishing the ambient run slides the visitor
+        // onward to the Own-the-Metrics explainer — the bridge between the
+        // run they just finished and querying it in Explore your analytics.
         if (results.completed) {
-          const el = runwayRef.current
-          const first = stages.find((s) => s.screen === 'analytics')
-          if (el && first) scrollRunwayTo(el, Math.min(first.range[0] + 0.01, first.range[1] - 0.005))
+          ownApiRef.current?.scrollToStage('metrics-e')
         }
         return
       }
@@ -692,7 +746,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
         setLogState('failed')
       })
     },
-    [stages],
+    [],
   )
 
   const handleTimerClose = useCallback(() => {
@@ -704,26 +758,20 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
       mobileRunwayApiRef.current.scrollToStage('editor-blank')
       return
     }
-    const el = runwayRef.current
-    if (el) scrollRunwayTo(el, 0)
+    writeApiRef.current?.scrollToStage('editor-blank')
   }, [interactive, exitPlayground])
 
-  // Header Reset (#885): restart the timer run on demand — a fresh session
-  // key remounts the panel and the auto-start replays from the gate.
+  // Header Reset: restart the timer run on demand — a fresh session key
+  // remounts the panel and the auto-start replays from the gate.
   const handleTimerReset = useCallback(() => {
     startNewSession()
   }, [startNewSession])
 
-  // Scroll-out stop (#885): leaving the timer cards halts the ambient
-  // runtime WITHOUT resetting it — the analytics cards keep the run's data.
-  const scrollOutPause = interactive === null && entered.timer && !inTimerStage
-
-  // Runway runtime — set only by the scroll-mode Timer stage. The ambient
+  // Runway runtime — set only by the run section's Timer stage. The ambient
   // demo auto-starts execution, but the root WaitingToStart gate keeps the
   // label at 'Ready to Start' while the clock ticks; advance past the gate so
   // the demo actually runs.
   const handleRuntimeReady = useCallback((runtime: IScriptRuntime) => {
-    runwayRuntimeRef.current = runtime
     setTourRuntime(runtime)
     if (interactiveRef.current === null) {
       // Defer one microtask so the auto-start effect in RuntimeTimerPanel has
@@ -734,10 +782,29 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     }
   }, [])
 
-  // Playground runtime — deliberately NOT stored in runwayRuntimeRef /
-  // tourRuntime: the fullscreen session is independent of the scroll demo,
-  // and the WaitingToStart gate stays for the visitor to press Start.
+  // Playground runtime — deliberately NOT stored: the fullscreen session is
+  // independent of the ambient demo, and the WaitingToStart gate stays for
+  // the visitor to press Start.
   const handlePlaygroundRuntimeReady = useCallback((_runtime: IScriptRuntime) => {}, [])
+
+  // Quest navigation: route the stage id to whichever section owns it.
+  const handleHomeQuestClick = useCallback(
+    (questId: string) => {
+      const stageId = HOME_QUEST_STAGE[questId]
+      if (!stageId) return
+      if (mobileRunwayApiRef.current) {
+        mobileRunwayApiRef.current.scrollToStage(stageId as TourStageId)
+        return
+      }
+      for (const section of SECTION_ORDER) {
+        if (sectionStages[section].some((s) => s.id === stageId)) {
+          sectionApis[section].current?.scrollToStage(stageId)
+          return
+        }
+      }
+    },
+    [sectionStages, sectionApis],
+  )
 
   const playgroundOverlay = (
     <div data-testid="tour-playground-overlay" className="fixed inset-0 z-50 flex flex-col bg-background">
@@ -777,35 +844,6 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
       </div>
     </div>
   )
-
-  // ── Imperative scrub: TV parallax + toast ──
-  useEffect(() => {
-    return subscribe((s: ScrollSlice) => {
-      const tv = tvCardRef.current
-      if (tv) {
-        if (s.stage.id === 'timer-cast') {
-          const k = clamp01((s.t - 0.2) / 0.5)
-          const e = 1 - Math.pow(1 - k, 2)
-          tv.style.opacity = String(k)
-          tv.style.transform = `translateY(${lerp(90, 0, e)}px)`
-        } else {
-          tv.style.opacity = '0'
-        }
-      }
-
-      const toast = toastRef.current
-      if (toast) {
-        if (s.index === stages.length - 1) {
-          const tIn = clamp01((s.t - 0.04) / 0.2)
-          const tOut = clamp01((s.t - 0.7) / 0.2)
-          toast.style.opacity = String(Math.max(0, tIn - tOut))
-          toast.style.transform = `translateX(-50%) translateY(${lerp(-14, 0, tIn)}px)`
-        } else {
-          toast.style.opacity = '0'
-        }
-      }
-    })
-  }, [subscribe, stages.length])
 
   // ── Reduced-motion stack (flat cards — sticky scroll is opted out) ──
   if (prefersReducedMotion) {
@@ -880,6 +918,8 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
     )
   }
 
+  // ── Desktop: hero → jump section → four tagged sections → chapters ──
+  const frozen = interactive !== null
   return (
     <div data-testid="home-tour">
       <div ref={heroRef}>
@@ -895,147 +935,171 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll,
         />
       </div>
 
-      <TourShortCircuitStrip />
+      <TourJumpSection />
 
+      <TourSectionRunway
+        ref={writeApiRef}
+        id="write"
+        heightVh="420vh"
+        frozen={frozen}
+        header={
+          <TaglineHeader
+            index="01"
+            before="Write it in "
+            accentText="Markdown"
+            after=""
+            accent={TOUR_ACCENTS.editor}
+            blurb="Freeform Markdown notes, fenced ```time blocks, live type-ahead. Everything starts as plain text you can edit."
+          />
+        }
+        stages={sectionStages.write}
+        captions={sectionCaptions.write}
+        onChoice={handleWorkoutChoice}
+        onActiveStageChange={stageHandlers.write}
+        editor={{
+          doc: runwayDoc,
+          theme,
+          onDocChange: handleRunwayDocChange,
+          onBlocksChange: handleRunwayBlocksChange,
+          onRun: handleRunwayRun,
+          onShare: handleRunwayShare,
+        }}
+      />
 
-      {/* ── Runway ── */}
-      <section ref={runwayRef} data-testid="tour-runway" className="relative" style={{ height: TOUR_RUNWAY_HEIGHT }}>
-        <div className="sticky top-[104px] flex h-[calc(100vh-104px)] flex-col overflow-hidden">
-          {/* stage bar */}
-          <div className="mx-auto flex w-full max-w-[1500px] items-center justify-between px-6 pt-6 pb-2 lg:px-12">
-            <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-              {interactive ? 'Playground mode' : slice.stage.label}
-            </div>
-            <div className="flex items-center gap-1.5">
-              {stages.map((seg, i) => {
-                const live = slice.index === i
-                const done = slice.index > i
-                return (
-                  <span
-                    key={seg.id}
-                    className="h-1 rounded-full transition-all duration-300"
-                    style={{
-                      width: live ? 30 : 10,
-                      background: live
-                        ? (seg.accent ?? TOUR_ACCENTS.editor)
-                        : done
-                          ? 'hsl(var(--foreground))'
-                          : 'hsl(var(--foreground) / 0.15)',
-                    }}
-                  />
-                )
-              })}
-            </div>
-          </div>
+      <TourSectionRunway
+        ref={runApiRef}
+        id="run"
+        heightVh="420vh"
+        frozen={frozen}
+        header={
+          <TaglineHeader
+            index="02"
+            before="Run it as a "
+            accentText="Timer"
+            after=""
+            accent={TOUR_ACCENTS.timer}
+            blurb="The script becomes the clock. Step through rounds, cast to the big screen, and pace the room together."
+          />
+        }
+        stages={sectionStages.run}
+        captions={sectionCaptions.run}
+        onActiveStageChange={stageHandlers.run}
+        onViewportChange={handleRunViewport}
+        timer={{
+          sessionKey: timerSessionKey,
+          block: runwayBlocksRef.current[0] ?? null,
+          autoStart: timerAutoStartRef.current,
+          externalPause: scrollOutPause,
+          onClose: handleTimerClose,
+          onComplete: handleTimerComplete,
+          onRuntimeReady: handleRuntimeReady,
+          onReset: handleTimerReset,
+        }}
+        tvRuntime={tourRuntime}
+        tvStageId="timer-cast"
+      />
 
-          {/* stage main */}
-          <div className="mx-auto flex w-full max-w-[1500px] min-h-0 flex-1 items-center justify-center gap-[clamp(24px,3.5vw,56px)] px-0 pb-0 lg:px-12 lg:pb-5">
-            {/* canvas */}
-            <div
-              ref={canvasRef}
-              data-screen={activeScreen}
-              className={`relative min-w-0 shrink ${activeScreen === 'analytics' ? 'h-[min(720px,calc(100vh-180px))] w-[min(1040px,calc(100vw-400px))]' : 'aspect-[1200/720] w-[min(920px,calc(100vw-440px))]'}`}
-            >
-              <div ref={canvasInnerRingRef} className="absolute inset-0 transition-[width,height] duration-300">
-                <MacOSChrome title={SCREEN_TITLES[activeScreen]} className="absolute inset-x-2 top-2 bottom-2">
-                  <div className="relative h-full">
-                    {interactive === null && entered.editor && (
-                      <Screen visible={activeScreen === 'editor'}>
-                        <TourEditorScreen
-                          doc={runwayDoc}
-                          onDocChange={handleRunwayDocChange}
-                          onBlocksChange={handleRunwayBlocksChange}
-                          onRun={handleRunwayRun}
-                          onShare={handleRunwayShare}
-                          theme={theme}
-                          withRingTargets
-                        />
-                      </Screen>
-                    )}
-                    {interactive === null && entered.timer && (
-                      <Screen visible={activeScreen === 'timer'}>
-                        <TourTimerScreen
-                          key={timerSessionKey}
-                          block={runwayBlocksRef.current[0] ?? null}
-                          autoStart={timerAutoStartRef.current}
-                          onClose={handleTimerClose}
-                          onComplete={handleTimerComplete}
-                          onRuntimeReady={handleRuntimeReady}
-                          onReset={handleTimerReset}
-                          externalPause={scrollOutPause}
-                        />
-                      </Screen>
-                    )}
-                    {interactive === null && entered.analytics && (
-                      <Screen visible={activeScreen === 'analytics'}>
-                        <TourAnalyticsShowcaseScreen activeStageId={slice.stage.id} />
-                      </Screen>
-                    )}
-                    {/* stop toast mirrors the ambient scroll-mode runtime finishing. */}
-                    <div
-                      ref={toastRef}
-                      className="pointer-events-none absolute top-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2.5 whitespace-nowrap rounded-full border border-[hsl(var(--metric-rounds)/0.55)] bg-card px-5 py-2.5 font-mono text-[10.5px] tracking-[0.04em] opacity-0 shadow-xl"
-                    >
-                      <span className="size-[9px] rounded-sm bg-[hsl(var(--metric-rounds))]" />
-                      Stopped at{' '}
-                      {session ? fmtClock(session.results.duration) : tvElapsed} —{' '}
-                      <b className="text-[hsl(var(--metric-rounds))]">writing results to Journal…</b>
-                    </div>
-                  </div>
-                </MacOSChrome>
+      <TourSectionRunway
+        ref={ownApiRef}
+        id="own"
+        heightVh="360vh"
+        frozen={frozen}
+        screenKind="metrics"
+        header={
+          <TaglineHeader
+            index="03"
+            before="Own the "
+            accentText="Metrics"
+            after=""
+            accent={TOUR_ACCENTS.analytics}
+            blurb="Everything you log is an effort carrying measured data points — and together they compound into rich, queryable analytics."
+          />
+        }
+        stages={sectionStages.own}
+        captions={sectionCaptions.own}
+        onActiveStageChange={stageHandlers.own}
+      />
 
-                {/* cast TV — rises over the timer window's left sidebar
-                    (the Up Next zone) during the timer-cast slide, clear of
-                    the clock and the Stop/Pause/Next controls. */}
-                <TourTvCard ref={tvCardRef} runtime={tourRuntime} />
-
-                <TourRing target={interactive || !slice.ring?.key ? null : { key: slice.ring.key as RingTargetKey, tag: slice.ring.tag }} accent={slice.stage.accent ?? TOUR_ACCENTS.editor} canvasRef={canvasInnerRef} />
-              </div>
-            </div>
-
-            {/* captions */}
-            <TourCaptions activeIndex={slice.index} onChoice={handleWorkoutChoice} />
-          </div>
-        </div>
-      </section>
+      <TourSectionRunway
+        ref={exploreApiRef}
+        id="explore"
+        heightVh="560vh"
+        frozen={frozen}
+        header={
+          <TaglineHeader
+            index="04"
+            before=""
+            accentText="Explore"
+            after=" your analytics"
+            accent={TOUR_ACCENTS.analytics}
+            blurb="WQL turns your journal into queryable facts: lists, trends, dashboards — every widget one query away from anything you've logged."
+          />
+        }
+        stages={sectionStages.explore}
+        captions={sectionCaptions.explore}
+        onActiveStageChange={stageHandlers.explore}
+        toastLabel={
+          session
+            ? `Stopped at ${fmtClock(session.results.duration)} — writing results to Journal…`
+            : null
+        }
+      />
 
       {/* Analytics shares the canonical editor/timer sticky runway. */}
       <CelebrationBridge chapters={chapters} />
 
-      {/* Six Syntax Chapters — markdown ```scroll:chapters runway (same format as the hero) */}
-      {chapterScroll && (
-        <ChapterScrollTour
-          scroll={chapterScroll}
-          chapters={chapters}
-          allQuests={quests}
-          theme={theme}
-          wodFiles={wodFiles}
-          onRun={handleChapterRun}
-        />
-      )}
+      {/* Learn the Language — single-slide chapter picker with a shared editor */}
+      <TourChapterPicker
+        wodFiles={wodFiles}
+        chapters={chapters}
+        allQuests={quests}
+        theme={theme}
+        onRun={handleChapterRun}
+        onShare={handleChapterShare}
+      />
 
       {interactive && playgroundOverlay}
-
-      <TourRegistrySection />
-      <TourReferenceSection />
-      <TelemetryConsentFooter />
     </div>
   )
 }
 
-/** Cross-fade wrapper for a screen inside the tour window. */
-function Screen({ visible, children }: { visible: boolean; children: ReactNode }) {
+/** Static half-viewport header introducing a tagged runway section. */
+function TaglineHeader({
+  index,
+  before,
+  accentText,
+  after,
+  accent,
+  blurb,
+}: {
+  index: string
+  before: string
+  accentText: string
+  after: string
+  accent: string
+  blurb: string
+}) {
   return (
-    <div
-      className="absolute inset-0 transition-opacity duration-500"
-      style={{
-        opacity: visible ? 1 : 0,
-        pointerEvents: visible ? 'auto' : 'none',
-      }}
-      aria-hidden={!visible}
-    >
-      {children}
-    </div>
+    <header className="flex min-h-[45vh] items-center border-b border-border/60 px-6 lg:px-12">
+      <div className="mx-auto w-full max-w-[1500px]">
+        <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-muted-foreground/60">
+          {index} / 04
+        </div>
+        <h2 className="mt-2 text-[clamp(26px,3.6vw,48px)] font-extrabold leading-[1.05] tracking-[-0.03em]">
+          {before}
+          <span
+            className="underline decoration-[0.06em] underline-offset-[0.14em]"
+            style={{ color: accent, textDecorationColor: accent }}
+          >
+            {accentText}
+          </span>
+          {after}
+        </h2>
+        <p className="mt-3 max-w-xl text-[clamp(14px,1.2vw,16px)] leading-[1.6] text-muted-foreground">
+          {blurb}
+        </p>
+      </div>
+    </header>
   )
 }
 

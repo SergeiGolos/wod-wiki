@@ -57,8 +57,9 @@ The hero is not one of the normalized runway stages. It is a separate live `welc
 
 The source also includes the Markdown heading and Run hint:
 
+> proposed:  Mark this as editable playground  and the update the logic of the page just for defult rout with no load redirect loads the markdown bellow, but the load route with the zipped still creates the wrapper text (with the hello from the sender if encoded)
 ````markdown
-# 👋 Edit Me
+# 👋 Editable Playground
 
 ```time
 0:03 Count Down
@@ -69,6 +70,9 @@ The source also includes the Markdown heading and Run hint:
 ````
 
 ## Short-circuit strip — direct exits
+
+
+> proposed: this strip shouldn't be a strip, it should be a seperate  sliding section that should take up about half the height of the view page it should be a visible and eye catching part of the view allowing user to jump to the different sub views.  we shoud provde a predefined link to the feeds, with a note, that this is a work in progress in small sub text for the ection, a collections libary and the create new note with a start your own jounral langage.  
 
 This strip appears immediately below the hero and is navigation rather than a parallax slide.
 
@@ -85,6 +89,13 @@ This strip appears immediately below the hero and is navigation rather than a pa
 ## Main parallax runway
 
 The main runway is declared in the first <code>```scroll</code> block in [`markdown/canvas/home/README.md`](../markdown/canvas/home/README.md). It spans normalized progress `0.0` to `1.0` over `1300vh`. The same source is loaded into the editor for the editor and timer slides.
+
+> proposed: i  want to split this up into 4 different sections with a pre header section  about the have screen size to scroll past with a high level summary of each  this correlates closely to the  4 levels addressed int he tagline, and reuse the formating before each section in that header fomr 
+ Write it in **Markdown**
+  Run it as a **Timer**
+  Own the **Metrics**
+  **Explore** your analytics
+>  
 
 ## Slide 1 — Blank Page & Typeahead
 
@@ -330,6 +341,9 @@ The main runway is declared in the first <code>```scroll</code> block in [`markd
 
 After the main runway, the page renders the second <code>```scroll:chapters</code> block from the home Markdown. It is a six-slide syntax runway with an editor window, typewriter transitions, chapter badges, and chapter quest progress. These slides are **not typeahead-focused**; their editor content is a runnable example for the chapter.
 
+
+> proposed : this is where we need to wrapp this up, it is getting too long.  the rest of the examples shgold be a link from the learn the languge.  what i inveision,  you replace all the slide past examples with a single slide that has eac of the chapers as stiulaized doule buytton a select as a primary that makes the example load in a single eddtors that is shared and a second smallar link out button that takes you to learn more on the special documents section that walks though the syntaxin detail for it.  
+
 ## Slide 12 — Basics
 
 **Progress:** `0.000–0.166` within the chapter runway
@@ -501,6 +515,17 @@ The chapter runway header is **Learn the Language**. It provides Start Lesson 1,
 
 ## Static section — The Movement Registry
 
+> proposed: This needs to be a more promanat section that lives right under know wher eyou going? section and ebfore the first of the proposed 4 sections about the readme.    it needs to be re-imagined as a  about metrics and efforts that explain what metrics and efforts are using the slide in over with the box with a 3 slide section to add to the abote lising of the 4... basicllse 
+> 
+> header section: everything is a well structured subheading that expaint that everything is a metrics associated with efforts and micro data points that are copmosed into the felxables analytics engine.
+> 
+> slide 1: shows some example time section with some obviaes examples of effort ahgve the box highlight over the effort as it slide in, explaint hat they tracking this  is effort,
+> 
+    Slide 2 and have some metrics like weight or distance in teh xample and  
+Slide 3and identify how ther compoiunds as efforts against the metrics and the runtime mesuremnts for creating reach analitics log
+> the resutn to the firs sections about the Mrkadown.
+> 
+
 **Text:** The Movement Registry. Every movement your metrics speak in. The section previews strength, gymnastics, rowing, kettlebell, running, swimming, and a `+4` count, with a Browse the registry link.
 
 **Source path:** —
@@ -513,6 +538,8 @@ The chapter runway header is **Learn the Language**. It provides Start Lesson 1,
 
 ## Static section — Quick Reference
 
+> Propose: don't need this seciton remove
+
 **Text:** Quick Reference. Look it up in seconds. The construct grid is followed by Search everything (`⌘/`) and Open the cheat sheet.
 
 **Source path:** —
@@ -524,5 +551,6 @@ The chapter runway header is **Learn the Language**. It provides Start Lesson 1,
 **Typeahead:** No.
 
 ## Static section — Telemetry consent footer
+> Propose: don't need this seciton remove
 
 The page ends with `TelemetryConsentFooter`. It is not a slide and has no workout source or highlight box.

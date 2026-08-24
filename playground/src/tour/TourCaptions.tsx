@@ -174,7 +174,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
         <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>Every click locks a time.</em>
       </>
     ),
-    body: 'Click Next to advance to the next movement or round at your own pace — each click locks the elapsed time into the collected metrics as a split. Click all the way through and the run completes, sliding you straight into the analytics.',
+    body: 'Click Next to advance to the next movement or round at your own pace — each click locks the elapsed time into the collected metrics as a split. Click all the way through and the run completes, carrying your data onward.',
     foot: 'Next button · round advance · locked time splits',
     accent: TOUR_ACCENTS.timer,
     actions: [
@@ -206,8 +206,54 @@ export const TOUR_CAPTIONS: TourCaption[] = [
     ],
   },
   {
+    id: 'metrics-e' as TourStageId,
+    num: '03a / 03 — Everything is an effort',
+    title: (
+      <>
+        Every line tracks an effort.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.timer }}>The registry speaks movement.</em>
+      </>
+    ),
+    body: 'Back Squat, Pullups, a 500m Row — each tracked thing is an effort, drawn from the movement registry with its tags and discipline. Efforts are the nouns your training is written in.',
+    foot: 'effort · movement registry · discipline tags',
+    accent: TOUR_ACCENTS.timer,
+    actions: [
+      {
+        label: 'Browse the registry',
+        href: '/efforts',
+        event: HOME_EVENTS.effortsOpened,
+      },
+    ],
+  },
+  {
+    id: 'metrics-d' as TourStageId,
+    num: '03b / 03 — Measures ride along',
+    title: (
+      <>
+        Every effort collects measures.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.editor }}>Reps, load, distance, rest.</em>
+      </>
+    ),
+    body: 'The same lines carry micro data points: 5 reps at 225lb, a 400m distance, timed rest. Each measure is typed by the runtime — no forms, no manual entry.',
+    foot: 'reps · load · distance · time · custom metrics',
+    accent: TOUR_ACCENTS.editor,
+  },
+  {
+    id: 'metrics-c' as TourStageId,
+    num: '03c / 03 — They compound',
+    title: (
+      <>
+        Efforts × measures compound into facts.{' '}
+        <em className="not-italic" style={{ color: TOUR_ACCENTS.analytics }}>Analytics becomes arithmetic.</em>
+      </>
+    ),
+    body: 'Effort × load rolls up to tonnage; effort × distance to pace; every Next click locks a split. Because everything is structured from the start, WQL queries and dashboards are just rollups of what you already logged.',
+    foot: 'tonnage · pace · splits · queryable facts',
+    accent: TOUR_ACCENTS.analytics,
+  },
+  {
     id: 'wql-idea',
-    num: '03a / 03 — Query what you just did',
+    num: '04a / 05 — Query what you just did',
     title: (
       <>
         Query what you just did.{' '}
@@ -220,7 +266,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'wql-table',
-    num: '03b / 03 — Read it as a list',
+    num: '04b / 05 — Read it as a list',
     title: (
       <>
         Read it as a list.{' '}
@@ -233,7 +279,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'wql-graphs',
-    num: '03c / 03 — See it as trends',
+    num: '04c / 05 — See it as trends',
     title: (
       <>
         See it as trends.{' '}
@@ -246,7 +292,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'wql-dashboard',
-    num: '03d / 03 — Compose a dashboard',
+    num: '04d / 05 — Compose a dashboard',
     title: (
       <>
         Compose a dashboard.{' '}
@@ -259,7 +305,7 @@ export const TOUR_CAPTIONS: TourCaption[] = [
   },
   {
     id: 'wql-live',
-    num: '03e / 03 — It’s your data',
+    num: '04e / 05 — It’s your data',
     title: (
       <>
         It’s your data.{' '}
@@ -273,17 +319,19 @@ export const TOUR_CAPTIONS: TourCaption[] = [
 ]
 
 export interface TourCaptionsProps {
-  /** Index into TOUR_CAPTIONS (matches stage index). */
+  /** Index into the captions list (matches stage index within the section). */
   activeIndex: number
   /** Called when a workout choice is picked from the combo box (choose-your-own-adventure). */
   onChoice?: (wod: string) => void
+  /** Caption subset for a runway section; defaults to the full walkthrough list. */
+  captions?: TourCaption[]
 }
 
 /** Desktop cross-fading caption column. */
-export function TourCaptions({ activeIndex, onChoice }: TourCaptionsProps) {
+export function TourCaptions({ activeIndex, onChoice, captions = TOUR_CAPTIONS }: TourCaptionsProps) {
   return (
     <div className="relative w-[330px] flex-none min-h-[280px]" data-testid="tour-captions">
-      {TOUR_CAPTIONS.map((cap, i) => (
+      {captions.map((cap, i) => (
         <div
           key={cap.id}
           className="absolute inset-0 transition-opacity duration-300"

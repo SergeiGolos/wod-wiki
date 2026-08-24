@@ -61,16 +61,19 @@ describe('line-aligned adventure scaffolding (#884)', () => {
     }
   })
 
-  it('welcome-1.md uses the same scaffolding and fence lines', () => {
+  it('welcome-1.md is the bare fence-only demo; load route adds the scaffold', () => {
     const raw = readFileSync(
       new URL('../../../markdown/canvas/home/welcome-1.md', import.meta.url),
       'utf8',
     )
-    const lines = stripFrontmatter(raw).split('\n')
-    expect(lines[0]).toBe('# 👋 Edit Me')
-    expect(lines[2]).toBe('Change the reps, distance, or load below — this is live.')
-    expect(lines[open - 1]).toBe('```time')
-    expect(lines[close - 1]).toBe('```')
-    expect(lines[close + 1]).toBe('> Press **Run** ↑ to start the Clock.')
+    const lines = stripFrontmatter(raw).trimEnd().split('\n')
+    // Default route loads the bare markdown: fence first, no wrapper copy.
+    expect(lines[0]).toBe('```time')
+    expect(lines[lines.length - 1]).toBe('```')
+    // Wrapping on decode adds the shared scaffold around the bare demo (#884).
+    const wrapped = buildAdventureScript(stripFrontmatter(raw)).split('\n')
+    expect(wrapped[0]).toBe('# 👋 Edit Me')
+    expect(wrapped).toContain('> Press **Run** ↑ to start the Clock.')
+    expect(wrapped).toContain('```time')
   })
 })

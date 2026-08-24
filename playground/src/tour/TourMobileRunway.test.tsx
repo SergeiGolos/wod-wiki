@@ -54,6 +54,7 @@ mock.module('@/components/organisms/cast/CastButtonRpc', () => ({
 mock.module('@/services/db/IndexedDBService', () => ({
   indexedDBService: {
     getFactsByTimeRange: mock(async () => []),
+    getFactsByMetric: mock(async () => []),
   },
 }))
 
@@ -146,7 +147,7 @@ function makeProps(overrides: Partial<TourMobileRunwayProps> = {}): TourMobileRu
     onRunwayRun: () => {},
     onRunwayShare: () => {},
     onChoice: () => {},
-    entered: { editor: true, timer: false, analytics: false },
+    entered: { editor: true, timer: false, analytics: false, metrics: false },
     onStageChange: () => {},
     timer: {
       sessionKey: 0,
@@ -272,7 +273,7 @@ describe('TourMobileRunway', () => {
 
   it('swaps the pinned window to the timer screen on the timer stage', async () => {
     await renderRunway({
-      entered: { editor: true, timer: true, analytics: false },
+      entered: { editor: true, timer: true, analytics: false, metrics: false },
       timer: { ...makeProps().timer, block: { id: 'block-1', type: 'Timer' } as unknown as ScriptBlock },
     })
 
@@ -292,7 +293,7 @@ describe('TourMobileRunway', () => {
 
   it('keeps the editor mounted across stage swaps so edits survive', async () => {
     await renderRunway({
-      entered: { editor: true, timer: true, analytics: false },
+      entered: { editor: true, timer: true, analytics: false, metrics: false },
       timer: { ...makeProps().timer, block: { id: 'block-1', type: 'Timer' } as unknown as ScriptBlock },
     })
 

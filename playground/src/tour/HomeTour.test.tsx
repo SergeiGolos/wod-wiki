@@ -1,14 +1,17 @@
 /**
  * HomeTour.test.tsx — route-level component test for the redesigned home page.
  *
- * Asserts the locked section order, the short-circuit strip exits, the
- * Timer/Analytics stage drop-off hrefs, and the telemetry funnel events.
+ * Asserts the four tagged runway sections (write / run / own / explore), the
+ * jump section exits, the chapter picker, per-stage drop-off hrefs, and the
+ * telemetry funnel events. The retired single 1300vh runway, Movement
+ * Registry strip, Quick Reference, and telemetry footer are gone.
  */
 
 import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
 import { render, screen, cleanup, fireEvent, act, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import type { Quest, Chapter, ScrollSpec } from '../canvas/parseCanvasMarkdown'
+import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
+import type { ScrollStage } from '../canvas/parseCanvasMarkdown'
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 
@@ -34,7 +37,7 @@ mock.module('@/components/organisms/editor/NoteEditor', () => ({
           onChange={(e) => props.onChange?.(e.target.value)}
         />
         {props.onStartWorkout && (
-          <button onClick={() => props.onStartWorkout?.({ id: 'block-1' } as any)}>Run</button>
+          <button onClick={() => props.onStartWorkout?.({ id: 'block-1' } as unknown as ScriptBlock)}>Run</button>
         )}
         {/* Stand-ins for previewDecorations' styled fence lines, which the
             card-2 block highlight measures (#884). */}
@@ -118,146 +121,54 @@ mock.module('../hooks/useIsMobile', () => ({
   useIsMobile: () => false,
 }))
 
-// ── useTourScroll mock — lets the test drive the active stage ───────────────
+// ── useScrollRunway mock — section-aware, driven by one global progress ──────
+//
+// Each TourSectionRunway registers the stages it was mounted with (keyed by
+// first stage id); one global progress resolves every section's slice against
+// its OWN stage list, mirroring how the real page partitions the canonical
+// runway across four independent drivers.
 
 type TestSlice = {
   index: number
-  stage: { id: string; screen: string; accent: string; label: string }
+  stage: { id: string; screen: string; accent?: string; label?: string }
   t: number
-  ring: { key: string; tag?: string } | null
-}
-
-function makeSlice(progress: number): TestSlice {
-  if (progress < 0.15) {
-    const t = progress / 0.15
-    return {
-      index: 0,
-      stage: {
-        id: 'editor-blank',
-        screen: 'editor',
-        accent: 'hsl(var(--metric-resistance))',
-        label: 'Start with a Blank Page',
-      },
-      t,
-      ring: { key: 'editor.window', tag: 'Live Editor' },
-    }
-  }
-  if (progress < 0.30) {
-    const t = (progress - 0.15) / 0.15
-    return {
-      index: 1,
-      stage: {
-        id: 'editor-metrics',
-        screen: 'editor',
-        accent: 'hsl(var(--metric-resistance))',
-        label: 'Every Line Collects Metrics',
-      },
-      t,
-      ring: { key: 'editor.wodBlock', tag: 'Line Metrics' },
-    }
-  }
-  if (progress < 0.45) {
-    const t = (progress - 0.30) / 0.15
-    return {
-      index: 2,
-      stage: {
-        id: 'editor-run',
-        screen: 'editor',
-        accent: 'hsl(var(--metric-resistance))',
-        label: 'Press Run to Start',
-      },
-      t,
-      ring: { key: 'editor.runButton', tag: 'Run Button' },
-    }
-  }
-  if (progress < 0.58) {
-    const t = (progress - 0.45) / 0.13
-    return {
-      index: 3,
-      stage: {
-        id: 'timer-wallclock',
-        screen: 'timer',
-        accent: 'hsl(var(--metric-effort))',
-        label: 'What Happens When It Runs',
-      },
-      t,
-      ring: { key: 'timer.floor', tag: 'Clock' },
-    }
-  }
-  if (progress < 0.68) {
-    const t = (progress - 0.58) / 0.10
-    return {
-      index: 4,
-      stage: {
-        id: 'timer-next',
-        screen: 'timer',
-        accent: 'hsl(var(--metric-effort))',
-        label: 'Advance Rounds with Next',
-      },
-      t,
-      ring: { key: 'timer.nextButton', tag: 'Next Button' },
-    }
-  }
-  if (progress < 0.72) {
-    const t = (progress - 0.68) / 0.04
-    return {
-      index: 6,
-      stage: {
-        id: 'wql-idea',
-        screen: 'analytics',
-        accent: 'hsl(var(--metric-rounds))',
-        label: 'Query what you just did',
-      },
-      t,
-      ring: { key: 'analytics.vocab', tag: 'WQL elements' },
-    }
-  }
-  if (progress < 0.79) {
-    return {
-      index: 7,
-      stage: { id: 'wql-table', screen: 'analytics', accent: 'hsl(var(--metric-rounds))', label: 'Read it as a list' },
-      t: (progress - 0.72) / 0.07,
-      ring: { key: 'analytics.table', tag: 'Table list' },
-    }
-  }
-  if (progress < 0.86) {
-    return {
-      index: 8,
-      stage: { id: 'wql-graphs', screen: 'analytics', accent: 'hsl(var(--metric-rounds))', label: 'See it as trends' },
-      t: (progress - 0.79) / 0.07,
-      ring: { key: 'analytics.graphs', tag: 'Graphs' },
-    }
-  }
-  if (progress < 0.93) {
-    return {
-      index: 9,
-      stage: { id: 'wql-dashboard', screen: 'analytics', accent: 'hsl(var(--metric-rounds))', label: 'Compose a dashboard' },
-      t: (progress - 0.86) / 0.07,
-      ring: { key: 'analytics.dashboard', tag: 'Dashboard' },
-    }
-  }
-  return {
-    index: 10,
-    stage: { id: 'wql-live', screen: 'analytics', accent: 'hsl(var(--metric-rounds))', label: "It's your data" },
-    t: (progress - 0.93) / 0.07,
-    ring: null,
-  }
+  ring: { key?: string; tag?: string; lines?: [number, number] } | true | null
 }
 
 mock.module('../canvas/useScrollRunway', () => {
   const React = require('react')
-  const store: { slice: TestSlice; listeners: Set<() => void> } = {
-    slice: makeSlice(0.50),
-    listeners: new Set(),
+  const store = {
+    progress: 0.5,
+    sections: new Map<string, ScrollStage[]>(),
+    listeners: new Set<() => void>(),
   }
 
-  function setTestTourProgress(progress: number) {
-    store.slice = makeSlice(progress)
+  function sliceFor(stages: ScrollStage[], progress: number): TestSlice {
+    const len = Math.max(1, stages.length)
+    const index = Math.min(len - 1, Math.floor(progress * len))
+    const stage = stages[index]!
+    return {
+      index,
+      stage: {
+        id: stage.id,
+        screen: String(stage.screen),
+        accent: stage.accent,
+        label: stage.label,
+      },
+      t: 0.5,
+      ring: stage.ring ?? null,
+    }
+  }
+
+  function emit() {
     store.listeners.forEach((cb) => cb())
   }
 
-  // Expose the driver on globalThis so the test can switch slices without
-  // statically importing the mocked module (which would resolve before the mock).
+  function setTestTourProgress(progress: number) {
+    store.progress = progress
+    emit()
+  }
+
   const control = globalThis as unknown as {
     setTestTourProgress?: (p: number) => void
     scrollRunwayToCalls?: number
@@ -265,16 +176,20 @@ mock.module('../canvas/useScrollRunway', () => {
   control.setTestTourProgress = setTestTourProgress
 
   return {
-    useScrollRunway: () => {
+    useScrollRunway: (_ref: unknown, _interactive: boolean, stages: ScrollStage[]) => {
+      const key = stages[0]?.id ?? 'default'
+      store.sections.set(key, stages)
       const [, force] = React.useReducer((n: number) => n + 1, 0)
       React.useEffect(() => {
         store.listeners.add(force)
-        return () => store.listeners.delete(force)
+        return () => {
+          store.listeners.delete(force)
+        }
       }, [])
       return {
-        slice: store.slice,
-        progress: 0,
-        runwayReached: store.slice.t > 0 || store.slice.index > 0,
+        slice: sliceFor(stages, store.progress),
+        progress: store.progress,
+        runwayReached: true,
         subscribe: () => () => {},
         resync: () => {},
       }
@@ -297,12 +212,12 @@ globalWithResizeObserver.ResizeObserver ??= class {
 }
 
 const setTestTourProgress = (progress: number) => {
-  // globalThis is augmented by the useTourScroll mock factory at runtime.
+  // globalThis is augmented by the useScrollRunway mock factory at runtime.
   const control = globalThis as unknown as { setTestTourProgress?: (p: number) => void }
   control.setTestTourProgress?.(progress)
 }
 
-// Scroll-spy access — globalThis is augmented by the useTourScroll mock factory.
+// Scroll-spy access — globalThis is augmented by the useScrollRunway mock factory.
 type ScrollSpy = { scrollRunwayToCalls?: number }
 const scrollSpyControl = () => globalThis as unknown as ScrollSpy
 const resetScrollSpy = () => {
@@ -327,11 +242,14 @@ const completedResults = (): WorkoutResults =>
 
 // ── Test data ───────────────────────────────────────────────────────────────
 
+const BARE_WELCOME = '```time\n0:03 Count Down\n10 Pushups\n```'
+const PROTOCOLS_EXAMPLE = '```time\n5:00 Run\n*:30 Rest\n10 Burpees\n```'
+
 const wodFiles: Record<string, string> = {
-  // Real welcome-1.md scaffold (frontmatter stripped): the fence sits on
-  // lines 5–11, line-aligned with every adventure preset (#884).
-  '../../markdown/canvas/home/welcome-1.md':
-    '# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\n```time\n21-15-9\n  Kettlebell Swings 24kg\n  400m Run\n  Deadlifts 225lb\n  *:30 Rest\n```\n\n> Press **Run** ↑ to start the Clock.\n',
+  // welcome-1.md is bare markdown now — the wrapper text is created only on
+  // the /load?z= route (buildSharedScript), never by default '/'.
+  '../../markdown/canvas/home/welcome-1.md': BARE_WELCOME,
+  '../../markdown/canvas/syntax/timers-rest.md': PROTOCOLS_EXAMPLE,
 }
 
 const homeQuests: Quest[] = [
@@ -364,21 +282,6 @@ const chapters: Chapter[] = [
   },
 ]
 
-const questLabels: Record<string, string> = {
-  'basics-movement': 'Add a movement',
-  'protocols-timer': 'Add a timer',
-}
-
-/** The ```scroll:chapters runway spec (six chapter stages → two here). */
-const chapterScroll: ScrollSpec = {
-  runway: '720vh',
-  screen: 'editor',
-  typewriter: true,
-  stages: [
-    { id: 'basics', range: [0, 0.5], screen: 'editor', source: '../../markdown/canvas/home/welcome-1.md', caption: 'Basics blurb.', quest: 'basics-run', ring: { tag: 'Basics example' } },
-    { id: 'protocols', range: [0.5, 1], screen: 'editor', source: '../../markdown/canvas/home/welcome-1.md', caption: 'Protocols blurb.', quest: 'protocols-run', ring: { tag: 'Protocols example' } },
-  ],
-}
 async function renderHomeTour() {
   const result = render(
     <MemoryRouter>
@@ -387,7 +290,6 @@ async function renderHomeTour() {
         theme="light"
         quests={homeQuests}
         chapters={chapters}
-        chapterScroll={chapterScroll}
       />
     </MemoryRouter>,
   )
@@ -428,25 +330,30 @@ describe('HomeTour', () => {
     window.localStorage.clear()
   })
 
-  it('renders the short-circuit strip with Library and New note exits', async () => {
+  it('renders the jump section with feeds, collections, and journal exits', async () => {
     await renderHomeTour()
-    const strip = await screen.findByTestId('tour-short-circuit-strip')
-    expect(strip).toBeTruthy()
-    const libraryLink = screen.getByRole('link', { name: /Jump to the Library/i })
-    expect(libraryLink.getAttribute('href')).toBe('/library')
-    const newNoteButton = screen.getByRole('button', { name: /New note/i })
-    expect(newNoteButton).toBeTruthy()
+    const jump = await screen.findByTestId('tour-jump-section')
+    expect(jump).toBeTruthy()
+
+    const feedsLink = within(jump).getByTestId('jump-feeds')
+    expect(feedsLink.getAttribute('href')).toBe('/feeds')
+    expect(jump.textContent).toContain('Work in progress')
+
+    const libraryLink = within(jump).getByTestId('jump-library')
+    expect(libraryLink.getAttribute('href')).toBe('/collections')
+
+    expect(within(jump).getByTestId('jump-new-note')).toBeTruthy()
   })
 
   it('exposes timer drop-offs with correct hrefs and no analytics caption links', async () => {
     await renderHomeTour()
 
-    // Timer stage is the initial slice.
+    // Timer stage is the initial slice of the run section.
     const behaviorsLink = await screen.findByRole('link', { name: /Read the behaviors explainer/i })
     expect(behaviorsLink.getAttribute('href')).toBe('/guide/behaviors')
 
     // The standalone analytics section is gone; the WQL showcase renders
-    // inside the shared runway window once the analytics beats are entered.
+    // inside the explore section window once the analytics beats are entered.
     expect(screen.queryByTestId('home-analytics-section')).toBeNull()
     await act(async () => {
       setTestTourProgress(0.68)
@@ -459,18 +366,29 @@ describe('HomeTour', () => {
     expect(screen.queryByRole('link', { name: /Read the query guide/i })).toBeNull()
   })
 
-  it('renders the static areas in locked order', async () => {
+  it('renders the redesigned page structure — registry, reference, and footer removed', async () => {
     await renderHomeTour()
-    const headings = (await screen.findAllByRole('heading')).map((h) => h.textContent)
-    const exploreIndex = headings.findIndex((h) => h?.includes('What Happens When It Runs') || h?.includes('Explore Your Data'))
-    const learnIndex = headings.findIndex((h) => h?.includes('Learn the Language'))
-    const registryIndex = headings.findIndex((h) => h?.includes('The Movement Registry'))
-    const referenceIndex = headings.findIndex((h) => h?.includes('Quick Reference'))
 
-    expect(exploreIndex).toBeGreaterThanOrEqual(0)
-    expect(exploreIndex).toBeLessThan(learnIndex)
-    expect(learnIndex).toBeLessThan(registryIndex)
-    expect(registryIndex).toBeLessThan(referenceIndex)
+    expect(screen.queryByTestId('tour-short-circuit-strip')).toBeNull()
+    expect(screen.getByTestId('tour-jump-section')).toBeTruthy()
+    expect(screen.queryByTestId('tour-registry')).toBeNull()
+    expect(screen.queryByTestId('tour-reference')).toBeNull()
+
+    const headings = (await screen.findAllByRole('heading')).map((h) => h.textContent ?? '')
+    expect(headings.some((t) => t.includes('The Movement Registry'))).toBe(false)
+    expect(headings.some((t) => t.includes('Quick Reference'))).toBe(false)
+
+    // One tagline header per tagged section, in walkthrough order.
+    const order = ['Write it in', 'Run it as a', 'Own the', 'your analytics']
+    let cursor = -1
+    for (const fragment of order) {
+      const idx = headings.findIndex((t, i) => i > cursor && t.includes(fragment))
+      expect(idx).toBeGreaterThan(cursor)
+      cursor = idx
+    }
+
+    expect(screen.getByTestId('tour-chapter-picker')).toBeTruthy()
+    expect(screen.getAllByTestId('tour-runway')).toHaveLength(4)
   })
 
   it('starts a new playground session based on initial editor content when scrolling into timer stage', async () => {
@@ -486,7 +404,7 @@ describe('HomeTour', () => {
   it('records the matching home:* event when a drop-off is clicked', async () => {
     await renderHomeTour()
 
-    const libraryLink = await screen.findByRole('link', { name: /Jump to the Library/i })
+    const libraryLink = await screen.findByTestId('jump-library')
     fireEvent.click(libraryLink)
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.libraryOpened)
 
@@ -499,6 +417,7 @@ describe('HomeTour', () => {
     fireEvent.click(behaviorsLink)
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.behaviorsOpened)
   })
+
   it('desktop hero Run mounts the fullscreen overlay with Clock and exit pill', async () => {
     await renderHomeTour()
     const runButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /^Run$/i })
@@ -545,8 +464,9 @@ describe('HomeTour', () => {
   it('keeps the hero editor and the runway editor independent', async () => {
     await renderHomeTour()
     const hero = within(screen.getByTestId('tour-hero')).getByTestId('mock-note-editor') as HTMLTextAreaElement
-    const runway = within(screen.getByTestId('tour-runway')).getByTestId('mock-note-editor') as HTMLTextAreaElement
-    // Same arrival content, separate documents.
+    const writeSection = screen.getByTestId('tour-section-write')
+    const runway = within(writeSection).getByTestId('mock-note-editor') as HTMLTextAreaElement
+    // Same arrival content (bare markdown), separate documents.
     expect(hero.value).toBe(runway.value)
 
     fireEvent.change(hero, { target: { value: 'HERO EDITS' } })
@@ -587,6 +507,8 @@ describe('HomeTour', () => {
 
     const editors = screen.getAllByTestId('mock-note-editor') as HTMLTextAreaElement[]
     // The pick replaces the runway demo script with the preset's fence…
+    // (editors[1] is the write section's ambient window — DOM order puts the
+    // hero first, the write section second, and the chapter picker last.)
     expect(editors[1].value).toContain('21-15-9')
     expect(editors[1].value).toContain('Air Squats')
     // …and leaves the hero document untouched.
@@ -604,8 +526,8 @@ describe('HomeTour', () => {
     const prompt = await screen.findByTestId('tour-workout-choices-prompt')
     expect(prompt.textContent?.toLowerCase()).toContain('take one for a spin')
 
-    // The picker lives in the caption column…
-    const captions = screen.getByTestId('tour-captions')
+    // The picker lives in the write section's caption column…
+    const captions = within(screen.getByTestId('tour-section-write')).getByTestId('tour-captions')
     expect(
       within(captions).getByRole('combobox', { name: /load a workout into the demo/i }),
     ).toBeTruthy()
@@ -643,19 +565,21 @@ describe('HomeTour', () => {
   it('renders the gliding ring with the active stage tag (ring target shape)', async () => {
     await renderHomeTour()
     await act(async () => {
-      setTestTourProgress(0.20)
+      // 1/3 ≤ p < 2/3 → the write section sits on editor-metrics.
+      setTestTourProgress(0.40)
       await Promise.resolve()
     })
 
     // slice.ring must reach TourRing as { key, tag } — passing the key string
     // alone silences the ring (regression: desktop ring vanished after the
-    // useScrollRunway migration because nothing asserted it). The analytics
-    // runway renders its own ring, so assert across all of them.
+    // useScrollRunway migration because nothing asserted it). Each section
+    // owns a ring, so assert across all of them.
     let rings = await screen.findAllByTestId('tour-ring')
     expect(rings.some((r) => r.textContent?.includes('Line Metrics'))).toBe(true)
 
     await act(async () => {
-      setTestTourProgress(0.50)
+      // p < 1/3 → the run section sits on timer-wallclock.
+      setTestTourProgress(0.30)
       await Promise.resolve()
     })
     await waitFor(() => {
@@ -684,32 +608,65 @@ describe('HomeTour', () => {
     expect(await screen.findByTestId('mock-timer-panel')).toBeTruthy()
   })
 
-  it('pauses the ambient timer without resetting it when scrolling out of the timer cards (#885)', async () => {
-    await renderHomeTour()
-    await act(async () => {
-      setTestTourProgress(0.50)
-      await Promise.resolve()
-    })
-    const panel = await screen.findByTestId('mock-timer-panel')
-    expect(panel.getAttribute('data-external-pause')).toBe('false')
+  it('pauses the ambient timer without resetting it when the run section leaves the viewport (#885)', async () => {
+    // Stub IntersectionObserver so the test can toggle the run section's
+    // viewport signal directly.
+    type MockEntry = { el: Element; fire: (v: boolean) => void }
+    const observers: MockEntry[] = []
+    class MockIO {
+      cb: IntersectionObserverCallback
+      constructor(cb: IntersectionObserverCallback) {
+        this.cb = cb
+      }
+      observe(el: Element) {
+        const entry = {
+          el,
+          fire: (v: boolean) =>
+            this.cb([{ isIntersecting: v } as unknown as IntersectionObserverEntry], this as unknown as IntersectionObserver),
+        }
+        observers.push(entry)
+        // Real IO reports initial state asynchronously; do it synchronously.
+        entry.fire(true)
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    const globalScope = globalThis as unknown as Record<string, unknown>
+    globalScope.IntersectionObserver = MockIO
 
-    // Scroll out of the timer cards — the same panel stays mounted
-    // (no reset) but is signaled to halt.
-    await act(async () => {
-      setTestTourProgress(0.20)
-      await Promise.resolve()
-    })
-    expect(screen.getByTestId('mock-timer-panel').getAttribute('data-external-pause')).toBe('true')
+    try {
+      await renderHomeTour()
+      await act(async () => {
+        setTestTourProgress(0.50)
+        await Promise.resolve()
+      })
+      const panel = await screen.findByTestId('mock-timer-panel')
+      expect(panel.getAttribute('data-external-pause')).toBe('false')
 
-    // Scroll back up to the editor cards — still halted, still the same run.
-    await act(async () => {
-      setTestTourProgress(0.20)
-      await Promise.resolve()
-    })
-    expect(screen.getByTestId('mock-timer-panel').getAttribute('data-external-pause')).toBe('true')
+      // Leave the run section's viewport — same panel stays mounted (no
+      // reset) but is signaled to halt.
+      await act(async () => {
+        for (const o of observers) {
+          if (o.el instanceof HTMLElement && o.el.closest('[data-testid="tour-section-run"]')) o.fire(false)
+        }
+        await Promise.resolve()
+      })
+      expect(screen.getByTestId('mock-timer-panel').getAttribute('data-external-pause')).toBe('true')
+
+      // Re-entering releases the halt on the same run.
+      await act(async () => {
+        for (const o of observers) {
+          if (o.el instanceof HTMLElement && o.el.closest('[data-testid="tour-section-run"]')) o.fire(true)
+        }
+        await Promise.resolve()
+      })
+      expect(screen.getByTestId('mock-timer-panel').getAttribute('data-external-pause')).toBe('false')
+    } finally {
+      delete (globalThis as unknown as Record<string, unknown>).IntersectionObserver
+    }
   })
 
-  it('carries the visitor to the analytics showcase when Next completes the run (#885)', async () => {
+  it('carries the visitor to the Own-the-Metrics section when Next completes the run (#885)', async () => {
     const scrollIntoViewSpy = mock(() => {})
     const originalScrollIntoView = Element.prototype.scrollIntoView
     Element.prototype.scrollIntoView = scrollIntoViewSpy as unknown as typeof originalScrollIntoView
@@ -729,40 +686,29 @@ describe('HomeTour', () => {
         await Promise.resolve()
       })
       expect(scrollIntoViewSpy).not.toHaveBeenCalled()
+      // The completion slides onward via the metrics section's scrollToStage.
       expect(scrollRunwayToCallCount()).toBe(1)
     } finally {
       Element.prototype.scrollIntoView = originalScrollIntoView
     }
   })
 
-  it('carries the visitor to the analytics showcase from the last timer stage too', async () => {
-    const scrollIntoViewSpy = mock(() => {})
-    const originalScrollIntoView = Element.prototype.scrollIntoView
-    Element.prototype.scrollIntoView = scrollIntoViewSpy as unknown as typeof originalScrollIntoView
+  it('chapter picker loads examples into the shared editor and links out to guides', async () => {
+    await renderHomeTour()
+    const picker = screen.getByTestId('tour-chapter-picker')
 
-    try {
-      await renderHomeTour()
-      await act(async () => {
-        setTestTourProgress(0.50)
-        await Promise.resolve()
-      })
-      await screen.findByTestId('mock-timer-panel')
+    // Primary select loads the chapter example into the ONE shared editor…
+    fireEvent.click(within(picker).getByTestId('chapter-picker-select-protocols'))
+    const pickerEditors = within(picker).getAllByTestId('mock-note-editor') as HTMLTextAreaElement[]
+    expect(pickerEditors).toHaveLength(1)
+    await waitFor(() => {
+      expect(pickerEditors[0].value).toContain('Burpees')
+    })
 
-      // Visitor is on the final timer slide; completing the run still carries
-      // them to the WQL showcase below the runway, not to a removed runway card.
-      await act(async () => {
-        setTestTourProgress(0.83)
-        await Promise.resolve()
-      })
-      resetScrollSpy()
-      await act(async () => {
-        timerPanelControl().fireTimerComplete?.(completedResults())
-        await Promise.resolve()
-      })
-      expect(scrollIntoViewSpy).not.toHaveBeenCalled()
-      expect(scrollRunwayToCallCount()).toBe(1)
-    } finally {
-      Element.prototype.scrollIntoView = originalScrollIntoView
-    }
+    // …the smaller link-out goes to the guide docs for the chapter.
+    const guideLink = within(picker).getByTestId('chapter-picker-guide-protocols')
+    expect(guideLink.getAttribute('href')).toBe('/guide/syntax/protocols')
+    fireEvent.click(guideLink)
+    expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.chapterGuideClicked)
   })
 })

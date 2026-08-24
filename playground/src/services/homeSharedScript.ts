@@ -15,6 +15,19 @@
  * resettable content, and writing the sharer name must not trip the
  * profile-initialized flag that gates the First-Note Wizard.
  */
+/**
+ * The hero-editor scaffold wrapped around a decoded share payload at
+ * load time. Default `/` loads the bare markdown (welcome-1.md is just a
+ * ```time fence); only the /load?z= route re-creates the editable-playground
+ * wrapper, greeting the receiver in the sender's name when `by` was encoded.
+ * A payload that already carries the 👋 heading (a re-shared link) passes
+ * through untouched so the greeting never doubles.
+ */
+export function buildSharedScript(content: string, by?: string): string {
+  if (content.startsWith('# 👋')) return content
+  const heading = by ? `# 👋 ${by} sent you this workout` : '# 👋 Edit Me'
+  return `${heading}\n\nChange the reps, distance, or load below — this is live.\n\n${content}\n\n> Press **Run** ↑ to start the Clock.\n`
+}
 
 export interface HomeSharedScript {
   content: string

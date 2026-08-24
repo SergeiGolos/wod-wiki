@@ -5,6 +5,7 @@
  * NoteEditor so a visitor can edit, run, share, or open the demo in the
  * journal without scrolling.
  */
+import { Pencil } from 'lucide-react'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import { TOUR_ACCENTS } from './tourConstants'
@@ -88,6 +89,10 @@ export function TourHero({
     >
       <TourHeroHeading />
       <div className="mt-6 w-full max-w-2xl text-left">
+        <div className="mb-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          <Pencil className="size-3" />
+          Editable playground
+        </div>
         <MacOSChrome
           title="welcome-1.md"
           subtitle={sharedBy ? `shared by: ${sharedBy}` : undefined}

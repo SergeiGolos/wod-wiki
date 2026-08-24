@@ -5,7 +5,7 @@
  * no ad-hoc palette. Use as `hsl(var(--metric-*))`.
  */
 
-export type TourScreen = 'editor' | 'timer' | 'analytics'
+export type TourScreen = 'editor' | 'timer' | 'analytics' | 'metrics'
 
 export type TourStageId =
   | 'editor-blank'
@@ -15,6 +15,9 @@ export type TourStageId =
   | 'timer-wallclock'
   | 'timer-next'
   | 'timer-cast'
+  | 'metrics-e'
+  | 'metrics-d'
+  | 'metrics-c'
   | 'wql-idea'
   | 'wql-table'
   | 'wql-graphs'
@@ -35,6 +38,9 @@ export type RingTargetKey =
   | 'timer.floor'
   | 'timer.nextButton'
   | 'timer.castButton'
+  | 'metrics.efforts'
+  | 'metrics.data'
+  | 'metrics.compound'
   | 'analytics.vocab'
   | 'analytics.table'
   | 'analytics.graphs'
@@ -71,14 +77,15 @@ export const TOUR_STAGES: TourStage[] = [
   { id: 'wql-dashboard', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: 'Compose a dashboard', ringA: 'analytics.dashboard', tagA: 'Dashboard' },
   { id: 'wql-live', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: "It's your data" },
 ]
-
 /** Window-chrome title shown while each screen is active. */
 export const SCREEN_TITLES: Record<TourScreen, string> = {
   editor: 'WOD Editor & Autocomplete',
   timer: 'Clock',
   analytics: 'WQL Analytics',
+  metrics: 'Own the Metrics',
 }
 
-/** Runway height — 11 stages: editor → timer → the five WQL analytics beats. */
+/** Runway height — legacy single-runway constant, retained for mobile layouts. */
 export const TOUR_RUNWAY_HEIGHT = '1300vh'
+
 

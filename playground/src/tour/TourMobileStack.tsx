@@ -1,9 +1,6 @@
 import { TourHero } from './TourHero'
-import { TourShortCircuitStrip } from './TourShortCircuitStrip'
+import { TourJumpSection } from './TourJumpSection'
 import { TourLearnSection } from './TourLearnSection'
-import { TourRegistrySection } from './TourRegistrySection'
-import { TourReferenceSection } from './TourReferenceSection'
-import { TelemetryConsentFooter } from './TelemetryConsentFooter'
 import { HomeAnalyticsSection } from './HomeAnalyticsSection'
 import { CaptionBody, TOUR_CAPTIONS } from './TourCaptions'
 import type { ScriptBlock } from '@/components/Editor/types'
@@ -44,7 +41,7 @@ export function TourMobileStack(props: TourMobileStackProps) {
         sharedBy={props.sharedBy}
         onResetShared={props.onResetShared}
       />
-      <TourShortCircuitStrip />
+      <TourJumpSection />
 
       {editorBlankCaption && (
         <article
@@ -81,9 +78,7 @@ export function TourMobileStack(props: TourMobileStackProps) {
         onHomeQuestClick={props.onHomeQuestClick}
       />
 
-      <TourRegistrySection />
-      <TourReferenceSection />
-      <TelemetryConsentFooter />
+
     </div>
   )
 }

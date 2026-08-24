@@ -32,12 +32,7 @@ import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
 import { TourAnalyticsShowcaseScreen } from './screens/TourAnalyticsShowcaseScreen'
 import { TOUR_CAPTIONS, CaptionBody } from './TourCaptions'
-import { TourShortCircuitStrip } from './TourShortCircuitStrip'
 import { LearnProgressOverview } from './TourLearnSection'
-import { TourRegistrySection } from './TourRegistrySection'
-import { TourReferenceSection } from './TourReferenceSection'
-import { TelemetryConsentFooter } from './TelemetryConsentFooter'
-import { CelebrationBridge } from './CelebrationBridge'
 import { ChapterHeroSection } from './ChapterHeroSection'
 import { TourRing, useRingRef } from './TourRing'
 
@@ -345,9 +340,6 @@ export function TourMobileRunway({
         questLabels={questLabels}
         onHomeQuestClick={onHomeQuestClick}
       />
-      <TourRegistrySection />
-      <TourReferenceSection />
-      <TelemetryConsentFooter />
     </div>
   )
 }

@@ -9,6 +9,7 @@ export const HOME_EVENTS = {
   demoEdited: 'home:demo_edited',
   demoShared: 'home:demo_shared',
   libraryOpened: 'home:library_opened',
+  feedsOpened: 'home:feeds_opened',
   noteCreated: 'home:note_created',
   lessonStarted: 'home:lesson_started',
   cheatsheetOpened: 'home:cheatsheet_opened',

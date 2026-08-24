@@ -69,7 +69,8 @@ describe('useZipProcessor', () => {
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }))
     expect(JSON.parse(window.localStorage.getItem(SHARED_KEY)!)).toEqual({
-      content: 'decoded:abc',
+      content:
+        '# 👋 serge sent you this workout\n\nChange the reps, distance, or load below — this is live.\n\ndecoded:abc\n\n> Press **Run** ↑ to start the Clock.\n',
       by: 'serge',
     })
     expect(savePageMock).not.toHaveBeenCalled()
@@ -81,7 +82,9 @@ describe('useZipProcessor', () => {
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }))
     const stored = JSON.parse(window.localStorage.getItem(SHARED_KEY)!)
-    expect(stored.content).toBe('decoded:abc')
+    expect(stored.content).toBe(
+      '# 👋 Edit Me\n\nChange the reps, distance, or load below — this is live.\n\ndecoded:abc\n\n> Press **Run** ↑ to start the Clock.\n',
+    )
     expect(stored.by).toBeUndefined()
     expect(savePageMock).not.toHaveBeenCalled()
   })
