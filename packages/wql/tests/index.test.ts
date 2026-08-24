@@ -30,10 +30,12 @@ import {
   staticNotesFromBlocks,
   staticTagIndexFromBlocks,
   normalizeSummaryFacts,
-  type FactQueryStore,
+  toEventRows,
+  toSummaryEventRows,
+  projectEventToFacts,
+  type UnifiedEventStore,
   type NoteQueryStore,
   type BlockQueryStore,
-  type ResultLogStore,
   type EffortQueryStore,
   type QueryServiceStores,
   type ParsedQuery,
@@ -95,32 +97,32 @@ describe('@bitcobblers/wod-wiki-wql public surface', () => {
   });
 
   it('exports QueryService with injectable stores and zero default DB imports', async () => {
-    const mockFactStore: FactQueryStore = {
-      getFactsByMetric: async () => [],
-      getFactsByTimeRange: async () => [],
-      getNoteTagLabels: async () => [],
+    const mockEventStore: UnifiedEventStore = {
+      getEventsByTimeRange: async () => [],
+      getEventsByResult: async () => [],
+      getEventsForNote: async () => [],
+      getEventsByContent: async () => [],
+      scanAll: async () => [],
+      appendEvents: async () => {},
+      finalizeSummaries: async () => {},
+      deleteEvents: async () => {},
     };
     const mockNoteStore: NoteQueryStore = {
       getAllNotes: async () => [],
       getNoteIdsForTag: async () => new Set(),
+      getNoteTagLabels: async () => [],
     };
     const mockBlockStore: BlockQueryStore = {
       getAllBlocks: async () => [],
-    };
-    const mockResultStore: ResultLogStore = {
-      getResultsByContentId: async () => [],
-      getResultById: async () => undefined,
-      getResultsForNote: async () => [],
     };
     const mockEffortStore: EffortQueryStore = {
       getAllEfforts: async () => [],
     };
 
     const stores: QueryServiceStores = {
-      factStore: mockFactStore,
+      eventStore: mockEventStore,
       noteStore: mockNoteStore,
       blockStore: mockBlockStore,
-      resultStore: mockResultStore,
       effortStore: mockEffortStore,
     };
 
@@ -140,5 +142,10 @@ describe('@bitcobblers/wod-wiki-wql public surface', () => {
     expect(staticNotesFromBlocks([])).toEqual([]);
     expect(staticTagIndexFromBlocks([])).toBeInstanceOf(Map);
     expect(normalizeSummaryFacts([], { noteId: 'n1', resultId: 'r1' })).toEqual([]);
+    expect(toEventRows([], { noteId: 'n1', resultId: 'r1' })).toEqual([]);
+    expect(toSummaryEventRows([], { noteId: 'n1', resultId: 'r1' })).toEqual([]);
+    expect(projectEventToFacts(toEventRows([], { noteId: 'n1', resultId: 'r1' })[0] ?? {
+      id: 'x', resultId: 'r', noteId: 'n', timestamp: 0, grain: 'event', outputType: 'segment', metrics: [],
+    })).toEqual([]);
   });
 });

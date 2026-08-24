@@ -243,6 +243,7 @@ export function toSummaryEventRows(
         ...(f.discipline ? { effortDiscipline: f.discipline } : {}),
         ...(f.intensityTier ? { effortIntensityTier: f.intensityTier } : {}),
         ...(f.groupTags ? { groupTags: f.groupTags } : {}),
+        ...(f.grade ? { grade: f.grade } : {}),
       },
     }],
     segmentId: identity.segmentId,
@@ -287,6 +288,7 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       effortSlug: metadataString(m.metadata, 'effortSlug') ?? record.effortSlug,
       discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),
+      grade: metadataString(m.metadata, 'grade'),
       timestamp: record.timestamp,
       createdAt: record.timestamp,
     }];
@@ -318,8 +320,8 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       metricLabel: labelName || metricKey,
       metricUnit: m.unit,
       effortSlug: metadataString(m.metadata, 'effortSlug') ?? record.effortSlug,
-      discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),
+      grade: metadataString(m.metadata, 'grade'),
       timestamp: record.timestamp,
       createdAt: record.timestamp,
     });

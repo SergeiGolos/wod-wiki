@@ -31,6 +31,31 @@ function statement(overrides: Partial<StoredOutputStatement> = {}): StoredOutput
   } as StoredOutputStatement;
 }
 
+function summaryStatement(
+  projection: string,
+  value: number,
+  unit: string,
+  metadata: Record<string, unknown> = {},
+): StoredOutputStatement {
+  return {
+    outputType: 'analytics',
+    metrics: [
+      { type: 'label', value: projection },
+      { type: 'volume', value, unit, metadata },
+    ],
+    timeSpan: { started: TS, ended: TS },
+  } as StoredOutputStatement;
+}
+
+/** Narrow the loose stored-metric union down to the metadata-carrying shape. */
+function metricMetadata(metric: unknown): Record<string, unknown> | undefined {
+  if (metric && typeof metric === 'object' && 'metadata' in metric) {
+    const meta = (metric as { metadata?: unknown }).metadata;
+    return meta && typeof meta === 'object' ? (meta as Record<string, unknown>) : undefined;
+  }
+  return undefined;
+}
+
 describe('toEventRows — logs → event rows, 1:1 per statement (ticket 002)', () => {
   it('maps every statement to an event row with promoted identity and deterministic id', () => {
     const rows = toEventRows([statement(), statement({ outputType: 'system' })], IDENTITY);
@@ -92,9 +117,9 @@ describe('toSummaryEventRows — analytics outputs → deterministic summary row
     expect(vol!.timestamp).toBe(TS);
     // exactly one metrics entry; fold identity lives in metadata
     expect(vol!.metrics).toHaveLength(1);
-    const m = vol!.metrics[0] as { metadata: Record<string, unknown>; value: unknown };
+    const m = vol!.metrics[0] as { value: unknown };
     expect(m.value).toBe(200);
-    expect(m.metadata).toMatchObject({ canonicalKey: 'totalVolume', effortSlug: 'effort-01' });
+    expect(metricMetadata(vol!.metrics[0])).toMatchObject({ canonicalKey: 'totalVolume', effortSlug: 'effort-01' });
     expect(byId.get('r1:summary:tis')).toBeDefined();
   });
 
@@ -104,24 +129,32 @@ describe('toSummaryEventRows — analytics outputs → deterministic summary row
     const b = toSummaryEventRows(logs, IDENTITY);
     expect(a.map((r) => r.id)).toEqual(b.map((r) => r.id));
   });
+
+  it('carries grade through the summary fold and back out of projection', () => {
+    const logs: StoredOutputStatement[] = [
+      summaryStatement('Total Volume', 200, 'kg', { effortSlug: 'effort-01', grade: 'Rx' }),
+    ];
+    const [row] = toSummaryEventRows(logs, IDENTITY);
+    expect(metricMetadata(row.metrics[0])?.grade).toBe('Rx');
+    const [fact] = projectEventToFacts(row);
+    expect(fact.grade).toBe('Rx');
+  });
 });
 
 describe('projectEventToFacts — event rows → flat fact currency (ticket 003 SELECT)', () => {
   it('flattens an event row to one fact per numeric metric, canonical key first', () => {
-    const row: UnifiedEventRecord = {
-      ...toEventRows(
-        [
-          statement({
-            metrics: [
-              { type: 'label', value: 'Total Volume' },
-              { type: 'volume', value: 142, unit: 'kg', metadata: { canonicalKey: 'totalVolume', effortSlug: 'effort-01' } },
-              { type: 'reps', value: 21 },
-            ],
-          } as Partial<StoredOutputStatement>),
-        ],
-        IDENTITY,
-      )[0],
-    };
+    const row: UnifiedEventRecord = toEventRows(
+      [
+        statement({
+          metrics: [
+            { type: 'label', value: 'Total Volume' },
+            { type: 'volume', value: 142, unit: 'kg', metadata: { canonicalKey: 'totalVolume', effortSlug: 'effort-01' } },
+            { type: 'reps', value: 21 },
+          ],
+        } as Partial<StoredOutputStatement>),
+      ],
+      IDENTITY,
+    )[0];
     const facts = projectEventToFacts(row);
 
     expect(facts).toHaveLength(2);
@@ -155,19 +188,3 @@ describe('projectEventToFacts — event rows → flat fact currency (ticket 003 
     });
   });
 });
-
-function summaryStatement(
-  projection: string,
-  value: number,
-  unit: string,
-  metadata: Record<string, unknown> = {},
-): StoredOutputStatement {
-  return {
-    outputType: 'analytics',
-    metrics: [
-      { type: 'label', value: projection },
-      { type: 'volume', value, unit, metadata },
-    ],
-    timeSpan: { started: TS, ended: TS },
-  } as StoredOutputStatement;
-}

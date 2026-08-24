@@ -10,21 +10,10 @@ const mockRowsResult: RowsQueryResult = {
   parsed: { family: 'rows', raw: 'rows:{result:test-run-1}', filters: [{ key: 'result', negate: false, values: [{ value: 'test-run-1', wildcard: false }] }] },
   runs: [
     {
-      result: {
-        id: 'test-run-1',
-        noteId: 'note-1',
-        createdAt: 1700000000000,
-        pageId: 'note-1',
-        origin: 'journal',
-        data: {
-          startTime: 1700000000000,
-          endTime: 1700000600000,
-          duration: 600000,
-          completed: true,
-          logs: [],
-        },
-      },
-      logs: [],
+      resultId: 'test-run-1',
+      noteId: 'note-1',
+      timestamp: 1700000000000,
+      events: [],
     },
   ],
 };

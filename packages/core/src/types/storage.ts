@@ -150,9 +150,8 @@ export interface AnalyticsDataPoint {
   blockContentId?: string;
   origin?: ResultOrigin;
   pageId?: string;
-  grain?: 'segment' | 'event' | 'summary' | 'rollup';
+  grain?: 'event' | 'summary';
   effortSlug?: string;
-  discipline?: string;
   intensityTier?: string;
   grade?: string;
   segmentId: string;

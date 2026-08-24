@@ -1,17 +1,20 @@
 /**
- * Query Service — the executor of WQL against the Analytics Store
- * (CONTEXT.md glossary). Four-stage physical plan:
+ * Query Service — the executor of WQL against the unified event store.
+ * Four-stage physical plan:
  *
- *   SELECT (index-first: by-metric + by-timestamp IDBKeyRange fetches,
- *           intersected in memory)
+ *   SELECT (window-first hybrid, ticket 003: windowed queries fetch through
+ *           by-timestamp — the one proven culling index; all-time queries
+ *           scan; by-metric is never used. Event rows are flattened to the
+ *           legacy flat-fact currency by projectEventToFacts.)
  *   BUCKET (time dim or rollup period)
  *   AGGREGATE (per bucket)
  *   GROUP (tag-dimension fan-out)
  *
  * Inputs are uncapped — personal-journal scale; widgets and tables are dumb
- * consumers of QueryResult. Fact rows are summary-grain AnalyticsDataPoint
- * rows; Tags are query-time dimensions read off the row (effort, discipline,
- * note, intensity, …) — 'tags' resolves through the note_tags store.
+ * consumers of QueryResult. The store serves UnifiedEventRecord rows
+ * (grain 'event' | 'summary'); Tags are query-time dimensions read off the
+ * projected fact row (effort, discipline, note, intensity, …) — 'tags'
+ * resolves through the note_tags store.
  *
  * Fully inverted dependencies: zero IndexedDB/storage module-level imports.
  */

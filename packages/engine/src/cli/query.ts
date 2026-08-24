@@ -72,7 +72,7 @@ function factsFromExecutionLog(log: ExecutionLog, resultId: string = 'stdin-resu
         segmentId: s.sourceBlockKey || 'stdin-seg-1',
         segmentVersion: 1,
         resultId,
-        grain: s.outputType === 'analytics' ? 'summary' : 'segment',
+        grain: s.outputType === 'analytics' ? 'summary' : 'event',
         type: mType,
         value: Number.isNaN(numVal) ? 0 : numVal,
         unit: m.unit,

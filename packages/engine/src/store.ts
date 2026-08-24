@@ -55,8 +55,12 @@ export function inMemoryEventStore(events: readonly UnifiedEventRecord[]): Unifi
     scanAll: async () => rows,
     appendEvents: async (appended) => { rows.push(...appended); },
     finalizeSummaries: async (resultId, finals) => {
+      // Ticket 005: only engine-authored summaries are finalize-owned;
+      // user-authored summaries (origin 'user', e.g. wellness) are
+      // reconcile-owned and must survive a result finalize.
       for (let i = rows.length - 1; i >= 0; i--) {
-        if (rows[i].resultId === resultId && rows[i].grain === 'summary') rows.splice(i, 1);
+        const row = rows[i];
+        if (row.resultId === resultId && row.grain === 'summary' && row.origin !== 'user') rows.splice(i, 1);
       }
       rows.push(...finals);
     },
