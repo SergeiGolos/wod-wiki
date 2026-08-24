@@ -5,7 +5,7 @@
  * no ad-hoc palette. Use as `hsl(var(--metric-*))`.
  */
 
-export type TourScreen = 'editor' | 'timer' | 'analytics'
+export type TourScreen = 'editor' | 'timer' | 'analytics' | 'metrics'
 
 export type TourStageId =
   | 'editor-blank'
@@ -15,6 +15,9 @@ export type TourStageId =
   | 'timer-wallclock'
   | 'timer-next'
   | 'timer-cast'
+  | 'metrics-e'
+  | 'metrics-d'
+  | 'metrics-c'
   | 'wql-idea'
   | 'wql-table'
   | 'wql-graphs'
@@ -35,6 +38,9 @@ export type RingTargetKey =
   | 'timer.floor'
   | 'timer.nextButton'
   | 'timer.castButton'
+  | 'metrics.efforts'
+  | 'metrics.data'
+  | 'metrics.compound'
   | 'analytics.vocab'
   | 'analytics.table'
   | 'analytics.graphs'
@@ -65,20 +71,24 @@ export const TOUR_STAGES: TourStage[] = [
   { id: 'timer-wallclock', screen: 'timer', accent: TOUR_ACCENTS.timer, label: 'What Happens When It Runs', ringA: 'timer.floor', tagA: 'Clock' },
   { id: 'timer-next', screen: 'timer', accent: TOUR_ACCENTS.timer, label: 'Advance Rounds with Next', ringA: 'timer.nextButton', tagA: 'Next Button' },
   { id: 'timer-cast', screen: 'timer', accent: TOUR_ACCENTS.timer, label: 'Cast to the Big Screen', ringA: 'timer.castButton', tagA: 'Cast' },
+  { id: 'metrics-e', screen: 'metrics', accent: TOUR_ACCENTS.analytics, label: 'Everything Is an Effort', ringA: 'metrics.efforts', tagA: 'Effort' },
+  { id: 'metrics-m', screen: 'metrics', accent: TOUR_ACCENTS.analytics, label: 'Efforts Collect Metrics', ringA: 'metrics.data', tagA: 'Micro Data' },
+  { id: 'metrics-c', screen: 'metrics', accent: TOUR_ACCENTS.analytics, label: 'Compounding Facts', ringA: 'metrics.compound', tagA: 'Analytics Facts' },
   { id: 'wql-idea', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: 'Query what you just did', ringA: 'analytics.vocab', tagA: 'WQL elements' },
   { id: 'wql-table', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: 'Read it as a list', ringA: 'analytics.table', tagA: 'Table list' },
   { id: 'wql-graphs', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: 'See it as trends', ringA: 'analytics.graphs', tagA: 'Graphs' },
   { id: 'wql-dashboard', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: 'Compose a dashboard', ringA: 'analytics.dashboard', tagA: 'Dashboard' },
   { id: 'wql-live', screen: 'analytics', accent: TOUR_ACCENTS.analytics, label: "It's your data" },
 ]
-
 /** Window-chrome title shown while each screen is active. */
 export const SCREEN_TITLES: Record<TourScreen, string> = {
   editor: 'WOD Editor & Autocomplete',
   timer: 'Clock',
   analytics: 'WQL Analytics',
+  metrics: 'Own the Metrics',
 }
 
-/** Runway height — 11 stages: editor → timer → the five WQL analytics beats. */
+/** Runway height — legacy single-runway constant, retained for mobile layouts. */
 export const TOUR_RUNWAY_HEIGHT = '1300vh'
+
 

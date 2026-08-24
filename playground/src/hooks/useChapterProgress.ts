@@ -64,7 +64,7 @@ export function useChapterProgress(
   };
 
   const result: ChapterProgress[] = chapters.map((chapter) => {
-    const quests = chapter.questIds.map((id) => ({ id, isComplete: isDone(id) }));
+    const quests = (chapter.questIds ?? []).map((id) => ({ id, isComplete: isDone(id) }));
     const completed = quests.filter((q) => q.isComplete).length;
     return {
       chapter,

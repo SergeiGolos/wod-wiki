@@ -55,6 +55,7 @@ mock.module('@/components/organisms/cast/CastButtonRpc', () => ({
 mock.module('@/services/db/IndexedDBService', () => ({
   indexedDBService: {
     getFactsByTimeRange: mock(async () => []),
+    getFactsByMetric: mock(async () => []),
   },
 }))
 

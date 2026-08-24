@@ -72,9 +72,15 @@ mock.module('../hooks/useIsMobile', () => ({
 }))
 
 mock.module('@/services/telemetry', () => ({
-  telemetry: { events: { subscribe: () => () => {} } },
+  telemetry: { record: () => {}, events: { subscribe: () => () => {} } },
   HOME_EVENTS: {
+    demoOpened: 'home:demo_opened',
     demoRun: 'home:demo_run',
+    feedsOpened: 'home:feeds_opened',
+    analyticsGuideOpened: 'home:analytics_guide_opened',
+    chapterHeroViewed: 'home:chapter_hero_viewed',
+    chapterExampleRun: 'home:chapter_example_run',
+    chapterGuideClicked: 'home:chapter_guide_clicked',
     demoShared: 'home:demo_shared',
     demoEdited: 'home:demo_edited',
     libraryOpened: 'home:library_opened',

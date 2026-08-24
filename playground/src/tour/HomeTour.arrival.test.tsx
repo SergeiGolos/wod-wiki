@@ -131,7 +131,7 @@ let ioCallbacks: IOCallback[] = []
 async function simulateHeroVisibility(visible: boolean) {
   await act(async () => {
     for (const cb of ioCallbacks) {
-      cb([{ isIntersecting: visible } as IntersectionObserverEntry], {} as IntersectionObserver)
+      cb([{ isIntersecting: visible } as IntersectionObserverEntry])
     }
   })
 }

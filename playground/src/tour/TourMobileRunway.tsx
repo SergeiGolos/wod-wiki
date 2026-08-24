@@ -1,16 +1,17 @@
 /**
  * TourMobileRunway.tsx — the mobile home page: sticky-editor scroll runway.
  *
- * The mobile sibling of the desktop runway (HomeTour.tsx). Mirrors the
- * syntax-guides' mobile pattern (CanvasEditorPanel's `lg:hidden sticky`
- * panel): a pinned window just below the app header shows the live hero
- * editor while the caption cards scroll beneath it, swaps to the
- * timer/analytics screens for those stages, and releases after the last
- * caption card. The headline and short-circuit strip scroll away naturally.
+ * The mobile sibling of the desktop runway (HomeTour.tsx). A pinned window
+ * below the mobile header showcases the active demo (editor → timer →
+ * metrics → analytics) as the visitor scrolls through the 4 tagline sections:
+ *
+ *   01 / Write it in Markdown  (#tour-section-write)
+ *   02 / Run it as a Timer      (#tour-section-run)
+ *   03 / Own the Metrics        (#tour-section-own)
+ *   04 / Explore your analytics (#tour-section-explore)
  *
  * Stage detection is card-visibility driven (IntersectionObserver over the
- * reading zone below the pinned window) instead of the desktop's scroll-
- * progress driver — the cards scroll, so the cards say which stage is live.
+ * reading zone below the pinned window).
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -22,29 +23,24 @@ import type { Quest } from '../hooks/usePageQuests'
 import type { Chapter } from '../canvas/parseCanvasMarkdown'
 import {
   SCREEN_TITLES,
+  TOUR_ACCENTS,
   TOUR_STAGES,
   type TourScreen,
   type TourStage,
   type TourStageId,
 } from './tourConstants'
 import { TourHero } from './TourHero'
+import { TourJumpSection } from './TourJumpSection'
+import { TaglineHeader } from './HomeTour'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { TourTimerScreen } from './screens/TourTimerScreen'
+import { TourMetricsScreen } from './screens/TourMetricsScreen'
 import { TourAnalyticsShowcaseScreen } from './screens/TourAnalyticsShowcaseScreen'
-import { TOUR_CAPTIONS, CaptionBody } from './TourCaptions'
-import { TourShortCircuitStrip } from './TourShortCircuitStrip'
-import { LearnProgressOverview } from './TourLearnSection'
-import { TourRegistrySection } from './TourRegistrySection'
-import { TourReferenceSection } from './TourReferenceSection'
-import { TelemetryConsentFooter } from './TelemetryConsentFooter'
-import { CelebrationBridge } from './CelebrationBridge'
-import { ChapterHeroSection } from './ChapterHeroSection'
+import { TOUR_CAPTIONS, CaptionBody, type TourCaption } from './TourCaptions'
+import { TourChapterPicker } from './TourChapterPicker'
+import { TourLearnSection } from './TourLearnSection'
 import { TourRing, useRingRef } from './TourRing'
 
-/**
- * Scroll pacing per caption card: each card dwells in the reading zone for
- * roughly this much scroll. 7 slots ≈ 490vh of runway under the ~50vh window.
- */
 const CARD_SLOT_MIN_HEIGHT = '70vh'
 
 export interface TourMobileRunwayApi {
@@ -66,22 +62,18 @@ export interface TourMobileTimerProps {
 
 export interface TourMobileRunwayProps {
   theme: string
+  wodFiles?: Record<string, string>
   quests: Quest[]
   chapters: Chapter[]
   questLabels?: Record<string, string>
-  /** Chapter hero run/share — forwarded to each ChapterHeroSection. */
-  onChapterRun?: (chapterId: string, block: ScriptBlock | null, doc: string) => void
-  onChapterShare?: (doc: string) => void
   onHomeQuestClick?: (questId: string) => void
-  /** Hero editor context — the live welcome-1.md editor at the top of the
-   *  page (editable, runnable), matching the desktop hero. */
+  /** Hero editor context — the live welcome-1.md editor at the top of the page. */
   doc: string
   onDocChange: (next: string) => void
   onBlocksChange: (blocks: ScriptBlock[]) => void
   onRun: () => void
   onShare: () => void
-  /** Runway editor context — the pinned demo window (editor → timer →
-   *  analytics), independent of the hero like the desktop runway. */
+  /** Runway editor context — the pinned demo window. */
   runwayDoc: string
   onRunwayDocChange: (next: string) => void
   onRunwayBlocksChange: (blocks: ScriptBlock[]) => void
@@ -92,7 +84,7 @@ export interface TourMobileRunwayProps {
   onResetShared?: () => void
   /** Choose-your-own-adventure workout choice from the editor-blank card. */
   onChoice?: (wod: string) => void
-  /** Lazy-mount flags for the timer/analytics screens (owned by HomeTour). */
+  /** Lazy-mount flags for the timer/metrics/analytics screens. */
   entered: Record<TourScreen, boolean>
   /** Reports the stage whose caption card owns the reading zone. */
   onStageChange: (stage: TourStage) => void
@@ -102,13 +94,13 @@ export interface TourMobileRunwayProps {
   /** Imperative escape hatch for quest clicks / completion auto-slide. */
   apiRef: React.MutableRefObject<TourMobileRunwayApi | null>
 }
+
 export function TourMobileRunway({
   theme,
+  wodFiles = {},
   quests,
   chapters,
   questLabels,
-  onChapterRun,
-  onChapterShare,
   onHomeQuestClick,
   doc,
   onDocChange,
@@ -133,24 +125,15 @@ export function TourMobileRunway({
   const cardRefs = useRef<Array<HTMLDivElement | null>>([])
 
   const windowCanvasRef = useRef<HTMLDivElement | null>(null)
-  // The whole pinned window (the canvas wrapper OUTSIDE the MacOS chrome)
-  // is the 'editor.window' ring target — same contract as the desktop
-  // tour: the ring frames the window on top of it.
   const editorWindowRef = useRingRef('editor.window')
-  // Stable identity: an inline arrow here would detach/reattach every
-  // render, and each attach bumps the registry version → re-render loop.
   const windowCanvasRingRef = useCallback((el: HTMLDivElement | null) => {
     windowCanvasRef.current = el
     editorWindowRef(el)
   }, [editorWindowRef])
-  // ── Stage detection ──
-  // reached: the track top has hit the app header — nothing counts before.
+
   const reachedRef = useRef(false)
-  // Cards currently inside the reading zone (element → stage index).
   const visibleRef = useRef(new Map<Element, number>())
   const [stage, setStage] = useState<TourStage | null>(null)
-  // Reading-zone geometry: below the pinned window (~50vh + half its offset),
-  // same math as MarkdownCanvasPage's mobile scroll-spy.
   const [viewportHeight, setViewportHeight] = useState(() =>
     typeof window !== 'undefined' ? window.innerHeight : 800,
   )
@@ -162,10 +145,6 @@ export function TourMobileRunway({
   const readingZoneTop = Math.round(viewportHeight / 2 + MOBILE_STICKY_TOP / 2)
 
   const resolveVisibleStage = useCallback(() => {
-    // Active card = the one whose TOP sits nearest just below the pinned
-    // window (#dogfood mobile: headline clipped behind the demo card when the
-    // center-anchored pick settled mid-card). Anchoring to the top keeps the
-    // active card's headline visible; taller cards simply read on downward.
     const anchor = readingZoneTop + 12
     let bestIdx = -1
     let bestDist = Infinity
@@ -177,7 +156,7 @@ export function TourMobileRunway({
         bestIdx = idx
       }
     })
-    if (bestIdx >= 0) setStage(TOUR_STAGES[bestIdx])
+    if (bestIdx >= 0) setStage(TOUR_STAGES[bestIdx] ?? null)
   }, [readingZoneTop])
 
   useEffect(() => {
@@ -224,8 +203,6 @@ export function TourMobileRunway({
     apiRef.current = {
       scrollToStage: (stageId) => {
         const idx = TOUR_STAGES.findIndex((s) => s.id === stageId)
-        // block:'start' + the cards' scroll-margin-top lands the card top just
-        // below the pinned window — center-landing hid the headline behind it.
         if (idx >= 0) cardRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       },
     }
@@ -235,17 +212,39 @@ export function TourMobileRunway({
   }, [apiRef])
 
   const screen: TourScreen = stage?.screen ?? 'editor'
-
-  // Mobile ring resolution: the desktop slice resolves ringA/ringB beats from
-  // scroll progress; the card-driven mobile stage has no local t, so beat A
-  // is the anchor (#dogfood: `stage?.ring` doesn't exist on TourStage — the
-  // ring never rendered on mobile).
   const ringTarget = stage?.ringA ? { key: stage.ringA, tag: stage.tagA } : null
+
+  // Categorize captions into the 4 tagged sections
+  const writeCaptions = TOUR_CAPTIONS.filter((c) => c.id.startsWith('editor-'))
+  const runCaptions = TOUR_CAPTIONS.filter((c) => c.id.startsWith('timer-'))
+  const ownCaptions = TOUR_CAPTIONS.filter((c) => c.id.startsWith('metrics-'))
+  const exploreCaptions = TOUR_CAPTIONS.filter((c) => c.id.startsWith('wql-'))
+
+  const renderCard = (cap: TourCaption) => {
+    const globalIdx = TOUR_CAPTIONS.findIndex((c) => c.id === cap.id)
+    return (
+      <div
+        key={cap.id}
+        ref={(el) => {
+          if (globalIdx >= 0) cardRefs.current[globalIdx] = el
+        }}
+        data-testid={`tour-mobile-card-${cap.id}`}
+        className="flex items-center justify-center px-6 py-8"
+        style={{
+          minHeight: CARD_SLOT_MIN_HEIGHT,
+          scrollMarginTop: `calc(50vh + ${MOBILE_STICKY_TOP / 2}px + 12px)`,
+        }}
+      >
+        <article className="w-full max-w-xl rounded-2xl border border-border bg-card p-6">
+          <CaptionBody cap={cap} onChoice={onChoice} />
+        </article>
+      </div>
+    )
+  }
 
   return (
     <div data-testid="tour-mobile-runway" className="flex flex-col">
-      {/* Hero — same first section as desktop: headline + live welcome-1.md
-          demo editor, formatted for mobile. */}
+      {/* Hero — interactive greeting and live editor */}
       <div ref={heroRef}>
         <TourHero
           theme={theme}
@@ -259,13 +258,23 @@ export function TourMobileRunway({
         />
       </div>
 
-      {/* Runway: the sticky parent spans window + cards, so the window
-          releases right after the last caption card. */}
+      {/* Jump section immediately below hero */}
+      <TourJumpSection />
+
+      {/* Runway: the sticky parent spans window + cards */}
       <div ref={trackRef} data-testid="tour-mobile-runway-track" className="relative">
         <div
           data-testid="tour-mobile-runway-window"
-          className={`sticky z-20 shrink-0 px-4 pt-2 pb-1 ${screen === 'analytics' ? 'min-h-[26rem]' : ''}`}
-          style={{ top: `${MOBILE_STICKY_TOP}px`, height: screen === 'analytics' ? 'min(72vh, 42rem)' : `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)` }}
+          className={`sticky z-20 shrink-0 px-4 pt-2 pb-1 ${
+            screen === 'analytics' || screen === 'metrics' ? 'min-h-[26rem]' : ''
+          }`}
+          style={{
+            top: `${MOBILE_STICKY_TOP}px`,
+            height:
+              screen === 'analytics' || screen === 'metrics'
+                ? 'min(72vh, 42rem)'
+                : `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)`,
+          }}
         >
           <div ref={windowCanvasRingRef} className="relative h-full">
             <MacOSChrome title={SCREEN_TITLES[screen]} className="h-full">
@@ -295,6 +304,11 @@ export function TourMobileRunway({
                     />
                   </ScreenFade>
                 )}
+                {entered.metrics && (
+                  <ScreenFade visible={screen === 'metrics'}>
+                    <TourMetricsScreen activeStageId={stage?.id ?? 'metrics-e'} />
+                  </ScreenFade>
+                )}
                 {entered.analytics && (
                   <ScreenFade visible={screen === 'analytics'}>
                     <TourAnalyticsShowcaseScreen activeStageId={stage?.id ?? 'wql-idea'} />
@@ -302,52 +316,80 @@ export function TourMobileRunway({
                 )}
               </div>
             </MacOSChrome>
-            <TourRing target={ringTarget} accent={stage?.accent ?? 'hsl(var(--metric-resistance))'} canvasRef={windowCanvasRef} />
+            <TourRing
+              target={ringTarget}
+              accent={stage?.accent ?? 'hsl(var(--metric-resistance))'}
+              canvasRef={windowCanvasRef}
+            />
           </div>
         </div>
 
-        {/* Caption cards scroll through the reading zone below the window. */}
+        {/* 4 Tagline sections with cards */}
         <div data-testid="tour-mobile-runway-cards">
-          {TOUR_CAPTIONS.map((cap, i) => (
-            <div
-              key={cap.id}
-              ref={(el) => { cardRefs.current[i] = el }}
-              data-testid={`tour-mobile-card-${cap.id}`}
-              className="flex items-center justify-center px-6 py-8"
-              style={{ minHeight: CARD_SLOT_MIN_HEIGHT, scrollMarginTop: `calc(50vh + ${MOBILE_STICKY_TOP / 2}px + 12px)` }}
-            >
-              <article className="w-full max-w-xl rounded-2xl border border-border bg-card p-6">
-                <CaptionBody cap={cap} onChoice={onChoice} />
-              </article>
-            </div>
-          ))}
-      </div>
-      </div>
-      {/* Six Syntax Chapter Heroes */}
-      {chapters
-        .filter((c) => c.id !== 'home-tour')
-        .map((ch) => (
-          <ChapterHeroSection
-            key={ch.id}
-            chapter={ch}
-            allChapters={chapters}
-            allQuests={quests}
-            theme={theme}
-            questLabels={questLabels}
-            onRun={onChapterRun}
-            onShare={onChapterShare}
-          />
-        ))}
+          {/* Section 01: Write it in Markdown */}
+          <div id="tour-section-write" data-testid="tour-section-write">
+            <TaglineHeader
+              index="01"
+              before="Write it in "
+              accentText="Markdown"
+              after=""
+              accent={TOUR_ACCENTS.editor}
+              blurb="Freeform Markdown notes, fenced ```time blocks, live type-ahead. Everything starts as plain text you can edit."
+            />
+            {writeCaptions.map((cap) => renderCard(cap))}
+          </div>
 
-      <LearnProgressOverview
+          {/* Section 02: Run it as a Timer */}
+          <div id="tour-section-run" data-testid="tour-section-run">
+            <TaglineHeader
+              index="02"
+              before="Run it as a "
+              accentText="Timer"
+              after=""
+              accent={TOUR_ACCENTS.timer}
+              blurb="The script becomes the clock. Step through rounds, cast to the big screen, and pace the room together."
+            />
+            {runCaptions.map((cap) => renderCard(cap))}
+          </div>
+
+          {/* Section 03: Own the Metrics */}
+          <div id="tour-section-own" data-testid="tour-section-own">
+            <TaglineHeader
+              index="03"
+              before="Own the "
+              accentText="Metrics"
+              after=""
+              accent={TOUR_ACCENTS.analytics}
+              blurb="Every movement produces facts. Metrics bind to efforts, accumulating structured workout data on every pass."
+            />
+            {ownCaptions.map((cap) => renderCard(cap))}
+          </div>
+
+          {/* Section 04: Explore your analytics */}
+          <div id="tour-section-explore" data-testid="tour-section-explore">
+            <TaglineHeader
+              index="04"
+              before=""
+              accentText="Explore"
+              after=" your analytics"
+              accent={TOUR_ACCENTS.rounds}
+              blurb="Query what you just did in WQL. Roll up totals, graph volume over time, and build custom dashboards."
+            />
+            {exploreCaptions.map((cap) => renderCard(cap))}
+          </div>
+        </div>
+      </div>
+
+      {/* Syntax chapter picker — single slide with shared editor & dual buttons */}
+      <TourChapterPicker wodFiles={wodFiles} theme={theme} />
+
+      {/* High-level learn & quest progress */}
+      <TourLearnSection
         quests={quests}
         chapters={chapters}
         questLabels={questLabels}
         onHomeQuestClick={onHomeQuestClick}
       />
-      <TourRegistrySection />
-      <TourReferenceSection />
-      <TelemetryConsentFooter />
     </div>
   )
 }

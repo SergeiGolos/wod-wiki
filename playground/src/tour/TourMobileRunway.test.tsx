@@ -54,6 +54,7 @@ mock.module('@/components/organisms/cast/CastButtonRpc', () => ({
 mock.module('@/services/db/IndexedDBService', () => ({
   indexedDBService: {
     getFactsByTimeRange: mock(async () => []),
+    getFactsByMetric: mock(async () => []),
   },
 }))
 
@@ -146,7 +147,7 @@ function makeProps(overrides: Partial<TourMobileRunwayProps> = {}): TourMobileRu
     onRunwayRun: () => {},
     onRunwayShare: () => {},
     onChoice: () => {},
-    entered: { editor: true, timer: false, analytics: false },
+    entered: { editor: true, timer: false, analytics: false, metrics: false },
     onStageChange: () => {},
     timer: {
       sessionKey: 0,
@@ -211,10 +212,10 @@ describe('TourMobileRunway', () => {
     await renderRunway()
 
     // The pinned window holds the live runway editor; the hero editor also
-    // mounts at the top of the page (two editor contexts, like desktop).
+    // mounts at the top of the page, plus the shared chapter picker editor below.
     const window_ = screen.getByTestId('tour-mobile-runway-window')
     expect(window_.textContent).toContain('WOD Editor & Autocomplete')
-    expect(screen.getAllByTestId('mock-note-editor')).toHaveLength(2)
+    expect(screen.getAllByTestId('mock-note-editor')).toHaveLength(3)
 
     for (const stageId of [
       'editor-blank',
@@ -272,7 +273,7 @@ describe('TourMobileRunway', () => {
 
   it('swaps the pinned window to the timer screen on the timer stage', async () => {
     await renderRunway({
-      entered: { editor: true, timer: true, analytics: false },
+      entered: { editor: true, timer: true, analytics: false, metrics: false },
       timer: { ...makeProps().timer, block: { id: 'block-1', type: 'Timer' } as unknown as ScriptBlock },
     })
 
@@ -292,7 +293,7 @@ describe('TourMobileRunway', () => {
 
   it('keeps the editor mounted across stage swaps so edits survive', async () => {
     await renderRunway({
-      entered: { editor: true, timer: true, analytics: false },
+      entered: { editor: true, timer: true, analytics: false, metrics: false },
       timer: { ...makeProps().timer, block: { id: 'block-1', type: 'Timer' } as unknown as ScriptBlock },
     })
 

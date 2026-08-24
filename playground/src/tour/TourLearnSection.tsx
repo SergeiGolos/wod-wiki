@@ -8,7 +8,6 @@
  * from listing every quest twice.
  */
 
-import React from 'react'
 import { Link } from 'react-router-dom'
 import { telemetry, HOME_EVENTS } from '@/services/telemetry'
 import type { Chapter, Quest } from '../canvas/parseCanvasMarkdown'

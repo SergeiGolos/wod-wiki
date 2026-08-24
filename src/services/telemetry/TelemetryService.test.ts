@@ -85,13 +85,14 @@ describe('TelemetryService', () => {
     expect(seen).toEqual([true, false]);
   });
 
-  it('exposes the 17 home funnel event names', () => {
+  it('exposes the 18 home funnel event names', () => {
     expect(Object.values(HOME_EVENTS)).toEqual([
       'home:demo_opened',
       'home:demo_run',
       'home:demo_edited',
       'home:demo_shared',
       'home:library_opened',
+      'home:feeds_opened',
       'home:note_created',
       'home:lesson_started',
       'home:cheatsheet_opened',

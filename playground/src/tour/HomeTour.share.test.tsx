@@ -6,7 +6,7 @@
  */
 
 import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
-import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, cleanup, act, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
 import type { ScriptBlock } from '@/components/Editor/types'
@@ -175,7 +175,7 @@ describe('HomeTour share feedback', () => {
   it('shows a confirmation toast and records the event when share succeeds', async () => {
     await renderHomeTour()
 
-    const shareButton = await screen.findByRole('button', { name: /Copy share link/i })
+    const shareButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /Copy share link/i })
     fireEvent.click(shareButton)
 
     await waitFor(() => {
@@ -198,7 +198,7 @@ describe('HomeTour share feedback', () => {
 
     await renderHomeTour()
 
-    const shareButton = await screen.findByRole('button', { name: /Copy share link/i })
+    const shareButton = await within(screen.getByTestId('tour-hero')).findByRole('button', { name: /Copy share link/i })
     fireEvent.click(shareButton)
 
     await waitFor(() => {

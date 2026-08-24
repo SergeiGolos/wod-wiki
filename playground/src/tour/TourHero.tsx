@@ -5,16 +5,23 @@
  * NoteEditor so a visitor can edit, run, share, or open the demo in the
  * journal without scrolling.
  */
+import { Pencil } from 'lucide-react'
 import { TourEditorScreen } from './screens/TourEditorScreen'
 import { MacOSChrome } from '../components/atoms/MacOSChrome'
 import { TOUR_ACCENTS } from './tourConstants'
 import type { ScriptBlock } from '@/components/Editor/types'
 
-const ROWS: Array<{ before?: string; accentText: string; after?: string; accent: string }> = [
-  { before: 'Write it in ', accentText: 'Markdown', accent: TOUR_ACCENTS.editor },
-  { before: 'Run it as a ', accentText: 'Timer', accent: TOUR_ACCENTS.timer },
-  { before: 'Own the ', accentText: 'Metrics', accent: TOUR_ACCENTS.library },
-  { accentText: 'Explore', after: ' your analytics', accent: TOUR_ACCENTS.analytics },
+const ROWS: Array<{
+  sectionId: 'write' | 'run' | 'own' | 'explore'
+  before?: string
+  accentText: string
+  after?: string
+  accent: string
+}> = [
+  { sectionId: 'write', before: 'Write it in ', accentText: 'Markdown', accent: TOUR_ACCENTS.editor },
+  { sectionId: 'run', before: 'Run it as a ', accentText: 'Timer', accent: TOUR_ACCENTS.timer },
+  { sectionId: 'own', before: 'Own the ', accentText: 'Metrics', accent: TOUR_ACCENTS.library },
+  { sectionId: 'explore', accentText: 'Explore', after: ' your analytics', accent: TOUR_ACCENTS.analytics },
 ]
 
 export interface TourHeroProps {
@@ -27,6 +34,7 @@ export interface TourHeroProps {
   /** Shared-script attribution + reset (#882). */
   sharedBy?: string
   onResetShared?: () => void
+  onNavigateSection?: (sectionId: 'write' | 'run' | 'own' | 'explore') => void
 }
 
 /**
@@ -34,7 +42,22 @@ export interface TourHeroProps {
  * the live editor below) and the mobile runway (where the editor lives in
  * the pinned window instead).
  */
-export function TourHeroHeading() {
+export interface TourHeroHeadingProps {
+  onNavigateSection?: (sectionId: 'write' | 'run' | 'own' | 'explore') => void
+}
+
+export function TourHeroHeading({ onNavigateSection }: TourHeroHeadingProps = {}) {
+  const handleJump = (sectionId: 'write' | 'run' | 'own' | 'explore') => {
+    if (onNavigateSection) {
+      onNavigateSection(sectionId)
+      return
+    }
+    const el = document.getElementById(`tour-section-${sectionId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   return (
     <>
       <div className="mb-4 font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground/60">
@@ -44,12 +67,17 @@ export function TourHeroHeading() {
         {ROWS.map((row) => (
           <span key={row.accentText} className="block">
             {row.before}
-            <span
-              className="underline decoration-[0.06em] underline-offset-[0.14em]"
+            <button
+              type="button"
+              data-testid={`hero-tagline-${row.sectionId}`}
+              onClick={() => handleJump(row.sectionId)}
+              className="group inline cursor-pointer text-left font-inherit underline decoration-[0.06em] underline-offset-[0.14em] transition-all hover:opacity-80 active:translate-y-0.5"
               style={{ color: row.accent, textDecorationColor: row.accent }}
+              title={`Jump to ${row.accentText} section`}
+              aria-label={`Jump to ${row.accentText} section`}
             >
               {row.accentText}
-            </span>
+            </button>
             {row.after}.
           </span>
         ))}
@@ -80,14 +108,19 @@ export function TourHero({
   onShare,
   sharedBy,
   onResetShared,
+  onNavigateSection,
 }: TourHeroProps) {
   return (
     <section
       data-testid="tour-hero"
       className="relative flex min-h-0 flex-col items-center justify-center px-6 pt-10 pb-8 text-center"
     >
-      <TourHeroHeading />
+      <TourHeroHeading onNavigateSection={onNavigateSection} />
       <div className="mt-6 w-full max-w-2xl text-left">
+        <div className="mb-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          <Pencil className="size-3" />
+          Editable playground
+        </div>
         <MacOSChrome
           title="welcome-1.md"
           subtitle={sharedBy ? `shared by: ${sharedBy}` : undefined}

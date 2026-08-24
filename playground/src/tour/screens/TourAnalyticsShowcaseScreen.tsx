@@ -85,13 +85,16 @@ function Pane({
     const outer = outerRef.current
     const content = contentRef.current
     if (!outer || !content) return
+    // Rounded + thresholded write: ResizeObserver storms (four section
+    // windows alive at once) must converge instead of chasing sub-pixel
+    // deltas into a setState loop.
     const measure = () => {
       const ch = content.offsetHeight
       const cw = content.offsetWidth
       if (!ch || !cw) return
       // A little horizontal bleed keeps wide tiles from over-shrinking.
-      const next = Math.min(1, outer.clientHeight / ch, (outer.clientWidth + 64) / cw)
-      setFit((prev) => (Math.abs(prev - next) > 0.01 ? next : prev))
+      const next = Math.round(Math.min(1, outer.clientHeight / ch, (outer.clientWidth + 64) / cw) * 1000) / 1000
+      setFit((prev) => (Math.abs(prev - next) > 0.005 ? next : prev))
     }
     measure()
     const t = window.setTimeout(measure, 120)
@@ -102,7 +105,10 @@ function Pane({
       window.clearTimeout(t)
       ro?.disconnect()
     }
-  }, [children])
+    // Measure against the LIVE DOM; `children` identity changes every parent
+    // render and would re-arm this effect forever.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div

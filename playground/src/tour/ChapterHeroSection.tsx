@@ -11,7 +11,7 @@
  *    on desktop they compact into a list beside the side-sticky window.
  */
 
-import React, { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import type { Chapter, Quest } from '../canvas/parseCanvasMarkdown'

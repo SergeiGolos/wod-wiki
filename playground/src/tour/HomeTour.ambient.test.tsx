@@ -241,6 +241,7 @@ mock.module('../canvas/useScrollRunway', () => {
       return {
         slice: store.slice,
         progress: 0,
+        runwayReached: true,
         subscribe: () => () => {},
         resync: () => {},
       }
