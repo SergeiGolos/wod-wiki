@@ -711,4 +711,25 @@ describe('HomeTour', () => {
     fireEvent.click(guideLink)
     expect(recorded.map((e) => e.name)).toContain(HOME_EVENTS.chapterGuideClicked)
   })
+
+  it('hero title highlights jump to each walkthrough section on click', async () => {
+    const scrollIntoViewSpy = mock(() => {})
+    const originalScrollIntoView = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = scrollIntoViewSpy as unknown as typeof originalScrollIntoView
+
+    try {
+      await renderHomeTour()
+
+      const sections = ['write', 'run', 'own', 'explore']
+      for (const sec of sections) {
+        scrollIntoViewSpy.mockClear()
+        const btn = screen.getByTestId(`hero-tagline-${sec}`)
+        expect(btn).toBeTruthy()
+        fireEvent.click(btn)
+        expect(scrollIntoViewSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
+      }
+    } finally {
+      Element.prototype.scrollIntoView = originalScrollIntoView
+    }
+  })
 })

@@ -156,7 +156,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
     const tvCardRef = useRef<HTMLDivElement | null>(null)
     const toastRef = useRef<HTMLDivElement | null>(null)
 
-    const { slice, subscribe, resync } = useScrollRunway(runwayRef, frozen, stages)
+    const { slice, subscribe, resync, runwayReached } = useScrollRunway(runwayRef, frozen, stages)
     const inView = useInView(runwayRef)
     useEffect(() => {
       onViewportChange?.(inView)
@@ -165,8 +165,8 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
     const [everReached, setEverReached] = useState(false)
     const reachedOnce = useReachedOnce(runwayRef)
     useEffect(() => {
-      if (reachedOnce) setEverReached(true)
-    }, [reachedOnce])
+      if (reachedOnce || runwayReached) setEverReached(true)
+    }, [reachedOnce, runwayReached])
 
     const activeScreen: TourScreen =
       (slice.stage.screen as TourScreen | undefined) ?? 'editor'
@@ -179,10 +179,11 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
     // setActiveStages -> render -> effect forever (max update depth).
     const lastNotifiedStageRef = useRef<string | null>(null)
     useEffect(() => {
+      if (!everReached) return
       if (lastNotifiedStageRef.current === slice.stage.id) return
       lastNotifiedStageRef.current = slice.stage.id
       onActiveStageChange?.(slice.stage.id)
-    }, [slice.stage.id, onActiveStageChange])
+    }, [slice.stage.id, onActiveStageChange, everReached])
 
     // Imperative scrub: TV parallax + stop toast — transform/opacity only.
     useEffect(() => {
@@ -229,7 +230,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
     )
 
     return (
-      <section data-testid={`tour-section-${id}`}>
+      <section id={`tour-section-${id}`} data-testid={`tour-section-${id}`}>
         {header}
         <section ref={runwayRef} data-testid="tour-runway" className="relative" style={{ height: heightVh }}>
           <div className="sticky top-[104px] flex h-[calc(100vh-104px)] flex-col overflow-hidden">
@@ -353,10 +354,7 @@ function useReachedOnce(runwayRef: React.RefObject<HTMLElement | null>): boolean
   const [reached, setReached] = useState(false)
   useEffect(() => {
     const el = runwayRef.current
-    if (!el || typeof IntersectionObserver === 'undefined') {
-      setReached(true)
-      return
-    }
+    if (!el || typeof IntersectionObserver === 'undefined') return
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {

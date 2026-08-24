@@ -8,7 +8,6 @@
  * "Take the Tour — complete ✓" when all home-tour quests are complete.
  */
 
-import React from 'react'
 import { Check } from 'lucide-react'
 import type { Chapter } from '../canvas/parseCanvasMarkdown'
 import { useChapterProgress } from '../hooks/useChapterProgress'

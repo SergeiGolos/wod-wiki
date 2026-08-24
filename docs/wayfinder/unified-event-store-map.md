@@ -48,6 +48,17 @@ that consumes them.
   noteId/blockContentId + join index (six total), window-first hybrid SELECT,
   grain tags `summary|event` (rollup tag retired), join freshness rule moot,
   C4/C5 simpler / C6 trivial / C1-C3,C7 unchanged.
+- [Migration and backfill story](assets/004-migration-and-backfill-story.md) —
+  V16 (renumbered; V15 taken): re-derive from logs (events 1:1, summaries via
+  normalizeSummaryFacts, segment/rollup rows dropped, legacy keys re-resolved),
+  analytics store deleted, no dual-write — rollback rides the V10 replay
+  doctrine; atomic versionchange + deterministic ids = replay-safe.
+- [Write-path lifecycle](assets/005-write-path-lifecycle.md) —
+  two write patterns: workout (per-statement streaming, result born at start
+  with status field, finalize-only engine summaries) and wellness (user-authored
+  summaries, reconcile-owned on note save, deleteEvents op added); N9 cache
+  deleted, logs canonical / event store = derived projection, calc.* read-time,
+  30-day in-progress GC. **Map complete — 5/5 tickets resolved.**
 
 ## Not yet specified
 
