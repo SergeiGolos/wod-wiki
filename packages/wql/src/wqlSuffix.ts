@@ -36,6 +36,8 @@ export interface ParsedWqlSuffixes {
   last?: ParsedWqlLastSuffix;
   /** Content scope (`in journal` / `in all`). */
   scope?: string;
+  /** Duplicate-clause diagnostics (C3) — each names both conflicting spans. */
+  conflicts?: string[];
   /** Primary query text with suffixes removed. */
   primaryText: string;
 }
@@ -83,67 +85,81 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
   let groupBy: string[] | undefined;
   let last: ParsedWqlLastSuffix | undefined;
   let scope: string | undefined;
+  const conflicts: string[] = [];
 
   const isFind = text.startsWith('find:');
   const isRows = /^rows(?=[:{]|\s|$)/.test(text);
+
+  // C3: a suffix kind may appear once. Each peel site strips its kind until
+  // exhausted (right-to-left); more than one occurrence becomes a conflict
+  // naming the first and last occurrences instead of silent rightmost-wins.
+  // A duplicate hidden behind a different leftover kind still fails through
+  // the normal cannot-parse path — single-occurrence parsing is unchanged.
+  const stripRepeated = (re: RegExp): RegExpExecArray[] => {
+    const matches: RegExpExecArray[] = [];
+    for (let m = re.exec(text); m; m = re.exec(text)) {
+      matches.unshift(m);
+      text = text.slice(0, m.index).trim();
+    }
+    return matches;
+  };
+  const conflictFrom = (label: string, ms: RegExpExecArray[]) => {
+    // Lockstep across five call sites: one conflict line naming both spans.
+    if (ms.length > 1) {
+      conflicts.push(
+        `Duplicate '${label}' clause: '${ms[0][0].trim()}' conflicts with '${ms[ms.length - 1][0].trim()}'`,
+      );
+    }
+  };
 
   if (isFind || isRows) {
     // Content find queries strip `last <n><unit>` then `in <scope>`;
     // rows queries (#949) strip `last` plus the aggregation suffixes
     // (surfaced as loud errors downstream — rows never aggregates).
-    const lastMatch = LAST_RE.exec(text);
-    if (lastMatch) {
-      last = {
-        size: parseInt(lastMatch[1], 10),
-        unit: lastMatch[2].toLowerCase() as 'd' | 'w',
-        raw: lastMatch[0].trim(),
-      };
-      text = text.slice(0, lastMatch.index).trim();
+    const lasts = stripRepeated(LAST_RE);
+    conflictFrom('window', lasts);
+    if (lasts.length) {
+      const m = lasts[lasts.length - 1];
+      last = { size: parseInt(m[1], 10), unit: m[2].toLowerCase() as 'd' | 'w', raw: m[0].trim() };
     }
 
     if (isFind) {
-      const scopeMatch = IN_SCOPE_RE.exec(text);
-      if (scopeMatch) {
-        scope = scopeMatch[1];
-        text = text.slice(0, scopeMatch.index).trim();
-      }
+      const scopes = stripRepeated(IN_SCOPE_RE);
+      conflictFrom('scope', scopes);
+      if (scopes.length) scope = scopes[scopes.length - 1][1];
     } else {
-      const rollupMatch = ROLLUP_RE.exec(text);
-      if (rollupMatch) {
-        const rawRollup = rollupMatch[1] + rollupMatch[2];
-        rollup = { size: rollupMatch[1] ? parseInt(rollupMatch[1], 10) : 1, unit: rollupMatch[2] || '', raw: rawRollup };
-        text = text.slice(0, rollupMatch.index).trim();
+      const rollups = stripRepeated(ROLLUP_RE);
+      conflictFrom('.rollup', rollups);
+      if (rollups.length) {
+        const m = rollups[rollups.length - 1];
+        rollup = { size: m[1] ? parseInt(m[1], 10) : 1, unit: m[2] || '', raw: m[1] + m[2] };
       }
-      const byMatch = BY_RE.exec(text);
-      if (byMatch) {
-        groupBy = byMatch[1].split(',').map((d) => d.trim()).filter(Boolean);
-        text = text.slice(0, byMatch.index).trim();
+      const bys = stripRepeated(BY_RE);
+      conflictFrom('by', bys);
+      if (bys.length) {
+        groupBy = bys[bys.length - 1][1].split(',').map((d) => d.trim()).filter(Boolean);
       }
     }
   } else {
     // Analytics queries strip `in <unit>`, `.rollup(<period>)`, `by {<dims>}`
-    const unitMatch = DISPLAY_UNIT_RE.exec(text);
-    if (unitMatch) {
-      displayUnit = unitMatch[1];
-      text = text.slice(0, unitMatch.index).trim();
+    const units = stripRepeated(DISPLAY_UNIT_RE);
+    conflictFrom('display-unit', units);
+    if (units.length) displayUnit = units[units.length - 1][1];
+
+    const rollups = stripRepeated(ROLLUP_RE);
+    conflictFrom('.rollup', rollups);
+    if (rollups.length) {
+      const m = rollups[rollups.length - 1];
+      rollup = { size: m[1] ? parseInt(m[1], 10) : 1, unit: m[2] || '', raw: m[1] + m[2] };
     }
 
-    const rollupMatch = ROLLUP_RE.exec(text);
-    if (rollupMatch) {
-      const rawRollup = rollupMatch[1] + rollupMatch[2];
-      const size = rollupMatch[1] ? parseInt(rollupMatch[1], 10) : 1;
-      const unit = rollupMatch[2] || '';
-      rollup = { size, unit, raw: rawRollup };
-      text = text.slice(0, rollupMatch.index).trim();
-    }
-
-    const byMatch = BY_RE.exec(text);
-    if (byMatch) {
-      groupBy = byMatch[1]
+    const bys = stripRepeated(BY_RE);
+    conflictFrom('by', bys);
+    if (bys.length) {
+      groupBy = bys[bys.length - 1][1]
         .split(',')
         .map((d) => d.trim())
         .filter(Boolean);
-      text = text.slice(0, byMatch.index).trim();
     }
   }
 
@@ -154,6 +170,7 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
     groupBy,
     last,
     scope,
+    conflicts: conflicts.length ? conflicts : undefined,
     primaryText: text,
   };
 }

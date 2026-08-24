@@ -321,3 +321,28 @@ describe('grain:rollup retirement (ticket 003)', () => {
     expect(_parseQuery('rows:{result:x,grain:rollup}').error).toContain('.rollup suffix');
   });
 });
+
+describe('suffix conflicts surface as parse errors (C3)', () => {
+  it('analytics: duplicate by clauses error naming both spans', () => {
+    const parsed = _parseQuery('sum:tis{} by {week} by {effort}');
+    expect(parsed.error).toContain("Duplicate 'by' clause");
+    expect(parsed.error).toContain('by {week}');
+    expect(parsed.error).toContain('by {effort}');
+  });
+
+  it('rows: duplicate window clauses error before rows-specific checks', () => {
+    const parsed = _parseQuery('rows:{note:a} last 4w last 8w');
+    expect(parsed.error).toContain("'last 4w' conflicts with 'last 8w'");
+  });
+
+  it('find: duplicate scope clauses error', () => {
+    const parsed = _parseQuery('find:note{tags:pr} in journal in feeds');
+    expect(parsed.error).toContain("'in journal' conflicts with 'in feeds'");
+  });
+
+  it('valid queries stay error-free across all families', () => {
+    expect(_parseQuery('sum:tis{} by {week}.rollup(1w) in kg').error).toBeUndefined();
+    expect(_parseQuery('find:note{tags:pr} in journal last 8w').error).toBeUndefined();
+    expect(_parseQuery('rows:{result:x} last 4w').error).toBeUndefined();
+  });
+});

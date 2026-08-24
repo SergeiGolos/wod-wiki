@@ -4,6 +4,7 @@ import {
   WqlComposer,
   ComposerRegistry,
   clausesToWql,
+  wqlToClauses,
   defaultClauses,
   defaultMetricsClauses,
   diagnoseClauses,
@@ -47,5 +48,9 @@ describe('WqlComposer and diagnostics suite', () => {
     render(<WqlComposer initialClauses={defaultClauses()} showDiagnostics />);
     expect(screen.getByTestId('wql-composer')).toBeDefined();
     expect(screen.getByTestId('wql-diagnostics-strip')).toBeDefined();
+  });
+
+  it('rejects duplicate-suffix queries instead of truncating (C3)', () => {
+    expect(wqlToClauses('find:note{tags:pr} in journal in feeds')).toBeNull();
   });
 });

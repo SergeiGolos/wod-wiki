@@ -408,6 +408,9 @@ function restoreFilters(rest: string): QueryClause[] | null {
  */
 export function wqlToClauses(wql: string): QueryClause[] | null {
   const suffixes = parseWqlSuffixes(wql.trim());
+  // Duplicate-suffix strings are not composer products (C3) — reject rather
+  // than round-trip a silently truncated query.
+  if (suffixes.conflicts?.length) return null;
   const { where, displayUnit, groupBy, rollup, last, scope, primaryText } = suffixes;
 
   // Rows plane (#949): rows[:<outputType>]{<filters>} [last <n><unit>] —

@@ -218,6 +218,10 @@ function parseRowsQuery(raw: string): ParsedRowsQuery {
     filters: [],
     last: last ? { size: last.size, unit: last.unit } : undefined,
   };
+  if (suffixes.conflicts?.length) {
+    result.error = suffixes.conflicts.join('; ');
+    return result;
+  }
   if (whereText || groupBy || rollup) {
     result.error = `Rows queries return raw statements — no where / by / rollup. Got "${primaryText.trim()}"`;
     return result;
@@ -320,6 +324,10 @@ function parseAnalyticsQuery(raw: string): ParsedQuery {
     displayUnit,
     rollup: rollup ? { size: rollup.size, unit: rollup.unit as 'd' | 'w' } : undefined,
   };
+  if (suffixes.conflicts?.length) {
+    base.error = suffixes.conflicts.join('; ');
+    return base;
+  }
 
   // Validate rollup unit if a rollup suffix was present
   if (rollup && rollup.unit !== 'd' && rollup.unit !== 'w') {
@@ -393,6 +401,10 @@ function parseFindQuery(raw: string): ParsedFindQuery {
     scope,
     last: last ? { size: last.size, unit: last.unit } : undefined,
   };
+  if (suffixes.conflicts?.length) {
+    result.error = suffixes.conflicts.join('; ');
+    return result;
+  }
   // Parse structural part: find:target{filters}
   const tree = wqlParser.parse(text);
   let syntaxError = false;
