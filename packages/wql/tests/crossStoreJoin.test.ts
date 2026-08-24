@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { QueryService } from '../src/QueryService';
+import { QueryService, type UnifiedEventStore } from '../src/QueryService';
+import { toSummaryEventRows } from '../src/derivation';
 import { parseQuery, type ParsedFindQuery, type ParsedQuery } from '../src/wql';
-import type { BlockIndexRow, Note, WorkoutResult, StoredOutputStatement } from '@bitcobblers/wod-wiki-core';
+import type { BlockIndexRow, Note, StoredOutputStatement, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
 
 const TS = 1_700_000_000_000;
 
@@ -16,22 +17,22 @@ function summaryLog(projection: string, value: number, unit: string, ts = TS): S
   };
 }
 
+/** What finalize wrote for one result: summary rows derived from its logs. */
 function makeResult(
   id: string,
   noteId: string,
   blockContentId: string,
   volume: number,
   ts = TS,
-): WorkoutResult {
-  return {
-    id,
+): UnifiedEventRecord[] {
+  return toSummaryEventRows([summaryLog('Total Volume', volume, 'lb', ts)], {
     noteId,
+    resultId: id,
     segmentId: `${blockContentId}-seg`,
     segmentVersion: 1,
     blockContentId,
-    data: { startTime: ts, endTime: ts, duration: 0, completed: true, logs: [summaryLog('Total Volume', volume, 'lb', ts)] },
-    createdAt: ts,
-  };
+    workoutTimestamp: ts,
+  });
 }
 
 function makeNote(id: string, title: string): Note {
@@ -61,24 +62,35 @@ const BLOCKS: BlockIndexRow[] = [
   makeBlock('noteB', 'bc-cindy', 'Cindy'),
 ];
 
-const RESULTS: Record<string, WorkoutResult[]> = {
-  'bc-fran': [makeResult('r1', 'noteA', 'bc-fran', 3000), makeResult('r2', 'noteA', 'bc-fran', 3000)],
-  'bc-cindy': [makeResult('r3', 'noteB', 'bc-cindy', 2000)],
+const SUMMARY_ROWS: Record<string, UnifiedEventRecord[]> = {
+  'bc-fran': [...makeResult('r1', 'noteA', 'bc-fran', 3000), ...makeResult('r2', 'noteA', 'bc-fran', 3000)],
+  'bc-cindy': makeResult('r3', 'noteB', 'bc-cindy', 2000),
 };
 
 const TAG_TO_NOTES: Record<string, Set<string>> = {
   competition: new Set(['noteA']),
 };
 
+const eventStore: UnifiedEventStore = {
+  getEventsByTimeRange: async () => [],
+  getEventsByResult: async () => [],
+  getEventsForNote: async () => [],
+  getEventsByContent: async (blockContentId) => SUMMARY_ROWS[blockContentId] ?? [],
+  scanAll: async () => Object.values(SUMMARY_ROWS).flat(),
+  appendEvents: async () => {},
+  finalizeSummaries: async () => {},
+  deleteEvents: async () => {},
+};
+
 function makeService() {
   return new QueryService(
-    { getFactsByMetric: async () => [], getFactsByTimeRange: async () => [], getNoteTagLabels: async () => [] },
+    eventStore,
     {
       getAllNotes: async () => NOTES,
       getNoteIdsForTag: async (label: string) => TAG_TO_NOTES[label] ?? new Set<string>(),
+      getNoteTagLabels: async () => [],
     },
     { getAllBlocks: async () => BLOCKS },
-    { getResultsByContentId: async (cid: string) => RESULTS[cid] ?? [], getResultById: async () => undefined, getResultsForNote: async () => [] },
   );
 }
 

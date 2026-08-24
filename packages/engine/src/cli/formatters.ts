@@ -182,20 +182,17 @@ export function formatQueryOutput(
   if (kind === 'rows-result') {
     const data = ir.data as RowsQueryResult;
     if (format === 'csv') {
-      const header = 'resultId,started,ended,duration,completed,outputType,statementId,metrics';
+      const header = 'resultId,timestamp,outputType,eventId,metrics';
       const rows: string[] = [];
       for (const run of data.runs) {
-        for (const log of run.logs) {
+        for (const event of run.events) {
           rows.push(
             [
-              run.result.id,
-              run.result.createdAt,
-              run.result.createdAt + (run.result.data.duration ?? 0),
-              run.result.data.duration ?? 0,
-              run.result.data.completed ? 'true' : 'false',
-              log.outputType ?? 'segment',
-              log.id ?? 0,
-              escapeCsvField(log.metrics.map(formatMetric).join('; ')),
+              run.resultId,
+              run.timestamp,
+              event.outputType,
+              event.id,
+              escapeCsvField(event.metrics.map(formatMetric).join('; ')),
             ].join(','),
           );
         }
@@ -209,16 +206,15 @@ export function formatQueryOutput(
     if (data.error) lines.push(`Error: ${data.error}`);
     lines.push('─'.repeat(80));
     lines.push(
-      ['Result ID'.padEnd(20), 'Date'.padEnd(24), 'Duration'.padEnd(12), 'Logs'].join(' | '),
+      ['Result ID'.padEnd(20), 'Date'.padEnd(24), 'Events'].join(' | '),
     );
     lines.push('─'.repeat(80));
     for (const run of data.runs) {
       lines.push(
         [
-          run.result.id.padEnd(20),
-          formatDate(run.result.createdAt).padEnd(24),
-          `${run.result.data.duration ?? 0}ms`.padEnd(12),
-          String(run.logs.length),
+          run.resultId.padEnd(20),
+          formatDate(run.timestamp).padEnd(24),
+          String(run.events.length),
         ].join(' | '),
       );
     }

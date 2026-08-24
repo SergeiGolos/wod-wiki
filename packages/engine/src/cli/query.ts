@@ -19,12 +19,12 @@ import {
   type QueryResult,
   type RowsQueryResult,
   type FindQueryResult,
-  type FactQueryStore,
   type NoteQueryStore,
   type BlockQueryStore,
-  type ResultLogStore,
   type EffortQueryStore,
 } from '@bitcobblers/wod-wiki-wql';
+import { factRowsToEventRows, inMemoryEventStore } from '../store';
+import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
 import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult } from '@bitcobblers/wod-wiki-core';
 import type { WorkoutResults } from '@bitcobblers/wod-wiki-core';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
@@ -100,13 +100,27 @@ function extractPayload(rawJson: string): unknown {
 }
 
 function buildStoresFromData(data: LoadedData) {
-  const factStore: FactQueryStore = {
-    getFactsByMetric: async (key: string) =>
-      data.facts.filter((f) => f.metricKey === key || f.type === key),
-    getFactsByTimeRange: async (start: number, end: number) =>
-      data.facts.filter((f) => f.timestamp >= start && f.timestamp <= end),
-    getNoteTagLabels: async (noteId: string) => [...(data.noteTags[noteId] ?? [])],
-  };
+  // One event stream: legacy fact fixtures wrapped as summary rows, plus
+  // results-derived event + summary rows (the write path's own derivation).
+  const identity = (r: (typeof data.results)[number]) => ({
+    noteId: r.noteId,
+    resultId: r.id,
+    segmentId: r.segmentId,
+    segmentVersion: r.segmentVersion,
+    blockContentId: r.blockContentId,
+    origin: r.origin,
+    pageId: r.pageId,
+    workoutTimestamp: r.createdAt,
+  });
+  const events = [
+    ...factRowsToEventRows(data.facts),
+    ...data.results.flatMap((r) => {
+      const logs = r.data.logs ?? [];
+      return [...toEventRows(logs, identity(r)), ...toSummaryEventRows(logs, identity(r))];
+    }),
+  ];
+
+  const eventStore = inMemoryEventStore(events);
 
   const noteStore: NoteQueryStore = {
     getAllNotes: async () => [...data.notes],
@@ -117,26 +131,18 @@ function buildStoresFromData(data: LoadedData) {
       }
       return matching;
     },
+    getNoteTagLabels: async (noteId: string) => [...(data.noteTags[noteId] ?? [])],
   };
 
   const blockStore: BlockQueryStore = {
     getAllBlocks: async () => [...data.blocks],
   };
 
-  const resultStore: ResultLogStore = {
-    getResultsByContentId: async (contentId: string) =>
-      data.results.filter((r) => r.blockContentId === contentId),
-    getResultById: async (resultId: string) =>
-      data.results.find((r) => r.id === resultId),
-    getResultsForNote: async (noteId: string) =>
-      data.results.filter((r) => r.noteId === noteId),
-  };
-
   const effortStore: EffortQueryStore = {
     getAllEfforts: async () => [...data.efforts] as any,
   };
 
-  return { factStore, noteStore, blockStore, resultStore, effortStore };
+  return { eventStore, noteStore, blockStore, effortStore };
 }
 
 export function loadQueryData(options: QueryCliOptions): LoadedData {
@@ -237,13 +243,11 @@ export async function runQueryCli(
     throw new WqlSyntaxError(wqlString, parsed.error);
   }
 
-  const data = loadQueryData(options);
-  const stores = buildStoresFromData(data);
+  const stores = buildStoresFromData(loadQueryData(options));
   const service = new QueryService(
-    stores.factStore,
+    stores.eventStore,
     stores.noteStore,
     stores.blockStore,
-    stores.resultStore,
     stores.effortStore,
   );
 

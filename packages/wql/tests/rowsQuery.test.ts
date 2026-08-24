@@ -1,47 +1,43 @@
 import { describe, expect, it } from 'vitest';
-import type { WorkoutResult, StoredOutputStatement } from '@bitcobblers/wod-wiki-core';
+import type { StoredOutputStatement, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
 import { parseQuery, isRowsQuery } from '../src/wql';
-import { QueryService, type FactQueryStore, type NoteQueryStore, type BlockQueryStore, type EffortQueryStore, type ResultLogStore } from '../src/QueryService';
+import { toEventRows } from '../src/derivation';
+import { QueryService, type UnifiedEventStore } from '../src/QueryService';
 
 const DAY = 86_400_000;
 const day0 = Math.floor(1_700_000_000_000 / DAY) * DAY;
 
 let logSeq = 0;
-function log(outputType: string): StoredOutputStatement {
+function log(outputType: NonNullable<StoredOutputStatement['outputType']>): StoredOutputStatement {
   logSeq += 1;
-  return { id: logSeq, outputType: outputType as any, timeSpan: { started: day0, ended: day0 + 1000 }, metrics: [] };
+  return { id: logSeq, outputType, timeSpan: { started: day0, ended: day0 + 1000 }, metrics: [] };
 }
 
-function makeResult(id: string, noteId: string, blockContentId: string, endTime: number, logs = [log('segment'), log('segment'), log('milestone')]): WorkoutResult {
-  return {
-    id,
-    noteId,
-    blockContentId,
-    data: { startTime: endTime - 60_000, endTime, duration: 60_000, logs, completed: true },
-    createdAt: endTime,
-  };
+/** The event rows a streaming write path appended for one result. */
+function makeResult(id: string, noteId: string, blockContentId: string, endTime: number, logs = [log('segment'), log('segment'), log('milestone')]): UnifiedEventRecord[] {
+  return toEventRows(logs, { noteId, resultId: id, blockContentId, workoutTimestamp: endTime });
 }
 
 const RA = makeResult('rA', 'n1', 'bc-1', day0);
 const RB = makeResult('rB', 'n1', 'bc-1', day0 - 7 * DAY);
 const RC = makeResult('rC', 'n2', 'bc-2', day0 - 14 * DAY);
-const RESULTS = [RA, RB, RC];
+const EVENT_ROWS = [...RA, ...RB, ...RC];
 
 function makeService(resultCalls: string[] = []) {
-  const factStore: FactQueryStore = {
-    getFactsByMetric: async () => { throw new Error('facts must never be read on the rows path'); },
-    getFactsByTimeRange: async () => { throw new Error('facts must never be read on the rows path'); },
-    getNoteTagLabels: async () => [],
+  const eventStore: UnifiedEventStore = {
+    getEventsByTimeRange: async () => { throw new Error('time range must never be read on the rows path'); },
+    getEventsByResult: async (id) => { resultCalls.push(`by-id:${id}`); return EVENT_ROWS.filter((r) => r.resultId === id); },
+    getEventsForNote: async (noteId) => { resultCalls.push(`by-note:${noteId}`); return EVENT_ROWS.filter((r) => r.noteId === noteId); },
+    getEventsByContent: async (bc) => { resultCalls.push(`by-content:${bc}`); return EVENT_ROWS.filter((r) => r.blockContentId === bc); },
+    scanAll: async () => { throw new Error('scan must never be read on the rows path'); },
+    appendEvents: async () => {},
+    finalizeSummaries: async () => {},
+    deleteEvents: async () => {},
   };
-  const noteStore: NoteQueryStore = { getAllNotes: async () => [], getNoteIdsForTag: async () => new Set() };
-  const blockStore: BlockQueryStore = { getAllBlocks: async () => [] };
-  const effortStore: EffortQueryStore = { getAllEfforts: async () => [] };
-  const resultStore: ResultLogStore = {
-    getResultById: async (id) => { resultCalls.push(`by-id:${id}`); return RESULTS.find((r) => r.id === id); },
-    getResultsByContentId: async (bc) => { resultCalls.push(`by-content:${bc}`); return RESULTS.filter((r) => r.blockContentId === bc); },
-    getResultsForNote: async (noteId) => { resultCalls.push(`by-note:${noteId}`); return RESULTS.filter((r) => r.noteId === noteId); },
-  };
-  return new QueryService(factStore, noteStore, blockStore, resultStore, effortStore);
+  const noteStore = { getAllNotes: async () => [], getNoteIdsForTag: async () => new Set<string>(), getNoteTagLabels: async () => [] };
+  const blockStore = { getAllBlocks: async () => [] };
+  const effortStore = { getAllEfforts: async () => [] };
+  return new QueryService(eventStore, noteStore, blockStore, effortStore);
 }
 
 function rows(raw: string) {
@@ -87,30 +83,30 @@ describe('QueryService.runRows', () => {
   it('result scope returns the single session with all statement types', async () => {
     const res = await makeService().runRows(rows('rows:{result:rA}'));
     expect(res.error).toBeUndefined();
-    expect(res.runs.map((r) => r.result.id)).toEqual(['rA']);
-    expect(res.runs[0]!.logs.map((l) => l.outputType)).toEqual(['segment', 'segment', 'milestone']);
+    expect(res.runs.map((r) => r.resultId)).toEqual(['rA']);
+    expect(res.runs[0]!.events.map((e) => e.outputType)).toEqual(['segment', 'segment', 'milestone']);
   });
 
   it('block scope unions all versions, newest first', async () => {
     const res = await makeService().runRows(rows('rows:{block:bc-1}'));
-    expect(res.runs.map((r) => r.result.id)).toEqual(['rA', 'rB']);
+    expect(res.runs.map((r) => r.resultId)).toEqual(['rA', 'rB']);
   });
 
   it('note scope returns every run in the note', async () => {
     const res = await makeService().runRows(rows('rows:{note:n1}'));
-    expect(res.runs.map((r) => r.result.id)).toEqual(['rA', 'rB']);
+    expect(res.runs.map((r) => r.resultId)).toEqual(['rA', 'rB']);
   });
 
   it('scopes OR within a key and union across keys, deduped by result id', async () => {
     const res = await makeService().runRows(rows('rows:{result:rA|rC, block:bc-1}'));
-    expect(res.runs.map((r) => r.result.id)).toEqual(['rA', 'rB', 'rC']);
+    expect(res.runs.map((r) => r.resultId)).toEqual(['rA', 'rB', 'rC']);
   });
 
   it('output-type narrowing filters statements, not runs', async () => {
     const res = await makeService().runRows(rows('rows:segment{result:rA}'));
-    expect(res.runs[0]!.logs.map((l) => l.outputType)).toEqual(['segment', 'segment']);
+    expect(res.runs[0]!.events.map((e) => e.outputType)).toEqual(['segment', 'segment']);
     const milestoneOnly = await makeService().runRows(rows('rows:milestone{result:rA}'));
-    expect(milestoneOnly.runs[0]!.logs).toHaveLength(1);
+    expect(milestoneOnly.runs[0]!.events).toHaveLength(1);
   });
 
   it('drops runs whose narrowing leaves no statements', async () => {
@@ -118,9 +114,9 @@ describe('QueryService.runRows', () => {
     expect(res.runs).toEqual([]);
   });
 
-  it('last window filters by workout end time', async () => {
+  it('last window filters by canonical workout time', async () => {
     const res = await makeService().runRows(rows('rows:{block:bc-1} last 6d'), { anchorNow: day0 });
-    expect(res.runs.map((r) => r.result.id)).toEqual(['rA']);
+    expect(res.runs.map((r) => r.resultId)).toEqual(['rA']);
   });
 
   it('rejects unsupported filters loudly (wrong key, negation, wildcard)', async () => {

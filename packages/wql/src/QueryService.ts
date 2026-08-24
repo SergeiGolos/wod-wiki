@@ -16,7 +16,7 @@
  * Fully inverted dependencies: zero IndexedDB/storage module-level imports.
  */
 
-import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult, StoredOutputStatement } from '@bitcobblers/wod-wiki-core';
+import type { AnalyticsDataPoint, Note, BlockIndexRow, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
 import {
   parseQuery,
   isFindQuery,
@@ -33,22 +33,20 @@ import {
   type TagFilter,
 } from './wql';
 import { convert, resolveDisplayUnit } from './units';
-import { normalizeSummaryFacts } from './derivation';
+import { projectEventToFacts } from './derivation';
 import type {
-  FactQueryStore,
+  UnifiedEventStore,
   NoteQueryStore,
   BlockQueryStore,
-  ResultLogStore,
   EffortQueryStore,
   IEffort,
   QueryServiceStores,
 } from './stores';
 
 export type {
-  FactQueryStore,
+  UnifiedEventStore,
   NoteQueryStore,
   BlockQueryStore,
-  ResultLogStore,
   EffortQueryStore,
   IEffort,
   QueryServiceStores,
@@ -134,25 +132,25 @@ function windowAnchor<T extends { createdAt: number }>(
   return undefined;
 }
 
-const defaultFactStore: FactQueryStore = {
-  getFactsByMetric: async () => [],
-  getFactsByTimeRange: async () => [],
-  getNoteTagLabels: async () => [],
+const defaultEventStore: UnifiedEventStore = {
+  getEventsByTimeRange: async () => [],
+  getEventsByResult: async () => [],
+  getEventsForNote: async () => [],
+  getEventsByContent: async () => [],
+  scanAll: async () => [],
+  appendEvents: async () => {},
+  finalizeSummaries: async () => {},
+  deleteEvents: async () => {},
 };
 
 const defaultNoteStore: NoteQueryStore = {
   getAllNotes: async () => [],
   getNoteIdsForTag: async () => new Set<string>(),
+  getNoteTagLabels: async () => [],
 };
 
 const defaultBlockStore: BlockQueryStore = {
   getAllBlocks: async () => [],
-};
-
-const defaultResultStore: ResultLogStore = {
-  getResultsByContentId: async () => [],
-  getResultById: async () => undefined,
-  getResultsForNote: async () => [],
 };
 
 const defaultEffortStore: EffortQueryStore = {
@@ -199,11 +197,14 @@ export interface QueryResult {
   unit?: string;
 }
 
-/** One run in a rows result: the stored result plus the output statements
- *  that survived the optional output-type narrowing (`rows:segment{…}`). */
+/** One run in a rows result: the canonical result identity plus the event
+ *  rows that survived the optional output-type narrowing (`rows:segment{…}`). */
 export interface RowsRun {
-  result: WorkoutResult;
-  logs: StoredOutputStatement[];
+  resultId: string;
+  noteId: string;
+  /** Canonical workout time (result.createdAt under the unified model). */
+  timestamp: number;
+  events: UnifiedEventRecord[];
 }
 
 export interface RowsQueryResult {
@@ -309,55 +310,52 @@ function compareOp(value: number, op: ComparisonOp, threshold: number): boolean 
 }
 
 export class QueryService {
-  private readonly store: FactQueryStore;
+  private readonly store: UnifiedEventStore;
   private readonly noteStore: NoteQueryStore;
   private readonly blockStore: BlockQueryStore;
-  private readonly resultStore: ResultLogStore;
   private readonly effortStore: EffortQueryStore;
   private readonly staticNoteStore?: NoteQueryStore;
   private readonly staticBlockStore?: BlockQueryStore;
 
   constructor(
-    storesOrFactStore?: QueryServiceStores | FactQueryStore,
+    storesOrEventStore?: QueryServiceStores | UnifiedEventStore,
     noteStore?: NoteQueryStore,
     blockStore?: BlockQueryStore,
-    resultStore?: ResultLogStore,
     effortStore?: EffortQueryStore,
     staticNoteStore?: NoteQueryStore,
     staticBlockStore?: BlockQueryStore,
   ) {
     if (
-      storesOrFactStore &&
-      typeof storesOrFactStore === 'object' &&
-      ('factStore' in storesOrFactStore ||
-        'noteStore' in storesOrFactStore ||
-        'blockStore' in storesOrFactStore ||
-        'resultStore' in storesOrFactStore ||
-        'effortStore' in storesOrFactStore ||
-        'staticNoteStore' in storesOrFactStore ||
-        'staticBlockStore' in storesOrFactStore)
+      storesOrEventStore &&
+      typeof storesOrEventStore === 'object' &&
+      ('eventStore' in storesOrEventStore ||
+        'noteStore' in storesOrEventStore ||
+        'blockStore' in storesOrEventStore ||
+        'effortStore' in storesOrEventStore ||
+        'staticNoteStore' in storesOrEventStore ||
+        'staticBlockStore' in storesOrEventStore)
     ) {
-      const stores = storesOrFactStore as QueryServiceStores;
-      this.store = stores.factStore ?? defaultFactStore;
+      const stores = storesOrEventStore as QueryServiceStores;
+      this.store = stores.eventStore ?? defaultEventStore;
       this.noteStore = stores.noteStore ?? defaultNoteStore;
       this.blockStore = stores.blockStore ?? defaultBlockStore;
-      this.resultStore = stores.resultStore ?? defaultResultStore;
       this.effortStore = stores.effortStore ?? defaultEffortStore;
       this.staticNoteStore = stores.staticNoteStore;
       this.staticBlockStore = stores.staticBlockStore;
     } else {
-      this.store = (storesOrFactStore as FactQueryStore | undefined) ?? defaultFactStore;
+      this.store = (storesOrEventStore as UnifiedEventStore | undefined) ?? defaultEventStore;
       this.noteStore = noteStore ?? defaultNoteStore;
       this.blockStore = blockStore ?? defaultBlockStore;
-      this.resultStore = resultStore ?? defaultResultStore;
       this.effortStore = effortStore ?? defaultEffortStore;
       this.staticNoteStore = staticNoteStore;
       this.staticBlockStore = staticBlockStore;
     }
   }
 
+  /** Windowed flat-fact fetch — the projected view over the event store. */
   async getFactsByTimeRange(start: number, end: number): Promise<AnalyticsDataPoint[]> {
-    return this.store.getFactsByTimeRange(start, end);
+    const rows = await this.store.getEventsByTimeRange(start, end);
+    return rows.flatMap(projectEventToFacts);
   }
 
   async runQuery(raw: string, options: QueryOptions = {}): Promise<QueryResult> {
@@ -379,8 +377,8 @@ export class QueryService {
 
   /**
    * Execute a rows query (rows:{…}, #949) — the session results table plane.
-   * Re-derives output statements from raw WorkoutResult logs through the
-   * ResultLogStore seam ("logs win" — facts are never read for this path).
+   * Reads event rows directly over the unified store (ticket 003): no
+   * WorkoutResult blob parsing; outputType narrowing hits the promoted column.
    */
   async runRows(parsed: ParsedRowsQuery, options: { anchorNow?: number } = {}): Promise<RowsQueryResult> {
     const empty: RowsQueryResult = { parsed, runs: [] };
@@ -405,34 +403,37 @@ export class QueryService {
       return { ...empty, error: 'Rows query needs a scope: result:, block:, or note:.' };
     }
 
-    const byId = new Map<string, WorkoutResult>();
-    for (const id of resultIds) {
-      const r = await this.resultStore.getResultById(id);
-      if (r) byId.set(r.id, r);
-    }
-    for (const blockContentId of blockIds) {
-      for (const r of await this.resultStore.getResultsByContentId(blockContentId)) byId.set(r.id, r);
-    }
-    for (const noteId of noteIds) {
-      for (const r of await this.resultStore.getResultsForNote(noteId)) byId.set(r.id, r);
-    }
+    // Scope → event rows, grouped per result (insertion order = first seen).
+    const byResult = new Map<string, UnifiedEventRecord[]>();
+    const collect = (rows: UnifiedEventRecord[]) => {
+      for (const row of rows) {
+        const bucket = byResult.get(row.resultId);
+        if (bucket) bucket.push(row);
+        else byResult.set(row.resultId, [row]);
+      }
+    };
+    for (const id of resultIds) collect(await this.store.getEventsByResult(id));
+    for (const blockContentId of blockIds) collect(await this.store.getEventsByContent(blockContentId));
+    for (const noteId of noteIds) collect(await this.store.getEventsForNote(noteId));
 
-    let results = [...byId.values()].filter((r) => r.data?.logs?.length);
+    let groups = [...byResult.entries()].filter(([, rows]) => rows.length > 0);
     if (parsed.last) {
-      results = results.filter((r) =>
-        effectiveTimeWindow(r.data.endTime ?? r.createdAt ?? 0, parsed.last, undefined, options.anchorNow),
+      groups = groups.filter(([, rows]) =>
+        effectiveTimeWindow(rows[0].timestamp, parsed.last, undefined, options.anchorNow),
       );
     }
-    results.sort((a, b) => (b.data.endTime ?? b.createdAt) - (a.data.endTime ?? a.createdAt));
+    groups.sort((a, b) => b[1][0].timestamp - a[1][0].timestamp);
 
-    const runs = results
-      .map((result) => ({
-        result,
-        logs: parsed.outputType
-          ? result.data.logs!.filter((l) => l.outputType === parsed.outputType)
-          : result.data.logs!,
+    const runs = groups
+      .map(([resultId, rows]) => ({
+        resultId,
+        noteId: rows[0].noteId,
+        timestamp: rows[0].timestamp,
+        events: parsed.outputType
+          ? rows.filter((row) => row.outputType === parsed.outputType)
+          : rows,
       }))
-      .filter((run) => run.logs.length > 0);
+      .filter((run) => run.events.length > 0);
     return { parsed, runs };
   }
 
@@ -657,19 +658,23 @@ export class QueryService {
     };
     if (parsed.error) return empty;
 
-    // Cross-store join (direction 2): bypass the analytics store and re-derive
-    // from raw WorkoutResult logs. Logs win (#800).
+    // Cross-store join: reads stored summary rows over the content index —
+    // the store is authoritative (finalize-owns, ticket 005).
     if (parsed.join) return this.runJoined(parsed, options);
 
-    // Stage 1: SELECT — index-first.
-    const byMetric = await this.store.getFactsByMetric(parsed.metric);
-    let candidates = byMetric;
-    if (options.rangeStart !== undefined || options.rangeEnd !== undefined) {
-      const start = options.rangeStart ?? 0;
-      const end = options.rangeEnd ?? Number.MAX_SAFE_INTEGER;
-      const inRange = new Set((await this.store.getFactsByTimeRange(start, end)).map(row => row.id));
-      candidates = candidates.filter(row => inRange.has(row.id));
-    }
+    // Stage 1: SELECT — window-first hybrid (ticket 003): a time window
+    // (the dashboard default) fetches through by-timestamp, the one proven
+    // culling index; all-time queries scan. by-metric is never used —
+    // ticket 001 measured it non-selective and slower than scanning.
+    const windowed = options.rangeStart !== undefined || options.rangeEnd !== undefined;
+    const start = options.rangeStart ?? 0;
+    const end = options.rangeEnd ?? Number.MAX_SAFE_INTEGER;
+    const eventRows = windowed
+      ? await this.store.getEventsByTimeRange(start, end)
+      : await this.store.scanAll();
+    let candidates = eventRows
+      .flatMap(projectEventToFacts)
+      .filter(row => row.metricKey === parsed.metric);
 
     const touchesTags =
       parsed.filters.some(f => f.key === 'tags') || parsed.groupBy.includes('tags');
@@ -859,32 +864,21 @@ export class QueryService {
       : matched;
   }
 
-  /** Re-derive summary facts for one Canonical Metric Key from RAW WorkoutResult
-   *  logs across the given content ids — the cross-store join source. One fact
-   *  row per result (normalizeSummaryFacts dedupes within a result). */
+  /** Summary facts for one Canonical Metric Key across the given content ids —
+   *  the cross-store join source. Reads finalize-written summary rows straight
+   *  off the content index (ticket 003: the store is authoritative; the old
+   *  freshness re-derivation is moot). One fact row per result × rowKey. */
   private async deriveMetricFacts(
     contentIds: Iterable<string>,
     metricKey: string,
   ): Promise<AnalyticsDataPoint[]> {
-    const out: AnalyticsDataPoint[] = [];
     const ids = [...new Set(contentIds)];
-    await Promise.all(ids.map(async (blockContentId) => {
-      const results = await this.resultStore.getResultsByContentId(blockContentId);
-      for (const result of results) {
-        const facts = normalizeSummaryFacts(result.data.logs ?? [], {
-          noteId: result.noteId,
-          resultId: result.id,
-          segmentId: result.segmentId,
-          segmentVersion: result.segmentVersion,
-          blockContentId,
-          origin: result.origin,
-          pageId: result.pageId,
-          workoutTimestamp: result.createdAt,
-        });
-        for (const f of facts) if (f.metricKey === metricKey) out.push(f);
-      }
-    }));
-    return out;
+    const rows = await Promise.all(ids.map((blockContentId) => this.store.getEventsByContent(blockContentId)));
+    return rows
+      .flat()
+      .filter((row) => row.grain === 'summary')
+      .flatMap(projectEventToFacts)
+      .filter((f) => f.metricKey === metricKey);
   }
 
   /** All content blocks across the journal + static corpus. */
@@ -925,7 +919,7 @@ export class QueryService {
     const noteTags = new Map<string, readonly string[]>();
     if (!touchesTags) return noteTags;
     const noteIds = [...new Set(rows.map(r => r.noteId))];
-    await Promise.all(noteIds.map(async (id) => noteTags.set(id, await this.store.getNoteTagLabels(id))));
+    await Promise.all(noteIds.map(async (id) => noteTags.set(id, await this.noteStore.getNoteTagLabels(id))));
     return noteTags;
   }
 }

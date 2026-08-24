@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { type StoredOutputStatement, type Segment, MetricType } from '@bitcobblers/wod-wiki-core';
+import { type Segment, type UnifiedEventRecord, MetricType } from '@bitcobblers/wod-wiki-core';
 import { parseQuery, isRowsQuery, type RowsQueryResult, type RowsRun } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { RowsTable } from '../widgets/RowsTable';
@@ -7,9 +7,9 @@ import { cn } from '../utils/cn';
 
 const RPE_SCALE = Array.from({ length: 10 }, (_, i) => i + 1);
 
-export function readSessionRpe(logs: StoredOutputStatement[] | undefined): number | undefined {
-  if (!logs) return undefined;
-  for (const statement of logs) {
+export function readSessionRpe(events: UnifiedEventRecord[] | undefined): number | undefined {
+  if (!events) return undefined;
+  for (const statement of events) {
     for (const metric of statement.metrics) {
       if (metric.type === MetricType.SessionRPE || (metric.type as string) === 'session_rpe') {
         if (typeof metric.value === 'number') return metric.value;
@@ -36,16 +36,16 @@ export interface RowsResultsChromeProps {
 
 function RpeChip({
   resultId,
-  logs,
+  events,
   readOnly,
   onCapture,
 }: {
   resultId: string;
-  logs: RowsRun['logs'];
+  events: RowsRun['events'];
   readOnly?: boolean;
   onCapture: (rpe: number) => Promise<void>;
 }) {
-  const value = readSessionRpe(logs);
+  const value = readSessionRpe(events);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -121,7 +121,7 @@ export function RowsResultsChrome({
   const [wideResult, setWideResult] = useState<RowsQueryResult | undefined>(undefined);
 
   const sessionRun = sessionResult.runs[0];
-  const blockContentId = sessionRun?.result.blockContentId;
+  const blockContentId = sessionRun?.events[0]?.blockContentId;
 
   const handleCapture = useCallback(
     async (rpe: number) => {
@@ -196,7 +196,7 @@ export function RowsResultsChrome({
         <div className="flex items-center gap-2">
           <RpeChip
             resultId={resultId}
-            logs={sessionRun?.logs}
+            events={sessionRun?.events}
             onCapture={handleCapture}
           />
         </div>
@@ -206,10 +206,10 @@ export function RowsResultsChrome({
         result={displayedResult}
         renderSegments={renderSegments}
         renderRunHeaderExtra={(run) =>
-          run.result.id === resultId ? (
-            <RpeChip resultId={resultId} logs={run.logs} onCapture={handleCapture} />
+          run.resultId === resultId ? (
+            <RpeChip resultId={resultId} events={run.events} onCapture={handleCapture} />
           ) : (
-            <RpeChip resultId={run.result.id} logs={run.logs} readOnly onCapture={handleCapture} />
+            <RpeChip resultId={run.resultId} events={run.events} readOnly onCapture={handleCapture} />
           )
         }
       />

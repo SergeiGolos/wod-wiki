@@ -305,3 +305,19 @@ describe('parseQuery — cross-store where joins', () => {
     expect(single.filters[0].values[0].value).toBe('pr');
   });
 });
+
+describe('grain:rollup retirement (ticket 003)', () => {
+  it('rejects grain:rollup with a pointer to the .rollup suffix', () => {
+    const parsed = _parseQuery('sum:totalVolume{grain:rollup}');
+    expect(parsed.error).toContain('.rollup suffix');
+  });
+
+  it('accepts the unified grain values', () => {
+    expect(_parseQuery('sum:totalVolume{grain:event}').error).toBeUndefined();
+    expect(_parseQuery('sum:totalVolume{grain:summary}').error).toBeUndefined();
+  });
+
+  it('retires grain:rollup on rows queries too', () => {
+    expect(_parseQuery('rows:{result:x,grain:rollup}').error).toContain('.rollup suffix');
+  });
+});

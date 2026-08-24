@@ -1,4 +1,4 @@
-import type { WorkoutResults } from './results';
+import type { StoredOutputStatement, WorkoutResults } from './results';
 
 // ---------------------------------------------------------------------------
 // Segment data types
@@ -115,6 +115,10 @@ export interface WorkoutResult {
   version?: number;
   origin?: ResultOrigin;
   pageId?: string;
+  /** Write-path lifecycle (ticket 005): row born 'in-progress' at workout
+   *  start, flipped to 'completed' at finalize. Absent = 'completed'
+   *  (legacy rows predate streaming). */
+  status?: 'in-progress' | 'completed';
   data: WorkoutResults;
   createdAt: number;
 }
@@ -146,7 +150,7 @@ export interface AnalyticsDataPoint {
   blockContentId?: string;
   origin?: ResultOrigin;
   pageId?: string;
-  grain?: 'segment' | 'summary' | 'rollup';
+  grain?: 'segment' | 'event' | 'summary' | 'rollup';
   effortSlug?: string;
   discipline?: string;
   intensityTier?: string;
@@ -165,3 +169,60 @@ export interface AnalyticsDataPoint {
   createdAt: number;
 }
 
+
+// ---------------------------------------------------------------------------
+// UnifiedEventRecord — THE single stored record for all workout data
+// (wayfinder ticket 002). Replaces AnalyticsDataPoint as the stored/query
+// shape; results.data.logs stay the archival source of truth (ticket 005).
+// ---------------------------------------------------------------------------
+
+/** Store-row kind: 'event' = raw statement row, 'summary' = folded row.
+ *  Authorship lives on `origin` (engine-authored summaries are finalize-owned;
+ *  user-authored summaries — wellness — are reconcile-owned). Ticket 005. */
+export type EventGrain = 'event' | 'summary';
+
+/** Known producer values for the open `outputType` vocabulary (ticket 002:
+ *  open string + known-values module; unknowns are stored and returned,
+ *  matched only by kind-agnostic logic). */
+export const KNOWN_OUTPUT_TYPES = [
+  'segment',
+  'system',
+  'load',
+  'event',
+  'compiler',
+  'completion',
+  'analytics',
+  'wellness',
+] as const;
+
+export interface UnifiedEventRecord {
+  /**
+   * Event rows:    `${resultId}:${seq}` — immutable, append-only.
+   * Summary rows:  `${resultId}:summary:${metricKey}[:k=v…]` — deterministic
+   *                content key; re-finalize overwrites cleanly (ticket 002).
+   * Wellness rows: `wellness:${noteId}:${key}` — reconcile-owned upserts.
+   */
+  id: string;
+  resultId: string;
+  noteId: string;
+  /** Content-stable cross-workout join key (promoted, ticket 003 amendment). */
+  blockContentId?: string;
+  pageId?: string;
+  origin?: ResultOrigin;
+  /** Canonical time — when the workout happened, never when derived. */
+  timestamp: number;
+  grain: EventGrain;
+  /** Open vocabulary — see KNOWN_OUTPUT_TYPES. */
+  outputType: string;
+  effortSlug?: string;
+  /** Typed metric array; EXACTLY ONE entry when grain:'summary'. Summary
+   *  fold identity (canonicalKey, groupTags, effort metadata) lives in
+   *  metrics[0].metadata — shape-uniform with events. */
+  metrics: StoredOutputStatement['metrics'];
+  timeSpan?: { started: number; ended?: number };
+  sourceBlockKey?: string;
+  stackLevel?: number;
+  completionReason?: string;
+  segmentId?: string;
+  segmentVersion?: number;
+}
