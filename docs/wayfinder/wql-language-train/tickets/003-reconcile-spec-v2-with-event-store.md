@@ -28,5 +28,9 @@ already did:
    compat advisory migrates dashboards) or keep it via placeholder-target
    normalization at parse entry — ticket 001 proved every grammar-level
    empty-target shape conflicts (`Word` ∩ `By` after colon).
+8. Engine time-dimension encoding inconsistency discovered by ticket 014:
+   the `day` dimension groups by a locale display string
+   (`toLocaleDateString`) while `week` uses a UTC ISO slice — decide and
+   document canonical encodings when C1 lands.
 
 Output: the v2 document plus newly graduated tickets/fog updates on this map.
