@@ -59,6 +59,10 @@ queries still parsing, docs updated.
   `family` on every parsed AST; guards read it; `ParsedQuery` renamed
   `ParsedAggregateQuery` (no alias) on engine main `da6c42a`+`172cc75`;
   core dist was stale on main — full rebuild needed before release.
+- [Find-target validation (C7)](tickets/005-find-target-validation-c7.md) —
+  closed enums at parse: find → note|block|effort, rows → content planes ∪
+  KNOWN_OUTPUT_TYPES; store stays open, text surface closed; composer
+  salvage rejects instead of rewriting unknown targets.
 
 ## Not yet specified
 
