@@ -318,7 +318,7 @@ describe('grain:rollup retirement (ticket 003)', () => {
   });
 
   it('retires grain:rollup on rows queries too', () => {
-    expect(_parseQuery('rows:{result:x,grain:rollup}').error).toContain('.rollup suffix');
+    expect(_parseQuery('rows:all{result:x,grain:rollup}').error).toContain('.rollup suffix');
   });
 });
 
@@ -343,7 +343,7 @@ describe('suffix conflicts surface as parse errors (C3)', () => {
   it('valid queries stay error-free across all families', () => {
     expect(_parseQuery('sum:tis{} by {week}.rollup(1w) in kg').error).toBeUndefined();
     expect(_parseQuery('find:note{tags:pr} in journal last 8w').error).toBeUndefined();
-    expect(_parseQuery('rows:{result:x} last 4w').error).toBeUndefined();
+    expect(_parseQuery('rows:all{result:x} last 4w').error).toBeUndefined();
   });
 });
 
@@ -401,11 +401,37 @@ describe('find/rows target validation (C7)', () => {
   });
 
   it('rows: result planes and content planes stay error-free', () => {
-    expect(_parseQuery('rows:segment{}').error).toBeUndefined();
-    expect(_parseQuery('rows:analytics{}').error).toBeUndefined();
-    expect(_parseQuery('rows:wellness{}').error).toBeUndefined();
-    expect(_parseQuery('rows:note{}').error).toBeUndefined();
-    expect(_parseQuery('rows:block{}').error).toBeUndefined();
-    expect(_parseQuery('rows:effort{}').error).toBeUndefined();
+    expect(_parseQuery('rows:segment{result:rA}').error).toBeUndefined();
+    expect(_parseQuery('rows:analytics{result:rA}').error).toBeUndefined();
+    expect(_parseQuery('rows:wellness{result:rA}').error).toBeUndefined();
+    expect(_parseQuery('rows:note{note:n1}').error).toBeUndefined();
+    expect(_parseQuery('rows:block{block:bc-1}').error).toBeUndefined();
+    expect(_parseQuery('rows:effort{result:rA}').error).toBeUndefined();
+  });
+});
+
+describe('rows-in-grammar cutover (C4)', () => {
+  it('bare rows head retires with a migrate-to-all error', () => {
+    const parsed = _parseQuery('rows:{note:n1}');
+    expect(parsed.family).toBe('rows');
+    expect(parsed.error).toContain('Bare "rows:" is retired');
+    expect(parsed.error).toContain('rows:all');
+  });
+
+  it('rows:all parses without outputType narrowing', () => {
+    const parsed = _parseQuery('rows:all{note:n1}');
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.outputType).toBeUndefined();
+  });
+
+  it('filter rules error at parse: unsupported keys, negation, wildcards', () => {
+    expect(_parseQuery('rows:all{tags:x}').error).toContain('Unsupported rows filter');
+    expect(_parseQuery('rows:segment{!result:rA}').error).toContain('Unsupported rows filter');
+    expect(_parseQuery('rows:all{block:bc-*}').error).toContain('Unsupported rows filter');
+  });
+
+  it('scope requirement errors at parse', () => {
+    expect(_parseQuery('rows:segment{}').error).toContain('needs a scope');
+    expect(_parseQuery('rows:all{}').error).toContain('needs a scope');
   });
 });

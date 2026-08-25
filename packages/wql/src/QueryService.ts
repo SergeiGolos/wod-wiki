@@ -57,6 +57,10 @@ export type {
 
 const DAY = 86_400_000;
 
+/** Rows content planes (C4): targets that scope by content ownership rather
+ *  than the outputType column — no statement narrowing for these. */
+const ROWS_CONTENT_PLANES: ReadonlySet<string> = new Set(['note', 'block', 'effort']);
+
 function localDateString(ts: number): string {
   return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
@@ -387,23 +391,16 @@ export class QueryService {
     const empty: RowsQueryResult = { parsed, runs: [] };
     if (parsed.error) return { ...empty, error: parsed.error };
 
-    const ROWS_SCOPE_KEYS = new Set(['result', 'block', 'note']);
-    const unsupported = parsed.filters.filter(
-      (f) => !ROWS_SCOPE_KEYS.has(f.key) || f.negate || f.values.some((v) => v.wildcard),
-    );
-    if (unsupported.length > 0) {
-      return {
-        ...empty,
-        error: `Unsupported rows filter(s): ${unsupported.map((f) => (f.negate ? '!' : '') + f.key).join(', ')}. Rows queries support exact result:, block:, note: values.`,
-      };
-    }
+    // Filter rules and the scope requirement are validated at parse (C4);
+    // runRows executes only. Hand-built ASTs bypass parse — treat them the
+    // same way: no scope filters means no rows.
     const scopeValues = (key: string) =>
       parsed.filters.filter((f) => f.key === key).flatMap((f) => f.values.map((v) => v.value));
     const resultIds = scopeValues('result');
     const blockIds = scopeValues('block');
     const noteIds = scopeValues('note');
     if (resultIds.length + blockIds.length + noteIds.length === 0) {
-      return { ...empty, error: 'Rows query needs a scope: result:, block:, or note:.' };
+      return { ...empty, runs: [] };
     }
 
     // Scope → event rows, grouped per result (insertion order = first seen).
@@ -432,7 +429,7 @@ export class QueryService {
         resultId,
         noteId: rows[0].noteId,
         timestamp: rows[0].timestamp,
-        events: parsed.outputType
+        events: parsed.outputType && !ROWS_CONTENT_PLANES.has(parsed.outputType)
           ? rows.filter((row) => row.outputType === parsed.outputType)
           : rows,
       }))

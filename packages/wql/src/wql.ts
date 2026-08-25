@@ -215,20 +215,39 @@ export function parseQuery(raw: string): AnyParsedQuery {
 // ── Rows query parsing (#949) ────────────────────────────────────
 
 function cannotParseRows(text: string): string {
-  return `Cannot parse "${text}". Expected rows:{result:…|block:…|note:…} or rows:segment{…} last 8w`;
+  return `Cannot parse "${text}". Expected rows:all{result:…|block:…|note:…}, rows:<plane>{…}, or rows:segment{…} last 8w`;
+}
+
+/** Rows-only filter rules (C4): exact `result:`/`block:`/`note:` keys, no
+ *  negation, no wildcards — validated at parse so `runRows` executes only. */
+function validateRowsFilters(filters: TagFilter[]): string | undefined {
+  const ROWS_SCOPE_KEYS = new Set(['result', 'block', 'note']);
+  const unsupported = filters.filter(
+    (f) => !ROWS_SCOPE_KEYS.has(f.key) || f.negate || f.values.some((v) => v.wildcard),
+  );
+  if (unsupported.length > 0) {
+    return `Unsupported rows filter(s): ${unsupported.map((f) => (f.negate ? '!' : '') + f.key).join(', ')}. Rows queries support exact result:, block:, note: values.`;
+  }
+  if (!filters.some((f) => ROWS_SCOPE_KEYS.has(f.key))) {
+    return 'Rows query needs a scope: result:, block:, or note:.';
+  }
+  return undefined;
 }
 
 /**
- * Parse a rows query. The head is JS-split (`rows` / `rows:<outputType>`);
- * the `{filters}` half reuses the shared Lezer filter grammar by wrapping it
- * in a synthetic find head — one filter syntax for all three families.
+ * Parse a rows query (#949, C4 cutover). The whole primary text parses under
+ * the shared Lezer grammar — the `Word colon Word` head fits `rows:<target>`
+ * natively (ticket 001), so the synthetic `find:_` head is gone. The bare
+ * `rows:{…}` alias is retired (spec v2 decision 1): a head without a target
+ * errors with a migrate-to-`all` message; C2's normalizer rewrites stored
+ * documents. `all` normalizes to no outputType narrowing.
  */
 function parseRowsQuery(raw: string): ParsedRowsQuery {
   const suffixes = parseWqlSuffixes(raw);
   const { where: whereText, last, groupBy, rollup, primaryText } = suffixes;
   const result: ParsedRowsQuery = {
-    raw,
     family: 'rows',
+    raw,
     filters: [],
     last: last ? { size: last.size, unit: last.unit } : undefined,
   };
@@ -242,48 +261,52 @@ function parseRowsQuery(raw: string): ParsedRowsQuery {
   }
 
   const text = primaryText.trim();
-  const brace = text.indexOf('{');
-  const head = (brace === -1 ? text : text.slice(0, brace)).trim();
-  const filterText = brace === -1 ? '' : text.slice(brace).trim();
-
-  if (head === 'rows' || head === 'rows:') {
-    // Bare head (`rows:{…}`) — all output-statement types.
-  } else if (head.startsWith('rows:')) {
-    const target = head.slice('rows:'.length).trim();
-    if (!target || /\s/.test(target)) {
-      result.error = cannotParseRows(text);
-      return result;
-    }
-    result.outputType = target;
-    // C7: closed plane enum — content planes plus the store's known
-    // outputType values. Custom stored types stay queryable via hand-built
-    // ASTs; the text surface reopens only with a registry decision.
-    if (!(WQL_ROWS_TARGETS as readonly string[]).includes(target)) {
-      result.error = `Unknown rows target "${target}". Try: ${WQL_ROWS_TARGETS.join(', ')}`;
-      return result;
-    }
-  } else {
+  // The bare alias is structurally ungrammatical (ticket 001: Word ∩ By),
+  // so it surfaces as a syntax error — intercept it first for the
+  // migrate-to-`all` message instead of a generic cannot-parse.
+  if (/^rows:?\s*[{]?$/.test(text) || /^rows:?\s*[{]/.test(text)) {
+    result.error = `Bare "rows:" is retired — name a target: rows:all{…} for every output type, or a plane like rows:segment{…}.`;
+    return result;
+  }
+  const tree = wqlParser.parse(text);
+  let syntaxError = false;
+  tree.iterate({ enter(node) { if (node.type.isError) syntaxError = true; } });
+  if (syntaxError) {
     result.error = cannotParseRows(text);
     return result;
   }
 
-  if (filterText) {
-    if (!/^\{.*\}$/.test(filterText)) {
-      result.error = cannotParseRows(text);
-      return result;
-    }
-    const synthetic = `find:_${filterText}`;
-    const tree = wqlParser.parse(synthetic);
-    let syntaxError = false;
-    tree.iterate({ enter(node) { if (node.type.isError) syntaxError = true; } });
-    if (syntaxError) {
-      result.error = cannotParseRows(text);
-      return result;
-    }
-    result.filters = extractFilters(tree.topNode, synthetic);
-    const grainError = retiredGrainRollup(result.filters);
-    if (grainError) { result.error = grainError; return result; }
+  const query = tree.topNode;
+  const head = query.getChild(terms.Head);
+  const aggNode = head?.getChild(terms.Aggregator);
+  const metricNode = head?.getChild(terms.Metric);
+  if (!head || !aggNode || !metricNode) {
+    // A rows head without a target — the retired bare alias.
+    result.error = `Bare "rows:" is retired — name a target: rows:all{…} for every output type, or a plane like rows:segment{…}.`;
+    return result;
   }
+  const aggText = text.slice(aggNode.from, aggNode.to);
+  if (aggText !== 'rows') {
+    result.error = cannotParseRows(text);
+    return result;
+  }
+
+  const target = text.slice(metricNode.from, metricNode.to);
+  // C7: closed plane enum — content planes, result planes (the store's
+  // known outputType values), and `all`. Custom stored types stay queryable
+  // via hand-built ASTs; the text surface reopens only with a registry
+  // decision.
+  if (!(WQL_ROWS_TARGETS as readonly string[]).includes(target)) {
+    result.error = `Unknown rows target "${target}". Try: ${WQL_ROWS_TARGETS.join(', ')}`;
+    return result;
+  }
+  if (target !== 'all') result.outputType = target;
+
+  result.filters = extractFilters(query, text);
+  const grainError = retiredGrainRollup(result.filters);
+  if (grainError) { result.error = grainError; return result; }
+  const filterError = validateRowsFilters(result.filters);
+  if (filterError) { result.error = filterError; return result; }
   return result;
 }
 

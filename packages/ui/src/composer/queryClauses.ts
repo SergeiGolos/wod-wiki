@@ -243,8 +243,9 @@ export function clausesToWql(clauses: QueryClause[]): string {
   const source = clauseValue(clauses, 'source', 'notes');
 
   if (source === 'rows') {
-    // Rows plane (#949): rows[:<outputType>]{<filters>} [last <n><unit>]
-    const output = clauseValue(clauses, 'output', '');
+    // Rows plane (#949, C4): rows:<target>{<filters>} [last <n><unit>] —
+    // target always explicit; `all` = every output type (bare head retired).
+    const output = clauseValue(clauses, 'output', '') || 'all';
     const timeClause = clauses.find((c) => c.type === 'time');
     let timeStr = '';
     if (timeClause && timeClause.value && timeClause.value !== 'all') {

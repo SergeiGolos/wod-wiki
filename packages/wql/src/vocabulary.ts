@@ -105,9 +105,11 @@ export const WQL_RESULT_PLANES = KNOWN_OUTPUT_TYPES;
 export type WqlResultPlane = (typeof WQL_RESULT_PLANES)[number];
 
 /** All `rows:` targets — content planes plus result planes (rows model
- *  §1.0: every query selects rows from a target). Content planes parse now;
- *  their execution narrowing lands with C4 (rows-in-grammar). */
-export const WQL_ROWS_TARGETS = [...WQL_FIND_TARGETS, ...WQL_RESULT_PLANES] as const;
+ *  §1.0: every query selects rows from a target) plus `all`, the explicit
+ *  no-narrowing pseudo-target (spec v2 decision 1: the bare `rows:{…}`
+ *  alias retires). Content-plane targets scope by content, not outputType;
+ *  their narrowing semantics land with C4. */
+export const WQL_ROWS_TARGETS = [...WQL_FIND_TARGETS, ...WQL_RESULT_PLANES, 'all'] as const;
 export type WqlRowsTarget = (typeof WQL_ROWS_TARGETS)[number];
 
 /** Content-specific filter keys (beyond the analytics tag keys). */

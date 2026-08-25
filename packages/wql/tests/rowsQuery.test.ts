@@ -59,7 +59,7 @@ function rowsAst(outputType: string, scopeKey: 'result' | 'block' | 'note', scop
 
 describe('parseQuery — rows family', () => {
   it('parses the bare head with a result scope', () => {
-    const p = rows('rows:{result:abc}');
+    const p = rows('rows:all{result:abc}');
     expect(p.error).toBeUndefined();
     expect(p.outputType).toBeUndefined();
     expect(p.filters).toEqual([{ key: 'result', negate: false, values: [{ value: 'abc', wildcard: false }] }]);
@@ -73,43 +73,43 @@ describe('parseQuery — rows family', () => {
   });
 
   it('parses the note scope with a last window', () => {
-    const p = rows('rows:{note:n1} last 8w');
+    const p = rows('rows:all{note:n1} last 8w');
     expect(p.error).toBeUndefined();
     expect(p.last).toEqual({ size: 8, unit: 'w' });
   });
 
   it('rejects aggregation suffixes — rows never aggregates', () => {
-    expect(rows('rows:{result:x} by {session}').error).toContain('no where / by / rollup');
-    expect(rows('rows:{result:x} where find:note{}').error).toContain('no where / by / rollup');
-    expect(rows('rows:{result:x} .rollup(1w)').error).toContain('no where / by / rollup');
+    expect(rows('rows:all{result:x} by {session}').error).toContain('no where / by / rollup');
+    expect(rows('rows:all{result:x} where find:note{}').error).toContain('no where / by / rollup');
+    expect(rows('rows:all{result:x} .rollup(1w)').error).toContain('no where / by / rollup');
   });
 
   it('rejects malformed heads and filters', () => {
     expect(rows('rows foo').error).toBeDefined();
-    expect(rows('rows:{result:').error).toBeDefined();
+    expect(rows('rows:all{result:').error).toBeDefined();
   });
 });
 
 describe('QueryService.runRows', () => {
   it('result scope returns the single session with all statement types', async () => {
-    const res = await makeService().runRows(rows('rows:{result:rA}'));
+    const res = await makeService().runRows(rows('rows:all{result:rA}'));
     expect(res.error).toBeUndefined();
     expect(res.runs.map((r) => r.resultId)).toEqual(['rA']);
     expect(res.runs[0]!.events.map((e) => e.outputType)).toEqual(['segment', 'segment', 'milestone']);
   });
 
   it('block scope unions all versions, newest first', async () => {
-    const res = await makeService().runRows(rows('rows:{block:bc-1}'));
+    const res = await makeService().runRows(rows('rows:all{block:bc-1}'));
     expect(res.runs.map((r) => r.resultId)).toEqual(['rA', 'rB']);
   });
 
   it('note scope returns every run in the note', async () => {
-    const res = await makeService().runRows(rows('rows:{note:n1}'));
+    const res = await makeService().runRows(rows('rows:all{note:n1}'));
     expect(res.runs.map((r) => r.resultId)).toEqual(['rA', 'rB']);
   });
 
   it('scopes OR within a key and union across keys, deduped by result id', async () => {
-    const res = await makeService().runRows(rows('rows:{result:rA|rC, block:bc-1}'));
+    const res = await makeService().runRows(rows('rows:all{result:rA|rC, block:bc-1}'));
     expect(res.runs.map((r) => r.resultId)).toEqual(['rA', 'rB', 'rC']);
   });
 
@@ -134,23 +134,23 @@ describe('QueryService.runRows', () => {
   });
 
   it('last window filters by canonical workout time', async () => {
-    const res = await makeService().runRows(rows('rows:{block:bc-1} last 6d'), { anchorNow: day0 });
+    const res = await makeService().runRows(rows('rows:all{block:bc-1} last 6d'), { anchorNow: day0 });
     expect(res.runs.map((r) => r.resultId)).toEqual(['rA']);
   });
 
-  it('rejects unsupported filters loudly (wrong key, negation, wildcard)', async () => {
-    expect((await makeService().runRows(rows('rows:{effort:thruster}'))).error).toContain('Unsupported rows filter');
-    expect((await makeService().runRows(rows('rows:{!result:rA}'))).error).toContain('Unsupported rows filter');
-    expect((await makeService().runRows(rows('rows:{block:bc-*}'))).error).toContain('Unsupported rows filter');
+  it('rejects unsupported filters at parse (wrong key, negation, wildcard)', () => {
+    expect(rows('rows:all{tags:x}').error).toContain('Unsupported rows filter');
+    expect(rows('rows:segment{!result:rA}').error).toContain('Unsupported rows filter');
+    expect(rows('rows:all{block:bc-*}').error).toContain('Unsupported rows filter');
   });
 
-  it('rejects a scope-less query', async () => {
-    expect((await makeService().runRows(rows('rows:{}'))).error).toContain('needs a scope');
+  it('rejects a scope-less query at parse', () => {
+    expect(rows('rows:all{}').error).toContain('needs a scope');
   });
 
   it('propagates parse errors without touching stores', async () => {
     const calls: string[] = [];
-    const res = await makeService(calls).runRows(rows('rows foo'));
+    const res = await makeService(calls).runRows(rows('rows:all{tags:x}'));
     expect(res.error).toBeDefined();
     expect(res.runs).toEqual([]);
     expect(calls).toEqual([]);
