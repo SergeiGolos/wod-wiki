@@ -2,7 +2,7 @@
  * workloadRollup — pure workload-window math behind Rollup Facts
  * (CONTEXT.md §Analytics). Foster sRPE periodization over daily SessionLoad:
  *
- *   dailyLoad[d] = Σ sessionLoad fact values in UTC day d
+ *   dailyLoad[d] = Σ sessionLoad fact values on local training day d
  *   acute        = mean daily load over the trailing 7 days  (D-6 … D)
  *   chronic      = mean daily load over the trailing 28 days (D-27 … D)
  *   ACWR         = acute / chronic            — emitted when chronic > 0
@@ -11,20 +11,23 @@
  *                  meaningful monotony)
  *   strain       = monotony × (Σ of the 7 daily loads) — emitted with monotony
  *
- * Day buckets are UTC (`Math.floor(ts / DAY)`) — the same bucketing the
- * Query Service uses for the `day` dimension, so rollup rows land in the
- * buckets widgets already group by.
+ * Day buckets are LOCAL training days — `dayBucket` returns a civil-day
+ * ordinal of the timestamp's local calendar date (consecutive calendar days
+ * differ by exactly 1 in every timezone, including 23h/25h DST days). That
+ * is the partitioning the Query Service's `day` dimension groups by (local
+ * date strings) and the journal itself uses: Foster windows run over the
+ * athlete's training days, not UTC days.
  */
 
 export const DAY = 86_400_000;
 
-/** Local day bucket for a canonical timestamp. */
+/** Civil-day ordinal of `ts`'s LOCAL calendar date — injective per civil date worldwide. */
 export function dayBucket(ts: number): number {
   const d = new Date(ts);
-  return Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / DAY);
+  return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY);
 }
 
-/** One UTC day's computed windows; absent fields were suppressed (see header). */
+/** One local training day's computed windows; absent fields were suppressed (see header). */
 export interface DayRollup {
   day: number;
   acwr?: number;
@@ -32,7 +35,7 @@ export interface DayRollup {
   strain?: number;
 }
 
-/** Sum fact values into UTC day buckets. */
+/** Sum fact values into local training-day buckets. */
 export function dailySessionLoads(
   facts: readonly { timestamp: number; value: number }[],
 ): Map<number, number> {
@@ -46,7 +49,7 @@ export function dailySessionLoads(
 
 /**
  * Compute the Foster windows for every day that can produce a value: from
- * the first day with load through `throughDay` (inclusive, UTC day bucket).
+ * the first day with load through `throughDay` (inclusive, day-bucket ordinal).
  * Earlier days have empty chronic windows and zero-variance acute windows,
  * so every value would be suppressed anyway.
  */

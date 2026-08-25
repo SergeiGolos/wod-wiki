@@ -28,7 +28,6 @@
  * entry per key.
  */
 import type { UnifiedEventRecord } from '@/types/storage';
-import { DAY, dayBucket } from './rollup/workloadRollup';
 
 /** Canonical wellness keys → unit expectations. Bare numbers use the default. */
 const WELLNESS_KEYS: Record<string, { unit: string; label: string; min?: number; max?: number }> = {
@@ -97,13 +96,17 @@ export function wellnessEventsForNote(
 ): UnifiedEventRecord[] {
   const entries = extractWellnessEntries(rawContent);
   if (entries.length === 0) return [];
-  const now = options.now ?? Date.now();
-  const day = dayBucket(options.targetDate ?? now);
+  const ref = options.targetDate ?? options.now ?? Date.now();
+  const refDay = new Date(ref);
+  // Local midnight of the target civil date — the canonical instant for a
+  // dayBucket key: localDateString(localMidnight) is the same journal date
+  // in every timezone (day * DAY would be UTC midnight and slip a day).
+  const timestamp = new Date(refDay.getFullYear(), refDay.getMonth(), refDay.getDate()).getTime();
   return entries.map((entry) => ({
     id: wellnessFactId(noteId, entry.key),
     resultId: `wellness:${noteId}`,
     noteId,
-    timestamp: day * DAY,
+    timestamp,
     grain: 'summary' as const,
     origin: 'user' as const,
     outputType: 'wellness',

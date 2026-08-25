@@ -17,7 +17,7 @@ import {
   type WellnessEventStore,
 } from './wellness';
 import type { UnifiedEventRecord } from '@/types/storage';
-import { DAY } from './rollup/workloadRollup';
+import { dayBucket } from './rollup/workloadRollup';
 
 const T0 = Date.parse('2026-08-09T12:00:00Z');
 
@@ -81,8 +81,11 @@ describe('captureWellnessFacts', () => {
     });
     expect(soreness.metrics[0]!.value).toBe(7);
     expect((soreness.metrics[0] as { metadata?: { canonicalKey?: string } }).metadata?.canonicalKey).toBe('soreness');
-    // Day-grained: timestamp is the day bucket of the note's target date.
-    expect(soreness.timestamp).toBe(Math.floor(targetDate / DAY) * DAY);
+    // Day-grained: timestamp is local midnight of the note's target date —
+    // the canonical instant for a dayBucket key in any timezone.
+    const td = new Date(targetDate);
+    expect(soreness.timestamp).toBe(new Date(td.getFullYear(), td.getMonth(), td.getDate()).getTime());
+    expect(dayBucket(soreness.timestamp)).toBe(dayBucket(targetDate));
   });
 
   it('upserts changed values in place and deletes removed keys', async () => {
