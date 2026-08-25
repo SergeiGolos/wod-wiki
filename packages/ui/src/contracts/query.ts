@@ -1,10 +1,10 @@
-import type { QueryResult, FindQueryResult, RowsQueryResult, RowsRun, ParsedQuery, ParsedFindQuery, ParsedRowsQuery, QueryOptions, FindOptions } from '@bitcobblers/wod-wiki-wql';
+import type { QueryResult, FindQueryResult, RowsQueryResult, RowsRun, ParsedAggregateQuery, ParsedFindQuery, ParsedRowsQuery, QueryOptions, FindOptions } from '@bitcobblers/wod-wiki-wql';
 
 export interface QueryExecutor {
   runQuery(query: string, options?: QueryOptions): Promise<QueryResult>;
   runFind(parsed: ParsedFindQuery, options?: FindOptions): Promise<FindQueryResult>;
   runRows(parsed: ParsedRowsQuery, options?: { anchorNow?: number }): Promise<RowsQueryResult>;
-  run?(parsed: ParsedQuery, options?: QueryOptions): Promise<QueryResult>;
+  run?(parsed: ParsedAggregateQuery, options?: QueryOptions): Promise<QueryResult>;
 }
 
 export type {
@@ -14,7 +14,7 @@ export type {
   RowsRun,
   QueryOptions,
   FindOptions,
-  ParsedQuery,
+  ParsedAggregateQuery,
   ParsedFindQuery,
   ParsedRowsQuery,
 };

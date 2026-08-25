@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { QueryService, type UnifiedEventStore } from '../src/QueryService';
 import { toSummaryEventRows } from '../src/derivation';
-import { parseQuery, type ParsedFindQuery, type ParsedQuery } from '../src/wql';
+import { parseQuery, type ParsedFindQuery, type ParsedAggregateQuery } from '../src/wql';
 import type { BlockIndexRow, Note, StoredOutputStatement, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
 
 const TS = 1_700_000_000_000;
@@ -162,7 +162,8 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
 describe('cross-store joins — direction 2 (metric where find)', () => {
   it('re-derives the metric from raw logs restricted to joined content', async () => {
     const service = makeService();
-    const parsed: ParsedQuery = {
+    const parsed: ParsedAggregateQuery = {
+      family: 'aggregate',
       raw: 'sum:totalVolume{} where find:note{tags:competition}',
       agg: 'sum', metric: 'totalVolume', filters: [], groupBy: [],
       join: { target: 'note', filters: [{ key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] }] },
@@ -174,7 +175,8 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
 
   it('joins across all content when the find half is unfiltered', async () => {
     const service = makeService();
-    const parsed: ParsedQuery = {
+    const parsed: ParsedAggregateQuery = {
+      family: 'aggregate',
       raw: 'sum:totalVolume{} where find:note{}',
       agg: 'sum', metric: 'totalVolume', filters: [], groupBy: [],
       join: { target: 'note', filters: [] },
@@ -185,7 +187,8 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
 
   it('returns an empty result when no content matches the find half', async () => {
     const service = makeService();
-    const parsed: ParsedQuery = {
+    const parsed: ParsedAggregateQuery = {
+      family: 'aggregate',
       raw: 'sum:totalVolume{} where find:note{tags:nonexistent}',
       agg: 'sum', metric: 'totalVolume', filters: [], groupBy: [],
       join: { target: 'note', filters: [{ key: 'tags', negate: false, values: [{ value: 'nonexistent', wildcard: false }] }] },
@@ -198,7 +201,8 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
 
   it('honours an avg aggregator over joined logs', async () => {
     const service = makeService();
-    const parsed: ParsedQuery = {
+    const parsed: ParsedAggregateQuery = {
+      family: 'aggregate',
       raw: 'avg:totalVolume{} where find:note{tags:competition}',
       agg: 'avg', metric: 'totalVolume', filters: [], groupBy: [],
       join: { target: 'note', filters: [{ key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] }] },
@@ -209,7 +213,8 @@ describe('cross-store joins — direction 2 (metric where find)', () => {
 
   it('respects the time-range option on the joined logs', async () => {
     const service = makeService();
-    const parsed: ParsedQuery = {
+    const parsed: ParsedAggregateQuery = {
+      family: 'aggregate',
       raw: 'sum:totalVolume{} where find:note{}',
       agg: 'sum', metric: 'totalVolume', filters: [], groupBy: [],
       join: { target: 'note', filters: [] },

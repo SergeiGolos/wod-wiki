@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { parseQuery as _parseQuery, isFindQuery, WQL_COMPARISON_OPS, type ParsedQuery } from '../src/wql';
+import { parseQuery as _parseQuery, isFindQuery, isRowsQuery, isAggregateQuery, WQL_COMPARISON_OPS, type ParsedAggregateQuery } from '../src/wql';
 import { WQL_CONTENT_FILTER_KEYS } from '../src/vocabulary';
 
-function parseQuery(raw: string): ParsedQuery {
-  return _parseQuery(raw) as ParsedQuery;
+function parseQuery(raw: string): ParsedAggregateQuery {
+  return _parseQuery(raw) as ParsedAggregateQuery;
 }
 
 describe('parseQuery', () => {
@@ -344,5 +344,30 @@ describe('suffix conflicts surface as parse errors (C3)', () => {
     expect(_parseQuery('sum:tis{} by {week}.rollup(1w) in kg').error).toBeUndefined();
     expect(_parseQuery('find:note{tags:pr} in journal last 8w').error).toBeUndefined();
     expect(_parseQuery('rows:{result:x} last 4w').error).toBeUndefined();
+  });
+});
+
+describe('discriminated query union (C5)', () => {
+  it('stamps family on every parse path, including error results', () => {
+    expect(_parseQuery('sum:totalVolume{}').family).toBe('aggregate');
+    expect(_parseQuery('find:note{tags:pr} in journal').family).toBe('find');
+    expect(_parseQuery('rows:{result:x}').family).toBe('rows');
+    // Error paths keep the family — a malformed query still narrows.
+    expect(_parseQuery('sum:').family).toBe('aggregate');
+    expect(_parseQuery('find:').family).toBe('find');
+    expect(_parseQuery('rows: where x').family).toBe('rows');
+  });
+
+  it('guards discriminate on family alone', () => {
+    const agg = _parseQuery('sum:totalVolume{}');
+    const find = _parseQuery('find:note{}');
+    const rows = _parseQuery('rows:{}');
+    expect(isAggregateQuery(agg)).toBe(true);
+    expect(isAggregateQuery(find)).toBe(false);
+    expect(isAggregateQuery(rows)).toBe(false);
+    expect(isFindQuery(agg)).toBe(false);
+    expect(isFindQuery(find)).toBe(true);
+    expect(isRowsQuery(rows)).toBe(true);
+    expect(isRowsQuery(agg)).toBe(false);
   });
 });

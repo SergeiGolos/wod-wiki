@@ -1,4 +1,4 @@
-import { parseQuery, type ParsedFindQuery, type ParsedQuery } from '@bitcobblers/wod-wiki-wql';
+import { parseQuery, type ParsedFindQuery, type ParsedAggregateQuery } from '@bitcobblers/wod-wiki-wql';
 import { composerRegistry } from './ComposerRegistry';
 import { clausesToWql, type QueryClause } from './queryClauses';
 import type { AnyParsedQuery } from './useWqlStageCounts';
@@ -40,7 +40,7 @@ export interface WqlAggregateSummary {
   filterCount: number;
 }
 
-export function summarizeAggregate(ast: ParsedQuery): WqlAggregateSummary {
+export function summarizeAggregate(ast: ParsedAggregateQuery): WqlAggregateSummary {
   return {
     agg: ast.agg,
     metric: ast.metric,
@@ -69,7 +69,7 @@ export function diagnoseClauses(clauses: QueryClause[]): WqlDiagnostics {
       return {
         valid: false,
         wql: clausesToWql(clauses),
-        ast: { raw: '', error } as any,
+        ast: { family: 'aggregate', raw: '', agg: 'sum', metric: '', filters: [], groupBy: [], error },
         error,
         offendingClauseId: clause.id,
       };

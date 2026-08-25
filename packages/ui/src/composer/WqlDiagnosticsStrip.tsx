@@ -1,7 +1,7 @@
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '../utils/cn';
-import { isFindQuery } from '@bitcobblers/wod-wiki-wql';
+import { isAggregateQuery, isFindQuery } from '@bitcobblers/wod-wiki-wql';
 import { summarizeAggregate, summarizeFind, type WqlDiagnostics } from './diagnostics';
 import type { WqlStageCounts } from './useWqlStageCounts';
 
@@ -83,10 +83,10 @@ export function WqlDiagnosticsStrip({
           </div>
         )}
 
-        {valid && !isFindQuery(ast) && (
+        {valid && isAggregateQuery(ast) && (
           <div className="flex flex-wrap items-center gap-x-3 text-[11px] opacity-80 border-l border-border/50 pl-3">
             {(() => {
-              const summary = summarizeAggregate(ast as any);
+              const summary = summarizeAggregate(ast);
               return (
                 <>
                   <SummaryChip label="agg" value={summary.agg} testId="diag-summary-agg" />

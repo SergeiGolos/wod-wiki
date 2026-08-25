@@ -38,7 +38,7 @@ import {
   type BlockQueryStore,
   type EffortQueryStore,
   type QueryServiceStores,
-  type ParsedQuery,
+  type ParsedAggregateQuery,
   type ParsedFindQuery,
   type ParsedRowsQuery,
   type DashboardDocument,
@@ -58,8 +58,8 @@ describe('@bitcobblers/wod-wiki-wql public surface', () => {
     const analyticsAst = parseQuery('sum:totalVolume{discipline:strength} by {week}.rollup(1w) in kg');
     expect(isFindQuery(analyticsAst)).toBe(false);
     expect(isRowsQuery(analyticsAst)).toBe(false);
-    expect((analyticsAst as ParsedQuery).agg).toBe('sum');
-    expect((analyticsAst as ParsedQuery).metric).toBe('totalVolume');
+    expect((analyticsAst as ParsedAggregateQuery).agg).toBe('sum');
+    expect((analyticsAst as ParsedAggregateQuery).metric).toBe('totalVolume');
   });
 
   it('exports vocabulary constants and disciplines', () => {

@@ -26,7 +26,7 @@ import {
   isRowsQuery,
   type Aggregator,
   type ComparisonOp,
-  type ParsedQuery,
+  type ParsedAggregateQuery,
   type ParsedFindQuery,
   type ParsedRowsQuery,
   type FindPredicate,
@@ -190,7 +190,7 @@ export interface FindOptions {
 }
 
 export interface QueryResult {
-  parsed: ParsedQuery;
+  parsed: ParsedAggregateQuery;
   series: Series[];
   stages: { selected: number; buckets: number; aggregated: number; groups: number };
   matched: AnalyticsDataPoint[];
@@ -365,13 +365,13 @@ export class QueryService {
     const parsed = parseQuery(raw);
     if (isFindQuery(parsed)) {
       return {
-        parsed: { raw, agg: 'count', metric: parsed.target, filters: [], groupBy: [] },
+        parsed: { family: 'aggregate', raw, agg: 'count', metric: parsed.target, filters: [], groupBy: [] },
         series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [],
       };
     }
     if (isRowsQuery(parsed)) {
       return {
-        parsed: { raw, agg: 'count', metric: 'rows', filters: [], groupBy: [] },
+        parsed: { family: 'aggregate', raw, agg: 'count', metric: 'rows', filters: [], groupBy: [] },
         series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [],
       };
     }
@@ -652,7 +652,7 @@ export class QueryService {
     return { parsed, notes: [], blocks: [], efforts, stages: { selected: selectedCount, matched: efforts.length } };
   }
 
-  async run(parsed: ParsedQuery, options: QueryOptions = {}): Promise<QueryResult> {
+  async run(parsed: ParsedAggregateQuery, options: QueryOptions = {}): Promise<QueryResult> {
     const empty: QueryResult = {
       parsed,
       series: [],
@@ -695,7 +695,7 @@ export class QueryService {
    */
   private buildResult(
     matched: AnalyticsDataPoint[],
-    parsed: ParsedQuery,
+    parsed: ParsedAggregateQuery,
     options: QueryOptions,
     noteTags: ReadonlyMap<string, readonly string[]>,
   ): QueryResult {
@@ -770,12 +770,13 @@ export class QueryService {
 
   /** Direction 2 — re-derive the metric from raw logs, restricted to the
    *  blockContentIds owned by the find predicate's content matches. */
-  private async runJoined(parsed: ParsedQuery, options: QueryOptions): Promise<QueryResult> {
+  private async runJoined(parsed: ParsedAggregateQuery, options: QueryOptions): Promise<QueryResult> {
     const empty: QueryResult = {
       parsed, series: [], stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 }, matched: [],
     };
     const join = parsed.join as FindPredicate;
     const findResult = await this.runFind({
+      family: 'find',
       raw: '', target: join.target, filters: join.filters, scope: join.scope, last: join.last,
     });
     const contentIds = await this.contentIdsFromFindResult(findResult);

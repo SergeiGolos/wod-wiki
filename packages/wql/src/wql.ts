@@ -68,7 +68,12 @@ export interface FindPredicate {
   last?: { size: number; unit: 'd' | 'w' };
 }
 
-export interface ParsedQuery {
+/**
+ * Result of parsing an analytics (aggregate) query — `agg:metric{filters} …`.
+ * Discriminated union member: `family === 'aggregate'` (C5).
+ */
+export interface ParsedAggregateQuery {
+  family: 'aggregate';
   raw: string;
   agg: Aggregator;
   /** Canonical Metric Key (fact row `metricKey`). */
@@ -86,6 +91,7 @@ export interface ParsedQuery {
 
 /** Result of parsing a content-discovery query (`find:target{filters} in scope`). */
 export interface ParsedFindQuery {
+  family: 'find';
   raw: string;
   /** Content target: 'note' or 'block'. */
   target: string;
@@ -99,16 +105,21 @@ export interface ParsedFindQuery {
   error?: string;
 }
 
-export type AnyParsedQuery = ParsedQuery | ParsedFindQuery | ParsedRowsQuery;
+export type AnyParsedQuery = ParsedAggregateQuery | ParsedFindQuery | ParsedRowsQuery;
 
 /** Type guard: true for content-discovery queries. */
 export function isFindQuery(parsed: AnyParsedQuery): parsed is ParsedFindQuery {
-  return 'target' in parsed;
+  return parsed.family === 'find';
 }
 
 /** Type guard: true for rows queries. */
 export function isRowsQuery(parsed: AnyParsedQuery): parsed is ParsedRowsQuery {
-  return (parsed as ParsedRowsQuery).family === 'rows';
+  return parsed.family === 'rows';
+}
+
+/** Type guard: true for analytics (aggregate) queries. */
+export function isAggregateQuery(parsed: AnyParsedQuery): parsed is ParsedAggregateQuery {
+  return parsed.family === 'aggregate';
 }
 
 export interface SeriesPoint { ts: number; value: number }
@@ -121,7 +132,7 @@ export interface SeriesPoint { ts: number; value: number }
  */
 export interface ParsedRowsQuery {
   raw: string;
-  /** Family discriminator (the other families are told apart by 'target'/'agg'). */
+  /** Family discriminator shared by all three query ASTs (C5). */
   family: 'rows';
   /** Output-statement type narrowing from the optional target (`rows:segment{…}`); undefined = all types. */
   outputType?: string;
@@ -183,9 +194,10 @@ function parseJoinClause(where: string): { metric?: MetricPredicate; find?: Find
 }
 
 /**
- * Parse a WQL query string into either an analytics ParsedQuery or a content
- * ParsedFindQuery. Dispatch is textual: a leading `find:` routes to the
- * content path, everything else to analytics.
+ * Parse a WQL query string into one of the three query families —
+ * analytics aggregate, content find, or rows — discriminated by `family`
+ * (C5). Dispatch is textual: a leading `find:` routes to the content path,
+ * `rows` to the rows path, everything else to analytics.
  */
 export function parseQuery(raw: string): AnyParsedQuery {
   const trimmed = raw.trimStart();
@@ -311,11 +323,12 @@ function extractFilters(query: SyntaxNode, text: string): TagFilter[] {
   return out;
 }
 
-function parseAnalyticsQuery(raw: string): ParsedQuery {
+function parseAnalyticsQuery(raw: string): ParsedAggregateQuery {
   const suffixes = parseWqlSuffixes(raw);
   const { where: whereText, displayUnit, groupBy, rollup, primaryText: text } = suffixes;
 
-  const base: ParsedQuery = {
+  const base: ParsedAggregateQuery = {
+    family: 'aggregate',
     raw,
     agg: 'sum',
     metric: '',
@@ -395,6 +408,7 @@ function parseFindQuery(raw: string): ParsedFindQuery {
   const suffixes = parseWqlSuffixes(raw);
   const { where: whereText, last, scope, primaryText: text } = suffixes;
   const result: ParsedFindQuery = {
+    family: 'find',
     raw,
     target: '',
     filters: [],
