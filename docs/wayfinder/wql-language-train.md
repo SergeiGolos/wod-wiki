@@ -51,6 +51,14 @@ queries still parsing, docs updated.
   duplicate suffix clauses now error naming first/last spans at every parse
   entry point; single-occurrence parsing unchanged; composer salvage parser
   rejects conflicting strings.
+- [Fix workloadRollup dual bucketing](tickets/014-fix-workload-rollup-dual-bucketing.md) —
+  single truth chosen: LOCAL training days (engine `day` dim groups by local
+  date strings, so the ticket's epoch-UTC premise inverted); dayBucket is now
+  a civil-day ordinal (DST-collapse-proof), wellness stamps local midnight.
+- [Discriminated query union (C5)](tickets/004-discriminated-query-union-c5.md) —
+  `family` on every parsed AST; guards read it; `ParsedQuery` renamed
+  `ParsedAggregateQuery` (no alias) on engine main `da6c42a`+`172cc75`;
+  core dist was stale on main — full rebuild needed before release.
 
 ## Not yet specified
 
