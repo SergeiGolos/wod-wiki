@@ -95,7 +95,7 @@ export interface ParsedAggregateQuery {
 export interface ParsedFindQuery {
   family: 'find';
   raw: string;
-  /** Content target: 'note' or 'block'. */
+  /** Content target — a WQL_FIND_TARGETS value (C7 closed enum). */
   target: string;
   filters: TagFilter[];
   /** Where to look: journal | collections | feeds | all. */
