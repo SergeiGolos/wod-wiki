@@ -15,12 +15,12 @@ queries still parsing, docs updated.
 
 ## Notes
 
-- Preconditions owned elsewhere: the unified store **is merged to engine
-  main** (PR #1 plus review commits `9201a61`/`2d78e17`: grade roundtrip,
-  origin-scoped finalize, `AnalyticsDataPoint.grain` narrowed to
-  `'event' | 'summary'`, CLI emits `'event'`; **still no C1–C7 language
-  work**). Publish/release remains. The app-side V16 migration
-  (`DB_VERSION = 15` today) is *not* this map's job.
+- Store half DELIVERED (2026-08-24 review): engine unified store merged and
+  published (app on `^0.6.36`), app V16 migration live (`DB_VERSION = 16`).
+  Language work targets engine **main**. Fog findings from the review: the
+  dashboard `$window` token does not exist anywhere (dissolved); the
+  workloadRollup dual day-bucketing is confirmed live → graduated to
+  [Fix workloadRollup dual bucketing](tickets/014-fix-workload-rollup-dual-bucketing.md).
 
 - **Plan-mode override: this effort carries execution** (set at charting).
   Task tickets land code; still never resolve more than one ticket per session.
@@ -47,15 +47,13 @@ queries still parsing, docs updated.
   targeted `rows:<target>` already parses natively; every grammar shape for
   the bare `rows:{…}` alias conflicts (`Word` ∩ `By` after colon) — grammar
   stays strict, alias retire-or-normalize decided at spec v2.
+- [Suffix validation errors (C3)](tickets/002-suffix-validation-c3.md) —
+  duplicate suffix clauses now error naming first/last spans at every parse
+  entry point; single-occurrence parsing unchanged; composer salvage parser
+  rejects conflicting strings.
 
 ## Not yet specified
 
-- Dashboard `$window` token substitution: mechanism unverified
-  (`dashboard/model.ts`); graduates into the window ticket or a sibling when
-  the v2 spec examines it.
-- `workloadRollup.ts` buckets by **local** date while QueryService buckets by
-  UTC ms — the C1 correctness rider. Own test or folded into the window
-  ticket: decided by the v2 spec ticket.
 - Residual grain-vocabulary gaps between the branch and asset 003
   (parse-error UX, vocabulary test coverage) — enumerated by the v2 spec
   ticket.

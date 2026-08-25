@@ -7,11 +7,12 @@ blocked-by: ["009-ast-only-structured-interface-c6"]
 
 ## Question
 
-Merge the `event-store` branch to engine main and ship it as the release that
-carries store + language together:
+Publish from engine **main** — the store is already merged and consumed
+(app on `^0.6.36`) — as the release carrying the seven language changes
+with the C2 compatibility normalizer active:
 
-1. Engine suite green on the branch (wql, core, lang, ui, engine packages).
-2. Merge to main; `stamp-version.ts`; publish `@bitcobblers/*` packages.
+1. Engine suite green (wql, core, lang, ui, engine packages).
+2. `stamp-version.ts`; publish `@bitcobblers/*` packages (next minor).
 3. Storybook smoke / e2e pass on the release candidate.
 
 Answer records released versions — the consumption and docs tickets block on

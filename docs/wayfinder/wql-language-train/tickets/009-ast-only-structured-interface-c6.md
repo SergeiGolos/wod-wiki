@@ -13,7 +13,6 @@ Land the engine half of C6 against the settled post-C1/C2 AST: a total
 a` for all ASTs — proven by a property test. Strings remain the only format at
 document edges.
 
-Asset 003: unification makes C6 trivially satisfied data-wise; the work is the
-serializer + property test. UI clause-model retirement
-(`clausesToWql`/`wqlToClauses`/`pivotClauses`/`CLAUSE_META`) rides the
-consumption ticket.
+Asset 003: unification makes C6 trivially satisfied data-wise; the work is
+the serializer + property test. The UI-package half has its own ticket:
+[Composer on ASTs](013-composer-on-asts-ui-package.md).
