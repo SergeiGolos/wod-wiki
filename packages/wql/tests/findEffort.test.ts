@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { QueryService, type EffortQueryStore, type IEffort } from '../src/QueryService';
-import { parseQuery, type ParsedFindQuery } from '../src/wql';
+import { parseQuery, isFindQuery, type ParsedFindQuery } from '../src/wql';
 
 function makeEffort(overrides: Partial<IEffort> = {}): IEffort {
   return {
@@ -41,7 +41,7 @@ function makeService(): QueryService {
 
 function find(raw: string): ParsedFindQuery {
   const parsed = parseQuery(raw);
-  if (!('target' in parsed)) throw new Error(`not a find query: ${raw}`);
+  if (!isFindQuery(parsed)) throw new Error(`not a find query: ${raw}`);
   return parsed;
 }
 

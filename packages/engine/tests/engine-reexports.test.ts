@@ -48,6 +48,7 @@ describe('@bitcobblers/wod-wiki-engine re-exports', () => {
     expect(engine.parseQuery).toBeDefined();
     expect(engine.isFindQuery).toBeDefined();
     expect(engine.isRowsQuery).toBeDefined();
+    expect(engine.isAggregateQuery).toBeDefined();
     expect(engine.WQL_AGGREGATORS).toBeDefined();
     expect(engine.WQL_TAG_KEYS).toBeDefined();
     expect(engine.WQL_CALC_TARGETS).toBeDefined();

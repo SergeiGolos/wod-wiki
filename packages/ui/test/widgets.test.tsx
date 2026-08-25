@@ -24,7 +24,7 @@ afterEach(cleanup);
 
 function scalarResult(raw: string, value = 42, unit = 'reps'): QueryResult {
   return {
-    parsed: { raw, agg: 'sum', metric: 'reps', filters: [], groupBy: [] },
+    parsed: { family: 'aggregate', raw, agg: 'sum', metric: 'reps', filters: [], groupBy: [] },
     series: [{ key: 'scalar', label: 'reps', points: [{ ts: 1000, value }], unit }],
     stages: { selected: 1, buckets: 1, aggregated: 1, groups: 1 },
     matched: [],
@@ -35,7 +35,7 @@ function scalarResult(raw: string, value = 42, unit = 'reps'): QueryResult {
 
 function timeseriesResult(raw: string): QueryResult {
   return {
-    parsed: { raw, agg: 'sum', metric: 'totalVolume', filters: [], groupBy: [] },
+    parsed: { family: 'aggregate', raw, agg: 'sum', metric: 'totalVolume', filters: [], groupBy: [] },
     series: [
       {
         key: 'volume',
@@ -55,7 +55,7 @@ function timeseriesResult(raw: string): QueryResult {
 
 function groupedResult(raw: string): QueryResult {
   return {
-    parsed: { raw, agg: 'sum', metric: 'reps', filters: [], groupBy: ['discipline'] },
+    parsed: { family: 'aggregate', raw, agg: 'sum', metric: 'reps', filters: [], groupBy: ['discipline'] },
     series: [
       { key: 'crossfit', label: 'CrossFit', points: [{ ts: 1000, value: 120 }], unit: 'reps' },
       { key: 'weightlifting', label: 'Weightlifting', points: [{ ts: 1000, value: 80 }], unit: 'reps' },
@@ -158,7 +158,7 @@ describe('@bitcobblers/wod-wiki-ui presentational widgets & IR consumer suite', 
   describe('9. ZoneDistribution', () => {
     it('renders polarized zone distribution vs targets', () => {
       const res: QueryResult = {
-        parsed: { raw: 'sum:time{} by intensity', agg: 'sum', metric: 'time', filters: [], groupBy: ['intensity'] },
+        parsed: { family: 'aggregate', raw: 'sum:time{} by intensity', agg: 'sum', metric: 'time', filters: [], groupBy: ['intensity'] },
         series: [
           { key: 'low', label: 'Low', points: [{ ts: 1000, value: 80 }], unit: 'min' },
           { key: 'moderate', label: 'Moderate', points: [{ ts: 1000, value: 0 }], unit: 'min' },
@@ -181,7 +181,7 @@ describe('@bitcobblers/wod-wiki-ui presentational widgets & IR consumer suite', 
 
       cleanup();
       const emptyResult: QueryResult = {
-        parsed: { raw: 'sum:reps{}', agg: 'sum', metric: 'reps', filters: [], groupBy: [] },
+        parsed: { family: 'aggregate', raw: 'sum:reps{}', agg: 'sum', metric: 'reps', filters: [], groupBy: [] },
         series: [],
         stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 },
         matched: [],

@@ -98,6 +98,7 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
   it('keeps notes whose wod-block volume exceeds the threshold', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
+      family: 'find',
       raw: 'find:note where sum:totalVolume{} > 5000', target: 'note', filters: [],
       join: { agg: 'sum', metric: 'totalVolume', filters: [], operator: '>', threshold: 5000 },
     };
@@ -109,6 +110,7 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
   it('drops notes that do not meet the threshold', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
+      family: 'find',
       raw: 'find:note where sum:totalVolume{} > 7000', target: 'note', filters: [],
       join: { agg: 'sum', metric: 'totalVolume', filters: [], operator: '>', threshold: 7000 },
     };
@@ -119,6 +121,7 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
   it('honours a less-than operator on a different block', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
+      family: 'find',
       raw: 'find:note where sum:totalVolume{} < 5000', target: 'note', filters: [],
       join: { agg: 'sum', metric: 'totalVolume', filters: [], operator: '<', threshold: 5000 },
     };
@@ -129,6 +132,7 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
   it('intersects the content filters with the metric join', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
+      family: 'find',
       raw: 'find:note{tags:competition} where sum:totalVolume{} > 5000', target: 'note',
       filters: [{ key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] }],
       join: { agg: 'sum', metric: 'totalVolume', filters: [], operator: '>', threshold: 5000 },
@@ -140,6 +144,7 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
   it('drops a content match when its volume fails the predicate', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
+      family: 'find',
       raw: 'find:note{tags:competition} where sum:totalVolume{} > 9000', target: 'note',
       filters: [{ key: 'tags', negate: false, values: [{ value: 'competition', wildcard: false }] }],
       join: { agg: 'sum', metric: 'totalVolume', filters: [], operator: '>', threshold: 9000 },
@@ -151,6 +156,7 @@ describe('cross-store joins — direction 1 (find where metric)', () => {
   it('filters find:block results by the block\'s own content id', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
+      family: 'find',
       raw: 'find:block where sum:totalVolume{} > 5000', target: 'block', filters: [],
       join: { agg: 'sum', metric: 'totalVolume', filters: [], operator: '>', threshold: 5000 },
     };

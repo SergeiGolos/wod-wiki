@@ -46,13 +46,15 @@ function makeService() {
 describe('range parameter — runFind', () => {
   it('drops notes outside the [start, end] range', async () => {
     const service = makeService();
-    const parsed: ParsedFindQuery = { raw: 'find:note in journal', target: 'note', filters: [], scope: 'journal' };
+    const parsed: ParsedFindQuery = {
+      family: 'find', raw: 'find:note in journal', target: 'note', filters: [], scope: 'journal' };
     const result = await service.runFind(parsed, { range: { start: T0, end: T0 } });
     expect(result.notes.map(n => n.id)).toEqual(['mid']);
   });
   it('is inclusive at the boundary (start === note.createdAt)', async () => {
     const service = makeService();
-    const parsed: ParsedFindQuery = { raw: 'find:note in journal', target: 'note', filters: [], scope: 'journal' };
+    const parsed: ParsedFindQuery = {
+      family: 'find', raw: 'find:note in journal', target: 'note', filters: [], scope: 'journal' };
     const result = await service.runFind(parsed, { range: { start: T0, end: T_NEW } });
     expect(result.notes.map(n => n.id).sort()).toEqual(['mid', 'new']);
   });
@@ -60,6 +62,7 @@ describe('range parameter — runFind', () => {
   it('overrides the WQL\'s `last 8w` clause when both are set', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
+      family: 'find',
       raw: 'find:note in journal last 8w',
       target: 'note',
       filters: [],
@@ -73,6 +76,7 @@ describe('range parameter — runFind', () => {
   it('omitting the range leaves the WQL `last` clause in effect', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
+      family: 'find',
       raw: 'find:note in journal last 8w',
       target: 'note',
       filters: [],
@@ -87,7 +91,8 @@ describe('range parameter — runFind', () => {
 describe('range parameter — runFindBlock', () => {
   it('filters blocks by the range parameter', async () => {
     const service = makeService();
-    const parsed: ParsedFindQuery = { raw: 'find:block in journal', target: 'block', filters: [], scope: 'journal' };
+    const parsed: ParsedFindQuery = {
+      family: 'find', raw: 'find:block in journal', target: 'block', filters: [], scope: 'journal' };
     const result = await service.runFind(parsed, { range: { start: T0, end: T0 } });
     expect(result.blocks.map(b => b.noteId)).toEqual(['mid']);
   });

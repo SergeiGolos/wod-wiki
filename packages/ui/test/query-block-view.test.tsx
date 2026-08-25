@@ -7,7 +7,7 @@ afterEach(cleanup);
 
 function mockScalarResult(raw: string, value = 42): QueryResult {
   return {
-    parsed: { raw, agg: 'sum', metric: 'reps', filters: [], groupBy: [] },
+    parsed: { family: 'aggregate', raw, agg: 'sum', metric: 'reps', filters: [], groupBy: [] },
     series: [{ key: 'scalar', label: 'reps', points: [{ ts: 1000, value }], unit: 'reps' }],
     stages: { selected: 1, buckets: 1, aggregated: 1, groups: 1 },
     matched: [],

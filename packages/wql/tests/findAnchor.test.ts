@@ -37,6 +37,7 @@ function makeService(notes: Note[] = NOTES, blocks: BlockIndexRow[] = BLOCKS) {
 }
 
 const LAST_2W: ParsedFindQuery = {
+  family: 'find',
   raw: 'find:note in journal last 2w', target: 'note', filters: [], scope: 'journal',
   last: { size: 2, unit: 'w' },
 };

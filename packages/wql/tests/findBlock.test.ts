@@ -35,7 +35,8 @@ function makeService() {
 describe('find:block queries', () => {
   it('returns all blocks with empty filters', async () => {
     const service = makeService();
-    const parsed: ParsedFindQuery = { raw: 'find:block{}', target: 'block', filters: [] };
+    const parsed: ParsedFindQuery = {
+      family: 'find', raw: 'find:block{}', target: 'block', filters: [] };
     const result = await service.runFind(parsed);
     expect(result.blocks).toHaveLength(3);
     expect(result.stages.selected).toBe(3);
@@ -45,6 +46,7 @@ describe('find:block queries', () => {
   it('filters by text substring over rawContent', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
+      family: 'find',
       raw: 'find:block{text:fran}',
       target: 'block',
       filters: [{ key: 'text', negate: false, values: [{ value: 'fran', wildcard: false }] }],
@@ -57,6 +59,7 @@ describe('find:block queries', () => {
   it('filters by type (dataType)', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
+      family: 'find',
       raw: 'find:block{type:wod}',
       target: 'block',
       filters: [{ key: 'type', negate: false, values: [{ value: 'wod', wildcard: false }] }],
@@ -69,6 +72,7 @@ describe('find:block queries', () => {
   it('combines text and type filters (AND)', async () => {
     const service = makeService();
     const parsed: ParsedFindQuery = {
+      family: 'find',
       raw: 'find:block{text:thrusters,type:wod}',
       target: 'block',
       filters: [
@@ -83,7 +87,8 @@ describe('find:block queries', () => {
 
   it('returns notes as empty array for block queries', async () => {
     const service = makeService();
-    const parsed: ParsedFindQuery = { raw: 'find:block{}', target: 'block', filters: [] };
+    const parsed: ParsedFindQuery = {
+      family: 'find', raw: 'find:block{}', target: 'block', filters: [] };
     const result = await service.runFind(parsed);
     expect(result.notes).toEqual([]);
   });
