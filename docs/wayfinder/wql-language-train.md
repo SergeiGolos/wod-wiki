@@ -63,18 +63,21 @@ queries still parsing, docs updated.
   closed enums at parse: find → note|block|effort, rows → content planes ∪
   KNOWN_OUTPUT_TYPES; store stays open, text surface closed; composer
   salvage rejects instead of rewriting unknown targets.
+- [Reconcile spec v2 with the event store](tickets/003-reconcile-spec-v2-with-event-store.md) —
+  prototype doc rewritten as spec v2: three decisions — bare `rows:` retires
+  for `rows:all` (C2 normalizer migrates), time-dim keys become local civil
+  ISO dates (lands with C1), day-dim rider folded into C1; C3/C5/C7 marked
+  landed; `$window` verified dissolved; CLI parity: none needed.
 
 ## Not yet specified
 
-- Residual grain-vocabulary gaps between the branch and asset 003
-  (parse-error UX, vocabulary test coverage) — enumerated by the v2 spec
-  ticket.
-- CLI query-surface parity (`packages/engine/src/cli/query.ts`) for new
-  parse errors and windows — scoping falls out of the v2 spec ticket.
-- C2 hard-drop timing for the legacy `in <scope>` compatibility normalizer —
-  a post-train minor; decidable once the app consumes the train.
+- C2 hard-drop timing for the legacy `in <scope>` **and bare `rows:{`**
+  compatibility normalizer — a post-train minor; decidable once the app
+  consumes the train.
 - Explorer window-emission details (`useExplorerQueryState` interplay with
   emitted `last Nw` text) — sharpens during the consumption ticket.
+- App-side error UX for the new parse errors (single composer error line) —
+  re-examined in the consumption ticket (v2 §5).
 
 ## Out of scope
 

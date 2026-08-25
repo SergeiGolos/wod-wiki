@@ -1,9 +1,39 @@
 ---
-state: open
-labels: [wayfinder:grilling]
+state: closed 2026-08-25
+assignee: serge # claimed 2026-08-25
 title: "Reconcile spec v2 with the event store"
 blocked-by: ["001-lezer-unified-head-spike"]
 ---
+
+## Resolution
+
+`docs/prototype/wql-interface-changes.md` rewritten in place as **spec v2**
+(grilling session, 2026-08-25). All eight agenda items resolved:
+
+1. §1.0 store story: UnifiedEventStore, one authoritative projection —
+   two-materializations language deleted; read-time shape derivation noted.
+2. Grain vocabulary: `summary|event`, `rollup` retired at parse; residual
+   gaps recorded in v2 §5 (docs rows → docs-cutover ticket; app error UX →
+   consumption ticket).
+3. C4/C5/C6 reworded per asset 003; C3/C5/C7 marked **landed** with
+   commits; C5's "one record" simplification explicitly not taken.
+4. `$window` verified dissolved (absent from `dashboard/model.ts`); the
+   workloadRollup rider **folds into C1** (decision 3).
+5. CLI parity: none needed — `WqlSyntaxError` flows all parse errors; the
+   window parses in the suffix layer. Recorded in v2 §3.
+6. Sequencing re-confirmed; blast radii de-lined-numbered (structural).
+7. **Bare `rows:{…}` retires; `rows:all` adopted** (decision 1) — C2's
+   normalizer rewrites bare→`all` during deprecation; app's 7 bare-usage
+   sites migrate in the consumption ticket.
+8. **Time-dim keys: local civil ISO dates** (decision 2) — day
+   `YYYY-MM-DD` local components, week civil-Monday `YYYY-MM-DD`
+   component math; kills locale-string day keys and the DST-unsafe week
+   label; lands with C1.
+
+Graduated: ticket 006 (+rows:all, +content-plane execution), ticket 007
+(+civil-ISO rider), ticket 008 (+bare→all normalizer rewrite). Fog
+narrowed: CLI parity and grain-vocab gaps resolved/recorded; C2 hard-drop
+timing and Explorer window-emission stay fog.
 
 ## Question
 
