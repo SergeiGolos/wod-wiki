@@ -5,6 +5,8 @@ import {
   WQL_COMPARISON_OPS,
   WQL_DISPLAY_UNITS,
   WQL_FIND_TARGETS,
+  WQL_RESULT_PLANES,
+  WQL_ROWS_TARGETS,
   WQL_GRAINS,
   WQL_INTENSITY_TIERS,
   WQL_METRIC_AGGREGATES,
@@ -30,6 +32,8 @@ describe('WQL Vocabulary Alignment', () => {
     expect(WqlLanguage.WQL_TAG_KEYS).toBe(WQL_TAG_KEYS);
     expect(WqlLanguage.WQL_VIRTUAL_DIMS).toBe(WQL_VIRTUAL_DIMS);
     expect(WqlLanguage.WQL_FIND_TARGETS).toBe(WQL_FIND_TARGETS);
+    expect(WqlLanguage.WQL_RESULT_PLANES).toBe(WQL_RESULT_PLANES);
+    expect(WqlLanguage.WQL_ROWS_TARGETS).toBe(WQL_ROWS_TARGETS);
   });
 
   it('correctly classifies known vs proposed metrics in model.ts', () => {

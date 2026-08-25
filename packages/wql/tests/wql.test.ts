@@ -371,3 +371,41 @@ describe('discriminated query union (C5)', () => {
     expect(isRowsQuery(agg)).toBe(false);
   });
 });
+
+describe('find/rows target validation (C7)', () => {
+  it('find: unknown target errors listing valid targets', () => {
+    const parsed = _parseQuery('find:exercise{tags:pr}');
+    expect(parsed.family).toBe('find');
+    expect(parsed.error).toContain('Unknown find target "exercise"');
+    expect(parsed.error).toContain('note, block, effort');
+  });
+
+  it('find: known content targets stay error-free', () => {
+    expect(_parseQuery('find:note{}').error).toBeUndefined();
+    expect(_parseQuery('find:block{}').error).toBeUndefined();
+    expect(_parseQuery('find:effort{}').error).toBeUndefined();
+  });
+
+  it('find: validation reaches the join half of an analytics query', () => {
+    const parsed = _parseQuery('sum:totalVolume{} where find:exercise{}');
+    expect(parsed.family).toBe('aggregate');
+    expect(parsed.error).toContain('Unknown find target "exercise"');
+  });
+
+  it('rows: unknown target errors listing valid planes', () => {
+    const parsed = _parseQuery('rows:exercise{result:rA}');
+    expect(parsed.family).toBe('rows');
+    expect(parsed.error).toContain('Unknown rows target "exercise"');
+    expect(parsed.error).toContain('segment');
+    expect(parsed.error).toContain('note');
+  });
+
+  it('rows: result planes and content planes stay error-free', () => {
+    expect(_parseQuery('rows:segment{}').error).toBeUndefined();
+    expect(_parseQuery('rows:analytics{}').error).toBeUndefined();
+    expect(_parseQuery('rows:wellness{}').error).toBeUndefined();
+    expect(_parseQuery('rows:note{}').error).toBeUndefined();
+    expect(_parseQuery('rows:block{}').error).toBeUndefined();
+    expect(_parseQuery('rows:effort{}').error).toBeUndefined();
+  });
+});

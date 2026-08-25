@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { defineLanguagePack, registerLanguagePack, getRegisteredLanguagePacks, Metric, parseScript, parseQuery } from '../src/index';
+import { defineLanguagePack, registerLanguagePack, getRegisteredLanguagePacks, Metric, parseScript, parseQuery, isFindQuery } from '../src/index';
 
 describe('@bitcobblers/wod-wiki-engine', () => {
   it('re-exports core, lang, and wql symbols', () => {
@@ -9,8 +9,8 @@ describe('@bitcobblers/wod-wiki-engine', () => {
     const script = parseScript('21 pullups');
     expect(script.statements.length).toBe(1);
 
-    const query = parseQuery('find:pullups');
-    expect((query as any).target).toBe('pullups');
+    const query = parseQuery('find:note');
+    expect(isFindQuery(query) && query.target).toBe('note');
   });
 
   it('manages language packs', () => {

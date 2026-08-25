@@ -52,6 +52,9 @@ describe('@bitcobblers/wod-wiki-engine re-exports', () => {
     expect(engine.WQL_AGGREGATORS).toBeDefined();
     expect(engine.WQL_TAG_KEYS).toBeDefined();
     expect(engine.WQL_CALC_TARGETS).toBeDefined();
+    expect(engine.WQL_FIND_TARGETS).toBeDefined();
+    expect(engine.WQL_RESULT_PLANES).toBeDefined();
+    expect(engine.WQL_ROWS_TARGETS).toBeDefined();
     expect(engine.buildDashboardDocument).toBeDefined();
   });
 

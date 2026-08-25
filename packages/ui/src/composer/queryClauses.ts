@@ -16,7 +16,7 @@
  */
 
 import { composerRegistry } from './ComposerRegistry';
-import { WQL_AGGREGATORS, WQL_COMPARISON_OPS, WQL_CALC_TARGETS, WQL_DISPLAY_UNITS, WQL_METRIC_AGGREGATES, WQL_METRIC_FAMILIES, WQL_ROLLUP_PERIODS, WQL_SOURCES, WQL_TAG_KEYS, WQL_VIRTUAL_DIMS, parseWqlSuffixes, splitAtWhere } from '@bitcobblers/wod-wiki-wql';
+import { WQL_AGGREGATORS, WQL_COMPARISON_OPS, WQL_CALC_TARGETS, WQL_DISPLAY_UNITS, WQL_FIND_TARGETS, WQL_METRIC_AGGREGATES, WQL_METRIC_FAMILIES, WQL_ROLLUP_PERIODS, WQL_SOURCES, WQL_TAG_KEYS, WQL_VIRTUAL_DIMS, parseWqlSuffixes, splitAtWhere } from '@bitcobblers/wod-wiki-wql';
 
 export type ClauseType =
   | 'source'
@@ -434,6 +434,9 @@ export function wqlToClauses(wql: string): QueryClause[] | null {
     const headMatch = RESTORE_FIND_HEAD_RE.exec(primaryText);
     if (!headMatch) return null;
     const targetValue = headMatch[1];
+    // C7 closed target enum: an unknown find target must surface the engine's
+    // parse error, not silently salvage into a different query.
+    if (!(WQL_FIND_TARGETS as readonly string[]).includes(targetValue)) return null;
     const rest = primaryText.slice(headMatch[0].length).trim();
 
     const filterClauses = restoreFilters(rest);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { StoredOutputStatement, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
-import { parseQuery, isRowsQuery } from '../src/wql';
+import { parseQuery, isRowsQuery, type ParsedRowsQuery } from '../src/wql';
 import { toEventRows } from '../src/derivation';
 import { QueryService, type UnifiedEventStore } from '../src/QueryService';
 
@@ -44,6 +44,17 @@ function rows(raw: string) {
   const parsed = parseQuery(raw);
   if (!isRowsQuery(parsed)) throw new Error(`expected rows query, got ${JSON.stringify(parsed)}`);
   return parsed;
+}
+
+/** Hand-built rows AST — the programmatic surface stays open to custom
+ *  outputType values the C7 text surface rejects (prototype: closed enum). */
+function rowsAst(outputType: string, scopeKey: 'result' | 'block' | 'note', scopeValue: string): ParsedRowsQuery {
+  return {
+    family: 'rows',
+    raw: `rows:${outputType}{${scopeKey}:${scopeValue}}`,
+    outputType,
+    filters: [{ key: scopeKey, negate: false, values: [{ value: scopeValue, wildcard: false }] }],
+  };
 }
 
 describe('parseQuery — rows family', () => {
@@ -105,13 +116,21 @@ describe('QueryService.runRows', () => {
   it('output-type narrowing filters statements, not runs', async () => {
     const res = await makeService().runRows(rows('rows:segment{result:rA}'));
     expect(res.runs[0]!.events.map((e) => e.outputType)).toEqual(['segment', 'segment']);
-    const milestoneOnly = await makeService().runRows(rows('rows:milestone{result:rA}'));
+    // Custom stored type: the TEXT surface is a closed enum (C7 rejects
+    // rows:milestone at parse), but runRows still narrows by any column
+    // value when handed the AST programmatically.
+    const milestoneOnly = await makeService().runRows(rowsAst('milestone', 'result', 'rA'));
     expect(milestoneOnly.runs[0]!.events).toHaveLength(1);
   });
 
   it('drops runs whose narrowing leaves no statements', async () => {
-    const res = await makeService().runRows(rows('rows:nonexistent-type{block:bc-1}'));
+    const res = await makeService().runRows(rowsAst('nonexistent-type', 'block', 'bc-1'));
     expect(res.runs).toEqual([]);
+  });
+
+  it('rows: rejects unknown targets at parse (C7)', () => {
+    expect(rows('rows:milestone{result:rA}').error).toContain('Unknown rows target "milestone"');
+    expect(rows('rows:nonexistent-type{block:bc-1}').error).toContain('Unknown rows target');
   });
 
   it('last window filters by canonical workout time', async () => {

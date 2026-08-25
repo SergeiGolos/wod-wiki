@@ -17,6 +17,8 @@ import type { SyntaxNode } from '@lezer/common';
 import * as terms from './grammar/wql.parser.terms';
 import {
   WQL_AGGREGATORS,
+  WQL_FIND_TARGETS,
+  WQL_ROWS_TARGETS,
   type WqlAggregator,
   type WqlComparisonOp,
 } from './vocabulary';
@@ -253,6 +255,13 @@ function parseRowsQuery(raw: string): ParsedRowsQuery {
       return result;
     }
     result.outputType = target;
+    // C7: closed plane enum — content planes plus the store's known
+    // outputType values. Custom stored types stay queryable via hand-built
+    // ASTs; the text surface reopens only with a registry decision.
+    if (!(WQL_ROWS_TARGETS as readonly string[]).includes(target)) {
+      result.error = `Unknown rows target "${target}". Try: ${WQL_ROWS_TARGETS.join(', ')}`;
+      return result;
+    }
   } else {
     result.error = cannotParseRows(text);
     return result;
@@ -445,6 +454,12 @@ function parseFindQuery(raw: string): ParsedFindQuery {
   }
 
   result.target = text.slice(metricNode.from, metricNode.to);
+  // C7: closed target enum — unknown targets error at parse instead of
+  // silently returning empty at runtime.
+  if (!(WQL_FIND_TARGETS as readonly string[]).includes(result.target)) {
+    result.error = `Unknown find target "${result.target}". Try: ${WQL_FIND_TARGETS.join(', ')}`;
+    return result;
+  }
   result.filters = extractFilters(query, text);
   const findGrainError = retiredGrainRollup(result.filters);
   if (findGrainError) { result.error = findGrainError; return result; }

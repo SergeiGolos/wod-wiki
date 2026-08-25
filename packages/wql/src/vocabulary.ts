@@ -11,6 +11,8 @@
  * two in sync. User-authored calcs extend this set at runtime.
  */
 
+import { KNOWN_OUTPUT_TYPES } from '@bitcobblers/wod-wiki-core';
+
 /** Canonical Metric Key families (CONTEXT.md §Analytics). */
 export const WQL_METRIC_FAMILIES = ['reps', 'distance', 'resistance', 'elapsed', 'power', 'pace'] as const;
 export type WqlMetricFamily = (typeof WQL_METRIC_FAMILIES)[number];
@@ -91,6 +93,22 @@ export type WqlFindTarget = (typeof WQL_FIND_TARGETS)[number];
 /** Content query scopes (in <scope>). */
 export const WQL_SCOPES = ['journal', 'collections', 'feeds', 'all'] as const;
 export type WqlScope = (typeof WQL_SCOPES)[number];
+
+
+/** Result planes — `rows:<plane>` narrows raw output-statement rows by the
+ *  unified store's promoted `outputType` column. The STORE vocabulary is
+ *  open (core KNOWN_OUTPUT_TYPES, ticket 002: unknowns are stored and
+ *  returned); the QUERY surface is a closed enum at parse (prototype C7) —
+ *  reopening toward a registry is a later, separate decision. Custom types
+ *  stay addressable programmatically via hand-built ASTs. */
+export const WQL_RESULT_PLANES = KNOWN_OUTPUT_TYPES;
+export type WqlResultPlane = (typeof WQL_RESULT_PLANES)[number];
+
+/** All `rows:` targets — content planes plus result planes (rows model
+ *  §1.0: every query selects rows from a target). Content planes parse now;
+ *  their execution narrowing lands with C4 (rows-in-grammar). */
+export const WQL_ROWS_TARGETS = [...WQL_FIND_TARGETS, ...WQL_RESULT_PLANES] as const;
+export type WqlRowsTarget = (typeof WQL_ROWS_TARGETS)[number];
 
 /** Content-specific filter keys (beyond the analytics tag keys). */
 export const WQL_CONTENT_FILTER_KEYS = ['type', 'text', 'has', 'source', 'catalog', ...WQL_TAG_KEYS] as const;
