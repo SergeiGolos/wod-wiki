@@ -68,6 +68,16 @@ export default defineConfig({
     plugins: [react(), legacyReceiverCssPlugin()],
     resolve: {
         alias: {
+            // Same workspace source aliases as the main app config so the
+            // receiver builds without a prior packages tsup build.
+            '@bitcobblers/wod-wiki-lang/react': resolve(__dirname, '../../packages/lang/src/react.ts'),
+            '@bitcobblers/wod-wiki-ui/styles.css': resolve(__dirname, '../../packages/ui/src/styles.css'),
+            '@bitcobblers/wod-wiki-ui/extensions': resolve(__dirname, '../../packages/ui/src/extensions/index.ts'),
+            '@bitcobblers/wod-wiki-core': resolve(__dirname, '../../packages/core/src'),
+            '@bitcobblers/wod-wiki-lang': resolve(__dirname, '../../packages/lang/src'),
+            '@bitcobblers/wod-wiki-wql': resolve(__dirname, '../../packages/wql/src'),
+            '@bitcobblers/wod-wiki-engine': resolve(__dirname, '../../packages/engine/src'),
+            '@bitcobblers/wod-wiki-ui': resolve(__dirname, '../../packages/ui/src'),
             '@': resolve(__dirname, 'src'),
         },
     },
