@@ -64,6 +64,13 @@ existing `bun run test` / storybook flows.
   ticket; four journals (crossfit / endurance / mixed-wellness / climb-yoga)
   + integrity invariants for 005.
 
+- [Storybook debug workbench architecture](test-validation-harness/tickets/003-storybook-debug-workbench-architecture.md) —
+  spec [asset](test-validation-harness/assets/003-storybook-debug-workbench-architecture.md):
+  extend Language Workbench in place; 2×2 panel grid (parser / stack /
+  memory / logs) below the editor lanes; effect-owned
+  `RuntimeFactory(debugMode)` + `RuntimeContext` + `useRuntimeExecution`
+  wall-clock; freeze + dirty badge on mid-run edits.
+
 ## Not yet specified
 
 - Stale-expectation workflow: how a fixture failure reads in CI, and whether
