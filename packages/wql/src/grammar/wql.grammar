@@ -1,0 +1,94 @@
+// WQL — Wod Query Language (Datadog-flavored). See CONTEXT.md glossary.
+//
+//   <aggregator>:<metric.namespace>{<tag filters>} by {<dimensions>} .rollup(<period>)
+//   find:<target>{<tag filters>} in <scope> last <n>w
+//
+//   sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(1w)
+//   avg:tis{effort:back*} by {session}
+//   find:note{tags:pr} in journal last 8w
+//
+// Semantic reference: the dashboard POC's hand-rolled engine
+// (wod-wiki-dashboard-poc/app/src/lib/wql.ts) — the AST contract lives in
+// src/services/analytics/query/wql.ts.
+//
+// Token discipline: keyword tokens with @precedence over a word token shadow
+// every position GLOBALLY, not per parser state — a `rollupUnit {"d"|"w"}`
+// token with precedence made `week`, `day`, `wod.volume`, `discipline`
+// unparseable, and a `virtualDim` token made the metric in `count:session`
+// unparseable. So this grammar lexes all words with a single `word` token and
+// lets parser context disambiguate; the AST mapper
+// (src/services/analytics/query/wql.ts) validates aggregators, dimensions,
+// and the rollup unit semantically. Structural literals (`by`, `.rollup`)
+// keep their own tokens — they never overlap a word position.
+//
+// Content queries (`find:target{filters} in scope`) reuse the same Head →
+// Filters structure: the AST mapper detects `find` as the aggregator and
+// dispatches to the content-query executor. The trailing `in <scope>` clause
+// is handled in JS (same pattern as the display-unit suffix) because adding
+// a `ScopeClause` node with `Word` at the top level creates a token-overlap
+// conflict with `By`/`GroupBy`.
+
+@top Query { Head Filters? GroupBy? Rollup? }
+
+Head { Aggregator colon Metric }
+
+// Any word — known aggregators (sum avg min max count last delta), the
+// content-dispatch keyword `find`, and unknown ones alike; the AST mapper
+// reports "Unknown aggregator" for genuinely unknown ones and routes `find`
+// to the content-query path.
+Aggregator { Word }
+
+// Dotted Canonical Metric Key namespaces: totalVolume, calc.acwr,
+// <effortSlug>.<family> (segments may carry effort-slug dashes).
+// For content queries this is the target: note | block.
+Metric { Word (dot Word)* }
+
+Filters { braceOpen (Filter (comma Filter)*)? braceClose }
+
+Filter { Negate? TagKey colon TagValue }
+
+TagKey { Word }
+
+// Multi-value tag values: alternatives are OR-ed within the key; each
+// alternative carries its own trailing wildcard star.
+// A value is one or more OR-ed atoms; each atom is `Word:Word` (e.g. the
+// catalog-id `collection:crossfit-girls` for the `source:` filter) or a bare
+// `Word`, or a double-quoted phrase for multi-word text (`text:"300 Air Squats"`,
+// #867). Quoted atoms carry no colon/wildcard forms.
+TagValue { Value (pipe Value)* }
+
+Value { Word (colon Word)? Star? | Quoted Star? }
+
+GroupBy { By braceOpen (Dimension (comma Dimension)*)? braceClose }
+
+// day | week | session | round are virtual dimensions — a lexical no-op,
+// assigned meaning by the Query Service. Any other word is a fact-row tag key.
+Dimension { Word }
+
+// `.rollup` is one token: with a bare `dot` the parser would need 2-token
+// lookahead to choose between a Metric continuation and the Rollup suffix.
+Rollup { RollupDot parenOpen Int Word parenClose }
+
+@tokens {
+  By { "by" }
+  RollupDot { ".rollup" }
+  Int { $[0-9]+ }
+  Word { $[a-zA-Z0-9_-]+ }
+  Star { "*" }
+  Negate { "!" }
+  // Double-quoted phrase for multi-word text filters — lexically distinct
+  // from Word (starts with `"`), so it cannot shadow any word position. The
+  // AST mapper strips the quotes (src/services/analytics/query/wql.ts).
+  Quoted { "\"" !["]* "\"" }
+  colon { ":" }
+  pipe { "|" }
+  comma { "," }
+  dot { "." }
+  braceOpen { "{" }
+  braceClose { "}" }
+  parenOpen { "(" }
+  parenClose { ")" }
+  whitespace { (" " | "\t" | "\n" | "\r")+ }
+}
+
+@skip { whitespace }

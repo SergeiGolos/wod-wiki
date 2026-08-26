@@ -1,6 +1,7 @@
 [test]
-preload = ["./tests/unit-setup.ts"]
-pathIgnorePatterns = [
-  "tests/wods/all-wods.test.ts",
-  "tests/canvas/syntax-source-markdown.test.ts",
-]
+# Workspace-wide `bun test` from the repo root covers root-level suites
+# (tests/contract). The playground app (apps/playground) runs its own isolated
+# runner (`bun run --filter '@bitcobblers/wod-wiki-playground' test`) and the
+# storybook app runs its own vitest config, so both are ignored here.
+preload = ["./test/bun-setup.ts"]
+pathIgnorePatterns = ["apps", "packages"]

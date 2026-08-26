@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": [
-      "ES2020",
+      "ES2022",
       "DOM",
       "DOM.Iterable"
     ],
@@ -33,27 +33,33 @@
       "vite/client"
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./apps/playground/src/*"],
+      "@bitcobblers/wod-wiki-core": ["./packages/core/src/index.ts"],
+      "@bitcobblers/wod-wiki-lang": ["./packages/lang/src/index.ts"],
+      "@bitcobblers/wod-wiki-lang/react": ["./packages/lang/src/react.ts"],
+      "@bitcobblers/wod-wiki-wql": ["./packages/wql/src/index.ts"],
+      "@bitcobblers/wod-wiki-engine": ["./packages/engine/src/index.ts"],
+      "@bitcobblers/wod-wiki-ui": ["./packages/ui/src/index.ts"]
     }
   },
   "include": [
     "vitest.shims.d.ts",
-    "src/declarations.d.ts",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "playground/**/*.ts",
-    "playground/**/*.tsx",
-    "tests/**/*.ts",
-    "tests/**/*.tsx"
+    "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.tsx",
+    "apps/playground/src/**/*.ts",
+    "apps/playground/src/**/*.tsx",
+    "apps/playground/tests/**/*.ts",
+    "apps/playground/tests/**/*.tsx",
+    "apps/playground/*.ts",
+    "apps/storybook/src/**/*.ts",
+    "apps/storybook/src/**/*.tsx",
+    "apps/storybook/test/**/*.ts",
+    "apps/storybook/test/**/*.tsx",
+    "apps/storybook/*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "build"
-  ],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
-    }
   ]
 }

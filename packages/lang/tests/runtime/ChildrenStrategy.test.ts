@@ -1,0 +1,72 @@
+import { BlockKey } from '@bitcobblers/wod-wiki-core';
+import { describe, it, expect } from 'vitest';
+import { apply, stubRuntime, makeStatement } from '../harness/harness/StrategyTestHarness';
+import { MetricType } from '@bitcobblers/wod-wiki-core';
+import { BlockBuilder } from '../../src/runtime/compiler/BlockBuilder';
+import { ChildrenStrategy } from '../../src/runtime/compiler/strategies/enhancements/ChildrenStrategy';
+import { ChildSelectionBehavior, MetricPromotionBehavior } from '../../src/runtime/behaviors';
+
+const runtime = stubRuntime();
+
+describe('ChildrenStrategy', () => {
+    it('matches when statement has children', () => {
+        const stmt = makeStatement([{ type: MetricType.Reps, value: 5, origin: 'parser' }], { children: [[1, 2]] });
+        expect(apply(new ChildrenStrategy(), [stmt], runtime).matched).toBe(true);
+    });
+
+    it('does not match when no children or empty children', () => {
+        const noChildren = makeStatement([{ type: MetricType.Reps, value: 5, origin: 'parser' }]);
+        expect(apply(new ChildrenStrategy(), [noChildren], runtime).matched).toBe(false);
+
+        const emptyChildren = makeStatement([{ type: MetricType.Reps, value: 5, origin: 'parser' }], { children: [] });
+        expect(apply(new ChildrenStrategy(), [emptyChildren], runtime).matched).toBe(false);
+    });
+
+    it('declares a deferred exit and adds ChildSelectionBehavior', () => {
+        const builder = new BlockBuilder(runtime);
+        new ChildrenStrategy().apply(builder, [makeStatement([], { children: [[1]] })], runtime);
+        expect(builder.hasBehavior(ChildSelectionBehavior)).toBe(true);
+        expect(builder.exitMode).toBe('deferred');
+    });
+
+    it('sets up looping when builder has countdown timer', () => {
+        const builder = new BlockBuilder(runtime);
+        builder.asTimer({ direction: 'down', durationMs: 60000 });
+        new ChildrenStrategy().apply(builder, [makeStatement([], { children: [[1]] })], runtime);
+        expect(builder.hasBehavior(ChildSelectionBehavior)).toBe(true);
+        expect(builder.exitMode).toBe('deferred');
+    });
+
+    it('adds ChildSelectionBehavior alongside a pre-existing MetricPromotionBehavior', () => {
+        const builder = new BlockBuilder(runtime);
+        builder.addBehavior(new MetricPromotionBehavior({ promotions: [] }));
+        new ChildrenStrategy().apply(builder, [makeStatement([], { children: [[1]] })], runtime);
+        expect(builder.hasBehavior(MetricPromotionBehavior)).toBe(true);
+        expect(builder.hasBehavior(ChildSelectionBehavior)).toBe(true);
+    });
+    // ── Order-pinning (S2c) ───────────────────────────────────────────────
+    // The strategy contract: MetricPromotionBehavior MUST run AFTER
+    // ChildSelectionBehavior in onNext so it sees the round that
+    // ChildSelectionBehavior just advanced. ChildrenStrategy moves an
+    // earlier-added MetricPromotionBehavior to the end of the strategy-
+    // composed behavior list. build() then appends CompletionTimestampBehavior
+    // as a universal invariant (not a strategy concern), so the pinned
+    // assertion is childIdx < promoIdx — not "absolutely last."
+    it('pins MetricPromotionBehavior to run after ChildSelectionBehavior', () => {
+        const builder = new BlockBuilder(runtime);
+        // GenericLoopStrategy adds MetricPromotionBehavior BEFORE ChildrenStrategy runs.
+        builder.addBehavior(new MetricPromotionBehavior({ promotions: [] }));
+        new ChildrenStrategy().apply(builder, [makeStatement([], { children: [[1]] })], runtime);
+
+        // Build with minimal stubs — we only inspect behavior order.
+        builder.setContext({ ownerId: 'b', exerciseId: '' } as any);
+        builder.setKey(new (BlockKey)('b'));
+        const block = builder.build();
+
+        const behaviors = block.behaviors;
+        const childIdx = behaviors.findIndex(b => b instanceof ChildSelectionBehavior);
+        const promoIdx = behaviors.findIndex(b => b instanceof MetricPromotionBehavior);
+        expect(childIdx).toBeGreaterThanOrEqual(0);
+        expect(promoIdx).toBeGreaterThan(childIdx);
+    });
+});
