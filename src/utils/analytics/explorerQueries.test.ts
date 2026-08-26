@@ -6,9 +6,8 @@ import {
   getQueryChartShape,
   serializeQuery,
 } from './explorerQueries';
-// All tests use analytics queries — narrow the union.
 const parseQuery = (raw: string): AnyParsedQuery => _pq(raw);
-/** QueryResult fixtures carry the analytics AST (QueryResult.parsed). */
+// QueryResult fixtures carry the analytics AST (QueryResult.parsed).
 const parseAgg = (raw: string): ParsedAggregateQuery => _pq(raw) as ParsedAggregateQuery;
 
 describe('explorerQueries', () => {

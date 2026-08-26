@@ -22,7 +22,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Play, Save } from 'lucide-react';
 import { queryService } from '@/services/queryService';
-import { parseQuery, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult, type QueryWindow, type TagFilter } from '@bitcobblers/wod-wiki-engine';;
+import { parseQuery, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';;
 import { RowsTable } from '@bitcobblers/wod-wiki-ui';
 import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
 import { searchEntries } from '../../lib/entrySearch';
@@ -46,6 +46,7 @@ import {
   ParsedQueryChips,
   PipelineAnatomy,
   RawPointsTable,
+  windowLabel,
 } from '@/components/organisms/analytics';
 import {
   WqlComposer,
@@ -76,6 +77,7 @@ const WQL_GRAMMAR_PLACEHOLDER = 'agg:metric{filters} by {dims} .rollup(period)';
  * silently not filter. */
 const NOTE_FILTER_KEYS = new Set(['tags', 'catalog', 'text', 'type', 'has']);
 
+/** `TagFilter[]` → `{key:v1|v2, …}` braces (empty string when no filters). */
 function serializeTagFilters(filters: { key: string; negate: boolean; values: { value: string }[] }[]): string {
   if (filters.length === 0) return '';
   const body = filters
@@ -88,13 +90,6 @@ function serializeTagFilters(filters: { key: string; negate: boolean; values: { 
 function sourceFilterLabel(filters: TagFilter[]): string | null {
   const src = filters.find(f => f.key === 'source' && !f.negate);
   return src ? src.values.map(v => v.value).join('|') : null;
-}
-
-/** Human label for a C1 window: `last 8w` / `from 2026-01-01 [to …]`. */
-function windowLabel(w: QueryWindow | undefined): string | null {
-  if (!w) return null;
-  if (w.kind === 'relative') return `last ${w.size}${w.unit}`;
-  return w.end ? `from ${w.start} to ${w.end}` : `from ${w.start}`;
 }
 
 /** The date-grouped records stream — shared by the find-result view and the
@@ -167,6 +162,9 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   const [dashOpen, setDashOpen] = useState(false);
   const vocabulary = useExplorerVocabulary();
   const liveParsed = useMemo(() => parseQuery(draft), [draft]);
+  const scopeLabel = sourceFilterLabel(isFindQuery(liveParsed) ? liveParsed.filters : []);
+  const findWindowLabel = isFindQuery(liveParsed) && liveParsed.window ? windowLabel(liveParsed.window) : null;
+  const rowsWindowLabel = isRowsQuery(liveParsed) && liveParsed.window ? windowLabel(liveParsed.window) : null;
   const stickyOffset = useStickyBoundaryOffset(104);
 
   // The subset for the Query→Dashboard flow: a find draft IS the subset; an
@@ -435,8 +433,8 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
               <div className="bg-card border border-border rounded-lg p-4">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
                   Find {liveParsed.target}
-                  {(scopeLabel => scopeLabel && <span className="ml-1">in {scopeLabel}</span>)(sourceFilterLabel(liveParsed.filters))}
-                  {(wLabel => wLabel && <span className="ml-1">{wLabel}</span>)(windowLabel(liveParsed.window))}
+                  {scopeLabel && <span className="ml-1">in {scopeLabel}</span>}
+                  {findWindowLabel && <span className="ml-1">{findWindowLabel}</span>}
                 </div>
                 {liveParsed.error ? (
                   <div className="text-sm text-destructive font-mono">{liveParsed.error}</div>
@@ -469,7 +467,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
               <div className="bg-card border border-border rounded-lg p-4">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
                   Rows{liveParsed.outputType ? `:${liveParsed.outputType}` : ''}
-                  {(wLabel => wLabel && <span className="ml-1">{wLabel}</span>)(windowLabel(liveParsed.window))}
+                  {rowsWindowLabel && <span className="ml-1">{rowsWindowLabel}</span>}
                 </div>
                 {liveParsed.error ? (
                   <div className="text-sm text-destructive font-mono">{liveParsed.error}</div>

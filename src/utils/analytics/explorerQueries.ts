@@ -77,14 +77,6 @@ export const EXAMPLE_QUERIES: ExampleQuery[] = [
   },
 ];
 
-export function serializeFilter(filter: TagFilter): string {
-  const sign = filter.negate ? '!' : '';
-  const values = filter.values
-    .map((v) => `${v.value}${v.wildcard ? '*' : ''}`)
-    .join('|');
-  return `${sign}${filter.key}:${values}`;
-}
-
 /** Re-serialize a parsed WQL query back to the canonical string form — the
  * engine's C6 total serializer (fixed-point on canonical text). */
 export function serializeQuery(parsed: AnyParsedQuery): string {
