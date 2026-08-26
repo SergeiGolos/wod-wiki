@@ -67,7 +67,7 @@ describe('WqlComposer and diagnostics suite', () => {
     const sourceClause = clauses!.find((c) => c.type === 'source');
     expect(sourceClause?.value).toBe('journal');
     // source filter is folded into c-source, tags:pr remains in filters
-    expect(clauses!.filter((c) => c.type === 'tags')).toHaveLength(1);
+    expect(clauses!.filter((c) => c.type === 'tag')).toHaveLength(1);
   });
 
   it('salvages find query outer join where clause (C2 review finding)', () => {

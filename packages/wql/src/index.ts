@@ -13,6 +13,7 @@ export * as wqlTerms from './grammar/wql.parser.terms';
 // 3. WQL parser, AST, and suffixes
 export * from './wql';
 export * from './wqlSuffix';
+export * from './serialize';
 
 // 4. Disciplines
 export * from './disciplines';
