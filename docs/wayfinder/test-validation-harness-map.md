@@ -97,6 +97,12 @@ existing `bun run test` / storybook flows.
   landed: `apps/storybook/src/WqlGallery.stories.tsx` (Gallery/WQL Example
   Gallery); curated live examples across 4 query families over all 4 corpus
   journals using `@bitcobblers/wod-wiki-ui` widgets; `test:storybook` passes.
+- [Build the debug workbench story](test-validation-harness/tickets/009-build-debug-workbench-story.md) —
+  landed: 2×2 Debug Panel Grid in `apps/storybook/src/LanguageWorkbench.stories.tsx`
+  (parser statements & metrics, runtime execution controls & stack, block
+  memory map, streaming output logs); effect-owned `RuntimeFactory` +
+  `ScriptRuntimeProvider` + `useRuntimeExecution` wall-clock; `test:storybook`
+  passes.
 
 ## Not yet specified
 
