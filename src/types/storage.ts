@@ -152,7 +152,7 @@ export interface BlockIndexRow {
  * 'playground' rows are recorded and viewable but excluded from default
  * journal/progress list filters. Absent on legacy rows — treated as 'journal'.
  */
-export type ResultOrigin = 'journal' | 'playground';
+export type ResultOrigin = 'journal' | 'playground' | 'user';
 
 /**
  * WorkoutResult: The outcome of running a specific segment version.
@@ -176,6 +176,10 @@ export interface WorkoutResult {
 
     /** Which surface produced this result; default filters exclude 'playground'. */
     origin?: ResultOrigin;
+    /** Write-path lifecycle (unified event store): row born 'in-progress' at
+     *  workout start, flipped to 'completed' at finalize. Absent = 'completed'
+     *  (legacy rows predate streaming). */
+    status?: 'in-progress' | 'completed';
 
     /** V10 — FK to the `page` store (copied from the parent note). */
     pageId?: string;
@@ -207,49 +211,17 @@ export interface Attachment {
 }
 
 // ---------------------------------------------------------------------------
-// AnalyticsDataPoint — de-normalized metric for cross-workout queries
+// AnalyticsDataPoint — flat fact currency for cross-workout queries
 // ---------------------------------------------------------------------------
 /**
- * AnalyticsDataPoint: A single derived metric persisted for trend analysis.
+ * AnalyticsDataPoint is owned by `@bitcobblers/wod-wiki-core` (0.6.36): the
+ * flat per-metric projection the WQL four-stage plan consumes. It is no
+ * longer a storage schema row — the unified `events` store holds
+ * UnifiedEventRecord rows (grain 'event' | 'summary') and
+ * `projectEventToFacts` folds them into this shape at query time.
  */
-export interface AnalyticsDataPoint {
-    id: string;
-    noteId: string;
-    /** V6 — content-stable join key; drives the `analytics.by-content` index for cross-workout trend queries. */
-    blockContentId?: string;
-    /** Which surface produced the parent result; trend queries exclude 'playground' by default. */
-    origin?: ResultOrigin;
-    /** V10 — FK to the `page` store (copied from the parent note). */
-    pageId?: string;
-    /** V10 — fact grain: per-segment rows vs whole-result summary rows.
-     *  'rollup' (#736) — windowed aggregates (ACWR, monotony, strain) written
-     *  by the lazy rollup driver on analytics-surface open. */
-    grain?: 'segment' | 'summary' | 'rollup';
-    /** V10 — effort catalog slug when the row derives from a known effort. */
-    effortSlug?: string;
-    /** V10/V12 — effort discipline from the canonical vocabulary
-     *  (bodyweight, cycling, gymnastics, kettlebell, recovery, rowing,
-     *  running, strength, swimming, walking — see effort-registry/disciplines). */
-    discipline?: string;
-    /** V12 — qualitative intensity bucket of the resolved effort, when known. */
-    intensityTier?: string;
-    /** Climb grade label for send facts (`calc.sends` groups `by {grade}`). */
-    grade?: string;
-    segmentId: string;    // FK to NoteSegment.id (positional section id)
-    segmentVersion: number;
-    resultId: string;     // Link to raw WorkoutResult
-
-    type: string;         // Stable metric key or derived family (e.g. 'totalLoad', 'elapsed')
-    value: number | any;
-    unit?: string;
-    label: string;        // Human readable, e.g. "Average Heart Rate"
-    metricKey?: string;    // Original key emitted by the runtime / calculator
-    metricLabel?: string;  // Original human-readable metric label, when available
-    metricUnit?: string;   // Original metric unit, when available
-
-    timestamp: number;    // Effective workout date
-    createdAt: number;    // Generation date
-}
+export type { AnalyticsDataPoint, UnifiedEventRecord, EventGrain, } from '@bitcobblers/wod-wiki-core';
+export { KNOWN_OUTPUT_TYPES } from '@bitcobblers/wod-wiki-core';
 
 // ---------------------------------------------------------------------------
 // Effort — the canonical effort entity is IEffort in effort-registry/types;

@@ -7,11 +7,11 @@ import '../../../../tests/helpers/repair-react-router-dom';
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
-import { isFindQuery, parseQuery, type FindQueryResult, type ParsedFindQuery, type QueryResult, type ParsedQuery } from '@bitcobblers/wod-wiki-engine';
+import { parseQuery, type FindQueryResult, type ParsedAggregateQuery, type ParsedFindQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';
 
 function resultOf(raw: string): QueryResult {
   return {
-    parsed: parseQuery(raw) as ParsedQuery,
+    parsed: parseQuery(raw) as ParsedAggregateQuery,
     series: [],
     stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 },
     matched: [],
@@ -20,7 +20,7 @@ function resultOf(raw: string): QueryResult {
 
 function scalarResult(raw: string): QueryResult {
   return {
-    parsed: parseQuery(raw) as ParsedQuery,
+    parsed: parseQuery(raw) as ParsedAggregateQuery,
     series: [{ key: 'total', label: 'total', points: [{ ts: Date.now(), value: 42 }], unit: 'kg' }],
     stages: { selected: 1, buckets: 1, aggregated: 1, groups: 0 },
     matched: [{ timestamp: Date.now(), value: 42, metricKey: 'totalVolume' } as unknown as QueryResult['matched'][number]],
@@ -170,17 +170,17 @@ describe('AnalyticsExplorerPage', () => {
   });
 
   it('Save opens the two-stage dialog seeded with the subset', async () => {
-    renderPage('find:note{tags:pr} in journal');
+    renderPage('find:note{tags:pr,source:journal}');
     await waitFor(() => expect(screen.getByTestId('save-query')).toBeDefined());
 
     fireEvent.click(screen.getByTestId('save-query'));
 
     // Stage 1: the find query is the subset (data source).
-    expect(screen.getByTestId('dashboard-subset-query').textContent).toContain('find:note{tags:pr} in journal');
+    expect(screen.getByTestId('dashboard-subset-query').textContent).toContain('find:note{tags:pr,source:journal}');
     // Stage 2: the calculation composer seeds the subset as its where join…
-    await waitFor(() => expect(screen.getByTestId('token-slot-where').textContent).toContain('find:note{tags:pr} in journal'));
+    await waitFor(() => expect(screen.getByTestId('token-slot-where').textContent).toContain('find:note{tags:pr,source:journal}'));
     // …and the combined WQL previews live.
-    await waitFor(() => expect(screen.getByTestId('dashboard-combined-query').textContent).toContain('where find:note{tags:pr} in journal'));
+    await waitFor(() => expect(screen.getByTestId('dashboard-combined-query').textContent).toContain('where find:note{tags:pr,source:journal}'));
     // Apply is deferred — dashboard wiring is a follow-up.
     expect(screen.getByTestId('dashboard-apply').getAttribute('disabled')).not.toBeNull();
   });
@@ -198,7 +198,7 @@ describe('AnalyticsExplorerPage', () => {
     // …and the derived records query sits behind the Records disclosure.
     expect(screen.queryByTestId('records-wql')).toBeNull();
     fireEvent.click(await waitFor(() => screen.getByTestId('records-toggle')));
-    await waitFor(() => expect(screen.getByTestId('records-wql').textContent).toBe('find:note{tags:pr} in all last 16w'));
+    await waitFor(() => expect(screen.getByTestId('records-wql').textContent).toBe('find:note{tags:pr} last 16w'));
     await waitFor(() => expect(screen.getByTestId('library-row-post').textContent).toContain('StrongLifts 5×5'));
   });
 
@@ -266,11 +266,11 @@ describe('AnalyticsExplorerPage', () => {
     // Edit the draft (remove the discipline filter) — no page run may follow.
     fireEvent.click(screen.getByTestId('token-slot-remove-discipline'));
     await waitFor(() => expect(screen.getByTestId('token-slot-metric')).toBeDefined());
-    expect(pageRuns()).not.toContain('sum:totalVolume by {week}.rollup(1w)');
+    expect(pageRuns()).not.toContain('sum:totalVolume{} by {week}.rollup(1w)');
 
     // Submit via the Run button — the page runs the edited draft.
     fireEvent.click(screen.getByTestId('run-query'));
-    await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume by {week}.rollup(1w)'));
+    await waitFor(() => expect(pageRuns()).toContain('sum:totalVolume{} by {week}.rollup(1w)'));
   });
 
   it('restores composer state on browser back and re-runs the restored query', async () => {
@@ -299,14 +299,14 @@ describe('AnalyticsExplorerPage', () => {
 
     fireEvent.click(await waitFor(() => screen.getByText('tis')));
     await waitFor(() => expect(screen.getByTestId('token-slot-metric').textContent).toContain('tis'));
-    await waitFor(() => expect(pageRuns()).toContain('sum:tis'));
+    await waitFor(() => expect(pageRuns()).toContain('sum:tis{}'));
   });
 
   it('dispatches find queries through runFind', async () => {
     renderPage('');
 
     await clickExample('Find PR notes');
-    await waitFor(() => expect(runFindCalls).toContain('find:note{tags:pr} in journal'));
+    await waitFor(() => expect(runFindCalls).toContain('find:note{tags:pr,source:journal}'));
     await waitFor(() => expect(screen.queryByText('No notes found.')).not.toBeNull());
   });
 

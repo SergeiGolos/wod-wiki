@@ -11,8 +11,8 @@ packages/wql/src/
 ├── wql.ts                   ← parseQuery + AST types + semantic validation
 ├── vocabulary.ts            ← the single dictionary (aggregators, keys, dims, targets)
 ├── QueryService.ts          ← the executor (pure, stores injected)
-├── stores.ts                ← FactQueryStore / NoteQueryStore / BlockQueryStore / …
-├── derivation.ts            ← logs → summary fact rows (normalizeSummaryFacts)
+├── stores.ts                ← UnifiedEventStore / NoteQueryStore / BlockQueryStore / EffortQueryStore
+├── derivation.ts            ← logs → event rows + summary rows (toEventRows / toSummaryEventRows / projectEventToFacts)
 ├── static.ts                ← static-corpus projections (collections/feeds)
 ├── units.ts                 ← kg↔lb, m↔km conversion
 ├── dashboard/               ← dashboard note model, tokens, scaffold
@@ -27,23 +27,31 @@ WQL answers three distinct questions, and the language has **three query familie
 
 | Family | Shape | Question it answers |
 | -------- | ------- | --------------------- |
-| **Aggregate** | `sum:reps{effort:push-up} by {week}` | "How much/how many over my training history?" |
-| **Find** (content discovery) | `find:note{tags:strength} in journal last 8w` | "Which notes/blocks/efforts match?" |
-| **Rows** | `rows:segment{result:abc123}` | "Show me the raw per-segment log of this run." |
+| **Aggregate** | `sum:totalVolume{discipline:strength} by {week} last 6w` | "How much/how many over my training history?" |
+| **Rows** | `rows:segment{result:abc123} last 4w` | "Show me the raw per-segment log of this run." |
+| **Find** (legacy content-discovery head) | `find:note{tags:strength,source:journal} last 8w` | "Which notes/blocks/efforts match?" |
+
+`rows:<target>` is the list-returning form for **every** plane — result
+planes narrow the promoted `outputType` column, content planes (`note`,
+`block`, `effort`) scope by content id, and `rows:all` is the explicit
+no-narrowing pseudo-target. `find:` still parses and executes content
+discovery (the composer and older dashboards emit it), but new surfaces
+should prefer `rows:note|block|effort{…}`.
 
 Two design principles govern everything below:
 
-1. **Logs win.** `WorkoutResult.data.logs` is the authoritative record for a single workout. The Analytics Store is a disposable, re-derivable index. If the two disagree, the logs are right — which is why cross-store joins re-derive from logs rather than trusting the store.
+1. **Logs win; the store is their projection.** `WorkoutResult.data.logs` is the authoritative record for a single workout; the unified event store is the queryable projection of that stream — summaries are finalize-owned from the logs (ticket 005), so readers (joins included) trust the store rather than re-deriving.
 2. **The store seam is inverted.** `QueryService` has zero IndexedDB/storage imports. All persistence is injected through the store interfaces (`stores.ts`), so the service is 100% pure and testable with in-memory fakes.
 
 ```text
 WorkoutResult.data.logs (authoritative)
-        │  normalizeSummaryFacts()
+        │  toEventRows() + toSummaryEventRows()
         ▼
-Analytics Store (facts: summary / segment / rollup grains)
-        │
+Events Store (UnifiedEventRecord: grain 'event' | 'summary')
+        │  projectEventToFacts() folds rows to flat facts at read
         ▼
-QueryService — SELECT → BUCKET → GROUP → AGGREGATE
+QueryService — SELECT → BUCKET → GROUP → AGGREGATE (window-first hybrid:
+                   by-timestamp when windowed, full scan otherwise; by-metric never used)
         │
         ▼
 QueryResult { series, scalar, matched } → widgets/tables (dumb consumers)
@@ -56,53 +64,69 @@ QueryResult { series, scalar, matched } → widgets/tables (dumb consumers)
 ### 2.1 Aggregate queries
 
 ```text
-<agg>:<metric.key>{<tag filters>} by {<dimensions>} .rollup(<period>) in <unit> where find:…
+<agg>:<metric.key>{<tag filters>} [by {<dimensions>}] [.rollup(<period>)] [in <unit>] [<window>] [where find:…]
+
+window := last <n><d|w> | from <YYYY-MM-DD> [to <YYYY-MM-DD>]
 ```
 
 ```text
-sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(1w)
+sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(1w) last 6w
 avg:tis{effort:back*} by {session}
 max:resistance{effort:back-squat} in kg
+sum:tis{} by {week} from 2026-01-01 to 2026-03-31
 last:calc.acwr{}
 ```
 
 - **Aggregators** (`WQL_AGGREGATORS`): `sum`, `avg`, `min`, `max`, `count`, `last`, `delta`.
 - **Metric namespaces** are Canonical Metric Keys: families (`reps`, `distance`, `resistance`, `elapsed`, `power`, `pace`), Tier-2 aggregates (`totalVolume`, `totalDistance`, `tis`, `sessionLoad`), effort-scoped keys (`<effortSlug>.<family>`), and calc targets (`calc.acwr`, `calc.e1rm`, `calc.metMinutes`, … — see `WQL_CALC_TARGETS`).
-- **`in <unit>`** is a display-unit directive (`in kg`, `in lb`) — conversion happens at read time, facts are stored in their recorded unit.
+- **`in <unit>`** is a display-unit directive (`in kg`, `in lb`) on the **aggregate** family — conversion happens at read time, facts are stored in their recorded unit. On find/rows a trailing `in <word>` is the legacy scope spelling (C2): the compat normalizer rewrites it into a `source:` filter and attaches a deprecation advisory.
+- **`<window>`** (C1) is one time-selection clause, legal on every family: `last 6w` is relative to the anchor (wall clock by default), `from … to …` is a civil-date range (local-midnight semantics, inclusive end day). One window per query — `last` and `from` are mutually exclusive (C3 conflict).
 
-### 2.2 Find queries (content discovery)
+### 2.2 Find queries (content discovery) — legacy head
+
+`find:` is the legacy head for content discovery — its own parsing family
+executing through `runFind`, superseded by the `rows:` head (§2.3) for new
+surfaces.
+Provenance is a **`source:` filter** inside the braces (C2) — the legacy
+trailing `in <scope>` still parses (rewritten by the compat normalizer with
+a deprecation advisory), but new queries should not use it.
 
 ```text
-find:<target>{<filters>} in <scope> last <n><unit> where <agg>:<metric>{} <op> <number>
+find:<target>{<filters>} [<window>] [where <agg>:<metric>{} <op> <number>]
 ```
 
 ```text
-find:note{tags:pr} in journal last 8w
-find:block{text:"air squats",!source:feed} in all
+find:note{tags:pr,source:journal} last 8w
+find:block{text:"air squats",!source:feeds}
 find:effort{discipline:kettlebell,intensity:high}
-find:note{} in journal where sum:totalVolume{discipline:strength} > 5000
+find:note{source:journal} where sum:totalVolume{discipline:strength} > 5000
 ```
 
-- **Targets** (`WQL_FIND_TARGETS`): `note`, `block`, `effort`.
-- **Scopes** (`WQL_SCOPES`): `journal`, `collections`, `feeds`, `all`.
+- **Targets** (`WQL_FIND_TARGETS`): `note`, `block`, `effort` (C7 closed enum — an unknown target is a parse error listing the valid ones).
+- **Sources** (`WQL_SOURCE_VALUES`): `journal`, `collections`, `feeds`, `all`, plus `collection:<id>` / `feed:<id>` compound values. `all` is the default — omit it.
 - **Content filter keys** (`WQL_CONTENT_FILTER_KEYS`): `type`, `text`, `has`, `source`, `catalog`, plus the analytics tag keys.
-- **`last <n>d|w`** is a time window; an explicit `{start, end}` range passed as an option overrides it.
+- **`<window>`** (C1) — same clause as every family; the legacy `last` field name survives only in the join-half AST.
 
-### 2.3 Rows queries (the session results plane)
+### 2.3 Rows queries (the results plane)
 
 ```text
-rows[:<outputType>]{<scope filters>} last <n><unit>
+rows:<target>{<scope filters>} [<window>]
 ```
 
 ```text
-rows:{result:abc123}
+rows:all{result:abc123}
 rows:segment{block:content-id-xyz}
-rows:{note:note-uuid} last 4w
+rows:all{note:note-uuid} last 4w
+rows:note{note:note-uuid}
 ```
 
-- Scope filters are exactly `result:`, `block:`, or `note:` (exact values only — no negation, no wildcards).
+- The **target is required** (C4): `rows:all` is the explicit no-narrowing pseudo-target; bare `rows:{…}` is rewritten by the compat normalizer with a deprecation advisory.
+- **Result-plane targets** (`WQL_RESULT_PLANES` — the store's known `outputType` values: `segment`, `analytics`, `wellness`, `load`, `event`, `system`, `compiler`, `completion`) narrow the promoted column.
+- **Content-plane targets** (`note`, `block`, `effort`) scope by content id instead of narrowing — `rows:note{note:note-uuid}` and `rows:all{note:note-uuid}` are equivalent.
+- **Filter keys** are `result:`/`block:`/`note:` scope filters (exact values only — no negation, no wildcards; execution requires at least one scope filter) plus `source:`.
 - Rows **never aggregate**: `by`, `.rollup`, and `where` are rejected with a loud error.
-- Rows re-derive output statements from raw `WorkoutResult` logs through `ResultLogStore` — they never touch the fact store.
+- Rows read event rows directly from the unified store — no WorkoutResult blob parsing.
+
 
 ### 2.4 Filter semantics
 
@@ -121,13 +145,13 @@ Tag filters live in `{…}` and follow Datadog conventions:
 
 ```text
 -- Direction 1: content restricted by a metric predicate
-find:note{tags:competition} in journal where sum:totalVolume{discipline:strength} > 5000
+find:note{tags:competition,source:journal} where sum:totalVolume{discipline:strength} > 5000
 
 -- Direction 2: a metric computed only over content matching a find
-sum:totalVolume{} by {week} where find:note{tags:competition} in journal
+sum:totalVolume{} by {week} where find:note{tags:competition,source:journal}
 ```
 
-Both directions are evaluated against **raw logs** joined at `blockContentId`, not against the fact store — the "logs win" rule.
+Both directions are evaluated against the store's **finalize-owned summary rows**, fetched by `blockContentId` over the content index — the store is the authoritative projection of the logs.
 
 ---
 
@@ -155,10 +179,10 @@ Rollup    { RollupDot parenOpen Int Word parenClose }
 
 Structural literals that can never overlap a word position keep their own tokens: `by`, `.rollup`, `!`, `*`, `:`, `|`, `,`, `.`, braces, parens, and `"quoted"` phrases.
 
-**Suffixes are stripped in JS, not lexed.** `where`, `in <unit>`, `last <n>w`, and `in <scope>` never appear in the grammar. `wqlSuffix.ts` (`parseWqlSuffixes`) removes them with anchored regexes before the Lezer parse:
+**Suffixes are stripped in JS, not lexed.** `where`, `in <unit>`, windows (`last <n>d|w`, `from … to …`), and the legacy `in <scope>` never appear in the grammar. `wqlSuffix.ts` (`parseWqlSuffixes`) removes them with anchored, right-to-left regexes before the Lezer parse — peel order: `window` → `displayUnit` → `.rollup` → `by {}`; `where` still splits first (brace-aware):
 
-- The `where` split is **brace-aware** (`splitAtWhere` scans at depth 0) so `{text:where}` inside filters is never mistaken for a join.
-- `in` is ambiguous between *display unit* (`in kg`) and *scope* (`in journal`) — resolved by family: analytics queries treat a trailing `in <word>` as a display unit, find queries as a scope.
+- `in` resolves by family (C2): a **display unit** on aggregate queries; on find/rows the trailing `in <scope>` is legacy scope, rewritten into a `source:` filter by the compat normalizer and reported as a deprecation advisory.
+- Duplicate clauses of the same kind are a **parse error naming both spans** (C3) — never rightmost-wins. `last` + `from` together is the same conflict.
 - Rows queries strip `by` / `.rollup` too, but only to report them as errors downstream ("rows never aggregates").
 
 This split keeps the grammar small and recoverable (Lezer inserts ⚠ error nodes on malformed input; the mapper rejects any tree containing one) while leaving room for textual extensions without grammar churn.
@@ -166,37 +190,54 @@ This split keeps the grammar small and recoverable (Lezer inserts ⚠ error node
 ---
 
 ## 4. The AST contract
-
-`parseQuery(raw)` dispatches textually — leading `find:` → find, leading `rows` → rows, otherwise aggregate — and returns one of:
+`parseQuery(raw)` dispatches textually — leading `find:` → find, leading `rows` → rows, otherwise aggregate — and returns one of the **C5 discriminated-union** variants (`family` on every member):
 
 ```typescript
-interface ParsedQuery {              // aggregate family
+type AnyParsedQuery =
+  | ParsedAggregateQuery    // family: 'aggregate'
+  | ParsedFindQuery         // family: 'find'
+  | ParsedRowsQuery;        // family: 'rows'
+
+interface ParsedAggregateQuery {
+  family: 'aggregate';
+  raw: string;
   agg: Aggregator;                   // sum | avg | min | max | count | last | delta
   metric: string;                    // Canonical Metric Key
   filters: TagFilter[];
   groupBy: string[];                 // tag keys, or virtual dims: day | week | session | round
   rollup?: { size: number; unit: 'd' | 'w' };
+  window?: QueryWindow;              // C1 — `last 6w` / `from … [to …]`
   displayUnit?: string;              // `in kg`
   join?: FindPredicate;              // `where find:…`
+  advisories?: string[];             // C2 deprecation notices (legacy syntax used)
   error?: string;
 }
 
-interface ParsedFindQuery {          // content-discovery family
-  target: string;                    // note | block | effort
-  filters: TagFilter[];
-  scope?: string;                    // journal | collections | feeds | all
-  last?: { size: number; unit: 'd' | 'w' };
+interface ParsedFindQuery {
+  family: 'find';
+  raw: string;
+  target: string;                    // note | block | effort (C7 closed enum)
+  filters: TagFilter[];              // provenance lives here: source:journal
+  window?: QueryWindow;              // C1
   join?: MetricPredicate;            // `where sum:totalVolume{} > 5000`
+  advisories?: string[];
   error?: string;
 }
 
-interface ParsedRowsQuery {          // rows family
+interface ParsedRowsQuery {
   family: 'rows';
-  outputType?: string;               // rows:segment{…} → 'segment'
+  raw: string;
+  outputType?: string;               // rows:segment{…} → 'segment'; absent for rows:all
   filters: TagFilter[];              // result: / block: / note: scopes
-  last?: { size: number; unit: 'd' | 'w' };
+  window?: QueryWindow;              // C1
+  advisories?: string[];
   error?: string;
 }
+
+/** C1 — one time-selection clause, legal on every family. */
+type QueryWindow =
+  | { kind: 'relative'; size: number; unit: 'd' | 'w' }          // last 6w
+  | { kind: 'range'; start: string; end?: string };              // from 2026-01-01 [to …]
 
 interface TagFilter {
   key: string;
@@ -205,7 +246,8 @@ interface TagFilter {
 }
 ```
 
-Validation is semantic: unknown aggregators produce `Unknown aggregator "foo". Try: sum, avg, …`; malformed text produces a family-specific `Cannot parse …` message. Type guards `isFindQuery` / `isRowsQuery` discriminate the union.
+Validation is semantic: unknown aggregators produce `Unknown aggregator "foo". Try: sum, avg, …`; unknown find/rows targets produce the same shape listing `WQL_FIND_TARGETS` / `WQL_ROWS_TARGETS` (C7); duplicate suffix clauses produce a conflict naming both spans (C3). Type guards `isFindQuery` / `isRowsQuery` discriminate the union. `serialize(parsed)` (C6) renders any variant back to canonical text — the fixed point of `parse ∘ serialize`.
+
 
 ---
 
@@ -214,7 +256,7 @@ Validation is semantic: unknown aggregators produce `Unknown aggregator "foo". T
 `QueryService` runs aggregate queries as a **four-stage physical plan** (documented in the module header):
 
 ```text
-SELECT     index-first: by-metric + by-timestamp fetches, intersected in memory
+SELECT     window-first hybrid: by-timestamp fetch when windowed, full scan otherwise
   │
 BUCKET     assign each row to a time bucket (day / week / .rollup period)
   │
@@ -226,28 +268,29 @@ AGGREGATE  fold each bucket's values with the aggregator
 ### 5.1 SELECT
 
 ```typescript
-const byMetric = await this.store.getFactsByMetric(parsed.metric);
-let candidates = byMetric;
-if (options.rangeStart !== undefined || options.rangeEnd !== undefined) {
-  const inRange = new Set((await this.store.getFactsByTimeRange(start, end)).map(r => r.id));
-  candidates = candidates.filter(row => inRange.has(row.id));
-}
+// C1: explicit range options win; otherwise the parsed window drives a
+// by-timestamp fetch; no window scans all-time.
+const range = options.rangeStart !== undefined || options.rangeEnd !== undefined
+  ? { start: options.rangeStart ?? 0, end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER }
+  : windowRange(parsed.window);
+const eventRows = range
+  ? await this.store.getEventsByTimeRange(range.start, range.end)
+  : await this.store.scanAll();
+const candidates = eventRows
+  .flatMap(projectEventToFacts)
+  .filter(row => row.metricKey === parsed.metric);
 const matched = this.applyEffortScope(
   candidates.filter(row => matchesFilters(row, parsed.filters, noteTags)), parsed);
 ```
 
-- Index-first: two indexed fetches intersected in memory. Inputs are **uncapped by design** — personal-journal scale.
+- **Window-first hybrid**: a window (textual or options) fetches through by-timestamp — the one proven culling index; all-time queries scan. by-metric is never used (measured non-selective and slower than scanning).
+- The window resolves through `windowRange(parsed.window)` — aggregate windows always anchor to `Date.now()`. (`'latest-activity'` anchoring and an explicit `anchorNow` exist on the find/rows paths, not the aggregate plan.)
 - The `tags` key is special: it resolves through the note's frontmatter tag labels (`getNoteTagLabels`), loaded lazily only when the query touches `tags`.
 - **Effort-scope de-dup**: summary rows are emitted both per-effort and un-attributed. If the query groups or filters by `effort`, un-attributed rows are dropped (and vice versa) so totals are never double-counted.
 
 ### 5.2 BUCKET
 
-Time dims and `.rollup` share one bucketing rule — `Math.floor(ts / bucketMs)` over the row's canonical `timestamp` (the workout's true end time, never the derivation time):
-
-- `day` → 24h buckets, labeled by local date.
-- `week` → Monday-aligned buckets (`w/MM-DD`).
-- `.rollup(nw)` → n-week buckets; `.rollup(nd)` → n-day buckets.
-- No time dim → a single bucket.
+Buckets are assigned over the row's canonical `timestamp` (the workout's true end time, never the derivation time). Post-C1, `day`/`week` group keys are **local civil ISO dates** computed from calendar components (`civilDay`) — never epoch floors, so DST never splits a day and weeks stay local-Monday-aligned: `day` → the local date's `YYYY-MM-DD`; `week` → the civil Monday's `YYYY-MM-DD`. `.rollup(nu)` keeps epoch math — `Math.floor(ts / bucketMs)` over n-day/n-week buckets. No time dim → a single bucket.
 
 ### 5.3 GROUP
 
@@ -274,7 +317,7 @@ Output is a `QueryResult`:
 
 ```typescript
 interface QueryResult {
-  parsed: ParsedQuery;
+  parsed: ParsedAggregateQuery;
   series: Series[];           // one per group; points sorted by bucket
   stages: { selected; buckets; aggregated; groups };  // observability counts
   matched: AnalyticsDataPoint[];   // the surviving fact rows
@@ -287,14 +330,14 @@ Widgets and tables are dumb consumers of this shape; `stages` exists so UIs can 
 
 ### 5.5 Cross-store join execution
 
-- **Direction 1** (find + metric predicate): resolve the `blockContentId`s owned by candidate notes/blocks → `deriveMetricFacts` re-derives summary facts from each matching result's raw logs → aggregate per content id → keep ids passing `<op> <threshold>` → filter the content set to owners.
-- **Direction 2** (aggregate + find predicate): run the find half → collect owned `blockContentId`s → re-derive the metric from raw logs for exactly those ids → run the normal SELECT/BUCKET/GROUP/AGGREGATE over the derived facts.
+- **Direction 1** (find + metric predicate): resolve the `blockContentId`s owned by candidate notes/blocks → `deriveMetricFacts` reads each content id's summary-grain rows through `getEventsByContent` → aggregate per content id → keep ids passing `<op> <threshold>` → filter the content set to owners.
+- **Direction 2** (aggregate + find predicate): run the find half → collect owned `blockContentId`s → fetch summary facts for exactly those ids → run the normal BUCKET/GROUP/AGGREGATE over them.
 
-`deriveMetricFacts` calls `normalizeSummaryFacts(result.data.logs, identity)` per result — the same function used to build the store — so a join result is *identical* to what the store would hold. That's what "logs win" means operationally.
+`deriveMetricFacts` projects the store's finalize-owned summary rows (`projectEventToFacts`) — the same rows a plain aggregate reads — so a join result is *identical* to a non-joined query over the same content. The store is authoritative; there is no separate re-derivation path.
 
 ### 5.6 Rows execution
 
-`runRows` bypasses the fact store entirely: fetch `WorkoutResult`s by `result:`/`block:`/`note:` scope, filter by time window, sort newest-first, optionally narrow logs to `outputType`, and return `{ result, logs }[]` — the wide per-round view that aggregate families can't express.
+`runRows` bypasses the projected fact view and reads **event rows directly** from the unified store: scope filters (`result:`/`block:`/`note:` — at least one required, validated at parse) fetch through `getEventsByResult`/`getEventsByContent`/`getEventsForNote`, groups are filtered by the parsed `window`, sorted newest-first, and event rows are narrowed to the `outputType` target (skipped for content-plane targets). Returns `runs: { resultId, noteId, timestamp, events: UnifiedEventRecord[] }[]` — the wide per-round view aggregate families can't express.
 
 ### 5.7 Find execution
 
@@ -309,10 +352,10 @@ Find is naive in-memory filtering at personal-journal scale: scope-select (journ
 Facts are `AnalyticsDataPoint` rows (`@bitcobblers/wod-wiki-core`):
 
 ```typescript
-interface AnalyticsDataPoint {
+interface AnalyticsDataPoint {   // flat fact currency — projected from event rows, never stored
   id: string;
   noteId: string;  blockContentId?: string;  resultId: string;
-  grain?: 'segment' | 'summary' | 'rollup';
+  grain?: 'event' | 'summary';
   metricKey?: string;  metricLabel?: string;  metricUnit?: string;
   value: unknown;  unit?: string;
   effortSlug?: string;  discipline?: string;  intensityTier?: string;  grade?: string;
@@ -323,11 +366,11 @@ interface AnalyticsDataPoint {
 }
 ```
 
-**Three grains** (`WQL_GRAINS`):
+**Two grains** (`WQL_GRAINS`):
 
-- `summary` — Tier-2 workout-level aggregates, one row per result × canonical key × sorted group tags (`totalVolume:effort=thruster`). Keep-last dedupe within a result.
-- `segment` — per-segment numeric metrics, denormalized for indexed threshold filters.
-- `rollup` — windowed facts (ACWR, monotony, strain) computed lazily on analytics-surface open; recompute-on-open only, no scheduler.
+- `summary` — workout-level aggregates, one row per result × canonical key × sorted group tags. Engine-authored summaries are finalize-owned; user-authored (wellness, origin 'user') are reconcile-owned.
+- `event` — one row per output statement (the old 'segment' grain renamed).
+- `rollup` is RETIRED (parse-time error) — rollups are read-time math via the `.rollup` suffix, never stored.
 
 **Normalization** (`derivation.ts`): `normalizeSummaryFacts` scans a result's logs for `outputType: 'analytics'` statements, reads the `Label` metric as the projection name and the numeric value metric, and emits fact rows. The **Canonical Metric Key** comes from the processor's `metadata.canonicalKey` when present (composed calcs), else is derived from the projection name (`'Total Volume' → 'totalVolume'`). Summary processors hang `effortSlug` / `effortDiscipline` / `effortIntensityTier` / `groupTags` on the value metric's `metadata` — pure data that survives the stored-logs round trip.
 
@@ -346,10 +389,13 @@ All of these live in `vocabulary.ts` — the single dictionary every surface (co
 | `WQL_TAG_KEYS` | `effort`, `discipline`, `intensity`, `note`, `page`, `origin`, `grain`, `metric`, `block`, `result`, `tags` |
 | `WQL_VIRTUAL_DIMS` | `day`, `week`, `session`, `round` |
 | `WQL_FIND_TARGETS` | `note`, `block`, `effort` |
-| `WQL_SCOPES` | `journal`, `collections`, `feeds`, `all` |
+| `WQL_SOURCE_VALUES` | `journal`, `collections`, `feeds`, `all` (+ `collection:<id>`, `feed:<id>`) — the C2 `source:` filter vocabulary |
 | `WQL_CONTENT_FILTER_KEYS` | `type`, `text`, `has`, `source`, `catalog`, + tag keys |
 | `WQL_SOURCES` | `journal`, `collections`, `feeds`, `notes`, `blocks`, `efforts`, `metrics` (composer planes) |
-| `WQL_GRAINS` | `segment`, `summary`, `rollup` |
+| `WQL_RESULT_PLANES` | the store's known `outputType` values: `segment`, `analytics`, `wellness`, `load`, `event`, `system`, `compiler`, `completion` |
+| `WQL_ROWS_TARGETS` | `WQL_FIND_TARGETS` + `WQL_RESULT_PLANES` + `all` |
+| `WQL_ROWS_SCOPE_KEYS` | `result`, `block`, `note` |
+| `WQL_GRAINS` | `summary`, `event` (`rollup` retired — parse-time error) |
 | `WQL_ROLLUP_PERIODS` | `1d`, `1w` (grammar accepts any `Nd`/`Nw`) |
 | `WQL_DISPLAY_UNITS` | `kg`, `lb` (canonical options; `in <word>` accepts any) |
 | `WQL_INTENSITY_TIERS` | `low`, `moderate`, `high` |
@@ -359,7 +405,7 @@ All of these live in `vocabulary.ts` — the single dictionary every surface (co
 
 **Unit conversion** (`units.ts`) is narrow and pure: mass (`kg` ↔ `lb`, exact `0.45359237`) and distance (`m` ↔ `km`). Unknown or cross-family units pass through unchanged.
 
-**Rollup math** lives in lang (`analytics/rollup/workloadRollup.ts`) — Foster sRPE periodization over daily `sessionLoad`: acute = mean of trailing 7 days, chronic = mean of trailing 28, `ACWR = acute/chronic`, `monotony = mean7/sd7`, `strain = monotony × Σ7`. Day buckets are UTC — the same bucketing the Query Service uses for the `day` dimension.
+**Rollup math** lives in lang (`analytics/rollup/workloadRollup.ts`) — Foster sRPE periodization over daily `sessionLoad`: acute = mean of trailing 7 days, chronic = mean of trailing 28, `ACWR = acute/chronic`, `monotony = mean7/sd7`, `strain = monotony × Σ7`. Its day buckets are UTC epoch floors — *not* the Query Service's local-civil `day` dimension keys (which are calendar-component dates).
 
 ---
 
@@ -397,31 +443,39 @@ max:resistance{discipline:strength} by {effort}
 ## 9. Store seams (dependency inversion)
 
 ```typescript
-interface FactQueryStore {
-  getFactsByMetric(metricKey: string): Promise<AnalyticsDataPoint[]>;
-  getFactsByTimeRange(start: number, end: number): Promise<AnalyticsDataPoint[]>;
-  getNoteTagLabels(noteId: string): Promise<string[]>;
+interface UnifiedEventStore {
+  // reads (all return UnifiedEventRecord[])
+  getEventsByTimeRange(start, end): Promise<…>;   // windowed — by-timestamp index
+  getEventsByResult(resultId): Promise<…>;        // by-result-grain index
+  getEventsForNote(noteId): Promise<…>;           // join through results store
+  getEventsByContent(blockContentId): Promise<…>; // by-content-grain index (join hot path)
+  scanAll(): Promise<…>;                          // all-time SELECT leg
+  // writes (write-path lifecycle owns these)
+  appendEvents(rows): Promise<void>;               // per-statement flush / wellness upserts
+  finalizeSummaries(resultId, rows): Promise<void>;// atomic: clear engine-authored summaries + write finals
+  deleteEvents(ids): Promise<void>;                // wellness reconcile + GC sweeps
 }
-interface NoteQueryStore   { getAllNotes(): Promise<Note[]>; getNoteIdsForTag(label): Promise<Set<string>>; }
+interface NoteQueryStore   { getAllNotes(): Promise<Note[]>; getNoteIdsForTag(label): Promise<Set<string>>;
+                             getNoteTagLabels(noteId): Promise<string[]>; }  // moved from the retired FactQueryStore
 interface BlockQueryStore  { getAllBlocks(): Promise<BlockIndexRow[]>; }
 interface EffortQueryStore { getAllEfforts(): Promise<IEffort[]>; }
-interface ResultLogStore {
-  getResultsByContentId(blockContentId: string): Promise<WorkoutResult[]>;
-  getResultById(resultId: string): Promise<WorkoutResult | undefined>;
-  getResultsForNote(noteId: string): Promise<WorkoutResult[]>;
-}
 ```
 
-The app implements these over IndexedDB; tests and the CLI use `inMemoryFactStore` from `@bitcobblers/wod-wiki-engine`. Any missing store defaults to an empty implementation, so partial wiring degrades to empty results rather than crashes.
+The app implements these over IndexedDB (V16 `events` store, six indexes); tests and the CLI use `inMemoryEventStore` / `inMemoryEventStoreFromFacts` from `@bitcobblers/wod-wiki-engine`. Any missing store defaults to an empty implementation, so partial wiring degrades to empty results rather than crashes.
 
 ## 10. Errors and edge cases
 
-- Parse errors are values, not exceptions: every `Parsed*` carries `error?: string`; executors return empty results with the error attached.
+Parse errors are **values, not exceptions** (error-as-value): every `Parsed*` carries `error?: string`; executors return empty results with the error attached. The catalog:
+
 - Lezer error recovery: any ⚠ node in the tree → family-specific `Cannot parse "…"` message.
+- **C3 suffix conflicts**: duplicate clauses of one kind → `Duplicate '<kind>' clause: '<span A>' conflicts with '<span B>'` (one line naming both spans); `last` + `from` together conflicts the same way; range windows on join halves are rejected.
+- **C2 source validation**: unknown `source:` values → `Unknown source "…". Try: journal, collections, feeds, all (or collection:<id>, feed:<id>)`.
+- **Retired grain**: `grain:rollup` is a parse-time error — rollups are read-time math via `.rollup`.
 - Rollup units are validated semantically — only `d` and `w`.
 - A rows query with `by` / `.rollup` / `where` fails loudly ("rows never aggregates").
 - A `where` on an analytics query must be a `find:…` half (and vice versa) — a same-plane join is a no-op and rejected.
 - Negated or wildcard `result:`/`block:`/`note:` scopes in rows are rejected.
+- **Deprecation advisories** (not errors): legacy syntax parses but attaches `advisories` — bare `rows:{…}` → "use `rows:all{…}`", legacy `in <scope>` → "use `source:<scope>` filter".
 
 ## 11. Using WQL from code
 
@@ -429,10 +483,10 @@ The app implements these over IndexedDB; tests and the CLI use `inMemoryFactStor
 import { QueryService, parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-wql';
 
 // Parse only (editor/typeahead/diagnostics)
-const parsed = parseQuery('sum:totalVolume{discipline:strength} by {week}');
+const parsed = parseQuery('sum:totalVolume{discipline:strength} by {week} last 6w');
 
 // Execute against injected stores
-const qs = new QueryService({ factStore, noteStore, blockStore, resultStore, effortStore });
+const qs = new QueryService({ eventStore, noteStore, blockStore, effortStore });
 const result = await qs.runQuery('sum:totalVolume{discipline:strength} by {week}', {
   preferredUnit: 'kg',
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { AnalyticsDataPoint } from '@/types/storage';
+import { inMemoryEventStore, factRowsToEventRows } from '@bitcobblers/wod-wiki-engine';
 import { detectPRsForWorkoutResult } from './prDetection';
 
 function mockFact(
@@ -26,6 +27,10 @@ function mockFact(
   };
 }
 
+function eventsStoreFromFacts(facts: AnalyticsDataPoint[]) {
+  return inMemoryEventStore(factRowsToEventRows(facts));
+}
+
 describe('prDetection', () => {
   it('detects a PR when current value is better than all previous attempts', async () => {
     const facts: AnalyticsDataPoint[] = [
@@ -34,11 +39,9 @@ describe('prDetection', () => {
       mockFact('f3', 'res-3', 'totalVolume', 4600, 3000), // current target result
     ];
 
-    const factsStore = {
-      getAnalyticsByContentId: async () => facts,
-    };
+    const eventsStore = eventsStoreFromFacts(facts);
 
-    const prs = await detectPRsForWorkoutResult('bc-fran', 'res-3', { factsStore });
+    const prs = await detectPRsForWorkoutResult('bc-fran', 'res-3', { eventsStore });
     expect(prs).toHaveLength(1);
     expect(prs[0]).toEqual({
       metricKey: 'totalVolume',
@@ -58,11 +61,9 @@ describe('prDetection', () => {
       mockFact('f2', 'res-2', 'totalVolume', 4200, 2000), // current target result
     ];
 
-    const factsStore = {
-      getAnalyticsByContentId: async () => facts,
-    };
+    const eventsStore = eventsStoreFromFacts(facts);
 
-    const prs = await detectPRsForWorkoutResult('bc-fran', 'res-2', { factsStore });
+    const prs = await detectPRsForWorkoutResult('bc-fran', 'res-2', { eventsStore });
     expect(prs).toHaveLength(1);
     expect(prs[0].isPR).toBe(false);
     expect(prs[0].previousBest).toBe(5000);
@@ -74,11 +75,9 @@ describe('prDetection', () => {
       mockFact('f2', 'res-2', 'elapsed', 150, 2000), // current target result (faster time!)
     ];
 
-    const factsStore = {
-      getAnalyticsByContentId: async () => facts,
-    };
+    const eventsStore = eventsStoreFromFacts(facts);
 
-    const prs = await detectPRsForWorkoutResult('bc-fran', 'res-2', { factsStore });
+    const prs = await detectPRsForWorkoutResult('bc-fran', 'res-2', { eventsStore });
     expect(prs).toHaveLength(1);
     expect(prs[0].isPR).toBe(true);
     expect(prs[0].previousBest).toBe(180);
@@ -90,11 +89,9 @@ describe('prDetection', () => {
       mockFact('f1', 'res-1', 'totalReps', 100, 1000),
     ];
 
-    const factsStore = {
-      getAnalyticsByContentId: async () => facts,
-    };
+    const eventsStore = eventsStoreFromFacts(facts);
 
-    const prs = await detectPRsForWorkoutResult('bc-fran', 'res-1', { factsStore });
+    const prs = await detectPRsForWorkoutResult('bc-fran', 'res-1', { eventsStore });
     expect(prs).toHaveLength(1);
     expect(prs[0].isPR).toBe(true);
     expect(prs[0].previousBest).toBeUndefined();

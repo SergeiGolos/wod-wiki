@@ -2,7 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 
 import type { HistoryEntry } from '@/types/history';
 import type { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
-import type { AnalyticsDataPoint, Note, NoteSegment, WorkoutResult } from '@/types/storage';
+import type { Note, NoteSegment, UnifiedEventRecord, WorkoutResult } from '@/types/storage';
 import { normalizeSummaryFacts } from '@/services/analytics/workoutDerivation';
 
 const indexedDBService = {};
@@ -44,9 +44,11 @@ const otherResult: WorkoutResult = {
 
 function createHarness(latestSegments: NoteSegment[] = []) {
   const results = [olderSectionResult, latestSectionResult, otherResult];
-  const savedAnalyticsPoints: AnalyticsDataPoint[] = [];
   const savedNotes: Note[] = [];
   const savedAttachments: import('@/types/storage').Attachment[] = [];
+  const appendedEvents: UnifiedEventRecord[][] = [];
+  const finalizedSummaries: { resultId: string; rows: UnifiedEventRecord[] }[] = [];
+  const deletedEventIds: string[] = [];
   const storage = {
     getNote: async (id: string) => id === note.id ? note : undefined,
     saveNote: async (n: Note) => { savedNotes.push(n); return n.id; },
@@ -65,9 +67,16 @@ function createHarness(latestSegments: NoteSegment[] = []) {
       return attachment.id;
     },
     deleteAttachment: async () => undefined,
-    saveAnalyticsPoints: async (points: AnalyticsDataPoint[]) => {
-      savedAnalyticsPoints.push(...points);
+    appendEvents: async (rows: UnifiedEventRecord[]) => {
+      appendedEvents.push(rows);
     },
+    finalizeSummaries: async (resultId: string, rows: UnifiedEventRecord[]) => {
+      finalizedSummaries.push({ resultId, rows });
+    },
+    deleteEvents: async (ids: string[]) => {
+      deletedEventIds.push(...ids);
+    },
+    getEventsForNote: async (_noteId: string) => [],
   };
   const contentProvider = {
     getEntry: async (): Promise<HistoryEntry> => ({
@@ -85,7 +94,7 @@ function createHarness(latestSegments: NoteSegment[] = []) {
     deleteEntry: async () => undefined,
   };
 
-  return { storage, contentProvider, savedAnalyticsPoints, savedAttachments, savedNotes };
+  return { storage, contentProvider, appendedEvents, finalizedSummaries, deletedEventIds, savedAttachments, savedNotes };
 }
 
 describe('IndexedDBNotePersistence', () => {
@@ -123,7 +132,7 @@ describe('IndexedDBNotePersistence', () => {
     expect(points[0]).toMatchObject({ value: 90, unit: 'reps', label: 'Total Reps' });
   });
 
-  it('persists summary facts with the block identity from workoutResult', async () => {
+  it('projects event rows with the block identity from workoutResult', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const latestSegment: NoteSegment = {
       id: 'wod-a',
@@ -134,7 +143,7 @@ describe('IndexedDBNotePersistence', () => {
       rawContent: '21-15-9',
       createdAt: 456,
     };
-    const { storage, contentProvider, savedAnalyticsPoints } = createHarness([latestSegment]);
+    const { storage, contentProvider, appendedEvents, finalizedSummaries } = createHarness([latestSegment]);
     const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
 
     await persistence.mutateNote(note.id, {
@@ -166,20 +175,20 @@ describe('IndexedDBNotePersistence', () => {
       },
     });
 
-    // V13: summary facts (from Tier-2) + atomic segment metrics (from Tier-0/1).
-    const summaryFacts = savedAnalyticsPoints.filter(p => p.grain === 'summary');
-    const segmentFacts = savedAnalyticsPoints.filter(p => p.grain === 'segment');
-    expect(summaryFacts).toHaveLength(1);
-    expect(summaryFacts[0]).toMatchObject({
-      metricKey: 'totalReps',
-      value: 45,
-      grain: 'summary',
-      segmentId: 'wod-a',
-      segmentVersion: 7,
-      origin: 'playground',
-    });
-    // V13: the segment output's numeric metric (rep: 21) is now also indexed.
-    expect(segmentFacts.length).toBeGreaterThan(0);
+    const eventRows = appendedEvents.flat();
+    const summaryRows = finalizedSummaries.flatMap(f => f.rows);
+
+    expect(eventRows.some(r => r.grain === 'event')).toBe(true);
+    expect(summaryRows.some(r => r.grain === 'summary')).toBe(true);
+
+    for (const row of [...eventRows, ...summaryRows]) {
+      expect(row.blockContentId).toBe('bc-a');
+      expect(row.noteId).toBe(note.id);
+      expect(row.resultId).toBe('result-a');
+      expect(row.segmentId).toBe('wod-a');
+      expect(row.segmentVersion).toBe(7);
+      expect(row.origin).toBe('playground');
+    }
   });
 
   it('preserves attachment descriptor ids and time spans', async () => {
@@ -361,9 +370,9 @@ describe('IndexedDBNotePersistence', () => {
     }
   });
 
-  it('mutateNote threads workoutResult identity into summary fact rows', async () => {
+  it('mutateNote threads workoutResult identity into event rows', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
-    const { storage, contentProvider, savedAnalyticsPoints } = createHarness();
+    const { storage, contentProvider, appendedEvents, finalizedSummaries } = createHarness();
     // Partial harness double — satisfies the constructor's structural needs;
     // the full IndexedDBContentProvider surface isn't exercised here.
     const persistence = new IndexedDBNotePersistence(storage, contentProvider as unknown as IndexedDBContentProvider);
@@ -389,10 +398,11 @@ describe('IndexedDBNotePersistence', () => {
       },
     });
 
-    expect(savedAnalyticsPoints.length).toBeGreaterThan(0);
-    for (const pt of savedAnalyticsPoints) {
-      expect(pt.blockContentId).toBe('bc-threaded');
-      expect(pt.noteId).toBe(note.id);
+    const allRows = [...appendedEvents.flat(), ...finalizedSummaries.flatMap(f => f.rows)];
+    expect(allRows.length).toBeGreaterThan(0);
+    for (const row of allRows) {
+      expect(row.blockContentId).toBe('bc-threaded');
+      expect(row.noteId).toBe(note.id);
     }
   });
 
@@ -428,7 +438,7 @@ describe('IndexedDBNotePersistence', () => {
     expect(limited.map(r => r.id)).toEqual(['x2', 'x3']);
   });
 
-  it('rederiveResultAnalytics replays logs headlessly and rewrites result + facts', async () => {
+  it('rederiveResultAnalytics replays logs headlessly and rewrites result + events', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const T0 = 1_700_000_000_000;
     const scriptBlock = {
@@ -491,16 +501,18 @@ describe('IndexedDBNotePersistence', () => {
     };
 
     const savedResults: WorkoutResult[] = [];
-    const purgedFor: string[] = [];
-    const rewrittenFacts: AnalyticsDataPoint[] = [];
+    const appendedEvents: UnifiedEventRecord[][] = [];
+    const finalizedSummaries: { resultId: string; rows: UnifiedEventRecord[] }[] = [];
     const storage = {
       getNote: async () => note,
       getResultById: async () => staleResult,
       getSegment: async () => segment,
       getLatestSegmentVersion: async () => segment,
       saveResult: async (r: WorkoutResult) => { savedResults.push(r); return r.id; },
-      deleteAnalyticsPointsForResult: async (resultId: string) => { purgedFor.push(resultId); },
-      saveAnalyticsPoints: async (points: AnalyticsDataPoint[]) => { rewrittenFacts.push(...points); },
+      appendEvents: async (rows: UnifiedEventRecord[]) => { appendedEvents.push(rows); },
+      finalizeSummaries: async (resultId: string, rows: UnifiedEventRecord[]) => { finalizedSummaries.push({ resultId, rows }); },
+      deleteEvents: async () => {},
+      getEventsForNote: async () => [],
     };
     const persistence = new IndexedDBNotePersistence(storage as never, {} as never);
 
@@ -512,14 +524,18 @@ describe('IndexedDBNotePersistence', () => {
     expect(updated.data.logs?.some(o => o.id === 99)).toBe(false);
     expect((updated.data.logs?.filter(o => o.outputType === 'analytics').length ?? 0)).toBeGreaterThan(0);
 
-    // Facts purged for exactly this result, then rewritten as summary rows
-    // V13: facts now include summary + segment grains
-    expect(rewrittenFacts.some(p => p.grain === 'summary')).toBe(true);
-    expect(purgedFor).toEqual(['result-replay']);
-    expect(rewrittenFacts.length).toBeGreaterThan(0);
-    expect(rewrittenFacts.every(p => p.resultId === 'result-replay')).toBe(true);
-    expect(rewrittenFacts.every(p => p.segmentId === 'wod-a')).toBe(true);
-    expect(rewrittenFacts.every(p => p.origin === 'journal')).toBe(true);
+    // Event projection re-written: event rows + finalized summary rows carry
+    // the result identity and block identity.
+    const summaryRows = finalizedSummaries.find(f => f.resultId === 'result-replay')?.rows ?? [];
+    expect(summaryRows.some(r => r.grain === 'summary')).toBe(true);
+    const eventRows = appendedEvents.flat();
+    expect(eventRows.some(r => r.grain === 'event')).toBe(true);
+
+    const projected = [...eventRows, ...summaryRows];
+    expect(projected.every(r => r.resultId === 'result-replay')).toBe(true);
+    expect(projected.every(r => r.segmentId === 'wod-a')).toBe(true);
+    expect(projected.every(r => r.origin === 'journal')).toBe(true);
+    expect(projected.every(r => r.blockContentId === 'bc-a')).toBe(true);
   });
 
   it('rederiveResultAnalytics rejects results with no recoverable segment context', async () => {

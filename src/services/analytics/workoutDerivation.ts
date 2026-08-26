@@ -203,9 +203,9 @@ function readGroupTags(metadata: Record<string, unknown> | undefined): Record<st
 export function normalizeSummaryFacts(
   logs: readonly SummaryFactSourceOutput[],
   identity: SummaryFactIdentity,
-): AnalyticsDataPoint[] {
+): LegacyFactRow[] {
   const now = Date.now();
-  const rowsByKey = new Map<string, AnalyticsDataPoint>();
+  const rowsByKey = new Map<string, LegacyFactRow>();
 
   for (const output of logs) {
     if (output.outputType !== 'analytics') continue;
@@ -275,16 +275,21 @@ export function normalizeSummaryFacts(
  * Summary facts keep grain 'summary'; atomic segment metrics get grain
  * 'segment'. The two coexist in the same store, distinguished by grain.
  */
+/** Legacy fact-row shape — the pre-V16 analytics store allowed grain
+ *  'segment' | 'summary' | 'rollup'. Only the V12/V13 upgrade backfills still
+ *  write these rows; V16 deletes the store in the same transaction. */
+export type LegacyFactRow = Omit<AnalyticsDataPoint, 'grain'> & { grain?: 'segment' | 'summary' | 'rollup' };
+
 export function normalizeAllMetrics(
   logs: readonly SummaryFactSourceOutput[],
   identity: SummaryFactIdentity,
-): AnalyticsDataPoint[] {
+): LegacyFactRow[] {
   // Summary facts (Tier 2) — unchanged from normalizeSummaryFacts.
   const summaryFacts = normalizeSummaryFacts(logs, identity);
 
   // Atomic segment metrics (Tier 0/1) — one row per numeric metric per output.
   const now = Date.now();
-  const segmentFacts: AnalyticsDataPoint[] = [];
+  const segmentFacts: LegacyFactRow[] = [];
   let seq = 0;
 
   for (const output of logs) {

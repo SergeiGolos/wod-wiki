@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { QueryClause, WqlExecutor } from '@bitcobblers/wod-wiki-ui';
+import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui';
 
 /**
  * WQL mode for the palette (issue #834, decision #828): the plain text input
@@ -8,11 +8,10 @@ import type { QueryClause, WqlExecutor } from '@bitcobblers/wod-wiki-ui';
  */
 export interface PaletteWqlConfig {
   /**
-   * Palette-specific slot configuration — seed clauses for the composer
-   * (e.g. its default target/scope/time). Defaults to the composer's own
-   * defaults (note / journal / last 2w).
+   * Palette-specific seed query for the composer (e.g. its default target /
+   * window). Defaults to the composer's own default (find:note last 2w).
    */
-  initialClauses?: QueryClause[];
+  initialQuery?: string;
   /** Extra content rendered inside the composer bar, after the add-filter menu. */
   customSlots?: React.ReactNode;
   /** Render the composer's diagnostics strip (badge, AST summary, stage counts). Default true. */

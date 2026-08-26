@@ -20,12 +20,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/atoms/primitives/button'
-import {
-  WqlComposer,
-  CLAUSE_META,
-  defaultMetricsClauses,
-  type QueryClause,
-} from '@bitcobblers/wod-wiki-ui'
+import { WqlComposer } from '@bitcobblers/wod-wiki-ui'
+import { parseQuery, serialize, isFindQuery } from '@bitcobblers/wod-wiki-engine'
 
 export interface QueryToDashboardDialogProps {
   open: boolean
@@ -41,14 +37,28 @@ export interface QueryToDashboardDialogProps {
 export function QueryToDashboardDialog({ open, onOpenChange, subsetQuery }: QueryToDashboardDialogProps) {
   const [combinedWql, setCombinedWql] = useState('')
 
-  // Seed on open: metrics head + the subset as the where join. Keyed remount
+  // Seed on open: metrics head + the subset as the where join — built
+  // structurally, emitted through the serializer (ticket 013). Keyed remount
   // per subset so the composer doesn't carry stale state across queries.
-  const seedClauses = useMemo<QueryClause[]>(() => {
-    const seed = defaultMetricsClauses()
-    if (subsetQuery) {
-      seed.push({ id: 'c-where', type: 'where', ...CLAUSE_META.where, value: subsetQuery })
-    }
-    return seed
+  const seedQuery = useMemo<string>(() => {
+    if (!subsetQuery) return 'sum:{}'
+    const subset = parseQuery(subsetQuery)
+    if (!isFindQuery(subset) || subset.error) return 'sum:{}'
+    return serialize({
+      family: 'aggregate',
+      raw: '',
+      agg: 'sum',
+      metric: '',
+      filters: [],
+      groupBy: [],
+      join: {
+        target: subset.target,
+        filters: subset.filters,
+        last: subset.window?.kind === 'relative'
+          ? { size: subset.window.size, unit: subset.window.unit }
+          : undefined,
+      },
+    })
   }, [subsetQuery])
 
   useEffect(() => {
@@ -115,9 +125,9 @@ export function QueryToDashboardDialog({ open, onOpenChange, subsetQuery }: Quer
             </div>
             <WqlComposer
               key={subsetQuery ?? '(whole-store)'}
-              initialClauses={seedClauses}
+              initialQuery={seedQuery}
               hiddenClauseTypes={['source']}
-              onWqlChange={setCombinedWql}
+              onQueryChange={setCombinedWql}
             />
           </div>
 

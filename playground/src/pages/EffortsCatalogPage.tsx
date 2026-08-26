@@ -12,7 +12,7 @@
  *
  * URL state round-trips through `useEffortsComposerState` (shared
  * `useComposerQueryState` core): back/forward restores the composer, and the
- * page's legacy `?q=text&origin=&discipline=` params migrate to clauses.
+ * page's legacy `?q=text&origin=&discipline=` params migrate to WQL filters.
  *
  * Selecting a row navigates to the effort detail page.
  */
@@ -23,12 +23,8 @@ import { PlusIcon, TriangleAlertIcon } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { Badge } from '@/components/atoms/primitives/badge';
 import { queryService } from "@/services/queryService";
-import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine';;
-import {
-  WqlComposer,
-  clausesToWql,
-  type WqlExecutor,
-} from '@bitcobblers/wod-wiki-ui';
+import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine';
+import { WqlComposer, type WqlExecutor } from '@bitcobblers/wod-wiki-ui';
 import { StickyPageHeader } from '@/panels/page-shells';
 import type { IEffort } from '@/effort-registry';
 import { effortPath } from '../lib/routes';
@@ -120,11 +116,11 @@ export interface EffortsCatalogPageProps {
 
 export function EffortsCatalogPage({ actions }: EffortsCatalogPageProps) {
   const navigate = useNavigate();
-  const { clauses, setClauses, urlQueryError } = useEffortsComposerState();
+  const { query, setQuery, urlQueryError } = useEffortsComposerState();
   const [efforts, setEfforts] = useState<IEffort[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const wql = useMemo(() => clausesToWql(clauses), [clauses]);
+  const wql = query;
   const parsed = useMemo(() => parseQuery(wql), [wql]);
   const composedError = !isFindQuery(parsed) || parsed.error ? (parsed.error ?? 'Not a find query') : null;
   const queryError = urlQueryError ?? composedError;
@@ -179,8 +175,8 @@ export function EffortsCatalogPage({ actions }: EffortsCatalogPageProps) {
         subheader={
           <div className="px-6 py-2.5">
             <WqlComposer
-              clauses={clauses}
-              onClausesChange={setClauses}
+              query={wql}
+              onQueryChange={setQuery}
               execute={execute}
               hiddenClauseTypes={['source']}
             />

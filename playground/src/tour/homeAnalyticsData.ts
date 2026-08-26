@@ -22,16 +22,13 @@ const ts = (weeksAgo: number) => NOW - weeksAgo * WEEK;
 
 /** The six showcase widgets, keyed for live execution. */
 export const HOME_ANALYTICS_QUERIES: AnalyticsQueryDef[] = [
-  { key: 'repsByEffort', query: 'sum:totalReps{} by {effort}' },
-  { key: 'weeklyVolume', query: 'sum:totalVolume{} by {week}.rollup(1w)' },
-  { key: 'loadByIntensity', query: 'sum:sessionLoad{} by {intensity}.rollup(1w)' },
-  { key: 'volumeByEffort', query: 'sum:totalVolume{discipline:strength} by {effort}' },
-  { key: 'avgTis', query: 'avg:tis{}' },
-  { key: 'totalVolume', query: 'sum:totalVolume{}' },
+  { key: 'repsByEffort', query: 'sum:totalReps{} by {effort} last 6w' },
+  { key: 'weeklyVolume', query: 'sum:totalVolume{} by {week}.rollup(1w) last 6w' },
+  { key: 'loadByIntensity', query: 'sum:sessionLoad{} by {intensity}.rollup(1w) last 6w' },
+  { key: 'volumeByEffort', query: 'sum:totalVolume{discipline:strength} by {effort} last 6w' },
+  { key: 'avgTis', query: 'avg:tis{} last 6w' },
+  { key: 'totalVolume', query: 'sum:totalVolume{} last 6w' },
 ];
-
-/** How far back the live queries look. */
-export const HOME_ANALYTICS_WEEKS = 6;
 
 export interface HomeAnalyticsData {
   repsByEffort: QueryResult;
@@ -44,7 +41,7 @@ export interface HomeAnalyticsData {
 
 /** Reps by effort — grouped bars → table list. */
 const repsByEffort: QueryResult = {
-  parsed: { raw: 'sum:totalReps{} by {effort}', agg: 'sum', metric: 'totalReps', filters: [], groupBy: ['effort'] },
+  parsed: { family: 'aggregate', raw: 'sum:totalReps{} by {effort} last 6w', agg: 'sum', metric: 'totalReps', filters: [], groupBy: ['effort'], window: { kind: 'relative', size: 6, unit: 'w' } },
   series: [
     { key: 'thruster', label: 'Thruster', points: [{ ts: ts(0), value: 180 }] },
     { key: 'pull-up', label: 'Pull-up', points: [{ ts: ts(0), value: 120 }] },
@@ -59,8 +56,9 @@ const repsByEffort: QueryResult = {
 /** Weekly tonnage — timeseries. */
 const weeklyVolume: QueryResult = {
   parsed: {
-    raw: 'sum:totalVolume{} by {week}.rollup(1w)',
-    agg: 'sum', metric: 'totalVolume', filters: [], groupBy: ['week'], rollup: { size: 1, unit: 'w' },
+    family: 'aggregate',
+    raw: 'sum:totalVolume{} by {week}.rollup(1w) last 6w',
+    agg: 'sum', metric: 'totalVolume', filters: [], groupBy: ['week'], rollup: { size: 1, unit: 'w' }, window: { kind: 'relative', size: 6, unit: 'w' },
   },
   series: [{
     key: 'totalVolume', label: 'Total volume',
@@ -76,8 +74,9 @@ const weeklyVolume: QueryResult = {
 /** Load by intensity — stacked bar (3 series × 4 weeks). */
 const loadByIntensity: QueryResult = {
   parsed: {
-    raw: 'sum:sessionLoad{} by {intensity}.rollup(1w)',
-    agg: 'sum', metric: 'sessionLoad', filters: [], groupBy: ['intensity'], rollup: { size: 1, unit: 'w' },
+    family: 'aggregate',
+    raw: 'sum:sessionLoad{} by {intensity}.rollup(1w) last 6w',
+    agg: 'sum', metric: 'sessionLoad', filters: [], groupBy: ['intensity'], rollup: { size: 1, unit: 'w' }, window: { kind: 'relative', size: 6, unit: 'w' },
   },
   series: [
     { key: 'low', label: 'low', points: [{ ts: ts(3), value: 120 }, { ts: ts(2), value: 140 }, { ts: ts(1), value: 110 }, { ts: ts(0), value: 160 }] },
@@ -91,10 +90,12 @@ const loadByIntensity: QueryResult = {
 /** Volume by effort — toplist. */
 const volumeByEffort: QueryResult = {
   parsed: {
-    raw: 'sum:totalVolume{discipline:strength} by {effort}',
+    family: 'aggregate',
+    raw: 'sum:totalVolume{discipline:strength} by {effort} last 6w',
     agg: 'sum', metric: 'totalVolume',
     filters: [{ key: 'discipline', negate: false, values: [{ value: 'strength', wildcard: false }] }],
     groupBy: ['effort'],
+    window: { kind: 'relative', size: 6, unit: 'w' },
   },
   series: [
     { key: 'back-squat', label: 'Back Squat', points: [{ ts: ts(0), value: 5400 }] },
@@ -108,7 +109,7 @@ const volumeByEffort: QueryResult = {
 
 /** Avg TIS — scalar. */
 const avgTis: QueryResult = {
-  parsed: { raw: 'avg:tis{}', agg: 'avg', metric: 'tis', filters: [], groupBy: [] },
+  parsed: { family: 'aggregate', raw: 'avg:tis{} last 6w', agg: 'avg', metric: 'tis', filters: [], groupBy: [], window: { kind: 'relative', size: 6, unit: 'w' } },
   series: [{ key: 'tis', label: 'TIS', points: [{ ts: ts(0), value: 7.8 }] }],
   stages: { selected: 1, buckets: 1, aggregated: 1, groups: 1 },
   matched: [],
@@ -117,7 +118,7 @@ const avgTis: QueryResult = {
 
 /** Total volume — scalar. */
 const totalVolume: QueryResult = {
-  parsed: { raw: 'sum:totalVolume{}', agg: 'sum', metric: 'totalVolume', filters: [], groupBy: [] },
+  parsed: { family: 'aggregate', raw: 'sum:totalVolume{} last 6w', agg: 'sum', metric: 'totalVolume', filters: [], groupBy: [], window: { kind: 'relative', size: 6, unit: 'w' } },
   series: [{ key: 'totalVolume', label: 'Total volume', points: [{ ts: ts(0), value: 27100 }] }],
   stages: { selected: 1, buckets: 1, aggregated: 1, groups: 1 },
   matched: [],

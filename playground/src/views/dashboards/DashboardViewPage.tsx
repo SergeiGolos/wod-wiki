@@ -16,10 +16,6 @@ import { queryService } from '@/services/queryService';
 import { isFindQuery } from '@bitcobblers/wod-wiki-engine';;
 import {
   WqlComposer,
-  clausesToWql,
-  defaultMetricsClauses,
-  wqlToClauses,
-  type QueryClause,
   type WqlExecutor,
 } from '@bitcobblers/wod-wiki-ui';
 import {
@@ -28,7 +24,6 @@ import {
   useAnalyticsUnitPreference,
   DashboardView,
 } from '@bitcobblers/wod-wiki-ui';
-import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 import { useAnalyticsRange } from '../../hooks/useAnalyticsRange';
 import { journalNotes } from '../../services/journalNotes';
 import { dashboardNotes } from '../../services/dashboardNotes';
@@ -55,7 +50,7 @@ export function DashboardViewPage() {
 
   // ── Editable (vault) edit modal state ────────────────────────────────
   const [editingWidget, setEditingWidget] = useState<DashboardWidget | null>(null);
-  const [clauses, setClauses] = useState<QueryClause[]>([]);
+  const [editWql, setEditWql] = useState('');
   const [isValid, setIsValid] = useState(true);
 
   const diagnosticsExecutor = useCallback<WqlExecutor>(
@@ -77,13 +72,13 @@ export function DashboardViewPage() {
 
   const openEditor = useCallback((widget: DashboardWidget) => {
     setEditingWidget(widget);
-    setClauses(wqlToClauses(widget.query) ?? defaultMetricsClauses());
+    setEditWql(widget.query);
     setIsValid(true);
   }, []);
 
   const saveEditor = useCallback(async () => {
     if (!editingWidget || !isValid || !source?.editable || !source.noteId) return;
-    const newWql = clausesToWql(clauses);
+    const newWql = editWql;
     const lines = source.rawContent.split('\n');
     const { sections } = parseDashboardNote(source.rawContent);
     // widget.key is `w${index}` over query sections — splice the new WQL into
@@ -96,7 +91,7 @@ export function DashboardViewPage() {
       setRefreshKey((k) => k + 1);
     }
     setEditingWidget(null);
-  }, [editingWidget, isValid, clauses, source]);
+  }, [editingWidget, isValid, editWql, source]);
 
   const handleClone = useCallback(async () => {
     if (!source || source.editable) return;
@@ -160,7 +155,6 @@ export function DashboardViewPage() {
           <DashboardView
             document={document}
             executor={queryService}
-            onEnsureRollupFacts={async () => { await ensureStoreRollupFacts(); }}
             onTokenChange={source.editable ? handleTokenChange : undefined}
             onEditQuery={source.editable ? openEditor : undefined}
             rangeStart={Date.now() - weeks * 7 * 86400000}
@@ -183,8 +177,8 @@ export function DashboardViewPage() {
                 </button>
               </div>
               <WqlComposer
-                clauses={clauses}
-                onClausesChange={setClauses}
+                query={editWql}
+                onQueryChange={setEditWql}
                 onValidationChange={(state) => setIsValid(state.valid)}
                 execute={diagnosticsExecutor}
               />

@@ -27,8 +27,7 @@
  * day per note is the convention; multiple blocks in one note keep the LAST
  * entry per key.
  */
-import type { AnalyticsDataPoint } from '@/types/storage';
-import { DAY, dayBucket } from './rollup/workloadRollup';
+import type { UnifiedEventRecord } from '@/types/storage';
 
 /** Canonical wellness keys → unit expectations. Bare numbers use the default. */
 const WELLNESS_KEYS: Record<string, { unit: string; label: string; min?: number; max?: number }> = {
@@ -85,77 +84,80 @@ export function extractWellnessEntries(rawContent: string): WellnessEntry[] {
 }
 
 /**
- * Build the wellness fact rows for a note from its raw content. Timestamp is
- * the note's day (journal targetDate when known, else `now`).
+ * Build the wellness event rows for a note from its raw content (ticket 005:
+ * user-authored summaries, grain 'summary', origin 'user', outputType
+ * 'wellness', reconcile-owned). Timestamp is the note's day (journal
+ * targetDate when known, else `now`).
  */
-export function wellnessFactsForNote(
+export function wellnessEventsForNote(
   noteId: string,
   rawContent: string,
   options: { targetDate?: number; now?: number } = {},
-): AnalyticsDataPoint[] {
+): UnifiedEventRecord[] {
   const entries = extractWellnessEntries(rawContent);
   if (entries.length === 0) return [];
-  const now = options.now ?? Date.now();
-  const day = dayBucket(options.targetDate ?? now);
+  const ref = options.targetDate ?? options.now ?? Date.now();
+  const refDay = new Date(ref);
+  // Local midnight of the target civil date — the canonical instant for a
+  // dayBucket key: localDateString(localMidnight) is the same journal date
+  // in every timezone (day * DAY would be UTC midnight and slip a day).
+  const timestamp = new Date(refDay.getFullYear(), refDay.getMonth(), refDay.getDate()).getTime();
   return entries.map((entry) => ({
     id: wellnessFactId(noteId, entry.key),
-    noteId,
-    grain: 'summary' as const,
-    segmentId: '',
-    segmentVersion: 0,
     resultId: `wellness:${noteId}`,
+    noteId,
+    timestamp,
+    grain: 'summary' as const,
     origin: 'user' as const,
-    type: entry.key,
-    value: entry.value,
-    unit: entry.unit,
-    label: entry.label,
-    metricKey: entry.key,
-    metricLabel: entry.label,
-    metricUnit: entry.unit,
-    timestamp: day * DAY,
-    createdAt: now,
+    outputType: 'wellness',
+    metrics: [{
+      type: entry.key,
+      value: entry.value,
+      unit: entry.unit,
+      origin: 'user',
+      // canonicalKey drives the fact projection's metricKey (projectEventToFacts).
+      metadata: { canonicalKey: entry.key },
+    }],
   }));
 }
 
-/** Deterministic wellness fact id — one row per key per note. */
+/** Deterministic wellness event id — one row per key per note. */
 export function wellnessFactId(noteId: string, key: string): string {
   return `wellness:${noteId}:${key}`;
 }
 
-/** The store surface wellness capture needs — injectable for tests. */
-export interface WellnessFactStore {
-  saveAnalyticsPoints(points: AnalyticsDataPoint[]): Promise<void>;
-  deleteAnalyticsPoints(ids: string[]): Promise<void>;
-  getFactsByMetric(metricKey: string): Promise<AnalyticsDataPoint[]>;
+/** The store surface wellness capture needs — injectable for tests.
+ *  Subset of the engine's UnifiedEventStore (ticket 005 interface). */
+export interface WellnessEventStore {
+  appendEvents(rows: UnifiedEventRecord[]): Promise<void>;
+  deleteEvents(ids: string[]): Promise<void>;
+  getEventsForNote(noteId: string): Promise<UnifiedEventRecord[]>;
 }
 
 /**
- * Reconcile a note's wellness facts with its content: upsert entries the
- * block carries, delete wellness rows for keys the block no longer carries.
+ * Reconcile a note's wellness rows with its content: upsert entries the
+ * block carries, delete rows for keys the block no longer carries.
  */
 export async function captureWellnessFacts(
   noteId: string,
   rawContent: string,
-  store: WellnessFactStore,
+  store: WellnessEventStore,
   options: { targetDate?: number; now?: number } = {},
 ): Promise<{ written: number; deleted: number }> {
-  const desired = wellnessFactsForNote(noteId, rawContent, options);
+  const desired = wellnessEventsForNote(noteId, rawContent, options);
   const desiredIds = new Set(desired.map((f) => f.id));
 
   // Existing wellness rows for this note (keyed by the wellness: id prefix).
-  const existing = (
-    await Promise.all(Object.keys(WELLNESS_KEYS).map((key) => store.getFactsByMetric(key)))
-  )
-    .flat()
+  const existing = (await store.getEventsForNote(noteId))
     .filter((row) => row.id.startsWith(`wellness:${noteId}:`));
 
   const writes = desired.filter((row) => {
     const current = existing.find((e) => e.id === row.id);
-    return !current || current.value !== row.value || current.timestamp !== row.timestamp;
+    return !current || current.metrics[0]?.value !== row.metrics[0]?.value || current.timestamp !== row.timestamp;
   });
   const deletions = existing.filter((row) => !desiredIds.has(row.id)).map((row) => row.id);
 
-  if (writes.length > 0) await store.saveAnalyticsPoints(writes);
-  if (deletions.length > 0) await store.deleteAnalyticsPoints(deletions);
+  if (writes.length > 0) await store.appendEvents(writes);
+  if (deletions.length > 0) await store.deleteEvents(deletions);
   return { written: writes.length, deleted: deletions.length };
 }

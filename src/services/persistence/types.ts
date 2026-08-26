@@ -1,6 +1,6 @@
 import type { WorkoutResults } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
-import type { Attachment, AnalyticsDataPoint, Note, NoteKind, NoteSegment, ResultOrigin, WorkoutResult } from '@/types/storage';
+import type { Attachment, AnalyticsDataPoint, Note, NoteKind, NoteSegment, ResultOrigin, UnifiedEventRecord, WorkoutResult } from '@/types/storage';
 
 export type NoteLocator =
   | string
@@ -147,13 +147,18 @@ export interface NotePersistenceStorage {
   getAttachmentsForNote(noteId: string): Promise<Attachment[]>;
   saveAttachment(attachment: Attachment): Promise<string>;
   deleteAttachment(id: string): Promise<void>;
-  saveAnalyticsPoints(points: AnalyticsDataPoint[]): Promise<void>;
-  /** Delete all fact rows for one result (replay/re-derivation cascade). */
-  deleteAnalyticsPointsForResult?(resultId: string): Promise<void>;
-  /** Fact reads/writes for wellness capture (```wellness fences). Absent on
-   *  narrow test fakes — wellness capture skips when unavailable. */
-  getFactsByMetric?(metricKey: string): Promise<AnalyticsDataPoint[]>;
-  deleteAnalyticsPoints?(ids: string[]): Promise<void>;
+  /**
+   * V16 unified event store write surface (engine `UnifiedEventStore`,
+   * tickets 003/005). Event rows are non-load-bearing — data.logs stays
+   * canonical — so narrow test fakes may omit these and skip event capture.
+   */
+  appendEvents?(rows: UnifiedEventRecord[]): Promise<void>;
+  /** Atomic finalize: clear the result's engine-authored summaries, write finals. */
+  finalizeSummaries?(resultId: string, rows: UnifiedEventRecord[]): Promise<void>;
+  /** Reconcile deletes (wellness note-save) + GC sweeps. */
+  deleteEvents?(ids: string[]): Promise<void>;
+  /** Note-scoped event reads for wellness reconcile. */
+  getEventsForNote?(noteId: string): Promise<UnifiedEventRecord[]>;
 }
 
-export type { HistoryEntry, Attachment, AnalyticsDataPoint, WorkoutResult };
+export type { HistoryEntry, Attachment, AnalyticsDataPoint, WorkoutResult, UnifiedEventRecord };

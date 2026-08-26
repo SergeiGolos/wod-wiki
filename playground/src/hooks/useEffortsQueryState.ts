@@ -1,13 +1,14 @@
 /**
  * useEffortsQueryState — Efforts page URL state adapter.
  *
- * Bridges legacy text/origin/discipline query state to the WQL composer state
- * managed by `useEffortsComposerState`.
+ * Reads and edits the text/origin/discipline filters of the WQL query state
+ * managed by `useEffortsComposerState` — AST reads via `parseQuery`, string
+ * writes via the engine serializer (wayfinder ticket 013).
  */
 
 import { useMemo, useCallback } from 'react';
+import { parseQuery, serialize } from '@bitcobblers/wod-wiki-engine';
 import type { EffortRegistrySource } from '@/effort-registry';
-import { CLAUSE_META } from '@bitcobblers/wod-wiki-ui';
 import { useEffortsComposerState } from './useEffortsComposerState';
 
 export interface EffortsQueryState {
@@ -16,65 +17,47 @@ export interface EffortsQueryState {
   discipline: string;
 }
 
+/** First non-negated value of a filter key — '' when absent or unparseable. */
+function filterValue(query: string, key: string): string {
+  const parsed = parseQuery(query);
+  if (parsed.error) return '';
+  const f = parsed.filters.find((flt) => flt.key === key && !flt.negate);
+  return f?.values.map((v) => v.value).join('|') ?? '';
+}
+
+/** Set (or clear, when empty) one filter key, keeping every other clause. */
+function withFilter(query: string, key: string, value: string): string {
+  const parsed = parseQuery(query);
+  if (parsed.error) return query; // never destroy unparseable state
+  const filters = parsed.filters.filter((f) => f.key !== key);
+  const trimmed = value.trim();
+  if (trimmed) filters.push({ key, negate: false, values: [{ value: trimmed, wildcard: false }] });
+  return serialize({ ...parsed, filters });
+}
+
 export function useEffortsQueryState() {
-  const { clauses, setClauses } = useEffortsComposerState();
+  const { query, setQuery } = useEffortsComposerState();
 
-  const text = useMemo(() => {
-    const c = clauses.find(c => c.type === 'text');
-    return c?.value ?? '';
-  }, [clauses]);
-
-  const origin = useMemo(() => {
-    const c = clauses.find(c => c.type === 'origin');
-    return (c?.value as EffortRegistrySource | 'all') ?? 'all';
-  }, [clauses]);
-
-  const discipline = useMemo(() => {
-    const c = clauses.find(c => c.type === 'discipline');
-    return c?.value ?? '';
-  }, [clauses]);
+  const text = useMemo(() => filterValue(query, 'text'), [query]);
+  const origin = useMemo(
+    () => (filterValue(query, 'origin') as EffortRegistrySource | 'all') || 'all',
+    [query],
+  );
+  const discipline = useMemo(() => filterValue(query, 'discipline'), [query]);
 
   const setText = useCallback(
-    (newText: string) => {
-      const next = clauses.filter(c => c.type !== 'text');
-      const val = newText.trim();
-      if (val) {
-        next.push({ id: 'c-text-0', type: 'text', ...CLAUSE_META.text, value: val });
-      }
-      setClauses(next);
-    },
-    [clauses, setClauses],
+    (newText: string) => setQuery(withFilter(query, 'text', newText)),
+    [query, setQuery],
   );
-
   const setOrigin = useCallback(
-    (newOrigin: EffortRegistrySource | 'all') => {
-      const next = clauses.filter(c => c.type !== 'origin');
-      if (newOrigin !== 'all') {
-        next.push({ id: 'c-origin-0', type: 'origin', ...CLAUSE_META.origin, value: newOrigin });
-      }
-      setClauses(next);
-    },
-    [clauses, setClauses],
+    (newOrigin: EffortRegistrySource | 'all') =>
+      setQuery(withFilter(query, 'origin', newOrigin === 'all' ? '' : newOrigin)),
+    [query, setQuery],
   );
-
   const setDiscipline = useCallback(
-    (newDiscipline: string) => {
-      const next = clauses.filter(c => c.type !== 'discipline');
-      const val = newDiscipline.trim();
-      if (val) {
-        next.push({ id: 'c-discipline-0', type: 'discipline', ...CLAUSE_META.discipline, value: val });
-      }
-      setClauses(next);
-    },
-    [clauses, setClauses],
+    (newDiscipline: string) => setQuery(withFilter(query, 'discipline', newDiscipline)),
+    [query, setQuery],
   );
 
-  return {
-    text,
-    setText,
-    origin,
-    setOrigin,
-    discipline,
-    setDiscipline,
-  };
+  return { text, setText, origin, setOrigin, discipline, setDiscipline };
 }

@@ -17,14 +17,13 @@
  *
  * Run dispatch is unchanged: find queries go through `queryService.runFind`,
  * analytics queries through `queryService.runQuery` with range/unit options
- * (plus the lazy rollup driver for calc.* metrics).
+ * (calc.* metrics resolve directly against the unified event store).
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Play, Save } from 'lucide-react';
 import { queryService } from '@/services/queryService';
-import { parseQuery, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult } from '@bitcobblers/wod-wiki-engine';;
+import { parseQuery, serialize, isAggregateQuery, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
 import { RowsTable } from '@bitcobblers/wod-wiki-ui';
-import { ensureStoreRollupFacts } from '@/services/analytics/rollup';
 import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
 import { searchEntries } from '../../lib/entrySearch';
 import { groupEntriesByDate } from '../../lib/entryGrouping';
@@ -47,18 +46,15 @@ import {
   ParsedQueryChips,
   PipelineAnatomy,
   RawPointsTable,
+  windowLabel,
 } from '@/components/organisms/analytics';
-import {
-  WqlComposer,
-  clausesToWql,
-  setMetricClause,
-  wqlToClauses,
-} from '@bitcobblers/wod-wiki-ui';
+import { setMetricQuery } from '../../lib/wqlEdits';
+import { WqlComposer } from '@bitcobblers/wod-wiki-ui';
 import { EXAMPLE_QUERIES } from '@/utils/analytics/explorerQueries';
 import { useExplorerVocabulary } from '@/utils/analytics/useExplorerVocabulary';
 import {
   useExplorerQueryState,
-  defaultExplorerClauses,
+  DEFAULT_EXPLORER_QUERY,
 } from '../../hooks/useExplorerQueryState';
 import { ExplorerCommandBar } from './ExplorerCommandBar';
 import { ExplorerOptionsMenu } from './ExplorerOptionsMenu';
@@ -77,13 +73,10 @@ const WQL_GRAMMAR_PLACEHOLDER = 'agg:metric{filters} by {dims} .rollup(period)';
  * silently not filter. */
 const NOTE_FILTER_KEYS = new Set(['tags', 'catalog', 'text', 'type', 'has']);
 
-/** TagFilter[] → `{key:v1|v2, …}` braces (empty string when no filters). */
-function serializeTagFilters(filters: { key: string; negate: boolean; values: { value: string }[] }[]): string {
-  if (filters.length === 0) return '';
-  const body = filters
-    .map(f => `${f.negate ? '!' : ''}${f.key}:${f.values.map(v => v.value).join('|')}`)
-    .join(', ');
-  return `{${body}}`;
+/** The find query's scope label — folded into the `source:` filter (C2). */
+function sourceFilterLabel(filters: TagFilter[]): string | null {
+  const src = filters.find(f => f.key === 'source' && !f.negate);
+  return src ? src.values.map(v => v.value).join('|') : null;
 }
 
 /** The date-grouped records stream — shared by the find-result view and the
@@ -120,14 +113,15 @@ function GroupedEntryList({ entries, stickyOffset }: { entries: Entry[]; stickyO
   );
 }
 
-/** Canonical WQL comparison: composer-restorable strings compare through the
- * clause model (so a deep-linked `sum:totalVolume{}` matches the restored
- * `sum:totalVolume` draft); anything else falls back to raw equality. */
+/** Canonical WQL comparison: parseable strings compare through the
+ * serializer's fixed point (so a deep-linked `sum:totalVolume` matches the
+ * canonical `sum:totalVolume{}` draft); anything else falls back to raw
+ * equality. */
 function sameQuery(a: string, b: string): boolean {
   if (a === b) return true;
-  const ca = wqlToClauses(a);
-  const cb = wqlToClauses(b);
-  return ca !== null && cb !== null && clausesToWql(ca) === clausesToWql(cb);
+  const pa = parseQuery(a);
+  const pb = parseQuery(b);
+  return !pa.error && !pb.error && serialize(pa) === serialize(pb);
 }
 
 export interface AnalyticsExplorerPageProps {
@@ -140,7 +134,7 @@ export interface AnalyticsExplorerPageProps {
 }
 
 export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
-  const { clauses, setClauses, draft, submitted, submit, weeks: activeWeeks, setWeeks } =
+  const { draft, setDraft, submitted, submit, weeks: activeWeeks, setWeeks } =
     useExplorerQueryState();
   const { unit: preferredUnit } = useAnalyticsUnitPreference();
   const { forced: unitForced } = useMemo(
@@ -156,6 +150,9 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   const [dashOpen, setDashOpen] = useState(false);
   const vocabulary = useExplorerVocabulary();
   const liveParsed = useMemo(() => parseQuery(draft), [draft]);
+  const scopeLabel = sourceFilterLabel(isFindQuery(liveParsed) ? liveParsed.filters : []);
+  const findWindowLabel = isFindQuery(liveParsed) && liveParsed.window ? windowLabel(liveParsed.window) : null;
+  const rowsWindowLabel = isRowsQuery(liveParsed) && liveParsed.window ? windowLabel(liveParsed.window) : null;
   const stickyOffset = useStickyBoundaryOffset(104);
 
   // The subset for the Query→Dashboard flow: a find draft IS the subset; an
@@ -164,8 +161,19 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   const subsetQuery = useMemo(() => {
     if (!draftValid) return null;
     if (isFindQuery(liveParsed)) return draft;
-    const m = /\s+where\s+(find:.*)$/.exec(draft);
-    return m ? m[1]!.trim() : null;
+    // The join half comes from the parsed AST, not string surgery — a quoted
+    // text filter containing 'where find:…' must not masquerade as the join.
+    if (isAggregateQuery(liveParsed) && liveParsed.join) {
+      const j = liveParsed.join;
+      return serialize({
+        family: 'find',
+        raw: '',
+        target: j.target,
+        filters: j.filters,
+        window: j.last ? { kind: 'relative', size: j.last.size, unit: j.last.unit } : undefined,
+      });
+    }
+    return null;
   }, [liveParsed, draft, draftValid]);
 
   // The records behind a calculation: the explicit `where find:…` subset
@@ -178,10 +186,16 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
     if (isFindQuery(p) || isRowsQuery(p) || p.error) return null;
     if (p.join) {
       const jf = p.join;
-      return `find:${jf.target}${serializeTagFilters(jf.filters)} in ${jf.scope ?? 'all'}${jf.last ? ` last ${jf.last.size}${jf.last.unit}` : ''}`;
+      return serialize({
+        family: 'find', raw: '', target: jf.target, filters: jf.filters,
+        window: jf.last ? { kind: 'relative', size: jf.last.size, unit: jf.last.unit } : undefined,
+      });
     }
     const compatible = p.filters.filter(f => NOTE_FILTER_KEYS.has(f.key) && !f.negate);
-    return `find:note${serializeTagFilters(compatible)} in all last ${activeWeeks}w`;
+    return serialize({
+      family: 'find', raw: '', target: 'note', filters: compatible,
+      window: { kind: 'relative', size: activeWeeks, unit: 'w' },
+    });
   }, [submitted, activeWeeks]);
 
   useEffect(() => {
@@ -199,12 +213,6 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [anatomyOpen, setAnatomyOpen] = useState(false);
   const [recordsOpen, setRecordsOpen] = useState(false);
-
-  // Lazy rollup driver (CONTEXT.md 'Rollup Fact'): analytics-surface open
-  // recomputes missing/stale ACWR/monotony/strain windows; no scheduler.
-  useEffect(() => {
-    void ensureStoreRollupFacts().catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -247,15 +255,13 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
         .catch(() => { if (!cancelled) setRowsResult(undefined); })
         .finally(() => { if (!cancelled) setLoading(false); });
     } else {
-      // Analytics query — existing chart pipeline
+      // Analytics query — resolves directly against the unified event store.
       setRowsResult(undefined);
       setEntries(undefined);
       setEfforts(undefined);
       const now = Date.now();
       const rangeStart = now - activeWeeks * 7 * DAY;
-      const rollupReady = ensureStoreRollupFacts().catch(() => undefined);
-      (submitted.includes('calc.') ? rollupReady : Promise.resolve())
-        .then(() => queryService.runQuery(submitted, { rangeStart, rangeEnd: now, preferredUnit }))
+      queryService.runQuery(submitted, { rangeStart, rangeEnd: now, preferredUnit })
         .then((r) => { if (!cancelled) setResult(r); })
         .catch(() => { if (!cancelled) setResult(undefined); })
         .finally(() => { if (!cancelled) setLoading(false); });
@@ -268,11 +274,11 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
 
   const shape = useChartShape(result);
 
-  /** Metric chip click: pivot to the metrics plane, set the metric clause, run. */
+  /** Metric chip click: pivot to the metrics plane, set the metric, run. */
   const selectMetric = (metric: string) => {
-    const next = setMetricClause(clauses, metric);
-    setClauses(next);
-    submit(clausesToWql(next));
+    const next = setMetricQuery(draft, metric);
+    setDraft(next);
+    submit(next);
   };
 
   const [pickedExample, setPickedExample] = useState<string | null>(null);
@@ -280,7 +286,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   /** Example chip: hydrate the composer from the query and run it. */
   const runExample = (wql: string) => {
     setPickedExample(wql);
-    setClauses(wqlToClauses(wql) ?? defaultExplorerClauses());
+    setDraft(parseQuery(wql).error ? DEFAULT_EXPLORER_QUERY : wql);
     submit(wql);
   };
 
@@ -291,8 +297,9 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   // examples (`note:` filters) don't restore through the clause model at all.
   const activeExample = useMemo(() => {
     if (!pickedExample) return undefined;
-    const composedDraft = clausesToWql(wqlToClauses(pickedExample) ?? defaultExplorerClauses());
-    return draft === composedDraft
+    const composedParsed = parseQuery(pickedExample);
+    const composedDraft = composedParsed.error ? pickedExample : serialize(composedParsed);
+    return sameQuery(draft, composedDraft)
       ? EXAMPLE_QUERIES.find((e) => e.query === pickedExample)
       : undefined;
   }, [pickedExample, draft]);
@@ -304,10 +311,10 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   // (e.g. negated !tags:x filters — the legacy visual composer could emit
   // them): the composer falls back to defaults, but the result still answers
   // the submitted URL query until the user edits the draft.
-  const restoredDraft = useMemo(
-    () => clausesToWql(wqlToClauses(submitted) ?? defaultExplorerClauses()),
-    [submitted],
-  );
+  const restoredDraft = useMemo(() => {
+    const p = parseQuery(submitted);
+    return p.error ? submitted : serialize(p);
+  }, [submitted]);
   const resultIsCurrent =
     result !== undefined &&
     (sameQuery(result.parsed.raw, draft) ||
@@ -351,8 +358,8 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
       <div className="flex flex-col min-h-0 p-4">
         <ExplorerCommandBar active={activeExample} onRunExample={runExample}>
           <WqlComposer
-            clauses={clauses}
-            onClausesChange={setClauses}
+            query={draft}
+            onQueryChange={setDraft}
             onSubmit={(wql) => submit(wql)}
             showDiagnostics={false}
             placeholder={WQL_GRAMMAR_PLACEHOLDER}
@@ -432,8 +439,8 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
               <div className="bg-card border border-border rounded-lg p-4">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
                   Find {liveParsed.target}
-                  {liveParsed.scope && <span className="ml-1">in {liveParsed.scope}</span>}
-                  {liveParsed.last && <span className="ml-1">last {liveParsed.last.size}{liveParsed.last.unit}</span>}
+                  {scopeLabel && <span className="ml-1">in {scopeLabel}</span>}
+                  {findWindowLabel && <span className="ml-1">{findWindowLabel}</span>}
                 </div>
                 {liveParsed.error ? (
                   <div className="text-sm text-destructive font-mono">{liveParsed.error}</div>
@@ -466,7 +473,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
               <div className="bg-card border border-border rounded-lg p-4">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
                   Rows{liveParsed.outputType ? `:${liveParsed.outputType}` : ''}
-                  {liveParsed.last && <span className="ml-1">last {liveParsed.last.size}{liveParsed.last.unit}</span>}
+                  {rowsWindowLabel && <span className="ml-1">{rowsWindowLabel}</span>}
                 </div>
                 {liveParsed.error ? (
                   <div className="text-sm text-destructive font-mono">{liveParsed.error}</div>

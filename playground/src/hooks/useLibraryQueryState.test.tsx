@@ -1,30 +1,30 @@
 /**
- * useLibraryQueryState — URL ↔ composer clause state (issue #833).
+ * useLibraryQueryState — URL ↔ WQL string state for the Library route.
+ * (String-state rework, wayfinder ticket 013: the composer state IS the
+ * query text; no clause model.)
  *
  * Asserts:
- *   1. No params → library defaults (target note, scope all, last 2w).
- *   2. `?q=<wql>` hydrates clauses on mount.
- *   3. setClauses serializes the composed WQL into `q` (history push).
- *   4. Browser back/forward restores the exact composer state.
- *   5. Legacy #813 tri-state params migrate to `q` (replace — legacy keys gone).
- *   6. Legacy `text` / `timePreset` map to text / time clauses.
- *   7. A still-empty clause survives setClauses (no URL push, no clobber).
+ * 1. No params → library defaults (target all, scope all, last 2w).
+ * 2. `?q=<wql>` hydrates the query on mount.
+ * 3. setQuery serializes into q (replace → history push).
+ * 4. Browser back/forward restores the exact query state.
+ * 5. Legacy #813 tri-state params migrate to `q` (replace — legacy keys gone).
+ * 6. Legacy `text` / `timePreset` map to text / window clauses.
+ * 7. A still-empty edit survives setQuery (no URL push, no clobber).
+ * 8. Unparseable `q` flags `urlQueryError` instead of silently resetting (#854).
+ * 9. Legacy `in <scope>` URLs and modern `source:` URLs both parse to the
+ *    same AST (C2 — the engine normalizer owns the fold).
  */
 import { afterEach, describe, expect, it } from 'bun:test'
-
-// Must precede the react-router-dom import: repairs the partial
-// react-router-dom mock that useJournalZipProcessor.test.ts leaks
-// process-wide (see tests/helpers/repair-react-router-dom.ts).
-import '../../../tests/helpers/repair-react-router-dom'
 
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import {
   useLibraryQueryState,
-  defaultLibraryClauses,
+  DEFAULT_LIBRARY_QUERY,
   type LibraryQueryState,
 } from './useLibraryQueryState'
-import type { QueryClause } from '@bitcobblers/wod-wiki-ui'
+import { parseQuery } from '@bitcobblers/wod-wiki-engine'
 
 afterEach(cleanup)
 
@@ -37,9 +37,7 @@ function Probe() {
   const location = useLocation()
   return (
     <div>
-      <output data-testid="clauses">
-        {captured.clauses.map(c => `${c.type}=${c.value}`).join('|')}
-      </output>
+      <output data-testid="query">{captured.query}</output>
       <output data-testid="search">{location.search}</output>
     </div>
   )
@@ -53,60 +51,65 @@ function renderAt(entries: string[]) {
   )
 }
 
-const summary = () => screen.getByTestId('clauses').textContent
+const current = () => screen.getByTestId('query').textContent
 const search = () => screen.getByTestId('search').textContent ?? ''
 const qParam = () => new URLSearchParams(search()).get('q') ?? ''
-
-const withClause = (type: string, value: string): QueryClause[] => [
-  ...defaultLibraryClauses(),
-  { id: `c-${type}`, type, label: type, value, inputType: 'select', placeholder: '' },
-]
 
 describe('useLibraryQueryState', () => {
   it('falls back to library defaults when no params are present', () => {
     renderAt(['/library'])
-    expect(summary()).toBe('source=notes|time=last 2w')
+    expect(current()).toBe(DEFAULT_LIBRARY_QUERY)
   })
 
-  it('hydrates clauses from the q parameter on mount', () => {
-    const wql = 'find:note{tags:pr} in feeds last 8w'
+  it('hydrates the query from the q parameter on mount', () => {
+    const wql = 'find:note{tags:pr,source:feeds} last 8w'
     renderAt([`/library?q=${encodeURIComponent(wql)}`])
-    expect(summary()).toBe('source=feeds|time=last 8w|tag=pr')
+    expect(current()).toBe(wql)
   })
 
-  it('serializes clause changes into the q parameter', async () => {
-    renderAt(['/library'])
-    act(() => captured.setClauses(withClause('tag', 'pr')))
-    await waitFor(() => expect(qParam()).toContain('tags:pr'))
-    expect(qParam()).toBe('find:note{tags:pr} in all last 2w')
+  it('normalizes legacy in <scope> and modern source: URLs to the same AST (C2)', () => {
+    renderAt([`/library?q=${encodeURIComponent('find:note in feeds last 8w')}`])
+    const legacy = parseQuery(current()!)
+    expect(legacy.error).toBeUndefined()
+    expect(legacy.filters.map(f => `${f.key}:${f.values.map(v => v.value).join('|')}`)).toContain('source:feeds')
+
+    cleanup()
+    renderAt([`/library?q=${encodeURIComponent('find:note{source:feeds} last 8w')}`])
+    const modern = parseQuery(current()!)
+    expect(modern.error).toBeUndefined()
+    expect(modern.filters).toEqual(legacy.filters)
   })
 
-  it('restores the exact composer state on browser back/forward', async () => {
+  it('serializes edits into the q parameter', async () => {
+    renderAt(['/library'])
+    act(() => captured.setQuery('find:note{tags:pr} last 2w'))
+    await waitFor(() => expect(qParam()).toBe('find:note{tags:pr} last 2w'))
+  })
+
+  it('restores the exact query state on browser back/forward', async () => {
     renderAt(['/library'])
 
-    act(() => captured.setClauses(withClause('tag', 'pr')))
+    act(() => captured.setQuery('find:note{tags:pr} last 2w'))
     await waitFor(() => expect(qParam()).toContain('tags:pr'))
-    const stateA = 'source=notes|time=last 2w|tag=pr'
 
-    act(() => captured.setClauses([...withClause('tag', 'pr'), { id: 'c-text', type: 'text', label: 'Contains', value: 'fran', inputType: 'freetext', placeholder: '' }]))
+    act(() => captured.setQuery('find:note{tags:pr,text:fran} last 2w'))
     await waitFor(() => expect(qParam()).toContain('text:fran'))
-    const stateB = 'source=notes|time=last 2w|tag=pr|text=fran'
-    expect(summary()).toBe(stateB)
+    expect(current()).toBe('find:note{tags:pr,text:fran} last 2w')
 
     act(() => capturedNavigate(-1))
-    await waitFor(() => expect(summary()).toBe(stateA))
+    await waitFor(() => expect(current()).toBe('find:note{tags:pr} last 2w'))
 
     act(() => capturedNavigate(1))
-    await waitFor(() => expect(summary()).toBe(stateB))
+    await waitFor(() => expect(current()).toBe('find:note{tags:pr,text:fran} last 2w'))
   })
 
   it('migrates legacy tri-state redirect params to q (replace, keys removed)', async () => {
     renderAt(['/library?note=hide&session=on&post=hide'])
-    // Clause state reflects the legacy params immediately (no flash of defaults).
-    expect(summary()).toBe('source=collections|time=last 2w')
+    // Query state reflects the legacy params immediately (no flash of defaults).
+    expect(current()).toBe('find:note{source:collections} last 2w')
 
     await waitFor(() => expect(search()).toContain('q='))
-    expect(qParam()).toBe('find:note in collections last 2w')
+    expect(qParam()).toBe('find:note{source:collections} last 2w')
     expect(search()).not.toContain('session=')
     expect(search()).not.toContain('note=')
     expect(search()).not.toContain('post=')
@@ -114,46 +117,45 @@ describe('useLibraryQueryState', () => {
 
   it('migrates legacy text and timePreset params', async () => {
     renderAt(['/library?text=fran&timePreset=1w'])
-    expect(summary()).toBe('source=notes|time=last 1w|text=fran')
-    await waitFor(() => expect(qParam()).toBe('find:note{text:fran} in all last 1w'))
+    expect(current()).toBe('find:note{text:fran} last 1w')
+    await waitFor(() => expect(qParam()).toBe('find:note{text:fran} last 1w'))
     expect(search()).not.toContain('timePreset=')
   })
 
-  it('keeps a still-empty clause without pushing a history entry', async () => {
+  it('keeps a still-empty edit without pushing a history entry', async () => {
     renderAt(['/library'])
     const searchBefore = search()
 
-    act(() => captured.setClauses(withClause('tag', '')))
+    act(() => captured.setQuery(DEFAULT_LIBRARY_QUERY))
 
-    // The clause is present in state even though it compiles to nothing.
-    expect(summary()).toBe('source=notes|time=last 2w|tag=')
-    // No URL churn for a WQL-no-op edit.
+    // State is unchanged and no URL churn happens for a WQL-no-op edit.
+    expect(current()).toBe(DEFAULT_LIBRARY_QUERY)
     await act(async () => {})
     expect(search()).toBe(searchBefore)
   })
 
-  it('flags an unrestorable q instead of silently resetting (#854)', async () => {
+  it('flags an unparseable q instead of silently resetting (#854)', async () => {
     renderAt([`/library?q=${encodeURIComponent('find:note{tags:strength} )))garbage((( ')}`])
-    // Default clauses take over, but the rejection is surfaced…
-    expect(summary()).toBe('source=notes|time=last 2w')
+    // The default takes over, but the rejection is surfaced…
+    expect(current()).toBe(DEFAULT_LIBRARY_QUERY)
     expect(captured.urlQueryError).toContain('find:note{tags:strength}')
 
-    // …and cleared by the next clause edit.
-    act(() => captured.setClauses(withClause('tag', 'pr')))
+    // …and cleared by the next edit.
+    act(() => captured.setQuery('find:note{tags:pr} last 2w'))
     await waitFor(() => expect(captured.urlQueryError).toBeNull())
   })
 
   it('flags a non-WQL q (plain word) with the parser detail', () => {
     renderAt([`/library?q=squat`])
-    expect(summary()).toBe('source=notes|time=last 2w')
+    expect(current()).toBe(DEFAULT_LIBRARY_QUERY)
     expect(captured.urlQueryError).toContain('squat')
   })
 
-  it('clears urlQueryError when navigating to a restorable q', async () => {
+  it('clears urlQueryError when navigating to a parseable q', async () => {
     renderAt([`/library?q=squat`])
     expect(captured.urlQueryError).not.toBeNull()
 
-    act(() => captured.setClauses(withClause('tag', 'pr')))
+    act(() => captured.setQuery('find:note{tags:pr} last 2w'))
     await waitFor(() => expect(qParam()).toContain('tags:pr'))
     expect(captured.urlQueryError).toBeNull()
   })

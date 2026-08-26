@@ -3,7 +3,7 @@
  * backing): IndexedDBNotePersistence → IndexedDBContentProvider →
  * IndexedDBService. Defends the result-identity contract:
  *   - result rows carry segmentId (NoteSegment FK), segmentVersion, origin
- *   - analytics rows carry the same block identity + blockContentId
+ *   - event rows carry the same block identity + blockContentId
  *   - rows are queryable through the by-content index
  *   - NoteSegment version lineage stamps onto subsequent results
  *
@@ -20,6 +20,7 @@ import { IndexedDBNotePersistence } from './IndexedDBNotePersistence';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { parseDocumentSections } from '@/components/Editor/utils/sectionParser';
 import { isWorkoutSectionType } from '@/components/Editor/types/section';
+import { projectEventToFacts } from '@bitcobblers/wod-wiki-wql';
 import type { IndexedDBService } from '@/services/db/IndexedDBService';
 
 // @ts-expect-error — bun-only '?real' specifier: bypasses the shared
@@ -41,7 +42,7 @@ const RAW_CONTENT = [
 ].join('\n');
 
 describe('result identity (real IndexedDB stack)', () => {
-  it('stamps segmentId, segmentVersion and origin on result + analytics rows', async () => {
+  it('stamps segmentId, segmentVersion and origin on result + event rows', async () => {
     const noteId = `it-${crypto.randomUUID()}`;
 
     await persistence.createNote({
@@ -95,11 +96,12 @@ describe('result identity (real IndexedDB stack)', () => {
     const byContent = await service.getResultsByContentId(section!.contentId!);
     expect(byContent.some(r => r.id === result.id)).toBe(true);
 
-    // ── Analytics rows: summary + segment facts with block identity ──────
-    const points = await service.getAnalyticsByContentId(section!.contentId!);
-    expect(points.length).toBeGreaterThan(0);
-    
-    const summaries = points.filter(p => p.grain === 'summary');
+    // ── Event rows: summary + event rows with block identity, queryable by content ─
+    const events = await service.getEventsByContent(section!.contentId!);
+    expect(events.length).toBeGreaterThan(0);
+
+    const facts = events.flatMap(e => projectEventToFacts(e));
+    const summaries = facts.filter(p => p.grain === 'summary');
     expect(summaries).toHaveLength(1);
     for (const point of summaries) {
       expect(point.grain).toBe('summary');
@@ -109,7 +111,11 @@ describe('result identity (real IndexedDB stack)', () => {
       expect(point.segmentVersion).toBe(1);
       expect(point.origin).toBe('playground');
       expect(point.resultId).toBe(result.id);
+      expect(point.blockContentId).toBe(section!.contentId);
     }
+
+    expect(events.every(e => e.blockContentId === section!.contentId)).toBe(true);
+    expect(events.some(e => e.grain === 'event')).toBe(true);
 
     // ── Version lineage: editing the content bumps the segment version ────
     // Segment ids embed a content hash, so an edit chains to a NEW segment id

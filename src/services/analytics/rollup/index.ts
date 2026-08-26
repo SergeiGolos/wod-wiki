@@ -5,6 +5,3 @@ export {
   dayBucket,
 } from './workloadRollup';
 export type { DayRollup } from './workloadRollup';
-
-export { ensureStoreRollupFacts, rollupFactId, runStoreRollup } from './storeRollup';
-export type { StoreRollupOptions, StoreRollupStore, StoreRollupSummary } from './storeRollup';

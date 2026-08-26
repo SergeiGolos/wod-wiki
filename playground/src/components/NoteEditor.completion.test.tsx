@@ -94,10 +94,10 @@ describe('NoteEditor write-on-completion (#944)', () => {
     await completeOneRun();
 
     await waitFor(() => expect(latestValue).toContain('```query:table'));
-    const match = /rows:\{result:([0-9a-f-]+)\}/.exec(latestValue);
+    const match = /rows:all\{result:([0-9a-f-]+)\}/.exec(latestValue);
     expect(match).not.toBeNull();
     expect(latestValue).toContain(
-      '```time\n5s\n```\n\n```query:table\nrows:{result:' + match![1] + '}\n```\n\nTrailing notes.',
+      '```time\n5s\n```\n\n```query:table\nrows:all{result:' + match![1] + '}\n```\n\nTrailing notes.',
     );
     // The table references the id persistence is told to record.
     expect(onCompleteWorkout).toHaveBeenCalledTimes(1);
@@ -117,14 +117,14 @@ describe('NoteEditor write-on-completion (#944)', () => {
 
     await completeOneRun();
     await waitFor(() => expect(latestValue).toContain('```query:table'));
-    const firstId = /rows:\{result:([0-9a-f-]+)\}/.exec(latestValue)![1];
+    const firstId = /rows:all\{result:([0-9a-f-]+)\}/.exec(latestValue)![1];
 
     await completeOneRun();
     await waitFor(() => {
-      const ids = [...latestValue.matchAll(/rows:\{result:([0-9a-f-]+)\}/g)].map(m => m[1]);
+      const ids = [...latestValue.matchAll(/rows:all\{result:([0-9a-f-]+)\}/g)].map(m => m[1]);
       expect(ids.length).toBe(2);
     });
-    const ids = [...latestValue.matchAll(/rows:\{result:([0-9a-f-]+)\}/g)].map(m => m[1]);
+    const ids = [...latestValue.matchAll(/rows:all\{result:([0-9a-f-]+)\}/g)].map(m => m[1]);
     expect(ids[1]).toBe(firstId);
     expect(ids[0]).not.toBe(firstId);
     expect(onCompleteWorkout).toHaveBeenCalledTimes(2);

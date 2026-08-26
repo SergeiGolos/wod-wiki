@@ -15,7 +15,7 @@ import { describe, expect, it } from 'bun:test';
 import { captureSessionRpe } from './captureSessionRpe';
 import { IndexedDBNotePersistence } from '@/services/persistence/IndexedDBNotePersistence';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
-import type { NotePersistenceStorage, AnalyticsDataPoint } from '@/services/persistence/types';
+import type { NotePersistenceStorage, UnifiedEventRecord } from '@/services/persistence/types';
 import type { NoteSegment, WorkoutResult } from '@/types/storage';
 import type { StoredOutputStatement } from '@/components/Editor/types';
 
@@ -78,8 +78,7 @@ function makeResult(overrides: Partial<WorkoutResult> = {}): WorkoutResult {
 function createHarness(result: WorkoutResult, segment: NoteSegment | undefined = SEGMENT) {
   let currentResult = result;
   const savedResults: WorkoutResult[] = [];
-  const deletedAnalyticsResultIds: string[] = [];
-  const savedAnalyticsPoints: AnalyticsDataPoint[] = [];
+  const finalizedSummaries: { resultId: string; rows: UnifiedEventRecord[] }[] = [];
 
   const storage: NotePersistenceStorage = {
     getNote: async () => undefined,
@@ -99,12 +98,12 @@ function createHarness(result: WorkoutResult, segment: NoteSegment | undefined =
     getAttachmentsForNote: async () => [],
     saveAttachment: async () => 'att-1',
     deleteAttachment: async () => {},
-    saveAnalyticsPoints: async (points) => {
-      savedAnalyticsPoints.push(...points);
+    appendEvents: async () => {},
+    finalizeSummaries: async (resultId, rows) => {
+      finalizedSummaries.push({ resultId, rows });
     },
-    deleteAnalyticsPointsForResult: async (id) => {
-      deletedAnalyticsResultIds.push(id);
-    },
+    deleteEvents: async () => {},
+    getEventsForNote: async () => [],
   };
 
   const persistence = new IndexedDBNotePersistence(storage);
@@ -113,8 +112,7 @@ function createHarness(result: WorkoutResult, segment: NoteSegment | undefined =
     persistence,
     storage,
     savedResults: () => savedResults,
-    deletedAnalyticsResultIds: () => deletedAnalyticsResultIds,
-    savedAnalyticsPoints: () => savedAnalyticsPoints,
+    finalizedSummaries: () => finalizedSummaries,
   };
 }
 
@@ -148,7 +146,6 @@ describe('captureSessionRpe', () => {
       getAttachmentsForNote: async () => [],
       saveAttachment: async () => '',
       deleteAttachment: async () => {},
-      saveAnalyticsPoints: async () => {},
     };
     const persistence = new IndexedDBNotePersistence(storage);
 
@@ -159,7 +156,7 @@ describe('captureSessionRpe', () => {
 
   it('appends a user-origin SessionRPE segment statement and re-derives analytics', async () => {
     const result = makeResult();
-    const { storage, persistence, savedResults, savedAnalyticsPoints } = createHarness(result);
+    const { storage, persistence, savedResults, finalizedSummaries } = createHarness(result);
 
     const outcome = await captureSessionRpe(result.id, 8, { storage, persistence });
 
@@ -176,8 +173,10 @@ describe('captureSessionRpe', () => {
       image: 'rpe: 8',
     });
 
-    // Re-derivation ran and produced summary facts.
-    expect(savedAnalyticsPoints().length).toBeGreaterThan(0);
+    // Re-derivation ran and finalized summary events for the result.
+    const resultFinalizations = finalizedSummaries().filter((f) => f.resultId === result.id);
+    expect(resultFinalizations.length).toBeGreaterThan(0);
+    expect(resultFinalizations.some((f) => f.rows.some((r) => r.grain === 'summary'))).toBe(true);
 
     // SessionLoad uses the user RPE (8) × 1 minute = 8 AU.
     const sessionLoad = findSessionLoad(saved.data.logs ?? []);

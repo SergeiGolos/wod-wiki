@@ -9,7 +9,7 @@ import { canvasRouteSource } from '../services/paletteDataSources'
 import {
   wqlSearchSource,
   withWqlText,
-  searchPaletteClauses,
+  searchPaletteQuery,
   paletteExecute,
   navigatePaletteResult,
 } from '../services/wqlSearchSource'
@@ -107,7 +107,7 @@ export function PlaygroundLandingPage() {
   // Same global Search Palette as Cmd+K in App (WQL mode, issue #834).
   const openSearch = useCallback(async () => {
     const result = await usePaletteStore.getState().open({
-      wql: { initialClauses: searchPaletteClauses(), execute: paletteExecute },
+      wql: { initialQuery: searchPaletteQuery(), execute: paletteExecute },
       sources: [
         wqlSearchSource(),
         withWqlText(canvasRouteSource(canvasRoutes)),

@@ -139,19 +139,19 @@ describe('LibraryPage', () => {
       return emptyResult(parsed.raw ?? '')
     }
     renderPage('/library')
-    await waitFor(() => expect(raws.some(r => r.includes('find:note in all'))).toBe(true))
+    await waitFor(() => expect(raws.some(r => r.includes('find:note'))).toBe(true))
 
     fireEvent.click(screen.getByRole('radio', { name: 'Feeds' }))
 
     // The query re-bases on the feeds source and the search re-runs…
-    await waitFor(() => expect(raws.some(r => r.includes('find:note in feeds'))).toBe(true))
+    await waitFor(() => expect(raws.some(r => r.includes('find:note{source:feeds}'))).toBe(true))
     // …the scope radio follows…
     expect(scopeChecked('feeds')).toBe(true)
     // …the subtitle identifies the content (#802)…
     expect(screen.getByTestId('library-heading').textContent).toBe('Feeds')
     // …and the time window survives the switch (no pivot between content sources).
     expect(screen.getByTestId('token-slot-time').textContent).toContain('last 2w')
-    expect(raws.find(r => r.includes('in feeds'))).toContain('last 2w')
+    expect(raws.find(r => r.includes('source:feeds'))).toContain('last 2w')
   })
 
   it('lists entries matching the query from the URL', async () => {
@@ -176,7 +176,7 @@ describe('LibraryPage', () => {
     renderPage(`/library?q=${encodeURIComponent('find:note{tags::} in feeds')}`)
 
     await waitFor(() => expect(screen.getByTestId('library-query-error')).toBeDefined())
-    expect(screen.getByTestId('library-query-error').textContent).toContain('Invalid WQL')
+    expect(screen.getByTestId('library-query-error').textContent).toContain('Invalid URL query')
     // No silent empty-state either.
     expect(screen.queryByText('No entries match this query.')).toBeNull()
   })
@@ -191,9 +191,10 @@ describe('LibraryPage', () => {
     expect(screen.queryByTestId('empty-remedy-clear-filters')).toBeNull()
     expect(screen.queryByTestId('empty-remedy-all-sources')).toBeNull()
 
-    // Applying it removes the time clause from the composer.
+    // Applying it drops the window from the query (the pill may remain as
+    // 'all' — the query text is the contract).
     fireEvent.click(screen.getByTestId('empty-remedy-remove-window'))
-    await waitFor(() => expect(screen.queryByTestId('token-slot-time')).toBeNull())
+    await waitFor(() => expect(screen.getByTestId('wql-diagnostics-strip').textContent ?? '').not.toContain('last 2w'))
     first.unmount()
 
     // Tag filter + window: both remedies; clearing filters keeps the window.

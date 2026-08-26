@@ -21,7 +21,7 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { queryService } from '@/services/queryService';
-import { type ParsedQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';;
+import { type AnyParsedQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';;
 import {
   WidgetFrame,
   QueryValue,
@@ -34,13 +34,10 @@ import { ParsedQueryChips } from '@/components/organisms/analytics';
 import { WQL_AGGREGATORS, WQL_METRIC_AGGREGATES, WQL_METRIC_FAMILIES, WQL_TAG_KEYS, WQL_VIRTUAL_DIMS, WQL_INTENSITY_TIERS, WQL_ROLLUP_PERIODS } from '@bitcobblers/wod-wiki-engine';;
 import {
   HOME_ANALYTICS_QUERIES,
-  HOME_ANALYTICS_WEEKS,
   SAMPLE_HOME_ANALYTICS,
   hasPoints,
   type HomeAnalyticsData,
 } from './homeAnalyticsData';
-
-const WEEK_MS = 7 * 86_400_000;
 
 /**
  * Live data for the showcase: run the showcase queries against the store and
@@ -58,13 +55,12 @@ export function useHomeAnalyticsData(): { data: HomeAnalyticsData; loading: bool
 
   useEffect(() => {
     let cancelled = false;
-    const now = Date.now();
-    const rangeStart = now - HOME_ANALYTICS_WEEKS * WEEK_MS;
     void (async () => {
       const entries = await Promise.all(
         HOME_ANALYTICS_QUERIES.map(async (q) => {
           try {
-            const r = await queryService.runQuery(q.query, { rangeStart, rangeEnd: now });
+            // The C1 window rides in the query text (`last 6w`) — no range math.
+            const r = await queryService.runQuery(q.query);
             return [q.key, r] as const;
           } catch {
             return [q.key, undefined] as const; // store unavailable → sample fallback
@@ -146,7 +142,7 @@ function Tile({ kind, children }: { kind: string; children: ReactNode }) {
 }
 
 /** A chip row for one parsed query — the WQL elements, front and center. */
-function Chips({ parsed }: { parsed: ParsedQuery }) {
+function Chips({ parsed }: { parsed: AnyParsedQuery }) {
   return (
     <div className="mb-2">
       <ParsedQueryChips parsed={parsed} />
@@ -157,7 +153,7 @@ function Chips({ parsed }: { parsed: ParsedQuery }) {
 export function TableTile({ data }: { data: HomeAnalyticsData }) {
   return (
     <Tile kind="Table list">
-      <WidgetFrame title="Reps by effort" question="Which movements?" query="sum:totalReps{} by {effort}">
+      <WidgetFrame title="Reps by effort" question="Which movements?" query="sum:totalReps{} by {effort} last 6w">
         <Chips parsed={data.repsByEffort.parsed} />
         <div className="h-44">
           <WqlTable result={data.repsByEffort} unit="reps" />
@@ -171,13 +167,13 @@ export function GraphsTile({ data }: { data: HomeAnalyticsData }) {
   return (
     <Tile kind="Graphs">
       <div className="flex flex-col gap-3">
-        <WidgetFrame title="Weekly tonnage" question="Is volume rising?" query="sum:totalVolume{} by {week}.rollup(1w)">
+        <WidgetFrame title="Weekly tonnage" question="Is volume rising?" query="sum:totalVolume{} by {week}.rollup(1w) last 6w">
           <Chips parsed={data.weeklyVolume.parsed} />
           <div className="h-40">
             <WqlTimeseries result={data.weeklyVolume} unit="kg" />
           </div>
         </WidgetFrame>
-        <WidgetFrame title="Load by intensity" question="Is training polarized?" query="sum:sessionLoad{} by {intensity}.rollup(1w)">
+        <WidgetFrame title="Load by intensity" question="Is training polarized?" query="sum:sessionLoad{} by {intensity}.rollup(1w) last 6w">
           <Chips parsed={data.loadByIntensity.parsed} />
           <div className="h-40">
             <StackedBar result={data.loadByIntensity} unit="AU" />
@@ -210,25 +206,25 @@ export function DashboardTile({ data }: { data: HomeAnalyticsData }) {
           ))}
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <WidgetFrame title="Avg TIS" question="How hard?" query="avg:tis{}">
+          <WidgetFrame title="Avg TIS" question="How hard?" query="avg:tis{} last 6w">
             <QueryValue result={data.avgTis} unit="pts" label="avg intensity" />
           </WidgetFrame>
-          <WidgetFrame title="Total volume" question="How much?" query="sum:totalVolume{}">
+          <WidgetFrame title="Total volume" question="How much?" query="sum:totalVolume{} last 6w">
             <QueryValue result={data.totalVolume} unit="kg" label="total volume" />
           </WidgetFrame>
           <div className="col-span-2">
-            <WidgetFrame title="Weekly tonnage" question="Rising?" query="sum:totalVolume{} by {week}.rollup(1w)">
+            <WidgetFrame title="Weekly tonnage" question="Rising?" query="sum:totalVolume{} by {week}.rollup(1w) last 6w">
               <div className="h-32">
                 <WqlTimeseries result={data.weeklyVolume} unit="kg" />
               </div>
             </WidgetFrame>
           </div>
-          <WidgetFrame title="Volume by effort" question="Where?" query="sum:totalVolume{discipline:strength} by {effort}">
+          <WidgetFrame title="Volume by effort" question="Where?" query="sum:totalVolume{discipline:strength} by {effort} last 6w">
             <div className="h-32">
               <TopList result={data.volumeByEffort} unit="kg" limit={4} />
             </div>
           </WidgetFrame>
-          <WidgetFrame title="Load by intensity" question="Polarized?" query="sum:sessionLoad{} by {intensity}.rollup(1w)">
+          <WidgetFrame title="Load by intensity" question="Polarized?" query="sum:sessionLoad{} by {intensity}.rollup(1w) last 6w">
             <div className="h-32">
               <StackedBar result={data.loadByIntensity} unit="AU" />
             </div>

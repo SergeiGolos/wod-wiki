@@ -116,8 +116,8 @@ export const PaletteShell: React.FC = () => {
     <div className="border-b border-zinc-200 px-3 py-2 dark:border-zinc-700">
       <WqlComposer
         key={requestSeqRef.current}
-        initialClauses={wqlConfig.initialClauses}
-        onWqlChange={setQuery}
+        initialQuery={wqlConfig.initialQuery}
+        onQueryChange={setQuery}
         showDiagnostics={wqlConfig.showDiagnostics ?? true}
         execute={wqlConfig.execute}
         customSlots={wqlConfig.customSlots}
