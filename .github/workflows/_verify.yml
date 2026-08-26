@@ -55,6 +55,13 @@ jobs:
       # Playground unit tests (isolated runner). Package tests run in the
       # parallel packages leg (_packages.yml); Storybook in its own leg.
       # e2e runs post-deploy against the published artifact (preview-e2e.yml).
+
+
+      # Workspace packages must be built before bun-run app tests: the
+      # playground resolves @bitcobblers/wod-wiki-* through their dist
+      # exports maps (Vite aliases source only at bundle time).
+      - name: Build packages
+        run: bun run build:packages
       - name: Run unit tests
         id: unit
         run: bun run test:playground:unit
