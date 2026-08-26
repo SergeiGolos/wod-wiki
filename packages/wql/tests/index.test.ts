@@ -13,7 +13,7 @@ import {
   WQL_TAG_KEYS,
   WQL_VIRTUAL_DIMS,
   WQL_FIND_TARGETS,
-  WQL_SCOPES,
+  WQL_SOURCE_VALUES,
   WQL_CONTENT_FILTER_KEYS,
   WQL_SOURCES,
   WQL_ROLLUP_PERIODS,
@@ -72,7 +72,7 @@ describe('@bitcobblers/wod-wiki-wql public surface', () => {
     expect(WQL_TAG_KEYS.length).toBeGreaterThan(0);
     expect(WQL_VIRTUAL_DIMS.length).toBeGreaterThan(0);
     expect(WQL_FIND_TARGETS.length).toBeGreaterThan(0);
-    expect(WQL_SCOPES.length).toBeGreaterThan(0);
+    expect(WQL_SOURCE_VALUES.length).toBeGreaterThan(0);
     expect(WQL_CONTENT_FILTER_KEYS.length).toBeGreaterThan(0);
     expect(WQL_SOURCES.length).toBeGreaterThan(0);
     expect(WQL_ROLLUP_PERIODS.length).toBeGreaterThan(0);

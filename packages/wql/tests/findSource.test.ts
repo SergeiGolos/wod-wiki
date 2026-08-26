@@ -68,6 +68,18 @@ describe('source: filter — runFind (Note[])', () => {
     const result = await service.runFind(parseQuery('find:note{!source:feed} in all') as ParsedFindQuery);
     expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'jrnl-1']);
   });
+
+  it('default (no source filter) returns all notes across journal and static stores', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery('find:note') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'jrnl-1']);
+  });
+
+  it('source:all returns all notes across journal and static stores', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery('find:note{source:all}') as ParsedFindQuery);
+    expect(result.notes.map(n => n.id).sort()).toEqual(['coll-1', 'feed-1', 'jrnl-1']);
+  });
 });
 
 describe('source: filter — runFindBlock (BlockIndexRow[])', () => {
@@ -99,5 +111,17 @@ describe('source: filter — runFindBlock (BlockIndexRow[])', () => {
     const service = makeService();
     const result = await service.runFind(parseQuery('find:block{source:collection:crossfit-girls} in all') as ParsedFindQuery);
     expect(result.blocks.map(b => b.noteId)).toEqual(['coll-1']);
+  });
+
+  it('default (no source filter) returns all blocks across journal and static stores', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery('find:block') as ParsedFindQuery);
+    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['coll-1', 'feed-1', 'jrnl-1']);
+  });
+
+  it('legacy in journal maps to source:journal correctly at runtime', async () => {
+    const service = makeService();
+    const result = await service.runFind(parseQuery('find:block in journal') as ParsedFindQuery);
+    expect(result.blocks.map(b => b.noteId)).toEqual(['jrnl-1']);
   });
 });

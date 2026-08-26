@@ -4,7 +4,7 @@
  * Encapsulates suffix parsing order, regexes, depth-0 brace-aware splitting,
  * and AST extraction for all WQL suffix clauses:
  *   - Outer join: `where <joinClause>`
- *   - Display unit: `in <unit>`
+ *   - Display unit: `in <unit>` (analytics queries only — C2 de-overloaded `in`)
  *   - Rollup period: `.rollup(<size><unit>)`
  *   - Group-by: `by {<dims>}`
  *   - Time window: `last <n><unit>` or `from <YYYY-MM-DD> [to <YYYY-MM-DD>]`
@@ -35,8 +35,8 @@ export interface ParsedWqlSuffixes {
   groupBy?: string[];
   /** Time window — relative or civil-date range, legal on every family (C1). */
   window?: ParsedWqlWindowSuffix;
-  /** Content scope (`in journal` / `in all`). */
-  scope?: string;
+  /** Legacy scope clause (`in journal` / `in all`) stripped for the C2 compatibility normalizer. */
+  legacyScope?: string;
   /** Duplicate-clause diagnostics (C3) — each names both conflicting spans. */
   conflicts?: string[];
   /** Primary query text with suffixes removed. */
@@ -77,7 +77,7 @@ const IN_SCOPE_RE = /\s+in\s+(\w+)\s*$/;
  * Extract suffixes from a raw WQL query string.
  * Strips outer join (`where`), display unit (`in kg`), rollup (`.rollup(1w)`),
  * group-by (`by {week}`), time window (`last 8w` / `from … [to …]`), and
- * scope (`in journal`).
+ * legacy scope (`in journal`).
  */
 export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
   const { primary, where } = splitAtWhere(raw);
@@ -87,7 +87,7 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
   let rollup: ParsedWqlRollupSuffix | undefined;
   let groupBy: string[] | undefined;
   let window: ParsedWqlWindowSuffix | undefined;
-  let scope: string | undefined;
+  let legacyScope: string | undefined;
   const conflicts: string[] = [];
 
   const isFind = text.startsWith('find:');
@@ -149,13 +149,14 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
   }
 
   if (isFind || isRows) {
-    // Content/rows families: scope on finds; aggregation suffixes on rows
-    // surface as loud errors downstream — rows never aggregates.
-    if (isFind) {
-      const scopes = stripRepeated(IN_SCOPE_RE);
-      conflictFrom('scope', scopes);
-      if (scopes.length) scope = scopes[scopes.length - 1][1];
-    } else {
+    // Content/rows families: legacy `in <scope>` stripped for the C2 compat
+    // normalizer; aggregation suffixes on rows surface as loud errors
+    // downstream — rows never aggregates.
+    const scopes = stripRepeated(IN_SCOPE_RE);
+    conflictFrom('scope', scopes);
+    if (scopes.length) legacyScope = scopes[scopes.length - 1][1];
+
+    if (isRows) {
       const rollups = stripRepeated(ROLLUP_RE);
       conflictFrom('.rollup', rollups);
       if (rollups.length) {
@@ -197,7 +198,7 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
     rollup,
     groupBy,
     window,
-    scope,
+    legacyScope,
     conflicts: conflicts.length ? conflicts : undefined,
     primaryText: text,
   };

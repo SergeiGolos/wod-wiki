@@ -29,6 +29,7 @@ import {
   WQL_INTENSITY_TIERS,
   WQL_GRAINS,
   WQL_ROLLUP_PERIODS,
+  WQL_SOURCE_VALUES,
 } from "./vocabulary";
 
 // The vocabulary tables live in ./vocabulary (no editor deps); re-export
@@ -42,7 +43,7 @@ export {
   WQL_FIND_TARGETS,
   WQL_RESULT_PLANES,
   WQL_ROWS_TARGETS,
-  WQL_SCOPES,
+  WQL_SOURCE_VALUES,
   WQL_CONTENT_FILTER_KEYS,
   WQL_AGGREGATORS,
   WQL_COMPARISON_OPS,
@@ -135,6 +136,7 @@ export function wqlCompletionSource(options_: WqlCompletionOptions = {}) {
       case 'intensity': return options(WQL_INTENSITY_TIERS);
       case 'grain': return options(WQL_GRAINS);
       case 'metric': return metricOptions();
+      case 'source': return options(WQL_SOURCE_VALUES);
       default: return null; // note/page/block/result/tags — free-form
     }
   };

@@ -20,12 +20,13 @@ import {
   WQL_FIND_TARGETS,
   WQL_ROWS_SCOPE_KEYS,
   WQL_ROWS_TARGETS,
+  WQL_SOURCE_VALUES,
   type WqlAggregator,
   type WqlComparisonOp,
 } from './vocabulary';
-import { parseWqlSuffixes, type ParsedWqlWindowSuffix } from './wqlSuffix';
+import { parseWqlSuffixes, splitAtWhere, type ParsedWqlWindowSuffix } from './wqlSuffix';
 
-export { WQL_AGGREGATORS, WQL_COMPARISON_OPS } from './vocabulary';
+export { WQL_AGGREGATORS, WQL_COMPARISON_OPS, WQL_SOURCE_VALUES } from './vocabulary';
 export { parseWqlSuffixes, splitAtWhere } from './wqlSuffix';
 
 export type Aggregator = WqlAggregator;
@@ -67,7 +68,6 @@ export interface MetricPredicate {
 export interface FindPredicate {
   target: string;
   filters: TagFilter[];
-  scope?: string;
   last?: { size: number; unit: 'd' | 'w' };
 }
 
@@ -91,6 +91,8 @@ export interface ParsedAggregateQuery {
   displayUnit?: string;
   /** Cross-store content join (`where find:note{...}`); restricts to raw logs. */
   join?: FindPredicate;
+  /** Deprecation advisories (C2 normalizer). */
+  advisories?: string[];
   error?: string;
 }
 
@@ -101,12 +103,12 @@ export interface ParsedFindQuery {
   /** Content target — a WQL_FIND_TARGETS value (C7 closed enum). */
   target: string;
   filters: TagFilter[];
-  /** Where to look: journal | collections | feeds | all. */
-  scope?: string;
   /** Time-selection window (C1): `last 8w` or `from … [to …]`. */
   window?: QueryWindow;
   /** Cross-store metric join (`where sum:totalVolume{} > 5000`). */
   join?: MetricPredicate;
+  /** Deprecation advisories (C2 normalizer). */
+  advisories?: string[];
   error?: string;
 }
 
@@ -155,6 +157,8 @@ export interface ParsedRowsQuery {
   /** Time-selection window (C1): `last 4w` or `from … [to …]` over the
    *  workout end time. */
   window?: QueryWindow;
+  /** Deprecation advisories (C2 normalizer). */
+  advisories?: string[];
   error?: string;
 }
 export interface Series { key: string; label: string; points: SeriesPoint[]; unit?: string }
@@ -195,7 +199,7 @@ function parseJoinClause(where: string): { metric?: MetricPredicate; find?: Find
     if (fp.window?.kind === 'range') {
       return { error: 'Range windows are not supported on join halves — use last <n>d|w' };
     }
-    return { find: { target: fp.target, filters: fp.filters, scope: fp.scope, last: fp.window?.kind === 'relative' ? { size: fp.window.size, unit: fp.window.unit } : undefined } };
+    return { find: { target: fp.target, filters: fp.filters, last: fp.window?.kind === 'relative' ? { size: fp.window.size, unit: fp.window.unit } : undefined } };
   }
   const m = CMP_RE.exec(where.trim());
   if (!m) return { error: cannotParseJoin(where) };
@@ -219,14 +223,75 @@ function parseJoinClause(where: string): { metric?: MetricPredicate; find?: Find
  * `rows` to the rows path, everything else to analytics.
  */
 export function parseQuery(raw: string): AnyParsedQuery {
-  const trimmed = raw.trimStart();
+  const norm = normalizeWql(raw);
+  const trimmed = norm.query.trimStart();
+  let result: AnyParsedQuery;
   if (trimmed.startsWith('find:')) {
-    return parseFindQuery(raw);
+    result = parseFindQuery(norm.query);
+  } else if (/^rows(?=[:{]|\s|$)/.test(trimmed)) {
+    result = parseRowsQuery(norm.query);
+  } else {
+    result = parseAnalyticsQuery(norm.query);
   }
-  if (/^rows(?=[:{]|\s|$)/.test(trimmed)) {
-    return parseRowsQuery(raw);
+  if (norm.advisories.length) {
+    result.advisories = [...(result.advisories ?? []), ...norm.advisories];
   }
-  return parseAnalyticsQuery(raw);
+  result.raw = raw;
+  return result;
+}
+
+/**
+ * C2 Compatibility normalizer: rewrites legacy query syntax into modern WQL.
+ *   - Bare `rows:{…}` heads rewrite to `rows:all{…}`
+ *   - Legacy trailing `in <scope>` rewrites into `{source:<scope>}`
+ * Returns the normalized query string and any deprecation advisories.
+ */
+export function normalizeWql(raw: string): { query: string; advisories: string[] } {
+  const advisories: string[] = [];
+  let text = raw.trim();
+
+  // 1. Bare rows head rewrite
+  if (/^rows:?\s*[{]/.test(text)) {
+    text = text.replace(/^rows:?\s*[{]/, 'rows:all{');
+    advisories.push("Bare 'rows:{...}' syntax is deprecated; use 'rows:all{...}' instead.");
+  }
+
+  // 2. Legacy `in <scope>` on find: or rows:
+  const { primary, where } = splitAtWhere(text);
+  const isFind = primary.startsWith('find:');
+  const isRows = /^rows(?=[:{]|\s|$)/.test(primary);
+
+  if (isFind || isRows) {
+    const suffixes = parseWqlSuffixes(primary);
+    if (suffixes.legacyScope && !suffixes.conflicts?.length) {
+      advisories.push("Legacy 'in <scope>' syntax is deprecated; use 'source:<scope>' filter instead.");
+      const scope = suffixes.legacyScope;
+      let head = suffixes.primaryText.trim();
+
+      const braceOpen = head.indexOf('{');
+      const braceClose = head.lastIndexOf('}');
+      if (braceOpen !== -1 && braceClose !== -1 && braceClose > braceOpen) {
+        const beforeBrace = head.slice(0, braceOpen + 1);
+        const inside = head.slice(braceOpen + 1, braceClose).trim();
+        const afterBrace = head.slice(braceClose);
+        const newInside = inside ? `${inside},source:${scope}` : `source:${scope}`;
+        head = `${beforeBrace}${newInside}${afterBrace}`;
+      } else {
+        head = `${head}{source:${scope}}`;
+      }
+
+      const parts: string[] = [head];
+      if (suffixes.window) {
+        parts.push(suffixes.window.raw);
+      }
+      if (where) {
+        parts.push(`where ${where}`);
+      }
+      text = parts.join(' ');
+    }
+  }
+
+  return { query: text, advisories };
 }
 
 // ── Rows query parsing (#949) ────────────────────────────────────
@@ -239,14 +304,37 @@ function cannotParseRows(text: string): string {
  *  negation, no wildcards — validated at parse so `runRows` executes only. */
 function validateRowsFilters(filters: TagFilter[]): string | undefined {
   const scopeKeys = new Set<string>(WQL_ROWS_SCOPE_KEYS);
+  const allowedKeys = new Set<string>([...WQL_ROWS_SCOPE_KEYS, 'source']);
   const unsupported = filters.filter(
-    (f) => !scopeKeys.has(f.key) || f.negate || f.values.some((v) => v.wildcard),
+    (f) => !allowedKeys.has(f.key) || f.negate || f.values.some((v) => v.wildcard),
   );
   if (unsupported.length > 0) {
     return `Unsupported rows filter(s): ${unsupported.map((f) => (f.negate ? '!' : '') + f.key).join(', ')}. Rows queries support exact ${WQL_ROWS_SCOPE_KEYS.map((k) => `${k}:`).join(', ')} values.`;
   }
   if (!filters.some((f) => scopeKeys.has(f.key))) {
     return `Rows query needs a scope: ${WQL_ROWS_SCOPE_KEYS.map((k) => `${k}:`).join(', ')}.`;
+  }
+  return undefined;
+}
+
+/** Validate source: filter values against canonical sources and catalog literals (C2). */
+function validateSourceFilter(filters: TagFilter[]): string | undefined {
+  const validSources = new Set<string>(WQL_SOURCE_VALUES);
+  for (const f of filters) {
+    if (f.key !== 'source') continue;
+    for (const v of f.values) {
+      const val = v.value;
+      if (
+        validSources.has(val) ||
+        val === 'collection' ||
+        val === 'feed' ||
+        val.startsWith('collection:') ||
+        val.startsWith('feed:')
+      ) {
+        continue;
+      }
+      return `Unknown source "${val}". Try: ${WQL_SOURCE_VALUES.join(', ')}`;
+    }
   }
   return undefined;
 }
@@ -263,13 +351,18 @@ const BARE_ROWS_RETIRED = 'Bare "rows:" is retired — name a target: rows:all{�
  */
 function parseRowsQuery(raw: string): ParsedRowsQuery {
   const suffixes = parseWqlSuffixes(raw);
-  const { where: whereText, window: windowSuffix, groupBy, rollup, primaryText } = suffixes;
+  const { where: whereText, window: windowSuffix, legacyScope, groupBy, rollup, primaryText } = suffixes;
   const win = toQueryWindow(windowSuffix);
+  const advisories: string[] = [];
+  if (legacyScope) {
+    advisories.push("Legacy 'in <scope>' syntax is deprecated; use 'source:<scope>' filter instead.");
+  }
   const result: ParsedRowsQuery = {
     family: 'rows',
     raw,
     filters: [],
     window: win.window,
+    ...(advisories.length ? { advisories } : {}),
   };
   if (win.error) {
     result.error = win.error;
@@ -327,6 +420,15 @@ function parseRowsQuery(raw: string): ParsedRowsQuery {
   if (target !== 'all') result.outputType = target;
 
   result.filters = extractFilters(query, text);
+  if (legacyScope) {
+    result.filters.push({
+      key: 'source',
+      negate: false,
+      values: [{ value: legacyScope, wildcard: false }],
+    });
+  }
+  const sourceError = validateSourceFilter(result.filters);
+  if (sourceError) { result.error = sourceError; return result; }
   const grainError = retiredGrainRollup(result.filters);
   if (grainError) { result.error = grainError; return result; }
   const filterError = validateRowsFilters(result.filters);
@@ -489,20 +591,24 @@ function parseAnalyticsQuery(raw: string): ParsedAggregateQuery {
 // ── Find query parsing ──────────────────────────────────────────────
 
 function cannotParseFind(text: string): string {
-  return `Cannot parse "${text}". Expected find:target{filters} in scope last 8w`;
+  return `Cannot parse "${text}". Expected find:target{filters} last 8w`;
 }
 
 function parseFindQuery(raw: string): ParsedFindQuery {
   const suffixes = parseWqlSuffixes(raw);
-  const { where: whereText, window: windowSuffix, scope, primaryText: text } = suffixes;
+  const { where: whereText, window: windowSuffix, legacyScope, primaryText: text } = suffixes;
   const win = toQueryWindow(windowSuffix);
+  const advisories: string[] = [];
+  if (legacyScope) {
+    advisories.push("Legacy 'in <scope>' syntax is deprecated; use 'source:<scope>' filter instead.");
+  }
   const result: ParsedFindQuery = {
     family: 'find',
     raw,
     target: '',
     filters: [],
-    scope,
     window: win.window,
+    ...(advisories.length ? { advisories } : {}),
   };
   if (win.error) {
     result.error = win.error;
@@ -545,6 +651,15 @@ function parseFindQuery(raw: string): ParsedFindQuery {
     return result;
   }
   result.filters = extractFilters(query, text);
+  if (legacyScope) {
+    result.filters.push({
+      key: 'source',
+      negate: false,
+      values: [{ value: legacyScope, wildcard: false }],
+    });
+  }
+  const sourceError = validateSourceFilter(result.filters);
+  if (sourceError) { result.error = sourceError; return result; }
   const findGrainError = retiredGrainRollup(result.filters);
   if (findGrainError) { result.error = findGrainError; return result; }
 

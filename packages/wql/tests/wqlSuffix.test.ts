@@ -33,10 +33,10 @@ describe('wqlSuffix', () => {
       expect(parsed.where).toBe('find:note{tags:pr}');
     });
 
-    it('parses find query suffixes (scope, last, where)', () => {
+    it('parses find query suffixes (legacyScope, last, where)', () => {
       const parsed = parseWqlSuffixes('find:note{tags:pr} in journal last 8w where sum:totalVolume{} > 5000');
       expect(parsed.primaryText).toBe('find:note{tags:pr}');
-      expect(parsed.scope).toBe('journal');
+      expect(parsed.legacyScope).toBe('journal');
       expect(parsed.window).toEqual({ kind: 'relative', size: 8, unit: 'w', raw: 'last 8w' });
       expect(parsed.where).toBe('sum:totalVolume{} > 5000');
     });

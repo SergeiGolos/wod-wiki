@@ -20,9 +20,11 @@ export interface WqlFindSummary {
 }
 
 export function summarizeFind(ast: ParsedFindQuery): WqlFindSummary {
+  const sourceFilter = ast.filters.find((f) => f.key === 'source');
+  const scope = sourceFilter ? sourceFilter.values.map((v) => v.value).join(',') : 'all';
   return {
     target: ast.target,
-    scope: ast.scope || 'all',
+    scope,
     timeWindow: ast.window
       ? ast.window.kind === 'relative'
         ? `last ${ast.window.size}${ast.window.unit}`

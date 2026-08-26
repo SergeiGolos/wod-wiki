@@ -90,9 +90,9 @@ export type WqlGrain = (typeof WQL_GRAINS)[number];
 export const WQL_FIND_TARGETS = ['note', 'block', 'effort'] as const;
 export type WqlFindTarget = (typeof WQL_FIND_TARGETS)[number];
 
-/** Content query scopes (in <scope>). */
-export const WQL_SCOPES = ['journal', 'collections', 'feeds', 'all'] as const;
-export type WqlScope = (typeof WQL_SCOPES)[number];
+/** Canonical source filter values (C2): scope folded into the source: filter key. */
+export const WQL_SOURCE_VALUES = ['journal', 'collections', 'feeds', 'all'] as const;
+export type WqlSourceValue = (typeof WQL_SOURCE_VALUES)[number];
 
 
 /** Result planes — `rows:<plane>` narrows raw output-statement rows by the

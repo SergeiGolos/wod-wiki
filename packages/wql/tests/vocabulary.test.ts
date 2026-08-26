@@ -12,7 +12,7 @@ import {
   WQL_METRIC_AGGREGATES,
   WQL_METRIC_FAMILIES,
   WQL_ROLLUP_PERIODS,
-  WQL_SCOPES,
+  WQL_SOURCE_VALUES,
   WQL_SOURCES,
   WQL_TAG_KEYS,
   WQL_VIRTUAL_DIMS,
@@ -28,7 +28,7 @@ describe('WQL Vocabulary Alignment', () => {
     expect(WqlLanguage.WQL_METRIC_AGGREGATES).toBe(WQL_METRIC_AGGREGATES);
     expect(WqlLanguage.WQL_METRIC_FAMILIES).toBe(WQL_METRIC_FAMILIES);
     expect(WqlLanguage.WQL_ROLLUP_PERIODS).toBe(WQL_ROLLUP_PERIODS);
-    expect(WqlLanguage.WQL_SCOPES).toBe(WQL_SCOPES);
+    expect(WqlLanguage.WQL_SOURCE_VALUES).toBe(WQL_SOURCE_VALUES);
     expect(WqlLanguage.WQL_TAG_KEYS).toBe(WQL_TAG_KEYS);
     expect(WqlLanguage.WQL_VIRTUAL_DIMS).toBe(WQL_VIRTUAL_DIMS);
     expect(WqlLanguage.WQL_FIND_TARGETS).toBe(WQL_FIND_TARGETS);

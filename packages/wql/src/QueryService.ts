@@ -84,9 +84,13 @@ function catalogOfItem(item: { id?: string; noteId?: string; sourceId?: string; 
  *  rows with no sourceId prefix; the `collection` / `feed` kinds match rows whose
  *  sourceId starts with the kind. A `kind:id` literal matches the exact id. */
 function sourceMatches(sourceId: string | undefined, kind: string): boolean {
+  if (kind === 'all') return true;
   if (kind === 'journal') return !sourceId || sourceId === 'journal';
-  if (kind === 'collection' || kind === 'feed') {
-    return !!sourceId && sourceId.startsWith(`${kind}:`);
+  if (kind === 'collection' || kind === 'collections') {
+    return !!sourceId && sourceId.startsWith('collection:');
+  }
+  if (kind === 'feed' || kind === 'feeds') {
+    return !!sourceId && sourceId.startsWith('feed:');
   }
   return sourceId === kind;
 }
@@ -498,15 +502,9 @@ export class QueryService {
       return this.runFindEffort(parsed);
     }
     let notes: Note[] = [];
-    const scope = parsed.scope || 'journal';
-    if (scope === 'journal' || scope === 'all') {
-      notes = notes.concat(await this.noteStore.getAllNotes());
-    }
-    if (scope === 'collections' || scope === 'feeds' || scope === 'all') {
-      let sNotes = this.staticNoteStore ? await this.staticNoteStore.getAllNotes() : [];
-      if (scope === 'collections') sNotes = sNotes.filter(n => n.sourceId?.startsWith('collection:'));
-      if (scope === 'feeds') sNotes = sNotes.filter(n => n.sourceId?.startsWith('feed:'));
-      notes = notes.concat(sNotes);
+    notes = notes.concat(await this.noteStore.getAllNotes());
+    if (this.staticNoteStore) {
+      notes = notes.concat(await this.staticNoteStore.getAllNotes());
     }
     const selectedCount = notes.length;
     const anchorNow = windowAnchor(notes, parsed, options);
@@ -579,15 +577,9 @@ export class QueryService {
    */
   async runFindBlock(parsed: ParsedFindQuery, options: FindOptions = {}): Promise<FindQueryResult> {
     let blocks: BlockIndexRow[] = [];
-    const scope = parsed.scope || 'journal';
-    if (scope === 'journal' || scope === 'all') {
-      blocks = blocks.concat(await this.blockStore.getAllBlocks());
-    }
-    if (scope === 'collections' || scope === 'feeds' || scope === 'all') {
-      let sBlocks = this.staticBlockStore ? await this.staticBlockStore.getAllBlocks() : [];
-      if (scope === 'collections') sBlocks = sBlocks.filter(b => b.sourceId?.startsWith('collection:'));
-      if (scope === 'feeds') sBlocks = sBlocks.filter(b => b.sourceId?.startsWith('feed:'));
-      blocks = blocks.concat(sBlocks);
+    blocks = blocks.concat(await this.blockStore.getAllBlocks());
+    if (this.staticBlockStore) {
+      blocks = blocks.concat(await this.staticBlockStore.getAllBlocks());
     }
     const selectedCount = blocks.length;
     const anchorNow = windowAnchor(blocks, parsed, options);
@@ -846,7 +838,7 @@ export class QueryService {
     const join = parsed.join as FindPredicate;
     const findResult = await this.runFind({
       family: 'find',
-      raw: '', target: join.target, filters: join.filters, scope: join.scope,
+      raw: '', target: join.target, filters: join.filters,
       window: join.last ? { kind: 'relative', size: join.last.size, unit: join.last.unit } : undefined,
     });
     const contentIds = await this.contentIdsFromFindResult(findResult);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseQuery as _parseQuery, isFindQuery, isRowsQuery, isAggregateQuery, WQL_COMPARISON_OPS, type ParsedAggregateQuery } from '../src/wql';
+import { parseQuery as _parseQuery, isFindQuery, isRowsQuery, isAggregateQuery, normalizeWql, WQL_COMPARISON_OPS, type ParsedAggregateQuery } from '../src/wql';
 import { WQL_CONTENT_FILTER_KEYS } from '../src/vocabulary';
 
 function parseQuery(raw: string): ParsedAggregateQuery {
@@ -113,22 +113,30 @@ describe('parseQuery — find: content queries', () => {
     expect(parsed.filters).toEqual([
       { key: 'tags', negate: false, values: [{ value: 'pr', wildcard: false }] },
     ]);
-    expect(parsed.scope).toBeUndefined();
     expect(parsed.window).toBeUndefined();
   });
 
-  it('parses scope clause (in journal)', () => {
+  it('normalizes legacy scope clause (in journal) to source: filter with advisory (C2)', () => {
     const parsed = _parseQuery('find:note{tags:pr} in journal');
     expect(isFindQuery(parsed)).toBe(true);
     if (!isFindQuery(parsed)) return;
-    expect(parsed.scope).toBe('journal');
+    expect(parsed.filters).toContainEqual({
+      key: 'source',
+      negate: false,
+      values: [{ value: 'journal', wildcard: false }],
+    });
+    expect(parsed.advisories?.[0]).toContain("Legacy 'in <scope>' syntax is deprecated");
   });
 
-  it('parses time window (last 8w)', () => {
+  it('parses time window with legacy scope', () => {
     const parsed = _parseQuery('find:note{type:wod} in journal last 8w');
     expect(isFindQuery(parsed)).toBe(true);
     if (!isFindQuery(parsed)) return;
-    expect(parsed.scope).toBe('journal');
+    expect(parsed.filters).toContainEqual({
+      key: 'source',
+      negate: false,
+      values: [{ value: 'journal', wildcard: false }],
+    });
     expect(parsed.window).toEqual({ kind: 'relative', size: 8, unit: 'w' });
   });
 
@@ -136,7 +144,6 @@ describe('parseQuery — find: content queries', () => {
     const parsed = _parseQuery('find:note{tags:pr} last 4d');
     expect(isFindQuery(parsed)).toBe(true);
     if (!isFindQuery(parsed)) return;
-    expect(parsed.scope).toBeUndefined();
     expect(parsed.window).toEqual({ kind: 'relative', size: 4, unit: 'd' });
   });
 
@@ -172,14 +179,21 @@ describe('parseQuery — find: content queries', () => {
     ]);
   });
 
-  it('parses find:block with type filter and scope', () => {
+  it('parses find:block with type filter and legacy scope', () => {
     const parsed = _parseQuery('find:block{type:wod} in journal');
     expect(isFindQuery(parsed)).toBe(true);
     if (!isFindQuery(parsed)) return;
     expect(parsed.target).toBe('block');
-    expect(parsed.scope).toBe('journal');
-    expect(parsed.filters[0].key).toBe('type');
-    expect(parsed.filters[0].values[0].value).toBe('wod');
+    expect(parsed.filters).toContainEqual({
+      key: 'type',
+      negate: false,
+      values: [{ value: 'wod', wildcard: false }],
+    });
+    expect(parsed.filters).toContainEqual({
+      key: 'source',
+      negate: false,
+      values: [{ value: 'journal', wildcard: false }],
+    });
   });
 
   it('parses source: filter as an affirmative kind', () => {
@@ -247,7 +261,11 @@ describe('parseQuery — cross-store where joins', () => {
     const parsed = _parseQuery('sum:totalVolume{} where find:note{tags:pr} in journal last 8w');
     expect(isFindQuery(parsed)).toBe(false);
     if (!('join' in parsed) || !parsed.join) throw new Error('expected a join');
-    expect(parsed.join.scope).toBe('journal');
+    expect(parsed.join.filters).toContainEqual({
+      key: 'source',
+      negate: false,
+      values: [{ value: 'journal', wildcard: false }],
+    });
     expect(parsed.join.last).toEqual({ size: 8, unit: 'w' });
   });
 
@@ -289,7 +307,7 @@ describe('parseQuery — cross-store where joins', () => {
   });
 
   it('unquotes a multi-word text filter value (#867)', () => {
-    const parsed = _parseQuery('find:note{text:"300 Air Squats"} in all');
+    const parsed = _parseQuery('find:note{text:"300 Air Squats"}');
     expect(isFindQuery(parsed)).toBe(true);
     if (!isFindQuery(parsed)) return;
     expect(parsed.error).toBeUndefined();
@@ -411,13 +429,12 @@ describe('find/rows target validation (C7)', () => {
 });
 
 describe('rows-in-grammar cutover (C4)', () => {
-  it('bare rows head retires with a migrate-to-all error', () => {
+  it('bare rows head normalizes to rows:all with advisory under parseQuery (C2)', () => {
     const parsed = _parseQuery('rows:{note:n1}');
     expect(parsed.family).toBe('rows');
-    expect(parsed.error).toContain('Bare "rows:" is retired');
-    expect(parsed.error).toContain('rows:all');
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.advisories?.[0]).toContain("Bare 'rows:{...}' syntax is deprecated");
   });
-
   it('rows:all parses without outputType narrowing', () => {
     const parsed = _parseQuery('rows:all{note:n1}');
     expect(parsed.error).toBeUndefined();
@@ -502,5 +519,75 @@ describe('window module (C1)', () => {
     expect(parsed.error).toBeUndefined();
     expect(isAggregateQuery(parsed) && parsed.join ? parsed.join.last : undefined)
       .toEqual({ size: 4, unit: 'w' });
+  });
+});
+
+describe('de-overload in with compat normalizer (C2)', () => {
+  it('normalizes bare rows:{...} to rows:all{...}', () => {
+    const parsed = _parseQuery('rows:{result:r1}');
+    expect(parsed.error).toBeUndefined();
+    expect(isRowsQuery(parsed)).toBe(true);
+    if (!isRowsQuery(parsed)) return;
+    expect(parsed.outputType).toBeUndefined();
+    expect(parsed.filters).toEqual([
+      { key: 'result', negate: false, values: [{ value: 'r1', wildcard: false }] },
+    ]);
+    expect(parsed.advisories?.[0]).toContain("Bare 'rows:{...}' syntax is deprecated");
+  });
+
+  it('normalizes legacy in <scope> on rows queries', () => {
+    const parsed = _parseQuery('rows:all{result:r1} in journal');
+    expect(parsed.error).toBeUndefined();
+    expect(isRowsQuery(parsed)).toBe(true);
+    if (!isRowsQuery(parsed)) return;
+    expect(parsed.filters).toContainEqual({
+      key: 'source',
+      negate: false,
+      values: [{ value: 'journal', wildcard: false }],
+    });
+    expect(parsed.advisories?.[0]).toContain("Legacy 'in <scope>' syntax is deprecated");
+  });
+
+  it('rejects unknown source: filter values with clear error', () => {
+    const parsed = _parseQuery('find:note{source:invalid_scope}');
+    expect(parsed.error).toContain('Unknown source "invalid_scope"');
+    expect(parsed.error).toContain('Try: journal, collections, feeds, all');
+  });
+
+  it('rejects unknown legacy in <scope> values with clear error', () => {
+    const parsed = _parseQuery('find:note in invalid_scope');
+    expect(parsed.error).toContain('Unknown source "invalid_scope"');
+  });
+
+  it('accepts all canonical source values and catalog prefixes', () => {
+    for (const src of ['journal', 'collections', 'collection', 'feeds', 'feed', 'all']) {
+      const p = _parseQuery(`find:note{source:${src}}`);
+      expect(p.error).toBeUndefined();
+    }
+    expect(_parseQuery('find:note{source:collection:crossfit-girls}').error).toBeUndefined();
+    expect(_parseQuery('find:note{source:"feed:crossfit-programming/2026-01-12"}').error).toBeUndefined();
+  });
+
+  it('in means units on aggregates without triggering scope normalization', () => {
+    const parsed = _parseQuery('sum:totalVolume{} in kg');
+    expect(parsed.error).toBeUndefined();
+    expect(isAggregateQuery(parsed)).toBe(true);
+    if (!isAggregateQuery(parsed)) return;
+    expect(parsed.displayUnit).toBe('kg');
+    expect(parsed.advisories).toBeUndefined();
+  });
+
+  it('normalizeWql helper rewrites legacy queries and leaves modern queries unchanged', () => {
+    const r1 = normalizeWql('find:note{tags:pr} in journal last 8w');
+    expect(r1.query).toBe('find:note{tags:pr,source:journal} last 8w');
+    expect(r1.advisories.length).toBe(1);
+
+    const r2 = normalizeWql('rows:{result:r1}');
+    expect(r2.query).toBe('rows:all{result:r1}');
+    expect(r2.advisories.length).toBe(1);
+
+    const r3 = normalizeWql('sum:totalVolume{} in kg last 4w');
+    expect(r3.query).toBe('sum:totalVolume{} in kg last 4w');
+    expect(r3.advisories.length).toBe(0);
   });
 });
