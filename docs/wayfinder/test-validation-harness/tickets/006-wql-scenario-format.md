@@ -1,9 +1,21 @@
 ---
-state: open
+state: closed 2026-08-26
+assignee: serge # claimed 2026-08-26
 labels: [wayfinder:grilling]
 title: "WQL scenario format"
 blocked-by: ["001-parser-fixture-file-format", "002-fake-data-corpus-shape"]
 ---
+
+## Resolution
+
+Spec: [006-wql-scenario-format.md](../assets/006-wql-scenario-format.md)
+
+One-line answer: catalog at `packages/wql/tests/fixtures/scenarios/*.md`;
+flat-meta-line frontmatter (`corpus`, `preferredUnit`, `rangeEnd`, `match`),
+`## Query` ```wql fence, `## Expected` per query family (scalar summary,
+grouped series, timeseries points, rows runs/events) or `## Errors`;
+closed-set match by default with `match: subset` opt-in; 6 approved initial
+examples grounded directly in real `QueryService` execution over seeded corpus.
 
 ## Question
 

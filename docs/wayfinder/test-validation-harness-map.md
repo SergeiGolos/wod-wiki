@@ -81,6 +81,13 @@ existing `bun run test` / storybook flows.
   endurance, mixed-wellness, climb-yoga — 166 records, 61 notes, all 10
   disciplines); loader helper `tests/harness/corpus.ts`; 27 invariant and
   smoke tests in `tests/corpus.test.ts`.
+- [WQL scenario format](test-validation-harness/tickets/006-wql-scenario-format.md) —
+  spec [asset](test-validation-harness/assets/006-wql-scenario-format.md):
+  catalog at `packages/wql/tests/fixtures/scenarios/*.md`; flat-meta-line
+  frontmatter (`corpus`, `preferredUnit`, `rangeEnd`, `match`), `## Query`
+  ```wql fence, `## Expected` per query family (scalar summary, grouped
+  series, timeseries points, rows runs) or `## Errors`; closed-set match by
+  default with `match: subset` opt-in.
 
 ## Not yet specified
 
