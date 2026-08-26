@@ -22,7 +22,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Play, Save } from 'lucide-react';
 import { queryService } from '@/services/queryService';
-import { parseQuery, serialize, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';;
+import { parseQuery, serialize, isAggregateQuery, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
 import { RowsTable } from '@bitcobblers/wod-wiki-ui';
 import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
 import { searchEntries } from '../../lib/entrySearch';
@@ -72,15 +72,6 @@ const WQL_GRAMMAR_PLACEHOLDER = 'agg:metric{filters} by {dims} .rollup(period)';
  * are fact-row tags, not note fields; carrying them into a find would
  * silently not filter. */
 const NOTE_FILTER_KEYS = new Set(['tags', 'catalog', 'text', 'type', 'has']);
-
-/** `TagFilter[]` → `{key:v1|v2, …}` braces (empty string when no filters). */
-function serializeTagFilters(filters: { key: string; negate: boolean; values: { value: string }[] }[]): string {
-  if (filters.length === 0) return '';
-  const body = filters
-    .map(f => `${f.negate ? '!' : ''}${f.key}:${f.values.map(v => v.value).join('|')}`)
-    .join(', ');
-  return `{${body}}`;
-}
 
 /** The find query's scope label — folded into the `source:` filter (C2). */
 function sourceFilterLabel(filters: TagFilter[]): string | null {
@@ -170,8 +161,19 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   const subsetQuery = useMemo(() => {
     if (!draftValid) return null;
     if (isFindQuery(liveParsed)) return draft;
-    const m = /\s+where\s+(find:.*)$/.exec(draft);
-    return m ? m[1]!.trim() : null;
+    // The join half comes from the parsed AST, not string surgery — a quoted
+    // text filter containing 'where find:…' must not masquerade as the join.
+    if (isAggregateQuery(liveParsed) && liveParsed.join) {
+      const j = liveParsed.join;
+      return serialize({
+        family: 'find',
+        raw: '',
+        target: j.target,
+        filters: j.filters,
+        window: j.last ? { kind: 'relative', size: j.last.size, unit: j.last.unit } : undefined,
+      });
+    }
+    return null;
   }, [liveParsed, draft, draftValid]);
 
   // The records behind a calculation: the explicit `where find:…` subset
@@ -184,10 +186,16 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
     if (isFindQuery(p) || isRowsQuery(p) || p.error) return null;
     if (p.join) {
       const jf = p.join;
-      return `find:${jf.target}${serializeTagFilters(jf.filters)}${jf.last ? ` last ${jf.last.size}${jf.last.unit}` : ''}`;
+      return serialize({
+        family: 'find', raw: '', target: jf.target, filters: jf.filters,
+        window: jf.last ? { kind: 'relative', size: jf.last.size, unit: jf.last.unit } : undefined,
+      });
     }
     const compatible = p.filters.filter(f => NOTE_FILTER_KEYS.has(f.key) && !f.negate);
-    return `find:note${serializeTagFilters(compatible)} last ${activeWeeks}w`;
+    return serialize({
+      family: 'find', raw: '', target: 'note', filters: compatible,
+      window: { kind: 'relative', size: activeWeeks, unit: 'w' },
+    });
   }, [submitted, activeWeeks]);
 
   useEffect(() => {

@@ -16,10 +16,10 @@
  * (App.tsx) as a fully-wired `PageActions`; the page renders fine without
  * it (tests, Storybook) since the action bar pulls app-wide contexts.
  *
- * Pipeline per clause change:
- *   1. clauses → WQL string via `clausesToWql`
- *   2. WQL → `ParsedFindQuery` via `parseQuery` (the AST's `last` window is
- *      applied by `runFind` itself — no client-side range math)
+ * Pipeline per query change:
+ *   1. The query state IS the WQL string (useLibraryQueryState holds `?q=`)
+ *   2. WQL → `ParsedFindQuery` via `parseQuery` (the AST's window is applied
+ *      by `runFind` itself — no client-side range math)
  *   3. `queryService.runFind(parsed)` → `Note[]`
  *   4. `Note[]` → `Entry[]` via `toEntry` (the only place that touches sourceId)
  *   5. Render Dated Stream (Notes + Posts grouped by date) + CataloguesShelf (Sessions)

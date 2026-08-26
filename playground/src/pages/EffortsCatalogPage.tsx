@@ -12,7 +12,7 @@
  *
  * URL state round-trips through `useEffortsComposerState` (shared
  * `useComposerQueryState` core): back/forward restores the composer, and the
- * page's legacy `?q=text&origin=&discipline=` params migrate to clauses.
+ * page's legacy `?q=text&origin=&discipline=` params migrate to WQL filters.
  *
  * Selecting a row navigates to the effort detail page.
  */
@@ -23,7 +23,7 @@ import { PlusIcon, TriangleAlertIcon } from 'lucide-react';
 import { Button } from '@/components/atoms/primitives/button';
 import { Badge } from '@/components/atoms/primitives/badge';
 import { queryService } from "@/services/queryService";
-import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine';;
+import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine';
 import { WqlComposer, type WqlExecutor } from '@bitcobblers/wod-wiki-ui';
 import { StickyPageHeader } from '@/panels/page-shells';
 import type { IEffort } from '@/effort-registry';
