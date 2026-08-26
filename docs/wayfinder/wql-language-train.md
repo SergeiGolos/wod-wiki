@@ -68,6 +68,10 @@ queries still parsing, docs updated.
   for `rows:all` (C2 normalizer migrates), time-dim keys become local civil
   ISO dates (lands with C1), day-dim rider folded into C1; C3/C5/C7 marked
   landed; `$window` verified dissolved; CLI parity: none needed.
+- [Rows-in-grammar cutover (C4)](tickets/006-rows-in-grammar-c4.md) —
+  grammar-native rows head (no grammar change needed), synthetic `find:_`
+  dead, all validation at parse, `runRows` executes only; bare form retired
+  for `rows:all`; content planes execute; engine main `17ecde2`+`3c19185`.
 
 ## Not yet specified
 
