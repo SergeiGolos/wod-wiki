@@ -139,7 +139,7 @@ export function RowsResultsChrome({
       return;
     }
     let cancelled = false;
-    const wideQuery = parseQuery(`rows:{block:${blockContentId}}`);
+    const wideQuery = parseQuery(`rows:all{block:${blockContentId}}`);
     if (!isRowsQuery(wideQuery)) return;
 
     void executor

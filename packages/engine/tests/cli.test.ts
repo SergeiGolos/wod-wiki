@@ -191,7 +191,7 @@ describe('wod CLI runner', () => {
 
       let stdout = '';
       const code = await cliMain(
-        ['query', 'rows:{result:stdin-result-1}', '--stdin-log', '--format', 'json'],
+        ['query', 'rows:all{result:stdin-result-1}', '--stdin-log', '--format', 'json'],
         {
           stdout: (t) => { stdout += t; },
           readStdinFn: async () => JSON.stringify(sampleLog),

@@ -107,10 +107,13 @@ export type WqlResultPlane = (typeof WQL_RESULT_PLANES)[number];
 /** All `rows:` targets — content planes plus result planes (rows model
  *  §1.0: every query selects rows from a target) plus `all`, the explicit
  *  no-narrowing pseudo-target (spec v2 decision 1: the bare `rows:{…}`
- *  alias retires). Content-plane targets scope by content, not outputType;
- *  their narrowing semantics land with C4. */
+ *  alias retires). Content-plane targets scope by content, not outputType
+ *  (C4). */
 export const WQL_ROWS_TARGETS = [...WQL_FIND_TARGETS, ...WQL_RESULT_PLANES, 'all'] as const;
 export type WqlRowsTarget = (typeof WQL_ROWS_TARGETS)[number];
+
+/** Rows scope filter keys (C4): the exact-match keys a rows query filters by. */
+export const WQL_ROWS_SCOPE_KEYS = ['result', 'block', 'note'] as const;
 
 /** Content-specific filter keys (beyond the analytics tag keys). */
 export const WQL_CONTENT_FILTER_KEYS = ['type', 'text', 'has', 'source', 'catalog', ...WQL_TAG_KEYS] as const;

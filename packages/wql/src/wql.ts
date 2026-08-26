@@ -18,6 +18,7 @@ import * as terms from './grammar/wql.parser.terms';
 import {
   WQL_AGGREGATORS,
   WQL_FIND_TARGETS,
+  WQL_ROWS_SCOPE_KEYS,
   WQL_ROWS_TARGETS,
   type WqlAggregator,
   type WqlComparisonOp,
@@ -221,18 +222,20 @@ function cannotParseRows(text: string): string {
 /** Rows-only filter rules (C4): exact `result:`/`block:`/`note:` keys, no
  *  negation, no wildcards — validated at parse so `runRows` executes only. */
 function validateRowsFilters(filters: TagFilter[]): string | undefined {
-  const ROWS_SCOPE_KEYS = new Set(['result', 'block', 'note']);
+  const scopeKeys = new Set<string>(WQL_ROWS_SCOPE_KEYS);
   const unsupported = filters.filter(
-    (f) => !ROWS_SCOPE_KEYS.has(f.key) || f.negate || f.values.some((v) => v.wildcard),
+    (f) => !scopeKeys.has(f.key) || f.negate || f.values.some((v) => v.wildcard),
   );
   if (unsupported.length > 0) {
-    return `Unsupported rows filter(s): ${unsupported.map((f) => (f.negate ? '!' : '') + f.key).join(', ')}. Rows queries support exact result:, block:, note: values.`;
+    return `Unsupported rows filter(s): ${unsupported.map((f) => (f.negate ? '!' : '') + f.key).join(', ')}. Rows queries support exact ${WQL_ROWS_SCOPE_KEYS.map((k) => `${k}:`).join(', ')} values.`;
   }
-  if (!filters.some((f) => ROWS_SCOPE_KEYS.has(f.key))) {
-    return 'Rows query needs a scope: result:, block:, or note:.';
+  if (!filters.some((f) => scopeKeys.has(f.key))) {
+    return `Rows query needs a scope: ${WQL_ROWS_SCOPE_KEYS.map((k) => `${k}:`).join(', ')}.`;
   }
   return undefined;
 }
+
+const BARE_ROWS_RETIRED = 'Bare "rows:" is retired — name a target: rows:all{…} for every output type, or a plane like rows:segment{…}.';
 
 /**
  * Parse a rows query (#949, C4 cutover). The whole primary text parses under
@@ -265,7 +268,7 @@ function parseRowsQuery(raw: string): ParsedRowsQuery {
   // so it surfaces as a syntax error — intercept it first for the
   // migrate-to-`all` message instead of a generic cannot-parse.
   if (/^rows:?\s*[{]?$/.test(text) || /^rows:?\s*[{]/.test(text)) {
-    result.error = `Bare "rows:" is retired — name a target: rows:all{…} for every output type, or a plane like rows:segment{…}.`;
+    result.error = BARE_ROWS_RETIRED;
     return result;
   }
   const tree = wqlParser.parse(text);
@@ -282,7 +285,7 @@ function parseRowsQuery(raw: string): ParsedRowsQuery {
   const metricNode = head?.getChild(terms.Metric);
   if (!head || !aggNode || !metricNode) {
     // A rows head without a target — the retired bare alias.
-    result.error = `Bare "rows:" is retired — name a target: rows:all{…} for every output type, or a plane like rows:segment{…}.`;
+    result.error = BARE_ROWS_RETIRED;
     return result;
   }
   const aggText = text.slice(aggNode.from, aggNode.to);

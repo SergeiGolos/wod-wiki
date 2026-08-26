@@ -35,6 +35,7 @@ import {
   type SeriesPoint,
   type TagFilter,
 } from './wql';
+import { WQL_FIND_TARGETS } from './vocabulary';
 import { convert, resolveDisplayUnit } from './units';
 import { projectEventToFacts } from './derivation';
 import type {
@@ -59,7 +60,7 @@ const DAY = 86_400_000;
 
 /** Rows content planes (C4): targets that scope by content ownership rather
  *  than the outputType column — no statement narrowing for these. */
-const ROWS_CONTENT_PLANES: ReadonlySet<string> = new Set(['note', 'block', 'effort']);
+const ROWS_CONTENT_PLANES: ReadonlySet<string> = new Set(WQL_FIND_TARGETS);
 
 function localDateString(ts: number): string {
   return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -381,11 +382,11 @@ export class QueryService {
     }
     return this.run(parsed, options);
   }
-
   /**
-   * Execute a rows query (rows:{…}, #949) — the session results table plane.
-   * Reads event rows directly over the unified store (ticket 003): no
-   * WorkoutResult blob parsing; outputType narrowing hits the promoted column.
+   * Execute a rows query (rows:<target>{…}, #949/C4) — the session results
+   * table plane. Filter rules are validated at parse; this executes only.
+   * Reads event rows directly over the unified store: outputType narrowing
+   * hits the promoted column; content-plane targets scope by content.
    */
   async runRows(parsed: ParsedRowsQuery, options: { anchorNow?: number } = {}): Promise<RowsQueryResult> {
     const empty: RowsQueryResult = { parsed, runs: [] };

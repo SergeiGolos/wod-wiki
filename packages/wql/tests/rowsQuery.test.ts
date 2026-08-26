@@ -58,7 +58,7 @@ function rowsAst(outputType: string, scopeKey: 'result' | 'block' | 'note', scop
 }
 
 describe('parseQuery — rows family', () => {
-  it('parses the bare head with a result scope', () => {
+  it('parses the explicit all target with a result scope', () => {
     const p = rows('rows:all{result:abc}');
     expect(p.error).toBeUndefined();
     expect(p.outputType).toBeUndefined();
@@ -138,15 +138,8 @@ describe('QueryService.runRows', () => {
     expect(res.runs.map((r) => r.resultId)).toEqual(['rA']);
   });
 
-  it('rejects unsupported filters at parse (wrong key, negation, wildcard)', () => {
-    expect(rows('rows:all{tags:x}').error).toContain('Unsupported rows filter');
-    expect(rows('rows:segment{!result:rA}').error).toContain('Unsupported rows filter');
-    expect(rows('rows:all{block:bc-*}').error).toContain('Unsupported rows filter');
-  });
-
-  it('rejects a scope-less query at parse', () => {
-    expect(rows('rows:all{}').error).toContain('needs a scope');
-  });
+  // Parse-level filter/scope rejection is pinned once in wql.test.ts
+  // (C4 block); here the runtime contract is error propagation only:
 
   it('propagates parse errors without touching stores', async () => {
     const calls: string[] = [];
