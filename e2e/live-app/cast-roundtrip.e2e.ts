@@ -44,7 +44,7 @@ test.describe('Cast Sender↔Receiver Round-Trip (LocalTabBackend)', () => {
     await page.addInitScript(() => {
       window.localStorage.setItem('wodwiki.profileInitialized.v1', 'true');
     });
-    if (process.env.E2E_TARGET === 'preview') {
+    if (process.env.E2E_TARGET === 'preview' || process.env.E2E_APP_URL) {
       test.skip(true, 'Cast LocalTabBackend e2e test requires dev mode (local backend)');
     }
     try {
