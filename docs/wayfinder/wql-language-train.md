@@ -77,6 +77,11 @@ queries still parsing, docs updated.
   exclusion, one predicate); day/week rider landed as civil bucketing —
   goldens updated from epoch-Thursday weeks to civil Mondays; engine main
   `7549814`+`499a7d6`.
+- [De-overload in with compat (C2)](tickets/008-de-overload-in-c2.md) —
+  `in` means units always; scope folds into `source:` filters; `ParsedFindQuery.scope`
+  removed; `WQL_SCOPES` retired to `WQL_SOURCE_VALUES`; `normalizeWql`
+  compatibility normalizer rewrites legacy `in <scope>` and bare `rows:{…}`
+  heads with advisories; engine main `2462ec9`+`da4c967`.
 
 ## Not yet specified
 
