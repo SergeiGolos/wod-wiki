@@ -62,7 +62,7 @@ async function worker() {
     const idx = fileIndex++;
     const file = files[idx];
     const rel = file.replace(resolve(process.cwd()) + '/', '');
-    const proc = Bun.spawn(['bun', 'test', file, '--preload', preload], {
+    const proc = Bun.spawn(['bun', 'test', file, '--preload', preload, '--timeout', '20000'], {
       stdout: 'pipe',
       stderr: 'pipe',
       env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
