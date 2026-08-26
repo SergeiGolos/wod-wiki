@@ -12,14 +12,14 @@ import { parseCanvasMarkdown, type ParsedCanvasPage } from './parseCanvasMarkdow
 export { getSectionProse } from './parseCanvasMarkdown'
 
 // Routes from markdown/canvas/**/*.md (explicit routes)
-const routeFiles = import.meta.glob('../../../markdown/canvas/**/*.md', {
+const routeFiles = import.meta.glob('../../../../markdown/canvas/**/*.md', {
   eager: true,
   query: '?raw',
   import: 'default',
 }) as Record<string, string>
 
 // Collection READMEs from markdown/collections/**/README.md
-const collectionFiles = import.meta.glob('../../../markdown/collections/**/README.md', {
+const collectionFiles = import.meta.glob('../../../../markdown/collections/**/README.md', {
   eager: true,
   query: '?raw',
   import: 'default',

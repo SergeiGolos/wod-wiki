@@ -84,12 +84,12 @@ export function fileToDisplayName(filename: string): string {
 function globRoot(root: 'collections' | 'feeds'): Record<string, string> {
   if (root === 'collections') {
     return import.meta.glob(
-      ['../../markdown/collections/**/*.md', '../../markdown/collections/*.md'],
+      ['../../../../markdown/collections/**/*.md', '../../../../markdown/collections/*.md'],
       { query: '?raw', eager: true, import: 'default' },
     ) as Record<string, string>;
   }
   return import.meta.glob(
-    ['../../markdown/feeds/**/*.md'],
+    ['../../../../markdown/feeds/**/*.md'],
     { query: '?raw', eager: true, import: 'default' },
   ) as Record<string, string>;
 }

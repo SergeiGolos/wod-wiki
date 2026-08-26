@@ -2,7 +2,7 @@
  * Loads markdown content from the project's markdown directory.
  * Uses Vite's import.meta.glob feature.
  */
-const markdownModules = import.meta.glob('../../markdown/**/*.md', { query: '?raw', eager: true, import: 'default' });
+const markdownModules = import.meta.glob('../../../../markdown/**/*.md', { query: '?raw', eager: true, import: 'default' });
 
 export function getScriptContent(id: string): string | undefined {
     // Try exact matches in both collections and canvas

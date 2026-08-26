@@ -16,7 +16,7 @@ export interface DashboardSeed {
   rawContent: string
 }
 
-const seedFiles = import.meta.glob('../../../markdown/dashboards/**/*.md', {
+const seedFiles = import.meta.glob('../../../../markdown/dashboards/**/*.md', {
   eager: true,
   query: '?raw',
   import: 'default',

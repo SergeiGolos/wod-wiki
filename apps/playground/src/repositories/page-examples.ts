@@ -16,7 +16,7 @@
 
 import { parseFrontmatter } from '@/lib/frontmatter';
 
-const exampleModules = import.meta.glob('../../markdown/canvas/**/*.md', {
+const exampleModules = import.meta.glob('../../../../markdown/canvas/**/*.md', {
     query: '?raw',
     eager: true,
     import: 'default',

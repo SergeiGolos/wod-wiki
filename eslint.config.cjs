@@ -81,10 +81,13 @@ module.exports = [
     },
   },
   {
+    // Architecture guard for the app-support component tree. Patterns are the
+    // pre-migration 'error' rules downgraded to 'warn': nine call sites still
+    // violate them and semantics-preserving reroutes are follow-up work.
     files: ['apps/playground/src/components/**/*.ts', 'apps/playground/src/components/**/*.tsx'],
     rules: {
       'no-restricted-imports': [
-        'error',
+        'warn',
         {
           patterns: [
             {
@@ -105,14 +108,6 @@ module.exports = [
           ],
         },
       ],
-    },
-  },
-  {
-    // Pre-migration architecture-rule debt in the legacy app tree stays
-    // visible but non-blocking until the follow-up cleanup lands.
-    files: ['apps/playground/src/components/**/*.ts', 'apps/playground/src/components/**/*.tsx'],
-    rules: {
-      'no-restricted-imports': 'warn',
     },
   },
 ];

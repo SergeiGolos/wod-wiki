@@ -61,14 +61,14 @@ jobs:
 
       - name: Run coverage
         id: coverage
-        run: bun run test:coverage
+        run: bun run --filter '@bitcobblers/wod-wiki-playground' test:coverage
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-report
-          path: coverage/
+          path: apps/playground/coverage/
           if-no-files-found: ignore
           retention-days: 14
 
@@ -76,7 +76,7 @@ jobs:
         if: always() && env.CODECOV_TOKEN != '' && steps.coverage.outcome == 'success'
         uses: codecov/codecov-action@v4
         with:
-          files: ./coverage/lcov.info
+          files: apps/playground/coverage/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 

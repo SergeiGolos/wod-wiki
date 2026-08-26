@@ -132,6 +132,33 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
+      - name: Sync to S3 (main.preview.wod.wiki)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+          S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
+          CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
+        run: |
+          set -euo pipefail
+          PREFIX="main/dist/"
+          echo "Uploading to s3://$S3_BUCKET/$PREFIX"
+          aws s3 sync ./dist/ "s3://$S3_BUCKET/$PREFIX" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate" \
+            --exclude "*.map"
+
+      - name: Invalidate CloudFront (best-effort)
+        continue-on-error: true
+        run: |
+          if aws cloudfront create-invalidation \
+               --distribution-id "$CF_DISTRIBUTION_ID" \
+               --paths "/main/dist/*"; then
+            echo "CloudFront invalidation submitted for /main/dist/*"
+          else
+            echo "::warning::CloudFront invalidation failed; content refreshes within 5 minutes via max-age."
+          fi
+
   smoke-production:
     name: Production smoke (wod.wiki)
     runs-on: ubuntu-22.04

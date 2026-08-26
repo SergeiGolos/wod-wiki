@@ -34,7 +34,7 @@ import { getScalar, parseFrontmatter } from '@/lib/frontmatter'
 let rawWorkoutFiles: Record<string, string> = {};
 try {
   rawWorkoutFiles = import.meta.glob(
-    '../../../markdown/**/*.md',
+    '../../../../markdown/**/*.md',
     { eager: true, query: '?raw', import: 'default' },
   );
 } catch {
