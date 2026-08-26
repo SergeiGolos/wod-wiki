@@ -1,5 +1,6 @@
 ---
-state: open
+state: in-progress
+assignee: serge # claimed 2026-08-25
 labels: [wayfinder:task]
 title: "Window module everywhere (C1)"
 blocked-by: ["006-rows-in-grammar-c4"]
