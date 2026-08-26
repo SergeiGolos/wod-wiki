@@ -1,9 +1,18 @@
 ---
-state: open
+state: closed 2026-08-26
+assignee: serge # claimed 2026-08-26
 labels: [wayfinder:task]
-title: "Build the WQL scenario harness"
 blocked-by: ["005-seed-fake-data-corpus", "006-wql-scenario-format"]
 ---
+
+## Resolution
+
+Landed on branch `testing-spike`, TDD (scenarioFile parser -> semantic comparator -> driver):
+- Harness at `packages/wql/tests/harness/scenarioFixture/`: `scenarioFile.ts` (flat frontmatter, query fence, expected/errors parser), `compare.ts` (scalar, grouped series, timeseries points, rows runs/events, errors matcher). 15 unit tests.
+- Driver `packages/wql/tests/scenarioFixtures.test.ts` — glob-discovers `packages/wql/tests/fixtures/scenarios/*.md`; one file = one test.
+- Initial scenario set: 9 scenarios covering scalar aggregates, grouped series, tag filters, weekly timeseries, rows queries, error cases, and all four seeded journals (`crossfit-multi-week`, `endurance-block`, `mixed-wellness`, `climb-yoga`).
+
+Verification: 24 new tests in `packages/wql` (15 unit + 9 scenarios); full root package suite green (121 files / 1327 tests); tsc clean; wrong expectations fail with a readable diff.
 
 ## Question
 

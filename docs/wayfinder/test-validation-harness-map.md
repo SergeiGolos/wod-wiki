@@ -88,6 +88,11 @@ existing `bun run test` / storybook flows.
   ```wql fence, `## Expected` per query family (scalar summary, grouped
   series, timeseries points, rows runs) or `## Errors`; closed-set match by
   default with `match: subset` opt-in.
+- [Build the WQL scenario harness](test-validation-harness/tickets/007-build-wql-scenario-harness.md) —
+  landed: `packages/wql/tests/harness/scenarioFixture/` + discovery driver
+  `packages/wql/tests/scenarioFixtures.test.ts`; 9 initial scenarios
+  covering every query family over all four seeded journals; root package
+  suite green (121 files / 1327 tests).
 
 ## Not yet specified
 
