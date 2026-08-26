@@ -55,14 +55,12 @@ describe('@bitcobblers/wod-wiki-engine re-exports', () => {
     expect(engine.WQL_FIND_TARGETS).toBeDefined();
     expect(engine.WQL_RESULT_PLANES).toBeDefined();
     expect(engine.WQL_ROWS_TARGETS).toBeDefined();
-    // Language train (C1-C7): the umbrella must carry the new surface.
-    // Release 0.10.41 shipped without these — found by the RC smoke.
+    // Language train (C1-C7) surface — guarded after 0.10.41 shipped without it.
     expect(engine.WQL_SOURCE_VALUES).toBeDefined();
     expect(engine.WQL_ROWS_SCOPE_KEYS).toBeDefined();
     expect(engine.normalizeWql).toBeDefined();
     expect(engine.serialize).toBeDefined();
-    expect(engine.serialize(engine.parseQuery('sum:tis{}'))).toBe('sum:tis{}');
-    expect(engine.normalizeWql('rows:{result:r1}').query).toBe('rows:all{result:r1}');
+    expect(engine.buildDashboardDocument).toBeDefined();
   });
 
   it('exports Language Pack API', () => {

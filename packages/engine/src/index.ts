@@ -243,6 +243,7 @@ export {
   type Series,
   type SeriesPoint,
   type Aggregator,
+  type ComparisonOp,
   type QueryWindow,
   type MetricPredicate,
   type TagValue,
