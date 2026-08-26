@@ -192,14 +192,17 @@ function cannotParseJoin(text: string): string {
  * Both halves reuse the same Lezer Head→Filters grammar; the join keyword is
  * JS-stripped, so no grammar change is required.
  */
-function parseJoinClause(where: string): { metric?: MetricPredicate; find?: FindPredicate; error?: string } {
+function parseJoinClause(where: string): { metric?: MetricPredicate; find?: FindPredicate; advisories?: string[]; error?: string } {
   if (where.trimStart().startsWith('find:')) {
     const fp = parseFindQuery(where);
     if (fp.error) return { error: fp.error };
     if (fp.window?.kind === 'range') {
       return { error: 'Range windows are not supported on join halves — use last <n>d|w' };
     }
-    return { find: { target: fp.target, filters: fp.filters, last: fp.window?.kind === 'relative' ? { size: fp.window.size, unit: fp.window.unit } : undefined } };
+    return {
+      find: { target: fp.target, filters: fp.filters, last: fp.window?.kind === 'relative' ? { size: fp.window.size, unit: fp.window.unit } : undefined },
+      advisories: fp.advisories,
+    };
   }
   const m = CMP_RE.exec(where.trim());
   if (!m) return { error: cannotParseJoin(where) };
@@ -281,6 +284,12 @@ export function normalizeWql(raw: string): { query: string; advisories: string[]
       }
 
       const parts: string[] = [head];
+      if (suffixes.groupBy) {
+        parts.push(`by {${suffixes.groupBy.join(', ')}}`);
+      }
+      if (suffixes.rollup) {
+        parts.push(`.rollup(${suffixes.rollup.raw})`);
+      }
       if (suffixes.window) {
         parts.push(suffixes.window.raw);
       }
@@ -309,7 +318,8 @@ function validateRowsFilters(filters: TagFilter[]): string | undefined {
     (f) => !allowedKeys.has(f.key) || f.negate || f.values.some((v) => v.wildcard),
   );
   if (unsupported.length > 0) {
-    return `Unsupported rows filter(s): ${unsupported.map((f) => (f.negate ? '!' : '') + f.key).join(', ')}. Rows queries support exact ${WQL_ROWS_SCOPE_KEYS.map((k) => `${k}:`).join(', ')} values.`;
+    const allowed = [...WQL_ROWS_SCOPE_KEYS, 'source'];
+    return `Unsupported rows filter(s): ${unsupported.map((f) => (f.negate ? '!' : '') + f.key).join(', ')}. Rows queries support exact ${allowed.map((k) => `${k}:`).join(', ')} values.`;
   }
   if (!filters.some((f) => scopeKeys.has(f.key))) {
     return `Rows query needs a scope: ${WQL_ROWS_SCOPE_KEYS.map((k) => `${k}:`).join(', ')}.`;
@@ -333,7 +343,7 @@ function validateSourceFilter(filters: TagFilter[]): string | undefined {
       ) {
         continue;
       }
-      return `Unknown source "${val}". Try: ${WQL_SOURCE_VALUES.join(', ')}`;
+      return `Unknown source "${val}". Try: ${WQL_SOURCE_VALUES.join(', ')} (or collection:<id>, feed:<id>)`;
     }
   }
   return undefined;
@@ -576,6 +586,9 @@ function parseAnalyticsQuery(raw: string): ParsedAggregateQuery {
     if (join.error) {
       base.error = join.error;
       return base;
+    }
+    if (join.advisories?.length) {
+      base.advisories = [...(base.advisories ?? []), ...join.advisories];
     }
     // An analytics query joins on a content (find:) clause — a metric half
     // here would be `sum:x{} where sum:y{}`, a no-op nonsensical join.

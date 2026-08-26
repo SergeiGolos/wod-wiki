@@ -60,4 +60,20 @@ describe('WqlComposer and diagnostics suite', () => {
     expect(wqlToClauses('sum:tis{} last 6w')).toBeNull();
     expect(wqlToClauses('sum:tis{} from 2026-01-01')).toBeNull();
   });
+
+  it('salvages modern source: filter into c-source clause (C2)', () => {
+    const clauses = wqlToClauses('find:note{source:journal,tags:pr}');
+    expect(clauses).not.toBeNull();
+    const sourceClause = clauses!.find((c) => c.type === 'source');
+    expect(sourceClause?.value).toBe('journal');
+    // source filter is folded into c-source, tags:pr remains in filters
+    expect(clauses!.filter((c) => c.type === 'tags')).toHaveLength(1);
+  });
+
+  it('salvages find query outer join where clause (C2 review finding)', () => {
+    const clauses = wqlToClauses('find:note{tags:pr} where sum:totalVolume{} > 5000');
+    expect(clauses).not.toBeNull();
+    const whereClause = clauses!.find((c) => c.type === 'where');
+    expect(whereClause?.value).toBe('sum:totalVolume{} > 5000');
+  });
 });

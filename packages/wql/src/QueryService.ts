@@ -506,10 +506,9 @@ export class QueryService {
     if (this.staticNoteStore) {
       notes = notes.concat(await this.staticNoteStore.getAllNotes());
     }
+    notes = applySourceFilter(notes, parsed.filters);
     const selectedCount = notes.length;
     const anchorNow = windowAnchor(notes, parsed, options);
-    notes = applySourceFilter(notes, parsed.filters);
-
     // Tag filters — intersect note IDs across OR'd values within a key.
     for (const filter of parsed.filters) {
       if (filter.key === 'tags' && !filter.negate) {
@@ -581,10 +580,9 @@ export class QueryService {
     if (this.staticBlockStore) {
       blocks = blocks.concat(await this.staticBlockStore.getAllBlocks());
     }
+    blocks = applySourceFilter(blocks, parsed.filters);
     const selectedCount = blocks.length;
     const anchorNow = windowAnchor(blocks, parsed, options);
-    blocks = applySourceFilter(blocks, parsed.filters);
-
     // Text filter — substring on rawContent
     for (const filter of parsed.filters) {
       if (filter.key === 'text' && !filter.negate) {

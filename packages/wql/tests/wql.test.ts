@@ -590,4 +590,15 @@ describe('de-overload in with compat normalizer (C2)', () => {
     expect(r3.query).toBe('sum:totalVolume{} in kg last 4w');
     expect(r3.advisories.length).toBe(0);
   });
+
+  it('preserves by/rollup on legacy rows queries so they loudly error at parse', () => {
+    const parsed = _parseQuery('rows:all{result:r1} in journal by {day}');
+    expect(parsed.error).toContain('Rows queries return raw statements');
+  });
+
+  it('propagates deprecation advisory from legacy where join find clause', () => {
+    const parsed = _parseQuery('sum:totalVolume{} where find:note in journal');
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.advisories?.[0]).toContain("Legacy 'in <scope>' syntax is deprecated");
+  });
 });

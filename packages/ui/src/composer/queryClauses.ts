@@ -356,6 +356,9 @@ function filterFragmentToClause(fragment: string, index: number): QueryClause | 
   const key = fragment.slice(0, colon);
   const value = fragment.slice(colon + 1);
   if (!value.trim()) return null;
+  if (key === 'source') {
+    return restoreClause(`c-source-${index}`, 'source', value);
+  }
 
   const builtin = FILTER_KEY_TO_CLAUSE_TYPE[key];
   if (builtin) {
@@ -470,6 +473,7 @@ export function wqlToClauses(wql: string): QueryClause[] | null {
       restoreClause('c-time', 'time', timeValue),
       ...remainingFilterClauses,
     ];
+    if (where) clauses.push(restoreClause('c-where', 'where', where));
     return clauses;
   }
 
