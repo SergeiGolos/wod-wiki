@@ -561,3 +561,33 @@ wod-wiki-engine/
 - **Build Tooling**: `tsup` dual ESM (`.mjs`) + CJS (`.cjs`) + `.d.ts` declaration maps with sourcemaps.
 - **CodeMirror / Lezer Peer-Dep Contract**: `@bitcobblers/wod-wiki-lang`, `@bitcobblers/wod-wiki-wql`, and `@bitcobblers/wod-wiki-ui` declare `@codemirror/*` and `@lezer/*` as optional `peerDependencies`. `@bitcobblers/wod-wiki-ui` exports `CODEMIRROR_SINGLETON_DEPS` array for host deduplication in `vite.config.ts`.
 - **Interim Consumption Channel**: Scoped to `@wod-wiki/*` with automated GitHub Packages release (`npm.pkg.github.com/@SergeiGolos`) and `pack:all` tarball outputs for offline local consumption.
+### Monorepo Reunification (wayfinding effort)
+
+**Playground**:
+The wod.wiki web application — currently split across `playground/` (vite config, html entries)
+and root `src/` (application source, aliased `@/`). In the merged workspace it is one package:
+`apps/playground`, absorbing both. Stays `private`, never published to npm.
+_Avoid_: app (overloaded), workbench (means the editor session — see **Workbench Session**).
+
+**Engine Packages**:
+The five publishable npm packages `@bitcobblers/wod-wiki-{core,lang,wql,engine,ui}`,
+landing at `packages/*` in the merged workspace. One **Unified Version Line** stamps all five.
+_Avoid_: libraries, modules.
+
+**Storybook**:
+The canonical package-scope component workbench, `apps/storybook`. There is exactly one —
+stories never lived in the playground repo post-split (orphaned storybook devDeps there are
+cleanup, not a second storybook).
+
+**Preview Slug**:
+The CI-computed branch slug (branch name lowercased, non-alphanumerics → `-`) that namespaces
+PR preview infrastructure: `<slug>.preview.wod.wiki`, `<slug>.e2e.wod.wiki`, S3 prefix `<slug>/`.
+Distinct from **Slug** (note routing sugar) — same word, disjoint domain.
+_Avoid_: branch name, subdomain.
+
+**Unified Version Line**:
+The single version stream for the merged workspace: Conventional-Commits bump,
+`{major}.{minor}.{run_number}`, stamped onto every **Engine Package**, the **Playground**,
+and the **Storybook** build. Seeded at or above 0.11.x (the engine repo's line);
+this repo's 0.6.x line is abandoned, never reused on npm.
+_Avoid_: release version, package version (implies per-package independence).
