@@ -1,6 +1,15 @@
 /**
- * WqlComposer — shared omni command bar for composing WQL queries
- * of both kinds: content find: queries and analytics aggregate queries.
+ * WqlComposer — shared omni command bar for composing WQL queries of all
+ * three families: content find:, analytics aggregates, and rows:.
+ *
+ * State discipline (ticket 013): the composer state observed from outside is
+ * the C6 AST — restore goes through `parseQuery` + `astToPills`, emission
+ * goes through `pillsToAst` + the engine serializer, and the public props
+ * carry WQL strings only (`initialQuery` / `query` / `onQueryChange` /
+ * `onSubmit`). The pill list is the editor's transient working set — an
+ * edit in progress can be WQL-invalid (empty metric, half-typed filter), so
+ * pills are held locally and every keystroke re-derives the AST through the
+ * real parser. Strings never leave the composer except via the serializer.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
@@ -8,7 +17,7 @@ import { Command } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useComposerSlots } from './ComposerRegistry';
 import { TokenSlotPill, AddFilterDropdown, AddCalcDropdown } from './QueryPalette';
-import { diagnoseClauses } from './diagnostics';
+import { diagnosePills } from './diagnostics';
 import { WqlDiagnosticsStrip } from './WqlDiagnosticsStrip';
 import {
   useWqlStageCounts,
@@ -16,17 +25,15 @@ import {
   type WqlExecutor,
   type AnyParsedQuery,
 } from './useWqlStageCounts';
+import { type ClauseType, type QueryClause, getClauseMeta, sourcePlane } from './queryClauses';
 import {
-  type ClauseType,
-  type QueryClause,
-  getClauseMeta,
-  clauseValue,
-  sourcePlane,
-  defaultClauses,
-  pivotClauses,
-  wqlToClauses,
-} from './queryClauses';
-import { parseQuery } from '@bitcobblers/wod-wiki-wql';
+  pillsToAst,
+  wqlToPills,
+  pivotPills,
+  defaultPills,
+  pillValue,
+} from './queryAst';
+import { parseQuery, serialize } from '@bitcobblers/wod-wiki-wql';
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
@@ -38,17 +45,15 @@ export interface WqlValidationState {
 }
 
 export interface WqlComposerProps {
-  /** Seed clauses for uncontrolled usage. Defaults to source/time. */
-  initialClauses?: QueryClause[];
-  /** Controlled clauses. When provided, the component does not own clause state. */
-  clauses?: QueryClause[];
-  /** Fired whenever the clause list changes (add / edit / remove). */
-  onClausesChange?: (clauses: QueryClause[]) => void;
-  /** Fired (including on mount) with the composed WQL string. */
-  onWqlChange?: (wql: string) => void;
+  /** Seed query for uncontrolled usage. Defaults to the content-plane default. */
+  initialQuery?: string;
+  /** Controlled WQL text. When provided, the component does not own query state. */
+  query?: string;
+  /** Fired whenever the composed query changes (add / edit / remove a pill). */
+  onQueryChange?: (wql: string) => void;
   /** Fired (including on mount) with parse validation state. */
   onValidationChange?: (state: WqlValidationState) => void;
-  /** Fired (including on mount) with the parsed AST. */
+  /** Fired (including on mount) with the parsed AST — the composer state. */
   onAstChange?: (ast: AnyParsedQuery) => void;
   /**
    * Fired on Enter when no free text is pending — the run-on-submit signal
@@ -68,7 +73,7 @@ export interface WqlComposerProps {
   /** Host actions appended on the diagnostics line. */
   diagnosticsActions?: ReactNode;
   /**
-   * Clause types kept in the model but NOT rendered as pills.
+   * Pill types kept in the model but NOT rendered as pills.
    */
   hiddenClauseTypes?: ClauseType[];
   /** Focus the free-text input on mount. */
@@ -81,10 +86,9 @@ export interface WqlComposerProps {
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function WqlComposer({
-  initialClauses,
-  clauses: controlledClauses,
-  onClausesChange,
-  onWqlChange,
+  initialQuery,
+  query: controlledQuery,
+  onQueryChange,
   onValidationChange,
   onAstChange,
   onSubmit,
@@ -98,15 +102,31 @@ export function WqlComposer({
   placeholder = 'Type search term and press Enter...',
   className,
 }: WqlComposerProps) {
-  const [internalClauses, setInternalClauses] = useState<QueryClause[]>(
-    () => initialClauses ?? defaultClauses(),
+  const [internalPills, setInternalPills] = useState<QueryClause[]>(
+    () => wqlToPills(initialQuery ?? '') ?? defaultPills(),
   );
-  const clauses = controlledClauses ?? internalClauses;
+  const controlledPills = useMemo(
+    () => (controlledQuery === undefined ? undefined : wqlToPills(controlledQuery)),
+    [controlledQuery],
+  );
+  // A controlled query that isn't pill-expressible rides in the free-text
+  // input instead (raw-text escape hatch) — pills stay empty.
+  const pills = controlledPills ?? internalPills;
   const hiddenTypes = useMemo(() => new Set<string>(hiddenClauseTypes), [hiddenClauseTypes]);
 
   const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null);
   const [freeText, setFreeText] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const freeTextInitRef = useRef<string | null>(null);
+
+  // Controlled + not pill-expressible → preload the raw text once per query
+  // value so the user edits the real query, not a rewritten default.
+  useEffect(() => {
+    if (controlledQuery !== undefined && controlledPills === null && freeTextInitRef.current !== controlledQuery) {
+      freeTextInitRef.current = controlledQuery;
+      setFreeText(controlledQuery);
+    }
+  }, [controlledQuery, controlledPills]);
 
   useEffect(() => {
     if (!autoFocus) return;
@@ -114,51 +134,69 @@ export function WqlComposer({
     return () => clearTimeout(t);
   }, [autoFocus]);
 
-  const setClauses = useCallback(
+  const setPills = useCallback(
     (next: QueryClause[]) => {
-      if (controlledClauses === undefined) setInternalClauses(next);
-      onClausesChange?.(next);
+      if (controlledQuery === undefined) setInternalPills(next);
     },
-    [controlledClauses, onClausesChange],
+    [controlledQuery],
   );
 
   const registeredSlots = useComposerSlots();
-  const diagnostics = useMemo(() => diagnoseClauses(clauses), [clauses, registeredSlots]);
+  const diagnostics = useMemo(() => diagnosePills(pills), [pills, registeredSlots]);
 
-  const callbacksRef = useRef({ onWqlChange, onValidationChange, onAstChange });
-  callbacksRef.current = { onWqlChange, onValidationChange, onAstChange };
+  const callbacksRef = useRef({ onQueryChange, onValidationChange, onAstChange });
+  callbacksRef.current = { onQueryChange, onValidationChange, onAstChange };
 
+  // Parent notification. Emissions derive from the AST — never from pill
+  // text. `onQueryChange` fires here only uncontrolled; controlled edits
+  // emit through emitIfControlled so the canonical text round-trips into
+  // the `query` prop without a mount-time rewrite of the parent's string.
   useEffect(() => {
     const validation: WqlValidationState = diagnostics.valid
       ? { valid: true }
       : { valid: false, error: diagnostics.error };
-    callbacksRef.current.onWqlChange?.(diagnostics.wql);
+    if (controlledQuery === undefined) callbacksRef.current.onQueryChange?.(diagnostics.wql);
     callbacksRef.current.onAstChange?.(diagnostics.ast);
     callbacksRef.current.onValidationChange?.(validation);
   }, [diagnostics]);
 
   const stages = useWqlStageCounts(diagnostics.ast, diagnostics.valid, execute, debounceMs);
 
-  const offendingClause = diagnostics.offendingClauseId
-    ? clauses.find((c) => c.id === diagnostics.offendingClauseId)
+  const offendingPill = diagnostics.offendingClauseId
+    ? pills.find((c) => c.id === diagnostics.offendingClauseId)
     : undefined;
-  const offendingLabel = offendingClause ? getClauseMeta(offendingClause.type).label : undefined;
+  const offendingLabel = offendingPill ? getClauseMeta(offendingPill.type).label : undefined;
 
-  const updateClause = (idx: number, patch: Partial<QueryClause>) => {
-    const updated = clauses.map((c, i) => (i === idx ? { ...c, ...patch } : c));
-    const edited = clauses[idx];
+  const updatePill = (idx: number, patch: Partial<QueryClause>) => {
+    const updated = pills.map((c, i) => (i === idx ? { ...c, ...patch } : c));
+    const edited = pills[idx];
     if (edited?.type === 'source' && patch.value !== undefined && patch.value !== edited.value) {
-      setClauses(pivotClauses(updated, patch.value));
+      setPills(pivotPills(updated, patch.value));
+      emitIfControlled(pivotPills(updated, patch.value));
       return;
     }
-    setClauses(updated);
+    setPills(updated);
+    emitIfControlled(updated);
   };
 
-  const removeClause = (idx: number) => {
-    setClauses(clauses.filter((_, i) => i !== idx));
+  const removePill = (idx: number) => {
+    const next = pills.filter((_, i) => i !== idx);
+    setPills(next);
+    emitIfControlled(next);
   };
 
-  const makeClause = (type: string, value: string): QueryClause => {
+  /** In controlled mode the parent owns the query — push the edit out so the
+   * prop comes back down. No-op uncontrolled (the effect emits on mount and
+   * on diagnostics changes). */
+  const emitIfControlled = (next: QueryClause[]) => {
+    if (controlledQuery !== undefined) {
+      const nextAst = pillsToAst(next);
+      const nextWql = serialize(nextAst);
+      if (nextWql !== controlledQuery) callbacksRef.current.onQueryChange?.(nextWql);
+    }
+  };
+
+  const makePill = (type: string, value: string): QueryClause => {
     const meta = getClauseMeta(type);
     return {
       id: `c-${Date.now()}-${Math.random()}`,
@@ -170,13 +208,15 @@ export function WqlComposer({
     };
   };
 
-  const pending = useMemo((): { kind: 'query'; clauses: QueryClause[] } | { kind: 'text'; value: string } | { kind: 'invalid'; reason: string } | null => {
+  const pending = useMemo((): { kind: 'query'; pills: QueryClause[] } | { kind: 'text'; value: string } | { kind: 'invalid'; reason: string } | null => {
     const raw = freeText.trim();
     if (!raw) return null;
-    const restored = wqlToClauses(raw);
-    if (restored) {
-      const parsed = parseQuery(raw);
-      if (!('error' in parsed && parsed.error)) return { kind: 'query', clauses: restored };
+    const restored = wqlToPills(raw);
+    if (restored) return { kind: 'query', pills: restored };
+    const parsed = parseQuery(raw);
+    // A query-shaped string the parser rejects is invalid; anything else is
+    // a text search.
+    if (parsed.error && /[:{]/.test(raw)) {
       return { kind: 'invalid', reason: String(parsed.error) };
     }
     const words = raw.match(/[a-zA-Z0-9_-]+/g);
@@ -189,50 +229,56 @@ export function WqlComposer({
     return { kind: 'text', value: words[0]! };
   }, [freeText]);
 
-  const addClause = (clause: QueryClause) => {
-    const type = clause.type;
+  const addPill = (pill: QueryClause) => {
+    const type = pill.type;
     const seed =
       type === 'time' ? 'last 2w'
       : type === 'where' ? 'sum:totalVolume{} > 5000'
       : type === 'agg' ? 'sum'
       : type === 'groupby' ? 'week'
       : type === 'rollup' ? '1w'
-      : clause.value;
-    setClauses([...clauses, { ...clause, value: seed }]);
+      : pill.value;
+    const next = [...pills, { ...pill, value: seed }];
+    setPills(next);
+    emitIfControlled(next);
   };
 
-  const addCalc = (clause: QueryClause) => {
-    const { type, value } = clause;
+  const addCalc = (pill: QueryClause) => {
+    const { type, value } = pill;
     if (type === 'metric') {
-      if (clauses.some((c) => c.type === 'metric')) return;
+      if (pills.some((c) => c.type === 'metric')) return;
       const afterIdx = Math.max(
-        clauses.findIndex((c) => c.type === 'agg'),
-        clauses.findIndex((c) => c.type === 'source'),
+        pills.findIndex((c) => c.type === 'agg'),
+        pills.findIndex((c) => c.type === 'source'),
       );
-      const next = [...clauses];
-      next.splice(afterIdx + 1, 0, makeClause('metric', value));
-      setClauses(next);
+      const next = [...pills];
+      next.splice(afterIdx + 1, 0, makePill('metric', value));
+      setPills(next);
+      emitIfControlled(next);
       return;
     }
 
     if (type !== 'agg') {
-      addClause(clause);
+      addPill(pill);
       return;
     }
     const agg = value || 'sum';
-    const existingIdx = clauses.findIndex((c) => c.type === 'agg');
+    const existingIdx = pills.findIndex((c) => c.type === 'agg');
     if (existingIdx >= 0) {
-      updateClause(existingIdx, { value: agg });
+      updatePill(existingIdx, { value: agg });
       return;
     }
-    if (sourcePlane(clauseValue(clauses, 'source', 'notes')) !== 'metrics') {
-      setClauses(pivotClauses(clauses, 'metrics').map((c) => (c.type === 'agg' ? { ...c, value: agg } : c)));
+    if (sourcePlane(pillValue(pills, 'source', 'notes')) !== 'metrics') {
+      const next = pivotPills(pills, 'metrics').map((c) => (c.type === 'agg' ? { ...c, value: agg } : c));
+      setPills(next);
+      emitIfControlled(next);
       return;
     }
-    const sourceIdx = clauses.findIndex((c) => c.type === 'source');
-    const next = [...clauses];
-    next.splice(sourceIdx + 1, 0, makeClause('agg', agg));
-    setClauses(next);
+    const sourceIdx = pills.findIndex((c) => c.type === 'source');
+    const next = [...pills];
+    next.splice(sourceIdx + 1, 0, makePill('agg', agg));
+    setPills(next);
+    emitIfControlled(next);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -241,10 +287,13 @@ export function WqlComposer({
       e.preventDefault();
       e.stopPropagation();
       if (pending?.kind === 'query') {
-        setClauses(pending.clauses);
+        setPills(pending.pills);
+        emitIfControlled(pending.pills);
         setFreeText('');
       } else if (pending?.kind === 'text') {
-        setClauses([...clauses, makeClause('text', pending.value)]);
+        const next = [...pills, makePill('text', pending.value)];
+        setPills(next);
+        emitIfControlled(next);
         setFreeText('');
       }
       return;
@@ -268,17 +317,17 @@ export function WqlComposer({
       >
         <Command className="size-4 text-amber-500 shrink-0 mr-0.5" />
 
-        {clauses.map((clause, idx) =>
-          hiddenTypes.has(clause.type) ? null : (
+        {pills.map((pill, idx) =>
+          hiddenTypes.has(pill.type) ? null : (
             <TokenSlotPill
-              key={clause.id}
-              clause={clause}
+              key={pill.id}
+              clause={pill}
               isActive={activeSlotIdx === idx}
-              invalid={diagnostics.offendingClauseId === clause.id}
-              invalidReason={diagnostics.offendingClauseId === clause.id ? diagnostics.error : undefined}
+              invalid={diagnostics.offendingClauseId === pill.id}
+              invalidReason={diagnostics.offendingClauseId === pill.id ? diagnostics.error : undefined}
               onClick={() => setActiveSlotIdx(idx)}
-              onChange={(patch) => updateClause(idx, patch)}
-              onRemove={() => removeClause(idx)}
+              onChange={(patch) => updatePill(idx, patch)}
+              onRemove={() => removePill(idx)}
               compact
             />
           ),
@@ -320,16 +369,16 @@ export function WqlComposer({
           stages={stages}
           actions={
             <>
-              <AddCalcDropdown clauses={clauses} onAdd={addCalc} />
-              <AddFilterDropdown clauses={clauses} onAdd={addClause} />
+              <AddCalcDropdown clauses={pills} onAdd={addCalc} />
+              <AddFilterDropdown clauses={pills} onAdd={addPill} />
               {diagnosticsActions}
             </>
           }
         />
       ) : (
         <div className="flex items-center justify-end gap-1.5 px-1.5" data-testid="wql-add-row">
-          <AddCalcDropdown clauses={clauses} onAdd={addCalc} />
-          <AddFilterDropdown clauses={clauses} onAdd={addClause} />
+          <AddCalcDropdown clauses={pills} onAdd={addCalc} />
+          <AddFilterDropdown clauses={pills} onAdd={addPill} />
           {diagnosticsActions}
         </div>
       )}

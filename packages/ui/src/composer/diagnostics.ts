@@ -1,10 +1,11 @@
-import { parseQuery, type ParsedFindQuery, type ParsedAggregateQuery } from '@bitcobblers/wod-wiki-wql';
+import { serialize, type ParsedFindQuery, type ParsedAggregateQuery } from '@bitcobblers/wod-wiki-wql';
 import { composerRegistry } from './ComposerRegistry';
-import { clausesToWql, type QueryClause } from './queryClauses';
+import { pillsToAst } from './queryAst';
+import type { QueryClause } from './queryClauses';
 import type { AnyParsedQuery } from './useWqlStageCounts';
 export interface WqlDiagnostics {
   valid: boolean;
-  /** The composed WQL string for the current clause set. */
+  /** The composed WQL string (serializer output) for the current pills. */
   wql: string;
   ast: AnyParsedQuery;
   error?: string;
@@ -68,22 +69,25 @@ function customSlotError(clause: QueryClause): string | null {
   return custom.validate ? custom.validate(parsed) : null;
 }
 
-export function diagnoseClauses(clauses: QueryClause[]): WqlDiagnostics {
-  for (const clause of clauses) {
-    const error = customSlotError(clause);
+/** Diagnose the composer's working pills: per-slot custom validation first
+ * (attributes the error to the offending pill), then the parser's own error
+ * on the AST the pills compile to. */
+export function diagnosePills(pills: QueryClause[]): WqlDiagnostics {
+  for (const pill of pills) {
+    const error = customSlotError(pill);
     if (error) {
       return {
         valid: false,
-        wql: clausesToWql(clauses),
+        wql: serialize(pillsToAst(pills)),
         ast: { family: 'aggregate', raw: '', agg: 'sum', metric: '', filters: [], groupBy: [], error },
         error,
-        offendingClauseId: clause.id,
+        offendingClauseId: pill.id,
       };
     }
   }
 
-  const wql = clausesToWql(clauses);
-  const ast = parseQuery(wql);
+  const ast = pillsToAst(pills);
+  const wql = serialize(ast);
 
   if (ast.error) {
     return {

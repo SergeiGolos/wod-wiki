@@ -32,7 +32,6 @@ export {
 } from './suggestionSources';
 export { useSuggestions, type ClauseSuggestions } from './useSuggestions';
 export {
-  diagnoseClauses,
   summarizeAggregate,
   summarizeFind,
   type WqlAggregateSummary,
@@ -46,11 +45,13 @@ export {
   type WqlExecutor,
   type WqlStageCounts,
 } from './useWqlStageCounts';
+// Pill vocabulary — types and option lists for hosts rendering custom slot
+// editors and menus. The clause compiler/restore are retired (ticket 013):
+// composer state is the AST; strings go through the engine serializer.
 export {
   type ClauseType,
   type ClauseMeta,
   type QueryClause,
-  CLAUSE_META,
   CONTENT_SOURCES,
   SOURCE_OPTIONS,
   TIME_OPTIONS,
@@ -62,14 +63,5 @@ export {
   WHERE_AGGREGATORS,
   WHERE_METRICS,
   WHERE_OPERATORS,
-  clauseToWql,
-  clausesToWql,
-  wqlToClauses,
-  clauseValue,
-  defaultClauses,
-  defaultMetricsClauses,
-  pivotClauses,
-  setMetricClause,
   sourcePlane,
-  getClauseMeta,
 } from './queryClauses';

@@ -1,39 +1,35 @@
-import { describe, expect, it, afterEach  } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { describe, expect, it, afterEach, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import {
   WqlComposer,
   ComposerRegistry,
-  clausesToWql,
-  wqlToClauses,
-  defaultClauses,
-  defaultMetricsClauses,
-  diagnoseClauses,
   dateRangeSlot,
 } from '../src/composer';
+import {
+  defaultPills,
+  defaultMetricsPills,
+  pillsToWql,
+  wqlToPills,
+} from '../src/composer/queryAst';
+import { diagnosePills } from '../src/composer/diagnostics';
 
 afterEach(cleanup);
 
 describe('WqlComposer and diagnostics suite', () => {
-  it('compiles default clauses to WQL find query', () => {
-    const clauses = defaultClauses();
-    const wql = clausesToWql(clauses);
-    // Canonical contract: notes scope compiles `in all`, time clause rides along.
-    expect(wql).toBe('find:note in all last 2w');
+  it('compiles default pills to the modern canonical find query', () => {
+    expect(pillsToWql(defaultPills())).toBe('find:note last 2w');
   });
 
-  it('compiles metrics clauses to aggregate WQL', () => {
-    const clauses = defaultMetricsClauses();
-    clauses[2].value = 'totalVolume';
-    const wql = clausesToWql(clauses);
-    // Canonical contract: empty filter braces are omitted.
-    expect(wql).toBe('sum:totalVolume');
+  it('compiles metrics pills to aggregate WQL', () => {
+    const pills = defaultMetricsPills();
+    pills[2].value = 'totalVolume';
+    expect(pillsToWql(pills)).toBe('sum:totalVolume{}');
   });
 
-  it('diagnoses valid and invalid clauses', () => {
-    const valid = defaultClauses();
-    const diag = diagnoseClauses(valid);
+  it('diagnoses valid and invalid pill sets', () => {
+    const diag = diagnosePills(defaultPills());
     expect(diag.valid).toBe(true);
-    expect(diag.wql).toBe('find:note in all last 2w');
+    expect(diag.wql).toBe('find:note last 2w');
   });
 
   it('supports custom slot registration in ComposerRegistry', () => {
@@ -44,36 +40,40 @@ describe('WqlComposer and diagnostics suite', () => {
     expect(registry.getSlot('date-range')).toBeUndefined();
   });
 
-  it('renders WqlComposer component', () => {
-    render(<WqlComposer initialClauses={defaultClauses()} showDiagnostics />);
+  it('renders WqlComposer component seeded by initialQuery', () => {
+    render(<WqlComposer initialQuery="find:note{tags:pr} last 4w" showDiagnostics />);
     expect(screen.getByTestId('wql-composer')).toBeDefined();
     expect(screen.getByTestId('wql-diagnostics-strip')).toBeDefined();
   });
 
-  it('rejects duplicate-suffix queries instead of truncating (C3)', () => {
-    expect(wqlToClauses('find:note{tags:pr} in journal in feeds')).toBeNull();
+  it('emits serializer-canonical text on pill edits (uncontrolled)', () => {
+    const onQueryChange = vi.fn();
+    render(<WqlComposer initialQuery="find:note last 2w" onQueryChange={onQueryChange} />);
+    // Mount emission: the serializer's canonical form of the seed.
+    expect(onQueryChange).toHaveBeenCalledWith('find:note last 2w');
   });
 
-  it('rejects windowed aggregates — the metrics plane has no time slot (C1)', () => {
-    // Otherwise apply would rewrite `sum:tis{} last 6w` as `sum:tis{}`,
-    // silently deleting the window.
-    expect(wqlToClauses('sum:tis{} last 6w')).toBeNull();
-    expect(wqlToClauses('sum:tis{} from 2026-01-01')).toBeNull();
+  it('controlled mode round-trips edits through onQueryChange', () => {
+    const onQueryChange = vi.fn();
+    render(<WqlComposer query="find:note{tags:pr} last 4w" onQueryChange={onQueryChange} />);
+    expect(screen.getByTestId('wql-composer')).toBeDefined();
+    // No mount-time rewrite of the parent's string in controlled mode.
+    expect(onQueryChange).not.toHaveBeenCalled();
   });
 
-  it('salvages modern source: filter into c-source clause (C2)', () => {
-    const clauses = wqlToClauses('find:note{source:journal,tags:pr}');
-    expect(clauses).not.toBeNull();
-    const sourceClause = clauses!.find((c) => c.type === 'source');
-    expect(sourceClause?.value).toBe('journal');
-    // source filter is folded into c-source, tags:pr remains in filters
-    expect(clauses!.filter((c) => c.type === 'tag')).toHaveLength(1);
+  it('restores a typed query into pills on Enter', () => {
+    render(<WqlComposer initialQuery="find:note last 2w" />);
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.change(input, { target: { value: 'find:note{tags:pr} last 8w' } });
+    expect(screen.getByTestId('wql-composer-pending').textContent).toBe('↵ Use as query');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect((input as HTMLInputElement).value).toBe('');
   });
 
-  it('salvages find query outer join where clause (C2 review finding)', () => {
-    const clauses = wqlToClauses('find:note{tags:pr} where sum:totalVolume{} > 5000');
-    expect(clauses).not.toBeNull();
-    const whereClause = clauses!.find((c) => c.type === 'where');
-    expect(whereClause?.value).toBe('sum:totalVolume{} > 5000');
+  it('flags a query-shaped invalid string instead of turning it into a text search', () => {
+    render(<WqlComposer initialQuery="find:note last 2w" />);
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.change(input, { target: { value: 'foo:bar{baz}' } });
+    expect(screen.getByTestId('wql-composer-pending').textContent).toContain('Cannot parse');
   });
 });

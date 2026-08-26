@@ -1,13 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
-import {
-  WqlComposer,
-  clausesToWql,
-  wqlToClauses,
-  defaultMetricsClauses,
-  type QueryClause,
-  type WqlExecutor,
-} from '../composer';
+import { WqlComposer, type WqlExecutor } from '../composer';
 import { isFindQuery } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 
@@ -30,14 +23,11 @@ export function WqlQueryInspectorModal({
   subtitle = 'Use the Omni-Composer to edit this block query.',
   executor,
 }: WqlQueryInspectorModalProps) {
-  const [clauses, setClauses] = useState<QueryClause[]>([]);
+  const [wql, setWql] = useState<string>(initialQuery);
   const [isValid, setIsValid] = useState<boolean>(true);
 
   useEffect(() => {
-    if (isOpen) {
-      const restored = wqlToClauses(initialQuery);
-      setClauses(restored ?? defaultMetricsClauses());
-    }
+    if (isOpen) setWql(initialQuery);
   }, [isOpen, initialQuery]);
 
   const diagnosticsExecutor = useCallback<WqlExecutor>(
@@ -57,8 +47,7 @@ export function WqlQueryInspectorModal({
 
   const handleApply = () => {
     if (!isValid) return;
-    const nextWql = clausesToWql(clauses);
-    onApply(nextWql);
+    onApply(wql);
     onClose();
   };
 
@@ -91,8 +80,8 @@ export function WqlQueryInspectorModal({
 
         <div className="p-6 overflow-y-auto space-y-4">
           <WqlComposer
-            clauses={clauses}
-            onClausesChange={setClauses}
+            query={wql}
+            onQueryChange={setWql}
             onValidationChange={(v) => setIsValid(v.valid)}
             execute={diagnosticsExecutor}
             showDiagnostics
@@ -101,7 +90,7 @@ export function WqlQueryInspectorModal({
 
         <div className="flex items-center justify-between px-6 py-3 border-t border-border/80 bg-muted/10">
           <div className="text-xs text-muted-foreground font-mono">
-            {clausesToWql(clauses)}
+            {wql}
           </div>
           <div className="flex items-center gap-2">
             <button

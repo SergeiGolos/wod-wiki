@@ -9,8 +9,8 @@
  * Up/Down cycles options, Enter selects, Escape dismisses.
  *
  * Stories:
- *  1. Default — uncontrolled, seeded with target/scope/time clauses
- *  2. Controlled — clauses + composed WQL / validation / AST surfaced live
+ *  1. Default — uncontrolled, seeded from an initial WQL string
+ *  2. Controlled — WQL string + validation / AST surfaced live
  *  3. CustomSlots — consumer-supplied extension content inside the bar
  *  4. RegisteredSlot — ComposerRegistry date-range picker plugin (issue #830)
  *  5. LiveDiagnostics — diagnostics strip with debounced stage counts (issue #832)
@@ -22,9 +22,6 @@ import {
   WqlComposer,
   composerRegistry,
   dateRangeSlot,
-  defaultClauses,
-  CLAUSE_META,
-  type QueryClause,
   type WqlExecutor,
   type WqlValidationState,
 } from '@bitcobblers/wod-wiki-ui';
@@ -48,17 +45,15 @@ export const Default: Story = {
 };
 
 const ControlledHarness: React.FC = () => {
-  const [clauses, setClauses] = useState<QueryClause[]>(defaultClauses());
-  const [wql, setWql] = useState('');
+  const [wql, setWql] = useState('find:note last 2w');
   const [validation, setValidation] = useState<WqlValidationState>({ valid: true });
   const [ast, setAst] = useState<AnyParsedQuery | null>(null);
 
   return (
     <div className="max-w-3xl space-y-3">
       <WqlComposer
-        clauses={clauses}
-        onClausesChange={setClauses}
-        onWqlChange={setWql}
+        query={wql}
+        onQueryChange={setWql}
         onValidationChange={setValidation}
         onAstChange={setAst}
       />
@@ -106,7 +101,7 @@ const RegisteredSlotHarness: React.FC = () => {
 
   return (
     <div className="max-w-3xl space-y-3">
-      <WqlComposer onWqlChange={setWql} onValidationChange={setValidation} />
+      <WqlComposer onQueryChange={setWql} onValidationChange={setValidation} />
       <div className="font-mono text-xs break-all">
         <span className={validation.valid ? 'text-green-600' : 'text-red-600'}>
           {validation.valid ? 'valid' : `error: ${validation.error}`}
@@ -150,7 +145,7 @@ const LiveDiagnosticsHarness: React.FC = () => {
     <div className="max-w-3xl space-y-2">
       <WqlComposer execute={execute} />
       <p className="text-[10px] text-muted-foreground">
-        The strip under the bar re-parses on every clause change: green/red
+        The strip under the bar re-parses on every pill change: green/red
         validity badge (red names the offending slot), AST summary
         (source · window · join), and debounced (150ms) matched/selected
         stage counts. Type “garbage” into a Metric Join slot to see the error
@@ -165,13 +160,7 @@ export const LiveDiagnostics: Story = {
 };
 
 const AnalyticsCompositionHarness: React.FC = () => {
-  const [clauses, setClauses] = useState<QueryClause[]>([
-    { id: 'c-source', type: 'source', ...CLAUSE_META.source, value: 'metrics' },
-    { id: 'c-agg', type: 'agg', ...CLAUSE_META.agg, value: 'sum' },
-    { id: 'c-metric', type: 'metric', ...CLAUSE_META.metric, value: 'totalVolume' },
-    { id: 'c-groupby', type: 'groupby', ...CLAUSE_META.groupby, value: 'week' },
-    { id: 'c-rollup', type: 'rollup', ...CLAUSE_META.rollup, value: '1w' },
-  ]);
+  const [wql, setWql] = useState('sum:totalVolume{} by {week}.rollup(1w)');
 
   const execute: WqlExecutor = async (ast: AnyParsedQuery) => {
     return {
@@ -183,7 +172,7 @@ const AnalyticsCompositionHarness: React.FC = () => {
 
   return (
     <div className="max-w-3xl space-y-2">
-      <WqlComposer clauses={clauses} onClausesChange={setClauses} execute={execute} />
+      <WqlComposer query={wql} onQueryChange={setWql} execute={execute} />
       <p className="text-[10px] text-muted-foreground">
         Analytics composition (issue #838): the source pill pivots to the
         metrics plane, revealing the aggregate head (agg · metric · groupby ·
