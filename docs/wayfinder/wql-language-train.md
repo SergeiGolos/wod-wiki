@@ -98,6 +98,12 @@ queries still parsing, docs updated.
   family-aware chips, C6 serializeQuery on the engine serializer; explorer
   window emission deferred to 013 (breaks wqlToClauses-routed contracts);
   suite 2421/0; metric-store `9832b07c`+`006a5aef`.
+- [Docs cutover for WQL v2](tickets/012-docs-cutover-for-wql-v2.md) —
+  deep-dive/spec/analytics docs on the shipped surface; every real query
+  example parses against the engine (39/39); spec-vs-ship divergences
+  recorded on the prototype doc (find: own family, plural source vocab,
+  find:-only join halves, aggregate-only in-units); metric-store
+  `454d5139`+`cd34d28d`.
 - Explorer window-emission details — consumption ticket's judgment call:
   `?weeks=` + `QueryOptions.rangeStart` stay until the AST composer (013);
   baking `last Nw` into submitted text breaks the wqlToClauses-routed
