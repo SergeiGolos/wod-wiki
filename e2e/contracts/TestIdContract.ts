@@ -5,5 +5,5 @@
  * Import in e2e tests:
  *   import { TEST_IDS } from '../contracts/TestIdContract';
  */
-export { TEST_IDS } from '../../src/testing/contracts/TestIdContract';
-export type { TestId } from '../../src/testing/contracts/TestIdContract';
+export { TEST_IDS } from '../../apps/playground/src/testing/contracts/TestIdContract';
+export type { TestId } from '../../apps/playground/src/testing/contracts/TestIdContract';
