@@ -1,25 +1,25 @@
 # WQL Interface Changes — Spec v2
 
-**Status**: spec (was: prototype proposal). Reconciled with the unified
-event store (engine `event-store` line, merged to main; map
-[unified-event-store-map](../wayfinder/unified-event-store-map.md), asset
-[003](../wayfinder/assets/003-query-service-and-wql-impact.md)) and with the
-already-landed changes. Derived from the architecture review of
-`@bitcobblers/wod-wiki-wql` (`../wod-wiki-engine/packages/wql`) and its
-consumers. Each change states the interface delta and the **blast radius** —
-everything that must move for the change to land cleanly.
+**Status**: implemented. Shipped in `@bitcobblers/*` 0.10.41–0.10.42 (C1/C2/C4/C6 landed with the language train; C3/C5/C7 earlier). The authoritative description of the shipped surface is [`09-wql-deep-dive.md`](../09-wql-deep-dive.md); this document stands as the spec of record for what the seven changes mean and the blast radius each carried.
 
 The seven changes:
 
 | # | Change | One-liner | State |
 |---|--------|-----------|-------|
-| C1 | Window module | one time-selection clause, legal on every family | next |
-| C2 | De-overload `in` | `in` means units, always; scope folds into `source:` filters | planned |
+| C1 | Window module | one time-selection clause, legal on every family | **landed** 0.10.41 |
+| C2 | De-overload `in` | `in` means units, always; scope folds into `source:` filters | **landed** 0.10.41 |
 | C3 | Suffix validation | duplicates/conflicts become parse errors, not rightmost-wins | **landed** `713c593` |
-| C4 | Rows in the grammar | kill the synthetic `find:_` trick; one validation layer | next (spec below) |
+| C4 | Rows in the grammar | kill the synthetic `find:_` trick; one validation layer | **landed** 0.10.41 |
 | C5 | Discriminated union | `family` field on every AST variant | **landed** `da6c42a`+`172cc75` |
-| C6 | One structured interface | AST + serializer replace the clause model for code callers | planned |
+| C6 | One structured interface | AST + serializer replace the clause model for code callers | **landed** 0.10.41 |
 | C7 | Target validation | `find:`/`rows:` targets validated at parse | **landed** `9ef6dcc` |
+
+One deliberate divergence between spec and ship: the spec's `find:` head was
+to survive *only* as an alias of `rows:`; shipped, `find:` remains its own
+parsing family executing content discovery (`runFind`), with legacy `in
+<scope>` and bare `rows:{` rewritten by the compat normalizer under
+deprecation advisories. The AST-level unification (C6 serializer, C5 union)
+landed as specced.
 
 **v2 decisions** (this revision):
 

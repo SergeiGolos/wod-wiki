@@ -1,5 +1,6 @@
 ---
 state: open
+assignee: serge # claimed 2026-08-26
 labels: [wayfinder:task]
 title: "Docs cutover for WQL v2"
 blocked-by: ["010-release-the-language-train"]

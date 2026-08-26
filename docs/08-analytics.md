@@ -116,15 +116,15 @@ by discipline
 Return raw output-statement rows:
 
 ```text
-rows:{result:abc123}
+rows:all{result:abc123}
 rows:segment{block:content-id}
 ```
 
 ### Content discovery
 
 ```text
-find:note{tags:strength} in journal
-find:block{text:"cindy"} in all
+find:note{tags:strength,source:journal}
+find:block{text:"cindy"}
 find:effort{discipline:kettlebell}
 ```
 
