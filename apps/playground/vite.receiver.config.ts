@@ -34,7 +34,7 @@ const legacyReceiverCssPlugin = (): Plugin => ({
     name: 'legacy-receiver-css',
     apply: 'build',
     closeBundle() {
-        const assetsDir = resolve(__dirname, 'storybook-static/assets');
+        const assetsDir = resolve(__dirname, '../../dist/assets');
         const cssFiles = fs.existsSync(assetsDir)
             ? fs.readdirSync(assetsDir).filter((f) => f.startsWith('receiver-') && f.endsWith('.css'))
             : [];
@@ -60,9 +60,9 @@ const legacyReceiverCssPlugin = (): Plugin => ({
 });
 
 export default defineConfig({
-    // Root must be playground so that /src/receiver-rpc.tsx in
-    // receiver-rpc.html resolves to playground/src/receiver-rpc.tsx.
-    root: resolve(__dirname, 'playground'),
+    // Root is this app directory so that /app/receiver-rpc.tsx in
+    // receiver-rpc.html resolves to apps/playground/app/receiver-rpc.tsx.
+    root: __dirname,
     // Relative base so assets resolve correctly whether served at / or a subpath
     base: './',
     plugins: [react(), legacyReceiverCssPlugin()],
@@ -72,15 +72,16 @@ export default defineConfig({
         },
     },
     build: {
-        // Output directly into project-root/storybook-static
-        // (absolute path required because root is now playground/)
-        outDir: resolve(__dirname, 'storybook-static'),
-        // Do NOT empty — storybook build already populated this directory
+        // Merge into the repo-root dist/ that the PR pipeline just
+        // downloaded (playground-dist artifact) before the S3 sync, so the
+        // Chromecast receiver page ships on the preview origin.
+        outDir: resolve(__dirname, '../../dist'),
+        // Do NOT empty — the playground bundle already populated this directory
         emptyOutDir: false,
         sourcemap: true,
         rollupOptions: {
             input: {
-                'receiver-rpc': resolve(__dirname, 'playground/receiver-rpc.html'),
+                'receiver-rpc': resolve(__dirname, 'receiver-rpc.html'),
             },
             output: {
                 // Put JS/CSS in assets/ matching Storybook's convention

@@ -150,7 +150,7 @@ jobs:
       - name: Build receiver
         run: |
           VITE_BASE_PATH="/${{ env.BRANCH_SLUG }}/dist/" \
-            bun x vite build --config vite.receiver.config.ts
+            bun x vite build --config apps/playground/vite.receiver.config.ts
 
 
       - name: Deploy playground to S3

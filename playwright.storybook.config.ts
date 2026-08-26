@@ -22,7 +22,7 @@ if (!baseURL) {
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: '**/*.smoke.e2e.ts',
+  testMatch: '**/storybook.smoke.e2e.ts',
 
   timeout: 30 * 1000,
   fullyParallel: false,
