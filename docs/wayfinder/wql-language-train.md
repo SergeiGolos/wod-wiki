@@ -92,16 +92,22 @@ queries still parsing, docs updated.
   caught the umbrella missing the new surface (fixed `588a0fd`+`79c6d18`,
   guarded by reexport tests) — **republish 0.10.42 before consuming**; the 24
   pre-existing ui failures resolved on the train (41/41 green).
-
-## Not yet specified
-
+- [Consume the train in the app](tickets/011-consume-the-train-in-the-app.md) —
+  app on ^0.10.42; C1 windows in query text (range math deleted, equivalence
+  proven), C2 modern recordsWql + source:/legacy URL parity pinned, C5
+  family-aware chips, C6 serializeQuery on the engine serializer; explorer
+  window emission deferred to 013 (breaks wqlToClauses-routed contracts);
+  suite 2421/0; metric-store `9832b07c`+`006a5aef`.
+- Explorer window-emission details — consumption ticket's judgment call:
+  `?weeks=` + `QueryOptions.rangeStart` stay until the AST composer (013);
+  baking `last Nw` into submitted text breaks the wqlToClauses-routed
+  contracts (sameQuery / restoredDraft / resultIsCurrent).
+- App-side error UX for the new parse errors — resolved: the existing
+  single composer error line (`urlQueryError`, #854) carries the C2/C7
+  errors unchanged; pinned by the useLibraryQueryState suite.
 - C2 hard-drop timing for the legacy `in <scope>` **and bare `rows:{`**
-  compatibility normalizer — a post-train minor; decidable once the app
+  compatibility normalizer — a post-train minor; decidable now that the app
   consumes the train.
-- Explorer window-emission details (`useExplorerQueryState` interplay with
-  emitted `last Nw` text) — sharpens during the consumption ticket.
-- App-side error UX for the new parse errors (single composer error line) —
-  re-examined in the consumption ticket (v2 §5).
 
 ## Out of scope
 
