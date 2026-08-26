@@ -56,6 +56,13 @@ existing `bun run test` / storybook flows.
   time→ms, amount+unit sugar, object tails); closed-set match with `match:
   subset` opt-in; parse errors spec'd but currently unreachable; 3 verified
   example fixtures landed.
+- [Fake-data corpus shape](test-validation-harness/tickets/002-fake-data-corpus-shape.md) —
+  spec [asset](test-validation-harness/assets/002-fake-data-corpus-shape.md):
+  journal = UnifiedEventRecord `.json` (`kind: event-journal`) at
+  `packages/wql/fixtures/corpus/`; no loader — queries slice; golden
+  **absorbed** via new [Golden fixture cutover](test-validation-harness/tickets/010-golden-fixture-cutover.md)
+  ticket; four journals (crossfit / endurance / mixed-wellness / climb-yoga)
+  + integrity invariants for 005.
 
 ## Not yet specified
 
