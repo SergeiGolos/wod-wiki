@@ -36,7 +36,7 @@ jobs:
       slug: ${{ steps.slug.outputs.slug }}
       preview-version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -125,7 +125,7 @@ jobs:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       PREVIEW_VERSION: ${{ needs.slug.outputs.preview-version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up environment (Bun + caches, no browsers)
         uses: ./.github/actions/setup-env
@@ -250,7 +250,7 @@ jobs:
     needs: [slug, storybook]
     if: github.event.action != 'closed' && needs.storybook.outputs.deploy-status == 'success'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up environment (Bun + chromium)
         uses: ./.github/actions/setup-env

@@ -45,7 +45,7 @@ jobs:
       coverage-status: ${{ steps.coverage.outcome }}
       build-status: ${{ steps.build.outcome }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up environment (Bun + caches)
         uses: ./.github/actions/setup-env
@@ -74,7 +74,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: always() && env.CODECOV_TOKEN != '' && steps.coverage.outcome == 'success'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           files: apps/playground/coverage/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}

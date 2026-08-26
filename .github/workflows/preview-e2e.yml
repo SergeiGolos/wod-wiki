@@ -57,7 +57,7 @@ jobs:
       failures: ${{ steps.preview_stats.outputs.failures }}
       skipped: ${{ steps.preview_stats.outputs.skipped }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up environment (Bun + caches + chromium)
         uses: ./.github/actions/setup-env

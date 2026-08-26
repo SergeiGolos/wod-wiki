@@ -51,7 +51,7 @@ jobs:
       test-status: ${{ steps.test.outcome }}
       build-status: ${{ steps.build.outcome }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up environment (Bun + chromium)
         uses: ./.github/actions/setup-env

@@ -29,7 +29,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -164,7 +164,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [publish-playground]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up environment (Bun + chromium)
         uses: ./.github/actions/setup-env
@@ -192,7 +192,7 @@ jobs:
     needs: [build-test-storybook]
     if: needs.build-test-storybook.outputs.deploy-status == 'success'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up environment (Bun + chromium)
         uses: ./.github/actions/setup-env
@@ -224,7 +224,7 @@ jobs:
     environment: npm
     steps:
       - name: Configure npm auth
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
