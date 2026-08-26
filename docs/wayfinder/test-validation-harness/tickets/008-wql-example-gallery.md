@@ -1,9 +1,18 @@
 ---
-state: open
+state: closed 2026-08-26
+assignee: serge # claimed 2026-08-26
 labels: [wayfinder:task]
-title: "WQL example gallery"
 blocked-by: ["005-seed-fake-data-corpus", "006-wql-scenario-format"]
 ---
+
+## Resolution
+
+Landed `apps/storybook/src/WqlGallery.stories.tsx` (Gallery/WQL Example Gallery):
+- Curated example gallery grouped into 4 sections: Scalar Summaries, Grouped Breakdowns, Weekly Trends, Session Rows & Statement Scopes.
+- Sourced directly from the four seeded corpus journals (`crossfit-multi-week.json`, `endurance-block.json`, `mixed-wellness.json`, `climb-yoga.json`) via `inMemoryEventStore` + `NoteQueryStore` adapters.
+- Each card runs its query live through `QueryService` and renders via `@bitcobblers/wod-wiki-ui` widgets (`QueryValue`, `WqlTimeseries`, `WqlBars`, `TopList`) or rows lists.
+
+Verification: `test:storybook` runs all stories including the gallery (4 files, 17 tests passed); `typecheck` clean.
 
 ## Question
 

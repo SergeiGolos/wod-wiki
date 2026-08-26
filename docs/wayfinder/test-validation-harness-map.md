@@ -93,6 +93,10 @@ existing `bun run test` / storybook flows.
   `packages/wql/tests/scenarioFixtures.test.ts`; 9 initial scenarios
   covering every query family over all four seeded journals; root package
   suite green (121 files / 1327 tests).
+- [WQL example gallery](test-validation-harness/tickets/008-wql-example-gallery.md) —
+  landed: `apps/storybook/src/WqlGallery.stories.tsx` (Gallery/WQL Example
+  Gallery); curated live examples across 4 query families over all 4 corpus
+  journals using `@bitcobblers/wod-wiki-ui` widgets; `test:storybook` passes.
 
 ## Not yet specified
 
