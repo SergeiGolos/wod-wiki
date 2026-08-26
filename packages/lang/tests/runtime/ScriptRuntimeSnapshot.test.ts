@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach , vi} from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach} from 'vitest';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { RuntimeStack } from '../../src/runtime/RuntimeStack';
 import { RuntimeClock } from '../../src/runtime/RuntimeClock';

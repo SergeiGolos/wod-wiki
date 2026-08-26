@@ -1,0 +1,132 @@
+name: Storybook
+
+# Reusable leg 2b/3a/4a of the unified parallel DAG:
+#   - build-test-storybook  (interaction tests + static build)
+#   - deploy-storybook      (S3 preview or main/storybook/, when deploy=true)
+#
+# e2e-storybook lives in the calling workflows (pull-request.yml / main.yml)
+# because it needs the deployed URL produced by the deploy job there.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Unified version string stamped before building
+        required: false
+        type: string
+        default: ''
+      deploy:
+        description: Deploy storybook-static to S3 after a successful build
+        required: false
+        type: boolean
+        default: false
+      s3-prefix:
+        description: S3 key prefix for deployment (e.g. "<slug>/storybook" on PRs, "main/storybook" on main)
+        required: false
+        type: string
+        default: ''
+      cloudfront-prefix:
+        description: CloudFront invalidation path (e.g. "/<slug>/storybook*")
+        required: false
+        type: string
+        default: ''
+    outputs:
+      test-status:
+        value: ${{ jobs.build-test-storybook.outputs.test-status }}
+      build-status:
+        value: ${{ jobs.build-test-storybook.outputs.build-status }}
+      deploy-status:
+        value: ${{ jobs.deploy-storybook.outputs.deploy-status }}
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-test-storybook:
+    runs-on: ubuntu-22.04
+    outputs:
+      test-status: ${{ steps.test.outcome }}
+      build-status: ${{ steps.build.outcome }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up environment (Bun + chromium)
+        uses: ./.github/actions/setup-env
+
+      - name: Stamp version
+        if: inputs.version != ''
+        run: bun scripts/stamp-version.ts --version "${{ inputs.version }}"
+
+      - name: Storybook interaction tests (Playwright browser runner)
+        id: test
+        run: bun run --filter '@bitcobblers/wod-wiki-storybook' test
+
+      - name: Build Storybook
+        id: build
+        run: bun run --filter '@bitcobblers/wod-wiki-storybook' build
+
+      - name: Upload storybook-dist artifact
+        if: inputs.deploy && steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: storybook-dist
+          path: apps/storybook/storybook-static/
+          retention-days: 1
+
+      - name: Write summary
+        if: always()
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## Storybook leg
+
+          | Check | Outcome |
+          | --- | --- |
+          | Interaction tests | ${{ steps.test.outcome }} |
+          | Build | ${{ steps.build.outcome }} |
+          EOF
+
+  deploy-storybook:
+    name: Deploy Storybook preview
+    runs-on: ubuntu-22.04
+    if: inputs.deploy && needs.build-test-storybook.result == 'success'
+    needs: [build-test-storybook]
+    environment: preview
+    outputs:
+      deploy-status: ${{ steps.sync.outcome }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PREVIEW_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PREVIEW_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${{ secrets.AWS_PREVIEW_S3_BUCKET }}
+      CF_DISTRIBUTION_ID: ${{ secrets.AWS_PREVIEW_CF_DISTRIBUTION_ID }}
+    steps:
+      - name: Download storybook-static artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: storybook-dist
+          path: ./storybook-static/
+
+      - name: Sync to S3
+        id: sync
+        run: |
+          set -euo pipefail
+          PREFIX="${{ inputs.s3-prefix }}/"
+          echo "Uploading to s3://$S3_BUCKET/$PREFIX"
+          aws s3 sync ./storybook-static/ "s3://$S3_BUCKET/$PREFIX" \
+            --delete \
+            --cache-control "max-age=300, must-revalidate" \
+            --exclude "*.map"
+
+      - name: Invalidate CloudFront (best-effort)
+        continue-on-error: true
+        run: |
+          if aws cloudfront create-invalidation \
+               --distribution-id "$CF_DISTRIBUTION_ID" \
+               --paths "${{ inputs.cloudfront-prefix }}"; then
+            echo "CloudFront invalidation submitted for ${{ inputs.cloudfront-prefix }}"
+          else
+            echo "::warning::CloudFront invalidation failed; content refreshes within 5 minutes via max-age."
+          fi

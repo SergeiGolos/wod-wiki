@@ -1,6 +1,6 @@
 import { RepMetric } from '../../src/runtime/compiler/metrics/RepMetric';
 import { EffortMetric } from '../../src/runtime/compiler/metrics/EffortMetric';
-import { describe, it, expect, vi , vi} from 'vitest';
+import { describe, it, expect, vi} from 'vitest';
 import { EditorState } from '@codemirror/state';
 import { DialectStack, createDialectStack, dialectStack } from '../../src/dialects/DialectStack';
 import { UnitsDialect } from '../../src/dialects/UnitsDialect';

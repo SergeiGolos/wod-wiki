@@ -9,6 +9,7 @@ function getFs() {
   if (typeof globalThis.process?.versions?.node === 'undefined' && typeof (globalThis as any).Bun === 'undefined') {
     throw new Error('File system operations are only supported in Node / Bun environments');
   }
+  // eslint-disable-next-line no-restricted-syntax -- lazy CJS require keeps node builtins out of browser bundles
   return require('fs');
 }
 import {
@@ -95,7 +96,7 @@ function extractPayload(rawJson: string): unknown {
     }
     return parsed;
   } catch (err) {
-    throw new Error(`Failed to parse JSON input: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`Failed to parse JSON input: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
   }
 }
 

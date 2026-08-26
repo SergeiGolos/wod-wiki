@@ -63,8 +63,6 @@ export function compileLineForm(src: string, defaultScope?: LineFormScope): Comp
     const sc = SCOPE_RE.exec(line);
     if (sc && /^(on\s|when\s|:)/.test(line.slice(sc[0].length).trim())) {
       scope = sc[1] as CalcScope;
-      fences = undefined;
-      defWhen = undefined;
       const header = parseSectionHeader(line.slice(sc[0].length).trim());
       fences = header.fences;
       defWhen = header.when;

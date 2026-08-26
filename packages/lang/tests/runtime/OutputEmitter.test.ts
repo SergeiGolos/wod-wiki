@@ -14,7 +14,7 @@
  *  - emitCompilerBlock() basic call
  *  - _extractSpans() edge cases (spans field, missing started, no NaN)
  */
-import { describe, it, expect, vi , vi} from 'vitest';
+import { describe, it, expect, vi} from 'vitest';
 import { OutputEmitter } from '../../src/runtime/OutputEmitter';
 import { OutputStatement } from '@bitcobblers/wod-wiki-core';
 import { MetricContainer } from '@bitcobblers/wod-wiki-core';

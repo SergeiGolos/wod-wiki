@@ -105,7 +105,7 @@ for (const file of feedsGlob.scanSync('.')) {
     }
 }
 
-const outDir = 'src/generated';
+const outDir = 'apps/playground/src/generated';
 if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
 }

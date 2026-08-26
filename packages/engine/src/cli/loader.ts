@@ -10,7 +10,9 @@ function getPathUtils() {
     throw new Error('Path resolution is only supported in Node / Bun environments');
   }
   return {
+    // eslint-disable-next-line no-restricted-syntax -- lazy CJS require keeps node builtins out of browser bundles
     resolve: require('path').resolve,
+    // eslint-disable-next-line no-restricted-syntax -- lazy CJS require keeps node builtins out of browser bundles
     pathToFileURL: require('url').pathToFileURL,
   };
 }

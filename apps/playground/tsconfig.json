@@ -1,0 +1,35 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "useDefineForClassFields": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "types": ["bun-types", "vite/client"],
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "downlevelIteration": true,
+
+    "strict": false,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "*.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

@@ -10,10 +10,10 @@ export default defineConfig({
   root,
   plugins: [react()],
   resolve: {
-    alias: { '@': path.resolve(root, 'src') },
+    alias: { '@': path.resolve(root, 'apps/playground/src') },
   },
   test: {
-    include: ['playground/src/lib/workoutIndex.test.ts'],
+    include: ['apps/playground/app/lib/workoutIndex.test.ts'],
     environment: 'node',
   },
 })

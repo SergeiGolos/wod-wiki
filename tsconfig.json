@@ -9,25 +9,20 @@
     ],
     "module": "ESNext",
     "skipLibCheck": true,
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    /* Source Maps for Debugging */
     "sourceMap": true,
     "inlineSourceMap": false,
     "inlineSources": false,
-    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    /* Module Resolution */
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
     "types": [
       "bun-types",
       "vite/client"
@@ -45,21 +40,14 @@
   "include": [
     "vitest.shims.d.ts",
     "packages/*/src/**/*.ts",
-    "packages/*/src/**/*.tsx",
-    "apps/playground/src/**/*.ts",
-    "apps/playground/src/**/*.tsx",
-    "apps/playground/tests/**/*.ts",
-    "apps/playground/tests/**/*.tsx",
-    "apps/playground/*.ts",
-    "apps/storybook/src/**/*.ts",
-    "apps/storybook/src/**/*.tsx",
-    "apps/storybook/test/**/*.ts",
-    "apps/storybook/test/**/*.tsx",
-    "apps/storybook/*.ts"
+    "packages/*/src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "build"
+    "build",
+    "apps",
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ]
 }

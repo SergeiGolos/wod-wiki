@@ -32,11 +32,3 @@ declare module '*.md?raw' {
   export default content;
 }
 
-// React DOM types
-declare module 'react-dom' {
-  export * from 'react-dom';
-}
-
-declare module 'react-dom/client' {
-  export * from 'react-dom/client';
-}

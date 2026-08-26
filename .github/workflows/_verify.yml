@@ -52,12 +52,12 @@ jobs:
         with:
           browsers: ''
 
-      # App + playground unit tests only. Package and Storybook tests live in
-      # the wod-wiki-engine repository; e2e runs post-deploy against the
-      # published artifact (preview-e2e.yml) — never pre-deploy here.
+      # Playground unit tests (isolated runner). Package tests run in the
+      # parallel packages leg (_packages.yml); Storybook in its own leg.
+      # e2e runs post-deploy against the published artifact (preview-e2e.yml).
       - name: Run unit tests
         id: unit
-        run: bun run test
+        run: bun run test:playground:unit
 
       - name: Run coverage
         id: coverage
@@ -95,10 +95,9 @@ jobs:
 
       - name: Upload playground dist
         if: inputs.build-preview-artifact && steps.build.outcome == 'success'
-        uses: actions/upload-artifact@v7
         with:
           name: playground-dist
-          path: playground/dist/
+          path: apps/playground/dist/
           retention-days: 1
 
       - name: Write verification summary
@@ -111,5 +110,6 @@ jobs:
           | --- | --- |
           | Unit tests | ${{ steps.unit.outcome }} |
           | Coverage | ${{ steps.coverage.outcome }} |
+            apps/playground/dist/
           | Playground build | ${{ steps.build.outcome }} |
           EOF

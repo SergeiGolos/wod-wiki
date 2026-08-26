@@ -28,6 +28,10 @@ describe('useRuntimeExecution', () => {
   let warnSpy: ReturnType<typeof mock>;
 
   beforeEach(() => {
+    // Pin timers: the hook schedules completion callbacks with setTimeout that
+    // must never leak past the test (React flushing them after the happy-dom
+    // environment is torn down crashes the worker with "window is not defined").
+    vi.useFakeTimers();
     originalWarn = console.warn;
     warnSpy = vi.fn(() => { });
     console.warn = warnSpy as any;
@@ -35,6 +39,7 @@ describe('useRuntimeExecution', () => {
 
   afterEach(() => {
     console.warn = originalWarn;
+    vi.useRealTimers();
   });
 
   it('starts execution and reports running status', () => {

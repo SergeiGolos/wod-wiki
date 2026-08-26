@@ -33,11 +33,16 @@ See [`docs/04-metric-lifecycle.md`](./docs/04-metric-lifecycle.md).
 npm/yarn).
 
 ```bash
-bun install            # install dependencies
-bun run playground     # run the reference app (Vite)  → http://localhost:5173
-bun run storybook      # browse components in isolation → http://localhost:6006
-bun run test           # unit tests (src/)
+bun install               # install the Bun workspace (packages/* + apps/*)
+bun run playground        # wod.wiki app dev server  → http://localhost:5173
+bun run storybook         # component workbench       → http://localhost:6006
+bun run test              # packages + playground + storybook suites
 ```
+
+Monorepo layout: `packages/{core,lang,wql,engine,ui}` publish to npm as
+`@bitcobblers/wod-wiki-*`; `apps/playground` is the private web app;
+`apps/storybook` is the private component workbench. Vite source-aliasing
+gives instant HMR from `packages/*/src` into both apps with zero build step.
 
 ---
 

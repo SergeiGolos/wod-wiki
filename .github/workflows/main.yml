@@ -1,9 +1,12 @@
 name: Release – Main
 
-# The main-branch pipeline. Pull requests use pull-request.yml for isolated
-# previews; a successful push to main publishes the production Pages artifact.
-# Every push computes a version, deploys wod.wiki, creates the matching GitHub
-# release, and smoke-tests the live site.
+# Unified parallel production pipeline (6-phase DAG):
+#   1 version   →  2 [ packages | verify(playground) | storybook ]  (parallel)
+#   → 3 publish-storybook (S3 main/storybook/ → story.wod.wiki)
+#     publish-playground   (S3 main/dist/ + GitHub Pages → wod.wiki)
+#   → 4 e2e-storybook + production smoke vs https://wod.wiki
+#   → 5 release-npm    (gated on e2e-storybook; publishes @bitcobblers/* to npmjs)
+#   → 6 summary
 
 on:
   push:
@@ -19,31 +22,257 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  version:
+    name: Calculate unified version
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # Highest v-tag seeds major/minor (engine tags supersed the old app tags
+      # after the reunification); build is the run number, per research 003.
+      - name: Compute next version (conventional commits)
+        id: version
+        run: |
+          LATEST_TAG=$(git for-each-ref refs/tags \
+            --sort=-v:refname \
+            --format '%(refname:short)' \
+            | grep -E '^v?[0-9]+\.[0-9]+(\.[0-9]+)?$' \
+            | head -1)
+
+          if [ -n "$LATEST_TAG" ]; then
+            BASE="${LATEST_TAG#v}"
+            COMMITS=$(git log "${LATEST_TAG}..HEAD" --format="%s%n%b")
+          else
+            BASE=$(node -p "require('./package.json').version")
+            COMMITS=$(git log --format="%s%n%b")
+          fi
+
+          MAJOR=$(echo "$BASE" | cut -d. -f1)
+          MINOR=$(echo "$BASE" | cut -d. -f2)
+
+          BUMP="patch"
+          if echo "$COMMITS" | grep -qE "^(breaking[:(]|BREAKING CHANGE:)" || \
+             echo "$COMMITS" | grep -qiE "^[a-z]+(\([^)]*\))?!:"; then
+            BUMP="major"
+          elif echo "$COMMITS" | grep -qiE "^(feature[:(]|feat[:(])"; then
+            BUMP="minor"
+          fi
+
+          if [ "$BUMP" = "major" ]; then
+            MAJOR=$((MAJOR + 1)); MINOR=0
+          elif [ "$BUMP" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+          fi
+
+          VERSION="${MAJOR}.${MINOR}.${{ github.run_number }}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+  build-test-packages:
+    needs: [version]
+    uses: ./.github/workflows/_packages.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.version.outputs.version }}
+      upload-dist: true
+
   verify:
+    name: Build & test playground
+    needs: [version]
     uses: ./.github/workflows/_verify.yml
     secrets: inherit
     with:
-      build-preview-artifact: false
+      build-preview-artifact: true
+      app-version: ${{ needs.version.outputs.version }}
 
-  release:
-    needs: [verify]
-    if: needs.verify.result == 'success'
-    uses: ./.github/workflows/_release.yml
+  build-test-storybook:
+    needs: [version]
+    uses: ./.github/workflows/_storybook.yml
     secrets: inherit
+    with:
+      version: ${{ needs.version.outputs.version }}
+      deploy: true
+      s3-prefix: main/storybook
+      cloudfront-prefix: /main/storybook*
+
+  publish-playground:
+    name: Publish playground (Pages)
+    runs-on: ubuntu-22.04
+    needs: [verify]
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page-url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Download playground dist
+        uses: actions/download-artifact@v7
+        with:
+          name: playground-dist
+          path: ./dist/
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist/
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  smoke-production:
+    name: Production smoke (wod.wiki)
+    runs-on: ubuntu-22.04
+    needs: [publish-playground]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up environment (Bun + chromium)
+        uses: ./.github/actions/setup-env
+
+      - name: Run production smoke tests
+        run: bun x playwright test --config playwright.smoke.config.ts
+        env:
+          CI: true
+          E2E_APP_URL: ${{ needs.publish-playground.outputs.page-url }}
+
+      - name: Upload smoke report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: smoke-playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  e2e-storybook:
+    name: Storybook E2E (story.wod.wiki)
+    runs-on: ubuntu-22.04
+    needs: [build-test-storybook]
+    if: needs.build-test-storybook.outputs.deploy-status == 'success'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up environment (Bun + chromium)
+        uses: ./.github/actions/setup-env
+
+      - name: Run Storybook smoke against deployed main
+        run: bun x playwright test --config playwright.storybook.config.ts
+        env:
+          CI: true
+          STORYBOOK_URL: https://story.wod.wiki
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: storybook-playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  release-npm:
+    name: Publish @bitcobblers/* to npm
+    runs-on: ubuntu-22.04
+    needs: [version, build-test-packages, e2e-storybook]
+    # Gate: package publish waits for a green Storybook E2E; playground smoke
+    # failures do NOT block library releases (research 004 §5).
+    if: |
+      needs.build-test-packages.result == 'success' &&
+      needs.e2e-storybook.result == 'success'
+    environment: npm
+    steps:
+      - name: Configure npm auth
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Download packages-dist
+        uses: actions/download-artifact@v7
+        with:
+          name: packages-dist
+          path: packages/
+
+      - name: Publish all five packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          for pkg in packages/*/; do
+            if [ -f "$pkg/package.json" ]; then
+              echo "Publishing $pkg"
+              (cd "$pkg" && npm publish --access public)
+            fi
+          done
+
+      - name: Create or update GitHub release and tag
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const tag = '${{ needs.version.outputs.tag }}';
+            const sha = context.sha;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            try {
+              const ref = await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+              if (ref.data.object.sha !== sha) {
+                core.setFailed(`Tag ${tag} already exists at ${ref.data.object.sha}; refusing to move it.`);
+                return;
+              }
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              await github.rest.git.createRef({ owner, repo, ref: `refs/tags/${tag}`, sha });
+            }
+
+            try {
+              const existing = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              await github.rest.repos.updateRelease({
+                owner, repo, release_id: existing.data.id, target_commitish: sha,
+                name: tag, draft: false, prerelease: false,
+              });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, target_commitish: sha, name: tag,
+                generate_release_notes: true, draft: false, prerelease: false,
+              });
+            }
 
   summary:
-    name: Release summary
+    name: Pipeline summary
     runs-on: ubuntu-22.04
     if: always()
-    needs: [verify, release]
+    needs: [version, build-test-packages, verify, build-test-storybook, publish-playground, smoke-production, e2e-storybook, release-npm]
     steps:
       - name: Write summary
         run: |
           cat <<EOF >> "$GITHUB_STEP_SUMMARY"
           ## Main production pipeline
 
-          | Target | URL | Status |
-          | --- | --- | --- |
-          | Verify | — | ${{ needs.verify.result }} |
-          | Production release | https://wod.wiki | ${{ needs.release.result }} |
+          | Leg | Status |
+          | --- | --- |
+          | Version | \${{ needs.version.outputs.version }} (\${{ needs.version.result }}) |
+          | Packages | \${{ needs.build-test-packages.result }} |
+          | Playground | \${{ needs.verify.result }} |
+          | Storybook | \${{ needs.build-test-storybook.result }} |
+          | Pages (wod.wiki) | \${{ needs.publish-playground.result }} |
+          | Production smoke | \${{ needs.smoke-production.result }} |
+          | Storybook E2E | \${{ needs.e2e-storybook.result }} |
+          | npm release | \${{ needs.release-npm.result }} |
           EOF
