@@ -23,6 +23,13 @@ export interface ParsedWqlLastSuffix {
   raw: string;
 }
 
+/** A window clause (C1): relative (`last 8w`) or civil-date range
+ *  (`from 2026-01-01 [to 2026-03-31]`). One window per query — `last` and
+ *  `from` are mutually exclusive (validated as a C3-style conflict). */
+export type ParsedWqlWindowSuffix =
+  | { kind: 'relative'; size: number; unit: 'd' | 'w'; raw: string }
+  | { kind: 'range'; start: string; end?: string; raw: string };
+
 export interface ParsedWqlSuffixes {
   /** Outer cross-store join clause text (`where ...`). */
   where?: string;
@@ -32,8 +39,8 @@ export interface ParsedWqlSuffixes {
   rollup?: ParsedWqlRollupSuffix;
   /** Group-by dimensions (`by {week, effort}`). */
   groupBy?: string[];
-  /** Content time window (`last 8w`). */
-  last?: ParsedWqlLastSuffix;
+  /** Time window — relative or civil-date range, legal on every family (C1). */
+  window?: ParsedWqlWindowSuffix;
   /** Content scope (`in journal` / `in all`). */
   scope?: string;
   /** Duplicate-clause diagnostics (C3) — each names both conflicting spans. */
@@ -69,6 +76,7 @@ const DISPLAY_UNIT_RE = /\s+in\s+([a-zA-Z0-9_-]+)\s*$/;
 const ROLLUP_RE = /\.rollup\((\d+)?([a-zA-Z]*)\)\s*$/;
 const BY_RE = /\s+by\s+\{([^}]*)\}\s*$/;
 const LAST_RE = /\s+last\s+(\d+)([dw])\s*$/i;
+const FROM_TO_RE = /\s+from\s+(\d{4}-\d{2}-\d{2})(?:\s+to\s+(\d{4}-\d{2}-\d{2}))?\s*$/i;
 const IN_SCOPE_RE = /\s+in\s+(\w+)\s*$/;
 
 /**
@@ -83,7 +91,7 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
   let displayUnit: string | undefined;
   let rollup: ParsedWqlRollupSuffix | undefined;
   let groupBy: string[] | undefined;
-  let last: ParsedWqlLastSuffix | undefined;
+  let window: ParsedWqlWindowSuffix | undefined;
   let scope: string | undefined;
   const conflicts: string[] = [];
 
@@ -112,17 +120,42 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
     }
   };
 
-  if (isFind || isRows) {
-    // Content find queries strip `last <n><unit>` then `in <scope>`;
-    // rows queries (#949) strip `last` plus the aggregation suffixes
-    // (surfaced as loud errors downstream — rows never aggregates).
-    const lasts = stripRepeated(LAST_RE);
-    conflictFrom('window', lasts);
-    if (lasts.length) {
-      const m = lasts[lasts.length - 1];
-      last = { size: parseInt(m[1], 10), unit: m[2].toLowerCase() as 'd' | 'w', raw: m[0].trim() };
+  // Window (C1) — one clause per query, every family. `from/to` strips
+  // first (it is the rightmost window form when both appear), then `last`;
+  // any second occurrence — same kind or cross-kind — is a C3 conflict.
+  const froms = stripRepeated(FROM_TO_RE);
+  const lasts = stripRepeated(LAST_RE);
+  {
+    const windows = [
+      ...froms.map((m) => ({
+        kind: 'range' as const,
+        start: m[1],
+        end: m[2],
+        raw: m[0].trim(),
+        at: m.index,
+      })),
+      ...lasts.map((m) => ({
+        kind: 'relative' as const,
+        size: parseInt(m[1], 10),
+        unit: m[2].toLowerCase() as 'd' | 'w',
+        raw: m[0].trim(),
+        at: m.index,
+      })),
+    ].sort((a, b) => a.at - b.at);
+    if (windows.length > 1) {
+      conflicts.push(
+        `Duplicate 'window' clause: '${windows[0].raw}' conflicts with '${windows[windows.length - 1].raw}'`,
+      );
     }
+    if (windows.length === 1) {
+      const w = windows[0];
+      window = w.kind === 'range' ? { kind: 'range', start: w.start, end: w.end, raw: w.raw } : { kind: 'relative', size: w.size, unit: w.unit, raw: w.raw };
+    }
+  }
 
+  if (isFind || isRows) {
+    // Content/rows families: scope on finds; aggregation suffixes on rows
+    // surface as loud errors downstream — rows never aggregates.
     if (isFind) {
       const scopes = stripRepeated(IN_SCOPE_RE);
       conflictFrom('scope', scopes);
@@ -168,7 +201,7 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
     displayUnit,
     rollup,
     groupBy,
-    last,
+    window,
     scope,
     conflicts: conflicts.length ? conflicts : undefined,
     primaryText: text,

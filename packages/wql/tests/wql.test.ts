@@ -114,7 +114,7 @@ describe('parseQuery — find: content queries', () => {
       { key: 'tags', negate: false, values: [{ value: 'pr', wildcard: false }] },
     ]);
     expect(parsed.scope).toBeUndefined();
-    expect(parsed.last).toBeUndefined();
+    expect(parsed.window).toBeUndefined();
   });
 
   it('parses scope clause (in journal)', () => {
@@ -129,7 +129,7 @@ describe('parseQuery — find: content queries', () => {
     expect(isFindQuery(parsed)).toBe(true);
     if (!isFindQuery(parsed)) return;
     expect(parsed.scope).toBe('journal');
-    expect(parsed.last).toEqual({ size: 8, unit: 'w' });
+    expect(parsed.window).toEqual({ kind: 'relative', size: 8, unit: 'w' });
   });
 
   it('parses time window without scope', () => {
@@ -137,7 +137,7 @@ describe('parseQuery — find: content queries', () => {
     expect(isFindQuery(parsed)).toBe(true);
     if (!isFindQuery(parsed)) return;
     expect(parsed.scope).toBeUndefined();
-    expect(parsed.last).toEqual({ size: 4, unit: 'd' });
+    expect(parsed.window).toEqual({ kind: 'relative', size: 4, unit: 'd' });
   });
 
   it('parses empty filters', () => {
@@ -433,5 +433,62 @@ describe('rows-in-grammar cutover (C4)', () => {
   it('scope requirement errors at parse', () => {
     expect(_parseQuery('rows:segment{}').error).toContain('needs a scope');
     expect(_parseQuery('rows:all{}').error).toContain('needs a scope');
+  });
+});
+
+describe('window module (C1)', () => {
+  it('aggregates accept a relative window', () => {
+    const parsed = _parseQuery('sum:totalVolume{} last 6w');
+    expect(parsed.family).toBe('aggregate');
+    expect(parsed.error).toBeUndefined();
+    expect(isAggregateQuery(parsed) ? parsed.window : undefined)
+      .toEqual({ kind: 'relative', size: 6, unit: 'w' });
+  });
+
+  it('aggregates accept a from/to civil-date range', () => {
+    const parsed = _parseQuery('sum:tis{} from 2026-01-01 to 2026-03-31');
+    expect(parsed.error).toBeUndefined();
+    expect(isAggregateQuery(parsed) ? parsed.window : undefined)
+      .toEqual({ kind: 'range', start: '2026-01-01', end: '2026-03-31' });
+  });
+
+  it('from without to is an open-ended range', () => {
+    const parsed = _parseQuery('sum:tis{} from 2026-01-01');
+    expect(parsed.error).toBeUndefined();
+    expect(isAggregateQuery(parsed) ? parsed.window : undefined)
+      .toEqual({ kind: 'range', start: '2026-01-01' });
+  });
+
+  it('find and rows carry the window too — last folds in', () => {
+    const find = _parseQuery('find:note{tags:pr} last 8w');
+    expect(find.error).toBeUndefined();
+    expect(isFindQuery(find) ? find.window : undefined)
+      .toEqual({ kind: 'relative', size: 8, unit: 'w' });
+    const rows = _parseQuery('rows:all{result:x} from 2026-02-01 to 2026-02-28');
+    expect(rows.error).toBeUndefined();
+    expect(isRowsQuery(rows) ? rows.window : undefined)
+      .toEqual({ kind: 'range', start: '2026-02-01', end: '2026-02-28' });
+  });
+
+  it('last and from are mutually exclusive — conflict naming both spans', () => {
+    const parsed = _parseQuery('sum:tis{} last 4w from 2026-01-01');
+    expect(parsed.error).toContain("'last 4w' conflicts with 'from 2026-01-01'");
+  });
+
+  it('duplicate from clauses conflict', () => {
+    const parsed = _parseQuery('sum:tis{} from 2026-01-01 from 2026-02-01');
+    expect(parsed.error).toContain("Duplicate 'window' clause");
+  });
+
+  it('rejects impossible civil dates at parse', () => {
+    expect(_parseQuery('sum:tis{} from 2026-13-01').error).toContain('Invalid window date');
+    expect(_parseQuery('sum:tis{} from 2026-02-30').error).toContain('Invalid window date');
+  });
+
+  it('window rides the canonical tail after unit and rollup', () => {
+    const parsed = _parseQuery('sum:totalVolume{} by {week}.rollup(1w) in kg last 6w');
+    expect(parsed.error).toBeUndefined();
+    expect(isAggregateQuery(parsed) ? parsed.window : undefined)
+      .toEqual({ kind: 'relative', size: 6, unit: 'w' });
   });
 });

@@ -23,7 +23,7 @@ import {
   type WqlAggregator,
   type WqlComparisonOp,
 } from './vocabulary';
-import { parseWqlSuffixes } from './wqlSuffix';
+import { parseWqlSuffixes, type ParsedWqlWindowSuffix } from './wqlSuffix';
 
 export { WQL_AGGREGATORS, WQL_COMPARISON_OPS } from './vocabulary';
 export { parseWqlSuffixes, splitAtWhere } from './wqlSuffix';
@@ -85,6 +85,8 @@ export interface ParsedAggregateQuery {
   /** Tag keys, or virtual dims: day | week | session | round. */
   groupBy: string[];
   rollup?: { size: number; unit: 'd' | 'w' };
+  /** Time-selection window (C1): `last 6w` or `from … [to …]`. */
+  window?: QueryWindow;
   /** Optional display unit directive — `in kg` / `in lb`. */
   displayUnit?: string;
   /** Cross-store content join (`where find:note{...}`); restricts to raw logs. */
@@ -101,12 +103,22 @@ export interface ParsedFindQuery {
   filters: TagFilter[];
   /** Where to look: journal | collections | feeds | all. */
   scope?: string;
-  /** Time window: last 8w, last 4d. */
-  last?: { size: number; unit: 'd' | 'w' };
+  /** Time-selection window (C1): `last 8w` or `from … [to …]`. */
+  window?: QueryWindow;
   /** Cross-store metric join (`where sum:totalVolume{} > 5000`). */
   join?: MetricPredicate;
   error?: string;
 }
+
+/**
+ * Time-selection window (C1) — legal on every query family. `last <n><d|w>`
+ * is relative; `from <YYYY-MM-DD> [to <YYYY-MM-DD>]` is a civil-date range
+ * (local-midnight semantics, inclusive end day). One window per query;
+ * `last` and `from` are mutually exclusive (C3-style conflict).
+ */
+export type QueryWindow =
+  | { kind: 'relative'; size: number; unit: 'd' | 'w' }
+  | { kind: 'range'; start: string; end?: string };
 
 export type AnyParsedQuery = ParsedAggregateQuery | ParsedFindQuery | ParsedRowsQuery;
 
@@ -140,8 +152,9 @@ export interface ParsedRowsQuery {
   /** Output-statement type narrowing from the optional target (`rows:segment{…}`); undefined = all types. */
   outputType?: string;
   filters: TagFilter[];
-  /** Time window over the workout end time: last 8w, last 4d. */
-  last?: { size: number; unit: 'd' | 'w' };
+  /** Time-selection window (C1): `last 4w` or `from … [to …]` over the
+   *  workout end time. */
+  window?: QueryWindow;
   error?: string;
 }
 export interface Series { key: string; label: string; points: SeriesPoint[]; unit?: string }
@@ -179,7 +192,7 @@ function parseJoinClause(where: string): { metric?: MetricPredicate; find?: Find
   if (where.trimStart().startsWith('find:')) {
     const fp = parseFindQuery(where);
     if (fp.error) return { error: fp.error };
-    return { find: { target: fp.target, filters: fp.filters, scope: fp.scope, last: fp.last } };
+    return { find: { target: fp.target, filters: fp.filters, scope: fp.scope, last: fp.window?.kind === 'relative' ? { size: fp.window.size, unit: fp.window.unit } : undefined } };
   }
   const m = CMP_RE.exec(where.trim());
   if (!m) return { error: cannotParseJoin(where) };
@@ -247,13 +260,18 @@ const BARE_ROWS_RETIRED = 'Bare "rows:" is retired — name a target: rows:all{�
  */
 function parseRowsQuery(raw: string): ParsedRowsQuery {
   const suffixes = parseWqlSuffixes(raw);
-  const { where: whereText, last, groupBy, rollup, primaryText } = suffixes;
+  const { where: whereText, window: windowSuffix, groupBy, rollup, primaryText } = suffixes;
+  const win = toQueryWindow(windowSuffix);
   const result: ParsedRowsQuery = {
     family: 'rows',
     raw,
     filters: [],
-    last: last ? { size: last.size, unit: last.unit } : undefined,
+    window: win.window,
   };
+  if (win.error) {
+    result.error = win.error;
+    return result;
+  }
   if (suffixes.conflicts?.length) {
     result.error = suffixes.conflicts.join('; ');
     return result;
@@ -313,6 +331,32 @@ function parseRowsQuery(raw: string): ParsedRowsQuery {
   return result;
 }
 
+/** True when `s` is a real civil date in YYYY-MM-DD form (rejects 02-30,
+ *  month 13, etc. via Date component round-trip). */
+function isCivilDate(s: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return false;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const dt = new Date(y, mo - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d;
+}
+
+/** Map the suffix-layer window to the AST window, validating civil dates. */
+function toQueryWindow(w: ParsedWqlWindowSuffix | undefined): { window?: QueryWindow; error?: string } {
+  if (!w) return {};
+  if (w.kind === 'relative') {
+    return { window: { kind: 'relative', size: w.size, unit: w.unit } };
+  }
+  for (const d of [w.start, w.end]) {
+    if (d !== undefined && !isCivilDate(d)) {
+      return { error: `Invalid window date "${d}" — expected a real calendar date YYYY-MM-DD` };
+    }
+  }
+  return { window: { kind: 'range', start: w.start, end: w.end } };
+}
+
 /** Ticket 003: grain:rollup is retired — rollup grains are never stored
  *  under the unified model; they are computed at read time via the
  *  .rollup suffix. The tag would silently match zero rows. */
@@ -360,7 +404,8 @@ function extractFilters(query: SyntaxNode, text: string): TagFilter[] {
 
 function parseAnalyticsQuery(raw: string): ParsedAggregateQuery {
   const suffixes = parseWqlSuffixes(raw);
-  const { where: whereText, displayUnit, groupBy, rollup, primaryText: text } = suffixes;
+  const { where: whereText, displayUnit, groupBy, rollup, window: windowSuffix, primaryText: text } = suffixes;
+  const win = toQueryWindow(windowSuffix);
 
   const base: ParsedAggregateQuery = {
     family: 'aggregate',
@@ -371,7 +416,12 @@ function parseAnalyticsQuery(raw: string): ParsedAggregateQuery {
     groupBy: groupBy ?? [],
     displayUnit,
     rollup: rollup ? { size: rollup.size, unit: rollup.unit as 'd' | 'w' } : undefined,
+    window: win.window,
   };
+  if (win.error) {
+    base.error = win.error;
+    return base;
+  }
   if (suffixes.conflicts?.length) {
     base.error = suffixes.conflicts.join('; ');
     return base;
@@ -441,15 +491,20 @@ function cannotParseFind(text: string): string {
 
 function parseFindQuery(raw: string): ParsedFindQuery {
   const suffixes = parseWqlSuffixes(raw);
-  const { where: whereText, last, scope, primaryText: text } = suffixes;
+  const { where: whereText, window: windowSuffix, scope, primaryText: text } = suffixes;
+  const win = toQueryWindow(windowSuffix);
   const result: ParsedFindQuery = {
     family: 'find',
     raw,
     target: '',
     filters: [],
     scope,
-    last: last ? { size: last.size, unit: last.unit } : undefined,
+    window: win.window,
   };
+  if (win.error) {
+    result.error = win.error;
+    return result;
+  }
   if (suffixes.conflicts?.length) {
     result.error = suffixes.conflicts.join('; ');
     return result;

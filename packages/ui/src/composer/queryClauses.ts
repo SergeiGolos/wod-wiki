@@ -412,7 +412,10 @@ export function wqlToClauses(wql: string): QueryClause[] | null {
   // Duplicate-suffix strings are not composer products (C3) — reject rather
   // than round-trip a silently truncated query.
   if (suffixes.conflicts?.length) return null;
-  const { where, displayUnit, groupBy, rollup, last, scope, primaryText } = suffixes;
+  const { where, displayUnit, groupBy, rollup, window, scope, primaryText } = suffixes;
+  // C1: the composer time clause is last-only; a civil-date range window is
+  // not a composer product — keep it in raw-text editing.
+  if (window?.kind === 'range') return null;
 
   // Rows plane (#949): rows[:<outputType>]{<filters>} [last <n><unit>] —
   // restore onto the dedicated rows source so the round-trip is lossless.
@@ -424,7 +427,7 @@ export function wqlToClauses(wql: string): QueryClause[] | null {
     if (!filterClauses) return null;
     const clauses: QueryClause[] = [
       restoreClause('c-source', 'source', 'rows'),
-      restoreClause('c-time', 'time', last ? `last ${last.size}${last.unit}` : 'all'),
+      restoreClause('c-time', 'time', window?.kind === 'relative' ? `last ${window.size}${window.unit}` : 'all'),
       ...(rowsMatch[1] ? [restoreClause('c-output', 'output', rowsMatch[1])] : []),
       ...filterClauses,
     ];
@@ -443,7 +446,7 @@ export function wqlToClauses(wql: string): QueryClause[] | null {
     const filterClauses = restoreFilters(rest);
     if (!filterClauses) return null;
 
-    const timeValue = last ? `last ${last.size}${last.unit}` : 'all';
+    const timeValue = window?.kind === 'relative' ? `last ${window.size}${window.unit}` : 'all';
     const scopeValue = scope;
 
     // target+scope collapse into the single source slot: blocks/efforts drop

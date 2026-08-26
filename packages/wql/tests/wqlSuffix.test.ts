@@ -37,7 +37,7 @@ describe('wqlSuffix', () => {
       const parsed = parseWqlSuffixes('find:note{tags:pr} in journal last 8w where sum:totalVolume{} > 5000');
       expect(parsed.primaryText).toBe('find:note{tags:pr}');
       expect(parsed.scope).toBe('journal');
-      expect(parsed.last).toEqual({ size: 8, unit: 'w', raw: 'last 8w' });
+      expect(parsed.window).toEqual({ kind: 'relative', size: 8, unit: 'w', raw: 'last 8w' });
       expect(parsed.where).toBe('sum:totalVolume{} > 5000');
     });
 

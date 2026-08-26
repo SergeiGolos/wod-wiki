@@ -67,7 +67,7 @@ describe('range parameter — runFind', () => {
       target: 'note',
       filters: [],
       scope: 'journal',
-      last: { size: 8, unit: 'w' },
+      window: { kind: 'relative', size: 8, unit: 'w' },
     };
     const result = await service.runFind(parsed, { range: { start: T_OLD, end: T_OLD } });
     expect(result.notes.map(n => n.id)).toEqual(['old']);
@@ -81,7 +81,7 @@ describe('range parameter — runFind', () => {
       target: 'note',
       filters: [],
       scope: 'journal',
-      last: { size: 8, unit: 'w' },
+      window: { kind: 'relative', size: 8, unit: 'w' },
     };
     const result = await service.runFind(parsed);
     expect(result.notes).toEqual([]);

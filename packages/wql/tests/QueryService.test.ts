@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { spawnSync } from 'node:child_process';
 import type { UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
 import { QueryService, type NoteQueryStore, type UnifiedEventStore } from '../src/QueryService';
 
@@ -308,5 +308,105 @@ describe('QueryService unit conversion', () => {
     expect(result.series[0]?.points[0]?.value).toBe(2721.55);
     expect(result.matched[0]?.unit).toBe('lb');
     expect(result.matched[0]?.value).toBe(1000);
+  });
+});
+
+describe('window module (C1) execution', () => {
+  it('a parsed relative window drives the by-timestamp SELECT', async () => {
+    const { store, calls } = makeStore();
+    const service = new QueryService({ eventStore: store });
+    await service.runQuery('sum:totalVolume{} last 1w');
+    // No explicit options and a parsed window: the store is read through
+    // getEventsByTimeRange, never scanAll.
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatch(/^by-timestamp:/);
+  });
+
+  it('a civil-date range window selects local-midnight-to-end-of-day', async () => {
+    const { store } = makeStore();
+    const service = new QueryService({ eventStore: store });
+    // Build the civil window from the fixtures' own local components, so the
+    // assertion holds under any ambient timezone.
+    const iso = (ts: number) => {
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    const result = await service.runQuery(
+      `count:totalVolume{} from ${iso(V1.timestamp)} to ${iso(V2.timestamp)}`,
+    );
+    // V1 and V2 are the first two distinct civil days of totalVolume facts;
+    // V3/V4 land later. T1 is a tis fact — never selected.
+    expect(result.matched.map((r) => r.timestamp)).toEqual(
+      [V1, V2].map((f) => f.timestamp),
+    );
+  });
+
+  it('no window scans; explicit options still win over the parsed window', async () => {
+    const { store, calls } = makeStore();
+    const service = new QueryService({ eventStore: store });
+    await service.runQuery('sum:totalVolume{}');
+    expect(calls).toContain('scan-all');
+    calls.length = 0;
+    await service.runQuery('sum:totalVolume{} last 1w', { rangeStart: 0, rangeEnd: 10 });
+    expect(calls).toEqual(['by-timestamp:0-10']);
+  });
+
+  it('by {day} buckets points on LOCAL civil days (spec v2 decision 2)', async () => {
+    // Fixtures built from local components — deterministic in every zone.
+    const monday = new Date(2026, 5, 8, 10).getTime();   // Mon Jun 8
+    const tuesday = new Date(2026, 5, 9, 10).getTime();  // Tue Jun 9
+    const nextMon = new Date(2026, 5, 15, 10).getTime(); // Mon Jun 15
+    const rows = [
+      fact('totalVolume', 100, monday),
+      fact('totalVolume', 200, monday + 3 * HOUR), // same civil day
+      fact('totalVolume', 50, tuesday),
+      fact('totalVolume', 500, nextMon),
+    ];
+    const { store } = makeStore(rows);
+    const service = new QueryService({ eventStore: store });
+    const result = await service.runQuery('sum:totalVolume{} by {day}');
+    const points = result.series[0]!.points;
+    expect(points).toHaveLength(3); // 3 civil days, not UTC-shifted buckets
+    // Point ts is local noon of its civil day.
+    expect(points.map((p) => new Date(p.ts).getDate())).toEqual([8, 9, 15]);
+    expect(points[0]!.value).toBe(300); // both Jun-8 facts folded
+  });
+
+  it('by {week} buckets points on civil-Monday weeks', async () => {
+    const monday = new Date(2026, 5, 8, 10).getTime();
+    const friday = new Date(2026, 5, 12, 10).getTime();  // same civil week
+    const nextMonday = new Date(2026, 5, 15, 10).getTime();
+    const rows = [
+      fact('totalVolume', 100, monday),
+      fact('totalVolume', 100, friday),
+      fact('totalVolume', 700, nextMonday),
+    ];
+    const { store } = makeStore(rows);
+    const service = new QueryService({ eventStore: store });
+    const result = await service.runQuery('sum:totalVolume{} by {week}');
+    const points = result.series[0]!.points;
+    expect(points).toHaveLength(2); // two civil-Monday weeks
+    expect(points.map((p) => new Date(p.ts).getDate())).toEqual([8, 15]); // Mondays
+    expect(points[0]!.value).toBe(200);
+    expect(points[1]!.value).toBe(700);
+  });
+
+  it('week keys stay civil Mondays across the London DST transition (child probe)', () => {
+    // Europe/London springs forward 2026-03-29 (Sunday): old instant math
+    // (ts − N×DAY + UTC slice) mislabeled that week's Monday. The civil
+    // component math cannot. Child process so TZ is set at process start.
+    const probe = `
+      const ts = Date.UTC(2026, 2, 29, 12); // DST-transition Sunday Mar 29
+      const d = new Date(ts);
+      const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7);
+      const iso = (x) => \`\${x.getFullYear()}-\${String(x.getMonth()+1).padStart(2,'0')}-\${String(x.getDate()).padStart(2,'0')}\`;
+      console.log(iso(monday));
+    `;
+    const result = spawnSync(process.execPath, ['-e', probe], {
+      encoding: 'utf8',
+      env: { ...process.env, TZ: 'Europe/London' },
+    });
+    if (result.status !== 0) throw new Error(result.stderr);
+    expect(result.stdout.trim()).toBe('2026-03-23');
   });
 });

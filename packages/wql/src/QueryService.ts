@@ -28,6 +28,7 @@ import {
   type ComparisonOp,
   type ParsedAggregateQuery,
   type ParsedFindQuery,
+  type QueryWindow,
   type ParsedRowsQuery,
   type FindPredicate,
   type MetricPredicate,
@@ -61,9 +62,11 @@ const DAY = 86_400_000;
 /** Rows content planes (C4): targets that scope by content ownership rather
  *  than the outputType column — no statement narrowing for these. */
 const ROWS_CONTENT_PLANES: ReadonlySet<string> = new Set(WQL_FIND_TARGETS);
-
 function localDateString(ts: number): string {
-  return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  const d = new Date(ts);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
 /** Extract the catalog directory id from a Note or BlockIndexRow.
@@ -101,20 +104,40 @@ function applySourceFilter<T extends { sourceId?: string }>(items: T[], filters:
   return items;
 }
 
-/** Time-window predicate for a row, given the parsed WQL's `last` clause and
- *  the optional explicit `range` parameter. The range overrides `last`; when
+/** Local midnight (instant) of a civil YYYY-MM-DD date — C1 range windows
+ *  run on the athlete's calendar, not UTC midnights. */
+function civilMidnight(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y!, m! - 1, d!).getTime();
+}
+
+/** Resolve a parsed window to a [start, end] instant range — the single
+ *  window→range mapping every execution path shares (C1). Relative windows
+ *  cut off from `anchorNow ?? now`; range windows are inclusive civil days. */
+function windowRange(
+  w: QueryWindow | undefined,
+  anchorNow?: number,
+): { start: number; end: number } | undefined {
+  if (!w) return undefined;
+  if (w.kind === 'relative') {
+    return { start: (anchorNow ?? Date.now()) - w.size * (w.unit === 'w' ? 7 : 1) * DAY, end: Number.MAX_SAFE_INTEGER };
+  }
+  const start = civilMidnight(w.start);
+  const end = w.end !== undefined ? civilMidnight(w.end) + DAY - 1 : Number.MAX_SAFE_INTEGER;
+  return { start, end };
+}
+
+/** Time-window predicate for a row, given the parsed window (C1) and the
+ *  optional explicit `range` option. The option overrides the window; when
  *  neither is set, the row passes. */
 function effectiveTimeWindow(
   createdAt: number,
-  last: { size: number; unit: 'd' | 'w' } | undefined,
+  window: QueryWindow | undefined,
   range: { start: number; end: number } | undefined,
   anchorNow?: number,
 ): boolean {
-  if (range) return createdAt >= range.start && createdAt <= range.end;
-  if (last) {
-    const cutoff = (anchorNow ?? Date.now()) - last.size * (last.unit === 'w' ? 7 : 1) * DAY;
-    return createdAt >= cutoff;
-  }
+  const resolved = range ?? windowRange(window, anchorNow);
+  if (resolved) return createdAt >= resolved.start && createdAt <= resolved.end;
   return true;
 }
 
@@ -136,7 +159,7 @@ function windowAnchor<T extends { createdAt: number }>(
   options: FindOptions,
 ): number | undefined {
   if (options.anchorNow !== undefined) return options.anchorNow;
-  if (options.anchor === 'latest-activity' && parsed.last) return latestActivity(selected);
+  if (options.anchor === 'latest-activity' && parsed.window?.kind === 'relative') return latestActivity(selected);
   return undefined;
 }
 
@@ -267,13 +290,17 @@ function matchesFilters(row: AnalyticsDataPoint, filters: TagFilter[], noteTags:
   });
 }
 
-/** Dimension value for grouping; virtual time dims bucket the canonical time. */
+/** Dimension value for grouping; virtual time dims bucket the canonical
+ *  time by LOCAL CIVIL CALENDAR (spec v2 decision 2): `day` keys are local
+ *  YYYY-MM-DD; `week` keys are the civil Monday's YYYY-MM-DD, computed by
+ *  component math — never instant arithmetic, which mislabels DST-shifted
+ *  weeks. Keys are locale-independent and lexically sortable. */
 function dimValue(row: AnalyticsDataPoint, dim: string, noteTags: ReadonlyMap<string, readonly string[]>): string {
   if (dim === 'day') return localDateString(row.timestamp);
   if (dim === 'week') {
     const d = new Date(row.timestamp);
-    const monday = new Date(row.timestamp - ((d.getDay() + 6) % 7) * DAY);
-    return `w/${monday.toISOString().slice(5, 10)}`;
+    const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7);
+    return localDateString(monday.getTime());
   }
   if (dim === 'session') return row.resultId;
   const raw = factTagValue(row, dim, noteTags);
@@ -418,9 +445,9 @@ export class QueryService {
     for (const noteId of noteIds) collect(await this.store.getEventsForNote(noteId));
 
     let groups = [...byResult.entries()].filter(([, rows]) => rows.length > 0);
-    if (parsed.last) {
+    if (parsed.window) {
       groups = groups.filter(([, rows]) =>
-        effectiveTimeWindow(rows[0].timestamp, parsed.last, undefined, options.anchorNow),
+        effectiveTimeWindow(rows[0].timestamp, parsed.window, undefined, options.anchorNow),
       );
     }
     groups.sort((a, b) => b[1][0].timestamp - a[1][0].timestamp);
@@ -518,8 +545,8 @@ export class QueryService {
       }
     }
     // Time window — the `range` parameter overrides the WQL's `last` clause.
-    if (parsed.last || options.range) {
-      notes = notes.filter(n => effectiveTimeWindow(n.createdAt, parsed.last, options.range, anchorNow));
+    if (parsed.window || options.range) {
+      notes = notes.filter(n => effectiveTimeWindow(n.createdAt, parsed.window, options.range, anchorNow));
     }
 
     // Cross-store join (direction 1): keep notes owning a wod block whose
@@ -594,8 +621,8 @@ export class QueryService {
     }
 
     // Time window
-    if (parsed.last || options.range) {
-      blocks = blocks.filter(b => effectiveTimeWindow(b.createdAt, parsed.last, options.range, anchorNow));
+    if (parsed.window || options.range) {
+      blocks = blocks.filter(b => effectiveTimeWindow(b.createdAt, parsed.window, options.range, anchorNow));
     }
 
     // Cross-store join (direction 1): keep blocks whose raw-log metric
@@ -667,11 +694,13 @@ export class QueryService {
     // (the dashboard default) fetches through by-timestamp, the one proven
     // culling index; all-time queries scan. by-metric is never used —
     // ticket 001 measured it non-selective and slower than scanning.
-    const windowed = options.rangeStart !== undefined || options.rangeEnd !== undefined;
-    const start = options.rangeStart ?? 0;
-    const end = options.rangeEnd ?? Number.MAX_SAFE_INTEGER;
-    const eventRows = windowed
-      ? await this.store.getEventsByTimeRange(start, end)
+    // C1: explicit range options win; otherwise a parsed window (relative or
+    // civil range) drives the by-timestamp fetch; no window scans.
+    const range = options.rangeStart !== undefined || options.rangeEnd !== undefined
+      ? { start: options.rangeStart ?? 0, end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER }
+      : windowRange(parsed.window);
+    const eventRows = range
+      ? await this.store.getEventsByTimeRange(range.start, range.end)
       : await this.store.scanAll();
     const candidates = eventRows
       .flatMap(projectEventToFacts)
@@ -705,10 +734,34 @@ export class QueryService {
       : parsed.rollup
         ? parsed.rollup.size * (parsed.rollup.unit === 'w' ? 7 : 1) * DAY
         : null;
-    const bucketKey = (ts: number) => (bucketMs ? Math.floor(ts / bucketMs) : 0);
+    // Civil time-dim buckets (spec v2 decision 2): `day` buckets are LOCAL
+    // civil days, `week` buckets are civil-Monday weeks — component math,
+    // never epoch floors (which align weeks to UTC Thursdays and split
+    // DST-shifted days). `.rollup` windows keep epoch math: they are
+    // fixed-size trailing windows, not calendar dims.
+    const civilDay = (ts: number): number => {
+      const d = new Date(ts);
+      return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY);
+    };
+    const bucketKey = (ts: number): number => {
+      if (timeDim === 'day') return civilDay(ts);
+      if (timeDim === 'week') {
+        const d = new Date(ts);
+        return civilDay(ts) - (d.getDay() + 6) % 7;
+      }
+      return bucketMs ? Math.floor(ts / bucketMs) : 0;
+    };
     const bucketCount = bucketMs
       ? new Set(matched.map((p) => bucketKey(p.timestamp))).size
       : (matched.length ? 1 : 0);
+
+    /** Representative instant for a civil time-dim bucket — local noon of
+     *  the bucket's civil day (day), or of its civil Monday (week). */
+    const civilBucketInstant = (anchor: number, dim: 'day' | 'week'): number => {
+      const d = new Date(anchor);
+      const back = dim === 'week' ? (d.getDay() + 6) % 7 : 0;
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate() - back, 12).getTime();
+    };
 
     // Unit display preference / directive
     const { unit: targetUnit, convert: shouldConvert } = resolveDisplayUnit(matched, {
@@ -742,7 +795,9 @@ export class QueryService {
             toDisplayValue(m.value as number, m.unit ?? m.metricUnit, shouldConvert ? targetUnit : undefined),
           );
           return {
-            ts: bucketMs ? b * bucketMs + bucketMs / 2 : Math.min(...members.map((m) => m.timestamp)),
+            ts: timeDim
+              ? civilBucketInstant(members[0]!.timestamp, timeDim)
+              : bucketMs ? b * bucketMs + bucketMs / 2 : Math.min(...members.map((m) => m.timestamp)),
             value: Math.round(aggregate(values, parsed.agg, members, shouldConvert ? targetUnit : undefined) * 100) / 100,
           };
         });
@@ -775,17 +830,18 @@ export class QueryService {
     const join = parsed.join as FindPredicate;
     const findResult = await this.runFind({
       family: 'find',
-      raw: '', target: join.target, filters: join.filters, scope: join.scope, last: join.last,
+      raw: '', target: join.target, filters: join.filters, scope: join.scope,
+      window: join.last ? { kind: 'relative', size: join.last.size, unit: join.last.unit } : undefined,
     });
     const contentIds = await this.contentIdsFromFindResult(findResult);
     if (contentIds.size === 0) return empty;
 
     let facts = await this.deriveMetricFacts(contentIds, parsed.metric);
-    if (facts.length === 0) return empty;
-    if (options.rangeStart !== undefined || options.rangeEnd !== undefined) {
-      const start = options.rangeStart ?? 0;
-      const end = options.rangeEnd ?? Number.MAX_SAFE_INTEGER;
-      facts = facts.filter(f => f.timestamp >= start && f.timestamp <= end);
+    const joinRange = options.rangeStart !== undefined || options.rangeEnd !== undefined
+      ? { start: options.rangeStart ?? 0, end: options.rangeEnd ?? Number.MAX_SAFE_INTEGER }
+      : windowRange(parsed.window);
+    if (joinRange) {
+      facts = facts.filter(f => f.timestamp >= joinRange.start && f.timestamp <= joinRange.end);
     }
 
     const touchesTags =

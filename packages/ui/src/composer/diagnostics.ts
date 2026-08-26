@@ -23,7 +23,11 @@ export function summarizeFind(ast: ParsedFindQuery): WqlFindSummary {
   return {
     target: ast.target,
     scope: ast.scope || 'all',
-    timeWindow: ast.last ? `last ${ast.last.size}${ast.last.unit}` : undefined,
+    timeWindow: ast.window
+      ? ast.window.kind === 'relative'
+        ? `last ${ast.window.size}${ast.window.unit}`
+        : `from ${ast.window.start}${ast.window.end ? ` to ${ast.window.end}` : ''}`
+      : undefined,
     hasJoin: Boolean(ast.join),
     filterCount: ast.filters.length,
   };

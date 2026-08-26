@@ -75,7 +75,7 @@ describe('parseQuery — rows family', () => {
   it('parses the note scope with a last window', () => {
     const p = rows('rows:all{note:n1} last 8w');
     expect(p.error).toBeUndefined();
-    expect(p.last).toEqual({ size: 8, unit: 'w' });
+    expect(p.window).toEqual({ kind: 'relative', size: 8, unit: 'w' });
   });
 
   it('rejects aggregation suffixes — rows never aggregates', () => {
