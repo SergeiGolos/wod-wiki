@@ -1,0 +1,117 @@
+{
+  "name": "@bitcobblers/wod-wiki-ui",
+  "version": "0.11.0",
+  "description": "Interactive presentation, CodeMirror editor extensions, and WQL diagram widgets",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "style": "./dist/styles.css",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./extensions": {
+      "types": "./dist/extensions/index.d.ts",
+      "import": "./dist/extensions/index.mjs",
+      "require": "./dist/extensions/index.cjs"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@bitcobblers/wod-wiki-core": "^0.11.0",
+    "@bitcobblers/wod-wiki-lang": "^0.11.0",
+    "@bitcobblers/wod-wiki-wql": "^0.11.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.6.0",
+    "@heroicons/react": "^2.2.0"
+  },
+  "peerDependencies": {
+    "@codemirror/autocomplete": "^6.0.0",
+    "@codemirror/commands": "^6.0.0",
+    "@codemirror/language": "^6.0.0",
+    "@codemirror/lint": "^6.0.0",
+    "@codemirror/search": "^6.0.0",
+    "@codemirror/state": "^6.0.0",
+    "@codemirror/view": "^6.0.0",
+    "@lezer/common": "^1.0.0",
+    "@lezer/highlight": "^1.0.0",
+    "@lezer/lr": "^1.0.0",
+    "lucide-react": ">=0.300.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "recharts": ">=2.10.0"
+  },
+  "peerDependenciesMeta": {
+    "@codemirror/autocomplete": {
+      "optional": true
+    },
+    "@codemirror/commands": {
+      "optional": true
+    },
+    "@codemirror/language": {
+      "optional": true
+    },
+    "@codemirror/lint": {
+      "optional": true
+    },
+    "@codemirror/search": {
+      "optional": true
+    },
+    "@codemirror/state": {
+      "optional": true
+    },
+    "@codemirror/view": {
+      "optional": true
+    },
+    "@lezer/common": {
+      "optional": true
+    },
+    "@lezer/highlight": {
+      "optional": true
+    },
+    "@lezer/lr": {
+      "optional": true
+    },
+    "lucide-react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "recharts": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "build": "tsup && cp src/styles.css dist/styles.css",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@types/node": "^25.0.0",
+    "recharts": "^2.15.0",
+    "@types/recharts": "^1.8.29",
+    "lucide-react": "^0.475.0",
+    "@codemirror/commands": "^6.0.0",
+    "@codemirror/lang-markdown": "^6.0.0",
+    "@codemirror/lint": "^6.0.0",
+    "@codemirror/theme-one-dark": "^6.0.0"
+  }
+}

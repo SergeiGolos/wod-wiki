@@ -28,7 +28,7 @@ coverage
 # nyc test coverage
 .nyc_output
 
-# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins)
 .grunt
 
 # Bower dependency directory (https://bower.io/)
@@ -137,6 +137,11 @@ dist
 # Build output
 dist
 storybook-static
+packages/*/dist/
+apps/*/storybook-static/
+
+# Turbo (engine CI legacy)
+.turbo
 
 # IDE settings
 .vscode/
@@ -163,7 +168,6 @@ pluto.forest.adhara.ts.net.key
 docs/.obsidian/workspace.json
 wod/*.gpx
 wod/*.tcx
-docs/.obsidian/workspace.json
 e2e/screenshots/
 .env.development
 src/graphify-out/
@@ -178,3 +182,7 @@ e2e/**/*.png
 .repowise/wiki.db-shm
 pluto.forest-adhara.ts.net.crt.bak
 pluto.forest-adhara.ts.net.key.bak
+
+# Engine monorepo additions
+.DS_Store
+tarballs/

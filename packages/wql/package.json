@@ -1,0 +1,70 @@
+{
+  "name": "@bitcobblers/wod-wiki-wql",
+  "version": "0.11.0",
+  "description": "Whiteboard Query Language (WQL) parser, AST, and QueryService",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@bitcobblers/wod-wiki-core": "^0.11.0"
+  },
+  "peerDependencies": {
+    "@codemirror/autocomplete": "^6.0.0",
+    "@codemirror/language": "^6.0.0",
+    "@codemirror/state": "^6.0.0",
+    "@lezer/common": "^1.0.0",
+    "@lezer/highlight": "^1.0.0",
+    "@lezer/lr": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@codemirror/autocomplete": {
+      "optional": true
+    },
+    "@codemirror/language": {
+      "optional": true
+    },
+    "@codemirror/state": {
+      "optional": true
+    },
+    "@lezer/common": {
+      "optional": true
+    },
+    "@lezer/highlight": {
+      "optional": true
+    },
+    "@lezer/lr": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@codemirror/autocomplete": "^6.18.6",
+    "@codemirror/language": "^6.10.8",
+    "@codemirror/state": "^6.5.2",
+    "@lezer/common": "^1.2.3",
+    "@lezer/generator": "^1.8.0",
+    "@lezer/highlight": "^1.2.1",
+    "@lezer/lr": "^1.4.2",
+    "@bitcobblers/wod-wiki-lang": "^0.11.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist",
+    "generate:wql": "lezer-generator --typeScript src/grammar/wql.grammar -o src/grammar/wql.parser",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  }
+}

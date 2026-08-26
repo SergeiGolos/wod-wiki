@@ -1,59 +1,53 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": [
-      "ES2020",
+      "ES2022",
       "DOM",
       "DOM.Iterable"
     ],
     "module": "ESNext",
     "skipLibCheck": true,
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    /* Source Maps for Debugging */
     "sourceMap": true,
     "inlineSourceMap": false,
     "inlineSources": false,
-    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    /* Module Resolution */
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
     "types": [
       "bun-types",
       "vite/client"
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./apps/playground/src/*"],
+      "@bitcobblers/wod-wiki-core": ["./packages/core/src/index.ts"],
+      "@bitcobblers/wod-wiki-lang": ["./packages/lang/src/index.ts"],
+      "@bitcobblers/wod-wiki-lang/react": ["./packages/lang/src/react.ts"],
+      "@bitcobblers/wod-wiki-wql": ["./packages/wql/src/index.ts"],
+      "@bitcobblers/wod-wiki-engine": ["./packages/engine/src/index.ts"],
+      "@bitcobblers/wod-wiki-ui": ["./packages/ui/src/index.ts"]
     }
   },
   "include": [
     "vitest.shims.d.ts",
-    "src/declarations.d.ts",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "playground/**/*.ts",
-    "playground/**/*.tsx",
-    "tests/**/*.ts",
-    "tests/**/*.tsx"
+    "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "build"
-  ],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
-    }
+    "build",
+    "apps",
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ]
 }

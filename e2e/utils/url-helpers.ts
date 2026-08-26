@@ -3,7 +3,7 @@ import { resolve } from 'path';
 
 // Mirror the playwright configs: load machine-local overrides so HTTPS_CERT /
 // HTTPS_HOST are visible when specs resolve their own base URLs.
-loadDotenv({ path: resolve(__dirname, '../../.env.local'), override: true });
+loadDotenv({ path: resolve(import.meta.dirname, '../../.env.local'), override: true });
 
 const isCI = !!process.env.CI;
 

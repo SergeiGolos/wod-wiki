@@ -1,0 +1,27 @@
+{
+  "name": "@bitcobblers/wod-wiki-playground",
+  "version": "0.11.0",
+  "private": true,
+  "type": "module",
+  "description": "The wod.wiki web application — workout journal, canvas editor, review surfaces, and Chromecast receiver built on the Whiteboard Language packages.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && bun ../../scripts/generate-static-shells.ts",
+    "preview": "vite preview",
+    "test": "bun tests/run-isolated.ts ./src ./app --preload ./tests/unit-setup.ts",
+    "test:markdown": "bun test tests/wods/all-wods.test.ts tests/canvas/syntax-source-markdown.test.ts --preload ./tests/setup.ts",
+    "test:components": "bun test tests --path-ignore-patterns='tests/wods/all-wods.test.ts' --path-ignore-patterns='tests/canvas/syntax-source-markdown.test.ts' --preload ./tests/setup.ts",
+    "test:all": "bun run test && bun run test:components",
+    "test:coverage": "bun tests/run-isolated.ts ./src ./app --preload ./tests/unit-setup.ts",
+    "test:perf": "bun test tests/performance",
+    "clean": "rm -rf dist",
+    "typecheck": "echo '[skip] Playground compiles via Vite/esbuild without a tsc gate; strict tsc adoption tracked as follow-up'"
+  },
+  "dependencies": {
+    "@bitcobblers/wod-wiki-core": "^0.11.0",
+    "@bitcobblers/wod-wiki-engine": "^0.11.0",
+    "@bitcobblers/wod-wiki-lang": "^0.11.0",
+    "@bitcobblers/wod-wiki-ui": "^0.11.0",
+    "@bitcobblers/wod-wiki-wql": "^0.11.0"
+  }
+}

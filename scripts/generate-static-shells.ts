@@ -24,7 +24,7 @@ import { join, dirname } from 'node:path'
 
 const ROOT = join(import.meta.dir, '..')
 const MARKDOWN = join(ROOT, 'markdown')
-const DIST = join(ROOT, 'playground', 'dist')
+const DIST = join(ROOT, 'apps', 'playground', 'dist')
 const SITE_URL = (process.env.SITE_URL ?? 'https://wod.wiki').replace(/\/+$/, '')
 const OG_IMAGE = `${SITE_URL}/images/wod-wiki-logo-light.png`
 

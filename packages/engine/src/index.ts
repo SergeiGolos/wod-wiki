@@ -1,0 +1,472 @@
+/**
+ * @bitcobblers/wod-wiki-engine
+ *
+ * Umbrella facade for the Whiteboard Language & WQL engine.
+ * Re-exports the complete contract across core, lang, lang/react, and wql packages,
+ * plus the Language Pack API and headless IR / store / CLI tooling.
+ */
+
+// 1. Core Data Models & Persistence Shapes (#964)
+export * from '@bitcobblers/wod-wiki-core';
+
+// 2. Language Parser, Compiler, Dialects & Runtime (#965)
+export {
+  // Parser
+  parseScript,
+  WhiteboardScript,
+  extractStatements,
+  strategyRegistry,
+  CONSUMED_HINTS,
+  createParser,
+  MdTimerRuntime,
+  type IScript,
+  whiteboardParser,
+  whiteboardScriptLanguage,
+  whiteboardScript,
+  // Compiler
+  JitCompiler,
+  RuntimeFactory,
+  createCompiler,
+  PRODUCTION_STRATEGIES,
+  findUnresolvedChoices,
+  isChoiceResolved,
+  writeChoiceSelection,
+  collapseUnresolvedChoices,
+  type IRuntimeBlockStrategy,
+  type RuntimeBlockOptions,
+  // Dialect stack & Registries
+  DialectStack,
+  createDialectStack,
+  dialectStack,
+  dialectRegistry,
+  realtimeProcessorRegistry,
+  summaryProcessorRegistry,
+  Registry,
+  type IRealtimeProcessor,
+  type ISummaryProcessor,
+  // 7 Dialects
+  UnitsDialect,
+  CrossFitDialect,
+  WodDialect,
+  CardioDialect,
+  YogaDialect,
+  HabitsDialect,
+  ClimbDialect,
+  ClimbMetricType,
+  // Metrics presentation & helpers
+  metricPresentation,
+  createMetricPresentationPolicy,
+  isTimeLikeMetric,
+  computeLabel,
+  computeColumnLabel,
+  buildTooltip,
+  type MetricPresentationSurface,
+  type MetricRenderKind,
+  type MetricTone,
+  type MetricPresentationToken,
+  type IMetricPresentationPolicy,
+  // Runtime
+  ScriptRuntime,
+  RuntimeStack,
+  RuntimeClock,
+  SnapshotClock,
+  createMockClock,
+  EventBus,
+  OutputEmitter,
+  RuntimeMemory,
+  RuntimeObservers,
+  RuntimeLogger,
+  RuntimeAdapter,
+  TimeSpan,
+  SubscriptionManager,
+  LocalRuntimeSubscription,
+  isCastSubscription,
+  VISIBILITY_LABELS,
+  VISIBILITY_ICONS,
+  type MetricVisibility,
+  type IRuntimeSubscription,
+  type ICastSubscription,
+  type IEventHandler,
+  type IEvent,
+  type StackSnapshot,
+  type IScriptRuntime,
+  type MemoryEntry,
+  type RuntimeBlock,
+  type RuntimeController,
+  type BlockContext,
+  ExecutionContext,
+  type BehaviorContext,
+  type INowProvider,
+  wallClockNow,
+  frozenNow,
+  // Events
+  NextEvent,
+  // Actions
+  StartSessionAction,
+  RegisterEventHandlerAction,
+  UnregisterEventHandlerAction,
+  type StartSessionOptions,
+  // Analytics & Calc
+  AnalyticsEngine,
+  AnalyticsTransformer,
+  StandardAnalyticsProfile,
+  createAnalyticsEngineForBlock,
+  type TwoPassEffortResolutionProcess,
+  type AnalyticsContext,
+  getAnalyticsFromLogs,
+  getHints,
+  hintsToContainer,
+  extractMetrics,
+  parseCalculateBlock,
+  evaluateCalculateDefinitions,
+  type CalculateBlockProcessor,
+  createCalcEngine,
+  CalcEngine,
+  LookupRegistry,
+  CalculationRegistry,
+  parseExpression,
+  parseCalcLine,
+  evaluate,
+  DIM_ZERO,
+  DIM_TIME,
+  DIM_MASS,
+  DIM_LENGTH,
+  BUILTIN_CALCS,
+  STORE_CALCS,
+  type ILookupTable,
+  type CalcScope,
+  type CalcOrigin,
+  type CalcDefinition,
+  type IAnalyticsEngine,
+  type IAnalyticsProfile,
+  type IAnalyticsProcessorDescriptor,
+  type SegmentWithMetadata,
+  type AnalyticsResult,
+  // Calc Authoring & Lineform (#824)
+  compileLineForm,
+  outputNodeId,
+  outputNodeIds,
+  compoundName,
+  ABSENT,
+  truthy,
+  CONTEXT_ATOMS,
+  STREAM_ATOMS,
+  AGGREGATE_BUILTINS,
+  UNITS,
+  AUTHORITATIVE_CASTS,
+  // Conversions
+  toStoredOutputStatement,
+  // Pure Effort Registry
+  EffortResolver,
+  InMemoryEffortRegistry,
+  bundledEfforts,
+  BUNDLED_EFFORT_COUNT,
+  findBestFuzzyMatch,
+  normalizeForFuzzy,
+  isWithinThreshold,
+  levenshteinDistance,
+  DEFAULT_RESOLVER_OPTIONS,
+  DEFAULT_UNRESOLVED_EFFORT_MET,
+  EFFORT_REGISTRY_ORIGINS,
+  INTENSITY_TIERS,
+  type IEffortResolver,
+  type EffortResolverOptions,
+  type EffortResolutionOptions,
+  type ResolvedEffort,
+  type ResolvedEffortData,
+  type IEffortRegistry,
+  type EffortRegistrySource,
+  type IntensityTier,
+  type EffortBaseAttributes,
+  type EffortDerivation,
+} from '@bitcobblers/wod-wiki-lang';
+
+// 3. React Runtime & Hooks (#965)
+export {
+  useScriptRuntime,
+  useTimerElapsed,
+  useTimerDisplay,
+  useRoundDisplay,
+  useOutputStatements,
+  useLiveAnalytics,
+  useBlockMemory,
+  useRuntimeExecution,
+  type UseRuntimeExecutionReturn,
+  useMemorySubscription,
+  useNextPreview,
+  useStackSnapshot,
+  useSnapshotBlocks,
+  useStackTimers,
+  usePrimaryTimer,
+  useSecondaryTimers,
+  useActiveControls,
+  useStackFragmentSources,
+  useStackDisplayRows,
+  ScriptRuntimeProvider,
+  type ScriptRuntimeProviderProps,
+  BlockTimerDisplay,
+  type BlockTimerDisplayProps,
+} from '@bitcobblers/wod-wiki-lang/react';
+
+// 4. WQL Grammar, QueryService & Dashboard Model (#966)
+export {
+  // QueryService
+  QueryService,
+  type UnifiedEventStore,
+  type NoteQueryStore,
+  type BlockQueryStore,
+  type EffortQueryStore,
+  type QueryServiceStores,
+  type QueryOptions,
+  type FindOptions,
+  type QueryResult,
+  type FindQueryResult,
+  type RowsQueryResult,
+  type RowsRun,
+  // Parser & AST
+  parseQuery,
+  isFindQuery,
+  isRowsQuery,
+  isAggregateQuery,
+  wqlParser,
+  wqlTerms,
+  wqlLanguage,
+  wql,
+  normalizeWql,
+  serialize,
+  parseWqlSuffixes,
+  splitAtWhere,
+  type ParsedAggregateQuery,
+  type ParsedFindQuery,
+  type ParsedRowsQuery,
+  type AnyParsedQuery,
+  type Series,
+  type SeriesPoint,
+  type Aggregator,
+  type ComparisonOp,
+  type QueryWindow,
+  type MetricPredicate,
+  type TagValue,
+  type TagFilter,
+  type FindPredicate,
+  // Vocabulary constants
+  WQL_AGGREGATORS,
+  WQL_COMPARISON_OPS,
+  WQL_DISPLAY_UNITS,
+  WQL_INTENSITY_TIERS,
+  WQL_METRIC_FAMILIES,
+  WQL_METRIC_AGGREGATES,
+  WQL_ROLLUP_PERIODS,
+  WQL_SOURCES,
+  WQL_TAG_KEYS,
+  WQL_VIRTUAL_DIMS,
+  WQL_CALC_TARGETS,
+  WQL_CONTENT_FILTER_KEYS,
+  WQL_FIND_TARGETS,
+  WQL_SOURCE_VALUES,
+  WQL_ROWS_SCOPE_KEYS,
+  WQL_RESULT_PLANES,
+  WQL_ROWS_TARGETS,
+  WQL_GRAINS,
+  WQL_KEYWORDS,
+  PLANNED_WIDGET_TYPES,
+  DASHBOARD_WIDGET_TYPES,
+  DASHBOARD_GRID_MAX_COLS,
+  DEFAULT_DASHBOARD_TITLE,
+  // Dashboard Model
+  buildDashboardDocument,
+  buildDashboardScaffold,
+  extractDashboardTokens,
+  defaultTokenValues,
+  substituteTokens,
+  unknownTokensMessage,
+  isDashboardWidgetType,
+  resolveWidgetType,
+  unknownWidgetTypeMessage,
+  dashboardSlug,
+  splitWidgetBody,
+  parseQueryWidgetSuffix,
+  isDashboardMeta,
+  type DashboardDocument,
+  type DashboardWidget,
+  type DashboardToken,
+  type DashboardMeta,
+  type QueryWidgetSuffix,
+} from '@bitcobblers/wod-wiki-wql';
+
+// 5. Language Pack API (#967)
+export {
+  defineLanguagePack,
+  registerLanguagePack,
+  unregisterLanguagePack,
+  listLanguagePacks,
+  getRegisteredLanguagePacks,
+  type LanguagePack,
+  type LanguagePackIdentity,
+  type LanguagePackLangSlice,
+  type LanguagePackUiSlice,
+} from './pack';
+
+// 6. In-Memory Store Seam (#967, #969)
+export { factRowsToEventRows, inMemoryEventStore, inMemoryEventStoreFromFacts, inMemoryFactStore } from './store';
+
+// 7. Universal JSON Intermediate Representation (#955, #967)
+export {
+  createIRFile,
+  isIRFile,
+  statementToNode,
+  buildStatementTree,
+  type IrKind,
+  type WodWikiIRFile,
+  type MetricNode,
+  type StatementNode,
+  type ExecutionLog,
+  type CorpusIRData,
+} from './ir';
+
+// 8. CLI Runners & Formatters (#967)
+export {
+  runParse,
+  ParseSyntaxError,
+  type ParseOptions,
+} from './cli/parse';
+export {
+  runExecution,
+  buildWorkoutResults,
+  type RunOptions,
+} from './cli/run';
+export {
+  runQueryCli,
+  WqlSyntaxError,
+  loadQueryData,
+  type QueryCliOptions,
+} from './cli/query';
+export {
+  loadLanguagePack,
+  PackLoadError,
+} from './cli/loader';
+export {
+  cliMain,
+  parseCliArgs,
+  readStdin,
+  type CliParsedArgs,
+} from './cli/runner';
+export {
+  formatParseOutput,
+  formatExecutionOutput,
+  formatQueryOutput,
+  type OutputFormat,
+} from './cli/formatters';
+
+// 9. Engine Version Info
+export { VERSION, GIT_SHA, BUILD_TIME, SEMVER } from './version';
+
+// ── Runtime integration surface (app-cutover parity, #970) ──────────────────
+// The playground app (wod-wiki) drives the runtime directly: it pushes stack
+// actions, subscribes to stack/output events, reads block memory, and builds
+// timer blocks with the public behaviors. Re-exported from @bitcobblers/wod-wiki-lang.
+export {
+  // Stack actions
+  StartWorkoutAction,
+  ErrorAction,
+  PushBlockAction,
+  PopBlockAction,
+  // Compiler internals the app harnesses drive
+  BlockBuilder,
+  ChoiceGroupMetric,
+  // Public behaviors
+  CountdownTimerBehavior,
+  CountupTimerBehavior,
+  ButtonBehavior,
+  ChildSelectionBehavior,
+  ExitBehavior,
+  LabelingBehavior,
+  ReportOutputBehavior,
+  SoundCueBehavior,
+  // Compiler strategies (app-side harnesses + debug tooling)
+  SessionRootStrategy,
+  AmrapLogicStrategy,
+  IntervalLogicStrategy,
+  EffortFallbackStrategy,
+  GenericGroupStrategy,
+  GenericLoopStrategy,
+  GenericTimerStrategy,
+  ChildrenStrategy,
+  ReportOutputStrategy,
+  SoundStrategy,
+  RoundsMetric,
+  // Runtime options
+  DEFAULT_RUNTIME_OPTIONS,
+  // Memory
+  MemoryLocation,
+  MemoryTypeEnum,
+  TypedMemoryReference,
+  getMetricVisibility,
+  // Time
+  getRuntimeNowMs,
+  // Hints
+  hasHint,
+  hintMetric,
+  // Time helpers
+  calculateElapsed,
+  // Effort analytics
+  EFFORT_DATA_METRIC_TYPE,
+  // Hint vocabulary
+  CONSUMED_HINT_KEYS,
+} from '@bitcobblers/wod-wiki-lang';
+
+export type {
+  RuntimeError,
+  IEffort,
+  AnalyticsProfileContext,
+} from '@bitcobblers/wod-wiki-lang';
+
+
+export type {
+  // Runtime contracts
+  IRuntimeMemory,
+  IRuntimeEventProvider,
+  IAnchorValue,
+  IBehaviorContext,
+  BehaviorEventListener,
+  BehaviorEventType,
+  SubscribeOptions,
+  IRuntimeActionable,
+  InterceptMode,
+  TestableBlockConfig,
+  StackEvent,
+  StackListener,
+  StackObserver,
+  Unsubscribe,
+  RuntimeStackOptions,
+  BlockLifecycleOptions,
+  CompletionDecision,
+  IRuntimeBlock,
+  IRuntimeStack,
+  IRuntimeClock,
+  IEventBus,
+  EventCallback,
+  EventHandlerOptions,
+  IRuntimeAction,
+  IRuntimeBehavior,
+  IMemoryLocation,
+  IMemoryReference,
+  IJitCompiler,
+  IBlockContext,
+  IRuntimeFactory,
+  ScriptRuntimeDependencies,
+  OutputListener,
+  // Memory state shapes
+  MemoryTag,
+  TimerState,
+  RoundState,
+  ExecutionStatus,
+  MockClock,
+  // Analytics / calc authoring shapes
+  ProjectionResult,
+  CalculationDefinition,
+  DimVector,
+  ExprNode,
+  Val,
+  LineFormScope,
+} from '@bitcobblers/wod-wiki-lang';

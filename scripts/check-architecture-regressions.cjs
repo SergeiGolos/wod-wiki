@@ -24,7 +24,7 @@ const allowedCycleSignatures = [
 const barrelRules = [];
 
 
-const liveImportRoots = ['src', 'tests', 'e2e'];
+const liveImportRoots = ['apps/playground/src', 'apps/playground/app', 'apps/playground/tests', 'e2e'];
 const issues = [];
 
 function relative(filePath) {
@@ -150,7 +150,7 @@ function checkBarrels() {
 function getCircularDependencySignatures() {
   const result = spawnSync(
     'bun',
-    ['x', 'madge', '--extensions', 'ts,tsx', '--ts-config', 'tsconfig.json', '--circular', '--json', 'src/'],
+    ['x', 'madge', '--extensions', 'ts,tsx', '--ts-config', 'tsconfig.json', '--circular', '--json', 'apps/playground/'],
     { cwd: repoRoot, encoding: 'utf8' },
   );
 

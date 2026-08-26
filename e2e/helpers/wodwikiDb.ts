@@ -37,7 +37,7 @@ export async function clearResults(page: Page, noteId?: string): Promise<void> {
             const db = req.result;
             if (db.objectStoreNames.length === 0) {
               db.close();
-              const upReq = indexedDB.open(name, 15);
+              const upReq = indexedDB.open(name, 16);
               upReq.onupgradeneeded = () => {
                 const upDb = upReq.result;
                 if (!upDb.objectStoreNames.contains('notes')) {
@@ -136,7 +136,7 @@ export async function getResults(page: Page, noteId?: string): Promise<ResultRow
             const db = req.result;
             if (db.objectStoreNames.length === 0) {
               db.close();
-              const upReq = indexedDB.open(name, 15);
+              const upReq = indexedDB.open(name, 16);
               upReq.onupgradeneeded = () => {
                 const upDb = upReq.result;
                 if (!upDb.objectStoreNames.contains('notes')) {
@@ -233,7 +233,7 @@ export async function seedNote(
             const db = req.result;
             if (db.objectStoreNames.length === 0) {
               db.close();
-              const upReq = indexedDB.open(name, 15);
+              const upReq = indexedDB.open(name, 16);
               upReq.onupgradeneeded = () => {
                 const upDb = upReq.result;
                 if (!upDb.objectStoreNames.contains('notes')) {
@@ -341,7 +341,7 @@ export async function deleteNoteByRouteId(page: Page, routeId: string): Promise<
             const db = req.result;
             if (db.objectStoreNames.length === 0) {
               db.close();
-              const upReq = indexedDB.open(name, 15);
+              const upReq = indexedDB.open(name, 16);
               upReq.onupgradeneeded = () => {
                 const upDb = upReq.result;
                 if (!upDb.objectStoreNames.contains('notes')) {
@@ -458,7 +458,7 @@ export async function clearAllNotes(page: Page): Promise<void> {
           const db = req.result;
           if (db.objectStoreNames.length === 0) {
             db.close();
-            const upReq = indexedDB.open(name, 15);
+            const upReq = indexedDB.open(name, 16);
             upReq.onupgradeneeded = () => {
               const upDb = upReq.result;
               if (!upDb.objectStoreNames.contains('notes')) {
@@ -571,7 +571,7 @@ export async function seedJournalNote(
             const db = req.result;
             if (db.objectStoreNames.length === 0) {
               db.close();
-              const upReq = indexedDB.open(name, 15);
+              const upReq = indexedDB.open(name, 16);
               upReq.onupgradeneeded = () => {
                 const upDb = upReq.result;
                 if (!upDb.objectStoreNames.contains('notes')) {
@@ -683,7 +683,7 @@ export async function getNoteContentByRouteId(
             const db = req.result;
             if (db.objectStoreNames.length === 0) {
               db.close();
-              const upReq = indexedDB.open(name, 15);
+              const upReq = indexedDB.open(name, 16);
               upReq.onupgradeneeded = () => {
                 const upDb = upReq.result;
                 if (!upDb.objectStoreNames.contains('notes')) {

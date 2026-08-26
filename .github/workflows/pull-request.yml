@@ -1,12 +1,10 @@
 name: CI – Pull Request
 
-# The single PR pipeline. One job graph per PR update:
-#   verify (unit/coverage + deploy-shaped build gate — NO pre-deploy e2e)
-#     → preview (artifact → S3 + PR comment)
-#     → e2e (full live-app suite against the deployed preview — the single
-#       e2e phase; tests always run against exactly what was published)
-#     → destroy (on close)
-# Storybook previews live in the wod-wiki-engine repository's pipeline.
+# Unified parallel PR pipeline (6-phase DAG):
+#   slug/version → [ packages | verify(playground) | storybook ]   (phase 2, parallel)
+#   → preview deploys to S3 <slug>/dist + <slug>/storybook          (phase 3)
+#   → deployed-artifact e2e vs <slug>.preview.wod.wiki + <slug>.story.wod.wiki (4)
+#   → pr summary / destroy on close                                 (5-6)
 # Concurrency: a new push cancels the previous run for the same PR.
 
 
@@ -38,7 +36,7 @@ jobs:
       slug: ${{ steps.slug.outputs.slug }}
       preview-version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -85,6 +83,27 @@ jobs:
       app-version: ${{ needs.slug.outputs.preview-version }}
 
 
+
+  build-test-packages:
+    name: Build & test packages
+    if: github.event.action != 'closed'
+    needs: [slug]
+    uses: ./.github/workflows/_packages.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.slug.outputs.preview-version }}
+
+  storybook:
+    name: Build, test & deploy Storybook
+    if: github.event.action != 'closed'
+    needs: [slug]
+    uses: ./.github/workflows/_storybook.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.slug.outputs.preview-version }}
+      deploy: true
+      s3-prefix: ${{ needs.slug.outputs.slug }}/storybook
+      cloudfront-prefix: /${{ needs.slug.outputs.slug }}/storybook*
   # Preview deploy — downloads the deploy-shaped playground bundle the verify
   # job already built (no second playground build), adds the receiver build,
   # and syncs to S3 in one job. Storybook previews are the engine repo's.
@@ -106,7 +125,7 @@ jobs:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       PREVIEW_VERSION: ${{ needs.slug.outputs.preview-version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up environment (Bun + caches, no browsers)
         uses: ./.github/actions/setup-env
@@ -131,7 +150,7 @@ jobs:
       - name: Build receiver
         run: |
           VITE_BASE_PATH="/${{ env.BRANCH_SLUG }}/dist/" \
-            bun x vite build --config vite.receiver.config.ts
+            bun x vite build --config apps/playground/vite.receiver.config.ts
 
 
       - name: Deploy playground to S3
@@ -168,6 +187,7 @@ jobs:
             const pr = process.env.PR_NUMBER;
             const version = process.env.PREVIEW_VERSION;
             const previewUrl = `https://${slug}.preview.wod.wiki`;
+            const storybookUrl = `https://${slug}.story.wod.wiki`;
             const e2eUrl = `https://${slug}.e2e.wod.wiki`;
             const marker = `<!-- wod-wiki-preview-${pr} -->`;
             const body = `${marker}\n` +
@@ -177,9 +197,10 @@ jobs:
               `| PR | #${pr} |\n` +
               `| Branch | \`${slug}\` |\n` +
               `| Version | \`${version}\` |\n` +
-              `| Preview | [${previewUrl}](${previewUrl}) |\n` +
-              `| E2E report | [${e2eUrl}](${e2eUrl}) (after the Preview E2E job runs) |\n\n` +
-              `> Build and deploy powered by AWS S3 + CloudFront. Storybook preview: wod-wiki-engine pipeline. ` +
+              `| 🚀 Playground | [${previewUrl}](${previewUrl}) |\n` +
+              `| 📚 Storybook | [${storybookUrl}](${storybookUrl}) |\n` +
+              `| 📊 E2E report | [${e2eUrl}](${e2eUrl}) (after the E2E jobs run) |\n\n` +
+              `> Build and deploy powered by AWS S3 + CloudFront. ` +
               `Destroyed automatically when this PR is closed or merged.`;
 
             const { data: comments } = await github.rest.issues.listComments({
@@ -223,10 +244,36 @@ jobs:
       branch-slug: ${{ needs.slug.outputs.slug }}
       build-hash: ${{ needs.preview.outputs.bundle-hash }}
 
+  e2e-storybook:
+    name: Storybook E2E
+    runs-on: ubuntu-22.04
+    needs: [slug, storybook]
+    if: github.event.action != 'closed' && needs.storybook.outputs.deploy-status == 'success'
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up environment (Bun + chromium)
+        uses: ./.github/actions/setup-env
+
+      - name: Run Storybook smoke against deployed preview
+        run: bun x playwright test --config playwright.storybook.config.ts
+        env:
+          CI: true
+          STORYBOOK_URL: https://${{ needs.slug.outputs.slug }}.story.wod.wiki
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: storybook-playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
   pr-summary:
     runs-on: ubuntu-22.04
     if: always() && github.event_name == 'pull_request' && github.event.action != 'closed'
-    needs: [verify]
+    needs: [build-test-packages, verify, storybook]
     permissions:
       contents: read
       pull-requests: write
@@ -238,6 +285,10 @@ jobs:
           UNIT_STATUS: ${{ needs.verify.outputs.unit-status }}
           COVERAGE_STATUS: ${{ needs.verify.outputs.coverage-status }}
           BUILD_STATUS: ${{ needs.verify.outputs.build-status }}
+          PKG_RESULT: ${{ needs.build-test-packages.result }}
+          PKG_TEST: ${{ needs.build-test-packages.outputs.test-status }}
+          STORYBOOK_TEST: ${{ needs.storybook.outputs.test-status }}
+          STORYBOOK_BUILD: ${{ needs.storybook.outputs.build-status }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -253,6 +304,9 @@ jobs:
               unit: process.env.UNIT_STATUS || 'skipped',
               coverage: process.env.COVERAGE_STATUS || 'skipped',
               build: process.env.BUILD_STATUS || 'skipped',
+              packages: process.env.PKG_TEST || process.env.PKG_RESULT || 'skipped',
+              storybookTest: process.env.STORYBOOK_TEST || 'skipped',
+              storybookBuild: process.env.STORYBOOK_BUILD || 'skipped',
             };
 
             const headline = statuses.overall === 'success'
@@ -260,7 +314,7 @@ jobs:
               : '## ⚠️ PR verification needs attention';
 
             const marker = '<!-- wod-wiki-pr-verification -->';
-            const body = `${marker}\n${headline}\n\n| Check | Status |\n| --- | --- |\n| Unit tests | ${statusIcon(statuses.unit)} ${statuses.unit} |\n| Coverage | ${statusIcon(statuses.coverage)} ${statuses.coverage} |\n| Playground build | ${statusIcon(statuses.build)} ${statuses.build} |\n\n- Actions run: [View run](${runUrl})\n- Coverage artifact: [Artifacts](${runUrl}#artifacts)`;
+            const body = `${marker}\n${headline}\n\n| Check | Status |\n| --- | --- |\n| Packages (lint/typecheck/test/build) | ${statusIcon(statuses.packages)} ${statuses.packages} |\n| Playground unit | ${statusIcon(statuses.unit)} ${statuses.unit} |\n| Playground coverage | ${statusIcon(statuses.coverage)} ${statuses.coverage} |\n| Playground build | ${statusIcon(statuses.build)} ${statuses.build} |\n| Storybook tests | ${statusIcon(statuses.storybookTest)} ${statuses.storybookTest} |\n| Storybook build | ${statusIcon(statuses.storybookBuild)} ${statuses.storybookBuild} |\n\n- Actions run: [View run](${runUrl})\n- Coverage artifact: [Artifacts](${runUrl}#artifacts)`;
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,

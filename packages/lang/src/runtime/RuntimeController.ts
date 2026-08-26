@@ -1,0 +1,10 @@
+import type { ScriptBlock } from '@bitcobblers/wod-wiki-core';
+
+/**
+ * RuntimeController — stable object passed via context to let bridge components
+ * trigger runtime lifecycle without storing React hook closures in Zustand.
+ */
+export interface RuntimeController {
+  initialize(block: ScriptBlock): void;
+  dispose(): void;
+}
