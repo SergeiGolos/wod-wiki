@@ -33,15 +33,8 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { CalendarIcon, ChevronDownIcon, ChevronRightIcon, FolderIcon, TriangleAlertIcon } from 'lucide-react'
 import { queryService } from '@/services/queryService';
 import { parseQuery, isFindQuery, type ParsedFindQuery } from '@bitcobblers/wod-wiki-engine';
-import {
-  WqlComposer,
-  clauseToWql,
-  clauseValue,
-  clausesToWql,
-  pivotClauses,
-  CLAUSE_META,
-  type WqlExecutor,
-} from '@bitcobblers/wod-wiki-ui'
+import { WqlComposer, type WqlExecutor } from '@bitcobblers/wod-wiki-ui'
+import { pivotSourceQuery, sourceOfQuery, withoutFilters, withoutWindow } from '../../lib/wqlEdits'
 import { type Entry } from '../../lib/entryMapper'
 import { groupEntriesByDate } from '../../lib/entryGrouping'
 import { searchEntries } from '../../lib/entrySearch'
@@ -79,7 +72,7 @@ export interface LibraryPageProps {
 }
 
 export function LibraryPage({ actions }: LibraryPageProps) {
-  const { clauses, setClauses, urlQueryError } = useLibraryQueryState()
+  const { query, setQuery, urlQueryError } = useLibraryQueryState()
   // Re-render date group headers when the "Date language" pref changes (#858).
   useDateLocale()
   const [entries, setEntries] = useState<Entry[]>([])
@@ -118,22 +111,17 @@ export function LibraryPage({ actions }: LibraryPageProps) {
     await journalNotes.create(input)
   }, [])
 
-  const wql = useMemo(() => clausesToWql(clauses), [clauses])
+  const wql = query
   const parsed = useMemo(() => parseQuery(wql), [wql])
+  const sourceValue = sourceOfQuery(wql)
 
-  // Scope radio owns the `source` head clause's UI (the composer hides the
-  // pill via `hiddenClauseTypes`). Content→content switches keep every other
-  // clause — notably the time window; only leaving the metrics plane pivots
-  // (drops agg/metric/dims, decision #836).
+  // Scope radio owns the source plane's UI (the composer hides the source
+  // pill via `hiddenClauseTypes`). Every switch is a structural pivot that
+  // keeps filters and the time window (C1); leaving the metrics plane drops
+  // the aggregate head (decision #836).
   const handleScopeChange = useCallback((scope: LibraryScope) => {
-    const source = SOURCE_BY_SCOPE[scope]
-    const prev = clauseValue(clauses, 'source', 'notes')
-    if (prev === source) return
-    const withSource = clauses.some(c => c.type === 'source')
-      ? clauses.map(c => (c.type === 'source' ? { ...c, value: source } : c))
-      : [{ id: 'c-source', type: 'source' as const, ...CLAUSE_META.source, value: source }, ...clauses]
-    setClauses(prev === 'metrics' ? pivotClauses(withSource, source) : withSource)
-  }, [clauses, setClauses])
+    setQuery(pivotSourceQuery(wql, SOURCE_BY_SCOPE[scope]))
+  }, [wql, setQuery])
   // URL rejections (#854: `?q=` that couldn't restore) take precedence — the
   // composed query is the default fallback and has nothing to flag.
   const composedError = !isFindQuery(parsed) || parsed.error ? (parsed.error ?? 'Not a find query') : null
@@ -182,33 +170,32 @@ export function LibraryPage({ actions }: LibraryPageProps) {
   // active clauses, so a zero-result query never dead-ends.
   const emptyStateRemedies = useMemo(() => {
     const remedies: { id: string; label: string; apply: () => void }[] = []
-    const timeClause = clauses.find(c => c.type === 'time' && c.value.trim() && c.value.trim() !== 'all')
-    if (timeClause) {
+    if (!parsed.error && parsed.window) {
+      const w = parsed.window
+      const label = w.kind === 'relative' ? `last ${w.size}${w.unit}` : `from ${w.start}${w.end ? ` to ${w.end}` : ''}`
       remedies.push({
         id: 'remove-window',
-        label: `Remove time window (${timeClause.value.trim()})`,
-        apply: () => setClauses(clauses.filter(c => c.id !== timeClause.id)),
+        label: `Remove time window (${label})`,
+        apply: () => setQuery(withoutWindow(wql)),
       })
     }
-    const activeFilters = clauses.filter(c => clauseToWql(c).filterStr)
+    const activeFilters = parsed.error ? [] : parsed.filters.filter(f => f.key !== 'source')
     if (activeFilters.length > 0) {
-      const ids = new Set(activeFilters.map(c => c.id))
       remedies.push({
         id: 'clear-filters',
         label: activeFilters.length === 1 ? 'Clear filter' : `Clear filters (${activeFilters.length})`,
-        apply: () => setClauses(clauses.filter(c => !ids.has(c.id))),
+        apply: () => setQuery(withoutFilters(wql)),
       })
     }
-    const sourceClause = clauses.find(c => c.type === 'source')
-    if (sourceClause && sourceClause.value.trim() && sourceClause.value.trim() !== 'notes') {
+    if (sourceValue !== 'notes' && sourceValue !== 'metrics' && sourceValue !== 'rows') {
       remedies.push({
         id: 'all-sources',
         label: 'Search all sources',
-        apply: () => setClauses(clauses.map(c => (c.id === sourceClause.id ? { ...c, value: 'notes' } : c))),
+        apply: () => setQuery(pivotSourceQuery(wql, 'notes')),
       })
     }
     return remedies
-  }, [clauses, setClauses])
+  }, [parsed, wql, setQuery, sourceValue])
 
   const byDate = useMemo(() => groupEntriesByDate(dated), [dated])
 
@@ -230,7 +217,6 @@ export function LibraryPage({ actions }: LibraryPageProps) {
 
   // The static shelf shows catalog sessions — relevant whenever the source
   // includes collections (or the catch-all notes source).
-  const sourceValue = clauseValue(clauses, 'source', 'notes')
   const sessionVisible = sourceValue === 'collections' || sourceValue === 'notes'
   const heading = HEADING_BY_SOURCE[sourceValue] ?? DEFAULT_HEADING
   const today = todayKey()
@@ -253,8 +239,8 @@ export function LibraryPage({ actions }: LibraryPageProps) {
           <div className="px-6 py-2.5 flex flex-col gap-2">
             <SourceScopeRadio scope={SCOPE_BY_SOURCE[sourceValue]} onChange={handleScopeChange} />
             <WqlComposer
-              clauses={clauses}
-              onClausesChange={setClauses}
+              query={wql}
+              onQueryChange={setQuery}
               execute={execute}
               hiddenClauseTypes={['source']}
             />

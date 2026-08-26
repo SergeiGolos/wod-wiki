@@ -19,7 +19,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom'
 import { usePaletteStore } from './palette-store'
 import type { PaletteItem, PaletteResponse } from './palette-types'
-import { CLAUSE_META, type WqlExecutor, type QueryClause } from '@bitcobblers/wod-wiki-ui'
+import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui'
 import { isFindQuery } from '@bitcobblers/wod-wiki-engine'
 import type { FindQueryResult, QueryResult } from '@bitcobblers/wod-wiki-engine'
 
@@ -59,10 +59,7 @@ const execute: WqlExecutor = async ast => {
 }
 
 /** Palette-style defaults: all note sources, no time window. */
-const paletteClauses: QueryClause[] = [
-  { id: 'c-source', type: 'source', ...CLAUSE_META.source, value: 'notes' },
-  { id: 'c-time', type: 'time', ...CLAUSE_META.time, value: 'all' },
-]
+const paletteQuery = 'find:note'
 
 function renderShell() {
   return render(
@@ -92,7 +89,7 @@ describe('PaletteShell WQL mode', () => {
     const search = mock(async (_query: string): Promise<PaletteItem[]> => [])
     renderShell()
     openPalette({
-      wql: { initialClauses: paletteClauses, execute },
+      wql: { initialQuery: paletteQuery, execute },
       sources: [{ id: 'wql-search', search }],
     })
 
@@ -102,7 +99,7 @@ describe('PaletteShell WQL mode', () => {
     expect(screen.queryByPlaceholderText('Search…')).toBeNull()
     expect(screen.getByTestId('token-slot-source').textContent).toContain('notes')
 
-    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note in all'))
+    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note'))
   })
 
   it('keeps the plain text input for non-WQL requests', async () => {
@@ -123,7 +120,7 @@ describe('PaletteShell WQL mode', () => {
     ])
     renderShell()
     const response = openPalette({
-      wql: { initialClauses: paletteClauses, execute },
+      wql: { initialQuery: paletteQuery, execute },
       sources: [{ id: 'wql-search', search }],
     })
 
@@ -132,7 +129,7 @@ describe('PaletteShell WQL mode', () => {
     fireEvent.change(input, { target: { value: 'fran' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(screen.getByTestId('token-slot-text').textContent).toContain('fran')
-    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note{text:fran} in all'))
+    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note{text:fran}'))
 
     // Navigate into the results and activate — all without leaving the input.
     await screen.findByText('Fran')
@@ -153,7 +150,7 @@ describe('PaletteShell WQL mode', () => {
     renderShell()
     let resolved = false
     const response = openPalette({
-      wql: { initialClauses: paletteClauses, execute },
+      wql: { initialQuery: paletteQuery, execute },
       sources: [{ id: 'wql-search', search }],
     })
     void response.then(() => { resolved = true })
@@ -167,7 +164,7 @@ describe('PaletteShell WQL mode', () => {
     fireEvent.keyDown(popover, { key: 'Enter' })
 
     // The clause changed (journal → collections) and re-searched…
-    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note in collections'))
+    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note{source:collections}'))
     // …but the Enter did NOT activate the palette result…
     await act(async () => {})
     expect(resolved).toBe(false)
@@ -179,7 +176,7 @@ describe('PaletteShell WQL mode', () => {
     const search = mock(async (_query: string): Promise<PaletteItem[]> => [])
     renderShell()
     const response = openPalette({
-      wql: { initialClauses: paletteClauses, execute },
+      wql: { initialQuery: paletteQuery, execute },
       sources: [{ id: 'wql-search', search }],
     })
 

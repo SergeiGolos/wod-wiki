@@ -33,12 +33,11 @@ mock.module('@/services/queryService', () => ({
   },
 }))
 
-import { clausesToWql } from '@bitcobblers/wod-wiki-ui'
 import {
   wqlSearchSource,
   paletteTextFromWql,
   withWqlText,
-  searchPaletteClauses,
+  searchPaletteQuery,
   navigatePaletteResult,
 } from './wqlSearchSource'
 import type { PaletteDataSource } from '@/components/organisms/command-palette/palette-types'
@@ -210,13 +209,8 @@ describe('navigatePaletteResult', () => {
   })
 })
 
-describe('searchPaletteClauses', () => {
-  it('compiles to the unbounded global default (source notes / all / no time window)', () => {
-    const clauses = searchPaletteClauses()
-    expect(clauses.map(c => [c.type, c.value])).toEqual([
-      ['source', 'notes'],
-      ['time', 'all'],
-    ])
-    expect(clausesToWql(clauses)).toBe('find:note in all')
+describe('searchPaletteQuery', () => {
+  it('is the unbounded global default (all notes, no window)', () => {
+    expect(searchPaletteQuery()).toBe('find:note')
   })
 })

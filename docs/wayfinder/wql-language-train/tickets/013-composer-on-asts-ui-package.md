@@ -1,5 +1,6 @@
 ---
 state: open
+assignee: serge # claimed 2026-08-26
 labels: [wayfinder:task]
 title: "Composer on ASTs (C6 ui package)"
 blocked-by: ["009-ast-only-structured-interface-c6"]

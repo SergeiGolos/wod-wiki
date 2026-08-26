@@ -56,12 +56,12 @@ export const EXAMPLE_QUERIES: ExampleQuery[] = [
     question: 'Where does the volume go?',
   },
   {
-    query: 'find:note{tags:pr} in journal',
+    query: 'find:note{tags:pr,source:journal}',
     label: 'Find PR notes',
     question: 'Which notes are tagged PR?',
   },
   {
-    query: 'find:note{type:wod} in journal last 8w',
+    query: 'find:note{type:wod,source:journal} last 8w',
     label: 'Recent workouts',
     question: 'What workouts did I do recently?',
   },

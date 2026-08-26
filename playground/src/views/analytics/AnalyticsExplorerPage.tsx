@@ -22,7 +22,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Play, Save } from 'lucide-react';
 import { queryService } from '@/services/queryService';
-import { parseQuery, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';;
+import { parseQuery, serialize, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';;
 import { RowsTable } from '@bitcobblers/wod-wiki-ui';
 import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
 import { searchEntries } from '../../lib/entrySearch';
@@ -48,17 +48,13 @@ import {
   RawPointsTable,
   windowLabel,
 } from '@/components/organisms/analytics';
-import {
-  WqlComposer,
-  clausesToWql,
-  setMetricClause,
-  wqlToClauses,
-} from '@bitcobblers/wod-wiki-ui';
+import { setMetricQuery } from '../../lib/wqlEdits';
+import { WqlComposer } from '@bitcobblers/wod-wiki-ui';
 import { EXAMPLE_QUERIES } from '@/utils/analytics/explorerQueries';
 import { useExplorerVocabulary } from '@/utils/analytics/useExplorerVocabulary';
 import {
   useExplorerQueryState,
-  defaultExplorerClauses,
+  DEFAULT_EXPLORER_QUERY,
 } from '../../hooks/useExplorerQueryState';
 import { ExplorerCommandBar } from './ExplorerCommandBar';
 import { ExplorerOptionsMenu } from './ExplorerOptionsMenu';
@@ -126,14 +122,15 @@ function GroupedEntryList({ entries, stickyOffset }: { entries: Entry[]; stickyO
   );
 }
 
-/** Canonical WQL comparison: composer-restorable strings compare through the
- * clause model (so a deep-linked `sum:totalVolume{}` matches the restored
- * `sum:totalVolume` draft); anything else falls back to raw equality. */
+/** Canonical WQL comparison: parseable strings compare through the
+ * serializer's fixed point (so a deep-linked `sum:totalVolume` matches the
+ * canonical `sum:totalVolume{}` draft); anything else falls back to raw
+ * equality. */
 function sameQuery(a: string, b: string): boolean {
   if (a === b) return true;
-  const ca = wqlToClauses(a);
-  const cb = wqlToClauses(b);
-  return ca !== null && cb !== null && clausesToWql(ca) === clausesToWql(cb);
+  const pa = parseQuery(a);
+  const pb = parseQuery(b);
+  return !pa.error && !pb.error && serialize(pa) === serialize(pb);
 }
 
 export interface AnalyticsExplorerPageProps {
@@ -146,7 +143,7 @@ export interface AnalyticsExplorerPageProps {
 }
 
 export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
-  const { clauses, setClauses, draft, submitted, submit, weeks: activeWeeks, setWeeks } =
+  const { draft, setDraft, submitted, submit, weeks: activeWeeks, setWeeks } =
     useExplorerQueryState();
   const { unit: preferredUnit } = useAnalyticsUnitPreference();
   const { forced: unitForced } = useMemo(
@@ -269,11 +266,11 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
 
   const shape = useChartShape(result);
 
-  /** Metric chip click: pivot to the metrics plane, set the metric clause, run. */
+  /** Metric chip click: pivot to the metrics plane, set the metric, run. */
   const selectMetric = (metric: string) => {
-    const next = setMetricClause(clauses, metric);
-    setClauses(next);
-    submit(clausesToWql(next));
+    const next = setMetricQuery(draft, metric);
+    setDraft(next);
+    submit(next);
   };
 
   const [pickedExample, setPickedExample] = useState<string | null>(null);
@@ -281,7 +278,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   /** Example chip: hydrate the composer from the query and run it. */
   const runExample = (wql: string) => {
     setPickedExample(wql);
-    setClauses(wqlToClauses(wql) ?? defaultExplorerClauses());
+    setDraft(parseQuery(wql).error ? DEFAULT_EXPLORER_QUERY : wql);
     submit(wql);
   };
 
@@ -292,8 +289,9 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   // examples (`note:` filters) don't restore through the clause model at all.
   const activeExample = useMemo(() => {
     if (!pickedExample) return undefined;
-    const composedDraft = clausesToWql(wqlToClauses(pickedExample) ?? defaultExplorerClauses());
-    return draft === composedDraft
+    const composedParsed = parseQuery(pickedExample);
+    const composedDraft = composedParsed.error ? pickedExample : serialize(composedParsed);
+    return sameQuery(draft, composedDraft)
       ? EXAMPLE_QUERIES.find((e) => e.query === pickedExample)
       : undefined;
   }, [pickedExample, draft]);
@@ -305,10 +303,10 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
   // (e.g. negated !tags:x filters — the legacy visual composer could emit
   // them): the composer falls back to defaults, but the result still answers
   // the submitted URL query until the user edits the draft.
-  const restoredDraft = useMemo(
-    () => clausesToWql(wqlToClauses(submitted) ?? defaultExplorerClauses()),
-    [submitted],
-  );
+  const restoredDraft = useMemo(() => {
+    const p = parseQuery(submitted);
+    return p.error ? submitted : serialize(p);
+  }, [submitted]);
   const resultIsCurrent =
     result !== undefined &&
     (sameQuery(result.parsed.raw, draft) ||
@@ -352,8 +350,8 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
       <div className="flex flex-col min-h-0 p-4">
         <ExplorerCommandBar active={activeExample} onRunExample={runExample}>
           <WqlComposer
-            clauses={clauses}
-            onClausesChange={setClauses}
+            query={draft}
+            onQueryChange={setDraft}
             onSubmit={(wql) => submit(wql)}
             showDiagnostics={false}
             placeholder={WQL_GRAMMAR_PLACEHOLDER}

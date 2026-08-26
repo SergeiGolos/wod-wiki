@@ -12,7 +12,7 @@
 import type { PaletteDataSource, PaletteItem } from '@/components/organisms/command-palette/palette-types';
 import { queryService } from '@/services/queryService';
 import { parseQuery, isFindQuery } from '@bitcobblers/wod-wiki-engine';;
-import { CLAUSE_META, type QueryClause, type WqlExecutor } from '@bitcobblers/wod-wiki-ui';
+import type { WqlExecutor } from '@bitcobblers/wod-wiki-ui';
 import { entryOpenHref } from '../lib/entryActions';
 import { searchEntries } from '../lib/entrySearch';
 import type { Entry, EntryKind } from '../lib/entryMapper';
@@ -93,11 +93,8 @@ export function withWqlText(source: PaletteDataSource): PaletteDataSource {
  * sources with no time window — the fuzzy palette this replaces searched
  * everything, unbounded by date.
  */
-export function searchPaletteClauses(): QueryClause[] {
-  return [
-    { id: 'c-source', type: 'source', ...CLAUSE_META.source, value: 'notes' },
-    { id: 'c-time', type: 'time', ...CLAUSE_META.time, value: 'all' },
-  ];
+export function searchPaletteQuery(): string {
+  return 'find:note';
 }
 
 /** Stage-count executor for the palette's diagnostics strip, wired at the
