@@ -29,7 +29,7 @@ WQL answers three distinct questions, and the language has **three query familie
 | -------- | ------- | --------------------- |
 | **Aggregate** | `sum:totalVolume{discipline:strength} by {week} last 6w` | "How much/how many over my training history?" |
 | **Rows** | `rows:segment{result:abc123} last 4w` | "Show me the raw per-segment log of this run." |
-| **Find** (deprecated alias of rows on content planes) | `find:note{tags:strength,source:journal} last 8w` | "Which notes/blocks/efforts match?" |
+| **Find** (legacy content-discovery head) | `find:note{tags:strength,source:journal} last 8w` | "Which notes/blocks/efforts match?" |
 
 `rows:<target>` is the list-returning form for **every** plane — result
 planes narrow the promoted `outputType` column, content planes (`note`,
@@ -40,7 +40,7 @@ should prefer `rows:note|block|effort{…}`.
 
 Two design principles govern everything below:
 
-1. **Logs win; the store is their projection.** `WorkoutResult.data.logs` is the authoritative record for a single workout; the unified event store is the queryable projection of that stream (finalize-owned summaries, ticket 005). Cross-store joins re-derive from logs rather than trusting projections.
+1. **Logs win; the store is their projection.** `WorkoutResult.data.logs` is the authoritative record for a single workout; the unified event store is the queryable projection of that stream — summaries are finalize-owned from the logs (ticket 005), so readers (joins included) trust the store rather than re-deriving.
 2. **The store seam is inverted.** `QueryService` has zero IndexedDB/storage imports. All persistence is injected through the store interfaces (`stores.ts`), so the service is 100% pure and testable with in-memory fakes.
 
 ```text
@@ -73,30 +73,31 @@ window := last <n><d|w> | from <YYYY-MM-DD> [to <YYYY-MM-DD>]
 sum:totalVolume{discipline:strength,!effort:burpee} by {week,effort}.rollup(1w) last 6w
 avg:tis{effort:back*} by {session}
 max:resistance{effort:back-squat} in kg
-sum:tis{} from 2026-01-01 to 2026-03-31 by {week}
+sum:tis{} by {week} from 2026-01-01 to 2026-03-31
 last:calc.acwr{}
 ```
 
 - **Aggregators** (`WQL_AGGREGATORS`): `sum`, `avg`, `min`, `max`, `count`, `last`, `delta`.
 - **Metric namespaces** are Canonical Metric Keys: families (`reps`, `distance`, `resistance`, `elapsed`, `power`, `pace`), Tier-2 aggregates (`totalVolume`, `totalDistance`, `tis`, `sessionLoad`), effort-scoped keys (`<effortSlug>.<family>`), and calc targets (`calc.acwr`, `calc.e1rm`, `calc.metMinutes`, … — see `WQL_CALC_TARGETS`).
-- **`in <unit>`** is a display-unit directive (`in kg`, `in lb`) — conversion happens at read time, facts are stored in their recorded unit. `in` means units on **every** family (C2); provenance is a `source:` filter, never an `in` clause.
+- **`in <unit>`** is a display-unit directive (`in kg`, `in lb`) on the **aggregate** family — conversion happens at read time, facts are stored in their recorded unit. On find/rows a trailing `in <word>` is the legacy scope spelling (C2): the compat normalizer rewrites it into a `source:` filter and attaches a deprecation advisory.
 - **`<window>`** (C1) is one time-selection clause, legal on every family: `last 6w` is relative to the anchor (wall clock by default), `from … to …` is a civil-date range (local-midnight semantics, inclusive end day). One window per query — `last` and `from` are mutually exclusive (C3 conflict).
 
-### 2.2 Find queries (content discovery) — deprecated alias
+### 2.2 Find queries (content discovery) — legacy head
 
-`find:` is the legacy head for content discovery; it still parses and
-executes, but the modern form is `rows:note|block|effort{…}` (see §2.3).
+`find:` is the legacy head for content discovery — its own parsing family
+executing through `runFind`, superseded by the `rows:` head (§2.3) for new
+surfaces.
 Provenance is a **`source:` filter** inside the braces (C2) — the legacy
 trailing `in <scope>` still parses (rewritten by the compat normalizer with
 a deprecation advisory), but new queries should not use it.
 
 ```text
-find:<target>{<filters incl. source:> [<window>]} [where <agg>:<metric>{} <op> <number>]
+find:<target>{<filters>} [<window>] [where <agg>:<metric>{} <op> <number>]
 ```
 
 ```text
 find:note{tags:pr,source:journal} last 8w
-find:block{text:"air squats",!source:feed}
+find:block{text:"air squats",!source:feeds}
 find:effort{discipline:kettlebell,intensity:high}
 find:note{source:journal} where sum:totalVolume{discipline:strength} > 5000
 ```
@@ -122,7 +123,7 @@ rows:note{note:note-uuid}
 - The **target is required** (C4): `rows:all` is the explicit no-narrowing pseudo-target; bare `rows:{…}` is rewritten by the compat normalizer with a deprecation advisory.
 - **Result-plane targets** (`WQL_RESULT_PLANES` — the store's known `outputType` values: `segment`, `analytics`, `wellness`, `load`, `event`, `system`, `compiler`, `completion`) narrow the promoted column.
 - **Content-plane targets** (`note`, `block`, `effort`) scope by content id instead of narrowing — `rows:note{note:note-uuid}` and `rows:all{note:note-uuid}` are equivalent.
-- **Scope filters** (`WQL_ROWS_SCOPE_KEYS`) are exactly `result:`, `block:`, or `note:` (exact values only — no negation, no wildcards); execution requires at least one.
+- **Filter keys** are `result:`/`block:`/`note:` scope filters (exact values only — no negation, no wildcards; execution requires at least one scope filter) plus `source:`.
 - Rows **never aggregate**: `by`, `.rollup`, and `where` are rejected with a loud error.
 - Rows read event rows directly from the unified store — no WorkoutResult blob parsing.
 
@@ -150,7 +151,7 @@ find:note{tags:competition,source:journal} where sum:totalVolume{discipline:stre
 sum:totalVolume{} by {week} where find:note{tags:competition,source:journal}
 ```
 
-Both directions are evaluated against **raw logs** joined at `blockContentId`, not against the fact store — the "logs win" rule.
+Both directions are evaluated against the store's **finalize-owned summary rows**, fetched by `blockContentId` over the content index — the store is the authoritative projection of the logs.
 
 ---
 
@@ -180,7 +181,7 @@ Structural literals that can never overlap a word position keep their own tokens
 
 **Suffixes are stripped in JS, not lexed.** `where`, `in <unit>`, windows (`last <n>d|w`, `from … to …`), and the legacy `in <scope>` never appear in the grammar. `wqlSuffix.ts` (`parseWqlSuffixes`) removes them with anchored, right-to-left regexes before the Lezer parse — peel order: `window` → `displayUnit` → `.rollup` → `by {}`; `where` still splits first (brace-aware):
 
-- `in` is no longer ambiguous (C2): it is a **display unit** on every family. The legacy find/rows `in <scope>` is detected, rewritten into a `source:` filter by the compat normalizer, and reported as a deprecation advisory.
+- `in` resolves by family (C2): a **display unit** on aggregate queries; on find/rows the trailing `in <scope>` is legacy scope, rewritten into a `source:` filter by the compat normalizer and reported as a deprecation advisory.
 - Duplicate clauses of the same kind are a **parse error naming both spans** (C3) — never rightmost-wins. `last` + `from` together is the same conflict.
 - Rows queries strip `by` / `.rollup` too, but only to report them as errors downstream ("rows never aggregates").
 
@@ -255,7 +256,7 @@ Validation is semantic: unknown aggregators produce `Unknown aggregator "foo". T
 `QueryService` runs aggregate queries as a **four-stage physical plan** (documented in the module header):
 
 ```text
-SELECT     index-first: by-metric + by-timestamp fetches, intersected in memory
+SELECT     window-first hybrid: by-timestamp fetch when windowed, full scan otherwise
   │
 BUCKET     assign each row to a time bucket (day / week / .rollup period)
   │
@@ -283,18 +284,13 @@ const matched = this.applyEffortScope(
 ```
 
 - **Window-first hybrid**: a window (textual or options) fetches through by-timestamp — the one proven culling index; all-time queries scan. by-metric is never used (measured non-selective and slower than scanning).
-- The window resolves through `windowRange(parsed.window)` — relative windows anchor to `Date.now()` (`'wall-clock'`), the scope's newest activity (`'latest-activity'`), or an explicit `anchorNow` (tests/replay).
+- The window resolves through `windowRange(parsed.window)` — aggregate windows always anchor to `Date.now()`. (`'latest-activity'` anchoring and an explicit `anchorNow` exist on the find/rows paths, not the aggregate plan.)
 - The `tags` key is special: it resolves through the note's frontmatter tag labels (`getNoteTagLabels`), loaded lazily only when the query touches `tags`.
 - **Effort-scope de-dup**: summary rows are emitted both per-effort and un-attributed. If the query groups or filters by `effort`, un-attributed rows are dropped (and vice versa) so totals are never double-counted.
 
 ### 5.2 BUCKET
 
-Time dims and `.rollup` share one bucketing rule — `Math.floor(ts / bucketMs)` over the row's canonical `timestamp` (the workout's true end time, never the derivation time). Group keys are **local civil ISO dates** (v2 decision): `day` → the local date's `YYYY-MM-DD`; `week` → the civil Monday's `YYYY-MM-DD`:
-
-- `day` → 24h buckets keyed by local civil date.
-- `week` → Monday-aligned buckets keyed by the Monday's `YYYY-MM-DD`.
-- `.rollup(nw)` → n-week buckets; `.rollup(nd)` → n-day buckets.
-- No time dim → a single bucket.
+Buckets are assigned over the row's canonical `timestamp` (the workout's true end time, never the derivation time). Post-C1, `day`/`week` group keys are **local civil ISO dates** computed from calendar components (`civilDay`) — never epoch floors, so DST never splits a day and weeks stay local-Monday-aligned: `day` → the local date's `YYYY-MM-DD`; `week` → the civil Monday's `YYYY-MM-DD`. `.rollup(nu)` keeps epoch math — `Math.floor(ts / bucketMs)` over n-day/n-week buckets. No time dim → a single bucket.
 
 ### 5.3 GROUP
 
@@ -321,7 +317,7 @@ Output is a `QueryResult`:
 
 ```typescript
 interface QueryResult {
-  parsed: ParsedQuery;
+  parsed: ParsedAggregateQuery;
   series: Series[];           // one per group; points sorted by bucket
   stages: { selected; buckets; aggregated; groups };  // observability counts
   matched: AnalyticsDataPoint[];   // the surviving fact rows
@@ -334,10 +330,10 @@ Widgets and tables are dumb consumers of this shape; `stages` exists so UIs can 
 
 ### 5.5 Cross-store join execution
 
-- **Direction 1** (find + metric predicate): resolve the `blockContentId`s owned by candidate notes/blocks → `deriveMetricFacts` re-derives summary facts from each matching result's raw logs → aggregate per content id → keep ids passing `<op> <threshold>` → filter the content set to owners.
-- **Direction 2** (aggregate + find predicate): run the find half → collect owned `blockContentId`s → re-derive the metric from raw logs for exactly those ids → run the normal SELECT/BUCKET/GROUP/AGGREGATE over the derived facts.
+- **Direction 1** (find + metric predicate): resolve the `blockContentId`s owned by candidate notes/blocks → `deriveMetricFacts` reads each content id's summary-grain rows through `getEventsByContent` → aggregate per content id → keep ids passing `<op> <threshold>` → filter the content set to owners.
+- **Direction 2** (aggregate + find predicate): run the find half → collect owned `blockContentId`s → fetch summary facts for exactly those ids → run the normal BUCKET/GROUP/AGGREGATE over them.
 
-`deriveMetricFacts` calls `normalizeSummaryFacts(result.data.logs, identity)` per result — the same function used to build the store — so a join result is *identical* to what the store would hold. That's what "logs win" means operationally.
+`deriveMetricFacts` projects the store's finalize-owned summary rows (`projectEventToFacts`) — the same rows a plain aggregate reads — so a join result is *identical* to a non-joined query over the same content. The store is authoritative; there is no separate re-derivation path.
 
 ### 5.6 Rows execution
 
@@ -409,7 +405,7 @@ All of these live in `vocabulary.ts` — the single dictionary every surface (co
 
 **Unit conversion** (`units.ts`) is narrow and pure: mass (`kg` ↔ `lb`, exact `0.45359237`) and distance (`m` ↔ `km`). Unknown or cross-family units pass through unchanged.
 
-**Rollup math** lives in lang (`analytics/rollup/workloadRollup.ts`) — Foster sRPE periodization over daily `sessionLoad`: acute = mean of trailing 7 days, chronic = mean of trailing 28, `ACWR = acute/chronic`, `monotony = mean7/sd7`, `strain = monotony × Σ7`. Day buckets are UTC — the same bucketing the Query Service uses for the `day` dimension.
+**Rollup math** lives in lang (`analytics/rollup/workloadRollup.ts`) — Foster sRPE periodization over daily `sessionLoad`: acute = mean of trailing 7 days, chronic = mean of trailing 28, `ACWR = acute/chronic`, `monotony = mean7/sd7`, `strain = monotony × Σ7`. Its day buckets are UTC epoch floors — *not* the Query Service's local-civil `day` dimension keys (which are calendar-component dates).
 
 ---
 
@@ -465,13 +461,15 @@ interface BlockQueryStore  { getAllBlocks(): Promise<BlockIndexRow[]>; }
 interface EffortQueryStore { getAllEfforts(): Promise<IEffort[]>; }
 ```
 
+The app implements these over IndexedDB (V16 `events` store, six indexes); tests and the CLI use `inMemoryEventStore` / `inMemoryEventStoreFromFacts` from `@bitcobblers/wod-wiki-engine`. Any missing store defaults to an empty implementation, so partial wiring degrades to empty results rather than crashes.
+
 ## 10. Errors and edge cases
 
 Parse errors are **values, not exceptions** (error-as-value): every `Parsed*` carries `error?: string`; executors return empty results with the error attached. The catalog:
 
 - Lezer error recovery: any ⚠ node in the tree → family-specific `Cannot parse "…"` message.
 - **C3 suffix conflicts**: duplicate clauses of one kind → `Duplicate '<kind>' clause: '<span A>' conflicts with '<span B>'` (one line naming both spans); `last` + `from` together conflicts the same way; range windows on join halves are rejected.
-- **C7 source validation**: unknown `source:` values → `Unknown source "…". Try: journal, collections, feeds, all (or collection:<id>, feed:<id>)`.
+- **C2 source validation**: unknown `source:` values → `Unknown source "…". Try: journal, collections, feeds, all (or collection:<id>, feed:<id>)`.
 - **Retired grain**: `grain:rollup` is a parse-time error — rollups are read-time math via `.rollup`.
 - Rollup units are validated semantically — only `d` and `w`.
 - A rows query with `by` / `.rollup` / `where` fails loudly ("rows never aggregates").

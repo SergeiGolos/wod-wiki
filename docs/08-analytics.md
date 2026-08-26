@@ -17,7 +17,7 @@ WorkoutResult.data.logs
   normalizeSummaryFacts() → AnalyticsDataPoint[]
         │
         ▼
-  Analytics Store (summary / segment / rollup grains)
+  Unified Event Store (summary / event grains)
         │
         ▼
   QueryService / WQL → widgets / tables
@@ -77,14 +77,14 @@ WQL is a Datadog-flavored query language over the analytics store.
 Examples:
 
 ```text
-sum:reps{effort:push-up} by week
-avg:pace{discipline:running} by day
-max:load{effort:back-squat} by effort
+sum:reps{effort:push-up} by {week}
+avg:pace{discipline:running} by {day}
+max:resistance{effort:back-squat} by {effort}
 ```
 
 ### Aggregators
 
-- `sum`, `avg`, `min`, `max`, `count`, `last`
+- `sum`, `avg`, `min`, `max`, `count`, `last`, `delta`
 
 ### Filters
 
@@ -98,10 +98,10 @@ Tag filters inside `{}`. Multiple values for one key are OR; multiple keys are A
 ### Group by
 
 ```text
-by effort
-by day
-by week
-by discipline
+by {effort}
+by {day}
+by {week}
+by {discipline}
 ```
 
 ### Rollup
@@ -140,7 +140,7 @@ dashboard: true
 # Weekly volume
 
 ```query:timeseries-2
-sum:volume{} by week
+sum:totalVolume{} by {week}
 ```
 
 ```
@@ -154,13 +154,14 @@ Widget suffixes:
 
 Dashboard controls are declared as `dashboard.<name>` frontmatter keys and referenced in queries as `$name`.
 
-## Analytics Store grains
+## Event store grains
 
 | Grain | Use |
 |-------|-----|
-| `summary` | Workout-level aggregates (Tier 2) |
-| `segment` | Per-segment numeric metrics, denormalized for filters |
-| `rollup` | Windowed aggregates (ACWR, monotony, strain) |
+| `summary` | Workout-level aggregates (Tier 2), finalize-owned |
+| `event` | Per-output-statement rows (formerly `segment`) |
+
+`rollup` is retired — windowed aggregates (ACWR, monotony, strain) are computed at read time via `.rollup`, never stored.
 
 ## Rollup math
 

@@ -14,12 +14,18 @@ The seven changes:
 | C6 | One structured interface | AST + serializer replace the clause model for code callers | **landed** 0.10.41 |
 | C7 | Target validation | `find:`/`rows:` targets validated at parse | **landed** `9ef6dcc` |
 
-One deliberate divergence between spec and ship: the spec's `find:` head was
+Deliberate divergences between spec and ship: the spec's `find:` head was
 to survive *only* as an alias of `rows:`; shipped, `find:` remains its own
 parsing family executing content discovery (`runFind`), with legacy `in
 <scope>` and bare `rows:{` rewritten by the compat normalizer under
-deprecation advisories. The AST-level unification (C6 serializer, C5 union)
-landed as specced.
+deprecation advisories. The spec's singular source vocabulary (`journal |
+playground | collection | feed | all`) shipped plural and narrower —
+`WQL_SOURCE_VALUES` is `journal | collections | feeds | all` plus
+`collection:<id>` / `feed:<id>` compound values, no `playground`. Join
+halves accept `find:` only, not `rows:`. And `in <unit>` shipped as an
+aggregate-family directive (on find/rows a trailing `in <word>` is legacy
+scope). The AST-level unification (C6 serializer, C5 union) landed as
+specced.
 
 **v2 decisions** (this revision):
 
@@ -114,8 +120,8 @@ One head shape after unification: `<fold>:<metric>` for folded queries,
 | `find:note{tags:pr} in journal last 8w` | `rows:note{tags:pr,source:journal} last 8w` | rows model + C2 |
 | `find:block{text:"air squats",!source:feed} in all` | `rows:block{text:"air squats",!source:feed}` | rows model + C2 (`all` was the default; omit) |
 | `rows:{note:note-uuid} last 4w` | `rows:all{note:note-uuid} last 4w` | bare alias retired (decision 1); content-plane targets also legal (`rows:note{note:note-uuid}`) |
-| `sum:totalVolume{} by {week} where find:note{tags:competition} in journal` | `sum:totalVolume{} by {week} where rows:note{tags:competition,source:journal}` | C2 + join halves accept `rows:` |
-| `sum:tis{} by {week}` (no textual window possible) | `sum:tis{} from 2026-01-01 to 2026-03-31 by {week}` | C1 |
+| `sum:totalVolume{} by {week} where find:note{tags:competition} in journal` | `sum:totalVolume{} by {week} where find:note{tags:competition,source:journal}` | C2 (join halves still take `find:` — see divergence) |
+| `sum:tis{} by {week}` (no textual window possible) | `sum:tis{} by {week} from 2026-01-01 to 2026-03-31` | C1 (window is tail-rightmost, per §1.2) |
 
 Deliberately rejected: `rows:note{…} from journal` and `not from feed`.
 `from` already means *time* (`from 2026-01-01`); reusing it for provenance would
