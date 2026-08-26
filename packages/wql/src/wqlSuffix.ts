@@ -7,19 +7,13 @@
  *   - Display unit: `in <unit>`
  *   - Rollup period: `.rollup(<size><unit>)`
  *   - Group-by: `by {<dims>}`
- *   - Time window: `last <n><unit>`
- *   - Scope: `in <scope>`
+ *   - Time window: `last <n><unit>` or `from <YYYY-MM-DD> [to <YYYY-MM-DD>]`
+ *     (C1 — one window per query, every family)
  */
 
 export interface ParsedWqlRollupSuffix {
   size: number;
   unit: string;
-  raw: string;
-}
-
-export interface ParsedWqlLastSuffix {
-  size: number;
-  unit: 'd' | 'w';
   raw: string;
 }
 
@@ -82,7 +76,8 @@ const IN_SCOPE_RE = /\s+in\s+(\w+)\s*$/;
 /**
  * Extract suffixes from a raw WQL query string.
  * Strips outer join (`where`), display unit (`in kg`), rollup (`.rollup(1w)`),
- * group-by (`by {week}`), time window (`last 8w`), and scope (`in journal`).
+ * group-by (`by {week}`), time window (`last 8w` / `from … [to …]`), and
+ * scope (`in journal`).
  */
 export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
   const { primary, where } = splitAtWhere(raw);
@@ -112,7 +107,7 @@ export function parseWqlSuffixes(raw: string): ParsedWqlSuffixes {
     return matches;
   };
   const conflictFrom = (label: string, ms: RegExpExecArray[]) => {
-    // Lockstep across five call sites: one conflict line naming both spans.
+    // Lockstep across six call sites: one conflict line naming both spans.
     if (ms.length > 1) {
       conflicts.push(
         `Duplicate '${label}' clause: '${ms[0][0].trim()}' conflicts with '${ms[ms.length - 1][0].trim()}'`,

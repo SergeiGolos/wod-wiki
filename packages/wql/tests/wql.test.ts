@@ -491,4 +491,16 @@ describe('window module (C1)', () => {
     expect(isAggregateQuery(parsed) ? parsed.window : undefined)
       .toEqual({ kind: 'relative', size: 6, unit: 'w' });
   });
+
+  it('range windows on join halves are a parse error, not a silent drop', () => {
+    const parsed = _parseQuery('sum:tis{} where find:note{tags:x} from 2026-01-01');
+    expect(parsed.error).toContain('Range windows are not supported on join halves');
+  });
+
+  it('relative last on a join half still parses', () => {
+    const parsed = _parseQuery('sum:tis{} where find:note{tags:x} last 4w');
+    expect(parsed.error).toBeUndefined();
+    expect(isAggregateQuery(parsed) && parsed.join ? parsed.join.last : undefined)
+      .toEqual({ size: 4, unit: 'w' });
+  });
 });

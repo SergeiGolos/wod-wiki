@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import type { UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
 import { QueryService, type NoteQueryStore, type UnifiedEventStore } from '../src/QueryService';

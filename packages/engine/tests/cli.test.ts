@@ -139,7 +139,8 @@ describe('wod CLI runner', () => {
       expect(ir.$schema).toBe('https://wod-wiki.dev/ir/v1.json');
       expect(ir.kind).toBe('query-result');
       expect(ir.data.series.length).toBe(1);
-      expect(ir.data.series[0].points.length).toBe(5);
+      // C1 rider: civil-Monday weeks — 4 full calendar weeks, not 5 epoch buckets.
+      expect(ir.data.series[0].points.length).toBe(4);
     });
 
     it('evaluates WQL against --stdin-facts (exit code 0)', async () => {

@@ -111,6 +111,13 @@ function civilMidnight(iso: string): number {
   return new Date(y!, m! - 1, d!).getTime();
 }
 
+/** Next civil day's local midnight (component math — Date overflow handles
+ *  month/year rollover and DST days). */
+function nextCivilMidnight(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y!, m! - 1, d! + 1).getTime();
+}
+
 /** Resolve a parsed window to a [start, end] instant range — the single
  *  window→range mapping every execution path shares (C1). Relative windows
  *  cut off from `anchorNow ?? now`; range windows are inclusive civil days. */
@@ -123,7 +130,9 @@ function windowRange(
     return { start: (anchorNow ?? Date.now()) - w.size * (w.unit === 'w' ? 7 : 1) * DAY, end: Number.MAX_SAFE_INTEGER };
   }
   const start = civilMidnight(w.start);
-  const end = w.end !== undefined ? civilMidnight(w.end) + DAY - 1 : Number.MAX_SAFE_INTEGER;
+  // End-of-day by component math (next day's midnight − 1ms): +DAY−1 is
+  // off by an hour on 23h/25h DST days.
+  const end = w.end !== undefined ? nextCivilMidnight(w.end) - 1 : Number.MAX_SAFE_INTEGER;
   return { start, end };
 }
 
@@ -281,9 +290,11 @@ function matchesFilters(row: AnalyticsDataPoint, filters: TagFilter[], noteTags:
     const negate = group[0].negate;
     const raw = factTagValue(row, key, noteTags);
     const rowValues = Array.isArray(raw) ? raw : raw !== undefined ? [raw] : [];
-    const hit = group.some((f) =>
-      f.values.some((a) =>
-        rowValues.some((v) => (a.wildcard ? v.startsWith(a.value) : v === a.value)),
+    const hit = rowValues.some((value) =>
+      group.some((f) =>
+        f.values.some((a) =>
+          a.wildcard ? value.startsWith(a.value) : value === a.value,
+        ),
       ),
     );
     return negate ? !hit : hit;
@@ -294,7 +305,12 @@ function matchesFilters(row: AnalyticsDataPoint, filters: TagFilter[], noteTags:
  *  time by LOCAL CIVIL CALENDAR (spec v2 decision 2): `day` keys are local
  *  YYYY-MM-DD; `week` keys are the civil Monday's YYYY-MM-DD, computed by
  *  component math — never instant arithmetic, which mislabels DST-shifted
- *  weeks. Keys are locale-independent and lexically sortable. */
+ *  weeks. Keys are locale-independent and lexically sortable.
+ *
+ *  NOTE: buildResult routes `day`/`week` groupBys to civil bucket keys and
+ *  filters them out of tagDims, so the time-dim branches below are
+ *  defensive only — kept canonical in case a caller surfaces time dims as
+ *  string keys. */
 function dimValue(row: AnalyticsDataPoint, dim: string, noteTags: ReadonlyMap<string, readonly string[]>): string {
   if (dim === 'day') return localDateString(row.timestamp);
   if (dim === 'week') {

@@ -18,10 +18,15 @@ describe('Golden IR Corpora Parity Tests (multi-week-journal.json)', () => {
     const series = result.series[0];
     expect(series.key).toBe('totalVolume');
     expect(series.unit).toBe('lb');
-    expect(series.points.length).toBe(5);
+    // C1 rider (spec v2 decision 2): weeks are civil-Monday buckets — the
+    // corpus's Jul 2026 sessions form 4 full calendar weeks. (The pre-C1
+    // golden's 5 points were epoch-Thursday buckets with partial edges.)
+    expect(series.points.length).toBe(4);
 
     // Verify weekly points match golden scenario values
-    expect(series.points.map((p) => p.value)).toEqual([2790, 8202, 8525, 8849, 5936]);
+    expect(series.points.map((p) => p.value)).toEqual([8090, 8414, 8737, 9061]);
+    // Point instants are local noon of each civil Monday.
+    expect(series.points.map((p) => new Date(p.ts).getDay())).toEqual([1, 1, 1, 1]);
   });
 
   it('matches expected scalar for overall average intensity: avg:tis{}', async () => {

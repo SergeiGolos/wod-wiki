@@ -470,6 +470,10 @@ export function wqlToClauses(wql: string): QueryClause[] | null {
   }
 
   // Aggregate branch: <agg>:<metric>{<filters>} [by {<dims>}] [.rollup(<p>)] [in <unit>]
+  // C1: the metrics plane has no time slot — a windowed aggregate is not a
+  // composer product (reject, raw text preserved; otherwise apply would
+  // rewrite the query without its window).
+  if (window) return null;
   const headMatch = RESTORE_AGG_HEAD_RE.exec(primaryText);
   if (!headMatch) return null;
   const aggValue = headMatch[1];

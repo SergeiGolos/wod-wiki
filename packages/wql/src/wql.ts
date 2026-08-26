@@ -192,6 +192,9 @@ function parseJoinClause(where: string): { metric?: MetricPredicate; find?: Find
   if (where.trimStart().startsWith('find:')) {
     const fp = parseFindQuery(where);
     if (fp.error) return { error: fp.error };
+    if (fp.window?.kind === 'range') {
+      return { error: 'Range windows are not supported on join halves — use last <n>d|w' };
+    }
     return { find: { target: fp.target, filters: fp.filters, scope: fp.scope, last: fp.window?.kind === 'relative' ? { size: fp.window.size, unit: fp.window.unit } : undefined } };
   }
   const m = CMP_RE.exec(where.trim());

@@ -53,4 +53,11 @@ describe('WqlComposer and diagnostics suite', () => {
   it('rejects duplicate-suffix queries instead of truncating (C3)', () => {
     expect(wqlToClauses('find:note{tags:pr} in journal in feeds')).toBeNull();
   });
+
+  it('rejects windowed aggregates — the metrics plane has no time slot (C1)', () => {
+    // Otherwise apply would rewrite `sum:tis{} last 6w` as `sum:tis{}`,
+    // silently deleting the window.
+    expect(wqlToClauses('sum:tis{} last 6w')).toBeNull();
+    expect(wqlToClauses('sum:tis{} from 2026-01-01')).toBeNull();
+  });
 });
