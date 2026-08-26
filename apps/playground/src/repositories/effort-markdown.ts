@@ -396,7 +396,7 @@ function globEffortModules(): Record<string, string> {
     // function, so a typeof guard would always take the fallback here.
     // Relative to this file so it resolves identically under any Vite root
     // (Storybook at the repo root, the playground app at playground/).
-    return (import.meta as any).glob('../../markdown/efforts/**/*.md', {
+    return (import.meta as any).glob('../../../../markdown/efforts/**/*.md', {
       query: '?raw',
       eager: true,
       import: 'default',
