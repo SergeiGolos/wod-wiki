@@ -214,3 +214,12 @@ describe('non-expressible provenance states reject honestly', () => {
     expect(wqlToPills('rows:all{source:journal,result:abc-123}')).toBeNull();
   });
 });
+
+describe('identity source absorbs on every target', () => {
+  it('absorbs source:all (and legacy in all) on effort/block targets', () => {
+    expect(wqlToPills('find:effort{discipline:strength} in all')).not.toBeNull();
+    expect(pillsToWql(wqlToPills('find:effort{discipline:strength} in all')!)).toBe(
+      'find:effort{discipline:strength}',
+    );
+  });
+});

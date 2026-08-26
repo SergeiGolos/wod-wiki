@@ -149,8 +149,10 @@ export function astToPills(ast: AnyParsedQuery): QueryClause[] | null {
     if (ast.window?.kind === 'range') return null;
     const sourceFilter = ast.filters.find((f) => f.key === 'source' && !f.negate);
     // Blocks/efforts pills name the target and cannot carry provenance — a
-    // source: filter there is not composer-expressible.
-    if ((ast.target === 'block' || ast.target === 'effort') && sourceFilter) return null;
+    // REAL source: value there is not composer-expressible. `source:all` is
+    // the identity scope and absorbs losslessly on every target.
+    const nonIdentitySource = sourceFilter && !sourceFilter.values.every((v) => v.value === 'all');
+    if ((ast.target === 'block' || ast.target === 'effort') && nonIdentitySource) return null;
     const sourceValue =
       ast.target === 'block'
         ? 'blocks'
