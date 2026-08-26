@@ -20,7 +20,7 @@ function structural(a: unknown): unknown {
   return a;
 }
 
-export function structurallyEqual(a: unknown, b: unknown): boolean {
+function structurallyEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(structural(a)) === JSON.stringify(structural(b));
 }
 

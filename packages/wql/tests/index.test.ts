@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   parseQuery,
+  serialize,
   isFindQuery,
   isRowsQuery,
   QueryService,
@@ -60,6 +61,7 @@ describe('@bitcobblers/wod-wiki-wql public surface', () => {
     expect(isRowsQuery(analyticsAst)).toBe(false);
     expect((analyticsAst as ParsedAggregateQuery).agg).toBe('sum');
     expect((analyticsAst as ParsedAggregateQuery).metric).toBe('totalVolume');
+    expect(serialize(parseQuery('sum:tis{}'))).toBe('sum:tis{}');
   });
 
   it('exports vocabulary constants and disciplines', () => {
