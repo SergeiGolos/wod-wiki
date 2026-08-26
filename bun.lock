@@ -5,11 +5,11 @@
     "": {
       "name": "@bitcobblers/whiteboard-lang",
       "dependencies": {
-        "@bitcobblers/wod-wiki-core": "^0.6.36",
-        "@bitcobblers/wod-wiki-engine": "^0.6.36",
-        "@bitcobblers/wod-wiki-lang": "^0.6.36",
-        "@bitcobblers/wod-wiki-ui": "^0.6.36",
-        "@bitcobblers/wod-wiki-wql": "^0.6.36",
+        "@bitcobblers/wod-wiki-core": "^0.10.42",
+        "@bitcobblers/wod-wiki-engine": "^0.10.42",
+        "@bitcobblers/wod-wiki-lang": "^0.10.42",
+        "@bitcobblers/wod-wiki-ui": "^0.10.42",
+        "@bitcobblers/wod-wiki-wql": "^0.10.42",
         "@codemirror/autocomplete": "^6.20.3",
         "@codemirror/commands": "^6.11.0",
         "@codemirror/lang-markdown": "^6.5.2",
@@ -36,7 +36,7 @@
         "jszip": "^3.10.1",
         "lucide-react": "1.16.0",
         "motion": "^12.43.0",
-        "nuqs": "^2.10.0",
+        "nuqs": "^2.10.1",
         "react-markdown": "^10.1.0",
         "react-router": "^7.18.2",
         "react-router-dom": "^7.18.2",
@@ -59,7 +59,7 @@
         "@types/jsdom": "^28.0.3",
         "@types/node": "^25.9.5",
         "@types/react": "^19.2.18",
-        "@types/react-dom": "^19.2.4",
+        "@types/react-dom": "^19.2.5",
         "@vitejs/plugin-react": "^6.1.0",
         "@vitest/browser": "^4.1.11",
         "@vitest/browser-playwright": "^4.1.11",
@@ -68,7 +68,7 @@
         "bun-types": "^1.4.0",
         "concurrently": "^9.2.4",
         "dotenv": "^17.4.2",
-        "eslint": "^10.9.0",
+        "eslint": "^10.9.1",
         "eslint-plugin-storybook": "10.5.8",
         "fake-indexeddb": "^6.2.5",
         "jsdom": "^29.1.1",
@@ -78,7 +78,7 @@
         "postcss": "^8.5.26",
         "react": "^19.2.8",
         "react-dom": "^19.2.8",
-        "rollup": "^4.62.5",
+        "rollup": "^4.63.0",
         "storybook": "^10.5.10",
         "tailwindcss": "^4.3.3",
         "tailwindcss-animate": "^1.0.7",
@@ -90,7 +90,7 @@
         "vitest": "^4.1.11",
       },
       "optionalDependencies": {
-        "@rollup/rollup-win32-x64-msvc": "^4.62.5",
+        "@rollup/rollup-win32-x64-msvc": "^4.63.0",
       },
       "peerDependencies": {
         "react": "^19.2.8",
@@ -164,15 +164,15 @@
 
     "@bcoe/v8-coverage": ["@bcoe/v8-coverage@1.0.2", "", {}, ""],
 
-    "@bitcobblers/wod-wiki-core": ["@bitcobblers/wod-wiki-core@0.6.36", "", {}, "sha512-Q1PqVwV9w+Pge0N8CKqUyFqf4edDXlkP5ICcBElBJeY0JFR/LUNxJQjMjvpUn8wLNMQuGESN5PmG3LJC+17mTQ=="],
+    "@bitcobblers/wod-wiki-core": ["@bitcobblers/wod-wiki-core@0.10.42", "", {}, "sha512-tuLb3inIWhwGGyGk5B5JiKCt6sHlgjXKjVUcn8izv9dBrosIf5J2FMhApLK3yTqGH5Bk3MKyD9TpAfGlVumqKQ=="],
 
-    "@bitcobblers/wod-wiki-engine": ["@bitcobblers/wod-wiki-engine@0.6.36", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.6.36", "@bitcobblers/wod-wiki-lang": "^0.6.36", "@bitcobblers/wod-wiki-wql": "^0.6.36" }, "bin": { "wod": "dist/bin/wod.mjs" } }, "sha512-I5JSQxMVMarrj7zaXtg9HqOl5Mb0N+rzhADISMHLfbpCjfAoKV6J/YzaT1ebR0ZQa2Mtg0ppRBmAdzuMykcm9Q=="],
+    "@bitcobblers/wod-wiki-engine": ["@bitcobblers/wod-wiki-engine@0.10.42", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.10.42", "@bitcobblers/wod-wiki-lang": "^0.10.42", "@bitcobblers/wod-wiki-wql": "^0.10.42" }, "bin": { "wod": "dist/bin/wod.mjs" } }, "sha512-/L4uGZG/vEA9l/tz1jMEzkAQm5/2UlltRSCro8bH0NWytCVcH6iOXTG3SZirkVduT1b8aSYJi8fl1TkqyoqZgw=="],
 
-    "@bitcobblers/wod-wiki-lang": ["@bitcobblers/wod-wiki-lang@0.6.36", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.6.36", "uuid": "^11.1.0" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/lr": "^1.0.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/lr", "react", "react-dom"] }, "sha512-AH4n+s/nDVizf/rxEpFuZK+bQw1iVOjseYPB9YlrWbx3qjV9PoBHI5X/HHugyDdFj4tsZGVHg7czL7lDmiBRsw=="],
+    "@bitcobblers/wod-wiki-lang": ["@bitcobblers/wod-wiki-lang@0.10.42", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.10.42", "uuid": "^11.1.0" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/lr": "^1.0.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/lr", "react", "react-dom"] }, "sha512-E6GEOsvwS3JVh40blDApvzQzt/KcjOynfU5G36mJlDF4/5eSpnXCQRiMYboVS5xKWTrQnjjNR7o3Z2SvWSmFQQ=="],
 
-    "@bitcobblers/wod-wiki-ui": ["@bitcobblers/wod-wiki-ui@0.6.36", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.6.36", "@bitcobblers/wod-wiki-lang": "^0.6.36", "@bitcobblers/wod-wiki-wql": "^0.6.36", "@heroicons/react": "^2.2.0", "clsx": "^2.1.1", "tailwind-merge": "^3.6.0" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/commands": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/lint": "^6.0.0", "@codemirror/search": "^6.0.0", "@codemirror/state": "^6.0.0", "@codemirror/view": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0", "lucide-react": ">=0.300.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "recharts": ">=2.10.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/commands", "@codemirror/language", "@codemirror/lint", "@codemirror/search", "@codemirror/state", "@codemirror/view", "@lezer/common", "@lezer/highlight", "@lezer/lr", "lucide-react", "react", "react-dom", "recharts"] }, "sha512-I1nfilfkovBry4zPzj5M8mo4EmKJMpwbcQMyivB+iSg755JOyiqI/ndf8JVf25P83RB624FnH+qK6PWALPJp8A=="],
+    "@bitcobblers/wod-wiki-ui": ["@bitcobblers/wod-wiki-ui@0.10.42", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.10.42", "@bitcobblers/wod-wiki-lang": "^0.10.42", "@bitcobblers/wod-wiki-wql": "^0.10.42", "@heroicons/react": "^2.2.0", "clsx": "^2.1.1", "tailwind-merge": "^3.6.0" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/commands": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/lint": "^6.0.0", "@codemirror/search": "^6.0.0", "@codemirror/state": "^6.0.0", "@codemirror/view": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0", "lucide-react": ">=0.300.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "recharts": ">=2.10.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/commands", "@codemirror/language", "@codemirror/lint", "@codemirror/search", "@codemirror/state", "@codemirror/view", "@lezer/common", "@lezer/highlight", "@lezer/lr", "lucide-react", "react", "react-dom", "recharts"] }, "sha512-Yp884z5ztFi/unrhQYGPNIqLgRLteBy5bDh074TGKf4ibQyfm81ufSvuzV1DXrHEYywoyCR1tgZiJzuvwYkwEw=="],
 
-    "@bitcobblers/wod-wiki-wql": ["@bitcobblers/wod-wiki-wql@0.6.36", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.6.36" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/highlight", "@lezer/lr"] }, "sha512-X3iWKtvVuW06ARnN18kkYKn2p6fhmbKz9CQ6imKuwnBSTTkTQr0CvgGRp31TFobJkIpnmqQlfHxu0CX/VfUxTg=="],
+    "@bitcobblers/wod-wiki-wql": ["@bitcobblers/wod-wiki-wql@0.10.42", "", { "dependencies": { "@bitcobblers/wod-wiki-core": "^0.10.42" }, "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.0.0" }, "optionalPeers": ["@codemirror/autocomplete", "@codemirror/language", "@codemirror/state", "@lezer/common", "@lezer/highlight", "@lezer/lr"] }, "sha512-4K1lWc2P7BDryd36j16Uct0eno86XmlgPKrpM/NJkTkRK4Txays5e6XkNbPIWVxJw1qAkGLl8ADofyBYA1XTww=="],
 
     "@blazediff/core": ["@blazediff/core@1.9.1", "", {}, "sha512-ehg3jIkYKulZh+8om/O25vkvSsXXwC+skXmyA87FFx6A/45eqOkZsBltMw/TVteb0mloiGT8oGRTcjRAz66zaA=="],
 

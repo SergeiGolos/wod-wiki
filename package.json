@@ -2,7 +2,7 @@
   "name": "wod-wiki",
   "version": "0.6.0",
   "private": true,
-  "description": "The wod.wiki playground app — workout journal, canvas editor, review surfaces, and Chromecast receiver built on the Whiteboard Language packages (@bitcobblers/wod-wiki-engine, @bitcobblers/wod-wiki-ui) published from the wod-wiki-engine repository.",
+  "description": "The wod.wiki playground app \u2014 workout journal, canvas editor, review surfaces, and Chromecast receiver built on the Whiteboard Language packages (@bitcobblers/wod-wiki-engine, @bitcobblers/wod-wiki-ui) published from the wod-wiki-engine repository.",
   "homepage": "https://github.com/SergeiGolos/wod-wiki#readme",
   "bugs": {
     "url": "https://github.com/SergeiGolos/wod-wiki/issues"
@@ -42,11 +42,11 @@
     "deps:engine:tarballs": "bun scripts/use-engine.ts tarballs"
   },
   "dependencies": {
-    "@bitcobblers/wod-wiki-core": "^0.6.36",
-    "@bitcobblers/wod-wiki-engine": "^0.6.36",
-    "@bitcobblers/wod-wiki-lang": "^0.6.36",
-    "@bitcobblers/wod-wiki-ui": "^0.6.36",
-    "@bitcobblers/wod-wiki-wql": "^0.6.36",
+    "@bitcobblers/wod-wiki-core": "^0.10.42",
+    "@bitcobblers/wod-wiki-engine": "^0.10.42",
+    "@bitcobblers/wod-wiki-lang": "^0.10.42",
+    "@bitcobblers/wod-wiki-ui": "^0.10.42",
+    "@bitcobblers/wod-wiki-wql": "^0.10.42",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.11.0",
     "@codemirror/lang-markdown": "^6.5.2",
