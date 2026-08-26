@@ -77,3 +77,36 @@ describe('WqlComposer and diagnostics suite', () => {
     expect(screen.getByTestId('wql-composer-pending').textContent).toContain('Cannot parse');
   });
 });
+
+describe('controlled raw escape hatch', () => {
+  it('reports diagnostics for the raw controlled query, not fallback pills', () => {
+    const onAstChange = vi.fn();
+    const onValidationChange = vi.fn();
+    const onSubmit = vi.fn();
+    // Negated filter: valid WQL, not pill-expressible.
+    render(
+      <WqlComposer
+        query="find:note{!tags:fran} last 2w"
+        onAstChange={onAstChange}
+        onValidationChange={onValidationChange}
+        onSubmit={onSubmit}
+      />,
+    );
+    expect(onValidationChange).toHaveBeenCalledWith({ valid: true });
+    expect(onAstChange).toHaveBeenCalledWith(
+      expect.objectContaining({ family: 'find', target: 'note' }),
+    );
+    // Submit hands back the raw query, not a rewritten default.
+    const input = screen.getByTestId('wql-composer-input');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onSubmit).toHaveBeenCalledWith('find:note{!tags:fran} last 2w');
+  });
+
+  it('surfaces the raw query parse error when invalid', () => {
+    const onValidationChange = vi.fn();
+    render(<WqlComposer query="sum:tis{} )))garbage(((" onValidationChange={onValidationChange} />);
+    expect(onValidationChange).toHaveBeenCalledWith(
+      expect.objectContaining({ valid: false, error: expect.stringContaining('Cannot parse') }),
+    );
+  });
+});

@@ -17,7 +17,7 @@ import { Command } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useComposerSlots } from './ComposerRegistry';
 import { TokenSlotPill, AddFilterDropdown, AddCalcDropdown } from './QueryPalette';
-import { diagnosePills } from './diagnostics';
+import { diagnosePills, type WqlDiagnostics } from './diagnostics';
 import { WqlDiagnosticsStrip } from './WqlDiagnosticsStrip';
 import {
   useWqlStageCounts,
@@ -120,11 +120,18 @@ export function WqlComposer({
   const freeTextInitRef = useRef<string | null>(null);
 
   // Controlled + not pill-expressible → preload the raw text once per query
-  // value so the user edits the real query, not a rewritten default.
+  // value so the user edits the real query, not a rewritten default; clear
+  // it when the query becomes pill-expressible again.
   useEffect(() => {
-    if (controlledQuery !== undefined && controlledPills === null && freeTextInitRef.current !== controlledQuery) {
-      freeTextInitRef.current = controlledQuery;
-      setFreeText(controlledQuery);
+    if (controlledQuery === undefined) return;
+    if (controlledPills === null) {
+      if (freeTextInitRef.current !== controlledQuery) {
+        freeTextInitRef.current = controlledQuery;
+        setFreeText(controlledQuery);
+      }
+    } else if (freeTextInitRef.current !== null) {
+      freeTextInitRef.current = null;
+      setFreeText('');
     }
   }, [controlledQuery, controlledPills]);
 
@@ -142,7 +149,21 @@ export function WqlComposer({
   );
 
   const registeredSlots = useComposerSlots();
-  const diagnostics = useMemo(() => diagnosePills(pills), [pills, registeredSlots]);
+  // Raw escape hatch (controlled, not pill-expressible): diagnostics describe
+  // the ACTUAL controlled query — never the fallback internal pills.
+  const rawEscape = controlledQuery !== undefined && controlledPills === null;
+  const diagnostics = useMemo((): WqlDiagnostics => {
+    if (rawEscape) {
+      const ast = parseQuery(controlledQuery!);
+      return {
+        valid: !ast.error,
+        wql: controlledQuery!,
+        ast,
+        error: ast.error,
+      };
+    }
+    return diagnosePills(pills);
+  }, [rawEscape, controlledQuery, pills, registeredSlots]);
 
   const callbacksRef = useRef({ onQueryChange, onValidationChange, onAstChange });
   callbacksRef.current = { onQueryChange, onValidationChange, onAstChange };
@@ -208,12 +229,17 @@ export function WqlComposer({
     };
   };
 
-  const pending = useMemo((): { kind: 'query'; pills: QueryClause[] } | { kind: 'text'; value: string } | { kind: 'invalid'; reason: string } | null => {
+  const pending = useMemo((): { kind: 'query'; pills: QueryClause[] } | { kind: 'raw'; value: string } | { kind: 'text'; value: string } | { kind: 'invalid'; reason: string } | null => {
     const raw = freeText.trim();
     if (!raw) return null;
     const restored = wqlToPills(raw);
     if (restored) return { kind: 'query', pills: restored };
     const parsed = parseQuery(raw);
+    // Valid WQL the pill model cannot express (e.g. a negated filter): the
+    // box holds the query — Enter RUNS it, never degrades it to a text search.
+    if (!parsed.error && /[:{]/.test(raw)) {
+      return { kind: 'raw', value: raw };
+    }
     // A query-shaped string the parser rejects is invalid; anything else is
     // a text search.
     if (parsed.error && /[:{]/.test(raw)) {
@@ -290,6 +316,8 @@ export function WqlComposer({
         setPills(pending.pills);
         emitIfControlled(pending.pills);
         setFreeText('');
+      } else if (pending?.kind === 'raw') {
+        onSubmit?.(pending.value);
       } else if (pending?.kind === 'text') {
         const next = [...pills, makePill('text', pending.value)];
         setPills(next);
@@ -357,6 +385,7 @@ export function WqlComposer({
           role={pending.kind === 'invalid' ? 'alert' : undefined}
         >
           {pending.kind === 'query' && '↵ Use as query'}
+          {pending.kind === 'raw' && '↵ Run query'}
           {pending.kind === 'text' && `↵ Search text: ${pending.value}`}
           {pending.kind === 'invalid' && pending.reason}
         </div>

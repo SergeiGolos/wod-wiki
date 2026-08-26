@@ -187,3 +187,30 @@ describe('pillsToAst', () => {
     }
   });
 });
+
+describe('empty-metric salvage (composer placeholder state)', () => {
+  it('restores an empty-metric aggregate with pills intact', () => {
+    const pills = wqlToPills('sum:{} where find:note{tags:pr,source:journal}');
+    expect(pills).not.toBeNull();
+    expect(pill(pills, 'agg')[0]?.value).toBe('sum');
+    expect(pill(pills, 'metric')[0]?.value).toBe('');
+    expect(pill(pills, 'where')[0]?.value).toBe('find:note{tags:pr,source:journal}');
+    // …and re-emits the placeholder state unchanged.
+    expect(pillsToWql(pills!)).toBe('sum:{} where find:note{tags:pr,source:journal}');
+  });
+
+  it('still rejects genuinely unparseable text', () => {
+    expect(wqlToPills('sum totalVolume by {week}')).toBeNull();
+  });
+});
+
+describe('non-expressible provenance states reject honestly', () => {
+  it('rejects a source: filter on block/effort targets (pill cannot carry it)', () => {
+    expect(wqlToPills('find:block{source:feeds,tags:pr}')).toBeNull();
+    expect(wqlToPills('find:effort{source:journal}')).toBeNull();
+  });
+
+  it('rejects a source: filter on rows (the source pill is the plane selector)', () => {
+    expect(wqlToPills('rows:all{source:journal,result:abc-123}')).toBeNull();
+  });
+});

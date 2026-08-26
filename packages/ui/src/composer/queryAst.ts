@@ -128,6 +128,9 @@ export function astToPills(ast: AnyParsedQuery): QueryClause[] | null {
 
   if (isRowsQuery(ast)) {
     if (ast.window?.kind === 'range') return null;
+    // The rows source pill is the plane selector — a source: filter has no
+    // pill home here, so the query is not composer-expressible.
+    if (ast.filters.some((f) => f.key === 'source')) return null;
     const filterPills: QueryClause[] = [];
     for (let i = 0; i < ast.filters.length; i++) {
       const p = filterToPill(ast.filters[i]!, i);
@@ -145,6 +148,9 @@ export function astToPills(ast: AnyParsedQuery): QueryClause[] | null {
   if (isFindQuery(ast)) {
     if (ast.window?.kind === 'range') return null;
     const sourceFilter = ast.filters.find((f) => f.key === 'source' && !f.negate);
+    // Blocks/efforts pills name the target and cannot carry provenance — a
+    // source: filter there is not composer-expressible.
+    if ((ast.target === 'block' || ast.target === 'effort') && sourceFilter) return null;
     const sourceValue =
       ast.target === 'block'
         ? 'blocks'
@@ -219,9 +225,20 @@ function windowPillValue(w: { kind: string; size?: number; unit?: string } | und
 
 /** Restore pills from WQL text — `parseQuery` owns text→AST; the projection
  * owns AST→pills. Null when the text doesn't parse or isn't
- * composer-expressible. */
+ * composer-expressible.
+ *
+ * One bounded salvage: the composer-native empty-metric aggregate
+ * (`sum:{} …`, placeholder guidance while the user picks a metric) is not
+ * parseable as text. It is probed with a placeholder metric through the real
+ * parser, projected, and the metric pill blanked back. */
 export function wqlToPills(wql: string): QueryClause[] | null {
-  return astToPills(parseQuery(wql.trim()));
+  const direct = astToPills(parseQuery(wql.trim()));
+  if (direct) return direct;
+  const probed = wql.trim().replace(/^([a-zA-Z_]\w*):(\s*\{)/, '$1:__placeholder__$2');
+  if (probed === wql.trim()) return null;
+  const salvaged = astToPills(parseQuery(probed));
+  if (!salvaged) return null;
+  return salvaged.map((p) => (p.type === 'metric' ? { ...p, value: '' } : p));
 }
 
 // ── pills → candidate text → AST ────────────────────────────────────────────
