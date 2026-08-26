@@ -5,7 +5,7 @@ import fs from 'fs';
 
 // Load .env.local overrides (gitignored, machine-local) so HTTPS_HOST is
 // available here when the playground dev server is running with TLS.
-loadDotenv({ path: resolve(__dirname, '.env.local'), override: true });
+loadDotenv({ path: resolve(import.meta.dirname, '.env.local'), override: true });
 
 const httpsHost = process.env.HTTPS_HOST;
 // Three run modes:
@@ -19,7 +19,7 @@ const httpsHost = process.env.HTTPS_HOST;
 const e2eTarget = process.env.E2E_TARGET;
 const remoteURL = process.env.E2E_APP_URL;
 const hasTailscaleCerts = fs
-  .readdirSync(__dirname)
+  .readdirSync(import.meta.dirname)
   .some((f) => f.endsWith('.ts.net.crt'));
 const previewBaseURL = hasTailscaleCerts
   ? 'https://localhost:4173'

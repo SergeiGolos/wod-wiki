@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { config as loadDotenv } from 'dotenv';
 import { resolve } from 'path';
 
-loadDotenv({ path: resolve(__dirname, '.env.local'), override: true });
+loadDotenv({ path: resolve(import.meta.dirname, '.env.local'), override: true });
 
 const httpsHost = process.env.HTTPS_HOST;
 const appBaseURL = httpsHost
