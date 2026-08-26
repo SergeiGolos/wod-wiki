@@ -104,13 +104,22 @@ queries still parsing, docs updated.
   recorded on the prototype doc (find: own family, plural source vocab,
   find:-only join halves, aggregate-only in-units); metric-store
   `454d5139`+`cd34d28d`.
-- Explorer window-emission details — consumption ticket's judgment call:
-  `?weeks=` + `QueryOptions.rangeStart` stay until the AST composer (013);
-  baking `last Nw` into submitted text breaks the wqlToClauses-routed
-  contracts (sameQuery / restoredDraft / resultIsCurrent).
+- [Composer on ASTs (C6 ui package)](tickets/013-composer-on-asts-ui-package.md) —
+  composer state is the AST (parseQuery + astToPills in, pillsToAst +
+  serializer out); clause-model exports retired from the ui surface;
+  round-trip pinned on the serializer; app hooks hold WQL strings,
+  structural edits via wqlEdits; metrics plane has a time pill (011's
+  window deferral resolved); engine `48fdcee`+`07b4ef6`+`ed28149` (0.11.0,
+  publish pending), app `55d9bf73`+`5286fba2`; suite 2436/0.
+- Explorer window-emission — resolved by 013: restore is now the real
+  parser, so windowed aggregates round-trip into the composer (metrics
+  plane time pill). The page keeps `?weeks=` chrome + `rangeStart` for its
+  dashboard-style range; a future pass may fold it into the text.
 - App-side error UX for the new parse errors — resolved: the existing
   single composer error line (`urlQueryError`, #854) carries the C2/C7
   errors unchanged; pinned by the useLibraryQueryState suite.
+## Not yet specified
+
 - C2 hard-drop timing for the legacy `in <scope>` **and bare `rows:{`**
   compatibility normalizer — a post-train minor; decidable now that the app
   consumes the train.
