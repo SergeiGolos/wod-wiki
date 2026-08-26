@@ -87,6 +87,11 @@ queries still parsing, docs updated.
   structural round-trip for all text-surface-representable ASTs (raw/advisories
   excluded by contract), errored ASTs echo raw; 400-AST property test with
   coverage guards; engine main `0942f88`+`1b9b771`.
+- [Release the language train](tickets/010-release-the-language-train.md) —
+  `@bitcobblers/*` published at 0.10.41 carrying the full wql train; RC smoke
+  caught the umbrella missing the new surface (fixed `588a0fd`+`79c6d18`,
+  guarded by reexport tests) — **republish 0.10.42 before consuming**; the 24
+  pre-existing ui failures resolved on the train (41/41 green).
 
 ## Not yet specified
 
