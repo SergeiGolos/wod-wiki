@@ -72,6 +72,11 @@ queries still parsing, docs updated.
   grammar-native rows head (no grammar change needed), synthetic `find:_`
   dead, all validation at parse, `runRows` executes only; bare form retired
   for `rows:all`; content planes execute; engine main `17ecde2`+`3c19185`.
+- [Window module everywhere (C1)](tickets/007-window-module-c1.md) —
+  `QueryWindow` on every family (`last` + `from/to` civil ranges, mutual
+  exclusion, one predicate); day/week rider landed as civil bucketing —
+  goldens updated from epoch-Thursday weeks to civil Mondays; engine main
+  `7549814`+`499a7d6`.
 
 ## Not yet specified
 
