@@ -3,7 +3,7 @@ import { join } from 'path';
 import { writeFileSync, unlinkSync, existsSync, readFileSync } from 'fs';
 import { cliMain, dialectRegistry, unregisterLanguagePack } from '../src/index';
 
-const FIXTURE_PATH = join(__dirname, '../fixtures/golden/multi-week-journal.json');
+const FIXTURE_PATH = join(__dirname, '../../wql/fixtures/corpus/crossfit-multi-week.json');
 const TEMP_SCRIPT_FILE = join(process.cwd(), 'temp-test-workout.txt');
 const TEMP_OUTPUT_FILE = join(process.cwd(), 'temp-test-out.json');
 const TEMP_PACK_FILE = join(process.cwd(), 'temp-test-pack.mjs');
@@ -139,8 +139,8 @@ describe('wod CLI runner', () => {
       expect(ir.$schema).toBe('https://wod-wiki.dev/ir/v1.json');
       expect(ir.kind).toBe('query-result');
       expect(ir.data.series.length).toBe(1);
-      // C1 rider: civil-Monday weeks — 4 full calendar weeks, not 5 epoch buckets.
-      expect(ir.data.series[0].points.length).toBe(4);
+      // crossfit-multi-week spans 6 calendar weeks
+      expect(ir.data.series[0].points.length).toBe(6);
     });
 
     it('evaluates WQL against --stdin-facts (exit code 0)', async () => {

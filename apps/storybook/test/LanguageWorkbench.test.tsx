@@ -2,10 +2,10 @@ import '@testing-library/jest-dom';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import React from 'react';
-import fixture from '../fixtures/golden/multi-week-journal.json';
+import crossfitJournal from '../../../packages/wql/fixtures/corpus/crossfit-multi-week.json';
 import {
   QueryService,
-  inMemoryFactStore,
+  inMemoryEventStore,
   createParser,
   getHints,
   hintsToContainer,
@@ -78,16 +78,16 @@ describe('LanguageWorkbench in apps/storybook', () => {
     dialectRegistry.unregister(DEMO_PACK_ID);
   });
 
-  it('loads the golden fixture catalog with 40 data points', () => {
-    expect(fixture.kind).toBe('fact-set');
-    expect(fixture.data).toHaveLength(40);
+  it('loads the crossfit corpus journal with 60 records', () => {
+    expect(crossfitJournal.kind).toBe('event-journal');
+    expect(crossfitJournal.records).toHaveLength(60);
   });
 
-  it('evaluates WQL queries against inMemoryFactStore in real time', async () => {
-    const store = inMemoryFactStore(fixture.data as never[]);
+  it('evaluates WQL queries against inMemoryEventStore in real time', async () => {
+    const store = inMemoryEventStore(crossfitJournal.records as any);
     const service = new QueryService(store);
 
-    const newest = Math.max(...fixture.data.map((f) => f.timestamp));
+    const newest = Math.max(...crossfitJournal.records.map((f) => f.timestamp));
     const result = await service.runQuery('sum:totalVolume{} by {week}', {
       rangeEnd: newest,
       preferredUnit: 'lb',
@@ -95,11 +95,11 @@ describe('LanguageWorkbench in apps/storybook', () => {
 
     expect(result.series).toBeDefined();
     expect(result.series.length).toBeGreaterThan(0);
-    // 4+ weeks of volume facts
+    // 6 weeks of volume facts
     const totalVolumePoints = result.series[0].points;
-    expect(totalVolumePoints.length).toBeGreaterThanOrEqual(4);
+    expect(totalVolumePoints.length).toBe(6);
     const sumTotal = totalVolumePoints.reduce((acc, p) => acc + p.value, 0);
-    expect(sumTotal).toBeGreaterThan(10000);
+    expect(sumTotal).toBeGreaterThan(50000);
   });
 
   it('parses Whiteboard Script and extracts hints', () => {

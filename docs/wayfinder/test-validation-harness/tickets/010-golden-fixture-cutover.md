@@ -1,9 +1,20 @@
 ---
-state: open
+state: closed 2026-08-26
+assignee: serge # claimed 2026-08-26
 labels: [wayfinder:task]
 title: "Golden fixture cutover"
 blocked-by: ["005-seed-fake-data-corpus"]
 ---
+
+## Resolution
+
+Golden fixture absorbed cleanly:
+- Engine CLI loader (`packages/engine/src/cli/query.ts`) accepts `kind: "event-journal"` payloads with `eventRecords` stream and throws loud descriptive error on unrecognized envelope kinds.
+- `packages/engine/tests/parity.test.ts` and `cli.test.ts` migrated to `crossfit-multi-week.json` with an inline pin for legacy fact-set ingestion.
+- Storybook `LanguageWorkbench.stories.tsx` and `test/LanguageWorkbench.test.tsx` migrated to `crossfit-multi-week.json` via `inMemoryEventStore(records)` and `NoteQueryStore`.
+- Deleted both byte-duplicated copies of `multi-week-journal.json` in `packages/engine/fixtures/golden/` and `apps/storybook/fixtures/golden/`.
+
+Verification: `build:packages` and `build:storybook` clean; full test suites pass; zero source/test references to `multi-week-journal` remain.
 
 ## Question
 

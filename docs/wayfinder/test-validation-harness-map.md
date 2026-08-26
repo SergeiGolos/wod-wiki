@@ -103,6 +103,11 @@ existing `bun run test` / storybook flows.
   memory map, streaming output logs); effect-owned `RuntimeFactory` +
   `ScriptRuntimeProvider` + `useRuntimeExecution` wall-clock; `test:storybook`
   passes.
+- [Golden fixture cutover](test-validation-harness/tickets/010-golden-fixture-cutover.md) —
+  absorbed legacy golden into `crossfit-multi-week.json`; engine CLI loader
+  accepts `event-journal` payloads with loud errors on unknown shapes;
+  parity tests, CLI tests, and storybook workbench migrated; both golden
+  copies deleted. **Map complete — 10/10 tickets resolved.**
 
 ## Not yet specified
 

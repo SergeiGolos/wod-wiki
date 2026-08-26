@@ -18,14 +18,15 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
-import fixture from '../fixtures/golden/multi-week-journal.json';
+import crossfitJournal from '../../../packages/wql/fixtures/corpus/crossfit-multi-week.json';
 import {
   QueryService,
   parseQuery,
   isFindQuery,
   isRowsQuery,
   type QueryResult,
-  inMemoryFactStore,
+  inMemoryEventStore,
+  type NoteQueryStore,
   createParser,
   getHints,
   hintsToContainer,
@@ -644,10 +645,16 @@ export function LanguageWorkbench() {
 
   const execution = useRuntimeExecution(runtime);
 
-  const service = useMemo(
-    () => new QueryService(inMemoryFactStore(fixture.data as never[])),
-    [],
-  );
+  const service = useMemo(() => {
+    const noteStore: NoteQueryStore = {
+      getAllNotes: async () => crossfitJournal.notes as unknown as Note[],
+      getNoteIdsForTag: async (tag: string) =>
+        new Set(crossfitJournal.notes.filter((n) => n.tags?.includes(tag)).map((n) => n.id)),
+      getNoteTagLabels: async (id: string) =>
+        crossfitJournal.notes.find((n) => n.id === id)?.tags ?? [],
+    };
+    return new QueryService(inMemoryEventStore(crossfitJournal.records as unknown as UnifiedEventRecord[]), noteStore);
+  }, []);
 
   // WQL lane: re-run the query (debounced) as the editor changes.
   useEffect(() => {
@@ -662,9 +669,8 @@ export function LanguageWorkbench() {
           setQueryError('Workbench lane runs aggregate queries — find/rows families stay on their own surfaces.');
           return;
         }
-        const newest = Math.max(...fixture.data.map((f) => f.timestamp));
+        const newest = Math.max(...crossfitJournal.records.map((r) => r.timestamp));
         const r = await service.run(parsed, { rangeEnd: newest, preferredUnit: 'lb' });
-        setResult(r);
         setQueryError(undefined);
       } catch (e) {
         setQueryError(e instanceof Error ? e.message : String(e));
