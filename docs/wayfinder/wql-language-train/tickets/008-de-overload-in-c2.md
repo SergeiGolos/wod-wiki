@@ -1,5 +1,6 @@
 ---
 state: open
+assignee: serge # claimed 2026-08-25
 labels: [wayfinder:task]
 title: "De-overload in with compat (C2)"
 blocked-by: ["007-window-module-c1"]
