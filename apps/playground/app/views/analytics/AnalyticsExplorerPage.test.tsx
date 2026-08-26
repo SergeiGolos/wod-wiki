@@ -367,6 +367,8 @@ describe('AnalyticsExplorerPage', () => {
     fireEvent.click(purgeButton);
 
     await waitFor(() => expect(screen.queryByText('Sample data loaded')).toBeNull());
-    expect(runQueryCalls.length).toBeGreaterThan(callsBeforePurge);
+    // Banner removal and the query re-run are separate async chains; wait on
+    // the re-run itself so a slow scheduler can't lose the race.
+    await waitFor(() => expect(runQueryCalls.length).toBeGreaterThan(callsBeforePurge));
   });
 });
