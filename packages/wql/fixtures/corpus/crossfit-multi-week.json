@@ -1,0 +1,1709 @@
+{
+  "$schema": "https://wod-wiki.dev/corpus/v1.json",
+  "kind": "event-journal",
+  "id": "crossfit-multi-week",
+  "title": "CrossFit multi-week block",
+  "description": "6 weeks \u00d7 Fran / Simple & Sinister / bodyweight chipper \u2014 aggregates, by-dimensions, .rollup windows.",
+  "notes": [
+    {
+      "id": "note-journal-2026-06-01",
+      "title": "WOD \u2014 Fran",
+      "createdAt": 1780315200000,
+      "tags": [
+        "crossfit",
+        "girl-wods",
+        "benchmark"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-03",
+      "title": "Strength \u2014 Simple & Sinister",
+      "createdAt": 1780488000000,
+      "tags": [
+        "crossfit",
+        "kettlebell"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-06",
+      "title": "Metcon \u2014 bodyweight chipper",
+      "createdAt": 1780747200000,
+      "tags": [
+        "crossfit",
+        "bodyweight"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-08",
+      "title": "WOD \u2014 Fran",
+      "createdAt": 1780920000000,
+      "tags": [
+        "crossfit",
+        "girl-wods",
+        "benchmark"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-10",
+      "title": "Strength \u2014 Simple & Sinister",
+      "createdAt": 1781092800000,
+      "tags": [
+        "crossfit",
+        "kettlebell"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-13",
+      "title": "Metcon \u2014 bodyweight chipper",
+      "createdAt": 1781352000000,
+      "tags": [
+        "crossfit",
+        "bodyweight"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-15",
+      "title": "WOD \u2014 Fran",
+      "createdAt": 1781524800000,
+      "tags": [
+        "crossfit",
+        "girl-wods",
+        "benchmark"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-17",
+      "title": "Strength \u2014 Simple & Sinister",
+      "createdAt": 1781697600000,
+      "tags": [
+        "crossfit",
+        "kettlebell"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-20",
+      "title": "Metcon \u2014 bodyweight chipper",
+      "createdAt": 1781956800000,
+      "tags": [
+        "crossfit",
+        "bodyweight"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-22",
+      "title": "WOD \u2014 Fran",
+      "createdAt": 1782129600000,
+      "tags": [
+        "crossfit",
+        "girl-wods",
+        "benchmark"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-24",
+      "title": "Strength \u2014 Simple & Sinister",
+      "createdAt": 1782302400000,
+      "tags": [
+        "crossfit",
+        "kettlebell"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-27",
+      "title": "Metcon \u2014 bodyweight chipper",
+      "createdAt": 1782561600000,
+      "tags": [
+        "crossfit",
+        "bodyweight"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-29",
+      "title": "WOD \u2014 Fran",
+      "createdAt": 1782734400000,
+      "tags": [
+        "crossfit",
+        "girl-wods",
+        "benchmark"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-31",
+      "title": "Strength \u2014 Simple & Sinister",
+      "createdAt": 1782907200000,
+      "tags": [
+        "crossfit",
+        "kettlebell"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-34",
+      "title": "Metcon \u2014 bodyweight chipper",
+      "createdAt": 1783166400000,
+      "tags": [
+        "crossfit",
+        "bodyweight"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-36",
+      "title": "WOD \u2014 Fran",
+      "createdAt": 1783339200000,
+      "tags": [
+        "crossfit",
+        "girl-wods",
+        "benchmark"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-38",
+      "title": "Strength \u2014 Simple & Sinister",
+      "createdAt": 1783512000000,
+      "tags": [
+        "crossfit",
+        "kettlebell"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-41",
+      "title": "Metcon \u2014 bodyweight chipper",
+      "createdAt": 1783771200000,
+      "tags": [
+        "crossfit",
+        "bodyweight"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "id": "res-fran-w0:summary:totalVolume",
+      "resultId": "res-fran-w0",
+      "noteId": "note-journal-2026-06-01",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1780315200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 2790,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w0:summary:tis",
+      "resultId": "res-fran-w0",
+      "noteId": "note-journal-2026-06-01",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1780315200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 46,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w0:summary:sessionLoad",
+      "resultId": "res-fran-w0",
+      "noteId": "note-journal-2026-06-01",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1780315200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 210,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w0:summary:totalVolume",
+      "resultId": "res-ss-w0",
+      "noteId": "note-journal-2026-06-03",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1780488000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 5400,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w0:summary:tis",
+      "resultId": "res-ss-w0",
+      "noteId": "note-journal-2026-06-03",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1780488000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 52,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w0:summary:sessionLoad",
+      "resultId": "res-ss-w0",
+      "noteId": "note-journal-2026-06-03",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1780488000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 260,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w0:summary:totalVolume",
+      "resultId": "res-chip-w0",
+      "noteId": "note-journal-2026-06-06",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1780747200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 360,
+          "unit": "rep",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w0:summary:tis",
+      "resultId": "res-chip-w0",
+      "noteId": "note-journal-2026-06-06",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1780747200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 38,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w0:summary:sessionLoad",
+      "resultId": "res-chip-w0",
+      "noteId": "note-journal-2026-06-06",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1780747200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 150,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w1:summary:totalVolume",
+      "resultId": "res-fran-w1",
+      "noteId": "note-journal-2026-06-08",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1780920000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 2850,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w1:summary:tis",
+      "resultId": "res-fran-w1",
+      "noteId": "note-journal-2026-06-08",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1780920000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 47.5,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w1:summary:sessionLoad",
+      "resultId": "res-fran-w1",
+      "noteId": "note-journal-2026-06-08",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1780920000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 218,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w1:summary:totalVolume",
+      "resultId": "res-ss-w1",
+      "noteId": "note-journal-2026-06-10",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1781092800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 5490,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w1:summary:tis",
+      "resultId": "res-ss-w1",
+      "noteId": "note-journal-2026-06-10",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1781092800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 54,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w1:summary:sessionLoad",
+      "resultId": "res-ss-w1",
+      "noteId": "note-journal-2026-06-10",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1781092800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 270,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w1:summary:totalVolume",
+      "resultId": "res-chip-w1",
+      "noteId": "note-journal-2026-06-13",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1781352000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 375,
+          "unit": "rep",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w1:summary:tis",
+      "resultId": "res-chip-w1",
+      "noteId": "note-journal-2026-06-13",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1781352000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 39,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w1:summary:sessionLoad",
+      "resultId": "res-chip-w1",
+      "noteId": "note-journal-2026-06-13",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1781352000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 156,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w2:summary:totalVolume",
+      "resultId": "res-fran-w2",
+      "noteId": "note-journal-2026-06-15",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1781524800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 2910,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w2:summary:tis",
+      "resultId": "res-fran-w2",
+      "noteId": "note-journal-2026-06-15",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1781524800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 49,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w2:summary:sessionLoad",
+      "resultId": "res-fran-w2",
+      "noteId": "note-journal-2026-06-15",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1781524800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 226,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w2:summary:totalVolume",
+      "resultId": "res-ss-w2",
+      "noteId": "note-journal-2026-06-17",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1781697600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 5580,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w2:summary:tis",
+      "resultId": "res-ss-w2",
+      "noteId": "note-journal-2026-06-17",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1781697600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 56,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w2:summary:sessionLoad",
+      "resultId": "res-ss-w2",
+      "noteId": "note-journal-2026-06-17",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1781697600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 280,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w2:summary:totalVolume",
+      "resultId": "res-chip-w2",
+      "noteId": "note-journal-2026-06-20",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1781956800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 390,
+          "unit": "rep",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w2:summary:tis",
+      "resultId": "res-chip-w2",
+      "noteId": "note-journal-2026-06-20",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1781956800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 40,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w2:summary:sessionLoad",
+      "resultId": "res-chip-w2",
+      "noteId": "note-journal-2026-06-20",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1781956800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 162,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w3:summary:totalVolume",
+      "resultId": "res-fran-w3",
+      "noteId": "note-journal-2026-06-22",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1782129600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 2970,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w3:summary:tis",
+      "resultId": "res-fran-w3",
+      "noteId": "note-journal-2026-06-22",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1782129600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 50.5,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w3:summary:sessionLoad",
+      "resultId": "res-fran-w3",
+      "noteId": "note-journal-2026-06-22",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1782129600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 234,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w3:summary:totalVolume",
+      "resultId": "res-ss-w3",
+      "noteId": "note-journal-2026-06-24",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1782302400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 5670,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w3:summary:tis",
+      "resultId": "res-ss-w3",
+      "noteId": "note-journal-2026-06-24",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1782302400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 58,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w3:summary:sessionLoad",
+      "resultId": "res-ss-w3",
+      "noteId": "note-journal-2026-06-24",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1782302400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 290,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w3:summary:totalVolume",
+      "resultId": "res-chip-w3",
+      "noteId": "note-journal-2026-06-27",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1782561600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 405,
+          "unit": "rep",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w3:summary:tis",
+      "resultId": "res-chip-w3",
+      "noteId": "note-journal-2026-06-27",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1782561600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 41,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w3:summary:sessionLoad",
+      "resultId": "res-chip-w3",
+      "noteId": "note-journal-2026-06-27",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1782561600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 168,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w4:summary:totalVolume",
+      "resultId": "res-fran-w4",
+      "noteId": "note-journal-2026-06-29",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1782734400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 3030,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w4:summary:tis",
+      "resultId": "res-fran-w4",
+      "noteId": "note-journal-2026-06-29",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1782734400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 52,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w4:summary:sessionLoad",
+      "resultId": "res-fran-w4",
+      "noteId": "note-journal-2026-06-29",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1782734400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 242,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w4:summary:totalVolume",
+      "resultId": "res-ss-w4",
+      "noteId": "note-journal-2026-06-31",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1782907200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 5760,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w4:summary:tis",
+      "resultId": "res-ss-w4",
+      "noteId": "note-journal-2026-06-31",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1782907200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 60,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w4:summary:sessionLoad",
+      "resultId": "res-ss-w4",
+      "noteId": "note-journal-2026-06-31",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1782907200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 300,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w4:summary:totalVolume",
+      "resultId": "res-chip-w4",
+      "noteId": "note-journal-2026-06-34",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1783166400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 420,
+          "unit": "rep",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w4:summary:tis",
+      "resultId": "res-chip-w4",
+      "noteId": "note-journal-2026-06-34",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1783166400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 42,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w4:summary:sessionLoad",
+      "resultId": "res-chip-w4",
+      "noteId": "note-journal-2026-06-34",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1783166400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 174,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w5:summary:totalVolume",
+      "resultId": "res-fran-w5",
+      "noteId": "note-journal-2026-06-36",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1783339200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 3090,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w5:summary:tis",
+      "resultId": "res-fran-w5",
+      "noteId": "note-journal-2026-06-36",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1783339200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 53.5,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w5:summary:sessionLoad",
+      "resultId": "res-fran-w5",
+      "noteId": "note-journal-2026-06-36",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1783339200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "fran",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 250,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "fran",
+            "effortDiscipline": "gymnastics",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w5:summary:totalVolume",
+      "resultId": "res-ss-w5",
+      "noteId": "note-journal-2026-06-38",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1783512000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 5850,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w5:summary:tis",
+      "resultId": "res-ss-w5",
+      "noteId": "note-journal-2026-06-38",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1783512000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 62,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-ss-w5:summary:sessionLoad",
+      "resultId": "res-ss-w5",
+      "noteId": "note-journal-2026-06-38",
+      "blockContentId": "blk-simple-sinister",
+      "origin": "journal",
+      "timestamp": 1783512000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "simple-sinister",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 310,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "simple-sinister",
+            "effortDiscipline": "kettlebell",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w5:summary:totalVolume",
+      "resultId": "res-chip-w5",
+      "noteId": "note-journal-2026-06-41",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1783771200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 435,
+          "unit": "rep",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w5:summary:tis",
+      "resultId": "res-chip-w5",
+      "noteId": "note-journal-2026-06-41",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1783771200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 43,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w5:summary:sessionLoad",
+      "resultId": "res-chip-w5",
+      "noteId": "note-journal-2026-06-41",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1783771200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 180,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w5:1",
+      "resultId": "res-fran-w5",
+      "noteId": "note-journal-2026-06-36",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1783340928000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-fran#1",
+      "metrics": [
+        {
+          "type": "rep",
+          "value": 21,
+          "unit": "thruster"
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w5:2",
+      "resultId": "res-fran-w5",
+      "noteId": "note-journal-2026-06-36",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1783340988000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-fran#2",
+      "metrics": [
+        {
+          "type": "rep",
+          "value": 21,
+          "unit": "pull-up"
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w5:3",
+      "resultId": "res-fran-w5",
+      "noteId": "note-journal-2026-06-36",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1783341048000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-fran#3",
+      "metrics": [
+        {
+          "type": "rep",
+          "value": 15,
+          "unit": "thruster"
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w5:4",
+      "resultId": "res-fran-w5",
+      "noteId": "note-journal-2026-06-36",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1783341108000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-fran#4",
+      "metrics": [
+        {
+          "type": "rep",
+          "value": 15,
+          "unit": "pull-up"
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w5:5",
+      "resultId": "res-fran-w5",
+      "noteId": "note-journal-2026-06-36",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1783341168000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-fran#5",
+      "metrics": [
+        {
+          "type": "rep",
+          "value": 9,
+          "unit": "thruster"
+        }
+      ]
+    },
+    {
+      "id": "res-fran-w5:6",
+      "resultId": "res-fran-w5",
+      "noteId": "note-journal-2026-06-36",
+      "blockContentId": "blk-fran",
+      "origin": "journal",
+      "timestamp": 1783341228000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-fran#6",
+      "metrics": [
+        {
+          "type": "rep",
+          "value": 9,
+          "unit": "pull-up"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,984 @@
+{
+  "$schema": "https://wod-wiki.dev/corpus/v1.json",
+  "kind": "event-journal",
+  "id": "climb-yoga",
+  "title": "Climb + yoga + swim",
+  "description": "5 weeks × boulder / vinyasa / swim — climb + yoga disciplines, recovery tags, edge metric shapes.",
+  "notes": [
+    {
+      "id": "note-journal-2026-06-04",
+      "title": "Climb — boulder session",
+      "createdAt": 1780574400000,
+      "tags": [
+        "climb",
+        "benchmark"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-07",
+      "title": "Yoga — vinyasa flow",
+      "createdAt": 1780833600000,
+      "tags": [
+        "yoga",
+        "recovery"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-06",
+      "title": "Swim — drill focus",
+      "createdAt": 1780747200000,
+      "tags": [
+        "swimming"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-11",
+      "title": "Climb — boulder session",
+      "createdAt": 1781179200000,
+      "tags": [
+        "climb",
+        "benchmark"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-14",
+      "title": "Yoga — vinyasa flow",
+      "createdAt": 1781438400000,
+      "tags": [
+        "yoga",
+        "recovery"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-13",
+      "title": "Swim — drill focus",
+      "createdAt": 1781352000000,
+      "tags": [
+        "swimming"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-18",
+      "title": "Climb — boulder session",
+      "createdAt": 1781784000000,
+      "tags": [
+        "climb",
+        "benchmark"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-21",
+      "title": "Yoga — vinyasa flow",
+      "createdAt": 1782043200000,
+      "tags": [
+        "yoga",
+        "recovery"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-20",
+      "title": "Swim — drill focus",
+      "createdAt": 1781956800000,
+      "tags": [
+        "swimming"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-25",
+      "title": "Climb — boulder session",
+      "createdAt": 1782388800000,
+      "tags": [
+        "climb",
+        "benchmark"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-28",
+      "title": "Yoga — vinyasa flow",
+      "createdAt": 1782648000000,
+      "tags": [
+        "yoga",
+        "recovery"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-27",
+      "title": "Swim — drill focus",
+      "createdAt": 1782561600000,
+      "tags": [
+        "swimming"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-32",
+      "title": "Climb — boulder session",
+      "createdAt": 1782993600000,
+      "tags": [
+        "climb",
+        "benchmark"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-35",
+      "title": "Yoga — vinyasa flow",
+      "createdAt": 1783252800000,
+      "tags": [
+        "yoga",
+        "recovery"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-34",
+      "title": "Swim — drill focus",
+      "createdAt": 1783166400000,
+      "tags": [
+        "swimming"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "id": "res-boulder-w0:summary:tis",
+      "resultId": "res-boulder-w0",
+      "noteId": "note-journal-2026-06-04",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1780574400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "boulder-session",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 30,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "boulder-session",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w0:summary:sessionLoad",
+      "resultId": "res-boulder-w0",
+      "noteId": "note-journal-2026-06-04",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1780574400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "boulder-session",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 120,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "boulder-session",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-yoga-w0:summary:tis",
+      "resultId": "res-yoga-w0",
+      "noteId": "note-journal-2026-06-07",
+      "blockContentId": "blk-vinyasa",
+      "origin": "journal",
+      "timestamp": 1780833600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "vinyasa-flow",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 20,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "vinyasa-flow",
+            "effortDiscipline": "recovery",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-yoga-w0:summary:sessionLoad",
+      "resultId": "res-yoga-w0",
+      "noteId": "note-journal-2026-06-07",
+      "blockContentId": "blk-vinyasa",
+      "origin": "journal",
+      "timestamp": 1780833600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "vinyasa-flow",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 60,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "vinyasa-flow",
+            "effortDiscipline": "recovery",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-swim-w0:summary:distance",
+      "resultId": "res-swim-w0",
+      "noteId": "note-journal-2026-06-06",
+      "blockContentId": "blk-swim-drill",
+      "origin": "journal",
+      "timestamp": 1780747200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "swim-drill",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 1500,
+          "unit": "m",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "swim-drill",
+            "effortDiscipline": "swimming",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-swim-w0:summary:tis",
+      "resultId": "res-swim-w0",
+      "noteId": "note-journal-2026-06-06",
+      "blockContentId": "blk-swim-drill",
+      "origin": "journal",
+      "timestamp": 1780747200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "swim-drill",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 35,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "swim-drill",
+            "effortDiscipline": "swimming",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w1:summary:tis",
+      "resultId": "res-boulder-w1",
+      "noteId": "note-journal-2026-06-11",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1781179200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "boulder-session",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 31,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "boulder-session",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w1:summary:sessionLoad",
+      "resultId": "res-boulder-w1",
+      "noteId": "note-journal-2026-06-11",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1781179200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "boulder-session",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 125,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "boulder-session",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-yoga-w1:summary:tis",
+      "resultId": "res-yoga-w1",
+      "noteId": "note-journal-2026-06-14",
+      "blockContentId": "blk-vinyasa",
+      "origin": "journal",
+      "timestamp": 1781438400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "vinyasa-flow",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 20.5,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "vinyasa-flow",
+            "effortDiscipline": "recovery",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-yoga-w1:summary:sessionLoad",
+      "resultId": "res-yoga-w1",
+      "noteId": "note-journal-2026-06-14",
+      "blockContentId": "blk-vinyasa",
+      "origin": "journal",
+      "timestamp": 1781438400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "vinyasa-flow",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 62,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "vinyasa-flow",
+            "effortDiscipline": "recovery",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-swim-w1:summary:distance",
+      "resultId": "res-swim-w1",
+      "noteId": "note-journal-2026-06-13",
+      "blockContentId": "blk-swim-drill",
+      "origin": "journal",
+      "timestamp": 1781352000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "swim-drill",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 1550,
+          "unit": "m",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "swim-drill",
+            "effortDiscipline": "swimming",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-swim-w1:summary:tis",
+      "resultId": "res-swim-w1",
+      "noteId": "note-journal-2026-06-13",
+      "blockContentId": "blk-swim-drill",
+      "origin": "journal",
+      "timestamp": 1781352000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "swim-drill",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 36,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "swim-drill",
+            "effortDiscipline": "swimming",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w2:summary:tis",
+      "resultId": "res-boulder-w2",
+      "noteId": "note-journal-2026-06-18",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1781784000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "boulder-session",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 32,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "boulder-session",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w2:summary:sessionLoad",
+      "resultId": "res-boulder-w2",
+      "noteId": "note-journal-2026-06-18",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1781784000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "boulder-session",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 130,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "boulder-session",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-yoga-w2:summary:tis",
+      "resultId": "res-yoga-w2",
+      "noteId": "note-journal-2026-06-21",
+      "blockContentId": "blk-vinyasa",
+      "origin": "journal",
+      "timestamp": 1782043200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "vinyasa-flow",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 21,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "vinyasa-flow",
+            "effortDiscipline": "recovery",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-yoga-w2:summary:sessionLoad",
+      "resultId": "res-yoga-w2",
+      "noteId": "note-journal-2026-06-21",
+      "blockContentId": "blk-vinyasa",
+      "origin": "journal",
+      "timestamp": 1782043200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "vinyasa-flow",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 64,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "vinyasa-flow",
+            "effortDiscipline": "recovery",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-swim-w2:summary:distance",
+      "resultId": "res-swim-w2",
+      "noteId": "note-journal-2026-06-20",
+      "blockContentId": "blk-swim-drill",
+      "origin": "journal",
+      "timestamp": 1781956800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "swim-drill",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 1600,
+          "unit": "m",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "swim-drill",
+            "effortDiscipline": "swimming",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-swim-w2:summary:tis",
+      "resultId": "res-swim-w2",
+      "noteId": "note-journal-2026-06-20",
+      "blockContentId": "blk-swim-drill",
+      "origin": "journal",
+      "timestamp": 1781956800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "swim-drill",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 37,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "swim-drill",
+            "effortDiscipline": "swimming",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w3:summary:tis",
+      "resultId": "res-boulder-w3",
+      "noteId": "note-journal-2026-06-25",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782388800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "boulder-session",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 33,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "boulder-session",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w3:summary:sessionLoad",
+      "resultId": "res-boulder-w3",
+      "noteId": "note-journal-2026-06-25",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782388800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "boulder-session",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 135,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "boulder-session",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-yoga-w3:summary:tis",
+      "resultId": "res-yoga-w3",
+      "noteId": "note-journal-2026-06-28",
+      "blockContentId": "blk-vinyasa",
+      "origin": "journal",
+      "timestamp": 1782648000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "vinyasa-flow",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 21.5,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "vinyasa-flow",
+            "effortDiscipline": "recovery",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-yoga-w3:summary:sessionLoad",
+      "resultId": "res-yoga-w3",
+      "noteId": "note-journal-2026-06-28",
+      "blockContentId": "blk-vinyasa",
+      "origin": "journal",
+      "timestamp": 1782648000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "vinyasa-flow",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 66,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "vinyasa-flow",
+            "effortDiscipline": "recovery",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-swim-w3:summary:distance",
+      "resultId": "res-swim-w3",
+      "noteId": "note-journal-2026-06-27",
+      "blockContentId": "blk-swim-drill",
+      "origin": "journal",
+      "timestamp": 1782561600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "swim-drill",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 1650,
+          "unit": "m",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "swim-drill",
+            "effortDiscipline": "swimming",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-swim-w3:summary:tis",
+      "resultId": "res-swim-w3",
+      "noteId": "note-journal-2026-06-27",
+      "blockContentId": "blk-swim-drill",
+      "origin": "journal",
+      "timestamp": 1782561600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "swim-drill",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 38,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "swim-drill",
+            "effortDiscipline": "swimming",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w4:summary:tis",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782993600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "boulder-session",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 34,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "boulder-session",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w4:summary:sessionLoad",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782993600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "boulder-session",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 140,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "boulder-session",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-yoga-w4:summary:tis",
+      "resultId": "res-yoga-w4",
+      "noteId": "note-journal-2026-06-35",
+      "blockContentId": "blk-vinyasa",
+      "origin": "journal",
+      "timestamp": 1783252800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "vinyasa-flow",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 22,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "vinyasa-flow",
+            "effortDiscipline": "recovery",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-yoga-w4:summary:sessionLoad",
+      "resultId": "res-yoga-w4",
+      "noteId": "note-journal-2026-06-35",
+      "blockContentId": "blk-vinyasa",
+      "origin": "journal",
+      "timestamp": 1783252800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "vinyasa-flow",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 68,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "vinyasa-flow",
+            "effortDiscipline": "recovery",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-swim-w4:summary:distance",
+      "resultId": "res-swim-w4",
+      "noteId": "note-journal-2026-06-34",
+      "blockContentId": "blk-swim-drill",
+      "origin": "journal",
+      "timestamp": 1783166400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "swim-drill",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 1700,
+          "unit": "m",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "swim-drill",
+            "effortDiscipline": "swimming",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-swim-w4:summary:tis",
+      "resultId": "res-swim-w4",
+      "noteId": "note-journal-2026-06-34",
+      "blockContentId": "blk-swim-drill",
+      "origin": "journal",
+      "timestamp": 1783166400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "swim-drill",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 39,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "swim-drill",
+            "effortDiscipline": "swimming",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w4:1",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782995328000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-boulder#1",
+      "metrics": [
+        {
+          "type": "rep",
+          "value": 1,
+          "unit": "problem"
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w4:2",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782995328000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-boulder#2",
+      "metrics": [
+        {
+          "type": "rep",
+          "value": 1,
+          "unit": "problem"
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w4:3",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782995328000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-boulder#3",
+      "metrics": [
+        {
+          "type": "rep",
+          "value": 1,
+          "unit": "problem"
+        }
+      ]
+    }
+  ]
+}

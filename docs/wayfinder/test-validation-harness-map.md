@@ -76,6 +76,11 @@ existing `bun run test` / storybook flows.
   parser) + glob-discovery driver `tests/parserFixtures.test.ts`; catalog
   3 → 10 fixtures; spec v1.1 adds quoted tail values + `?` undefined
   literal; full root suite green, wrong expectations fail readable.
+- [Seed the fake-data corpus](test-validation-harness/tickets/005-seed-fake-data-corpus.md) —
+  landed: four journals under `packages/wql/fixtures/corpus/` (crossfit,
+  endurance, mixed-wellness, climb-yoga — 166 records, 61 notes, all 10
+  disciplines); loader helper `tests/harness/corpus.ts`; 27 invariant and
+  smoke tests in `tests/corpus.test.ts`.
 
 ## Not yet specified
 

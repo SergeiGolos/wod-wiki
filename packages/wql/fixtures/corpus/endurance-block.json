@@ -1,0 +1,1619 @@
+{
+  "$schema": "https://wod-wiki.dev/corpus/v1.json",
+  "kind": "event-journal",
+  "id": "endurance-block",
+  "title": "Endurance block",
+  "description": "6 weeks × run intervals / row steady / bike tempo — distance+pace keys, week buckets, discipline filters.",
+  "notes": [
+    {
+      "id": "note-journal-2026-06-02",
+      "title": "Run — 400m intervals",
+      "createdAt": 1780401600000,
+      "tags": [
+        "endurance",
+        "running"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-04",
+      "title": "Row — steady state",
+      "createdAt": 1780574400000,
+      "tags": [
+        "endurance",
+        "rowing"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-07",
+      "title": "Bike — tempo",
+      "createdAt": 1780833600000,
+      "tags": [
+        "endurance",
+        "cycling"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-09",
+      "title": "Run — 400m intervals",
+      "createdAt": 1781006400000,
+      "tags": [
+        "endurance",
+        "running"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-11",
+      "title": "Row — steady state",
+      "createdAt": 1781179200000,
+      "tags": [
+        "endurance",
+        "rowing"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-14",
+      "title": "Bike — tempo",
+      "createdAt": 1781438400000,
+      "tags": [
+        "endurance",
+        "cycling"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-16",
+      "title": "Run — 400m intervals",
+      "createdAt": 1781611200000,
+      "tags": [
+        "endurance",
+        "running"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-18",
+      "title": "Row — steady state",
+      "createdAt": 1781784000000,
+      "tags": [
+        "endurance",
+        "rowing"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-21",
+      "title": "Bike — tempo",
+      "createdAt": 1782043200000,
+      "tags": [
+        "endurance",
+        "cycling"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-23",
+      "title": "Run — 400m intervals",
+      "createdAt": 1782216000000,
+      "tags": [
+        "endurance",
+        "running"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-25",
+      "title": "Row — steady state",
+      "createdAt": 1782388800000,
+      "tags": [
+        "endurance",
+        "rowing"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-28",
+      "title": "Bike — tempo",
+      "createdAt": 1782648000000,
+      "tags": [
+        "endurance",
+        "cycling"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-30",
+      "title": "Run — 400m intervals",
+      "createdAt": 1782820800000,
+      "tags": [
+        "endurance",
+        "running"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-32",
+      "title": "Row — steady state",
+      "createdAt": 1782993600000,
+      "tags": [
+        "endurance",
+        "rowing"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-35",
+      "title": "Bike — tempo",
+      "createdAt": 1783252800000,
+      "tags": [
+        "endurance",
+        "cycling"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-37",
+      "title": "Run — 400m intervals",
+      "createdAt": 1783425600000,
+      "tags": [
+        "endurance",
+        "running"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-39",
+      "title": "Row — steady state",
+      "createdAt": 1783598400000,
+      "tags": [
+        "endurance",
+        "rowing"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-42",
+      "title": "Bike — tempo",
+      "createdAt": 1783857600000,
+      "tags": [
+        "endurance",
+        "cycling"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "id": "res-run-w0:summary:distance",
+      "resultId": "res-run-w0",
+      "noteId": "note-journal-2026-06-02",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1780401600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 8,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w0:summary:tis",
+      "resultId": "res-run-w0",
+      "noteId": "note-journal-2026-06-02",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1780401600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 44,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w0:summary:sessionLoad",
+      "resultId": "res-run-w0",
+      "noteId": "note-journal-2026-06-02",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1780401600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 190,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w0:summary:distance",
+      "resultId": "res-row-w0",
+      "noteId": "note-journal-2026-06-04",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1780574400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 6000,
+          "unit": "m",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w0:summary:tis",
+      "resultId": "res-row-w0",
+      "noteId": "note-journal-2026-06-04",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1780574400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 40,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w0:summary:sessionLoad",
+      "resultId": "res-row-w0",
+      "noteId": "note-journal-2026-06-04",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1780574400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 170,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w0:summary:distance",
+      "resultId": "res-bike-w0",
+      "noteId": "note-journal-2026-06-07",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1780833600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 28,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w0:summary:tis",
+      "resultId": "res-bike-w0",
+      "noteId": "note-journal-2026-06-07",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1780833600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 42,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w0:summary:sessionLoad",
+      "resultId": "res-bike-w0",
+      "noteId": "note-journal-2026-06-07",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1780833600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 200,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w1:summary:distance",
+      "resultId": "res-run-w1",
+      "noteId": "note-journal-2026-06-09",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1781006400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 8.4,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w1:summary:tis",
+      "resultId": "res-run-w1",
+      "noteId": "note-journal-2026-06-09",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1781006400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 45,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w1:summary:sessionLoad",
+      "resultId": "res-run-w1",
+      "noteId": "note-journal-2026-06-09",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1781006400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 197,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w1:summary:distance",
+      "resultId": "res-row-w1",
+      "noteId": "note-journal-2026-06-11",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1781179200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 6150,
+          "unit": "m",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w1:summary:tis",
+      "resultId": "res-row-w1",
+      "noteId": "note-journal-2026-06-11",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1781179200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 41,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w1:summary:sessionLoad",
+      "resultId": "res-row-w1",
+      "noteId": "note-journal-2026-06-11",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1781179200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 175,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w1:summary:distance",
+      "resultId": "res-bike-w1",
+      "noteId": "note-journal-2026-06-14",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1781438400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 29.2,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w1:summary:tis",
+      "resultId": "res-bike-w1",
+      "noteId": "note-journal-2026-06-14",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1781438400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 43,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w1:summary:sessionLoad",
+      "resultId": "res-bike-w1",
+      "noteId": "note-journal-2026-06-14",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1781438400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 206,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w2:summary:distance",
+      "resultId": "res-run-w2",
+      "noteId": "note-journal-2026-06-16",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1781611200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 8.8,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w2:summary:tis",
+      "resultId": "res-run-w2",
+      "noteId": "note-journal-2026-06-16",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1781611200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 46,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w2:summary:sessionLoad",
+      "resultId": "res-run-w2",
+      "noteId": "note-journal-2026-06-16",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1781611200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 204,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w2:summary:distance",
+      "resultId": "res-row-w2",
+      "noteId": "note-journal-2026-06-18",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1781784000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 6300,
+          "unit": "m",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w2:summary:tis",
+      "resultId": "res-row-w2",
+      "noteId": "note-journal-2026-06-18",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1781784000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 42,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w2:summary:sessionLoad",
+      "resultId": "res-row-w2",
+      "noteId": "note-journal-2026-06-18",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1781784000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 180,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w2:summary:distance",
+      "resultId": "res-bike-w2",
+      "noteId": "note-journal-2026-06-21",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1782043200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 30.4,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w2:summary:tis",
+      "resultId": "res-bike-w2",
+      "noteId": "note-journal-2026-06-21",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1782043200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 44,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w2:summary:sessionLoad",
+      "resultId": "res-bike-w2",
+      "noteId": "note-journal-2026-06-21",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1782043200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 212,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w3:summary:distance",
+      "resultId": "res-run-w3",
+      "noteId": "note-journal-2026-06-23",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1782216000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 9.2,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w3:summary:tis",
+      "resultId": "res-run-w3",
+      "noteId": "note-journal-2026-06-23",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1782216000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 47,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w3:summary:sessionLoad",
+      "resultId": "res-run-w3",
+      "noteId": "note-journal-2026-06-23",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1782216000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 211,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w3:summary:distance",
+      "resultId": "res-row-w3",
+      "noteId": "note-journal-2026-06-25",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1782388800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 6450,
+          "unit": "m",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w3:summary:tis",
+      "resultId": "res-row-w3",
+      "noteId": "note-journal-2026-06-25",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1782388800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 43,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w3:summary:sessionLoad",
+      "resultId": "res-row-w3",
+      "noteId": "note-journal-2026-06-25",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1782388800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 185,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w3:summary:distance",
+      "resultId": "res-bike-w3",
+      "noteId": "note-journal-2026-06-28",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1782648000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 31.6,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w3:summary:tis",
+      "resultId": "res-bike-w3",
+      "noteId": "note-journal-2026-06-28",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1782648000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 45,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w3:summary:sessionLoad",
+      "resultId": "res-bike-w3",
+      "noteId": "note-journal-2026-06-28",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1782648000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 218,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w4:summary:distance",
+      "resultId": "res-run-w4",
+      "noteId": "note-journal-2026-06-30",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1782820800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 9.6,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w4:summary:tis",
+      "resultId": "res-run-w4",
+      "noteId": "note-journal-2026-06-30",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1782820800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 48,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w4:summary:sessionLoad",
+      "resultId": "res-run-w4",
+      "noteId": "note-journal-2026-06-30",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1782820800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 218,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w4:summary:distance",
+      "resultId": "res-row-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1782993600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 6600,
+          "unit": "m",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w4:summary:tis",
+      "resultId": "res-row-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1782993600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 44,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w4:summary:sessionLoad",
+      "resultId": "res-row-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1782993600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 190,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w4:summary:distance",
+      "resultId": "res-bike-w4",
+      "noteId": "note-journal-2026-06-35",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1783252800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 32.8,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w4:summary:tis",
+      "resultId": "res-bike-w4",
+      "noteId": "note-journal-2026-06-35",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1783252800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 46,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w4:summary:sessionLoad",
+      "resultId": "res-bike-w4",
+      "noteId": "note-journal-2026-06-35",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1783252800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 224,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w5:summary:distance",
+      "resultId": "res-run-w5",
+      "noteId": "note-journal-2026-06-37",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1783425600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 10,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w5:summary:tis",
+      "resultId": "res-run-w5",
+      "noteId": "note-journal-2026-06-37",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1783425600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 49,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w5:summary:sessionLoad",
+      "resultId": "res-run-w5",
+      "noteId": "note-journal-2026-06-37",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1783425600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "run-400s",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 225,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "run-400s",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w5:summary:distance",
+      "resultId": "res-row-w5",
+      "noteId": "note-journal-2026-06-39",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1783598400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 6750,
+          "unit": "m",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w5:summary:tis",
+      "resultId": "res-row-w5",
+      "noteId": "note-journal-2026-06-39",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1783598400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 45,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-row-w5:summary:sessionLoad",
+      "resultId": "res-row-w5",
+      "noteId": "note-journal-2026-06-39",
+      "blockContentId": "blk-row-steady",
+      "origin": "journal",
+      "timestamp": 1783598400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "row-steady",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 195,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "row-steady",
+            "effortDiscipline": "rowing",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w5:summary:distance",
+      "resultId": "res-bike-w5",
+      "noteId": "note-journal-2026-06-42",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1783857600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 34,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w5:summary:tis",
+      "resultId": "res-bike-w5",
+      "noteId": "note-journal-2026-06-42",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1783857600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 47,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-bike-w5:summary:sessionLoad",
+      "resultId": "res-bike-w5",
+      "noteId": "note-journal-2026-06-42",
+      "blockContentId": "blk-bike-tempo",
+      "origin": "journal",
+      "timestamp": 1783857600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bike-tempo",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "sessionLoad",
+          "value": 230,
+          "unit": "au",
+          "metadata": {
+            "canonicalKey": "sessionLoad",
+            "effortSlug": "bike-tempo",
+            "effortDiscipline": "cycling",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-run-w5:1",
+      "resultId": "res-run-w5",
+      "noteId": "note-journal-2026-06-37",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1783427328000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-run-intervals#1",
+      "metrics": [
+        {
+          "type": "elapsed",
+          "value": 95000,
+          "unit": "ms"
+        }
+      ]
+    },
+    {
+      "id": "res-run-w5:2",
+      "resultId": "res-run-w5",
+      "noteId": "note-journal-2026-06-37",
+      "blockContentId": "blk-run-intervals",
+      "origin": "journal",
+      "timestamp": 1783429056000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-run-intervals#2",
+      "metrics": [
+        {
+          "type": "elapsed",
+          "value": 98000,
+          "unit": "ms"
+        }
+      ]
+    }
+  ]
+}

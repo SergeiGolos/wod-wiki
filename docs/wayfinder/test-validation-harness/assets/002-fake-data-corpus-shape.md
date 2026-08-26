@@ -17,6 +17,7 @@ notes/logs derivation (parser fixtures own that layer).
   "id": "crossfit-multi-week",
   "title": "CrossFit multi-week block",
   "description": "Fran / S&S style strength+gymnastics, 6 weeks, tagged.",
+  "notes": [ { "id": "note-1", "title": "…", "createdAt": 1783339200000, "tags": ["crossfit"] } ],
   "records": [ { "…UnifiedEventRecord…": "" } ]
 }
 ```
