@@ -15,30 +15,46 @@ export function resolveSource(dslPath: string, wodFiles: Record<string, string>)
   // Match must be exact; 'query:' is not a general scheme here.
   if (dslPath === 'query:new') return ''
 
+  // wodFiles keys come from import.meta.glob anchors that shift whenever the
+  // app directory moves within the monorepo, so look entries up by logical
+  // path suffix instead of reconstructing a fragile '../../markdown/…' prefix.
+  const bySuffix = (logical: string): string | null => {
+    const wanted = `/${logical}`
+    for (const k of Object.keys(wodFiles)) {
+      if (k === logical || k.endsWith(wanted)) return k
+    }
+    return null
+  }
+  const read = (logical: string): string | null => {
+    const k = bySuffix(logical)
+    return k === null ? null : stripFrontmatter(wodFiles[k] as string)
+  }
+
   if (dslPath.startsWith('markdown/')) {
-    const key = '../../' + dslPath
-    if (key in wodFiles) return stripFrontmatter(wodFiles[key])
+    const hit = read(dslPath)
+    if (hit !== null) return hit
   }
 
-  let key = dslPath
+  let logical = dslPath
   if (dslPath.startsWith('wods/examples/')) {
-    key = '../../markdown/canvas/' + dslPath.replace(/^wods\/examples\//, '')
+    logical = 'markdown/canvas/' + dslPath.replace(/^wods\/examples\//, '')
   } else if (dslPath.startsWith('wods/')) {
-    key = '../../markdown/canvas/' + dslPath.replace(/^wods\//, '')
+    logical = 'markdown/canvas/' + dslPath.replace(/^wods\//, '')
   } else if (dslPath.startsWith('collections/')) {
-    key = '../../markdown/collections/' + dslPath.replace(/^collections\//, '')
+    logical = 'markdown/collections/' + dslPath.replace(/^collections\//, '')
   } else if (dslPath.startsWith('canvas/')) {
-    key = '../../markdown/canvas/' + dslPath.replace(/^canvas\//, '')
+    logical = 'markdown/canvas/' + dslPath.replace(/^canvas\//, '')
   } else {
-    const canvasKey = '../../markdown/canvas/' + dslPath
-    if (canvasKey in wodFiles) return stripFrontmatter(wodFiles[canvasKey])
+    const canvasHit = read('markdown/canvas/' + dslPath)
+    if (canvasHit !== null) return canvasHit
 
-    const collectionsKey = '../../markdown/collections/' + dslPath
-    if (collectionsKey in wodFiles) return stripFrontmatter(wodFiles[collectionsKey])
+    const collectionsHit = read('markdown/collections/' + dslPath)
+    if (collectionsHit !== null) return collectionsHit
 
-    key = '../../markdown/' + dslPath
+    logical = 'markdown/' + dslPath
   }
-  return key in wodFiles ? stripFrontmatter(wodFiles[key]) : `# Source not found\n\nPath: \`${dslPath}\`\nResolved: \`${key}\``
+  const hit = read(logical)
+  return hit ?? `# Source not found\n\nPath: \`${dslPath}\`\nResolved: \`${logical}\``
 }
 /** True when a section declares its own example(s) or a command with at least one step. */
 export function sectionOwnsContent(section: CanvasSection): boolean {
