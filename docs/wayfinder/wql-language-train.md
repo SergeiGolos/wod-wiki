@@ -82,6 +82,11 @@ queries still parsing, docs updated.
   removed; `WQL_SCOPES` retired to `WQL_SOURCE_VALUES`; `normalizeWql`
   compatibility normalizer rewrites legacy `in <scope>` and bare `rows:{…}`
   heads with advisories; engine main `2462ec9`+`da4c967`.
+- [AST-only structured interface (C6)](tickets/009-ast-only-structured-interface-c6.md) —
+  total `serialize` beside `parseQuery`: fixed-point on canonical text,
+  structural round-trip for all text-surface-representable ASTs (raw/advisories
+  excluded by contract), errored ASTs echo raw; 400-AST property test with
+  coverage guards; engine main `0942f88`+`1b9b771`.
 
 ## Not yet specified
 
