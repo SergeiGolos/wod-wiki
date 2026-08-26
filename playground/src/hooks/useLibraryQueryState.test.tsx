@@ -74,6 +74,15 @@ describe('useLibraryQueryState', () => {
     expect(summary()).toBe('source=feeds|time=last 8w|tag=pr')
   })
 
+  it('normalizes legacy in <scope> and modern source: URLs to the same state (C2)', () => {
+    renderAt([`/library?q=${encodeURIComponent('find:note in feeds last 8w')}`])
+    expect(summary()).toBe('source=feeds|time=last 8w')
+
+    cleanup()
+    renderAt([`/library?q=${encodeURIComponent('find:note{source:feeds} last 8w')}`])
+    expect(summary()).toBe('source=feeds|time=last 8w')
+  })
+
   it('serializes clause changes into the q parameter', async () => {
     renderAt(['/library'])
     act(() => captured.setClauses(withClause('tag', 'pr')))

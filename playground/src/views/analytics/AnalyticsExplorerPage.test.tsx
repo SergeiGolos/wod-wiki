@@ -7,11 +7,11 @@ import '../../../../tests/helpers/repair-react-router-dom';
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
-import { isFindQuery, parseQuery, type FindQueryResult, type ParsedFindQuery, type QueryResult, type ParsedQuery } from '@bitcobblers/wod-wiki-engine';
+import { parseQuery, type FindQueryResult, type ParsedAggregateQuery, type ParsedFindQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';
 
 function resultOf(raw: string): QueryResult {
   return {
-    parsed: parseQuery(raw) as ParsedQuery,
+    parsed: parseQuery(raw) as ParsedAggregateQuery,
     series: [],
     stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 },
     matched: [],
@@ -20,7 +20,7 @@ function resultOf(raw: string): QueryResult {
 
 function scalarResult(raw: string): QueryResult {
   return {
-    parsed: parseQuery(raw) as ParsedQuery,
+    parsed: parseQuery(raw) as ParsedAggregateQuery,
     series: [{ key: 'total', label: 'total', points: [{ ts: Date.now(), value: 42 }], unit: 'kg' }],
     stages: { selected: 1, buckets: 1, aggregated: 1, groups: 0 },
     matched: [{ timestamp: Date.now(), value: 42, metricKey: 'totalVolume' } as unknown as QueryResult['matched'][number]],
@@ -198,7 +198,7 @@ describe('AnalyticsExplorerPage', () => {
     // …and the derived records query sits behind the Records disclosure.
     expect(screen.queryByTestId('records-wql')).toBeNull();
     fireEvent.click(await waitFor(() => screen.getByTestId('records-toggle')));
-    await waitFor(() => expect(screen.getByTestId('records-wql').textContent).toBe('find:note{tags:pr} in all last 16w'));
+    await waitFor(() => expect(screen.getByTestId('records-wql').textContent).toBe('find:note{tags:pr} last 16w'));
     await waitFor(() => expect(screen.getByTestId('library-row-post').textContent).toContain('StrongLifts 5×5'));
   });
 

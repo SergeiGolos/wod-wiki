@@ -22,7 +22,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlertCircle, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, Play, Save } from 'lucide-react';
 import { queryService } from '@/services/queryService';
-import { parseQuery, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult } from '@bitcobblers/wod-wiki-engine';;
+import { parseQuery, isFindQuery, isRowsQuery, type QueryResult, type RowsQueryResult, type QueryWindow, type TagFilter } from '@bitcobblers/wod-wiki-engine';;
 import { RowsTable } from '@bitcobblers/wod-wiki-ui';
 import { StickyPageHeader, useStickyBoundaryOffset } from '@/panels/page-shells';
 import { searchEntries } from '../../lib/entrySearch';
@@ -76,13 +76,25 @@ const WQL_GRAMMAR_PLACEHOLDER = 'agg:metric{filters} by {dims} .rollup(period)';
  * silently not filter. */
 const NOTE_FILTER_KEYS = new Set(['tags', 'catalog', 'text', 'type', 'has']);
 
-/** TagFilter[] → `{key:v1|v2, …}` braces (empty string when no filters). */
 function serializeTagFilters(filters: { key: string; negate: boolean; values: { value: string }[] }[]): string {
   if (filters.length === 0) return '';
   const body = filters
     .map(f => `${f.negate ? '!' : ''}${f.key}:${f.values.map(v => v.value).join('|')}`)
     .join(', ');
   return `{${body}}`;
+}
+
+/** The find query's scope label — folded into the `source:` filter (C2). */
+function sourceFilterLabel(filters: TagFilter[]): string | null {
+  const src = filters.find(f => f.key === 'source' && !f.negate);
+  return src ? src.values.map(v => v.value).join('|') : null;
+}
+
+/** Human label for a C1 window: `last 8w` / `from 2026-01-01 [to …]`. */
+function windowLabel(w: QueryWindow | undefined): string | null {
+  if (!w) return null;
+  if (w.kind === 'relative') return `last ${w.size}${w.unit}`;
+  return w.end ? `from ${w.start} to ${w.end}` : `from ${w.start}`;
 }
 
 /** The date-grouped records stream — shared by the find-result view and the
@@ -177,10 +189,10 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
     if (isFindQuery(p) || isRowsQuery(p) || p.error) return null;
     if (p.join) {
       const jf = p.join;
-      return `find:${jf.target}${serializeTagFilters(jf.filters)} in ${jf.scope ?? 'all'}${jf.last ? ` last ${jf.last.size}${jf.last.unit}` : ''}`;
+      return `find:${jf.target}${serializeTagFilters(jf.filters)}${jf.last ? ` last ${jf.last.size}${jf.last.unit}` : ''}`;
     }
     const compatible = p.filters.filter(f => NOTE_FILTER_KEYS.has(f.key) && !f.negate);
-    return `find:note${serializeTagFilters(compatible)} in all last ${activeWeeks}w`;
+    return `find:note${serializeTagFilters(compatible)} last ${activeWeeks}w`;
   }, [submitted, activeWeeks]);
 
   useEffect(() => {
@@ -423,8 +435,8 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
               <div className="bg-card border border-border rounded-lg p-4">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
                   Find {liveParsed.target}
-                  {liveParsed.scope && <span className="ml-1">in {liveParsed.scope}</span>}
-                  {liveParsed.last && <span className="ml-1">last {liveParsed.last.size}{liveParsed.last.unit}</span>}
+                  {(scopeLabel => scopeLabel && <span className="ml-1">in {scopeLabel}</span>)(sourceFilterLabel(liveParsed.filters))}
+                  {(wLabel => wLabel && <span className="ml-1">{wLabel}</span>)(windowLabel(liveParsed.window))}
                 </div>
                 {liveParsed.error ? (
                   <div className="text-sm text-destructive font-mono">{liveParsed.error}</div>
@@ -457,7 +469,7 @@ export function AnalyticsExplorerPage({ actions }: AnalyticsExplorerPageProps) {
               <div className="bg-card border border-border rounded-lg p-4">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
                   Rows{liveParsed.outputType ? `:${liveParsed.outputType}` : ''}
-                  {liveParsed.last && <span className="ml-1">last {liveParsed.last.size}{liveParsed.last.unit}</span>}
+                  {(wLabel => wLabel && <span className="ml-1">{wLabel}</span>)(windowLabel(liveParsed.window))}
                 </div>
                 {liveParsed.error ? (
                   <div className="text-sm text-destructive font-mono">{liveParsed.error}</div>

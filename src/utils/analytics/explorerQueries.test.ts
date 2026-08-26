@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { parseQuery as _pq, type ParsedQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';
+import { parseQuery as _pq, isAggregateQuery, isFindQuery, type AnyParsedQuery, type ParsedAggregateQuery, type QueryResult } from '@bitcobblers/wod-wiki-engine';
 import {
   addFilterToQuery,
   EXAMPLE_QUERIES,
@@ -7,7 +7,9 @@ import {
   serializeQuery,
 } from './explorerQueries';
 // All tests use analytics queries — narrow the union.
-const parseQuery = (raw: string): ParsedQuery => _pq(raw) as ParsedQuery;
+const parseQuery = (raw: string): AnyParsedQuery => _pq(raw);
+/** QueryResult fixtures carry the analytics AST (QueryResult.parsed). */
+const parseAgg = (raw: string): ParsedAggregateQuery => _pq(raw) as ParsedAggregateQuery;
 
 describe('explorerQueries', () => {
   describe('serializeQuery', () => {
@@ -17,7 +19,7 @@ describe('explorerQueries', () => {
     });
 
     it('serializes a bare metric head', () => {
-      expect(serializeQuery(parseQuery('avg:tis'))).toBe('avg:tis');
+      expect(serializeQuery(parseQuery('avg:tis'))).toBe('avg:tis{}');
     });
 
     it('serializes multiple filters preserving order', () => {
@@ -66,7 +68,7 @@ describe('explorerQueries', () => {
 
     it('returns error when the result carries a parse error', () => {
       const result: QueryResult = {
-        parsed: parseQuery('bad'),
+        parsed: parseAgg('bad'),
         series: [],
         stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 },
         matched: [],
@@ -76,7 +78,7 @@ describe('explorerQueries', () => {
 
     it('returns scalar for a single series with a single point', () => {
       const result: QueryResult = {
-        parsed: parseQuery('sum:totalVolume'),
+        parsed: parseAgg('sum:totalVolume'),
         series: [{ key: 'totalVolume', label: 'totalVolume', points: [{ ts: 1, value: 42 }] }],
         stages: { selected: 1, buckets: 1, aggregated: 1, groups: 1 },
         matched: [],
@@ -87,7 +89,7 @@ describe('explorerQueries', () => {
 
     it('returns timeseries when any series has multiple points', () => {
       const result: QueryResult = {
-        parsed: parseQuery('sum:totalVolume by {week}'),
+        parsed: parseAgg('sum:totalVolume by {week}'),
         series: [
           {
             key: 'totalVolume',
@@ -106,7 +108,7 @@ describe('explorerQueries', () => {
 
     it('returns bars for multiple single-point series', () => {
       const result: QueryResult = {
-        parsed: parseQuery('sum:totalVolume by {effort}'),
+        parsed: parseAgg('sum:totalVolume by {effort}'),
         series: [
           { key: 'a', label: 'a', points: [{ ts: 1, value: 10 }] },
           { key: 'b', label: 'b', points: [{ ts: 1, value: 20 }] },
@@ -131,8 +133,9 @@ describe('explorerQueries', () => {
       for (const ex of EXAMPLE_QUERIES) {
         const parsed = parseQuery(ex.query);
         // Find queries have no metric key — skip content-discovery examples.
-        if ('target' in parsed) continue;
-        expect(parsed.error).toBeUndefined();
+        if (isFindQuery(parsed)) continue;
+        expect(isAggregateQuery(parsed) || parsed.error !== undefined).toBe(true);
+        if (!isAggregateQuery(parsed)) continue;
         expect(realKeys[parsed.metric]).toBe(true);
       }
     });

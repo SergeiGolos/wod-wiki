@@ -1,4 +1,4 @@
-import { parseQuery, type ParsedQuery, type QueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
+import { parseQuery, serialize, type AnyParsedQuery, type QueryResult, type TagFilter } from '@bitcobblers/wod-wiki-engine';
 
 export interface ExampleQuery {
   query: string;
@@ -85,26 +85,15 @@ export function serializeFilter(filter: TagFilter): string {
   return `${sign}${filter.key}:${values}`;
 }
 
-/** Re-serialize a parsed WQL query back to the canonical string form. */
-export function serializeQuery(parsed: ParsedQuery): string {
-  let text = `${parsed.agg}:${parsed.metric}`;
-  if (parsed.filters.length > 0) {
-    text += `{${parsed.filters.map(serializeFilter).join(',')}}`;
-  }
-  if (parsed.groupBy.length > 0) {
-    text += ` by {${parsed.groupBy.join(',')}}`;
-  }
-  if (parsed.rollup) {
-    text += parsed.groupBy.length > 0
-      ? `.rollup(${parsed.rollup.size}${parsed.rollup.unit})`
-      : ` .rollup(${parsed.rollup.size}${parsed.rollup.unit})`;
-  }
-  return text;
+/** Re-serialize a parsed WQL query back to the canonical string form — the
+ * engine's C6 total serializer (fixed-point on canonical text). */
+export function serializeQuery(parsed: AnyParsedQuery): string {
+  return serialize(parsed);
 }
 
 /** Add or replace a tag filter on a WQL query string. Errored queries are left unchanged. */
 export function addFilterToQuery(query: string, key: string, value: string): string {
-  const parsed = parseQuery(query) as ParsedQuery;
+  const parsed = parseQuery(query) as AnyParsedQuery;
   if (parsed.error) return query;
 
   const existingIndex = parsed.filters.findIndex((f) => f.key === key);
