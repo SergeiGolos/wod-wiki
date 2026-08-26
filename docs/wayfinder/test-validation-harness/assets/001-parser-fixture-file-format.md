@@ -65,14 +65,19 @@ One line per expected **Metric**, order-insensitive within a statement:
   - Time: `5:00`, `1:30:00` (`h?mm:ss`) — parsed to ms (`5:00` → `300000`).
   - Number: `20`, `5.12`.
   - Quoted string: `"Back Squat"` — required when the value contains spaces.
-  - Bare token: `domain.cardio`, `flash` — single-token string values (hint
-    names, send types) may be written unquoted.
+    A quoted primary cannot combine with object tails (v1.1: rejected by
+    the harness — no metric shape carries both, and a silent unasserted
+    value would weaken the expectation).
   - Amount + unit sugar: `Resistance 225 lb` / `Distance 5 km` — asserts
     `value.amount`, `value.unit`, and the metric's top-level `unit` all equal
     the given values.
-  - Object tails: `ClimbGrade raw:V5 system:v-scale` — bare `<key>:<value>`
+  - Object tails: `ClimbGrade raw:V5 system:v-scale` — `<key>:<value>`
     pairs assert individual fields of an object-valued metric; unlisted
-    fields are ignored.
+    fields are ignored. Quoted tail values may contain spaces:
+    `Text text:"last set heavy"` (v1.1, grounded by the comments fixture).
+  - `?` — asserts `value === undefined` (v1.1): the athlete-fillable
+    placeholder (`10:00 ? KB Snatch`) parses to `Rep` with an undefined
+    value at `origin: 'hinted'`, so write `- Rep ? @hinted`.
 - **`@origin`**: optional; pins `metric.origin` (`parser`, `dialect`, …).
   Omitted → any origin matches. Pin it when producer identity is the point
   (dialect-emitted metrics).
@@ -104,12 +109,20 @@ example exercises it.
 
 ## Approved examples (hand-verified against real parse output)
 
+Catalog (10 fixtures, all running under
+`packages/lang/tests/parserFixtures.test.ts`): the three v1 approvals —
 1. [`timers.md`](../../../../packages/lang/tests/fixtures/parser/timers.md) —
    time literals, quoted efforts, hint pinning with `@dialect`.
 2. [`amrap-with-units.md`](../../../../packages/lang/tests/fixtures/parser/amrap-with-units.md) —
    hints, `Rep`, fused `Resistance`/`Distance` amount+unit sugar.
 3. [`climb-grades.md`](../../../../packages/lang/tests/fixtures/parser/climb-grades.md) —
    `sport:` frontmatter, dialect metrics, object tails.
+
+plus the v1.1 syntax-reference set (ticket 004):
+`syntax-reps-rest.md`, `syntax-rounds-children.md`, `syntax-distance-load.md`,
+`syntax-emom-laps.md` (Group metric), `syntax-comments-custom.md` (Text
+metric + custom Intensity/SessionRpe), `syntax-collectible-timer.md`
+(`?`/`@hinted`), `syntax-hierarchy.md` (blank-line gap → Line 5).
 
 ## Observations for later tickets (not format decisions)
 

@@ -71,6 +71,12 @@ existing `bun run test` / storybook flows.
   `RuntimeFactory(debugMode)` + `RuntimeContext` + `useRuntimeExecution`
   wall-clock; freeze + dirty badge on mid-run edits.
 
+- [Build the parser fixture harness](test-validation-harness/tickets/004-build-parser-fixture-harness.md) —
+  landed: `tests/harness/parserFixture/` (DSL, comparator, anatomy
+  parser) + glob-discovery driver `tests/parserFixtures.test.ts`; catalog
+  3 → 10 fixtures; spec v1.1 adds quoted tail values + `?` undefined
+  literal; full root suite green, wrong expectations fail readable.
+
 ## Not yet specified
 
 - Stale-expectation workflow: how a fixture failure reads in CI, and whether
