@@ -67,6 +67,7 @@ import {
   WqlBars,
   TopList,
   WqlTable,
+  WqlComposer,
 } from '@bitcobblers/wod-wiki-ui';
 import { DEFAULT_NOTE } from './presets';
 
@@ -817,6 +818,7 @@ export function SessionOutputsTable({
   const [filterText, setFilterText] = useState('');
   const [wqlResult, setWqlResult] = useState<string | null>(null);
   const [wqlError, setWqlError] = useState<string | null>(null);
+  const [useComposer, setUseComposer] = useState(true);
 
   const t0 = outputs.length > 0 ? outputs[0].timeSpan.started : undefined;
 
@@ -903,14 +905,49 @@ export function SessionOutputsTable({
             Session Outputs &amp; Live WQL Filter
           </h3>
         </div>
-        <span className="font-mono text-xs text-muted-foreground">
-          {outputs.length} statement{outputs.length === 1 ? '' : 's'} logged
-        </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/60">
+            <button
+              type="button"
+              onClick={() => setUseComposer(true)}
+              data-testid="toggle-main-composer"
+              className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all cursor-pointer ${
+                useComposer
+                  ? 'bg-background text-foreground shadow-2xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              ✨ Composer
+            </button>
+            <button
+              type="button"
+              onClick={() => setUseComposer(false)}
+              data-testid="toggle-main-raw"
+              className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all cursor-pointer ${
+                !useComposer
+                  ? 'bg-background text-foreground shadow-2xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              📝 Raw
+            </button>
+          </div>
+          <span className="font-mono text-xs text-muted-foreground">
+            {outputs.length} statement{outputs.length === 1 ? '' : 's'} logged
+          </span>
+        </div>
       </div>
 
       {/* WQL Filter / Query Bar */}
       <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+        {useComposer ? (
+          <div className="rounded-lg border border-border/70 bg-background/80 p-2 shadow-xs" data-testid="session-wql-composer">
+            <WqlComposer
+              query={filterText}
+              onQueryChange={(next) => setFilterText(next)}
+            />
+          </div>
+        ) : (
           <div className="relative flex-1 min-w-[280px]">
             <input
               type="text"
@@ -929,7 +966,10 @@ export function SessionOutputsTable({
               </button>
             )}
           </div>
+        )}
 
+        {/* Preset Pills */}
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
           <div className="flex flex-wrap gap-1">
             {[
               { label: 'All', query: '' },
@@ -951,6 +991,14 @@ export function SessionOutputsTable({
               </button>
             ))}
           </div>
+          {filterText && (
+            <button
+              onClick={() => setFilterText('')}
+              className="text-xs text-muted-foreground hover:text-foreground cursor-pointer underline"
+            >
+              Clear filter
+            </button>
+          )}
         </div>
 
         {wqlError && <p className="text-xs text-destructive font-mono">{wqlError}</p>}
@@ -960,7 +1008,6 @@ export function SessionOutputsTable({
           </div>
         )}
       </div>
-
       {/* Full-Width Table with Consolidated Time and Dedicated Metric Columns */}
       <div className="overflow-x-auto rounded-lg border border-border/60 bg-background/60 shadow-inner">
         <table className="w-full text-left font-mono text-xs border-collapse">
@@ -1616,6 +1663,7 @@ export function DashboardQueryCard({
 }) {
   const [result, setResult] = useState<QueryResult | undefined>();
   const [error, setError] = useState<string | undefined>();
+  const [useComposer, setUseComposer] = useState(true);
 
   useEffect(() => {
     const t = setTimeout(async () => {
@@ -1684,6 +1732,33 @@ export function DashboardQueryCard({
         </div>
 
         <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-0.5 bg-muted/60 p-0.5 rounded-md border border-border/60">
+            <button
+              type="button"
+              onClick={() => setUseComposer(true)}
+              data-testid={`toggle-widget-composer-${segment.id}`}
+              className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all cursor-pointer ${
+                useComposer
+                  ? 'bg-background text-foreground shadow-2xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              ✨ Composer
+            </button>
+            <button
+              type="button"
+              onClick={() => setUseComposer(false)}
+              data-testid={`toggle-widget-raw-${segment.id}`}
+              className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all cursor-pointer ${
+                !useComposer
+                  ? 'bg-background text-foreground shadow-2xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              📝 Raw
+            </button>
+          </div>
+
           <select
             value={segment.dataSource}
             onChange={(e) => onUpdate({ ...segment, dataSource: e.target.value as 'corpus' | 'session' })}
@@ -1722,14 +1797,22 @@ export function DashboardQueryCard({
 
       {/* Query Input & Presets */}
       <div className="flex flex-col gap-1.5">
-        <input
-          type="text"
-          value={segment.query}
-          onChange={(e) => onUpdate({ ...segment, query: e.target.value })}
-          placeholder="Enter WQL query..."
-          className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-inner"
-        />
-
+        {useComposer ? (
+          <div className="rounded-lg border border-border/70 bg-background/80 p-2 shadow-xs" data-testid={`widget-composer-${segment.id}`}>
+            <WqlComposer
+              query={segment.query}
+              onQueryChange={(next) => onUpdate({ ...segment, query: next })}
+            />
+          </div>
+        ) : (
+          <input
+            type="text"
+            value={segment.query}
+            onChange={(e) => onUpdate({ ...segment, query: e.target.value })}
+            placeholder="Enter WQL query..."
+            className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-inner"
+          />
+        )}
         <div className="flex flex-wrap gap-1">
           {[
             'sum:totalVolume{} by {week}',
