@@ -66,12 +66,9 @@ import {
   WqlTimeseries,
   WqlBars,
   TopList,
+  WqlTable,
 } from '@bitcobblers/wod-wiki-ui';
-import {
-  DEFAULT_NOTE,
-  DEFAULT_WQL,
-  PRESETS as DEFAULT_WQL_PRESETS,
-} from './presets';
+import { DEFAULT_NOTE } from './presets';
 
 // ── Demo Language Pack (runtime registration proof) ────────────────────────
 
@@ -501,97 +498,34 @@ export function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export function ControlsToolbar({
+export function WallClockHeader({
+  wallNow,
   status,
-  elapsedTime,
-  stepCount,
-  onStart,
-  onResume,
-  onPause,
-  onStop,
   onReset,
-  onStep,
-  canStep,
-}: RuntimeControlsProps) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/50 bg-background/60 p-2 text-xs">
-      <div className="flex items-center gap-1.5 font-mono text-xs">
-        <span className="text-muted-foreground text-[11px] uppercase tracking-wider">Session:</span>
-        <span className="font-bold text-foreground tabular-nums text-sm" data-testid="elapsed-time">
-          {formatDurationMs(elapsedTime)}
-        </span>
-        <span className="text-[10px] text-muted-foreground/80">({stepCount} ticks)</span>
-      </div>
-
-      <div className="flex items-center gap-1.5">
-        {status === 'running' ? (
-          <button
-            onClick={onPause}
-            data-testid="btn-pause"
-            className="rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-semibold hover:bg-accent cursor-pointer transition-all shadow-xs"
-          >
-            ⏸ Pause
-          </button>
-        ) : status === 'paused' ? (
-          <button
-            onClick={onResume}
-            data-testid="btn-resume"
-            className="rounded-lg bg-primary px-3 py-1 text-xs font-bold text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs transition-all active:scale-95"
-          >
-            ▶ Resume
-          </button>
-        ) : (
-          <button
-            onClick={onStart}
-            data-testid="btn-start"
-            className="rounded-lg bg-primary px-3 py-1 text-xs font-bold text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs transition-all active:scale-95"
-          >
-            {status === 'idle' ? '▶ Run Workout' : '↺ Re-run'}
-          </button>
-        )}
-
-        <button
-          onClick={onStep}
-          disabled={!canStep || status === 'completed'}
-          data-testid="btn-step"
-          className="rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium hover:bg-accent disabled:opacity-35 cursor-pointer transition-all shadow-xs"
-        >
-          ⏭ Step
-        </button>
-
-        <button
-          onClick={onStop}
-          disabled={status === 'idle'}
-          data-testid="btn-stop"
-          className="rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium hover:bg-accent disabled:opacity-35 cursor-pointer transition-all shadow-xs"
-        >
-          ⏹ Stop
-        </button>
-
-        <button
-          onClick={onReset}
-          disabled={status === 'idle'}
-          data-testid="btn-reset"
-          className="rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium hover:bg-accent disabled:opacity-35 cursor-pointer transition-all shadow-xs"
-        >
-          ↺ Reset
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Wall Clock View (Left Column Bottom) ────────────────────────────────────
-
-export function WallClockHeader({ wallNow, status }: { wallNow: Date; status: string }) {
+}: {
+  wallNow: Date;
+  status: string;
+  onReset?: () => void;
+}) {
   return (
     <div className="flex items-center justify-between border-b border-border/50 pb-2">
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 rounded-full bg-primary" />
-        <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">Wall Clock & Timer</h4>
+        <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">Wall Clock &amp; Timer</h4>
       </div>
       <div className="flex items-center gap-3">
         <StatusBadge status={status} />
+        {onReset && (
+          <button
+            onClick={onReset}
+            data-testid="btn-reset-header"
+            title="Reset workout to Ready to Start"
+            className="rounded-lg border border-border/80 bg-card px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-accent cursor-pointer transition-all shadow-xs flex items-center gap-1 active:scale-95"
+          >
+            <span>↺</span>
+            <span>Reset</span>
+          </button>
+        )}
         <div className="text-right border-l border-border/50 pl-3">
           <div className="font-mono text-sm font-bold tabular-nums text-foreground leading-none" data-testid="wall-time">
             {formatClockTime(wallNow)}
@@ -738,9 +672,7 @@ export function WallClockPanel(props: RuntimeControlsProps) {
       className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card/40 backdrop-blur-xs p-5 shadow-xs"
       data-testid="panel-wallclock"
     >
-      <WallClockHeader wallNow={wallNow} status={props.status} />
-
-      {/* ── Split Track View: Current Section & Up Next (Left) + Timer (Right) ── */}
+      <WallClockHeader wallNow={wallNow} status={props.status} onReset={props.onReset} />
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch py-1">
         {/* Left Side (md:col-span-5): Visual State with Current Section & Up Next */}
         <div className="md:col-span-5 rounded-lg border border-border/60 bg-background/50 overflow-hidden min-h-[220px]">
@@ -776,8 +708,6 @@ export function WallClockPanel(props: RuntimeControlsProps) {
           />
         </div>
       </div>
-
-      <ControlsToolbar {...props} />
     </section>
   );
 }
@@ -790,8 +720,7 @@ export function IdleWallClockPanel(props: RuntimeControlsProps) {
       className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card/40 backdrop-blur-xs p-5 shadow-xs"
       data-testid="panel-wallclock"
     >
-      <WallClockHeader wallNow={wallNow} status={props.status} />
-
+      <WallClockHeader wallNow={wallNow} status={props.status} onReset={props.onReset} />
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch py-1">
         {/* Left Side: Idle Preview Card */}
         <div className="md:col-span-5 rounded-lg border border-dashed border-border/70 bg-background/40 p-4 flex flex-col justify-between min-h-[220px]">
@@ -834,10 +763,50 @@ export function IdleWallClockPanel(props: RuntimeControlsProps) {
           />
         </div>
       </div>
-
-      <ControlsToolbar {...props} />
     </section>
   );
+}
+
+export interface CategorizedMetrics {
+  efforts: IMetric[];
+  reps: IMetric[];
+  loads: IMetric[];
+  rounds: IMetric[];
+  durations: IMetric[];
+  distances: IMetric[];
+  hints: IMetric[];
+}
+
+export function extractMetricsByCategory(metrics?: Iterable<IMetric>): CategorizedMetrics {
+  if (!metrics) {
+    return { efforts: [], reps: [], loads: [], rounds: [], durations: [], distances: [], hints: [] };
+  }
+
+  const list = Array.from(metrics) as IMetric[];
+  return {
+    efforts: list.filter((m) => {
+      const t = String(m.type).toLowerCase();
+      return t === 'effort' || t === 'text' || t === 'action' || t === 'label';
+    }),
+    reps: list.filter((m) => String(m.type).toLowerCase() === 'rep'),
+    loads: list.filter((m) => {
+      const t = String(m.type).toLowerCase();
+      return t === 'resistance' || t === 'intensity' || t === 'load' || t === 'volume';
+    }),
+    rounds: list.filter((m) => {
+      const t = String(m.type).toLowerCase();
+      return t === 'rounds' || t === 'current-round' || t === 'increment';
+    }),
+    durations: list.filter((m) => {
+      const t = String(m.type).toLowerCase();
+      return t === 'duration' || t === 'time' || t === 'elapsed';
+    }),
+    distances: list.filter((m) => String(m.type).toLowerCase() === 'distance'),
+    hints: list.filter((m) => {
+      const t = String(m.type).toLowerCase();
+      return t === 'hint' || t === 'custom' || t === 'system' || t === 'sound' || t === 'lap' || t === 'group';
+    }),
+  };
 }
 
 export function SessionOutputsTable({
@@ -992,57 +961,138 @@ export function SessionOutputsTable({
         )}
       </div>
 
-      {/* Full-Width Table */}
+      {/* Full-Width Table with Consolidated Time and Dedicated Metric Columns */}
       <div className="overflow-x-auto rounded-lg border border-border/60 bg-background/60 shadow-inner">
         <table className="w-full text-left font-mono text-xs border-collapse">
           <thead>
-            <tr className="border-b border-border/60 bg-muted/40 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-              <th className="p-2.5">#</th>
-              <th className="p-2.5">Offset</th>
-              <th className="p-2.5">Wall Time</th>
-              <th className="p-2.5">Type</th>
-              <th className="p-2.5">Block Key</th>
-              <th className="p-2.5">Reason</th>
-              <th className="p-2.5 font-sans">Metrics &amp; Fragments</th>
-              <th className="p-2.5">Duration</th>
+            <tr className="border-b border-border/60 bg-muted/40 text-[10px] uppercase font-bold text-muted-foreground tracking-wider whitespace-nowrap">
+              <th className="p-2 w-12 text-center">Type</th>
+              <th className="p-2 min-w-[110px]">Time</th>
+              <th className="p-2 font-sans min-w-[140px]">🏃 Movement</th>
+              <th className="p-2 font-sans min-w-[60px]">🔢 Reps</th>
+              <th className="p-2 font-sans min-w-[70px]">💪 Load</th>
+              <th className="p-2 font-sans min-w-[80px]">🔄 Rounds</th>
+              <th className="p-2 font-sans min-w-[70px]">⏱️ Target</th>
+              <th className="p-2 font-sans min-w-[70px]">📏 Distance</th>
+              <th className="p-2 font-sans min-w-[110px]">🏷️ Hints</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/40">
             {filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="p-8 text-center text-muted-foreground font-sans text-xs">
+                <td colSpan={9} className="p-8 text-center text-muted-foreground font-sans text-xs">
                   {outputs.length === 0
                     ? 'No output statements emitted yet. Start and advance the workout above to stream live session outputs into this table.'
                     : 'No output statements match the current WQL query/filter.'}
                 </td>
               </tr>
             ) : (
-              filteredRows.map((out, idx) => (
-                <tr key={out.id ?? idx} className="hover:bg-muted/20 transition-colors">
-                  <td className="p-2.5 text-muted-foreground">{out.id ?? idx + 1}</td>
-                  <td className="p-2.5 font-bold text-primary tabular-nums">
-                    {t0 !== undefined ? `+${formatMMSS(out.timeSpan.started - t0)}` : '+00:00'}
-                  </td>
-                  <td className="p-2.5 text-muted-foreground tabular-nums">
-                    {formatClockTime(new Date(out.timeSpan.ended ?? out.timeSpan.started))}
-                  </td>
-                  <td className="p-2.5">
-                    <span className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase ${OUTPUT_TYPE_CLASS[String(out.outputType)] ?? OUTPUT_TYPE_CLASS.system}`}>
-                      {out.outputType}
-                    </span>
-                  </td>
-                  <td className="p-2.5 text-foreground/80 max-w-[140px] truncate">{out.sourceBlockKey || 'session'}</td>
-                  <td className="p-2.5 text-muted-foreground">{out.completionReason || '—'}</td>
-                  <td className="p-2.5 font-sans min-w-[200px]">
-                    <div className="flex flex-wrap gap-1">{presentBadges(out.metrics)}</div>
-                  </td>
-                  <td className="p-2.5 text-foreground font-semibold tabular-nums">
-                    {out.timeSpan.ended !== undefined
-                      ? formatMMSS(out.timeSpan.ended - out.timeSpan.started)
-                      : 'running'}
-                  </td>
-                </tr>
-              ))
+              filteredRows.map((out, idx) => {
+                const cats = extractMetricsByCategory(out.metrics);
+                const elapsedStr =
+                  out.timeSpan.ended !== undefined
+                    ? formatMMSS(out.timeSpan.ended - out.timeSpan.started)
+                    : 'running';
+                const wallTimeStr = formatClockTime(new Date(out.timeSpan.ended ?? out.timeSpan.started));
+                const offsetStr = t0 !== undefined ? `+${formatMMSS(out.timeSpan.started - t0)}` : '+00:00';
+                const hoverInfo = `#${out.id ?? idx + 1} · Block: ${out.sourceBlockKey || 'session'}${
+                  out.completionReason ? ` · Reason: ${out.completionReason}` : ''
+                }`;
+
+                return (
+                  <tr
+                    key={out.id ?? idx}
+                    title={hoverInfo}
+                    className="hover:bg-muted/30 transition-colors group cursor-default"
+                  >
+                    {/* 1. Type (Minimal size, first column) */}
+                    <td className="p-2 text-center whitespace-nowrap">
+                      <span
+                        className={`inline-block rounded px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider ${
+                          OUTPUT_TYPE_CLASS[String(out.outputType)] ?? OUTPUT_TYPE_CLASS.system
+                        }`}
+                        title={`Type: ${out.outputType} | ${hoverInfo}`}
+                      >
+                        {String(out.outputType).slice(0, 4)}
+                      </span>
+                    </td>
+
+                    {/* 2. Consolidated Time (Line 1: Offset & Elapsed, Line 2: Wall Time) */}
+                    <td className="p-2 whitespace-nowrap leading-tight">
+                      <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                        <span className="font-bold text-primary tabular-nums">{offsetStr}</span>
+                        <span className="text-[10px] text-muted-foreground/80 tabular-nums">({elapsedStr})</span>
+                      </div>
+                      <div className="font-mono text-[10px] text-muted-foreground/70 tabular-nums">
+                        {wallTimeStr}
+                      </div>
+                    </td>
+
+                    {/* 3. Movement */}
+                    <td className="p-2 font-sans">
+                      {cats.efforts.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">{presentBadges(cats.efforts)}</div>
+                      ) : (
+                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
+                      )}
+                    </td>
+
+                    {/* 4. Reps */}
+                    <td className="p-2 font-sans">
+                      {cats.reps.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">{presentBadges(cats.reps)}</div>
+                      ) : (
+                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
+                      )}
+                    </td>
+
+                    {/* 5. Load */}
+                    <td className="p-2 font-sans">
+                      {cats.loads.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">{presentBadges(cats.loads)}</div>
+                      ) : (
+                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
+                      )}
+                    </td>
+
+                    {/* 6. Rounds */}
+                    <td className="p-2 font-sans">
+                      {cats.rounds.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">{presentBadges(cats.rounds)}</div>
+                      ) : (
+                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
+                      )}
+                    </td>
+
+                    {/* 7. Target Time */}
+                    <td className="p-2 font-sans">
+                      {cats.durations.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">{presentBadges(cats.durations)}</div>
+                      ) : (
+                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
+                      )}
+                    </td>
+
+                    {/* 8. Distance */}
+                    <td className="p-2 font-sans">
+                      {cats.distances.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">{presentBadges(cats.distances)}</div>
+                      ) : (
+                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
+                      )}
+                    </td>
+
+                    {/* 9. Hints & Tags */}
+                    <td className="p-2 font-sans">
+                      {cats.hints.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">{presentBadges(cats.hints)}</div>
+                      ) : (
+                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -1513,39 +1563,334 @@ export function IdleDebugGrid({
   );
 }
 
+export interface DashboardQuerySegment {
+  id: string;
+  title: string;
+  question?: string;
+  query: string;
+  widgetType: 'auto' | 'value' | 'timeseries' | 'bars' | 'top-list' | 'table';
+  dataSource: 'corpus' | 'session';
+}
+
+const STARTER_SEGMENTS: DashboardQuerySegment[] = [
+  {
+    id: 'seg-1',
+    title: 'Weekly Volume Trend',
+    question: 'Rising weekly?',
+    query: 'sum:totalVolume{} by {week}',
+    widgetType: 'timeseries',
+    dataSource: 'corpus',
+  },
+  {
+    id: 'seg-2',
+    title: 'Session Load by Discipline',
+    question: 'Which discipline?',
+    query: 'sum:sessionLoad{} by {discipline}',
+    widgetType: 'bars',
+    dataSource: 'corpus',
+  },
+  {
+    id: 'seg-3',
+    title: 'All-Time Total Volume',
+    question: 'What total?',
+    query: 'sum:totalVolume{}',
+    widgetType: 'value',
+    dataSource: 'corpus',
+  },
+];
+
+export function DashboardQueryCard({
+  segment,
+  sessionOutputs,
+  corpusService,
+  onUpdate,
+  onDelete,
+  canDelete,
+}: {
+  segment: DashboardQuerySegment;
+  sessionOutputs?: IOutputStatement[];
+  corpusService: QueryService;
+  onUpdate: (updated: DashboardQuerySegment) => void;
+  onDelete: () => void;
+  canDelete: boolean;
+}) {
+  const [result, setResult] = useState<QueryResult | undefined>();
+  const [error, setError] = useState<string | undefined>();
+
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      try {
+        const parsed = parseQuery(segment.query);
+        if (parsed.error) {
+          setError(parsed.error);
+          setResult(undefined);
+          return;
+        }
+
+        if (isFindQuery(parsed) || isRowsQuery(parsed)) {
+          setError('Dashboard widgets evaluate aggregate queries — find/rows queries are for table views.');
+          setResult(undefined);
+          return;
+        }
+
+        if (segment.dataSource === 'session') {
+          const outputs = sessionOutputs ?? [];
+          if (outputs.length === 0) {
+            setError('No session outputs emitted yet from workout execution.');
+            setResult(undefined);
+            return;
+          }
+          const stored = outputs.map(toStoredOutputStatement);
+          const identity = { resultId: 'session', noteId: 'workbench', blockContentId: 'workbench', origin: 'playground' as const };
+          const eventRows = toEventRows(stored, identity);
+          const summaryRows = toSummaryEventRows(stored, identity);
+          const store = inMemoryEventStore([...eventRows, ...summaryRows]);
+          const sessionService = new QueryService(store);
+          const r = await sessionService.run(parsed, { preferredUnit: 'lb' });
+          setResult(r);
+          setError(undefined);
+        } else {
+          const newest = Math.max(...crossfitJournal.records.map((r) => r.timestamp));
+          const r = await corpusService.run(parsed, { rangeEnd: newest, preferredUnit: 'lb' });
+          setResult(r);
+          setError(undefined);
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+        setResult(undefined);
+      }
+    }, 250);
+
+    return () => clearTimeout(t);
+  }, [segment.query, segment.dataSource, sessionOutputs, corpusService]);
+
+  const groupCount = result?.parsed.groupBy.length ?? 0;
+  const resolvedWidgetType = segment.widgetType === 'auto'
+    ? (groupCount === 0 ? 'value' : groupCount === 1 && result?.parsed.groupBy[0] === 'week' ? 'timeseries' : 'bars')
+    : segment.widgetType;
+
+  return (
+    <div className="rounded-xl border border-border/70 bg-card/40 backdrop-blur-xs p-4 flex flex-col gap-3 shadow-xs">
+      {/* Top Segment Controls Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2">
+        <div className="flex items-center gap-1.5 flex-1 min-w-[160px]">
+          <input
+            type="text"
+            value={segment.title}
+            onChange={(e) => onUpdate({ ...segment, title: e.target.value })}
+            placeholder="Widget title..."
+            className="font-bold text-xs bg-transparent text-foreground border-b border-transparent hover:border-border/60 focus:border-primary focus:outline-none px-1 py-0.5 rounded"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <select
+            value={segment.dataSource}
+            onChange={(e) => onUpdate({ ...segment, dataSource: e.target.value as 'corpus' | 'session' })}
+            className="rounded-lg border border-border/70 bg-background px-2 py-1 text-[10px] font-mono text-foreground cursor-pointer focus:outline-none"
+            title="Choose data source"
+          >
+            <option value="corpus">📚 Corpus</option>
+            <option value="session">⚡ Session</option>
+          </select>
+
+          <select
+            value={segment.widgetType}
+            onChange={(e) => onUpdate({ ...segment, widgetType: e.target.value as any })}
+            className="rounded-lg border border-border/70 bg-background px-2 py-1 text-[10px] font-mono text-foreground cursor-pointer focus:outline-none"
+            title="Widget type"
+          >
+            <option value="auto">Auto</option>
+            <option value="value">KPI</option>
+            <option value="timeseries">Trend</option>
+            <option value="bars">Bars</option>
+            <option value="top-list">Top List</option>
+            <option value="table">Table</option>
+          </select>
+
+          {canDelete && (
+            <button
+              onClick={onDelete}
+              className="text-muted-foreground hover:text-destructive text-xs p-1 rounded hover:bg-muted/40 cursor-pointer transition-colors"
+              title="Remove widget"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Query Input & Presets */}
+      <div className="flex flex-col gap-1.5">
+        <input
+          type="text"
+          value={segment.query}
+          onChange={(e) => onUpdate({ ...segment, query: e.target.value })}
+          placeholder="Enter WQL query..."
+          className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-inner"
+        />
+
+        <div className="flex flex-wrap gap-1">
+          {[
+            'sum:totalVolume{} by {week}',
+            'avg:tis{}',
+            'sum:sessionLoad{} by {discipline}',
+            'sum:distance{} by {week}',
+            'sum:rep{}',
+          ].map((preset) => (
+            <button
+              key={preset}
+              onClick={() => onUpdate({ ...segment, query: preset })}
+              className={`rounded-md border px-1.5 py-0.5 font-mono text-[9px] cursor-pointer transition-all ${
+                segment.query === preset
+                  ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
+                  : 'border-border/60 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-accent'
+              }`}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {error && <p className="text-xs text-destructive font-mono">{error}</p>}
+
+      {/* Live Rendered Widget */}
+      {result && !error && (
+        <div className="h-52 mt-1" data-testid="dashboard-widget-content">
+          <WidgetFrame title={segment.title} question={segment.question} query={segment.query || ''}>
+            {resolvedWidgetType === 'value' ? (
+              <QueryValue result={result} label={segment.title} />
+            ) : resolvedWidgetType === 'timeseries' ? (
+              <WqlTimeseries result={result} />
+            ) : resolvedWidgetType === 'bars' ? (
+              <WqlBars result={result} />
+            ) : resolvedWidgetType === 'top-list' ? (
+              <TopList result={result} limit={6} />
+            ) : (
+              <WqlTable result={result} />
+            )}
+          </WidgetFrame>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function DashboardAnalyticsSection({
+  sessionOutputs,
+}: {
+  sessionOutputs?: IOutputStatement[];
+}) {
+  const [segments, setSegments] = useState<DashboardQuerySegment[]>(STARTER_SEGMENTS);
+
+  const corpusService = useMemo(() => {
+    const noteStore: NoteQueryStore = {
+      getAllNotes: async () => crossfitJournal.notes as unknown as Note[],
+      getNoteIdsForTag: async (tag: string) =>
+        new Set(crossfitJournal.notes.filter((n) => n.tags?.includes(tag)).map((n) => n.id)),
+      getNoteTagLabels: async (id: string) =>
+        crossfitJournal.notes.find((n) => n.id === id)?.tags ?? [],
+    };
+    return new QueryService(inMemoryEventStore(crossfitJournal.records as unknown as UnifiedEventRecord[]), noteStore);
+  }, []);
+
+  const handleAddSegment = () => {
+    const newId = `seg-${Date.now()}`;
+    setSegments((prev) => [
+      ...prev,
+      {
+        id: newId,
+        title: `Query Widget #${prev.length + 1}`,
+        question: 'Custom query',
+        query: 'sum:distance{} by {week}',
+        widgetType: 'auto',
+        dataSource: 'corpus',
+      },
+    ]);
+  };
+
+  const handleUpdateSegment = (idx: number, updated: DashboardQuerySegment) => {
+    setSegments((prev) => prev.map((s, i) => (i === idx ? updated : s)));
+  };
+
+  const handleDeleteSegment = (idx: number) => {
+    setSegments((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  return (
+    <section
+      className="rounded-xl border border-border/70 bg-card/30 backdrop-blur-xs p-5 flex flex-col gap-4 shadow-xs"
+      data-testid="dashboard-analytics-section"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-3">
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-violet-500" />
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+              Dashboard Analytics &amp; Query Widgets
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Evaluate multi-segment WQL query blocks and render live interactive widgets over corpus or session data.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleAddSegment}
+          data-testid="btn-add-query-widget"
+          className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 px-3.5 py-1.5 text-xs font-bold shadow-xs cursor-pointer transition-all active:scale-95 flex items-center gap-1.5 self-start sm:self-auto"
+        >
+          <span>＋ Add Query Widget</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {segments.map((seg, idx) => (
+          <DashboardQueryCard
+            key={seg.id}
+            segment={seg}
+            sessionOutputs={sessionOutputs}
+            corpusService={corpusService}
+            onUpdate={(updated) => handleUpdateSegment(idx, updated)}
+            onDelete={() => handleDeleteSegment(idx)}
+            canDelete={segments.length > 1}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function ActiveDashboardAnalyticsSection() {
+  const { outputs } = useOutputStatements();
+  return <DashboardAnalyticsSection sessionOutputs={outputs} />;
+}
+
 // ── Main LanguageWorkbench Component ────────────────────────────────────────
 
 export interface LanguageWorkbenchProps {
   /** Initial markdown note content (defaults to Fran) */
   initialNote?: string;
-  /** Initial WQL query */
-  initialWql?: string;
-  /** Show or hide WQL lane (defaults to true) */
+  /** Show or hide WQL dashboard analytics section (defaults to true) */
   showWqlLane?: boolean;
   /** Show or hide 2x2 debug grid (defaults to true) */
   showDebugGrid?: boolean;
-  /** Custom WQL presets */
-  wqlPresets?: string[];
   /** Optional custom test ID override */
   'data-testid'?: string;
 }
 
 export function LanguageWorkbench({
   initialNote = DEFAULT_NOTE,
-  initialWql = DEFAULT_WQL,
   showWqlLane = true,
   showDebugGrid = true,
-  wqlPresets = DEFAULT_WQL_PRESETS,
   'data-testid': testId = 'language-workbench',
 }: LanguageWorkbenchProps = {}) {
-  const [wqlText, setWqlText] = useState(initialWql);
-  const [result, setResult] = useState<QueryResult | undefined>();
-  const [queryError, setQueryError] = useState<string | undefined>();
-
   // Note editor state — markdown doc + parsed sections (from sectionField)
   const [noteText, setNoteText] = useState(initialNote);
   const [noteSections, setNoteSections] = useState<EditorSection[]>(() => computeNoteSections(initialNote));
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+
   // Runtime lifecycle state
   const [runtime, setRuntime] = useState<IScriptRuntime | null>(null);
   const [runSnapshot, setRunSnapshot] = useState<string>('');
@@ -1560,41 +1905,6 @@ export function LanguageWorkbench({
   // Keep a stable handle to the latest execution controls for deferred starts.
   const executionRef = useRef(execution);
   executionRef.current = execution;
-
-  const service = useMemo(() => {
-    const noteStore: NoteQueryStore = {
-      getAllNotes: async () => crossfitJournal.notes as unknown as Note[],
-      getNoteIdsForTag: async (tag: string) =>
-        new Set(crossfitJournal.notes.filter((n) => n.tags?.includes(tag)).map((n) => n.id)),
-      getNoteTagLabels: async (id: string) =>
-        crossfitJournal.notes.find((n) => n.id === id)?.tags ?? [],
-    };
-    return new QueryService(inMemoryEventStore(crossfitJournal.records as unknown as UnifiedEventRecord[]), noteStore);
-  }, []);
-
-  // WQL lane: re-run the query (debounced) as the editor changes.
-  useEffect(() => {
-    const t = setTimeout(async () => {
-      try {
-        const parsed = parseQuery(wqlText);
-        if (parsed.error) {
-          setQueryError(parsed.error);
-          return;
-        }
-        if (isFindQuery(parsed) || isRowsQuery(parsed)) {
-          setQueryError('Workbench lane runs aggregate queries — find/rows families stay on their own surfaces.');
-          return;
-        }
-        const newest = Math.max(...crossfitJournal.records.map((r) => r.timestamp));
-        const r = await service.run(parsed, { rangeEnd: newest, preferredUnit: 'lb' });
-        setQueryError(undefined);
-        setResult(r);
-      } catch (e) {
-        setQueryError(e instanceof Error ? e.message : String(e));
-      }
-    }, 250);
-    return () => clearTimeout(t);
-  }, [wqlText, service]);
 
   // Runnable `time` or `log` blocks extracted from the note's fences.
   const timeBlocks = useMemo(() => {
@@ -1625,33 +1935,57 @@ export function LanguageWorkbench({
     }
   }, [runSource, activeBlock]);
 
-  const wqlHost = useRef<HTMLDivElement>(null);
   const noteHost = useRef<HTMLDivElement>(null);
-  const wqlEditor = useCodeMirror(wqlHost, initialWql, 'wql', setWqlText);
   useNoteEditor(noteHost, initialNote, (next, sections) => {
     setNoteText(next);
     setNoteSections(sections);
   });
-
-  const handleSelectWqlPreset = (preset: string) => {
-    setWqlText(preset);
-    wqlEditor.setDoc(preset);
-  };
-
   // Runtime Lifecycle Actions
-  const handleStartWorkout = () => {
-    const factory = factoryRef.current!;
-    if (runtime) {
-      factory.disposeRuntime(runtime);
+  // Auto-mount and initialize runtime in "Ready to Start" state as soon as compile is ready
+  useEffect(() => {
+    const factory = factoryRef.current;
+    if (!factory) return;
+    const currentScript = parse.script;
+    if (!currentScript || currentScript.statements.length === 0) {
+      if (runtime) {
+        factory.disposeRuntime(runtime);
+        setRuntime(null);
+        setRunSnapshot('');
+      }
+      return;
     }
+
+    // If no runtime exists or if the source script changed, instantiate a fresh runtime
+    if (!runtime || runSnapshot !== runSource) {
+      if (runtime) {
+        factory.disposeRuntime(runtime);
+      }
+      const block: ScriptBlock = {
+        content: runSource,
+        statements: currentScript.statements,
+      };
+      const newRuntime = factory.createRuntime(block, { debugMode: true });
+      if (newRuntime) {
+        pendingStartRef.current = true;
+        setRuntime(newRuntime);
+        setRunSnapshot(runSource);
+      }
+    }
+  }, [parse.script, runSource]);
+
+  const handleStartWorkout = () => {
+    const factory = factoryRef.current;
+    if (!factory) return;
     const currentScript = parse.script;
     if (!currentScript || currentScript.statements.length === 0) return;
 
+    if (runtime) {
+      factory.disposeRuntime(runtime);
+    }
     const block: ScriptBlock = {
       content: runSource,
       statements: currentScript.statements,
     };
-
     const newRuntime = factory.createRuntime(block, { debugMode: true });
     if (newRuntime) {
       pendingStartRef.current = true;
@@ -1661,8 +1995,7 @@ export function LanguageWorkbench({
   };
 
   // Auto-start ticking once the runtime state change (and the execution hook's
-  // reset-on-runtime-change) has settled. The ref indirection avoids starting
-  // through a stale closure bound to the previous runtime.
+  // reset-on-runtime-change) has settled.
   useEffect(() => {
     if (!runtime || !pendingStartRef.current) return;
     pendingStartRef.current = false;
@@ -1679,9 +2012,26 @@ export function LanguageWorkbench({
   };
 
   const handleResetWorkout = () => {
-    execution.reset();
+    const factory = factoryRef.current;
+    if (!factory) return;
+    const currentScript = parse.script;
+    if (runtime) {
+      factory.disposeRuntime(runtime);
+      setRuntime(null);
+    }
+    if (currentScript && currentScript.statements.length > 0) {
+      const block: ScriptBlock = {
+        content: runSource,
+        statements: currentScript.statements,
+      };
+      const newRuntime = factory.createRuntime(block, { debugMode: true });
+      if (newRuntime) {
+        pendingStartRef.current = true;
+        setRuntime(newRuntime);
+        setRunSnapshot(runSource);
+      }
+    }
   };
-
   useEffect(() => {
     return () => {
       if (runtime && factoryRef.current) {
@@ -1689,7 +2039,7 @@ export function LanguageWorkbench({
       }
     };
   }, [runtime]);
-  const groupCount = result?.parsed.groupBy.length ?? 0;
+
   const isDirty = Boolean(runSnapshot && runSource !== runSnapshot);
 
   const controlsProps: RuntimeControlsProps = {
@@ -1781,58 +2131,16 @@ export function LanguageWorkbench({
       )}
 
       {/* Query lane */}
+      {/* ── Section 4: Dashboard Analytics & Dynamic Query Widgets ── */}
       {showWqlLane && (
-        <section className="rounded-xl border border-border/70 bg-card/40 backdrop-blur-xs p-4 flex flex-col gap-3 shadow-xs">
-          <div className="flex items-center justify-between border-b border-border/50 pb-2">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-violet-500" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">WQL — Live Query & Analytics</h3>
-            </div>
-            <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">in-memory event store</span>
-          </div>
-
-          <div ref={wqlHost} data-testid="wql-editor-host" className="overflow-hidden rounded-lg border border-border/60 bg-background/70 shadow-inner" />
-          <div className="flex flex-wrap gap-1.5">
-            {wqlPresets.map((p) => (
-              <button
-                key={p}
-                onClick={() => handleSelectWqlPreset(p)}
-                data-testid={`preset-${p.replace(/[^a-zA-Z0-9]/g, '-')}`}
-                className={`rounded-lg border px-2.5 py-1 font-mono text-[11px] cursor-pointer transition-all ${
-                  wqlText === p
-                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                    : 'border-border/70 bg-card/40 text-foreground hover:bg-accent hover:border-border'
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-          {queryError && <p className="text-xs text-destructive font-mono">{queryError}</p>}
-          {result && !queryError && (
-            <div className="h-56" data-testid="wql-result-widget">
-              {groupCount === 0 ? (
-                <WidgetFrame title="Scalar" question="What total?" query={wqlText}>
-                  <QueryValue result={result} label="from fixture" />
-                </WidgetFrame>
-              ) : groupCount === 1 && result.parsed.groupBy[0] === 'week' ? (
-                <WidgetFrame title="Trend" question="Rising?" query={wqlText}>
-                  <WqlTimeseries result={result} />
-                </WidgetFrame>
-              ) : (
-                <WidgetFrame title="Breakdown" question="Which group?" query={wqlText}>
-                  {result.series.length > 3 ? (
-                    <TopList result={result} limit={6} />
-                  ) : (
-                    <WqlBars result={result} />
-                  )}
-                </WidgetFrame>
-              )}
-            </div>
-          )}
-        </section>
+        runtime ? (
+          <ScriptRuntimeProvider runtime={runtime}>
+            <ActiveDashboardAnalyticsSection />
+          </ScriptRuntimeProvider>
+        ) : (
+          <DashboardAnalyticsSection />
+        )
       )}
-
       {/* Diagnostics Grid */}
       {showDebugGrid && (
         runtime ? (
