@@ -29,7 +29,7 @@ import type { AnyParsedQuery, FindQueryResult, QueryResult } from '@bitcobblers/
 import { isFindQuery } from '@bitcobblers/wod-wiki-engine';
 
 const meta: Meta<typeof WqlComposer> = {
-  title: 'Workbench/WQL Composer',
+  title: 'Gallery/WQL Composer',
   component: WqlComposer,
   parameters: { layout: 'padded' },
 };

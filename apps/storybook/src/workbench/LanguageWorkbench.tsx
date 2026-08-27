@@ -186,9 +186,7 @@ export function useNoteEditor(
       view.destroy();
       viewRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  }, [doc]);
   const setDoc = useCallback((next: string) => {
     const view = viewRef.current;
     if (view && view.state.doc.toString() !== next) {
@@ -809,17 +807,63 @@ export function extractMetricsByCategory(metrics?: Iterable<IMetric>): Categoriz
     }),
   };
 }
+export interface OutputFilterPreset {
+  label: string;
+  query: string;
+}
+
+export type OutputFilterInput = string | OutputFilterPreset;
+
+export const DEFAULT_PRIMARY_WQL = 'type:segment';
+
+export const DEFAULT_OUTPUT_FILTERS: OutputFilterPreset[] = [
+  { label: 'All', query: '' },
+  { label: 'Segments', query: 'type:segment' },
+  { label: 'Events', query: 'type:event' },
+];
+
+export function normalizeOutputFilter(filter: OutputFilterInput): OutputFilterPreset {
+  if (typeof filter === 'object' && filter !== null && 'label' in filter && 'query' in filter) {
+    return filter;
+  }
+  const str = String(filter).trim();
+  const lower = str.toLowerCase();
+  if (lower === 'all' || lower === '') {
+    return { label: 'All', query: '' };
+  }
+  if (lower === 'segments' || lower === 'segment' || lower === 'type:segment') {
+    return { label: 'Segments', query: 'type:segment' };
+  }
+  if (lower === 'events' || lower === 'event' || lower === 'type:event') {
+    return { label: 'Events', query: 'type:event' };
+  }
+  if (lower === 'milestones' || lower === 'milestone' || lower === 'type:milestone') {
+    return { label: 'Milestones', query: 'type:milestone' };
+  }
+  return { label: str, query: str };
+}
 
 export function SessionOutputsTable({
   outputs,
+  initialQuery = DEFAULT_PRIMARY_WQL,
+  filterPresets = DEFAULT_OUTPUT_FILTERS,
 }: {
   outputs: IOutputStatement[];
+  initialQuery?: string;
+  filterPresets?: OutputFilterInput[];
 }) {
-  const [filterText, setFilterText] = useState('');
+  const [filterText, setFilterText] = useState(initialQuery);
   const [wqlResult, setWqlResult] = useState<string | null>(null);
   const [wqlError, setWqlError] = useState<string | null>(null);
   const [useComposer, setUseComposer] = useState(true);
 
+  useEffect(() => {
+    setFilterText(initialQuery);
+  }, [initialQuery]);
+
+  const normalizedPresets = useMemo(() => {
+    return (filterPresets ?? DEFAULT_OUTPUT_FILTERS).map(normalizeOutputFilter);
+  }, [filterPresets]);
   const t0 = outputs.length > 0 ? outputs[0].timeSpan.started : undefined;
 
   // Run WQL queries when an aggregate/find/rows query is entered
@@ -874,24 +918,43 @@ export function SessionOutputsTable({
   // Filter output rows by text/type
   const filteredRows = useMemo(() => {
     if (!filterText.trim()) return outputs;
-    const lower = filterText.toLowerCase();
+    const lower = filterText.toLowerCase().trim();
+
+    if (lower === 'all') return outputs;
 
     if (lower.startsWith('sum:') || lower.startsWith('avg:') || lower.startsWith('count:')) {
       return outputs;
     }
 
+    const isTypeFilter = lower.startsWith('type:');
+    const typeTarget = isTypeFilter
+      ? lower.slice(5).trim()
+      : lower === 'segments'
+      ? 'segment'
+      : lower === 'events'
+      ? 'event'
+      : lower === 'milestones'
+      ? 'milestone'
+      : null;
+
     return outputs.filter((out) => {
-      const typeMatch = String(out.outputType)?.toLowerCase().includes(lower);
+      const outType = String(out.outputType || '').toLowerCase();
+      if (typeTarget) {
+        return outType.includes(typeTarget);
+      }
+
+      const typeMatch = outType.includes(lower);
       const keyMatch = out.sourceBlockKey?.toLowerCase().includes(lower);
       const reasonMatch = out.completionReason?.toLowerCase().includes(lower);
-      const metricMatch = out.metrics && Array.from(out.metrics).some((m: IMetric) => {
-        const valStr = typeof m.value === 'object' ? JSON.stringify(m.value) : String(m.value ?? '');
-        return String(m.type).toLowerCase().includes(lower) || valStr.toLowerCase().includes(lower);
-      });
+      const metricMatch =
+        out.metrics &&
+        Array.from(out.metrics).some((m: IMetric) => {
+          const valStr = typeof m.value === 'object' ? JSON.stringify(m.value) : String(m.value ?? '');
+          return String(m.type).toLowerCase().includes(lower) || valStr.toLowerCase().includes(lower);
+        });
       return typeMatch || keyMatch || reasonMatch || metricMatch;
     });
   }, [outputs, filterText]);
-
   return (
     <section
       className="rounded-xl border border-border/70 bg-card/40 backdrop-blur-xs p-5 flex flex-col gap-4 shadow-xs"
@@ -971,18 +1034,13 @@ export function SessionOutputsTable({
         {/* Preset Pills */}
         <div className="flex flex-wrap items-center justify-between gap-1.5">
           <div className="flex flex-wrap gap-1">
-            {[
-              { label: 'All', query: '' },
-              { label: 'type:segment', query: 'segment' },
-              { label: 'type:milestone', query: 'milestone' },
-              { label: 'sum:rep{}', query: 'sum:rep{}' },
-              { label: 'sum:totalVolume{}', query: 'sum:totalVolume{}' },
-            ].map((p) => (
+            {normalizedPresets.map((p) => (
               <button
                 key={p.label}
                 onClick={() => setFilterText(p.query)}
+                data-testid={`output-filter-preset-${p.label.toLowerCase().replace(/\s+/g, '-')}`}
                 className={`rounded-lg border px-2.5 py-1 font-mono text-[11px] cursor-pointer transition-all ${
-                  filterText === p.query
+                  filterText === p.query || (p.query === '' && filterText === '')
                     ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'border-border/70 bg-card text-foreground hover:bg-accent'
                 }`}
@@ -1148,11 +1206,22 @@ export function SessionOutputsTable({
   );
 }
 
-export function ActiveSessionOutputsTable() {
+export function ActiveSessionOutputsTable({
+  initialQuery,
+  filterPresets,
+}: {
+  initialQuery?: string;
+  filterPresets?: OutputFilterInput[];
+}) {
   const { outputs } = useOutputStatements();
-  return <SessionOutputsTable outputs={outputs} />;
+  return (
+    <SessionOutputsTable
+      outputs={outputs}
+      initialQuery={initialQuery}
+      filterPresets={filterPresets}
+    />
+  );
 }
-
 // ── Output Timeline (Right Column Bottom) ───────────────────────────────────
 
 
@@ -1618,8 +1687,9 @@ export interface DashboardQuerySegment {
   widgetType: 'auto' | 'value' | 'timeseries' | 'bars' | 'top-list' | 'table';
   dataSource: 'corpus' | 'session';
 }
+export type DashboardInput = string | Partial<DashboardQuerySegment>;
 
-const STARTER_SEGMENTS: DashboardQuerySegment[] = [
+export const DEFAULT_DASHBOARD_QUERIES: DashboardInput[] = [
   {
     id: 'seg-1',
     title: 'Weekly Volume Trend',
@@ -1646,6 +1716,46 @@ const STARTER_SEGMENTS: DashboardQuerySegment[] = [
   },
 ];
 
+export function normalizeDashboardSegment(input: DashboardInput, index: number): DashboardQuerySegment {
+  if (typeof input === 'object' && input !== null) {
+    return {
+      id: input.id || `dash-${index + 1}`,
+      title: input.title || `Query Widget #${index + 1}`,
+      question: input.question || 'Custom query',
+      query: input.query || '',
+      widgetType: input.widgetType || 'auto',
+      dataSource: input.dataSource || 'corpus',
+    };
+  }
+
+  const query = String(input).trim();
+  let title = `Query #${index + 1}`;
+  let widgetType: DashboardQuerySegment['widgetType'] = 'auto';
+
+  if (query.includes('by {week}') || query.includes('by {day}') || query.includes('by {month}')) {
+    const metricPart = query.split('{}')[0] || '';
+    const cleanMetric = metricPart.replace('sum:', '').replace('avg:', '').replace('count:', '');
+    title = cleanMetric ? `${cleanMetric} Trend` : title;
+    widgetType = 'timeseries';
+  } else if (query.includes('by {') || query.includes('by discipline') || query.includes('by tag')) {
+    const metricPart = query.split('{}')[0] || '';
+    const cleanMetric = metricPart.replace('sum:', '').replace('avg:', '').replace('count:', '');
+    title = cleanMetric ? `${cleanMetric} Breakdown` : title;
+    widgetType = 'bars';
+  } else if (query.startsWith('sum:') || query.startsWith('avg:') || query.startsWith('count:')) {
+    title = query.replace('sum:', 'Total ').replace('avg:', 'Average ').replace('count:', 'Count ').replace('{}', '');
+    widgetType = 'value';
+  }
+
+  return {
+    id: `dash-${index + 1}-${Date.now()}`,
+    title,
+    question: 'WQL Query',
+    query,
+    widgetType,
+    dataSource: query.includes('session') ? 'session' : 'corpus',
+  };
+}
 export function DashboardQueryCard({
   segment,
   sessionOutputs,
@@ -1862,11 +1972,20 @@ export function DashboardQueryCard({
 
 export function DashboardAnalyticsSection({
   sessionOutputs,
+  dashboards = DEFAULT_DASHBOARD_QUERIES,
 }: {
   sessionOutputs?: IOutputStatement[];
+  dashboards?: DashboardInput[];
 }) {
-  const [segments, setSegments] = useState<DashboardQuerySegment[]>(STARTER_SEGMENTS);
+  const initialSegments = useMemo(() => {
+    return (dashboards ?? DEFAULT_DASHBOARD_QUERIES).map((d, i) => normalizeDashboardSegment(d, i));
+  }, [dashboards]);
 
+  const [segments, setSegments] = useState<DashboardQuerySegment[]>(initialSegments);
+
+  useEffect(() => {
+    setSegments((dashboards ?? DEFAULT_DASHBOARD_QUERIES).map((d, i) => normalizeDashboardSegment(d, i)));
+  }, [dashboards]);
   const corpusService = useMemo(() => {
     const noteStore: NoteQueryStore = {
       getAllNotes: async () => crossfitJournal.notes as unknown as Note[],
@@ -1945,16 +2064,24 @@ export function DashboardAnalyticsSection({
   );
 }
 
-export function ActiveDashboardAnalyticsSection() {
+export function ActiveDashboardAnalyticsSection({
+  dashboards,
+}: {
+  dashboards?: DashboardInput[];
+}) {
   const { outputs } = useOutputStatements();
-  return <DashboardAnalyticsSection sessionOutputs={outputs} />;
+  return <DashboardAnalyticsSection sessionOutputs={outputs} dashboards={dashboards} />;
 }
-
-// ── Main LanguageWorkbench Component ────────────────────────────────────────
 
 export interface LanguageWorkbenchProps {
   /** Initial markdown note content (defaults to Fran) */
   initialNote?: string;
+  /** Primary WQL query for the session outputs table (defaults to 'type:segment') */
+  outputTableQuery?: string;
+  /** Secondary predefined WQL filter presets under the table (defaults to ['all', 'segments', 'events']) */
+  outputTableFilters?: OutputFilterInput[];
+  /** Dashboard analytics query widgets (array of WQL strings or segment configs) */
+  dashboards?: DashboardInput[];
   /** Show or hide WQL dashboard analytics section (defaults to true) */
   showWqlLane?: boolean;
   /** Show or hide 2x2 debug grid (defaults to true) */
@@ -1962,19 +2089,26 @@ export interface LanguageWorkbenchProps {
   /** Optional custom test ID override */
   'data-testid'?: string;
 }
+// ── Main LanguageWorkbench Component ────────────────────────────────────────
 
 export function LanguageWorkbench({
   initialNote = DEFAULT_NOTE,
+  outputTableQuery = DEFAULT_PRIMARY_WQL,
+  outputTableFilters = DEFAULT_OUTPUT_FILTERS,
+  dashboards = DEFAULT_DASHBOARD_QUERIES,
   showWqlLane = true,
   showDebugGrid = true,
   'data-testid': testId = 'language-workbench',
 }: LanguageWorkbenchProps = {}) {
-  // Note editor state — markdown doc + parsed sections (from sectionField)
   const [noteText, setNoteText] = useState(initialNote);
   const [noteSections, setNoteSections] = useState<EditorSection[]>(() => computeNoteSections(initialNote));
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
 
-  // Runtime lifecycle state
+  useEffect(() => {
+    setNoteText(initialNote);
+    setNoteSections(computeNoteSections(initialNote));
+    setActiveBlockId(null);
+  }, [initialNote]);
   const [runtime, setRuntime] = useState<IScriptRuntime | null>(null);
   const [runSnapshot, setRunSnapshot] = useState<string>('');
   const factoryRef = useRef<RuntimeFactory | null>(null);
@@ -2207,10 +2341,17 @@ export function LanguageWorkbench({
       {/* ── Section 3: Session Outputs & Live WQL Filter (Review & Analysis) ── */}
       {runtime ? (
         <ScriptRuntimeProvider runtime={runtime}>
-          <ActiveSessionOutputsTable />
+          <ActiveSessionOutputsTable
+            initialQuery={outputTableQuery}
+            filterPresets={outputTableFilters}
+          />
         </ScriptRuntimeProvider>
       ) : (
-        <SessionOutputsTable outputs={[]} />
+        <SessionOutputsTable
+          outputs={[]}
+          initialQuery={outputTableQuery}
+          filterPresets={outputTableFilters}
+        />
       )}
 
       {/* Query lane */}
@@ -2218,10 +2359,10 @@ export function LanguageWorkbench({
       {showWqlLane && (
         runtime ? (
           <ScriptRuntimeProvider runtime={runtime}>
-            <ActiveDashboardAnalyticsSection />
+            <ActiveDashboardAnalyticsSection dashboards={dashboards} />
           </ScriptRuntimeProvider>
         ) : (
-          <DashboardAnalyticsSection />
+          <DashboardAnalyticsSection dashboards={dashboards} />
         )
       )}
       {/* Diagnostics Grid */}

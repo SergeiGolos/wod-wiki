@@ -28,6 +28,27 @@ const preview: Preview = {
   ],
   parameters: {
     layout: 'padded',
+    options: {
+      storySort: {
+        order: [
+          'Playground',
+          ['EmptyWorkbench', 'IntervalStarter', 'ForTimeStarter', 'EmomStarter', '*'],
+          'Workbench',
+          [
+            'Benchmark — Fran',
+            'Tabata & EMOM',
+            'The Golos Method — Kettlebell',
+            'Strength & Triplet',
+            'Swimming IM Prep',
+            'Murph (Hero WOD)',
+            'Custom Workout (Clone Template)',
+            '*',
+          ],
+          'Gallery',
+          ['WQL Example Gallery', 'WQL Composer', 'Analytics Widgets', '*'],
+        ],
+      },
+    },
     controls: {
       matchers: {
         color: /(background|color)$/i,

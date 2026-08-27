@@ -160,5 +160,28 @@ describe('LanguageWorkbench in apps/storybook', () => {
     expect(screen.getByTestId('panel-wallclock')).toBeInTheDocument();
     expect(screen.getByTestId('clock-primary')).toHaveTextContent('00:00');
     expect(screen.getByTestId('panel-timeline')).toBeInTheDocument();
+
+    // Default primary WQL and secondary presets
+    expect(screen.getByTestId('output-filter-preset-all')).toBeInTheDocument();
+    expect(screen.getByTestId('output-filter-preset-segments')).toBeInTheDocument();
+    expect(screen.getByTestId('output-filter-preset-events')).toBeInTheDocument();
+  });
+
+  it('supports custom primary WQL, secondary filter presets, and dashboards', () => {
+    render(
+      <LanguageWorkbench
+        outputTableQuery="type:event"
+        outputTableFilters={['all', 'segments', 'events', 'sum:rep{}']}
+        dashboards={[
+          'sum:totalVolume{} by {week}',
+          'sum:sessionLoad{} by {discipline}',
+        ]}
+      />
+    );
+
+    expect(screen.getByTestId('output-filter-preset-all')).toBeInTheDocument();
+    expect(screen.getByTestId('output-filter-preset-segments')).toBeInTheDocument();
+    expect(screen.getByTestId('output-filter-preset-events')).toBeInTheDocument();
+    expect(screen.getByTestId('output-filter-preset-sum:rep{}')).toBeInTheDocument();
   });
 });

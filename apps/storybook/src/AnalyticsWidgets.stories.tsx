@@ -17,7 +17,7 @@ import {
 } from '@bitcobblers/wod-wiki-ui';
 
 const meta: Meta = {
-  title: 'Workbench/Analytics Widgets',
+  title: 'Gallery/Analytics Widgets',
   parameters: { layout: 'padded' },
 };
 export default meta;
