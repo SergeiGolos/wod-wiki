@@ -15,6 +15,7 @@ import crossfitJournal from '../../../../packages/wql/fixtures/corpus/crossfit-m
 import {
   QueryService,
   parseQuery,
+  isAggregateQuery,
   isFindQuery,
   isRowsQuery,
   type QueryResult,
@@ -51,8 +52,11 @@ import {
 } from '@bitcobblers/wod-wiki-engine';
 import type { ScriptBlock } from '@bitcobblers/wod-wiki-core';
 import { TimerStackView } from '@/components/organisms/workout/TimerStackView';
+import { VisualStatePanel } from '@/panels/visual-state-panel';
 import { calculateDuration } from '@/lib/timeUtils';
 import type { ITimerDisplayEntry } from '@/clock/types/DisplayTypes';
+import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
+import { toStoredOutputStatement } from '@bitcobblers/wod-wiki-engine';
 import {
   editorPreset,
   sectionField,
@@ -600,7 +604,6 @@ export function WallClockHeader({ wallNow, status }: { wallNow: Date; status: st
     </div>
   );
 }
-
 export function WallClockPanel(props: RuntimeControlsProps) {
   const runtime = useScriptRuntime();
   const primaryTimer = usePrimaryTimer();
@@ -737,32 +740,41 @@ export function WallClockPanel(props: RuntimeControlsProps) {
     >
       <WallClockHeader wallNow={wallNow} status={props.status} />
 
-      <div className="py-2">
-        <TimerStackView
-          elapsedMs={primaryElapsedMs || props.elapsedTime}
-          hasActiveBlock={Boolean(runtime)}
-          onStart={props.onStart}
-          onPause={props.onPause}
-          onStop={props.onStop}
-          onNext={() => {
-            runtime?.handle({ name: 'next', timestamp: new Date(), data: {} });
-          }}
-          actions={actions.length > 0 ? actions : undefined}
-          onAction={(eventName, payload) => {
-            runtime.handle({ name: eventName, timestamp: new Date(), data: payload });
-            if (eventName === 'timer:pause') props.onPause();
-            else if (eventName === 'timer:resume' || eventName === 'timer:start') props.onResume();
-            else if (eventName === 'workout:stop') props.onStop();
-          }}
-          isRunning={isAnyTimerRunning || props.status === 'running'}
-          isPaused={props.status === 'paused'}
-          disableNext={props.status === 'paused'}
-          primaryTimer={displayTimerEntry}
-          subLabels={subLabels}
-          secondaryTimers={secondaryTimerEntries}
-          stackItems={stackItems}
-          timerStates={timerStates}
-        />
+      {/* ── Split Track View: Current Section & Up Next (Left) + Timer (Right) ── */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch py-1">
+        {/* Left Side (md:col-span-5): Visual State with Current Section & Up Next */}
+        <div className="md:col-span-5 rounded-lg border border-border/60 bg-background/50 overflow-hidden min-h-[220px]">
+          <VisualStatePanel />
+        </div>
+
+        {/* Right Side (md:col-span-7): Timer & Playback Controls */}
+        <div className="md:col-span-7 flex flex-col justify-center rounded-lg border border-border/60 bg-background/50 p-2 min-h-[220px]">
+          <TimerStackView
+            elapsedMs={primaryElapsedMs || props.elapsedTime}
+            hasActiveBlock={Boolean(runtime)}
+            onStart={props.onStart}
+            onPause={props.onPause}
+            onStop={props.onStop}
+            onNext={() => {
+              runtime?.handle({ name: 'next', timestamp: new Date(), data: {} });
+            }}
+            actions={actions.length > 0 ? actions : undefined}
+            onAction={(eventName, payload) => {
+              runtime.handle({ name: eventName, timestamp: new Date(), data: payload });
+              if (eventName === 'timer:pause') props.onPause();
+              else if (eventName === 'timer:resume' || eventName === 'timer:start') props.onResume();
+              else if (eventName === 'workout:stop') props.onStop();
+            }}
+            isRunning={isAnyTimerRunning || props.status === 'running'}
+            isPaused={props.status === 'paused'}
+            disableNext={props.status === 'paused'}
+            primaryTimer={displayTimerEntry}
+            subLabels={subLabels}
+            secondaryTimers={secondaryTimerEntries}
+            stackItems={stackItems}
+            timerStates={timerStates}
+          />
+        </div>
       </div>
 
       <ControlsToolbar {...props} />
@@ -780,27 +792,47 @@ export function IdleWallClockPanel(props: RuntimeControlsProps) {
     >
       <WallClockHeader wallNow={wallNow} status={props.status} />
 
-      <div className="py-2">
-        <TimerStackView
-          elapsedMs={0}
-          hasActiveBlock={false}
-          onStart={props.onStart}
-          onPause={props.onPause}
-          onStop={props.onStop}
-          onNext={() => {}}
-          isRunning={false}
-          isPaused={false}
-          disableNext={true}
-          primaryTimer={{
-            id: 'idle-timer',
-            ownerId: 'idle',
-            timerMemoryId: '',
-            label: 'Ready to Start',
-            format: 'up',
-            role: 'auto',
-            accumulatedMs: 0,
-          }}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch py-1">
+        {/* Left Side: Idle Preview Card */}
+        <div className="md:col-span-5 rounded-lg border border-dashed border-border/70 bg-background/40 p-4 flex flex-col justify-between min-h-[220px]">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              Workout Section
+            </div>
+            <div className="text-sm font-bold text-foreground">Ready to Start</div>
+            <p className="text-xs text-muted-foreground mt-1">Start the workout to activate current movement and cue stream.</p>
+          </div>
+          <div className="p-2.5 rounded-md border border-dashed border-border/60 bg-muted/20">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-0.5">
+              Up Next
+            </span>
+            <span className="text-xs italic text-muted-foreground">First movement in selected block</span>
+          </div>
+        </div>
+
+        {/* Right Side: Timer */}
+        <div className="md:col-span-7 flex flex-col justify-center rounded-lg border border-border/60 bg-background/50 p-2 min-h-[220px]">
+          <TimerStackView
+            elapsedMs={0}
+            hasActiveBlock={false}
+            onStart={props.onStart}
+            onPause={props.onPause}
+            onStop={props.onStop}
+            onNext={() => {}}
+            isRunning={false}
+            isPaused={false}
+            disableNext={true}
+            primaryTimer={{
+              id: 'idle-timer',
+              ownerId: 'idle',
+              timerMemoryId: '',
+              label: 'Ready to Start',
+              format: 'up',
+              role: 'auto',
+              accumulatedMs: 0,
+            }}
+          />
+        </div>
       </div>
 
       <ControlsToolbar {...props} />
@@ -808,7 +840,224 @@ export function IdleWallClockPanel(props: RuntimeControlsProps) {
   );
 }
 
+export function SessionOutputsTable({
+  outputs,
+}: {
+  outputs: IOutputStatement[];
+}) {
+  const [filterText, setFilterText] = useState('');
+  const [wqlResult, setWqlResult] = useState<string | null>(null);
+  const [wqlError, setWqlError] = useState<string | null>(null);
+
+  const t0 = outputs.length > 0 ? outputs[0].timeSpan.started : undefined;
+
+  // Run WQL queries when an aggregate/find/rows query is entered
+  useEffect(() => {
+    if (!filterText.trim()) {
+      setWqlResult(null);
+      setWqlError(null);
+      return;
+    }
+
+    const t = setTimeout(async () => {
+      try {
+        const parsed = parseQuery(filterText);
+        if (parsed.error) {
+          setWqlResult(null);
+          setWqlError(null);
+          return;
+        }
+
+        if (outputs.length === 0) {
+          setWqlResult('No session outputs emitted yet to query.');
+          setWqlError(null);
+          return;
+        }
+
+        const stored = outputs.map(toStoredOutputStatement);
+        const identity = { resultId: 'session', noteId: 'workbench', blockContentId: 'workbench', origin: 'playground' as const };
+        const eventRows = toEventRows(stored, identity);
+        const summaryRows = toSummaryEventRows(stored, identity);
+        const store = inMemoryEventStore([...eventRows, ...summaryRows]);
+        const service = new QueryService(store);
+        if (isAggregateQuery(parsed)) {
+          const res = await service.run(parsed);
+          if (res.series.length > 0 && res.series[0].points.length > 0) {
+            const pt = res.series[0].points[0];
+            setWqlResult(`Result: ${pt.value}${res.series[0].unit ? ` ${res.series[0].unit}` : ''}`);
+          } else {
+            setWqlResult('Query executed: 0 matching data points in current session outputs.');
+          }
+        } else {
+          setWqlResult(null);
+        }
+      } catch (e) {
+        setWqlError(e instanceof Error ? e.message : String(e));
+        setWqlResult(null);
+      }
+    }, 250);
+
+    return () => clearTimeout(t);
+  }, [filterText, outputs]);
+
+  // Filter output rows by text/type
+  const filteredRows = useMemo(() => {
+    if (!filterText.trim()) return outputs;
+    const lower = filterText.toLowerCase();
+
+    if (lower.startsWith('sum:') || lower.startsWith('avg:') || lower.startsWith('count:')) {
+      return outputs;
+    }
+
+    return outputs.filter((out) => {
+      const typeMatch = String(out.outputType)?.toLowerCase().includes(lower);
+      const keyMatch = out.sourceBlockKey?.toLowerCase().includes(lower);
+      const reasonMatch = out.completionReason?.toLowerCase().includes(lower);
+      const metricMatch = out.metrics && Array.from(out.metrics).some((m: IMetric) => {
+        const valStr = typeof m.value === 'object' ? JSON.stringify(m.value) : String(m.value ?? '');
+        return String(m.type).toLowerCase().includes(lower) || valStr.toLowerCase().includes(lower);
+      });
+      return typeMatch || keyMatch || reasonMatch || metricMatch;
+    });
+  }, [outputs, filterText]);
+
+  return (
+    <section
+      className="rounded-xl border border-border/70 bg-card/40 backdrop-blur-xs p-5 flex flex-col gap-4 shadow-xs"
+      data-testid="output-wql-section"
+    >
+      {/* Header */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-3">
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-violet-500" />
+          <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-foreground">
+            Session Outputs &amp; Live WQL Filter
+          </h3>
+        </div>
+        <span className="font-mono text-xs text-muted-foreground">
+          {outputs.length} statement{outputs.length === 1 ? '' : 's'} logged
+        </span>
+      </div>
+
+      {/* WQL Filter / Query Bar */}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[280px]">
+            <input
+              type="text"
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              placeholder="Enter WQL query or filter (e.g. sum:rep{}, type:segment, milestone)..."
+              className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-inner"
+              data-testid="wql-filter-input"
+            />
+            {filterText && (
+              <button
+                onClick={() => setFilterText('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-1">
+            {[
+              { label: 'All', query: '' },
+              { label: 'type:segment', query: 'segment' },
+              { label: 'type:milestone', query: 'milestone' },
+              { label: 'sum:rep{}', query: 'sum:rep{}' },
+              { label: 'sum:totalVolume{}', query: 'sum:totalVolume{}' },
+            ].map((p) => (
+              <button
+                key={p.label}
+                onClick={() => setFilterText(p.query)}
+                className={`rounded-lg border px-2.5 py-1 font-mono text-[11px] cursor-pointer transition-all ${
+                  filterText === p.query
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
+                    : 'border-border/70 bg-card text-foreground hover:bg-accent'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {wqlError && <p className="text-xs text-destructive font-mono">{wqlError}</p>}
+        {wqlResult && !wqlError && (
+          <div className="p-2.5 rounded-lg border border-primary/40 bg-primary/10 text-xs font-mono font-bold text-primary flex items-center justify-between">
+            <span>{wqlResult}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Full-Width Table */}
+      <div className="overflow-x-auto rounded-lg border border-border/60 bg-background/60 shadow-inner">
+        <table className="w-full text-left font-mono text-xs border-collapse">
+          <thead>
+            <tr className="border-b border-border/60 bg-muted/40 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+              <th className="p-2.5">#</th>
+              <th className="p-2.5">Offset</th>
+              <th className="p-2.5">Wall Time</th>
+              <th className="p-2.5">Type</th>
+              <th className="p-2.5">Block Key</th>
+              <th className="p-2.5">Reason</th>
+              <th className="p-2.5 font-sans">Metrics &amp; Fragments</th>
+              <th className="p-2.5">Duration</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/40">
+            {filteredRows.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="p-8 text-center text-muted-foreground font-sans text-xs">
+                  {outputs.length === 0
+                    ? 'No output statements emitted yet. Start and advance the workout above to stream live session outputs into this table.'
+                    : 'No output statements match the current WQL query/filter.'}
+                </td>
+              </tr>
+            ) : (
+              filteredRows.map((out, idx) => (
+                <tr key={out.id ?? idx} className="hover:bg-muted/20 transition-colors">
+                  <td className="p-2.5 text-muted-foreground">{out.id ?? idx + 1}</td>
+                  <td className="p-2.5 font-bold text-primary tabular-nums">
+                    {t0 !== undefined ? `+${formatMMSS(out.timeSpan.started - t0)}` : '+00:00'}
+                  </td>
+                  <td className="p-2.5 text-muted-foreground tabular-nums">
+                    {formatClockTime(new Date(out.timeSpan.ended ?? out.timeSpan.started))}
+                  </td>
+                  <td className="p-2.5">
+                    <span className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase ${OUTPUT_TYPE_CLASS[String(out.outputType)] ?? OUTPUT_TYPE_CLASS.system}`}>
+                      {out.outputType}
+                    </span>
+                  </td>
+                  <td className="p-2.5 text-foreground/80 max-w-[140px] truncate">{out.sourceBlockKey || 'session'}</td>
+                  <td className="p-2.5 text-muted-foreground">{out.completionReason || '—'}</td>
+                  <td className="p-2.5 font-sans min-w-[200px]">
+                    <div className="flex flex-wrap gap-1">{presentBadges(out.metrics)}</div>
+                  </td>
+                  <td className="p-2.5 text-foreground font-semibold tabular-nums">
+                    {out.timeSpan.ended !== undefined
+                      ? formatMMSS(out.timeSpan.ended - out.timeSpan.started)
+                      : 'running'}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+export function ActiveSessionOutputsTable() {
+  const { outputs } = useOutputStatements();
+  return <SessionOutputsTable outputs={outputs} />;
+}
+
 // ── Output Timeline (Right Column Bottom) ───────────────────────────────────
+
 
 export function OutputTimelineHeader({ count }: { count: number }) {
   return (
@@ -1459,77 +1708,77 @@ export function LanguageWorkbench({
 
   return (
     <div className="flex flex-col gap-6" data-testid={testId}>
-      {/* ── 2/3 (Left: Editor + Timer) and 1/3 (Right: Statements + Output) Split ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Left Column (2/3 width): Note Editor & Wall Clock stacked */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          {/* 1. Note Editor Panel */}
-          <section className="rounded-xl border border-border/70 bg-card/40 backdrop-blur-xs p-3.5 flex flex-col gap-3 shadow-xs">
-            <div
-              ref={noteHost}
-              className="min-h-72 overflow-hidden rounded-lg border border-border/60 bg-background/70 shadow-inner"
-              data-testid="script-editor-host"
-            />
+      {/* ── Section 1: Note Editor (2/3) & Compiled Statements (1/3) (Authoring) ── */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Left (2/3 width): Note Editor */}
+        <div className="lg:col-span-2 rounded-xl border border-border/70 bg-card/40 backdrop-blur-xs p-3.5 flex flex-col gap-3 shadow-xs">
+          <div
+            ref={noteHost}
+            className="min-h-72 overflow-hidden rounded-lg border border-border/60 bg-background/70 shadow-inner"
+            data-testid="script-editor-host"
+          />
 
-            {/* Time-block selector tabs (only if multiple blocks) */}
-            {timeBlocks.length > 1 && (
-              <div className="flex flex-wrap items-center gap-1.5 pt-0.5" data-testid="time-block-chips">
-                <span className="text-[11px] font-bold text-muted-foreground mr-1 uppercase tracking-wider">Blocks:</span>
-                {timeBlocks.map((b) => (
-                  <button
-                    key={b.section.id}
-                    onClick={() => setActiveBlockId(b.section.id)}
-                    data-testid={`time-block-chip-${b.index}`}
-                    className={`max-w-[240px] truncate rounded-lg border px-2.5 py-1 font-mono text-[11px] cursor-pointer transition-all ${
-                      b.section.id === activeBlock?.section.id
-                        ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                        : 'border-border text-foreground hover:bg-accent'
-                    }`}
-                  >
-                    #{b.index + 1} · {b.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {parse.error && <p className="text-xs text-destructive font-mono">{parse.error}</p>}
-          </section>
-
-          {/* 2. Timer & Wall Clock View (stacked directly under the editor) */}
-          {runtime ? (
-            <ScriptRuntimeProvider runtime={runtime}>
-              <WallClockPanel {...controlsProps} />
-            </ScriptRuntimeProvider>
-          ) : (
-            <IdleWallClockPanel {...controlsProps} />
+          {/* Time-block selector tabs (only if multiple blocks) */}
+          {timeBlocks.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5" data-testid="time-block-chips">
+              <span className="text-[11px] font-bold text-muted-foreground mr-1 uppercase tracking-wider">Blocks:</span>
+              {timeBlocks.map((b) => (
+                <button
+                  key={b.section.id}
+                  onClick={() => setActiveBlockId(b.section.id)}
+                  data-testid={`time-block-chip-${b.index}`}
+                  className={`max-w-[240px] truncate rounded-lg border px-2.5 py-1 font-mono text-[11px] cursor-pointer transition-all ${
+                    b.section.id === activeBlock?.section.id
+                      ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
+                      : 'border-border text-foreground hover:bg-accent'
+                  }`}
+                >
+                  #{b.index + 1} · {b.label}
+                </button>
+              ))}
+            </div>
           )}
+
+          {parse.error && <p className="text-xs text-destructive font-mono">{parse.error}</p>}
         </div>
 
-        {/* Right Column (1/3 width): Data & State View (Compiled Statements + Output Stream) */}
-        <div className="lg:col-span-1 flex flex-col gap-6">
+        {/* Right (1/3 width): Compiled Statements */}
+        <div className="lg:col-span-1">
           {runtime ? (
             <ScriptRuntimeProvider runtime={runtime}>
-              {/* Compiled Statements */}
               <ActiveStatementStrip
                 statements={parse.script?.statements}
                 error={parse.error}
                 blockLabel={activeBlock?.label}
               />
-              {/* Output Statements Stream */}
-              <ActiveOutputTimeline />
             </ScriptRuntimeProvider>
           ) : (
-            <>
-              <StatementStrip
-                statements={parse.script?.statements}
-                error={parse.error}
-                blockLabel={activeBlock?.label}
-              />
-              <IdleOutputTimeline />
-            </>
+            <StatementStrip
+              statements={parse.script?.statements}
+              error={parse.error}
+              blockLabel={activeBlock?.label}
+            />
           )}
         </div>
-      </div>
+      </section>
+
+      {/* ── Section 2: Wall Clock & Split Track Screen (Execution) ── */}
+      {runtime ? (
+        <ScriptRuntimeProvider runtime={runtime}>
+          <WallClockPanel {...controlsProps} />
+        </ScriptRuntimeProvider>
+      ) : (
+        <IdleWallClockPanel {...controlsProps} />
+      )}
+
+      {/* ── Section 3: Session Outputs & Live WQL Filter (Review & Analysis) ── */}
+      {runtime ? (
+        <ScriptRuntimeProvider runtime={runtime}>
+          <ActiveSessionOutputsTable />
+        </ScriptRuntimeProvider>
+      ) : (
+        <SessionOutputsTable outputs={[]} />
+      )}
 
       {/* Query lane */}
       {showWqlLane && (
