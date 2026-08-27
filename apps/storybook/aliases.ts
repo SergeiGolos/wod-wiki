@@ -18,7 +18,7 @@ export const CODEMIRROR_SINGLETON_DEPS = [
 /** Source-dir aliases so Storybook builds without package `dist/`. */
 export function workspaceAliases(rootDir: string): Record<string, string> {
   return {
-    '@': path.resolve(rootDir, 'src'),
+    '@': path.resolve(rootDir, 'apps/playground/src'),
     '@bitcobblers/wod-wiki-core': path.resolve(rootDir, 'packages/core/src'),
     '@bitcobblers/wod-wiki-lang/react': path.resolve(rootDir, 'packages/lang/src/react.ts'),
     '@bitcobblers/wod-wiki-lang': path.resolve(rootDir, 'packages/lang/src'),

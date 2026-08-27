@@ -1,8 +1,15 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "./src",
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@/*": ["../playground/src/*"],
+      "@bitcobblers/wod-wiki-core": ["../../packages/core/src"],
+      "@bitcobblers/wod-wiki-lang": ["../../packages/lang/src"],
+      "@bitcobblers/wod-wiki-wql": ["../../packages/wql/src"],
+      "@bitcobblers/wod-wiki-engine": ["../../packages/engine/src"],
+      "@bitcobblers/wod-wiki-ui": ["../../packages/ui/src"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["dist", "node_modules"]

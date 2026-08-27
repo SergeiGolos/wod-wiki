@@ -18,7 +18,7 @@ import {
   type DialectAnalysis,
   type LanguagePack,
 } from '@bitcobblers/wod-wiki-engine';
-import { LanguageWorkbench } from '../src/LanguageWorkbench.stories';
+import { LanguageWorkbench } from '../src/workbench';
 
 const DEMO_PACK_ID = 'demo-pack';
 
@@ -41,7 +41,7 @@ const demoPack: LanguagePack = defineLanguagePack({
     name: 'Demo Pack',
   },
   lang: {
-    analyzer: new DemoPackDialect(),
+    analyzer: DemoPackDialect,
   },
 });
 
@@ -151,29 +151,14 @@ describe('LanguageWorkbench in apps/storybook', () => {
     expect(hints).not.toContain('demo.pack');
   });
 
-  it('renders LanguageWorkbench UI and responds to interactive pack registration', async () => {
+  it('renders LanguageWorkbench UI with editor, statement strip, and wall clock', () => {
     render(<LanguageWorkbench />);
 
     expect(screen.getByTestId('language-workbench')).toBeInTheDocument();
-    expect(screen.getByTestId('statement-count')).toHaveTextContent(/^[1-9]\d*$/);
-
-    const toggleBtn = screen.getByTestId('toggle-demo-pack');
-    expect(toggleBtn).toHaveTextContent('register demo pack');
-
-    // Click to register demo pack
-    await act(async () => {
-      fireEvent.click(toggleBtn);
-    });
-
-    expect(toggleBtn).toHaveTextContent('✓ demo pack registered');
-    expect(screen.getByTestId('hint-keys')).toHaveTextContent('demo.pack');
-
-    // Click to unregister demo pack
-    await act(async () => {
-      fireEvent.click(toggleBtn);
-    });
-
-    expect(toggleBtn).toHaveTextContent('register demo pack');
-    expect(screen.getByTestId('hint-keys')).not.toHaveTextContent('demo.pack');
+    expect(screen.getByTestId('script-editor-host')).toBeInTheDocument();
+    expect(screen.getByTestId('statement-strip')).toBeInTheDocument();
+    expect(screen.getByTestId('panel-wallclock')).toBeInTheDocument();
+    expect(screen.getByTestId('clock-primary')).toHaveTextContent('00:00');
+    expect(screen.getByTestId('panel-timeline')).toBeInTheDocument();
   });
 });
