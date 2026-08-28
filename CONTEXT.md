@@ -293,6 +293,28 @@ Workbench Session deepening, one thin effect replaces the hydration + bridge
 work and the rest dissolve into the session store.
 _Avoid_: bridge (cast-specific legacy), effects hook (too generic).
 
+### Theming & responsive presentation
+
+**Session Outputs Table**:
+The statement-level results surface of a **Workbench Session** — one row per output
+statement with fixed metric columns (type, time, movement, reps, load, rounds,
+target, distance, hints). One shared widget serves both hosts: the Storybook
+workbench and the playground's analytics explorer / editor query blocks.
+_Avoid_: outputs grid, results table (aliases the persisted-results surface).
+
+**Card List**:
+The phone presentation of the **Session Outputs Table**: below the small breakpoint
+each output statement renders as a compact stacked card instead of a table row;
+the full table remains at `sm` and above.
+_Avoid_: mobile table, list view (unqualified).
+
+**Dark-Mode Standard**:
+The rule set governing how a surface supports dark mode: semantic design tokens
+(not raw palette classes) in shared widgets, class-strategy `dark:` variants in
+app surfaces, and the dark state being reachable in every host that renders the
+surface. Locked by the mobile & dark-mode wayfinding effort.
+_Avoid_: dark theme (the palette itself), night mode.
+
 ### Identity & result recording
 
 **Note Identity (NoteRef)**:
