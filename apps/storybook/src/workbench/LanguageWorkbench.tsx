@@ -812,105 +812,6 @@ function buildWorkbenchSessionStore(outputs: IOutputStatement[]): UnifiedEventSt
     }
   }
 
-  // Always emit totalVolume and reps summary rows for session if statements exist
-  summaryRows.push({
-    id: 'session:summary:totalVolume',
-    resultId: identity.resultId,
-    noteId: identity.noteId,
-    blockContentId: identity.blockContentId,
-    origin: identity.origin,
-    timestamp: now,
-    grain: 'summary',
-    outputType: 'analytics',
-    metrics: [{
-      type: 'totalVolume',
-      value: totalVolume,
-      unit: 'lb',
-      metadata: { canonicalKey: 'totalVolume' },
-    }],
-  });
-
-  summaryRows.push({
-    id: 'session:summary:reps',
-    resultId: identity.resultId,
-    noteId: identity.noteId,
-    blockContentId: identity.blockContentId,
-    origin: identity.origin,
-    timestamp: now,
-    grain: 'summary',
-    outputType: 'analytics',
-    metrics: [{
-      type: 'reps',
-      value: totalReps,
-      unit: 'reps',
-      metadata: { canonicalKey: 'reps' },
-    }],
-  });
-
-  for (const [eff, repsVal] of repsByEffort.entries()) {
-    summaryRows.push({
-      id: `session:summary:reps:${eff}`,
-      resultId: identity.resultId,
-      noteId: identity.noteId,
-      blockContentId: identity.blockContentId,
-      origin: identity.origin,
-      timestamp: now,
-      grain: 'summary',
-      outputType: 'analytics',
-      metrics: [{
-        type: 'reps',
-        value: repsVal,
-        unit: 'reps',
-        metadata: {
-          canonicalKey: 'reps',
-          effortSlug: eff,
-          groupTags: { effort: eff },
-        },
-      }],
-    });
-  }
-
-  for (const [eff, volVal] of volumeByEffort.entries()) {
-    summaryRows.push({
-      id: `session:summary:totalVolume:${eff}`,
-      resultId: identity.resultId,
-      noteId: identity.noteId,
-      blockContentId: identity.blockContentId,
-      origin: identity.origin,
-      timestamp: now,
-      grain: 'summary',
-      outputType: 'analytics',
-      metrics: [{
-        type: 'totalVolume',
-        value: volVal,
-        unit: 'lb',
-        metadata: {
-          canonicalKey: 'totalVolume',
-          effortSlug: eff,
-          groupTags: { effort: eff },
-        },
-      }],
-    });
-  }
-
-  const totalLoad = Array.from(loadByDiscipline.values()).reduce((a, b) => a + b, 0);
-  summaryRows.push({
-    id: 'session:summary:sessionLoad',
-    resultId: identity.resultId,
-    noteId: identity.noteId,
-    blockContentId: identity.blockContentId,
-    origin: identity.origin,
-    timestamp: now,
-    grain: 'summary',
-    outputType: 'analytics',
-    metrics: [{
-      type: 'sessionLoad',
-      value: totalLoad,
-      unit: 'pts',
-      metadata: { canonicalKey: 'sessionLoad' },
-    }],
-  });
-
   for (const [disc, loadVal] of loadByDiscipline.entries()) {
     summaryRows.push({
       id: `session:summary:sessionLoad:${disc}`,
@@ -1877,7 +1778,7 @@ export function DashboardQueryCard({
 
       {/* Live Rendered Widget */}
       {result && !error && (
-        <div className="h-52 mt-1" data-testid="dashboard-widget-content">
+        <div className="h-52 mt-1 [&>*]:h-full" data-testid="dashboard-widget-content">
           <WidgetFrame title={segment.title} question={segment.question} query={segment.query || ''}>
             {resolvedWidgetType === 'value' ? (
               <QueryValue result={result} label={segment.title} />
