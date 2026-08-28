@@ -26,6 +26,7 @@ import {
   WqlTimeseries,
   WqlBars,
   TopList,
+  RowsTable,
 } from '@bitcobblers/wod-wiki-ui';
 
 import crossfitJournal from '../../../packages/wql/fixtures/corpus/crossfit-multi-week.json';
@@ -162,25 +163,8 @@ function ExampleCard({ title, description, query, journalKey, preferredUnit }: E
       )}
 
       {rowsResult && !error && (
-        <div className="max-h-48 overflow-y-auto rounded border border-border/50 bg-background/50 p-2 font-mono text-xs">
-          <p className="font-semibold text-foreground mb-1">
-            Runs ({rowsResult.runs.length}):
-          </p>
-          {rowsResult.runs.map((run) => (
-            <div key={run.resultId} className="mb-2 text-[11px]">
-              <div className="text-primary font-medium">
-                {run.resultId} <span className="text-muted-foreground">({run.noteId})</span>
-              </div>
-              <ul className="pl-3 list-disc text-muted-foreground">
-                {run.events.map((ev) => (
-                  <li key={ev.id}>
-                    {ev.id} <span className="text-xs">[{ev.grain}/{ev.outputType}]</span>{' '}
-                    {ev.metrics.map((m) => `${String(m.type)}:${String(m.value)}`).join(' ')}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        <div className="max-h-64 overflow-y-auto rounded border border-border/50 bg-background/50 pt-2">
+          <RowsTable result={rowsResult} />
         </div>
       )}
     </div>

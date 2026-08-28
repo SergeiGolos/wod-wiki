@@ -16,7 +16,8 @@ const BACK_SQUAT_NOTE = [
   'Single block focus: Heavy percentage-based back squat strength progression at 80% 1RM.',
   '',
   '```time',
-  '5x5 Back Squat 80%',
+  '(5)',
+  '  5 Back Squat 80%',
   '```',
 ].join('\n');
 

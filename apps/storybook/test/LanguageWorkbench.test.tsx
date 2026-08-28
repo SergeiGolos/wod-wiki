@@ -78,9 +78,9 @@ describe('LanguageWorkbench in apps/storybook', () => {
     dialectRegistry.unregister(DEMO_PACK_ID);
   });
 
-  it('loads the crossfit corpus journal with 60 records', () => {
+  it('loads the crossfit corpus journal with 78 records', () => {
     expect(crossfitJournal.kind).toBe('event-journal');
-    expect(crossfitJournal.records).toHaveLength(60);
+    expect(crossfitJournal.records).toHaveLength(78);
   });
 
   it('evaluates WQL queries against inMemoryEventStore in real time', async () => {

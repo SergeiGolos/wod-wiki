@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { type Segment, type UnifiedEventRecord, MetricType } from '@bitcobblers/wod-wiki-core';
+import { type UnifiedEventRecord, MetricType } from '@bitcobblers/wod-wiki-core';
 import { parseQuery, isRowsQuery, type RowsQueryResult, type RowsRun } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { RowsTable } from '../widgets/RowsTable';
@@ -30,8 +30,6 @@ export interface RowsResultsChromeProps {
   onCaptureRpe?: (resultId: string, rpe: number) => Promise<void>;
   /** Re-run the parent query after a capture so the grid reflects the RPE. */
   onCaptured?: () => void;
-  /** Optional segment grid renderer. */
-  renderSegments?: (segments: Segment[], run: RowsRun) => React.ReactNode;
 }
 
 function RpeChip({
@@ -115,7 +113,6 @@ export function RowsResultsChrome({
   executor,
   onCaptureRpe,
   onCaptured,
-  renderSegments,
 }: RowsResultsChromeProps) {
   const [widened, setWidened] = useState(false);
   const [wideResult, setWideResult] = useState<RowsQueryResult | undefined>(undefined);
@@ -204,7 +201,6 @@ export function RowsResultsChrome({
 
       <RowsTable
         result={displayedResult}
-        renderSegments={renderSegments}
         renderRunHeaderExtra={(run) =>
           run.resultId === resultId ? (
             <RpeChip resultId={resultId} events={run.events} onCapture={handleCapture} />

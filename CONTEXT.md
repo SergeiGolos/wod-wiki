@@ -142,9 +142,20 @@ _Avoid_: query string, analytics SQL.
 The third **WQL** family — `rows:{<tag filters>}` (optional output-type target:
 `rows:segment{…}`) — returning raw output-statement rows for one scope instead of
 aggregated series. Scoped by `result:` (one session), `block:` (all versions of a
-**Block Content Id**), or `note:` (a whole note). Backs the session results table:
+**Block Content Id**), or `note:` (a whole note). Backs the **Session Results Table**:
 the per-round wide view the aggregate families cannot express.
 _Avoid_: logs query, raw query, segment dump.
+**Session Results Table**:
+The canonical display of a **Rows Query** result — `RowsTable` in
+`@bitcobblers/wod-wiki-ui`. One section per run; rows are output statements
+(default filter `type:segment`, preset pills widen to all/events/milestones);
+columns show type, offset/elapsed/wall time, and effort/rep/load/round/target/
+distance **Metric** badges (engine `metricPresentation`). Rendered wherever a
+`rows:` query block appears: the journal's post-workout block (`RowsResultsChrome`
+adds session chrome), the Storybook Workbench, and the analytics explorer.
+Distinct from the **Review Grid** — the workbench screen's interactive
+segment-pivot analysis surface, which stays app-side.
+_Avoid_: results table (generic), outputs table, plain segment list (deleted fallback).
 **Tag**:
 A `key:value` dimension carried on an **Analytics Store** fact row (`effort`,
 `discipline`, `note`, …) that **WQL** filters and groups by. Tags are query-time

@@ -1,14 +1,24 @@
-import { useMemo, type ReactNode } from 'react';
-import type { Segment, StoredOutputStatement } from '@bitcobblers/wod-wiki-core';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { RowsQueryResult, RowsRun } from '@bitcobblers/wod-wiki-wql';
-import { getAnalyticsFromLogs } from '@bitcobblers/wod-wiki-lang';
+import {
+  OutputStatementsTable,
+  OutputFilterPills,
+  DEFAULT_OUTPUT_FILTERS,
+  DEFAULT_PRIMARY_FILTER,
+  normalizeOutputFilter,
+  type OutputFilterInput,
+  type OutputStatementRow,
+} from './OutputStatementsTable';
 
 export interface RowsTableProps {
   result: RowsQueryResult;
   /** Optional per-run chrome rendered inside the section header (#948 RPE). */
   renderRunHeaderExtra?: (run: RowsRun) => ReactNode;
-  /** Optional segment grid renderer (e.g. app's ReviewGrid). Default: clean plain table rows. */
-  renderSegments?: (segments: Segment[], run: RowsRun) => ReactNode;
+  /** Filter presets for the pills row (defaults to All/Segments/Events). */
+  presets?: OutputFilterInput[];
+  /** Controlled filter expression — omit to let the table own its filter state. */
+  filter?: string;
+  onFilterChange?: (filter: string) => void;
 }
 
 function formatRunHeader(run: RowsRun): string {
@@ -16,63 +26,33 @@ function formatRunHeader(run: RowsRun): string {
   return date;
 }
 
-function PlainSegmentList({ segments }: { segments: Segment[] }) {
-  if (segments.length === 0) {
-    return (
-      <div className="text-xs text-muted-foreground py-2 px-3">
-        No segmented output recorded for this run.
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-auto border border-border/40 rounded-b-md">
-      <table className="w-full text-xs font-mono">
-        <thead>
-          <tr className="border-b border-border/60 bg-muted/20 text-muted-foreground text-left">
-            <th className="py-1.5 px-3 font-medium">Segment</th>
-            <th className="py-1.5 px-3 font-medium text-right">Time</th>
-            <th className="py-1.5 px-3 font-medium text-right">Metrics</th>
-          </tr>
-        </thead>
-        <tbody>
-          {segments.map((seg) => {
-            const metricSummary = Object.entries(seg.metric ?? {})
-              .map(([k, v]) => `${k}: ${v}`)
-              .join(', ');
-            return (
-              <tr key={seg.id} className="border-b border-border/20 hover:bg-muted/30">
-                <td className="py-1.5 px-3 font-medium text-foreground">{seg.name || 'Segment'}</td>
-                <td className="py-1.5 px-3 text-right tabular-nums text-muted-foreground">
-                  {seg.elapsed ? `${Math.round(seg.elapsed)}s` : '—'}
-                </td>
-                <td className="py-1.5 px-3 text-right text-muted-foreground">{metricSummary || '—'}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
+/** The Session Results Table — renders a Rows Query result: one section per
+ *  run, filter pills on top, and the shared statement table as the body. */
 export function RowsTable({
   result,
   renderRunHeaderExtra,
-  renderSegments,
+  presets,
+  filter,
+  onFilterChange,
 }: RowsTableProps) {
+  const [internalFilter, setInternalFilter] = useState(DEFAULT_PRIMARY_FILTER);
+  const activeFilter = filter ?? internalFilter;
+  const setFilter = onFilterChange ?? setInternalFilter;
+
+  const normalizedPresets = useMemo(
+    () => (presets ?? DEFAULT_OUTPUT_FILTERS).map(normalizeOutputFilter),
+    [presets],
+  );
+
   const runs = useMemo(
     () =>
-      result.runs.map((run) => {
+      result.runs.map((run) => ({
+        run,
         // Event rows are the promoted statement snapshots — structurally the
-        // stored-statement shape the analytics reader walks.
-        const statements = run.events as unknown as StoredOutputStatement[];
-        const startTime = run.events[0]?.timeSpan?.started ?? run.timestamp;
-        return {
-          run,
-          segments: getAnalyticsFromLogs(statements, startTime).segments as Segment[],
-        };
-      }),
+        // same shape as stored output statements.
+        statements: run.events as unknown as OutputStatementRow[],
+        startTime: run.events[0]?.timeSpan?.started ?? run.timestamp,
+      })),
     [result],
   );
 
@@ -85,8 +65,13 @@ export function RowsTable({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {runs.map(({ run, segments }) => (
+    <div data-testid="rows-table" className="flex flex-col gap-3">
+      <OutputFilterPills
+        presets={normalizedPresets}
+        filter={activeFilter}
+        onChange={setFilter}
+      />
+      {runs.map(({ run, statements, startTime }) => (
         <section key={run.resultId}>
           {runs.length > 1 && (
             <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-muted-foreground px-2 py-1.5 bg-muted/40 rounded-t-md border-b border-border/60">
@@ -94,11 +79,11 @@ export function RowsTable({
               {renderRunHeaderExtra?.(run)}
             </div>
           )}
-          {renderSegments ? (
-            renderSegments(segments, run)
-          ) : (
-            <PlainSegmentList segments={segments} />
-          )}
+          <OutputStatementsTable
+            outputs={statements}
+            filter={activeFilter}
+            timeOrigin={startTime}
+          />
         </section>
       ))}
     </div>

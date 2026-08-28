@@ -48,8 +48,8 @@ import {
   useStackDisplayRows,
   useRoundDisplay,
   metricPresentation,
-  type MetricPresentationToken,
 } from '@bitcobblers/wod-wiki-engine';
+import type { Note, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
 import type { ScriptBlock } from '@bitcobblers/wod-wiki-core';
 import { TimerStackView } from '@/components/organisms/workout/TimerStackView';
 import { VisualStatePanel } from '@/panels/visual-state-panel';
@@ -65,9 +65,20 @@ import {
   QueryValue,
   WqlTimeseries,
   WqlBars,
-  TopList,
   WqlTable,
+  TopList,
   WqlComposer,
+  OutputStatementsTable,
+  OutputFilterPills,
+  presentBadges,
+  OUTPUT_TYPE_CLASS,
+  OUTPUT_TYPE_DOT,
+  formatMMSS,
+  formatClockTime,
+  DEFAULT_OUTPUT_FILTERS,
+  DEFAULT_PRIMARY_FILTER,
+  normalizeOutputFilter,
+  type OutputFilterInput,
 } from '@bitcobblers/wod-wiki-ui';
 import { DEFAULT_NOTE } from './presets';
 
@@ -214,22 +225,6 @@ export function formatDurationMs(ms: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${tenths}`;
 }
 
-export function formatMMSS(ms: number): string {
-  const totalSec = Math.floor(Math.max(0, ms) / 1000);
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
-export function formatClockTime(d: Date): string {
-  return d.toLocaleTimeString('en-US', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-}
-
 /** Elapsed (Σ span lengths) for a running or finished timer. */
 export function sumSpans(spans: ReadonlyArray<{ started: number; ended?: number }>): number {
   const now = Date.now();
@@ -245,82 +240,6 @@ export function useWallNow(): Date {
   }, []);
   return now;
 }
-
-// ── Metric badge presentation (Playground Palette) ───────────────────────────
-
-export const TONE_CLASS: Record<string, string> = {
-  time: 'border-sky-500/40 bg-sky-500/10 text-sky-500 dark:text-sky-300',
-  rep: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300',
-  effort: 'border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-300',
-  distance: 'border-cyan-500/40 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300',
-  rounds: 'border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-300',
-  action: 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300',
-  resistance: 'border-orange-500/40 bg-orange-500/10 text-orange-600 dark:text-orange-300',
-  rest: 'border-teal-500/40 bg-teal-500/10 text-teal-600 dark:text-teal-300 italic',
-  muted: 'border-border/70 bg-muted/50 text-muted-foreground',
-  system: 'border-border/60 bg-muted/40 text-muted-foreground',
-  unknown: 'border-border/60 bg-muted/40 text-muted-foreground',
-};
-
-export function MetricBadge({ token }: { token: MetricPresentationToken }) {
-  if (!token.visible || !token.label) return null;
-  if (token.renderKind === 'comment') {
-    return (
-      <span className="text-[10px] italic text-muted-foreground" title={token.tooltip}>
-        {token.label}
-      </span>
-    );
-  }
-  return (
-    <span
-      className={`rounded-md border px-1.5 py-0.5 text-[10px] font-medium leading-tight select-none ${
-        TONE_CLASS[token.tone] ?? TONE_CLASS.unknown
-      }`}
-      title={token.tooltip}
-    >
-      {token.label}
-    </span>
-  );
-}
-
-/** Metric badges for a statement/output metric group (runtime-badge surface). */
-export function presentBadges(metrics: Iterable<IMetric>): React.ReactNode {
-  return (
-    <>
-      {metricPresentation
-        .presentGroup(Array.from(metrics), 'runtime-badge')
-        .map((token, i) => (
-          <MetricBadge key={i} token={token} />
-        ))}
-    </>
-  );
-}
-
-export const OUTPUT_TYPE_CLASS: Record<string, string> = {
-  segment: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
-  milestone: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
-  completion: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
-  metric: 'bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/30',
-  system: 'bg-muted/70 text-muted-foreground border-border/50',
-  event: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30',
-  group: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
-  load: 'bg-muted/70 text-muted-foreground border-border/50',
-  compiler: 'bg-muted/70 text-muted-foreground border-border/50',
-  analytics: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30',
-};
-
-export const OUTPUT_TYPE_DOT: Record<string, string> = {
-  segment: 'bg-emerald-500 shadow-emerald-500/50',
-  milestone: 'bg-amber-500 shadow-amber-500/50',
-  completion: 'bg-blue-500 shadow-blue-500/50',
-  metric: 'bg-violet-500 shadow-violet-500/50',
-  system: 'bg-muted-foreground/40',
-  event: 'bg-rose-500 shadow-rose-500/50',
-  group: 'bg-indigo-500 shadow-indigo-500/50',
-  load: 'bg-muted-foreground/40',
-  compiler: 'bg-muted-foreground/40',
-  analytics: 'bg-cyan-500 shadow-cyan-500/50',
-};
 
 // ── Code Statement Representations (Right Column Top) ───────────────────────
 
@@ -766,82 +685,7 @@ export function IdleWallClockPanel(props: RuntimeControlsProps) {
   );
 }
 
-export interface CategorizedMetrics {
-  efforts: IMetric[];
-  reps: IMetric[];
-  loads: IMetric[];
-  rounds: IMetric[];
-  durations: IMetric[];
-  distances: IMetric[];
-  hints: IMetric[];
-}
-
-export function extractMetricsByCategory(metrics?: Iterable<IMetric>): CategorizedMetrics {
-  if (!metrics) {
-    return { efforts: [], reps: [], loads: [], rounds: [], durations: [], distances: [], hints: [] };
-  }
-
-  const list = Array.from(metrics) as IMetric[];
-  return {
-    efforts: list.filter((m) => {
-      const t = String(m.type).toLowerCase();
-      return t === 'effort' || t === 'text' || t === 'action' || t === 'label';
-    }),
-    reps: list.filter((m) => String(m.type).toLowerCase() === 'rep'),
-    loads: list.filter((m) => {
-      const t = String(m.type).toLowerCase();
-      return t === 'resistance' || t === 'intensity' || t === 'load' || t === 'volume';
-    }),
-    rounds: list.filter((m) => {
-      const t = String(m.type).toLowerCase();
-      return t === 'rounds' || t === 'current-round' || t === 'increment';
-    }),
-    durations: list.filter((m) => {
-      const t = String(m.type).toLowerCase();
-      return t === 'duration' || t === 'time' || t === 'elapsed';
-    }),
-    distances: list.filter((m) => String(m.type).toLowerCase() === 'distance'),
-    hints: list.filter((m) => {
-      const t = String(m.type).toLowerCase();
-      return t === 'hint' || t === 'custom' || t === 'system' || t === 'sound' || t === 'lap' || t === 'group';
-    }),
-  };
-}
-export interface OutputFilterPreset {
-  label: string;
-  query: string;
-}
-
-export type OutputFilterInput = string | OutputFilterPreset;
-
-export const DEFAULT_PRIMARY_WQL = 'type:segment';
-
-export const DEFAULT_OUTPUT_FILTERS: OutputFilterPreset[] = [
-  { label: 'All', query: '' },
-  { label: 'Segments', query: 'type:segment' },
-  { label: 'Events', query: 'type:event' },
-];
-
-export function normalizeOutputFilter(filter: OutputFilterInput): OutputFilterPreset {
-  if (typeof filter === 'object' && filter !== null && 'label' in filter && 'query' in filter) {
-    return filter;
-  }
-  const str = String(filter).trim();
-  const lower = str.toLowerCase();
-  if (lower === 'all' || lower === '') {
-    return { label: 'All', query: '' };
-  }
-  if (lower === 'segments' || lower === 'segment' || lower === 'type:segment') {
-    return { label: 'Segments', query: 'type:segment' };
-  }
-  if (lower === 'events' || lower === 'event' || lower === 'type:event') {
-    return { label: 'Events', query: 'type:event' };
-  }
-  if (lower === 'milestones' || lower === 'milestone' || lower === 'type:milestone') {
-    return { label: 'Milestones', query: 'type:milestone' };
-  }
-  return { label: str, query: str };
-}
+const DEFAULT_PRIMARY_WQL = DEFAULT_PRIMARY_FILTER;
 
 export function SessionOutputsTable({
   outputs,
@@ -915,46 +759,6 @@ export function SessionOutputsTable({
     return () => clearTimeout(t);
   }, [filterText, outputs]);
 
-  // Filter output rows by text/type
-  const filteredRows = useMemo(() => {
-    if (!filterText.trim()) return outputs;
-    const lower = filterText.toLowerCase().trim();
-
-    if (lower === 'all') return outputs;
-
-    if (lower.startsWith('sum:') || lower.startsWith('avg:') || lower.startsWith('count:')) {
-      return outputs;
-    }
-
-    const isTypeFilter = lower.startsWith('type:');
-    const typeTarget = isTypeFilter
-      ? lower.slice(5).trim()
-      : lower === 'segments'
-      ? 'segment'
-      : lower === 'events'
-      ? 'event'
-      : lower === 'milestones'
-      ? 'milestone'
-      : null;
-
-    return outputs.filter((out) => {
-      const outType = String(out.outputType || '').toLowerCase();
-      if (typeTarget) {
-        return outType.includes(typeTarget);
-      }
-
-      const typeMatch = outType.includes(lower);
-      const keyMatch = out.sourceBlockKey?.toLowerCase().includes(lower);
-      const reasonMatch = out.completionReason?.toLowerCase().includes(lower);
-      const metricMatch =
-        out.metrics &&
-        Array.from(out.metrics).some((m: IMetric) => {
-          const valStr = typeof m.value === 'object' ? JSON.stringify(m.value) : String(m.value ?? '');
-          return String(m.type).toLowerCase().includes(lower) || valStr.toLowerCase().includes(lower);
-        });
-      return typeMatch || keyMatch || reasonMatch || metricMatch;
-    });
-  }, [outputs, filterText]);
   return (
     <section
       className="rounded-xl border border-border/70 bg-card/40 backdrop-blur-xs p-5 flex flex-col gap-4 shadow-xs"
@@ -1031,24 +835,13 @@ export function SessionOutputsTable({
           </div>
         )}
 
-        {/* Preset Pills */}
+        {/* Preset Pills (shared) */}
         <div className="flex flex-wrap items-center justify-between gap-1.5">
-          <div className="flex flex-wrap gap-1">
-            {normalizedPresets.map((p) => (
-              <button
-                key={p.label}
-                onClick={() => setFilterText(p.query)}
-                data-testid={`output-filter-preset-${p.label.toLowerCase().replace(/\s+/g, '-')}`}
-                className={`rounded-lg border px-2.5 py-1 font-mono text-[11px] cursor-pointer transition-all ${
-                  filterText === p.query || (p.query === '' && filterText === '')
-                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                    : 'border-border/70 bg-card text-foreground hover:bg-accent'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          <OutputFilterPills
+            presets={normalizedPresets}
+            filter={filterText}
+            onChange={setFilterText}
+          />
           {filterText && (
             <button
               onClick={() => setFilterText('')}
@@ -1066,142 +859,8 @@ export function SessionOutputsTable({
           </div>
         )}
       </div>
-      {/* Full-Width Table with Consolidated Time and Dedicated Metric Columns */}
-      <div className="overflow-x-auto rounded-lg border border-border/60 bg-background/60 shadow-inner">
-        <table className="w-full text-left font-mono text-xs border-collapse">
-          <thead>
-            <tr className="border-b border-border/60 bg-muted/40 text-[10px] uppercase font-bold text-muted-foreground tracking-wider whitespace-nowrap">
-              <th className="p-2 w-12 text-center">Type</th>
-              <th className="p-2 min-w-[110px]">Time</th>
-              <th className="p-2 font-sans min-w-[140px]">🏃 Movement</th>
-              <th className="p-2 font-sans min-w-[60px]">🔢 Reps</th>
-              <th className="p-2 font-sans min-w-[70px]">💪 Load</th>
-              <th className="p-2 font-sans min-w-[80px]">🔄 Rounds</th>
-              <th className="p-2 font-sans min-w-[70px]">⏱️ Target</th>
-              <th className="p-2 font-sans min-w-[70px]">📏 Distance</th>
-              <th className="p-2 font-sans min-w-[110px]">🏷️ Hints</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/40">
-            {filteredRows.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="p-8 text-center text-muted-foreground font-sans text-xs">
-                  {outputs.length === 0
-                    ? 'No output statements emitted yet. Start and advance the workout above to stream live session outputs into this table.'
-                    : 'No output statements match the current WQL query/filter.'}
-                </td>
-              </tr>
-            ) : (
-              filteredRows.map((out, idx) => {
-                const cats = extractMetricsByCategory(out.metrics);
-                const elapsedStr =
-                  out.timeSpan.ended !== undefined
-                    ? formatMMSS(out.timeSpan.ended - out.timeSpan.started)
-                    : 'running';
-                const wallTimeStr = formatClockTime(new Date(out.timeSpan.ended ?? out.timeSpan.started));
-                const offsetStr = t0 !== undefined ? `+${formatMMSS(out.timeSpan.started - t0)}` : '+00:00';
-                const hoverInfo = `#${out.id ?? idx + 1} · Block: ${out.sourceBlockKey || 'session'}${
-                  out.completionReason ? ` · Reason: ${out.completionReason}` : ''
-                }`;
-
-                return (
-                  <tr
-                    key={out.id ?? idx}
-                    title={hoverInfo}
-                    className="hover:bg-muted/30 transition-colors group cursor-default"
-                  >
-                    {/* 1. Type (Minimal size, first column) */}
-                    <td className="p-2 text-center whitespace-nowrap">
-                      <span
-                        className={`inline-block rounded px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider ${
-                          OUTPUT_TYPE_CLASS[String(out.outputType)] ?? OUTPUT_TYPE_CLASS.system
-                        }`}
-                        title={`Type: ${out.outputType} | ${hoverInfo}`}
-                      >
-                        {String(out.outputType).slice(0, 4)}
-                      </span>
-                    </td>
-
-                    {/* 2. Consolidated Time (Line 1: Offset & Elapsed, Line 2: Wall Time) */}
-                    <td className="p-2 whitespace-nowrap leading-tight">
-                      <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                        <span className="font-bold text-primary tabular-nums">{offsetStr}</span>
-                        <span className="text-[10px] text-muted-foreground/80 tabular-nums">({elapsedStr})</span>
-                      </div>
-                      <div className="font-mono text-[10px] text-muted-foreground/70 tabular-nums">
-                        {wallTimeStr}
-                      </div>
-                    </td>
-
-                    {/* 3. Movement */}
-                    <td className="p-2 font-sans">
-                      {cats.efforts.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">{presentBadges(cats.efforts)}</div>
-                      ) : (
-                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
-                      )}
-                    </td>
-
-                    {/* 4. Reps */}
-                    <td className="p-2 font-sans">
-                      {cats.reps.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">{presentBadges(cats.reps)}</div>
-                      ) : (
-                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
-                      )}
-                    </td>
-
-                    {/* 5. Load */}
-                    <td className="p-2 font-sans">
-                      {cats.loads.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">{presentBadges(cats.loads)}</div>
-                      ) : (
-                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
-                      )}
-                    </td>
-
-                    {/* 6. Rounds */}
-                    <td className="p-2 font-sans">
-                      {cats.rounds.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">{presentBadges(cats.rounds)}</div>
-                      ) : (
-                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
-                      )}
-                    </td>
-
-                    {/* 7. Target Time */}
-                    <td className="p-2 font-sans">
-                      {cats.durations.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">{presentBadges(cats.durations)}</div>
-                      ) : (
-                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
-                      )}
-                    </td>
-
-                    {/* 8. Distance */}
-                    <td className="p-2 font-sans">
-                      {cats.distances.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">{presentBadges(cats.distances)}</div>
-                      ) : (
-                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
-                      )}
-                    </td>
-
-                    {/* 9. Hints & Tags */}
-                    <td className="p-2 font-sans">
-                      {cats.hints.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">{presentBadges(cats.hints)}</div>
-                      ) : (
-                        <span className="text-muted-foreground/30 font-mono text-[11px] select-none">—</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Session Results Table (shared) — statement rows, fixed metric columns */}
+      <OutputStatementsTable outputs={outputs} filter={filterText} timeOrigin={t0} />
     </section>
   );
 }

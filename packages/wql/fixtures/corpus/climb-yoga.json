@@ -979,6 +979,206 @@
           "unit": "problem"
         }
       ]
+    },
+    {
+      "id": "res-boulder-w4:4",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782995328000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-boulder#4",
+      "metrics": [
+        {
+          "type": "calc.sends",
+          "value": 1,
+          "unit": "count",
+          "metadata": {
+            "effortSlug": "boulder-session",
+            "grade": "V1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w4:5",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782995328000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-boulder#5",
+      "metrics": [
+        {
+          "type": "calc.sends",
+          "value": 1,
+          "unit": "count",
+          "metadata": {
+            "effortSlug": "boulder-session",
+            "grade": "V2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w4:6",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782995328000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-boulder#6",
+      "metrics": [
+        {
+          "type": "calc.sends",
+          "value": 1,
+          "unit": "count",
+          "metadata": {
+            "effortSlug": "boulder-session",
+            "grade": "V2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w4:7",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782995328000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-boulder#7",
+      "metrics": [
+        {
+          "type": "calc.sends",
+          "value": 1,
+          "unit": "count",
+          "metadata": {
+            "effortSlug": "boulder-session",
+            "grade": "V3"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w4:8",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782995328000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-boulder#8",
+      "metrics": [
+        {
+          "type": "calc.sends",
+          "value": 1,
+          "unit": "count",
+          "metadata": {
+            "effortSlug": "boulder-session",
+            "grade": "V4"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w4:9",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782995328000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-boulder#9",
+      "metrics": [
+        {
+          "type": "calc.sends",
+          "value": 1,
+          "unit": "count",
+          "metadata": {
+            "effortSlug": "boulder-session",
+            "grade": "V4"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w4:10",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782995328000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-boulder#10",
+      "metrics": [
+        {
+          "type": "calc.sends",
+          "value": 1,
+          "unit": "count",
+          "metadata": {
+            "effortSlug": "boulder-session",
+            "grade": "V5"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-boulder-w4:11",
+      "resultId": "res-boulder-w4",
+      "noteId": "note-journal-2026-06-32",
+      "blockContentId": "blk-boulder",
+      "origin": "journal",
+      "timestamp": 1782995328000,
+      "grain": "event",
+      "outputType": "segment",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "stackLevel": 1,
+      "sourceBlockKey": "blk-boulder#11",
+      "metrics": [
+        {
+          "type": "calc.sends",
+          "value": 1,
+          "unit": "count",
+          "metadata": {
+            "effortSlug": "boulder-session",
+            "grade": "V6"
+          }
+        }
+      ]
     }
   ]
 }

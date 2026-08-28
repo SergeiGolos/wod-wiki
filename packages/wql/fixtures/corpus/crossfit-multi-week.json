@@ -1704,6 +1704,474 @@
           "unit": "pull-up"
         }
       ]
+    },
+    {
+      "id": "res-chip-w0:summary:calc.acwr",
+      "resultId": "res-chip-w0",
+      "noteId": "note-journal-2026-06-06",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1780747200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.acwr",
+          "value": 0.87,
+          "unit": "ratio",
+          "metadata": {
+            "canonicalKey": "calc.acwr",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w0:summary:calc.monotony",
+      "resultId": "res-chip-w0",
+      "noteId": "note-journal-2026-06-06",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1780747200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.monotony",
+          "value": 1.4,
+          "unit": "ratio",
+          "metadata": {
+            "canonicalKey": "calc.monotony",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w0:summary:calc.strain",
+      "resultId": "res-chip-w0",
+      "noteId": "note-journal-2026-06-06",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1780747200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.strain",
+          "value": 950,
+          "unit": "AU",
+          "metadata": {
+            "canonicalKey": "calc.strain",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w1:summary:calc.acwr",
+      "resultId": "res-chip-w1",
+      "noteId": "note-journal-2026-06-13",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1781352000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.acwr",
+          "value": 1.02,
+          "unit": "ratio",
+          "metadata": {
+            "canonicalKey": "calc.acwr",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w1:summary:calc.monotony",
+      "resultId": "res-chip-w1",
+      "noteId": "note-journal-2026-06-13",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1781352000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.monotony",
+          "value": 1.8,
+          "unit": "ratio",
+          "metadata": {
+            "canonicalKey": "calc.monotony",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w1:summary:calc.strain",
+      "resultId": "res-chip-w1",
+      "noteId": "note-journal-2026-06-13",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1781352000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.strain",
+          "value": 1220,
+          "unit": "AU",
+          "metadata": {
+            "canonicalKey": "calc.strain",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w2:summary:calc.acwr",
+      "resultId": "res-chip-w2",
+      "noteId": "note-journal-2026-06-20",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1781956800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.acwr",
+          "value": 1.15,
+          "unit": "ratio",
+          "metadata": {
+            "canonicalKey": "calc.acwr",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w2:summary:calc.monotony",
+      "resultId": "res-chip-w2",
+      "noteId": "note-journal-2026-06-20",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1781956800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.monotony",
+          "value": 2.1,
+          "unit": "ratio",
+          "metadata": {
+            "canonicalKey": "calc.monotony",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w2:summary:calc.strain",
+      "resultId": "res-chip-w2",
+      "noteId": "note-journal-2026-06-20",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1781956800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.strain",
+          "value": 1430,
+          "unit": "AU",
+          "metadata": {
+            "canonicalKey": "calc.strain",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w3:summary:calc.acwr",
+      "resultId": "res-chip-w3",
+      "noteId": "note-journal-2026-06-27",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1782561600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.acwr",
+          "value": 0.94,
+          "unit": "ratio",
+          "metadata": {
+            "canonicalKey": "calc.acwr",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w3:summary:calc.monotony",
+      "resultId": "res-chip-w3",
+      "noteId": "note-journal-2026-06-27",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1782561600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.monotony",
+          "value": 1.3,
+          "unit": "ratio",
+          "metadata": {
+            "canonicalKey": "calc.monotony",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w3:summary:calc.strain",
+      "resultId": "res-chip-w3",
+      "noteId": "note-journal-2026-06-27",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1782561600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.strain",
+          "value": 880,
+          "unit": "AU",
+          "metadata": {
+            "canonicalKey": "calc.strain",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w4:summary:calc.acwr",
+      "resultId": "res-chip-w4",
+      "noteId": "note-journal-2026-06-34",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1783166400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.acwr",
+          "value": 1.21,
+          "unit": "ratio",
+          "metadata": {
+            "canonicalKey": "calc.acwr",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w4:summary:calc.monotony",
+      "resultId": "res-chip-w4",
+      "noteId": "note-journal-2026-06-34",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1783166400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.monotony",
+          "value": 2.3,
+          "unit": "ratio",
+          "metadata": {
+            "canonicalKey": "calc.monotony",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w4:summary:calc.strain",
+      "resultId": "res-chip-w4",
+      "noteId": "note-journal-2026-06-34",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1783166400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.strain",
+          "value": 1560,
+          "unit": "AU",
+          "metadata": {
+            "canonicalKey": "calc.strain",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w5:summary:calc.acwr",
+      "resultId": "res-chip-w5",
+      "noteId": "note-journal-2026-06-41",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1783771200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.acwr",
+          "value": 1.08,
+          "unit": "ratio",
+          "metadata": {
+            "canonicalKey": "calc.acwr",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w5:summary:calc.monotony",
+      "resultId": "res-chip-w5",
+      "noteId": "note-journal-2026-06-41",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1783771200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.monotony",
+          "value": 1.7,
+          "unit": "ratio",
+          "metadata": {
+            "canonicalKey": "calc.monotony",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-chip-w5:summary:calc.strain",
+      "resultId": "res-chip-w5",
+      "noteId": "note-journal-2026-06-41",
+      "blockContentId": "blk-chipper",
+      "origin": "journal",
+      "timestamp": 1783771200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "bodyweight-chipper",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "calc.strain",
+          "value": 1150,
+          "unit": "AU",
+          "metadata": {
+            "canonicalKey": "calc.strain",
+            "effortSlug": "bodyweight-chipper",
+            "effortDiscipline": "bodyweight",
+            "effortIntensityTier": "moderate"
+          }
+        }
+      ]
     }
   ]
 }
