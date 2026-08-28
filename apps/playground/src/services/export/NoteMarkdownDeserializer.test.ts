@@ -81,7 +81,8 @@ describe('createNoteFromMarkdown', () => {
 - **Tags**: foo, bar
 ## Content
 Content here.`;
-    expect(createNoteFromMarkdown(markdown)).toEqual(parseMarkdownToEntry(markdown));
+    const clock = frozenNow(new Date('2025-06-01T12:00:00.000Z'));
+    expect(createNoteFromMarkdown(markdown, clock)).toEqual(parseMarkdownToEntry(markdown, clock));
   });
 
   it('derives title from # header for plain markdown', () => {

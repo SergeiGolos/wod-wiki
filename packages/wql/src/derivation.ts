@@ -300,7 +300,7 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
   const label = metrics.find(m => m.type === MetricType.Label);
   const labelName = label ? String(label.value ?? label.image ?? '') : '';
   const effortMetric = metrics.find(m => m.type === MetricType.Effort || m.type === 'effort');
-  const effortSlug = metadataString(record.metrics[0]?.metadata, 'effortSlug')
+  const effortSlug = metadataString(metrics[0]?.metadata, 'effortSlug')
     ?? record.effortSlug
     ?? (effortMetric && typeof effortMetric.value === 'string' ? effortMetric.value : undefined);
 

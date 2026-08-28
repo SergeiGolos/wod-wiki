@@ -708,7 +708,7 @@ export class QueryService {
     const eventRows = range
       ? await this.store.getEventsByTimeRange(range.start, range.end)
       : await this.store.scanAll();
-    const matchesMetric = (metricKey: string, queryMetric: string) =>
+    const matchesMetric = (metricKey: string | undefined, queryMetric: string) =>
       metricKey === queryMetric ||
       (queryMetric === 'rep' && metricKey === 'reps') ||
       (queryMetric === 'reps' && metricKey === 'rep');
