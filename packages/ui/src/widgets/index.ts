@@ -28,3 +28,23 @@ export {
   type AnalyticsUnit,
 } from './useAnalyticsUnitPreference';
 export { RowsTable, type RowsTableProps } from './RowsTable';
+export {
+  OutputStatementsTable,
+  OutputFilterPills,
+  type OutputStatementsTableProps,
+  type OutputStatementRow,
+  type OutputFilterPreset,
+  type OutputFilterInput,
+  type CategorizedMetrics,
+  DEFAULT_OUTPUT_FILTERS,
+  DEFAULT_PRIMARY_FILTER,
+  normalizeOutputFilter,
+  extractMetricsByCategory,
+  presentBadges,
+  MetricBadge,
+  TONE_CLASS,
+  OUTPUT_TYPE_CLASS,
+  OUTPUT_TYPE_DOT,
+  formatMMSS,
+  formatClockTime,
+} from './OutputStatementsTable';

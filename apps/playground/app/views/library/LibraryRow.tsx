@@ -62,7 +62,7 @@ export function LibraryRow({ entry, leading, actions, dateLabel, tone = 'seconda
       }`}
       data-testid={`library-row-${entry.kind}`}
     >
-      {leading ?? <div className="w-14 flex-shrink-0" />}
+      {leading}
       <div className={`flex-shrink-0 size-9 rounded-xl flex items-center justify-center transition-colors ${KIND_TONE[entry.kind]}`}>
         <Icon className="size-4" />
       </div>

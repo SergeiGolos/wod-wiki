@@ -17,15 +17,15 @@ import { useEffect, useState } from 'react'
 /** Selector marking an element as part of the page's sticky stack. */
 export const STICKY_BOUNDARY_SELECTOR = '[data-page-sticky-boundary="true"]'
 
-/** Gap between the sticky boundary and whatever stacks below it. */
-const BOUNDARY_MARGIN = 24
+/** Default gap between the sticky boundary and whatever stacks below it (0 = flush). */
+const DEFAULT_BOUNDARY_MARGIN = 0
 
 /**
  * Viewport `top` offset below the lowest visible sticky boundary element.
  * Returns `fallback` during SSR / in document-less environments and when no
  * boundary element is on screen.
  */
-export function measureStickyBoundary(fallback: number): number {
+export function measureStickyBoundary(fallback: number, margin = DEFAULT_BOUNDARY_MARGIN): number {
   if (typeof document === 'undefined') return fallback
 
   const stickyElements = Array.from(
@@ -38,7 +38,7 @@ export function measureStickyBoundary(fallback: number): number {
     return Math.max(maxBottom, rect.bottom)
   }, 0)
 
-  return visibleBottom > 0 ? visibleBottom + BOUNDARY_MARGIN : fallback
+  return visibleBottom > 0 ? visibleBottom + margin : fallback
 }
 
 /**
@@ -46,14 +46,14 @@ export function measureStickyBoundary(fallback: number): number {
  * resize, and mount (rAF-throttled). Use for CSS `top` of stacked sticky
  * elements that must track the header as it sticks/unsticks.
  */
-export function useStickyBoundaryOffset(fallback: number): number {
+export function useStickyBoundaryOffset(fallback: number, margin = DEFAULT_BOUNDARY_MARGIN): number {
   const [offset, setOffset] = useState(fallback)
 
   useEffect(() => {
     let raf = 0
     const update = () => {
       cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(() => setOffset(measureStickyBoundary(fallback)))
+      raf = requestAnimationFrame(() => setOffset(measureStickyBoundary(fallback, margin)))
     }
     update()
     window.addEventListener('scroll', update, { passive: true })
@@ -63,7 +63,7 @@ export function useStickyBoundaryOffset(fallback: number): number {
       window.removeEventListener('scroll', update)
       window.removeEventListener('resize', update)
     }
-  }, [fallback])
+  }, [fallback, margin])
 
   return offset
 }

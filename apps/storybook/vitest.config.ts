@@ -10,25 +10,44 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '../..');
 
+const resolveConfig = {
+  dedupe: ['react', 'react-dom', ...CODEMIRROR_SINGLETON_DEPS],
+  alias: workspaceAliases(rootDir),
+};
+
+// Two projects: the storybook browser runner (one test per story) and a
+// node runner for plain unit tests under test/ (e.g. the gallery manifest
+// coverage guard, which needs no DOM and no browser).
 export default defineConfig({
-  plugins: [
-    react(),
-    storybookTest({
-      configDir: path.resolve(__dirname, '.storybook'),
-    }),
-  ],
-  resolve: {
-    dedupe: ['react', 'react-dom', ...CODEMIRROR_SINGLETON_DEPS],
-    alias: workspaceAliases(rootDir),
-  },
   test: {
-    name: 'storybook-workbench',
-    browser: {
-      enabled: true,
-      instances: [{ browser: 'chromium' }],
-      provider: playwright(),
-      headless: true,
-    },
-    setupFiles: [path.resolve(__dirname, '.storybook/vitest.setup.ts')],
+    projects: [
+      {
+        plugins: [
+          react(),
+          storybookTest({
+            configDir: path.resolve(__dirname, '.storybook'),
+          }),
+        ],
+        resolve: resolveConfig,
+        test: {
+          name: 'storybook-workbench',
+          browser: {
+            enabled: true,
+            instances: [{ browser: 'chromium' }],
+            provider: playwright(),
+            headless: true,
+          },
+          setupFiles: [path.resolve(__dirname, '.storybook/vitest.setup.ts')],
+        },
+      },
+      {
+        resolve: resolveConfig,
+        test: {
+          name: 'app-unit',
+          environment: 'node',
+          include: ['test/**/*.test.ts'],
+        },
+      },
+    ],
   },
 });

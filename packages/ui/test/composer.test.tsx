@@ -110,3 +110,38 @@ describe('controlled raw escape hatch', () => {
     );
   });
 });
+
+describe('plane-specific filter and calc dropdowns', () => {
+  it('hides AddCalcDropdown and restricts AddFilterDropdown on content plane', () => {
+    render(<WqlComposer initialQuery="find:note last 2w" showDiagnostics />);
+    // Add Calc should not be rendered on content queries
+    expect(screen.queryByTestId('add-calc-dropdown')).toBeNull();
+    expect(screen.queryByText('Add Calc')).toBeNull();
+
+    // Add Filter should only show content filters
+    const filterBtn = screen.getByTestId('add-filter-button');
+    fireEvent.click(filterBtn);
+    const dropdown = screen.getByTestId('add-filter-dropdown');
+    expect(dropdown.textContent).toContain('Contains');
+    expect(dropdown.textContent).toContain('Catalog');
+    expect(dropdown.textContent).toContain('Tag');
+    expect(dropdown.textContent).not.toContain('Aggregate');
+    expect(dropdown.textContent).not.toContain('Metric');
+    expect(dropdown.textContent).not.toContain('Group By');
+    expect(dropdown.textContent).not.toContain('Output Type');
+  });
+
+  it('shows AddCalcDropdown and metric filters on metrics plane', () => {
+    render(<WqlComposer initialQuery="sum:totalVolume{}" showDiagnostics />);
+    expect(screen.getByText('Add Calc')).toBeDefined();
+
+    const filterBtn = screen.getByTestId('add-filter-button');
+    fireEvent.click(filterBtn);
+    const dropdown = screen.getByTestId('add-filter-dropdown');
+    expect(dropdown.textContent).toContain('Tag');
+    expect(dropdown.textContent).toContain('Effort');
+    expect(dropdown.textContent).toContain('Discipline');
+    expect(dropdown.textContent).not.toContain('Catalog');
+    expect(dropdown.textContent).not.toContain('Output Type');
+  });
+});

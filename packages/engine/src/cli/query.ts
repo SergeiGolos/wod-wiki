@@ -26,12 +26,11 @@ import {
 } from '@bitcobblers/wod-wiki-wql';
 import { factRowsToEventRows, inMemoryEventStore } from '../store';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
-import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult } from '@bitcobblers/wod-wiki-core';
+import type { AnalyticsDataPoint, Note, BlockIndexRow, WorkoutResult, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
 import type { WorkoutResults } from '@bitcobblers/wod-wiki-core';
 import type { IEffort } from '@bitcobblers/wod-wiki-lang';
 import { bundledEfforts } from '@bitcobblers/wod-wiki-lang';
 import { createIRFile, isIRFile, type WodWikiIRFile, type ExecutionLog, type CorpusIRData } from '../ir';
-
 export class WqlSyntaxError extends Error {
   constructor(
     public readonly query: string,
@@ -51,6 +50,7 @@ export interface QueryCliOptions {
 }
 
 interface LoadedData {
+  eventRecords: UnifiedEventRecord[];
   facts: AnalyticsDataPoint[];
   results: WorkoutResult[];
   notes: Note[];
@@ -101,8 +101,8 @@ function extractPayload(rawJson: string): unknown {
 }
 
 function buildStoresFromData(data: LoadedData) {
-  // One event stream: legacy fact fixtures wrapped as summary rows, plus
-  // results-derived event + summary rows (the write path's own derivation).
+  // One event stream: direct event records, legacy fact fixtures wrapped
+  // as summary rows, plus results-derived event + summary rows.
   const identity = (r: (typeof data.results)[number]) => ({
     noteId: r.noteId,
     resultId: r.id,
@@ -114,6 +114,7 @@ function buildStoresFromData(data: LoadedData) {
     workoutTimestamp: r.createdAt,
   });
   const events = [
+    ...data.eventRecords,
     ...factRowsToEventRows(data.facts),
     ...data.results.flatMap((r) => {
       const logs = r.data.logs ?? [];
@@ -148,6 +149,7 @@ function buildStoresFromData(data: LoadedData) {
 
 export function loadQueryData(options: QueryCliOptions): LoadedData {
   const data: LoadedData = {
+    eventRecords: [],
     facts: [],
     results: [],
     notes: [],
@@ -167,31 +169,48 @@ export function loadQueryData(options: QueryCliOptions): LoadedData {
     if (Array.isArray(payload)) {
       data.facts = payload as AnalyticsDataPoint[];
     } else if (payload && typeof payload === 'object') {
-      const corpus = payload as CorpusIRData;
-      if (corpus.facts) data.facts = corpus.facts;
-      if (corpus.results) data.results = corpus.results;
-      if (corpus.notes) data.notes = corpus.notes;
-      if (corpus.blocks) data.blocks = corpus.blocks;
-      if (corpus.efforts) data.efforts = corpus.efforts as any;
-      if (corpus.tags) data.noteTags = corpus.tags;
+      const obj = payload as Record<string, unknown>;
+      if (obj.kind === 'event-journal' || Array.isArray(obj.records)) {
+        if (Array.isArray(obj.records)) {
+          data.eventRecords = obj.records as UnifiedEventRecord[];
+        }
+        if (Array.isArray(obj.notes)) {
+          data.notes = obj.notes as Note[];
+          for (const n of obj.notes as Array<{ id?: string; tags?: string[] }>) {
+            if (n && typeof n === 'object' && n.id && Array.isArray(n.tags)) {
+              data.noteTags[n.id] = n.tags;
+            }
+          }
+        }
+      } else if (obj.facts || obj.results || obj.notes || obj.blocks || obj.efforts || obj.tags || obj.logs) {
+        const corpus = payload as CorpusIRData;
+        if (corpus.facts) data.facts = corpus.facts;
+        if (corpus.results) data.results = corpus.results;
+        if (corpus.notes) data.notes = corpus.notes;
+        if (corpus.blocks) data.blocks = corpus.blocks;
+        if (corpus.efforts) data.efforts = corpus.efforts as any;
+        if (corpus.tags) data.noteTags = corpus.tags;
 
-      // If logs are provided without separate results, synthesize results
-      if (corpus.logs && (!corpus.results || corpus.results.length === 0)) {
-        const syntheticResult: WorkoutResult = {
-          id: 'corpus-result-1',
-          noteId: 'corpus-note-1',
-          blockContentId: 'corpus-block-1',
-          origin: 'journal',
-          createdAt: corpus.logs[0]?.timeSpan?.started ?? Date.now(),
-          data: {
-            startTime: corpus.logs[0]?.timeSpan?.started ?? Date.now(),
-            endTime: corpus.logs[corpus.logs.length - 1]?.timeSpan?.ended ?? Date.now(),
-            duration: 0,
-            completed: true,
-            logs: corpus.logs,
-          },
-        };
-        data.results = [syntheticResult];
+        // If logs are provided without separate results, synthesize results
+        if (corpus.logs && (!corpus.results || corpus.results.length === 0)) {
+          const syntheticResult: WorkoutResult = {
+            id: 'corpus-result-1',
+            noteId: 'corpus-note-1',
+            blockContentId: 'corpus-block-1',
+            origin: 'journal',
+            createdAt: corpus.logs[0]?.timeSpan?.started ?? Date.now(),
+            data: {
+              startTime: corpus.logs[0]?.timeSpan?.started ?? Date.now(),
+              endTime: corpus.logs[corpus.logs.length - 1]?.timeSpan?.ended ?? Date.now(),
+              duration: 0,
+              completed: true,
+              logs: corpus.logs,
+            },
+          };
+          data.results = [syntheticResult];
+        }
+      } else {
+        throw new Error(`Unrecognized corpus payload shape in "${options.corpusPath}" (expected event-journal, fact-set, or CorpusIRData)`);
       }
     }
   } else if (options.stdinLog) {

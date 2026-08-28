@@ -1,42 +1,80 @@
-import { describe, expect, it, afterEach  } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
-import type { Segment } from '@bitcobblers/wod-wiki-core';
+import { describe, expect, it, afterEach } from 'vitest';
+import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import type { RowsQueryResult } from '@bitcobblers/wod-wiki-wql';
 import { RowsTable } from '../src';
 
 afterEach(cleanup);
 
-const mockRowsResult: RowsQueryResult = {
-  parsed: { family: 'rows', raw: 'rows:{result:test-run-1}', filters: [{ key: 'result', negate: false, values: [{ value: 'test-run-1', wildcard: false }] }] },
-  runs: [
-    {
-      resultId: 'test-run-1',
-      noteId: 'note-1',
-      timestamp: 1700000000000,
-      events: [],
-    },
-  ],
+const segmentEvent = {
+  id: 'test-run-1:1',
+  grain: 'event',
+  outputType: 'segment',
+  timeSpan: { started: 0, ended: 60_000 },
+  metrics: [{ type: 'effort', value: 'Burpees' }, { type: 'rep', value: 20 }],
 };
 
-describe('RowsTable with decoupled segment grid renderer', () => {
-  it('renders default plain segment table fallback when renderSegments is not passed', () => {
-    render(<RowsTable result={mockRowsResult} />);
-    expect(screen.getByText('No segmented output recorded for this run.')).toBeDefined();
+const soundEvent = {
+  id: 'test-run-1:2',
+  grain: 'event',
+  outputType: 'event',
+  timeSpan: { started: 60_000, ended: 66_000 },
+  metrics: [{ type: 'sound', value: 'beep' }],
+};
+
+function rowsResultWith(...eventSets: Array<typeof segmentEvent>[]): RowsQueryResult {
+  return {
+    parsed: {
+      family: 'rows',
+      raw: 'rows:{result:test-run-1}',
+      filters: [{ key: 'result', negate: false, values: [{ value: 'test-run-1', wildcard: false }] }],
+    },
+    runs: eventSets.map((events, i) => ({
+      resultId: `test-run-${i + 1}`,
+      noteId: 'note-1',
+      timestamp: 1_700_000_000_000,
+      events,
+    })),
+  } as unknown as RowsQueryResult;
+}
+
+describe('RowsTable — the Session Results Table', () => {
+  it('renders the shared statement table, defaulting to segment rows', () => {
+    render(<RowsTable result={rowsResultWith([segmentEvent, soundEvent])} />);
+    expect(screen.getByTestId('rows-table')).toBeDefined();
+    const table = screen.getByTestId('output-statements-table');
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(1);
   });
 
-  it('renders custom segment grid when renderSegments prop is provided', () => {
-    const customRenderer = (_segments: Segment[]) => (
-      <div data-testid="custom-review-grid">Custom Segment Grid</div>
-    );
+  it('widens to all output types via the All preset pill', () => {
+    render(<RowsTable result={rowsResultWith([segmentEvent, soundEvent])} />);
+    fireEvent.click(screen.getByTestId('output-filter-preset-all'));
+    const table = screen.getByTestId('output-statements-table');
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(2);
+  });
 
+  it('renders per-run headers and run chrome for multi-run results', () => {
     render(
       <RowsTable
-        result={mockRowsResult}
-        renderSegments={customRenderer}
+        result={rowsResultWith([segmentEvent], [soundEvent])}
+        renderRunHeaderExtra={(run) => <span>extra-{run.resultId}</span>}
       />,
     );
+    expect(screen.getByText('extra-test-run-1')).toBeDefined();
+    expect(screen.getByText('extra-test-run-2')).toBeDefined();
+    expect(screen.getAllByTestId('output-statements-table')).toHaveLength(2);
+  });
 
-    expect(screen.getByTestId('custom-review-grid')).toBeDefined();
-    expect(screen.getByText('Custom Segment Grid')).toBeDefined();
+  it('shows the no-logs empty state when the query matches no runs', () => {
+    render(
+      <RowsTable
+        result={{ parsed: { family: 'rows', raw: 'rows:{}', filters: [] }, runs: [] } as unknown as RowsQueryResult}
+      />,
+    );
+    expect(screen.getByText('No workout logs matched this rows query.')).toBeDefined();
+  });
+
+  it('shows the no-statements empty state for a run without events', () => {
+    render(<RowsTable result={rowsResultWith([])} />);
+    expect(screen.getByText('No output statements recorded for this run.')).toBeDefined();
   });
 });

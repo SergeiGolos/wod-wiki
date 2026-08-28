@@ -708,10 +708,14 @@ export class QueryService {
     const eventRows = range
       ? await this.store.getEventsByTimeRange(range.start, range.end)
       : await this.store.scanAll();
+    const matchesMetric = (metricKey: string | undefined, queryMetric: string) =>
+      metricKey === queryMetric ||
+      (queryMetric === 'rep' && metricKey === 'reps') ||
+      (queryMetric === 'reps' && metricKey === 'rep');
+
     const candidates = eventRows
       .flatMap(projectEventToFacts)
-      .filter(row => row.metricKey === parsed.metric);
-
+      .filter(row => matchesMetric(row.metricKey, parsed.metric));
     const touchesTags =
       parsed.filters.some(f => f.key === 'tags') || parsed.groupBy.includes('tags');
     const noteTags = await this.loadNoteTags(candidates, touchesTags);

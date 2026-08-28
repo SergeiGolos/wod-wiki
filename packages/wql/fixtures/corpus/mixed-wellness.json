@@ -1,0 +1,472 @@
+{
+  "$schema": "https://wod-wiki.dev/corpus/v1.json",
+  "kind": "event-journal",
+  "id": "mixed-wellness",
+  "title": "Mixed wellness journal",
+  "description": "Strength + easy cardio with user-authored wellness summaries — grain discrimination, missing units, sparse week 3.",
+  "notes": [
+    {
+      "id": "note-well-2026-06-03",
+      "title": "Wellness check-in",
+      "createdAt": 1780488000000,
+      "tags": [
+        "wellness"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-05",
+      "title": "Strength — 5x5 back squat",
+      "createdAt": 1780660800000,
+      "tags": [
+        "strength"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-08",
+      "title": "Walk — easy",
+      "createdAt": 1780920000000,
+      "tags": [
+        "walking"
+      ]
+    },
+    {
+      "id": "note-well-2026-06-10",
+      "title": "Wellness check-in",
+      "createdAt": 1781092800000,
+      "tags": [
+        "wellness"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-12",
+      "title": "Strength — 5x5 back squat",
+      "createdAt": 1781265600000,
+      "tags": [
+        "strength"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-15",
+      "title": "Run — easy",
+      "createdAt": 1781524800000,
+      "tags": [
+        "running"
+      ]
+    },
+    {
+      "id": "note-well-2026-06-17",
+      "title": "Wellness check-in",
+      "createdAt": 1781697600000,
+      "tags": [
+        "wellness"
+      ]
+    },
+    {
+      "id": "note-well-2026-06-24",
+      "title": "Wellness check-in",
+      "createdAt": 1782302400000,
+      "tags": [
+        "wellness"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-26",
+      "title": "Strength — 5x5 back squat",
+      "createdAt": 1782475200000,
+      "tags": [
+        "strength"
+      ]
+    },
+    {
+      "id": "note-journal-2026-06-29",
+      "title": "Run — easy",
+      "createdAt": 1782734400000,
+      "tags": [
+        "running"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "id": "wellness:note-well-2026-06-03:sleep",
+      "resultId": "wellness:note-well-2026-06-03",
+      "noteId": "note-well-2026-06-03",
+      "origin": "user",
+      "timestamp": 1780488000000,
+      "grain": "summary",
+      "outputType": "wellness",
+      "metrics": [
+        {
+          "type": "sleep",
+          "value": 7.6000000000000005,
+          "unit": "hr",
+          "metadata": {
+            "canonicalKey": "sleep"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wellness:note-well-2026-06-03:session-rpe",
+      "resultId": "wellness:note-well-2026-06-03",
+      "noteId": "note-well-2026-06-03",
+      "origin": "user",
+      "timestamp": 1780488000000,
+      "grain": "summary",
+      "outputType": "wellness",
+      "metrics": [
+        {
+          "type": "session-rpe",
+          "value": 5.5,
+          "metadata": {
+            "canonicalKey": "session-rpe"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-str-w0:summary:totalVolume",
+      "resultId": "res-str-w0",
+      "noteId": "note-journal-2026-06-05",
+      "blockContentId": "blk-5x5",
+      "origin": "journal",
+      "timestamp": 1780660800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "back-squat-5x5",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 4500,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "back-squat-5x5",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-str-w0:summary:tis",
+      "resultId": "res-str-w0",
+      "noteId": "note-journal-2026-06-05",
+      "blockContentId": "blk-5x5",
+      "origin": "journal",
+      "timestamp": 1780660800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "back-squat-5x5",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 50,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "back-squat-5x5",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-cardio-w0:summary:distance",
+      "resultId": "res-cardio-w0",
+      "noteId": "note-journal-2026-06-08",
+      "blockContentId": "blk-easy-walk",
+      "origin": "journal",
+      "timestamp": 1780920000000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "easy-walk",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 4,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "easy-walk",
+            "effortDiscipline": "walking",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wellness:note-well-2026-06-10:sleep",
+      "resultId": "wellness:note-well-2026-06-10",
+      "noteId": "note-well-2026-06-10",
+      "origin": "user",
+      "timestamp": 1781092800000,
+      "grain": "summary",
+      "outputType": "wellness",
+      "metrics": [
+        {
+          "type": "sleep",
+          "value": 6.9,
+          "unit": "hr",
+          "metadata": {
+            "canonicalKey": "sleep"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wellness:note-well-2026-06-10:session-rpe",
+      "resultId": "wellness:note-well-2026-06-10",
+      "noteId": "note-well-2026-06-10",
+      "origin": "user",
+      "timestamp": 1781092800000,
+      "grain": "summary",
+      "outputType": "wellness",
+      "metrics": [
+        {
+          "type": "session-rpe",
+          "value": 6,
+          "metadata": {
+            "canonicalKey": "session-rpe"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-str-w1:summary:totalVolume",
+      "resultId": "res-str-w1",
+      "noteId": "note-journal-2026-06-12",
+      "blockContentId": "blk-5x5",
+      "origin": "journal",
+      "timestamp": 1781265600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "back-squat-5x5",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 4650,
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "back-squat-5x5",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-str-w1:summary:tis",
+      "resultId": "res-str-w1",
+      "noteId": "note-journal-2026-06-12",
+      "blockContentId": "blk-5x5",
+      "origin": "journal",
+      "timestamp": 1781265600000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "back-squat-5x5",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 52,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "back-squat-5x5",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-cardio-w1:summary:distance",
+      "resultId": "res-cardio-w1",
+      "noteId": "note-journal-2026-06-15",
+      "blockContentId": "blk-easy-run",
+      "origin": "journal",
+      "timestamp": 1781524800000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "easy-run",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 5.25,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "easy-run",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wellness:note-well-2026-06-17:sleep",
+      "resultId": "wellness:note-well-2026-06-17",
+      "noteId": "note-well-2026-06-17",
+      "origin": "user",
+      "timestamp": 1781697600000,
+      "grain": "summary",
+      "outputType": "wellness",
+      "metrics": [
+        {
+          "type": "sleep",
+          "value": 7.6000000000000005,
+          "unit": "hr",
+          "metadata": {
+            "canonicalKey": "sleep"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wellness:note-well-2026-06-17:session-rpe",
+      "resultId": "wellness:note-well-2026-06-17",
+      "noteId": "note-well-2026-06-17",
+      "origin": "user",
+      "timestamp": 1781697600000,
+      "grain": "summary",
+      "outputType": "wellness",
+      "metrics": [
+        {
+          "type": "session-rpe",
+          "value": 6.5,
+          "metadata": {
+            "canonicalKey": "session-rpe"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wellness:note-well-2026-06-24:sleep",
+      "resultId": "wellness:note-well-2026-06-24",
+      "noteId": "note-well-2026-06-24",
+      "origin": "user",
+      "timestamp": 1782302400000,
+      "grain": "summary",
+      "outputType": "wellness",
+      "metrics": [
+        {
+          "type": "sleep",
+          "value": 6.9,
+          "unit": "hr",
+          "metadata": {
+            "canonicalKey": "sleep"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wellness:note-well-2026-06-24:session-rpe",
+      "resultId": "wellness:note-well-2026-06-24",
+      "noteId": "note-well-2026-06-24",
+      "origin": "user",
+      "timestamp": 1782302400000,
+      "grain": "summary",
+      "outputType": "wellness",
+      "metrics": [
+        {
+          "type": "session-rpe",
+          "value": 7,
+          "metadata": {
+            "canonicalKey": "session-rpe"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-str-w3:summary:totalVolume",
+      "resultId": "res-str-w3",
+      "noteId": "note-journal-2026-06-26",
+      "blockContentId": "blk-5x5",
+      "origin": "journal",
+      "timestamp": 1782475200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "back-squat-5x5",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "totalVolume",
+          "value": 4950,
+          "unit": "lb",
+          "metadata": {
+            "canonicalKey": "totalVolume",
+            "effortSlug": "back-squat-5x5",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-str-w3:summary:tis",
+      "resultId": "res-str-w3",
+      "noteId": "note-journal-2026-06-26",
+      "blockContentId": "blk-5x5",
+      "origin": "journal",
+      "timestamp": 1782475200000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "back-squat-5x5",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "tis",
+          "value": 56,
+          "unit": "pts",
+          "metadata": {
+            "canonicalKey": "tis",
+            "effortSlug": "back-squat-5x5",
+            "effortDiscipline": "strength",
+            "effortIntensityTier": "high"
+          }
+        }
+      ]
+    },
+    {
+      "id": "res-cardio-w3:summary:distance",
+      "resultId": "res-cardio-w3",
+      "noteId": "note-journal-2026-06-29",
+      "blockContentId": "blk-easy-run",
+      "origin": "journal",
+      "timestamp": 1782734400000,
+      "grain": "summary",
+      "outputType": "analytics",
+      "effortSlug": "easy-run",
+      "segmentId": "s1",
+      "segmentVersion": 1,
+      "metrics": [
+        {
+          "type": "distance",
+          "value": 5.75,
+          "unit": "km",
+          "metadata": {
+            "canonicalKey": "distance",
+            "effortSlug": "easy-run",
+            "effortDiscipline": "running",
+            "effortIntensityTier": "low"
+          }
+        }
+      ]
+    }
+  ]
+}

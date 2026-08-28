@@ -2,10 +2,10 @@ import '@testing-library/jest-dom';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import React from 'react';
-import fixture from '../fixtures/golden/multi-week-journal.json';
+import crossfitJournal from '../../../packages/wql/fixtures/corpus/crossfit-multi-week.json';
 import {
   QueryService,
-  inMemoryFactStore,
+  inMemoryEventStore,
   createParser,
   getHints,
   hintsToContainer,
@@ -18,7 +18,7 @@ import {
   type DialectAnalysis,
   type LanguagePack,
 } from '@bitcobblers/wod-wiki-engine';
-import { LanguageWorkbench } from '../src/LanguageWorkbench.stories';
+import { LanguageWorkbench } from '../src/workbench';
 
 const DEMO_PACK_ID = 'demo-pack';
 
@@ -41,7 +41,7 @@ const demoPack: LanguagePack = defineLanguagePack({
     name: 'Demo Pack',
   },
   lang: {
-    analyzer: new DemoPackDialect(),
+    analyzer: DemoPackDialect,
   },
 });
 
@@ -78,16 +78,16 @@ describe('LanguageWorkbench in apps/storybook', () => {
     dialectRegistry.unregister(DEMO_PACK_ID);
   });
 
-  it('loads the golden fixture catalog with 40 data points', () => {
-    expect(fixture.kind).toBe('fact-set');
-    expect(fixture.data).toHaveLength(40);
+  it('loads the crossfit corpus journal with 78 records', () => {
+    expect(crossfitJournal.kind).toBe('event-journal');
+    expect(crossfitJournal.records).toHaveLength(78);
   });
 
-  it('evaluates WQL queries against inMemoryFactStore in real time', async () => {
-    const store = inMemoryFactStore(fixture.data as never[]);
+  it('evaluates WQL queries against inMemoryEventStore in real time', async () => {
+    const store = inMemoryEventStore(crossfitJournal.records as any);
     const service = new QueryService(store);
 
-    const newest = Math.max(...fixture.data.map((f) => f.timestamp));
+    const newest = Math.max(...crossfitJournal.records.map((f) => f.timestamp));
     const result = await service.runQuery('sum:totalVolume{} by {week}', {
       rangeEnd: newest,
       preferredUnit: 'lb',
@@ -95,11 +95,11 @@ describe('LanguageWorkbench in apps/storybook', () => {
 
     expect(result.series).toBeDefined();
     expect(result.series.length).toBeGreaterThan(0);
-    // 4+ weeks of volume facts
+    // 6 weeks of volume facts
     const totalVolumePoints = result.series[0].points;
-    expect(totalVolumePoints.length).toBeGreaterThanOrEqual(4);
+    expect(totalVolumePoints.length).toBe(6);
     const sumTotal = totalVolumePoints.reduce((acc, p) => acc + p.value, 0);
-    expect(sumTotal).toBeGreaterThan(10000);
+    expect(sumTotal).toBeGreaterThan(50000);
   });
 
   it('parses Whiteboard Script and extracts hints', () => {
@@ -151,29 +151,50 @@ describe('LanguageWorkbench in apps/storybook', () => {
     expect(hints).not.toContain('demo.pack');
   });
 
-  it('renders LanguageWorkbench UI and responds to interactive pack registration', async () => {
+  it('renders LanguageWorkbench UI with editor, statement strip, and wall clock', () => {
     render(<LanguageWorkbench />);
 
     expect(screen.getByTestId('language-workbench')).toBeInTheDocument();
-    expect(screen.getByTestId('statement-count')).toHaveTextContent(/^[1-9]\d*$/);
+    expect(screen.getByTestId('script-editor-host')).toBeInTheDocument();
+    expect(screen.getByTestId('statement-strip')).toBeInTheDocument();
+    expect(screen.getByTestId('panel-wallclock')).toBeInTheDocument();
+    expect(screen.getByTestId('clock-primary')).toHaveTextContent('00:00');
+    expect(screen.getByTestId('panel-timeline')).toBeInTheDocument();
 
-    const toggleBtn = screen.getByTestId('toggle-demo-pack');
-    expect(toggleBtn).toHaveTextContent('register demo pack');
+    // Default primary WQL and secondary presets
+    expect(screen.getByTestId('output-filter-preset-all')).toBeInTheDocument();
+    expect(screen.getByTestId('output-filter-preset-segments')).toBeInTheDocument();
+    expect(screen.getByTestId('output-filter-preset-events')).toBeInTheDocument();
+  });
 
-    // Click to register demo pack
-    await act(async () => {
-      fireEvent.click(toggleBtn);
-    });
+  it('supports custom primary WQL, secondary filter presets, and dashboards', () => {
+    render(
+      <LanguageWorkbench
+        outputTableQuery="type:event"
+        outputTableFilters={['all', 'segments', 'events', 'sum:rep{}']}
+        dashboards={[
+          'sum:totalVolume{} by {week}',
+          'sum:sessionLoad{} by {discipline}',
+        ]}
+      />
+    );
 
-    expect(toggleBtn).toHaveTextContent('✓ demo pack registered');
-    expect(screen.getByTestId('hint-keys')).toHaveTextContent('demo.pack');
+    expect(screen.getByTestId('output-filter-preset-all')).toBeInTheDocument();
+    expect(screen.getByTestId('output-filter-preset-segments')).toBeInTheDocument();
+    expect(screen.getByTestId('output-filter-preset-events')).toBeInTheDocument();
+    expect(screen.getByTestId('output-filter-preset-sum:rep{}')).toBeInTheDocument();
+  });
 
-    // Click to unregister demo pack
-    await act(async () => {
-      fireEvent.click(toggleBtn);
-    });
+  it('defaults dashboard query widgets to session data source and session-level WQL queries', () => {
+    render(<LanguageWorkbench />);
 
-    expect(toggleBtn).toHaveTextContent('register demo pack');
-    expect(screen.getByTestId('hint-keys')).not.toHaveTextContent('demo.pack');
+    expect(screen.getByTestId('dashboard-analytics-section')).toBeInTheDocument();
+    // Default session dashboard queries
+    expect(screen.getByDisplayValue('sum:totalVolume{}')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('sum:rep{} by {effort}')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('sum:sessionLoad{} by {discipline}')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-export-markdown')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-export-parsed')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-export-session')).toBeInTheDocument();
   });
 });

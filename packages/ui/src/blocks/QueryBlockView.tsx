@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Edit3 } from 'lucide-react';
-import { type Segment } from '@bitcobblers/wod-wiki-core';
-import { parseQuery, isFindQuery, isRowsQuery, splitWidgetBody, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage, type QueryResult, type FindQueryResult, type RowsQueryResult, type RowsRun } from '@bitcobblers/wod-wiki-wql';
+import { parseQuery, isFindQuery, isRowsQuery, splitWidgetBody, substituteTokens, isDashboardWidgetType, unknownTokensMessage, unknownWidgetTypeMessage, type QueryResult, type FindQueryResult, type RowsQueryResult } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { RowsTable } from '../widgets/RowsTable';
 import { RowsResultsChrome } from './RowsResultsChrome';
@@ -35,8 +34,6 @@ export interface QueryBlockViewProps {
   tokenValues?: Record<string, string>;
   /** Optional RPE capture handler. */
   onCaptureRpe?: (resultId: string, rpe: number) => Promise<void>;
-  /** Optional custom segment grid renderer. */
-  renderSegments?: (segments: Segment[], run: RowsRun) => React.ReactNode;
 }
 
 export function QueryBlockView({
@@ -50,7 +47,6 @@ export function QueryBlockView({
   widgetError,
   tokenValues,
   onCaptureRpe,
-  renderSegments,
 }: QueryBlockViewProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -194,10 +190,9 @@ export function QueryBlockView({
               executor={executor}
               onCaptureRpe={onCaptureRpe}
               onCaptured={() => setRowsRefreshKey((k) => k + 1)}
-              renderSegments={renderSegments}
             />
           ) : rowsResult ? (
-            <RowsTable result={rowsResult} renderSegments={renderSegments} />
+            <RowsTable result={rowsResult} />
           ) : (
             <div className="text-xs text-muted-foreground py-2">Loading rows…</div>
           )}

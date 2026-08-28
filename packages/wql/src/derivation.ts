@@ -171,10 +171,13 @@ export function normalizeSummaryFacts(
 export type EventRowIdentity = SummaryFactIdentity;
 
 function firstEffortSlug(metrics: StoredOutputStatement['metrics']): string | undefined {
-  const loose = metrics as readonly { metadata?: Record<string, unknown> }[];
+  const loose = metrics as readonly { type?: string; value?: unknown; metadata?: Record<string, unknown> }[];
   for (const m of loose) {
     const slug = metadataString(m.metadata, 'effortSlug');
     if (slug) return slug;
+    if (m.type === 'effort' || m.type === MetricType.Effort) {
+      if (typeof m.value === 'string' && m.value) return m.value;
+    }
   }
   return undefined;
 }
@@ -296,11 +299,16 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
 
   const label = metrics.find(m => m.type === MetricType.Label);
   const labelName = label ? String(label.value ?? label.image ?? '') : '';
+  const effortMetric = metrics.find(m => m.type === MetricType.Effort || m.type === 'effort');
+  const effortSlug = metadataString(metrics[0]?.metadata, 'effortSlug')
+    ?? record.effortSlug
+    ?? (effortMetric && typeof effortMetric.value === 'string' ? effortMetric.value : undefined);
+
   const facts: AnalyticsDataPoint[] = [];
   metrics.forEach((m) => {
-    if (m.type === MetricType.Label || typeof m.value !== 'number') return;
+    if (m.type === MetricType.Label || m.type === 'label' || typeof m.value !== 'number') return;
     const metricKey = metadataString(m.metadata, 'canonicalKey')
-      ?? (labelName ? resolveCanonicalMetricKey(labelName) : (m.type ?? 'metric'));
+      ?? (labelName ? resolveCanonicalMetricKey(labelName) : (m.type === MetricType.Rep || m.type === 'rep' ? 'reps' : (m.type ?? 'metric')));
     const ordinal = facts.length;
     facts.push({
       id: `${record.id}:${ordinal}`,
@@ -319,7 +327,8 @@ export function projectEventToFacts(record: UnifiedEventRecord): AnalyticsDataPo
       metricKey,
       metricLabel: labelName || metricKey,
       metricUnit: m.unit,
-      effortSlug: metadataString(m.metadata, 'effortSlug') ?? record.effortSlug,
+      effortSlug: metadataString(m.metadata, 'effortSlug') ?? effortSlug,
+      discipline: metadataString(m.metadata, 'effortDiscipline'),
       intensityTier: metadataString(m.metadata, 'effortIntensityTier'),
       grade: metadataString(m.metadata, 'grade'),
       timestamp: record.timestamp,

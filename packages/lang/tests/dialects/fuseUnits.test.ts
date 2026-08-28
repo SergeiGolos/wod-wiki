@@ -63,6 +63,35 @@ describe('fuseUnitsInMetrics', () => {
     expect(out[1].value).toBe('Burpees');
   });
 
+  it('fuses Rep + bare % into an Intensity metric', () => {
+    const out = fuseUnitsInMetrics([new RepMetric(80), new EffortMetric('%')], std);
+    expect(out).toHaveLength(1);
+    expect(amountUnit(out[0])).toEqual({ type: MetricType.Intensity, amount: 80, unit: '%' });
+  });
+
+  it('leaves a distance metric intact when intensity follows it', () => {
+    const out = fuseUnitsInMetrics(
+      [new EffortMetric('Run'), new RepMetric(400), new EffortMetric('m'), new RepMetric(80), new EffortMetric('%')],
+      std,
+    );
+    expect(out).toHaveLength(3);
+    expect(out[0].value).toBe('Run');
+    expect(amountUnit(out[1])).toEqual({ type: MetricType.Distance, amount: 400, unit: 'm' });
+    expect(amountUnit(out[2])).toEqual({ type: MetricType.Intensity, amount: 80, unit: '%' });
+  });
+
+  it('does NOT fuse % onto an effort token', () => {
+    const out = fuseUnitsInMetrics([new EffortMetric('Run'), new EffortMetric('%')], std);
+    expect(out).toHaveLength(2);
+    expect(out[1].value).toBe('%');
+  });
+
+  it('does NOT fuse a % suffix glued to a word', () => {
+    const out = fuseUnitsInMetrics([new RepMetric(80), new EffortMetric('% run')], std);
+    expect(out).toHaveLength(2);
+    expect(out[0].type).toBe(MetricType.Rep);
+  });
+
   it('fills an empty unit on an @-resistance followed by a unit word', () => {
     const out = fuseUnitsInMetrics([new ResistanceMetric(95, ''), new EffortMetric('lb')], std);
     expect(out).toHaveLength(1);

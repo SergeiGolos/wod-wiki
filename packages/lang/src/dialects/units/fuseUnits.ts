@@ -5,6 +5,7 @@ import { EffortMetric } from "../../runtime/compiler/metrics/EffortMetric";
 import { metricForDimension, EMPTY_UNIT } from "../../runtime/compiler/metrics/dimensionFactory";
 
 import { ChoiceGroupMetric } from "../../runtime/compiler/metrics/ChoiceGroupMetric";
+import { IntensityMetric } from "../../runtime/compiler/metrics/IntensityMetric";
 
 /** Source location carried alongside a metric (the parser's SyntaxMeta, which
  *  includes `raw`). Optional because the pure helper is used meta-less in tests. */
@@ -248,6 +249,22 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
             continue;
           }
         }
+      }
+    }
+
+    // ── {number}% → Intensity metric (percent of max / 1RM) ─────────────────
+    // The grammar lexes `%` as a symbol token, not a word, so it never reaches
+    // the unit registry: fuse a bare number followed by a bare `%` effort here.
+    // e.g. "Run 400m 80%" → Distance(400,m) + Effort(Run) + Intensity(80,%)
+    if (next && isBareNumber(cur.metric)) {
+      const text = effortText(next.metric);
+      if (text !== null && text.trim() === '%') {
+        out.push({
+          metric: new IntensityMetric(cur.metric.value as number | undefined),
+          meta: fusedMeta(cur.meta, next.meta, '%'),
+        });
+        i++; // consume the `%`
+        continue;
       }
     }
 
