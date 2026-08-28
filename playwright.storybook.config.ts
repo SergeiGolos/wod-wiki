@@ -44,5 +44,20 @@ export default defineConfig({
       name: 'storybook-chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      // Mobile gate (map #990): flagship stories at a 375px viewport.
+      name: 'storybook-mobile-375',
+      testMatch: '**/storybook.mobile.smoke.e2e.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 375, height: 812 },
+      },
+    },
+    {
+      // Dark-theme gate (map #990): theme toolbar global applied per story.
+      name: 'storybook-dark',
+      testMatch: '**/storybook.dark.smoke.e2e.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
   ],
 });
