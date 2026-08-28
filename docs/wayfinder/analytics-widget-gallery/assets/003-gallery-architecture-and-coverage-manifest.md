@@ -28,7 +28,7 @@ Resolved 2026-08-28 (HITL grilling). This is the build-out spec for
   string, journal badge (kept from ExampleCard) **plus** a declared-type
   chip and a stages readout (`selected → buckets → aggregated → groups`)
   off `result.stages`.
-- **D5 — Manifest entries**: approved as drafted below (24 gallery cards
+- **D5 — Manifest entries**: approved as drafted below (25 gallery cards
   incl. the kg/lb pair, 5 rows/find, 2 edge states). Proposed-metric
   badges (`calc.readiness` …) are **not** in the manifest — the
   `isProposedMetric` path stays editor-side.
@@ -73,21 +73,34 @@ Resolved 2026-08-28 (HITL grilling). This is the build-out spec for
 | bar | `sum:distance{} by {discipline}` | endurance | | |
 | toplist | `count:calc.sends{} by {grade}` | climb | | 6 grades |
 | toplist | `sum:totalVolume{} by {note}` | crossfit | | 18 groups, limit 6 |
-| stacked-bar | `sum:sessionLoad{} by {intensity}.rollup(1w)` | climb | | 3 tiers |
+| stacked-bar | `sum:tis{} by {intensity}.rollup(1w)` | climb | | 3 tiers (climb sessionLoad has only 2 — build correction) |
 | goal-rings | `sum:calc.sends{}` | climb | `/ 10` | target param |
 | goal-rings | `avg:sleep{}` | wellness | `/ 8` | sleep target |
-| zone-distribution | `sum:sessionLoad{} by {intensity}.rollup(1w)` | climb | `/ 70 20 10` | zone params |
+| zone-distribution | `sum:tis{} by {intensity}.rollup(1w)` | climb | `/ 70 20 10` | zone params, 3 honest tiers (build correction) |
 | table | `sum:sessionLoad{} by {effort}` | crossfit | | bars-shaped table |
 | table | `sum:totalVolume{}.rollup(1w)` | crossfit | | timeseries table |
 
-### Rows & Find (build-out = ticket 005)
+### Rows & Find (built in ticket 005)
 
 | Query | Journal | Note |
 |---|---|---|
-| `rows:all{result:res-fran-w0}` | crossfit | |
+| `rows:all{result:res-fran-w0}` | crossfit | drill-down pair with Weekly tonnage |
 | `rows:segment{result:res-fran-w5}` | crossfit | outputType plane |
+| `rows:all{result:res-boulder-w4}` | climb | the send rows feeding Sends by grade |
 | `rows:all{note:note-well-2026-06-03}` | wellness | |
-| `find:note` · `find:block` · `find:effort` | climb | store wiring decided in 005 |
+| `find:note{tags:benchmark}` | crossfit | 6 matches |
+| `find:block{text:fran}` | crossfit | derived block index (rawContent = note title) |
+| `find:effort{intensity:high}` | crossfit | bundled effort registry (5 efforts) |
+
+Store wiring (ticket 005 decision): `buildServiceForJournal` now wires a
+`BlockQueryStore` DERIVED from the journal's records (one
+`BlockIndexRow` per distinct noteId/segmentId/segmentVersion/blockContentId,
+`dataType: 'wod'`, `rawContent` = note title — a gallery-side projection;
+the corpus journals carry no markdown body) and an `EffortQueryStore` over
+`bundledEfforts` from `@bitcobblers/wod-wiki-lang` (the same seed set the
+app's CompositeEffortRegistry loads). `find:{target}` renders through a
+gallery-local `FindResultList` — no dashboard widget exists for content
+discovery.
 
 ### Edge States (build-out = ticket 006)
 
@@ -101,11 +114,12 @@ Resolved 2026-08-28 (HITL grilling). This is the build-out spec for
 
 - Widget types: value, timeseries, bar, toplist, stacked-bar, goal-rings,
   zone-distribution, table — 8/8 in curated sections.
+- Query families: aggregate, rows, find — 3/3 (rows/find guarded by
+  parse + family checks in the coverage test).
 - Aggregators: sum, avg, min, max, count, last, delta — 7/7.
 - Rollups: none, 1d, 1w — 3/3.
 - Journals: crossfit, endurance, wellness, climb — 4/4.
-- Query families: aggregate, rows, find — 3/3.
 - Units: ≥1 card with `preferredUnit` set, incl. the `sum:totalVolume{}`
-  kg/lb pair (same query, both units).
+  default-lb / preferred-kg pair (same query, both units).
 - Explicitly excluded: `round` dim (engine-side unimplemented), proposed
   calc.* badges.

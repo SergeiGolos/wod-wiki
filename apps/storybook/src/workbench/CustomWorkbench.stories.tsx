@@ -81,9 +81,9 @@ export const CustomizedWqlTemplate: Story = {
       outputTableQuery="type:event"
       outputTableFilters={['all', 'segments', 'events', 'sum:rep{}', 'sum:totalVolume{}']}
       dashboards={[
-        'sum:totalVolume{} by {week}',
+        'sum:totalVolume{}',
+        'sum:rep{} by {effort}',
         'sum:sessionLoad{} by {discipline}',
-        'sum:rep{} by {discipline}',
       ]}
     />
   ),

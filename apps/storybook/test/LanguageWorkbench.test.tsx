@@ -184,4 +184,17 @@ describe('LanguageWorkbench in apps/storybook', () => {
     expect(screen.getByTestId('output-filter-preset-events')).toBeInTheDocument();
     expect(screen.getByTestId('output-filter-preset-sum:rep{}')).toBeInTheDocument();
   });
+
+  it('defaults dashboard query widgets to session data source and session-level WQL queries', () => {
+    render(<LanguageWorkbench />);
+
+    expect(screen.getByTestId('dashboard-analytics-section')).toBeInTheDocument();
+    // Default session dashboard queries
+    expect(screen.getByDisplayValue('sum:totalVolume{}')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('sum:rep{} by {effort}')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('sum:sessionLoad{} by {discipline}')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-export-markdown')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-export-parsed')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-export-session')).toBeInTheDocument();
+  });
 });

@@ -17,8 +17,8 @@ const FRAN_SCALED_NOTE = [
   '',
   '```time',
   '(15-12-9)',
-  '  15 Thrusters 65lb',
-  '  15 Jumping Pull-ups',
+  '  Thrusters 65lb',
+  '  Jumping Pull-ups',
   '```',
 ].join('\n');
 
@@ -29,8 +29,8 @@ const FRAN_HEAVY_NOTE = [
   '',
   '```time',
   '(21-15-9)',
-  '  21 Thrusters 135lb',
-  '  21 Weighted Pull-ups 30lb',
+  '  Thrusters 135lb',
+  '  Weighted Pull-ups 30lb',
   '```',
 ].join('\n');
 

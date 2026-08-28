@@ -399,7 +399,7 @@ export function WqlComposer({
           actions={
             <>
               <AddCalcDropdown clauses={pills} onAdd={addCalc} />
-              <AddFilterDropdown clauses={pills} onAdd={addPill} />
+              <AddFilterDropdown clauses={pills} onAdd={addPill} hiddenTypes={hiddenTypes} />
               {diagnosticsActions}
             </>
           }
@@ -407,7 +407,7 @@ export function WqlComposer({
       ) : (
         <div className="flex items-center justify-end gap-1.5 px-1.5" data-testid="wql-add-row">
           <AddCalcDropdown clauses={pills} onAdd={addCalc} />
-          <AddFilterDropdown clauses={pills} onAdd={addPill} />
+          <AddFilterDropdown clauses={pills} onAdd={addPill} hiddenTypes={hiddenTypes} />
           {diagnosticsActions}
         </div>
       )}

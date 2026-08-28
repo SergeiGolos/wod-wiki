@@ -48,6 +48,9 @@ import {
   useStackDisplayRows,
   useRoundDisplay,
   metricPresentation,
+  createIRFile,
+  buildStatementTree,
+  type ExecutionLog,
 } from '@bitcobblers/wod-wiki-engine';
 import type { Note, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
 import type { ScriptBlock } from '@bitcobblers/wod-wiki-core';
@@ -55,8 +58,8 @@ import { TimerStackView } from '@/components/organisms/workout/TimerStackView';
 import { VisualStatePanel } from '@/panels/visual-state-panel';
 import { calculateDuration } from '@/lib/timeUtils';
 import type { ITimerDisplayEntry } from '@/clock/types/DisplayTypes';
-import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
-import { toStoredOutputStatement } from '@bitcobblers/wod-wiki-engine';
+import { toEventRows } from '@bitcobblers/wod-wiki-wql';
+import { toStoredOutputStatement, type StoredOutputStatement, type UnifiedEventStore } from '@bitcobblers/wod-wiki-engine';
 import {
   editorPreset,
   sectionField,
@@ -76,7 +79,6 @@ import {
   formatMMSS,
   formatClockTime,
   DEFAULT_OUTPUT_FILTERS,
-  DEFAULT_PRIMARY_FILTER,
   normalizeOutputFilter,
   type OutputFilterInput,
 } from '@bitcobblers/wod-wiki-ui';
@@ -685,7 +687,269 @@ export function IdleWallClockPanel(props: RuntimeControlsProps) {
   );
 }
 
-const DEFAULT_PRIMARY_WQL = DEFAULT_PRIMARY_FILTER;
+function inferDiscipline(effort: string): string {
+  const low = effort.toLowerCase();
+  if (low.includes('row') || low.includes('run') || low.includes('bike') || low.includes('swim') || low.includes('skierg')) return 'cardio';
+  if (low.includes('pull-up') || low.includes('push-up') || low.includes('dip') || low.includes('muscle-up') || low.includes('sit-up') || low.includes('air squat') || low.includes('handstand') || low.includes('burpee')) return 'gymnastics';
+  if (low.includes('kettlebell') || low.includes('snatch') || low.includes('swing') || low.includes('clean')) return 'kettlebell';
+  if (low.includes('rest') || low.includes('pause')) return 'recovery';
+  return 'strength';
+}
+
+function buildWorkbenchSessionStore(outputs: IOutputStatement[]): UnifiedEventStore {
+  const stored = outputs.map(toStoredOutputStatement);
+  const now = Date.now();
+  const identity = {
+    resultId: 'session',
+    noteId: 'workbench',
+    blockContentId: 'workbench',
+    origin: 'playground' as const,
+    workoutTimestamp: now,
+  };
+  const eventRows = toEventRows(stored, identity);
+
+  const summaryRows: UnifiedEventRecord[] = [];
+  let totalReps = 0;
+  let totalVolume = 0;
+  let totalDistance = 0;
+  let totalElapsed = 0;
+
+  const repsByEffort = new Map<string, number>();
+  const volumeByEffort = new Map<string, number>();
+  const loadByDiscipline = new Map<string, number>();
+  const statementReps = (s: StoredOutputStatement): number => {
+    let reps = 0;
+    for (const m of s.metrics) {
+      const type = String(m.type);
+      if (type !== 'rep' && type !== 'reps') continue;
+      reps += typeof m.value === 'number' ? m.value : Number(m.value) || 0;
+    }
+    return reps;
+  };
+
+  const statementWeight = (s: StoredOutputStatement): number => {
+    for (const m of s.metrics) {
+      const type = String(m.type);
+      if (type !== 'resistance' && type !== 'weight' && type !== 'load') continue;
+      if (typeof m.value === 'number') return m.value;
+      // resistance values can ride as {amount, unit} objects
+      if (m.value && typeof m.value === 'object' && 'amount' in m.value) {
+        const amount = (m.value as { amount?: unknown }).amount;
+        if (typeof amount === 'number') return amount;
+        return Number(amount) || 0;
+      }
+      return Number(m.value) || 0;
+    }
+    return 0;
+  };
+
+  const statementEffort = (s: StoredOutputStatement): string => {
+    for (const m of s.metrics) {
+      if (String(m.type) !== 'effort') continue;
+      if (typeof m.value === 'string' && m.value) return m.value;
+      const image = (m as { image?: unknown }).image;
+      if (typeof image === 'string' && image) return image;
+    }
+    return '';
+  };
+
+  const statementDistElapsed = (s: StoredOutputStatement): { dist: number; elapsed: number } => {
+    let dist = 0;
+    let elapsed = 0;
+    for (const m of s.metrics) {
+      const type = String(m.type);
+      const val = typeof m.value === 'number' ? m.value : Number(m.value) || 0;
+      if (type === 'distance') dist += val;
+      if (type === 'elapsed' || type === 'time') elapsed += val;
+    }
+    return { dist, elapsed };
+  };
+
+  const blocks = new Map<string, StoredOutputStatement[]>();
+
+  for (const s of stored) {
+    if (s.outputType === 'analytics') continue;
+    const blockKey = (s.sourceBlockKey ?? 'workbench').split('#')[0];
+    const group = blocks.get(blockKey);
+    if (group) group.push(s);
+    else blocks.set(blockKey, [s]);
+  }
+
+  for (const statements of blocks.values()) {
+    const blockReps = statements.reduce((sum, s) => sum + statementReps(s), 0);
+    totalReps += blockReps;
+    let paired = false;
+
+    for (const s of statements) {
+      const { dist, elapsed } = statementDistElapsed(s);
+      totalDistance += dist;
+      totalElapsed += elapsed;
+
+      const effort = statementEffort(s);
+      if (!effort) continue;
+      paired = true;
+
+      const discipline = inferDiscipline(effort) || 'strength';
+      const ownReps = statementReps(s);
+      const effortReps = ownReps > 0 ? ownReps : blockReps;
+      const weight = statementWeight(s);
+
+      if (effortReps > 0) {
+        repsByEffort.set(effort, (repsByEffort.get(effort) || 0) + effortReps);
+        if (weight > 0) {
+          const vol = effortReps * weight;
+          totalVolume += vol;
+          volumeByEffort.set(effort, (volumeByEffort.get(effort) || 0) + vol);
+        }
+      }
+      const segLoad = effortReps > 0 && weight > 0 ? (effortReps * weight) / 10 : effortReps > 0 ? effortReps : 10;
+      loadByDiscipline.set(discipline, (loadByDiscipline.get(discipline) || 0) + segLoad);
+    }
+
+    if (!paired) {
+      const segLoad = blockReps > 0 ? blockReps : 10;
+      loadByDiscipline.set('strength', (loadByDiscipline.get('strength') || 0) + segLoad);
+    }
+  }
+
+  // Always emit totalVolume and reps summary rows for session if statements exist
+  summaryRows.push({
+    id: 'session:summary:totalVolume',
+    resultId: identity.resultId,
+    noteId: identity.noteId,
+    blockContentId: identity.blockContentId,
+    origin: identity.origin,
+    timestamp: now,
+    grain: 'summary',
+    outputType: 'analytics',
+    metrics: [{
+      type: 'totalVolume',
+      value: totalVolume,
+      unit: 'lb',
+      metadata: { canonicalKey: 'totalVolume' },
+    }],
+  });
+
+  summaryRows.push({
+    id: 'session:summary:reps',
+    resultId: identity.resultId,
+    noteId: identity.noteId,
+    blockContentId: identity.blockContentId,
+    origin: identity.origin,
+    timestamp: now,
+    grain: 'summary',
+    outputType: 'analytics',
+    metrics: [{
+      type: 'reps',
+      value: totalReps,
+      unit: 'reps',
+      metadata: { canonicalKey: 'reps' },
+    }],
+  });
+
+  for (const [eff, repsVal] of repsByEffort.entries()) {
+    summaryRows.push({
+      id: `session:summary:reps:${eff}`,
+      resultId: identity.resultId,
+      noteId: identity.noteId,
+      blockContentId: identity.blockContentId,
+      origin: identity.origin,
+      timestamp: now,
+      grain: 'summary',
+      outputType: 'analytics',
+      metrics: [{
+        type: 'reps',
+        value: repsVal,
+        unit: 'reps',
+        metadata: {
+          canonicalKey: 'reps',
+          effortSlug: eff,
+          groupTags: { effort: eff },
+        },
+      }],
+    });
+  }
+
+  for (const [eff, volVal] of volumeByEffort.entries()) {
+    summaryRows.push({
+      id: `session:summary:totalVolume:${eff}`,
+      resultId: identity.resultId,
+      noteId: identity.noteId,
+      blockContentId: identity.blockContentId,
+      origin: identity.origin,
+      timestamp: now,
+      grain: 'summary',
+      outputType: 'analytics',
+      metrics: [{
+        type: 'totalVolume',
+        value: volVal,
+        unit: 'lb',
+        metadata: {
+          canonicalKey: 'totalVolume',
+          effortSlug: eff,
+          groupTags: { effort: eff },
+        },
+      }],
+    });
+  }
+
+  const totalLoad = Array.from(loadByDiscipline.values()).reduce((a, b) => a + b, 0);
+  summaryRows.push({
+    id: 'session:summary:sessionLoad',
+    resultId: identity.resultId,
+    noteId: identity.noteId,
+    blockContentId: identity.blockContentId,
+    origin: identity.origin,
+    timestamp: now,
+    grain: 'summary',
+    outputType: 'analytics',
+    metrics: [{
+      type: 'sessionLoad',
+      value: totalLoad,
+      unit: 'pts',
+      metadata: { canonicalKey: 'sessionLoad' },
+    }],
+  });
+
+  for (const [disc, loadVal] of loadByDiscipline.entries()) {
+    summaryRows.push({
+      id: `session:summary:sessionLoad:${disc}`,
+      resultId: identity.resultId,
+      noteId: identity.noteId,
+      blockContentId: identity.blockContentId,
+      origin: identity.origin,
+      timestamp: now,
+      grain: 'summary',
+      outputType: 'analytics',
+      metrics: [{
+        type: 'sessionLoad',
+        value: loadVal,
+        unit: 'pts',
+        metadata: {
+          canonicalKey: 'sessionLoad',
+          effortDiscipline: disc,
+          groupTags: { discipline: disc },
+        },
+      }],
+    });
+  }
+
+  return inMemoryEventStore([...eventRows, ...summaryRows]);
+}
+
+function downloadBlob(filename: string, content: string, mimeType: string) {
+  if (typeof document === 'undefined') return;
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+const DEFAULT_PRIMARY_WQL = 'all';
 
 export function SessionOutputsTable({
   outputs,
@@ -733,17 +997,23 @@ export function SessionOutputsTable({
           return;
         }
 
-        const stored = outputs.map(toStoredOutputStatement);
-        const identity = { resultId: 'session', noteId: 'workbench', blockContentId: 'workbench', origin: 'playground' as const };
-        const eventRows = toEventRows(stored, identity);
-        const summaryRows = toSummaryEventRows(stored, identity);
-        const store = inMemoryEventStore([...eventRows, ...summaryRows]);
+        const store = buildWorkbenchSessionStore(outputs);
         const service = new QueryService(store);
         if (isAggregateQuery(parsed)) {
           const res = await service.run(parsed);
-          if (res.series.length > 0 && res.series[0].points.length > 0) {
-            const pt = res.series[0].points[0];
-            setWqlResult(`Result: ${pt.value}${res.series[0].unit ? ` ${res.series[0].unit}` : ''}`);
+          if (res.series.length > 0) {
+            const summaryParts = res.series.flatMap((s) =>
+              s.points.map((pt) => {
+                const groupLabel = s.tags ? Object.values(s.tags).join(', ') : '';
+                const unitStr = s.unit ? ` ${s.unit}` : '';
+                return groupLabel ? `${groupLabel}: ${pt.value}${unitStr}` : `${pt.value}${unitStr}`;
+              }),
+            );
+            if (summaryParts.length > 0) {
+              setWqlResult(`WQL: ${summaryParts.join(' · ')}`);
+            } else {
+              setWqlResult('Query executed: 0 matching data points in current session outputs.');
+            }
           } else {
             setWqlResult('Query executed: 0 matching data points in current session outputs.');
           }
@@ -812,6 +1082,7 @@ export function SessionOutputsTable({
             <WqlComposer
               query={filterText}
               onQueryChange={(next) => setFilterText(next)}
+              showDiagnostics={false}
             />
           </div>
         ) : (
@@ -1351,27 +1622,27 @@ export type DashboardInput = string | Partial<DashboardQuerySegment>;
 export const DEFAULT_DASHBOARD_QUERIES: DashboardInput[] = [
   {
     id: 'seg-1',
-    title: 'Weekly Volume Trend',
-    question: 'Rising weekly?',
-    query: 'sum:totalVolume{} by {week}',
-    widgetType: 'timeseries',
-    dataSource: 'corpus',
+    title: 'Session Total Volume',
+    question: 'How much volume moved this session?',
+    query: 'sum:totalVolume{}',
+    widgetType: 'value',
+    dataSource: 'session',
   },
   {
     id: 'seg-2',
-    title: 'Session Load by Discipline',
-    question: 'Which discipline?',
-    query: 'sum:sessionLoad{} by {discipline}',
+    title: 'Reps by Movement',
+    question: 'What was the rep distribution across movements?',
+    query: 'sum:rep{} by {effort}',
     widgetType: 'bars',
-    dataSource: 'corpus',
+    dataSource: 'session',
   },
   {
     id: 'seg-3',
-    title: 'All-Time Total Volume',
-    question: 'What total?',
-    query: 'sum:totalVolume{}',
-    widgetType: 'value',
-    dataSource: 'corpus',
+    title: 'Load by Discipline',
+    question: 'Training stimulus by modality',
+    query: 'sum:sessionLoad{} by {discipline}',
+    widgetType: 'bars',
+    dataSource: 'session',
   },
 ];
 
@@ -1383,7 +1654,7 @@ export function normalizeDashboardSegment(input: DashboardInput, index: number):
       question: input.question || 'Custom query',
       query: input.query || '',
       widgetType: input.widgetType || 'auto',
-      dataSource: input.dataSource || 'corpus',
+      dataSource: input.dataSource || 'session',
     };
   }
 
@@ -1412,7 +1683,7 @@ export function normalizeDashboardSegment(input: DashboardInput, index: number):
     question: 'WQL Query',
     query,
     widgetType,
-    dataSource: query.includes('session') ? 'session' : 'corpus',
+    dataSource: input.dataSource || (query.includes('by {week}') || query.includes('by {month}') ? 'corpus' : 'session'),
   };
 }
 export function DashboardQueryCard({
@@ -1457,11 +1728,7 @@ export function DashboardQueryCard({
             setResult(undefined);
             return;
           }
-          const stored = outputs.map(toStoredOutputStatement);
-          const identity = { resultId: 'session', noteId: 'workbench', blockContentId: 'workbench', origin: 'playground' as const };
-          const eventRows = toEventRows(stored, identity);
-          const summaryRows = toSummaryEventRows(stored, identity);
-          const store = inMemoryEventStore([...eventRows, ...summaryRows]);
+          const store = buildWorkbenchSessionStore(outputs);
           const sessionService = new QueryService(store);
           const r = await sessionService.run(parsed, { preferredUnit: 'lb' });
           setResult(r);
@@ -1584,11 +1851,12 @@ export function DashboardQueryCard({
         )}
         <div className="flex flex-wrap gap-1">
           {[
-            'sum:totalVolume{} by {week}',
-            'avg:tis{}',
+            'sum:totalVolume{}',
+            'sum:rep{} by {effort}',
             'sum:sessionLoad{} by {discipline}',
-            'sum:distance{} by {week}',
+            'sum:distance{}',
             'sum:rep{}',
+            'avg:tis{}',
           ].map((preset) => (
             <button
               key={preset}
@@ -1664,9 +1932,9 @@ export function DashboardAnalyticsSection({
         id: newId,
         title: `Query Widget #${prev.length + 1}`,
         question: 'Custom query',
-        query: 'sum:distance{} by {week}',
-        widgetType: 'auto',
-        dataSource: 'corpus',
+        query: 'sum:rep{} by {effort}',
+        widgetType: 'bars',
+        dataSource: 'session',
       },
     ]);
   };
@@ -1931,9 +2199,78 @@ export function LanguageWorkbench({
     isDirty,
     canStep: Boolean(runtime),
   };
+  const handleExportMarkdown = useCallback(() => {
+    downloadBlob('markdown.md', noteText, 'text/markdown;charset=utf-8');
+  }, [noteText]);
+
+  const handleExportParsed = useCallback(() => {
+    const ir = createIRFile(
+      'parse-tree',
+      parse.script ? buildStatementTree(parse.script) : null,
+      { source: 'workbench:note' },
+    );
+    downloadBlob('parsed-output.json', JSON.stringify(ir, null, 2), 'application/json');
+  }, [parse.script]);
+
+  const handleExportSession = useCallback(() => {
+    const liveOutputs = runtime ? runtime.getOutputStatements() : [];
+    const storedLogs = liveOutputs.map(toStoredOutputStatement);
+    const executionLog: ExecutionLog = {
+      results: {
+        startTime: execution.status.sessionStartedAt ?? Date.now(),
+        endTime: Date.now(),
+        duration: execution.elapsedTime,
+        completed: execution.status.state === 'complete' || execution.status.state === 'stopped',
+        logs: storedLogs,
+      },
+      logs: storedLogs,
+      statements: storedLogs,
+      sourceScript: runSource,
+    };
+    const ir = createIRFile('execution-log', executionLog, { source: 'workbench:session' });
+    downloadBlob('session-output.json', JSON.stringify(ir, null, 2), 'application/json');
+  }, [runtime, execution, runSource]);
 
   return (
     <div className="flex flex-col gap-6" data-testid={testId}>
+      {/* ── Workbench Header & Export Bar ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border border-border/70 bg-card/40 backdrop-blur-xs shadow-xs">
+        <div className="flex items-center gap-2.5">
+          <div className="size-3 rounded-full bg-primary animate-pulse" />
+          <h2 className="text-sm font-black uppercase tracking-wider text-foreground">
+            Whiteboard Language Workbench
+          </h2>
+        </div>
+        <div className="flex flex-wrap items-center gap-2" data-testid="workbench-export-bar">
+          <button
+            type="button"
+            onClick={handleExportMarkdown}
+            data-testid="btn-export-markdown"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background/80 hover:bg-accent text-xs font-mono text-foreground font-semibold shadow-2xs transition-all cursor-pointer"
+            title="Download note as markdown.md"
+          >
+            <span>📝 markdown.md</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleExportParsed}
+            data-testid="btn-export-parsed"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background/80 hover:bg-accent text-xs font-mono text-foreground font-semibold shadow-2xs transition-all cursor-pointer"
+            title="Download parse tree as parsed-output.json (IR envelope)"
+          >
+            <span>🌳 parsed-output.json</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleExportSession}
+            data-testid="btn-export-session"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background/80 hover:bg-accent text-xs font-mono text-foreground font-semibold shadow-2xs transition-all cursor-pointer"
+            title="Download session execution log as session-output.json for wod-wql CLI"
+          >
+            <span>⚡ session-output.json</span>
+          </button>
+        </div>
+      </div>
       {/* ── Section 1: Note Editor (2/3) & Compiled Statements (1/3) (Authoring) ── */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Left (2/3 width): Note Editor */}

@@ -11,8 +11,10 @@
 import type { BlockIndexRow, Note } from '@/types/storage';
 import type { NoteQueryStore, BlockQueryStore } from '@bitcobblers/wod-wiki-engine';
 import { extractFrontmatterTags } from '@/lib/frontmatter';
-let staticBlockIndexPromise: Promise<BlockIndexRow[]> | null = null;
+import { setSuggestionBinding, catalogIdsFromBlocks } from '@bitcobblers/wod-wiki-ui';
+import { indexedDBService } from '@/services/db/IndexedDBService';
 
+let staticBlockIndexPromise: Promise<BlockIndexRow[]> | null = null;
 export function loadStaticBlockIndex(): Promise<BlockIndexRow[]> {
     if (!staticBlockIndexPromise) {
         staticBlockIndexPromise = import(
@@ -109,3 +111,35 @@ export const staticNoteStore: NoteQueryStore = {
 export const staticBlockStore: BlockQueryStore = {
     getAllBlocks: () => loadStaticBlockIndex(),
 };
+
+// ── Composer suggestion bindings ───────────────────────────────────────────
+
+setSuggestionBinding('catalog', {
+    load: async () => {
+        const blocks = await loadStaticBlockIndex();
+        const catalogIds = catalogIdsFromBlocks(blocks);
+        return catalogIds.map((id) => ({ value: id, label: id }));
+    },
+    cache: 'static',
+    open: false,
+    emptyText: 'No catalogs in the static corpus',
+});
+
+setSuggestionBinding('tag', {
+    load: async () => {
+        const tagIndex = await loadStaticTagIndex();
+        const staticTags = Array.from(tagIndex.keys());
+        let userTags: string[] = [];
+        try {
+            const userNotes = await indexedDBService.getAllNotes();
+            userTags = userNotes.flatMap((n) => n.tags ?? []);
+        } catch {
+            // IndexedDB not ready in isolated test environments
+        }
+        const merged = Array.from(new Set([...staticTags, ...userTags])).sort((a, b) => a.localeCompare(b));
+        return merged.map((t) => ({ value: t, label: t }));
+    },
+    cache: { ttlMs: 30_000 },
+    open: true,
+    emptyText: 'No tags yet — type one to filter by it',
+});

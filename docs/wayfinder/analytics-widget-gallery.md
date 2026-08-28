@@ -87,6 +87,20 @@ in Storybook and `AnalyticsWidgets.stories.tsx` is deleted.
   manifest pair `sum:totalVolume{}` default-lb vs preferred-kg
   (fixtures are lb-denominated — no kg rows exist); coverage test
   enforces ≥1 preferred-unit card.
+- [Aggregate widget sections — all 8 types, live](tickets/004-aggregate-widget-sections.md) —
+  built: `gallery/` modules (journals, manifest, card renderers), 9
+  section stories, 25 live cards, mechanical coverage guard (53/53
+  tests green); verified in Storybook with zero card errors; two spec
+  corrections recorded on the ticket (intensity cards → tis; auto
+  charts need sized containers) — legacy gallery shrank to its rows
+  half pending ticket 005.
+- [Rows and find family sections](tickets/005-rows-and-find-sections.md) —
+  built: RowsTable renders the four rows cards; content plane wired
+  (derived block index + bundled efforts from lang); find:{target}
+  renders via gallery-local FindResultList; legacy rows view deleted;
+  app vitest config restructured (stories browser project + node unit
+  project) so the coverage guard actually runs — 61/61 green, verified
+  live in Storybook.
 
 ## Not yet specified
 

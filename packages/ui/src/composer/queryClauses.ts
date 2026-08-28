@@ -66,8 +66,52 @@ export function sourcePlane(source: string): 'content' | 'metrics' {
 }
 
 /** Clause types that only make sense on the metrics plane. */
-export const METRICS_ONLY_TYPES: ReadonlySet<string> = new Set(['agg', 'metric', 'groupby', 'rollup', 'unit']);
+export const METRICS_ONLY_TYPES: ReadonlySet<string> = new Set(['agg', 'metric', 'groupby', 'rollup', 'unit', 'where']);
 
+/** Filter clause types valid for content find queries (notes, collections, feeds, blocks, all). */
+export const CONTENT_FILTER_TYPES: ReadonlySet<ClauseType> = new Set([
+  'text',
+  'catalog',
+  'tag',
+  'time',
+  'type',
+  'has',
+]);
+
+/** Filter clause types valid for effort find queries (find:effort). */
+export const EFFORT_FILTER_TYPES: ReadonlySet<ClauseType> = new Set([
+  'text',
+  'effort',
+  'discipline',
+  'intensity',
+  'origin',
+]);
+
+/** Filter clause types valid for rows queries (rows:all, rows:segment). */
+export const ROWS_FILTER_TYPES: ReadonlySet<ClauseType> = new Set([
+  'output',
+  'result',
+  'block',
+  'note',
+  'time',
+]);
+
+/** Filter clause types valid for metrics aggregate queries (sum:...). */
+export const METRICS_FILTER_TYPES: ReadonlySet<ClauseType> = new Set([
+  'tag',
+  'effort',
+  'discipline',
+  'intensity',
+  'origin',
+  'time',
+]);
+
+export function allowedFilterTypesForSource(source: string): ReadonlySet<ClauseType> {
+  if (source === 'efforts') return EFFORT_FILTER_TYPES;
+  if (source === 'rows') return ROWS_FILTER_TYPES;
+  if (source === 'metrics') return METRICS_FILTER_TYPES;
+  return CONTENT_FILTER_TYPES;
+}
 // ── Options & Data Sources ──────────────────────────────────────────────────
 
 export const SOURCE_OPTIONS = [

@@ -9,6 +9,8 @@ import {
   type ClauseType,
   CLAUSE_META,
   getClauseMeta,
+  sourcePlane,
+  allowedFilterTypesForSource,
   SOURCE_OPTIONS,
   TIME_OPTIONS,
   AGG_OPTIONS,
@@ -427,18 +429,33 @@ export function CustomSlotPopover<TValue>({
 export function AddFilterDropdown({
   clauses,
   onAdd,
+  allowedTypes,
+  hiddenTypes,
 }: {
   clauses: QueryClause[];
   onAdd: (clause: QueryClause) => void;
+  allowedTypes?: ReadonlySet<string> | ClauseType[];
+  hiddenTypes?: ReadonlySet<string>;
 }) {
   const [open, setOpen] = useState(false);
   const customSlots = useComposerSlots();
   const existingTypes = new Set(clauses.map((c) => c.type));
 
+  const sourceVal = clauses.find((c) => c.type === 'source')?.value || 'notes';
+  const allowed = allowedTypes
+    ? (allowedTypes instanceof Set ? allowedTypes : new Set(allowedTypes))
+    : allowedFilterTypesForSource(sourceVal);
+
   const builtInAvailable = (Object.keys(CLAUSE_META) as ClauseType[]).filter(
-    (type) => !CLAUSE_META[type].required && !existingTypes.has(type),
+    (type) =>
+      !CLAUSE_META[type].required &&
+      !existingTypes.has(type) &&
+      (!hiddenTypes || !hiddenTypes.has(type)) &&
+      allowed.has(type),
   );
-  const customAvailable = customSlots.filter((s) => !existingTypes.has(s.type));
+  const customAvailable = customSlots.filter(
+    (s) => !existingTypes.has(s.type) && (!hiddenTypes || !hiddenTypes.has(s.type)),
+  );
   return (
     <div className="relative inline-flex items-center">
       <button
@@ -508,13 +525,15 @@ export function AddCalcDropdown({
   onAdd: (clause: QueryClause) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const sourceVal = clauses.find((c) => c.type === 'source')?.value || 'notes';
+  if (sourcePlane(sourceVal) !== 'metrics') return null;
+
   const existingTypes = new Set(clauses.map((c) => c.type));
 
   const calcTypes: ClauseType[] = ['agg', 'metric', 'groupby', 'rollup', 'unit', 'where'];
   const available = calcTypes.filter((t) => !existingTypes.has(t));
 
   if (available.length === 0) return null;
-
   return (
     <div className="relative inline-flex items-center">
       <button
