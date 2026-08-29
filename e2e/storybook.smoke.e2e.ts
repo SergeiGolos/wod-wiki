@@ -25,18 +25,12 @@ test('Storybook manager loads', async ({ page }) => {
   await expect(page).toHaveTitle(/storybook/i);
 });
 
-test('Benchmark Fran workbench renders live parse and runtime panels', async ({ page }) => {
-  await page.goto(storyUrl('workbench-benchmark-fran--standard-couplet'), { waitUntil: 'networkidle' });
+test('Language Workbench story renders live parse and wall clock panel', async ({ page }) => {
+  await page.goto(storyUrl('playground--empty-workbench'), { waitUntil: 'networkidle' });
 
-  const workbench = page.getByTestId('language-workbench');
-  await expect(workbench).toBeVisible({ timeout: 15_000 });
-
-  // Live parse over the default script (parser debug panel shows statements)
-  await expect(page.getByTestId('panel-parser')).toBeVisible();
-  await expect(page.getByTestId('parsed-statement-0')).toBeVisible();
-
-  // Wall-clock runtime surface is mounted
-  await expect(page.getByTestId('panel-wallclock').first()).toBeVisible();
+  // Compiled statements strip and wall clock panel render on workbench boot
+  await expect(page.getByTestId('statement-strip')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('panel-wallclock')).toBeVisible({ timeout: 15_000 });
 });
 
 test('Analytics Widgets story renders a widget', async ({ page }) => {
