@@ -115,6 +115,22 @@ export const demoPack: LanguagePack = defineLanguagePack({
 
 // ── CodeMirror Mounting Hooks ───────────────────────────────────────────────
 
+/**
+ * Dark-Mode Standard host rule: the storybook theme toolbar toggles `dark`
+ * on documentElement. Track it reactively so mounted editors re-theme when
+ * the toolbar flips (shared widgets inherit host theme — #994 D3).
+ */
+function useHtmlDark(): boolean {
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  useEffect(() => {
+    const el = document.documentElement;
+    const observer = new MutationObserver(() => setIsDark(el.classList.contains('dark')));
+    observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+  return isDark;
+}
+
 export function useCodeMirror(
   host: React.RefObject<HTMLDivElement | null>,
   doc: string,
@@ -124,6 +140,7 @@ export function useCodeMirror(
   const cb = useRef(onChange);
   cb.current = onChange;
   const viewRef = useRef<EditorView | null>(null);
+  const isDark = useHtmlDark();
 
   useEffect(() => {
     if (!host.current) return;
@@ -131,7 +148,7 @@ export function useCodeMirror(
       state: EditorState.create({
         doc,
         extensions: [
-          ...editorPreset({ dialect }),
+          ...editorPreset({ dialect, isDark }),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) cb.current(u.state.doc.toString());
           }),
@@ -145,7 +162,7 @@ export function useCodeMirror(
       viewRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dialect]);
+  }, [dialect, isDark]);
 
   const setDoc = useCallback((next: string) => {
     const view = viewRef.current;
@@ -177,6 +194,7 @@ export function useNoteEditor(
   const cb = useRef(onChange);
   cb.current = onChange;
   const viewRef = useRef<EditorView | null>(null);
+  const isDark = useHtmlDark();
 
   useEffect(() => {
     if (!host.current) return;
@@ -184,7 +202,7 @@ export function useNoteEditor(
       state: EditorState.create({
         doc,
         extensions: [
-          ...editorPreset({ dialect: 'markdown' }),
+          ...editorPreset({ dialect: 'markdown', isDark }),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) {
               cb.current(u.state.doc.toString(), u.state.field(sectionField).sections);
@@ -199,7 +217,7 @@ export function useNoteEditor(
       view.destroy();
       viewRef.current = null;
     };
-  }, [doc]);
+  }, [doc, isDark]);
   const setDoc = useCallback((next: string) => {
     const view = viewRef.current;
     if (view && view.state.doc.toString() !== next) {
