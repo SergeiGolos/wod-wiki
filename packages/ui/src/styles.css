@@ -126,8 +126,14 @@
 /*
  * Tailwind v4 theme bridge. `bg-background`, `text-muted-foreground`,
  * `bg-metric-time`, `rounded-lg` etc. resolve to the tokens above.
+ *
+ * `inline` is load-bearing (Dark-Mode Standard, wayfinder #994/#998): it makes
+ * utilities emit `hsl(var(--token))` directly, so the tokens resolve per
+ * element and a `dark` class on ANY ancestor flips them. Non-inline `@theme`
+ * computes `--color-*` on `:root`, baking the light values in — wrapper-level
+ * `.dark` toggles would be one level too late.
  */
-@theme {
+@theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));

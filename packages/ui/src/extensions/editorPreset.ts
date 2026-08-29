@@ -57,7 +57,11 @@ export function editorPreset(optionsOrDialect: string | EditorPresetOptions = 'm
 
   const {
     dialect = 'markdown',
-    isDark = true,
+    // Dark-Mode Standard host rule (#994/#998): default to the host's current
+    // theme — `dark` lives on documentElement, so an editor inherits it for
+    // free at mount. Hosts with reactive theming (playground NoteEditor) pass
+    // isDark explicitly and reconfigure through their own compartment.
+    isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
     readOnly = false,
     lineNumbers: showLineNums = true,
     lineWrapping = true,

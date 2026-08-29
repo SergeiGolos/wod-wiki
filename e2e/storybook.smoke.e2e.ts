@@ -8,6 +8,10 @@ import { test, expect } from '@playwright/test';
  *  - main pushes → https://story.wod.wiki
  *  - PR pushes   → https://<slug>.story.wod.wiki
  *
+ * Story IDs are pinned against the build's index.json — the manager-only
+ * viewport here; mobile (375px) and dark-theme passes live in
+ * storybook.mobile/dark.smoke.e2e.ts.
+ *
  * Unit-level interaction coverage lives in apps/storybook tests
  * (vitest browser mode); this suite is the deployed-artifact gate.
  */

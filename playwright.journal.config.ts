@@ -76,6 +76,42 @@ export default defineConfig({
       name: 'journal-chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      // Mobile gate (map #990): key routes at a 375px viewport, forced light
+      // theme so the pass is deterministic. The playground's ThemeProvider
+      // reads wod-wiki-playground-theme from localStorage on mount.
+      name: 'journal-mobile-375',
+      testMatch: '**/gates/journal.mobile.smoke.e2e.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 375, height: 812 },
+        storageState: {
+          origins: [
+            {
+              origin: new URL(appBaseURL).origin,
+              localStorage: [{ name: 'wod-wiki-playground-theme', value: 'light' }],
+            },
+          ],
+        },
+      },
+    },
+    {
+      // Dark-theme gate (map #990): same routes with dark forced via the
+      // storage key; asserts html.dark plus rendered content.
+      name: 'journal-dark',
+      testMatch: '**/gates/journal.dark.smoke.e2e.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: {
+          origins: [
+            {
+              origin: new URL(appBaseURL).origin,
+              localStorage: [{ name: 'wod-wiki-playground-theme', value: 'dark' }],
+            },
+          ],
+        },
+      },
+    },
   ],
 
   // No local server in remote mode — the deployed artifact is already live.
