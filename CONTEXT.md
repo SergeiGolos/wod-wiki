@@ -309,10 +309,16 @@ the full table remains at `sm` and above.
 _Avoid_: mobile table, list view (unqualified).
 
 **Dark-Mode Standard**:
-The rule set governing how a surface supports dark mode: semantic design tokens
-(not raw palette classes) in shared widgets, class-strategy `dark:` variants in
-app surfaces, and the dark state being reachable in every host that renders the
-surface. Locked by the mobile & dark-mode wayfinding effort.
+The rule set governing how a surface supports dark mode, locked by the mobile &
+dark-mode wayfinding effort. Mechanism: the shared token bridge resolves
+utilities per element (`@theme inline` in `packages/ui/src/styles.css`), and a
+surface is dark exactly when the `dark` class sits on `documentElement` — hosts
+toggle `<html>`, never a wrapper. Host rules: the playground toggles via
+`ThemeProvider` plus a pre-paint boot script in `index.html` (no flash of wrong
+theme); Storybook's preview decorator toggles `documentElement` from the theme
+toolbar global. Content rules: shared widgets in `packages/ui` use semantic
+tokens only (no raw palette classes); app surfaces may use `dark:` variants for
+app-only chrome; stories are theme-agnostic.
 _Avoid_: dark theme (the palette itself), night mode.
 
 ### Identity & result recording
