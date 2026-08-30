@@ -18,7 +18,7 @@
  */
 
 import { composerRegistry } from './ComposerRegistry';
-import { WQL_AGGREGATORS, WQL_COMPARISON_OPS, WQL_CALC_TARGETS, WQL_DISPLAY_UNITS, WQL_METRIC_AGGREGATES, WQL_METRIC_FAMILIES, WQL_ROLLUP_PERIODS, WQL_SOURCES, WQL_TAG_KEYS, WQL_VIRTUAL_DIMS } from '@bitcobblers/wod-wiki-wql';
+import { WQL_AGGREGATORS, WQL_CALC_TARGETS, WQL_DISPLAY_UNITS, WQL_METRIC_AGGREGATES, WQL_METRIC_FAMILIES, WQL_ROLLUP_PERIODS, WQL_SOURCES, WQL_TAG_KEYS, WQL_VIRTUAL_DIMS } from '@bitcobblers/wod-wiki-wql';
 
 export type ClauseType =
   | 'source'
@@ -153,7 +153,6 @@ export const UNIT_OPTIONS = WQL_DISPLAY_UNITS.map((v) => ({ value: v, label: v }
  */
 export const WHERE_AGGREGATORS: readonly string[] = WQL_AGGREGATORS;
 export const WHERE_METRICS: readonly string[] = [...WQL_METRIC_AGGREGATES, ...WQL_METRIC_FAMILIES, ...WQL_CALC_TARGETS];
-export const WHERE_OPERATORS: readonly string[] = WQL_COMPARISON_OPS;
 
 // ── Metadata ────────────────────────────────────────────────────────────────
 

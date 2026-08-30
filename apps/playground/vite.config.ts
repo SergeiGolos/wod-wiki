@@ -74,6 +74,12 @@ export default defineConfig({
     resolve: {
         dedupe: ['react', 'react-dom', ...CODEMIRROR_SINGLETON_DEPS],
         alias: [
+            { find: "url", replacement: resolve(__dirname, "../../scripts/empty-shim.ts") },
+            { find: "node:url", replacement: resolve(__dirname, "../../scripts/empty-shim.ts") },
+            { find: "path", replacement: resolve(__dirname, "../../scripts/empty-shim.ts") },
+            { find: "node:path", replacement: resolve(__dirname, "../../scripts/empty-shim.ts") },
+            { find: "fs", replacement: resolve(__dirname, "../../scripts/empty-shim.ts") },
+            { find: "node:fs", replacement: resolve(__dirname, "../../scripts/empty-shim.ts") },
             // Workspace source aliases — instant HMR for packages/* edits with
             // zero build step. Most-specific first; dirs expand to their subtree.
             { find: '@bitcobblers/wod-wiki-lang/react', replacement: resolve(__dirname, '../../packages/lang/src/react.ts') },
@@ -95,6 +101,7 @@ export default defineConfig({
         hmr: hmrHost ? { host: hmrHost } : true,
     },
     build: {
+        chunkSizeWarningLimit: 2000,
         outDir: 'dist',
         emptyOutDir: true,
         sourcemap: true,

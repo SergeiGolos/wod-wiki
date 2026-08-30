@@ -22,7 +22,6 @@ export const lineIdsExtension = ViewPlugin.fromClass(
     getDecorations(view: EditorView) {
       const builder = new RangeSetBuilder<Decoration>();
       const { doc } = view.state;
-      let workoutCount = 0;
 
       for (let i = 1; i <= doc.lines; i++) {
         const line = doc.line(i);
@@ -42,7 +41,6 @@ export const lineIdsExtension = ViewPlugin.fromClass(
           }
           id = label.toLowerCase().replace(/[^\w]+/g, "-");
         } else if (/^```(time|log)/.test(trimmed)) {
-          workoutCount++;
           id = `workout-line-${i}`;
         }
 

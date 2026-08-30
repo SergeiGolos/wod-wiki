@@ -15,7 +15,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { Command } from 'lucide-react';
 import { cn } from '../utils/cn';
-import { useComposerSlots } from './ComposerRegistry';
 import { TokenSlotPill, AddFilterDropdown, AddCalcDropdown } from './QueryPalette';
 import { diagnosePills, type WqlDiagnostics } from './diagnostics';
 import { WqlDiagnosticsStrip } from './WqlDiagnosticsStrip';
@@ -148,7 +147,6 @@ export function WqlComposer({
     [controlledQuery],
   );
 
-  const registeredSlots = useComposerSlots();
   // Raw escape hatch (controlled, not pill-expressible): diagnostics describe
   // the ACTUAL controlled query — never the fallback internal pills.
   const rawEscape = controlledQuery !== undefined && controlledPills === null;
@@ -163,7 +161,7 @@ export function WqlComposer({
       };
     }
     return diagnosePills(pills);
-  }, [rawEscape, controlledQuery, pills, registeredSlots]);
+  }, [rawEscape, controlledQuery, pills]);
 
   const callbacksRef = useRef({ onQueryChange, onValidationChange, onAstChange });
   callbacksRef.current = { onQueryChange, onValidationChange, onAstChange };
@@ -179,7 +177,7 @@ export function WqlComposer({
     if (controlledQuery === undefined) callbacksRef.current.onQueryChange?.(diagnostics.wql);
     callbacksRef.current.onAstChange?.(diagnostics.ast);
     callbacksRef.current.onValidationChange?.(validation);
-  }, [diagnostics]);
+  }, [diagnostics, controlledQuery]);
 
   const stages = useWqlStageCounts(diagnostics.ast, diagnostics.valid, execute, debounceMs);
 

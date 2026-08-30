@@ -144,7 +144,7 @@ export function DashboardView({
     return () => {
       cancelled = true;
     };
-  }, [resolvedKey, executor, onEnsureRollupFacts, rangeStart, rangeEnd, preferredUnit]);
+  }, [resolvedKey, resolved, executor, onEnsureRollupFacts, rangeStart, rangeEnd, preferredUnit]);
 
   return (
     <div data-testid="dashboard-view">
