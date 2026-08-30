@@ -28,6 +28,8 @@ const config: StorybookConfig = {
     reactDocgen: false,
   },
   viteFinal: async (config) => {
+    config.build = config.build || {};
+    config.build.chunkSizeWarningLimit = 2000;
     config.resolve = config.resolve || {};
     config.resolve.dedupe = Array.from(
       new Set([...(config.resolve.dedupe || []), 'react', 'react-dom', ...CODEMIRROR_SINGLETON_DEPS])

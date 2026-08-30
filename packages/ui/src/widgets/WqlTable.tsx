@@ -11,6 +11,10 @@ export interface WqlTableProps {
 
 const MAX_ROWS = 12;
 
+function formatValue(v: number, unit?: string): string {
+  return `${v.toLocaleString()}${unit ? ` ${unit}` : ''}`;
+}
+
 export function WqlTable({ result, unit: unitProp }: WqlTableProps) {
   const shape = useChartShape(result);
   const unit = result.series[0]?.unit ?? unitProp ?? '';
@@ -19,14 +23,14 @@ export function WqlTable({ result, unit: unitProp }: WqlTableProps) {
     if (shape.kind === 'scalar') {
       return {
         head: ['Metric', 'Value'],
-        body: [[result.series[0]?.label ?? 'scalar', format(shape.value)]],
+        body: [[result.series[0]?.label ?? 'scalar', formatValue(shape.value, unit)]],
         more: 0,
       };
     }
     if (shape.kind === 'bars') {
       const all = result.series.map((s) => [
         s.label,
-        format(s.points[0]?.value ?? 0),
+        formatValue(s.points[0]?.value ?? 0, unit),
       ]);
       return {
         head: ['Series', 'Value'],
@@ -49,17 +53,13 @@ export function WqlTable({ result, unit: unitProp }: WqlTableProps) {
         formatTimestamp(ts),
         ...result.series.map((s) => {
           const v = seriesMap.get(s.label)?.get(ts);
-          return v !== undefined ? format(v) : '—';
+          return v !== undefined ? formatValue(v, unit) : '—';
         }),
       ]);
       return { head, body, more: Math.max(0, timestamps.length - MAX_ROWS) };
     }
     return { head: [], body: [], more: 0 };
-  }, [result, shape]);
-
-  function format(v: number): string {
-    return `${v.toLocaleString()}${unit ? ` ${unit}` : ''}`;
-  }
+  }, [result, shape, unit]);
 
   if (shape.kind === 'error' || shape.kind === 'empty') {
     return <WqlEmptyState result={result} />;

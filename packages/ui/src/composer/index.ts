@@ -62,6 +62,5 @@ export {
   UNIT_OPTIONS,
   WHERE_AGGREGATORS,
   WHERE_METRICS,
-  WHERE_OPERATORS,
   sourcePlane,
 } from './queryClauses';
