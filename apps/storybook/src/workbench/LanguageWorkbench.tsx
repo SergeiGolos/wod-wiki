@@ -10,6 +10,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
+import { Edit3 } from 'lucide-react';
 
 import crossfitJournal from '../../../../packages/wql/fixtures/corpus/crossfit-multi-week.json';
 import {
@@ -72,6 +73,8 @@ import {
   WqlTable,
   TopList,
   WqlComposer,
+  WqlQueryInspectorModal,
+  type QueryExecutor,
   OutputStatementsTable,
   OutputFilterPills,
   presentBadges,
@@ -315,7 +318,7 @@ export function StatementStrip({
             </span>
           )}
           {completedIds && completedIds.size > 0 && (
-            <span className="rounded bg-blue-500/20 px-1.5 py-0.5 text-blue-500">
+            <span className="rounded bg-blue-500/20 px-1.5 py-0.5 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400">
               {completedIds.size} done
             </span>
           )}
@@ -353,7 +356,7 @@ export function StatementStrip({
                 </span>
                 <span className="min-w-0 flex-1 truncate font-semibold text-foreground">{raw || `#${stmt.id}`}</span>
                 <span className="flex flex-wrap items-center gap-1 font-sans">{presentBadges(stmt.metrics)}</span>
-                {isDone && <span className="text-[11px] text-blue-500 font-bold">✓</span>}
+                {isDone && <span className="text-[11px] text-blue-500 dark:text-blue-400 font-bold">✓</span>}
                 {isActive && (
                   <span className="rounded-full bg-primary/20 px-1.5 py-0.2 text-[9px] font-bold text-primary uppercase tracking-wider">
                     active
@@ -960,7 +963,7 @@ export function SessionOutputsTable({
       {/* Header */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-3">
         <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-violet-500" />
+          <span className="h-2.5 w-2.5 rounded-full bg-violet-500 dark:bg-violet-400" />
           <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-foreground">
             Session Outputs &amp; Live WQL Filter
           </h3>
@@ -1087,7 +1090,7 @@ export function OutputTimelineHeader({ count }: { count: number }) {
   return (
     <div className="flex items-center justify-between border-b border-border/50 pb-2">
       <div className="flex items-center gap-2">
-        <span className="h-2 w-2 rounded-full bg-cyan-500" />
+        <span className="h-2 w-2 rounded-full bg-cyan-500 dark:bg-cyan-400" />
         <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">Output Stream</h4>
       </div>
       <span className="text-[10px] font-mono rounded bg-muted/80 px-2 py-0.5 text-muted-foreground font-semibold" data-testid="output-count">
@@ -1281,7 +1284,7 @@ export function ActiveStackPanel(props: RuntimeControlsProps) {
         <div className="flex items-center gap-2">
           {props.isDirty && props.status !== 'idle' && (
             <span
-              className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 border border-amber-500/40 animate-pulse"
+              className="rounded bg-signal-caution/20 px-1.5 py-0.5 text-[10px] font-medium text-signal-caution border border-signal-caution/40 animate-pulse"
               data-testid="dirty-badge"
             >
               ⚠️ modified
@@ -1311,7 +1314,7 @@ export function ActiveStackPanel(props: RuntimeControlsProps) {
                   <span className="rounded bg-muted px-1 text-[9px] text-muted-foreground">{b.blockType || 'block'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {b.isComplete && <span className="text-[10px] text-blue-500">✓ complete</span>}
+                  {b.isComplete && <span className="text-[10px] text-blue-500 dark:text-blue-400">✓ complete</span>}
                   {isTop && <span className="rounded bg-primary/20 px-1.5 text-[9px] text-primary">active</span>}
                 </div>
               </div>
@@ -1610,7 +1613,30 @@ export function DashboardQueryCard({
 }) {
   const [result, setResult] = useState<QueryResult | undefined>();
   const [error, setError] = useState<string | undefined>();
-  const [useComposer, setUseComposer] = useState(true);
+  const [editing, setEditing] = useState(false);
+
+  // Composer-dialog diagnostics mirror the card's execution — same source
+  // dispatch, so previews in the dialog match what the card will render.
+  const executor = useMemo<QueryExecutor>(() => ({
+    runQuery: (query) => {
+      const parsed = parseQuery(query);
+      if (parsed.error) return Promise.reject(new Error(parsed.error));
+      if (isFindQuery(parsed) || isRowsQuery(parsed)) {
+        return Promise.reject(new Error('Dashboard widgets evaluate aggregate queries — find/rows queries are for table views.'));
+      }
+      if (segment.dataSource === 'session') {
+        const outputs = sessionOutputs ?? [];
+        if (outputs.length === 0) {
+          return Promise.reject(new Error('No session outputs emitted yet from workout execution.'));
+        }
+        const sessionService = new QueryService(buildWorkbenchSessionStore(outputs));
+        return sessionService.run(parsed, { preferredUnit: 'lb' });
+      }
+      const newest = Math.max(...crossfitJournal.records.map((r) => r.timestamp));
+      return corpusService.run(parsed, { rangeEnd: newest, preferredUnit: 'lb' });
+    },
+  }), [segment.dataSource, sessionOutputs, corpusService]);
+
 
   useEffect(() => {
     const t = setTimeout(async () => {
@@ -1675,32 +1701,16 @@ export function DashboardQueryCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          <div className="flex items-center gap-0.5 bg-muted/60 p-0.5 rounded-md border border-border/60">
-            <button
-              type="button"
-              onClick={() => setUseComposer(true)}
-              data-testid={`toggle-widget-composer-${segment.id}`}
-              className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all cursor-pointer ${
-                useComposer
-                  ? 'bg-background text-foreground shadow-2xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              ✨ Composer
-            </button>
-            <button
-              type="button"
-              onClick={() => setUseComposer(false)}
-              data-testid={`toggle-widget-raw-${segment.id}`}
-              className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all cursor-pointer ${
-                !useComposer
-                  ? 'bg-background text-foreground shadow-2xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              📝 Raw
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            data-testid={`edit-widget-query-${segment.id}`}
+            title="Edit query"
+            aria-label={`Edit query for ${segment.title}`}
+            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/40 cursor-pointer transition-colors"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+          </button>
 
           <select
             value={segment.dataSource}
@@ -1737,55 +1747,12 @@ export function DashboardQueryCard({
           )}
         </div>
       </div>
-
-      {/* Query Input & Presets */}
-      <div className="flex flex-col gap-1.5">
-        {useComposer ? (
-          <div className="rounded-lg border border-border/70 bg-background/80 p-2 shadow-xs" data-testid={`widget-composer-${segment.id}`}>
-            <WqlComposer
-              query={segment.query}
-              onQueryChange={(next) => onUpdate({ ...segment, query: next })}
-            />
-          </div>
-        ) : (
-          <input
-            type="text"
-            value={segment.query}
-            onChange={(e) => onUpdate({ ...segment, query: e.target.value })}
-            placeholder="Enter WQL query..."
-            className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-inner"
-          />
-        )}
-        <div className="flex flex-wrap gap-1">
-          {[
-            'sum:totalVolume{}',
-            'sum:rep{} by {effort}',
-            'sum:sessionLoad{} by {discipline}',
-            'sum:distance{}',
-            'sum:rep{}',
-            'avg:tis{}',
-          ].map((preset) => (
-            <button
-              key={preset}
-              onClick={() => onUpdate({ ...segment, query: preset })}
-              className={`rounded-md border px-1.5 py-0.5 font-mono text-[9px] cursor-pointer transition-all ${
-                segment.query === preset
-                  ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                  : 'border-border/60 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-accent'
-              }`}
-            >
-              {preset}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {error && <p className="text-xs text-destructive font-mono">{error}</p>}
 
       {/* Live Rendered Widget */}
       {result && !error && (
         <div className="h-52 mt-1 [&>*]:h-full" data-testid="dashboard-widget-content">
-          <WidgetFrame title={segment.title} question={segment.question} query={segment.query || ''} showQuery>
+          <WidgetFrame title={segment.title} question={segment.question} query={segment.query || ''}>
             {resolvedWidgetType === 'value' ? (
               <QueryValue result={result} label={segment.title} />
             ) : resolvedWidgetType === 'timeseries' ? (
@@ -1800,6 +1767,19 @@ export function DashboardQueryCard({
           </WidgetFrame>
         </div>
       )}
+
+      <WqlQueryInspectorModal
+        isOpen={editing}
+        onClose={() => setEditing(false)}
+        initialQuery={segment.query}
+        executor={executor}
+        title="Edit Widget Query"
+        subtitle={segment.dataSource === 'session'
+          ? 'Runs against the live session outputs.'
+          : 'Runs against the crossfit corpus.'}
+        applyLabel="Apply to Widget"
+        onApply={(next) => onUpdate({ ...segment, query: next })}
+      />
     </div>
   );
 }
@@ -1831,19 +1811,35 @@ export function DashboardAnalyticsSection({
     return new QueryService(inMemoryEventStore(crossfitJournal.records as unknown as UnifiedEventRecord[]), noteStore);
   }, []);
 
-  const handleAddSegment = () => {
-    const newId = `seg-${Date.now()}`;
+  // Add flow: compose in the dialog first — the widget is appended only on
+  // Apply. Diagnostics run against the corpus (always populated); the card
+  // starts on the session source like the other defaults.
+  const [adding, setAdding] = useState(false);
+  const addExecutor = useMemo<QueryExecutor>(() => ({
+    runQuery: (query) => {
+      const parsed = parseQuery(query);
+      if (parsed.error) return Promise.reject(new Error(parsed.error));
+      if (isFindQuery(parsed) || isRowsQuery(parsed)) {
+        return Promise.reject(new Error('Dashboard widgets evaluate aggregate queries — find/rows queries are for table views.'));
+      }
+      const newest = Math.max(...crossfitJournal.records.map((r) => r.timestamp));
+      return corpusService.run(parsed, { rangeEnd: newest, preferredUnit: 'lb' });
+    },
+  }), [corpusService]);
+
+  const handleAddSegment = (query: string) => {
     setSegments((prev) => [
       ...prev,
       {
-        id: newId,
+        id: `seg-${Date.now()}`,
         title: `Query Widget #${prev.length + 1}`,
         question: 'Custom query',
-        query: 'sum:rep{} by {effort}',
-        widgetType: 'bars',
+        query,
+        widgetType: 'auto',
         dataSource: 'session',
       },
     ]);
+    setAdding(false);
   };
 
   const handleUpdateSegment = (idx: number, updated: DashboardQuerySegment) => {
@@ -1861,7 +1857,7 @@ export function DashboardAnalyticsSection({
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-3">
         <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-violet-500" />
+          <span className="h-2.5 w-2.5 rounded-full bg-violet-500 dark:bg-violet-400" />
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
               Dashboard Analytics &amp; Query Widgets
@@ -1873,7 +1869,7 @@ export function DashboardAnalyticsSection({
         </div>
 
         <button
-          onClick={handleAddSegment}
+          onClick={() => setAdding(true)}
           data-testid="btn-add-query-widget"
           className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 px-3.5 py-1.5 text-xs font-bold shadow-xs cursor-pointer transition-all active:scale-95 flex items-center gap-1.5 self-start sm:self-auto"
         >
@@ -1894,6 +1890,17 @@ export function DashboardAnalyticsSection({
           />
         ))}
       </div>
+
+      <WqlQueryInspectorModal
+        isOpen={adding}
+        onClose={() => setAdding(false)}
+        initialQuery="sum:rep{}"
+        executor={addExecutor}
+        title="New Query Widget"
+        subtitle="Compose the WQL, then add — the widget renders live below."
+        applyLabel="Add Widget"
+        onApply={handleAddSegment}
+      />
     </section>
   );
 }

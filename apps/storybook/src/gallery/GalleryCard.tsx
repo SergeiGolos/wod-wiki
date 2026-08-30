@@ -11,6 +11,7 @@
  * find:{target} renders through the gallery-local FindResultList.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { Edit3 } from 'lucide-react';
 import {
   isAggregateQuery,
   isFindQuery,
@@ -29,7 +30,9 @@ import {
   WqlEmptyState,
   WqlTimeseries,
   WidgetChart,
+  WqlQueryInspectorModal,
   useChartShape,
+  type QueryExecutor,
 } from '@bitcobblers/wod-wiki-ui';
 
 import { JOURNALS, buildServiceForJournal, newestTimestamp } from './journals';
@@ -120,21 +123,45 @@ function StagesReadout({ result }: StagesReadoutProps) {
     </p>
   );
 }
-
 export function GalleryCardView({ def }: { def: GalleryCardDef }) {
   const journal = JOURNALS[def.journal];
   const service = useMemo(() => buildServiceForJournal(journal), [journal]);
+  // Live-edit state: starts at the manifest query; Apply from the composer
+  // dialog replaces it and the card re-runs. Nothing persists — the gallery
+  // is a playground over the fixture corpora.
+  const [wql, setWql] = useState<string>(cardBody(def));
+  const [editing, setEditing] = useState(false);
   const [result, setResult] = useState<QueryResult | undefined>();
   const [rowsResult, setRowsResult] = useState<RowsQueryResult | undefined>();
   const [findResult, setFindResult] = useState<FindQueryResult | undefined>();
   const [error, setError] = useState<string | undefined>();
+
+  // The shared inspector modal speaks the string-based QueryExecutor
+  // contract; adapt it to the engine service, pinned to the card's
+  // corpus window and unit so composer previews match the card.
+  const executor = useMemo<QueryExecutor>(
+    () => ({
+      runQuery: (query, opts) => {
+        const parsed = parseQuery(query);
+        if (parsed.error) return Promise.reject(new Error(parsed.error));
+        return service.run(parsed, {
+          rangeEnd: newestTimestamp(journal),
+          preferredUnit: def.preferredUnit,
+          ...opts,
+        });
+      },
+      runFind: (parsed) => service.runFind(parsed),
+      runRows: (parsed) => service.runRows(parsed),
+    }),
+    [service, journal, def.preferredUnit],
+  );
 
   useEffect(() => {
     let cancelled = false;
     async function run() {
       try {
         // Dashboard Note body contract: one line, `query / param1 param2`.
-        const { query } = splitWidgetBody(cardBody(def));
+        const { query } = splitWidgetBody(wql);
         const parsed = parseQuery(query);
         if (parsed.error) {
           if (!cancelled) setError(parsed.error);
@@ -182,13 +209,13 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
     return () => {
       cancelled = true;
     };
-  }, [def, service, journal]);
+  }, [wql, service, journal, def]);
 
   const isAuto = def.widgetType === 'auto';
   const isRows = rowsResult !== undefined;
   const isFind = findResult !== undefined;
   const suffix = isAuto || isRows || isFind ? undefined : parseQueryWidgetSuffix(def.widgetType);
-  const body = cardBody(def);
+  const body = wql;
   const rowsStatementCount = rowsResult?.runs.reduce(
     (count, run) => count + run.events.length,
     0,
@@ -196,7 +223,7 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
 
   return (
     <div
-      className="flex min-w-0 flex-col gap-2 rounded-lg border border-border bg-card/40 p-3 shadow-xs"
+      className="group/card relative flex min-w-0 flex-col gap-2 rounded-lg border border-border bg-card/40 p-3 shadow-xs"
       data-testid={`gallery-card-${def.title.replace(/\s+/g, '-').toLowerCase()}`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -205,6 +232,15 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
           <p className="text-xs text-muted-foreground">{def.question}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            title="Edit example query"
+            aria-label={`Edit query for ${def.title}`}
+            className="rounded-md border border-dashed border-border bg-muted/80 p-1 text-muted-foreground hover:text-foreground opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 [@media(pointer:coarse)]:opacity-100 transition-opacity cursor-pointer"
+          >
+            <Edit3 className="w-3 h-3" />
+          </button>
           <span className="rounded-md border border-border bg-muted/30 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
             {journal.id}
           </span>
@@ -266,6 +302,17 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
           )}
         </div>
       )}
+
+      <WqlQueryInspectorModal
+        isOpen={editing}
+        onClose={() => setEditing(false)}
+        initialQuery={wql}
+        executor={executor}
+        title="Edit Example Query"
+        subtitle={`Runs live against the ${journal.id} corpus — nothing is saved.`}
+        applyLabel="Run"
+        onApply={(next) => setWql(next)}
+      />
     </div>
   );
 }
