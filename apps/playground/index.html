@@ -3,6 +3,24 @@
 
 <head>
   <meta charset="UTF-8" />
+  <script>
+    // Pre-paint theme boot (Dark-Mode Standard host rule, wayfinder #999):
+    // resolve the theme BEFORE first paint so system-dark users never flash
+    // light. Must agree with ThemeProvider: same storage key, same class
+    // target (documentElement), same light|dark|system semantics.
+    (function () {
+      try {
+        var theme = localStorage.getItem('wod-wiki-playground-theme') || 'system';
+        if (theme === 'system') {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        var root = document.documentElement;
+        root.classList.remove('light', 'dark');
+        root.classList.add(theme);
+        root.setAttribute('data-theme-boot', '1');
+      } catch (e) { /* storage blocked — ThemeProvider still applies post-mount */ }
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Wod.Wiki</title>
   <meta name="description" content="Wod.Wiki — write, run, and analyze your workouts. Query and explore your training data." />

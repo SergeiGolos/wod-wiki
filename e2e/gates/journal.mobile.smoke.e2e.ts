@@ -19,6 +19,8 @@ for (const route of ROUTES) {
   test(`no horizontal overflow at 375px on ${route}`, async ({ page }) => {
     await page.goto(route, { waitUntil: 'domcontentloaded' });
 
+    // Pre-paint boot (#999) ran before React mounted
+    await expect(page.locator('html[data-theme-boot="1"]')).toHaveCount(1);
     // Wait for real content, not the empty shell
     await expect.poll(() => renderedContent(page), { timeout: 20_000 }).toBeGreaterThan(60);
 
