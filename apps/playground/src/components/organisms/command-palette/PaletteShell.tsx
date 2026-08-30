@@ -103,13 +103,13 @@ export const PaletteShell: React.FC = () => {
   );
 
   const emptyState = isLoading ? (
-    <div className="py-8 text-center text-sm text-zinc-400">Searching…</div>
+    <div className="py-8 text-center text-sm text-muted-foreground">Searching…</div>
   ) : query ? (
-    <div className="py-8 text-center text-sm text-zinc-400">
+    <div className="py-8 text-center text-sm text-muted-foreground">
       No results for <span className="font-medium text-zinc-600 dark:text-zinc-300">&ldquo;{query}&rdquo;</span>
     </div>
   ) : (
-    <div className="py-8 text-center text-sm text-zinc-400">Start typing to search</div>
+    <div className="py-8 text-center text-sm text-muted-foreground">Start typing to search</div>
   );
 
   const searchRow = wqlConfig ? (
@@ -129,7 +129,7 @@ export const PaletteShell: React.FC = () => {
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => { if (!open) _dismiss(); }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 dark:bg-black/50 backdrop-blur-sm" />
         <Dialog.Content className={`fixed left-1/2 top-[20%] z-50 w-full ${wqlConfig ? 'max-w-2xl' : 'max-w-xl'} -translate-x-1/2 outline-none shadow-2xl`}>
           <Dialog.Title className="sr-only">Command Palette</Dialog.Title>
           <Dialog.Description className="sr-only">

@@ -53,10 +53,8 @@ export function Switch({
         'data-checked:bg-primary data-checked:ring-primary/90',
         'dark:data-checked:bg-primary dark:data-checked:ring-primary/90',
         'focus:not-data-[focus]:outline-hidden data-[focus]:outline-2 data-[focus]:outline-offset-2 data-[focus]:outline-ring',
-        'data-[hover]:ring-black/15 data-[hover]:data-checked:ring-primary/90',
-        'dark:data-[hover]:ring-white/25 dark:data-[hover]:data-checked:ring-primary/90',
-        'data-[disabled]:bg-muted data-[disabled]:opacity-50 data-[disabled]:data-checked:bg-muted data-[disabled]:data-checked:ring-black/5',
-        'dark:data-[disabled]:bg-white/15 dark:data-[disabled]:data-checked:bg-white/15 dark:data-[disabled]:data-checked:ring-white/15'
+        'data-[hover]:ring-black/15 dark:data-[hover]:ring-white/25 data-[hover]:data-checked:ring-primary/90 dark:data-[hover]:data-checked:ring-primary/90',
+        'data-[disabled]:bg-muted dark:data-[disabled]:bg-white/15 data-[disabled]:opacity-50 data-[disabled]:data-checked:bg-muted dark:data-[disabled]:data-checked:bg-white/15 data-[disabled]:data-checked:ring-black/5 dark:data-[disabled]:data-checked:ring-white/15'
       )}
     >
       <span
@@ -65,10 +63,10 @@ export function Switch({
           'pointer-events-none relative inline-block size-4.5 rounded-full sm:size-3.5',
           'translate-x-0 transition duration-200 ease-in-out',
           'border border-transparent',
-          'bg-background shadow-sm ring-1 ring-black/5',
+          'bg-background shadow-sm ring-1 ring-black/5 dark:ring-white/5',
           'group-data-checked:bg-primary-foreground group-data-checked:shadow-sm group-data-checked:ring-primary/90',
           'group-data-checked:translate-x-4 sm:group-data-checked:translate-x-3',
-          'group-data-checked:group-data-[disabled]:bg-background group-data-checked:group-data-[disabled]:shadow-sm group-data-checked:group-data-[disabled]:ring-black/5'
+          'group-data-checked:group-data-[disabled]:bg-background group-data-checked:group-data-[disabled]:shadow-sm group-data-checked:group-data-[disabled]:ring-black/5 dark:group-data-checked:group-data-[disabled]:ring-white/5'
         )}
       />
     </Headless.Switch>

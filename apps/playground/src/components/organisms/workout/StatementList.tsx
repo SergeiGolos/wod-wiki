@@ -22,7 +22,7 @@ export const StatementList: React.FC<StatementListProps> = ({
           <div
             key={statement.id || idx}
             className={`p-1 rounded transition-colors ${
-              isActive ? 'bg-blue-500/10 border-l-2 border-blue-500' : ''
+              isActive ? 'bg-blue-500/10 dark:bg-blue-900/30 border-l-2 border-blue-500 dark:border-blue-400' : ''
             }`}
           >
             <div className="flex items-start gap-2">

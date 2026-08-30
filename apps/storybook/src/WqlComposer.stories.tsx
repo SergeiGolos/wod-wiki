@@ -96,7 +96,7 @@ const ControlledHarness: React.FC = () => {
         onAstChange={setAst}
       />
       <div className="font-mono text-xs break-all">
-        <span className={validation.valid ? 'text-green-600' : 'text-red-600'}>
+        <span className={validation.valid ? 'text-signal-positive' : 'text-signal-negative'}>
           {validation.valid ? 'valid' : `error: ${validation.error}`}
         </span>
         {' — '}
@@ -141,7 +141,7 @@ const RegisteredSlotHarness: React.FC = () => {
     <div className="max-w-3xl space-y-3">
       <WqlComposer onQueryChange={setWql} onValidationChange={setValidation} />
       <div className="font-mono text-xs break-all">
-        <span className={validation.valid ? 'text-green-600' : 'text-red-600'}>
+        <span className={validation.valid ? 'text-signal-positive' : 'text-signal-negative'}>
           {validation.valid ? 'valid' : `error: ${validation.error}`}
         </span>
         {' — '}
@@ -485,7 +485,7 @@ const WidgetEditorHarness: React.FC = () => {
       />
       <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
         {saved && (
-          <span className="mr-auto font-mono text-[10px] text-green-600">saved: {saved}</span>
+          <span className="mr-auto font-mono text-[10px] text-signal-positive">saved: {saved}</span>
         )}
         <button
           type="button"
@@ -582,7 +582,7 @@ const InspectorModalHarness: React.FC = () => {
           Edit block query
         </button>
         {applied && (
-          <span className="font-mono text-[10px] text-green-600">applied: {applied}</span>
+          <span className="font-mono text-[10px] text-signal-positive">applied: {applied}</span>
         )}
       </div>
       <WqlQueryInspectorModal

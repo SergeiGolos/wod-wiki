@@ -83,9 +83,9 @@ function parseExampleWidgetTemplateConfig(
 function toneClasses(tone: ExampleWidgetTemplateConfig['tone']): string {
   switch (tone) {
     case 'success':
-      return 'border-emerald-500/30 bg-emerald-500/10'
+      return 'border-signal-positive/30 bg-signal-positive/10'
     case 'warning':
-      return 'border-amber-500/30 bg-amber-500/10'
+      return 'border-signal-caution/30 bg-signal-caution/10'
     default:
       return 'border-border bg-card'
   }

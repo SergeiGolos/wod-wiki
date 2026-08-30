@@ -43,7 +43,7 @@ export const ResultListItem: React.FC<ResultListItemProps> = ({
 
     {/* Status icon */}
     <div className="flex-shrink-0 size-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-background transition-colors">
-      <CheckCircleIcon className="size-3.5 text-emerald-500" />
+      <CheckCircleIcon className="size-3.5 text-signal-positive" />
     </div>
 
     {/* Text */}

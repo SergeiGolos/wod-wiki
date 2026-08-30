@@ -292,7 +292,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                     {skipFlash && (
                         <div
                             key={skipFlashKey}
-                            className="animate-skip-flash absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-amber-500 text-white text-sm font-semibold px-4 py-1.5 rounded-full shadow-lg pointer-events-none z-20"
+                            className="animate-skip-flash absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-signal-caution text-white dark:text-white text-sm font-semibold px-4 py-1.5 rounded-full shadow-lg pointer-events-none z-20"
                             role="status"
                             aria-live="polite"
                         >
@@ -401,10 +401,10 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         data-testid={TEST_IDS.TIMER_PLAY_PAUSE}
                     >
                         {isPaused
-                            ? <Play className={`${compact ? 'w-6 h-6 text-white ml-0.5' : 'w-8 h-8 text-on-surface-variant ml-1'}`} />
+                            ? <Play className={`${compact ? 'w-6 h-6 text-primary-foreground ml-0.5' : 'w-8 h-8 text-on-surface-variant ml-1'}`} />
                             : isRunning
-                            ? <Pause className={`${compact ? 'w-6 h-6 text-white' : 'w-8 h-8 text-on-surface-variant'}`} />
-                            : <Play className={`${compact ? 'w-6 h-6 text-white ml-0.5' : 'w-8 h-8 text-on-surface-variant ml-1'}`} />
+                            ? <Pause className={`${compact ? 'w-6 h-6 text-primary-foreground' : 'w-8 h-8 text-on-surface-variant'}`} />
+                            : <Play className={`${compact ? 'w-6 h-6 text-primary-foreground ml-0.5' : 'w-8 h-8 text-on-surface-variant ml-1'}`} />
                         }
                     </button>
                     {!compact && <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-secondary">{primaryControlLabel}</span>}
@@ -433,7 +433,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             disabled={isNextDisabled}
                             aria-disabled={isNextDisabled ? 'true' : undefined}
                             {...(getFocusProps ? getFocusProps('btn-next') : {})}
-                            className={`tv-focusable flex items-center justify-center rounded-full transition-all shadow-xl w-24 h-24 ${isNextDisabled ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60' : 'bg-primary-container text-on-primary-container hover:bg-primary hover:text-white active:scale-90'}`}
+                            className={`tv-focusable flex items-center justify-center rounded-full transition-all shadow-xl w-24 h-24 ${isNextDisabled ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60' : 'bg-primary-container text-on-primary-container hover:bg-primary hover:text-primary-foreground active:scale-90'}`}
                             title="Next Block"
                         data-testid={TEST_IDS.TIMER_NEXT_BLOCK}
                         >

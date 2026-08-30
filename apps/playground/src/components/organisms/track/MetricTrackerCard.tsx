@@ -147,10 +147,10 @@ export const MetricTrackerCard: React.FC<MetricTrackerCardProps> = ({ className 
                 return (
                     <div
                         key={`bubble-${key}`}
-                        className={cn(
-                            "flex flex-col items-center backdrop-blur-md border rounded-xl px-3 py-1.5 shadow-sm ring-1 ring-black/5 group transition-colors",
-                            colorClasses
-                        )}
+                                                    className={cn(
+                                "flex flex-col items-center backdrop-blur-md border rounded-xl px-3 py-1.5 shadow-sm ring-1 ring-black/5 dark:ring-white/5 group transition-colors",
+                                colorClasses
+                            )}
                     >
                         <div className="flex items-center gap-1.5 opacity-70">
                             {icon && (

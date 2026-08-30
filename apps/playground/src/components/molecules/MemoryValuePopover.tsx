@@ -158,7 +158,7 @@ export const MemoryValueDialog: React.FC<{
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/25" />
+          <div className="fixed inset-0 bg-black/25 dark:bg-black/25" />
         </TransitionChild>
 
         {/* Dialog content */}
@@ -179,7 +179,7 @@ export const MemoryValueDialog: React.FC<{
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div
                       className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                        data.isValid ? 'bg-green-500' : 'bg-red-500'
+                        data.isValid ? 'bg-signal-positive' : 'bg-signal-negative'
                       }`}
                     />
                     <span className="text-sm font-semibold truncate" title={data.label}>
@@ -231,7 +231,7 @@ export const MemoryValueDialog: React.FC<{
                           typeof data.value === 'string' ? 'text-green-600 dark:text-green-400' :
                           typeof data.value === 'number' ? 'text-amber-600 dark:text-amber-400' :
                           typeof data.value === 'boolean' ? 'text-purple-600 dark:text-purple-400' :
-                          data.value === null ? 'text-gray-500' : ''
+                          data.value === null ? 'text-muted-foreground' : ''
                         }>
                           {data.displayValue}
                         </span>

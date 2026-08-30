@@ -112,7 +112,7 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({ provider
           >
             <Bug className="w-4 h-4 shrink-0" />
             <span className="flex-1">Debug Mode</span>
-            {isDebugMode && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />}
+            {isDebugMode && <span className="w-2 h-2 rounded-full bg-signal-positive animate-pulse shrink-0" />}
             <span className="text-xs text-muted-foreground">{isDebugMode ? 'On' : 'Off'}</span>
           </button>
         )}

@@ -367,7 +367,7 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
       {/* Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/20 z-40 animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/20 dark:bg-black/20 z-40 animate-in fade-in duration-200"
           onClick={onClose}
         />
       )}

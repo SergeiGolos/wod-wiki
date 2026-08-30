@@ -188,7 +188,7 @@ export const ClockAnchor: React.FC<ClockAnchorProps> = ({
               <div className="flex flex-col items-center justify-center h-24">
                 <div className={cn(
                   "w-4 h-4 rounded-full mb-2",
-                  isRunning ? "bg-green-500" : "bg-gray-400"
+                  isRunning ? "bg-signal-positive" : "bg-muted-foreground"
                 )} />
                 <span className="text-lg font-medium">
                   {isRunning ? 'Running' : 'Stopped'}

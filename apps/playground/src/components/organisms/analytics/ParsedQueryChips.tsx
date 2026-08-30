@@ -37,35 +37,35 @@ export function ParsedQueryChips({ parsed }: ParsedQueryChipsProps) {
   }
 
   const windowChip = parsed.window && (
-    <Chip label="window" value={windowLabel(parsed.window)} className="text-sky-400" />
+    <Chip label="window" value={windowLabel(parsed.window)} className="text-sky-400 dark:text-sky-300" />
   );
   const filterChips = parsed.filters.map((f, i) => (
     <Chip
       key={i}
       label={f.negate ? 'exclude' : 'filter'}
       value={`${f.key}:${f.values.map((v) => `${v.value}${v.wildcard ? '*' : ''}`).join('|')}`}
-      className="text-amber-400"
+      className="text-amber-400 dark:text-amber-300"
     />
   ));
 
   if (isAggregateQuery(parsed)) {
     return (
       <div className="flex flex-wrap gap-1.5">
-        <Chip label="aggregate" value={parsed.agg} className="text-blue-400" />
+        <Chip label="aggregate" value={parsed.agg} className="text-blue-400 dark:text-blue-300" />
         <Chip label="metric" value={parsed.metric} />
         {filterChips}
         {parsed.groupBy.map((d, i) => (
-          <Chip key={i} label="group by" value={d} className="text-green-400" />
+          <Chip key={i} label="group by" value={d} className="text-green-400 dark:text-green-300" />
         ))}
         {parsed.rollup && (
-          <Chip label="rollup" value={`${parsed.rollup.size}${parsed.rollup.unit}`} className="text-purple-400" />
+          <Chip label="rollup" value={`${parsed.rollup.size}${parsed.rollup.unit}`} className="text-purple-400 dark:text-purple-300" />
         )}
         {parsed.displayUnit && (
-          <Chip label="in" value={parsed.displayUnit} className="text-pink-400" />
+          <Chip label="in" value={parsed.displayUnit} className="text-pink-400 dark:text-pink-300" />
         )}
         {windowChip}
         {parsed.join && (
-          <Chip label="where" value={`find:${parsed.join.target}`} className="text-teal-400" />
+          <Chip label="where" value={`find:${parsed.join.target}`} className="text-teal-400 dark:text-teal-300" />
         )}
       </div>
     );
@@ -74,14 +74,14 @@ export function ParsedQueryChips({ parsed }: ParsedQueryChipsProps) {
   if (isFindQuery(parsed)) {
     return (
       <div className="flex flex-wrap gap-1.5">
-        <Chip label="find" value={parsed.target} className="text-blue-400" />
+        <Chip label="find" value={parsed.target} className="text-blue-400 dark:text-blue-300" />
         {filterChips}
         {windowChip}
         {parsed.join && (
           <Chip
             label="where"
             value={`${parsed.join.agg}:${parsed.join.metric}`}
-            className="text-teal-400"
+            className="text-teal-400 dark:text-teal-300"
           />
         )}
       </div>
@@ -91,7 +91,7 @@ export function ParsedQueryChips({ parsed }: ParsedQueryChipsProps) {
   if (isRowsQuery(parsed)) {
     return (
       <div className="flex flex-wrap gap-1.5">
-        <Chip label="rows" value={parsed.outputType ?? 'all'} className="text-blue-400" />
+        <Chip label="rows" value={parsed.outputType ?? 'all'} className="text-blue-400 dark:text-blue-300" />
         {filterChips}
         {windowChip}
       </div>

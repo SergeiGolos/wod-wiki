@@ -24,17 +24,17 @@ export const VISIBILITY_ICON_MAP: Record<MetricVisibility, React.ElementType> = 
 };
 
 export const VISIBILITY_COLOR_MAP: Record<MetricVisibility, string> = {
-    display: 'text-green-500',
-    promote: 'text-blue-500',
-    private: 'text-amber-500',
-    result:  'text-purple-500',
+    display: 'text-green-500 dark:text-green-400',
+    promote: 'text-blue-500 dark:text-blue-400',
+    private: 'text-amber-500 dark:text-amber-400',
+    result:  'text-purple-500 dark:text-purple-400',
 };
 
 export const VISIBILITY_BG_MAP: Record<MetricVisibility, string> = {
-    display: 'bg-green-500/10',
-    promote: 'bg-blue-500/10',
-    private: 'bg-amber-500/10',
-    result:  'bg-purple-500/10',
+    display: 'bg-green-500/10 dark:bg-green-900/30',
+    promote: 'bg-blue-500/10 dark:bg-blue-900/30',
+    private: 'bg-amber-500/10 dark:bg-amber-900/30',
+    result:  'bg-purple-500/10 dark:bg-purple-900/30',
 };
 
 export const VisibilityBadge: React.FC<{ visibility: MetricVisibility }> = ({ visibility }) => {

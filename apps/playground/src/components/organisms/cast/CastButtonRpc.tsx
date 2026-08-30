@@ -218,8 +218,8 @@ export const CastButtonRpc: React.FC = () => {
                     onClick={() => { /* listener attached imperatively */ }}
                     className={cn(
                         'transition-all',
-                        isWebRtcActive && 'text-emerald-400 ring-2 ring-emerald-400/30',
-                        isCurrentlyConnecting && 'animate-pulse text-amber-400',
+                        isWebRtcActive && 'text-signal-positive ring-2 ring-signal-positive/30',
+                        isCurrentlyConnecting && 'animate-pulse text-signal-caution',
                         !canInteract && 'opacity-50',
                     )}
                     aria-label={isWebRtcActive ? 'Stop casting' : 'Cast to TV'}

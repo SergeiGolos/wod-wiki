@@ -64,7 +64,7 @@ export function buildResultListItemDOM(vm: ResultListItemViewModel): HTMLElement
     "flex-shrink-0 size-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-background transition-colors";
 
   const checkWrap = document.createElement("span");
-  checkWrap.className = "text-emerald-500";
+  checkWrap.className = "text-signal-positive";
   // Safe: CHECK_SVG is a static constant, not user data
   checkWrap.innerHTML = CHECK_SVG;
 

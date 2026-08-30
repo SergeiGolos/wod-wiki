@@ -126,14 +126,14 @@ export function CommandListView<TPayload>({
       {/* Search row (default input or a custom composer) */}
       {searchRow ?? (
         <div className="flex items-center gap-2 border-b border-zinc-200 px-3 dark:border-zinc-700">
-          <Search className="h-4 w-4 shrink-0 text-zinc-400" />
+          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={e => onQueryChange(e.target.value)}
             placeholder={placeholder}
-            className="flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-zinc-400"
+            className="flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
           />
           <kbd className="hidden rounded border border-zinc-200 px-1.5 py-0.5 text-[10px] text-zinc-400 sm:inline dark:border-zinc-600">
             esc
@@ -151,7 +151,7 @@ export function CommandListView<TPayload>({
           ? (emptyState ?? (
               query
                 ? (
-                    <div className="py-8 text-center text-sm text-zinc-400">
+                    <div className="py-8 text-center text-sm text-muted-foreground">
                       No results found for{' '}
                       <span className="font-medium text-zinc-600 dark:text-zinc-300">
                         &ldquo;{query}&rdquo;
@@ -159,7 +159,7 @@ export function CommandListView<TPayload>({
                     </div>
                   )
                 : (
-                    <div className="py-8 text-center text-sm text-zinc-400">No results</div>
+                    <div className="py-8 text-center text-sm text-muted-foreground">No results</div>
                   )
             ))
           : Array.from(state.groups.entries()).map(([group, groupItems]) => (

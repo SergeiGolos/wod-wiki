@@ -841,7 +841,7 @@ const LinkFrontmatterCompanion: React.FC<{
   return (
     <div className={cn("h-full w-full flex flex-col bg-popover/90 backdrop-blur-sm border-l border-border overflow-auto", compact ? "p-2" : "p-3")}>
       <div className="flex items-center gap-2 mb-1">
-        <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-500">
+        <span className="rounded bg-blue-500/10 dark:bg-blue-900/30 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-500 dark:text-blue-400">
           Link
         </span>
         <span className="truncate text-xs font-medium">{title}</span>
@@ -850,7 +850,7 @@ const LinkFrontmatterCompanion: React.FC<{
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="mb-2 truncate text-[10px] text-blue-400 hover:underline"
+        className="mb-2 truncate text-[10px] text-blue-400 dark:text-blue-300 hover:underline"
         title={url}
       >
         {url}
@@ -904,7 +904,7 @@ export const FrontmatterCompanion: React.FC<FrontmatterCompanionProps> = ({
     return (
       <div className="h-full w-full flex flex-col bg-popover/90 backdrop-blur-sm border-l border-border p-3 overflow-auto">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 uppercase font-bold">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 uppercase font-bold">
             {section.embed.isImage ? "IMAGE" : "LINK"}
           </span>
           <span className="text-xs font-medium truncate">{label || "Untitled"}</span>
@@ -969,7 +969,7 @@ const YouTubePlayer: React.FC<{
   isActive: boolean;
 }> = ({ videoId, title, isActive }) => {
   return (
-    <div className={cn("h-full w-full flex flex-col", isActive ? "bg-popover/90 backdrop-blur-sm border-l border-border" : "bg-black")}>
+    <div className={cn("h-full w-full flex flex-col", isActive ? "bg-popover/90 backdrop-blur-sm border-l border-border" : "bg-black dark:bg-black")}>
       <div className="relative flex-1 min-h-0">
         <iframe
           className="absolute inset-0 w-full h-full border-0"

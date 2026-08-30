@@ -18,26 +18,26 @@ export function CalcDiagnosticsStrip({ analysis }: CalcDiagnosticsStripProps) {
   const ok = errors.length === 0 && warnings.length === 0 && dim !== undefined;
 
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs" data-testid="calc-diagnostics">
+    <div className="rounded-lg border border-border bg-card/60 px-3 py-2 text-xs" data-testid="calc-diagnostics">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         {dim ? (
-          <div className="text-zinc-400">
-            computes <b className="text-zinc-200">{fmtDim(dim)}</b>
-            {compound && <span className="text-purple-400"> → {compound}</span>}
+          <div className="text-muted-foreground">
+            computes <b className="text-foreground">{fmtDim(dim)}</b>
+            {compound && <span className="text-purple-400 dark:text-purple-300"> → {compound}</span>}
           </div>
         ) : (
-          !ok && <div className="text-zinc-500">dimension unknown</div>
+          !ok && <div className="text-muted-foreground">dimension unknown</div>
         )}
-        {ok && <span className="text-emerald-400">✓ valid</span>}
+        {ok && <span className="text-signal-positive">✓ valid</span>}
       </div>
       {errors.map((d, i) => (
-        <div key={`e-${i}`} className="text-red-400">⚠ {d.message}</div>
+        <div key={`e-${i}`} className="text-destructive">⚠ {d.message}</div>
       ))}
       {warnings.map((d, i) => (
-        <div key={`w-${i}`} className="text-amber-400">⚠ {d.message}</div>
+        <div key={`w-${i}`} className="text-signal-caution">⚠ {d.message}</div>
       ))}
       {errors.length === 0 && warnings.length === 0 && dim === undefined && (
-        <div className="text-zinc-500">Type a calc line to see diagnostics.</div>
+        <div className="text-muted-foreground">Type a calc line to see diagnostics.</div>
       )}
     </div>
   );

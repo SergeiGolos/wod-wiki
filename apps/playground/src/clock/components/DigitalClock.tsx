@@ -111,7 +111,7 @@ export const DigitalClock: React.FC<DigitalClockProps> = ({
                 <div
                   className={cn(
                     "h-full transition-all duration-300",
-                    progress >= 90 ? "bg-red-500" : progress >= 70 ? "bg-yellow-500" : "bg-primary"
+                    progress >= 90 ? "bg-signal-negative" : progress >= 70 ? "bg-signal-caution" : "bg-primary"
                   )}
                   style={{ width: `${progress}%` }}
                 />

@@ -146,7 +146,7 @@ export function ListView<TPayload>({
       <div ref={listRef} className="flex-1 overflow-y-auto" role="listbox">
         {state.visibleItems.length === 0
           ? (emptyState ?? (
-              <div className="px-4 py-6 text-center text-sm text-zinc-400">No items</div>
+              <div className="px-4 py-6 text-center text-sm text-muted-foreground">No items</div>
             ))
           : content}
       </div>

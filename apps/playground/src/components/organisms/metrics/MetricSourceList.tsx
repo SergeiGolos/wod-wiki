@@ -60,7 +60,7 @@ export interface MetricSourceListProps {
  * LinkedGroup - Visual wrapper for grouped linked items
  */
 const LinkedGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="border-l-2 border-orange-400/50 ml-2 pl-1 my-1 rounded-r">
+    <div className="border-l-2 border-signal-caution/50 ml-2 pl-1 my-1 rounded-r">
         {children}
     </div>
 );

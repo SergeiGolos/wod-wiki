@@ -92,7 +92,7 @@ segmentVolume = reps * resistance (library) when has(reps) and has(resistance)
     <div className="space-y-3" data-testid="calc-authoring-panel">
       {/* Scope selector */}
       <div className="flex items-center gap-2 text-sm">
-        <span className="text-zinc-400">Scope</span>
+        <span className="text-muted-foreground">Scope</span>
         <div className="flex gap-1">
           {SCOPES.map((s) => (
             <button
@@ -100,8 +100,8 @@ segmentVolume = reps * resistance (library) when has(reps) and has(resistance)
               onClick={() => setScope(s)}
               className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
                 scope === s
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                  ? 'bg-purple-600 text-white dark:bg-purple-700 dark:text-white'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}
             >
               {s}
@@ -112,7 +112,7 @@ segmentVolume = reps * resistance (library) when has(reps) and has(resistance)
           <button
             onClick={handleSave}
             disabled={!valid}
-            className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-40"
+            className="rounded bg-signal-positive px-3 py-1 text-xs font-medium text-white dark:text-white disabled:opacity-40"
           >
             Save
           </button>
@@ -125,19 +125,19 @@ segmentVolume = reps * resistance (library) when has(reps) and has(resistance)
 
       <CalcPreviewPanel scope={scope} analysis={analysis} />
 
-      {notice && <div className="text-xs text-zinc-400">{notice}</div>}
+      {notice && <div className="text-xs text-muted-foreground">{notice}</div>}
 
       {/* Saved user calcs */}
       {records.length > 0 && (
         <div className="mt-2">
-          <div className="mb-1 text-[11px] uppercase tracking-wide text-zinc-500">Saved user calcs</div>
-          <ul className="divide-y divide-zinc-800 rounded-lg border border-zinc-800">
+          <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Saved user calcs</div>
+          <ul className="divide-y divide-border rounded-lg border border-border">
             {records.map((rec) => (
               <li key={rec.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                <button onClick={() => handleLoad(rec)} className="text-left font-mono text-purple-300 hover:underline">
+                <button onClick={() => handleLoad(rec)} className="text-left font-mono text-purple-300 dark:text-purple-400 hover:underline">
                   {rec.id}
                 </button>
-                <button onClick={() => handleDelete(rec.id)} className="text-xs text-zinc-500 hover:text-red-400">
+                <button onClick={() => handleDelete(rec.id)} className="text-xs text-muted-foreground hover:text-destructive">
                   delete
                 </button>
               </li>

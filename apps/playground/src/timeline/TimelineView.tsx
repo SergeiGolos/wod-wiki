@@ -255,8 +255,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                               ))}
                               <td className="p-3 text-right">
                                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                                    seg.type === 'work' ? 'bg-red-500/10 text-red-500' : 
-                                    seg.type === 'rest' ? 'bg-green-500/10 text-green-500' : 'bg-muted text-muted-foreground'
+                                    seg.type === 'work' ? 'bg-signal-negative/10 text-signal-negative' : 
+                                    seg.type === 'rest' ? 'bg-signal-positive/10 text-signal-positive' : 'bg-muted text-muted-foreground'
                                  }`}>
                                     {seg.type.toUpperCase()}
                                  </span>

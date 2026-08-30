@@ -42,18 +42,18 @@ export function CalcPreviewPanel({ scope, analysis, vo2max }: CalcPreviewPanelPr
   }, [target, scope, vo2max]);
 
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 text-xs" data-testid="calc-preview">
-      <div className="mb-2 text-[11px] uppercase tracking-wide text-zinc-500">
+    <div className="rounded-lg border border-border bg-card/60 p-3 text-xs" data-testid="calc-preview">
+      <div className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
         Live preview — {scope === 'store' ? 'last 7 of 28 fixture days' : 'Fran (fixture)'}
       </div>
-      {!target && <div className="text-zinc-500">Enter a valid calc line to see live results.</div>}
+      {!target && <div className="text-muted-foreground">Enter a valid calc line to see live results.</div>}
       {target && result?.rows && (
         <div className="space-y-1 font-mono">
-          {result.rows.length === 0 && <div className="text-zinc-500">No applicable segments.</div>}
+          {result.rows.length === 0 && <div className="text-muted-foreground">No applicable segments.</div>}
           {result.rows.map((row, i) => (
-            <div key={i} className="flex justify-between text-zinc-300">
-              <span className="text-zinc-500">{row ? row.label : `segment ${i + 1}`}</span>
-              <span className={row ? 'text-sky-300' : 'text-zinc-600'}>
+            <div key={i} className="flex justify-between text-foreground">
+              <span className="text-muted-foreground">{row ? row.label : `segment ${i + 1}`}</span>
+              <span className={row ? 'text-sky-300 dark:text-sky-400' : 'text-muted-foreground'}>
                 {row ? `${row.text}${row.unit ? ` ${row.unit}` : ''}${row.estimated ? ' (est.)' : ''}` : '—'}
               </span>
             </div>
@@ -63,15 +63,15 @@ export function CalcPreviewPanel({ scope, analysis, vo2max }: CalcPreviewPanelPr
       {target && result?.series && (
         <div className="space-y-1 font-mono">
           {result.series.map((v, i) => (
-            <div key={i} className="flex justify-between text-zinc-300">
-              <span className="text-zinc-500">D-{6 - i}</span>
-              <span className="text-sky-300">{fmtVal(v)}</span>
+            <div key={i} className="flex justify-between text-foreground">
+              <span className="text-muted-foreground">D-{6 - i}</span>
+              <span className="text-sky-300 dark:text-sky-400">{fmtVal(v)}</span>
             </div>
           ))}
         </div>
       )}
       {result?.errors?.length ? result.errors.map((e, i) => (
-        <div key={`e-${i}`} className="text-red-400">⚠ {e}</div>
+        <div key={`e-${i}`} className="text-destructive">⚠ {e}</div>
       )) : null}
     </div>
   );

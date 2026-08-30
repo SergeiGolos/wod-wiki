@@ -68,7 +68,7 @@ export const LinkedNotesSection: React.FC<LinkedNotesSectionProps> = ({
           </div>
           <button
             onClick={() => navigate(`/note/${toShortId(entry.sourceId!)}/plan`)}
-            className="flex items-center gap-2 text-sm text-blue-500 hover:text-blue-400 hover:underline w-full text-left group"
+            className="flex items-center gap-2 text-sm text-blue-500 dark:text-blue-400 hover:text-blue-400 dark:hover:text-blue-300 hover:underline w-full text-left group"
           >
             <LinkIcon className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate flex-1">{sourceEntry?.title || 'Original Template'}</span>
@@ -92,7 +92,7 @@ export const LinkedNotesSection: React.FC<LinkedNotesSectionProps> = ({
               <button
                 key={clone.id}
                 onClick={() => navigate(`/note/${toShortId(clone.id)}/plan`)}
-                className="flex items-center gap-2 text-sm text-blue-500 hover:text-blue-400 hover:underline w-full text-left group"
+                className="flex items-center gap-2 text-sm text-blue-500 dark:text-blue-400 hover:text-blue-400 dark:hover:text-blue-300 hover:underline w-full text-left group"
               >
                 <LinkIcon className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate flex-1">{clone.title}</span>

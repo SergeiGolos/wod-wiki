@@ -139,10 +139,10 @@ export const BlockDisplay: React.FC<BlockDisplayProps> = ({
   onMouseLeave
 }) => {
   const statusColorClass = {
-    complete: 'bg-green-500',
+    complete: 'bg-signal-positive',
     active: 'bg-primary',
     running: 'bg-primary animate-pulse',
-    pending: 'bg-gray-400'
+    pending: 'bg-muted-foreground'
   }[status || 'pending'];
 
   return (

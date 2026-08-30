@@ -14,7 +14,7 @@ export const SaveStateIndicator: React.FC<SaveStateIndicatorProps> = ({ state })
     <div className="flex items-center transition-opacity duration-300">
       {state === 'changed' && (
         <div className="bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-1 flex items-center gap-2 text-xs text-muted-foreground shadow-sm">
-          <div className="h-2 w-2 rounded-full bg-yellow-500" />
+          <div className="h-2 w-2 rounded-full bg-signal-caution" />
           <span>Changed</span>
         </div>
       )}
@@ -25,7 +25,7 @@ export const SaveStateIndicator: React.FC<SaveStateIndicatorProps> = ({ state })
         </div>
       )}
       {state === 'saved' && (
-        <div className="bg-background/80 backdrop-blur-sm border border-input rounded-full px-3 py-1 flex items-center gap-2 text-xs text-emerald-500 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+        <div className="bg-background/80 backdrop-blur-sm border border-input rounded-full px-3 py-1 flex items-center gap-2 text-xs text-signal-positive shadow-sm animate-in fade-in zoom-in-95 duration-300">
           <Check className="h-3 w-3" />
           <span>Saved</span>
         </div>

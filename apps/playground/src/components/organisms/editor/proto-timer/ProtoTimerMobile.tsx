@@ -67,12 +67,12 @@ const ProtoSwitcher: React.FC<{ current: VariantKey; onCycle: (v: VariantKey) =>
   });
   if (import.meta.env.PROD) return null;
   return (
-    <div className="fixed right-0 top-1/2 -translate-y-1/2 z-[200] flex flex-col items-center gap-1 rounded-l-xl bg-zinc-900/90 text-white shadow-2xl border border-white/20 border-r-0 px-1 py-2 text-[10px] font-mono select-none">
-      <button className="p-1 rounded-full hover:bg-white/10" onClick={() => cycle(-1)} aria-label="Previous variant">
+    <div className="fixed right-0 top-1/2 -translate-y-1/2 z-[200] flex flex-col items-center gap-1 rounded-l-xl bg-zinc-900/90 dark:bg-zinc-900/90 text-white dark:text-white shadow-2xl border border-white/20 dark:border-white/20 border-r-0 px-1 py-2 text-[10px] font-mono select-none">
+      <button className="p-1 rounded-full hover:bg-white/10 dark:hover:bg-white/10" onClick={() => cycle(-1)} aria-label="Previous variant">
         <ChevronLeft className="w-3.5 h-3.5 rotate-90" />
       </button>
       <span className="px-0.5 py-1 whitespace-nowrap [writing-mode:vertical-rl]">PROTO {current} — {VARIANT_NAMES[current]}</span>
-      <button className="p-1 rounded-full hover:bg-white/10" onClick={() => cycle(1)} aria-label="Next variant">
+      <button className="p-1 rounded-full hover:bg-white/10 dark:hover:bg-white/10" onClick={() => cycle(1)} aria-label="Next variant">
         <ChevronRight className="w-3.5 h-3.5 rotate-90" />
       </button>
     </div>
