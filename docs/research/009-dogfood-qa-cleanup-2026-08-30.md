@@ -111,18 +111,18 @@ The content itself is fine and long-deployed (`markdown/canvas/syntax/basics.md`
 
 ## Mapping to the original report
 
-| Report # | Here | Note |
-|---|---|---|
-| 1 | excluded | Hosting 404 status — testing artifact (GH Pages `404.html` SPA fallback); maintainer decision |
-| 2 | H1 | Root cause re-verified live: trailing-slash redirect × exact-match lookup |
-| 3 | H2 | |
-| 4 | H3 | |
-| 5 | H4 | |
-| 6 | H5 | |
-| 7 | H6 | |
-| 8 | H7 | |
-| 9 | H8 | Working as designed; default policy revisit |
-| 10 | excluded | Shares issue 1's hosting premise; unmatched-path handling out of scope (maintainer decision) |
+| Report # | Here     | Note                                                                                          |
+| -------- | -------- | --------------------------------------------------------------------------------------------- |
+| 1        | excluded | Hosting 404 status — testing artifact (GH Pages `404.html` SPA fallback); maintainer decision |
+| 2        | H1       | Root cause re-verified live: trailing-slash redirect × exact-match lookup                     |
+| 3        | H2       |                                                                                               |
+| 4        | H3       |                                                                                               |
+| 5        | H4       |                                                                                               |
+| 6        | H5       |                                                                                               |
+| 7        | H6       |                                                                                               |
+| 8        | H7       |                                                                                               |
+| 9        | H8       | Working as designed; default policy revisit                                                   |
+| 10       | excluded | Shares issue 1's hosting premise; unmatched-path handling out of scope (maintainer decision)  |
 
 ## Suggested execution order
 
