@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Edit3 } from 'lucide-react';
 import { isFindQuery, parseQuery, type QueryResult, defaultTokenValues, isDashboardWidgetType, resolveWidgetType, substituteTokens, unknownTokensMessage, unknownWidgetTypeMessage, type DashboardDocument, type DashboardWidget } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 import { WidgetFrame } from './WidgetFrame';
 import { WidgetChart, WidgetProblemBadge } from './WidgetChart';
 import { DashboardTokenControls } from './DashboardTokenControls';
+import { WqlQueryInspectorModal } from '../blocks/WqlQueryInspectorModal';
 
 export interface DashboardViewProps {
   /** Parsed dashboard note (buildDashboardDocument). */
@@ -17,8 +17,8 @@ export interface DashboardViewProps {
   tokenValues?: Record<string, string>;
   /** Present when the note is editable — control changes write back to frontmatter. */
   onTokenChange?: (name: string, value: string) => void;
-  /** Present when the host offers query editing (composer modal owned by the host). */
-  onEditQuery?: (widget: DashboardWidget) => void;
+  /** Present when the host saves widget query edits — the composer modal lives here (view-first cards, hover edit). */
+  onSaveWidgetQuery?: (widget: DashboardWidget, nextQuery: string) => void;
   /** Optional execution range (ms epoch). Omit to use each query's own window. */
   rangeStart?: number;
   rangeEnd?: number;
@@ -50,7 +50,7 @@ export function DashboardView({
   onEnsureRollupFacts,
   tokenValues,
   onTokenChange,
-  onEditQuery,
+  onSaveWidgetQuery,
   rangeStart,
   rangeEnd,
   preferredUnit,
@@ -70,6 +70,9 @@ export function DashboardView({
   );
 
   const [runs, setRuns] = useState<Record<string, WidgetRun>>({});
+  // Widget currently open in the edit-composer modal; carries the raw
+  // (token-bearing) query so Apply writes the parametrized WQL back.
+  const [editing, setEditing] = useState<DashboardWidget | null>(null);
   const [loading, setLoading] = useState(true);
 
   const resolvedKey = useMemo(
@@ -159,35 +162,38 @@ export function DashboardView({
               question={widget.question ?? ''}
               query={query}
               span={spanClass(widget)}
+              onEdit={onSaveWidgetQuery ? () => setEditing(widget) : undefined}
             >
-              <div className="relative group/card h-full min-h-[160px]">
-                {onEditQuery && (
-                  <button
-                    type="button"
-                    onClick={() => onEditQuery(widget)}
-                    title="Edit widget query"
-                    aria-label={`Edit query for ${widget.title ?? 'widget'}`}
-                    className="absolute top-0 right-0 p-1 rounded bg-muted/80 text-muted-foreground hover:text-foreground opacity-0 group-hover/card:opacity-100 transition-opacity z-10"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                {run?.error ? (
-                  <WidgetProblemBadge message={run.error} />
-                ) : (
-                  <WidgetChart
-                    type={widget.type}
-                    result={run?.result}
-                    label={widget.title}
-                    unit={preferredUnit}
-                    params={widget.params}
-                  />
-                )}
-              </div>
+              {run?.error ? (
+                <WidgetProblemBadge message={run.error} />
+              ) : (
+                <WidgetChart
+                  type={widget.type}
+                  result={run?.result}
+                  label={widget.title}
+                  unit={preferredUnit}
+                  params={widget.params}
+                />
+              )}
             </WidgetFrame>
           );
         })}
       </div>
+
+      {onSaveWidgetQuery && (
+        <WqlQueryInspectorModal
+          isOpen={editing !== null}
+          onClose={() => setEditing(null)}
+          initialQuery={editing?.query ?? ''}
+          executor={executor}
+          title="Edit Widget Query"
+          subtitle={editing?.title ? `Use the Omni-Composer to edit "${editing.title}".` : undefined}
+          applyLabel="Apply to Widget"
+          onApply={(nextQuery) => {
+            if (editing) onSaveWidgetQuery(editing, nextQuery);
+          }}
+        />
+      )}
     </div>
   );
 }

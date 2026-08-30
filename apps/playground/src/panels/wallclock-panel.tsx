@@ -336,7 +336,7 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
   }, [primaryTimerEntry, activeTimerEntry, mainLabel, activeElapsed]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-shrink-0 flex-col gap-4">
       <MetricTrackerCard />
       <TimerStackView
         // Use our calculated elapsed time from the active selection

@@ -40,15 +40,15 @@ function timerBlock(id: string, content: string): ScriptBlock {
  * fixed-viewport takeover, so each story fills the canvas. Close is a no-op —
  * there is no editor underneath to return to.
  *
- * `autoAdvance` dismisses the WaitingToStart gate through the real NEXT
- * control once the panel is ready, so the story opens straight into the
- * running workout clock instead of the loaded "Ready to Start" state.
+ * `autoStart` starts the runtime tick loop; `autoAdvance` dismisses the
+ * WaitingToStart gate through the real NEXT control. Together they load the
+ * story straight into a genuinely running workout clock.
  */
-function TimerStage({ id, script, autoAdvance = false }: { id: string; script: string; autoAdvance?: boolean }) {
+function TimerStage({ id, script, autoAdvance = false, autoStart = false }: { id: string; script: string; autoAdvance?: boolean; autoStart?: boolean }) {
   return (
     <AudioProvider>
       {autoAdvance && <AutoAdvance />}
-      <FullscreenTimer block={timerBlock(id, script)} onClose={() => {}} />
+      <FullscreenTimer block={timerBlock(id, script)} onClose={() => {}} autoStart={autoStart} />
     </AudioProvider>
   );
 }
@@ -120,7 +120,7 @@ export const Amrap: Story = {
   render: () => <TimerStage id="gallery-amrap" script={AMRAP_SCRIPT} />,
 };
 
-/** Running clock — auto-advances past the start gate into Round 1 on load. */
+/** Running clock — starts the runtime and advances past the gate on load. */
 export const RunningIntervals: Story = {
-  render: () => <TimerStage id="gallery-running" script={RUNNING_INTERVAL_SCRIPT} autoAdvance />,
+  render: () => <TimerStage id="gallery-running" script={RUNNING_INTERVAL_SCRIPT} autoAdvance autoStart />,
 };

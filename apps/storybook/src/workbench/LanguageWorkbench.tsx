@@ -1785,7 +1785,7 @@ export function DashboardQueryCard({
       {/* Live Rendered Widget */}
       {result && !error && (
         <div className="h-52 mt-1 [&>*]:h-full" data-testid="dashboard-widget-content">
-          <WidgetFrame title={segment.title} question={segment.question} query={segment.query || ''}>
+          <WidgetFrame title={segment.title} question={segment.question} query={segment.query || ''} showQuery>
             {resolvedWidgetType === 'value' ? (
               <QueryValue result={result} label={segment.title} />
             ) : resolvedWidgetType === 'timeseries' ? (

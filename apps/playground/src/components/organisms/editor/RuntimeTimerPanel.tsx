@@ -145,19 +145,21 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
         </div>
       </div>
 
-      {/* ── Results footer ── */}
-      {outputCount > 0 && (
-        <div className="flex flex-shrink-0 items-center gap-2 border-t border-border bg-muted/20 px-2.5 py-1 text-[10px] text-muted-foreground">
+      {/* ── Results footer ── reserved fixed-height strip: renders identically
+          whether or not results exist, so the first output landing never
+          shifts the clock or controls above it. */}
+      <div className={`flex h-[26px] flex-shrink-0 items-center gap-2 px-2.5 text-[10px] text-muted-foreground ${outputCount > 0 ? "border-t border-border bg-muted/20" : ""}`}>
+        {outputCount > 0 && (
           <span>
             {outputCount} result{outputCount !== 1 ? "s" : ""} logged
           </span>
-          {createdAt && (
-            <span className="ml-auto font-medium text-primary">
-              ✓ {createdAt.toLocaleTimeString()}
-            </span>
-          )}
-        </div>
-      )}
+        )}
+        {outputCount > 0 && createdAt && (
+          <span className="ml-auto font-medium text-primary">
+            ✓ {createdAt.toLocaleTimeString()}
+          </span>
+        )}
+      </div>
     </div>
   );
 };

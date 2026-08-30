@@ -11,6 +11,8 @@ export interface WqlQueryInspectorModalProps {
   onApply: (newQuery: string) => void;
   title?: string;
   subtitle?: string;
+  /** Label for the confirm button (defaults to "Apply to Block"). */
+  applyLabel?: string;
   executor?: QueryExecutor;
 }
 
@@ -21,6 +23,7 @@ export function WqlQueryInspectorModal({
   onApply,
   title = 'Edit Block Query',
   subtitle = 'Use the Omni-Composer to edit this block query.',
+  applyLabel = 'Apply to Block',
   executor,
 }: WqlQueryInspectorModalProps) {
   const [wql, setWql] = useState<string>(initialQuery);
@@ -106,7 +109,7 @@ export function WqlQueryInspectorModal({
               disabled={!isValid}
               className="px-3 py-1.5 text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow transition-colors"
             >
-              Apply to Block
+              {applyLabel}
             </button>
           </div>
         </div>

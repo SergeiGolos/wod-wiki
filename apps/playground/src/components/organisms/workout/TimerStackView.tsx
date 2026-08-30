@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback } from 'react';
+import React, { useMemo, useRef, useCallback, useLayoutEffect, useState } from 'react';
 import { Play, Pause, SkipForward, Square, Timer } from 'lucide-react';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '@/clock/types/DisplayTypes';
 import { formatTimeMMSS } from '@/lib/formatTime';
@@ -58,6 +58,52 @@ export function getPrimaryTimerFontSizePx(panelWidth: number, compact: boolean):
 
     return Math.round(Math.min(Math.max(width * 0.18, 128), 320, width * 0.3));
 }
+
+/**
+ * FitArea — scales its content to fit the fixed-height band it lives in.
+ *
+ * Layout stability contract: the clock and controls must never move when
+ * label lines change (segment swaps, round counters, grouped statement
+ * rows, long effort names). FitArea measures its content against the band
+ * and applies a transform scale — transforms don't affect flow, so the
+ * band's geometry (and everything anchored around it) stays constant.
+ */
+const FitArea: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const outerRef = useRef<HTMLDivElement>(null);
+    const innerRef = useRef<HTMLDivElement>(null);
+    const [scale, setScale] = useState(1);
+
+    useLayoutEffect(() => {
+        const outer = outerRef.current;
+        const inner = innerRef.current;
+        if (!outer || !inner) return;
+        const measure = () => {
+            const next = Math.min(
+                1,
+                outer.clientWidth / Math.max(inner.scrollWidth, 1),
+                outer.clientHeight / Math.max(inner.scrollHeight, 1),
+            );
+            setScale(Number.isFinite(next) && next > 0 ? next : 1);
+        };
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(outer);
+        observer.observe(inner);
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+        <div ref={outerRef} className="flex h-full w-full items-center justify-center">
+            <div
+                ref={innerRef}
+                className="text-center"
+                style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}
+            >
+                {children}
+            </div>
+        </div>
+    );
+};
 
 export const TimerStackView: React.FC<TimerStackViewProps> = ({
     elapsedMs,
@@ -222,7 +268,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
 
     return (
         <div 
-            className={`flex flex-col h-full w-full ${compact ? '' : 'gap-4'}`}
+            className={`flex w-full min-h-0 flex-1 flex-col ${compact ? '' : 'gap-4'}`}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
@@ -234,7 +280,6 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                     100% { opacity: 0; transform: translateY(-8px); }
                 }
                 .animate-skip-flash {
-                    animation: skip-flash-fade 3s ease-out forwards;
                 }
             `}</style>
 
@@ -255,27 +300,32 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         </div>
                     )}
 
-                    {/* Labels above timer */}
-                    <div className={`text-center ${compact ? 'mb-2' : 'mb-6'}`}>
-                        {primaryTimer?.label && (
-                            <h2 className={`font-semibold text-foreground tracking-tight ${compact ? 'text-lg' : 'text-3xl lg:text-4xl'}`}>
-                                {primaryTimer.label}
-                            </h2>
-                        )}
-                        {subLabels && subLabels.length > 0 && (
-                            <div className={`${compact ? 'mt-1 space-y-0.5' : 'mt-2 space-y-1'}`}>
-                                {subLabels.map((line, i) => (
-                                    <p key={i} className={`text-muted-foreground ${compact ? 'text-xs' : 'text-lg lg:text-xl'}`}>
-                                        {line}
-                                    </p>
-                                ))}
-                            </div>
-                        )}
-                        {subLabels === undefined && subLabel && (
-                            <p className={`text-muted-foreground ${compact ? 'mt-1 text-xs' : 'mt-2 text-lg lg:text-xl'}`}>
-                                {subLabel}
-                            </p>
-                        )}
+                    {/* Labels above timer — reserved fixed-height band. The band
+                        renders identically in every state; FitArea scales the
+                        content to fit, so label/summary churn never shifts the
+                        clock or controls. */}
+                    <div className={`flex w-full items-center justify-center overflow-hidden ${compact ? 'h-14 mb-2' : 'h-24 mb-6'}`}>
+                        <FitArea>
+                            {primaryTimer?.label && (
+                                <h2 className={`font-semibold text-foreground tracking-tight ${compact ? 'text-lg' : 'text-3xl lg:text-4xl'}`}>
+                                    {primaryTimer.label}
+                                </h2>
+                            )}
+                            {subLabels && subLabels.length > 0 && (
+                                <div className={`${compact ? 'mt-1 space-y-0.5' : 'mt-2 space-y-1'}`}>
+                                    {subLabels.map((line, i) => (
+                                        <p key={i} className={`text-muted-foreground ${compact ? 'text-xs' : 'text-lg lg:text-xl'}`}>
+                                            {line}
+                                        </p>
+                                    ))}
+                                </div>
+                            )}
+                            {subLabels === undefined && subLabel && (
+                                <p className={`text-muted-foreground ${compact ? 'mt-1 text-xs' : 'mt-2 text-lg lg:text-xl'}`}>
+                                    {subLabel}
+                                </p>
+                            )}
+                        </FitArea>
                     </div>
 
                     {/* Very Large Timer Number (no circle) */}
@@ -298,35 +348,35 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         </button>
                     </div>
 
-                    {/* Secondary Timers — smaller context clocks for parent intervals */}
-                    {secondaryTimerData.length > 0 && (
-                        <div className={`w-full ${compact ? 'mt-3' : 'mt-6'}`}>
-                            <div className={`flex items-center justify-center gap-2 ${compact ? 'flex-wrap' : 'gap-4'}`}>
-                                {secondaryTimerData.map((st, index) => (
-                                    <div
-                                        key={st.id}
-                                        {...(getFocusProps ? getFocusProps(`secondary-timer-${index}`) : {})}
-                                        className={`tv-focusable flex items-center gap-2 rounded-lg border bg-muted/40 text-muted-foreground ${compact ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm'}`}
-                                        title={st.label}
-                                        role="timer"
-                                        aria-label={`${st.label} ${formatTime(st.displayMs)}`}
-                                        aria-atomic="true"
-                                    >
-                                        <Timer className={`shrink-0 ${compact ? 'w-3 h-3' : 'w-4 h-4'}`} />
-                                        <span className="font-medium truncate max-w-[120px]">{st.label}</span>
-                                        <span className="font-mono font-semibold tabular-nums">
-                                            {formatTime(st.displayMs)}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
+                    {/* Secondary Timers — smaller context clocks for parent
+                        intervals. Reserved fixed-height band renders identically
+                        when empty, so chips appearing never shifts the clock. */}
+                    <div className={`flex w-full items-center justify-center overflow-hidden ${compact ? 'mt-3 h-10' : 'mt-6 h-[60px]'}`}>
+                        <div className={`flex items-center justify-center gap-2 ${compact ? 'flex-wrap' : 'gap-4'}`}>
+                            {secondaryTimerData.map((st, index) => (
+                                <div
+                                    key={st.id}
+                                    {...(getFocusProps ? getFocusProps(`secondary-timer-${index}`) : {})}
+                                    className={`tv-focusable flex items-center gap-2 rounded-lg border bg-muted/40 text-muted-foreground ${compact ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm'}`}
+                                    title={st.label}
+                                    role="timer"
+                                    aria-label={`${st.label} ${formatTime(st.displayMs)}`}
+                                    aria-atomic="true"
+                                >
+                                    <Timer className={`shrink-0 ${compact ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                                    <span className="font-medium truncate max-w-[120px]">{st.label}</span>
+                                    <span className="font-mono font-semibold tabular-nums">
+                                        {formatTime(st.displayMs)}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
 
             {/* Controls Row — adapts between mobile (bottom bar) and desktop (centered buttons) */}
-            <div className={`flex items-center justify-center ${compact ? 'px-4 py-3 bg-background border-t border-border gap-3' : 'gap-8 px-2 pb-8'} flex-wrap`}>
+            <div className={`flex flex-shrink-0 items-center justify-center ${compact ? 'px-4 py-3 bg-background border-t border-border gap-3' : 'gap-8 px-2 pb-8'} flex-wrap`}>
                 {/* Stop Button */}
                 <div className={`flex flex-col items-center ${compact ? 'gap-1' : 'gap-2'}`}>
                     <button

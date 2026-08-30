@@ -1,23 +1,40 @@
 import type { ReactNode } from 'react';
+import { Edit3 } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 export interface WidgetFrameProps {
   title: string;
   question: string;
-  query: string;
+  /** Raw WQL for the widget. Hidden by default — only rendered with showQuery. */
+  query?: string;
   span?: string;
+  /** Show the raw WQL query box (teaching/authoring surfaces). View-first default hides it. */
+  showQuery?: boolean;
+  /** Present when the host offers query editing — renders a hover edit button. */
+  onEdit?: () => void;
   children: ReactNode;
 }
 
-export function WidgetFrame({ title, question, query, span, children }: WidgetFrameProps) {
+export function WidgetFrame({ title, question, query, span, showQuery = false, onEdit, children }: WidgetFrameProps) {
   return (
     <div
       className={cn(
-        'bg-card border border-border rounded-lg p-4 flex flex-col min-h-0',
+        'relative group/frame bg-card border border-border rounded-lg p-4 flex flex-col min-h-0',
         span,
       )}
     >
-      <div className="flex items-baseline justify-between gap-3 mb-1">
+      {onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          title="Edit widget query"
+          aria-label={`Edit query for ${title || 'widget'}`}
+          className="absolute top-2 right-2 p-1 rounded bg-muted/80 text-muted-foreground hover:text-foreground opacity-0 group-hover/frame:opacity-100 focus-visible:opacity-100 [@media(pointer:coarse)]:opacity-100 transition-opacity z-10"
+        >
+          <Edit3 className="w-3.5 h-3.5" />
+        </button>
+      )}
+      <div className="flex items-baseline justify-between gap-3 mb-2">
         <h3 className="text-sm font-semibold text-foreground min-w-0">
           {title}
         </h3>
@@ -28,9 +45,11 @@ export function WidgetFrame({ title, question, query, span, children }: WidgetFr
       {/* Long WQL wraps in place - an in-card horizontal scrollbar reads as
           a layout bug (dogfood #4). `break-all` covers spaceless fragments
           like `sum:totalVolume{effort:bench-press}`. */}
-      <div className="font-mono text-[11px] text-primary/90 bg-background/60 rounded px-2 py-1 mb-3 whitespace-pre-wrap break-all">
-        {query}
-      </div>
+      {showQuery && query != null && query !== '' && (
+        <div className="font-mono text-[11px] text-primary/90 bg-background/60 rounded px-2 py-1 mb-3 whitespace-pre-wrap break-all">
+          {query}
+        </div>
+      )}
       <div className="flex-1 min-h-0">{children}</div>
     </div>
   );

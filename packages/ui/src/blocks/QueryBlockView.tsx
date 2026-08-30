@@ -303,7 +303,7 @@ function QueryBlockShell({
           type="button"
           onClick={onEdit}
           title="Edit query in Omni-Composer"
-          className="absolute top-2 right-2 p-1 rounded bg-muted/80 text-muted-foreground hover:text-foreground opacity-0 group-hover/block:opacity-100 transition-opacity z-10"
+          className="absolute top-2 right-2 p-1 rounded bg-muted/80 text-muted-foreground hover:text-foreground opacity-0 group-hover/block:opacity-100 focus-visible:opacity-100 [@media(pointer:coarse)]:opacity-100 transition-opacity z-10"
         >
           <Edit3 className="w-3.5 h-3.5" />
         </button>

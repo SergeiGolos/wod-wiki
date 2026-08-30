@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
-import type { KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import type { KeyboardEvent, ReactNode, Ref } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, X, ChevronDown, Check } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { composerRegistry, useComposerSlots, type CustomSlotDefinition } from './ComposerRegistry';
@@ -116,6 +117,7 @@ export function TokenSlotPill({
       {open && onChange && (customDef ? (
         <CustomSlotPopover
           clause={clause}
+          anchor={pillRef.current}
           definition={customDef}
           onClose={() => setOpen(false)}
           onChange={(val) => {
@@ -127,6 +129,7 @@ export function TokenSlotPill({
       ) : (
         <ClausePopover
           clause={clause}
+          anchor={pillRef.current}
           onClose={() => setOpen(false)}
           onChange={(patch) => {
             onChange(patch);
@@ -182,12 +185,90 @@ function emptyStateMessage({
   return open ? 'No matches — press Enter to use the typed value' : 'No matches — no such option';
 }
 
+/**
+ * Popover surface rendered through a body portal at fixed coordinates
+ * derived from the anchor element. CSS-`absolute` popovers get clipped by
+ * any `overflow` ancestor (the inspector modal's scroll body), so the
+ * composer's popovers escape to `document.body` instead. Flips above the
+ * anchor when it would overflow the viewport bottom, and follows
+ * scrolls/resizes so it stays glued to the trigger inside scroll dialogs.
+ */
+function FloatingPopover({
+  anchor,
+  className,
+  testid,
+  onKeyDown,
+  innerRef,
+  children,
+}: {
+  anchor: HTMLElement | null;
+  className: string;
+  testid: string;
+  onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
+  innerRef?: Ref<HTMLDivElement>;
+  children: ReactNode;
+}) {
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!anchor) return;
+    const update = () => {
+      const el = measureRef.current;
+      if (!el) return;
+      const r = anchor.getBoundingClientRect();
+      const gap = 6; // mt-1.5
+      let top = r.bottom + gap;
+      if (top + el.offsetHeight > window.innerHeight - 8) {
+        top = Math.max(8, r.top - gap - el.offsetHeight); // flip above
+      }
+      let left = r.left;
+      if (left + el.offsetWidth > window.innerWidth - 8) {
+        left = Math.max(8, window.innerWidth - 8 - el.offsetWidth);
+      }
+      setPos((p) => (p && p.top === top && p.left === left ? p : { top, left }));
+    };
+    update();
+    const scrollOpts = { capture: true, passive: true };
+    window.addEventListener('scroll', update, scrollOpts);
+    window.addEventListener('resize', update);
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    if (ro && measureRef.current) ro.observe(measureRef.current);
+    return () => {
+      window.removeEventListener('scroll', update, scrollOpts);
+      window.removeEventListener('resize', update);
+      ro?.disconnect();
+    };
+  }, [anchor]);
+
+  if (!anchor) return null;
+  return createPortal(
+    <div
+      ref={(el) => {
+        measureRef.current = el;
+        if (typeof innerRef === 'function') innerRef(el);
+        else if (innerRef) innerRef.current = el;
+      }}
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
+      style={pos ? { position: 'fixed', top: pos.top, left: pos.left } : { position: 'fixed', visibility: 'hidden' }}
+      className={className}
+      data-testid={testid}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}
 export function ClausePopover({
   clause,
+  anchor,
   onClose,
   onChange,
 }: {
   clause: QueryClause;
+  /** Trigger element the popover positions against (portal escapes overflow clipping). */
+  anchor: HTMLElement | null;
   onClose: () => void;
   onChange: (patch: Partial<QueryClause>) => void;
 }) {
@@ -308,12 +389,12 @@ export function ClausePopover({
   };
 
   return (
-    <div
-      ref={popoverRef}
-      tabIndex={-1}
+    <FloatingPopover
+      anchor={anchor}
+      innerRef={popoverRef}
       onKeyDown={handleKeyDown}
-      className="absolute left-0 top-full mt-1.5 w-64 p-2 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg z-50 flex flex-col gap-1.5"
-      data-testid={`clause-popover-${clause.type}`}
+      className="w-64 p-2 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg z-[60] flex flex-col gap-1.5"
+      testid={`clause-popover-${clause.type}`}
     >
       {showFilterInput ? (
         <input
@@ -396,17 +477,20 @@ export function ClausePopover({
           </div>
         )}
       </div>
-    </div>
+    </FloatingPopover>
   );
 }
 
 export function CustomSlotPopover<TValue>({
   clause,
+  anchor,
   definition,
   onClose,
   onChange,
 }: {
   clause: QueryClause;
+  /** Trigger element the popover positions against (portal escapes overflow clipping). */
+  anchor: HTMLElement | null;
   definition: CustomSlotDefinition<TValue>;
   onClose: () => void;
   onChange: (value: TValue) => void;
@@ -417,12 +501,13 @@ export function CustomSlotPopover<TValue>({
     : (clause.value as unknown as TValue);
 
   return (
-    <div
-      className="absolute left-0 top-full mt-1.5 w-72 p-3 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg z-50"
-      data-testid="custom-slot-popover"
+    <FloatingPopover
+      anchor={anchor}
+      className="w-72 p-3 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg z-[60]"
+      testid="custom-slot-popover"
     >
       <Editor value={initialValue} onChange={onChange} onClose={onClose} />
-    </div>
+    </FloatingPopover>
   );
 }
 
@@ -438,6 +523,7 @@ export function AddFilterDropdown({
   hiddenTypes?: ReadonlySet<string>;
 }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const customSlots = useComposerSlots();
   const existingTypes = new Set(clauses.map((c) => c.type));
 
@@ -459,6 +545,7 @@ export function AddFilterDropdown({
   return (
     <div className="relative inline-flex items-center">
       <button
+        ref={triggerRef}
         type="button"
         data-testid="add-filter-button"
         onClick={() => setOpen((o) => !o)}
@@ -468,9 +555,10 @@ export function AddFilterDropdown({
         <span>Filter</span>
       </button>
       {open && (
-        <div
-          className="absolute left-0 top-full mt-1.5 w-48 p-1.5 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg z-50 flex flex-col gap-0.5 max-h-56 overflow-y-auto"
-          data-testid="add-filter-dropdown"
+        <FloatingPopover
+          anchor={triggerRef.current}
+          className="w-48 p-1.5 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg z-[60] flex flex-col gap-0.5 max-h-56 overflow-y-auto"
+          testid="add-filter-dropdown"
         >
           {builtInAvailable.map((type) => {
             const meta = CLAUSE_META[type];
@@ -511,7 +599,7 @@ export function AddFilterDropdown({
               <span>{slot.label}</span>
             </button>
           ))}
-        </div>
+        </FloatingPopover>
       )}
     </div>
   );
@@ -525,6 +613,7 @@ export function AddCalcDropdown({
   onAdd: (clause: QueryClause) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const sourceVal = clauses.find((c) => c.type === 'source')?.value || 'notes';
   if (sourcePlane(sourceVal) !== 'metrics') return null;
 
@@ -537,6 +626,7 @@ export function AddCalcDropdown({
   return (
     <div className="relative inline-flex items-center">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-mono text-muted-foreground border border-dashed border-border hover:text-foreground hover:bg-muted/50 transition-colors"
@@ -547,9 +637,10 @@ export function AddCalcDropdown({
       </button>
 
       {open && (
-        <div
-          className="absolute left-0 top-full mt-1.5 w-44 p-1.5 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg z-50 flex flex-col gap-0.5"
-          data-testid="add-calc-dropdown"
+        <FloatingPopover
+          anchor={triggerRef.current}
+          className="w-44 p-1.5 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg z-[60] flex flex-col gap-0.5"
+          testid="add-calc-dropdown"
         >
           {available.map((type) => {
             const meta = CLAUSE_META[type];
@@ -568,7 +659,7 @@ export function AddCalcDropdown({
               </button>
             );
           })}
-        </div>
+        </FloatingPopover>
       )}
     </div>
   );

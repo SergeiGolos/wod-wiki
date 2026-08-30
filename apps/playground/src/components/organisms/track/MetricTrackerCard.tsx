@@ -130,10 +130,14 @@ export const MetricTrackerCard: React.FC<MetricTrackerCardProps> = ({ className 
     const entries = Object.entries(analyticsResults);
     const hasData = entries.length > 0;
 
-    if (!hasData) return null;
+    // Reserved fixed-height band: renders identically when empty so its
+    // mount/unmount never shifts the clock or controls below it.
+    if (!hasData) {
+        return <div className={cn("h-14 shrink-0", className)} aria-hidden="true" />;
+    }
 
     return (
-        <div className={cn("flex flex-wrap justify-center gap-2 px-4 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-500", className)}>
+        <div className={cn("flex h-14 flex-shrink-0 flex-wrap items-center justify-center gap-2 overflow-hidden px-4", className)}>
             {entries.map(([key, data]) => {
                 const type = inferMetricType(key, data.unit);
                 const colorClasses = getMetricColorClasses(type);

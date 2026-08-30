@@ -11,13 +11,7 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
 import { queryService } from '@/services/queryService';
-import { isFindQuery } from '@bitcobblers/wod-wiki-engine';;
-import {
-  WqlComposer,
-  type WqlExecutor,
-} from '@bitcobblers/wod-wiki-ui';
 import {
   RangeSelector,
   AnalyticsUnitPreference,
@@ -48,15 +42,6 @@ export function DashboardViewPage() {
     return buildDashboardDocument(sections, meta);
   }, [source]);
 
-  // ── Editable (vault) edit modal state ────────────────────────────────
-  const [editingWidget, setEditingWidget] = useState<DashboardWidget | null>(null);
-  const [editWql, setEditWql] = useState('');
-  const [isValid, setIsValid] = useState(true);
-
-  const diagnosticsExecutor = useCallback<WqlExecutor>(
-    (ast) => (isFindQuery(ast) ? queryService.runFind(ast) : queryService.runQuery(ast.raw)),
-    [],
-  );
 
   const handleTokenChange = useCallback(
     async (name: string, value: string) => {
@@ -70,28 +55,24 @@ export function DashboardViewPage() {
     [source],
   );
 
-  const openEditor = useCallback((widget: DashboardWidget) => {
-    setEditingWidget(widget);
-    setEditWql(widget.query);
-    setIsValid(true);
-  }, []);
-
-  const saveEditor = useCallback(async () => {
-    if (!editingWidget || !isValid || !source?.editable || !source.noteId) return;
-    const newWql = editWql;
-    const lines = source.rawContent.split('\n');
-    const { sections } = parseDashboardNote(source.rawContent);
-    // widget.key is `w${index}` over query sections — splice the new WQL into
-    // the matched block's body lines only (fences + trailing params preserved).
-    const querySections = sections.filter((s) => s.type === 'query');
-    const target = querySections.find((_, i) => `w${i}` === editingWidget.key);
-    if (target) {
-      lines.splice(target.startLine + 1, target.endLine - target.startLine - 1, newWql);
+  // Splice the composed WQL back into the widget's ```query block body and
+  // refresh — the modal (owned by DashboardView) gates Apply on validity.
+  const handleSaveWidgetQuery = useCallback(
+    async (widget: DashboardWidget, nextWql: string) => {
+      if (!source?.editable || !source.noteId) return;
+      const lines = source.rawContent.split('\n');
+      const { sections } = parseDashboardNote(source.rawContent);
+      // widget.key is `w${index}` over query sections — splice the new WQL into
+      // the matched block's body lines only (fences + trailing params preserved).
+      const querySections = sections.filter((s) => s.type === 'query');
+      const target = querySections.find((_, i) => `w${i}` === widget.key);
+      if (!target) return;
+      lines.splice(target.startLine + 1, target.endLine - target.startLine - 1, nextWql);
       await journalNotes.update(source.noteId, lines.join('\n'));
-      setRefreshKey((k) => k + 1);
-    }
-    setEditingWidget(null);
-  }, [editingWidget, isValid, editWql, source]);
+      setRefreshKey((k) => k + 1); // re-resolve → saved WQL re-runs
+    },
+    [source],
+  );
 
   const handleClone = useCallback(async () => {
     if (!source || source.editable) return;
@@ -156,39 +137,13 @@ export function DashboardViewPage() {
             document={document}
             executor={queryService}
             onTokenChange={source.editable ? handleTokenChange : undefined}
-            onEditQuery={source.editable ? openEditor : undefined}
+            onSaveWidgetQuery={source.editable ? handleSaveWidgetQuery : undefined}
             rangeStart={Date.now() - weeks * 7 * 86400000}
             rangeEnd={Date.now()}
             preferredUnit={preferredUnit}
           />
         )}
 
-        {/* WIDGET QUERY EDITOR MODAL (vault dashboards only) */}
-        {source.editable && editingWidget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" data-testid="widget-query-modal">
-            <div className="nord-card w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl p-6 shadow-2xl space-y-4 border-border bg-card">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <div>
-                  <h3 className="text-base font-bold text-foreground">Edit Widget Query: {editingWidget.title ?? editingWidget.query}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Use the Omni-Composer to edit this dashboard section query.</p>
-                </div>
-                <button onClick={() => setEditingWidget(null)} className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted" data-testid="close-widget-query-modal">
-                  <X size={18} />
-                </button>
-              </div>
-              <WqlComposer
-                query={editWql}
-                onQueryChange={setEditWql}
-                onValidationChange={(state) => setIsValid(state.valid)}
-                execute={diagnosticsExecutor}
-              />
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
-                <button onClick={() => setEditingWidget(null)} className="px-4 py-2 text-xs font-semibold rounded-lg border border-border text-muted-foreground hover:text-foreground">Cancel</button>
-                <button onClick={saveEditor} data-testid="save-widget-query" disabled={!isValid} className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40">Save</button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

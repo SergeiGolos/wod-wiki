@@ -1,5 +1,5 @@
-import { describe, expect, it, afterEach  } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi, afterEach  } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { QueryResult } from '@bitcobblers/wod-wiki-wql';
 import {
   WidgetFrame,
@@ -76,7 +76,7 @@ describe('@bitcobblers/wod-wiki-ui presentational widgets & IR consumer suite', 
   });
 
   describe('1. WidgetFrame', () => {
-    it('renders title, question, and query', () => {
+    it('renders view-first: title and question, query hidden by default', () => {
       render(
         <WidgetFrame title="Weekly Volume" question="How much did I lift?" query="sum:totalVolume{} every week">
           <div data-testid="child-content">Content</div>
@@ -84,8 +84,34 @@ describe('@bitcobblers/wod-wiki-ui presentational widgets & IR consumer suite', 
       );
       expect(screen.getByText('Weekly Volume')).toBeDefined();
       expect(screen.getByText('How much did I lift?')).toBeDefined();
-      expect(screen.getByText('sum:totalVolume{} every week')).toBeDefined();
+      expect(screen.queryByText('sum:totalVolume{} every week')).toBeNull();
       expect(screen.getByTestId('child-content')).toBeDefined();
+    });
+
+    it('shows the query box when showQuery is set', () => {
+      render(
+        <WidgetFrame title="Weekly Volume" question="How much?" query="sum:totalVolume{}" showQuery>
+          <div>Content</div>
+        </WidgetFrame>,
+      );
+      expect(screen.getByText('sum:totalVolume{}')).toBeDefined();
+    });
+
+    it('renders the hover edit button only when onEdit is provided and fires it', () => {
+      const onEdit = vi.fn();
+      const { rerender } = render(
+        <WidgetFrame title="T" question="Q" onEdit={onEdit}>
+          <div>Content</div>
+        </WidgetFrame>,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Edit query for T' }));
+      expect(onEdit).toHaveBeenCalledTimes(1);
+      rerender(
+        <WidgetFrame title="T" question="Q">
+          <div>Content</div>
+        </WidgetFrame>,
+      );
+      expect(screen.queryByRole('button')).toBeNull();
     });
   });
 
