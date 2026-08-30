@@ -30,8 +30,11 @@ describe('TimerStackView', () => {
 
   it('scales font for mobile viewport width (375px)', () => {
     const mobileFont = getPrimaryTimerFontSizePx(375, false);
-    expect(mobileFont).toBeGreaterThanOrEqual(128);
-    expect(mobileFont).toBeLessThanOrEqual(320);
+    // Container-fit cap (#997): the readout must never exceed ~30% of the
+    // panel width — "00:00" at F spans ≈3.1·F, so 113px fits where the old
+    // 128px floor overflowed a 375px column.
+    expect(mobileFont).toBeLessThanOrEqual(Math.round(375 * 0.3));
+    expect(mobileFont).toBeGreaterThan(0);
   });
 
   it('scales font for tablet viewport width (768px)', () => {
