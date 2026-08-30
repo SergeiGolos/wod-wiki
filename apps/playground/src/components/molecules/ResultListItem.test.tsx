@@ -75,7 +75,7 @@ describe('ResultListItem', () => {
       const checkIcon = container.querySelector('.lucide-circle-check-big');
       const checkClasses = checkIcon?.getAttribute('class') || '';
       expect(checkClasses).toContain('size-3.5');
-      expect(checkClasses).toContain('text-emerald-500');
+      expect(checkClasses).toContain('text-signal-positive');
     });
   });
 

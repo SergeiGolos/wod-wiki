@@ -184,7 +184,7 @@ describe('BlockDisplay', () => {
         <BlockDisplay label="Round 1" blockType="round" status="complete" />
       );
 
-      const statusIndicator = container.querySelector('.bg-green-500');
+      const statusIndicator = container.querySelector('.bg-signal-positive');
       expect(statusIndicator).toBeTruthy();
     });
 
@@ -211,7 +211,7 @@ describe('BlockDisplay', () => {
         <BlockDisplay label="Round 1" blockType="round" status="pending" />
       );
 
-      const statusIndicator = container.querySelector('.bg-gray-400');
+      const statusIndicator = container.querySelector('.bg-muted-foreground');
       expect(statusIndicator).toBeTruthy();
     });
   });
