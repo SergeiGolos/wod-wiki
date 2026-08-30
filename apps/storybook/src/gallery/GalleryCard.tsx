@@ -196,7 +196,7 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
 
   return (
     <div
-      className="flex flex-col gap-2 rounded-lg border border-border bg-card/40 p-3 shadow-xs"
+      className="flex min-w-0 flex-col gap-2 rounded-lg border border-border bg-card/40 p-3 shadow-xs"
       data-testid={`gallery-card-${def.title.replace(/\s+/g, '-').toLowerCase()}`}
     >
       <div className="flex items-start justify-between gap-2">
