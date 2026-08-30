@@ -23,14 +23,14 @@ export function formatClockTime(d: Date): string {
 // ── Metric badge presentation (runtime-badge surface) ────────────────────────
 
 export const TONE_CLASS: Record<string, string> = {
-  time: 'border-sky-500/40 bg-sky-500/10 text-sky-500 dark:text-sky-300',
-  rep: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300',
-  effort: 'border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-300',
-  distance: 'border-cyan-500/40 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300',
-  rounds: 'border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-300',
-  action: 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300',
-  resistance: 'border-orange-500/40 bg-orange-500/10 text-orange-600 dark:text-orange-300',
-  rest: 'border-teal-500/40 bg-teal-500/10 text-teal-600 dark:text-teal-300 italic',
+  time: 'border-metric-time/40 bg-metric-time/10 text-metric-time',
+  rep: 'border-metric-rep/40 bg-metric-rep/10 text-metric-rep',
+  effort: 'border-metric-effort/40 bg-metric-effort/10 text-metric-effort',
+  distance: 'border-metric-distance/40 bg-metric-distance/10 text-metric-distance',
+  rounds: 'border-metric-rounds/40 bg-metric-rounds/10 text-metric-rounds',
+  action: 'border-metric-action/40 bg-metric-action/10 text-metric-action',
+  resistance: 'border-metric-resistance/40 bg-metric-resistance/10 text-metric-resistance',
+  rest: 'border-metric-rest/40 bg-metric-rest/10 text-metric-rest italic',
   muted: 'border-border/70 bg-muted/50 text-muted-foreground',
   system: 'border-border/60 bg-muted/40 text-muted-foreground',
   unknown: 'border-border/60 bg-muted/40 text-muted-foreground',
@@ -71,16 +71,16 @@ export function presentBadges(metrics: Iterable<IMetric>): ReactNode {
 }
 
 export const OUTPUT_TYPE_CLASS: Record<string, string> = {
-  segment: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
-  milestone: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
-  completion: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
-  metric: 'bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/30',
+  segment: 'bg-type-segment/15 text-type-segment border-type-segment/30',
+  milestone: 'bg-type-milestone/15 text-type-milestone border-type-milestone/30',
+  completion: 'bg-type-completion/15 text-type-completion border-type-completion/30',
+  metric: 'bg-type-metric/15 text-type-metric border-type-metric/30',
   system: 'bg-muted/70 text-muted-foreground border-border/50',
-  event: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30',
-  group: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
+  event: 'bg-type-event/15 text-type-event border-type-event/30',
+  group: 'bg-type-group/15 text-type-group border-type-group/30',
   load: 'bg-muted/70 text-muted-foreground border-border/50',
   compiler: 'bg-muted/70 text-muted-foreground border-border/50',
-  analytics: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30',
+  analytics: 'bg-type-analytics/15 text-type-analytics border-type-analytics/30',
 };
 
 export const OUTPUT_TYPE_DOT: Record<string, string> = {

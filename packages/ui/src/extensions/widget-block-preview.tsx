@@ -119,8 +119,8 @@ const WidgetEditButton = React.forwardRef<
       className={cn(
         "absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/80 bg-background/90 shadow-sm backdrop-blur-sm transition-all duration-200 ease-out hover:bg-muted/80 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer",
         mode === "view" && "text-muted-foreground hover:text-foreground",
-        mode === "editing" && "text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300",
-        mode === "error" && "text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300",
+        mode === "editing" && "text-signal-positive hover:text-signal-positive/80",
+        mode === "error" && "text-signal-caution hover:text-signal-caution/80",
         className,
       )}
     >
@@ -491,7 +491,7 @@ function WidgetBlockPreviewWrapper({
       data-widget-mode={buttonMode}
       className={cn(
         "group relative rounded-2xl border border-transparent bg-background/95 p-3 transition-colors duration-200 ease-out hover:border-border",
-        state.isEditing && state.error === null && "border-emerald-500/40 ring-1 ring-emerald-500/15",
+        state.isEditing && state.error === null && "border-signal-positive/40 ring-1 ring-signal-positive/15",
         state.error !== null && "border-destructive/40 ring-1 ring-destructive/15",
       )}
       onMouseDownCapture={(event) => {

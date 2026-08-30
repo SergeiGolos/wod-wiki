@@ -92,10 +92,10 @@ function RpeChip({
               className={cn(
                 'h-5 min-w-[1.25rem] px-0.5 text-[10px] font-medium rounded border border-border',
                 rpe === value && 'bg-primary text-primary-foreground',
-                rpe <= 3 && 'hover:bg-green-100 hover:text-green-900',
-                rpe > 3 && rpe <= 6 && 'hover:bg-yellow-100 hover:text-yellow-900',
-                rpe > 6 && rpe <= 8 && 'hover:bg-orange-100 hover:text-orange-900',
-                rpe > 8 && 'hover:bg-red-100 hover:text-red-900',
+                rpe <= 3 && 'hover:bg-rpe-easy/15 hover:text-rpe-easy',
+                rpe > 3 && rpe <= 6 && 'hover:bg-rpe-moderate/15 hover:text-rpe-moderate',
+                rpe > 6 && rpe <= 8 && 'hover:bg-rpe-hard/15 hover:text-rpe-hard',
+                rpe > 8 && 'hover:bg-rpe-max/15 hover:text-rpe-max',
               )}
             >
               {rpe}

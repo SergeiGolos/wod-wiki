@@ -343,7 +343,7 @@ export function WqlComposer({
         )}
         data-testid="wql-composer"
       >
-        <Command className="size-4 text-amber-500 shrink-0 mr-0.5" />
+        <Command className="size-4 text-signal-caution shrink-0 mr-0.5" />
 
         {pills.map((pill, idx) =>
           hiddenTypes.has(pill.type) ? null : (
@@ -379,7 +379,7 @@ export function WqlComposer({
         <div
           className={cn(
             'px-1.5 text-[11px] font-mono',
-            pending.kind === 'invalid' ? 'text-red-500' : 'text-muted-foreground',
+            pending.kind === 'invalid' ? 'text-destructive' : 'text-muted-foreground',
           )}
           data-testid="wql-composer-pending"
           role={pending.kind === 'invalid' ? 'alert' : undefined}

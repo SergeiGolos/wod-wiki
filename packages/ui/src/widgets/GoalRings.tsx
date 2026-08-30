@@ -70,14 +70,14 @@ function GoalRingItem({
   let textColor = 'text-foreground';
   if (pct !== undefined) {
     if (pct >= 100) {
-      strokeColor = 'stroke-emerald-500';
-      textColor = 'text-emerald-500';
+      strokeColor = 'stroke-signal-positive';
+      textColor = 'text-signal-positive';
     } else if (pct >= 75) {
       strokeColor = 'stroke-primary';
     } else if (pct >= 50) {
-      strokeColor = 'stroke-amber-500';
+      strokeColor = 'stroke-signal-caution';
     } else {
-      strokeColor = 'stroke-rose-500';
+      strokeColor = 'stroke-signal-negative';
     }
   }
 

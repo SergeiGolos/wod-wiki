@@ -54,7 +54,7 @@ const preview: Preview = {
             '*',
           ],
           'Gallery',
-          ['WQL Example Gallery', 'WQL Composer', 'Analytics Widgets', '*'],
+          ['WQL Example Gallery', 'Timer Screen', 'WQL Composer', 'Analytics Widgets', '*'],
         ],
       },
     },

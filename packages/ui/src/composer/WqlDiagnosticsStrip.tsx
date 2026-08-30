@@ -47,8 +47,8 @@ export function WqlDiagnosticsStrip({
         <div className="flex items-center gap-1.5 font-medium" data-testid="wql-validity-badge" data-valid={valid}>
           {valid ? (
             <>
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-              <span className="text-emerald-600 dark:text-emerald-400">Valid</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-signal-positive shrink-0" />
+              <span className="text-signal-positive">Valid</span>
             </>
           ) : (
             <>

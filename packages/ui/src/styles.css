@@ -67,6 +67,13 @@
     --metric-distance:   180 36% 40%;  /* #408888 deep teal */
     --metric-resistance: 0 34% 48%;    /* #a05858 terracotta */
     --metric-action:     46 52% 37%;   /* #948030 ochre */
+    --metric-rest:       172 30% 40%;  /* sea teal (rest intervals) */
+
+    /* ── Signal accents — vivid status hues for charts/validity ─────
+     * Rings, zone bands, delta indicators, validity icons (#1000). */
+    --signal-positive: 160 74% 40%;    /* emerald */
+    --signal-caution:  38 92% 50%;     /* amber */
+    --signal-negative: 350 78% 52%;    /* rose */
   }
 
   .dark {
@@ -120,6 +127,12 @@
     --metric-distance:   178 27% 65%;  /* #8fbcbb frost teal */
     --metric-resistance: 354 34% 58%;  /* #bf616a aurora red */
     --metric-action:     40 67% 74%;   /* #ebcb8b aurora yellow */
+    --metric-rest:       172 30% 60%;  /* frost teal-green */
+
+    /* Signal accents — vivid status hues, lifted for dark surfaces (#1000) */
+    --signal-positive: 158 55% 58%;    /* frost emerald */
+    --signal-caution:  40 85% 62%;     /* aurora amber */
+    --signal-negative: 354 62% 64%;    /* aurora rose */
   }
 }
 
@@ -165,7 +178,18 @@
   --color-metric-distance: hsl(var(--metric-distance));
   --color-metric-resistance: hsl(var(--metric-resistance));
   --color-metric-action: hsl(var(--metric-action));
+  --color-metric-rest: hsl(var(--metric-rest));
 
+  --color-signal-positive: hsl(var(--signal-positive));
+  --color-signal-caution: hsl(var(--signal-caution));
+  --color-signal-negative: hsl(var(--signal-negative));
+
+  /* RPE intensity ramp (RowsResultsChrome selector — #1000).
+   * Palette-independent data-viz hues, like the type accents. */
+  --color-rpe-easy: hsl(142 71% 45%);
+  --color-rpe-moderate: hsl(45 93% 47%);
+  --color-rpe-hard: hsl(27 96% 53%);
+  --color-rpe-max: hsl(0 72% 51%);
   /* Statement-type accents (Session Outputs Table dots/chips — #997).
    * Deliberately palette-independent: the type hue is an identity, identical
    * in Mineral and Arctic Frost. */

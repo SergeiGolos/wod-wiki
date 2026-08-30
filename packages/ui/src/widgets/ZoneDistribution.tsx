@@ -80,8 +80,8 @@ export function ZoneDistribution({ result, params }: ZoneDistributionProps) {
       key: 'low',
       label: 'Low / Aerobic',
       sublabel: 'Zone 1–2',
-      colorClass: 'bg-emerald-500',
-      bgClass: 'text-emerald-500',
+      colorClass: 'bg-signal-positive',
+      bgClass: 'text-signal-positive',
       target: targetLow,
       actual: lowVal,
       pct: actualLowPct,
@@ -90,8 +90,8 @@ export function ZoneDistribution({ result, params }: ZoneDistributionProps) {
       key: 'moderate',
       label: 'Moderate / Tempo',
       sublabel: 'Zone 3',
-      colorClass: 'bg-amber-500',
-      bgClass: 'text-amber-500',
+      colorClass: 'bg-signal-caution',
+      bgClass: 'text-signal-caution',
       target: targetMod,
       actual: modVal,
       pct: actualModPct,
@@ -100,8 +100,8 @@ export function ZoneDistribution({ result, params }: ZoneDistributionProps) {
       key: 'high',
       label: 'High / Anaerobic',
       sublabel: 'Zone 4–5',
-      colorClass: 'bg-rose-500',
-      bgClass: 'text-rose-500',
+      colorClass: 'bg-signal-negative',
+      bgClass: 'text-signal-negative',
       target: targetHigh,
       actual: highVal,
       pct: actualHighPct,
@@ -164,9 +164,9 @@ export function ZoneDistribution({ result, params }: ZoneDistributionProps) {
                 <span
                   className={`text-[10px] font-medium tabular-nums mt-0.5 ${
                     Math.abs(delta) <= 5
-                      ? 'text-emerald-500'
+                      ? 'text-signal-positive'
                       : delta > 0
-                        ? 'text-amber-500'
+                        ? 'text-signal-caution'
                         : 'text-muted-foreground'
                   }`}
                 >
