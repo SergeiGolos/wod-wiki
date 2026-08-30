@@ -1635,6 +1635,10 @@ export function DashboardQueryCard({
       const newest = Math.max(...crossfitJournal.records.map((r) => r.timestamp));
       return corpusService.run(parsed, { rangeEnd: newest, preferredUnit: 'lb' });
     },
+    // The card renders aggregates only; the modal routes find/rows here,
+    // so both diagnostics paths reject with the card's own message.
+    runFind: () => Promise.reject(new Error('Dashboard widgets evaluate aggregate queries — find/rows queries are for table views.')),
+    runRows: () => Promise.reject(new Error('Dashboard widgets evaluate aggregate queries — find/rows queries are for table views.')),
   }), [segment.dataSource, sessionOutputs, corpusService]);
 
 
@@ -1771,7 +1775,7 @@ export function DashboardQueryCard({
       <WqlQueryInspectorModal
         isOpen={editing}
         onClose={() => setEditing(false)}
-        initialQuery={segment.query}
+        initialQuery={segment.query ?? ''}
         executor={executor}
         title="Edit Widget Query"
         subtitle={segment.dataSource === 'session'
@@ -1825,6 +1829,8 @@ export function DashboardAnalyticsSection({
       const newest = Math.max(...crossfitJournal.records.map((r) => r.timestamp));
       return corpusService.run(parsed, { rangeEnd: newest, preferredUnit: 'lb' });
     },
+    runFind: () => Promise.reject(new Error('Dashboard widgets evaluate aggregate queries — find/rows queries are for table views.')),
+    runRows: () => Promise.reject(new Error('Dashboard widgets evaluate aggregate queries — find/rows queries are for table views.')),
   }), [corpusService]);
 
   const handleAddSegment = (query: string) => {

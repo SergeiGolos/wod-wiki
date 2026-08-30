@@ -144,6 +144,9 @@ export function GalleryCardView({ def }: { def: GalleryCardDef }) {
       runQuery: (query, opts) => {
         const parsed = parseQuery(query);
         if (parsed.error) return Promise.reject(new Error(parsed.error));
+        if (!isAggregateQuery(parsed)) {
+          return Promise.reject(new Error('not an aggregate query'));
+        }
         return service.run(parsed, {
           rangeEnd: newestTimestamp(journal),
           preferredUnit: def.preferredUnit,
