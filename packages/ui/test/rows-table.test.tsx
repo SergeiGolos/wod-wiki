@@ -75,6 +75,8 @@ describe('RowsTable — the Session Results Table', () => {
 
   it('shows the no-statements empty state for a run without events', () => {
     render(<RowsTable result={rowsResultWith([])} />);
-    expect(screen.getByText('No output statements recorded for this run.')).toBeDefined();
+    // The Card List (below sm) and the table (sm+) both mount; each carries
+    // its breakpoint's empty-state copy.
+    expect(screen.getAllByText('No output statements recorded for this run.').length).toBe(2);
   });
 });

@@ -49,11 +49,14 @@ const formatTime = formatTimeMMSS;
 export function getPrimaryTimerFontSizePx(panelWidth: number, compact: boolean): number {
     const width = panelWidth > 0 ? panelWidth : 800;
 
+    // Container-fit cap: "00:00" at font size F spans ≈3.1·F, so never exceed
+    // ~30% of the panel width regardless of the desktop floor (wayfinder #997
+    // — phone-width workbench columns).
     if (compact) {
-        return Math.round(Math.min(Math.max(width * 0.14, 56), 72));
+        return Math.round(Math.min(Math.max(width * 0.14, 56), 72, width * 0.3));
     }
 
-    return Math.round(Math.min(Math.max(width * 0.18, 128), 320));
+    return Math.round(Math.min(Math.max(width * 0.18, 128), 320, width * 0.3));
 }
 
 export const TimerStackView: React.FC<TimerStackViewProps> = ({

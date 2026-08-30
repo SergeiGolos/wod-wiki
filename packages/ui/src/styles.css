@@ -166,6 +166,17 @@
   --color-metric-resistance: hsl(var(--metric-resistance));
   --color-metric-action: hsl(var(--metric-action));
 
+  /* Statement-type accents (Session Outputs Table dots/chips — #997).
+   * Deliberately palette-independent: the type hue is an identity, identical
+   * in Mineral and Arctic Frost. */
+  --color-type-segment: hsl(160 84% 39%);    /* emerald */
+  --color-type-milestone: hsl(38 92% 50%);   /* amber */
+  --color-type-completion: hsl(217 91% 60%); /* blue */
+  --color-type-metric: hsl(258 90% 66%);     /* violet */
+  --color-type-event: hsl(350 89% 60%);      /* rose */
+  --color-type-group: hsl(239 84% 67%);      /* indigo */
+  --color-type-analytics: hsl(189 94% 43%);  /* cyan */
+
   --color-brand: #5980a8;
   --color-brand-light: #d6e4f0;
   --color-brand-deep: #3d5c7a;

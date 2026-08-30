@@ -55,6 +55,7 @@ import {
 import type { Note, UnifiedEventRecord } from '@bitcobblers/wod-wiki-core';
 import type { ScriptBlock } from '@bitcobblers/wod-wiki-core';
 import { TimerStackView } from '@/components/organisms/workout/TimerStackView';
+import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { VisualStatePanel } from '@/panels/visual-state-panel';
 import { calculateDuration } from '@/lib/timeUtils';
 import type { ITimerDisplayEntry } from '@/clock/types/DisplayTypes';
@@ -619,6 +620,7 @@ export function WallClockPanel(props: RuntimeControlsProps) {
 
         {/* Right Side (md:col-span-7): Timer & Playback Controls */}
         <div className="md:col-span-7 flex flex-col justify-center rounded-lg border border-border/60 bg-background/50 p-2 min-h-[220px]">
+          <PanelSizeProvider>
           <TimerStackView
             elapsedMs={primaryElapsedMs || props.elapsedTime}
             hasActiveBlock={Boolean(runtime)}
@@ -644,6 +646,7 @@ export function WallClockPanel(props: RuntimeControlsProps) {
             stackItems={stackItems}
             timerStates={timerStates}
           />
+          </PanelSizeProvider>
         </div>
       </div>
     </section>
@@ -679,8 +682,8 @@ export function IdleWallClockPanel(props: RuntimeControlsProps) {
 
         {/* Right Side: Timer */}
         <div className="md:col-span-7 flex flex-col justify-center rounded-lg border border-border/60 bg-background/50 p-2 min-h-[220px]">
+          <PanelSizeProvider>
           <TimerStackView
-            elapsedMs={0}
             hasActiveBlock={false}
             onStart={props.onStart}
             onPause={props.onPause}
@@ -699,6 +702,7 @@ export function IdleWallClockPanel(props: RuntimeControlsProps) {
               accumulatedMs: 0,
             }}
           />
+          </PanelSizeProvider>
         </div>
       </div>
     </section>
@@ -1050,7 +1054,12 @@ export function SessionOutputsTable({
         )}
       </div>
       {/* Session Results Table (shared) — statement rows, fixed metric columns */}
-      <OutputStatementsTable outputs={outputs} filter={filterText} timeOrigin={t0} />
+      <OutputStatementsTable
+        outputs={outputs}
+        filter={filterText}
+        timeOrigin={t0}
+        onClearFilter={() => setFilterText('')}
+      />
     </section>
   );
 }
@@ -1185,10 +1194,7 @@ export function IdleOutputTimeline() {
 export function ParserPanel({ script, error }: { script?: IScript; error?: string }) {
   const statements = script?.statements ?? [];
   return (
-    <div
-      className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs"
-      data-testid="panel-parser"
-    >
+    <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs" data-testid="panel-parser">
       <div className="flex items-center justify-between border-b border-border/50 pb-2">
         <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
           1. Parser AST &amp; Metrics
@@ -1267,10 +1273,7 @@ export function ActiveStackPanel(props: RuntimeControlsProps) {
   const blocks = snapshot.blocks ?? [];
 
   return (
-    <div
-      className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs"
-      data-testid="panel-stack"
-    >
+    <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs" data-testid="panel-stack">
       <div className="flex items-center justify-between border-b border-border/50 pb-2">
         <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
           2. Runtime Stack
@@ -1322,10 +1325,7 @@ export function ActiveStackPanel(props: RuntimeControlsProps) {
 
 export function IdleStackPanel(props: RuntimeControlsProps) {
   return (
-    <div
-      className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs"
-      data-testid="panel-stack"
-    >
+    <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs" data-testid="panel-stack">
       <div className="flex items-center justify-between border-b border-border/50 pb-2">
         <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
           2. Runtime Stack
@@ -1356,10 +1356,7 @@ export function ActiveMemoryPanel() {
   }, [activeBlock]);
 
   return (
-    <div
-      className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs"
-      data-testid="panel-memory"
-    >
+    <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs" data-testid="panel-memory">
       <div className="flex items-center justify-between border-b border-border/50 pb-2">
         <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
           3. Block Memory Map
@@ -1410,10 +1407,7 @@ export function ActiveMemoryPanel() {
 
 export function IdleMemoryPanel() {
   return (
-    <div
-      className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs"
-      data-testid="panel-memory"
-    >
+    <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs" data-testid="panel-memory">
       <div className="flex items-center justify-between border-b border-border/50 pb-2">
         <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
           3. Block Memory Map
@@ -1430,10 +1424,7 @@ export function ActiveLogsPanel() {
   const { outputs } = useOutputStatements();
 
   return (
-    <div
-      className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs"
-      data-testid="panel-logs"
-    >
+    <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs" data-testid="panel-logs">
       <div className="flex items-center justify-between border-b border-border/50 pb-2">
         <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
           4. Output Log Stream
@@ -1474,10 +1465,7 @@ export function ActiveLogsPanel() {
 
 export function IdleLogsPanel() {
   return (
-    <div
-      className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs"
-      data-testid="panel-logs"
-    >
+    <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/40 p-4 shadow-xs" data-testid="panel-logs">
       <div className="flex items-center justify-between border-b border-border/50 pb-2">
         <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
           4. Output Log Stream
@@ -1686,7 +1674,7 @@ export function DashboardQueryCard({
           />
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <div className="flex items-center gap-0.5 bg-muted/60 p-0.5 rounded-md border border-border/60">
             <button
               type="button"

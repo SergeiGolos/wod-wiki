@@ -84,16 +84,16 @@ export const OUTPUT_TYPE_CLASS: Record<string, string> = {
 };
 
 export const OUTPUT_TYPE_DOT: Record<string, string> = {
-  segment: 'bg-emerald-500 shadow-emerald-500/50',
-  milestone: 'bg-amber-500 shadow-amber-500/50',
-  completion: 'bg-blue-500 shadow-blue-500/50',
-  metric: 'bg-violet-500 shadow-violet-500/50',
+  segment: 'bg-type-segment shadow-type-segment/50',
+  milestone: 'bg-type-milestone shadow-type-milestone/50',
+  completion: 'bg-type-completion shadow-type-completion/50',
+  metric: 'bg-type-metric shadow-type-metric/50',
   system: 'bg-muted-foreground/40',
-  event: 'bg-rose-500 shadow-rose-500/50',
-  group: 'bg-indigo-500 shadow-indigo-500/50',
+  event: 'bg-type-event shadow-type-event/50',
+  group: 'bg-type-group shadow-type-group/50',
   load: 'bg-muted-foreground/40',
   compiler: 'bg-muted-foreground/40',
-  analytics: 'bg-cyan-500 shadow-cyan-500/50',
+  analytics: 'bg-type-analytics shadow-type-analytics/50',
 };
 
 // ── Metric categorisation (fixed column vocabulary) ──────────────────────────
@@ -250,7 +250,7 @@ export function OutputFilterPills({
   );
 }
 
-// ── The table ────────────────────────────────────────────────────────────────
+// ── The table (≥ sm) and the Card List (< sm, wayfinder #992/#997) ───────────
 
 export interface OutputStatementsTableProps {
   outputs: readonly OutputStatementRow[];
@@ -258,14 +258,125 @@ export interface OutputStatementsTableProps {
   filter?: string;
   /** Epoch ms the +offset column is relative to. Defaults to first statement start. */
   timeOrigin?: number;
+  /** Clears the active filter — enables the Card List's Clear-filter
+   *  affordance on the filtered-empty state. Optional; hosts without a
+   *  clearable filter omit it. */
+  onClearFilter?: () => void;
 }
 
-/** The Session Results Table body — one row per output statement with the
- *  fixed Movement/Reps/Load/Rounds/Target/Distance/Hints badge columns. */
+/** The Card List — phone presentation below `sm`. One stacked card per output
+ *  statement on a type-dot timeline rail: header (type chip + movement badges
+ *  | compact `+offset (elapsed)`), category-ordered metric badges, hints row.
+ *  Same rows, filter pipeline, and badge components as the table. */
+function StatementCards({
+  rows,
+  outputs,
+  t0,
+  onClearFilter,
+}: {
+  rows: readonly OutputStatementRow[];
+  outputs: readonly OutputStatementRow[];
+  t0: number | undefined;
+  onClearFilter?: () => void;
+}) {
+  if (rows.length === 0) {
+    const filtered = outputs.length > 0;
+    return (
+      <div
+        className="rounded-xl border border-dashed border-border/70 bg-card/40 p-6 text-center"
+        data-testid="output-statements-empty"
+      >
+        <p className="text-xs text-muted-foreground">
+          {filtered
+            ? 'No output statements match the current filter.'
+            : 'No output statements recorded for this run.'}
+        </p>
+        {filtered && onClearFilter && (
+          <button
+            type="button"
+            onClick={onClearFilter}
+            className="mt-3 inline-flex cursor-pointer rounded-md border border-border bg-background px-3 py-1 text-[11px] font-semibold text-foreground shadow-xs transition-colors hover:bg-accent"
+          >
+            Clear filter
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <ol className="flex flex-col" data-testid="output-statements-cards">
+      {rows.map((out, idx) => {
+        const cats = extractMetricsByCategory(out.metrics);
+        const started = out.timeSpan?.started;
+        const ended = out.timeSpan?.ended;
+        const elapsedStr = ended !== undefined && started !== undefined ? formatMMSS(ended - started) : 'running';
+        const offsetStr = started !== undefined && t0 !== undefined ? `+${formatMMSS(started - t0)}` : '+00:00';
+        const typeKey = String(out.outputType);
+        const hoverInfo = `#${out.id ?? idx + 1} · Block: ${out.sourceBlockKey || 'session'}${
+          out.completionReason ? ` · Reason: ${out.completionReason}` : ''
+        }`;
+        // Category order per the locked Card List anatomy: reps → loads →
+        // rounds → durations → distances; movement badges live in the header.
+        const bodyMetrics = [...cats.reps, ...cats.loads, ...cats.rounds, ...cats.durations, ...cats.distances];
+        const hasBody = bodyMetrics.length > 0;
+
+        return (
+          <li key={out.id ?? idx} className="relative pb-3 pl-6 last:pb-0" title={hoverInfo}>
+            {idx < rows.length - 1 && (
+              <span aria-hidden className="absolute bottom-0 left-[5px] top-5 w-px bg-border/60" />
+            )}
+            <span
+              aria-hidden
+              title={`Type: ${out.outputType} | ${hoverInfo}`}
+              className={`absolute left-0 top-1.5 size-2.5 rounded-full shadow-md ring-2 ring-background ${
+                OUTPUT_TYPE_DOT[typeKey] ?? OUTPUT_TYPE_DOT.system
+              }`}
+            />
+            <article className="rounded-xl border border-border/60 bg-card px-3 py-2.5">
+              <header className="flex items-start justify-between gap-2 border-b border-border/40 pb-1.5">
+                <div className="flex min-w-0 flex-wrap items-center gap-1">
+                  <span
+                    className={`inline-block shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider ${
+                      OUTPUT_TYPE_CLASS[typeKey] ?? OUTPUT_TYPE_CLASS.system
+                    }`}
+                  >
+                    {String(out.outputType ?? 'system').slice(0, 4)}
+                  </span>
+                  {presentBadges(cats.efforts)}
+                </div>
+                <div className="whitespace-nowrap text-right font-mono text-[11px] tabular-nums leading-tight">
+                  <span className="font-bold text-primary">{offsetStr}</span>{' '}
+                  <span className="text-[10px] text-muted-foreground/80">({elapsedStr})</span>
+                </div>
+              </header>
+              {hasBody && (
+                <div className="flex flex-wrap gap-1 pt-1.5">{presentBadges(bodyMetrics)}</div>
+              )}
+              {cats.hints.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1 border-t border-border/30 pt-1.5">
+                  {presentBadges(cats.hints)}
+                </div>
+              )}
+              {!hasBody && cats.hints.length === 0 && (
+                <p className="pt-1.5 text-[11px] text-muted-foreground/60">No metrics on this statement</p>
+              )}
+            </article>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** The Session Results surface — Card List below `sm`, the 9-column table at
+ *  `sm` and above. One component: same props, same filtering; hosts (analytics
+ *  explorer, editor query blocks, workbench) inherit the phone path. */
 export function OutputStatementsTable({
   outputs,
   filter = '',
   timeOrigin,
+  onClearFilter,
 }: OutputStatementsTableProps) {
   const t0 = timeOrigin ?? (outputs.length > 0 ? outputs[0].timeSpan?.started : undefined);
 
@@ -275,14 +386,18 @@ export function OutputStatementsTable({
   }, [outputs, filter]);
 
   return (
-    <div className="overflow-x-auto rounded-md border border-border/50 bg-background/40">
-      <table className="w-full text-left font-mono text-xs border-collapse" data-testid="output-statements-table">
-        <thead>
-          <tr className="border-b border-border/60 bg-muted/40 text-[10px] uppercase font-bold text-muted-foreground tracking-wider whitespace-nowrap">
-            <th className="p-2 w-12 text-center">Type</th>
-            <th className="p-2 min-w-[110px]">Time</th>
-            <th className="p-2 font-sans min-w-[140px]">🏃 Movement</th>
-            <th className="p-2 font-sans min-w-[60px]">🔢 Reps</th>
+    <>
+      {/* Phone: Card List below sm (wayfinder #992/#997) */}
+      <div className="sm:hidden">
+        <StatementCards rows={rows} outputs={outputs} t0={t0} onClearFilter={onClearFilter} />
+      </div>
+      {/* sm and up: the 9-column table */}
+      <div className="hidden overflow-x-auto rounded-md border border-border/50 bg-background/40 sm:block">
+        <table className="w-full text-left font-mono text-xs border-collapse" data-testid="output-statements-table">
+          <thead>
+            <tr className="border-b border-border/60 bg-muted/40 text-[10px] uppercase font-bold text-muted-foreground tracking-wider whitespace-nowrap">
+              <th className="p-2 w-12 text-center">Type</th>
+              <th className="p-2 min-w-[110px]">Time</th>
             <th className="p-2 font-sans min-w-[70px]">💪 Load</th>
             <th className="p-2 font-sans min-w-[80px]">🔄 Rounds</th>
             <th className="p-2 font-sans min-w-[70px]">⏱️ Target</th>
@@ -370,6 +485,7 @@ export function OutputStatementsTable({
           )}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
