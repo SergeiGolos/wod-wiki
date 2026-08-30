@@ -338,7 +338,7 @@ _Avoid_: content hash (implementation detail), stable id (ambiguous).
 `src/components/Editor/utils/sectionParser.ts` — `blockContentId`.
 
 **Catalog**:
-Bundled, read-only workout seed-data a user loads into their own notes. A block cloned from a Catalog shares its **Block Content Id** with the source (identical content → identical hash), so the same workout run across different notes and days is one identity, not many. A Catalog exposes two flavors of item: **Session** (undated, named — e.g. "Fran" inside the "CrossFit Girls" Catalog) and **Post** (dated, e.g. "2026-01-15 Morining" inside the dated posts Catalog). Distinct from a **Note**, which the user owns and edits.
+Bundled, read-only workout seed-data a user loads into their own notes. A block cloned from a Catalog shares its **Block Content Id** with the source (identical content → identical hash), so the same workout run across different notes and days is one identity, not many. A Catalog exposes two flavors of item: **Session** (named, carrying a derived first-published date — e.g. "Fran" inside the "CrossFit Girls" Catalog) and **Post** (dated, e.g. "2026-01-15 Morining" inside the dated posts Catalog). Distinct from a **Note**, which the user owns and edits.
 _Avoid_: bundle, library, pack, collection (legacy), feed (legacy).
 
 **Library**:
@@ -350,11 +350,11 @@ One row in the Library — the unified concept that abstracts a journal **Note**
 _Avoid_: content item, library row, search result.
 
 **Session**:
-One named, undated workout inside a Catalog — a hard-set workout you can clone into your own journal (e.g. "Fran" in "CrossFit Girls"). Source: `{ catalog: <catalog id>, item: <session id> }`. No Date. An Add-to-today row action clones it into today's journal Note.
+One named workout inside a Catalog — a hard-set workout you can clone into your own journal (e.g. "Fran" in "CrossFit Girls"). Source: `{ catalog: <catalog id>, item: <session id> }`. Carries a **derived date** (first published — when its source markdown entered the catalog), not a user-chosen one; time windows treat Sessions as ordinary dated content. An Add-to-today row action clones it into today's journal Note.
 _Avoid_: collection item (legacy), feed item (legacy), drill, standard, prescription.
 
 **Post**:
-One dated workout entry inside the dated posts Catalog (e.g. "2026-01-15 Morining"). Source: `{ catalog: <YYYY-MM-DD>, item: <post id> }`. Carries a Date. Distinct from a Session only by being dated and posting-context.
+One dated workout entry inside the dated posts Catalog (e.g. "2026-01-15 Morining"). Source: `{ catalog: <YYYY-MM-DD>, item: <post id> }`. Carries a Date. Distinct from a **Session** by posting-context, not by datedness: a Post's date is editorial (when it was written), a Session's is derived (when it first appeared in the catalog).
 _Avoid_: feed item (legacy), post item.
 
 **Grouping**:
