@@ -156,8 +156,10 @@ export function TourRing({ target, accent, canvasRef }: TourRingProps) {
     >
       {target.tag && (
         <span
-          className={`absolute left-4 rounded-full px-2.5 py-1 font-mono text-[10px] tracking-[0.06em] text-background ${
-            box.y < 24 ? 'top-full mt-1' : '-top-3'
+          className={`absolute rounded-full px-2.5 py-1 font-mono text-[10px] tracking-[0.06em] text-background ${
+            box.y < 24
+              ? 'top-1 left-2 lg:top-full lg:mt-1 lg:left-4'
+              : 'top-1 left-2 lg:-top-3 lg:left-4'
           }`}
           style={{ background: accent }}
         >

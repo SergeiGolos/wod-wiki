@@ -64,3 +64,4 @@ export {
   WHERE_METRICS,
   sourcePlane,
 } from './queryClauses';
+export { wqlToPills, pillsToWql } from './queryAst';

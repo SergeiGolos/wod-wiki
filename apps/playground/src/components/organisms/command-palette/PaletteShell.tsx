@@ -4,7 +4,7 @@ import { usePaletteStore } from './palette-store';
 import { CommandListView } from '@/components/molecules/CommandListView';
 import type { IListItem } from '@/components/molecules/types';
 import type { PaletteItem } from './palette-types';
-import { WqlComposer } from '@bitcobblers/wod-wiki-ui';
+import { WqlComposer, pillsToWql, wqlToPills } from '@bitcobblers/wod-wiki-ui';
 
 /** Map a PaletteItem to the generic list view model. */
 function toListItem(item: PaletteItem): IListItem<PaletteItem> {
@@ -38,13 +38,18 @@ export const PaletteShell: React.FC = () => {
   const [query, setQuery] = useState('');
   const [pendingText, setPendingText] = useState('');
 
-  // Live search string: committed WQL plus the composer's uncommitted free
-  // text, so typing narrows results before Enter folds the text into the query.
+  // Live search string: the committed WQL with the composer's uncommitted
+  // free text serialized as the same text-filter pill Enter commits. Bare
+  // trailing words are invalid WQL (the find grammar wants {filters}), so a
+  // raw concatenation would parse-error and blank the live results instead
+  // of narrowing them.
   const effectiveQuery = useMemo(() => {
     const p = pendingText.trim();
     if (!p) return query;
     if (!query) return p;
-    return `${query} ${p}`;
+    const pills = wqlToPills(query);
+    if (!pills) return `${query} ${p}`;
+    return pillsToWql([...pills, { id: 'palette-pending-text', type: 'text', label: 'text', value: p }]);
   }, [query, pendingText]);
   const [results, setResults] = useState<IListItem<PaletteItem>[]>([]);
   const [isLoading, setIsLoading] = useState(false);
