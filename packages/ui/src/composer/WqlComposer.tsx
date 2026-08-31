@@ -129,6 +129,13 @@ export function WqlComposer({
   const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null);
   const [freeText, setFreeText] = useState('');
 
+  // Mirror the controlled query prop so the live-search effect can emit the
+  // original string when no free text is pending. That avoids re-serializing
+  // visible pills and losing hidden clauses (e.g. source scope in LibraryPage)
+  // or producing a textually different but semantically identical query.
+  const controlledQueryRef = useRef(controlledQuery);
+  controlledQueryRef.current = controlledQuery;
+
   const inputRef = useRef<HTMLInputElement>(null);
   const freeTextInitRef = useRef<string | null>(null);
 
@@ -276,7 +283,9 @@ export function WqlComposer({
     const timer = setTimeout(() => {
       const raw = freeText.trim();
       if (!raw) {
-        onLiveQueryChange(pillsToWql(pills));
+        // Controlled: emit the exact prop string so hidden clauses (source,
+        // etc.) survive. Uncontrolled: fall back to the pill serialization.
+        onLiveQueryChange(controlledQueryRef.current ?? pillsToWql(pills));
       } else if (pending?.kind === 'query') {
         onLiveQueryChange((pending.pills && pillsToWql(pending.pills)) || raw);
       } else if (pending?.kind === 'raw') {

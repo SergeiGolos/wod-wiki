@@ -165,7 +165,7 @@ export function LibraryPage({ actions }: LibraryPageProps) {
     return () => {
       cancelled = true
     }
-  }, [activeWql, liveWql])
+  }, [activeWql])
 
   const dated = useMemo(
     () => entries.filter(e => e.kind !== 'session').sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),

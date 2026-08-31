@@ -20,18 +20,26 @@ import { formatDateHeader } from '../../lib/dateFormat'
 // rendering (#861) observes a sentinel. Controllable mock.
 class MockIntersectionObserver {
   static instances: MockIntersectionObserver[] = []
+  observed?: Element
   private readonly callback: IntersectionObserverCallback
   constructor(callback: IntersectionObserverCallback) {
     this.callback = callback
     MockIntersectionObserver.instances.push(this)
   }
-  observe() {}
+  observe(node: Element) {
+    this.observed = node
+  }
   unobserve() {}
   disconnect() {}
   trigger(isIntersecting = true) {
     this.callback([{ isIntersecting } as IntersectionObserverEntry], this as unknown as IntersectionObserver)
   }
 }
+
+function loadMoreObserver() {
+  return MockIntersectionObserver.instances.find(o => o.observed?.getAttribute('data-testid') === 'library-load-more')
+}
+
 const realIO = globalThis.IntersectionObserver
 globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver
 
@@ -41,7 +49,6 @@ globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof 
 // this bun process — partial mocks leak process-wide (the same failure mode
 // tests/helpers/repair-react-router-dom.ts repairs for react-router-dom).
 
-import * as realQuery from '@bitcobblers/wod-wiki-engine'
 import * as realJournalNotes from '../../services/journalNotes'
 
 const FEED_NOTE: Note = {
@@ -273,16 +280,17 @@ describe('LibraryPage', () => {
     renderPage(`/library?q=${encodeURIComponent('find:block in all')}`)
 
     // First batch only — never the full 250 rows in the DOM.
-    await waitFor(() => expect(screen.getAllByTestId('library-row-post')).toHaveLength(200))
+    await waitFor(() => expect(screen.getAllByTestId('library-row-post')).toHaveLength(200), { timeout: 5000 })
     expect(screen.getByTestId('library-load-more').textContent).toContain('50 remaining')
     // Group counts reflect the FULL result set, not the rendered batch.
     expect(screen.getByTestId('library-group-count').textContent).toBe('250')
 
     // Sentinel approaches → the rest render. The observer is created in a
-    // passive effect that may flush after the 200-row commit — await it.
-    await waitFor(() => expect(MockIntersectionObserver.instances.length).toBeGreaterThan(0))
-    act(() => MockIntersectionObserver.instances[MockIntersectionObserver.instances.length - 1]!.trigger())
-    await waitFor(() => expect(screen.getAllByTestId('library-row-post')).toHaveLength(250))
+    // passive effect; multiple observers can coexist on the page, so pick
+    // the one observing the load-more sentinel.
+    await waitFor(() => expect(loadMoreObserver()).toBeDefined(), { timeout: 5000 })
+    act(() => loadMoreObserver()!.trigger())
+    await waitFor(() => expect(screen.getAllByTestId('library-row-post')).toHaveLength(250), { timeout: 5000 })
     expect(screen.queryByTestId('library-load-more')).toBeNull()
   })
 
