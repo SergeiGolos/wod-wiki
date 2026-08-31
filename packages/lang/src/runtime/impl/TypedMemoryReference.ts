@@ -14,6 +14,7 @@ import type {
     SubscriptionOptions,
 } from '../contracts/IMemoryReference';
 import type { IRuntimeMemory } from '../contracts/IRuntimeMemory';
+import type { RuntimeStackLogger } from '../contracts/IRuntimeOptions';
 
 export class TypedMemoryReference<T> implements IMemoryReference {
     public id: string = uuidv7();
@@ -24,6 +25,7 @@ export class TypedMemoryReference<T> implements IMemoryReference {
         public readonly ownerId: string,
         public readonly type: string,
         public visibility: 'public' | 'private' | 'inherited' = 'private',
+        private readonly _logger?: RuntimeStackLogger,
     ) {}
 
     /**
@@ -111,7 +113,7 @@ export class TypedMemoryReference<T> implements IMemoryReference {
             try {
                 subscription.callback(newValue, oldValue);
             } catch (error) {
-                console.error(`Error in memory subscription callback:`, error);
+                this._logger?.error?.('Error in memory subscription callback:', error);
             }
         }
     }

@@ -32,6 +32,7 @@
  *   live there.
  */
 import type { IRuntimeBlock } from './contracts/IRuntimeBlock';
+import type { RuntimeStackLogger } from './contracts/IRuntimeOptions';
 import type {
     StackObserver,
     StackSnapshot,
@@ -45,6 +46,11 @@ import type {
  */
 export class RuntimeObservers {
     private readonly _stackObservers: Set<StackObserver> = new Set();
+    private readonly _logger?: RuntimeStackLogger;
+
+    constructor(logger?: RuntimeStackLogger) {
+        this._logger = logger;
+    }
 
     /**
      * Subscribe to stack snapshots. The collaborator does NOT emit an
@@ -72,7 +78,7 @@ export class RuntimeObservers {
             try {
                 observer(snapshot);
             } catch (err) {
-                console.error('[RuntimeObservers] Stack observer error:', err);
+                this._logger?.error?.('[RuntimeObservers] Stack observer error:', err);
             }
         }
     }

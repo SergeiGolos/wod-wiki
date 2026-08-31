@@ -1,4 +1,4 @@
-import { IMetric, MetricType } from '@bitcobblers/wod-wiki-core';
+import { IMetric, MetricType, CodeMetadata } from '@bitcobblers/wod-wiki-core';
 import { ICodeStatement } from '@bitcobblers/wod-wiki-core';
 import { UnitSet } from '../../metrics/units';
 import { EffortMetric } from "../../runtime/compiler/metrics/EffortMetric";
@@ -336,7 +336,7 @@ export function fuseUnits(statement: ICodeStatement, units: UnitSet): void {
     const nextMeta = new Map(statement.metricMeta);
     // Drop stale entries for replaced metrics, add entries for new ones.
     for (const m of before) if (!after.some((p) => p.metric === m)) nextMeta.delete(m);
-    for (const p of after) if (p.meta) nextMeta.set(p.metric, p.meta as any);
+    for (const p of after) if (p.meta) nextMeta.set(p.metric, p.meta as CodeMetadata);
     statement.metricMeta = nextMeta;
   }
 }

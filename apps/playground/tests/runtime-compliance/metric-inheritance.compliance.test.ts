@@ -38,7 +38,7 @@ async function currentDisplayMetricContainer(state: ScriptState, script: TestScr
     }
 
     const statementMetrics = MetricContainer.empty(block.key.toString());
-    for (const statement of (script.runtime as any).script.getIds(block.sourceIds)) {
+    for (const statement of script.runtime.script.getIds(block.sourceIds)) {
         statementMetrics.merge(statement.getDisplayMetrics());
     }
 
@@ -77,7 +77,7 @@ async function currentResistance(state: ScriptState, script: TestScript): Promis
     );
     if (!amountMetric && !unitMetric) return undefined;
     const amount = (amountMetric?.value as unknown)?.amount as number | undefined;
-    const unit = ((amountMetric?.value as unknown)?.unit || (unitMetric?.value as any)?.unit || '') as string;
+    const unit = ((amountMetric?.value as unknown)?.unit || (unitMetric?.value as { unit?: string } | undefined)?.unit || '') as string;
     return { amount, unit };
 }
 
@@ -102,7 +102,7 @@ async function currentDistance(state: ScriptState, script: TestScript): Promise<
     );
     if (!amountMetric && !unitMetric) return undefined;
     const amount = (amountMetric?.value as unknown)?.amount as number | undefined;
-    const unit = ((amountMetric?.value as unknown)?.unit || (unitMetric?.value as any)?.unit || '') as string;
+    const unit = ((amountMetric?.value as unknown)?.unit || (unitMetric?.value as { unit?: string } | undefined)?.unit || '') as string;
     return { amount, unit };
 }
 

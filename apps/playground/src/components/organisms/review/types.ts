@@ -95,7 +95,7 @@ export interface GridColumn {
   /** Column visibility */
   visible: boolean;
   /** Optional metadata for custom rendering or behavior */
-  readonly meta?: Record<string, any>;
+  readonly meta?: Record<string, unknown>;
 }
 
 // ─── Sorting ───────────────────────────────────────────────────

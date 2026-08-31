@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import crossfitJournal from '../../../packages/wql/fixtures/corpus/crossfit-multi-week.json';
 import {
@@ -84,7 +84,7 @@ describe('LanguageWorkbench in apps/storybook', () => {
   });
 
   it('evaluates WQL queries against inMemoryEventStore in real time', async () => {
-    const store = inMemoryEventStore(crossfitJournal.records as any);
+    const store = inMemoryEventStore(crossfitJournal.records as Parameters<typeof inMemoryEventStore>[0]);
     const service = new QueryService(store);
 
     const newest = Math.max(...crossfitJournal.records.map((f) => f.timestamp));

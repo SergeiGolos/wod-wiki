@@ -132,9 +132,7 @@ export class ExecutionContext implements IRuntimeContext {
 
         while (this._workList.length > 0) {
             if (this._iteration >= this._maxIterations) {
-                const errorMsg = `[ExecutionContext] Max iterations reached (${this._maxIterations}). Aborting to prevent infinite loop.`;
-                console.error(errorMsg);
-                throw new Error(errorMsg);
+                throw new Error(`[ExecutionContext] Max iterations reached (${this._maxIterations}). Aborting to prevent infinite loop.`);
             }
 
             // Always take from the front

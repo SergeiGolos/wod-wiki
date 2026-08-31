@@ -65,7 +65,7 @@ export class YogaDialect implements IDialect {
 
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
-    const metrics = MetricContainer.from(statement.metrics as any);
+    const metrics = MetricContainer.from(statement.metrics);
     const hasDuration = metrics.some(m => m.type === MetricType.Duration);
 
     // TODO: Detect individual pose holds

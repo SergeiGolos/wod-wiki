@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { convert, getUnitFamily } from '@/services/analytics/units';
+import { convert, getUnitFamily } from '@/hooks/useWorkbenchServices';
 import type { AnalyticsDataPoint } from '@/types/storage';
 
 export interface RawPointsTableProps {

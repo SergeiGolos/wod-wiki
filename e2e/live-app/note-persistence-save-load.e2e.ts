@@ -40,7 +40,7 @@ test.describe('Note Persistence — save / load / workout flow', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20_000 });
   });
 
-  test.afterEach(async () => {
+  test.afterEach(async (_, testInfo) => {
     const persistenceErrors = errors.filter(e =>
       e.includes('NOTE_NOT_FOUND') ||
       e.includes('mutateNote') ||
@@ -48,7 +48,10 @@ test.describe('Note Persistence — save / load / workout flow', () => {
       e.includes('IndexedDB')
     );
     if (persistenceErrors.length > 0) {
-      console.warn('⚠️  Persistence errors during test:', persistenceErrors);
+      testInfo.annotations.push({
+        type: 'warning',
+        description: `⚠️  Persistence errors during test: ${JSON.stringify(persistenceErrors)}`,
+      });
     }
   });
 

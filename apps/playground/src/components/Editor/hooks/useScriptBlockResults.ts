@@ -91,8 +91,7 @@ export function useScriptBlockResults(
           // Sort by createdAt descending (most recent first)
           setResults((entry?.extendedResults ?? []).sort((a, b) => b.createdAt - a.createdAt));
         }
-      } catch (err) {
-        console.error('[useScriptBlockResults] Failed to fetch results:', err);
+      } catch {
         if (!cancelled) setResults([]);
       } finally {
         if (!cancelled) setLoading(false);

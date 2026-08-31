@@ -10,6 +10,7 @@
 
 import { beforeEach, afterEach, describe, expect, it, mock } from 'bun:test'
 import { render, cleanup, act } from '@testing-library/react'
+import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import type { Quest, Chapter } from '../canvas/parseCanvasMarkdown'
 
@@ -130,8 +131,6 @@ function setTestRunwayReached(reached: boolean) {
 }
 
 mock.module('../canvas/useScrollRunway', () => {
-  const React = require('react')
-
   return {
     useScrollRunway: () => {
       const [, force] = React.useReducer((n: number) => n + 1, 0)

@@ -18,7 +18,7 @@ export interface RuntimeSnapshot {
 export interface MemoryEntry {
   type: string;
   ownerId: string;
-  value: any;
+  value: unknown;
 }
 
 export interface SnapshotDiff {

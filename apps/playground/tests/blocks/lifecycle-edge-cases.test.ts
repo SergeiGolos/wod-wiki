@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { CountupTimerBehavior, ExitBehavior, LabelingBehavior } from '@bitcobblers/wod-wiki-engine';
+import { CountupTimerBehavior, ExitBehavior } from '@bitcobblers/wod-wiki-engine';
+import type { TimerState } from '@bitcobblers/wod-wiki-engine';
 import { PopBlockAction } from '@bitcobblers/wod-wiki-engine';
 
 describe('Block lifecycle edge cases', () => {
@@ -27,6 +28,7 @@ describe('Block lifecycle edge cases', () => {
     // Second mount — block already on stack, already mounted
     // Calling mount again should not crash
     const secondActions = harness.mount();
+    expect(secondActions).toBeDefined();
 
     // Block should not have duplicate memory entries;
     // the second mount recreates behaviorContext but does not duplicate memory
@@ -134,7 +136,7 @@ describe('Block lifecycle edge cases', () => {
     harness.advanceClock(0);
 
     // Timer memory should still be valid, no negative elapsed
-    const timerMemory = harness.getMemory('time');
+    const timerMemory = harness.getMemory<TimerState>('time');
     expect(timerMemory).toBeDefined();
     expect(timerMemory.direction).toBe('up');
 

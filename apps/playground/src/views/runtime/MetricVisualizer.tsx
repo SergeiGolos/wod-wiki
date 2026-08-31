@@ -66,12 +66,10 @@ export const MetricVisualizer = React.memo<MetricVisualizerProps>(({
       }
 
       // 3. Check Allowed Origins
-      // If allowedOrigins is defined, metrics MUST have a matching origin.
-      // If metric has NO origin, we assume 'parser' (default).
       if (filter.allowedOrigins) {
-        const origin = metric.origin || 'parser';
-        const isAllowed = filter.allowedOrigins.includes(origin as any);
-        return isAllowed;
+        // If allowedOrigins is defined, metrics MUST have a matching origin.
+        // If metric has NO origin, we assume 'parser' (default).
+        return filter.allowedOrigins.includes(metric.origin || 'parser');
       }
 
       return true;

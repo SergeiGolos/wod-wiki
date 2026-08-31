@@ -1,6 +1,10 @@
 import { ICastSubscription } from '@bitcobblers/wod-wiki-engine';
+
+import { IMetric } from '@bitcobblers/wod-wiki-engine';
+
+
+
 import { StackSnapshot } from '@bitcobblers/wod-wiki-engine';
-import { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
 import { IRpcTransport } from './IRpcTransport';
 import { serializeStackSnapshot, serializeOutput, serializeAnalyticsSummary } from './RpcSerializer';
 
@@ -110,7 +114,7 @@ export class ChromecastRuntimeSubscription implements ICastSubscription {
             parts.push(`private:${privateTags}`);
             // Include next-preview metrics content so Up Next changes trigger a re-send
             const nextSig = block.nextFragments
-                ?.map((f: any) => `${f.type ?? ''}:${f.image ?? f.value ?? ''}`)
+                ?.map((f: IMetric) => `${f.type ?? ''}:${f.image ?? (f.value == null ? '' : String(f.value))}`)
                 .join(',') ?? '';
             parts.push(`next:${nextSig}`);
             // Behavior names (rarely change but should trigger re-send if they do)

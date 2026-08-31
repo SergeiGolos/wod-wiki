@@ -100,7 +100,7 @@ async function capturePaintTiming(page: Page): Promise<{
     const lcpEntry = lcpEntries.length > 0 ? lcpEntries[lcpEntries.length - 1] : null;
     return {
       fcp: fcpEntry ? fcpEntry.startTime : null,
-      lcp: lcpEntry ? (lcpEntry as any).startTime : null,
+      lcp: lcpEntry ? lcpEntry.startTime : null,
     };
   });
 }

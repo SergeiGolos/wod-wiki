@@ -1,4 +1,3 @@
-
 import { OutputStatement } from '@bitcobblers/wod-wiki-engine';
 import { TimeSpan } from '@bitcobblers/wod-wiki-engine';
 
@@ -11,17 +10,17 @@ const output = new OutputStatement({
     stackLevel: 0,
 });
 
-console.log('--- OutputStatement Serialization Check ---');
+process.stdout.write('--- OutputStatement Serialization Check ---\n');
 const json = JSON.stringify(output);
-console.log('Serialized JSON includes "elapsed"?', json.includes('"elapsed":'));
-console.log('Serialized JSON includes "total"?', json.includes('"total":'));
+process.stdout.write(`Serialized JSON includes "elapsed"? ${json.includes('"elapsed":')}\n`);
+process.stdout.write(`Serialized JSON includes "total"? ${json.includes('"total":')}\n`);
 
-const parsed = JSON.parse(json);
-console.log('Parsed elapsed:', parsed.elapsed);
-console.log('Parsed total:', parsed.total);
+const parsed = JSON.parse(json) as { elapsed?: number; total?: number };
+process.stdout.write(`Parsed elapsed: ${parsed.elapsed}\n`);
+process.stdout.write(`Parsed total: ${parsed.total}\n`);
 
 if (parsed.elapsed === 5000 && parsed.total === 5000) {
-    console.log('SUCCESS: Elapsed and Total are correctly serialized.');
+    process.stdout.write('SUCCESS: Elapsed and Total are correctly serialized.\n');
 } else {
-    console.log('FAILURE: Elapsed or Total are missing or incorrect.');
+    process.stdout.write('FAILURE: Elapsed or Total are missing or incorrect.\n');
 }

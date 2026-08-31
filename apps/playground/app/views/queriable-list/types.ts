@@ -23,5 +23,5 @@ export interface FilteredListItem {
   date?: number;
   /** Source group for grouping in journal views ('playground', etc.) */
   group?: string;
-  payload: any;
+  payload: unknown;
 }

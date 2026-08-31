@@ -39,7 +39,7 @@ describe('ResultListItem', () => {
         title: 'Morning Workout',
       };
 
-      const { container } = render(<ResultListItem {...propsWithoutSubtitle} />);
+      render(<ResultListItem {...propsWithoutSubtitle} />);
 
       expect(screen.queryByText('45 minutes')).toBeNull();
     });

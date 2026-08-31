@@ -17,7 +17,8 @@ function createMockOutput<T = IOutputStatement>(options: {
   ended?: number;
   sourceBlockKey?: string;
   stackLevel?: number;
-  metrics?: Array<Partial<IMetric> & { type: MetricType | string }>;
+  completionReason?: string;
+  metrics?: Array<Partial<IMetric> & { type: MetricType | string; key?: string; metadata?: Record<string, unknown> }>;
   hints?: string[];
 }): T {
   const now = Date.now();
@@ -37,6 +38,7 @@ function createMockOutput<T = IOutputStatement>(options: {
     sourceStatementId: undefined,
     meta: { line: 0, columnStart: 0, columnEnd: 0, startOffset: 0, endOffset: 0, length: 0, raw: '' },
     isLeaf: true,
+    completionReason: options.completionReason,
   } as unknown as T;
 }
 
@@ -93,8 +95,8 @@ describe('AnalyticsTransformer', () => {
           started: startTime,
           ended: startTime + 30000,
           metrics: [
-            { type: MetricType.Custom, key: 'custom_metric', value: 7, unit: 'pts', image: 'Custom Metric', origin: 'runtime' } as any,
-            { type: MetricType.Calculated, value: 420, unit: 'pts', image: '420 pts', origin: 'runtime', metadata: { target: 'totalLoad' } } as any,
+            { type: MetricType.Custom, key: 'custom_metric', value: 7, unit: 'pts', image: 'Custom Metric', origin: 'runtime' },
+            { type: MetricType.Calculated, value: 420, unit: 'pts', image: '420 pts', origin: 'runtime', metadata: { target: 'totalLoad' } },
           ],
         }),
       ];
@@ -217,8 +219,8 @@ describe('AnalyticsTransformer', () => {
           ended: startTime + 10000,
           sourceBlockKey: 'my-block-uuid',
           metrics: [],
+          completionReason: 'timer-expired',
         });
-        (output as any).completionReason = 'timer-expired';
 
         const segments = transformer.fromOutputStatements([output]);
 

@@ -16,7 +16,7 @@
  */
 import { it, expect } from 'bun:test';
 import { describeCompliance, assertions } from '@/testing/script';
-import { currentBlockType, anySystemPopHasReason, systemPopValues } from '../helpers/compliance-helpers';
+import { currentBlockType } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Mixed Timers — Sequential blocks with different timer types

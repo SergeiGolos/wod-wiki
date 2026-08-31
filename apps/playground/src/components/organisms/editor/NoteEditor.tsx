@@ -198,8 +198,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   extensions: extraExtensions,
   widgetComponents,
   onButtonAction,
-  stickyTopOffset = 0,
-  hoverLine,
   activeSectionId: externalActiveSectionId,
   scrollToSectionId,
   results,

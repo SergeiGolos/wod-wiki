@@ -1,4 +1,4 @@
-import { IScript, WhiteboardScript } from './WhiteboardScript';
+import { WhiteboardScript } from './WhiteboardScript';
 import { parseScript } from './parseScript';
 
 /**
@@ -11,7 +11,7 @@ export class MdTimerRuntime {
    *
    * @param sport - The block's `:sport` fence suffix (` ```log:climbing `).
    */
-  read(inputText: string, sport?: string): IScript {
+  read(inputText: string, sport?: string): WhiteboardScript {
     return parseScript(inputText, { sport });
   }
 
@@ -19,7 +19,7 @@ export class MdTimerRuntime {
    * Parse without running the Dialect Stack. Used by the parser test harness
    * which applies its own Dialect set. Production consumers should use {@link read}.
    */
-  readWithoutDialects(inputText: string): IScript {
+  readWithoutDialects(inputText: string): WhiteboardScript {
     return parseScript(inputText, { withoutDialects: true });
   }
 }

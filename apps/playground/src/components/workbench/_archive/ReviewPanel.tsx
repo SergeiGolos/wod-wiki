@@ -3,10 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { TimerIndexPanel } from '../../organisms/layout/TimerIndexPanel';
 import { TimelineView } from '../../../timeline/TimelineView';
 import { Segment, AnalyticsGroup } from '@bitcobblers/wod-wiki-engine';
-import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
 
 export interface ReviewPanelProps {
-  runtime: IScriptRuntime | null;
+  runtime: ScriptRuntime | null;
   segments: Segment[];
   selectedSegmentIds: Set<number>;
   onSelectSegment: (id: number, modifiers?: { ctrlKey: boolean; shiftKey: boolean }, visibleIds?: number[]) => void;
@@ -40,7 +40,7 @@ export const ReviewPanelIndex: React.FC<Pick<ReviewPanelProps, 'runtime' | 'segm
 
   return (
     <TimerIndexPanel
-      runtime={runtime as any}
+      runtime={runtime}
       selectedIds={selectedIds}
       onSelectionChange={handleSelectionChange}
       onDoubleClick={handleDoubleClick}

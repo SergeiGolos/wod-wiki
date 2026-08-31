@@ -21,24 +21,26 @@ export const LinkedNotesSection: React.FC<LinkedNotesSectionProps> = ({
   const navigate = useNavigate();
   const [sourceEntry, setSourceEntry] = useState<HistoryEntry | null>(null);
   const [clonedEntries, setClonedEntries] = useState<HistoryEntry[]>([]);
+  const entryId = entry?.id;
+  const entrySourceId = entry?.sourceId;
 
   useEffect(() => {
-    if (!entry || !provider) {
+    if (!entryId || !provider) {
       setSourceEntry(null);
       setClonedEntries([]);
       return;
     }
 
-    if (entry.sourceId) {
-      provider.getEntry(entry.sourceId).then((e) => setSourceEntry(e ?? null)).catch(() => setSourceEntry(null));
+    if (entrySourceId) {
+      provider.getEntry(entrySourceId).then((e) => setSourceEntry(e ?? null)).catch(() => setSourceEntry(null));
     } else {
       setSourceEntry(null);
     }
 
     provider.getEntries()
-      .then((entries) => setClonedEntries(entries.filter((e) => e.sourceId === entry.id)))
+      .then((entries) => setClonedEntries(entries.filter((e) => e.sourceId === entryId)))
       .catch(() => setClonedEntries([]));
-  }, [entry?.id, entry?.sourceId, provider]);
+  }, [entryId, entrySourceId, provider]);
 
   return (
     <div className="space-y-3">

@@ -266,7 +266,7 @@ export const ModifiedValuesViewer: React.FC<{
 };
 
 // Helper function to format values for display
-function formatValue(value: any): string {
+function formatValue(value: unknown): string {
   if (value === undefined) return 'undefined';
   if (value === null) return 'null';
   if (typeof value === 'string') return `"${value}"`;

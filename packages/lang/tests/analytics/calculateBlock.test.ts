@@ -114,9 +114,10 @@ describe('calculateBlock parsing and evaluation', () => {
     const analytics = engine.finalize();
     expect(analytics).toHaveLength(1);
 
-    const calculatedMetric = analytics[0].getMetric(MetricType.Calculated) as any;
-    expect(calculatedMetric.value).toBe(500);
-    expect(calculatedMetric.metadata).toMatchObject({
+    const calculatedMetric = analytics[0].getMetric(MetricType.Calculated);
+    expect(calculatedMetric).toBeDefined();
+    expect(calculatedMetric!.value).toBe(500);
+    expect(calculatedMetric!.metadata).toMatchObject({
       target: 'totalLoad',
       expression: 'sum(reps * weight)',
     });

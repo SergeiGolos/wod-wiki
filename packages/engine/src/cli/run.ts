@@ -7,7 +7,6 @@
 
 import {
   createParser,
-  type IScript,
   createCompiler,
   RuntimeStack,
   createMockClock,
@@ -62,7 +61,7 @@ export async function runExecution(
   options: RunOptions = {},
 ): Promise<WodWikiIRFile<ExecutionLog>> {
   const parser = createParser();
-  const script: IScript = parser.read(source, options.sport);
+  const script = parser.read(source, options.sport);
 
   if (script.errors && script.errors.length > 0) {
     throw new ParseSyntaxError(script.errors);
@@ -76,7 +75,7 @@ export async function runExecution(
   const eventBus = new EventBus();
 
   const runtime = new ScriptRuntime(
-    script as any,
+    script,
     compiler,
     { stack, clock, eventBus },
     {},
@@ -87,7 +86,7 @@ export async function runExecution(
     id: 'cli-block',
     content: source,
     statements: script.statements,
-    sport: options.sport as any,
+    sport: options.sport,
     version: 1,
     startLine: 0,
     endLine: 0,

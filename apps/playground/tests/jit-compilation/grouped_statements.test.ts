@@ -4,7 +4,7 @@ import { JitCompiler } from '@bitcobblers/wod-wiki-engine';
 import { EffortFallbackStrategy } from '@bitcobblers/wod-wiki-engine';
 import { ChildrenStrategy } from '@bitcobblers/wod-wiki-engine';
 import { GenericGroupStrategy } from '@bitcobblers/wod-wiki-engine';
-import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { createMockClock } from '@bitcobblers/wod-wiki-engine';
 import { ScriptRuntime } from '@bitcobblers/wod-wiki-engine';
@@ -50,7 +50,7 @@ describe('Grouped Statements Compilation', () => {
         const childStatements = childIds.map(id => result.getId(id)!);
 
         // Compile the group
-        const block = compiler.compile(childStatements as any, runtime);
+        const block = compiler.compile(childStatements as ICodeStatement[], runtime);
         expect(block).toBeDefined();
 
         // Check source IDs in block

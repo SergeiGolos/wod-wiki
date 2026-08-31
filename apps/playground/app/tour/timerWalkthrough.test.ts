@@ -26,18 +26,22 @@ const stage = (id: string) => {
   if (!s) throw new Error(`stage ${id} missing`)
   return s
 }
+const ringKey = (id: string): string | undefined => {
+  const r = stage(id).ring
+  return typeof r === 'object' && r !== null ? r.key : undefined
+}
 
 describe('timer walkthrough card ring targets (#885)', () => {
   it('card 1 highlights the whole timer view', () => {
-    expect((stage('timer-wallclock').ring as any)?.key).toBe('timer.floor')
+    expect(ringKey('timer-wallclock')).toBe('timer.floor')
   })
 
   it('card 2 highlights the Next button', () => {
-    expect((stage('timer-next').ring as any)?.key).toBe('timer.nextButton')
+    expect(ringKey('timer-next')).toBe('timer.nextButton')
   })
 
   it('card 3 highlights the timer header cast button', () => {
-    expect((stage('timer-cast').ring as any)?.key).toBe('timer.castButton')
+    expect(ringKey('timer-cast')).toBe('timer.castButton')
   })
 })
 

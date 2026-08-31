@@ -674,8 +674,8 @@ function buildWidgetDecos(state: EditorState, registry: WidgetRegistry): Decorat
   let sectionState;
   try {
     sectionState = state.field(sectionField);
-  } catch (e) {
-    console.warn("[widget-block-preview] sectionField not found in state", e);
+  } catch {
+    // sectionField not present in this editor state; nothing to decorate.
     return Decoration.none;
   }
   const { sections } = sectionState;

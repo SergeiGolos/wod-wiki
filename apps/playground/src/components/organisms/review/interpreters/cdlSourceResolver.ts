@@ -16,6 +16,7 @@ import type {
   ComputeContext,
   ColumnDef,
 } from '../column-definition-language';
+import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
 
 
 // ─── Public API ────────────────────────────────────────────────
@@ -195,20 +196,39 @@ function resolveAllPresentCombined(
   return values;
 }
 
-function extractDisplayText(value: unknown): string {
+function displayTextFromMetrics(metrics: unknown): string {
+  if (metrics == null) return '';
+
+  const arr = Array.isArray(metrics)
+    ? metrics
+    : metrics instanceof MetricContainer
+      ? metrics.toArray()
+      : [];
+
+  if (arr.length === 0) return '';
+
+  const first = arr[0];
+  if (first != null && typeof first === 'object') {
+    if ('image' in first && typeof first.image === 'string') {
+      return first.image;
+    }
+    if ('value' in first && first.value !== undefined) {
+      return String(first.value);
+    }
+  }
+
+  return String(first);
+}
+
+export function extractDisplayText(value: unknown): string {
   if (value === undefined || value === null) return '';
   if (typeof value === 'string') return value;
   if (typeof value === 'number') return String(value);
   if (typeof value === 'boolean') return String(value);
 
-  const v = value as any;
-  if (v.metrics) {
-    const arr = v.metrics.toArray?.() ?? v.metrics ?? [];
-    if (arr.length > 0) {
-      const first = arr[0];
-      if (first?.image) return first.image;
-      if (first?.value !== undefined) return String(first.value);
-    }
+  if (typeof value === 'object' && 'metrics' in value) {
+    const text = displayTextFromMetrics(value.metrics);
+    if (text.length > 0) return text;
   }
 
   return String(value);

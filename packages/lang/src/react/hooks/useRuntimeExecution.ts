@@ -61,6 +61,18 @@ export const useRuntimeExecution = (
   const startTimeRef = useRef<number | null>(null);
 
   /**
+   * Stops continuous execution without clearing metrics.
+   * Preserves elapsedTime and startTime for completion reporting.
+   */
+  const stop = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setStatus('idle');
+  }, []);
+
+  /**
    * Executes a single runtime step
    * Called by interval timer and step() method
    */
@@ -72,12 +84,11 @@ export const useRuntimeExecution = (
       const tickEvent = new TickEvent(undefined, runtime.nowProvider);
       runtime.handle(tickEvent);
       setStepCount(prev => prev + 1);
-    } catch (error) {
+    } catch {
       stop();
       setStatus('error');
-      console.error('Runtime execution error:', error);
     }
-  }, [runtime]);
+  }, [runtime, stop]);
 
   /**
    * Reactive completion detection
@@ -117,12 +128,11 @@ export const useRuntimeExecution = (
    */
   const start = useCallback(() => {
     if (!runtime) {
-      console.warn('Cannot start execution: runtime is null');
+      console.warn('useRuntimeExecution: Cannot start execution without a runtime');
       return;
     }
-
     if (status === 'running') {
-      console.warn('Cannot start execution: already running');
+      console.warn('useRuntimeExecution: Runtime is already running');
       return;
     }
 
@@ -170,18 +180,6 @@ export const useRuntimeExecution = (
   }, [runtime]);
 
   /**
-   * Stops continuous execution without clearing metrics.
-   * Preserves elapsedTime and startTime for completion reporting.
-   */
-  const stop = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    setStatus('idle');
-  }, []);
-
-  /**
    * Resets execution state and clears all metrics.
    * Used for "replay" functionality or starting fresh.
    */
@@ -207,13 +205,7 @@ export const useRuntimeExecution = (
    * Used for debugging and step-through execution
    */
   const step = useCallback(() => {
-    if (!runtime) {
-      console.warn('Cannot step: runtime is null');
-      return;
-    }
-
-    if (status === 'running') {
-      console.warn('Cannot step while running');
+    if (!runtime || status === 'running') {
       return;
     }
 
@@ -232,7 +224,7 @@ export const useRuntimeExecution = (
     }, 100); // Update display every 100ms
 
     return () => clearInterval(updateInterval);
-  }, [status]);
+  }, [status, runtime?.nowProvider]);
 
   /**
    * Cleanup on unmount - critical for preventing memory leaks
@@ -241,6 +233,7 @@ export const useRuntimeExecution = (
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, []);

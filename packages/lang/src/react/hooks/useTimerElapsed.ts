@@ -107,7 +107,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
   }, [block]);
 
   // Extract spans from timer state
-  const timeSpans = timerState?.spans || [];
+  const timeSpans = useMemo(() => timerState?.spans ?? [], [timerState]);
 
   // Derive isRunning from spans - last span has no end time
   const isRunning = timeSpans.length > 0 && timeSpans[timeSpans.length - 1].ended === undefined;

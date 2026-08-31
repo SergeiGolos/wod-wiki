@@ -253,17 +253,11 @@ describe('WorkoutActionButton', () => {
     });
 
     it('handles provider errors gracefully', async () => {
-      const consoleErrors: string[] = [];
-      const originalError = console.error;
-      console.error = (...args) => {
-        consoleErrors.push(args.join(' '));
-      };
-
       const mockProvider: IContentProvider = {
         getEntries: async () => {
           throw new Error('Provider error');
         },
-      } as any;
+      } as unknown as IContentProvider;
 
       let actionCalled = false;
       const onAction = () => {
@@ -286,12 +280,6 @@ describe('WorkoutActionButton', () => {
         const dropdown = document.body.querySelector('.rounded-md.border');
         expect(dropdown).toBeTruthy();
       });
-
-      // Check that error was logged
-      expect(consoleErrors.length).toBeGreaterThan(0);
-      expect(consoleErrors.some(e => e.includes('Failed to load entry dates'))).toBe(true);
-
-      console.error = originalError;
     });
   });
 

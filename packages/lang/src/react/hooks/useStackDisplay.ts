@@ -13,7 +13,7 @@ export interface FragmentSourceEntry {
   isLinked?: boolean;
   status?: FragmentSourceStatus;
   label?: string;
-  metricGroups?: any[];
+  metricGroups?: readonly MetricContainer[];
 }
 import { useSnapshotBlocks } from './useStackSnapshot';
 

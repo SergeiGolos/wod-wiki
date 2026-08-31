@@ -74,7 +74,7 @@ export interface DebugLogEvent {
     timestamp: number;
     blockKey?: string;
     blockType?: string;
-    details?: Record<string, any>;
+    details?: Record<string, unknown>;
 }
 
 /**

@@ -6,6 +6,7 @@ import { DistanceMetric } from '../../src/runtime/compiler/metrics/DistanceMetri
 import { DurationMetric } from '../../src/runtime/compiler/metrics/DurationMetric';
 import { EffortMetric } from '../../src/runtime/compiler/metrics/EffortMetric';
 import { GroupMetric } from '../../src/runtime/compiler/metrics/GroupMetric';
+import { PropertyMetric } from '../../src/runtime/compiler/metrics/PropertyMetric';
 import { ResistanceMetric } from '../../src/runtime/compiler/metrics/ResistanceMetric';
 import { classifyStatements } from '../../src/parser/semantic-classifier';
 import { SyntaxFacts, SyntaxMeta, SyntaxPrimitive, SyntaxStatement } from '../../src/parser/syntax-facts';
@@ -167,7 +168,7 @@ describe('classifyStatements', () => {
       image: 'location: Sender One',
       origin: 'parser',
     });
-    expect((custom[0] as any).key).toBe('location');
+    expect((custom[0] as PropertyMetric).key).toBe('location');
   });
 
   it('maps metric_object primitives into known and custom property metrics', () => {

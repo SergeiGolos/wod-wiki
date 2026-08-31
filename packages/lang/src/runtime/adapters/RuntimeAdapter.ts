@@ -341,7 +341,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
     return ownerId;
   }
 
-  private formatValue(value: any): string {
+  private formatValue(value: unknown): string {
     if (value === undefined || value === null) {
       return 'undefined';
     }

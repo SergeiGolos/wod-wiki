@@ -22,8 +22,7 @@ export class CompletionTimestampBehavior implements IRuntimeBehavior {
 
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
         // Check if block was just marked complete and we haven't recorded the timestamp yet
-        const blockState = (ctx.block as any).state;
-        if (blockState && blockState.isComplete && !this.wasComplete && !this.completionTime) {
+        if (ctx.block.isComplete && !this.wasComplete && !this.completionTime) {
             this.completionTime = new Date(ctx.clock.currentDate);
             this.wasComplete = true;
 

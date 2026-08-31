@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'bun:test';
+import type { ICodeStatement, Segment } from '@bitcobblers/wod-wiki-engine';
+import type { ScriptBlock } from '@/components/Editor/types';
 import { buildCompletedRuntimeProjection, buildPreviewProjection, buildReviewProjection } from './workbenchProjection';
 
-const makeSegment = (overrides: Partial<import('@bitcobblers/wod-wiki-engine').Segment> = {}): import('@bitcobblers/wod-wiki-engine').Segment => ({
+const makeSegment = (overrides: Partial<Segment> = {}): Segment => ({
   id: 1,
   name: 'Run',
   type: 'segment',
@@ -13,6 +15,18 @@ const makeSegment = (overrides: Partial<import('@bitcobblers/wod-wiki-engine').S
   depth: 0,
   metric: {},
   lane: 0,
+  ...overrides,
+});
+
+const makeScriptBlock = (overrides: Partial<ScriptBlock> = {}): ScriptBlock => ({
+  id: 'test-block',
+  startLine: 0,
+  endLine: 1,
+  content: '',
+  state: 'parsed',
+  widgetIds: {},
+  version: 1,
+  createdAt: 0,
   ...overrides,
 });
 
@@ -32,7 +46,7 @@ describe('workbenchProjection', () => {
         content: 'Fran\n21-15-9 thrusters',
         startLine: 1,
         endLine: 2,
-        scriptBlock: { statements: [{ id: 1 }] } as any,
+        scriptBlock: makeScriptBlock({ content: 'Fran', statements: [{ id: 1 }] as unknown as ICodeStatement[] }),
       },
     ]);
 

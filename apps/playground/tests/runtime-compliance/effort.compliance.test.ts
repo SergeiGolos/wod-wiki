@@ -26,7 +26,7 @@ import { it, expect } from 'bun:test';
 import { describeCompliance, assertions } from '@/testing/script';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
 
-import { currentBlockType, blockHasDisplayMetric, blockDisplayMetrics, stackHasMetric, anyOutputHasMetric, anySystemPopHasReason } from '../helpers/compliance-helpers';
+import { currentBlockType, blockHasDisplayMetric, blockDisplayMetrics, stackHasMetric, anySystemPopHasReason } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟢 Single Effort — "10 Pullups"

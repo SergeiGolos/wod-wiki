@@ -6,7 +6,7 @@
  */
 
 function getPathUtils() {
-  if (typeof globalThis.process?.versions?.node === 'undefined' && typeof (globalThis as any).Bun === 'undefined') {
+  if (typeof globalThis.process?.versions?.node === 'undefined' && !('Bun' in globalThis)) {
     throw new Error('Path resolution is only supported in Node / Bun environments');
   }
   return {

@@ -58,7 +58,7 @@ export const DebugModeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } else {
       RuntimeLogger.disable();
     }
-  }, []);
+  }, [isDebugMode]);
 
   return (
     <DebugModeContext.Provider value={{ isDebugMode, toggleDebugMode }}>

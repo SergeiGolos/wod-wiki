@@ -17,6 +17,12 @@ import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IEvent } from './contracts/events/IEvent';
 
+/** Well-known debug globals this module installs on the browser window. */
+interface DebugWindow {
+    __WOD_DEBUG__?: boolean;
+    RuntimeLogger?: unknown;
+}
+
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface RuntimeLogEntry {
@@ -28,6 +34,10 @@ export interface RuntimeLogEntry {
 }
 
 class RuntimeLoggerImpl {
+    // Console is this logger's designated output sink; all writes funnel
+    // through this single reference so the no-console rule is waived once.
+    // eslint-disable-next-line no-console
+    private readonly _console = console;
     private _enabled = false;
     private _history: RuntimeLogEntry[] = [];
     private _maxHistory = 500;
@@ -46,7 +56,9 @@ class RuntimeLoggerImpl {
     constructor() {
         // Check for global debug flag in browser
         if (typeof window !== 'undefined') {
-            this._enabled = !!(window as any).__WOD_DEBUG__;
+            // window is the documented host for this debug flag.
+            const debugWindow = window as unknown as DebugWindow;
+            this._enabled = !!debugWindow.__WOD_DEBUG__;
         }
     }
 
@@ -56,12 +68,12 @@ class RuntimeLoggerImpl {
 
     enable(): void {
         this._enabled = true;
-        console.log('%c[RT] 🔧 Runtime logging ENABLED', 'color: #22c55e; font-weight: bold');
+        this._console.log('%c[RT] 🔧 Runtime logging ENABLED', 'color: #22c55e; font-weight: bold');
     }
 
     disable(): void {
         this._enabled = false;
-        console.log('%c[RT] Runtime logging disabled', 'color: #64748b');
+        this._console.log('%c[RT] Runtime logging disabled', 'color: #64748b');
     }
 
     getHistory(): RuntimeLogEntry[] {
@@ -85,18 +97,18 @@ class RuntimeLoggerImpl {
         const behaviors = this.getBehaviorNames(block);
         const memoryTypes = block.getAllMemory?.().map(loc => loc.tag) ?? [];
 
-        console.groupCollapsed(
+        this._console.groupCollapsed(
             `%c[RT] ▶ PUSH %c${block.label || block.blockType || 'Block'}%c [${block.key.toString().slice(0, 8)}]`,
             this.STYLES.push,
             'color: inherit; font-weight: bold',
             'color: #64748b; font-weight: normal'
         );
-        console.log('Key:', block.key.toString());
-        if (parentKey) console.log('Parent:', parentKey);
-        console.log('Source IDs:', block.sourceIds);
-        console.log('Behaviors:', behaviors);
-        if (memoryTypes.length > 0) console.log('Memory Types:', memoryTypes);
-        console.groupEnd();
+        this._console.log('Key:', block.key.toString());
+        if (parentKey) this._console.log('Parent:', parentKey);
+        this._console.log('Source IDs:', block.sourceIds);
+        this._console.log('Behaviors:', behaviors);
+        if (memoryTypes.length > 0) this._console.log('Memory Types:', memoryTypes);
+        this._console.groupEnd();
 
         this.addToHistory('info', 'push', `PUSH ${block.label}`, {
             key: block.key.toString(),
@@ -112,7 +124,7 @@ class RuntimeLoggerImpl {
     logPop(block: IRuntimeBlock, reason?: string): void {
         if (!this._enabled) return;
 
-        console.log(
+        this._console.log(
             `%c[RT] ◀ POP  %c${block.label || block.blockType || 'Block'}%c [${block.key.toString().slice(0, 8)}]${reason ? ` (${reason})` : ''}`,
             this.STYLES.pop,
             'color: inherit; font-weight: bold',
@@ -138,15 +150,15 @@ class RuntimeLoggerImpl {
             return;
         }
 
-        console.groupCollapsed(
+        this._console.groupCollapsed(
             `%c[RT] → NEXT %c${block.label || 'Block'}%c → ${actions.length} action(s)`,
             this.STYLES.next,
             'color: inherit; font-weight: bold',
             'color: #64748b; font-weight: normal'
         );
-        console.log('Block:', block.key.toString());
-        console.log('Actions:', actionNames);
-        console.groupEnd();
+        this._console.log('Block:', block.key.toString());
+        this._console.log('Actions:', actionNames);
+        this._console.groupEnd();
 
         this.addToHistory('info', 'next', `NEXT ${block.label}`, {
             key: block.key.toString(),
@@ -165,15 +177,15 @@ class RuntimeLoggerImpl {
 
         const actionNames = actions.map(a => a.type || a.constructor?.name || 'Action');
 
-        console.groupCollapsed(
+        this._console.groupCollapsed(
             `%c[RT] ⚡ EVENT %c${event.name}%c → ${actions.length} action(s)`,
             this.STYLES.event,
             'color: inherit; font-weight: bold',
             'color: #64748b; font-weight: normal'
         );
-        console.log('Event Data:', event.data);
-        console.log('Actions:', actionNames);
-        console.groupEnd();
+        this._console.log('Event Data:', event.data);
+        this._console.log('Actions:', actionNames);
+        this._console.groupEnd();
 
         this.addToHistory('info', 'event', `EVENT ${event.name}`, {
             eventName: event.name,
@@ -192,10 +204,10 @@ class RuntimeLoggerImpl {
         let displayValue: unknown = value;
         if (typeof value === 'object' && value !== null) {
             // For objects, show a summary
-            displayValue = this.summarizeObject(value as Record<string, unknown>);
+            displayValue = this.summarizeObject(value as unknown as Record<string, unknown>);
         }
 
-        console.log(
+        this._console.log(
             `%c[RT] 📝 MEMORY %c${memoryType}%c on [${blockKey.slice(0, 8)}]:`,
             this.STYLES.memory,
             'color: inherit; font-weight: bold',
@@ -219,11 +231,31 @@ class RuntimeLoggerImpl {
         const indent = '  '.repeat(depth);
         const actionName = action.type || action.constructor?.name || 'Action';
 
-        console.log(
+        this._console.log(
             `%c[RT] ${indent}⚙ %c${actionName}`,
             this.STYLES.action,
             'color: inherit'
         );
+    }
+
+    /**
+     * General-purpose message log for runtime consumers.
+     * Gates on _enabled; writes to the console sink and history.
+     */
+    logMessage(level: LogLevel, category: string, message: string, data?: Record<string, unknown>): void {
+        if (!this._enabled) return;
+
+        this._console.log(`%c[RT] ${category} %c${message}`, this.styleFor(level), 'color: inherit');
+        this.addToHistory(level, category, message, data);
+    }
+
+    /**
+     * Always-on variant of `logMessage`. Use sparingly for errors/warnings that
+     * must be visible even when debug logging is disabled.
+     */
+    logAlways(level: LogLevel, category: string, message: string, data?: Record<string, unknown>): void {
+        this._console.log(`%c[RT] ${category} %c${message}`, this.styleFor(level), 'color: inherit');
+        this.addToHistory(level, category, message, data);
     }
 
     // ============================================================================
@@ -232,7 +264,8 @@ class RuntimeLoggerImpl {
 
     private getBehaviorNames(block: IRuntimeBlock): string[] {
         // Access behaviors via reflection if possible
-        const behaviors = (block as any).behaviors as IRuntimeBehavior[] | undefined;
+        const blockWithBehaviors = block as unknown as { behaviors?: readonly IRuntimeBehavior[] };
+        const behaviors = blockWithBehaviors.behaviors;
         if (!behaviors || !Array.isArray(behaviors)) return [];
         return behaviors.map(b => b.constructor?.name || 'Behavior');
     }
@@ -249,6 +282,15 @@ class RuntimeLoggerImpl {
             }
         }
         return summary;
+    }
+
+    private styleFor(level: LogLevel): string {
+        switch (level) {
+            case 'error': return 'color: #ef4444; font-weight: bold';
+            case 'warn': return 'color: #f59e0b; font-weight: bold';
+            case 'info': return 'color: #3b82f6; font-weight: bold';
+            default: return 'color: #64748b';
+        }
     }
 
     private addToHistory(level: LogLevel, category: string, message: string, data?: Record<string, unknown>): void {
@@ -272,5 +314,6 @@ export const RuntimeLogger = new RuntimeLoggerImpl();
 
 // Make available on window for easy debugging
 if (typeof window !== 'undefined') {
-    (window as any).RuntimeLogger = RuntimeLogger;
+    // window is the documented host for runtime debug tooling.
+    (window as unknown as DebugWindow).RuntimeLogger = RuntimeLogger;
 }

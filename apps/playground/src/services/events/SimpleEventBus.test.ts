@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
 import { SimpleEventBus } from './SimpleEventBus';
-import type { IServiceEventBus } from './IServiceEventBus';
 
 interface TestEvent {
     kind: string;
@@ -9,7 +8,7 @@ interface TestEvent {
 }
 
 describe('SimpleEventBus (IServiceEventBus adapter)', () => {
-    let bus: IServiceEventBus<TestEvent>;
+    let bus: SimpleEventBus<TestEvent>;
 
     it('delivers emitted events to a single subscriber in registration order', () => {
         bus = new SimpleEventBus<TestEvent>();
@@ -69,9 +68,10 @@ describe('SimpleEventBus (IServiceEventBus adapter)', () => {
     it('an error in one subscriber does not stop later subscribers from receiving the event', () => {
         bus = new SimpleEventBus<TestEvent>();
         const seen: TestEvent[] = [];
-        // Suppress the expected console.error so the test output is clean.
-        const original = console.error;
-        console.error = () => undefined;
+        // Suppress the expected error log so the test output is clean.
+        const g = globalThis as unknown as { console: { error: (...args: unknown[]) => void } };
+        const originalError = g.console.error;
+        g.console.error = () => undefined;
         try {
             bus.subscribe(() => {
                 throw new Error('boom');
@@ -79,7 +79,7 @@ describe('SimpleEventBus (IServiceEventBus adapter)', () => {
             bus.subscribe((e) => seen.push(e));
             bus.emit({ kind: 'survives', payload: 1 });
         } finally {
-            console.error = original;
+            g.console.error = originalError;
         }
         expect(seen).toEqual([{ kind: 'survives', payload: 1 }]);
     });

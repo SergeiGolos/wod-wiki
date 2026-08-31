@@ -7,11 +7,9 @@ export const useEditorTheme = (initialTheme: string = 'vs') => {
   const [theme, setTheme] = useState(initialTheme);
 
   useEffect(() => {
-    // If we're following system theme or similar global state, 
+    // If we're following system theme or similar global state,
     // we could add listeners here.
-    if (initialTheme !== theme) {
-      setTheme(initialTheme);
-    }
+    setTheme((current) => (current !== initialTheme ? initialTheme : current));
   }, [initialTheme]);
 
   return {

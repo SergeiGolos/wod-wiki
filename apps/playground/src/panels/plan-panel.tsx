@@ -7,16 +7,16 @@ export interface PlanPanelProps {
   initialContent?: string;
   value?: string;
   /** @deprecated Ignored — sections are parsed internally by NoteEditor */
-  sections?: any[] | null;
+  sections?: unknown[] | null;
   onStartWorkout: (block: ScriptBlock) => void;
   onCompleteWorkout?: (blockId: string, results: ScriptBlock["results"], resultId?: string, runBlock?: Pick<ScriptBlock, "id" | "contentId">) => void;
   /** @deprecated Ignored — active block tracking is handled by the overlay */
   setActiveBlockId?: (blockId: string | null) => void;
-  setBlocks: (blocks: any[]) => void;
+  setBlocks: (blocks: ScriptBlock[]) => void;
   setContent: (content: string) => void;
   readOnly?: boolean;
   /** @deprecated Ignored — content provider not needed by NoteEditor */
-  provider?: any;
+  provider?: unknown;
   /** @deprecated Ignored */
   sourceNoteId?: string;
 }

@@ -9,7 +9,7 @@
 
 import type { GridRow } from '../types';
 import type { ColumnDef, ComputeContext } from '../column-definition-language';
-import { resolveColumnSource } from './cdlSourceResolver';
+import { resolveColumnSource, extractDisplayText } from './cdlSourceResolver';
 
 // ─── Combined Filter Helpers ───────────────────────────────────
 
@@ -25,25 +25,10 @@ export function extractCombinedFilterText(
   separator: string = ' ',
 ): string {
   if (!Array.isArray(combinedValue)) {
-    return String(combinedValue ?? '');
+    return extractDisplayText(combinedValue);
   }
   return combinedValue
-    .map((v) => {
-      if (v === undefined || v === null) return '';
-      if (typeof v === 'string') return v;
-      if (typeof v === 'number') return String(v);
-      if (typeof v === 'boolean') return String(v);
-      const cell = v as any;
-      if (cell?.metrics) {
-        const arr = cell.metrics.toArray?.() ?? cell.metrics ?? [];
-        if (arr.length > 0) {
-          const first = arr[0];
-          if (first?.image) return first.image;
-          if (first?.value !== undefined) return String(first.value);
-        }
-      }
-      return String(v);
-    })
+    .map((v) => extractDisplayText(v))
     .filter((s) => s.length > 0)
     .join(separator);
 }

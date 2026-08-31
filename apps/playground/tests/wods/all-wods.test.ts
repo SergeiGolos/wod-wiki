@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, relative } from 'path';
-import { TestScript, assertions } from '@/testing/script';
+import { TestScript } from '@/testing/script';
 
 /**
  * Recursively find all markdown files in a directory.

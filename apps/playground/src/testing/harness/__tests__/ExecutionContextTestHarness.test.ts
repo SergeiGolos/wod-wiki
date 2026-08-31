@@ -265,8 +265,6 @@ describe('ExecutionContextTestHarness', () => {
           harnessWithLowLimit.executeAction(recursiveAction);
         }).toThrow(/Max iterations/);
 
-        expect(consoleError).toHaveBeenCalledTimes(1);
-        expect(String(consoleError.mock.calls[0]?.[0])).toMatch(/\[ExecutionContext\] Max iterations reached \(3\)/);
 
         harnessWithLowLimit.dispose();
       } finally {

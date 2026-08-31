@@ -63,7 +63,7 @@ export const FocusedDialog: React.FC<FocusedDialogProps> = ({
 
   // Portal to document.body so we escape any CSS containing blocks
   // (CodeMirror sets `contain: size style` on .cm-editor which traps fixed positioning).
-  return (ReactDOM as any).createPortal(
+  return ReactDOM.createPortal(
     <div className={`fixed inset-0 z-[100] flex flex-col bg-background text-foreground animate-in fade-in duration-200`}>
       {floatingClose || (isMinimal && !title) ? (
         <div className="absolute top-4 right-4 z-[110] flex items-center gap-2">

@@ -30,8 +30,11 @@ import { ChromecastSdk, type CastSdkState } from '../ChromecastSdk';
 import { CAST_APP_ID, hasCustomCastAppId } from '../config';
 import { SenderCastSignaling } from '../CastSignaling';
 import { WebRtcRpcTransport } from '../rpc/WebRtcRpcTransport';
+
+
 import type { IRpcTransport } from '../rpc/IRpcTransport';
-import type { ICastBackend, ICastBackendState, StateUnsubscribe } from '../ICastBackend';
+
+import { rpcWarn } from '../rpc/rpcLogger';
 
 const sdkToBackend: Record<CastSdkState, ICastBackendState> = {
     'not-loaded': 'ready',
@@ -135,7 +138,7 @@ export class ChromecastBackend implements ICastBackend {
         try {
             await castSession.sendMessage('urn:x-cast:com.wodwiki', { type: 'ping', timestamp: Date.now() });
         } catch (err) {
-            console.warn('[ChromecastBackend] namespace ping failed', err);
+            rpcWarn('ChromecastBackend', 'namespace ping failed', err);
         }
 
         const signaling = new SenderCastSignaling(castSession);

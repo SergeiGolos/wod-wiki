@@ -58,7 +58,7 @@ export const TimerHarness: React.FC<TimerHarnessProps> = ({
   timeSpans,
   children
 }) => {
-  const [recalcTrigger, setRecalcTrigger] = useState(0);
+  const [, setRecalcTrigger] = useState(0);
 
   // Create minimal runtime with empty script for testing
   const runtime = useMemo(() => {
@@ -127,12 +127,10 @@ export const TimerHarness: React.FC<TimerHarnessProps> = ({
     };
   }, [runtime, timerType, durationMs, autoStart, timeSpans]);
 
-  // Determine if timer is running based on last span having no end time
-  const isRunning = useMemo(() => {
-    if (!timerState || timerState.spans.length === 0) return false;
-    const lastSpan = timerState.spans[timerState.spans.length - 1];
-    return lastSpan.ended === undefined;
-  }, [timerState, recalcTrigger]);
+  // timer:resume/pause mutate block memory in place; setRecalcTrigger forces
+  // a re-render, so re-read the freshest state from the block on each render.
+  const liveState = (block.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined) ?? timerState;
+  const isRunning = !!liveState && liveState.spans.length > 0 && liveState.spans[liveState.spans.length - 1].ended === undefined;
 
   // Control functions using event-based approach
   const handleStart = useCallback(() => {

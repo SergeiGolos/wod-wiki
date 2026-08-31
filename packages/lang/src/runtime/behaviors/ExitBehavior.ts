@@ -1,5 +1,5 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { IBehaviorContext, Unsubscribe } from '../contracts/IBehaviorContext';
+import { IBehaviorContext, Unsubscribe, BehaviorEventType } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { PopBlockAction } from '../actions/stack/PopBlockAction';
 
@@ -78,7 +78,7 @@ export class ExitBehavior implements IRuntimeBehavior {
         }
 
         for (const eventName of this.config.onEvents) {
-            const unsubscribe = ctx.subscribe(eventName as any, (event, eventCtx) => {
+            const unsubscribe = ctx.subscribe(eventName as BehaviorEventType, (event, eventCtx) => {
                 eventCtx.markComplete(`event:${event.name}`);
                 return [new PopBlockAction()];
             });

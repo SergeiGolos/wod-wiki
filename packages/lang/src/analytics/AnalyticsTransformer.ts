@@ -84,7 +84,7 @@ export interface SegmentWithMetadata extends Segment {
   metrics?: MetricContainer;
   tags?: string[];
   spanType?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 /**

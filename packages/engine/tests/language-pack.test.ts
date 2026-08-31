@@ -14,6 +14,7 @@ import {
   type ICodeStatement,
   type DialectAnalysis,
   type IRealtimeProcessor,
+  type IOutputStatement,
   type ISummaryProcessor,
 } from '../src/index';
 
@@ -36,7 +37,7 @@ class TestRealtimeProcessor implements IRealtimeProcessor {
   id = 'test-realtime-proc';
   name = 'Test Realtime Processor';
   processOutput() {}
-  process(output: any) { return output; }
+  process(output: IOutputStatement) { return output; }
 }
 
 class TestSummaryProcessor implements ISummaryProcessor {
