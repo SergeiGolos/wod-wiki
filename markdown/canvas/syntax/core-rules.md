@@ -6,7 +6,7 @@ section: basics
 order: 1
 ---
 ```time
-(3 Rounds)
+(3)
   10 Pushups
   15 Air Squats
 ```

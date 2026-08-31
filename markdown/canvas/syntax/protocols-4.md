@@ -6,7 +6,7 @@ section: protocols
 order: 4
 ---
 ```time
-(8 Rounds)
+(8)
   :20 Max Effort Burpees
   :10 Rest
 ```

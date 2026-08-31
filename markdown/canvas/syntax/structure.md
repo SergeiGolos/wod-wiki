@@ -46,7 +46,7 @@ stages:
     caption: "`(3 Rounds)` repeats the indented block three times. The runtime shows which round you're on and advances automatically."
     quest: structure-rounds
     ring:
-      tag: "(3 Rounds)"
+      tag: "(3)"
   - id: named-groups
     range: [0.16, 0.30]
     source: wods/examples/syntax/named-groups.md

@@ -114,7 +114,7 @@ category: zombie-fit
 ```time
 (Warmup)
   Run 0.25 miles
-  (2 Rounds)
+  (2)
     50 Jumping Jacks
     10 Air Squats
 ```
@@ -126,7 +126,7 @@ category: zombie-fit
 3 rounds, 30 seconds each movement, count reps:
 
 ```time
-(3 Rounds)
+(3)
   :30 Pushups ?
   :30 Situps ?
   :30 Air Squats ?

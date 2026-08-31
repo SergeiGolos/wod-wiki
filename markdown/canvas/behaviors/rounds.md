@@ -11,10 +11,10 @@ Rounds are the compiler's way of repeating, grouping, and sequencing work. A hea
 
 ## How rounds work {sticky}
 
-A line like `(3 Rounds)` becomes a round behavior that repeats its children three times. The runtime tracks the current round, shows it in the clock, and advances automatically when the block finishes.
+A line like `(3)` becomes a round behavior that repeats its children three times. The runtime tracks the current round, shows it in the clock, and advances automatically when the block finishes.
 
 ```time
-(3 Rounds)
+(3)
   10 Push-ups
   15 Air Squats
 ```
@@ -38,8 +38,8 @@ So `(21-15-9) Thruster / Pull-up` means 21 thrusters and 21 pull-ups, then 15 of
 Rounds can contain rounds. A nested block lets you describe supersets, alternating EMOMs, or complex sessions:
 
 ```time
-(5 Rounds)
-  (3 Sets)
+(5)
+  (3)
     5 Deadlift
     10 Push-up
 ```

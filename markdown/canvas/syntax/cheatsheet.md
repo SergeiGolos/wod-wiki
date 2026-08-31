@@ -36,8 +36,9 @@ Every Minute On the Minute. `(n)` rounds, each one minute long. A bell starts ev
 Eight rounds of `:20 Work / :10 Rest`. The colon prefix is required for sub-minute timers.
 
 ```time
-(8 Rounds) :20 Work / :10 Rest
-  Air Squats
+(8)
+  :20 Air Squats
+  :10 Rest
 ```
 
 ## Structure {sticky}
@@ -47,7 +48,7 @@ Eight rounds of `:20 Work / :10 Rest`. The colon prefix is required for sub-minu
 A parenthesized header repeats every indented line beneath it.
 
 ```time
-(3 Rounds)
+(3)
   10 Push-ups
   15 Air Squats
 ```
@@ -71,8 +72,8 @@ A dash-separated rep scheme becomes one round per value. Every movement in the b
 Nest rounds to alternate movements or group intervals. Ownership is indentation.
 
 ```time
-(5 Rounds)
-  (3 Sets)
+(5)
+  (3)
     5 Deadlift
     10 Push-up
 ```
@@ -101,7 +102,7 @@ Ask for the real result after a block finishes.
 
 ```time
 5:00 Run :?
-(3 Rounds) 10 Burpees :?
+(3) 10 Burpees :?
 For Time :?
 ```
 

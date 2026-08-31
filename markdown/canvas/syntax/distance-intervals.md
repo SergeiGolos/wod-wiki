@@ -6,7 +6,7 @@ section: protocols
 order: 13
 ---
 ```time
-(4 Rounds)
+(4)
   3:00 Run 800m
   2:00 Rest
 ```

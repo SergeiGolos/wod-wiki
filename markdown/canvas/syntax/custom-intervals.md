@@ -6,7 +6,7 @@ section: protocols
 order: 12
 ---
 ```time
-(5 Rounds)
+(5)
   :40 Bike
   *:20 Rest
 ```

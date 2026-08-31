@@ -6,7 +6,7 @@ section: groups
 order: 4
 ---
 ```time
-(3 Rounds)
+(3)
   (4)
     :20 Work
     :10 Rest

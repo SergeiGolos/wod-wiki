@@ -6,7 +6,7 @@ section: supplemental
 order: 2
 ---
 ```time
-(3 Rounds)
+(3)
   Run 400m
   *2:00 Rest
   10 Pullups

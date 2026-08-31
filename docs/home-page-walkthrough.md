@@ -409,7 +409,7 @@ Pushups
 **Code:**
 
 ```time
-(3 Rounds)
+(3)
   10 Pushups
   15 Situps
   20 Air Squats
