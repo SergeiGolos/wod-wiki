@@ -30,8 +30,18 @@ export abstract class BaseNotePage {
 
   // ── Readiness signals (replaces fixed waitForTimeout settle-waits) ──────
 
-  /** Editor surface attached; bounded fail-fast, no fixed settle sleep. */
+  /**
+   * Editor surface attached; bounded fail-fast, no fixed settle sleep.
+   * Note routes default to read-mode markdown (#1008) — the NoteEditor
+   * mounts behind the Edit toggle, so enter it when present.
+   */
   async awaitEditorReady(): Promise<void> {
+    const editToggle = this.page.getByRole('button', { name: 'Edit', exact: true });
+    try {
+      await editToggle.click({ timeout: 2_000 });
+    } catch {
+      // No toggle (editor already mounted, or a route without one).
+    }
     await this.editor().waitFor({ state: 'attached', timeout: 10_000 });
   }
 

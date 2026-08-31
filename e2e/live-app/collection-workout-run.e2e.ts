@@ -121,12 +121,17 @@ test.describe('Collection Workout — run and record', () => {
 
     // 1. Start the workout from the collection page.
     await page.goto(`/collections/${STOP_NOTE_ID}`, { waitUntil: 'domcontentloaded' });
+    // Collection detail defaults to read-mode markdown (#1008); runnable
+    // blocks live behind the Edit toggle.
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
     await expect(page.locator('.cm-content')).toBeVisible({ timeout: 15_000 });
     await clickPlayOnBlock(page, '10:00 AMRAP');
 
     // A new record (journal note for today) is created and the runtime opens.
     await page.waitForURL(new RegExp(`/journal/${today}`), { timeout: 15_000 });
-    await expect(page.locator('.cm-content')).toContainText(STOP_TITLE, { timeout: 15_000 });
+    // Note-creation is verified through the DB below — the runtime overlay
+    // covers the journal page here, and with the read-mode default (#1008)
+    // there is no editor behind it to assert against.
     const noteUuid = await findNoteIdByTitle(page, STOP_TITLE);
     expect(noteUuid, 'Play must create a journal note for today').toBeTruthy();
 
@@ -156,6 +161,9 @@ test.describe('Collection Workout — run and record', () => {
     if (await closeReview.isVisible().catch(() => false)) {
       await closeReview.click();
     }
+    // The journal page is in read-mode (#1008) and the inline result panel
+    // is an editor preview — switch to Edit to verify it.
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
     await expect(
       page.locator('.cm-query-block-preview, [data-testid="rows-table"]').first(),
       'result renders inline on the WOD block after stopping',
@@ -164,6 +172,8 @@ test.describe('Collection Workout — run and record', () => {
 
     // 3. The inline result survives a hard reload (persisted record).
     await page.reload({ waitUntil: 'domcontentloaded' });
+    // Read-mode default after reload: re-enter Edit for the source + preview.
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
     await expect(page.locator('.cm-content')).toContainText(STOP_TITLE, { timeout: 15_000 });
     await expect(
       page.locator('.cm-query-block-preview, [data-testid="rows-table"]').first(),
@@ -182,6 +192,8 @@ test.describe('Collection Workout — run and record', () => {
     await deleteNoteAndResults(page, await findNoteIdByTitle(page, COMPLETE_TITLE));
 
     await page.goto(`/collections/${COMPLETE_NOTE_ID}`, { waitUntil: 'domcontentloaded' });
+    // Read-mode default (#1008): enter Edit to expose runnable blocks.
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
     await expect(page.locator('.cm-content')).toBeVisible({ timeout: 15_000 });
     await clickPlayOnBlock(page, '0:03 AMRAP');
 
