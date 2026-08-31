@@ -1,4 +1,3 @@
-import { CanvasProse } from "../canvas/CanvasProse"
 /**
  * WorkoutEditorPage — /collections/:collection/:workout
  *
@@ -194,25 +193,24 @@ export function WorkoutEditorPage({
           </div>
         }
         editor={
-          viewMode === 'read' ? (
-            <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
-              <CanvasProse prose={content} />
-            </div>
-          ) : (
-            <NoteEditor
-              value={content}
-              onChange={onChange}
-              onCursorPositionChange={onLineChange}
-              onBlur={onBlur}
-              noteId={noteId}
-              enableInlineRuntime={usePopup}
-              commands={commands}
-              onViewCreated={onViewCreated}
-              theme={theme}
-              showLineNumbers={false}
-              onBlocksChange={setScriptBlocks}
-            />
-          )
+          /* Read mode keeps the editor mounted — same markdown surface, just
+             non-editable (#1008): widgets (run controls, result inlays) stay
+             live and the remount on toggle re-creates the view. */
+          <NoteEditor
+            key={viewMode}
+            value={content}
+            onChange={onChange}
+            onCursorPositionChange={onLineChange}
+            onBlur={onBlur}
+            noteId={noteId}
+            readonly={viewMode === 'read'}
+            enableInlineRuntime={usePopup}
+            commands={commands}
+            onViewCreated={onViewCreated}
+            theme={theme}
+            showLineNumbers={false}
+            onBlocksChange={setScriptBlocks}
+          />
         }
       />
 

@@ -223,26 +223,14 @@ function monitorCriticalConsole(page: Page): string[] {
 }
 
 async function expectResultWidgetAfterReload(page: Page, route: SeedRoute) {
-  const enterEditMode = async () => {
-    // Note routes default to read-mode markdown (#1008); the widget inlay
-    // is an editor preview, so enter Edit before asserting on it.
-    const editToggle = page.getByRole('button', { name: 'Edit', exact: true });
-    try {
-      await editToggle.click({ timeout: 2_000 });
-    } catch {
-      // Editor already mounted, or a route without a toggle.
-    }
-    await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 15_000 });
-  };
-
   await page.goto(route.path, { waitUntil: 'domcontentloaded', timeout: 20_000 });
-  await enterEditMode();
+  await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 15_000 });
   const widget = page.locator('.cm-query-block-preview, [data-testid="rows-table"]').first();
   await expect(widget, `${route.noteId} should show the query table results block before reload`).toBeVisible({ timeout: 10_000 });
   await expect(widget).toContainText(/1:14|Result|rows|runs/i);
 
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 20_000 });
-  await enterEditMode();
+  await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 15_000 });
   await expect(widget, `${route.noteId} should show the query table results block after reload`).toBeVisible({ timeout: 10_000 });
   await expect(widget).toContainText(/1:14|Result|rows|runs/i);
   await page.screenshot({ path: route.screenshot, fullPage: true });

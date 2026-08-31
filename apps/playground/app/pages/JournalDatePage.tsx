@@ -1,4 +1,3 @@
-import { CanvasProse } from "../canvas/CanvasProse";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EditorView } from '@codemirror/view';
 import { EditorSelection } from '@codemirror/state';
@@ -235,17 +234,16 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
         </header>
         {notes.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">No Notes on this date yet.</p>
-        ) : viewMode === 'read' ? (
-          <div className="rounded-xl border border-border bg-card p-6">
-            <CanvasProse prose={content} />
-          </div>
         ) : (
+          /* Read mode keeps the editor mounted — same markdown surface, just
+             non-editable (#1008). Remount on toggle re-creates the view. */
           <NoteEditor
+            key={viewMode}
             value={content}
             onChange={onChange}
-            onCursorPositionChange={onLineChange}
             onBlur={onBlur}
             noteId={journalDate}
+            readonly={viewMode === 'read'}
             theme={theme}
             showLineNumbers={false}
             onBlocksChange={setBlocks}

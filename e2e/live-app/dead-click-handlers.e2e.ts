@@ -15,9 +15,7 @@ test.describe('Live App Click Handler Navigation', () => {
       // the sidebar collection navigation (CollectionsNavPanel) is retired.
       await page.goto('/collections/crossfit-girls/fran', { waitUntil: 'domcontentloaded' });
 
-      // Collection detail defaults to read-mode markdown (#1008); the
-      // CodeMirror content area mounts once Edit is selected.
-      await page.getByRole('button', { name: 'Edit', exact: true }).click();
+      // The workout editor mounts its CodeMirror content area.
       await expect(page.locator('.cm-content[contenteditable="true"]').first()).toBeAttached({ timeout: 15_000 });
 
       await expect(page).toHaveURL(/\/collections\/crossfit-girls\/fran(?:\?.*)?$/);
