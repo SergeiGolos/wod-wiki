@@ -321,13 +321,13 @@ describe('AnalyticsExplorerPage', () => {
     await waitFor(() => expect(screen.queryByText(/1\. SELECT/)).not.toBeNull());
   });
 
-  it('empty state offers Load sample data when store is empty', async () => {
+  it('empty state offers sample-data preview when store is empty', async () => {
     sampleDataPresent = false;
     renderPage('sum:totalVolume{}');
 
     await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull());
     await waitFor(() => expect(screen.queryByText('Facts appear when you log or run workouts.')).not.toBeNull());
-    expect(screen.getByText('Load sample data')).toBeDefined();
+    expect(screen.getByText('Preview with sample data')).toBeDefined();
   });
 
   it('shows a purge banner when sample data is present', async () => {

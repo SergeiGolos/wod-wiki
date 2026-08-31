@@ -343,7 +343,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
                   className="py-8 text-center text-muted-foreground text-sm"
                 >
                   {segments.length === 0
-                    ? 'No output data available. Run a session to see results.'
+                    ? 'Finish or stop the timer — results land here'
                     : 'No rows match the current filters.'}
                 </td>
               </tr>

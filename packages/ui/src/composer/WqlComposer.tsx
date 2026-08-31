@@ -50,6 +50,8 @@ export interface WqlComposerProps {
   query?: string;
   /** Fired whenever the composed query changes (add / edit / remove a pill). */
   onQueryChange?: (wql: string) => void;
+  /** Fired whenever uncommitted free text changes in the composer box. */
+  onPendingTextChange?: (pendingText: string) => void;
   /** Fired (including on mount) with parse validation state. */
   onValidationChange?: (state: WqlValidationState) => void;
   /** Fired (including on mount) with the parsed AST — the composer state. */
@@ -88,6 +90,7 @@ export function WqlComposer({
   initialQuery,
   query: controlledQuery,
   onQueryChange,
+  onPendingTextChange,
   onValidationChange,
   onAstChange,
   onSubmit,
@@ -115,6 +118,10 @@ export function WqlComposer({
 
   const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null);
   const [freeText, setFreeText] = useState('');
+
+  useEffect(() => {
+    onPendingTextChange?.(freeText.trim());
+  }, [freeText, onPendingTextChange]);
   const inputRef = useRef<HTMLInputElement>(null);
   const freeTextInitRef = useRef<string | null>(null);
 

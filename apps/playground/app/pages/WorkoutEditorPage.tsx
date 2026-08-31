@@ -1,3 +1,4 @@
+import { CanvasProse } from "../canvas/CanvasProse"
 /**
  * WorkoutEditorPage — /collections/:collection/:workout
  *
@@ -83,6 +84,7 @@ export function WorkoutEditorPage({
   }, [category, isCollection, name])
 
   const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
+  const [viewMode, setViewMode] = useState<'read' | 'edit'>('read')
 
   const handleStartWorkout = useCallback(
     async (block: ScriptBlock) => {
@@ -179,21 +181,38 @@ export function WorkoutEditorPage({
         title={name}
         index={index}
         onScrollToSection={onScrollToSection}
-        actions={<PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))}
+              className="rounded-lg border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              {viewMode === 'read' ? 'Edit' : 'Read mode'}
+            </button>
+            <PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />
+          </div>
+        }
         editor={
-          <NoteEditor
-            value={content}
-            onChange={onChange}
-            onCursorPositionChange={onLineChange}
-            onBlur={onBlur}
-            noteId={noteId}
-            enableInlineRuntime={usePopup}
-            commands={commands}
-            onViewCreated={onViewCreated}
-            theme={theme}
-            showLineNumbers={false}
-            onBlocksChange={setScriptBlocks}
-          />
+          viewMode === 'read' ? (
+            <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
+              <CanvasProse prose={content} />
+            </div>
+          ) : (
+            <NoteEditor
+              value={content}
+              onChange={onChange}
+              onCursorPositionChange={onLineChange}
+              onBlur={onBlur}
+              noteId={noteId}
+              enableInlineRuntime={usePopup}
+              commands={commands}
+              onViewCreated={onViewCreated}
+              theme={theme}
+              showLineNumbers={false}
+              onBlocksChange={setScriptBlocks}
+            />
+          )
         }
       />
 

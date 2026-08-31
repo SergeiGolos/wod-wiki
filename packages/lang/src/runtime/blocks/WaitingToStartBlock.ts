@@ -61,7 +61,7 @@ export class WaitingToStartBlock extends RuntimeBlock {
         // =====================================================================
         // Output Aspect - Segment tracking
         // =====================================================================
-        behaviors.push(new ReportOutputBehavior({ label: 'Ready to Start' }));
+        behaviors.push(new ReportOutputBehavior({ label: 'Ready to Start', emitSegmentOnMount: true }));
 
         // =====================================================================
         // Display Aspect

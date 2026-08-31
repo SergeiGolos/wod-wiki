@@ -1,29 +1,25 @@
 /**
- * dateLocale — the "Date language" preference (#858, inheriting #706's
- * locked decision): dates follow the browser locale by default (Auto), with
- * an explicit override from the ⋮ Actions menu.
+ * dateLocale — the "Date language" preference (#858, updated in #1012):
+ * dates follow the UI language (English) by default (Auto), with explicit
+ * overrides from the ⋮ Actions menu.
  *
  * The resolved tag lives in a module-level variable so the pure formatters
- * in dateFormat.ts — and their existing call sites (LibraryPage,
- * JournalDateScroll, FeedFeed, BackdateConfirmModal, WorkoutEditorPage) —
- * pick the preference up with no parameter threading. `useDateLocale` gives
- * React components reactivity. Storage/event pattern mirrors
- * useShowPlaygrounds (localStorage + dispatched StorageEvent, so same-tab
- * and cross-tab stay in sync).
+ * in dateFormat.ts — and their existing call sites — pick the preference up
+ * with no parameter threading. `useDateLocale` gives React components reactivity.
  */
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'wodwiki:dateLocale'
 
 export interface DateLocaleOption {
-  /** BCP-47 tag; null = Auto (browser locale). */
+  /** BCP-47 tag; null = Auto (UI language 'en'). */
   tag: string | null
   label: string
 }
 
-/** Auto + English + a few common locales (per the #706 decision). */
+/** Auto + English + common locales. */
 export const DATE_LOCALE_OPTIONS: DateLocaleOption[] = [
-  { tag: null, label: 'Auto (browser)' },
+  { tag: null, label: 'Auto (UI language)' },
   { tag: 'en', label: 'English' },
   { tag: 'zh', label: '中文' },
   { tag: 'es', label: 'Español' },
@@ -52,9 +48,9 @@ if (typeof window !== 'undefined') {
   })
 }
 
-/** Resolved BCP-47 tag, or undefined for Auto (browser locale). */
-export function getDateLocale(): string | undefined {
-  return current
+/** Resolved BCP-47 tag, defaulting to 'en' (UI language). */
+export function getDateLocale(): string {
+  return current ?? 'en'
 }
 
 export function setDateLocale(tag: string | null): void {
@@ -73,9 +69,7 @@ export function useDateLocale(): [string | null, (tag: string | null) => void] {
   const [tag, setTag] = useState<string | null>(() => current ?? null)
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      // The module-level listener (registered at import) runs first, so the
-      // validated value is already resolved.
-      if (e.key === STORAGE_KEY) setTag(getDateLocale() ?? null)
+      if (e.key === STORAGE_KEY) setTag(validate(e.newValue) ?? null)
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)

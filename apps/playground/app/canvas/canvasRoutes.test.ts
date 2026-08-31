@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { readFileSync } from 'fs'
 
 import { ROUTE_PATTERNS } from '../lib/routes'
+import { canvasRoutes, findCanvasPage, normalizePathname } from './canvasRoutes'
 import { parseCanvasMarkdown } from './parseCanvasMarkdown'
 
 const appSource = readFileSync(new URL('../App.tsx', import.meta.url), 'utf8')
@@ -22,5 +23,27 @@ describe('home route governance', () => {
     expect(homePage).not.toBeNull()
     expect(homePage?.route).toBe('/')
     expect(homePage?.route).toBe(ROUTE_PATTERNS.home)
+  })
+})
+
+describe('findCanvasPage route normalization', () => {
+  it('normalizes pathnames correctly', () => {
+    expect(normalizePathname('/guide/syntax/basics/')).toBe('/guide/syntax/basics')
+    expect(normalizePathname('/guide/syntax/basics')).toBe('/guide/syntax/basics')
+    expect(normalizePathname(' //guide/syntax/basics// ')).toBe('/guide/syntax/basics')
+    expect(normalizePathname('/')).toBe('/')
+    expect(normalizePathname('')).toBe('/')
+  })
+
+  it('resolves trailing-slash guide routes to the lesson page', () => {
+    const basicsPageWithSlash = findCanvasPage('/guide/syntax/basics/')
+    const basicsPageNoSlash = findCanvasPage('/guide/syntax/basics')
+    expect(basicsPageWithSlash).not.toBeNull()
+    expect(basicsPageWithSlash?.route).toBe('/guide/syntax/basics')
+    expect(basicsPageWithSlash).toEqual(basicsPageNoSlash)
+
+    const behaviorsPage = findCanvasPage('/guide/behaviors/')
+    expect(behaviorsPage).not.toBeNull()
+    expect(behaviorsPage?.route).toBe('/guide/behaviors')
   })
 })

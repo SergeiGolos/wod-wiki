@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { usePaletteStore } from './palette-store';
 import { CommandListView } from '@/components/molecules/CommandListView';
@@ -36,6 +36,16 @@ export const PaletteShell: React.FC = () => {
   const { isOpen, request, _select, _dismiss } = usePaletteStore();
 
   const [query, setQuery] = useState('');
+  const [pendingText, setPendingText] = useState('');
+
+  // Live search string: committed WQL plus the composer's uncommitted free
+  // text, so typing narrows results before Enter folds the text into the query.
+  const effectiveQuery = useMemo(() => {
+    const p = pendingText.trim();
+    if (!p) return query;
+    if (!query) return p;
+    return `${query} ${p}`;
+  }, [query, pendingText]);
   const [results, setResults] = useState<IListItem<PaletteItem>[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const searchVersion = useRef(0);
@@ -57,43 +67,47 @@ export const PaletteShell: React.FC = () => {
       // WQL mode: the composer owns the query — it emits the composed WQL on
       // mount and every clause change; resetting here would clobber it.
       if (!request.wql) setQuery(request.initialQuery ?? '');
+      setPendingText('');
       setResults([]);
       setIsLoading(false);
     }
   }, [isOpen, request]); // request is a new object on every open() call
 
-  // Search all sources whenever query changes
+  // Search all sources whenever effectiveQuery changes (debounced ~150ms for live typing)
   useEffect(() => {
     if (!isOpen || !request) return;
 
     const version = ++searchVersion.current;
     setIsLoading(true);
 
-    const run = async () => {
-      try {
-        const settled = await Promise.all(
-          request.sources.map(source =>
-            Promise.resolve(source.search(query)).then(items =>
-              items.map(item => ({
-                ...toListItem(item),
-                // Prefix source label as group if item has no category
-                group: item.category ?? source.label,
-              }))
+    const timer = setTimeout(() => {
+      const run = async () => {
+        try {
+          const settled = await Promise.all(
+            request.sources.map(source =>
+              Promise.resolve(source.search(effectiveQuery)).then(items =>
+                items.map(item => ({
+                  ...toListItem(item),
+                  // Prefix source label as group if item has no category
+                  group: item.category ?? source.label,
+                }))
+              )
             )
-          )
-        );
-        if (version !== searchVersion.current) return; // stale
-        setResults(settled.flat());
-      } catch (err) {
-        console.error('[PaletteShell] search error', err);
-        if (version === searchVersion.current) setResults([]);
-      } finally {
-        if (version === searchVersion.current) setIsLoading(false);
-      }
-    };
+          );
+          if (version !== searchVersion.current) return; // stale
+          setResults(settled.flat());
+        } catch (err) {
+          console.error('[PaletteShell] search error', err);
+          if (version === searchVersion.current) setResults([]);
+        } finally {
+          if (version === searchVersion.current) setIsLoading(false);
+        }
+      };
+      void run();
+    }, 150);
 
-    run();
-  }, [query, isOpen, request]);
+    return () => clearTimeout(timer);
+  }, [effectiveQuery, isOpen, request]);
 
   const handleSelect = useCallback(
     (item: IListItem<PaletteItem>) => {
@@ -104,9 +118,9 @@ export const PaletteShell: React.FC = () => {
 
   const emptyState = isLoading ? (
     <div className="py-8 text-center text-sm text-muted-foreground">Searching…</div>
-  ) : query ? (
+  ) : effectiveQuery ? (
     <div className="py-8 text-center text-sm text-muted-foreground">
-      No results for <span className="font-medium text-zinc-600 dark:text-zinc-300">&ldquo;{query}&rdquo;</span>
+      No results for <span className="font-medium text-zinc-600 dark:text-zinc-300">&ldquo;{effectiveQuery}&rdquo;</span>
     </div>
   ) : (
     <div className="py-8 text-center text-sm text-muted-foreground">Start typing to search</div>
@@ -118,6 +132,7 @@ export const PaletteShell: React.FC = () => {
         key={requestSeqRef.current}
         initialQuery={wqlConfig.initialQuery}
         onQueryChange={setQuery}
+        onPendingTextChange={setPendingText}
         showDiagnostics={wqlConfig.showDiagnostics ?? true}
         execute={wqlConfig.execute}
         customSlots={wqlConfig.customSlots}

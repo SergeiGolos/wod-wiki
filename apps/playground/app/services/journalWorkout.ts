@@ -1,4 +1,3 @@
-import { getScriptCollection } from '@/repositories/script-collections';
 import type { HistoryEntry } from '@/types/history';
 import { formatDateKey } from './dateUtils';
 import { normalizeNoteTitle } from '@/lib/noteTitle';
@@ -14,11 +13,6 @@ export interface CreateJournalNoteFromWorkoutOptions {
   wrapInWod?: boolean;
 }
 
-/**
- * Creates one independent Journal Note containing a cloned workout block.
- * Explicit creation never mutates an older date member; repeated execution of
- * this Note's block is represented by additional Results on its UUID.
- */
 export async function createJournalNoteFromWorkout({
   workoutName,
   category,
@@ -29,16 +23,11 @@ export async function createJournalNoteFromWorkout({
   wrapInWod = true,
 }: CreateJournalNoteFromWorkoutOptions): Promise<HistoryEntry> {
   const journalDate = formatDateKey(date ?? new Date());
-  const resolvedSourceLabel = sourceNoteLabel?.trim() || category;
   const resolvedSourcePath = sourceNotePath?.trim() || `/collections/${encodeURIComponent(category)}`;
-  const collection = getScriptCollection(category);
   const lines = [
     `# ${workoutName}`,
     '',
-    `Source: [${resolvedSourceLabel}](${resolvedSourcePath})`,
-    collection ? `Collection: [${collection.id}](/collections/${encodeURIComponent(collection.id)})` : null,
-    '',
-  ].filter((line): line is string => line !== null);
+  ];
 
   if (wrapInWod) {
     lines.push('```time', wodContent.trimEnd(), '```');

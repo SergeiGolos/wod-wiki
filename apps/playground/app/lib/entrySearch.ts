@@ -25,20 +25,14 @@ export async function searchEntries(wql: string): Promise<Entry[]> {
   const parsed = parseQuery(wql)
   if (!isFindQuery(parsed) || parsed.error) return []
 
-  // Activity-anchored windows (#857): `last <n>w` measures back from the
-  // index's newest entry, not wall-clock now, so windows stay meaningful on
-  // snapshot/static corpora. Passed to BOTH runs so a free-text + window
-  // query filters note hits and block hits under identical semantics.
-  const findOptions = { anchor: 'latest-activity' as const }
-
   // find:block — one Entry per block, not per note (#855).
   if (parsed.target === 'block') {
-    const result = await queryService.runFind(parsed, findOptions)
+    const result = await queryService.runFind(parsed)
     return [...result.blocks].sort((a, b) => b.createdAt - a.createdAt).map(blockToEntry)
   }
 
   const hasText = parsed.filters.some(f => f.key === 'text' && !f.negate)
-  const primaryPromise = queryService.runFind(parsed, findOptions)
+  const primaryPromise = queryService.runFind(parsed)
 
   // When free-text is present, also run find:block to search body text.
   const blockWql = hasText && parsed.target === 'note'
@@ -46,7 +40,7 @@ export async function searchEntries(wql: string): Promise<Entry[]> {
     : null
   const blockParsed = blockWql ? parseQuery(blockWql) : null
   const blockPromise = (blockParsed && isFindQuery(blockParsed) && !blockParsed.error)
-    ? queryService.runFind(blockParsed, findOptions)
+    ? queryService.runFind(blockParsed)
     : Promise.resolve(null)
 
   const [primaryResult, blockResult] = await Promise.all([primaryPromise, blockPromise])
