@@ -27,6 +27,7 @@
     "packages": "bun run package",
     "dev": "bun run playground",
     "dev:app": "bun run --filter '@bitcobblers/wod-wiki-playground' dev",
+    "preview:app": "bun run --filter '@bitcobblers/wod-wiki-playground' preview",
     "dev:storybook": "bun run storybook",
     "dev:all": "bun run --filter '*' dev",
     "build": "bun run build:packages && bun run build:apps",
