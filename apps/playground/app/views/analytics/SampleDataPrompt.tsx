@@ -71,13 +71,13 @@ export function SampleDataPrompt({ result, onChanged, layout = 'inline', refresh
           onClick={handleLoad}
           className="text-xs font-medium rounded-md bg-primary text-primary-foreground px-3 py-1.5 hover:opacity-90 transition-opacity"
         >
-          Load sample data
+          Preview with sample data
         </button>
         <Link
           to="/collections"
           className="text-xs text-primary underline-offset-2 hover:underline"
         >
-          Run a workout instead
+          Log your first workout
         </Link>
       </div>
     </div>
@@ -88,7 +88,7 @@ export function SampleDataPrompt({ result, onChanged, layout = 'inline', refresh
   if (layout === 'card') {
     return (
       <div className="bg-card border border-border rounded-lg p-6 flex flex-col items-center justify-center text-sm text-muted-foreground">
-        <WqlEmptyState result={result} />
+        {result !== undefined && <WqlEmptyState result={result} />}
         {loaded !== undefined && inner && <div className="mt-3">{inner}</div>}
       </div>
     );
@@ -96,7 +96,7 @@ export function SampleDataPrompt({ result, onChanged, layout = 'inline', refresh
 
   return (
     <div className="h-full flex flex-col items-center justify-center">
-      <WqlEmptyState result={result} />
+      {result !== undefined && <WqlEmptyState result={result} />}
       {loaded !== undefined && inner && <div className="mt-3">{inner}</div>}
     </div>
   );

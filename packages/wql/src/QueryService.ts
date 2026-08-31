@@ -154,25 +154,15 @@ function effectiveTimeWindow(
   return true;
 }
 
-/** Newest `createdAt` in a scope-selected set — the `'latest-activity'`
- *  window anchor (#857). Undated rows (0) never win; an all-undated set
- *  anchors at 0, which lets every row pass (no dated activity to window
- *  against). Computed over the scope selection, before filters: the anchor
- *  is the index's latest activity, not the filtered subset's. */
-function latestActivity(rows: ReadonlyArray<{ createdAt: number }>): number {
-  let max = 0;
-  for (const r of rows) if (r.createdAt > max) max = r.createdAt;
-  return max;
-}
+
 
 /** Resolve the window anchor timestamp for a find run, per FindOptions. */
 function windowAnchor<T extends { createdAt: number }>(
-  selected: T[],
-  parsed: ParsedFindQuery,
+  _selected: T[],
+  _parsed: ParsedFindQuery,
   options: FindOptions,
 ): number | undefined {
   if (options.anchorNow !== undefined) return options.anchorNow;
-  if (options.anchor === 'latest-activity' && parsed.window?.kind === 'relative') return latestActivity(selected);
   return undefined;
 }
 
@@ -221,12 +211,7 @@ export interface QueryOptions {
 export interface FindOptions {
   /** Explicit timestamp range; overrides parsed WQL's `last` clause when set. */
   range?: { start: number; end: number };
-  /** Time-window anchoring mode. 'wall-clock' anchors to Date.now();
-   *  'latest-activity' anchors to the newest row in the scope selection
-   *  (#857). Defaults to 'wall-clock'. */
-  anchor?: 'wall-clock' | 'latest-activity';
-  /** Explicit reference time for the window (useful for tests/replay).
-   *  Overrides `anchor`. */
+  /** Explicit reference time for the window (useful for tests/replay). */
   anchorNow?: number;
 }
 

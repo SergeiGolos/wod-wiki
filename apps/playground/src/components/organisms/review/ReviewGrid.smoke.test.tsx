@@ -124,7 +124,7 @@ describe('ReviewGrid smoke', () => {
     renderReviewGrid([]);
 
     expect(
-      screen.getByText('No output data available. Run a session to see results.'),
+      screen.getByText('Finish or stop the timer — results land here'),
     ).toBeDefined();
     expect(screen.getByText('0 rows')).toBeDefined();
   });

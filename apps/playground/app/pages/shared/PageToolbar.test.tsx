@@ -87,8 +87,8 @@ describe('ActionsMenu', () => {
       screen.getByRole('button').click();
     });
 
-    // Auto (browser) is the default and carries the ✓.
-    expect(screen.getByTestId('date-locale-auto').textContent).toContain('Auto (browser)')
+    // Auto (UI language) is the default and carries the ✓.
+    expect(screen.getByTestId('date-locale-auto').textContent).toContain('Auto (UI language)')
     expect(screen.getByTestId('date-locale-auto').textContent).toContain('✓')
     expect(screen.getByTestId('date-locale-en').textContent).not.toContain('✓')
 

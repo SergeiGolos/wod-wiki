@@ -83,6 +83,7 @@ export function WorkoutEditorPage({
   }, [category, isCollection, name])
 
   const [pendingScheduleBlock, setPendingScheduleBlock] = useState<ScriptBlock | null>(null)
+  const [viewMode, setViewMode] = useState<'read' | 'edit'>('read')
 
   const handleStartWorkout = useCallback(
     async (block: ScriptBlock) => {
@@ -179,14 +180,30 @@ export function WorkoutEditorPage({
         title={name}
         index={index}
         onScrollToSection={onScrollToSection}
-        actions={<PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))}
+              className="rounded-lg border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              {viewMode === 'read' ? 'Edit' : 'Read mode'}
+            </button>
+            <PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />
+          </div>
+        }
         editor={
+          /* Read mode keeps the editor mounted — same markdown surface, just
+             non-editable (#1008): widgets (run controls, result inlays) stay
+             live and the remount on toggle re-creates the view. */
           <NoteEditor
+            key={viewMode}
             value={content}
             onChange={onChange}
             onCursorPositionChange={onLineChange}
             onBlur={onBlur}
             noteId={noteId}
+            readonly={viewMode === 'read'}
             enableInlineRuntime={usePopup}
             commands={commands}
             onViewCreated={onViewCreated}

@@ -1198,6 +1198,11 @@ export class IndexedDBService {
         return (await this.dbPromise).getAll('events');
     }
 
+    /** O(1)-ish existence probe — dashboard empty-state gating (map #1004). */
+    async countEvents(): Promise<number> {
+        return (await this.dbPromise).count('events');
+    }
+
     /** Append event rows (per-statement flush; wellness reconcile upserts). */
     async appendEvents(rows: UnifiedEventRecord[]): Promise<void> {
         if (rows.length === 0) return;

@@ -124,25 +124,25 @@ export function JournalPageShell({
         'flex flex-col flex-1 min-w-0 3xl:max-w-7xl min-h-screen lg:rounded-[2.5rem]',
         PAGE_SHELL_CONTENT_SURFACE_CLASS,
       )}>
-        {/* Sticky header — hidden on mobile (SidebarLayout navbar covers it), sticky on desktop */}
-        <div className="hidden lg:block lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md pt-4 lg:pt-8">
-          <div className="flex items-center justify-between px-6 lg:px-10">
-            <div className="flex items-center gap-4 truncate">
-              <div className="h-10 w-2 shrink-0 rounded-full bg-primary" />
+        {/* Page header — one instance at every width: the actions (Edit
+            toggle, badges) must stay reachable on mobile, and rendering the
+            node twice breaks strict-mode locators. Sticky styling is lg-only;
+            below lg the SidebarLayout navbar sits above it. */}
+        <div className="pt-3 lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md lg:pt-8">
+          <div className="flex items-center justify-between gap-3 px-4 lg:px-10">
+            <div className="flex min-w-0 items-center gap-4 truncate">
+              <div className="hidden h-10 w-2 shrink-0 rounded-full bg-primary lg:block" />
               <h1
                 data-testid={titleTestId}
-                className="text-2xl md:text-4xl font-black tracking-tight text-foreground leading-none truncate"
+                className="truncate text-lg font-black tracking-tight text-foreground leading-none lg:text-2xl md:text-4xl"
               >
                 {title}
               </h1>
             </div>
-            <div className="flex items-center gap-2 md:gap-4 shrink-0">
-              {actions}
-            </div>
+            <div className="flex shrink-0 items-center gap-2 md:gap-4">{actions}</div>
           </div>
-          <hr role="presentation" className="mt-6 md:mt-8 w-full border-t border-border opacity-50" />
+          <hr role="presentation" className="mt-3 w-full border-t border-border opacity-50 lg:mt-6 md:mt-8" />
         </div>
-
         {/* Main Editor Content */}
         <main className="flex-1">
           {editor}

@@ -1,3 +1,4 @@
+import { SampleDataPrompt } from "../analytics/SampleDataPrompt";
 /**
  * DashboardViewPage — renders a dashboard at /dashboard/:slug.
  *
@@ -9,7 +10,7 @@
  *
  * The bare /dashboard route (no slug) is the WQL explorer — a separate page.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { queryService } from '@/services/queryService';
 import {
@@ -23,6 +24,7 @@ import { journalNotes } from '../../services/journalNotes';
 import { dashboardNotes } from '../../services/dashboardNotes';
 import { parseFrontmatter, serializeFrontmatter } from '@/lib/frontmatter';
 import { parseDashboardNote } from '@/lib/dashboard/parser';
+import { indexedDBService } from '@/services/db/IndexedDBService';
 import { buildDashboardDocument, setDashboardTokenValue, type DashboardWidget } from '@/lib/dashboard/model';
 import { useDashboardSource } from '../../hooks/useDashboards';
 
@@ -34,6 +36,16 @@ export function DashboardViewPage() {
 
   // refreshKey forces re-resolution after a clone or an edit write-back.
   const [refreshKey, setRefreshKey] = useState(0);
+  // Board-emptiness probe: an O(1) event count gates the fresh-profile CTA
+  // card — widgets render their own empty states once facts exist.
+  const [hasFacts, setHasFacts] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void indexedDBService.countEvents().then((n) => {
+      if (!cancelled) setHasFacts(n > 0);
+    });
+    return () => { cancelled = true; };
+  }, [refreshKey]);
   const { source, loading } = useDashboardSource(slug, refreshKey);
 
   const document = useMemo(() => {
@@ -129,6 +141,22 @@ export function DashboardViewPage() {
             >
               Clone to vault
             </button>
+          </div>
+        )}
+
+        {hasFacts === false ? (
+          <SampleDataPrompt
+            layout="card"
+            refreshKey={refreshKey}
+            onChanged={() => setRefreshKey((k) => k + 1)}
+          />
+        ) : (
+          <div className="mb-4">
+            <SampleDataPrompt
+              layout="banner"
+              refreshKey={refreshKey}
+              onChanged={() => setRefreshKey((k) => k + 1)}
+            />
           </div>
         )}
 

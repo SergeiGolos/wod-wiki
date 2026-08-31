@@ -6,6 +6,7 @@ import { fileToDisplayName } from '@/repositories/script-groupings';
 import { feedDateToCreatedAt } from '@/services/content/staticBlockIndex';
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 
 function toSegmentDataType(section: Pick<Section, 'type' | 'level'>): SegmentDataType {
     switch (section.type) {
@@ -25,12 +26,28 @@ function toSegmentDataType(section: Pick<Section, 'type' | 'level'>): SegmentDat
     }
 }
 
-const index: BlockIndexRow[] = [];
+function getFileCreatedAt(file: string): number {
+    try {
+        const stdout = execSync(`git log --follow --format=%ct "${file}"`, { encoding: 'utf8' }).trim();
+        if (stdout) {
+            const lines = stdout.split('\n');
+            const oldestTs = parseInt(lines[lines.length - 1], 10);
+            if (!isNaN(oldestTs) && oldestTs > 0) {
+                return oldestTs * 1000;
+            }
+        }
+    } catch (_e) {
+        // Fallback
+    }
+    try {
+        const stat = fs.statSync(file);
+        return Math.floor(stat.mtimeMs);
+    } catch (_e) {
+        return Date.now();
+    }
+}
 
-// createdAt semantics (#853): feed rows carry their path date so `last <n>w`
-// windows filter them truthfully; collection rows are undated (0) — excluded
-// from dated windows, present in unbounded queries, matching the Library's
-// "Static, undated" treatment.
+const index: BlockIndexRow[] = [];
 
 // Process Collections
 const collectionsGlob = new Glob('markdown/collections/**/*.md');
@@ -46,6 +63,7 @@ for (const file of collectionsGlob.scanSync('.')) {
     const noteId = `${dirName}/${fileName}`;
     const noteTitle = fileToDisplayName(fileNameExt);
     const content = fs.readFileSync(file, 'utf8');
+    const createdAt = getFileCreatedAt(file);
     
     const sections = parseDocumentSections(content);
     let position = 0;
@@ -61,7 +79,7 @@ for (const file of collectionsGlob.scanSync('.')) {
             blockContentId,
             rawContent: section.displayContent,
             noteTitle,
-            createdAt: 0,
+            createdAt,
             isStatic: true,
             sourceId: `collection:${noteId}`
         });

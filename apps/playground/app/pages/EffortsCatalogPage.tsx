@@ -119,6 +119,10 @@ export function EffortsCatalogPage({ actions }: EffortsCatalogPageProps) {
   const { query, setQuery, urlQueryError } = useEffortsComposerState();
   const [efforts, setEfforts] = useState<IEffort[]>([]);
   const [loading, setLoading] = useState(false);
+  // Live search (#1010): the composer's debounced emission (committed query
+  // + pending text as a text filter) drives the rendered list without
+  // touching the URL — `?q=` still mirrors committed queries only.
+  const [liveWql, setLiveWql] = useState<string | null>(null);
 
   const wql = query;
   const parsed = useMemo(() => parseQuery(wql), [wql]);
@@ -133,12 +137,15 @@ export function EffortsCatalogPage({ actions }: EffortsCatalogPageProps) {
   );
 
   useEffect(() => {
-    if (composedError || !isFindQuery(parsed)) return;
+    const activeWql = liveWql ?? wql;
+    const parsedActive = parseQuery(activeWql);
+    // Invalid (mid-edit or committed) WQL: keep the last valid list.
+    if (!isFindQuery(parsedActive) || parsedActive.error) return;
     let cancelled = false;
     setLoading(true);
 
     queryService
-      .runFind(parsed as ParsedFindQuery)
+      .runFind(parsedActive as ParsedFindQuery)
       .then(result => {
         if (!cancelled) setEfforts(result.efforts ?? []);
       })
@@ -152,7 +159,7 @@ export function EffortsCatalogPage({ actions }: EffortsCatalogPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [parsed, composedError]);
+  }, [liveWql, wql]);
 
   const handleCreateCustom = useCallback(() => {
     navigate('/effort/new?mode=create');
@@ -177,6 +184,7 @@ export function EffortsCatalogPage({ actions }: EffortsCatalogPageProps) {
             <WqlComposer
               query={wql}
               onQueryChange={setQuery}
+              onLiveQueryChange={setLiveWql}
               execute={execute}
               hiddenClauseTypes={['source']}
             />

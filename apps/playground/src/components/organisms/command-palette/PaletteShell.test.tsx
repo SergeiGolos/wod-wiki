@@ -143,6 +143,24 @@ describe('PaletteShell WQL mode', () => {
     })
   })
 
+  it('narrows results live while typing — pending text reaches sources as a text filter (#1010)', async () => {
+    const search = mock(async (_query: string): Promise<PaletteItem[]> => [])
+    renderShell()
+    openPalette({
+      wql: { initialQuery: paletteQuery, execute },
+      sources: [{ id: 'wql-search', search }],
+    })
+
+    const input = await screen.findByTestId('wql-composer-input')
+    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note'))
+
+    // Typing must re-run the search with the pending text serialized as the
+    // same text-filter pill Enter commits — bare concatenation is invalid
+    // WQL and would blank the results instead of narrowing them.
+    fireEvent.change(input, { target: { value: 'fran' } })
+    await waitFor(() => expect(search).toHaveBeenCalledWith('find:note{text:fran}'), { timeout: 1_000 })
+  })
+
   it('keeps popover option selection inside the composer', async () => {
     const search = mock(async (_query: string): Promise<PaletteItem[]> => [
       { id: 'entry:1', label: 'Fran', type: 'entry', payload: { id: 'entry:1' } },

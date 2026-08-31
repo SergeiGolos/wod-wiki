@@ -43,41 +43,24 @@ const LAST_2W: ParsedFindQuery = {
   window: { kind: 'relative', size: 2, unit: 'w' },
 };
 
-describe("anchor: 'latest-activity' — runFind", () => {
-  it('windows against the newest entry, keeping recent-but-old-in-wall-clock notes', async () => {
+describe("wall-clock window anchoring (#1009)", () => {
+  it('windows against anchorNow timestamp', async () => {
     const service = makeService();
-    const result = await service.runFind(LAST_2W, { anchor: 'latest-activity' });
+    const result = await service.runFind(LAST_2W, { anchorNow: T0 });
     expect(result.notes.map(n => n.id).sort()).toEqual(['newest', 'recent']);
   });
 
-  it('default (no anchor option) keeps wall-clock semantics', async () => {
+  it('default (no anchorNow) checks against wall-clock now', async () => {
     const service = makeService();
     const result = await service.runFind(LAST_2W);
     expect(result.notes).toEqual([]);
   });
 
-  it('explicit range overrides the anchor', async () => {
+  it('explicit range overrides relative window', async () => {
     const service = makeService();
     const result = await service.runFind(LAST_2W, {
-      anchor: 'latest-activity',
       range: { start: T_OLD, end: T_OLD },
     });
     expect(result.notes.map(n => n.id)).toEqual(['old']);
-  });
-
-  it('an all-undated set anchors at 0 and passes every note', async () => {
-    const undated = [makeNote('a', 0), makeNote('b', 0)];
-    const service = makeService(undated, []);
-    const result = await service.runFind(LAST_2W, { anchor: 'latest-activity' });
-    expect(result.notes.map(n => n.id).sort()).toEqual(['a', 'b']);
-  });
-});
-
-describe("anchor: 'latest-activity' — runFindBlock", () => {
-  it('windows blocks against the newest block', async () => {
-    const service = makeService();
-    const parsed: ParsedFindQuery = { ...LAST_2W, raw: 'find:block in journal last 2w', target: 'block' };
-    const result = await service.runFind(parsed, { anchor: 'latest-activity' });
-    expect(result.blocks.map(b => b.noteId).sort()).toEqual(['newest', 'recent']);
   });
 });

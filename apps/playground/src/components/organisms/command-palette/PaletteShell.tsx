@@ -36,6 +36,10 @@ export const PaletteShell: React.FC = () => {
   const { isOpen, request, _select, _dismiss } = usePaletteStore();
 
   const [query, setQuery] = useState('');
+  // WQL mode: the composer's debounced live emission (committed pills +
+  // pending text as a text filter) — this is the string the sources search.
+  const [liveWql, setLiveWql] = useState('');
+  const activeQuery = request?.wql ? liveWql : query;
   const [results, setResults] = useState<IListItem<PaletteItem>[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const searchVersion = useRef(0);
@@ -54,47 +58,51 @@ export const PaletteShell: React.FC = () => {
   // Reset query + results whenever the request changes (new step) or the palette opens.
   useEffect(() => {
     if (isOpen && request) {
-      // WQL mode: the composer owns the query — it emits the composed WQL on
-      // mount and every clause change; resetting here would clobber it.
-      if (!request.wql) setQuery(request.initialQuery ?? '');
+      // WQL mode: seed the live query from the initial WQL — the composer
+      // owns further emissions; resetting here would clobber it.
+      if (request.wql) setLiveWql(request.wql.initialQuery ?? '');
+      else setQuery(request.initialQuery ?? '');
       setResults([]);
       setIsLoading(false);
     }
   }, [isOpen, request]); // request is a new object on every open() call
 
-  // Search all sources whenever query changes
+  // Search all sources whenever the live query changes (the composer
+  // debounces ~150ms so typing narrows results without per-keystroke runs).
   useEffect(() => {
     if (!isOpen || !request) return;
 
     const version = ++searchVersion.current;
     setIsLoading(true);
 
-    const run = async () => {
-      try {
-        const settled = await Promise.all(
-          request.sources.map(source =>
-            Promise.resolve(source.search(query)).then(items =>
-              items.map(item => ({
-                ...toListItem(item),
-                // Prefix source label as group if item has no category
-                group: item.category ?? source.label,
-              }))
+    const timer = setTimeout(() => {
+      const run = async () => {
+        try {
+          const settled = await Promise.all(
+            request.sources.map(source =>
+              Promise.resolve(source.search(activeQuery)).then(items =>
+                items.map(item => ({
+                  ...toListItem(item),
+                  // Prefix source label as group if item has no category
+                  group: item.category ?? source.label,
+                }))
+              )
             )
-          )
-        );
-        if (version !== searchVersion.current) return; // stale
-        setResults(settled.flat());
-      } catch (err) {
-        console.error('[PaletteShell] search error', err);
-        if (version === searchVersion.current) setResults([]);
-      } finally {
-        if (version === searchVersion.current) setIsLoading(false);
-      }
-    };
+          );
+          if (version !== searchVersion.current) return; // stale
+          setResults(settled.flat());
+        } catch (err) {
+          console.error('[PaletteShell] search error', err);
+          if (version === searchVersion.current) setResults([]);
+        } finally {
+          if (version === searchVersion.current) setIsLoading(false);
+        }
+      };
+      void run();
+    }, 150);
 
-    run();
-  }, [query, isOpen, request]);
-
+    return () => clearTimeout(timer);
+  }, [activeQuery, isOpen, request]);
   const handleSelect = useCallback(
     (item: IListItem<PaletteItem>) => {
       _select(item.payload);
@@ -104,9 +112,9 @@ export const PaletteShell: React.FC = () => {
 
   const emptyState = isLoading ? (
     <div className="py-8 text-center text-sm text-muted-foreground">Searching…</div>
-  ) : query ? (
+  ) : activeQuery ? (
     <div className="py-8 text-center text-sm text-muted-foreground">
-      No results for <span className="font-medium text-zinc-600 dark:text-zinc-300">&ldquo;{query}&rdquo;</span>
+      No results for <span className="font-medium text-zinc-600 dark:text-zinc-300">&ldquo;{activeQuery}&rdquo;</span>
     </div>
   ) : (
     <div className="py-8 text-center text-sm text-muted-foreground">Start typing to search</div>
@@ -118,6 +126,7 @@ export const PaletteShell: React.FC = () => {
         key={requestSeqRef.current}
         initialQuery={wqlConfig.initialQuery}
         onQueryChange={setQuery}
+        onLiveQueryChange={setLiveWql}
         showDiagnostics={wqlConfig.showDiagnostics ?? true}
         execute={wqlConfig.execute}
         customSlots={wqlConfig.customSlots}

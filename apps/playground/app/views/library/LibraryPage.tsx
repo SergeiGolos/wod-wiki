@@ -128,23 +128,30 @@ export function LibraryPage({ actions }: LibraryPageProps) {
   const queryError = urlQueryError ?? composedError
 
   // Live stage counts (matched/selected or aggregate telemetry) in the
-  // composer's diagnostics strip — dispatch on query kind. Find runs use the
-  // same activity-anchored window as searchEntries (#857) so the strip's
-  // counts agree with the rendered list.
+  // composer's diagnostics strip — dispatch on query kind. Calendar-anchored
+  // windows (#1009): the same `last 2w` means the same window everywhere, so
+  // the strip's counts agree with the rendered list.
   const execute = useCallback<WqlExecutor>(
-    ast => (isFindQuery(ast) ? queryService.runFind(ast, { anchor: 'latest-activity' }) : queryService.runQuery(ast.raw)),
+    ast => (isFindQuery(ast) ? queryService.runFind(ast) : queryService.runQuery(ast.raw)),
     [],
   )
 
+  // Live search (#1010): the composer's debounced emission (committed query
+  // + pending text as a text filter) drives the rendered list without
+  // touching the URL — `?q=` still mirrors committed queries only.
+  const [liveWql, setLiveWql] = useState<string | null>(null)
+  const activeWql = liveWql ?? wql
+
   useEffect(() => {
-    // Invalid composed WQL: surface the error banner and keep the last valid
-    // entries rather than silently clearing the list. A URL rejection
+    const parsedActive = parseQuery(activeWql)
+    // Invalid (mid-edit or committed) WQL: keep the last valid entries
+    // rather than silently clearing the list. A URL rejection
     // (urlQueryError) still runs — the fallback default query is valid.
-    if (composedError || !isFindQuery(parsed)) return
+    if (!isFindQuery(parsedActive) || parsedActive.error) return
     let cancelled = false
     setLoading(true)
 
-    searchEntries(wql)
+    searchEntries(activeWql)
       .then(results => {
         if (!cancelled) setEntries(results)
       })
@@ -158,7 +165,7 @@ export function LibraryPage({ actions }: LibraryPageProps) {
     return () => {
       cancelled = true
     }
-  }, [wql, composedError, parsed])
+  }, [activeWql, liveWql])
 
   const dated = useMemo(
     () => entries.filter(e => e.kind !== 'session').sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
@@ -241,6 +248,7 @@ export function LibraryPage({ actions }: LibraryPageProps) {
             <WqlComposer
               query={wql}
               onQueryChange={setQuery}
+              onLiveQueryChange={setLiveWql}
               execute={execute}
               hiddenClauseTypes={['source']}
             />

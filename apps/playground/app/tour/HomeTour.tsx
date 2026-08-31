@@ -408,7 +408,7 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
 
   // ── Session results (playground completion) + scroll-mode analytics ──
   const [session, setSession] = useState<{ segments: Segment[]; results: WorkoutResults } | null>(null)
-  const [logState, setLogState] = useState<'logging' | 'logged' | 'failed' | null>(null)
+  const [logState, setLogState] = useState<'logging' | 'logged' | 'failed' | 'empty' | null>(null)
   // Which editor context started the current playground run, and the block
   // it runs — captured at Run click so the fullscreen overlay is bound to the
   // editor the visitor pressed Run in.
@@ -715,6 +715,10 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
         }
         return
       }
+      if (segments.length === 0) {
+        setLogState('empty')
+        return
+      }
       const runBlock = playgroundBlockRef.current
       if (!runBlock) return
       const wodContent =
@@ -839,7 +843,9 @@ function HomeTourInner({ wodFiles, theme, quests, chapters, questLabels, scroll 
               ? 'session not saved · tap here to return'
               : logState === 'logging'
                 ? 'logging session… · tap here to return'
-                : 'session logged · tap here to return'}
+                : logState === 'empty'
+                  ? 'Nothing to log — the session never started · tap here to return'
+                  : 'session logged · tap here to return'}
         </button>
       </div>
     </div>

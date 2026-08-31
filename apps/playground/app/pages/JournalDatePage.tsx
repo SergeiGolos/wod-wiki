@@ -33,6 +33,7 @@ interface NoteBoundary {
 
 export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDatePageProps) {
   const [notes, setNotes] = useState<HistoryEntry[] | null>(null);
+  const [viewMode, setViewMode] = useState<'read' | 'edit'>('read');
   const [content, setContent] = useState<string>('');
   const [allResults, setAllResults] = useState<WorkoutResult[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -216,19 +217,33 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   return (
     <WorkbenchSessionProvider notePersistence={notePersistence} provider={journalContentProvider}>
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-8">
-        <header>
-          <h1 className="text-2xl font-semibold">{journalDate}</h1>
-          <p className="text-sm text-muted-foreground">{notes.length} {notes.length === 1 ? 'note' : 'notes'}</p>
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">{journalDate}</h1>
+            <p className="text-sm text-muted-foreground">{notes.length} {notes.length === 1 ? 'note' : 'notes'}</p>
+          </div>
+          {notes.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setViewMode((m) => (m === 'read' ? 'edit' : 'read'))}
+              className="rounded-lg border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              {viewMode === 'read' ? 'Edit' : 'Read mode'}
+            </button>
+          )}
         </header>
         {notes.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">No Notes on this date yet.</p>
         ) : (
+          /* Read mode keeps the editor mounted — same markdown surface, just
+             non-editable (#1008). Remount on toggle re-creates the view. */
           <NoteEditor
+            key={viewMode}
             value={content}
             onChange={onChange}
-            onCursorPositionChange={onLineChange}
             onBlur={onBlur}
             noteId={journalDate}
+            readonly={viewMode === 'read'}
             theme={theme}
             showLineNumbers={false}
             onBlocksChange={setBlocks}

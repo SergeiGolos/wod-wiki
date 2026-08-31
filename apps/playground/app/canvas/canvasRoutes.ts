@@ -9,9 +9,14 @@
  */
 
 import { parseCanvasMarkdown, type ParsedCanvasPage } from './parseCanvasMarkdown'
+import { normalizePathname } from './canvasRouteLookup'
 export { getSectionProse } from './parseCanvasMarkdown'
+export { normalizePathname } from './canvasRouteLookup'
 
-// Routes from markdown/canvas/**/*.md (explicit routes)
+// Routes from markdown/canvas/**/*.md (explicit routes). The glob calls stay
+// top-level and unguarded — Vite's transform only rewrites the literal
+// `import.meta.glob(...)` form, so a runtime typeof guard would ship empty
+// route tables to production.
 const routeFiles = import.meta.glob('../../../../markdown/canvas/**/*.md', {
   eager: true,
   query: '?raw',
@@ -47,11 +52,12 @@ const routes2: CanvasRoute[] = Object.entries(collectionFiles)
 
 export const canvasRoutes: CanvasRoute[] = [...routes1, ...routes2]
 
-/** Fast O(1)-ish lookup used in AppContent on every render. */
-const routeMap = new Map<string, ParsedCanvasPage>(
-  canvasRoutes.map(r => [r.route, r.page])
+
+/** Route lookup used in AppContent on every render — normalized keys (#1005). */
+const routeByPathname: Record<string, ParsedCanvasPage> = Object.fromEntries(
+  canvasRoutes.map(r => [normalizePathname(r.route), r.page])
 )
 
 export function findCanvasPage(pathname: string): ParsedCanvasPage | null {
-  return routeMap.get(pathname) ?? null
+  return routeByPathname[normalizePathname(pathname)] ?? null
 }
