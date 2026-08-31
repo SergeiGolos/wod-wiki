@@ -1,4 +1,4 @@
-export { WqlComposer, type WqlComposerProps, type WqlValidationState } from './WqlComposer';
+export { WqlComposer, LIVE_QUERY_DEBOUNCE_MS, type WqlComposerProps, type WqlValidationState } from './WqlComposer';
 export {
   TokenSlotPill,
   ClausePopover,

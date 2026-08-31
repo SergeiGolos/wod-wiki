@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { usePaletteStore } from './palette-store';
 import { CommandListView } from '@/components/molecules/CommandListView';
 import type { IListItem } from '@/components/molecules/types';
 import type { PaletteItem } from './palette-types';
-import { WqlComposer, pillsToWql, wqlToPills } from '@bitcobblers/wod-wiki-ui';
+import { WqlComposer } from '@bitcobblers/wod-wiki-ui';
 
 /** Map a PaletteItem to the generic list view model. */
 function toListItem(item: PaletteItem): IListItem<PaletteItem> {
@@ -36,21 +36,10 @@ export const PaletteShell: React.FC = () => {
   const { isOpen, request, _select, _dismiss } = usePaletteStore();
 
   const [query, setQuery] = useState('');
-  const [pendingText, setPendingText] = useState('');
-
-  // Live search string: the committed WQL with the composer's uncommitted
-  // free text serialized as the same text-filter pill Enter commits. Bare
-  // trailing words are invalid WQL (the find grammar wants {filters}), so a
-  // raw concatenation would parse-error and blank the live results instead
-  // of narrowing them.
-  const effectiveQuery = useMemo(() => {
-    const p = pendingText.trim();
-    if (!p) return query;
-    if (!query) return p;
-    const pills = wqlToPills(query);
-    if (!pills) return `${query} ${p}`;
-    return pillsToWql([...pills, { id: 'palette-pending-text', type: 'text', label: 'text', value: p }]);
-  }, [query, pendingText]);
+  // WQL mode: the composer's debounced live emission (committed pills +
+  // pending text as a text filter) — this is the string the sources search.
+  const [liveWql, setLiveWql] = useState('');
+  const activeQuery = request?.wql ? liveWql : query;
   const [results, setResults] = useState<IListItem<PaletteItem>[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const searchVersion = useRef(0);
@@ -69,16 +58,17 @@ export const PaletteShell: React.FC = () => {
   // Reset query + results whenever the request changes (new step) or the palette opens.
   useEffect(() => {
     if (isOpen && request) {
-      // WQL mode: the composer owns the query — it emits the composed WQL on
-      // mount and every clause change; resetting here would clobber it.
-      if (!request.wql) setQuery(request.initialQuery ?? '');
-      setPendingText('');
+      // WQL mode: seed the live query from the initial WQL — the composer
+      // owns further emissions; resetting here would clobber it.
+      if (request.wql) setLiveWql(request.wql.initialQuery ?? '');
+      else setQuery(request.initialQuery ?? '');
       setResults([]);
       setIsLoading(false);
     }
   }, [isOpen, request]); // request is a new object on every open() call
 
-  // Search all sources whenever effectiveQuery changes (debounced ~150ms for live typing)
+  // Search all sources whenever the live query changes (the composer
+  // debounces ~150ms so typing narrows results without per-keystroke runs).
   useEffect(() => {
     if (!isOpen || !request) return;
 
@@ -90,7 +80,7 @@ export const PaletteShell: React.FC = () => {
         try {
           const settled = await Promise.all(
             request.sources.map(source =>
-              Promise.resolve(source.search(effectiveQuery)).then(items =>
+              Promise.resolve(source.search(activeQuery)).then(items =>
                 items.map(item => ({
                   ...toListItem(item),
                   // Prefix source label as group if item has no category
@@ -112,8 +102,7 @@ export const PaletteShell: React.FC = () => {
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [effectiveQuery, isOpen, request]);
-
+  }, [activeQuery, isOpen, request]);
   const handleSelect = useCallback(
     (item: IListItem<PaletteItem>) => {
       _select(item.payload);
@@ -123,9 +112,9 @@ export const PaletteShell: React.FC = () => {
 
   const emptyState = isLoading ? (
     <div className="py-8 text-center text-sm text-muted-foreground">Searching…</div>
-  ) : effectiveQuery ? (
+  ) : activeQuery ? (
     <div className="py-8 text-center text-sm text-muted-foreground">
-      No results for <span className="font-medium text-zinc-600 dark:text-zinc-300">&ldquo;{effectiveQuery}&rdquo;</span>
+      No results for <span className="font-medium text-zinc-600 dark:text-zinc-300">&ldquo;{activeQuery}&rdquo;</span>
     </div>
   ) : (
     <div className="py-8 text-center text-sm text-muted-foreground">Start typing to search</div>
@@ -137,7 +126,7 @@ export const PaletteShell: React.FC = () => {
         key={requestSeqRef.current}
         initialQuery={wqlConfig.initialQuery}
         onQueryChange={setQuery}
-        onPendingTextChange={setPendingText}
+        onLiveQueryChange={setLiveWql}
         showDiagnostics={wqlConfig.showDiagnostics ?? true}
         execute={wqlConfig.execute}
         customSlots={wqlConfig.customSlots}

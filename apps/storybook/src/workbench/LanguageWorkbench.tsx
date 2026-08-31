@@ -899,6 +899,9 @@ export function SessionOutputsTable({
     return (filterPresets ?? DEFAULT_OUTPUT_FILTERS).map(normalizeOutputFilter);
   }, [filterPresets]);
   const t0 = outputs.length > 0 ? outputs[0].timeSpan.started : undefined;
+  // Newest-first: the table is a session log, so the latest events lead. t0
+  // above is intentionally read from the chronological head so +offsets stay positive.
+  const newestFirst = useMemo(() => [...outputs].reverse(), [outputs]);
 
   // Run WQL queries when an aggregate/find/rows query is entered
   useEffect(() => {
@@ -1058,7 +1061,7 @@ export function SessionOutputsTable({
       </div>
       {/* Session Results Table (shared) — statement rows, fixed metric columns */}
       <OutputStatementsTable
-        outputs={outputs}
+        outputs={newestFirst}
         filter={filterText}
         timeOrigin={t0}
         onClearFilter={() => setFilterText('')}

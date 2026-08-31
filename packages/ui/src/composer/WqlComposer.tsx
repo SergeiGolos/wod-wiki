@@ -27,6 +27,7 @@ import {
 import { type ClauseType, type QueryClause, getClauseMeta, sourcePlane } from './queryClauses';
 import {
   pillsToAst,
+  pillsToWql,
   wqlToPills,
   pivotPills,
   defaultPills,
@@ -50,8 +51,14 @@ export interface WqlComposerProps {
   query?: string;
   /** Fired whenever the composed query changes (add / edit / remove a pill). */
   onQueryChange?: (wql: string) => void;
-  /** Fired whenever uncommitted free text changes in the composer box. */
-  onPendingTextChange?: (pendingText: string) => void;
+  /**
+   * Live-search emission: debounced (~150 ms) merged query — the committed
+   * pills with the uncommitted free text serialized as a text filter, the
+   * same string Enter commits. Fires on mount and whenever pills or pending
+   * text change; a mid-edit invalid query emits nothing, so hosts filtering
+   * as-you-type keep their last results instead of flashing empty.
+   */
+  onLiveQueryChange?: (wql: string) => void;
   /** Fired (including on mount) with parse validation state. */
   onValidationChange?: (state: WqlValidationState) => void;
   /** Fired (including on mount) with the parsed AST — the composer state. */
@@ -84,13 +91,16 @@ export interface WqlComposerProps {
   className?: string;
 }
 
+/** Keystroke-to-live-search delay for onLiveQueryChange (#1010). */
+export const LIVE_QUERY_DEBOUNCE_MS = 150;
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function WqlComposer({
   initialQuery,
   query: controlledQuery,
   onQueryChange,
-  onPendingTextChange,
+  onLiveQueryChange,
   onValidationChange,
   onAstChange,
   onSubmit,
@@ -119,9 +129,6 @@ export function WqlComposer({
   const [activeSlotIdx, setActiveSlotIdx] = useState<number | null>(null);
   const [freeText, setFreeText] = useState('');
 
-  useEffect(() => {
-    onPendingTextChange?.(freeText.trim());
-  }, [freeText, onPendingTextChange]);
   const inputRef = useRef<HTMLInputElement>(null);
   const freeTextInitRef = useRef<string | null>(null);
 
@@ -259,6 +266,27 @@ export function WqlComposer({
     }
     return { kind: 'text', value: words[0]! };
   }, [freeText]);
+
+  // Live-search emission (#1010): debounced merged query — committed pills
+  // plus the pending free text serialized as a text pill, i.e. the string
+  // Enter would commit. Invalid mid-edit queries emit nothing, so hosts
+  // filtering as-you-type keep their last results instead of flashing empty.
+  useEffect(() => {
+    if (!onLiveQueryChange) return;
+    const timer = setTimeout(() => {
+      const raw = freeText.trim();
+      if (!raw) {
+        onLiveQueryChange(pillsToWql(pills));
+      } else if (pending?.kind === 'query') {
+        onLiveQueryChange((pending.pills && pillsToWql(pending.pills)) || raw);
+      } else if (pending?.kind === 'raw') {
+        onLiveQueryChange(pending.value);
+      } else if (pending?.kind === 'text') {
+        onLiveQueryChange(pillsToWql([...pills, { id: 'wql-live-text', type: 'text', label: 'text', value: pending.value }]));
+      }
+    }, LIVE_QUERY_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [pills, freeText, pending, onLiveQueryChange]);
 
   const addPill = (pill: QueryClause) => {
     const type = pill.type;
