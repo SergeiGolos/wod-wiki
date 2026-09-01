@@ -4,9 +4,6 @@ import { EffortResolver } from '../EffortResolver';
 import {
   fixtureRunning,
   fixtureRowing,
-  fixtureBackSquat,
-  fixtureBurpee,
-  fixturePlank,
   fixtureUserCustom,
   commonFixtureSet,
 } from '../fixtures';

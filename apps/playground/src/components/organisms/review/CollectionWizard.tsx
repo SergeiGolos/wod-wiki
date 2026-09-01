@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { AlertCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
 interface CollectionWizardProps {
   items: CollectionItem[];
-  onSave: (item: CollectionItem, value: any) => void;
+  onSave: (item: CollectionItem, value: unknown) => void;
   onSkip: (item: CollectionItem) => void;
   onStart?: () => void;
   onClose?: () => void;
@@ -89,7 +89,7 @@ const CollectionWizard: React.FC<CollectionWizardProps> = ({
       <div className="flex flex-col gap-3 w-full">
         {item.alternatives.map((alt, altIdx) => {
           const isSelected = selected === altIdx;
-          const label = alt.image ?? String((alt.value as any)?.amount ?? alt.value ?? altIdx);
+          const label = alt.image ?? String((alt.value as { amount?: unknown } | null)?.amount ?? alt.value ?? altIdx);
           return (
             <button
               key={altIdx}

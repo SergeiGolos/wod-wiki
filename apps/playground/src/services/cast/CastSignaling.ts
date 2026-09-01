@@ -15,6 +15,7 @@
 
 import { CAST_NAMESPACE } from '@/types/cast/messages';
 import type { WebRTCSignalMessage } from '@/types/cast/messages';
+import type { CastMessageListener, CastReceiverContextLike, CastReceiverMessageListener, SenderCastSessionLike } from '@/types/cast/sdk';
 import type { ISignaling } from './rpc/WebRtcRpcTransport';
 
 // ── Sender-side signaling (runs in the web app) ────────────────────────────
@@ -25,13 +26,13 @@ import type { ISignaling } from './rpc/WebRtcRpcTransport';
  */
 export class SenderCastSignaling implements ISignaling {
   private listeners = new Set<(signal: WebRTCSignalMessage) => void>();
-  private boundListener: ((namespace: string, message: string) => void) | null = null;
+  private boundListener: CastMessageListener | null = null;
 
   /**
    * @param session  The active CastSession from `CastContext.getCurrentSession()`.
    *                 Must be in SESSION_STARTED state.
    */
-  constructor(private readonly session: any /* cast.framework.CastSession */) {
+  constructor(private readonly session: SenderCastSessionLike) {
     this.boundListener = (_namespace: string, message: string) => {
       try {
         console.log('[SenderCastSignaling] RAW incoming:', typeof message, typeof message === 'string' ? message.substring(0, 120) : JSON.stringify(message).substring(0, 120));
@@ -90,13 +91,13 @@ export class SenderCastSignaling implements ISignaling {
 export class ReceiverCastSignaling implements ISignaling {
   private listeners = new Set<(signal: WebRTCSignalMessage) => void>();
   private senderId: string | null = null;
-  private boundListener: ((event: any) => void) | null = null;
+  private boundListener: CastReceiverMessageListener | null = null;
 
   /**
    * @param context  `cast.framework.CastReceiverContext.getInstance()`
    */
-  constructor(private readonly context: any /* cast.framework.CastReceiverContext */) {
-    this.boundListener = (event: any) => {
+  constructor(private readonly context: CastReceiverContextLike) {
+    this.boundListener = (event) => {
       try {
         console.log('[ReceiverCastSignaling] RAW incoming:', event.senderId, typeof event.data === 'string' ? event.data.substring(0, 120) : JSON.stringify(event.data).substring(0, 120));
         // Remember the sender's ID so we can reply

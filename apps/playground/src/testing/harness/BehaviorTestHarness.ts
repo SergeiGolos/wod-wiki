@@ -48,7 +48,7 @@ export class BehaviorTestHarness {
 
   private _capturedActions: CapturedAction[] = [];
   private _capturedEvents: CapturedEvent[] = [];
-  private _handleSpy: Mock<any>;
+  private _handleSpy: Mock<(event: IEvent) => void>;
   private _iteration = 0;
   private readonly _maxIterations = 20;
   private _actionStack: IRuntimeAction[] = [];
@@ -118,7 +118,7 @@ export class BehaviorTestHarness {
         }
       },
 
-      subscribeToOutput(_listener: (output: any) => void) {
+      subscribeToOutput(_listener: OutputListener) {
         // No-op for test harness
         return () => { };
       },
@@ -127,7 +127,7 @@ export class BehaviorTestHarness {
         return [];
       },
 
-      addOutput(_output: any) {
+      addOutput(_output: IOutputStatement) {
         // No-op for test harness
       },
 
@@ -141,7 +141,7 @@ export class BehaviorTestHarness {
           if (block) block.dispose(this as unknown as IScriptRuntime);
         }
       }
-    } as any;
+    } as unknown as IScriptRuntime;
   }
 
   // ========== Configuration API ==========
@@ -184,8 +184,9 @@ export class BehaviorTestHarness {
    * Push a block onto the stack (does not mount)
    */
   push(block: IRuntimeBlock): this {
-    if (block instanceof MockBlock || typeof (block as any).setRuntime === 'function') {
-      (block as any).setRuntime(this._mockRuntime);
+    const maybeMock = block as unknown as Partial<MockBlock>;
+    if (block instanceof MockBlock || typeof maybeMock.setRuntime === 'function') {
+      maybeMock.setRuntime?.(this._mockRuntime);
     }
     this._stack.push(block);
     return this;
@@ -278,7 +279,7 @@ export class BehaviorTestHarness {
   /**
    * Dispatch an event through the runtime
    */
-  simulateEvent(name: string, data?: any): IRuntimeAction[] {
+  simulateEvent(name: string, data?: Record<string, unknown>): IRuntimeAction[] {
     const event: IEvent = {
       name,
       timestamp: this._clock.currentDate,
@@ -321,14 +322,14 @@ export class BehaviorTestHarness {
    * If no ownerId is provided, checks the current block's context first,
    * then falls back to the harness memory store.
    */
-  getMemory<T = any>(type: string, ownerId?: string): T | undefined {
+  getMemory<T = unknown>(type: string, ownerId?: string): T | undefined {
     // If no ownerId provided, try current block's context first
     if (!ownerId) {
       const currentBlock = this._stack.current;
       if (currentBlock) {
         // Check block's list-based memory via getMemoryByTag
         if (typeof currentBlock.getMemoryByTag === 'function') {
-          const loc = currentBlock.getMemoryByTag(type as any)[0];
+          const loc = currentBlock.getMemoryByTag(type as MemoryTag)[0];
           if (loc) {
             const frag = loc.metrics[0];
             if (frag) {
@@ -395,14 +396,14 @@ export class BehaviorTestHarness {
   }
 
   /** The handle() spy for assertions */
-  get handleSpy(): Mock<any> {
+  get handleSpy(): Mock<(event: IEvent) => void> {
     return this._handleSpy;
   }
 
   /**
    * Find captured actions by type
    */
-  findActions<T extends IRuntimeAction>(actionType: new (...args: any[]) => T): T[] {
+  findActions<T extends IRuntimeAction>(actionType: new (...args: unknown[]) => T): T[] {
     return this._capturedActions
       .filter(c => c.action instanceof actionType)
       .map(c => c.action as T);
@@ -443,9 +444,9 @@ export class BehaviorTestHarness {
     while (this._stack.count > 0) {
       const block = this._stack.current;
       if (block) {
-        try { block.unmount(this._mockRuntime); } catch (_e) { /* cleanup */ }
+        try { block.unmount(this._mockRuntime); } catch { /* cleanup */ }
         this._stack.pop();
-        try { block.dispose(this._mockRuntime); } catch (_e) { /* cleanup */ }
+        try { block.dispose(this._mockRuntime); } catch { /* cleanup */ }
       } else {
         this._stack.pop();
       }

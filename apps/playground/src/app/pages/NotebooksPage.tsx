@@ -38,7 +38,7 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
             return new Date(y, m - 1, 1);
         }
         return undefined;
-    }, []);
+    }, [searchParams]);
 
     const historySelection = useHistorySelection(null, initialCalendarDate);
     const navigate = useNavigate();
@@ -111,7 +111,7 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
         if (notebookParam !== activeNotebookId) {
             setActiveNotebook(notebookParam || null);
         }
-    }, [searchParams, setActiveNotebook]);
+    }, [searchParams, activeNotebookId, setActiveNotebook]);
 
     // Sync URL with Filter State
     useEffect(() => {
@@ -143,7 +143,7 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
         }
 
         setSearchParams(params, { replace: true });
-    }, [activeNotebookId, filterMode, customDates, dateRange, historySelection.calendarDate, setSearchParams]);
+    }, [searchParams, activeNotebookId, filterMode, customDates, dateRange, historySelection.calendarDate, setSearchParams]);
 
     // Calendar Date Selection Handler
     const handleDateSelect = useCallback((date: Date, modifiers: { shiftKey: boolean; ctrlKey: boolean }) => {
@@ -194,7 +194,7 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
     // Load entries
     useEffect(() => {
         provider.getEntries().then(setHistoryEntries);
-    }, []);
+    }, [provider]);
 
     // Filter Logic
     const filteredEntries = useMemo(() => {
@@ -289,7 +289,7 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
         await provider.updateEntry(entryId, { tags: newTags });
         const entries = await provider.getEntries();
         setHistoryEntries(entries);
-    }, [historyEntries]);
+    }, [historyEntries, provider]);
 
     const handleClone = useCallback(async (entryId: string, targetDate?: number) => {
         if (!provider.capabilities.canWrite) return;
@@ -393,7 +393,7 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
                 provider={provider}
             />
         );
-    }, [selectedEntries, filteredEntries, navigate, handleDelete]);
+    }, [selectedEntries, filteredEntries, navigate, handleDelete, handleClone, provider]);
 
     const historyView = createHistoryView(mainPanel, previewPanel);
 

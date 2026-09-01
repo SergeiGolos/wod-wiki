@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { WqlComposer, type WqlExecutor } from '../composer';
+import type { QueryResult } from '@bitcobblers/wod-wiki-wql';
 import { isFindQuery } from '@bitcobblers/wod-wiki-wql';
 import type { QueryExecutor } from '../contracts/query';
 
@@ -43,7 +44,7 @@ export function WqlQueryInspectorModal({
         series: [],
         stages: { selected: 0, buckets: 0, aggregated: 0, groups: 0 },
         matched: [],
-      } as any);
+      } as unknown as QueryResult);
     },
     [executor],
   );

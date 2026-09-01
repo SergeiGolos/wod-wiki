@@ -64,7 +64,7 @@ function parseYamlScalar(val: string): string {
 
 function quoteYaml(val: string): string {
   if (!val) return '""';
-  if (/[":'\n#{}\[\],&*?\|\-<>=%!@`]/.test(val) || val !== val.trim()) {
+  if (/[":'\n#{}[\],&*?|\-<>=%!@`]/.test(val) || val !== val.trim()) {
     return `"${val.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
   }
   return val;
@@ -872,11 +872,10 @@ export const FrontmatterCompanion: React.FC<FrontmatterCompanionProps> = ({
   view,
   isActive,
   widthPercent,
-  docVersion,
 }) => {
   const section = useMemo(
     () => propSection || getSection(view, sectionId),
-    [view, sectionId, docVersion, propSection],
+    [view, sectionId, propSection],
   );
 
   const rawContent = section ? getSectionInnerContent(view, section) : '';

@@ -12,7 +12,7 @@
  */
 
 function getFs() {
-  if (typeof globalThis.process?.versions?.node === 'undefined' && typeof (globalThis as any).Bun === 'undefined') {
+  if (typeof globalThis.process?.versions?.node === 'undefined' && typeof (globalThis as { Bun?: unknown }).Bun === 'undefined') {
     throw new Error('File system operations are only supported in Node / Bun environments');
   }
   // eslint-disable-next-line no-restricted-syntax -- lazy CJS require keeps node builtins out of browser bundles
@@ -121,8 +121,8 @@ export function parseCliArgs(args: string[]): CliParsedArgs {
 }
 
 export async function readStdin(): Promise<string> {
-  if (typeof (globalThis as any).Bun?.stdin?.text === 'function') {
-    return (globalThis as any).Bun.stdin.text();
+  if (typeof (globalThis as { Bun?: { stdin?: { text?: unknown } } }).Bun?.stdin?.text === 'function') {
+    return (globalThis as { Bun: { stdin: { text: () => Promise<string> } } }).Bun.stdin.text();
   }
   return new Promise<string>((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -179,7 +179,8 @@ function printUsage(writer?: (text: string) => void): void {
   if (writer) {
     writer(text);
   } else {
-    console.log(text);
+    // CLI stdout output channel (not a debugging statement).
+    process.stdout.write(text.endsWith('\n') ? text : text + '\n');
   }
 }
 

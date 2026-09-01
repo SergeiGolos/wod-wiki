@@ -25,7 +25,7 @@ describe('DefaultListItem', () => {
 
   describe('Basic rendering', () => {
     it('renders item label', () => {
-      const { container } = render(
+      render(
         <DefaultListItem item={mockItem} ctx={mockContext} />
       );
 
@@ -48,7 +48,7 @@ describe('DefaultListItem', () => {
         icon: <span data-testid="test-icon">📁</span>,
       };
 
-      const { container } = render(
+      render(
         <DefaultListItem item={itemWithIcon} ctx={mockContext} />
       );
 
@@ -137,7 +137,7 @@ describe('DefaultListItem', () => {
         ],
       };
 
-      const { container } = render(
+      render(
         <DefaultListItem item={mockItem} ctx={contextWithActions} />
       );
 
@@ -161,7 +161,7 @@ describe('DefaultListItem', () => {
         },
       };
 
-      const { container } = render(
+      render(
         <DefaultListItem item={mockItem} ctx={contextWithAction} />
       );
 
@@ -221,7 +221,7 @@ describe('DefaultListItem', () => {
         },
       };
 
-      const { container } = render(
+      render(
         <DefaultListItem item={mockItem} ctx={contextWithAction} />
       );
 
@@ -483,7 +483,7 @@ describe('DefaultListItem', () => {
         payload: null,
       };
 
-      const { container } = render(
+      render(
         <DefaultListItem item={minimalItem} ctx={mockContext} />
       );
 

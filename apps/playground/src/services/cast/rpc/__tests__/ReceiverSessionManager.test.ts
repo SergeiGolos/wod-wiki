@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import type { IRpcTransport, RpcUnsubscribe } from '../IRpcTransport';
+import { RpcMessage } from '../RpcMessages';
 import {
     createReceiverSession,
     type ReceiverSessionDeps,
@@ -8,16 +9,16 @@ import type { ChromecastProxyRuntime } from '../ChromecastProxyRuntime';
 
 class MockTransport implements IRpcTransport {
     connected = true;
-    sent: any[] = [];
-    private messageHandlers = new Set<(m: any) => void>();
+    sent: RpcMessage[] = [];
+    private messageHandlers = new Set<(m: RpcMessage) => void>();
     private disconnectedHandlers = new Set<() => void>();
     private connectedHandlers = new Set<() => void>();
 
-    send(message: any): void {
+    send(message: RpcMessage): void {
         this.sent.push(message);
     }
 
-    onMessage(handler: (m: any) => void): RpcUnsubscribe {
+    onMessage(handler: (m: RpcMessage) => void): RpcUnsubscribe {
         this.messageHandlers.add(handler);
         return () => this.messageHandlers.delete(handler);
     }
@@ -37,7 +38,7 @@ class MockTransport implements IRpcTransport {
     dispose(): void {}
 
     /** Inject a message as if it came from the sender. */
-    receive(msg: any): void {
+    receive(msg: RpcMessage): void {
         for (const h of [...this.messageHandlers]) h(msg);
     }
 
@@ -47,16 +48,18 @@ class MockTransport implements IRpcTransport {
     }
 }
 
+type WorkbenchState = { mode: 'active' | 'review' | 'preview' };
+
 class MockRuntime {
     disposeCalls = 0;
-    private workbenchListeners = new Set<(state: any) => void>();
+    private workbenchListeners = new Set<(state: WorkbenchState) => void>();
 
     /** Test hook — fire a workbench update to all listeners. */
-    _emitWorkbench(state: any): void {
+    _emitWorkbench(state: WorkbenchState): void {
         for (const l of this.workbenchListeners) l(state);
     }
 
-    subscribeToWorkbench(listener: (state: any) => void): () => void {
+    subscribeToWorkbench(listener: (state: WorkbenchState) => void): () => void {
         this.workbenchListeners.add(listener);
         return () => this.workbenchListeners.delete(listener);
     }
@@ -74,7 +77,7 @@ function makeDeps(overrides: Partial<ReceiverSessionDeps> = {}): {
     const setEnabledCalls: boolean[] = [];
     return {
         deps: {
-            createRuntime: (() => runtime) as any,
+            createRuntime: () => runtime as unknown as ChromecastProxyRuntime,
             playAudio: (name, volume) => { playCalls.push({ name, volume }); },
             setAudioEnabled: (enabled) => { setEnabledCalls.push(enabled); },
             ...overrides,
@@ -185,9 +188,9 @@ describe('createReceiverSession', () => {
     });
 
     it('does not dispose the transport — caller owns it', () => {
-        const disposeSpy = (transport as any).dispose = () => {};
+        const _disposeSpy = transport.dispose = () => {};
         let called = false;
-        (transport as any).dispose = () => { called = true; };
+        transport.dispose = () => { called = true; };
         const handle = createReceiverSession(transport, undefined, mgr.deps);
         handle.dispose();
         expect(called).toBe(false);
@@ -196,7 +199,7 @@ describe('createReceiverSession', () => {
     describe('onWorkbenchUpdate', () => {
         it('forwards workbench updates to subscribers', () => {
             const handle = createReceiverSession(transport, undefined, mgr.deps);
-            const received: any[] = [];
+            const received: WorkbenchState[] = [];
             handle.onWorkbenchUpdate((state) => { received.push(state); });
             mgr.runtime._emitWorkbench({ mode: 'active' });
             mgr.runtime._emitWorkbench({ mode: 'review' });
@@ -206,8 +209,8 @@ describe('createReceiverSession', () => {
 
         it('supports multiple workbench subscribers', () => {
             const handle = createReceiverSession(transport, undefined, mgr.deps);
-            const a: any[] = [];
-            const b: any[] = [];
+            const a: WorkbenchState[] = [];
+            const b: WorkbenchState[] = [];
             handle.onWorkbenchUpdate((s) => a.push(s));
             handle.onWorkbenchUpdate((s) => b.push(s));
             mgr.runtime._emitWorkbench({ mode: 'preview' });
@@ -218,7 +221,7 @@ describe('createReceiverSession', () => {
 
         it('workbench unsubscribe stops further callbacks', () => {
             const handle = createReceiverSession(transport, undefined, mgr.deps);
-            const received: any[] = [];
+            const received: WorkbenchState[] = [];
             const unsub = handle.onWorkbenchUpdate((s) => received.push(s));
             unsub();
             mgr.runtime._emitWorkbench({ mode: 'active' });

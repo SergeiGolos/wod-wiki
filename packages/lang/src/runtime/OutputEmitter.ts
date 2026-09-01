@@ -260,7 +260,7 @@ export class OutputEmitter {
                 stmt.meta.endOffset + 1
             );
 
-            const metrics = MetricContainer.from(stmt.metrics as any, stmt.id);
+            const metrics = MetricContainer.from(stmt.metrics, stmt.id);
             metrics.add({
                 type: MetricType.Label,
                 image: rawText || 'Statement',

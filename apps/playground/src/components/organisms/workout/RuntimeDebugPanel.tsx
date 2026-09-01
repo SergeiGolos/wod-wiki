@@ -134,9 +134,12 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
   }, [runtime]);
 
   // Create snapshot for UI rendering - recalculates when snapshotVersion changes
+  // snapshotVersion is an intentional refresh trigger: stack events bump it
+  // to force a re-snapshot, so it intentionally sits in the deps unsed by body.
   const snapshot = React.useMemo(() => {
     if (!runtime) return null;
     return adapter.createSnapshot(runtime);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, adapter, snapshotVersion]);
 
   // Group memory entries by owner (block key) - must be at top level to avoid hooks order issues

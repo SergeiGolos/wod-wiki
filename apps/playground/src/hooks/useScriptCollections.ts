@@ -40,7 +40,7 @@ export function useScriptCollections(): UseScriptCollectionsReturn {
 
     const setActiveCollection = useCallback((id: string | null) => {
         setActiveCollectionId(id ?? '');
-    }, []);
+    }, [setActiveCollectionId]);
 
     return {
         collections,

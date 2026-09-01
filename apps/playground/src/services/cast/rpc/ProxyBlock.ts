@@ -175,11 +175,11 @@ export class ProxyBlock implements IRuntimeBlock {
      */
     update(serialized: SerializedBlock): void {
         // Mutable identity fields
-        (this as any).isComplete = serialized.isComplete;
-        (this as any).completionReason = serialized.completionReason;
+        this.isComplete = serialized.isComplete;
+        this.completionReason = serialized.completionReason;
 
         // Rebuild behaviors if metadata changed
-        (this as any).behaviors = this.buildBehaviors(serialized);
+        this.behaviors = this.buildBehaviors(serialized);
 
         // Sync all metrics tiers in-place
         this.syncLocations(this.displayLocations, serialized.displayFragments, 'metric:display');
@@ -298,7 +298,7 @@ export class ProxyBlock implements IRuntimeBlock {
         // No-op: completion is driven by the browser runtime
     }
 
-    getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined {
+    getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: unknown[]) => T): T | undefined {
         return this.behaviors.find(b => b instanceof behaviorType) as T | undefined;
     }
 
@@ -337,7 +337,7 @@ export class ProxyBlock implements IRuntimeBlock {
         return [{
             type: MetricType.Time,
             image: '',
-            origin: 'runtime' as any,
+            origin: 'runtime',
             value: timerState,
         }];
     }

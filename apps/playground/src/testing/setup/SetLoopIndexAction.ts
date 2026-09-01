@@ -54,7 +54,7 @@ export class SetLoopIndexAction implements ITestSetupAction {
     }
 
     for (const memoryType of memoryTypes) {
-      const loc = block.getMemoryByTag(memoryType as any)[0];
+      const loc = block.getMemoryByTag(memoryType as unknown as MemoryTag)[0];
 
       if (loc?.metrics[0]) {
         const currentValue = loc.metrics[0].value;

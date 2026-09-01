@@ -128,7 +128,7 @@ describe('cdlFallbackInterpreter', () => {
     });
 
     it('should treat explicit null values as absent', () => {
-      const row = makeGridRow({ completionReason: null as any, outputType: 'segment' });
+      const row = makeGridRow({ completionReason: null as unknown as GridRow['completionReason'], outputType: 'segment' });
       const source: FallbackSource = {
         type: 'fallback',
         semantics: 'first-present',
@@ -368,11 +368,11 @@ describe('cdlFallbackInterpreter', () => {
         sources: [
           {
             type: 'derived',
-            compute: (_r, ctx) => (ctx as any)?.multiplier,
+            compute: (_r, ctx) => ctx.multiplier,
           },
           {
             type: 'derived',
-            compute: (_r, ctx) => (ctx as any)?.multiplier * 5,
+            compute: (_r, ctx) => (ctx.multiplier as number) * 5,
             context: { multiplier: 3 },
           },
         ],
@@ -389,11 +389,11 @@ describe('cdlFallbackInterpreter', () => {
         sources: [
           {
             type: 'derived',
-            compute: (_r, ctx) => (ctx as any)?.prefix,
+            compute: (_r, ctx) => ctx.prefix,
           },
           {
             type: 'derived',
-            compute: (_r, ctx) => (ctx as any)?.suffix,
+            compute: (_r, ctx) => ctx.suffix,
           },
         ],
       };

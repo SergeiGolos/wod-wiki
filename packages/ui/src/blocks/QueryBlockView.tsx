@@ -279,7 +279,7 @@ function FindResultList({ parsed, result }: { parsed: FindQueryResult['parsed'];
       <ul className="space-y-0.5 max-h-48 overflow-y-auto font-mono text-xs">
         {items.map((item) => (
           <li key={item.id} className="py-0.5 px-1.5 rounded hover:bg-muted/50 truncate">
-            {isBlock ? (item as any).title || (item as any).blockContentId || item.id : (item as any).title || item.id}
+            {isBlock ? (item as unknown as { title?: string; blockContentId?: string }).title || (item as unknown as { blockContentId?: string }).blockContentId || item.id : (item as unknown as { title?: string }).title || item.id}
           </li>
         ))}
       </ul>

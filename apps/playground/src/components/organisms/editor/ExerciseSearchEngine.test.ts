@@ -23,11 +23,11 @@ class MockExerciseProvider implements ExerciseDataProvider {
     return mockIndex;
   }
   
-  async loadExercise(path: string): Promise<any> {
+  async loadExercise(path: string): Promise<Exercise> {
     return { name: path };
   }
   
-  async searchExercises(query: string, limit?: number): Promise<any[]> {
+  async searchExercises(query: string, limit?: number): Promise<ExercisePathEntry[]> {
     const results = mockIndex.allEntries.filter(e => 
       e.name.toLowerCase().includes(query.toLowerCase()) ||
       e.searchTerms.some(term => term.toLowerCase().includes(query.toLowerCase()))
@@ -50,11 +50,11 @@ describe('ExerciseSearchEngine', () => {
       clear: vi.fn(),
       length: 0,
       key: vi.fn()
-    } as any;
+    } as unknown as Storage;
 
     // Clear singleton
-    (ExerciseIndexManager as any).instance = null;
-    (ExerciseIndexManager as any).initPromise = null;
+    (ExerciseIndexManager as unknown as { instance: ExerciseIndexManager | null; initPromise: Promise<void> | null }).instance = null;
+    (ExerciseIndexManager as unknown as { initPromise: Promise<void> | null }).initPromise = null;
 
     indexManager = ExerciseIndexManager.getInstance();
     indexManager.setProvider(new MockExerciseProvider());

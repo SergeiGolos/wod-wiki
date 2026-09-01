@@ -97,7 +97,8 @@ export const useWorkbenchRuntime = <T extends ScriptBlock | null = ScriptBlock |
                 completed: true
             });
         }
-    }, [execution.status]); // Only fires on status transition to 'completed'
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires ONCE on transition to 'completed'; including runtime/elapsed would re-fire on every tick
+  }, [execution.status]); // Only fires on status transition to 'completed'
 
     // Initialize runtime when entering track view with selected block
     // Note: Consumer needs to use useEffect to call initializeRuntime/disposeRuntime based on viewMode/selectedBlock

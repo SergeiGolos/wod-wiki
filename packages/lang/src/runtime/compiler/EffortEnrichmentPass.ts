@@ -52,6 +52,10 @@ export interface EffortEnrichmentPassOptions {
  * @param block The single compiled block to enrich (not a tree root)
  * @param options Resolver and configuration
  */
+// Console is the sanctioned sink for these debug-traced enrichment passes.
+// eslint-disable-next-line no-console
+const logTrace = (message: string): void => console.log(message);
+
 export function applyEffortEnrichment(block: IRuntimeBlock, options: EffortEnrichmentPassOptions): void {
   const { resolver, overwrite = false, debug = false } = options;
   tryEnrichBlock(block, resolver, overwrite, debug);
@@ -72,7 +76,7 @@ function tryEnrichBlock(
   // Get the block label to use as the effort identifier
   const label = block.label;
   if (!label) {
-    if (debug) console.log(`[EffortEnrichment] Skipping block with no label: ${block.key}`);
+    if (debug) logTrace(`[EffortEnrichment] Skipping block with no label: ${block.key}`);
     return;
   }
 
@@ -82,7 +86,7 @@ function tryEnrichBlock(
   );
 
   if (existingEffortData && !overwrite) {
-    if (debug) console.log(`[EffortEnrichment] Skipping block already enriched: ${label}`);
+    if (debug) logTrace(`[EffortEnrichment] Skipping block already enriched: ${label}`);
     return;
   }
   try {
@@ -100,7 +104,7 @@ function tryEnrichBlock(
   }
 
     if (debug) {
-      console.log(`[EffortEnrichment] Resolved effort: ${label} → ${resolved.label} (MET: ${resolved.met})`);
+      logTrace(`[EffortEnrichment] Resolved effort: ${label} → ${resolved.label} (MET: ${resolved.met})`);
     }
 
     // Create the effort-data metric

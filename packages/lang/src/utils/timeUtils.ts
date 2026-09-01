@@ -51,15 +51,15 @@ export const calculateDuration = (spans: ReadonlyArray<TimeSpan | { started: num
   return spans.reduce((total, span) => {
     // Handle canonical TimeSpan or raw objects with 'started'/'ended'
     if ('started' in span) {
-      const start = (span as any).started;
-      const end = (span as any).ended ?? now;
+      const start = span.started;
+      const end = span.ended ?? now;
       return total + Math.max(0, end - start);
     }
 
     // Handle legacy objects with 'start'/'stop'
-    const start = (span as any).start instanceof Date ? (span as any).start.getTime() : ((span as any).start || 0);
-    const stop = (span as any).stop ? ((span as any).stop instanceof Date ? (span as any).stop.getTime() : (span as any).stop) : now;
-    return total + Math.max(0, (stop as number) - (start as number));
+    const start = span.start instanceof Date ? span.start.getTime() : (span.start || 0);
+    const stop = span.stop ? (span.stop instanceof Date ? span.stop.getTime() : span.stop) : now;
+    return total + Math.max(0, stop - start);
   }, 0);
 };
 

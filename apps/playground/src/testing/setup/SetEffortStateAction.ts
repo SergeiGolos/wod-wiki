@@ -63,15 +63,15 @@ export class SetEffortStateAction implements ITestSetupAction {
     }
 
     for (const memoryType of memoryTypes) {
-      const loc = block.getMemoryByTag(memoryType as any)[0];
+      const loc = block.getMemoryByTag(memoryType as unknown as MemoryTag)[0];
 
       if (loc?.metrics[0]) {
         const currentValue = loc.metrics[0].value;
-        let newValue: any;
+        let newValue: Record<string, unknown>;
 
         // Handle different memory shapes
         if (typeof currentValue === 'object' && currentValue !== null) {
-          newValue = { ...currentValue };
+          newValue = { ...(currentValue as Record<string, unknown>) };
           if (this.params.currentReps !== undefined) {
             newValue.currentReps = this.params.currentReps;
             newValue.reps = this.params.currentReps;

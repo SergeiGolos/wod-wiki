@@ -70,7 +70,7 @@ export const DatesTagsSection: React.FC<DatesTagsSectionProps> = ({
   const formatDay = (ms: number) =>
     formatDateMedium(new Date(ms));
 
-  const handleDateSelect = async (date: Date) => {
+  const handleDateSelect = async (_date: Date) => {
     setIsCalendarOpen(false);
   };
 

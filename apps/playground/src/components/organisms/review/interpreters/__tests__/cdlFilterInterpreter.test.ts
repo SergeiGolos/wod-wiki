@@ -20,7 +20,7 @@ describe('cdlFilterInterpreter', () => {
         source: { type: 'metric-type', metricType: MetricType.Text },
         format: { type: 'text' },
         filter: {
-          extractor: (cell) => (cell as any)?.metrics?.[0]?.value?.toString(),
+          extractor: (cell) => ((cell as { metrics?: Array<{ value?: unknown }> } | null)?.metrics?.[0]?.value?.toString()),
         },
       };
       expect(extractFilterText(row, colDef)).toBe('squat');
@@ -59,7 +59,7 @@ describe('cdlFilterInterpreter', () => {
         source: { type: 'metric-type', metricType: MetricType.Rep },
         format: { type: 'text' },
         filter: {
-          extractor: (cell) => (cell as any)?.metrics?.[0]?.value?.toString(),
+          extractor: (cell) => ((cell as { metrics?: Array<{ value?: unknown }> } | null)?.metrics?.[0]?.value?.toString()),
         },
       };
       expect(extractFilterText(row, colDef)).toBe('');
@@ -163,7 +163,7 @@ describe('cdlFilterInterpreter', () => {
           label: 'Text',
           source: { type: 'metric-type', metricType: MetricType.Text },
           format: { type: 'text' },
-          filter: { extractor: (cell) => (cell as any)?.metrics?.[0]?.value?.toString() ?? '' },
+          filter: { extractor: (cell) => ((cell as { metrics?: Array<{ value?: unknown }> } | null)?.metrics?.[0]?.value?.toString()) ?? '' },
         },
       ];
 

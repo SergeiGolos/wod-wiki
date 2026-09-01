@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'bun:test';
+import type { NoteSaveInput } from '@/types/content-provider';
 import { StaticContentProvider } from '../StaticContentProvider';
 
 describe('StaticContentProvider', () => {
@@ -43,7 +44,7 @@ describe('StaticContentProvider', () => {
 
   it('saveEntry should update the singleton entry', async () => {
     const provider = new StaticContentProvider(content);
-    const saved = await provider.saveEntry({ title: 'X', rawContent: 'new content', tags: [] } as any);
+    const saved = await provider.saveEntry({ title: 'X', rawContent: 'new content', tags: [] } as unknown as NoteSaveInput);
     expect(saved.id).toBe('static');
     expect(saved.rawContent).toBe('new content');
     const fetched = await provider.getEntry('static');

@@ -8,6 +8,7 @@
  * @see docs/adr/0011-column-definition-language.md
  */
 
+import type { ReactNode } from 'react';
 import type { MetricType } from '@bitcobblers/wod-wiki-engine';
 import type { GridRow, GridCell } from './types';
 
@@ -64,7 +65,7 @@ export interface ComputeContext {
   /** Values of dependent columns already computed for this row */
   readonly dependencies: ReadonlyMap<string, unknown>;
   /** Additional custom context from the source definition */
-  readonly [key: string]: any;
+  readonly [key: string]: unknown;
 }
 
 /**
@@ -83,7 +84,7 @@ export interface DerivedSource {
   /** Column IDs this derived column depends on (resolved in dependency order) */
   readonly dependencies?: readonly string[];
   /** Optional static context merged into ComputeContext */
-  readonly context?: Record<string, any>;
+  readonly context?: Record<string, unknown>;
 }
 
 /** @deprecated Use ComputeContext instead */
@@ -232,13 +233,13 @@ export interface CombinedFormat {
 export interface CustomFormat {
   readonly type: 'custom';
   /** Render function: (value, context?) => ReactNode | string */
-  readonly render: (value: unknown, context?: CustomFormatContext) => any;
+  readonly render: (value: unknown, context?: CustomFormatContext) => ReactNode;
   /** Optional context */
   readonly context?: CustomFormatContext;
 }
 
 export interface CustomFormatContext {
-  readonly [key: string]: any;
+  readonly [key: string]: unknown;
 }
 
 /**
@@ -358,7 +359,7 @@ export interface ColumnMetadata {
   /** Column IDs that this column subsumes. When this column is visible, the subsumed columns are hidden. Used by composite/fallback columns to prevent their source columns from appearing redundantly. */
   readonly subsumes?: readonly string[];
   /** Additional custom metadata */
-  readonly [key: string]: any;
+  readonly [key: string]: unknown;
 }
 
 // ─── Column Set ─────────────────────────────────────────────────

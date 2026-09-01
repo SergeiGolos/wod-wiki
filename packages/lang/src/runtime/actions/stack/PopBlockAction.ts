@@ -56,8 +56,8 @@ export class PopBlockAction implements IRuntimeAction {
         popped.context?.release?.();
 
         // Log the pop (skip if already logged as forced-pop above)
-        if ((popped as any).completionReason !== 'forced-pop') {
-            RuntimeLogger.logPop(popped, (popped as any).completionReason);
+        if (popped.completionReason !== 'forced-pop') {
+            RuntimeLogger.logPop(popped, popped.completionReason);
         }
 
         // The 'segment' OutputStatement for this pop is emitted by the stack's

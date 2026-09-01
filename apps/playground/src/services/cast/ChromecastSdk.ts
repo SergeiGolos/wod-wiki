@@ -17,14 +17,29 @@
  * You must register a Cast receiver at https://cast.google.com/publish.
  * Point the receiver URL to your TV page, e.g.:
  *   http://pluto:6006/#/tv?relay=ws://pluto:8080/ws
- * Copy the App ID (e.g. "ABCD1234") and set VITE_CAST_APP_ID in .env.local.
  */
+import type { CastContextLike, CastSessionStateChangedEvent, SenderCastSessionLike } from '@/types/cast/sdk';
 
 declare global {
     interface Window {
         __onGCastApiAvailable?: (isAvailable: boolean, error?: unknown) => void;
-        cast?: any;
-        chrome?: any;
+        cast?: {
+            framework?: {
+                CastContext: { getInstance(): CastContextLike };
+                CastContextEventType: { SESSION_STATE_CHANGED: string };
+                SessionState: {
+                    SESSION_STARTED: string;
+                    SESSION_RESUMED: string;
+                    SESSION_ENDED: string;
+                    NO_SESSION: string;
+                };
+            };
+        };
+        chrome?: {
+            cast?: {
+                AutoJoinPolicy: { ORIGIN_SCOPED: string };
+            };
+        };
     }
 }
 
@@ -136,7 +151,7 @@ class ChromecastSdkClass {
         // Listen for session state changes
         ctx.addEventListener(
             cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
-            (event: any) => {
+            (event: CastSessionStateChangedEvent) => {
                 const SS = cast.framework.SessionState;
                 switch (event.sessionState) {
                     case SS.SESSION_STARTED:
@@ -197,7 +212,7 @@ class ChromecastSdkClass {
      * Return the current Cast session, or null if none is active.
      * Used by SenderCastSignaling to attach message listeners for WebRTC.
      */
-    getSession(): any /* cast.framework.CastSession */ | null {
+    getSession(): SenderCastSessionLike | null {
         return window.cast?.framework?.CastContext.getInstance()
             ?.getCurrentSession() ?? null;
     }

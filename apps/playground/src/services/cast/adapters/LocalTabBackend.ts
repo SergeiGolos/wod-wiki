@@ -63,8 +63,6 @@ interface LocalTabBackendDeps {
 
 export const LOCAL_RECEIVER_HTML = '/receiver-rpc.html';
 
-type ControlPacket = { kind: 'offer' | 'ready' | 'accept' | 'goodbye'; sessionId: string };
-
 export class LocalTabBackend implements ICastBackend {
     private _state: ICastBackendState = 'ready';
     private readonly stateListeners = new Set<(s: ICastBackendState) => void>();

@@ -48,7 +48,10 @@ module.exports = [
       '@typescript-eslint/ban-ts-comment': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      'no-console': 'warn',
+      // console.warn/error are the sanctioned diagnostic channels (no logger
+      // utility exists in this repo); console.log/info/debug stay flagged so
+      // stray debugging output is caught.
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'error',
       'no-fallthrough': 'warn',
       'no-constant-condition': 'warn',
@@ -78,6 +81,8 @@ module.exports = [
       'no-restricted-syntax': 'warn',
       'no-useless-assignment': 'off',
       'preserve-caught-error': 'warn',
+      // Playground is an app, not a library: console diagnostics are expected.
+      'no-console': 'off',
     },
   },
   {

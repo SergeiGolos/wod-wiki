@@ -118,9 +118,9 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
     if (!castTransport?.connected || !onSelectBlock || !editorState) return;
 
     const unsub = castTransport.onMessage((message: RpcMessage) => {
-      if (message.type !== 'rpc-event' || (message as any).name !== 'select-block') return;
+      if (message.type !== 'rpc-event' || message.name !== 'select-block') return;
 
-      const { index, blockId } = ((message as any).data ?? {}) as { index?: number; blockId?: string };
+      const { index, blockId } = (message.data ?? {}) as { index?: number; blockId?: string };
       // Cast select-block resolves against runnable sections only (#891/#894).
       const workoutSections = sections.filter(s => s.type === 'time');
 

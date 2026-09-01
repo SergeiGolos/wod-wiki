@@ -31,7 +31,7 @@ export class JsonAttachmentStrategy implements IAttachmentStrategy {
         const t = new Date(parsed.timestamp).getTime();
         timeSpan = { start: t, end: t };
       }
-    } catch (e) {
+    } catch {
       console.warn('[JsonAttachmentStrategy] Failed to parse JSON content for metadata');
     }
 

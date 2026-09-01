@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { ChromecastProxyRuntime } from '../ChromecastProxyRuntime';
 import { IRpcTransport, RpcUnsubscribe } from '../IRpcTransport';
-import { RpcMessage, RpcStackUpdate, RpcOutputStatement, SerializedBlock } from '../RpcMessages';
+import { RpcMessage, RpcStackUpdate, RpcOutputStatement, SerializedBlock, RpcEvent } from '../RpcMessages';
+import type { IMetric, IOutputStatement, IEvent, IRuntimeAction, IRuntimeBlock, StackSnapshot } from '@bitcobblers/wod-wiki-engine';
 
 // ── Mock Transport ──────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ function createSerializedBlock(key: string, overrides?: Partial<SerializedBlock>
         label: 'Run',
         sourceIds: [1],
         isComplete: false,
-        displayFragments: [[{ type: 'label' as any, image: 'Run' } as any]],
+        displayFragments: [[{ type: 'label', image: 'Run', origin: 'runtime' } as unknown as IMetric]],
         timer: null,
         ...overrides,
     };
@@ -71,7 +72,7 @@ describe('ChromecastProxyRuntime', () => {
 
     describe('subscribeToStack', () => {
         it('should deliver initial snapshot on subscribe', () => {
-            const snapshots: any[] = [];
+            const snapshots: StackSnapshot[] = [];
             proxy.subscribeToStack(s => snapshots.push(s));
 
             expect(snapshots).toHaveLength(1);
@@ -80,7 +81,7 @@ describe('ChromecastProxyRuntime', () => {
         });
 
         it('should notify observers on rpc-stack-update', () => {
-            const snapshots: any[] = [];
+            const snapshots: StackSnapshot[] = [];
             proxy.subscribeToStack(s => snapshots.push(s));
             snapshots.length = 0; // clear initial
 
@@ -136,7 +137,7 @@ describe('ChromecastProxyRuntime', () => {
         });
 
         it('should unsubscribe observers', () => {
-            const snapshots: any[] = [];
+            const snapshots: StackSnapshot[] = [];
             const unsub = proxy.subscribeToStack(s => snapshots.push(s));
             snapshots.length = 0;
             unsub();
@@ -236,7 +237,7 @@ describe('ChromecastProxyRuntime', () => {
 
     describe('subscribeToOutput', () => {
         it('should notify listeners on rpc-output', () => {
-            const outputs: any[] = [];
+            const outputs: IOutputStatement[] = [];
             proxy.subscribeToOutput(o => outputs.push(o));
 
             const msg: RpcOutputStatement = {
@@ -255,7 +256,7 @@ describe('ChromecastProxyRuntime', () => {
         });
 
         it('should use pre-computed elapsed from rpc-output message', () => {
-            const outputs: any[] = [];
+            const outputs: IOutputStatement[] = [];
             proxy.subscribeToOutput(o => outputs.push(o));
 
             transport._receive({
@@ -272,7 +273,7 @@ describe('ChromecastProxyRuntime', () => {
         });
 
         it('should compute elapsed from timeSpan when elapsed field is absent', () => {
-            const outputs: any[] = [];
+            const outputs: IOutputStatement[] = [];
             proxy.subscribeToOutput(o => outputs.push(o));
 
             transport._receive({
@@ -282,8 +283,8 @@ describe('ChromecastProxyRuntime', () => {
                 stackLevel: 0,
                 metrics: [],
                 timeSpan: { started: 1000, ended: 3000 },
-                // no elapsed field
-            } as any);
+                // no elapsed field — runtime computes it
+            } as unknown as RpcMessage);
 
             expect(outputs[0].elapsed).toBe(2000);
         });
@@ -311,7 +312,7 @@ describe('ChromecastProxyRuntime', () => {
         });
 
         it('should unsubscribe output listener', () => {
-            const outputs: any[] = [];
+            const outputs: IOutputStatement[] = [];
             const unsub = proxy.subscribeToOutput(o => outputs.push(o));
             unsub();
 
@@ -336,11 +337,11 @@ describe('ChromecastProxyRuntime', () => {
 
             expect(transport.sent).toHaveLength(1);
             expect(transport.sent[0].type).toBe('rpc-event');
-            expect((transport.sent[0] as any).name).toBe('next');
+            expect((transport.sent[0] as RpcEvent).name).toBe('next');
         });
 
         it('should emit event locally on proxy event bus', () => {
-            const events: any[] = [];
+            const events: IEvent[] = [];
             proxy.eventBus.on('*', (e) => events.push(e), 'test');
 
             proxy.handle({ name: 'pause', timestamp: new Date() });
@@ -360,7 +361,7 @@ describe('ChromecastProxyRuntime', () => {
 
     describe('no-op methods', () => {
         it('do() should not throw', () => {
-            expect(() => proxy.do({} as any)).not.toThrow();
+            expect(() => proxy.do({} as unknown as IRuntimeAction)).not.toThrow();
         });
 
         it('doAll() should not throw', () => {
@@ -368,7 +369,7 @@ describe('ChromecastProxyRuntime', () => {
         });
 
         it('pushBlock() should not throw', () => {
-            expect(() => proxy.pushBlock({} as any)).not.toThrow();
+            expect(() => proxy.pushBlock({} as unknown as IRuntimeBlock)).not.toThrow();
         });
 
         it('popBlock() should not throw', () => {
@@ -380,7 +381,7 @@ describe('ChromecastProxyRuntime', () => {
 
     describe('dispose', () => {
         it('should handle rpc-dispose message', () => {
-            const snapshots: any[] = [];
+            const snapshots: StackSnapshot[] = [];
             proxy.subscribeToStack(s => snapshots.push(s));
             snapshots.length = 0;
 

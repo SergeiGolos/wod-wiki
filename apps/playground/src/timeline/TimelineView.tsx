@@ -5,7 +5,7 @@ import { AnalyticsGroup, Segment, AnalyticsGraphConfig } from '@bitcobblers/wod-
 import { formatSecondsMMSS } from '../lib/formatTime';
 
 interface TimelineViewProps {
-  rawData: any[];
+  rawData: Array<Record<string, number | string | null> | undefined>;
   segments: Segment[];
   selectedSegmentIds: Set<number>;
   onSelectSegment: (id: number) => void;
@@ -69,7 +69,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     }
   }, [allGraphs, activeMetricId]);
 
-  const activeGraphConfig = allGraphs[activeMetricId] || allGraphs['power'] || { label: 'Unknown', unit: '', color: '#888', dataKey: activeMetricId };
+  const activeGraphConfig = useMemo(
+    () => allGraphs[activeMetricId] || allGraphs['power'] || { label: 'Unknown', unit: '', color: '#888', dataKey: activeMetricId },
+    [allGraphs, activeMetricId],
+  );
 
   // Data Prep for Charts
   const activeColor = activeGraphConfig.color;
@@ -82,7 +85,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
     const points = [];
     for (let t = 0; t < maxDuration; t++) {
-      const point: any = { time: t };
+      const point: Record<string, number | string | null> = { time: t };
       activeSegments.forEach(seg => {
         if (t < (seg.duration ?? 0)) {
           const absTime = seg.startTime + t;
@@ -92,7 +95,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       points.push(point);
     }
     return points;
-  }, [viewMode, selectedSegmentIds, activeMetricId, activeGraphConfig, segments, rawData]);
+  }, [viewMode, selectedSegmentIds, activeGraphConfig, segments, rawData]);
 
   // Data Prep for Details Table
   const selectedSegmentsData = segments.filter(s => selectedSegmentIds.has(s.id));

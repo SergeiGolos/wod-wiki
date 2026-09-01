@@ -364,7 +364,7 @@ function readNestedSection(lines: string[], key: string): Record<string, unknown
     if (!trimmed || trimmed.startsWith('#')) continue;
 
     const indent = line.length - line.trimStart().length;
-    const m = trimmed.match(/^([\w.\-]+):\s*(.*)$/);
+    const m = trimmed.match(/^([\w.-]+):\s*(.*)$/);
     if (!m) continue;
     const [, k, rawVal] = m;
 
@@ -396,7 +396,7 @@ function globEffortModules(): Record<string, string> {
     // function, so a typeof guard would always take the fallback here.
     // Relative to this file so it resolves identically under any Vite root
     // (Storybook at the repo root, the playground app at playground/).
-    return (import.meta as any).glob('../../../../markdown/efforts/**/*.md', {
+    return import.meta.glob('../../../../markdown/efforts/**/*.md', {
       query: '?raw',
       eager: true,
       import: 'default',
@@ -405,7 +405,11 @@ function globEffortModules(): Record<string, string> {
     // Bun and Node do not provide Vite's import.meta.glob transform.
   }
   try {
+    // Bun/Node branch of a synchronous fallback: ESM imports hoist and would
+    // defeat the try/catch guarding the Vite-only glob call above.
+    // eslint-disable-next-line no-restricted-syntax
     const fs = require('fs');
+    // eslint-disable-next-line no-restricted-syntax
     const path = require('path');
     const res: Record<string, string> = {};
     const effortsDir = path.resolve(process.cwd(), 'markdown/efforts');

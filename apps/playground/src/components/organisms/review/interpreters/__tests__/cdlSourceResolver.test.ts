@@ -54,7 +54,7 @@ describe('cdlSourceResolver', () => {
       const row = makeGridRow({ index: 5 });
       const source: ColumnSource = {
         type: 'derived',
-        compute: (_r, ctx) => (ctx as any)?.multiplier * 5,
+        compute: (_r, ctx) => (ctx.multiplier as number) * 5,
         context: { multiplier: 3 },
       };
       expect(resolveColumnSource(row, source, { multiplier: 3 })).toBe(15);

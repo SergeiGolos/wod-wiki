@@ -100,7 +100,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
 
         // Timer Reset — for EMOM manual skip or synchronization
         this.subscriptions.push(
-            ctx.subscribe('timer:reset' as any, (_event, rCtx) => {
+            ctx.subscribe('timer:reset', (_event, rCtx) => {
                 if (mode !== 'reset-interval') return [];
                 mutateTimerSpans(rCtx, (_spans, nowMs) => startSpan(nowMs));
                 return [];
@@ -109,7 +109,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
 
         // Pause — close current span
         this.subscriptions.push(
-            ctx.subscribe('timer:pause' as any, (_event, pCtx) => {
+            ctx.subscribe('timer:pause', (_event, pCtx) => {
                 if (this.isPaused) return [];
                 if (mutateTimerSpans(pCtx, closeCurrentSpan)) this.isPaused = true;
                 return [];
@@ -118,7 +118,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
 
         // Resume — open a new span
         this.subscriptions.push(
-            ctx.subscribe('timer:resume' as any, (_event, rCtx) => {
+            ctx.subscribe('timer:resume', (_event, rCtx) => {
                 if (!this.isPaused) return [];
                 if (mutateTimerSpans(rCtx, openSpan)) this.isPaused = false;
                 return [];
@@ -132,7 +132,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
         // Required timers cannot be skipped — emit a skip-attempt event instead.
         if (this.config.required && !ctx.block.isComplete) {
             ctx.emitEvent({
-                name: 'timer:skip-attempt' as any,
+                name: 'timer:skip-attempt',
                 timestamp: ctx.clock.currentDate,
                 data: { blockKey: ctx.block.key.toString() }
             });
@@ -220,7 +220,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
             if (childLoc?.metrics[0]) {
                 ctx.updateMemory('children:status', [{...childLoc.metrics[0], value: newChildStatus}]);
             } else {
-                ctx.pushMemory('children:status', [{type: 0 as any, image: '', origin: 'runtime' as any, value: newChildStatus}]);
+                ctx.pushMemory('children:status', [{type: 'status', image: '', origin: 'runtime', value: newChildStatus}]);
             }
         }
     }

@@ -83,7 +83,7 @@ export class MockContentProvider implements IContentProvider {
         return newEntry;
     }
 
-    async updateEntry(id: string, patch: any): Promise<HistoryEntry> {
+    async updateEntry(id: string, patch: IContentProvider['updateEntry'] extends (id: string, patch: infer P) => unknown ? P : never): Promise<HistoryEntry> {
         const entry = this.entries.get(id);
         if (!entry) throw new Error(`Entry ${id} not found`);
 

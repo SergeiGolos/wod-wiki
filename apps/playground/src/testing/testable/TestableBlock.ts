@@ -15,8 +15,8 @@ export type { InterceptMode, TestableBlockConfig } from '@bitcobblers/wod-wiki-e
  */
 export interface MethodCall {
   method: keyof IRuntimeBlock;
-  args: any[];
-  returnValue?: any;
+  args: unknown[];
+  returnValue?: unknown;
   timestamp: number;
   duration: number;
   error?: Error;
@@ -30,7 +30,7 @@ export interface MemoryOperation {
   type: string;
   ownerId: string;
   refId?: string;
-  value?: any;
+  value?: unknown;
   timestamp: number;
 }
 
@@ -236,7 +236,7 @@ export class TestableBlock implements IRuntimeBlock {
   }
 
   getBehavior<B extends IRuntimeBehavior>(
-    behaviorType: new (...args: any[]) => B
+    behaviorType: new (...args: unknown[]) => B
   ): B | undefined {
     return this._wrapped.getBehavior(behaviorType);
   }

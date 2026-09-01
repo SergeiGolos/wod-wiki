@@ -41,7 +41,7 @@ export class ExerciseDefinitionService {
    * Reset the singleton instance (useful for testing).
    */
   public static reset(): void {
-    ExerciseDefinitionService.instance = undefined as any;
+    ExerciseDefinitionService.instance = undefined as unknown as ExerciseDefinitionService;
   }
 
   /**

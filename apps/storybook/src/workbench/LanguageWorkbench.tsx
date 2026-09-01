@@ -221,7 +221,7 @@ export function useNoteEditor(
       view.destroy();
       viewRef.current = null;
     };
-  }, [doc, isDark]);
+  }, [doc, isDark, host]);
   const setDoc = useCallback((next: string) => {
     const view = viewRef.current;
     if (view && view.state.doc.toString() !== next) {
@@ -292,7 +292,7 @@ export function StatementStrip({
   activeIds?: ReadonlySet<number>;
   completedIds?: ReadonlySet<number>;
 }) {
-  const rows = statements ?? [];
+  const rows = useMemo(() => statements ?? [], [statements]);
   const byId = useMemo(() => new Map(rows.map((s) => [s.id, s])), [rows]);
 
   return (
@@ -734,10 +734,10 @@ function buildWorkbenchSessionStore(outputs: IOutputStatement[]): UnifiedEventSt
   const eventRows = toEventRows(stored, identity);
 
   const summaryRows: UnifiedEventRecord[] = [];
-  let totalReps = 0;
-  let totalVolume = 0;
-  let totalDistance = 0;
-  let totalElapsed = 0;
+  let _totalReps = 0;
+  let _totalVolume = 0;
+  let _totalDistance = 0;
+  let _totalElapsed = 0;
 
   const repsByEffort = new Map<string, number>();
   const volumeByEffort = new Map<string, number>();
@@ -802,13 +802,13 @@ function buildWorkbenchSessionStore(outputs: IOutputStatement[]): UnifiedEventSt
 
   for (const statements of blocks.values()) {
     const blockReps = statements.reduce((sum, s) => sum + statementReps(s), 0);
-    totalReps += blockReps;
+    _totalReps += blockReps;
     let paired = false;
 
     for (const s of statements) {
       const { dist, elapsed } = statementDistElapsed(s);
-      totalDistance += dist;
-      totalElapsed += elapsed;
+      _totalDistance += dist;
+      _totalElapsed += elapsed;
 
       const effort = statementEffort(s);
       if (!effort) continue;
@@ -823,7 +823,7 @@ function buildWorkbenchSessionStore(outputs: IOutputStatement[]): UnifiedEventSt
         repsByEffort.set(effort, (repsByEffort.get(effort) || 0) + effortReps);
         if (weight > 0) {
           const vol = effortReps * weight;
-          totalVolume += vol;
+          _totalVolume += vol;
           volumeByEffort.set(effort, (volumeByEffort.get(effort) || 0) + vol);
         }
       }
@@ -1731,7 +1731,7 @@ export function DashboardQueryCard({
 
           <select
             value={segment.widgetType}
-            onChange={(e) => onUpdate({ ...segment, widgetType: e.target.value as any })}
+            onChange={(e) => onUpdate({ ...segment, widgetType: e.target.value as 'auto' | 'value' | 'timeseries' | 'bars' | 'top-list' | 'table' })}
             className="rounded-lg border border-border/70 bg-background px-2 py-1 text-[10px] font-mono text-foreground cursor-pointer focus:outline-none"
             title="Widget type"
           >
@@ -2038,7 +2038,7 @@ export function LanguageWorkbench({
         setRunSnapshot(runSource);
       }
     }
-  }, [parse.script, runSource]);
+  }, [parse.script, runSource, runtime, runSnapshot]);
 
   const handleStartWorkout = () => {
     const factory = factoryRef.current;

@@ -64,8 +64,13 @@ export function useActiveScrollSection({
     shouldAcceptChangeRef.current = shouldAcceptChange;
   }, [shouldAcceptChange]);
 
-  const normalizedIds = useMemo(() => Array.from(new Set(ids.filter(Boolean))), [ids.join('\u0000')]);
-  const normalizedThreshold = useMemo(() => [...threshold], [threshold.join(',')]);
+  // Extract the deep-compare key so the memo deps are statically checkable:
+  // callers pass fresh `ids`/`threshold` arrays each render, so identity deps
+  // would recompute every render; the joined key preserves the intent.
+  const idsKey = ids.filter(Boolean).join('\u0000');
+  const thresholdKey = threshold.join(',');
+  const normalizedIds = useMemo(() => (idsKey ? idsKey.split('\u0000') : []), [idsKey]);
+  const normalizedThreshold = useMemo(() => thresholdKey.split(',').map(Number), [thresholdKey]);
 
   const flushDebounce = useCallback(() => {
     if (debounceTimerRef.current) {

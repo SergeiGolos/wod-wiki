@@ -32,7 +32,7 @@ function createMockStatement(config: { id: number; source?: string }): ICodeStat
       endOffset: 0,
       length: 0,
       raw: config.source ?? `statement-${config.id}`
-    } as any,
+    } as unknown as ICodeStatement['meta'],
     metricMeta: new Map(),
   } as unknown as ICodeStatement;
 }
@@ -193,7 +193,7 @@ export class ExecutionContextTestHarness {
     const originalDo = this.runtime.do.bind(this.runtime);
     const self = this;
 
-    (this.runtime as any).do = function (action: IRuntimeAction): void {
+    (this.runtime as unknown as { do: (action: IRuntimeAction) => void }).do = function (action: IRuntimeAction): void {
       // Track turn boundaries - a new turn starts when we're not already executing
       if (!self._isExecutingTurn) {
         self._currentTurnId++;
@@ -222,7 +222,7 @@ export class ExecutionContextTestHarness {
 
     // We need better tracking - use a depth counter
     let executionDepth = 0;
-    (this.runtime as any).do = function (action: IRuntimeAction): void {
+    (this.runtime as unknown as { do: (action: IRuntimeAction) => void }).do = function (action: IRuntimeAction): void {
       const isNewTurn = executionDepth === 0;
 
       if (isNewTurn) {

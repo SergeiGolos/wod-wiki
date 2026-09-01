@@ -21,7 +21,7 @@ describe('cdlSortInterpreter', () => {
         format: { type: 'text' },
         sort: {
           type: 'numeric',
-          extractor: (cell) => (cell as any)?.metrics?.[0]?.value ?? 0,
+          extractor: (cell) => ((cell as { metrics?: Array<{ value?: unknown }> } | null)?.metrics?.[0]?.value) ?? 0,
         },
       };
       expect(extractSortValue(row, colDef)).toBe(25);
@@ -62,7 +62,7 @@ describe('cdlSortInterpreter', () => {
         format: { type: 'text' },
         sort: {
           type: 'numeric',
-          extractor: (cell) => (cell as any)?.metrics?.[0]?.value,
+          extractor: (cell) => ((cell as { metrics?: Array<{ value?: unknown }> } | null)?.metrics?.[0]?.value),
         },
       };
       expect(extractSortValue(row, colDef)).toBe('');
@@ -103,7 +103,7 @@ describe('cdlSortInterpreter', () => {
         format: { type: 'badge', styleResolver: () => ({ className: '' }), textResolver: (v) => String(v) },
         sort: {
           type: 'numeric',
-          extractor: (cell) => (cell as any)?.metrics?.[0]?.value ?? 0,
+          extractor: (cell) => ((cell as { metrics?: Array<{ value?: unknown }> } | null)?.metrics?.[0]?.value) ?? 0,
         },
       };
       expect(extractSortValue(row, colDef)).toBe(15);
@@ -221,7 +221,7 @@ describe('cdlSortInterpreter', () => {
           type: 'numeric',
           extractor: (val) => {
             const primary = extractCombinedSortValue(val, 0);
-            return (primary as any)?.metrics?.[0]?.value ?? 0;
+            return ((primary as { metrics?: Array<{ value?: unknown }> } | null)?.metrics?.[0]?.value ?? 0) as number;
           },
         },
       };

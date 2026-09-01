@@ -23,10 +23,19 @@ export interface CustomSlotDefinition<TValue = unknown> {
   plane?: 'content' | 'metrics' | 'both';
 }
 
+/**
+ * Heterogeneous slot store: `Editor` components are invariant in `TValue`
+ * (`onChange: (value: TValue) => void`), so no concrete generic unifies
+ * every registered slot. The store uses the `any` escape at this single
+ * internal boundary; the public per-slot API stays generic.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
+type StoredSlot = CustomSlotDefinition<any>;
+
 export class ComposerRegistry {
-  private readonly slots = new Map<string, CustomSlotDefinition<any>>();
+  private readonly slots = new Map<string, StoredSlot>();
   private readonly listeners = new Set<() => void>();
-  private cachedList: CustomSlotDefinition<any>[] = [];
+  private cachedList: StoredSlot[] = [];
 
   registerSlot<TValue>(def: CustomSlotDefinition<TValue>): () => void {
     this.slots.set(def.type, def);
@@ -42,14 +51,14 @@ export class ComposerRegistry {
     }
   }
 
-  getSlot(type: string): CustomSlotDefinition<any> | undefined {
+  getSlot(type: string): CustomSlotDefinition | undefined {
     return this.slots.get(type);
   }
 
-  listSlots(): CustomSlotDefinition<any>[] {
+  listSlots(): CustomSlotDefinition[] {
     return this.cachedList;
   }
-  getAllSlots(): CustomSlotDefinition<any>[] {
+  getAllSlots(): CustomSlotDefinition[] {
     return this.cachedList;
   }
 
@@ -70,7 +79,7 @@ export class ComposerRegistry {
 
 export const composerRegistry = new ComposerRegistry();
 
-export function useComposerSlots(registry: ComposerRegistry = composerRegistry): CustomSlotDefinition<any>[] {
+export function useComposerSlots(registry: ComposerRegistry = composerRegistry): CustomSlotDefinition[] {
   const slots = useSyncExternalStore(
     (cb) => registry.subscribe(cb),
     () => registry.listSlots(),

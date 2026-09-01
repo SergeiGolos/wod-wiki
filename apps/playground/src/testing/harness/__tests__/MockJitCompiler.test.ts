@@ -52,7 +52,7 @@ describe('MockJitCompiler', () => {
       eventBus: { register: () => () => {}, on: () => () => {}, unregisterById: () => {}, unregisterByOwner: () => {}, dispatch: () => [], emit: () => {} },
       clock: { now: new Date(), currentDate: new Date(), start: () => {}, stop: () => {}, pause: () => {}, resume: () => {}, isPaused: false, isRunning: false },
       jit: mockJit,
-      script: { statements: [] } as any,
+      script: { statements: [] } as unknown as IScriptRuntime['script'],
       errors: [],
       isComplete: () => true,
       subscribeToOutput: () => () => {},
@@ -145,8 +145,8 @@ describe('MockJitCompiler', () => {
     });
 
     it('should pass both statements and runtime to predicate', () => {
-      let capturedStatements: any;
-      let capturedRuntime: any;
+      let capturedStatements: ICodeStatement[] | undefined;
+      let capturedRuntime: IScriptRuntime | undefined;
 
       mockJit.whenMatches((stmts, rt) => {
         capturedStatements = stmts;
@@ -230,8 +230,8 @@ describe('MockJitCompiler', () => {
     });
 
     it('should pass statements and runtime to factory', () => {
-      let capturedStatements: any;
-      let capturedRuntime: any;
+      let capturedStatements: ICodeStatement[] | undefined;
+      let capturedRuntime: IScriptRuntime | undefined;
 
       mockJit.whenMatches(
         () => true,

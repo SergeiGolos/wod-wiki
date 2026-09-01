@@ -28,6 +28,48 @@ import { MetricType } from '@bitcobblers/wod-wiki-engine';
  * - Hybrid: Effort (generic effort scale)
  */
 
+
+/** Narrow a nullable-unknown accessor to its value field; mirrors numeric-cell semantics. */
+function valueOf(v: unknown): number | undefined {
+  if (v && typeof v === 'object' && 'value' in v) {
+    const n = (v as { value?: unknown }).value;
+    return typeof n === 'number' ? n : undefined;
+  }
+  return undefined;
+}
+
+/** Narrow an unknown accessor to a metrics array / metric payload. */
+function metricsOf(v: unknown): unknown[] {
+  if (v && typeof v === 'object' && 'metrics' in v) {
+    const m = (v as { metrics?: unknown }).metrics;
+    return Array.isArray(m) ? m : [];
+  }
+  return [];
+}
+
+/** Stringify an unknown cell payload the way the numeric/leverage renderers do. */
+
+function rowIdOf(v: unknown): string | undefined {
+  if (v && typeof v === 'object' && 'id' in v) {
+    const id = (v as { id?: unknown }).id;
+    return typeof id === 'string' ? id : undefined;
+  }
+  return undefined;
+}
+
+function allRowsOf(v: unknown): Array<{ id?: string; elapsed?: number }> {
+  if (v && typeof v === 'object' && 'allRows' in v) {
+    const a = (v as { allRows?: unknown }).allRows;
+    return Array.isArray(a) ? (a as Array<{ id?: string; elapsed?: number }>) : [];
+  }
+  return [];
+}
+
+function stringOf(v: unknown): string {
+  if (v === undefined || v === null) return '';
+  return String(v);
+}
+
 export const effortColumnFirstPresent: ColumnDef = {
   id: 'effort',
   label: 'Effort',
@@ -45,25 +87,25 @@ export const effortColumnFirstPresent: ColumnDef = {
     type: 'badge',
     styleResolver: (value) => {
       // Render as colored badge based on effort level
-      const num = (value as any)?.value || 0;
+      const num = valueOf(value) || 0;
       return {
         className: num > 100 ? 'badge-intense' : num > 50 ? 'badge-moderate' : 'badge-light',
         icon: '●',
       };
     },
-    textResolver: (value) => (value as any)?.value?.toString() || '—',
+    textResolver: (value) => stringOf(valueOf(value)) || '—',
   },
   sort: {
     type: 'numeric',
-    extractor: (cell) => (cell as any)?.metrics?.value || 0,
+    extractor: (cell) => valueOf(metricsOf(cell)[0]) || 0,
   },
   graph: {
-    extractor: (cell) => (cell as any)?.metrics?.value,
+    extractor: (cell) => valueOf(metricsOf(cell)[0]),
     axisLabel: 'Effort',
     unit: 'reps/units',
   },
   filter: {
-    extractor: (cell) => (cell as any)?.metrics?.value?.toString() || '',
+    extractor: (cell) => valueOf(metricsOf(cell)[0])?.toString() || '',
     caseInsensitive: true,
   },
   meta: {
@@ -115,23 +157,23 @@ export const effortLabelGroupedColumn: ColumnDef = {
         className: 'badge-effort',
         icon: '💪',
       }),
-      textResolver: (value) => (value as any)?.toString() || '—',
+      textResolver: (value) => stringOf(value) || '—',
     },
     secondaryFormat: {
       type: 'text',
       className: 'text-secondary font-mono',
-      transform: (value) => (value as any)?.toString() || '—',
+      transform: (value) => stringOf(value) || '—',
     },
     containerClassName: 'flex flex-col gap-1',
   },
   sort: {
     type: 'text',
-    extractor: (cell) => (cell as any)?.metrics?.text || '',
+    extractor: (cell) => stringOf(metricsOf(cell)[1]) || '',
   },
   filter: {
     extractor: (cell) => {
-      const effort = (cell as any)?.metrics?.[0]?.toString() || '';
-      const text = (cell as any)?.metrics?.[1]?.toString() || '';
+      const effort = stringOf(metricsOf(cell)[0]);
+      const text = stringOf(metricsOf(cell)[1]);
       return `${effort} ${text}`;
     },
   },
@@ -166,8 +208,8 @@ export const paceColumnDerived: ColumnDef = {
 
       if (!distanceCell || !durationCell) return undefined;
 
-      const distance = (distanceCell as any)?.metrics?.value || 0;
-      const duration = (durationCell as any)?.metrics?.value || 0;
+      const distance = valueOf(metricsOf(distanceCell)[0]) || 0;
+      const duration = valueOf(metricsOf(durationCell)[0]) || 0;
 
       if (duration === 0) return undefined;
 
@@ -190,15 +232,15 @@ export const paceColumnDerived: ColumnDef = {
   },
   sort: {
     type: 'numeric',
-    extractor: (cell) => (cell as any)?.value || 0,
+    extractor: (cell) => valueOf(cell) || 0,
   },
   graph: {
-    extractor: (cell) => (cell as any)?.value,
+    extractor: (cell) => valueOf(cell),
     axisLabel: 'Pace (km/h)',
     unit: 'km/h',
   },
   filter: {
-    extractor: (cell) => (cell as any)?.value?.toFixed(2) || '',
+    extractor: (cell) => valueOf(cell)?.toFixed(2) || '',
   },
   meta: {
     tags: ['derived', 'timing'],
@@ -229,7 +271,7 @@ export const indexColumnFixed: ColumnDef = {
   },
   sort: {
     type: 'numeric',
-    extractor: (row) => (row as any)?.index || 0,
+    extractor: (row) => valueOf(row) || 0,
   },
   meta: {
     tags: ['layout'],
@@ -264,14 +306,14 @@ export const elapsedTotalColumnDerived: ColumnDef = {
     compute: (row, context) => {
       // In Phase 2, context will include the full row list
       // For now, this shows the structure
-      const rowList = (context as any)?.allRows || [];
-      const currentRowId = (row as any)?.id;
-      const indexOfCurrent = rowList.findIndex((r: any) => r.id === currentRowId);
+      const rowList = allRowsOf(context);
+      const currentRowId = rowIdOf(row);
+      const indexOfCurrent = rowList.findIndex((r: { id?: unknown; elapsed?: number }) => r.id === currentRowId);
 
       if (indexOfCurrent === -1) return undefined;
 
       // Sum all elapsed times up to and including this row
-      return rowList.slice(0, indexOfCurrent + 1).reduce((sum: number, r: any) => sum + r.elapsed, 0);
+      return rowList.slice(0, indexOfCurrent + 1).reduce((sum: number, r) => sum + (r.elapsed ?? 0), 0);
     },
   },
   format: {
@@ -280,10 +322,10 @@ export const elapsedTotalColumnDerived: ColumnDef = {
   },
   sort: {
     type: 'numeric',
-    extractor: (cell) => (cell as any)?.value || 0,
+    extractor: (cell) => valueOf(cell) || 0,
   },
   graph: {
-    extractor: (cell) => (cell as any)?.value,
+    extractor: (cell) => valueOf(cell),
     axisLabel: 'Cumulative Elapsed (s)',
     unit: 'seconds',
   },
@@ -317,19 +359,19 @@ export const repColumnSimple: ColumnDef = {
       className: 'badge-rep',
       icon: '●',
     }),
-    textResolver: (value) => (value as any)?.value?.toString() || '—',
+    textResolver: (value) => stringOf(valueOf(value)) || '—',
   },
   sort: {
     type: 'numeric',
-    extractor: (cell) => (cell as any)?.metrics?.value || 0,
+    extractor: (cell) => valueOf(metricsOf(cell)[0]) || 0,
   },
   graph: {
-    extractor: (cell) => (cell as any)?.metrics?.value,
+    extractor: (cell) => valueOf(metricsOf(cell)[0]),
     axisLabel: 'Reps',
     unit: 'reps',
   },
   filter: {
-    extractor: (cell) => (cell as any)?.metrics?.value?.toString() || '',
+    extractor: (cell) => valueOf(metricsOf(cell)[0])?.toString() || '',
   },
   meta: {
     tags: ['effort', 'core'],

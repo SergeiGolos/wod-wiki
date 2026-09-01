@@ -4,7 +4,7 @@ import { IRpcTransport, RpcUnsubscribe } from '../IRpcTransport';
 import { RpcMessage, RpcStackUpdate, RpcOutputStatement } from '../RpcMessages';
 import { StackSnapshot } from '@bitcobblers/wod-wiki-engine';
 import { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
-import { IRuntimeBlock } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeBlock, IBlockContext, IMetric } from '@bitcobblers/wod-wiki-engine';
 import { BlockKey } from '@bitcobblers/wod-wiki-engine';
 
 // ── Mock Transport ──────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ function createMockBlock(key: string, label: string, opts?: { isComplete?: boole
         isComplete: opts?.isComplete ?? false,
         completionReason: undefined,
         behaviors: [],
-        context: {} as any,
+        context: {} as unknown as IBlockContext,
         getMetricMemoryByVisibility: () => [],
         getMemoryByTag: () => [],
         getAllMemory: () => [],
@@ -46,7 +46,7 @@ function createMockBlock(key: string, label: string, opts?: { isComplete?: boole
         dispose: () => {},
         markComplete: () => {},
         getBehavior: () => undefined,
-    } as any;
+    };
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────
@@ -142,18 +142,18 @@ describe('ChromecastRuntimeSubscription', () => {
 
     describe('onOutput', () => {
         it('should send rpc-output', () => {
-            const output: IOutputStatement = {
+            const output = {
                 outputType: 'segment',
                 sourceBlockKey: 'block-1',
                 stackLevel: 0,
-                metrics: [{ type: 'text', image: 'Run' } as any],
+                metrics: [{ type: 'text', image: 'Run', origin: 'runtime' } as unknown as IMetric],
                 metricMeta: new Map(),
                 timeSpan: { started: 1000, ended: 2000 },
                 spans: [],
                 elapsed: 1000,
                 total: 1000,
                 completionReason: 'timer-expired',
-            } as any;
+            } as unknown as IOutputStatement;
 
             subscription.onOutput(output);
 
@@ -176,7 +176,7 @@ describe('ChromecastRuntimeSubscription', () => {
                 spans: [],
                 elapsed: 0,
                 total: 0,
-            } as any);
+            } as unknown as IOutputStatement);
 
             expect(transport.sent).toHaveLength(0);
         });

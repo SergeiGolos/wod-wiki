@@ -29,11 +29,11 @@ export interface TimerStackViewProps {
         duration?: number;
         format: 'down' | 'up';
     }>;
-    actions?: any[];
-    onAction?: (eventName: string, payload?: any) => void;
+    actions?: unknown[];
+    onAction?: (eventName: string, payload?: unknown) => void;
     secondaryTimers?: ITimerDisplayEntry[];
     focusedBlockId?: string;
-    stackItems?: any[];
+    stackItems?: unknown[];
     /** Spatial navigation focus props for TV remote support */
     getFocusProps?: (id: string) => FocusProps;
     /** Whether swipe gestures are enabled (e.g. only in 'track' view) */
@@ -106,7 +106,6 @@ const FitArea: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 export const TimerStackView: React.FC<TimerStackViewProps> = ({
-    elapsedMs,
     onStart,
     onPause,
     onStop,
@@ -128,7 +127,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
 }) => {
     const { width: panelWidth } = usePanelSize();
 
-    let audio: any = null;
+    let audio: ReturnType<typeof useAudio> | null = null;
     try {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         audio = useAudio();
@@ -227,7 +226,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
             duration: effectivePrimaryTimer.durationMs,
             format: effectivePrimaryTimer.format
         };
-    }, [effectivePrimaryTimer, timerStates, primaryTimer, elapsedMs]);
+    }, [effectivePrimaryTimer, timerStates]);
 
     const displayTimeMs = useMemo(() => {
         if (!effectiveTimerState) return 0;

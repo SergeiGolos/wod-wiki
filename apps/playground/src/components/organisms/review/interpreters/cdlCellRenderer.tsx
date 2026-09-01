@@ -16,7 +16,7 @@ import React, { useCallback, useRef, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import { formatSecondsMMSS, formatSecondsHHMMSS } from '@/lib/formatTime';
-import { MetricType } from '@bitcobblers/wod-wiki-engine';
+import type { IMetric } from '@bitcobblers/wod-wiki-engine';
 import type { GridRow } from '../types';
 import type {
   ColumnDef,
@@ -349,13 +349,26 @@ function renderCustom(value: unknown, format: CustomFormat, row?: GridRow): Reac
   return format.render(value, mergedContext);
 }
 
+/**
+ * Pull an IMetric[] out of a GridCell-like value (MetricContainer or array).
+ */
+function metricsOf(value: unknown): IMetric[] {
+  const metrics = (value as { metrics?: unknown } | null)?.metrics;
+  if (!metrics) return [];
+  if (Array.isArray(metrics)) return metrics as IMetric[];
+  if (typeof metrics === 'object' && metrics !== null && 'toArray' in metrics) {
+    const container = metrics as { toArray: () => IMetric[] };
+    if (typeof container.toArray === 'function') return container.toArray();
+  }
+  return [];
+}
+
 // ─── Fallback / Empty ──────────────────────────────────────────
 
 function renderFallback(value: unknown, indent: number): React.ReactNode {
   // If it's a GridCell-like object with metrics, render as pills
-  const cell = value as any;
-  if (cell?.metrics) {
-    return renderMetricCell(cell, indent);
+  if ((value as { metrics?: unknown } | null)?.metrics) {
+    return renderMetricCell(value, indent);
   }
 
   return (
@@ -372,13 +385,8 @@ function renderFallback(value: unknown, indent: number): React.ReactNode {
  * Render a GridCell value as a stack of MetricPill components.
  * This replaces the old metric-cell component.
  */
-export function renderMetricCell(cell: any, indent: number): React.ReactNode {
-  const metrics = cell.metrics;
-
-  // Handle both MetricContainer and plain arrays
-  const metricArray: any[] = Array.isArray(metrics)
-    ? metrics
-    : metrics?.toArray?.() ?? metrics ?? [];
+export function renderMetricCell(cell: unknown, indent: number): React.ReactNode {
+  const metricArray = metricsOf(cell);
 
   if (metricArray.length === 0) {
     return (
@@ -392,7 +400,7 @@ export function renderMetricCell(cell: any, indent: number): React.ReactNode {
   return (
     <div className="flex flex-wrap gap-1 items-center">
       {renderIndent(indent)}
-      {metricArray.map((metric, idx) => (
+      {metricArray.map((metric: IMetric, idx) => (
         <MetricPill key={idx} metric={metric} />
       ))}
     </div>
@@ -423,14 +431,11 @@ function extractDisplayText(value: unknown): string {
   if (typeof value === 'boolean') return String(value);
 
   // GridCell-like object
-  const v = value as any;
-  if (v.metrics) {
-    const arr = v.metrics.toArray?.() ?? v.metrics ?? [];
-    if (arr.length > 0) {
-      const first = arr[0];
-      if (first?.image) return first.image;
-      if (first?.value !== undefined) return String(first.value);
-    }
+  const arr = metricsOf(value);
+  if (arr.length > 0) {
+    const first = arr[0];
+    if (first?.image) return first.image;
+    if (first?.value !== undefined) return String(first.value);
   }
 
   return String(value);
@@ -448,12 +453,9 @@ function extractNumericValue(value: unknown): number | undefined {
   }
 
   // GridCell-like object
-  const v = value as any;
-  if (v?.metrics) {
-    const arr = v.metrics.toArray?.() ?? v.metrics ?? [];
-    if (arr.length > 0 && typeof arr[0]?.value === 'number') {
-      return arr[0].value;
-    }
+  const arr = metricsOf(value);
+  if (arr.length > 0 && typeof arr[0]?.value === 'number') {
+    return arr[0].value;
   }
 
   return undefined;

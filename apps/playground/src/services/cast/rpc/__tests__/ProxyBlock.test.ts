@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'bun:test';
 import { ProxyBlock } from '../ProxyBlock';
 import { SerializedBlock, SerializedTimer } from '../RpcMessages';
-import { IMetric } from '@bitcobblers/wod-wiki-engine';
+import { IMetric, IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
+import { IMemoryLocation, IRuntimeBehavior } from '@bitcobblers/wod-wiki-lang';
+
+/** Build an IMetric for RPC fixture data. */
+function metric(type: string, image?: string): IMetric {
+    return { type, image } as unknown as IMetric;
+}
 
 function createSerializedBlock(overrides?: Partial<SerializedBlock>): SerializedBlock {
     return {
@@ -57,8 +63,8 @@ describe('ProxyBlock', () => {
 
         it('should return memory locations for display metrics', () => {
             const metrics: IMetric[][] = [
-                [{ type: 'text', image: 'Run' } as any],
-                [{ type: 'timer', image: '10:00' } as any],
+                [metric('text', 'Run')],
+                [metric('timer', '10:00')],
             ];
             const block = new ProxyBlock(createSerializedBlock({ displayFragments: metrics }));
 
@@ -71,14 +77,14 @@ describe('ProxyBlock', () => {
 
         it('should return empty for non-display visibility', () => {
             const block = new ProxyBlock(createSerializedBlock({
-                displayFragments: [[{ type: 'text' } as any]],
+                displayFragments: [[metric('text')]],
             }));
-            expect(block.getMetricMemoryByVisibility('output' as any)).toHaveLength(0);
+            expect(block.getMetricMemoryByVisibility('output')).toHaveLength(0);
         });
 
         it('should return display via getMemoryByTag metrics:display', () => {
             const block = new ProxyBlock(createSerializedBlock({
-                displayFragments: [[{ type: 'text' } as any]],
+                displayFragments: [[metric('text')]],
             }));
             expect(block.getMemoryByTag('metric:display')).toHaveLength(1);
         });
@@ -86,8 +92,8 @@ describe('ProxyBlock', () => {
         it("getMemoryByTag('metric:display') returns display metric groups", () => {
             const block = new ProxyBlock(createSerializedBlock({
                 displayFragments: [
-                    [{ type: 'text', image: 'Run' } as any],
-                    [{ type: 'duration', image: '10:00' } as any],
+                    [metric('text', 'Run')],
+                    [metric('duration', '10:00')],
                 ],
             }));
 
@@ -100,7 +106,7 @@ describe('ProxyBlock', () => {
 
         it("getMemoryByTag('metric:display') returns the display memory location", () => {
             const block = new ProxyBlock(createSerializedBlock({
-                displayFragments: [[{ type: 'text', image: 'Run' } as any]],
+                displayFragments: [[metric('text', 'Run')]],
             }));
 
             const locs = block.getMemoryByTag('metric:display');
@@ -140,7 +146,7 @@ describe('ProxyBlock', () => {
                 isRunning: false,
             };
             const block = new ProxyBlock(createSerializedBlock({
-                displayFragments: [[{ type: 'text' } as any]],
+                displayFragments: [[metric('text')]],
                 timer,
             }));
 
@@ -153,7 +159,7 @@ describe('ProxyBlock', () => {
     describe('memory location (reactive)', () => {
         it('subscribe should receive future updates', () => {
             const block = new ProxyBlock(createSerializedBlock({
-                displayFragments: [[{ type: 'text', image: 'Run' } as any]],
+                displayFragments: [[metric('text', 'Run')]],
             }));
             const locations = block.getMetricMemoryByVisibility('display');
             const received: IMetric[][] = [];
@@ -161,7 +167,7 @@ describe('ProxyBlock', () => {
 
             // Trigger an update via ProxyBlock.update()
             block.update(createSerializedBlock({
-                displayFragments: [[{ type: 'text', image: 'Changed' } as any]],
+                displayFragments: [[metric('text', 'Changed')]],
             }));
 
             expect(received).toHaveLength(1);
@@ -172,12 +178,12 @@ describe('ProxyBlock', () => {
 
         it('update() should update metrics content in-place', () => {
             const block = new ProxyBlock(createSerializedBlock({
-                displayFragments: [[{ type: 'text', image: 'Run' } as any]],
+                displayFragments: [[metric('text', 'Run')]],
             }));
             const loc = block.getMetricMemoryByVisibility('display')[0];
 
             block.update(createSerializedBlock({
-                displayFragments: [[{ type: 'text', image: 'Changed' } as any]],
+                displayFragments: [[metric('text', 'Changed')]],
             }));
 
             expect(loc.metrics[0].image).toBe('Changed');
@@ -185,7 +191,7 @@ describe('ProxyBlock', () => {
 
         it('unsubscribe should stop receiving updates', () => {
             const block = new ProxyBlock(createSerializedBlock({
-                displayFragments: [[{ type: 'text', image: 'Run' } as any]],
+                displayFragments: [[metric('text', 'Run')]],
             }));
             const locations = block.getMetricMemoryByVisibility('display');
             const received: IMetric[][] = [];
@@ -193,7 +199,7 @@ describe('ProxyBlock', () => {
             unsub();
 
             block.update(createSerializedBlock({
-                displayFragments: [[{ type: 'text', image: 'Changed' } as any]],
+                displayFragments: [[metric('text', 'Changed')]],
             }));
 
             expect(received).toHaveLength(0);
@@ -203,7 +209,7 @@ describe('ProxyBlock', () => {
     describe('promote / result / private metrics tiers', () => {
         it('should return promote metric via getMetricMemoryByVisibility', () => {
             const block = new ProxyBlock(createSerializedBlock({
-                promoteFragments: [[{ type: 'reps', image: '21' } as any]],
+                promoteFragments: [[metric('reps', '21')]],
             }));
             const locs = block.getMetricMemoryByVisibility('promote');
             expect(locs).toHaveLength(1);
@@ -212,7 +218,7 @@ describe('ProxyBlock', () => {
 
         it('should return result metrics via getMetricMemoryByVisibility', () => {
             const block = new ProxyBlock(createSerializedBlock({
-                resultFragments: [[{ type: 'time', image: '5:00' } as any]],
+                resultFragments: [[metric('time', '5:00')]],
             }));
             const locs = block.getMetricMemoryByVisibility('result');
             expect(locs).toHaveLength(1);
@@ -222,8 +228,8 @@ describe('ProxyBlock', () => {
         it('should return private metrics via getMetricMemoryByVisibility', () => {
             const block = new ProxyBlock(createSerializedBlock({
                 privateFragments: {
-                    'metric:label': [[{ type: 'label', image: 'Round 1' } as any]],
-                } as any,
+                    'metric:label': [[metric('label', 'Round 1')]],
+                },
             }));
             const locs = block.getMetricMemoryByVisibility('private');
             expect(locs).toHaveLength(1);
@@ -233,22 +239,22 @@ describe('ProxyBlock', () => {
         it('should return private metrics via getMemoryByTag with private tag', () => {
             const block = new ProxyBlock(createSerializedBlock({
                 privateFragments: {
-                    'metric:label': [[{ type: 'label', image: 'MyLabel' } as any]],
-                } as any,
+                    'metric:label': [[metric('label', 'MyLabel')]],
+                },
             }));
-            const locs = block.getMemoryByTag('metric:label' as any);
+            const locs = block.getMemoryByTag('metric:label');
             expect(locs).toHaveLength(1);
             expect(locs[0].metrics[0].image).toBe('MyLabel');
         });
 
         it('getAllMemory should include all tiers plus timer and next', () => {
             const block = new ProxyBlock(createSerializedBlock({
-                displayFragments: [[{ type: 'text', image: 'Run' } as any]],
-                promoteFragments: [[{ type: 'reps', image: '21' } as any]],
-                resultFragments: [[{ type: 'time', image: '5:00' } as any]],
+                displayFragments: [[metric('text', 'Run')]],
+                promoteFragments: [[metric('reps', '21')]],
+                resultFragments: [[metric('time', '5:00')]],
                 privateFragments: {
-                    'metric:label': [[{ type: 'label', image: 'L' } as any]],
-                } as any,
+                    'metric:label': [[metric('label', 'L')]],
+                },
                 timer: {
                     format: 'mm:ss',
                     direction: 'down',
@@ -256,7 +262,7 @@ describe('ProxyBlock', () => {
                     isRunning: false,
                     durationMs: 60000,
                 },
-                nextFragments: [{ type: 'effort', image: 'Squats' } as any],
+                nextFragments: [metric('effort', 'Squats')],
             }));
 
             const all = block.getAllMemory();
@@ -266,14 +272,14 @@ describe('ProxyBlock', () => {
 
         it('should update promote tier in-place on update()', () => {
             const block = new ProxyBlock(createSerializedBlock({
-                promoteFragments: [[{ type: 'reps', image: '21' } as any]],
+                promoteFragments: [[metric('reps', '21')]],
             }));
             const locs = block.getMetricMemoryByVisibility('promote');
             const received: IMetric[][] = [];
             locs[0].subscribe(nv => received.push(nv));
 
             block.update(createSerializedBlock({
-                promoteFragments: [[{ type: 'reps', image: '15' } as any]],
+                promoteFragments: [[metric('reps', '15')]],
             }));
 
             expect(received).toHaveLength(1);
@@ -297,8 +303,8 @@ describe('ProxyBlock', () => {
             expect(block.behaviors).toHaveLength(2);
             expect(block.behaviors[0].constructor.name).toBe('StubBehavior');
             // Names are stored on the stub
-            expect((block.behaviors[0] as any).name).toBe('CountdownTimerBehavior');
-            expect((block.behaviors[1] as any).name).toBe('RepSchemeBehavior');
+            expect((block.behaviors[0] as StubBehavior).name).toBe('CountdownTimerBehavior');
+            expect((block.behaviors[1] as StubBehavior).name).toBe('RepSchemeBehavior');
         });
 
         it('should update behaviors on update()', () => {
@@ -312,7 +318,7 @@ describe('ProxyBlock', () => {
             }));
 
             expect(block.behaviors).toHaveLength(2);
-            expect((block.behaviors[0] as any).name).toBe('NewBehavior1');
+            expect((block.behaviors[0] as StubBehavior).name).toBe('NewBehavior1');
         });
     });
 
@@ -336,7 +342,7 @@ describe('ProxyBlock', () => {
                 durationMs: 60000,
             };
             const block = new ProxyBlock(createSerializedBlock({ timer }));
-            const timerLocs = block.getMemoryByTag('time' as any);
+            const timerLocs = block.getMemoryByTag('time');
             const received: IMetric[][] = [];
             timerLocs[0].subscribe(nv => received.push(nv));
 
@@ -345,20 +351,20 @@ describe('ProxyBlock', () => {
             }));
 
             expect(received).toHaveLength(1);
-            const state = received[0][0].value as any;
+            const state = received[0][0].value as unknown;
             expect(state.spans[0].ended).toBe(5000);
         });
 
         it('should update next-preview in-place and fire subscribers', () => {
             const block = new ProxyBlock(createSerializedBlock({
-                nextFragments: [{ type: 'effort', image: 'Run' } as any],
+                nextFragments: [metric('effort', 'Run')],
             }));
-            const nextLocs = block.getMemoryByTag('metric:next' as any);
+            const nextLocs = block.getMemoryByTag('metric:next');
             const received: IMetric[][] = [];
             nextLocs[0].subscribe(nv => received.push(nv));
 
             block.update(createSerializedBlock({
-                nextFragments: [{ type: 'effort', image: 'Bike' } as any],
+                nextFragments: [metric('effort', 'Bike')],
             }));
 
             expect(received).toHaveLength(1);
@@ -367,14 +373,14 @@ describe('ProxyBlock', () => {
 
         it('should grow display locations when count increases', () => {
             const block = new ProxyBlock(createSerializedBlock({
-                displayFragments: [[{ type: 'text', image: 'Row1' } as any]],
+                displayFragments: [[metric('text', 'Row1')]],
             }));
             expect(block.getMetricMemoryByVisibility('display')).toHaveLength(1);
 
             block.update(createSerializedBlock({
                 displayFragments: [
-                    [{ type: 'text', image: 'Row1' } as any],
-                    [{ type: 'text', image: 'Row2' } as any],
+                    [metric('text', 'Row1')],
+                    [metric('text', 'Row2')],
                 ],
             }));
 
@@ -384,14 +390,14 @@ describe('ProxyBlock', () => {
         it('should shrink display locations when count decreases', () => {
             const block = new ProxyBlock(createSerializedBlock({
                 displayFragments: [
-                    [{ type: 'text', image: 'Row1' } as any],
-                    [{ type: 'text', image: 'Row2' } as any],
+                    [metric('text', 'Row1')],
+                    [metric('text', 'Row2')],
                 ],
             }));
             expect(block.getMetricMemoryByVisibility('display')).toHaveLength(2);
 
             block.update(createSerializedBlock({
-                displayFragments: [[{ type: 'text', image: 'Row1' } as any]],
+                displayFragments: [[metric('text', 'Row1')]],
             }));
 
             expect(block.getMetricMemoryByVisibility('display')).toHaveLength(1);
@@ -401,22 +407,22 @@ describe('ProxyBlock', () => {
     describe('lifecycle (no-ops)', () => {
         it('mount should return empty actions', () => {
             const block = new ProxyBlock(createSerializedBlock());
-            expect(block.mount({} as any)).toEqual([]);
+            expect(block.mount({} as unknown as IScriptRuntime)).toEqual([]);
         });
 
         it('next should return empty actions', () => {
             const block = new ProxyBlock(createSerializedBlock());
-            expect(block.next({} as any)).toEqual([]);
+            expect(block.next({} as unknown as IScriptRuntime)).toEqual([]);
         });
 
         it('unmount should return empty actions', () => {
             const block = new ProxyBlock(createSerializedBlock());
-            expect(block.unmount({} as any)).toEqual([]);
+            expect(block.unmount({} as unknown as IScriptRuntime)).toEqual([]);
         });
 
         it('dispose should not throw', () => {
             const block = new ProxyBlock(createSerializedBlock());
-            expect(() => block.dispose({} as any)).not.toThrow();
+            expect(() => block.dispose({} as unknown as IScriptRuntime)).not.toThrow();
         });
 
         it('markComplete should not throw', () => {
@@ -426,19 +432,19 @@ describe('ProxyBlock', () => {
 
         it('getBehavior should return undefined', () => {
             const block = new ProxyBlock(createSerializedBlock());
-            expect(block.getBehavior(class {} as any)).toBeUndefined();
+            expect(block.getBehavior(class {} as unknown as new () => IRuntimeBehavior)).toBeUndefined();
         });
 
         it('pushMemory should not throw', () => {
             const block = new ProxyBlock(createSerializedBlock());
-            expect(() => block.pushMemory({} as any)).not.toThrow();
+            expect(() => block.pushMemory({} as unknown as IMemoryLocation)).not.toThrow();
         });
     });
 
     describe('memory API', () => {
         it('getMemoryByTag returns empty when no timer', () => {
             const block = new ProxyBlock(createSerializedBlock());
-            expect(block.getMemoryByTag('time' as any)).toHaveLength(0);
+            expect(block.getMemoryByTag('time')).toHaveLength(0);
         });
 
         it("getMemoryByTag('time') returns TimerState via metrics value when timer present", () => {
@@ -452,10 +458,10 @@ describe('ProxyBlock', () => {
             };
             const block = new ProxyBlock(createSerializedBlock({ timer }));
 
-            const locs = block.getMemoryByTag('time' as any);
+            const locs = block.getMemoryByTag('time');
             expect(locs).toHaveLength(1);
 
-            const state = locs[0]!.metrics[0]!.value as any;
+            const state = locs[0]!.metrics[0]!.value as unknown;
             expect(state.direction).toBe('down');
             expect(state.durationMs).toBe(60000);
             expect(state.label).toBe('AMRAP');
@@ -472,14 +478,14 @@ describe('ProxyBlock', () => {
                 isRunning: true,
             };
             const block = new ProxyBlock(createSerializedBlock({ timer }));
-            const locs = block.getMemoryByTag('time' as any);
+            const locs = block.getMemoryByTag('time');
             expect(locs).toHaveLength(1);
-            expect((locs[0]!.metrics[0]!.value as any).direction).toBe('up');
+            expect((locs[0]!.metrics[0]!.value as unknown).direction).toBe('up');
         });
 
         it('no timer means getMemoryByTag returns empty array', () => {
             const block = new ProxyBlock(createSerializedBlock());
-            expect(block.getMemoryByTag('time' as any)).toHaveLength(0);
+            expect(block.getMemoryByTag('time')).toHaveLength(0);
         });
     });
 });

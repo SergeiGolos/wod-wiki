@@ -19,7 +19,7 @@ export interface SuggestionBinding {
 export function tagsFromStaticBlocks(blocks: BlockIndexRow[]): string[] {
   const set = new Set<string>();
   for (const b of blocks) {
-    const row = b as any;
+    const row = b as unknown as { frontmatter?: { tags?: unknown[] } };
     if (row.frontmatter?.tags && Array.isArray(row.frontmatter.tags)) {
       for (const t of row.frontmatter.tags) {
         if (typeof t === 'string' && t.trim().length > 0) set.add(t.trim());

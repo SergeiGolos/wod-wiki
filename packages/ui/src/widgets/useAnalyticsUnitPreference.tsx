@@ -73,7 +73,7 @@ export function getEffectiveAnalyticsUnit(
   preferredUnit: AnalyticsUnit,
 ): { unit: AnalyticsUnit; forced: boolean } {
   const parsed = parseQuery(query);
-  const displayUnit = 'displayUnit' in parsed ? (parsed as any).displayUnit : undefined;
+  const displayUnit = 'displayUnit' in parsed ? parsed.displayUnit : undefined;
   if (displayUnit === 'lb' || displayUnit === 'kg') {
     return { unit: displayUnit as AnalyticsUnit, forced: true };
   }
@@ -87,7 +87,7 @@ export function getDashboardEffectiveUnit(
   const units = queries
     .map((q) => {
       const parsed = parseQuery(q.query);
-      return 'displayUnit' in parsed ? (parsed as any).displayUnit : undefined;
+      return 'displayUnit' in parsed ? parsed.displayUnit : undefined;
     })
     .filter((u): u is string => u === 'kg' || u === 'lb');
 

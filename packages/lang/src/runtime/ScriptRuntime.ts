@@ -315,13 +315,13 @@ export class ScriptRuntime implements IScriptRuntime {
             if (block) {
                 try {
                     block.unmount(this);
-                } catch (_e) {
+                } catch {
                     // Swallow errors during emergency cleanup
                 }
                 this.stack.pop();
                 try {
                     block.dispose(this);
-                } catch (_e) {
+                } catch {
                     // Swallow errors during emergency cleanup
                 }
             } else {

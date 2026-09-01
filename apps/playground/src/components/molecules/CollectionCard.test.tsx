@@ -17,9 +17,9 @@ describe('CollectionCard', () => {
 
   describe('Basic rendering', () => {
     it('renders workout name as title', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       render(<CollectionCard item={mockItem} collectionName="Cardio" collectionId="cardio" onClick={onClick} />);
@@ -28,9 +28,9 @@ describe('CollectionCard', () => {
     });
 
     it('renders collection name with Tag icon', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const { container } = render(
@@ -46,9 +46,9 @@ describe('CollectionCard', () => {
     });
 
     it('renders ChevronRight icon', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const { container } = render(
@@ -62,9 +62,9 @@ describe('CollectionCard', () => {
 
   describe('Frontmatter parsing', () => {
     it('extracts difficulty from frontmatter', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithDifficulty: ScriptCollectionItem = {
@@ -78,9 +78,9 @@ describe('CollectionCard', () => {
     });
 
     it('extracts category from frontmatter', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithCategory: ScriptCollectionItem = {
@@ -94,9 +94,9 @@ describe('CollectionCard', () => {
     });
 
     it('extracts type from frontmatter', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithType: ScriptCollectionItem = {
@@ -110,9 +110,9 @@ describe('CollectionCard', () => {
     });
 
     it('handles lowercase frontmatter keys', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemLowercase: ScriptCollectionItem = {
@@ -127,9 +127,9 @@ describe('CollectionCard', () => {
     });
 
     it('handles mixed case frontmatter keys', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemMixedCase: ScriptCollectionItem = {
@@ -144,9 +144,9 @@ describe('CollectionCard', () => {
     });
 
     it('handles content without frontmatter', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemNoFrontmatter: ScriptCollectionItem = {
@@ -169,9 +169,9 @@ describe('CollectionCard', () => {
 
   describe('Description extraction', () => {
     it('extracts description from ## Description section', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithDescription: ScriptCollectionItem = {
@@ -185,9 +185,9 @@ describe('CollectionCard', () => {
     });
 
     it('truncates description to 160 characters', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const longDescription = 'A'.repeat(200);
@@ -205,9 +205,9 @@ describe('CollectionCard', () => {
     });
 
     it('extracts first non-header line when no Description section', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithoutDescriptionSection: ScriptCollectionItem = {
@@ -223,9 +223,9 @@ describe('CollectionCard', () => {
     });
 
     it('does not render description when content is empty', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemEmptyContent: ScriptCollectionItem = {
@@ -244,9 +244,9 @@ describe('CollectionCard', () => {
 
   describe('Difficulty color mapping', () => {
     it('applies green color for beginner difficulty', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemBeginner: ScriptCollectionItem = {
@@ -254,7 +254,7 @@ describe('CollectionCard', () => {
         content: '---\nDifficulty: beginner\n---\nContent',
       };
 
-      const { container } = render(
+      render(
         <CollectionCard item={itemBeginner} collectionName="Test" collectionId="test" onClick={onClick} />
       );
 
@@ -264,9 +264,9 @@ describe('CollectionCard', () => {
     });
 
     it('applies yellow color for intermediate difficulty', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemIntermediate: ScriptCollectionItem = {
@@ -274,7 +274,7 @@ describe('CollectionCard', () => {
         content: '---\nDifficulty: intermediate\n---\nContent',
       };
 
-      const { container } = render(
+      render(
         <CollectionCard item={itemIntermediate} collectionName="Test" collectionId="test" onClick={onClick} />
       );
 
@@ -284,9 +284,9 @@ describe('CollectionCard', () => {
     });
 
     it('applies red color for advanced difficulty', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemAdvanced: ScriptCollectionItem = {
@@ -294,7 +294,7 @@ describe('CollectionCard', () => {
         content: '---\nDifficulty: advanced\n---\nContent',
       };
 
-      const { container } = render(
+      render(
         <CollectionCard item={itemAdvanced} collectionName="Test" collectionId="test" onClick={onClick} />
       );
 
@@ -304,9 +304,9 @@ describe('CollectionCard', () => {
     });
 
     it('applies purple color for elite difficulty', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemElite: ScriptCollectionItem = {
@@ -314,7 +314,7 @@ describe('CollectionCard', () => {
         content: '---\nDifficulty: elite\n---\nContent',
       };
 
-      const { container } = render(
+      render(
         <CollectionCard item={itemElite} collectionName="Test" collectionId="test" onClick={onClick} />
       );
 
@@ -324,9 +324,9 @@ describe('CollectionCard', () => {
     });
 
     it('applies default color for unknown difficulty', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemUnknown: ScriptCollectionItem = {
@@ -334,7 +334,7 @@ describe('CollectionCard', () => {
         content: '---\nDifficulty: unknown-level\n---\nContent',
       };
 
-      const { container } = render(
+      render(
         <CollectionCard item={itemUnknown} collectionName="Test" collectionId="test" onClick={onClick} />
       );
 
@@ -346,9 +346,9 @@ describe('CollectionCard', () => {
 
   describe('Metadata badges', () => {
     it('renders category badge with correct styling', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithCategory: ScriptCollectionItem = {
@@ -356,7 +356,7 @@ describe('CollectionCard', () => {
         content: '---\nCategory: Cardio\n---\nContent',
       };
 
-      const { container } = render(
+      render(
         <CollectionCard item={itemWithCategory} collectionName="Test" collectionId="test" onClick={onClick} />
       );
 
@@ -366,9 +366,9 @@ describe('CollectionCard', () => {
     });
 
     it('renders type badge with correct styling', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithType: ScriptCollectionItem = {
@@ -376,7 +376,7 @@ describe('CollectionCard', () => {
         content: '---\nType: HIIT\n---\nContent',
       };
 
-      const { container } = render(
+      render(
         <CollectionCard item={itemWithType} collectionName="Test" collectionId="test" onClick={onClick} />
       );
 
@@ -386,9 +386,9 @@ describe('CollectionCard', () => {
     });
 
     it('renders multiple metadata badges', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithMultiple: ScriptCollectionItem = {
@@ -406,9 +406,9 @@ describe('CollectionCard', () => {
 
   describe('Link chips', () => {
     it('renders youtube link chip when frontmatter contains youtube url', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithYoutube: ScriptCollectionItem = {
@@ -428,9 +428,9 @@ describe('CollectionCard', () => {
     });
 
     it('renders amazon link chip when frontmatter contains amazon url', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithAmazon: ScriptCollectionItem = {
@@ -448,9 +448,9 @@ describe('CollectionCard', () => {
     });
 
     it('renders website link chip when frontmatter contains website', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithWebsite: ScriptCollectionItem = {
@@ -464,9 +464,9 @@ describe('CollectionCard', () => {
     });
 
     it('renders source link chip when frontmatter contains source_url', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithSource: ScriptCollectionItem = {
@@ -480,9 +480,9 @@ describe('CollectionCard', () => {
     });
 
     it('renders book link chip when frontmatter contains book', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithBook: ScriptCollectionItem = {
@@ -496,9 +496,9 @@ describe('CollectionCard', () => {
     });
 
     it('does not render link chips when no link fields are present', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const { container } = render(
@@ -532,9 +532,9 @@ describe('CollectionCard', () => {
     });
 
     it('renders multiple link chips', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithMultipleLinks: ScriptCollectionItem = {
@@ -592,9 +592,9 @@ describe('CollectionCard', () => {
 
   describe('Styling and layout', () => {
     it('applies custom className', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const { container } = render(
@@ -606,9 +606,9 @@ describe('CollectionCard', () => {
     });
 
     it('applies hover effects', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const { container } = render(
@@ -621,9 +621,9 @@ describe('CollectionCard', () => {
     });
 
     it('applies transition classes', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const { container } = render(
@@ -635,9 +635,9 @@ describe('CollectionCard', () => {
     });
 
     it('animates chevron on hover', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const { container } = render(
@@ -653,9 +653,9 @@ describe('CollectionCard', () => {
 
   describe('Edge cases', () => {
     it('handles content with empty frontmatter', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemEmptyFrontmatter: ScriptCollectionItem = {
@@ -663,7 +663,7 @@ describe('CollectionCard', () => {
         content: '---\n---\nContent here',
       };
 
-      const { container } = render(
+      render(
         <CollectionCard item={itemEmptyFrontmatter} collectionName="Test" collectionId="test" onClick={onClick} />
       );
 
@@ -672,9 +672,9 @@ describe('CollectionCard', () => {
     });
 
     it('handles content with only frontmatter and no description', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemOnlyFrontmatter: ScriptCollectionItem = {
@@ -693,9 +693,9 @@ describe('CollectionCard', () => {
     });
 
     it('handles special characters in content', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const itemWithSpecialChars: ScriptCollectionItem = {
@@ -710,9 +710,9 @@ describe('CollectionCard', () => {
     });
 
     it('handles very long workout names', () => {
-      let clicked = false;
+      let _clicked = false;
       const onClick = () => {
-        clicked = true;
+        _clicked = true;
       };
 
       const longName = 'A'.repeat(200);
