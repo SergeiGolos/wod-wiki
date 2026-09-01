@@ -120,10 +120,29 @@ export function parseCliArgs(args: string[]): CliParsedArgs {
   return result;
 }
 
-export async function readStdin(): Promise<string> {
-  if (typeof (globalThis as { Bun?: { stdin?: { text?: unknown } } }).Bun?.stdin?.text === 'function') {
-    return (globalThis as { Bun: { stdin: { text: () => Promise<string> } } }).Bun.stdin.text();
+/**
+ * Recover the Bun `Bun.stdin.text()` reader when running under Bun. The Bun
+ * global is not part of the ambient lib shape; `in`/`typeof` narrowing proves
+ * the access chain at runtime before the single unchecked cast.
+ */
+function readBunStdinText(): (() => Promise<string>) | undefined {
+  const g: unknown = globalThis;
+  if (g && typeof g === 'object' && 'Bun' in g) {
+    const bun = g.Bun;
+    if (bun && typeof bun === 'object' && 'stdin' in bun) {
+      const stdin = bun.stdin;
+      if (stdin && typeof stdin === 'object' && 'text' in stdin) {
+        const text = stdin.text;
+        if (typeof text === 'function') return text as () => Promise<string>;
+      }
+    }
   }
+  return undefined;
+}
+
+export async function readStdin(): Promise<string> {
+  const bunText = readBunStdinText();
+  if (bunText) return bunText();
   return new Promise<string>((resolve, reject) => {
     const chunks: Buffer[] = [];
     process.stdin.on('data', (chunk) => {
