@@ -15,7 +15,6 @@ import {
   compareSortValues,
 } from '../cdlSortInterpreter';
 import {
-  extractFilterText,
   matchColumnFilter,
 } from '../cdlFilterInterpreter';
 import { extractGraphValue } from '../cdlGraphInterpreter';
@@ -435,7 +434,7 @@ describe('derived column filter with context', () => {
     // Row 1: deadlift → rank 2 → "#2 deadlift"
     // Row 2: bench → rank 1 → "#1 bench"
     const ctx0: ComputeContext = { allRows: rows, rowIndex: 0, columnDef: colDef, dependencies: new Map() };
-    const ctx1: ComputeContext = { allRows: rows, rowIndex: 1, columnDef: colDef, dependencies: new Map() };
+    const _ctx1: ComputeContext = { allRows: rows, rowIndex: 1, columnDef: colDef, dependencies: new Map() };
     const ctx2: ComputeContext = { allRows: rows, rowIndex: 2, columnDef: colDef, dependencies: new Map() };
     expect(matchColumnFilter(rows[0], colDef, '#3', ctx0, definitionMap)).toBe(true);
     expect(matchColumnFilter(rows[0], colDef, 'deadlift', ctx0, definitionMap)).toBe(false);
@@ -513,7 +512,7 @@ describe('resolveColumnSource with ComputeContext', () => {
       dependencies: new Map(),
     };
 
-    const result = resolveColumnSource(rows[1], colDef.source, context) as any;
+    const result = resolveColumnSource(rows[1], colDef.source, context) as unknown as { rowCount?: unknown; rowIndex?: unknown; colId?: unknown };
     expect(result.rowCount).toBe(2);
     expect(result.rowIndex).toBe(1);
     expect(result.colId).toBe('ctx-check');

@@ -4,7 +4,6 @@ import {
   fixtureRunning,
   fixtureRowing,
   fixtureUserCustom,
-  fixtureUserOverride,
   commonFixtureSet,
 } from '../fixtures';
 

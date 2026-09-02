@@ -32,5 +32,5 @@ export interface ProjectionResult {
   origin?: MetricOrigin;
 
   /** Optional additional metadata for the projection */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }

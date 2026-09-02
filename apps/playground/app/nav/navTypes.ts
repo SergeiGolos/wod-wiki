@@ -33,9 +33,6 @@ export type { INavAction as NavAction } from '@/nav/navTypes'
 // Bring into local scope for use in NavItem/NavItemL3 definitions
 import type {
   INavActivation,
-  ScrollAction,
-  RouteQueryAction,
-  NoneAction,
 } from '@/nav/navTypes'
 
 // ─── Zone ────────────────────────────────────────────────────────────────────

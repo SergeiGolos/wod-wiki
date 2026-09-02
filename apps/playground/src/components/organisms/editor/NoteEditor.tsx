@@ -62,8 +62,7 @@ import { cursorFocusExtension, getCursorFocusState } from "@/app/editor/cursorFo
 
 import { createParser } from '@bitcobblers/wod-wiki-engine';
 import type { INotePersistence } from "@/services/persistence";
-import { queryService } from "@/services/queryService";
-import { onResultSaved } from "@/services/resultRecorder";
+import { queryService, onResultSaved } from "@/hooks/useCastSignaling";
 import { createFileDropHandler, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
 
 import { OverlayTrack } from "@/components/organisms/editor/OverlayTrack";
@@ -79,7 +78,6 @@ import { InlineCommandBar } from "@/components/organisms/editor/InlineCommandBar
 import { EditorCastBridge } from "@/components/organisms/editor/EditorCastBridge";
 import { MetricInlinePanel } from "@/components/organisms/editor/MetricInlinePanel";
 import { v7 as uuidv7 } from "uuid";
-import type { WorkoutResult } from "@/types/storage";
 
 import { themeCompartment, languageCompartment, modeCompartment } from "@/components/Editor/compartments";
 
@@ -121,7 +119,7 @@ export interface NoteEditorProps {
   /** Note persistence seam used for result and attachment projections */
   notePersistence?: INotePersistence;
   /** Optional in-memory workout results override */
-  results?: any[];
+  results?: WorkoutResult[];
   /** Exposed EditorView ref */
   onViewCreated?: (view: EditorView) => void;
   /** Editor mode */
@@ -198,8 +196,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   extensions: extraExtensions,
   widgetComponents,
   onButtonAction,
-  stickyTopOffset = 0,
-  hoverLine,
   activeSectionId: externalActiveSectionId,
   scrollToSectionId,
   results,
@@ -288,7 +284,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       }
       onCompleteWorkout?.(blockId, results, resultId, runBlock);
     },
-    [noteId, onCompleteWorkout],
+    [onChange, onCompleteWorkout],
   );
 
   // Fetch workout results for all workout (time/log) sections and push them into the editor
@@ -350,7 +346,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     }
 
     return synthesized;
-  }, [commands, onStartWorkout, onAddToPlan, enableInlineRuntime, handleRun]);
+  }, [commands, onStartWorkout, onAddToPlan, enableInlineRuntime, hideDefaultCommands, handleRun]);
 
   // Mixed language: Markdown + embedded Whiteboard Script in code fences
   const languages = useMemo(() => {
@@ -520,13 +516,14 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       noteId,
       notePersistence,
       onButtonAction,
-      extraExtensions,
+      widgetComponents,
     ]
   );
 
   // Create editor on mount
   useEffect(() => {
-    if (!editorRef.current) return;
+    const mountNode = editorRef.current;
+    if (!mountNode) return;
 
     const state = EditorState.create({
       doc: value,
@@ -542,17 +539,15 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
     const view = new EditorView({
       state,
-      parent: editorRef.current,
+      parent: mountNode,
     });
 
     viewRef.current = view;
     setViewInstance(view);
-    const shouldExposeCodemirrorView = import.meta.env.MODE === 'test'
+    const _shouldExposeCodemirrorView = import.meta.env.MODE === 'test'
       || (import.meta.env.DEV && window.navigator.webdriver);
-    if (editorRef.current) {
-      // Expose view for test automation to directly manipulate content
-      (editorRef.current as any).__codemirrorView = view;
-    }
+    // Expose view for test automation to directly manipulate content
+    (mountNode as unknown as { __codemirrorView?: EditorView }).__codemirrorView = view;
     onViewCreated?.(view);
 
     // Seed overlay state from initial editor state so panels render
@@ -570,12 +565,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     notifyBlockChanges(view.state, onBlocksChange, lastBlocksJsonRef);
 
     return () => {
-      if (editorRef.current) {
-        delete (editorRef.current as any).__codemirrorView;
-      }
+      delete (mountNode as unknown as { __codemirrorView?: EditorView }).__codemirrorView;
       setViewInstance(null);
       view.destroy();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only contract; value/theme/extension syncs live in dedicated effects below
   }, []); // Mount only
 
   // Sync external value changes
@@ -616,7 +610,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         ],
       });
     }
-  }, [baseExtensions, mode, isDark, languages]);
+  }, [baseExtensions, extraExtensions, mode, isDark, languages]);
 
   // Handle external scroll requests
   useEffect(() => {
@@ -776,12 +770,12 @@ function sectionToScriptBlock(section: EditorSection, state: EditorState): Scrip
       ? state.doc.sliceString(section.contentFrom, section.contentTo)
       : "";
 
-  let statements: any[] = [];
+  let statements: ICodeStatement[] = [];
   try {
     if (content.trim()) {
       statements = createParser().read(content, section.sport).statements ?? [];
     }
-  } catch (e) {
+  } catch {
     // Silently ignore parse errors
   }
 

@@ -34,7 +34,7 @@ const legacyReceiverCssPlugin = (): Plugin => ({
     name: 'legacy-receiver-css',
     apply: 'build',
     closeBundle() {
-        const assetsDir = resolve(__dirname, '../../dist/assets');
+        const assetsDir = resolve(import.meta.dirname, '../../dist/assets');
         const cssFiles = fs.existsSync(assetsDir)
             ? fs.readdirSync(assetsDir).filter((f) => f.startsWith('receiver-') && f.endsWith('.css'))
             : [];
@@ -62,7 +62,7 @@ const legacyReceiverCssPlugin = (): Plugin => ({
 export default defineConfig({
     // Root is this app directory so that /app/receiver-rpc.tsx in
     // receiver-rpc.html resolves to apps/playground/app/receiver-rpc.tsx.
-    root: __dirname,
+    root: import.meta.dirname,
     // Relative base so assets resolve correctly whether served at / or a subpath
     base: './',
     plugins: [react(), legacyReceiverCssPlugin()],
@@ -70,28 +70,28 @@ export default defineConfig({
         alias: {
             // Same workspace source aliases as the main app config so the
             // receiver builds without a prior packages tsup build.
-            '@bitcobblers/wod-wiki-lang/react': resolve(__dirname, '../../packages/lang/src/react.ts'),
-            '@bitcobblers/wod-wiki-ui/styles.css': resolve(__dirname, '../../packages/ui/src/styles.css'),
-            '@bitcobblers/wod-wiki-ui/extensions': resolve(__dirname, '../../packages/ui/src/extensions/index.ts'),
-            '@bitcobblers/wod-wiki-core': resolve(__dirname, '../../packages/core/src'),
-            '@bitcobblers/wod-wiki-lang': resolve(__dirname, '../../packages/lang/src'),
-            '@bitcobblers/wod-wiki-wql': resolve(__dirname, '../../packages/wql/src'),
-            '@bitcobblers/wod-wiki-engine': resolve(__dirname, '../../packages/engine/src'),
-            '@bitcobblers/wod-wiki-ui': resolve(__dirname, '../../packages/ui/src'),
-            '@': resolve(__dirname, 'src'),
+            '@bitcobblers/wod-wiki-lang/react': resolve(import.meta.dirname, '../../packages/lang/src/react.ts'),
+            '@bitcobblers/wod-wiki-ui/styles.css': resolve(import.meta.dirname, '../../packages/ui/src/styles.css'),
+            '@bitcobblers/wod-wiki-ui/extensions': resolve(import.meta.dirname, '../../packages/ui/src/extensions/index.ts'),
+            '@bitcobblers/wod-wiki-core': resolve(import.meta.dirname, '../../packages/core/src'),
+            '@bitcobblers/wod-wiki-lang': resolve(import.meta.dirname, '../../packages/lang/src'),
+            '@bitcobblers/wod-wiki-wql': resolve(import.meta.dirname, '../../packages/wql/src'),
+            '@bitcobblers/wod-wiki-engine': resolve(import.meta.dirname, '../../packages/engine/src'),
+            '@bitcobblers/wod-wiki-ui': resolve(import.meta.dirname, '../../packages/ui/src'),
+            '@': resolve(import.meta.dirname, 'src'),
         },
     },
     build: {
         // Merge into the repo-root dist/ that the PR pipeline just
         // downloaded (playground-dist artifact) before the S3 sync, so the
         // Chromecast receiver page ships on the preview origin.
-        outDir: resolve(__dirname, '../../dist'),
+        outDir: resolve(import.meta.dirname, '../../dist'),
         // Do NOT empty — the playground bundle already populated this directory
         emptyOutDir: false,
         sourcemap: true,
         rollupOptions: {
             input: {
-                'receiver-rpc': resolve(__dirname, 'receiver-rpc.html'),
+                'receiver-rpc': resolve(import.meta.dirname, 'receiver-rpc.html'),
             },
             output: {
                 // Put JS/CSS in assets/ matching Storybook's convention

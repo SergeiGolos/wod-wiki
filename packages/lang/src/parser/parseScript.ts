@@ -30,8 +30,8 @@ export function parseScript(inputText: string, options: ParseOptions = {}): Whit
       : extractStatements(inputText, tree, sport);
 
     return new WhiteboardScript(inputText, statements, []);
-  } catch (error: any) {
-    const msg = error?.message || 'Unknown parse error';
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown parse error';
     return new WhiteboardScript(inputText, [], [{ message: msg }]);
   }
 }

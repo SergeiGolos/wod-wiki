@@ -30,6 +30,7 @@ import {
 } from "@codemirror/state";
 import { sectionField, type EditorSection } from "@bitcobblers/wod-wiki-ui/extensions";
 import {
+  ChoiceGroupMetric,
   createParser,
   MetricType,
   type ICodeStatement,
@@ -103,7 +104,7 @@ function buildDecorations(
 
       for (const metric of s.metrics) {
         const effectiveType = metric.type === MetricType.Choice
-          ? ((metric as any).alternatives as IMetric[] | undefined)?.[0]?.type
+          ? (metric as ChoiceGroupMetric).alternatives[0]?.type
           : metric.type;
         const baseClass = METRIC_MARK_CLASS[effectiveType as string];
         if (!baseClass) continue;

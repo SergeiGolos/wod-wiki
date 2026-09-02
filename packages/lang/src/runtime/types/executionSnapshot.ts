@@ -3,6 +3,7 @@
 // contracts are still used by production runtime surfaces.
 
 import type { MetricContainer } from '@bitcobblers/wod-wiki-core';
+import type { IScriptRuntime } from '../contracts/IScriptRuntime';
 
 export type ExecutionStatus =
   | 'idle'
@@ -42,7 +43,7 @@ export type MemoryGrouping =
   | 'none';
 
 export interface MetricValue {
-  value: any;
+  value: unknown;
   unit?: string;
   formatted: string;
 }
@@ -92,7 +93,7 @@ export interface MemoryEntry {
   ownerId: string;
   ownerLabel?: string;
   type: MemoryType;
-  value: any;
+  value: unknown;
   valueFormatted: string;
   label: string;
   groupLabel?: string;
@@ -140,8 +141,8 @@ export interface ExecutionSnapshot {
  * Converts ScriptRuntime state to ExecutionSnapshot
  */
 export interface IRuntimeAdapter {
-  createSnapshot(runtime: any): ExecutionSnapshot;
-  extractStackBlocks(runtime: any): RuntimeStackBlock[];
-  extractMemoryEntries(runtime: any): MemoryEntry[];
+  createSnapshot(runtime: IScriptRuntime): ExecutionSnapshot;
+  extractStackBlocks(runtime: IScriptRuntime): RuntimeStackBlock[];
+  extractMemoryEntries(runtime: IScriptRuntime): MemoryEntry[];
   groupMemoryEntries(entries: MemoryEntry[], groupBy: MemoryGrouping): Map<string, MemoryEntry[]>;
 }

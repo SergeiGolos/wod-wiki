@@ -33,7 +33,7 @@ export interface ResponsiveViewportProps {
   onViewChange: (view: ViewMode) => void;
 
   /** Panel layout state from WorkbenchContext */
-  panelLayouts: Record<string, any>;
+  panelLayouts: Record<string, Record<string, number | string | undefined>>;
 
 
 

@@ -18,10 +18,10 @@ const CODEMIRROR_SINGLETON_DEPS = [
   '@lezer/markdown',
 ];
 
-const pkg = JSON.parse(fs.readFileSync(resolve(__dirname, './package.json'), 'utf-8'));
+const pkg = JSON.parse(fs.readFileSync(resolve(import.meta.dirname, './package.json'), 'utf-8'));
 
 // Auto-detect Tailscale SSL certs for HTTPS (required for Chromecast)
-const projectRoot = resolve(__dirname, '../..');
+const projectRoot = resolve(import.meta.dirname, '../..');
 const certFiles = fs.readdirSync(projectRoot).filter(f => f.endsWith('.ts.net.crt'));
 const keyFiles = fs.readdirSync(projectRoot).filter(f => f.endsWith('.ts.net.key'));
 const https = !process.env.VITE_NO_HTTPS && certFiles.length > 0 && keyFiles.length > 0
@@ -44,7 +44,7 @@ const receiverRedirectPlugin: Plugin = {
                 req.url === '/receiver';
             if (isReceiverUrl) {
                 try {
-                    const htmlPath = resolve(__dirname, 'receiver-rpc.html');
+                    const htmlPath = resolve(import.meta.dirname, 'receiver-rpc.html');
                     const rawHtml = fs.readFileSync(htmlPath, 'utf-8');
                     const html = await server.transformIndexHtml('/receiver-rpc.html', rawHtml, req.originalUrl ?? '');
                     res.setHeader('Content-Type', 'text/html');
@@ -61,7 +61,7 @@ const receiverRedirectPlugin: Plugin = {
 };
 
 export default defineConfig({
-    root: __dirname,
+    root: import.meta.dirname,
     envDir: projectRoot,
     base: process.env.VITE_BASE_PATH || '/',
     define: {
@@ -74,25 +74,25 @@ export default defineConfig({
     resolve: {
         dedupe: ['react', 'react-dom', ...CODEMIRROR_SINGLETON_DEPS],
         alias: [
-            { find: "url", replacement: resolve(__dirname, "../../scripts/empty-shim.ts") },
-            { find: "node:url", replacement: resolve(__dirname, "../../scripts/empty-shim.ts") },
-            { find: "path", replacement: resolve(__dirname, "../../scripts/empty-shim.ts") },
-            { find: "node:path", replacement: resolve(__dirname, "../../scripts/empty-shim.ts") },
-            { find: "fs", replacement: resolve(__dirname, "../../scripts/empty-shim.ts") },
-            { find: "node:fs", replacement: resolve(__dirname, "../../scripts/empty-shim.ts") },
+            { find: "url", replacement: resolve(import.meta.dirname, "../../scripts/empty-shim.ts") },
+            { find: "node:url", replacement: resolve(import.meta.dirname, "../../scripts/empty-shim.ts") },
+            { find: "path", replacement: resolve(import.meta.dirname, "../../scripts/empty-shim.ts") },
+            { find: "node:path", replacement: resolve(import.meta.dirname, "../../scripts/empty-shim.ts") },
+            { find: "fs", replacement: resolve(import.meta.dirname, "../../scripts/empty-shim.ts") },
+            { find: "node:fs", replacement: resolve(import.meta.dirname, "../../scripts/empty-shim.ts") },
             // Workspace source aliases — instant HMR for packages/* edits with
             // zero build step. Most-specific first; dirs expand to their subtree.
-            { find: '@bitcobblers/wod-wiki-lang/react', replacement: resolve(__dirname, '../../packages/lang/src/react.ts') },
-            { find: /^@bitcobblers\/wod-wiki-ui\/styles\.css$/, replacement: resolve(__dirname, '../../packages/ui/src/styles.css') },
-            { find: /^@bitcobblers\/wod-wiki-ui\/extensions$/, replacement: resolve(__dirname, '../../packages/ui/src/extensions/index.ts') },
-            { find: '@bitcobblers/wod-wiki-core', replacement: resolve(__dirname, '../../packages/core/src') },
-            { find: '@bitcobblers/wod-wiki-lang', replacement: resolve(__dirname, '../../packages/lang/src') },
-            { find: '@bitcobblers/wod-wiki-wql', replacement: resolve(__dirname, '../../packages/wql/src') },
-            { find: '@bitcobblers/wod-wiki-engine', replacement: resolve(__dirname, '../../packages/engine/src') },
-            { find: '@bitcobblers/wod-wiki-ui', replacement: resolve(__dirname, '../../packages/ui/src') },
+            { find: '@bitcobblers/wod-wiki-lang/react', replacement: resolve(import.meta.dirname, '../../packages/lang/src/react.ts') },
+            { find: /^@bitcobblers\/wod-wiki-ui\/styles\.css$/, replacement: resolve(import.meta.dirname, '../../packages/ui/src/styles.css') },
+            { find: /^@bitcobblers\/wod-wiki-ui\/extensions$/, replacement: resolve(import.meta.dirname, '../../packages/ui/src/extensions/index.ts') },
+            { find: '@bitcobblers/wod-wiki-core', replacement: resolve(import.meta.dirname, '../../packages/core/src') },
+            { find: '@bitcobblers/wod-wiki-lang', replacement: resolve(import.meta.dirname, '../../packages/lang/src') },
+            { find: '@bitcobblers/wod-wiki-wql', replacement: resolve(import.meta.dirname, '../../packages/wql/src') },
+            { find: '@bitcobblers/wod-wiki-engine', replacement: resolve(import.meta.dirname, '../../packages/engine/src') },
+            { find: '@bitcobblers/wod-wiki-ui', replacement: resolve(import.meta.dirname, '../../packages/ui/src') },
             // `@/` -> ./src for app-support library imports (hooks, clock,
             // runtime views); application code itself lives under ./app.
-            { find: '@', replacement: resolve(__dirname, 'src') },
+            { find: '@', replacement: resolve(import.meta.dirname, 'src') },
         ],
     },
     server: {
@@ -107,8 +107,8 @@ export default defineConfig({
         sourcemap: true,
         rollupOptions: {
             input: {
-                main: resolve(__dirname, 'index.html'),
-                'receiver-rpc': resolve(__dirname, 'receiver-rpc.html'),
+                main: resolve(import.meta.dirname, 'index.html'),
+                'receiver-rpc': resolve(import.meta.dirname, 'receiver-rpc.html'),
             },
             output: {
                 manualChunks(id) {

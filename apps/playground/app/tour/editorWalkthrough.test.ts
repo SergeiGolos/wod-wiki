@@ -29,18 +29,22 @@ const stage = (id: string) => {
   if (!s) throw new Error(`stage ${id} missing`)
   return s
 }
+const ringKey = (id: string): string | undefined => {
+  const r = stage(id).ring
+  return typeof r === 'object' && r !== null ? r.key : undefined
+}
 
 describe('editor walkthrough card ring targets (#884)', () => {
   it('card 1 highlights the whole editor window', () => {
-    expect((stage('editor-blank').ring as any)?.key).toBe('editor.window')
+    expect(ringKey('editor-blank')).toBe('editor.window')
   })
 
   it('card 2 highlights only the fenced block', () => {
-    expect((stage('editor-metrics').ring as any)?.key).toBe('editor.wodBlock')
+    expect(ringKey('editor-metrics')).toBe('editor.wodBlock')
   })
 
   it('card 3 highlights the Run button', () => {
-    expect((stage('editor-run').ring as any)?.key).toBe('editor.runButton')
+    expect(ringKey('editor-run')).toBe('editor.runButton')
   })
 })
 

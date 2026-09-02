@@ -24,7 +24,7 @@ mock.module('@bitcobblers/wod-wiki-engine', () => ({
 }));
 
 mock.module('@/stores/workbenchSessionStore', () => ({
-  useWorkbenchSession: (selector: any) => {
+  useWorkbenchSession: (selector: ((state: unknown) => unknown) | undefined) => {
     const state = { viewMode: 'track', execution: { status: 'idle' } };
     return selector ? selector(state) : state;
   },
@@ -92,7 +92,7 @@ describe('TimerDisplay — Keyboard Navigation', () => {
 
     it('does not trigger onNext when Enter is pressed during typing', () => {
       let nexted = false;
-      const { container } = renderTimerDisplay({
+      renderTimerDisplay({
         onNext: () => { nexted = true; },
         isRunning: true,
       });
@@ -134,7 +134,7 @@ describe('TimerDisplay — Keyboard Navigation', () => {
 
     it('does not trigger shortcuts outside track view', () => {
       mock.module('@/stores/workbenchSessionStore', () => ({
-        useWorkbenchSession: (selector: any) => {
+        useWorkbenchSession: (selector: ((state: unknown) => unknown) | undefined) => {
           const state = { viewMode: 'editor', execution: { status: 'idle' } };
           return selector ? selector(state) : state;
         },
@@ -151,7 +151,7 @@ describe('TimerDisplay — Keyboard Navigation', () => {
 
       // Restore mock
       mock.module('@/stores/workbenchSessionStore', () => ({
-        useWorkbenchSession: (selector: any) => {
+        useWorkbenchSession: (selector: ((state: unknown) => unknown) | undefined) => {
           const state = { viewMode: 'track', execution: { status: 'idle' } };
           return selector ? selector(state) : state;
         },
@@ -184,7 +184,7 @@ describe('TimerDisplay — Keyboard Navigation', () => {
       });
 
       const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
-      const prevented = !window.dispatchEvent(event);
+      const _prevented = !window.dispatchEvent(event);
       // The handler calls preventDefault, so the event should be cancelled
       // Note: dispatchEvent returns false if preventDefault was called
     });

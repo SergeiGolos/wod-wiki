@@ -84,7 +84,7 @@ describe('StickyNavPanel', () => {
 
   describe('Active Section Highlighting', () => {
     it('should apply active styles to the currently active section', () => {
-      const { container } = render(
+      render(
         <StickyNavPanel
           activations={mockActivations}
           activeSection="details"
@@ -100,7 +100,7 @@ describe('StickyNavPanel', () => {
     });
 
     it('should apply inactive styles to non-active sections', () => {
-      const { container } = render(
+      render(
         <StickyNavPanel
           activations={mockActivations}
           activeSection="overview"
@@ -170,7 +170,7 @@ describe('StickyNavPanel', () => {
       const mockScrollToSection = vi.fn();
       const deps = { ...mockDeps, scrollToSection: mockScrollToSection };
 
-      const { container } = render(
+      render(
         <StickyNavPanel
           activations={mockActivations}
           activeSection="overview"
@@ -368,7 +368,7 @@ describe('StickyNavPanel', () => {
         },
       ];
 
-      const { container } = render(
+      render(
         <StickyNavPanel
           activations={longActivations}
           activeSection="long"

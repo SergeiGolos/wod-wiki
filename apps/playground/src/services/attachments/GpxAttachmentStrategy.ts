@@ -27,7 +27,7 @@ export class GpxAttachmentStrategy implements IAttachmentStrategy {
           end: times[times.length - 1],
         };
       }
-    } catch (e) {
+    } catch {
       console.warn('[GpxAttachmentStrategy] Failed to parse GPX content for metadata');
     }
 

@@ -75,7 +75,10 @@ export class ClearChildrenAction implements IRuntimeAction {
         }
 
         if (iterations >= MAX_ITERATIONS) {
-            console.error(`[ClearChildrenAction] Max iterations reached, possible infinite loop`);
+            runtime.options.logger?.error?.(
+                '[ClearChildrenAction] Max iterations reached, possible infinite loop',
+                new Error(`Exceeded ${MAX_ITERATIONS} pop iterations for target ${this.targetBlockKey}`),
+            );
         }
 
         // Queue a NextAction so the target block (now on top) gets its next() call.

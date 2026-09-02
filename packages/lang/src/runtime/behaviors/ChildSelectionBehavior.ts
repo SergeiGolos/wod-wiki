@@ -67,7 +67,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
 
         // Handle interval timer resets for EMOM synchronization
         if (this.config.injectRest) {
-            ctx.subscribe('timer:complete' as any, (_event, _ctx) => {
+            ctx.subscribe('timer:complete', (_event, _ctx) => {
                 // While a rest block is pending/active, the rest-pop path in
                 // onNext owns the round advance — never advance twice for one
                 // interval boundary.
@@ -133,7 +133,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
                 // If this next was manual (rest timer didn't expire yet),
                 // we should reset the parent timer for the next interval.
                 ctx.emitEvent({
-                    name: 'timer:reset' as any,
+                    name: 'timer:reset',
                     timestamp: ctx.clock.currentDate,
                     data: { blockKey: ctx.block.key.toString() }
                 });
@@ -287,7 +287,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         if (childLoc?.metrics[0]) {
             ctx.updateMemory('children:status', [{...childLoc.metrics[0], value: status}]);
         } else {
-            ctx.pushMemory('children:status', [{type: 0 as any, image: '', origin: 'runtime' as any, value: status}]);
+            ctx.pushMemory('children:status', [{type: 'status', image: '', origin: 'runtime', value: status}]);
         }
     }
 

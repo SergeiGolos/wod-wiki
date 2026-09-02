@@ -169,8 +169,7 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
     }, [reachedOnce, runwayReached])
 
     const activeScreen: TourScreen =
-      (slice.stage.screen as TourScreen | undefined) ?? 'editor'
-
+      (slice.stage?.screen as TourScreen | undefined) ?? 'editor'
     // Lazy-mount heavy screens once their section first enters; keep alive.
     const showScreens = everReached
 
@@ -180,10 +179,10 @@ export const TourSectionRunway = forwardRef<TourSectionRunwayApi, TourSectionRun
     const lastNotifiedStageRef = useRef<string | null>(null)
     useEffect(() => {
       if (!everReached) return
-      if (lastNotifiedStageRef.current === slice.stage.id) return
-      lastNotifiedStageRef.current = slice.stage.id
-      onActiveStageChange?.(slice.stage.id)
-    }, [slice.stage.id, onActiveStageChange, everReached])
+      if (lastNotifiedStageRef.current === slice.stage?.id) return
+      lastNotifiedStageRef.current = slice.stage?.id ?? null
+      if (slice.stage?.id) onActiveStageChange?.(slice.stage.id)
+    }, [slice.stage?.id, onActiveStageChange, everReached])
 
     // Imperative scrub: TV parallax + stop toast — transform/opacity only.
     useEffect(() => {

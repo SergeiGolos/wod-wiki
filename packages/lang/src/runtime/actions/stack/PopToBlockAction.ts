@@ -1,4 +1,8 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
+
+// Console is the sanctioned sink for these runtime debug traces.
+// eslint-disable-next-line no-console
+const logTrace = (message: string): void => console.log(message);
 import type { IRuntimeContext } from '../../contracts/IRuntimeContext';
 
 /**
@@ -20,16 +24,16 @@ export class PopToBlockAction implements IRuntimeAction {
         while (iterations < MAX_ITERATIONS) {
             const current = runtime.stack.current;
             if (!current) {
-                console.log(`[PopToBlockAction] Stack empty, stopping`);
+                logTrace(`[PopToBlockAction] Stack empty, stopping`);
                 break;
             }
 
             if (current.key.toString() === this.targetBlockId) {
-                console.log(`[PopToBlockAction] Reached target block: ${current.label}`);
+                logTrace(`[PopToBlockAction] Reached target block: ${current.label}`);
                 break;
             }
 
-            console.log(`[PopToBlockAction] Popping: ${current.label}`);
+            logTrace(`[PopToBlockAction] Popping: ${current.label}`);
             
             // Pop without triggering parent.next() or event emissions
             const actions = this.popSilently(runtime);

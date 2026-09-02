@@ -186,7 +186,7 @@ export const MetricInlinePanel: React.FC<MetricInlinePanelProps> = ({
 
     const newPos = computePosition(view, focus.lineFrom);
     setPos(newPos);
-  }, [view]);
+  }, [view, getCursorFocusStateProp]);
 
   useEffect(() => {
     update();

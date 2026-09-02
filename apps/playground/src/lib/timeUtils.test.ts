@@ -20,7 +20,7 @@ describe('timeUtils Contract', () => {
 
     it('should return "running" for null or undefined', () => {
       expect(formatTimestamp(undefined)).toBe('running');
-      expect(formatTimestamp(null as any)).toBe('running');
+      expect(formatTimestamp(null)).toBe('running');
     });
   });
 
@@ -57,7 +57,7 @@ describe('timeUtils Contract', () => {
 
     it('should return 0 for empty or invalid spans', () => {
       expect(calculateDuration([], 999999999)).toBe(0);
-      expect(calculateDuration(undefined as any, 999999999)).toBe(0);
+      expect(calculateDuration(undefined as unknown as Parameters<typeof calculateDuration>[0], 999999999)).toBe(0);
     });
 
     it('should prevent negative durations from malformed spans', () => {

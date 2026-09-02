@@ -395,7 +395,7 @@ describe('ColumnSet', () => {
 
     it('returns derived columns as available even without data', () => {
       const set = new ColumnSet(makeConfig());
-      const ctx = makeContext({
+      const _ctx = makeContext({
         rows: [makeGridRow({})],
         activePresetId: 'default',
       });
@@ -417,7 +417,7 @@ describe('ColumnSet', () => {
     it('returns only visible columns with graph config', () => {
       const graphRep: ColumnDef = {
         ...repCol,
-        graph: { extractor: (cell) => (cell as any)?.metrics?.value },
+        graph: { extractor: (cell) => ((cell as { metrics?: { value?: unknown } } | null)?.metrics?.value) },
       };
       const config: ColumnSetConfig = {
         ...makeConfig(),
@@ -451,7 +451,7 @@ describe('ColumnSet', () => {
     it('returns visible columns that are tagged for graphing', () => {
       const graphRep: ColumnDef = {
         ...repCol,
-        graph: { extractor: (cell) => (cell as any)?.metrics?.value },
+        graph: { extractor: (cell) => ((cell as { metrics?: { value?: unknown } } | null)?.metrics?.value) },
       };
       const config: ColumnSetConfig = {
         ...makeConfig(),
@@ -476,7 +476,7 @@ describe('ColumnSet', () => {
     it('excludes tagged columns that are not visible', () => {
       const graphRep: ColumnDef = {
         ...repCol,
-        graph: { extractor: (cell) => (cell as any)?.metrics?.value },
+        graph: { extractor: (cell) => ((cell as { metrics?: { value?: unknown } } | null)?.metrics?.value) },
       };
       const config: ColumnSetConfig = {
         ...makeConfig(),

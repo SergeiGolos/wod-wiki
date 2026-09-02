@@ -8,9 +8,8 @@
  * on a minimal JSDOM.
  */
 
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
-import React, { useRef } from 'react';
-import { render, fireEvent, cleanup, renderHook, act } from '@testing-library/react';
+import { describe, it, expect, afterEach, mock } from 'bun:test';
+import { cleanup, renderHook, act } from '@testing-library/react';
 import { useSpatialNavigation } from '../useSpatialNavigation';
 
 // ── Geometry unit tests (extracted algorithm) ──────────────────────────

@@ -139,7 +139,7 @@ describe('CardioDialect', () => {
     });
 
     it('should handle a statement with no metrics gracefully', () => {
-      const analysis = dialect.analyze({ id: 1 } as any);
+      const analysis = dialect.analyze({ id: 1 } as unknown as ICodeStatement);
 
       expect(getHints(analysis.metrics)).toHaveLength(0);
     });

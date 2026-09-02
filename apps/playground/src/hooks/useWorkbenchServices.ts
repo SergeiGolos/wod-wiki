@@ -13,7 +13,7 @@ import { useMemo } from 'react';
 
 // ── Analytics ─────────────────────────────────────────────────────────────
 export { getAnalyticsFromRuntime, getAnalyticsFromLogs } from '@/services/AnalyticsTransformer';
-export type { SegmentWithMetadata } from '@/services/AnalyticsTransformer';
+export { convert, getUnitFamily } from '@/services/analytics/units';
 
 // ── Export / import ───────────────────────────────────────────────────────
 export { exportAllNotes, exportNote, importFromZip, pickFile } from '@/services/ExportImportService';

@@ -6,7 +6,7 @@
  */
 
 function getFs() {
-  if (typeof globalThis.process?.versions?.node === 'undefined' && typeof (globalThis as any).Bun === 'undefined') {
+  if (typeof globalThis.process?.versions?.node === 'undefined' && typeof (globalThis as { Bun?: unknown }).Bun === 'undefined') {
     throw new Error('File system operations are only supported in Node / Bun environments');
   }
   // eslint-disable-next-line no-restricted-syntax -- lazy CJS require keeps node builtins out of browser bundles
@@ -23,6 +23,7 @@ import {
   type NoteQueryStore,
   type BlockQueryStore,
   type EffortQueryStore,
+  type IEffort as WqlEffort,
 } from '@bitcobblers/wod-wiki-wql';
 import { factRowsToEventRows, inMemoryEventStore } from '../store';
 import { toEventRows, toSummaryEventRows } from '@bitcobblers/wod-wiki-wql';
@@ -77,9 +78,9 @@ function factsFromExecutionLog(log: ExecutionLog, resultId: string = 'stdin-resu
         type: mType,
         value: Number.isNaN(numVal) ? 0 : numVal,
         unit: m.unit,
-        label: (m as any).label || mType,
+        label: (m as unknown as { label?: string }).label || mType,
         metricKey: mType,
-        metricLabel: (m as any).label || mType,
+        metricLabel: (m as unknown as { label?: string }).label || mType,
         timestamp: started,
         createdAt: started,
       });
@@ -141,7 +142,7 @@ function buildStoresFromData(data: LoadedData) {
   };
 
   const effortStore: EffortQueryStore = {
-    getAllEfforts: async () => [...data.efforts] as any,
+    getAllEfforts: async () => [...data.efforts] as unknown as WqlEffort[],
   };
 
   return { eventStore, noteStore, blockStore, effortStore };
@@ -154,7 +155,7 @@ export function loadQueryData(options: QueryCliOptions): LoadedData {
     results: [],
     notes: [],
     blocks: [],
-    efforts: [...bundledEfforts] as any,
+    efforts: [...bundledEfforts],
     noteTags: {},
   };
 
@@ -188,7 +189,7 @@ export function loadQueryData(options: QueryCliOptions): LoadedData {
         if (corpus.results) data.results = corpus.results;
         if (corpus.notes) data.notes = corpus.notes;
         if (corpus.blocks) data.blocks = corpus.blocks;
-        if (corpus.efforts) data.efforts = corpus.efforts as any;
+        if (corpus.efforts) data.efforts = corpus.efforts;
         if (corpus.tags) data.noteTags = corpus.tags;
 
         // If logs are provided without separate results, synthesize results
@@ -216,11 +217,11 @@ export function loadQueryData(options: QueryCliOptions): LoadedData {
   } else if (options.stdinLog) {
     const payload = extractPayload(options.stdinLog) as ExecutionLog | WorkoutResults;
     let executionLog: ExecutionLog;
-    const rawLogs = (payload as any).logs ?? (payload as any).statements ?? [];
+    const rawLogs = payload.logs ?? ('statements' in payload ? payload.statements : undefined) ?? [];
     if ('results' in payload) {
-      executionLog = { results: (payload as any).results, logs: rawLogs, statements: rawLogs };
+      executionLog = { results: payload.results, logs: rawLogs, statements: rawLogs };
     } else {
-      executionLog = { results: payload as WorkoutResults, logs: rawLogs, statements: rawLogs };
+      executionLog = { results: payload, logs: rawLogs, statements: rawLogs };
     }
 
     const resultId = 'stdin-result-1';

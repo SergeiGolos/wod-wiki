@@ -1,11 +1,8 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { StorybookConfig } from '@storybook/react-vite';
 import { CODEMIRROR_SINGLETON_DEPS, workspaceAliases } from '../aliases.ts';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '../../..');
+const rootDir = path.resolve(import.meta.dirname, '../../..');
 
 const config: StorybookConfig = {
   stories: [
@@ -20,7 +17,7 @@ const config: StorybookConfig = {
     name: '@storybook/react-vite',
     options: {
       builder: {
-        viteConfigPath: path.resolve(__dirname, '../vite.config.ts'),
+        viteConfigPath: path.resolve(import.meta.dirname, '../vite.config.ts'),
       },
     },
   },

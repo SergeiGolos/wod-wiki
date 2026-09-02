@@ -47,8 +47,7 @@ describe('ExecutionContextTestBuilder', () => {
         };
 
         expect(() => harness.executeAction(recursiveAction)).toThrow(/Max iterations/);
-        expect(consoleError).toHaveBeenCalledTimes(1);
-        expect(String(consoleError.mock.calls[0]?.[0])).toMatch(/\[ExecutionContext\] Max iterations reached \(5\)/);
+
         harness.dispose();
       } finally {
         consoleError.mockRestore();
@@ -78,7 +77,7 @@ describe('ExecutionContextTestBuilder', () => {
         .build();
 
       // Create a statement that contains 'duration' when serialized
-      const statement = { id: 1, metrics: [{ type: 'duration' }], children: [], meta: {} } as any;
+      const statement = { id: 1, metrics: [{ type: 'duration' }], children: [], meta: {} } as unknown as ICodeStatement;
       const result = harness.mockJit.compile([statement], harness.runtime);
 
       expect(result).toBe(timerBlock);
@@ -92,9 +91,8 @@ describe('ExecutionContextTestBuilder', () => {
         .whenStatementIds([1, 2], block)
         .build();
 
-      const statement1 = { id: 1, metrics: [], children: [], meta: {}, metricMeta: new Map() } as any;
-      const statement2 = { id: 2, metrics: [], children: [], meta: {}, metricMeta: new Map() } as any;
-      
+      const statement1 = { id: 1, metrics: [], children: [], meta: {}, metricMeta: new Map() }  as unknown as ICodeStatement;
+      const statement2 = { id: 2, metrics: [], children: [], meta: {}, metricMeta: new Map() }  as unknown as ICodeStatement;
       const result = harness.mockJit.compile([statement1, statement2], harness.runtime);
 
       expect(result).toBe(block);

@@ -402,6 +402,7 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
  */
 export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
   const viewMode = useWorkbenchSession(s => s.viewMode);
+  const { onNext, disableNext, isPaused } = props;
 
   // Global keydown listener for hardware 'Next' button support (Volume Up / Enter)
   useEffect(() => {
@@ -425,17 +426,17 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
           (activeEl as HTMLElement).isContentEditable
         );
         
-        if (!isTyping && !props.disableNext && !props.isPaused) {
+        if (!isTyping && !disableNext && !isPaused) {
           // Prevent default browser behavior (like scrolling on space/enter)
           e.preventDefault();
-          props.onNext();
+          onNext();
         }
       }
     };
 
     window.addEventListener('keydown', handleHardwareKey);
     return () => window.removeEventListener('keydown', handleHardwareKey);
-  }, [props.onNext, viewMode]);
+  }, [onNext, disableNext, isPaused, viewMode]);
 
   // If display stack is enabled (runtime available), render with runtime hooks
   if (props.enableDisplayStack) {

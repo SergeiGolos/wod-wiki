@@ -128,7 +128,7 @@ describe('ClearChildrenAction — Auto-Pop on Timer Expiry', () => {
 
             // Exercise should have been marked complete with 'forced-pop' reason
             expect(exerciseBlock.isComplete).toBe(true);
-            expect((exerciseBlock as any).completionReason).toBe('forced-pop');
+            expect(exerciseBlock.completionReason).toBe('forced-pop');
         });
 
         it('should not re-mark blocks that were already complete', async () => {

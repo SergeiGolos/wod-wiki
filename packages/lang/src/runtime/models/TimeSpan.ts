@@ -19,7 +19,7 @@ export class TimeSpan implements TimeSpanShape {
         public ended?: number
     ) { }
 
-    static fromJSON(json: any): TimeSpan {
+    static fromJSON(json: TimeSpanShape): TimeSpan {
         return new TimeSpan(json.started, json.ended);
     }
 

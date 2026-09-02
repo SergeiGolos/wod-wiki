@@ -8,6 +8,7 @@ import { CardioDialect } from './CardioDialect';
 import { YogaDialect } from './YogaDialect';
 import { HabitsDialect } from './HabitsDialect';
 import { ClimbDialect } from './ClimbDialect';
+import { langWarn } from '../logger';
 
 /** Id of the base Units Dialect — always part of a sport-scoped stack. */
 const UNITS_DIALECT_ID = 'units';
@@ -79,7 +80,7 @@ export class DialectStack {
         if (!all.some(d => d.id === id)) {
             if (!warnedSports.has(sport)) {
                 warnedSports.add(sport);
-                console.warn(
+                langWarn(
                     `[DialectStack] Unknown :sport suffix "${sport}" — falling back to the full ` +
                     `dialect stack. Known dialect ids: ${all.map(d => d.id).join(', ')}.`,
                 );

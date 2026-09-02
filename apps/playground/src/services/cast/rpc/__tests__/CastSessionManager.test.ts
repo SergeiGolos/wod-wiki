@@ -3,6 +3,7 @@ import type { IEvent } from '@bitcobblers/wod-wiki-engine';
 import type { IRuntimeEventProvider } from '@bitcobblers/wod-wiki-engine';
 import type { IRuntimeSubscription } from '@bitcobblers/wod-wiki-engine';
 import type { IRpcTransport, RpcUnsubscribe } from '../IRpcTransport';
+import { RpcMessage } from '../RpcMessages';
 import type { ClockSyncService } from '../ClockSync';
 import {
     CastSessionManager,
@@ -14,13 +15,13 @@ import {
 class MockTransport implements IRpcTransport {
     connected = false;
     _needsClockSync = false;
-    sent: any[] = [];
+    sent: RpcMessage[] = [];
     connectCalls = 0;
     disposeCalls = 0;
 
     private connectedHandlers = new Set<() => void>();
     private disconnectedHandlers = new Set<() => void>();
-    private messageHandlers = new Set<(message: any) => void>();
+    private messageHandlers = new Set<(message: RpcMessage) => void>();
 
     constructor(needsClockSync: boolean = false) {
         this._needsClockSync = needsClockSync;
@@ -30,11 +31,11 @@ class MockTransport implements IRpcTransport {
         return this._needsClockSync;
     }
 
-    send(message: any): void {
+    send(message: RpcMessage): void {
         this.sent.push(message);
     }
 
-    onMessage(handler: (message: any) => void): RpcUnsubscribe {
+    onMessage(handler: (message: RpcMessage) => void): RpcUnsubscribe {
         this.messageHandlers.add(handler);
         return () => this.messageHandlers.delete(handler);
     }
@@ -114,15 +115,15 @@ function makeDeps(overrides: Partial<CastSessionManagerDeps> = {}): {
         (_t, id) => new MockSubscription(id);
     return {
         deps: {
-            createSubscription: ((transport, id) => createSubscription(transport, id)) as any,
-            createEventProvider: ((_t) => eventProvider) as any,
+            createSubscription: ((transport, id) => createSubscription(transport, id)) as unknown as CastSessionManagerDeps['createSubscription'],
+            createEventProvider: ((_t) => eventProvider) as unknown as CastSessionManagerDeps['createEventProvider'],
             createClockSync: ((_t) => clockSync as unknown as ClockSyncService),
             ...overrides,
         },
         eventProvider,
         clockSync,
         get createSubscription() { return createSubscription; },
-    } as any;
+    } as unknown as { deps: CastSessionManagerDeps; eventProvider: MockEventProvider; clockSync: MockClockSync; get createSubscription(): (t: MockTransport, id: string) => MockSubscription };
 }
 
 describe('CastSessionManager', () => {

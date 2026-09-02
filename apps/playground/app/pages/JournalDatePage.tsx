@@ -10,8 +10,6 @@ import { useSearchParams } from 'react-router-dom';
 import { pendingRuntimes } from '../runtimeStore';
 import { WorkbenchSessionProvider } from '@/stores/workbenchSessionStore';
 import { notePersistence } from '@/services/persistence';
-import { indexedDBService } from '@/services/db/IndexedDBService';
-import type { WorkoutResult } from '@/types/storage';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { sessionQueryInsert, sessionQueryWql } from '@bitcobblers/wod-wiki-ui/extensions';
@@ -35,7 +33,6 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   const [notes, setNotes] = useState<HistoryEntry[] | null>(null);
   const [viewMode, setViewMode] = useState<'read' | 'edit'>('read');
   const [content, setContent] = useState<string>('');
-  const [allResults, setAllResults] = useState<WorkoutResult[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [timerBlock, setTimerBlock] = useState<ScriptBlock | null>(null);
@@ -160,15 +157,10 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       resultId,
       data: results!,
       createdAt: results?.endTime || Date.now(),
-    }).then((result) => {
-      // Surface the new result inline without waiting for a reload. The query
-      // block inserted by the editor (#944/#945) is the results moment — no
-      // review overlay here.
-      setAllResults(prev => [...prev, result]);
     }).catch(() => {});
     setActiveRuntimeId(null);
     setActiveNoteId(null);
-  }, [resolveNoteUuid, blocks, activeRuntimeId, activeNoteId, timerBlock, editorView, save]);
+  }, [resolveNoteUuid, blocks, activeRuntimeId, activeNoteId, timerBlock, editorView, save, journalDate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,9 +184,6 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
       }
       boundariesRef.current = boundaries;
       setContent(pieces.join('\n'));
-
-      const resultsArrays = await Promise.all(entries.map(n => indexedDBService.getResultsForNote(n.id)));
-      if (!cancelled) setAllResults(resultsArrays.flat());
     }).catch(() => {
       if (!cancelled) setNotes([]);
     });
@@ -202,7 +191,7 @@ export function JournalDatePage({ journalDate, theme, onViewCreated }: JournalDa
   }, [journalDate]);
 
 
-  const { onChange: editorSaveOnChange, onLineChange, onBlur } = useEditorSave({
+  const { onChange: editorSaveOnChange, onBlur } = useEditorSave({
     onSave: save,
     lineIdleMs: 500,
   });

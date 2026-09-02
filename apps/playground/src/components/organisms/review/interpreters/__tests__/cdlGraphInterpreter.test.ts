@@ -15,7 +15,7 @@ describe('cdlGraphInterpreter', () => {
         source: { type: 'metric-type', metricType: MetricType.Rep },
         format: { type: 'text' },
         graph: {
-          extractor: (cell) => (cell as any)?.metrics?.[0]?.value,
+          extractor: (cell) => ((cell as { metrics?: Array<{ value?: unknown }> } | null)?.metrics?.[0]?.value),
           axisLabel: 'Reps',
           unit: 'reps',
         },
@@ -31,7 +31,7 @@ describe('cdlGraphInterpreter', () => {
         source: { type: 'metric-type', metricType: MetricType.Rep },
         format: { type: 'text' },
         graph: {
-          extractor: (cell) => (cell as any)?.metrics?.[0]?.value,
+          extractor: (cell) => ((cell as { metrics?: Array<{ value?: unknown }> } | null)?.metrics?.[0]?.value),
         },
       };
       expect(extractGraphValue(row, colDef)).toBeUndefined();
@@ -97,7 +97,7 @@ describe('cdlGraphInterpreter', () => {
         },
         format: { type: 'badge', styleResolver: () => ({ className: '' }), textResolver: (v) => String(v) },
         graph: {
-          extractor: (cell) => (cell as any)?.metrics?.[0]?.value,
+          extractor: (cell) => ((cell as { metrics?: Array<{ value?: unknown }> } | null)?.metrics?.[0]?.value),
         },
       };
       expect(extractGraphValue(row, colDef)).toBe(15);
@@ -121,14 +121,14 @@ describe('cdlGraphInterpreter', () => {
           label: 'Reps',
           source: { type: 'metric-type', metricType: MetricType.Rep },
           format: { type: 'text' },
-          graph: { extractor: (cell) => (cell as any)?.metrics?.[0]?.value },
+          graph: { extractor: (cell) => ((cell as { metrics?: Array<{ value?: unknown }> } | null)?.metrics?.[0]?.value) },
         },
         {
           id: 'distance',
           label: 'Distance',
           source: { type: 'metric-type', metricType: MetricType.Distance },
           format: { type: 'text' },
-          graph: { extractor: (cell) => (cell as any)?.metrics?.[0]?.value },
+          graph: { extractor: (cell) => ((cell as { metrics?: Array<{ value?: unknown }> } | null)?.metrics?.[0]?.value) },
         },
         {
           id: 'noGraph',

@@ -13,7 +13,6 @@ describe('debug sort', () => {
       makeMetric(MetricType.Rep, 15, 'runtime'),
     ]);
     const reps = c.getByType(MetricType.Rep);
-    console.log('Sorted:', reps.map(r => ({ value: r.value, origin: r.origin })));
     expect(reps[0].origin).toBe('runtime');
   });
 });

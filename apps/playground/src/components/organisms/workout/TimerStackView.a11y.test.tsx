@@ -1,6 +1,6 @@
 import React from 'react';
-import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, mock } from 'bun:test';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { TimerStackView } from './TimerStackView';
 
 // ── Mocks ───────────────────────────────────────────────────────────────────

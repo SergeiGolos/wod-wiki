@@ -12,7 +12,7 @@ mock.module('@/services/db/IndexedDBService', () => ({
   indexedDBService: mockIndexedDBService,
 }));
 
-import { fixtureRunning, fixtureRowing, fixtureUserCustom, fixtureUserOverride } from '../fixtures';
+import { fixtureRunning, fixtureUserCustom, fixtureUserOverride } from '../fixtures';
 
 // Minimal mock DB shape matching what CompositeEffortRegistry needs.
 // CompositeEffortRegistry calls this.db.getDB() which returns an object

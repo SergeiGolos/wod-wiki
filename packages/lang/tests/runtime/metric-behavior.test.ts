@@ -10,6 +10,7 @@ import { SystemTimeMetric } from '../../src/runtime/compiler/metrics/SystemTimeM
 import { SoundMetric } from '../../src/runtime/compiler/metrics/SoundMetric';
 import { CurrentRoundMetric } from '../../src/runtime/compiler/metrics/CurrentRoundMetric';
 import { MetricType } from '@bitcobblers/wod-wiki-core';
+import { TimeSpan } from '../../src/runtime/models/TimeSpan';
 
 describe('Fragment behavior & metadata', () => {
   it('DurationMetric sets origin=parser for parser durations', () => {
@@ -37,8 +38,8 @@ describe('Fragment behavior & metadata', () => {
   });
 
   it('SpansMetric is tracked; Elapsed/Total are analyzed', () => {
-    const spans = [{ started: 0, ended: 100 }, { started: 200, ended: 350 }];
-    const s = new SpansMetric(spans as any, 'block-1', new Date());
+    const spans = [new TimeSpan(0, 100), new TimeSpan(200, 350)];
+    const s = new SpansMetric(spans, 'block-1', new Date());
     const e = new ElapsedMetric(250, 'block-1', new Date());
     const t = new TotalMetric(350, 'block-1', new Date());
 

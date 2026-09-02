@@ -401,7 +401,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             this.outputs = [];
             // Notify output subscribers so useOutputStatements re-fetches (→ empty).
             for (const listener of this.outputListeners) {
-                listener(null as any);
+                listener(null as unknown as IOutputStatement);
             }
             // Clear cached blocks — the stack is fully reset
             this.blockCache.clear();

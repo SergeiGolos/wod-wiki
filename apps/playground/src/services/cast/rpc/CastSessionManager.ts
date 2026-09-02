@@ -38,8 +38,11 @@ import type { IRuntimeSubscription } from '@bitcobblers/wod-wiki-engine';
 import { ChromecastEventProvider } from './ChromecastEventProvider';
 import { ChromecastRuntimeSubscription } from './ChromecastRuntimeSubscription';
 import { ClockSyncService } from './ClockSync';
+
+
 import type { IRpcTransport, RpcUnsubscribe } from './IRpcTransport';
-import type { RpcMessage } from './RpcMessages';
+
+import { rpcError } from './rpcLogger';
 /**
  * Minimal contract the workbench `SubscriptionManager` exposes — narrowed
  * to the surface the cast session needs. Avoids a cyclic import on
@@ -168,7 +171,7 @@ export class CastSessionManager {
             // Best-effort: don't block `connect()` on the sync handshake
             // completing. The receiver caches the offset as it arrives.
             clockSync.sync().catch((err) => {
-                console.error('[CastSessionManager] Clock sync failed', err);
+                rpcError('CastSessionManager', 'Clock sync failed', err);
             });
         }
 

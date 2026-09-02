@@ -15,7 +15,7 @@ const createMockDialect = (id: string, hints: string[] = []): IDialect => ({
 
 /** A minimal statement whose metrics is a real MetricContainer. */
 const makeStatement = (id: number, seedHints: string[] = []): ICodeStatement =>
-  ({ id, metrics: hintsToContainer(seedHints) } as any);
+  ({ id, metrics: hintsToContainer(seedHints) } as unknown as ICodeStatement);
 
 describe('DialectRegistry', () => {
   describe('register and unregister', () => {
@@ -184,7 +184,7 @@ describe('DialectRegistry', () => {
           { type: MetricType.Action, value: 'EMOM 10', origin: 'parser' },
           { type: MetricType.Duration, value: 60000, origin: 'parser' }
         ])
-      } as any;
+      } as unknown as ICodeStatement;
 
       registry.process(statement);
 

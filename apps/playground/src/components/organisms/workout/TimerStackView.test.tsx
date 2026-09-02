@@ -222,7 +222,7 @@ describe('TimerStackView', () => {
             timerMemoryId: '',
             format: 'up',
             accumulatedMs: 5000,
-          } as any,
+          },
         ]}
       />,
     );

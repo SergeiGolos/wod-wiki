@@ -246,7 +246,7 @@ export class BehaviorContext implements IBehaviorContext {
             try {
                 unsubscribe();
             } catch (err) {
-                console.error('[BehaviorContext] Unsubscribe error:', err);
+                this.runtime.options.logger?.error?.('[BehaviorContext] Unsubscribe error:', err);
             }
         }
         this.subscriptions = [];

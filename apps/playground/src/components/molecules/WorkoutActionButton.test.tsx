@@ -11,9 +11,9 @@ describe('WorkoutActionButton', () => {
 
   describe('Basic rendering', () => {
     it('renders main button with Plus icon in create mode', () => {
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       render(<WorkoutActionButton onAction={onAction} mode="create" />);
@@ -22,9 +22,9 @@ describe('WorkoutActionButton', () => {
     });
 
     it('renders main button with Copy icon in clone mode', () => {
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       render(<WorkoutActionButton onAction={onAction} mode="clone" />);
@@ -33,9 +33,9 @@ describe('WorkoutActionButton', () => {
     });
 
     it('renders custom label when provided', () => {
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       render(
@@ -46,9 +46,9 @@ describe('WorkoutActionButton', () => {
     });
 
     it('renders calendar dropdown trigger button', () => {
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -91,7 +91,7 @@ describe('WorkoutActionButton', () => {
         actionCalled = true;
       };
 
-      const { container } = render(
+      render(
         <div onClick={handleOuterClick}>
           <WorkoutActionButton onAction={onAction} mode="create" />
         </div>
@@ -105,9 +105,9 @@ describe('WorkoutActionButton', () => {
     });
 
     it('applies outline variant by default', () => {
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -119,9 +119,9 @@ describe('WorkoutActionButton', () => {
     });
 
     it('applies default variant when specified', () => {
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -136,9 +136,9 @@ describe('WorkoutActionButton', () => {
 
   describe('Calendar dropdown', () => {
     it('opens calendar dropdown when trigger button is clicked', async () => {
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -159,9 +159,9 @@ describe('WorkoutActionButton', () => {
     });
 
     it('calls onAction with selected date when date is selected in calendar', async () => {
-      let calledDate: Date | undefined;
+      let _calledDate: Date | undefined;
       const onAction = (date: Date) => {
-        calledDate = date;
+        _calledDate = date;
       };
 
       const { container } = render(
@@ -193,11 +193,11 @@ describe('WorkoutActionButton', () => {
             { type: 'template', targetDate: '2024-01-20T00:00:00Z' },
           ];
         },
-      } as any;
+      } as unknown as IContentProvider;
 
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -224,11 +224,11 @@ describe('WorkoutActionButton', () => {
           new Promise(resolve => {
             resolveLoading = () => resolve([]);
           }),
-      } as any;
+      } as unknown as IContentProvider;
 
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -253,21 +253,15 @@ describe('WorkoutActionButton', () => {
     });
 
     it('handles provider errors gracefully', async () => {
-      const consoleErrors: string[] = [];
-      const originalError = console.error;
-      console.error = (...args) => {
-        consoleErrors.push(args.join(' '));
-      };
-
       const mockProvider: IContentProvider = {
         getEntries: async () => {
           throw new Error('Provider error');
         },
-      } as any;
+      } as unknown as IContentProvider;
 
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -286,31 +280,25 @@ describe('WorkoutActionButton', () => {
         const dropdown = document.body.querySelector('.rounded-md.border');
         expect(dropdown).toBeTruthy();
       });
-
-      // Check that error was logged
-      expect(consoleErrors.length).toBeGreaterThan(0);
-      expect(consoleErrors.some(e => e.includes('Failed to load entry dates'))).toBe(true);
-
-      console.error = originalError;
     });
   });
 
   describe('Secondary actions', () => {
     it('renders secondary actions when provided', () => {
-      let secondaryActionCalled = false;
+      let _secondaryActionCalled = false;
       const secondaryActions = [
         {
           label: 'Import',
           icon: <span data-testid="import-icon">↓</span>,
           onClick: () => {
-            secondaryActionCalled = true;
+            _secondaryActionCalled = true;
           },
         },
       ];
 
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -329,20 +317,20 @@ describe('WorkoutActionButton', () => {
     });
 
     it('calls secondary action onClick when clicked', () => {
-      let secondaryActionCalled = false;
+      let _secondaryActionCalled = false;
       const secondaryActions = [
         {
           label: 'Import',
           icon: <span>↓</span>,
           onClick: () => {
-            secondaryActionCalled = true;
+            _secondaryActionCalled = true;
           },
         },
       ];
 
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -359,15 +347,15 @@ describe('WorkoutActionButton', () => {
       const importButton = screen.getByText('Import');
       fireEvent.click(importButton);
 
-      expect(secondaryActionCalled).toBe(true);
+      expect(_secondaryActionCalled).toBe(true);
     });
   });
 
   describe('Styling and layout', () => {
     it('applies custom className to wrapper', () => {
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -383,9 +371,9 @@ describe('WorkoutActionButton', () => {
     });
 
     it('hides label on small screens via responsive classes', () => {
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -397,9 +385,9 @@ describe('WorkoutActionButton', () => {
     });
 
     it('applies proper rounded corners for split button', () => {
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -419,9 +407,9 @@ describe('WorkoutActionButton', () => {
 
   describe('Edge cases', () => {
     it('does not load entry dates when provider is not provided', async () => {
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(
@@ -443,9 +431,9 @@ describe('WorkoutActionButton', () => {
     });
 
     it('handles empty secondary actions array', () => {
-      let actionCalled = false;
+      let _actionCalled = false;
       const onAction = () => {
-        actionCalled = true;
+        _actionCalled = true;
       };
 
       const { container } = render(

@@ -96,11 +96,17 @@ export interface MockBlock {
     /** Get metrics memory by visibility tier */
     getMetricMemoryByVisibility(visibility: MetricVisibility): IMemoryLocation[];
     /** Backward-compat shim */
-    getMemory<T extends MemoryType>(type: T): any;
+    getMemory<T extends MemoryType>(type: T): LegacyMemoryHandle | undefined;
     /** Backward-compat shim */
     hasMemory(type: MemoryType): boolean;
     /** Backward-compat shim */
-    setMemoryValue<T extends MemoryType>(type: T, value: any): void;
+    setMemoryValue<T extends MemoryType>(type: T, value: unknown): void;
+}
+
+/** Legacy map-based memory handle returned by the mock `getMemory` shim. */
+interface LegacyMemoryHandle<T = unknown> {
+  value: T | undefined;
+  subscribe(listener: (next: T | undefined, prev: T | undefined) => void): () => void;
 }
 
 /**
@@ -116,7 +122,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
             for (const loc of memoryList) {
                 for (const frag of loc.metrics) {
                     if (frag.type === MetricType.Label) {
-                        return frag.image || (frag.value as any)?.toString() || block.blockType || 'Block';
+                        return frag.image || (frag.value != null ? String(frag.value) : '') || block.blockType || 'Block';
                     }
                 }
             }
@@ -137,7 +143,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         getMetricMemoryByVisibility(visibility: MetricVisibility): IMemoryLocation[] {
             return memoryList.filter(loc => getMetricVisibility(loc.tag) === visibility);
         },
-        getMemory<T extends MemoryType>(type: T): any {
+        getMemory<T extends MemoryType>(type: T): LegacyMemoryHandle | undefined {
             const tag = type as string as MemoryTag;
             const locations = memoryList.filter(loc => loc.tag === tag);
             if (locations.length > 0) {
@@ -147,7 +153,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
                         if (loc.metrics.length === 0) return undefined;
                         return loc.metrics[0]?.value;
                     },
-                    subscribe(listener: (nv: any, ov: any) => void): () => void {
+                    subscribe(listener: (nv: unknown, ov: unknown) => void): () => void {
                         return loc.subscribe((nf, of_) => {
                             listener(nf[0]?.value, of_[0]?.value);
                         });
@@ -165,7 +171,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
             const tag = type as string as MemoryTag;
             return memoryList.some(loc => loc.tag === tag) || memoryMap.has(type);
         },
-        setMemoryValue<T extends MemoryType>(type: T, value: any): void {
+        setMemoryValue<T extends MemoryType>(type: T, value: unknown): void {
             const tag = type as string as MemoryTag;
             const locations = memoryList.filter(loc => loc.tag === tag);
             if (locations.length > 0) {
@@ -173,7 +179,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
                 if (loc.metrics.length > 0) {
                     loc.update(loc.metrics.map((f, i) => i === 0 ? { ...f, value } : f));
                 } else {
-                    loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
+                    loc.update([{ type: 0, image: '', origin: 'runtime', value } as unknown as IMetric]);
                 }
             } else {
                 memoryMap.set(type, value);

@@ -121,8 +121,8 @@ describe('BehaviorTestHarness', () => {
       expect(harness.wasEventEmitted(eventName)).toBe(true);
 
       const events = harness.findEvents(eventName);
-      expect(events).toHaveLength(1);
-      expect((events[0].data as any).foo).toBe('bar');
++      expect(events).toHaveLength(1);
++      expect((events[0].data as { foo?: string }).foo).toBe('bar');
     });
 
     it('should call handleSpy on event', () => {

@@ -78,8 +78,8 @@ export const WorkoutActionButton: React.FC<WorkoutActionButtonProps> = ({
                         .map(e => new Date(e.targetDate).toISOString().split('T')[0])
                 );
                 setEntryDates(dates);
-            } catch (err) {
-                console.error('Failed to load entry dates:', err);
+            } catch {
+                // Best-effort highlight loading; calendar simply shows no highlights.
             } finally {
                 setLoading(false);
             }

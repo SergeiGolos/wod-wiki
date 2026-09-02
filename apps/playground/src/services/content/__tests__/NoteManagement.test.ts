@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
+import type { NoteSaveInput } from '@/types/content-provider';
 import { LocalStorageContentProvider } from '../LocalStorageContentProvider';
-import { HistoryEntry } from '../../../types/history';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -37,7 +37,7 @@ describe('Note Management', () => {
             // HistoryEntry has sections, optional blocks (deprecated/removed from my interface?)
             // Start again: HistoryEntry has sections.
             sections: [],
-        } as any); // cast for simplicity if types mismatch in test setup
+        } as unknown as NoteSaveInput);
 
         expect(entry.type).toBe('template');
         expect(entry.id).toBeDefined();
@@ -54,7 +54,7 @@ describe('Note Management', () => {
             tags: ['benchmark'],
             type: 'template',
             sections: [],
-        } as any);
+        } as unknown as NoteSaveInput);
 
         // 2. Clone it
         const cloned = await provider.cloneEntry(template.id);
@@ -80,7 +80,7 @@ describe('Note Management', () => {
             type: 'note',
             targetDate: Date.now() - 86400000, // Yesterday
             sections: [],
-        } as any);
+        } as unknown as NoteSaveInput);
 
         // 2. Clone it
         const cloned = await provider.cloneEntry(source.id);

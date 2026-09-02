@@ -10,7 +10,7 @@ import type { ICastSubscription } from '@/hooks/useRuntimeTimer';
 
 interface ProjectionSyncContextValue {
     updateFromSegments: (
-        segments: any[],
+        segments: unknown[],
         totalElapsedMs: number,
         segmentCount: number,
     ) => void;

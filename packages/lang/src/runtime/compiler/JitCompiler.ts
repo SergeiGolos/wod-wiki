@@ -74,8 +74,7 @@ export class JitCompiler implements IJitCompiler {
 
     try {
       return builder.build();
-    } catch (e) {
-      console.error("Failed to build block from composition:", e);
+    } catch {
       return undefined;
     }
   }

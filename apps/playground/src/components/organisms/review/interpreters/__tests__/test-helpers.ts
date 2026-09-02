@@ -5,17 +5,18 @@
 import type { GridRow, GridCell } from '../../types';
 import { MetricType } from '@bitcobblers/wod-wiki-engine';
 import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import type { MetricOrigin } from '@bitcobblers/wod-wiki-engine';
 
 export function makeGridCell(metrics: { type: MetricType; value: unknown; image?: string; origin?: string }[]): GridCell {
-  let container = MetricContainer.empty(metrics[0]?.type ?? MetricType.Text);
-  for (const m of metrics) {
-    container = container.add({
-      type: m.type,
-      value: m.value,
-      image: m.image,
-      origin: m.origin as any ?? 'runtime',
-    });
-  }
+	let container = MetricContainer.empty(metrics[0]?.type ?? MetricType.Text);
+	for (const m of metrics) {
+		container = container.add({
+			type: m.type,
+			value: m.value,
+			image: m.image,
+			origin: (m.origin as MetricOrigin | undefined) ?? 'runtime',
+		});
+	}
   return {
     metrics: container,
     hasUserOverride: metrics.some((m) => m.origin === 'user'),

@@ -12,6 +12,7 @@ import type { HistoryEntry } from '@/types/history';
 import type { ResultOrigin, WorkoutResult } from '@/types/storage';
 import type { WorkoutResults, ScriptBlock } from '@/components/Editor/types';
 import { parseNoteId } from '@/lib/noteIdentity';
+import { appError } from '@/lib/log';
 
 /**
  * Writer port the Recorder needs.
@@ -80,7 +81,7 @@ export function notifyResultSaved(result: WorkoutResult): void {
     try {
       listener(result);
     } catch (err) {
-      console.error('[resultRecorder] error in listener:', err);
+      appError('resultRecorder', 'error in listener:', err);
     }
   }
 }

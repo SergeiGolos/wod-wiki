@@ -44,8 +44,19 @@ export interface RepeaterConfig {
 /** @internal re-exported for backward compat */ 
 export type { CountdownMode };
 
+/**
+ * Constructor capture for behavior lookups. `any[]` is the TS idiom that both
+ * accepts class constructors of any arity and infers the concrete behavior
+ * from the argument (callers read concrete members, e.g.
+ * ChildrenStrategy accesses `countdown.config`); `unknown[]` would lose that
+ * inference. The storage map is keyed by `behavior.constructor`, so its key
+ * type is simply `Function`.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
+type BehaviorConstructor<T extends IRuntimeBehavior> = new (...args: any[]) => T;
+
 export class BlockBuilder {
-    private behaviors: Map<any, IRuntimeBehavior> = new Map();
+    private behaviors: Map<Function, IRuntimeBehavior> = new Map();
     private context: IBlockContext | undefined;
     private key: BlockKey | undefined;
     private label: string = "";
@@ -106,7 +117,7 @@ export class BlockBuilder {
      * used to mutate each other's contributions this way, and why that
      * coupling was removed.
      */
-    private removeBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
+    private removeBehavior<T extends IRuntimeBehavior>(type: BehaviorConstructor<T>): BlockBuilder {
         this.behaviors.delete(type);
         return this;
     }
@@ -122,7 +133,7 @@ export class BlockBuilder {
      * is not present (or already last). Strategies no longer call this
      * directly — see §2.3 of docs/architectural-cleanup-tier-2-consolidations.md.
      */
-    private moveBehaviorLast<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
+    private moveBehaviorLast<T extends IRuntimeBehavior>(type: BehaviorConstructor<T>): BlockBuilder {
         const behavior = this.behaviors.get(type);
         if (!behavior) return this;
         this.behaviors.delete(type);
@@ -130,7 +141,7 @@ export class BlockBuilder {
         return this;
     }
 
-    hasBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): boolean {
+    hasBehavior<T extends IRuntimeBehavior>(type: BehaviorConstructor<T>): boolean {
         return this.behaviors.has(type);
     }
     /**
@@ -150,7 +161,7 @@ export class BlockBuilder {
         return this.declaredExitMode;
     }
 
-    getBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): T | undefined {
+    getBehavior<T extends IRuntimeBehavior>(type: BehaviorConstructor<T>): T | undefined {
         return this.behaviors.get(type) as T | undefined;
     }
 

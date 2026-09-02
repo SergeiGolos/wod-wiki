@@ -17,7 +17,17 @@ export type Unsubscribe = () => void;
 /**
  * Event types that behaviors can subscribe to.
  */
-export type BehaviorEventType = 'tick' | 'next' | 'timer:complete' | 'pause' | 'resume' | '*';
+export type BehaviorEventType =
+  | 'tick'
+  | 'next'
+  | 'timer:complete'
+  | 'timer:reset'
+  | 'timer:pause'
+  | 'timer:resume'
+  | 'timer:skip-attempt'
+  | 'pause'
+  | 'resume'
+  | '*';
 
 /**
  * Listener function for behavior event subscriptions.

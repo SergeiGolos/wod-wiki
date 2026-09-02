@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { createParser } from '@bitcobblers/wod-wiki-engine';
+import { createParser, type ParseError } from '@bitcobblers/wod-wiki-engine';
 import { WhiteboardScriptVisualizer } from '@/components/organisms/WhiteboardScriptVisualizer';
 import { VisualizerSize, VisualizerFilter } from '@bitcobblers/wod-wiki-engine';
 
@@ -24,7 +24,7 @@ export const ParsedView: React.FC<ParsedViewProps> = ({
       const script = createParser().read(trimmedScript);
       
       if (script.errors && script.errors.length > 0) {
-        throw new Error(`Parsing errors: ${script.errors.map((e: any) => e.message).join(', ')}`);
+        throw new Error(`Parsing errors: ${script.errors.map((e: ParseError) => e.message).join(', ')}`);
       }
 
       return { statements: script.statements, error: null };

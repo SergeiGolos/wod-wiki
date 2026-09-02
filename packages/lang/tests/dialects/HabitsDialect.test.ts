@@ -107,7 +107,7 @@ describe('HabitsDialect', () => {
     });
 
     it('should handle a statement with no metrics gracefully', () => {
-      const analysis = dialect.analyze({ id: 1 } as any);
+      const analysis = dialect.analyze({ id: 1, children: [] } as ICodeStatement);
 
       expect(getHints(analysis.metrics)).toHaveLength(0);
     });

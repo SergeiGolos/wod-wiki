@@ -37,7 +37,7 @@ function generateComplex(count: number): string {
     }).join('\n');
 }
 
-function generateAMRAP(rounds: number): string {
+function generateAMRAP(_rounds: number): string {
     const children = ['5 Pullups', '10 Pushups', '15 Air Squats'];
     return `20:00 AMRAP\n${children.map(c => `  ${c}`).join('\n')}`;
 }
@@ -79,7 +79,7 @@ describe('Parser Performance', () => {
         const script = generateComplex(200);
         const parser = createParser(reg);
         const start = performance.now();
-        const result = parser.read(script);
+        parser.read(script);
         const duration = performance.now() - start;
         expect(duration).toBeLessThan(100);
     });

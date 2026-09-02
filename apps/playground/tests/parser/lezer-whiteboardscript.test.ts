@@ -26,7 +26,7 @@ describe('Lezer WhiteboardScript Parser', () => {
     expect(s.metrics[0].value).toBe(21);
     
     expect(s.metrics[1].type).toBe(MetricType.Resistance);
-    expect((s.metrics[1] as any).value).toEqual({ amount: 95, unit: "lb" });
+    expect((s.metrics[1].value as { amount: number; unit: string } | undefined)).toEqual({ amount: 95, unit: "lb" });
     
     expect(s.metrics[2].type).toBe(MetricType.Effort);
     expect(s.metrics[2].value).toBe("Thrusters");
@@ -46,7 +46,7 @@ describe('Lezer WhiteboardScript Parser', () => {
     // - 10 Pullups
     expect(statements[1].parent).toBe(statements[0].id);
     expect(statements[1].metrics[0].type).toBe(MetricType.Group);
-    expect((statements[1].metrics[0] as any).group).toBe('round');
+    expect((statements[1].metrics[0] as { group: string }).group).toBe('round');
     
     // - 10 Pushups
     expect(statements[2].parent).toBe(statements[0].id);
@@ -60,7 +60,7 @@ describe('Lezer WhiteboardScript Parser', () => {
     expect(statements[0].metrics[0].value).toBeUndefined();
     
     expect(statements[0].metrics[2].type).toBe(MetricType.Resistance);
-    expect((statements[0].metrics[2] as any).value.amount).toBeUndefined();
+    expect((statements[0].metrics[2] as { value?: { amount?: unknown } }).value.amount).toBeUndefined();
   });
 
   it('should handle rounds sequences', () => {

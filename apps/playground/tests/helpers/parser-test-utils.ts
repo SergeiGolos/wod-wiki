@@ -11,7 +11,7 @@
  *   parse('10 Pullups').roots()[0].hasMetric(MetricType.Rep);
  */
 import { createParser } from '@bitcobblers/wod-wiki-engine';
-import { WhiteboardScript, type IScript } from '@bitcobblers/wod-wiki-engine';
+import { WhiteboardScript } from '@bitcobblers/wod-wiki-engine';
 import { ICodeStatement } from '@bitcobblers/wod-wiki-engine';
 import { IMetric, MetricType } from '@bitcobblers/wod-wiki-engine';
 import { MetricContainer } from '@bitcobblers/wod-wiki-engine';

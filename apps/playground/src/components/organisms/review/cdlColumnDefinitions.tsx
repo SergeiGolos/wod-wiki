@@ -21,10 +21,30 @@ import { cn } from '@/lib/utils';
 // Metric Cell Extractor Helpers
 // ═══════════════════════════════════════════════════════════════
 
-function getMetricArray(cell: unknown): any[] {
-  const c = cell as any;
-  if (!c?.metrics) return [];
-  return c.metrics.toArray?.() ?? c.metrics ?? [];
+/** Structural view of a grid row for column extractors. */
+interface GridRowLike {
+  index?: number;
+  hideMs?: boolean;
+  absoluteStartTime?: number;
+  spans?: unknown;
+  elapsed?: number;
+  sourceBlockKey?: string;
+  outputType?: string;
+  stackLevel?: number;
+  completionReason?: string;
+}
+
+const rowOf = (row: unknown): GridRowLike => row as GridRowLike;
+
+function getMetricArray(cell: unknown): IMetric[] {
+  const metrics = (cell as { metrics?: unknown } | null)?.metrics;
+  if (!metrics) return [];
+  if (Array.isArray(metrics)) return metrics as IMetric[];
+  if (typeof metrics === 'object' && metrics !== null && 'toArray' in metrics) {
+    const container = metrics as { toArray: () => IMetric[] };
+    if (typeof container.toArray === 'function') return container.toArray();
+  }
+  return [];
 }
 
 function extractMetricSortValue(cell: unknown): number | string | undefined {
@@ -46,7 +66,7 @@ function extractMetricGraphValue(cell: unknown): number | undefined {
 
 function extractMetricFilterText(cell: unknown): string {
   const arr = getMetricArray(cell);
-  return arr.map((m: any) => m.image ?? String(m.value ?? '')).join(', ');
+  return arr.map((m: IMetric) => m.image ?? String(m.value ?? '')).join(', ');
 }
 
 function extractResolvedText(value: unknown): string {
@@ -302,7 +322,7 @@ export const indexColumn: ColumnDef = {
   },
   sort: {
     type: 'numeric',
-    extractor: (row) => (row as any)?.index || 0,
+    extractor: (row) => rowOf(row)?.index || 0,
   },
   meta: {
     tags: ['layout'],
@@ -321,7 +341,7 @@ export const timestampColumn: ColumnDef = {
     type: 'custom',
     render: (value, ctx) => {
       const ts = value as number | undefined;
-      const withMs = (ctx as any)?.hideMs !== false;
+      const withMs = rowOf(ctx)?.hideMs !== false;
       return (
         <span className="text-muted-foreground font-mono text-[10px] text-center w-24 whitespace-nowrap">
           {formatTimestamp(ts, withMs)}
@@ -332,7 +352,7 @@ export const timestampColumn: ColumnDef = {
   },
   sort: {
     type: 'numeric',
-    extractor: (row) => (row as any)?.absoluteStartTime ?? 0,
+    extractor: (row) => rowOf(row)?.absoluteStartTime ?? 0,
   },
   meta: {
     tags: ['timing', 'layout'],
@@ -365,7 +385,7 @@ export const spansColumn: ColumnDef = {
   sort: {
     type: 'numeric',
     extractor: (row) => {
-      const spans = (row as any)?.spans;
+      const spans = rowOf(row)?.spans;
       return spans?.[0]?.started ?? 0;
     },
   },
@@ -416,10 +436,10 @@ export const timeSpanColumn: ColumnDef = {
   },
   sort: {
     type: 'numeric',
-    extractor: (row) => (row as any)?.elapsed ?? 0,
+    extractor: (row) => rowOf(row)?.elapsed ?? 0,
   },
   graph: {
-    extractor: (row) => (row as any)?.elapsed,
+    extractor: (row) => rowOf(row)?.elapsed,
     axisLabel: 'Elapsed',
     unit: 's',
   },
@@ -464,10 +484,10 @@ export const blockKeyColumn: ColumnDef = {
   },
   sort: {
     type: 'text',
-    extractor: (row) => (row as any)?.sourceBlockKey ?? '',
+    extractor: (row) => rowOf(row)?.sourceBlockKey ?? '',
   },
   filter: {
-    extractor: (row) => (row as any)?.sourceBlockKey ?? '',
+    extractor: (row) => rowOf(row)?.sourceBlockKey ?? '',
     caseInsensitive: true,
   },
   meta: {
@@ -499,10 +519,10 @@ export const outputTypeColumn: ColumnDef = {
   },
   sort: {
     type: 'text',
-    extractor: (row) => (row as any)?.outputType ?? '',
+    extractor: (row) => rowOf(row)?.outputType ?? '',
   },
   filter: {
-    extractor: (row) => (row as any)?.outputType ?? '',
+    extractor: (row) => rowOf(row)?.outputType ?? '',
     caseInsensitive: true,
   },
   meta: {
@@ -522,7 +542,7 @@ export const stackLevelColumn: ColumnDef = {
   },
   sort: {
     type: 'numeric',
-    extractor: (row) => (row as any)?.stackLevel ?? 0,
+    extractor: (row) => rowOf(row)?.stackLevel ?? 0,
   },
   meta: {
     tags: ['debug'],
@@ -557,10 +577,10 @@ export const elapsedTotalColumn: ColumnDef = {
   },
   sort: {
     type: 'numeric',
-    extractor: (row) => (row as any)?.elapsed ?? 0,
+    extractor: (row) => rowOf(row)?.elapsed ?? 0,
   },
   graph: {
-    extractor: (row) => (row as any)?.elapsed,
+    extractor: (row) => rowOf(row)?.elapsed,
     axisLabel: 'Elapsed',
     unit: 's',
     color: '#14b8a6',
@@ -582,10 +602,10 @@ export const completionReasonColumn: ColumnDef = {
   },
   sort: {
     type: 'text',
-    extractor: (row) => (row as any)?.completionReason ?? '',
+    extractor: (row) => rowOf(row)?.completionReason ?? '',
   },
   filter: {
-    extractor: (row) => (row as any)?.completionReason ?? '',
+    extractor: (row) => rowOf(row)?.completionReason ?? '',
     caseInsensitive: true,
   },
   meta: {

@@ -176,7 +176,7 @@ export class ExerciseIndexManager {
     }
 
     // If provider supports search directly, use it
-    if (this.provider && typeof (this.provider as any).searchExercises === 'function') {
+    if (this.provider && typeof (this.provider as unknown as { searchExercises?: unknown }).searchExercises === 'function') {
       try {
         return await this.provider.searchExercises(query, limit);
       } catch (error) {
@@ -328,12 +328,12 @@ export class ExerciseIndexManager {
     maxRetries: number,
     initialDelayMs: number
   ): Promise<T> {
-    let lastError: any;
+    let lastError: unknown;
     
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
-      } catch (error: any) {
+      } catch (error: unknown) {
         lastError = error;
         
         // Don't retry permanent errors (404s)

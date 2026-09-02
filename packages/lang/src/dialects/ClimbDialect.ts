@@ -113,7 +113,7 @@ export class ClimbDialect implements IDialect {
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
     const dialectMetrics = MetricContainer.empty('climb-dialect');
-    const metrics = MetricContainer.from(statement.metrics as any);
+    const metrics = MetricContainer.from(statement.metrics);
     const rawMetrics = metrics.toArray();
     const text = rawMetrics.map(metricText).filter(Boolean).join(' ');
 

@@ -261,7 +261,7 @@ export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenu
       posStyle.transform = "translateX(-50%)"
     }
 
-    return (ReactDOM as any).createPortal(
+    return ReactDOM.createPortal(
       <div
         ref={contentRef}
         role="menu"

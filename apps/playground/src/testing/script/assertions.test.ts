@@ -308,7 +308,7 @@ describe('assertions DSL', () => {
         const block = new MockBlock({ id: 'b1', label: 'Rounds 21-15-9' });
         block.pushMemory(
             new MemoryLocation('round', [
-                { type: MetricType.Rep, origin: 'runtime', value: { current: 2, total: 3 } as any },
+                { type: MetricType.Rep, origin: 'runtime', value: { current: 2, total: 3 } },
             ]),
         );
         const state = makeState({ blocks: [block], depth: 1, current: block });
@@ -331,7 +331,7 @@ describe('assertions DSL', () => {
                 {
                     type: MetricType.Elapsed,
                     origin: 'runtime',
-                    value: { spans: [], durationMs: 300_000, direction: 'down', label: 'AMRAP' } as any,
+                    value: { spans: [], durationMs: 300_000, direction: 'down', label: 'AMRAP' },
                 },
             ]),
         );
@@ -353,8 +353,8 @@ describe('assertions DSL', () => {
     it('outputs().all returns the captured output statements', () => {
         const state = makeState({
             outputs: [
-                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as any,
-                { id: 2, outputType: 'completion', sourceBlockKey: 'b1' } as any,
+                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as unknown as IOutputStatement,
+                { id: 2, outputType: 'completion', sourceBlockKey: 'b1' } as unknown as IOutputStatement,
             ],
         });
         const out = assertions(state).outputs();
@@ -365,9 +365,9 @@ describe('assertions DSL', () => {
     it('outputs().byType filters by OutputStatementType', () => {
         const state = makeState({
             outputs: [
-                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as any,
-                { id: 2, outputType: 'completion', sourceBlockKey: 'b1' } as any,
-                { id: 3, outputType: 'segment', sourceBlockKey: 'b2' } as any,
+                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as unknown as IOutputStatement,
+                { id: 2, outputType: 'completion', sourceBlockKey: 'b1' } as unknown as IOutputStatement,
+                { id: 3, outputType: 'segment', sourceBlockKey: 'b2' } as unknown as IOutputStatement,
             ],
         });
         const out = assertions(state).outputs();
@@ -378,8 +378,8 @@ describe('assertions DSL', () => {
     it('outputs().forBlock filters by source block key', () => {
         const state = makeState({
             outputs: [
-                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as any,
-                { id: 2, outputType: 'completion', sourceBlockKey: 'b2' } as any,
+                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as unknown as IOutputStatement,
+                { id: 2, outputType: 'completion', sourceBlockKey: 'b2' } as unknown as IOutputStatement,
             ],
         });
         const out = assertions(state).outputs();
@@ -390,8 +390,8 @@ describe('assertions DSL', () => {
     it('outputs().allPaired passes — completion is folded into segment outputs', () => {
         const state = makeState({
             outputs: [
-                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as any,
-                { id: 2, outputType: 'completion', sourceBlockKey: 'b1' } as any,
+                { id: 1, outputType: 'segment', sourceBlockKey: 'b1' } as unknown as IOutputStatement,
+                { id: 2, outputType: 'completion', sourceBlockKey: 'b1' } as unknown as IOutputStatement,
             ],
         });
         expect(() => assertions(state).outputs().allPaired()).not.toThrow();

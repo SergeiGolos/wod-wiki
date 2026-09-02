@@ -68,7 +68,7 @@ function renderChart(
     case 'table':
       return <WqlTable result={result} unit={unit} />;
     default:
-      if (Array.isArray(PLANNED_WIDGET_TYPES) ? (PLANNED_WIDGET_TYPES as readonly string[]).includes(type) : (PLANNED_WIDGET_TYPES as any).has?.(type)) {
+      if (Array.isArray(PLANNED_WIDGET_TYPES) ? (PLANNED_WIDGET_TYPES as readonly string[]).includes(type) : (PLANNED_WIDGET_TYPES as unknown as { has?: (t: string) => boolean }).has?.(type)) {
         return <PlannedWidgetPlaceholder type={type} />;
       }
       return <WqlTable result={result} unit={unit} />;

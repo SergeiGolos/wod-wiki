@@ -19,11 +19,11 @@ import { CollectionWizard } from '@/components/organisms/review/CollectionWizard
 export interface TrackPanelProps {
   runtime: IScriptRuntime | null;
   execution: UseRuntimeExecutionReturn;
-  selectedBlock: any | null;
+  selectedBlock: ScriptBlock | null;
   activeSegmentIds: Set<number>;
   activeStatementIds: Set<number>;
   hoveredBlockKey: string | null;
-  documentItems: any[];
+  documentItems: ScriptBlock[];
   activeBlockId: string | undefined;
   onBlockHover: (blockKey: string | null) => void;
   onBlockClick: (blockKey: string) => void;
@@ -43,7 +43,7 @@ export interface TrackPanelProps {
    */
   previewFilter?: SectionType[];
   /** Callback to update parsed blocks */
-  setBlocks?: (blocks: any[]) => void;
+  setBlocks?: (blocks: ScriptBlock[]) => void;
 }
 
 export const SessionHistory: React.FC<Pick<TrackPanelProps, 'runtime' | 'activeSegmentIds' | 'activeStatementIds' | 'hoveredBlockKey' | 'execution'>> = ({
@@ -55,7 +55,7 @@ export const SessionHistory: React.FC<Pick<TrackPanelProps, 'runtime' | 'activeS
 }) => {
   return (
     <TimerIndexPanel
-      runtime={runtime as any}
+      runtime={runtime as unknown as ScriptRuntime | null}
       activeSegmentIds={activeSegmentIds}
       activeStatementIds={activeStatementIds}
       highlightedBlockKey={hoveredBlockKey}

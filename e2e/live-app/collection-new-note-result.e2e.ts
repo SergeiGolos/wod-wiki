@@ -48,7 +48,7 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
     }
   });
 
-  test.afterEach(() => {
+  test.afterEach(async ({}, testInfo) => {
     const persistenceErrors = errors.filter(e =>
       e.includes('NOTE_NOT_FOUND') ||
       e.includes('mutateNote') ||
@@ -56,7 +56,7 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
       e.includes('IndexedDB')
     );
     if (persistenceErrors.length > 0) {
-      console.warn('⚠️  Persistence errors during test:', persistenceErrors);
+      testInfo.attach('persistence-errors', { body: persistenceErrors.join('\n'), contentType: 'text/plain' });
     }
   });
 

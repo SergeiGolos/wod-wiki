@@ -242,6 +242,7 @@ function evaluateNode(
         case '*': return left * right;
         case '/': return right === 0 ? undefined : left / right;
         case '^': return Math.pow(left, right);
+        default: return undefined;
       }
     }
 
@@ -592,7 +593,7 @@ function consume(stream: TokenStream): Token {
 
 function matchOperator(stream: TokenStream, ...operators: Array<'+' | '-' | '*' | '/' | '^'>): boolean {
   const token = peek(stream);
-  return token.kind === 'operator' && operators.includes(token.value as any);
+  return token.kind === 'operator' && operators.includes(token.value as '+' | '-' | '*' | '/' | '^');
 }
 
 function matchParen(stream: TokenStream, value: '(' | ')'): boolean {

@@ -133,7 +133,7 @@ describe('CrossFitDialect', () => {
       // This is an impossible state from the parser, but good for defensive coding.
       // We'll manually construct this one edge case as it tests the dialect's null safety
       // rather than the parser's output.
-      const statement = { id: 1 } as any;
+      const statement = { id: 1 } as unknown as ICodeStatement;
       const analysis = dialect.analyze(statement);
       expect(getHints(analysis.metrics)).toHaveLength(0);
     });

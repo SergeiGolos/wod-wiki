@@ -13,7 +13,7 @@
  */
 import { it, expect } from 'bun:test';
 import { describeCompliance, assertions } from '@/testing/script';
-import { currentBlockType, anySystemPopHasReason, systemPopValues } from '../helpers/compliance-helpers';
+import { currentBlockType, anySystemPopHasReason } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // 🟡 Count-up Override — ^5:00 Row

@@ -337,8 +337,8 @@ export class ColumnSet {
     switch (source.type) {
       case 'fixed-field':
         return (
-          (row as any)[source.field] !== undefined &&
-          (row as any)[source.field] !== null
+          (row as unknown as Record<string, unknown>)[source.field] !== undefined &&
+          (row as unknown as Record<string, unknown>)[source.field] !== null
         );
       case 'metric-type':
         return row.cells.has(source.metricType);

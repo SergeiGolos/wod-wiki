@@ -49,7 +49,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
     // Shared observer collaborator — owns the stack subscriber Set and the
     // post-mount snapshot contract. See `RuntimeObservers` for the seam.
-    private readonly _observers = new RuntimeObservers();
+    private readonly _observers: RuntimeObservers;
 
     // The current execution context for the "turn"
     private _activeContext: ExecutionContext | null = null;
@@ -81,6 +81,8 @@ export class ScriptRuntime implements IScriptRuntime {
     ) {
         // Merge with defaults
         this.options = { ...DEFAULT_RUNTIME_OPTIONS, ...options };
+
+        this._observers = new RuntimeObservers(this.options.logger);
 
         this.stack = dependencies.stack;
         this.clock = dependencies.clock;
@@ -313,13 +315,13 @@ export class ScriptRuntime implements IScriptRuntime {
             if (block) {
                 try {
                     block.unmount(this);
-                } catch (_e) {
+                } catch {
                     // Swallow errors during emergency cleanup
                 }
                 this.stack.pop();
                 try {
                     block.dispose(this);
-                } catch (_e) {
+                } catch {
                     // Swallow errors during emergency cleanup
                 }
             } else {

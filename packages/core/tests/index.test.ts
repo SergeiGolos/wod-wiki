@@ -18,7 +18,6 @@ import {
   type TimeSpan,
   type StoredOutputStatement,
   type WorkoutResult,
-  type WorkoutResults,
   type Note,
   type NoteSegment,
   type BlockIndexRow,

@@ -4,6 +4,7 @@ import {
   type IOutputStatement,
   type StoredOutputStatement,
   type IMetric,
+  type ICodeStatement,
 } from '@bitcobblers/wod-wiki-core';
 import { getHints } from '../metrics/hints';
 
@@ -18,17 +19,17 @@ export function toStoredOutputStatement(output: IOutputStatement | OutputStateme
     ? output.metrics.toArray()
     : Array.isArray(output.metrics)
       ? (output.metrics as IMetric[])
-      : (output.metrics as any)?.toArray
-        ? (output.metrics as any).toArray()
+      : typeof (output.metrics as { toArray?: () => IMetric[] }).toArray === 'function'
+        ? (output.metrics as { toArray: () => IMetric[] }).toArray()
         : [];
 
   const hints = getHints(output);
 
   return {
     id: output.id,
-    line: (output as any).line ?? (output as any).statement?.line,
-    text: (output as any).text ?? (output as any).statement?.text,
-    dialect: (output as any).dialect ?? (output as any).statement?.dialect,
+    line: (output as ICodeStatement).line ?? output.statement?.line,
+    text: (output as ICodeStatement).text ?? output.statement?.text,
+    dialect: (output as ICodeStatement).dialect ?? output.statement?.dialect,
     outputType: output.outputType,
     timeSpan: output.timeSpan ? { started: output.timeSpan.started, ended: output.timeSpan.ended } : undefined,
     metrics,

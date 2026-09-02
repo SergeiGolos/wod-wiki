@@ -12,6 +12,7 @@ import {
   TestSetupActionFactory,
   TestSetupActionParamSchema
 } from './ITestSetupAction';
+import { appWarn } from '@/lib/log';
 
 export interface AllocateTestMemoryParams {
   /** Memory type to allocate */
@@ -51,7 +52,7 @@ export class AllocateTestMemoryAction implements ITestSetupAction {
         this.params.visibility
       );
     } else {
-      console.warn(`AllocateTestMemoryAction: Block "${this.params.ownerId}" not found in stack.`);
+      appWarn('AllocateTestMemoryAction', `Block "${this.params.ownerId}" not found in stack.`);
     }
   }
 

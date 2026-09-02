@@ -45,7 +45,7 @@ export class CompileAndPushBlockAction implements IRuntimeAction {
             // Delegate to PushBlockAction
             return [new PushBlockAction(compiledBlock, this.options)];
         } catch (error) {
-            console.error(`CompileAndPushBlockAction: Compilation failed`, error);
+            runtime.options.logger?.error?.('CompileAndPushBlockAction: Compilation failed', error);
             return [];
         }
     }

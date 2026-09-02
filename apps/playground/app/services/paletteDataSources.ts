@@ -90,46 +90,42 @@ export function globalSearchSource(
           });
         });
 
-      // Recent IndexedDB results
-      try {
-        const recent = await indexedDBService.getRecentResults(50);
-        const noteIds = [...new Set(recent.map(r => r.noteId))];
-        const notes = noteIds.length > 0
-          ? await notePersistence.listNotes({ ids: noteIds, projection: 'summary' }).catch(() => [])
-          : [];
-        const titleByNoteId = new Map(notes.map(n => [n.id, normalizeNoteTitle(n.title)]));
+      // Recent IndexedDB results. IndexedDB failures propagate to the
+      // palette shell, which already handles and reports search errors.
+      const recent = await indexedDBService.getRecentResults(50);
+      const noteIds = [...new Set(recent.map(r => r.noteId))];
+      const notes = noteIds.length > 0
+        ? await notePersistence.listNotes({ ids: noteIds, projection: 'summary' }).catch(() => [])
+        : [];
+      const titleByNoteId = new Map(notes.map(n => [n.id, normalizeNoteTitle(n.title)]));
 
-        recent
-          .filter(r => {
-            const isPlayground = r.origin
-              ? r.origin === 'playground'
-              : r.noteId.startsWith('playground/');
-            if (isPlayground && !showPlaygrounds) return false;
-            const title = titleByNoteId.get(r.noteId) ?? '';
-            const fallbackName = r.noteId.split('/').pop()?.toLowerCase() ?? '';
-            const searchText = title || fallbackName;
-            return !low || searchText.includes(low) || r.id.toLowerCase().includes(low) || r.noteId.toLowerCase().includes(low);
-          })
-          .slice(0, 5)
-          .forEach(r => {
-            const date = formatDateMedium(new Date(r.createdAt));
-            const status = r.data?.completed ? 'Completed' : 'Partial';
-            const fallbackLabel = `${date} · ${status}`;
-            const title = titleByNoteId.get(r.noteId) ?? '';
-            const label = title || fallbackLabel;
-            results.push({
-              id: r.id,
-              label,
-              sublabel: title ? fallbackLabel : undefined,
-              category: 'Recent',
-              type: 'journal-entry',
-              payload: r,
-            });
+      recent
+        .filter(r => {
+          const isPlayground = r.origin
+            ? r.origin === 'playground'
+            : r.noteId.startsWith('playground/');
+          if (isPlayground && !showPlaygrounds) return false;
+          const title = titleByNoteId.get(r.noteId) ?? '';
+          const fallbackName = r.noteId.split('/').pop()?.toLowerCase() ?? '';
+          const searchText = title || fallbackName;
+          return !low || searchText.includes(low) || r.id.toLowerCase().includes(low) || r.noteId.toLowerCase().includes(low);
+        })
+        .slice(0, 5)
+        .forEach(r => {
+          const date = formatDateMedium(new Date(r.createdAt));
+          const status = r.data?.completed ? 'Completed' : 'Partial';
+          const fallbackLabel = `${date} · ${status}`;
+          const title = titleByNoteId.get(r.noteId) ?? '';
+          const label = title || fallbackLabel;
+          results.push({
+            id: r.id,
+            label,
+            sublabel: title ? fallbackLabel : undefined,
+            category: 'Recent',
+            type: 'journal-entry',
+            payload: r,
           });
-      } catch (e) {
-        console.error('[globalSearchSource] IndexedDB error', e);
-      }
-
+        });
       return results;
     },
   };

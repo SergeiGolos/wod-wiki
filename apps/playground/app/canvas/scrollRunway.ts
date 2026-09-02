@@ -41,7 +41,12 @@ export function isStageTextLoaded(script: string, doc: string): boolean {
  * last stage when p >= 1, the first otherwise — same contract as the
  * tour's resolveStage.
  */
+const EMPTY_STAGE: ScrollStage = { id: '', range: [0, 1] }
+
 export function resolveScrollStage(progress: number, stages: ScrollStage[]): ScrollSlice {
+  if (!stages || stages.length === 0) {
+    return { index: -1, stage: EMPTY_STAGE, t: 0, ring: null }
+  }
   const p = clamp01(progress)
   const clamped = stages.map((s) => ({
     ...s,
@@ -50,9 +55,9 @@ export function resolveScrollStage(progress: number, stages: ScrollStage[]): Scr
   }))
   let index = clamped.findIndex((s) => p >= s.start && p < s.end)
   if (index === -1) index = p >= 1 ? clamped.length - 1 : 0
-  const stage = clamped[index]
-  const span = stage.end - stage.start
-  const t = span > 0 ? clamp01((p - stage.start) / span) : 0
+  const stage = clamped[index] ?? EMPTY_STAGE
+  const span = (stage.end ?? 1) - (stage.start ?? 0)
+  const t = span > 0 ? clamp01((p - (stage.start ?? 0)) / span) : 0
   const ring = stage.ring
     ? {
         tag: stage.ring === true ? undefined : stage.ring.tag,

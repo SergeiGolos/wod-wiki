@@ -109,7 +109,7 @@ function quoteYamlScalar(value: string): string {
   if (value === '') return '""';
   const looksNumeric = !isNaN(Number(value));
   const looksKeyword = /^(true|false|null|yes|no|on|off)$/i.test(value);
-  if (/[":'\n#{}\[\],&*?|<>=%!@`]/.test(value) || value !== value.trim() || value.startsWith('-') || looksNumeric || looksKeyword) {
+  if (/[":'\n#{}[\],&*?|<>=%!@`]/.test(value) || value !== value.trim() || value.startsWith('-') || looksNumeric || looksKeyword) {
     return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
   }
   return value;

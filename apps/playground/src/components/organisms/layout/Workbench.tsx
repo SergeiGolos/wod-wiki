@@ -28,6 +28,7 @@ import { NoteDetailsPanel } from '@/components/organisms/workbench/NoteDetailsPa
 import { useTheme } from '@/contexts/ThemeProvider';
 import { ResponsiveViewport } from '@/panels/panel-system/ResponsiveViewport';
 import { createPlanView, createTrackView, createReviewView } from '@/panels/panel-system/viewDescriptors';
+import type { ViewDescriptor } from '@/panels/panel-system/types';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 import { WorkbenchSessionProvider, useWorkbenchSession } from '@/stores/workbenchSessionStore';
 import { useWorkbenchSessionStore } from '@/stores/workbenchSessionStore.shim';
@@ -100,7 +101,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     startWorkout: useWorkbenchSession((s) => s.handles.handleStartWorkoutAction),
   });
   const navigate = useNavigate();
-  const { noteId: routeId, sectionId: routeSectionId, resultId: routeResultId } = useParams<{
+  const { noteId: routeId, sectionId: _routeSectionId, resultId: _routeResultId } = useParams<{
     noteId: string;
     sectionId: string;
     resultId: string;
@@ -197,8 +198,8 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   // store; tag bookkeeping for the notebook toggle stays local because it
   // only matters for the UI header button.
   const currentEntry = contextEntry;
-  const loadEntry = useWorkbenchSession((s) => s.loadEntry);
-  const feedLogOutputs = useWorkbenchSession((s) => s.feedLogOutputs);
+  const _loadEntry = useWorkbenchSession((s) => s.loadEntry);
+  const _feedLogOutputs = useWorkbenchSession((s) => s.feedLogOutputs);
   const [currentEntryTags, setCurrentEntryTags] = useState<string[]>([]);
   useEffect(() => {
     if (currentEntry) {
@@ -249,8 +250,11 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     handleNext,
     handleStartWorkoutAction,
   } = useWorkbenchSync();
-  const handleBlockHover = (blockKey: string | null) => setHoveredBlockKey(blockKey);
-  const handleBlockClick = (blockKey: string) => workbenchEventBus.emitScrollToBlock(blockKey, 'track');
+  const handleBlockHover = useCallback((blockKey: string | null) => setHoveredBlockKey(blockKey), [setHoveredBlockKey]);
+  const handleBlockClick = useCallback(
+    (blockKey: string) => workbenchEventBus.emitScrollToBlock(blockKey, 'track'),
+    [],
+  );
 
   // Handle NAVIGATE_TO requests from syntax links
   useEffect(() => {
@@ -307,7 +311,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     void blockId;
   }, [completeWorkout]);
 
-  const planPanel = (
+  const planPanel = useMemo(() => (
     <PlanPanel
       sourceNoteId={contextEntry?.id}
       initialContent={initialContent}
@@ -317,9 +321,9 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       setBlocks={setBlocks}
       setContent={setContent}
     />
-  );
+  ), [contextEntry?.id, initialContent, content, handleStartWorkoutAction, handleCompleteWorkout, setBlocks, setContent]);
 
-  const trackPrimaryPanel = (
+  const trackPrimaryPanel = useMemo(() => (
     <TimerScreen
       runtime={runtime}
       execution={execution}
@@ -339,9 +343,9 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       onStartWorkout={handleStartWorkoutAction}
       setBlocks={setBlocks}
     />
-  );
+  ), [runtime, execution, selectedBlock, documentItems, activeBlockId, setSelectedBlockId, setActiveBlockId, handleBlockHover, handleBlockClick, handleStop, handleStart, handlePause, handleNext, activeSegmentIds, content, handleStartWorkoutAction, setBlocks]);
 
-  const reviewGridPanel = (
+  const reviewGridPanel = useMemo(() => (
     <div id="tutorial-review-grid" className="h-full flex flex-col">
       <div className="flex-1 min-h-0">
         <ResultsView
@@ -356,7 +360,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
         />
       </div>
     </div>
-  );
+  ), [runtime, analyticsSegments, selectedAnalyticsIds, toggleAnalyticsSegment, analyticsGroups, hoveredBlockKey, setHoveredBlockKey]);
 
   const viewDescriptors = useMemo(() => {
     const showPlan = !hidePlanUnlessDebug || isDebugMode;
@@ -365,7 +369,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       showPlan && createPlanView(planPanel),
       createTrackView(trackPrimaryPanel, null),
       createReviewView(reviewGridPanel),
-    ].filter(Boolean) as any[];
+    ].filter((v): v is ViewDescriptor => Boolean(v));
 
     // Branch: If we are viewing a template, only show Plan (View)
     if (currentEntry?.type === 'template') {
@@ -422,7 +426,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
             onNotebookToggle={handleNotebookToggleForCurrent}
             isDetailsOpen={isDetailsOpen}
             onToggleDetails={() => setIsDetailsOpen(!isDetailsOpen)}
-            onStartTutorial={(vm) => startTutorial(vm as any)}
+            onStartTutorial={(vm) => startTutorial(vm as TutorialType)}
           />
         }
         sidePanel={
@@ -483,7 +487,7 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
 
 function extractProjections(segments: Segment[]): ProjectionResult[] {
   return segments
-    .filter(s => (s as any).context?.outputType === 'analytics')
+    .filter(s => (s as unknown as { context?: { outputType?: string } }).context?.outputType === 'analytics')
     .map(s => {
       const metrics = s.metrics?.toArray() || [];
       const labelMetric = metrics.find(m => m.type === MetricType.Label);

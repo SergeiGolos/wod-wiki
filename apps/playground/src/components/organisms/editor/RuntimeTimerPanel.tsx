@@ -27,9 +27,12 @@ import { useScreenMode } from "@/panels/panel-system/useScreenMode";
 import { ScriptRuntimeProvider, useRuntimeExecution, type UseRuntimeExecutionReturn, NextEvent, ScriptRuntime } from "@/hooks/useRuntimeTimer";
 import type { IScriptRuntime, StackSnapshot } from "@/hooks/useRuntimeTimer";
 import { getActiveWorkbenchSessionStore } from "@/stores/workbenchSessionStore";
-import { getActiveCastTransport, onCastTransportChange } from "@/services/cast/castTransportRegistry";
-import type { IRpcTransport } from "@/services/cast/rpc/IRpcTransport";
-import { ChromecastRuntimeSubscription } from "@/services/cast/rpc/ChromecastRuntimeSubscription";
+import {
+  getActiveCastTransport,
+  onCastTransportChange,
+  ChromecastRuntimeSubscription,
+  type IRpcTransport,
+} from "@/hooks/useCastSignaling";
 import type { ScriptBlock, WorkoutResults } from '@/components/Editor/types';
 import type { IOutputStatement } from '@bitcobblers/wod-wiki-engine';
 import { dispatchGutterHighlights } from '@bitcobblers/wod-wiki-ui/extensions';
@@ -263,6 +266,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   // (#701)
   useEffect(() => {
     getActiveWorkbenchSessionStore().getState().setExecution(execution);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- execution identity is unstable each render; field deps avoid a setExecution loop
   }, [execution.status, execution.elapsedTime, execution.stepCount, execution.startTime]);
 
   // Auto-start only after the runtime exists; if collection is required, the
@@ -272,6 +276,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       execution.start();
       setPendingStart(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- execution identity is unstable each render; field deps avoid a setExecution loop
   }, [autoStart, pendingStart, ready, execution.status, execution.start]);
 
   // Surface the first transition to running so tour quest gating can observe
@@ -291,6 +296,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     if (externalPause && execution.status === 'running') {
       execution.pause();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- execution identity is unstable each render; field deps avoid a setExecution loop
   }, [externalPause, execution.status, execution.pause]);
 
   const handleComplete = useCallback((completed: boolean) => {
@@ -356,7 +362,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
         try { castTransport.send(reviewMessage); } catch { /* ignore */ }
       }
     }
-  }, [execution.status, createdAt, handleComplete, castTransport]);
+  }, [execution.status, execution.elapsedTime, createdAt, handleComplete, castTransport, runtime]);
 
   const handleStop = () => {
     execution.stop();

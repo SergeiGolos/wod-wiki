@@ -1,5 +1,6 @@
 import { parseDocumentSections, matchSectionIds } from '@/components/Editor/utils/sectionParser';
 import { parseScriptBlock } from '@/components/Editor/utils/parseScriptBlock';
+import { appError } from '@/lib/log';
 import type { ScriptBlock, Section } from '@/components/Editor/types';
 import { isWorkoutSectionType, type Section as EditorSection } from '@/components/Editor/types/section';
 export interface WorkbenchDocumentState {
@@ -41,7 +42,7 @@ function hydrateScriptBlock(block: ScriptBlock): ScriptBlock {
       state: (result.success ? 'parsed' : 'error') as ScriptBlock['state'],
     };
   } catch (error) {
-    console.error('[WorkbenchDocumentModel] Block parse error:', error);
+    appError('WorkbenchDocumentModel', 'Block parse error:', error);
     return block;
   }
 }

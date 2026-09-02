@@ -259,10 +259,10 @@ export class WebRtcRpcTransport implements IRpcTransport {
                         console.warn(`[WebRtcRpcTransport:${this.role}] Ignoring offer (not an answerer)`);
                         return;
                     }
-                    console.log(`[WebRtcRpcTransport:answerer] Received offer, length=${(signal as any).sdp?.length}`);
+                    console.log(`[WebRtcRpcTransport:answerer] Received offer, length=${signal.sdp.length}`);
                     await this.pc.setRemoteDescription({
                         type: 'offer',
-                        sdp: (signal as any).sdp,
+                        sdp: signal.sdp,
                     });
                     console.log(`[WebRtcRpcTransport:answerer] Remote description set — creating answer`);
                     const answer = await this.pc.createAnswer();
@@ -283,10 +283,10 @@ export class WebRtcRpcTransport implements IRpcTransport {
                         console.warn(`[WebRtcRpcTransport:${this.role}] Ignoring answer (not an offerer)`);
                         return;
                     }
-                    console.log(`[WebRtcRpcTransport:offerer] Received answer, length=${(signal as any).sdp?.length}`);
+                    console.log(`[WebRtcRpcTransport:offerer] Received answer, length=${signal.sdp.length}`);
                     await this.pc.setRemoteDescription({
                         type: 'answer',
-                        sdp: (signal as any).sdp,
+                        sdp: signal.sdp,
                     });
                     console.log(`[WebRtcRpcTransport:offerer] Remote description set — processing pending candidates…`);
                     
@@ -295,7 +295,7 @@ export class WebRtcRpcTransport implements IRpcTransport {
                     break;
                 }
                 case 'webrtc-ice': {
-                    const candidate = (signal as any).candidate;
+                    const candidate = signal.candidate;
                     if (!this.pc.remoteDescription) {
                         console.log(`[WebRtcRpcTransport:${this.role}] Buffering candidate until remote description is set`);
                         this.pendingIceCandidates.push(candidate);

@@ -59,11 +59,11 @@ export function parseScriptBlock(
       errors: [],
       success: true
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       statements: [],
       errors: [{
-        message: error?.message || 'Unknown parse error',
+        message: error instanceof Error ? error.message : 'Unknown parse error',
         severity: 'error' as const
       }],
       success: false

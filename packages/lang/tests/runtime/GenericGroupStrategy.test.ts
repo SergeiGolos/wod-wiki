@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { apply, stmtWith, makeStatement, stubRuntime } from '../harness/harness/StrategyTestHarness';
+import { apply, makeStatement, stubRuntime } from '../harness/harness/StrategyTestHarness';
 import { MetricType } from '@bitcobblers/wod-wiki-core';
 import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/components/GenericGroupStrategy';
 import {

@@ -18,7 +18,7 @@ export const modeCompartment = new Compartment();
 /**
  * Helper to reconfigure multiple compartments at once.
  */
-export function reconfigureCompartments(view: any, config: {
+export function reconfigureCompartments(view: { dispatch: (spec: { effects: readonly unknown[] }) => void }, config: {
   theme?: Extension,
   language?: Extension,
   mode?: Extension

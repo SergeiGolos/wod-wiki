@@ -343,7 +343,7 @@ export class RuntimeBlock implements IRuntimeBlock {
      */
     next(runtime: IRuntimeContext, options?: BlockLifecycleOptions): IRuntimeAction[] {
         if (!this._behaviorContext) {
-            console.warn('[RuntimeBlock] next() called before mount()');
+            RuntimeLogger.logAlways('warn', 'RuntimeBlock', 'next() called before mount()');
             return [];
         }
 
@@ -422,7 +422,7 @@ export class RuntimeBlock implements IRuntimeBlock {
             try {
                 unsub();
             } catch (err) {
-                console.error('[RuntimeBlock] Error unsubscribing event handler:', err);
+                RuntimeLogger.logAlways('error', 'RuntimeBlock', 'Error unsubscribing event handler', { error: err });
             }
         }
         this._eventUnsubscribers = [];
@@ -490,7 +490,7 @@ export class RuntimeBlock implements IRuntimeBlock {
     /**
      * Gets a specific behavior by type from the behaviors array.
      */
-    getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined {
+    getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: unknown[]) => T): T | undefined {
         return this.behaviors.find(b => b instanceof behaviorType) as T | undefined;
     }
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'bun:test';
 import { MockBlock } from '../index';
-import { IRuntimeBehavior } from '@bitcobblers/wod-wiki-engine';
+import { IRuntimeBehavior, IRuntimeActionable } from '@bitcobblers/wod-wiki-engine';
 
 describe('MockBlock', () => {
   it('should initialize with minimal configuration', () => {
@@ -37,7 +37,11 @@ describe('MockBlock', () => {
     };
 
     const block = new MockBlock('test', [mockBehavior]);
-    const mockRuntime = { clock: { now: new Date(), currentDate: new Date() } } as any;
+    const mockRuntime = {
+      clock: { now: new Date(), currentDate: new Date() },
+      do: () => {},
+      doAll: () => {},
+    } as IRuntimeActionable;
 
     block.mount(mockRuntime);
     expect(onPush).toHaveBeenCalled();

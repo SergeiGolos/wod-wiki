@@ -1,5 +1,7 @@
 import { IRuntimeAction } from "./IRuntimeAction";
 import { IBehaviorContext } from "./IBehaviorContext";
+import type { IRuntimeBlock } from "./IRuntimeBlock";
+import type { IRuntimeClock } from "./IRuntimeClock";
 
 /**
  * Generic, composable behavior contract applied to runtime blocks.
@@ -44,11 +46,11 @@ export interface IRuntimeBehavior {
    * Legacy API: called when a block is pushed onto the stack.
    * Superseded by onMount. Retained for backward-compatible mock behaviors.
    */
-  onPush?(block: any, clock: any): IRuntimeAction[];
+  onPush?(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[];
 
   /**
    * Legacy API: called when a block is popped from the stack.
    * Superseded by onUnmount. Retained for backward-compatible mock behaviors.
    */
-  onPop?(block: any, clock: any): IRuntimeAction[];
+  onPop?(block: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[];
 }

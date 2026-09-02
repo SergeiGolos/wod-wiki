@@ -71,7 +71,7 @@ export const migrationService = {
                     // 3. Migrate Result (if exists)
                     if (entry.results) {
                         // @ts-ignore - Handle potential type mismatch during migration
-                        const legacyResult = entry.results as any;
+                        const legacyResult = entry.results as unknown as WorkoutResult[];
 
                         const result: WorkoutResult = {
                             id: uuidv7(),

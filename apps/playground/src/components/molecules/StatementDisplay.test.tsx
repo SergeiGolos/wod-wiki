@@ -48,7 +48,7 @@ describe('StatementDisplay', () => {
     it('renders actions when provided', () => {
       const actions = <button data-testid="test-action">Action</button>;
 
-      const { container } = render(
+      render(
         <StatementDisplay statement={mockStatement} actions={actions} />
       );
 
@@ -256,7 +256,7 @@ describe('BlockDisplay', () => {
     });
 
     it('applies line-through to label when status is complete', () => {
-      const { container } = render(
+      render(
         <BlockDisplay label="Round 1" blockType="round" status="complete" />
       );
 
@@ -375,7 +375,7 @@ describe('MetricList', () => {
     });
 
     it('renders null when metrics is undefined', () => {
-      const { container } = render(<MetricList metrics={undefined as any} />);
+      const { container } = render(<MetricList metrics={undefined as unknown as IMetric[]} />);
 
       expect(container.firstChild).toBeNull();
     });

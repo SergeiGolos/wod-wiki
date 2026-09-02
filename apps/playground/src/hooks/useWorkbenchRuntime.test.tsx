@@ -93,7 +93,7 @@ describe('useWorkbenchRuntime', () => {
         };
 
         const lifecycle = {
-            runtime: mockRuntime as any,
+            runtime: mockRuntime as unknown as RuntimeLifecycleContextValue['runtime'],
             isInitializing: false,
             error: null,
             initializeRuntime: mock(() => { }),
@@ -121,7 +121,7 @@ describe('useWorkbenchRuntime', () => {
                         { type: MetricType.Rep, image: '10', value: '10' },
                         { type: MetricType.Resistance, image: 'BW', value: 'BW' }
                     ], 1)
-                } as any
+                } as unknown as ICodeStatement
             ],
             state: 'parsed',
             widgetIds: {},

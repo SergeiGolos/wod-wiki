@@ -209,7 +209,7 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
     if (!plugin) return;
 
     setRects([...plugin.rects]);
-    const unsubscribe = plugin.addListener((newRects: SectionRect[]) =>
+    const _unsubscribe = plugin.addListener((newRects: SectionRect[]) =>
       setRects([...newRects]),
     );
   }, [view]);

@@ -1,5 +1,4 @@
-import { ParsedCodeStatement } from '@bitcobblers/wod-wiki-core';
-import { MetricType } from '@bitcobblers/wod-wiki-core';
+import { IMetric, MetricType, ParsedCodeStatement } from '@bitcobblers/wod-wiki-core';
 import { ActionMetric } from '../runtime/compiler/metrics/ActionMetric';
 import { DistanceMetric } from '../runtime/compiler/metrics/DistanceMetric';
 import { DurationMetric } from '../runtime/compiler/metrics/DurationMetric';
@@ -14,7 +13,7 @@ import { hintMetric } from '../metrics/hints';
 import { EMPTY_UNIT } from '../runtime/compiler/metrics/dimensionFactory';
 import { SyntaxFacts, SyntaxMeta, SyntaxPrimitive } from './syntax-facts';
 
-type MetricPair = { metrics: any; meta: SyntaxMeta };
+type MetricPair = { metrics: IMetric; meta: SyntaxMeta };
 
 const PROPERTY_KEY_TO_METRIC_TYPE: Record<string, MetricType> = {
   rpe: MetricType.SessionRPE,

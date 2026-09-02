@@ -7,7 +7,7 @@ import { IScriptRuntime } from '@bitcobblers/wod-wiki-engine';
 import type { IRuntimeActionable } from '@bitcobblers/wod-wiki-engine';
 import { IBlockContext } from '@bitcobblers/wod-wiki-engine';
 import { IMetric, MetricType } from '@bitcobblers/wod-wiki-engine';
-import { IMemoryReference, TypedMemoryReference } from '@bitcobblers/wod-wiki-engine';
+import { IMemoryReference, IMemorySubscription, TypedMemoryReference } from '@bitcobblers/wod-wiki-engine';
 import { MemoryTypeEnum } from '@bitcobblers/wod-wiki-engine';
 import { IAnchorValue } from '@bitcobblers/wod-wiki-engine';
 import { IBehaviorContext, BehaviorEventType, BehaviorEventListener, SubscribeOptions, Unsubscribe } from '@bitcobblers/wod-wiki-engine';
@@ -18,6 +18,11 @@ import { IEventHandler } from '@bitcobblers/wod-wiki-engine';
 import { IEvent } from '@bitcobblers/wod-wiki-engine';
 import { TimeSpan } from '@bitcobblers/wod-wiki-engine';
 import { MetricVisibility, getMetricVisibility } from '@bitcobblers/wod-wiki-engine';
+/** Legacy two-arg behavior shape still supported by the mock harness. */
+interface LegacyBehavior {
+  onNext?(runtime: IRuntimeBlock, clock: IRuntimeClock): IRuntimeAction[] | void;
+  onDispose?(ctx: IBehaviorContext): void;
+}
 
 /**
  * Minimal stub context for MockBlock
@@ -44,8 +49,8 @@ class MockBlockContext implements IBlockContext {
       get: () => currentValue,
       set: (value: T) => { currentValue = value; },
       _subscriptions: [],
-      _memory: {} as any, // Mock
-      subscribe: (cb: any) => { (ref as any)._subscriptions.push(cb); return () => { }; }
+      _memory: {} as unknown as IScriptRuntime['memory'], // Mock
+      subscribe: (cb: IMemorySubscription<T>['callback']) => { (ref as unknown as { _subscriptions: IMemorySubscription<T>[] })._subscriptions.push(cb); return () => { }; }
     } as unknown as TypedMemoryReference<T>;
 
     this.references.push(ref);
@@ -82,8 +87,8 @@ export interface BehaviorContextRecordings {
   updateMemory: Array<{ tag: string; metrics: IMetric[] }>;
   subscribe: Array<{ eventType: BehaviorEventType; options?: SubscribeOptions; unsubscribe: Unsubscribe }>;
   markComplete: Array<{ reason?: string }>;
-  emitOutput: Array<{ type: OutputStatementType; metrics: IMetric[]; options?: any }>;
-  emitEvent: Array<{ event: any }>;
+  emitOutput: Array<{ type: OutputStatementType; metrics: IMetric[]; options?: unknown }>;
+  emitEvent: Array<{ event: IEvent }>;
 }
 
 /**
@@ -260,7 +265,7 @@ class MockBehaviorContext implements IBehaviorContext {
    */
   dispose(): void {
     for (const unsub of this._unsubscribers) {
-      try { unsub(); } catch (_e) { /* cleanup */ }
+      try { unsub(); } catch { /* cleanup */ }
     }
     this._unsubscribers = [];
   }
@@ -289,7 +294,7 @@ export interface MockBlockConfig {
   /** Pre-configured metrics */
   metrics?: IMetric[][];
   /** Custom state object accessible in conditions */
-  state?: Record<string, any>;
+  state?: Record<string, unknown>;
 }
 
 /**
@@ -319,7 +324,7 @@ export class MockBlock implements IRuntimeBlock {
   }
 
   /** Mutable state accessible in tests and condition functions */
-  public state: Record<string, any>;
+  public state: Record<string, unknown>;
 
   private _runtime?: IScriptRuntime;
   private _behaviorContext?: MockBehaviorContext;
@@ -465,7 +470,7 @@ export class MockBlock implements IRuntimeBlock {
       const usesNewApi = typeof behavior.onMount === 'function';
       const result = usesNewApi 
         ? behavior.onNext?.(ctx) 
-        : (behavior as any).onNext?.(this, clock);
+        : (behavior as unknown as LegacyBehavior).onNext?.(this, clock);
       if (result) actions.push(...result);
     }
     return actions;
@@ -534,8 +539,8 @@ export class MockBlock implements IRuntimeBlock {
     // Pass BehaviorContext to onDispose (matches production RuntimeBlock)
     const ctx = this._behaviorContext ?? new MockBehaviorContext(this, _runtime?.clock ?? { currentDate: new Date(), now: () => new Date(), nowMs: () => Date.now(), elapsed: 0, isRunning: false, spans: [], start: () => new Date(), stop: () => new Date() } as IRuntimeClock, 0);
     for (const behavior of this.behaviors) {
-      if (typeof (behavior as any).onDispose === 'function') {
-        (behavior as any).onDispose(ctx);
+      if (typeof (behavior as unknown as LegacyBehavior).onDispose === 'function') {
+        (behavior as unknown as LegacyBehavior).onDispose(ctx);
       }
     }
     // Dispose the behavior context (cleans up event subscriptions)
@@ -545,7 +550,7 @@ export class MockBlock implements IRuntimeBlock {
     }
   }
 
-  getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined {
+  getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: unknown[]) => T): T | undefined {
     return this.behaviors.find(b => b instanceof behaviorType) as T | undefined;
   }
 

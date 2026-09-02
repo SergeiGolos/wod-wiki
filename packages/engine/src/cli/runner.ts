@@ -12,7 +12,7 @@
  */
 
 function getFs() {
-  if (typeof globalThis.process?.versions?.node === 'undefined' && typeof (globalThis as any).Bun === 'undefined') {
+  if (typeof globalThis.process?.versions?.node === 'undefined' && typeof (globalThis as { Bun?: unknown }).Bun === 'undefined') {
     throw new Error('File system operations are only supported in Node / Bun environments');
   }
   // eslint-disable-next-line no-restricted-syntax -- lazy CJS require keeps node builtins out of browser bundles
@@ -120,10 +120,29 @@ export function parseCliArgs(args: string[]): CliParsedArgs {
   return result;
 }
 
-export async function readStdin(): Promise<string> {
-  if (typeof (globalThis as any).Bun?.stdin?.text === 'function') {
-    return (globalThis as any).Bun.stdin.text();
+/**
+ * Recover the Bun `Bun.stdin.text()` reader when running under Bun. The Bun
+ * global is not part of the ambient lib shape; `in`/`typeof` narrowing proves
+ * the access chain at runtime before the single unchecked cast.
+ */
+function readBunStdinText(): (() => Promise<string>) | undefined {
+  const g: unknown = globalThis;
+  if (g && typeof g === 'object' && 'Bun' in g) {
+    const bun = g.Bun;
+    if (bun && typeof bun === 'object' && 'stdin' in bun) {
+      const stdin = bun.stdin;
+      if (stdin && typeof stdin === 'object' && 'text' in stdin) {
+        const text = stdin.text;
+        if (typeof text === 'function') return text as () => Promise<string>;
+      }
+    }
   }
+  return undefined;
+}
+
+export async function readStdin(): Promise<string> {
+  const bunText = readBunStdinText();
+  if (bunText) return bunText();
   return new Promise<string>((resolve, reject) => {
     const chunks: Buffer[] = [];
     process.stdin.on('data', (chunk) => {
@@ -179,7 +198,8 @@ function printUsage(writer?: (text: string) => void): void {
   if (writer) {
     writer(text);
   } else {
-    console.log(text);
+    // CLI stdout output channel (not a debugging statement).
+    process.stdout.write(text.endsWith('\n') ? text : text + '\n');
   }
 }
 

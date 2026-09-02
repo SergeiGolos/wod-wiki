@@ -6,7 +6,7 @@
  * `segments` store and adds `attachments` + `analytics` stores.
  */
 
-import { WorkoutResults } from '../components/Editor/types';
+import type { WorkoutResults, ScriptBlock } from '../components/Editor/types';
 
 // ---------------------------------------------------------------------------
 // Segment data types — superset of old SectionType + new external sources
@@ -103,7 +103,7 @@ export interface NoteSegment {
     /** V10 — FK to the `page` store (copied from the parent note). */
     pageId?: string;
     dataType: SegmentDataType;
-    data: any;            // Structured JSON payload (the ScriptBlock for WOD sections)
+    data: ScriptBlock | null; // Structured JSON payload (the ScriptBlock for WOD sections)
     rawContent: string;   // Original markdown / source text
     createdAt: number;    // When this version was saved
     /** V10 — last time this incarnation was touched (defaults to createdAt). */

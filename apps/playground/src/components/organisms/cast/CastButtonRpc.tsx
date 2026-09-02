@@ -27,17 +27,18 @@ import { useWorkbenchSessionStore } from '@/stores/workbenchSessionStore.shim';
 import {
     CastSessionManager,
     type CastSessionHandle,
-} from '@/services/cast/rpc/CastSessionManager';
+    getCastBackend,
+    setActiveCastTransport,
+    routeRuntimeEvent,
+    type ICastBackend,
+    type ICastBackendState,
+    type IRpcTransport,
+} from '@/hooks/useCastSignaling';
 import type { ICastSubscription } from '@/hooks/useRuntimeTimer';
 import { cn } from '@/lib/utils';
 import { CastTransportProvider } from '@/contexts/CastTransportContext';
 import { ProjectionSyncProvider } from '@/contexts/ProjectionSyncContext';
 import { workbenchModeResolver } from '@/app/cast/workbenchModeResolver';
-import { getCastBackend } from '@/services/cast/getCastBackend';
-import { setActiveCastTransport } from '@/services/cast/castTransportRegistry';
-import { routeRuntimeEvent } from '@/services/cast/rpc/eventRouter';
-import type { ICastBackend, ICastBackendState } from '@/services/cast/ICastBackend';
-import type { IRpcTransport } from '@/services/cast/rpc/IRpcTransport';
 
 export const CastButtonRpc: React.FC = () => {
     const backend: ICastBackend = getCastBackend();

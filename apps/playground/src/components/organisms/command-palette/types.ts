@@ -19,7 +19,7 @@ export interface CommandPaletteResult {
   content?: string;
   type?: 'workout' | 'result' | 'action' | 'statement-part' | 'route';
   subtitle?: string;
-  payload?: any;
+  payload?: unknown;
 }
 
 /**

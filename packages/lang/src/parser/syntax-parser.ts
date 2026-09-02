@@ -1,4 +1,4 @@
-import type { Tree } from '@lezer/common';
+import type { Tree, SyntaxNode } from '@lezer/common';
 import { parser } from '../grammar/parser';
 import * as terms from '../grammar/parser.terms';
 import {
@@ -123,7 +123,7 @@ export function extractSyntaxFacts(
           }
 
           const fragmentNode = child.firstChild;
-          const primitive = mapFragmentToPrimitive(locator, source, fragmentNode as any);
+          const primitive = mapFragmentToPrimitive(locator, source, fragmentNode);
           if (primitive) statement.primitives.push(primitive);
         } while (cursor.nextSibling());
       }
@@ -181,13 +181,7 @@ function parsePropertyValue(rawValue: string): string | number | boolean | null 
 function mapFragmentToPrimitive(
   locator: LineLocator,
   source: string,
-  node: {
-    from: number;
-    to: number;
-    type: { id: number };
-    getChild: (name: string) => any;
-    cursor: () => { firstChild: () => boolean; node: { name: string; from: number; to: number }; nextSibling: () => boolean };
-  }
+  node: SyntaxNode
 ): SyntaxPrimitive | null {
   const raw = source.slice(node.from, node.to);
   const meta = createMeta(locator, node.from, node.to, raw);

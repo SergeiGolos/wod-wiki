@@ -43,18 +43,18 @@ describe("cursorFocusExtension", () => {
     expect(activeFocus?.focusedMetric?.type).toBe(MetricType.Effort);
 
     // Read decorations directly from StateField to inspect all token mark ranges
-    const internalStateField = (cursorFocusExtension as any)[0];
+    const internalStateField = (cursorFocusExtension as unknown as StateField<unknown>[])[0];
     const decos = activeState.field(internalStateField).decos;
 
     const markRanges: { from: number; to: number; text: string; cls: string }[] = [];
     const iter = decos.iter();
     while (iter.value) {
-      if ((iter.value.spec as any).class) {
+      if ((iter.value.spec as unknown as { class?: string }).class) {
         markRanges.push({
           from: iter.from,
           to: iter.to,
           text: doc.slice(iter.from, iter.to),
-          cls: (iter.value.spec as any).class,
+          cls: (iter.value.spec as unknown as { class: string }).class,
         });
       }
       iter.next();

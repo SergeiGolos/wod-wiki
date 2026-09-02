@@ -13,7 +13,6 @@
  */
 import { describe, expect, it, mock } from 'bun:test'
 
-import * as realQuery from '@bitcobblers/wod-wiki-engine'
 import { parseQuery } from '@bitcobblers/wod-wiki-engine'
 import type { FindQueryResult } from '@bitcobblers/wod-wiki-engine'
 import type { BlockIndexRow, Note } from '@/types/storage'

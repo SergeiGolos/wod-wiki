@@ -7,10 +7,17 @@
  */
 import { describe, expect, it } from 'bun:test';
 
+function rawContentOf(patch: unknown): string {
+  if (patch && typeof patch === 'object' && 'rawContent' in patch) {
+    const r = (patch as { rawContent?: unknown }).rawContent;
+    return typeof r === 'string' ? r : '';
+  }
+  return '';
+}
+
 import type { HistoryEntry } from '@/types/history';
 import type { WorkoutResult } from '@/types/storage';
 import { ContentProviderNotePersistence } from './ContentProviderNotePersistence';
-import { NotePersistenceError } from './types';
 
 // ── Shared test data ──────────────────────────────────────────────────────────
 
@@ -100,7 +107,7 @@ function makeMockProvider(overrides: Partial<{
 describe('ContentProviderNotePersistence > getNote', () => {
   it('returns entry by id with default projection', async () => {
     const { provider } = makeMockProvider();
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     const entry = await persistence.getNote(BASE_ENTRY.id);
 
@@ -111,7 +118,7 @@ describe('ContentProviderNotePersistence > getNote', () => {
 
   it('throws NOTE_NOT_FOUND for an unknown id', async () => {
     const { provider } = makeMockProvider({ entries: [] });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     await expect(persistence.getNote('does-not-exist')).rejects.toMatchObject({
       code: 'NOTE_NOT_FOUND',
@@ -122,7 +129,7 @@ describe('ContentProviderNotePersistence > getNote', () => {
     const { provider } = makeMockProvider({
       entry: { ...BASE_ENTRY, extendedResults: [WORKOUT_RESULT] },
     });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     const entry = await persistence.getNote(BASE_ENTRY.id, { projection: 'summary' });
 
@@ -137,7 +144,7 @@ describe('ContentProviderNotePersistence > getNote', () => {
         extendedResults: [OLDER_RESULT, WORKOUT_RESULT],
       },
     });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     const entry = await persistence.getNote(BASE_ENTRY.id, {
       projection: 'review',
@@ -155,7 +162,7 @@ describe('ContentProviderNotePersistence > getNote', () => {
         extendedResults: [OLDER_RESULT, WORKOUT_RESULT],
       },
     });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     const entry = await persistence.getNote(BASE_ENTRY.id, {
       projection: 'review',
@@ -169,7 +176,7 @@ describe('ContentProviderNotePersistence > getNote', () => {
     const { provider } = makeMockProvider({
       entry: { ...BASE_ENTRY, extendedResults: [WORKOUT_RESULT] },
     });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     await expect(
       persistence.getNote(BASE_ENTRY.id, {
@@ -186,7 +193,7 @@ describe('ContentProviderNotePersistence > getNote', () => {
         extendedResults: [OLDER_RESULT, WORKOUT_RESULT],
       },
     });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     const entry = await persistence.getNote(BASE_ENTRY.id, {
       projection: 'history-detail',
@@ -204,7 +211,7 @@ describe('ContentProviderNotePersistence > getNote', () => {
     const { provider } = makeMockProvider({
       entry: { ...BASE_ENTRY, attachments: [attachment] },
     });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     const entry = await persistence.getNote(BASE_ENTRY.id, { includeAttachments: true });
 
@@ -221,7 +228,7 @@ describe('ContentProviderNotePersistence > getNote', () => {
     const { provider } = makeMockProvider({
       entry: { ...BASE_ENTRY, attachments: [attachment] },
     });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     const entry = await persistence.getNote(BASE_ENTRY.id);
 
@@ -233,7 +240,7 @@ describe('ContentProviderNotePersistence > listNotes', () => {
   it('returns all entries when called with no query', async () => {
     const second = { ...BASE_ENTRY, id: 'note-bbb', title: 'Fran' };
     const { provider } = makeMockProvider({ entries: [BASE_ENTRY, second] });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     const results = await persistence.listNotes();
 
@@ -244,7 +251,7 @@ describe('ContentProviderNotePersistence > listNotes', () => {
   it('filters by specific ids', async () => {
     const second = { ...BASE_ENTRY, id: 'note-bbb', title: 'Fran' };
     const { provider } = makeMockProvider({ entries: [BASE_ENTRY, second] });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     const results = await persistence.listNotes({ ids: ['note-abc123'] });
 
@@ -255,7 +262,7 @@ describe('ContentProviderNotePersistence > listNotes', () => {
   it('applies search filter on title and content', async () => {
     const second = { ...BASE_ENTRY, id: 'note-bbb', title: 'Fran', rawContent: '# Fran' };
     const { provider } = makeMockProvider({ entries: [BASE_ENTRY, second] });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     const results = await persistence.listNotes({ search: 'Double Unders' });
 
@@ -268,7 +275,7 @@ describe('ContentProviderNotePersistence > listNotes', () => {
       ...BASE_ENTRY, id: `note-${i}`, title: `Note ${i}`,
     }));
     const { provider } = makeMockProvider({ entries });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     const page = await persistence.listNotes({ offset: 2, limit: 2 });
 
@@ -281,19 +288,19 @@ describe('ContentProviderNotePersistence > listNotes', () => {
 describe('ContentProviderNotePersistence > mutateNote', () => {
   it('updates raw content via updateEntry', async () => {
     const { provider, updateCalls } = makeMockProvider();
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     await persistence.mutateNote(BASE_ENTRY.id, {
       rawContent: '# Annie\nUpdated content',
     });
 
     expect(updateCalls).toHaveLength(1);
-    expect((updateCalls[0].patch as any).rawContent).toContain('Updated content');
+    expect(rawContentOf(updateCalls[0].patch)).toContain('Updated content');
   });
 
   it('appends a workout result and returns entry with extendedResults', async () => {
     const { provider } = makeMockProvider();
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     const entry = await persistence.mutateNote(BASE_ENTRY.id, {
       workoutResult: {
@@ -310,7 +317,7 @@ describe('ContentProviderNotePersistence > mutateNote', () => {
 
   it('throws NOTE_NOT_FOUND for an unknown locator', async () => {
     const { provider } = makeMockProvider({ entries: [] });
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     await expect(
       persistence.mutateNote('ghost-note', { rawContent: 'x' })
@@ -319,7 +326,7 @@ describe('ContentProviderNotePersistence > mutateNote', () => {
 
   it('adds an attachment via the provider', async () => {
     const { provider, savedAttachments } = makeMockProvider();
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     await persistence.mutateNote(BASE_ENTRY.id, {
       attachments: {
@@ -333,7 +340,7 @@ describe('ContentProviderNotePersistence > mutateNote', () => {
 
   it('removes an attachment via the provider', async () => {
     const { provider, deletedAttachmentIds } = makeMockProvider();
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    const persistence = new ContentProviderNotePersistence(provider);
 
     await persistence.mutateNote(BASE_ENTRY.id, {
       attachments: { remove: ['att-old-1', 'att-old-2'] },
@@ -347,8 +354,8 @@ describe('ContentProviderNotePersistence > deleteNote', () => {
   it('delegates to provider.deleteEntry', async () => {
     const deletedIds: string[] = [];
     const { provider } = makeMockProvider();
-    (provider as any).deleteEntry = async (id: string) => { deletedIds.push(id); };
-    const persistence = new ContentProviderNotePersistence(provider as any);
+    provider.deleteEntry = async (id: string) => { deletedIds.push(id); };
+    const persistence = new ContentProviderNotePersistence(provider);
 
     await persistence.deleteNote(BASE_ENTRY.id);
 

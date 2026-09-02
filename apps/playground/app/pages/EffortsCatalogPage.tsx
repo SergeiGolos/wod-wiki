@@ -136,8 +136,12 @@ export function EffortsCatalogPage({ actions }: EffortsCatalogPageProps) {
     [],
   );
 
+  // Keyed on the active WQL VALUE — the composer's mount emission repeats the
+  // committed query; refetching on it would hand useBatchedItems a fresh
+  // array identity and reset a grown batch mid-flight.
+  const activeWql = liveWql ?? wql;
+
   useEffect(() => {
-    const activeWql = liveWql ?? wql;
     const parsedActive = parseQuery(activeWql);
     // Invalid (mid-edit or committed) WQL: keep the last valid list.
     if (!isFindQuery(parsedActive) || parsedActive.error) return;
@@ -159,7 +163,7 @@ export function EffortsCatalogPage({ actions }: EffortsCatalogPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [liveWql, wql]);
+  }, [activeWql]);
 
   const handleCreateCustom = useCallback(() => {
     navigate('/effort/new?mode=create');

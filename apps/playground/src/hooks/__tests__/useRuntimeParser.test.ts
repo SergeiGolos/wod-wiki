@@ -7,6 +7,7 @@
 
 import { describe, it, expect } from 'bun:test';
 import { renderHook } from '@testing-library/react';
+import { useRuntimeParser } from '../useRuntimeParser';
 
 describe('useRuntimeParser', () => {
   it('should export createParser factory', async () => {
@@ -33,7 +34,6 @@ describe('useRuntimeParser', () => {
   });
 
   it('useRuntimeParser hook should expose a parse helper', () => {
-    const { useRuntimeParser } = require('../useRuntimeParser');
     const { result } = renderHook(() => useRuntimeParser());
     expect(typeof result.current.parse).toBe('function');
   });

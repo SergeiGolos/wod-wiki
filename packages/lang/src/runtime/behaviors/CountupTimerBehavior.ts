@@ -49,7 +49,7 @@ export class CountupTimerBehavior implements IRuntimeBehavior {
 
         // Pause — close current span
         this.subscriptions.push(
-            ctx.subscribe('timer:pause' as any, (_event, pCtx) => {
+            ctx.subscribe('timer:pause', (_event, pCtx) => {
                 if (this.isPaused) return [];
                 if (mutateTimerSpans(pCtx, closeCurrentSpan)) this.isPaused = true;
                 return [];
@@ -58,7 +58,7 @@ export class CountupTimerBehavior implements IRuntimeBehavior {
 
         // Resume — open a new span
         this.subscriptions.push(
-            ctx.subscribe('timer:resume' as any, (_event, rCtx) => {
+            ctx.subscribe('timer:resume', (_event, rCtx) => {
                 if (!this.isPaused) return [];
                 if (mutateTimerSpans(rCtx, openSpan)) this.isPaused = false;
                 return [];

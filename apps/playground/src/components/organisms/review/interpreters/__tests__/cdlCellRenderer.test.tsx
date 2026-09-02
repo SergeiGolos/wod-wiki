@@ -11,7 +11,7 @@ import type { ColumnDef } from '../../column-definition-language';
 
 // ─── Helpers ───────────────────────────────────────────────────
 
-function renderCell(columnDef: ColumnDef, row: any, indent = 0): string {
+function renderCell(columnDef: ColumnDef, row: GridRow, indent = 0): string {
   const el = React.createElement(UnifiedCellRenderer, {
     columnDef,
     row,
@@ -439,7 +439,7 @@ describe('UnifiedCellRenderer', () => {
         source: { type: 'fixed-field', field: 'index' },
         format: {
           type: 'custom',
-          render: (_value, ctx) => `prefix:${(ctx as any)?.prefix}`,
+          render: (_value, ctx) => `prefix:${ctx?.prefix}`,
           context: { prefix: 'X' },
         },
       };

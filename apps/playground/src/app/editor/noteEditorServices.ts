@@ -1,6 +1,7 @@
 import type { Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { v7 as uuidv7 } from 'uuid';
+import { appWarn } from '@/lib/log';
 import { whiteboardScriptLanguage } from '@/hooks/useRuntimeParser';
 import { IndexedDBNotePersistence, type INotePersistence } from '@/services/persistence';
 
@@ -51,7 +52,7 @@ export function createFileDropHandler(
                 },
               });
             } catch (error) {
-              console.warn('[NoteEditor] Attachment persist skipped:', error);
+              appWarn('NoteEditor', 'Attachment persist skipped:', error);
             }
           }
 

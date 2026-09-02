@@ -30,7 +30,7 @@ describe('runtimeTimerModel', () => {
       { outputType: 'segment' },
       { outputType: 'milestone' },
       { outputType: 'segment' },
-    ] as any;
+    ] as unknown as IOutputStatement[];
 
     expect(countSegmentOutputs(outputs)).toBe(2);
   });
@@ -39,7 +39,7 @@ describe('runtimeTimerModel', () => {
     const outputs = [
       { outputType: 'system' },
       { outputType: 'compiler' },
-    ] as any;
+    ] as unknown as IOutputStatement[];
 
     expect(countSegmentOutputs(outputs)).toBe(0);
   });
@@ -76,7 +76,7 @@ describe('runtimeTimerModel', () => {
         getPrimaryMetric: () => undefined,
         getDisplayMetrics: () => [],
       },
-    ] as any;
+    ] as unknown as IOutputStatement[];
 
     const results = buildWorkoutResults(outputs, {
       startTime,

@@ -1,5 +1,6 @@
 import { formatPlaygroundTimestampLabel } from '@/lib/playgroundDisplay';
 import { getScriptContent } from '@/repositories/script-loader';
+import { appWarn } from '@/lib/log';
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
 
@@ -32,7 +33,7 @@ export async function loadWorkbenchDisplayEntry(
         return entry;
       }
     } catch (error) {
-      console.warn('[WorkbenchEntryLoader] Failed to load entry from provider', error);
+      appWarn('WorkbenchEntryLoader', 'Failed to load entry from provider', error);
     }
   }
 

@@ -59,7 +59,7 @@ export const GridGraphPanel: React.FC<GridGraphPanelProps> = ({
   });
 
   const handleChartClick = useCallback(
-    (state: any) => {
+    (state: { activePayload?: Array<{ payload: GraphDataPoint }> } | null) => {
       if (!state?.activePayload?.[0]) return;
       const point = state.activePayload[0].payload as GraphDataPoint;
       // Find the row by index
@@ -137,7 +137,7 @@ export const GridGraphPanel: React.FC<GridGraphPanelProps> = ({
                       color: 'hsl(var(--popover-foreground))',
                     }}
                     labelFormatter={(idx) => `Row ${idx}`}
-                    formatter={(value: any, name: any) => {
+                    formatter={(value: number | string, name: string) => {
                       const cfg = graphConfigs.find((c) => c.dataKey === name);
                       return [
                         `${typeof value === 'number' ? value.toLocaleString() : value}${cfg?.unit ? ` ${cfg.unit}` : ''}`,

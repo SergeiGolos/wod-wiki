@@ -288,7 +288,7 @@ export function formatQueryOutput(
 
   // table
   const lines: string[] = [];
-  const matchedCount = (data.stages as any)?.matched ?? (data.stages as any)?.selected ?? data.matched?.length ?? 0;
+  const matchedCount = (data.stages as { matched?: number; selected?: number } | undefined)?.matched ?? (data.stages as { selected?: number } | undefined)?.selected ?? data.matched?.length ?? 0;
   lines.push(`Query Result (${data.series.length} series, ${matchedCount} matched facts):`);
   lines.push(
     ['Series / Group'.padEnd(20), 'Timestamp'.padEnd(16), 'Date'.padEnd(24), 'Value'.padEnd(12), 'Unit'].join(' | '),

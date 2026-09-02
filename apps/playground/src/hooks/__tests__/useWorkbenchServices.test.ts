@@ -8,6 +8,7 @@
 
 import { describe, it, expect } from 'bun:test';
 import { renderHook } from '@testing-library/react';
+import { useWorkbenchServices } from '../useWorkbenchServices';
 
 describe('useWorkbenchServices', () => {
   it('should export getAnalyticsFromLogs function', async () => {
@@ -34,7 +35,6 @@ describe('useWorkbenchServices', () => {
   });
 
   it('useWorkbenchServices hook should expose a deriveAnalytics helper', () => {
-    const { useWorkbenchServices } = require('../useWorkbenchServices');
     const { result } = renderHook(() => useWorkbenchServices());
     expect(typeof result.current.deriveAnalytics).toBe('function');
   });

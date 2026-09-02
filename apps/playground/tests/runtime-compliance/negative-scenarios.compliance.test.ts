@@ -7,7 +7,6 @@
  */
 import { describe, it, expect, afterEach } from 'bun:test';
 import { TestScript, assertions } from '@/testing/script';
-import { currentBlockType } from '../helpers/compliance-helpers';
 
 // ===========================================================================
 // Empty Script

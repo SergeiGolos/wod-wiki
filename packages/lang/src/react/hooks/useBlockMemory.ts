@@ -157,8 +157,8 @@ export function useTimerDisplay(block: IRuntimeBlock | undefined): TimerDisplayV
     // We check for the global window property set by the receiver during Chromecast sessions
     const getNow = (): number => {
         // Check if we're in a Chromecast receiver context
-        if (typeof (window as any).__chromecast_senderClockTimeMs === 'function') {
-            return (window as any).__chromecast_senderClockTimeMs();
+        if (typeof (window as unknown as { __chromecast_senderClockTimeMs?: unknown }).__chromecast_senderClockTimeMs === 'function') {
+            return (window as unknown as { __chromecast_senderClockTimeMs: () => number }).__chromecast_senderClockTimeMs();
         }
         return Date.now();
     };

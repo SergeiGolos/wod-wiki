@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, mock } from 'bun:test';
 import { cleanup, render, screen } from '@testing-library/react';
 import * as realEngine from '@bitcobblers/wod-wiki-engine';
 
-let capturedTimerDisplayProps: any;
+let capturedTimerDisplayProps: TimerDisplayProps | undefined;
 
-const MockTimerDisplay = (props: any) => {
+const MockTimerDisplay = (props: TimerDisplayProps) => {
   capturedTimerDisplayProps = props;
   return <div data-testid="timer-display" />;
 };
@@ -58,7 +58,7 @@ describe('chromecast panel adapters', () => {
     capturedTimerDisplayProps.onStop();
     capturedTimerDisplayProps.onNext();
 
-    const dispatchedNames = dispatch.mock.calls.map((call: any[]) => call[0]?.name);
+    const dispatchedNames = dispatch.mock.calls.map((call: unknown[]) => (call[0] as { name?: string } | undefined)?.name);
     expect(dispatchedNames).toEqual(['start', 'pause', 'stop', 'next']);
   });
 });

@@ -144,7 +144,7 @@ describe('IndexedDBNotePersistence', () => {
       createdAt: 456,
     };
     const { storage, contentProvider, appendedEvents, finalizedSummaries } = createHarness([latestSegment]);
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
 
     await persistence.mutateNote(note.id, {
       workoutResult: {
@@ -194,7 +194,7 @@ describe('IndexedDBNotePersistence', () => {
   it('preserves attachment descriptor ids and time spans', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider, savedAttachments } = createHarness();
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
 
     await persistence.mutateNote(note.id, {
       attachments: {
@@ -215,7 +215,7 @@ describe('IndexedDBNotePersistence', () => {
   it('selects an exact review result by result id', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider } = createHarness();
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
 
     const entry = await persistence.getNote(note.id, {
       projection: 'review',
@@ -228,7 +228,7 @@ describe('IndexedDBNotePersistence', () => {
   it('selects the newest result for a section', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider } = createHarness();
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
 
     const entry = await persistence.getNote(note.id, {
       projection: 'review',
@@ -241,7 +241,7 @@ describe('IndexedDBNotePersistence', () => {
   it('returns section history sorted newest first', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider } = createHarness();
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
 
     const entry = await persistence.getNote(note.id, {
       projection: 'history-detail',
@@ -254,7 +254,7 @@ describe('IndexedDBNotePersistence', () => {
   it('hydrates selected notes for multi-select analysis', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider } = createHarness();
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
 
     const entries = await persistence.listNotes({ ids: [note.id], projection: 'history-detail' });
 
@@ -265,7 +265,7 @@ describe('IndexedDBNotePersistence', () => {
   it('listNotes({ids}) history-detail hydrates extendedResults (all-for-note)', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider } = createHarness();
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
 
     const entries = await persistence.listNotes({ ids: [note.id], projection: 'history-detail' });
 
@@ -282,21 +282,21 @@ describe('IndexedDBNotePersistence', () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider, savedNotes } = createHarness();
     // Make the freshly-created note resolvable on the read-back getNote call.
-    (storage as any).getNote = async (id: string) =>
+    storage.getNote = async (id: string) =>
       id === note.id ? note : savedNotes.find(n => n.id === id);
     const updated: { id: string; blockContentId?: string }[] = [];
-    (contentProvider as any).updateEntry = async (id: string, patch: any) => {
+    contentProvider.updateEntry = async (id: string, patch: unknown) => {
       updated.push({ id, blockContentId: patch.blockContentId });
       return {} as HistoryEntry;
     };
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
 
     // 'canvas:home' has no note row — a static surface whose body is
     // file-backed. Recording a result must still succeed.
     await persistence.mutateNote('canvas:home', {
       workoutResult: {
         id: 'r1', blockId: 'wod-1-x', blockContentId: 'bc-x', version: 1,
-        data: { startTime: 0, endTime: 1000, duration: 1000, completed: true } as any,
+        data: { startTime: 0, endTime: 1000, duration: 1000, completed: true },
         createdAt: 1000,
       },
     });
@@ -312,7 +312,7 @@ describe('IndexedDBNotePersistence', () => {
   it('mutateNote still throws NOTE_NOT_FOUND for content mutations on a missing note', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider } = createHarness();
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
 
     await expect(
       persistence.mutateNote('ghost-note', { rawContent: '# hi' }),
@@ -324,17 +324,17 @@ describe('IndexedDBNotePersistence', () => {
     const { storage, contentProvider, savedNotes } = createHarness();
     // A real journal note: UUID id, slug = the route, body present.
     const journalNote: Note = { ...note, id: 'uuid-journal-1', slug: 'journal/2026-06-29', title: '2026-06-29' };
-    (storage as any).getNote = async (id: string) => id === journalNote.id ? journalNote : undefined;
-    (storage as any).getAllNotes = async () => [journalNote];
+    storage.getNote = async (id: string) => id === journalNote.id ? journalNote : undefined;
+    storage.getAllNotes = async () => [journalNote];
     const updated: { id: string }[] = [];
-    (contentProvider as any).updateEntry = async (id: string) => { updated.push({ id }); return {} as HistoryEntry; };
-    const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
+    contentProvider.updateEntry = async (id: string) => { updated.push({ id }); return {} as HistoryEntry; };
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider);
 
     // The recorder addresses the note by its route slug, not its UUID.
     await persistence.mutateNote('journal/2026-06-29', {
       workoutResult: {
         id: 'r1', blockId: 'wod-1-x', blockContentId: 'bc-x', version: 1,
-        data: { startTime: 0, endTime: 1000, duration: 1000, completed: true } as any,
+        data: { startTime: 0, endTime: 1000, duration: 1000, completed: true },
         createdAt: 1000,
       },
     });

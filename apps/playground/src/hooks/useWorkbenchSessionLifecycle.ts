@@ -81,15 +81,17 @@ export function useWorkbenchSessionLifecycle(deps: UseWorkbenchSessionLifecycleD
 
   useEffect(() => {
     sessionApi.getState().setRuntime(runtime);
-  }, [runtime]);
+  }, [runtime, sessionApi]);
 
   useEffect(() => {
     sessionApi.getState().setExecution(execution);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- execution identity is unstable each render; field deps avoid a setExecution loop
   }, [
     execution.status,
     execution.elapsedTime,
     execution.stepCount,
     execution.startTime,
+    sessionApi,
   ]);
 
   useEffect(() => {
@@ -100,7 +102,7 @@ export function useWorkbenchSessionLifecycle(deps: UseWorkbenchSessionLifecycleD
       handleNext,
       handleStartWorkoutAction,
     });
-  }, [handleStart, handlePause, handleStop, handleNext, handleStartWorkoutAction]);
+  }, [sessionApi, handleStart, handlePause, handleStop, handleNext, handleStartWorkoutAction]);
   // ── Document structure (push to session) ──
 
   const content = useWorkbenchSession((s) => s.content);

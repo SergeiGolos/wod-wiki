@@ -7,15 +7,19 @@ import type { Segment } from '@bitcobblers/wod-wiki-engine';
 import type { AnalyticsGroup } from '@bitcobblers/wod-wiki-engine';
 import { MetricType, type IMetric } from '@bitcobblers/wod-wiki-engine';
 import { MetricContainer } from '@bitcobblers/wod-wiki-engine';
+import type { WorkbenchSessionStore } from '@/stores/workbenchSessionStore';
+
 mock.module('@/stores/workbenchSessionStore', () => {
   const overrides = new Map();
   return {
-    useWorkbenchSession: (selector: any) => {
+    useWorkbenchSession: <T,>(selector: (state: WorkbenchSessionStore) => T) => {
       const state = {
         userOutputOverrides: overrides,
         viewMode: 'track',
         execution: { status: 'idle' },
-      };
+        setUserOverride: () => {},
+        clearUserOverride: () => {},
+      } as unknown as WorkbenchSessionStore;
       return selector ? selector(state) : state;
     },
     create: () => ({

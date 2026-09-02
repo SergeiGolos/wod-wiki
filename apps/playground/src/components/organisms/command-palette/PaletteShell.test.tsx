@@ -45,7 +45,7 @@ const EVENT_GLOBALS = [
 ] as const
 
 beforeAll(() => {
-  const w = (globalThis as Record<string, any>).window
+  const w = (globalThis as { window?: Record<string, unknown> }).window
   for (const key of EVENT_GLOBALS) {
     if (w?.[key]) (globalThis as Record<string, unknown>)[key] = w[key]
   }

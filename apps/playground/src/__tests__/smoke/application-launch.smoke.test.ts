@@ -41,7 +41,7 @@ class MockStrategy implements IRuntimeBlockStrategy {
 class MockDialect implements IDialect {
   readonly id = 'mock-dialect';
   readonly name = 'Mock Dialect';
-  analyze(_statement: any) {
+  analyze(_statement: ICodeStatement) {
     return { metrics: MetricContainer.empty() };
   }
 }
@@ -97,7 +97,7 @@ describe('Application Launch Smoke Tests', () => {
         };
 
         // Should not throw
-        expect(() => registry.process(statement as any)).not.toThrow();
+        expect(() => registry.process(statement as unknown as ICodeStatement)).not.toThrow();
         expect(statement).toBeDefined();
       });
 
@@ -113,7 +113,7 @@ describe('Application Launch Smoke Tests', () => {
         ];
 
         // Should not throw
-        expect(() => registry.processAll(statements as any)).not.toThrow();
+        expect(() => registry.processAll(statements as unknown as ICodeStatement[])).not.toThrow();
 
         // All statements should remain intact after processing
         statements.forEach(stmt => {
@@ -124,7 +124,7 @@ describe('Application Launch Smoke Tests', () => {
 
     describe('Event Bus Services', () => {
       it('should initialize SimpleEventBus', () => {
-        const bus = new SimpleEventBus<any>();
+        const bus = new SimpleEventBus<unknown>();
         expect(bus).toBeDefined();
       });
 
@@ -138,8 +138,8 @@ describe('Application Launch Smoke Tests', () => {
       });
 
       it('should allow subscription on SimpleEventBus', () => {
-        const bus = new SimpleEventBus<any>();
-        const handler = (event: any) => {};
+        const bus = new SimpleEventBus<unknown>();
+        const handler = (_event: unknown) => {};
 
         const unsub = bus.subscribe(handler);
         expect(unsub).toBeDefined();
@@ -147,7 +147,7 @@ describe('Application Launch Smoke Tests', () => {
       });
 
       it('should allow subscription on workbenchEventBus', () => {
-        const handler = (payload: any) => {};
+        const handler = (_payload: unknown) => {};
 
         const unsub = workbenchEventBus.onScrollToBlock(handler);
         expect(unsub).toBeDefined();
@@ -164,7 +164,7 @@ describe('Application Launch Smoke Tests', () => {
       });
 
       it('should allow emit on SimpleEventBus', () => {
-        const bus = new SimpleEventBus<any>();
+        const bus = new SimpleEventBus<unknown>();
         const testEvent = { type: 'test' };
 
         expect(() => bus.emit(testEvent)).not.toThrow();

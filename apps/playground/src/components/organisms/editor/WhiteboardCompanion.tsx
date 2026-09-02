@@ -339,7 +339,7 @@ export interface WhiteboardCompanionProps {
   /** Commands to display as action buttons. */
   commands: ScriptCommand[];
   /** In-memory results fallback */
-  extendedResults?: any[];
+  extendedResults?: WorkoutResult[];
 }
 
 export const WhiteboardCompanion: React.FC<WhiteboardCompanionProps> = ({
@@ -357,7 +357,7 @@ export const WhiteboardCompanion: React.FC<WhiteboardCompanionProps> = ({
   commands,
   extendedResults,
 }) => {
-  const noteId = propNoteId || (view.state as any).noteId || "current";
+  const noteId = propNoteId || (view.state as unknown as { noteId?: string }).noteId || "current";
   const section = useMemo(
     () => getSection(view, sectionId),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -409,7 +409,7 @@ export const WhiteboardCompanion: React.FC<WhiteboardCompanionProps> = ({
 
   if (!section) return null;
 
-  const lineText = (activeStatement?.meta as any)?.raw ?? "";
+  const lineText = (activeStatement?.meta as unknown as { raw?: string } | undefined)?.raw ?? "";
   const lineInContent = effectiveLine - section.startLine;
 
   // The slot is full-height and transparent. We render two absolute children:
