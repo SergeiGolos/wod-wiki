@@ -10,11 +10,11 @@ import { resolve } from 'node:path';
 // are declared explicitly (string-form globs don't inherit these aliases in
 // Vitest 4); ui keeps its own config for jsdom + testing-library setup.
 const workspaceAliases = {
-  '@bitcobblers/wod-wiki-core': resolve(__dirname, 'packages/core/src'),
-  '@bitcobblers/wod-wiki-lang': resolve(__dirname, 'packages/lang/src'),
-  '@bitcobblers/wod-wiki-wql': resolve(__dirname, 'packages/wql/src'),
-  '@bitcobblers/wod-wiki-engine': resolve(__dirname, 'packages/engine/src'),
-  '@bitcobblers/wod-wiki-ui': resolve(__dirname, 'packages/ui/src'),
+  '@bitcobblers/wod-wiki-core': resolve(import.meta.dirname, 'packages/core/src'),
+  '@bitcobblers/wod-wiki-lang': resolve(import.meta.dirname, 'packages/lang/src'),
+  '@bitcobblers/wod-wiki-wql': resolve(import.meta.dirname, 'packages/wql/src'),
+  '@bitcobblers/wod-wiki-engine': resolve(import.meta.dirname, 'packages/engine/src'),
+  '@bitcobblers/wod-wiki-ui': resolve(import.meta.dirname, 'packages/ui/src'),
 };
 
 const sourceProject = (name: string, dir: string) => ({

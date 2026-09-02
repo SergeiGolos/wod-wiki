@@ -13,9 +13,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@bitcobblers/wod-wiki-core': resolve(__dirname, '../core/src'),
-      '@bitcobblers/wod-wiki-lang': resolve(__dirname, '../lang/src'),
-      '@bitcobblers/wod-wiki-wql': resolve(__dirname, '../wql/src'),
+      '@bitcobblers/wod-wiki-core': resolve(import.meta.dirname, '../core/src'),
+      '@bitcobblers/wod-wiki-lang': resolve(import.meta.dirname, '../lang/src'),
+      '@bitcobblers/wod-wiki-wql': resolve(import.meta.dirname, '../wql/src'),
     },
   },
 });
