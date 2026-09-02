@@ -48,7 +48,7 @@ test.describe('Collection → New Journal Note → Result Persistence', () => {
     }
   });
 
-  test.afterEach(async (_fixtures, testInfo) => {
+  test.afterEach(async ({}, testInfo) => {
     const persistenceErrors = errors.filter(e =>
       e.includes('NOTE_NOT_FOUND') ||
       e.includes('mutateNote') ||

@@ -40,7 +40,7 @@ test.describe('Note Persistence — save / load / workout flow', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20_000 });
   });
 
-  test.afterEach(async (_, testInfo) => {
+  test.afterEach(async ({}, testInfo) => {
     const persistenceErrors = errors.filter(e =>
       e.includes('NOTE_NOT_FOUND') ||
       e.includes('mutateNote') ||
